@@ -31,7 +31,7 @@ export function ErrorNotice({ status, title, message, homeHref, requestId }: Err
         <p className="mt-2 text-sm text-muted-foreground">{message}</p>
 
         <a href={homeHref} className={`mt-5 ${buttonVariants({ variant: 'primary' })}`}>
-          Forum home
+          Community home
         </a>
       </CardContent>
 

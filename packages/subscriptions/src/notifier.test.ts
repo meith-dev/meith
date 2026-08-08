@@ -27,7 +27,7 @@ function post(over: Partial<PendingPost> = {}): PendingPost {
     threadId: 10,
     threadTitle: 'A thread',
     threadSlug: 'a-thread',
-    forumId: 1,
+    communityId: 1,
     authorUsername: 'ivan',
     createdAt: NOW,
     ...over,
@@ -110,7 +110,7 @@ function notifier(secret: string | null = null): SubscriptionNotifier {
         raised.push(input as Raised)
       },
     },
-    forums: { visibleForumIdsFor: async () => visible },
+    communities: { visibleCommunityIdsFor: async () => visible },
     unsubscribeSecret: secret,
     now: () => NOW,
   })
@@ -206,7 +206,7 @@ describe('instant', () => {
 
   it('advances the watermark even when everything was filtered out', async () => {
     /*
-     * The member can no longer see the forum. Not advancing would leave a
+     * The member can no longer see the community. Not advancing would leave a
      * backlog that arrives in one piece if access ever comes back.
      */
     subscriptions.pending.set(7, [])

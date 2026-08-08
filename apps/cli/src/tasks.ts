@@ -62,7 +62,7 @@ export async function taskRun(args: readonly string[]): Promise<number> {
   if (only !== undefined && selected.length === 0) {
     console.error(
       `No such task: ${only}\n` +
-        `Run \`forum task:list\` to see what is registered.`,
+        `Run \`community task:list\` to see what is registered.`,
     )
     return 1
   }

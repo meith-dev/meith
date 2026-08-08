@@ -4,14 +4,14 @@
  *
  * ## The read is permission-filtered in SQL, like every other listing here
  *
- * `live()` takes the viewer's visible forum ids and puts them in the `where`.
+ * `live()` takes the viewer's visible community ids and puts them in the `where`.
  * The alternative — read them all and drop the ones the viewer cannot see —
  * would be a filter in application code over rows the database already handed
  * over, which is the shape R4 forbids and F47 exists to prevent. An
- * announcement on a private forum must not reach the process that renders a
+ * announcement on a private community must not reach the process that renders a
  * guest's page.
  *
- * A board-wide announcement (`forum_id is null`) is visible to anybody who can
+ * A board-wide announcement (`community_id is null`) is visible to anybody who can
  * see the board. That is what board-wide means, and it is why the predicate is
  * an `or` rather than a lookup with a special case for null.
  *
@@ -33,9 +33,9 @@ import { resultRows } from './result-rows'
 export interface AnnouncementRow {
   readonly id: number
   /** `null` for a board-wide announcement. */
-  readonly forumId: number | null
-  readonly forumTitle: string | null
-  readonly forumSlug: string | null
+  readonly communityId: number | null
+  readonly communityTitle: string | null
+  readonly communitySlug: string | null
   readonly title: string
   /**
    * Markdown source. Rendered by the caller — there is no stored render.
@@ -55,7 +55,7 @@ export interface AnnouncementRow {
 }
 
 export interface AnnouncementInput {
-  readonly forumId: number | null
+  readonly communityId: number | null
   readonly title: string
   readonly message: string
   readonly startsAt: Date
@@ -66,13 +66,13 @@ export interface AnnouncementInput {
 function toRow(row: Record<string, unknown>): AnnouncementRow {
   return {
     id: Number(row.id),
-    forumId: row.forum_id === null ? null : Number(row.forum_id),
-    forumTitle: row.forum_title === null || row.forum_title === undefined
+    communityId: row.community_id === null ? null : Number(row.community_id),
+    communityTitle: row.community_title === null || row.community_title === undefined
       ? null
-      : String(row.forum_title),
-    forumSlug: row.forum_slug === null || row.forum_slug === undefined
+      : String(row.community_title),
+    communitySlug: row.community_slug === null || row.community_slug === undefined
       ? null
-      : String(row.forum_slug),
+      : String(row.community_slug),
     title: String(row.title),
     message: sourceAsMarkdown(String(row.message), Number(row.body_format ?? BodyFormat.Markdown)),
     authorUserId: row.author_user_id === null ? null : Number(row.author_user_id),
@@ -90,15 +90,15 @@ export class PostgresAnnouncementRepository {
   /**
    * What this viewer should see right now, newest first.
    *
-   * `scope` is the forum being looked at, or `null` on the board index. On a
-   * forum page the viewer gets that forum's announcements **and** the
+   * `scope` is the community being looked at, or `null` on the board index. On a
+   * community page the viewer gets that community's announcements **and** the
    * board-wide ones, which is what an announcement being board-wide means — the
    * alternative would hide the board's own notice on every page except the
    * index, which is the page fewest people arrive on.
    */
   async live(input: {
     readonly now: Date
-    readonly visibleForumIds: readonly number[]
+    readonly visibleCommunityIds: readonly number[]
     readonly scope?: number | null
   }): Promise<readonly AnnouncementRow[]> {
     const scope = input.scope ?? null
@@ -109,24 +109,24 @@ export class PostgresAnnouncementRepository {
      * query degrades to "board-wide only" without a branch.
      */
     const visible = sql`${sql.raw('ARRAY[')}${
-      input.visibleForumIds.length === 0
+      input.visibleCommunityIds.length === 0
         ? sql.raw('')
-        : sql.join(input.visibleForumIds.map((id) => sql`${id}`), sql`, `)
+        : sql.join(input.visibleCommunityIds.map((id) => sql`${id}`), sql`, `)
     }${sql.raw(']::int[]')}`
 
     const rows = resultRows(
       await this.db.execute(sql`
-        select a.id, a.forum_id, a.title, a.message, a.body_format, a.author_user_id,
+        select a.id, a.community_id, a.title, a.message, a.body_format, a.author_user_id,
                a.author_username, a.starts_at, a.ends_at, a.enabled, a.created_at,
-               f.title as forum_title, f.slug as forum_slug
+               f.title as community_title, f.slug as community_slug
           from announcements a
-          left join forums f on f.id = a.forum_id
+          left join communities f on f.id = a.community_id
          where a.enabled
            and a.starts_at <= ${input.now}
            and (a.ends_at is null or a.ends_at > ${input.now})
            and (
-                 a.forum_id is null
-                 or (a.forum_id = ${scope} and a.forum_id = any(${visible}))
+                 a.community_id is null
+                 or (a.community_id = ${scope} and a.community_id = any(${visible}))
                )
          order by a.starts_at desc, a.id desc
       `),
@@ -139,11 +139,11 @@ export class PostgresAnnouncementRepository {
   async list(): Promise<readonly AnnouncementRow[]> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select a.id, a.forum_id, a.title, a.message, a.body_format, a.author_user_id,
+        select a.id, a.community_id, a.title, a.message, a.body_format, a.author_user_id,
                a.author_username, a.starts_at, a.ends_at, a.enabled, a.created_at,
-               f.title as forum_title, f.slug as forum_slug
+               f.title as community_title, f.slug as community_slug
           from announcements a
-          left join forums f on f.id = a.forum_id
+          left join communities f on f.id = a.community_id
          order by a.starts_at desc, a.id desc
       `),
     ) as Array<Record<string, unknown>>
@@ -154,11 +154,11 @@ export class PostgresAnnouncementRepository {
   async find(id: number): Promise<AnnouncementRow | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select a.id, a.forum_id, a.title, a.message, a.body_format, a.author_user_id,
+        select a.id, a.community_id, a.title, a.message, a.body_format, a.author_user_id,
                a.author_username, a.starts_at, a.ends_at, a.enabled, a.created_at,
-               f.title as forum_title, f.slug as forum_slug
+               f.title as community_title, f.slug as community_slug
           from announcements a
-          left join forums f on f.id = a.forum_id
+          left join communities f on f.id = a.community_id
          where a.id = ${id}
       `),
     ) as Array<Record<string, unknown>>
@@ -185,10 +185,10 @@ export class PostgresAnnouncementRepository {
 
     const rows = resultRows(
       await this.db.execute(sql`
-        insert into announcements (forum_id, title, message, body_format,
+        insert into announcements (community_id, title, message, body_format,
                                    author_user_id, author_username, starts_at,
                                    ends_at, enabled)
-        values (${input.forumId}, ${input.title}, ${input.message},
+        values (${input.communityId}, ${input.title}, ${input.message},
                 ${BodyFormat.Markdown}, ${input.authorUserId},
                 coalesce((select username from users where id = ${input.authorUserId}), ''),
                 ${input.startsAt}, ${input.endsAt}, ${input.enabled})
@@ -213,7 +213,7 @@ export class PostgresAnnouncementRepository {
     const rows = resultRows(
       await this.db.execute(sql`
         update announcements
-           set forum_id = ${input.forumId}, title = ${input.title},
+           set community_id = ${input.communityId}, title = ${input.title},
                message = ${input.message}, body_format = ${BodyFormat.Markdown},
                starts_at = ${input.startsAt},
                ends_at = ${input.endsAt}, enabled = ${input.enabled}

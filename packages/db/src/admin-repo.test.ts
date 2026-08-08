@@ -1,7 +1,7 @@
 /**
  * The operator-level lookups and the promotion write, on real Postgres.
  *
- * These back `forum user:promote`, which is how the first administrator gets
+ * These back `community user:promote`, which is how the first administrator gets
  * made — so "did the privilege change actually land, and did every cached actor
  * get retired" is the whole point.
  */

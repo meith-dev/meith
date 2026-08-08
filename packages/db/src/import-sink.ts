@@ -9,7 +9,7 @@
  * ## Idempotency is a unique index, not a check-then-insert
  *
  * Each table already carries its MyBB id in a partial unique index —
- * `users.legacy_mybb_uid`, `forums.legacy_mybb_fid`, `threads.legacy_mybb_tid`,
+ * `users.legacy_mybb_uid`, `communities.legacy_mybb_fid`, `threads.legacy_mybb_tid`,
  * `posts.legacy_mybb_pid` — so every write here is an `insert … on conflict
  * … do update`. Reading first and inserting if absent would be a race with
  * nothing but optimism between the two statements, and a resumed import is
@@ -24,7 +24,7 @@
  *
  * A row whose parent was never imported is **skipped with a reason**, never
  * invented. A post in an unknown thread could be attached to some placeholder;
- * a thread in an unknown forum could go to a catch-all. Both would put content
+ * a thread in an unknown community could go to a catch-all. Both would put content
  * on the board in a place its author did not choose, and an operator reading
  * "42 skipped: thread 9912 not imported" can go and find out why — where an
  * operator reading nothing cannot.
@@ -67,9 +67,9 @@ interface ImportedUserRow {
   readonly legacyGroupId: number
 }
 
-interface ImportedForumRow {
+interface ImportedCommunityRow {
   readonly legacyId: number
-  readonly type: 'category' | 'forum' | 'link'
+  readonly type: 'category' | 'community' | 'link'
   readonly title: string
   readonly description: string | null
   readonly legacyParentId: number | null
@@ -81,7 +81,7 @@ type Visibility = 'visible' | 'unapproved' | 'deleted'
 
 interface ImportedThreadRow {
   readonly legacyId: number
-  readonly legacyForumId: number
+  readonly legacyCommunityId: number
   readonly title: string
   readonly legacyAuthorId: number
   readonly authorUsername: string
@@ -97,7 +97,7 @@ interface ImportedThreadRow {
 interface ImportedPostRow {
   readonly legacyId: number
   readonly legacyThreadId: number
-  readonly legacyForumId: number
+  readonly legacyCommunityId: number
   readonly legacyAuthorId: number
   readonly authorUsername: string
   readonly body: string
@@ -256,7 +256,7 @@ export class PostgresImportSink {
   }
 
   /**
-   * Forums, in whatever order they arrive.
+   * Communities, in whatever order they arrive.
    *
    * A child whose parent is later in the same page — or in a later page — is
    * skipped rather than reparented to the root, and the next run picks it up
@@ -267,17 +267,17 @@ export class PostgresImportSink {
    * here: they are F16's invariant, and two places maintaining a materialised
    * path is how it stops being one.
    */
-  async putForums(rows: readonly ImportedForumRow[]): Promise<WriteResult> {
+  async putCommunities(rows: readonly ImportedCommunityRow[]): Promise<WriteResult> {
     if (rows.length === 0) return empty
 
     const parents = await resolveLegacyIds(
       this.db,
-      'forum',
+      'community',
       parentIds(rows.map((row) => row.legacyParentId)),
     )
 
     const skipped: Skip[] = []
-    const writable: { row: ImportedForumRow; parentId: number | null }[] = []
+    const writable: { row: ImportedCommunityRow; parentId: number | null }[] = []
 
     for (const row of rows) {
       if (row.legacyParentId === null || row.legacyParentId === 0) {
@@ -288,7 +288,7 @@ export class PostgresImportSink {
       if (parentId === undefined) {
         skipped.push({
           legacyId: row.legacyId,
-          reason: `parent forum ${row.legacyParentId} not imported yet`,
+          reason: `parent community ${row.legacyParentId} not imported yet`,
         })
         continue
       }
@@ -299,7 +299,7 @@ export class PostgresImportSink {
 
     const written = resultRows<Written>(
       await this.db.execute(sql`
-      insert into forums (
+      insert into communities (
         type, title, description, slug, parent_id, path, depth,
         display_order, link_url, legacy_mybb_fid
       )
@@ -307,7 +307,7 @@ export class PostgresImportSink {
         writable.map(
           ({ row, parentId }) => sql`(
             ${row.type}, ${row.title}, ${row.description},
-            ${slugFor(row.title, row.legacyId, 'forum')},
+            ${slugFor(row.title, row.legacyId, 'community')},
             ${parentId}, '', 0,
             ${row.displayOrder}, ${row.linkUrl}, ${row.legacyId}
           )`,
@@ -325,7 +325,7 @@ export class PostgresImportSink {
     `),
     )
 
-    await this.#map('forum', written)
+    await this.#map('community', written)
     await this.#rebuildPaths()
     return tally(written, skipped)
   }
@@ -333,28 +333,28 @@ export class PostgresImportSink {
   async putThreads(rows: readonly ImportedThreadRow[]): Promise<WriteResult> {
     if (rows.length === 0) return empty
 
-    const forums = await resolveLegacyIds(this.db, 'forum', parentIds(rows.map((r) => r.legacyForumId)))
+    const communities = await resolveLegacyIds(this.db, 'community', parentIds(rows.map((r) => r.legacyCommunityId)))
     const authors = await resolveLegacyIds(this.db, 'user', parentIds(rows.map((r) => r.legacyAuthorId)))
 
     const skipped: Skip[] = []
-    const writable: { row: ImportedThreadRow; forumId: number; authorId: number | null }[] = []
+    const writable: { row: ImportedThreadRow; communityId: number; authorId: number | null }[] = []
 
     for (const row of rows) {
-      const forumId = forums.get(row.legacyForumId)
-      if (forumId === undefined) {
+      const communityId = communities.get(row.legacyCommunityId)
+      if (communityId === undefined) {
         skipped.push({
           legacyId: row.legacyId,
-          reason: `forum ${row.legacyForumId} not imported`,
+          reason: `community ${row.legacyCommunityId} not imported`,
         })
         continue
       }
       /*
-       * A missing *author* is not fatal the way a missing forum is. MyBB keeps
+       * A missing *author* is not fatal the way a missing community is. MyBB keeps
        * the username on the row and sets `uid` to 0 for a deleted member, so the
        * post still has an attributable name — which is exactly what the schema's
        * nullable `author_user_id` beside a non-null `author_username` is for.
        */
-      writable.push({ row, forumId, authorId: authors.get(row.legacyAuthorId) ?? null })
+      writable.push({ row, communityId, authorId: authors.get(row.legacyAuthorId) ?? null })
     }
 
     if (writable.length === 0) return { ...empty, skipped }
@@ -362,14 +362,14 @@ export class PostgresImportSink {
     const written = resultRows<Written>(
       await this.db.execute(sql`
       insert into threads (
-        forum_id, title, slug, author_user_id, author_username,
+        community_id, title, slug, author_user_id, author_username,
         created_at, last_post_at, reply_count, view_count,
         is_sticky, is_locked, visibility, legacy_mybb_tid
       )
       values ${sql.join(
         writable.map(
-          ({ row, forumId, authorId }) => sql`(
-            ${forumId}, ${row.title}, ${slugFor(row.title, row.legacyId, 'thread')},
+          ({ row, communityId, authorId }) => sql`(
+            ${communityId}, ${row.title}, ${slugFor(row.title, row.legacyId, 'thread')},
             ${authorId}, ${row.authorUsername},
             ${row.createdAt}, ${row.lastPostAt}, ${row.replyCount}, ${row.viewCount},
             ${row.isSticky}, ${row.isLocked}, ${row.visibility}, ${row.legacyId}
@@ -378,7 +378,7 @@ export class PostgresImportSink {
         sql`, `,
       )}
       on conflict (legacy_mybb_tid) where legacy_mybb_tid is not null do update set
-        forum_id = excluded.forum_id,
+        community_id = excluded.community_id,
         title = excluded.title,
         author_user_id = excluded.author_user_id,
         author_username = excluded.author_username,
@@ -419,25 +419,25 @@ export class PostgresImportSink {
     if (rows.length === 0) return empty
 
     const threads = await resolveLegacyIds(this.db, 'thread', parentIds(rows.map((r) => r.legacyThreadId)))
-    const forums = await resolveLegacyIds(this.db, 'forum', parentIds(rows.map((r) => r.legacyForumId)))
+    const communities = await resolveLegacyIds(this.db, 'community', parentIds(rows.map((r) => r.legacyCommunityId)))
     const authors = await resolveLegacyIds(this.db, 'user', parentIds(rows.map((r) => r.legacyAuthorId)))
 
     const skipped: Skip[] = []
-    const writable: { row: ImportedPostRow; threadId: number; forumId: number; authorId: number | null }[] = []
+    const writable: { row: ImportedPostRow; threadId: number; communityId: number; authorId: number | null }[] = []
 
     for (const row of rows) {
       const threadId = threads.get(row.legacyThreadId)
-      const forumId = forums.get(row.legacyForumId)
+      const communityId = communities.get(row.legacyCommunityId)
 
       if (threadId === undefined) {
         skipped.push({ legacyId: row.legacyId, reason: `thread ${row.legacyThreadId} not imported` })
         continue
       }
-      if (forumId === undefined) {
-        skipped.push({ legacyId: row.legacyId, reason: `forum ${row.legacyForumId} not imported` })
+      if (communityId === undefined) {
+        skipped.push({ legacyId: row.legacyId, reason: `community ${row.legacyCommunityId} not imported` })
         continue
       }
-      writable.push({ row, threadId, forumId, authorId: authors.get(row.legacyAuthorId) ?? null })
+      writable.push({ row, threadId, communityId, authorId: authors.get(row.legacyAuthorId) ?? null })
     }
 
     if (writable.length === 0) return { ...empty, skipped }
@@ -445,14 +445,14 @@ export class PostgresImportSink {
     const written = resultRows<Written>(
       await this.db.execute(sql`
       insert into posts (
-        thread_id, forum_id, author_user_id, author_username,
+        thread_id, community_id, author_user_id, author_username,
         message, body_format, created_at, edited_at, visibility, is_first_post,
         legacy_mybb_pid
       )
       values ${sql.join(
         writable.map(
-          ({ row, threadId, forumId, authorId }) => sql`(
-            ${threadId}, ${forumId}, ${authorId}, ${row.authorUsername},
+          ({ row, threadId, communityId, authorId }) => sql`(
+            ${threadId}, ${communityId}, ${authorId}, ${row.authorUsername},
             ${row.body}, ${BodyFormat.LegacyBBCode}, ${row.createdAt}, ${row.editedAt},
             ${row.visibility}, false, ${row.legacyId}
           )`,
@@ -461,7 +461,7 @@ export class PostgresImportSink {
       )}
       on conflict (legacy_mybb_pid) where legacy_mybb_pid is not null do update set
         thread_id = excluded.thread_id,
-        forum_id = excluded.forum_id,
+        community_id = excluded.community_id,
         author_user_id = excluded.author_user_id,
         author_username = excluded.author_username,
         message = excluded.message,
@@ -492,26 +492,26 @@ export class PostgresImportSink {
   }
 
   /**
-   * Recompute `path` and `depth` for every forum.
+   * Recompute `path` and `depth` for every community.
    *
    * A recursive CTE over the whole tree rather than per-row arithmetic, because
-   * a page of forums can arrive with parents and children in any order and the
-   * only cheap way to be right is to derive the lot. There are dozens of forums
+   * a page of communities can arrive with parents and children in any order and the
+   * only cheap way to be right is to derive the lot. There are dozens of communities
    * on the largest board, so "the lot" costs nothing.
    */
   async #rebuildPaths(): Promise<void> {
     await this.db.execute(sql`
       with recursive tree as (
         select id, parent_id, id::text as path, 0 as depth
-          from forums where parent_id is null
+          from communities where parent_id is null
         union all
         select f.id, f.parent_id, t.path || '.' || f.id::text, t.depth + 1
-          from forums f join tree t on f.parent_id = t.id
+          from communities f join tree t on f.parent_id = t.id
       )
-      update forums set path = tree.path, depth = tree.depth
+      update communities set path = tree.path, depth = tree.depth
         from tree
-       where forums.id = tree.id
-         and (forums.path is distinct from tree.path or forums.depth is distinct from tree.depth)
+       where communities.id = tree.id
+         and (communities.path is distinct from tree.path or communities.depth is distinct from tree.depth)
     `)
   }
 

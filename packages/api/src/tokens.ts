@@ -20,7 +20,7 @@
  *
  * ## Shape: prefix, secret, hash
  *
- * `forum_pat_<prefix>_<secret>`. Three parts, each earning its place:
+ * `community_pat_<prefix>_<secret>`. Three parts, each earning its place:
  *
  *  - a **fixed prefix** so a leaked token is greppable. Secret scanners key on
  *    exactly this, and a board whose tokens look like random base64 will have
@@ -42,7 +42,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 
 /** The greppable marker. Changing it breaks every secret scanner rule. */
-export const TOKEN_PREFIX = 'forum_pat'
+export const TOKEN_PREFIX = 'community_pat'
 
 const LOOKUP_LENGTH = 8
 const SECRET_BYTES = 32
@@ -62,7 +62,7 @@ const SECRET_BYTES = 32
  * log.
  */
 export const SCOPES = [
-  'forums:read',
+  'communities:read',
   'threads:read',
   'threads:write',
   'posts:read',
@@ -132,7 +132,7 @@ export interface ParsedToken {
  * Refuses anything that is not exactly the three-part shape. A lenient parser
  * here would let a truncated token match a prefix and then fail the hash
  * comparison, which is the same outcome by a longer route — but it would also
- * let `forum_pat__` look up the empty prefix, and an empty lookup that matched a
+ * let `community_pat__` look up the empty prefix, and an empty lookup that matched a
  * row would be an authentication bypass. Length is checked, not assumed.
  */
 export function parseToken(presented: string): ParsedToken | null {

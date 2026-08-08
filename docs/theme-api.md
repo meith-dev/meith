@@ -27,7 +27,7 @@ export const acmeTheme = defineTheme({
 })
 ```
 
-Register it in `forum.config.ts` and set `defaultTheme` to its key.
+Register it in `community.config.ts` and set `defaultTheme` to its key.
 
 Two worked examples bracket the range a theme can occupy:
 
@@ -93,7 +93,7 @@ Worth knowing before they fire.
 >   markup to the build's theme. It is how a board offers three looks without
 >   maintaining three sets of components.
 > - **Pairing rules matter more.** `midnight`'s note about overriding
->   `ForumRow` and `CategoryBlock` together is now a rule a *member* can trip
+>   `CommunityRow` and `CategoryBlock` together is now a rule a *member* can trip
 >   over, not only an operator.
 
 ## What the freeze covers
@@ -264,7 +264,7 @@ design system that pulled a client boundary in behind a `<Card>` would cost the
 board the property the slot registry exists to protect.
 
 That is also why `buttonVariants` is a separate module from `Button`. Almost
-every button on a forum is not a button: "New thread" is a link, "Mark read" is a
+every button on a community is not a button: "New thread" is a link, "Mark read" is a
 native form submit. Both want the class recipe on a plain element —
 
 ```tsx
@@ -282,8 +282,8 @@ dependency a theme *needs*, and a theme that wants its own markup from scratch
 
 ## Testing a theme
 
-`apps/forum/src/theme/contract.test.ts` renders **every theme registered in
-`forum.config.ts`** through every stable slot with the same fixture models, and
+`apps/community/src/theme/contract.test.ts` renders **every theme registered in
+`community.config.ts`** through every stable slot with the same fixture models, and
 asserts the properties that are true of any theme:
 
 - Required slots are filled.

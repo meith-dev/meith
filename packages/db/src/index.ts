@@ -24,11 +24,11 @@ export {
 } from './authorization-source'
 export {
   groupRowToPermissionSet,
-  forumRowToOverride,
+  communityRowToOverride,
   type PermissionRow,
 } from './permissions-map'
 export { ActorBuilder, type ActorBuilderConfig } from './actor-builder'
-export { PostgresForumRepository } from './forum-repo'
+export { PostgresCommunityRepository } from './community-repo'
 export { PostgresThreadRepository } from './thread-repo'
 export { PostgresThreadWriteRepository } from './thread-writes'
 export { PostgresPostRepository } from './post-repo'
@@ -118,12 +118,12 @@ export {
 } from './user-bulk-repo'
 export {
   MODERATOR_RIGHTS,
-  PostgresForumAdminRepository,
+  PostgresCommunityAdminRepository,
   type AppointModeratorInput,
-  type ForumOptionsInput,
+  type CommunityOptionsInput,
   type ModeratorAppointmentRow,
   type ModeratorRight,
-} from './forum-admin-repo'
+} from './community-admin-repo'
 export { PostgresRelationRepository } from './relation-repo'
 export { PostgresReputationRepository } from './reputation-repo'
 export { PostgresPollRepository } from './poll-repo'
@@ -143,7 +143,7 @@ export { PostgresModCpRepository } from './modcp-repo'
 export {
   applyAncestorVisibilityChange,
   applyVisibilityChangeCounters,
-  repairForumLastPostChain,
+  repairCommunityLastPostChain,
   repairThreadLastPost,
   type VisibilityChange,
 } from './visibility-counters'
@@ -173,7 +173,7 @@ export {
   type FeedPost,
   type FeedScope,
   type FeedThread,
-  type SitemapForum,
+  type SitemapCommunity,
   type SitemapThread,
 } from './feed-repo'
 export {

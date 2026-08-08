@@ -25,10 +25,10 @@ afterAll(async () => {
 })
 
 describe('seedBoard', () => {
-  it('creates the requested users, categories and forums', async () => {
+  it('creates the requested users, categories and communities', async () => {
     expect(board.userIds).toHaveLength(SMOKE_SCALE.users)
     expect(board.categoryIds).toHaveLength(SMOKE_SCALE.categories)
-    expect(board.forumIds).toHaveLength(SMOKE_SCALE.forums)
+    expect(board.communityIds).toHaveLength(SMOKE_SCALE.communities)
     expect(board.threadIds).toHaveLength(SMOKE_SCALE.threads)
   })
 
@@ -51,39 +51,39 @@ describe('seedBoard', () => {
 
   /*
    * A flat board would let a broken ancestor walk pass every test, so the
-   * seeder deliberately nests about a quarter of forums under another forum.
+   * seeder deliberately nests about a quarter of communities under another community.
    */
   it('produces a genuinely nested tree, not a flat one', async () => {
-    const forums = await harness.db
-      .select({ depth: schema.forums.depth, path: schema.forums.path })
-      .from(schema.forums)
+    const communities = await harness.db
+      .select({ depth: schema.communities.depth, path: schema.communities.path })
+      .from(schema.communities)
 
-    const maxDepth = Math.max(...forums.map((f) => f.depth))
+    const maxDepth = Math.max(...communities.map((f) => f.depth))
     expect(maxDepth).toBeGreaterThanOrEqual(2)
 
     // Every path is well formed: dot-separated positive ids, no empty segments.
-    for (const forum of forums) {
-      expect(forum.path).toMatch(/^\d+(\.\d+)*$/)
+    for (const community of communities) {
+      expect(community.path).toMatch(/^\d+(\.\d+)*$/)
     }
   })
 
-  it('leaves every forum path consistent with its depth', async () => {
-    const forums = await harness.db
-      .select({ depth: schema.forums.depth, path: schema.forums.path })
-      .from(schema.forums)
+  it('leaves every community path consistent with its depth', async () => {
+    const communities = await harness.db
+      .select({ depth: schema.communities.depth, path: schema.communities.path })
+      .from(schema.communities)
 
-    for (const forum of forums) {
-      expect(forum.path.split('.').length - 1).toBe(forum.depth)
+    for (const community of communities) {
+      expect(community.path.split('.').length - 1).toBe(community.depth)
     }
   })
 
-  it('spreads threads across more than one forum', async () => {
+  it('spreads threads across more than one community', async () => {
     const threads = await harness.db
-      .select({ forumId: schema.threads.forumId })
+      .select({ communityId: schema.threads.communityId })
       .from(schema.threads)
 
-    // One forum holding everything would hide any per-forum query cost.
-    expect(new Set(threads.map((t) => t.forumId)).size).toBeGreaterThan(1)
+    // One community holding everything would hide any per-community query cost.
+    expect(new Set(threads.map((t) => t.communityId)).size).toBeGreaterThan(1)
   })
 
   it('is deterministic — the same seed rebuilds the same board', async () => {

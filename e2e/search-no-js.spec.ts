@@ -11,7 +11,7 @@
  *   - **A thread could not be found by its title.** The indexed document read
  *     `posts.subject`, a column nothing on this board writes; the thread's
  *     title is on `threads`. Bodies matched, titles did not, and searching for
- *     the title of a thread is the most common search a forum gets.
+ *     the title of a thread is the most common search a community gets.
  *   - **Nothing filled the index by itself.** A bulk insert writes no document,
  *     so an imported board answered everything with nothing until an operator
  *     knew to run a command.

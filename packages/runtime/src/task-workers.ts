@@ -13,7 +13,7 @@
  */
 import type { TaskWorkers } from '@meith/tasks'
 import { BanService, type BanRepository } from '@meith/accounts'
-import { SubscriptionNotifier, type SubscriptionRepository, type VisibleForumSource } from '@meith/subscriptions'
+import { SubscriptionNotifier, type SubscriptionRepository, type VisibleCommunitySource } from '@meith/subscriptions'
 import type { NotificationService } from '@meith/notifications'
 import { WarningService, type WarningRepository } from '@meith/moderation'
 import { PromotionService, type PromotionGuards } from '@meith/groups'
@@ -73,7 +73,7 @@ export interface TaskWorkerDeps {
   readonly warnings: WarningRepository
   /**
    * F56's subscriptions, and the two things telling somebody about one needs:
-   * F55's notification service, and the answer to "which forums may this member
+   * F55's notification service, and the answer to "which communities may this member
    * still see" — which comes from the Authorizer, per member, because a
    * subscription is not a standing grant.
    *
@@ -83,7 +83,7 @@ export interface TaskWorkerDeps {
   readonly subscriptions?: {
     readonly repository: SubscriptionRepository
     readonly notifications: NotificationService
-    readonly forums: VisibleForumSource
+    readonly communities: VisibleCommunitySource
     /** Signs F56's no-login unsubscribe links. Null leaves them out. */
     readonly unsubscribeSecret: string | null
   }
@@ -360,7 +360,7 @@ function subscriptionNotifier(deps: TaskWorkerDeps): SubscriptionNotifier {
   const wiring = deps.subscriptions!
   return new SubscriptionNotifier({
     subscriptions: wiring.repository,
-    forums: wiring.forums,
+    communities: wiring.communities,
     unsubscribeSecret: wiring.unsubscribeSecret,
     notifications: {
       async raise(input) {

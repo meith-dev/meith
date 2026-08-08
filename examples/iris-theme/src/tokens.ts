@@ -20,7 +20,7 @@
  * ## The values are measured, not eyeballed
  *
  * Every pair the board paints is checked against WCAG AA by
- * `apps/forum/src/view/contrast.test.ts`, which reads the theme registry —
+ * `apps/community/src/view/contrast.test.ts`, which reads the theme registry —
  * registering this theme enrolled it. The violets below keep (roughly) the
  * default greens' lightness, so the button label, the hovered button and the
  * focus ring all clear their thresholds with room. If you change a value, that

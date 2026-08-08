@@ -34,7 +34,7 @@ export class PostgresThemeRepository {
    *
    * One query rather than one per registered theme, and it returns *rows*
    * rather than an answer about themes: which themes exist is
-   * `forum.config.ts`'s business (invariant 6), and a row here is only ever the
+   * `community.config.ts`'s business (invariant 6), and a row here is only ever the
    * exception to what a theme ships with. A board that has never opened the
    * theme screen returns nothing from this and renders exactly as it did before
    * the table had a writer.

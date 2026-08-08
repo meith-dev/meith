@@ -48,7 +48,7 @@ export class SubscriptionService {
     /*
      * The same answer for "you cannot see this" and "this does not exist". A
      * subscribe endpoint that distinguished them is an existence oracle over
-     * every private forum on the board — the trap F51's merge box named.
+     * every private community on the board — the trap F51's merge box named.
      */
     if (!input.mayView) throw new ValidationError('That does not exist.')
 
@@ -94,17 +94,17 @@ export class SubscriptionService {
   /**
    * Everything one member follows.
    *
-   * `visibleForumIds` is required rather than optional: a subscription to a
-   * forum that has since been made private must not render its title back at
+   * `visibleCommunityIds` is required rather than optional: a subscription to a
+   * community that has since been made private must not render its title back at
    * somebody who can no longer read it, and an optional argument is a default
    * somebody will eventually take.
    */
   async list(
     userId: number,
-    visibleForumIds: readonly number[],
+    visibleCommunityIds: readonly number[],
   ): Promise<readonly SubscriptionRow[]> {
     return this.repository.listFor(userId, {
-      visibleForumIds,
+      visibleCommunityIds,
       limit: SUBSCRIPTIONS_PAGE_SIZE,
     })
   }

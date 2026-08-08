@@ -20,11 +20,11 @@
  *
  * ## Permission is re-checked at notify time, per member
  *
- * A subscription is not a standing grant. A forum can be made private, a group
+ * A subscription is not a standing grant. A community can be made private, a group
  * can lose `canView`, a thread can be moved somewhere the subscriber cannot
  * read — all after the subscription was created, and all of them mean the
  * member must not be told what happened there. The visible set is resolved
- * through the Authorizer per member (`VisibleForumSource`), which costs a
+ * through the Authorizer per member (`VisibleCommunitySource`), which costs a
  * constant three queries each (D26) and is the only way this stays consistent
  * with every other read on the board.
  *
@@ -39,7 +39,7 @@ import type {
   PendingPost,
   SubscriptionNotifierPort,
   SubscriptionRepository,
-  VisibleForumSource,
+  VisibleCommunitySource,
 } from './types'
 
 /** Members processed in one run. Bounded for the same reason every task is. */
@@ -103,7 +103,7 @@ export interface RunOutcome {
 export class SubscriptionNotifier {
   private readonly subscriptions: SubscriptionRepository
   private readonly notifications: SubscriptionNotifierPort
-  private readonly forums: VisibleForumSource
+  private readonly communities: VisibleCommunitySource
   private readonly now: () => Date
 
   private readonly secret: string | null
@@ -111,7 +111,7 @@ export class SubscriptionNotifier {
   constructor(deps: {
     subscriptions: SubscriptionRepository
     notifications: SubscriptionNotifierPort
-    forums: VisibleForumSource
+    communities: VisibleCommunitySource
     /**
      * Signs the unsubscribe links (F56's no-login route). Optional: a board
      * with no `AUTH_SECRET` still notifies, its messages just carry no
@@ -123,13 +123,13 @@ export class SubscriptionNotifier {
   }) {
     this.subscriptions = deps.subscriptions
     this.notifications = deps.notifications
-    this.forums = deps.forums
+    this.communities = deps.communities
     this.secret = deps.unsubscribeSecret ?? null
     this.now = deps.now ?? (() => new Date())
   }
 
   /** The token an e-mail's unsubscribe link carries, or null when unsigned. */
-  private token(userId: number, scope: 'thread' | 'forum' | 'email', targetId: number): string | null {
+  private token(userId: number, scope: 'thread' | 'community' | 'email', targetId: number): string | null {
     return this.secret === null
       ? null
       : mintUnsubscribeToken({ userId, scope, targetId }, this.secret)
@@ -252,11 +252,11 @@ export class SubscriptionNotifier {
     let notified = 0
     for (const userId of users) {
       try {
-        const visibleForumIds = await this.forums.visibleForumIdsFor(userId)
+        const visibleCommunityIds = await this.communities.visibleCommunityIdsFor(userId)
         const pending = await this.subscriptions.pendingFor({
           userId,
           mode,
-          visibleForumIds,
+          visibleCommunityIds,
           limit: MAX_POSTS_PER_USER,
         })
 
@@ -268,7 +268,7 @@ export class SubscriptionNotifier {
 
         /*
          * Advanced *after* the notification, and advanced even when there was
-         * nothing to say — a member who can no longer see the forum has been
+         * nothing to say — a member who can no longer see the community has been
          * caught up as far as this run looked, and must not accumulate a
          * backlog that would arrive in one piece if access came back.
          *

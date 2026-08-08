@@ -10,8 +10,8 @@ describe('parseFlags', () => {
   })
 
   it('keeps bare words positional', () => {
-    const { positional } = parseFlags(['board.name', 'My Forum'])
-    expect(positional).toEqual(['board.name', 'My Forum'])
+    const { positional } = parseFlags(['board.name', 'My Community'])
+    expect(positional).toEqual(['board.name', 'My Community'])
   })
 
   /*

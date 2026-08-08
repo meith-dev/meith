@@ -448,7 +448,7 @@ let cached: Env | undefined
 /**
  * Validates and returns the environment, memoising the result.
  *
- * Call this explicitly from application boot (see apps/forum/instrumentation.ts)
+ * Call this explicitly from application boot (see apps/community/instrumentation.ts)
  * so misconfiguration is a startup crash, per F02.
  */
 export function assertEnv(): Env {

@@ -39,20 +39,20 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
   async findEditTarget(threadId: number, postId: number): Promise<PostEditTarget | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select p.id, p.thread_id, p.forum_id, p.author_user_id, p.subject, p.message,
+        select p.id, p.thread_id, p.community_id, p.author_user_id, p.subject, p.message,
                p.visibility, p.is_first_post, p.revision_count, p.created_at,
                t.slug as thread_slug, t.title as thread_title, t.is_locked,
                t.visibility as thread_visibility,
-               f.slug as forum_slug, f.is_open
+               f.slug as community_slug, f.is_open
           from posts p
           join threads t on t.id = p.thread_id
-          join forums f on f.id = p.forum_id
+          join communities f on f.id = p.community_id
          where p.id = ${postId} and p.thread_id = ${threadId}
       `),
     ) as Array<{
       id: number
       thread_id: number
-      forum_id: number
+      community_id: number
       author_user_id: number | null
       subject: string | null
       message: string
@@ -64,7 +64,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
       thread_title: string
       is_locked: boolean
       thread_visibility: 'visible' | 'unapproved' | 'deleted'
-      forum_slug: string
+      community_slug: string
       is_open: boolean
     }>
 
@@ -75,7 +75,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
       post: {
         id: Number(row.id),
         threadId: Number(row.thread_id),
-        forumId: Number(row.forum_id),
+        communityId: Number(row.community_id),
         authorUserId: row.author_user_id === null ? null : Number(row.author_user_id),
         subject: row.subject,
         message: row.message,
@@ -91,7 +91,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
         isLocked: row.is_locked,
         visibility: row.thread_visibility,
       },
-      forum: { id: Number(row.forum_id), slug: row.forum_slug, isOpen: row.is_open },
+      community: { id: Number(row.community_id), slug: row.community_slug, isOpen: row.is_open },
     }
   }
 
@@ -164,7 +164,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
         await applyVisibilityChangeCounters(tx, {
           postId: record.postId,
           threadId: record.threadId,
-          forumId: record.forumId,
+          communityId: record.communityId,
           authorId: record.authorUserId,
           isFirstPost: record.isFirstPost,
           delta: delta as 1 | -1,
@@ -199,7 +199,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
         await applyVisibilityChangeCounters(tx, {
           postId: record.postId,
           threadId: record.threadId,
-          forumId: record.forumId,
+          communityId: record.communityId,
           authorId: record.authorUserId,
           isFirstPost: record.isFirstPost,
           delta: delta as 1 | -1,

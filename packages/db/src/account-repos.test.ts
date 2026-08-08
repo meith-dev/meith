@@ -258,7 +258,7 @@ describe('Postgres account repositories', () => {
     it('touchLocation writes once, then skips inside the throttle window', async () => {
       const s = await store.sessions.create({ tokenHash: 'loc', userId, expiresAt: new Date(Date.now() + 60_000) })
       const t0 = new Date()
-      const loc = { path: '/f/1', forumId: 1, threadId: null }
+      const loc = { path: '/f/1', communityId: 1, threadId: null }
 
       // First touch on a session created just now: last_seen_at == created ~now,
       // so a 60s window would skip it. Use t0 far enough ahead to guarantee the
@@ -267,7 +267,7 @@ describe('Postgres account repositories', () => {
       const wrote1 = await store.sessions.touchLocation(s.id, loc, later, 60)
       expect(wrote1).toBe(true)
 
-      const wrote2 = await store.sessions.touchLocation(s.id, { path: '/f/2', forumId: 2, threadId: null }, new Date(later.getTime() + 10_000), 60)
+      const wrote2 = await store.sessions.touchLocation(s.id, { path: '/f/2', communityId: 2, threadId: null }, new Date(later.getTime() + 10_000), 60)
       expect(wrote2).toBe(false)
 
       // Past the window, it writes again.

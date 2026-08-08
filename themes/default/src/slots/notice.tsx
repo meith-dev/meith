@@ -21,7 +21,7 @@ import { MUTED_LINK } from '../shared'
  * ## It carries no page measure, and used to
  *
  * "Inline" is the first word of this file for a reason: unlike `Header`,
- * `Footer` and `ForumJump` — page-level chrome that spans the viewport and
+ * `Footer` and `CommunityJump` — page-level chrome that spans the viewport and
  * centres itself — a notice is rendered *into* a page's content, above the
  * thing it is talking about. Seventeen call sites render it, and fifteen of
  * them put it inside a container that was already centred and already padded,

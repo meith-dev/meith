@@ -38,7 +38,7 @@ RUN pnpm install --frozen-lockfile
 #
 # pnpm gives every workspace its own `node_modules` of symlinks into the store,
 # so `packages/drivers/node_modules/@aws-sdk/...` is a real directory that has
-# to exist. This stage copied only the root and `apps/forum` trees, and the
+# to exist. This stage copied only the root and `apps/community` trees, and the
 # build worked anyway because there was no .dockerignore and `COPY . .` was
 # dragging the *host's* node_modules in behind it. Adding a .dockerignore
 # exposed that: 53 unresolved modules, starting with @aws-sdk/client-s3.
@@ -86,9 +86,9 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
 # `standalone` already contains a pruned node_modules with only what the server
 # traced as reachable, which is why nothing is installed in this stage.
-COPY --from=build --chown=nextjs:nodejs /repo/apps/forum/.next/standalone ./
-COPY --from=build --chown=nextjs:nodejs /repo/apps/forum/.next/static ./apps/forum/.next/static
-COPY --from=build --chown=nextjs:nodejs /repo/apps/forum/public ./apps/forum/public
+COPY --from=build --chown=nextjs:nodejs /repo/apps/community/.next/standalone ./
+COPY --from=build --chown=nextjs:nodejs /repo/apps/community/.next/static ./apps/community/.next/static
+COPY --from=build --chown=nextjs:nodejs /repo/apps/community/public ./apps/community/public
 
 # F04's other half: the same image runs the worker.
 #
@@ -123,7 +123,7 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD ["/app/docker-healthcheck.sh"]
 
-# FORUM_ROLE picks which of the three programs in this image starts: `worker`
+# COMMUNITY_ROLE picks which of the three programs in this image starts: `worker`
 # runs the scheduler loop, `migrate` applies the schema and exits, and unset —
 # the default — runs the web server, so existing deployments keep working
 # without setting anything. An unrecognised value exits rather than quietly

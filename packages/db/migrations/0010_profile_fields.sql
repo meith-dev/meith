@@ -10,7 +10,7 @@
 --
 -- `profile_fields` is configuration: it changes when an operator changes it.
 -- `profile_field_groups` is the per-group override, shaped exactly like F21's
--- `forum_permissions` — a row per (field, group) with **nullable** columns,
+-- `community_permissions` — a row per (field, group) with **nullable** columns,
 -- where NULL means "inherit the field's default". That shape is not a
 -- coincidence: it is the one this board already resolves, and reusing it means
 -- the mental model for "who can see this" is the same everywhere.

@@ -6,7 +6,7 @@
  * out of a thread and gives them a new home, a merge takes all of a thread's
  * posts and puts them somewhere that already exists. Everything that makes
  * either correct is the same list — post order, the opening-post flag, the
- * reply counts on both threads, the forum chains, and who is credited with
+ * reply counts on both threads, the community chains, and who is credited with
  * what.
  *
  * **The author-count question F50 deferred is settled here, and the answer is
@@ -22,7 +22,7 @@ import { ValidationError } from '@meith/core'
 /** A thread as the surgery needs it. */
 export interface SurgeryThread {
   readonly id: number
-  readonly forumId: number
+  readonly communityId: number
   readonly slug: string
   readonly title: string
   readonly visibility: 'visible' | 'unapproved' | 'deleted'
@@ -98,10 +98,10 @@ export class ThreadSurgery {
   /**
    * Split a thread from one post onwards.
    *
-   * The new thread lands in the **same forum** as the source, always. Splitting
+   * The new thread lands in the **same community** as the source, always. Splitting
    * and moving are two acts: doing both at once would mean one operation with a
-   * second forum to authorise, and a moderator who may split here but not post
-   * there could otherwise place content in a forum they have no standing in.
+   * second community to authorise, and a moderator who may split here but not post
+   * there could otherwise place content in a community they have no standing in.
    * `thread.move` is right there afterwards.
    */
   async split(input: {
@@ -159,7 +159,7 @@ export class ThreadSurgery {
    *
    * Every rule `split` enforces is enforced here, because they are properties
    * of the *result* rather than of how the posts were chosen: the new thread
-   * lands in the same forum, it cannot start from the source's opening post,
+   * lands in the same community, it cannot start from the source's opening post,
    * and it cannot take every visible post (that is a move). What is new is that
    * the selection is filtered rather than derived, so a tick on a post that has
    * since been deleted, or on one from another thread, is dropped instead of
@@ -226,9 +226,9 @@ export class ThreadSurgery {
     readonly sourceThreadId: number
     readonly targetThreadId: number
     readonly actorUserId: number
-    /** Rights in the source's forum. */
+    /** Rights in the source's community. */
     readonly rights: SurgeryRights
-    /** Rights in the target's forum — a merge has two ends, like a move. */
+    /** Rights in the target's community — a merge has two ends, like a move. */
     readonly targetRights: SurgeryRights
   }): Promise<SurgeryOutcome> {
     if (!input.rights.merge) throw new ValidationError('You cannot merge threads here.')
@@ -242,11 +242,11 @@ export class ThreadSurgery {
 
     /*
      * Both ends, for F50's reason. A merge moves content into the target's
-     * forum, so a moderator with rights in the source only could otherwise push
-     * posts into a forum whose moderators never agreed to them.
+     * community, so a moderator with rights in the source only could otherwise push
+     * posts into a community whose moderators never agreed to them.
      */
     if (!input.targetRights.merge) {
-      throw new ValidationError('You cannot merge threads into that forum.')
+      throw new ValidationError('You cannot merge threads into that community.')
     }
 
     return this.threads.merge({

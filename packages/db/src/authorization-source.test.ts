@@ -4,7 +4,7 @@ import { parseAncestorPath } from './authorization-source'
 
 describe('parseAncestorPath', () => {
   it('parses a deep path nearest-first, inclusive of self', () => {
-    // '1.4.9.12' is Category > Forum > Subforum > Sub-subforum. The resolver's
+    // '1.4.9.12' is Category > Community > Subcommunity > Sub-subcommunity. The resolver's
     // "first non-null wins" walk needs the row's own id first, root last.
     expect(parseAncestorPath('1.4.9.12')).toEqual([12, 9, 4, 1])
   })
@@ -14,7 +14,7 @@ describe('parseAncestorPath', () => {
   })
 
   it('ignores empty and non-numeric segments rather than yielding NaN', () => {
-    // Defensive: a malformed path must not inject NaN into the group/forum id
+    // Defensive: a malformed path must not inject NaN into the group/community id
     // sets, which would silently match nothing (or everything) downstream.
     expect(parseAncestorPath('1..4')).toEqual([4, 1])
     expect(parseAncestorPath('')).toEqual([])

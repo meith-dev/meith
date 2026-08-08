@@ -27,7 +27,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
-import { forums } from './structure'
+import { communities } from './structure'
 import { users } from './identity'
 
 /** R3.3: the three-state visibility used by threads and posts. */
@@ -55,10 +55,10 @@ export const threadPrefixes = pgTable(
     token: text('token'),
     displayOrder: integer('display_order').notNull().default(0),
     /**
-     * Null = usable in every forum. Otherwise a dot-path prefix restricting the
-     * prefix to one subtree, matching `forums.path`.
+     * Null = usable in every community. Otherwise a dot-path prefix restricting the
+     * prefix to one subtree, matching `communities.path`.
      */
-    forumPathPrefix: text('forum_path_prefix'),
+    communityPathPrefix: text('community_path_prefix'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -71,9 +71,9 @@ export const threads = pgTable(
   {
     id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
 
-    forumId: integer('forum_id')
+    communityId: integer('community_id')
       .notNull()
-      .references(() => forums.id, { onDelete: 'cascade' }),
+      .references(() => communities.id, { onDelete: 'cascade' }),
 
     title: text('title').notNull(),
     slug: text('slug').notNull(),
@@ -105,7 +105,7 @@ export const threads = pgTable(
     /** Denormalised for the listing; maintained with the thread's posts. */
     replyCount: integer('reply_count').notNull().default(0),
     viewCount: integer('view_count').notNull().default(0),
-    /** F43's running aggregate, so the forum can order by ratings without a join. */
+    /** F43's running aggregate, so the community can order by ratings without a join. */
     ratingTotal: integer('rating_total').notNull().default(0),
     ratingCount: integer('rating_count').notNull().default(0),
 
@@ -134,23 +134,23 @@ export const threads = pgTable(
   },
   (t) => [
     /*
-     * R3.5, verbatim: threads (forum_id, is_sticky DESC, last_post_at DESC)
-     * WHERE visibility = 'visible'. This is *the* index behind forum display.
+     * R3.5, verbatim: threads (community_id, is_sticky DESC, last_post_at DESC)
+     * WHERE visibility = 'visible'. This is *the* index behind community display.
      * Sticky descending puts pinned threads first; the partial predicate keeps
      * soft-deleted and unapproved rows out of the common path entirely.
      */
-    index('threads_forum_listing_idx')
-      .on(t.forumId, t.isSticky.desc(), t.lastPostAt.desc())
+    index('threads_community_listing_idx')
+      .on(t.communityId, t.isSticky.desc(), t.lastPostAt.desc())
       .where(sql`${t.visibility} = 'visible'`),
 
     /*
      * R3.5 "unfiltered twin, for moderator views". A moderator seeing
      * unapproved and deleted content cannot use the partial index above, and
-     * without this twin their forum view degrades to a sequential scan on the
+     * without this twin their community view degrades to a sequential scan on the
      * largest table on the board.
      */
-    index('threads_forum_listing_all_idx').on(
-      t.forumId,
+    index('threads_community_listing_all_idx').on(
+      t.communityId,
       t.isSticky.desc(),
       t.lastPostAt.desc(),
     ),
@@ -172,13 +172,13 @@ export const posts = pgTable(
       .references(() => threads.id, { onDelete: 'cascade' }),
     /**
      * Denormalised from the thread. Carried on the post so that permission
-     * filtering and moderation queues can scope by forum without joining
+     * filtering and moderation queues can scope by community without joining
      * `threads` — at 2M posts that join is the difference between a fast query
      * and a slow one. Kept correct when a thread moves, in the same transaction.
      */
-    forumId: integer('forum_id')
+    communityId: integer('community_id')
       .notNull()
-      .references(() => forums.id, { onDelete: 'cascade' }),
+      .references(() => communities.id, { onDelete: 'cascade' }),
 
     authorUserId: integer('author_user_id').references(() => users.id, {
       onDelete: 'set null',
@@ -319,9 +319,9 @@ export const posts = pgTable(
      * not a scan of every post to discover the same.
      */
     index('posts_search_version_idx').on(t.searchVersion, t.id),
-    // Moderation queue: unapproved content for a set of forums.
-    index('posts_forum_visibility_idx')
-      .on(t.forumId, t.createdAt.desc())
+    // Moderation queue: unapproved content for a set of communities.
+    index('posts_community_visibility_idx')
+      .on(t.communityId, t.createdAt.desc())
       .where(sql`${t.visibility} <> 'visible'`),
 
     uniqueIndex('posts_legacy_mybb_pid_key')
@@ -368,7 +368,7 @@ export const postRevisions = pgTable(
  *
  * Stores the last-read post id rather than a boolean, which is what makes
  * "jump to first unread" possible. Rows are pruned by a scheduled task against
- * the forum-level watermark in `forums_read`, so this table does not grow
+ * the community-level watermark in `communities_read`, so this table does not grow
  * without bound for users who read everything.
  */
 export const threadsRead = pgTable(
@@ -506,11 +506,11 @@ export const reports = pgTable(
     /**
      * Denormalised from the target, and null for a user report.
      *
-     * This is what scopes the moderator list by `moderatedForumIds` without a
+     * This is what scopes the moderator list by `moderatedCommunityIds` without a
      * join per kind — and what keeps a report readable after its target is
      * hard-deleted.
      */
-    forumId: integer('forum_id').references(() => forums.id, {
+    communityId: integer('community_id').references(() => communities.id, {
       onDelete: 'set null',
     }),
     threadId: integer('thread_id').references(() => threads.id, {
@@ -554,11 +554,11 @@ export const reports = pgTable(
   },
   (t) => [
     index('reports_open_idx')
-      .on(t.forumId, t.createdAt)
+      .on(t.communityId, t.createdAt)
       .where(sql`${t.status} = 'open'`),
     index('reports_open_global_idx')
       .on(t.createdAt)
-      .where(sql`${t.status} = 'open' and ${t.forumId} is null`),
+      .where(sql`${t.status} = 'open' and ${t.communityId} is null`),
     /*
      * One open report per person per target. Without it, "report" is a button
      * that adds a queue row on every click — the cheapest denial-of-service on
@@ -659,9 +659,9 @@ export const attachments = pgTable(
       .notNull()
       .references(() => posts.id, { onDelete: 'cascade' }),
     /** Denormalised: authorising a download must not need three joins. */
-    forumId: integer('forum_id')
+    communityId: integer('community_id')
       .notNull()
-      .references(() => forums.id, { onDelete: 'cascade' }),
+      .references(() => communities.id, { onDelete: 'cascade' }),
     uploaderUserId: integer('uploader_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),
@@ -817,10 +817,10 @@ export const customDirectives = pgTable(
  *
  * **Chrome, not content.** A sticky thread is a conversation: members reply to
  * it, it belongs to its author, and taking it down deletes what they said. An
- * announcement appears above the forums, cannot be replied to, expires on its
+ * announcement appears above the communities, cannot be replied to, expires on its
  * own date, and removing it removes nothing anybody wrote. Boards that build
  * announcements out of pinned threads keep a three-year-old rules post at the
- * top of every forum because deleting it would delete the discussion under it.
+ * top of every community because deleting it would delete the discussion under it.
  *
  * There is no `message_html` and that is deliberate: the stored-render machinery
  * exists because a thread page renders fifty bodies out of a table with two
@@ -836,10 +836,10 @@ export const announcements = pgTable(
      * `null` is board-wide.
      *
      * One column rather than a `scope` beside it, because two can disagree — a
-     * row claiming to be forum-scoped with no forum is a state the reader would
+     * row claiming to be community-scoped with no community is a state the reader would
      * have to invent a rule for.
      */
-    forumId: integer('forum_id').references(() => forums.id, { onDelete: 'cascade' }),
+    communityId: integer('community_id').references(() => communities.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     /** Markdown source. Rendered on read, with whatever vocabulary is current. */
     message: text('message').notNull(),
@@ -861,6 +861,6 @@ export const announcements = pgTable(
   },
   (t) => [
     index('announcements_live_idx').on(t.startsAt.desc()).where(sql`${t.enabled}`),
-    index('announcements_forum_idx').on(t.forumId),
+    index('announcements_community_idx').on(t.communityId),
   ],
 )

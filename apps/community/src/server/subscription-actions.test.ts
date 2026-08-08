@@ -1,0 +1,376 @@
+/**
+ * F56 at the app layer.
+ *
+ * The cadence rules are unit-tested in `@meith/subscriptions` and the SQL
+ * against real Postgres. What is proven here is the seam neither can see:
+ *
+ *  - subscribing re-authorises `thread.view` against the *target's* community, so a
+ *    member cannot be notified about activity in a community they may not read;
+ *  - the token action works with **no session at all**, and its authority is
+ *    the HMAC rather than anything the request claims;
+ *  - the return path a form carries cannot become an open redirect.
+ */
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type * as CoreModule from '@meith/core'
+import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
+import { mintUnsubscribeToken } from '@meith/subscriptions'
+import type { SubscriptionMode, SubscriptionRepository, SubscriptionTarget } from '@meith/subscriptions'
+
+const { SECRET, RedirectError } = vi.hoisted(() => {
+  /*
+   * Hoisted with the mock that uses it: `vi.mock` factories run before the
+   * module body, so a plain `const` above would still be in its temporal dead
+   * zone when the env mock reads it.
+   */
+  const SECRET = 'test-auth-secret-test-auth-secret'
+  class RedirectError extends Error {
+    constructor(readonly location: string) {
+      super(`redirect: ${location}`)
+    }
+  }
+  return { SECRET, RedirectError }
+})
+
+vi.mock('next/navigation', () => ({
+  redirect: (to: string): never => {
+    throw new RedirectError(to)
+  },
+}))
+
+const actorRef: { current: Actor | null } = { current: null }
+vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
+
+vi.mock('@meith/core', async () => {
+  const actual = await vi.importActual<typeof CoreModule>('@meith/core')
+  return { ...actual, env: { ...actual.env, AUTH_SECRET: SECRET, DATA_SOURCE: 'fixture' } }
+})
+
+const {
+  subscribeAction,
+  unsubscribeAction,
+  unsubscribeByTokenAction,
+} = await import('./subscription-actions')
+const { EMPTY_STATE } = await import('./auth-form-state')
+const { SEED_BOARD, SEED_COMMUNITY, SEED_GROUP } = await import('./seed-board')
+const { installTestContainer } = await import('./test-container')
+
+class FakeSubscriptions implements SubscriptionRepository {
+  readonly subscribed: Array<{ userId: number; target: string; targetId: number; mode: string }> = []
+  readonly removed: Array<{ userId: number; target: string; targetId: number }> = []
+
+  async subscribe(input: {
+    userId: number
+    target: SubscriptionTarget
+    targetId: number
+    mode: SubscriptionMode
+  }) {
+    this.subscribed.push(input)
+    return true
+  }
+
+  async unsubscribe(input: { userId: number; target: SubscriptionTarget; targetId: number }) {
+    this.removed.push(input)
+    return true
+  }
+
+  async modeFor() {
+    return null
+  }
+  async listFor() {
+    return []
+  }
+  async usersWithPending() {
+    return []
+  }
+  async pendingFor() {
+    return { userId: 0, posts: [], watermarks: [] }
+  }
+  async advanceWatermarks() {}
+  async recordDigestRun() {}
+}
+
+class FakeNotifications {
+  readonly saved: Array<{ userId: number; entries: Map<string, boolean> }> = []
+
+  async saveEmailPreferences(userId: number, entries: ReadonlyMap<string, boolean>) {
+    this.saved.push({ userId, entries: new Map(entries) })
+  }
+}
+
+let subscriptions: FakeSubscriptions
+let notifications: FakeNotifications
+
+async function actorFor(groupId: number, userId: number | null): Promise<Actor> {
+  const source = new InMemoryAuthorizationSource(SEED_BOARD)
+  const defaults = await source.groupDefaults([groupId])
+  return {
+    userId,
+    groupIds: [groupId],
+    primaryGroupId: groupId,
+    state: userId === null ? 'guest' : 'active',
+    global: combinePermissionSets(defaults.map((d) => d.permissions)),
+    permissionVersion: 1,
+  }
+}
+
+function form(entries: Array<[string, string]>): FormData {
+  const data = new FormData()
+  for (const [key, value] of entries) data.append(key, value)
+  return data
+}
+
+async function run(
+  action: (prev: typeof EMPTY_STATE, form: FormData) => Promise<typeof EMPTY_STATE>,
+  data: FormData,
+): Promise<{ redirectedTo?: string; error?: string }> {
+  try {
+    const state = await action(EMPTY_STATE, data)
+    return state.error === undefined ? {} : { error: state.error }
+  } catch (err) {
+    if (err instanceof RedirectError) return { redirectedTo: err.location }
+    throw err
+  }
+}
+
+/**
+ * A container whose thread lookup resolves into the given community.
+ *
+ * `hidden` adds a deny override so the board has a community Registered genuinely
+ * cannot view — the fixture board has none, and a test that faked the refusal
+ * would be testing its own fake rather than the Authorizer.
+ */
+function install(communityId: number | null = SEED_COMMUNITY.general, hidden = false) {
+  installTestContainer({
+    overrides: hidden
+      ? [
+          {
+            communityId: SEED_COMMUNITY.general,
+            groupId: SEED_GROUP.registered,
+            overrides: { canView: false, canViewThreads: false },
+          },
+        ]
+      : [],
+    container: {
+      subscriptions,
+      notifications,
+      threads: {
+        locateCommunity: async () => communityId,
+        findById: async () => ({ id: communityId ?? 0, type: 'community', title: 'A community', slug: 'a-community' }),
+        listCommunity: async () => ({ rows: [], nextCursor: null }),
+      },
+      communities: {
+        listAll: async () => [],
+        listListing: async () => [],
+        findById: async () => ({ id: communityId ?? 0, type: 'community', title: 'A community', slug: 'a-community' }),
+      },
+    },
+  })
+}
+
+beforeEach(async () => {
+  subscriptions = new FakeSubscriptions()
+  notifications = new FakeNotifications()
+  actorRef.current = await actorFor(SEED_GROUP.registered, 7)
+  install()
+})
+
+describe('following', () => {
+  it('subscribes to a thread the member may read', async () => {
+    const result = await run(
+      subscribeAction,
+      form([
+        ['target', 'thread'],
+        ['targetId', '20'],
+        ['mode', 'daily'],
+        ['back', '/thread/20-a-thread'],
+      ]),
+    )
+
+    expect(result.redirectedTo).toBe('/thread/20-a-thread')
+    expect(subscriptions.subscribed[0]).toMatchObject({
+      userId: 7,
+      target: 'thread',
+      targetId: 20,
+      mode: 'daily',
+    })
+  })
+
+  it('refuses a thread whose community this actor cannot see', async () => {
+    /*
+     * The community is resolved from the *thread*, and the answer comes from the
+     * Authorizer — not from anything the form said. Without this, subscribing
+     * is a way to be told about activity in a private community.
+     */
+    install(SEED_COMMUNITY.general, true)
+
+    const result = await run(
+      subscribeAction,
+      form([
+        ['target', 'thread'],
+        ['targetId', '20'],
+        ['mode', 'instant'],
+      ]),
+    )
+
+    expect(result.error).toBe('That does not exist.')
+    expect(subscriptions.subscribed).toEqual([])
+  })
+
+  it('gives the same answer for a thread that does not exist', async () => {
+    install(null)
+
+    const result = await run(
+      subscribeAction,
+      form([
+        ['target', 'thread'],
+        ['targetId', '999'],
+        ['mode', 'instant'],
+      ]),
+    )
+
+    expect(result.error).toBe('That does not exist.')
+  })
+
+  it('rejects a cadence that is not one', async () => {
+    const result = await run(
+      subscribeAction,
+      form([
+        ['target', 'thread'],
+        ['targetId', '20'],
+        ['mode', 'hourly'],
+      ]),
+    )
+
+    expect(result.error).toBe('That is not a notification setting.')
+  })
+
+  it('refuses a guest', async () => {
+    actorRef.current = await actorFor(SEED_GROUP.guest, null)
+
+    const result = await run(
+      subscribeAction,
+      form([
+        ['target', 'thread'],
+        ['targetId', '20'],
+        ['mode', 'instant'],
+      ]),
+    )
+
+    expect(result.error).toContain('logged in')
+  })
+
+  it('takes the member from the session, never from the form', async () => {
+    await run(
+      subscribeAction,
+      form([
+        ['target', 'thread'],
+        ['targetId', '20'],
+        ['mode', 'instant'],
+        ['userId', '1'],
+      ]),
+    )
+
+    expect(subscriptions.subscribed[0]?.userId).toBe(7)
+  })
+
+  it('never redirects off the board', async () => {
+    const result = await run(
+      subscribeAction,
+      form([
+        ['target', 'thread'],
+        ['targetId', '20'],
+        ['mode', 'instant'],
+        ['back', '//evil.example/phish'],
+      ]),
+    )
+
+    /* F34's boundary, applied to the one field these forms carry. */
+    expect(result.redirectedTo).toBe('/subscriptions?followed=1')
+  })
+})
+
+describe('unfollowing', () => {
+  it('stops a subscription without asking whether the member may still read it', async () => {
+    /*
+     * Deliberately no permission check: a member locked out of a community still
+     * has to be able to stop being notified about it.
+     */
+    install(SEED_COMMUNITY.general, true)
+
+    const result = await run(
+      unsubscribeAction,
+      form([
+        ['target', 'community'],
+        ['targetId', '3'],
+      ]),
+    )
+
+    expect(result.redirectedTo).toBe('/subscriptions?stopped=1')
+    expect(subscriptions.removed).toEqual([{ userId: 7, target: 'community', targetId: 3 }])
+  })
+})
+
+describe('the no-login unsubscribe', () => {
+  beforeEach(() => {
+    /* No session at all — the case the whole route exists for. */
+    actorRef.current = null
+  })
+
+  it('acts on a valid token with nobody signed in', async () => {
+    const token = mintUnsubscribeToken(
+      { userId: 42, scope: 'thread', targetId: 20 },
+      SECRET,
+    )
+
+    const result = await run(unsubscribeByTokenAction, form([['token', token]]))
+
+    expect(result.redirectedTo).toBe('/unsubscribe?done=one')
+    expect(subscriptions.removed).toEqual([{ userId: 42, target: 'thread', targetId: 20 }])
+  })
+
+  it('switches subscription e-mail off for the board-wide scope', async () => {
+    const token = mintUnsubscribeToken({ userId: 42, scope: 'email', targetId: 0 }, SECRET)
+
+    const result = await run(unsubscribeByTokenAction, form([['token', token]]))
+
+    expect(result.redirectedTo).toBe('/unsubscribe?done=email')
+    /*
+     * The subscriptions survive. "Unsubscribe" on a digest means fewer
+     * e-mails, not "delete my follow list".
+     */
+    expect(subscriptions.removed).toEqual([])
+    expect(notifications.saved[0]?.entries.get('subscription.digest')).toBe(false)
+    expect(notifications.saved[0]?.entries.get('subscription.reply')).toBe(false)
+  })
+
+  it('refuses a forged token', async () => {
+    const token = mintUnsubscribeToken(
+      { userId: 42, scope: 'thread', targetId: 20 },
+      'a-different-secret-a-different-se',
+    )
+
+    const result = await run(unsubscribeByTokenAction, form([['token', token]]))
+
+    expect(result.error).toBe('That unsubscribe link is not valid.')
+    expect(subscriptions.removed).toEqual([])
+  })
+
+  it('refuses a token edited to name another member', async () => {
+    const token = mintUnsubscribeToken(
+      { userId: 42, scope: 'thread', targetId: 20 },
+      SECRET,
+    ).replace('.42.', '.43.')
+
+    const result = await run(unsubscribeByTokenAction, form([['token', token]]))
+
+    expect(result.error).toBe('That unsubscribe link is not valid.')
+    expect(subscriptions.removed).toEqual([])
+  })
+
+  it('refuses an empty token with the same message', async () => {
+    const result = await run(unsubscribeByTokenAction, form([['token', '']]))
+    expect(result.error).toBe('That unsubscribe link is not valid.')
+  })
+})

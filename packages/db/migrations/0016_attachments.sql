@@ -39,10 +39,10 @@ CREATE TABLE "attachments" (
 
   "post_id" integer NOT NULL REFERENCES "posts"("id") ON DELETE cascade,
   -- Denormalised from the post so a download can be authorised with one read.
-  -- The permission is forum-scoped, and joining posts->threads->forums on every
+  -- The permission is community-scoped, and joining posts->threads->communities on every
   -- attachment fetch to learn a value that cannot change would be a join per
   -- image on every thread page.
-  "forum_id" integer NOT NULL REFERENCES "forums"("id") ON DELETE cascade,
+  "community_id" integer NOT NULL REFERENCES "communities"("id") ON DELETE cascade,
   "uploader_user_id" integer REFERENCES "users"("id") ON DELETE set null,
 
   -- The member's filename, sanitised. Display only: it never reaches a path.

@@ -6,10 +6,10 @@
 -- of hits, and that is the whole design:
 --
 --   * a frozen list goes stale — it would keep offering posts that have since
---     been deleted, moved into a private forum, or hidden by a moderator;
+--     been deleted, moved into a private community, or hidden by a moderator;
 --   * a frozen list is a permission snapshot. Re-resolving means the *current*
 --     viewer's scope applies on every page, so somebody who loses access to a
---     forum stops seeing its hits immediately rather than for as long as the
+--     community stops seeing its hits immediately rather than for as long as the
 --     stored set lives.
 --
 -- Re-running is cheap because F72's GiN index is doing the work; storing the

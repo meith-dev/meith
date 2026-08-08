@@ -9,7 +9,7 @@
     "build": "esbuild --bundle --platform=node --format=cjs --target=node22 --external:@opentelemetry/api src/index.ts --outfile=dist/cli.cjs"
   },
   "bin": {
-    "forum": "./dist/index.js"
+    "community": "./dist/index.js"
   },
   "dependencies": {
     "@meith/accounts": "workspace:*",
@@ -18,7 +18,7 @@
     "@meith/db": "workspace:*",
     "@meith/drivers": "workspace:*",
     "@meith/events": "workspace:*",
-    "@meith/forums": "workspace:*",
+    "@meith/communities": "workspace:*",
     "@meith/profile-fields": "workspace:*",
     "@meith/settings": "workspace:*",
     "@meith/tasks": "workspace:*"

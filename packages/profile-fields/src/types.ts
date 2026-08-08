@@ -6,7 +6,7 @@
  * a **per-group answer** to who may see and edit each one, and a way to **ask
  * at registration**.
  *
- * The per-group half is shaped exactly like F21's `forum_permissions` —
+ * The per-group half is shaped exactly like F21's `community_permissions` —
  * nullable columns where NULL means "inherit the field's default", resolved by
  * R4.2's rule that any group granting is a grant. That is deliberate rather
  * than convenient: it is the model this board already resolves everywhere else,

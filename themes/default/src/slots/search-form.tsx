@@ -39,7 +39,7 @@ export function SearchForm({
   fields,
   query,
   maxQueryLength,
-  forums,
+  communities,
   sorts,
   hint,
   errorMessage,
@@ -72,7 +72,7 @@ export function SearchForm({
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Choice label="In" name={fields.forum} options={forums} />
+            <Choice label="In" name={fields.community} options={communities} />
             <Choice label="Sort by" name={fields.sort} options={sorts} />
           </div>
 

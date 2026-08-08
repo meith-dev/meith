@@ -1,0 +1,178 @@
+import { CacheTags, type CacheDriver, type CacheSetOptions } from '@meith/core'
+import { describe, expect, it, vi } from 'vitest'
+
+import { CachedCommunityRepository } from './cached-repo'
+import type { CommunityRepository } from './ports'
+import type { CommunityRow } from './types'
+
+function cacheDriver(): CacheDriver {
+  const entries = new Map<string, { value: unknown; tags: readonly string[] }>()
+  return {
+    get: <T>(k: string) => Promise.resolve(entries.get(k)?.value as T | undefined),
+    set: <T>(k: string, v: T, o: CacheSetOptions = {}) => {
+      entries.set(k, { value: v, tags: o.tags ?? [] })
+      return Promise.resolve()
+    },
+    delete: (k: string) => {
+      entries.delete(k)
+      return Promise.resolve()
+    },
+    invalidateTags: (tags: readonly string[]) => {
+      const wanted = new Set(tags)
+      for (const [k, e] of entries) if (e.tags.some((t) => wanted.has(t))) entries.delete(k)
+      return Promise.resolve()
+    },
+  }
+}
+
+function row(id: number): CommunityRow {
+  return {
+    id,
+    parentId: null,
+    displayOrder: 0,
+    path: String(id),
+    depth: 0,
+    type: 'community',
+    title: `F${id}`,
+    slug: `f-${id}`,
+    description: null,
+    linkUrl: null,
+  }
+}
+
+function innerRepo(
+  rows: CommunityRow[],
+): CommunityRepository & {
+  listAll: ReturnType<typeof vi.fn>
+  listListing: ReturnType<typeof vi.fn>
+} {
+  const listAll = vi.fn().mockImplementation(() => Promise.resolve(rows))
+  const listListing = vi.fn().mockImplementation(() =>
+    Promise.resolve(rows.map((r) => ({ ...r, threadCount: 0, postCount: 0, lastPost: null }))),
+  )
+  const repo: CommunityRepository = {
+    listAll: listAll as unknown as CommunityRepository['listAll'],
+    listListing: listListing as unknown as CommunityRepository['listListing'],
+    findById: (id: number) => Promise.resolve(rows.find((r) => r.id === id) ?? null),
+    create: (input) =>
+      Promise.resolve({ ...rows[0], ...input, id: 999, path: '999', depth: 0 } as CommunityRow),
+    applyMove: () => Promise.resolve(),
+    move: () => Promise.resolve(),
+  }
+  return Object.assign(repo, { listAll, listListing })
+}
+
+describe('CachedCommunityRepository', () => {
+  it('queries once and serves the rest from cache', async () => {
+    const inner = innerRepo([row(1), row(2)])
+    const repo = new CachedCommunityRepository(inner, cacheDriver())
+
+    await repo.listAll()
+    await repo.listAll()
+    await repo.listAll()
+    expect(inner.listAll).toHaveBeenCalledTimes(1)
+  })
+
+  it('serves findById from the same entry, adding no query', async () => {
+    const inner = innerRepo([row(1), row(2)])
+    const repo = new CachedCommunityRepository(inner, cacheDriver())
+
+    await repo.listAll()
+    expect((await repo.findById(2))?.id).toBe(2)
+    expect(await repo.findById(99)).toBeNull()
+    expect(inner.listAll).toHaveBeenCalledTimes(1)
+  })
+
+  it('refetches after a move invalidates the tree', async () => {
+    const inner = innerRepo([row(1)])
+    const repo = new CachedCommunityRepository(inner, cacheDriver())
+
+    await repo.listAll()
+    await repo.move(1, { newParentId: null })
+    await repo.listAll()
+
+    // Without invalidation this stays at 1 and the ACP shows a stale tree.
+    expect(inner.listAll).toHaveBeenCalledTimes(2)
+  })
+
+  it('invalidates after applyMove too', async () => {
+    const inner = innerRepo([row(1)])
+    const repo = new CachedCommunityRepository(inner, cacheDriver())
+
+    await repo.listAll()
+    await repo.applyMove({ communityId: 1, newParentId: null, pathUpdates: [], orderUpdates: [] })
+    await repo.listAll()
+    expect(inner.listAll).toHaveBeenCalledTimes(2)
+  })
+
+  /*
+   * Ordering matters: invalidating before the write leaves a window where a
+   * concurrent read repopulates from the pre-write state and nothing clears it
+   * again. This pins the write-then-invalidate order.
+   */
+  it('invalidates after the write, not before', async () => {
+    const order: string[] = []
+    const cache = cacheDriver()
+    const inner = innerRepo([row(1)])
+    inner.move = () => {
+      order.push('write')
+      return Promise.resolve()
+    }
+    const originalInvalidate = cache.invalidateTags.bind(cache)
+    cache.invalidateTags = (tags) => {
+      order.push('invalidate')
+      return originalInvalidate(tags)
+    }
+
+    await new CachedCommunityRepository(inner, cache).move(1, { newParentId: null })
+    expect(order).toEqual(['write', 'invalidate'])
+  })
+
+  it('stores the entry under the community-tree tag', async () => {
+    const cache = cacheDriver()
+    const set = vi.spyOn(cache, 'set')
+
+    await new CachedCommunityRepository(innerRepo([row(1)]), cache).listAll()
+    expect(set).toHaveBeenCalledWith(expect.any(String), [row(1)], {
+      tags: [CacheTags.communityTree()],
+    })
+  })
+
+  /*
+   * The listing read carries counters that change on every post. Caching it
+   * under the community-tree tag would mean invalidating the tree on every reply,
+   * making the tag worthless for the structural read it exists to serve; caching
+   * it under a tag of its own means an entry that is stale within seconds and a
+   * second thing the posting path must remember to clear.
+   *
+   * Both of those are easy to "fix" by adding two lines to the decorator, which
+   * is exactly why the decision is pinned by a test rather than left as a
+   * comment. See CommunityRepository.listListing.
+   */
+  it('never caches the listing read', async () => {
+    const cache = cacheDriver()
+    const set = vi.spyOn(cache, 'set')
+    const inner = innerRepo([row(1)])
+    const repo = new CachedCommunityRepository(inner, cache)
+
+    await repo.listListing()
+    await repo.listListing()
+
+    expect(inner.listListing).toHaveBeenCalledTimes(2)
+    expect(set).not.toHaveBeenCalled()
+  })
+
+  it('does not serve the listing read from the cached tree', async () => {
+    const cache = cacheDriver()
+    const inner = innerRepo([row(1)])
+    const repo = new CachedCommunityRepository(inner, cache)
+
+    // Populate the structural cache first: a decorator that answered the
+    // listing read from it would return rows with no counters at all.
+    await repo.listAll()
+    const listing = await repo.listListing()
+
+    expect(listing[0]).toHaveProperty('threadCount')
+    expect(inner.listListing).toHaveBeenCalledTimes(1)
+  })
+})

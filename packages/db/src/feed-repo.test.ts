@@ -5,7 +5,7 @@
  * F47's row has said since Phase 4 that feeds were one of two read paths its
  * guard had nothing to fire on. This is that path arriving, so the tests are
  * written as the guard's counterpart: **for every syndicated read, seed a
- * private forum and a hidden thread, then assert that nothing about either
+ * private community and a hidden thread, then assert that nothing about either
  * appears in the output.** Not "the ids are absent" — the titles, the slugs and
  * the bodies, because a leak through a feed is a leak of text.
  *
@@ -46,12 +46,12 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`delete from users`)
   await db.execute(sql`
-    insert into forums (id, type, title, slug, path, last_post_at) values
-      (${OPEN}, 'forum', 'Open', 'open', '1', '2026-02-02T00:00:00Z'),
-      (${SECRET}, 'forum', 'Staff room', 'staff-room', '2', null)
+    insert into communities (id, type, title, slug, path, last_post_at) values
+      (${OPEN}, 'community', 'Open', 'open', '1', '2026-02-02T00:00:00Z'),
+      (${SECRET}, 'community', 'Staff room', 'staff-room', '2', null)
   `)
   await db.execute(sql`
     insert into users (id, username, username_lower, email, email_lower,
@@ -62,16 +62,16 @@ beforeEach(async () => {
 
 async function seedThread(input: {
   readonly id: number
-  readonly forumId?: number
+  readonly communityId?: number
   readonly title?: string
   readonly visibility?: string
   readonly lastPostAt?: string
   readonly firstPostId?: number | null
 }): Promise<void> {
   await db.execute(sql`
-    insert into threads (id, forum_id, author_user_id, author_username, title, slug,
+    insert into threads (id, community_id, author_user_id, author_username, title, slug,
                          first_post_id, last_post_at, visibility)
-    values (${input.id}, ${input.forumId ?? OPEN}, ${ANN}, 'ann',
+    values (${input.id}, ${input.communityId ?? OPEN}, ${ANN}, 'ann',
             ${input.title ?? `Thread ${input.id}`}, ${`t-${input.id}`},
             ${input.firstPostId === undefined ? null : input.firstPostId},
             ${input.lastPostAt ?? '2026-01-01T00:00:00Z'},
@@ -87,7 +87,7 @@ async function seedPost(input: {
   readonly createdAt?: string
 }): Promise<void> {
   await db.execute(sql`
-    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+    insert into posts (id, thread_id, community_id, author_user_id, author_username,
                        message, visibility, created_at)
     values (${input.id}, ${input.threadId}, ${OPEN}, ${ANN}, 'ann',
             ${input.message ?? 'hello'}, ${input.visibility ?? 'visible'},
@@ -95,34 +95,34 @@ async function seedPost(input: {
   `)
 }
 
-/** What a signed-out visitor sees: the open forum, visible content only. */
+/** What a signed-out visitor sees: the open community, visible content only. */
 const guest = (overrides: Partial<FeedScope> = {}): FeedScope => ({
-  forumIds: [OPEN],
+  communityIds: [OPEN],
   content: PUBLIC_CONTENT,
   ...overrides,
 })
 
 const staff: FeedScope = {
-  forumIds: [OPEN, SECRET],
+  communityIds: [OPEN, SECRET],
   content: contentScopeFrom({ seesUnapproved: true, seesDeleted: true }),
 }
 
 describe('the leak suite', () => {
   beforeEach(async () => {
-    /* Something private, in a forum a guest cannot read. */
+    /* Something private, in a community a guest cannot read. */
     await seedThread({
       id: 100,
-      forumId: SECRET,
+      communityId: SECRET,
       title: SECRET_TITLE,
       lastPostAt: '2026-09-09T00:00:00Z',
       firstPostId: 1000,
     })
     await seedPost({ id: 1000, threadId: 100, message: SECRET_BODY })
 
-    /* And something merely hidden, in a forum a guest *can* read. */
+    /* And something merely hidden, in a community a guest *can* read. */
     await seedThread({
       id: 101,
-      forumId: OPEN,
+      communityId: OPEN,
       title: SECRET_TITLE,
       visibility: 'unapproved',
       lastPostAt: '2026-09-09T00:00:00Z',
@@ -134,7 +134,7 @@ describe('the leak suite', () => {
     await seedPost({ id: 10, threadId: 1, message: 'ordinary business' })
   })
 
-  it('keeps a private forum out of the board feed, title and body alike', async () => {
+  it('keeps a private community out of the board feed, title and body alike', async () => {
     const serialised = JSON.stringify(await repo.recentThreads(50, guest()))
 
     expect(serialised).not.toContain(SECRET_TITLE)
@@ -144,20 +144,20 @@ describe('the leak suite', () => {
     expect(serialised).toContain('ordinary business')
   })
 
-  it('keeps a hidden thread in a readable forum out of the board feed', async () => {
+  it('keeps a hidden thread in a readable community out of the board feed', async () => {
     /*
-     * The second half, and the one a forum-id filter alone would miss: thread
-     * 101 is in the open forum and would pass any permission check that stopped
-     * at the forum. Kills the mutant that drops the content scope.
+     * The second half, and the one a community-id filter alone would miss: thread
+     * 101 is in the open community and would pass any permission check that stopped
+     * at the community. Kills the mutant that drops the content scope.
      */
     const rows = await repo.recentThreads(50, guest())
     expect(rows.map((row) => row.threadId)).toEqual([1])
   })
 
-  it('refuses a private forum asked for by id', async () => {
+  it('refuses a private community asked for by id', async () => {
     /*
-     * The forum feed takes an id from the URL. Asking for one outside the scope
-     * must produce nothing — not that forum's threads. Kills the mutant that
+     * The community feed takes an id from the URL. Asking for one outside the scope
+     * must produce nothing — not that community's threads. Kills the mutant that
      * replaces the scope filter with the requested id instead of intersecting.
      */
     expect(await repo.recentThreads(50, guest(), SECRET)).toEqual([])
@@ -172,7 +172,7 @@ describe('the leak suite', () => {
 
   it('refuses a hidden thread’s post feed even though its posts are visible', async () => {
     /*
-     * Thread 101 is unapproved and sits in a forum a guest may read, and its
+     * Thread 101 is unapproved and sits in a community a guest may read, and its
      * post is visible in its own right. A feed that checked only the post — the
      * obvious reading of "list this thread's posts" — would publish the body of
      * a thread awaiting moderation, at a URL that is a bare id anybody can
@@ -193,27 +193,27 @@ describe('the leak suite', () => {
     expect(serialised).toContain('ordinary business')
   })
 
-  it('keeps a private forum and a hidden thread out of the sitemap', async () => {
-    const forums = JSON.stringify(await repo.sitemapForums(guest()))
-    expect(forums).not.toContain('staff-room')
-    expect(forums).toContain('open')
+  it('keeps a private community and a hidden thread out of the sitemap', async () => {
+    const communities = JSON.stringify(await repo.sitemapCommunities(guest()))
+    expect(communities).not.toContain('staff-room')
+    expect(communities).toContain('open')
 
     const threads = await repo.sitemapThreads(0, 100, guest())
     expect(threads.map((row) => row.threadId)).toEqual([1])
     expect(await repo.sitemapThreadCount(guest())).toBe(1)
   })
 
-  it('answers nothing for a scope with no forums at all', async () => {
+  it('answers nothing for a scope with no communities at all', async () => {
     /*
-     * An empty forum list is "nothing", never "no filter" — the same claim F74
+     * An empty community list is "nothing", never "no filter" — the same claim F74
      * makes first in its own suite, restated here because a feed is the one
      * surface where getting it wrong is served to the whole internet.
      */
-    const empty = guest({ forumIds: [] })
+    const empty = guest({ communityIds: [] })
 
     expect(await repo.recentThreads(50, empty)).toEqual([])
     expect(await repo.recentPosts(1, 50, empty)).toEqual([])
-    expect(await repo.sitemapForums(empty)).toEqual([])
+    expect(await repo.sitemapCommunities(empty)).toEqual([])
     expect(await repo.sitemapThreads(0, 100, empty)).toEqual([])
     expect(await repo.sitemapThreadCount(empty)).toBe(0)
     expect(await repo.sitemapBoundaryId(5, empty)).toBeNull()
@@ -342,15 +342,15 @@ describe('the sitemap’s paging', () => {
     expect(await repo.sitemapBoundaryId(4, guest())).toBe(5)
   })
 
-  it('omits lastmod for a forum nobody has posted in', async () => {
+  it('omits lastmod for a community nobody has posted in', async () => {
     /*
      * `lastmod` is a promise about when the page changed. Inventing "now" for a
-     * dormant forum teaches a crawler to keep re-fetching a page that never
+     * dormant community teaches a crawler to keep re-fetching a page that never
      * moves — which is a cost paid forever for a field that could be absent.
      */
-    const forums = await repo.sitemapForums({ ...guest(), forumIds: [OPEN, SECRET] })
+    const communities = await repo.sitemapCommunities({ ...guest(), communityIds: [OPEN, SECRET] })
 
-    expect(forums.find((f) => f.forumId === OPEN)?.lastPostAt).not.toBeNull()
-    expect(forums.find((f) => f.forumId === SECRET)?.lastPostAt).toBeNull()
+    expect(communities.find((f) => f.communityId === OPEN)?.lastPostAt).not.toBeNull()
+    expect(communities.find((f) => f.communityId === SECRET)?.lastPostAt).toBeNull()
   })
 })

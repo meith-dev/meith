@@ -11,7 +11,7 @@ import type { FooterModel } from '@meith/theme-kit'
  * title, each footer link the app resolved (an href arrives resolved — a theme
  * never builds a URL), and the timezone note, because every timestamp on the
  * board was formatted server-side in that zone. The rendering-contract suite
- * (`apps/forum/src/theme/contract.test.ts`) checks those appear.
+ * (`apps/community/src/theme/contract.test.ts`) checks those appear.
  *
  * Colours come from tokens only — `no-hardcoded-colour` rejects a hex literal
  * in a theme, so a board's operator can restyle this footer without reaching

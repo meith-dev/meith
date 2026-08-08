@@ -20,7 +20,7 @@ const touched: string[] = []
 
 /** A throwaway workspace root: a directory with the marker file in it. */
 function workspace(files: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), 'forum-env-'))
+  const root = mkdtempSync(join(tmpdir(), 'community-env-'))
   created.push(root)
   writeFileSync(join(root, 'pnpm-workspace.yaml'), "packages:\n  - 'packages/*'\n")
   for (const [name, contents] of Object.entries(files)) {
@@ -31,7 +31,7 @@ function workspace(files: Record<string, string>): string {
 
 /** A directory with no workspace above it. */
 function orphanDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'forum-noworkspace-'))
+  const dir = mkdtempSync(join(tmpdir(), 'community-noworkspace-'))
   created.push(dir)
   return dir
 }
@@ -50,7 +50,7 @@ afterEach(() => {
 describe('findWorkspaceRoot', () => {
   it('walks up to the directory holding pnpm-workspace.yaml', () => {
     const root = workspace({})
-    const deep = join(root, 'apps', 'forum')
+    const deep = join(root, 'apps', 'community')
     mkdirSync(deep, { recursive: true })
 
     expect(findWorkspaceRoot(deep)).toBe(root)
@@ -65,7 +65,7 @@ describe('findWorkspaceRoot', () => {
 
 describe('loadEnvFiles', () => {
   it('loads .env from the workspace root when started from a nested app', () => {
-    const name = owned('FORUM_TEST_FROM_ROOT')
+    const name = owned('COMMUNITY_TEST_FROM_ROOT')
     const root = workspace({ '.env': `${name}=from-dot-env\n` })
     const deep = join(root, 'apps', 'cli')
     mkdirSync(deep, { recursive: true })
@@ -77,7 +77,7 @@ describe('loadEnvFiles', () => {
   })
 
   it('prefers .env.local over .env', () => {
-    const name = owned('FORUM_TEST_PRECEDENCE')
+    const name = owned('COMMUNITY_TEST_PRECEDENCE')
     const root = workspace({
       '.env': `${name}=from-dot-env\n`,
       '.env.local': `${name}=from-dot-env-local\n`,
@@ -88,7 +88,7 @@ describe('loadEnvFiles', () => {
   })
 
   it('never overwrites a variable the environment already set', () => {
-    const name = owned('FORUM_TEST_AMBIENT_WINS')
+    const name = owned('COMMUNITY_TEST_AMBIENT_WINS')
     process.env[name] = 'from-the-environment'
     const root = workspace({ '.env': `${name}=from-dot-env\n` })
 
@@ -111,9 +111,9 @@ describe('loadEnvFiles', () => {
   it('is a no-op outside a workspace, which is the production case', () => {
     const orphan = orphanDir()
     // A `.env` here belongs to some other project, and is deliberately ignored.
-    writeFileSync(join(orphan, '.env'), 'FORUM_TEST_STRAY=nope\n')
+    writeFileSync(join(orphan, '.env'), 'COMMUNITY_TEST_STRAY=nope\n')
 
     expect(loadEnvFiles(orphan)).toEqual({ root: undefined, loaded: [] })
-    expect(process.env.FORUM_TEST_STRAY).toBeUndefined()
+    expect(process.env.COMMUNITY_TEST_STRAY).toBeUndefined()
   })
 })

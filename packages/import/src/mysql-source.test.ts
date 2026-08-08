@@ -54,7 +54,7 @@ function sourceOver(pages: readonly (readonly unknown[])[], prefix = 'mybb_') {
 
 describe('the statements it issues', () => {
   /*
-   * The load-bearing one. This reader points at a live forum, and an importer
+   * The load-bearing one. This reader points at a live community, and an importer
    * that could modify the board it reads is one nobody should run against
    * production. "We were careful" is not the guarantee; "no statement in the
    * file is anything but a select" is.
@@ -63,7 +63,7 @@ describe('the statements it issues', () => {
     const { source, log } = sourceOver([[], [], [], []])
 
     await source.users(0, 10)
-    await source.forums(0, 10)
+    await source.communities(0, 10)
     await source.threads(0, 10)
     await source.posts(0, 10)
 
@@ -81,7 +81,7 @@ describe('the statements it issues', () => {
    */
   it.each([
     ['users', 'uid'],
-    ['forums', 'fid'],
+    ['communities', 'fid'],
     ['threads', 'tid'],
     ['posts', 'pid'],
   ] as const)('pages %s by keyset on %s', async (method, key) => {
@@ -100,7 +100,7 @@ describe('the statements it issues', () => {
     const { source, log } = sourceOver([[], [], [], []], 'forum2011_')
 
     await source.users(0, 1)
-    await source.forums(0, 1)
+    await source.communities(0, 1)
     await source.threads(0, 1)
     await source.posts(0, 1)
 

@@ -165,7 +165,7 @@ export class PostgresAdminSessionRepository implements AdminSessionRepository {
  *
  * `admin_log` has existed since `0000` and has had *writers* since F48 — every
  * moderation action records a row. What it has never had is a **reader outside
- * the ModCP's forum-scoped view**, or a writer for the ACP's own actions. F63
+ * the ModCP's community-scoped view**, or a writer for the ACP's own actions. F63
  * supplies both.
  */
 export class PostgresAdminLogRepository implements AdminLogRepository {
@@ -189,9 +189,9 @@ export class PostgresAdminLogRepository implements AdminLogRepository {
    * The whole log, newest first, optionally filtered to one action.
    *
    * Unscoped, unlike the ModCP's view — an administrator reading the audit log
-   * is reading *everything*, which is the point of there being one. The forum
+   * is reading *everything*, which is the point of there being one. The community
    * filtering in `modcp-repo.ts` exists because a moderator may only see their
-   * own forums; that constraint has no analogue here.
+   * own communities; that constraint has no analogue here.
    */
   async list(input: {
     readonly limit: number

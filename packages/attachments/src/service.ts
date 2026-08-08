@@ -185,7 +185,7 @@ export interface ImageProcessor {
 
 export interface CreateAttachmentInput {
   readonly postId: number
-  readonly forumId: number
+  readonly communityId: number
   readonly uploaderUserId: number
   readonly filename: string
   readonly contentType: string
@@ -208,7 +208,7 @@ export interface ReadyInput {
  *
  * One read rather than two, because authorising a download needs both and
  * fetching them separately would leave a window in which the post was deleted
- * between the checks. `forumId` on the row answers *which* forum; this answers
+ * between the checks. `communityId` on the row answers *which* community; this answers
  * whether the thing it is attached to is visible at all.
  */
 export interface AttachmentForDownload {
@@ -285,10 +285,10 @@ export class AttachmentService {
       await this.deps.files.put(key, upload.bytes, {
         contentType: upload.type.contentType,
         /*
-         * Always private, including for a public forum. The permission that
-         * governs a download is `attachment.download` in the *forum*, and a
+         * Always private, including for a public community. The permission that
+         * governs a download is `attachment.download` in the *community*, and a
          * public object is one nobody can revoke — moving a thread into a
-         * private forum would not take its images with it.
+         * private community would not take its images with it.
          */
         visibility: 'private',
       })
@@ -307,14 +307,14 @@ export class AttachmentService {
    */
   async attach(
     staged: readonly StagedUpload[],
-    post: { readonly postId: number; readonly forumId: number; readonly userId: number },
+    post: { readonly postId: number; readonly communityId: number; readonly userId: number },
   ): Promise<readonly AttachmentRecord[]> {
     const created: AttachmentRecord[] = []
 
     for (const item of staged) {
       const record = await this.deps.attachments.create({
         postId: post.postId,
-        forumId: post.forumId,
+        communityId: post.communityId,
         uploaderUserId: post.userId,
         filename: item.upload.filename,
         contentType: item.upload.type.contentType,

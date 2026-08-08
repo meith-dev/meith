@@ -9,7 +9,7 @@
  *
  * "What is outstanding" is a union of two ranges: posts newer than the
  * watermark in a thread I follow, and posts newer than the watermark in *any*
- * thread of a forum I follow. Both halves are keyset ranges over
+ * thread of a community I follow. Both halves are keyset ranges over
  * `posts (thread_id, id)`, which is the index the thread page already lives on.
  *
  * ## Visibility is filtered three ways, and all three are necessary
@@ -18,8 +18,8 @@
  *   F47's one helper — a digest must never carry a held or soft-deleted post,
  *   and it is a background job with no reader whose moderator status could
  *   widen that.
- * - `forum_id in (visible set)`, resolved per member through the Authorizer by
- *   the caller. A subscription is not a standing grant: a forum can be made
+ * - `community_id in (visible set)`, resolved per member through the Authorizer by
+ *   the caller. A subscription is not a standing grant: a community can be made
  *   private after somebody subscribed to it.
  * - `author_user_id <> the subscriber`, because being told about your own reply
  *   is noise everybody notices and nobody wants.
@@ -59,7 +59,7 @@ interface TableShape {
 function shapeFor(target: SubscriptionTarget): TableShape {
   return target === 'thread'
     ? { table: sql`thread_subscriptions`, column: sql`thread_id` }
-    : { table: sql`forum_subscriptions`, column: sql`forum_id` }
+    : { table: sql`community_subscriptions`, column: sql`community_id` }
 }
 
 /**
@@ -73,15 +73,15 @@ function shapeFor(target: SubscriptionTarget): TableShape {
 function pendingPosts(
   userId: number,
   mode: SubscriptionMode | null,
-  visibleForumIds: readonly number[] | null,
+  visibleCommunityIds: readonly number[] | null,
 ): ReturnType<typeof sql> {
   const byMode = mode === null ? sql`` : sql`and s.mode = ${mode}`
   const visible =
-    visibleForumIds === null ? sql`` : sql`and t.forum_id in ${idList(visibleForumIds)}`
+    visibleCommunityIds === null ? sql`` : sql`and t.community_id in ${idList(visibleCommunityIds)}`
 
   return sql`
     select p.id as post_id, p.thread_id, t.title as thread_title, t.slug as thread_slug,
-           t.forum_id, u.username as author_username, p.created_at,
+           t.community_id, u.username as author_username, p.created_at,
            'thread'::text as target, s.thread_id as target_id
       from thread_subscriptions s
       join threads t on t.id = s.thread_id
@@ -96,10 +96,10 @@ function pendingPosts(
     union all
 
     select p.id as post_id, p.thread_id, t.title as thread_title, t.slug as thread_slug,
-           t.forum_id, u.username as author_username, p.created_at,
-           'forum'::text as target, s.forum_id as target_id
-      from forum_subscriptions s
-      join threads t on t.forum_id = s.forum_id
+           t.community_id, u.username as author_username, p.created_at,
+           'community'::text as target, s.community_id as target_id
+      from community_subscriptions s
+      join threads t on t.community_id = s.community_id
       join posts p on p.thread_id = t.id and p.id > s.last_notified_post_id
       left join users u on u.id = p.author_user_id
      where s.user_id = ${userId} ${byMode}
@@ -115,7 +115,7 @@ interface RawPending {
   thread_id: number
   thread_title: string
   thread_slug: string
-  forum_id: number
+  community_id: number
   author_username: string | null
   created_at: string | Date
   target: SubscriptionTarget
@@ -163,13 +163,13 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
             returning user_id
           `)
         : await this.db.execute(sql`
-            insert into forum_subscriptions
-                   (user_id, forum_id, mode, last_notified_post_id, created_at)
+            insert into community_subscriptions
+                   (user_id, community_id, mode, last_notified_post_id, created_at)
             select ${input.userId}, f.id, ${input.mode},
                    coalesce(f.last_post_id, 0), ${input.at}
-              from forums f
+              from communities f
              where f.id = ${input.targetId}
-                on conflict (user_id, forum_id)
+                on conflict (user_id, community_id)
                 do update set mode = excluded.mode
             returning user_id
           `),
@@ -217,22 +217,22 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
    * The management screen.
    *
    * The pending count comes from the same fragment the notifier uses, so the
-   * number a member sees is the number they will be told about — and a forum
+   * number a member sees is the number they will be told about — and a community
    * they can no longer see is dropped entirely rather than shown with a count
    * of zero, which would still disclose that they once subscribed to something
    * now private.
    */
   async listFor(
     userId: number,
-    options: { readonly visibleForumIds: readonly number[]; readonly limit: number },
+    options: { readonly visibleCommunityIds: readonly number[]; readonly limit: number },
   ): Promise<readonly SubscriptionRow[]> {
-    const visible = idList(options.visibleForumIds)
+    const visible = idList(options.visibleCommunityIds)
 
     const rows = resultRows(
       await this.db.execute(sql`
         with pending as (
           select target, target_id, count(*)::int as pending
-            from (${pendingPosts(userId, null, options.visibleForumIds)}) p
+            from (${pendingPosts(userId, null, options.visibleCommunityIds)}) p
            group by target, target_id
         )
         select 'thread'::text as target, s.thread_id as target_id, t.title,
@@ -244,18 +244,18 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
                  on pending.target = 'thread' and pending.target_id = s.thread_id
          where s.user_id = ${userId}
            and ${visibleIn(sql`t.visibility`, PUBLIC_CONTENT)}
-           and t.forum_id in ${visible}
+           and t.community_id in ${visible}
 
         union all
 
-        select 'forum'::text as target, s.forum_id as target_id, f.title,
+        select 'community'::text as target, s.community_id as target_id, f.title,
                f.slug, s.mode, s.created_at,
                coalesce(pending.pending, 0) as pending
-          from forum_subscriptions s
-          join forums f on f.id = s.forum_id
+          from community_subscriptions s
+          join communities f on f.id = s.community_id
           left join pending
-                 on pending.target = 'forum' and pending.target_id = s.forum_id
-         where s.user_id = ${userId} and s.forum_id in ${visible}
+                 on pending.target = 'community' and pending.target_id = s.community_id
+         where s.user_id = ${userId} and s.community_id in ${visible}
 
          order by created_at desc, target_id desc
          limit ${options.limit}
@@ -277,7 +277,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
       href:
         row.target === 'thread'
           ? `/thread/${Number(row.target_id)}-${row.slug}`
-          : `/forum/${Number(row.target_id)}-${row.slug}`,
+          : `/community/${Number(row.target_id)}-${row.slug}`,
       mode: parseSubscriptionMode(row.mode) ?? 'instant',
       createdAt: toDate(row.created_at),
       pending: Number(row.pending),
@@ -323,9 +323,9 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
                    'thread'::text as target
               from thread_subscriptions
              union all
-            select user_id, forum_id as target_id, mode, last_notified_post_id,
-                   'forum'::text as target
-              from forum_subscriptions
+            select user_id, community_id as target_id, mode, last_notified_post_id,
+                   'community'::text as target
+              from community_subscriptions
           ) s
          where s.mode = ${input.mode}
            and exists (
@@ -334,7 +334,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
                join posts p on p.thread_id = t.id and p.id > s.last_notified_post_id
               where (
                       (s.target = 'thread' and t.id = s.target_id)
-                   or (s.target = 'forum' and t.forum_id = s.target_id)
+                   or (s.target = 'community' and t.community_id = s.target_id)
                     )
                 and p.author_user_id is distinct from s.user_id
                 and ${visibleIn(sql`p.visibility`, PUBLIC_CONTENT)}
@@ -352,12 +352,12 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
   async pendingFor(input: {
     readonly userId: number
     readonly mode: SubscriptionMode
-    readonly visibleForumIds: readonly number[]
+    readonly visibleCommunityIds: readonly number[]
     readonly limit: number
   }): Promise<PendingForUser> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select * from (${pendingPosts(input.userId, input.mode, input.visibleForumIds)}) p
+        select * from (${pendingPosts(input.userId, input.mode, input.visibleCommunityIds)}) p
          order by p.thread_id, p.post_id
          limit ${input.limit}
       `),
@@ -384,7 +384,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
     }
 
     /*
-     * A post can be pending through both a thread subscription and its forum's.
+     * A post can be pending through both a thread subscription and its community's.
      * The rows are deduplicated by post so the member is told once; both
      * watermarks still advance, so neither subscription re-delivers it.
      */
@@ -399,7 +399,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
         threadId: Number(row.thread_id),
         threadTitle: row.thread_title,
         threadSlug: row.thread_slug,
-        forumId: Number(row.forum_id),
+        communityId: Number(row.community_id),
         authorUsername: row.author_username,
         createdAt: toDate(row.created_at),
       })

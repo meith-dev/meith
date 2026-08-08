@@ -4,7 +4,7 @@ import type { CategoryBlockModel } from '@meith/theme-kit'
 import { LINK } from '../shared'
 
 /**
- * One category and its forums (F29).
+ * One category and its communities (F29).
  *
  * The heading is a `<h2>` and the rows sit in a list, so the index has a real
  * document outline: a screen-reader user can jump between categories, which on a
@@ -16,7 +16,7 @@ import { LINK } from '../shared'
  *
  * ## The listing is ruled, not boxed
  *
- * `CardRows` separates forums with a hairline instead of a gap. A board is read
+ * `CardRows` separates communities with a hairline instead of a gap. A board is read
  * by scanning down a column of titles, and a gap between every row breaks that
  * column into twenty objects the eye has to re-acquire. The card's border is the
  * only box; everything inside it is a table without being one.
@@ -30,8 +30,8 @@ export function CategoryBlock({ category, children }: CategoryBlockModel) {
         <CardTitle id={headingId}>
           {/*
            * A category is a heading, not a destination: it holds no threads, so
-           * linking it would send a reader to an empty forum page. A root-level
-           * *forum* used as a block heading is a real place, and is linked.
+           * linking it would send a reader to an empty community page. A root-level
+           * *community* used as a block heading is a real place, and is linked.
            */}
           {category.type === 'category' ? (
             category.title

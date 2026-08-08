@@ -83,7 +83,7 @@ describe('the budget registry', () => {
    */
   it.each([
     ['thread-page-first', 'thread-page-deep'],
-    ['forum-page-first', 'forum-page-deep'],
+    ['community-page-first', 'community-page-deep'],
   ])('keeps %s and %s within 2× of each other', (firstId, deepId) => {
     const first = findBudget(firstId)
     const deep = findBudget(deepId)
@@ -95,7 +95,7 @@ describe('the budget registry', () => {
 
   it('covers the pages a board’s traffic actually goes to', () => {
     const ids = BUDGETS.map((b) => b.id)
-    for (const required of ['thread-page-first', 'forum-page-first', 'board-index']) {
+    for (const required of ['thread-page-first', 'community-page-first', 'board-index']) {
       expect(ids).toContain(required)
     }
   })

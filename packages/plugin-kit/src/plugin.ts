@@ -3,7 +3,7 @@
  *
  * A plugin is a **module that describes itself**: hooks, settings, migrations,
  * tasks, admin pages, UI contributions, and four lifecycle callbacks. It is
- * imported statically by `forum.config.ts`, like a theme and for the same reason
+ * imported statically by `community.config.ts`, like a theme and for the same reason
  * (invariant 6) — a serverless bundle contains only what the bundler saw, so
  * nothing is discovered by scanning a plugins directory at request time.
  *
@@ -197,7 +197,7 @@ const PAGE_PATH_PATTERN = /^[a-z][a-z0-9-]{0,39}$/
 /**
  * Validate a manifest and return it typed.
  *
- * The same shape and reasoning as `defineTheme` and `defineForumConfig`: an
+ * The same shape and reasoning as `defineTheme` and `defineCommunityConfig`: an
  * identity function whose job is to attach the type and to catch the mistakes
  * that would otherwise fail a long way from their cause. Everything here is
  * checked at module load, which on this stack means at build or at boot — never

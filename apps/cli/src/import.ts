@@ -1,5 +1,5 @@
 /**
- * F85 — `forum import`.
+ * F85 — `community import`.
  *
  * The operator-facing half of the MyBB import. Everything it decides is already
  * decided elsewhere: `@meith/import` owns the mapping, the paging, the cursors
@@ -103,7 +103,7 @@ export async function importCommand(args: readonly string[]): Promise<number> {
   } finally {
     /*
      * Always. A command that leaves a connection open against somebody's live
-     * forum is a command that eventually exhausts its connection limit — and the
+     * community is a command that eventually exhausts its connection limit — and the
      * board it exhausts is the one still serving members.
      */
     await source.close()
@@ -143,7 +143,7 @@ function print(report: ImportReport): void {
 
   console.log('')
   if (report.finished) {
-    console.log('Import complete. Run `forum task:run counters.reconcile` before opening the board.')
+    console.log('Import complete. Run `community task:run counters.reconcile` before opening the board.')
   } else {
     console.log(
       `Stopped after ${report.readThisRun.toLocaleString()} rows (the budget). ` +

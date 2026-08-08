@@ -14,7 +14,7 @@ import {
 
 const NOW = new Date('2026-07-30T12:00:00Z')
 
-/** Pending items live in forum 4 unless the test says otherwise. */
+/** Pending items live in community 4 unless the test says otherwise. */
 class FakeQueue implements ModerationQueueRepository {
   readonly applied: Array<{
     decision: string
@@ -36,8 +36,8 @@ class FakeQueue implements ModerationQueueRepository {
 
   async resolve(selection: readonly QueueSelection[]): Promise<readonly PendingItem[]> {
     return selection.flatMap((item) => {
-      const forumId = this.pending.get(`${item.kind}:${item.id}`)
-      return forumId === undefined ? [] : [{ ...item, forumId }]
+      const communityId = this.pending.get(`${item.kind}:${item.id}`)
+      return communityId === undefined ? [] : [{ ...item, communityId }]
     })
   }
 
@@ -64,7 +64,7 @@ function queueWith(pending: Record<string, number>): {
 const MODERATED = new Set([4])
 
 describe('ModerationQueue.decide', () => {
-  it('applies a decision to the items in forums the actor moderates', async () => {
+  it('applies a decision to the items in communities the actor moderates', async () => {
     const { repo, queue } = queueWith({ 'thread:10': 4, 'post:20': 4 })
 
     const outcome = await queue.decide({
@@ -73,7 +73,7 @@ describe('ModerationQueue.decide', () => {
         { kind: 'post', id: 20 },
       ],
       decision: 'approve',
-      moderatedForumIds: MODERATED,
+      moderatedCommunityIds: MODERATED,
       actorUserId: 7,
     })
 
@@ -88,10 +88,10 @@ describe('ModerationQueue.decide', () => {
 
   /*
    * The re-read is the authorisation. An id in a POST body says which row to
-   * act on and nothing about whether this actor may — so the forum comes from
+   * act on and nothing about whether this actor may — so the community comes from
    * the database and is then checked, rather than arriving with the request.
    */
-  it('refuses an item in a forum the actor does not moderate, and says so', async () => {
+  it('refuses an item in a community the actor does not moderate, and says so', async () => {
     const { repo, queue } = queueWith({ 'thread:10': 4, 'post:20': 99 })
 
     const outcome = await queue.decide({
@@ -100,7 +100,7 @@ describe('ModerationQueue.decide', () => {
         { kind: 'post', id: 20 },
       ],
       decision: 'approve',
-      moderatedForumIds: MODERATED,
+      moderatedCommunityIds: MODERATED,
       actorUserId: 7,
     })
 
@@ -122,7 +122,7 @@ describe('ModerationQueue.decide', () => {
         { kind: 'post', id: 20 },
       ],
       decision: 'reject',
-      moderatedForumIds: MODERATED,
+      moderatedCommunityIds: MODERATED,
       actorUserId: 7,
     })
 
@@ -138,7 +138,7 @@ describe('ModerationQueue.decide', () => {
         { kind: 'post', id: 20 },
       ],
       decision: 'approve',
-      moderatedForumIds: MODERATED,
+      moderatedCommunityIds: MODERATED,
       actorUserId: 7,
     })
 
@@ -152,7 +152,7 @@ describe('ModerationQueue.decide', () => {
       queue.decide({
         selection: [],
         decision: 'approve',
-        moderatedForumIds: MODERATED,
+        moderatedCommunityIds: MODERATED,
         actorUserId: 7,
       }),
     ).rejects.toThrow(ValidationError)
@@ -175,7 +175,7 @@ describe('ModerationQueue.decide', () => {
       queue.decide({
         selection,
         decision: 'approve',
-        moderatedForumIds: MODERATED,
+        moderatedCommunityIds: MODERATED,
         actorUserId: 7,
       }),
     ).rejects.toThrow(/at most/i)
@@ -188,7 +188,7 @@ describe('ModerationQueue.decide', () => {
     const outcome = await queue.decide({
       selection: [{ kind: 'post', id: 20 }],
       decision: 'approve',
-      moderatedForumIds: MODERATED,
+      moderatedCommunityIds: MODERATED,
       actorUserId: 7,
     })
 

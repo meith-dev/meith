@@ -65,7 +65,7 @@ export function sanitiseFilename(raw: string, type: AttachmentType): string {
  * The object key for a stored file.
  *
  * Random, and unrelated to the filename or to any id. Three things follow:
- * nobody can guess another member's key and read a private forum's attachment
+ * nobody can guess another member's key and read a private community's attachment
  * straight out of a bucket; a rename cannot orphan an object; and the key is
  * fixed before the row exists, which is what lets the write order be
  * *remember, put, insert* rather than *insert, put*.

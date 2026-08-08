@@ -59,12 +59,12 @@ describe('where the migrations are looked for', () => {
   })
 
   it('walks up from the working directory, in both shapes', () => {
-    const candidates = migrationFolderCandidates({ cwd: '/repo/apps/forum' })
+    const candidates = migrationFolderCandidates({ cwd: '/repo/apps/community' })
 
-    /* `next dev` runs in apps/forum; the workspace's SQL is three levels up. */
+    /* `next dev` runs in apps/community; the workspace's SQL is three levels up. */
     expect(candidates).toContain(path.join('/repo', 'packages', 'db', 'migrations'))
     /* An image runs in /app, where the folder sits directly underneath. */
-    expect(candidates).toContain(path.join('/repo/apps/forum', 'migrations'))
+    expect(candidates).toContain(path.join('/repo/apps/community', 'migrations'))
   })
 
   it('stops at the root rather than looping', () => {
@@ -74,7 +74,7 @@ describe('where the migrations are looked for', () => {
   })
 
   it('puts the nearest directory first, so a checkout never reaches the image path', () => {
-    const candidates = migrationFolderCandidates({ moduleDir: HERE, cwd: '/repo/apps/forum' })
+    const candidates = migrationFolderCandidates({ moduleDir: HERE, cwd: '/repo/apps/community' })
     expect(candidates.indexOf(path.resolve(HERE, '..', 'migrations'))).toBe(0)
   })
 })

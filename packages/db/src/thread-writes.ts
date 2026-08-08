@@ -4,7 +4,7 @@
  * One transaction covers the thread, its opening post, every counter it moves
  * and the event that rolls those counters up the tree. That is the entire
  * reason `applyCreatedContentCounters` takes a transaction handle rather than
- * opening its own: a post that exists while the forum still reports zero
+ * opening its own: a post that exists while the community still reports zero
  * threads is the failure this shape prevents (D40/D41).
  */
 import { sql } from 'drizzle-orm'
@@ -14,7 +14,7 @@ import type { NewPoll } from '@meith/polls'
 
 import type {
   CreatedThread,
-  ForumPostingTarget,
+  CommunityPostingTarget,
   NewReplyRecord,
   NewThreadRecord,
   ReplyTarget,
@@ -34,16 +34,16 @@ export class PostgresThreadWriteRepository
   constructor(private readonly db: Database) {}
 
   /** The posting flags plus the slug the redirect needs, in one row. */
-  async postingRules(forumId: number): Promise<ForumPostingTarget | null> {
+  async postingRules(communityId: number): Promise<CommunityPostingTarget | null> {
     const rows = resultRows(
       await this.db.execute(sql`
         select id, type, slug, is_open, allow_threads, allow_replies, allow_polls,
                requires_prefix, moderate_new_threads, moderate_new_posts
-          from forums where id = ${forumId}
+          from communities where id = ${communityId}
       `),
     ) as Array<{
       id: number
-      type: 'category' | 'forum' | 'link'
+      type: 'category' | 'community' | 'link'
       slug: string
       is_open: boolean
       allow_threads: boolean
@@ -85,10 +85,10 @@ export class PostgresThreadWriteRepository
       const threadRows = resultRows(
         await tx.execute(sql`
           insert into threads
-            (forum_id, title, slug, prefix_id, author_user_id, author_username,
+            (community_id, title, slug, prefix_id, author_user_id, author_username,
              visibility, last_post_at, created_at, updated_at)
           values
-            (${record.forumId}, ${record.title}, ${record.slug}, ${record.prefixId},
+            (${record.communityId}, ${record.title}, ${record.slug}, ${record.prefixId},
              ${record.authorUserId}, ${record.authorUsername}, ${record.visibility},
              ${record.createdAt}, ${record.createdAt}, ${record.createdAt})
           returning id
@@ -100,11 +100,11 @@ export class PostgresThreadWriteRepository
       const postRows = resultRows(
         await tx.execute(sql`
           insert into posts
-            (thread_id, forum_id, author_user_id, author_username, message,
+            (thread_id, community_id, author_user_id, author_username, message,
              message_html, render_version, vocab_version, body_format, visibility,
              is_first_post, created_at, search_vector, search_version)
           values
-            (${threadId}, ${record.forumId}, ${record.authorUserId},
+            (${threadId}, ${record.communityId}, ${record.authorUserId},
              ${record.authorUsername}, ${record.message}, ${body.html},
              ${body.version}, ${vocabulary.revision}, ${BodyFormat.Markdown},
              ${record.visibility}, true,
@@ -132,7 +132,7 @@ export class PostgresThreadWriteRepository
         await applyCreatedContentCounters(tx, {
           postId,
           threadId,
-          forumId: record.forumId,
+          communityId: record.communityId,
           authorId: record.authorUserId,
           authorUsername: record.authorUsername,
           threadTitle: record.title,
@@ -190,11 +190,11 @@ export class PostgresThreadWriteRepository
       await this.db.execute(sql`
         select t.id, t.slug, t.title, t.is_locked, t.visibility, t.last_post_id,
                t.reply_count,
-               f.id as forum_id, f.type as forum_type, f.slug as forum_slug,
+               f.id as community_id, f.type as community_type, f.slug as community_slug,
                f.is_open, f.allow_threads, f.allow_replies, f.allow_polls, f.requires_prefix,
                f.moderate_new_threads, f.moderate_new_posts
           from threads t
-          join forums f on f.id = t.forum_id
+          join communities f on f.id = t.community_id
          where t.id = ${threadId}
       `),
     ) as Array<{
@@ -205,9 +205,9 @@ export class PostgresThreadWriteRepository
       visibility: 'visible' | 'unapproved' | 'deleted'
       last_post_id: number | null
       reply_count: number
-      forum_id: number
-      forum_type: 'category' | 'forum' | 'link'
-      forum_slug: string
+      community_id: number
+      community_type: 'category' | 'community' | 'link'
+      community_slug: string
       is_open: boolean
       allow_threads: boolean
       allow_replies: boolean
@@ -228,10 +228,10 @@ export class PostgresThreadWriteRepository
       visibility: row.visibility,
       lastPostId: row.last_post_id === null ? null : Number(row.last_post_id),
       replyCount: Number(row.reply_count),
-      forum: {
-        id: Number(row.forum_id),
-        type: row.forum_type,
-        slug: row.forum_slug,
+      community: {
+        id: Number(row.community_id),
+        type: row.community_type,
+        slug: row.community_slug,
         isOpen: row.is_open,
         allowThreads: row.allow_threads,
         allowReplies: row.allow_replies,
@@ -252,11 +252,11 @@ export class PostgresThreadWriteRepository
       const postRows = resultRows(
         await tx.execute(sql`
           insert into posts
-            (thread_id, forum_id, author_user_id, author_username, message,
+            (thread_id, community_id, author_user_id, author_username, message,
              message_html, render_version, vocab_version, body_format, visibility,
              is_first_post, created_at, search_vector, search_version)
           values
-            (${record.threadId}, ${record.forumId}, ${record.authorUserId},
+            (${record.threadId}, ${record.communityId}, ${record.authorUserId},
              ${record.authorUsername}, ${record.message}, ${body.html},
              ${body.version}, ${vocabulary.revision}, ${BodyFormat.Markdown},
              ${record.visibility}, false,
@@ -279,14 +279,14 @@ export class PostgresThreadWriteRepository
         await applyCreatedContentCounters(tx, {
           postId,
           threadId: record.threadId,
-          forumId: record.forumId,
+          communityId: record.communityId,
           authorId: record.authorUserId,
           authorUsername: record.authorUsername,
           threadTitle: record.threadTitle,
           createdAt: record.createdAt,
           /*
            * The one difference that matters: a reply raises the thread's reply
-           * count and the forum's post count, and raises no thread count
+           * count and the community's post count, and raises no thread count
            * anywhere. Getting this wrong inflates every ancestor's thread total
            * by one per reply, which no reader would ever question.
            */
@@ -334,22 +334,22 @@ export class PostgresThreadWriteRepository
   }
 
   /**
-   * Prefixes offered in this forum.
+   * Prefixes offered in this community.
    *
-   * A prefix with no `forum_path_prefix` is board-wide; one with a path is
+   * A prefix with no `community_path_prefix` is board-wide; one with a path is
    * scoped to that subtree, matched with the separator so `1.4` does not offer
    * `1.40`'s prefixes (D22's trap again, and the reason this is a query rather
    * than a filter in JavaScript).
    */
-  async allowedPrefixIds(forumId: number): Promise<readonly number[]> {
+  async allowedPrefixIds(communityId: number): Promise<readonly number[]> {
     const rows = resultRows(
       await this.db.execute(sql`
         select p.id
           from thread_prefixes p
-          left join forums f on f.id = ${forumId}
-         where p.forum_path_prefix is null
-            or f.path = p.forum_path_prefix
-            or f.path like p.forum_path_prefix || '.%'
+          left join communities f on f.id = ${communityId}
+         where p.community_path_prefix is null
+            or f.path = p.community_path_prefix
+            or f.path like p.community_path_prefix || '.%'
          order by p.display_order, p.id
       `),
     ) as Array<{ id: number }>
@@ -359,16 +359,16 @@ export class PostgresThreadWriteRepository
 
   /** The prefixes a composer form should offer, with their labels. */
   async listPrefixes(
-    forumId: number,
+    communityId: number,
   ): Promise<readonly { id: number; label: string; token: string | null }[]> {
     const rows = resultRows(
       await this.db.execute(sql`
         select p.id, p.label, p.token
           from thread_prefixes p
-          left join forums f on f.id = ${forumId}
-         where p.forum_path_prefix is null
-            or f.path = p.forum_path_prefix
-            or f.path like p.forum_path_prefix || '.%'
+          left join communities f on f.id = ${communityId}
+         where p.community_path_prefix is null
+            or f.path = p.community_path_prefix
+            or f.path like p.community_path_prefix || '.%'
          order by p.display_order, p.id
       `),
     ) as Array<{ id: number; label: string; token: string | null }>

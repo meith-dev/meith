@@ -2,7 +2,7 @@
  * The permission version bump, written once.
  *
  * F20 resolves an Actor and caches it against `cache_versions['permissions']`.
- * Anything that changes a permission *input* — a group's defaults, a forum
+ * Anything that changes a permission *input* — a group's defaults, a community
  * override, which group somebody is in, whether their account is active — has
  * to move that number, **inside the same transaction as the write it belongs
  * to**. A bump that can be lost while the write survives leaves everybody

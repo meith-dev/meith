@@ -3,7 +3,7 @@
  *
  * Two of these queries decide what a moderator is allowed to *see*, so those
  * are the ones with the most tests: the log's allow-list (an administrative row
- * must never appear in it) and its forum scope (a moderator of one forum must
+ * must never appear in it) and its community scope (a moderator of one community must
  * not read another's entries). The address lookup is third, and the thing worth
  * proving about it is that a `null` prefix matches nothing rather than matching
  * every other `null`.
@@ -15,7 +15,7 @@ import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresModCpRepository } from './modcp-repo'
 import { resultRows } from './result-rows'
-import { forums, users } from './schema'
+import { communities, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -44,7 +44,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from reports`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values(
@@ -63,7 +63,7 @@ beforeEach(async () => {
       primaryGroupId: 2,
     })),
   )
-  await db.insert(forums).values([
+  await db.insert(communities).values([
     { id: MINE, title: 'Mine', slug: 'mine', path: '4', depth: 0 },
     { id: THEIRS, title: 'Theirs', slug: 'theirs', path: '5', depth: 0 },
   ])
@@ -81,35 +81,35 @@ async function logRow(
 }
 
 describe('the moderator log', () => {
-  it('shows an entry in a forum this actor moderates', async () => {
-    await logRow('thread.lock', { threadId: 7, forumId: MINE }, OTHER_MOD)
+  it('shows an entry in a community this actor moderates', async () => {
+    await logRow('thread.lock', { threadId: 7, communityId: MINE }, OTHER_MOD)
 
-    const page = await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })
+    const page = await repo.log({ communityIds: [MINE], actorUserId: MOD, limit: 10 })
 
     expect(page.entries).toHaveLength(1)
     expect(page.entries[0]).toMatchObject({
       action: 'thread.lock',
-      forumId: MINE,
-      forumTitle: 'Mine',
+      communityId: MINE,
+      communityTitle: 'Mine',
       actorUsername: 'othermod',
     })
   })
 
   /* Scoped in SQL, not in the rendering. */
-  it('hides an entry in a forum this actor does not moderate', async () => {
-    await logRow('thread.lock', { threadId: 7, forumId: THEIRS }, OTHER_MOD)
+  it('hides an entry in a community this actor does not moderate', async () => {
+    await logRow('thread.lock', { threadId: 7, communityId: THEIRS }, OTHER_MOD)
 
-    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
+    expect((await repo.log({ communityIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
       [],
     )
   })
 
-  /* Their own acts stay visible even in a forum they have since left. */
+  /* Their own acts stay visible even in a community they have since left. */
   it('shows this actor"s own entry wherever it happened', async () => {
-    await logRow('thread.lock', { threadId: 7, forumId: THEIRS }, MOD)
+    await logRow('thread.lock', { threadId: 7, communityId: THEIRS }, MOD)
 
     expect(
-      (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
+      (await repo.log({ communityIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
     ).toHaveLength(1)
   })
 
@@ -118,36 +118,36 @@ describe('the moderator log', () => {
    * turn every new administrative row type into a disclosure.
    */
   it('never shows an administrative entry, whoever wrote it', async () => {
-    await logRow('settings.update', { forumId: MINE }, MOD)
-    await logRow('permission.bypass', { forumId: MINE }, MOD)
+    await logRow('settings.update', { communityId: MINE }, MOD)
+    await logRow('permission.bypass', { communityId: MINE }, MOD)
     await logRow('user.promote', { userId: IVAN }, MOD)
 
-    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
+    expect((await repo.log({ communityIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
       [],
     )
   })
 
-  /* A move touches two forums, so it belongs in both moderators' logs (D49). */
-  it('shows a move to the destination forum"s moderators as well', async () => {
+  /* A move touches two communities, so it belongs in both moderators' logs (D49). */
+  it('shows a move to the destination community"s moderators as well', async () => {
     await logRow('thread.move', { threadId: 7, from: THEIRS, to: MINE }, OTHER_MOD)
 
     expect(
-      (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
+      (await repo.log({ communityIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
     ).toHaveLength(1)
   })
 
   /*
-   * A warning has no forum. Showing every one on the board through the log
+   * A warning has no community. Showing every one on the board through the log
    * would be a wider grant than the warn screen itself gives.
    */
-  it('shows a forum-less entry only to the moderator who wrote it', async () => {
+  it('shows a community-less entry only to the moderator who wrote it', async () => {
     await logRow('warning.issue', { userId: IVAN, points: 2 }, OTHER_MOD)
 
-    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
+    expect((await repo.log({ communityIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
       [],
     )
     expect(
-      (await repo.log({ forumIds: [MINE], actorUserId: OTHER_MOD, limit: 10 })).entries,
+      (await repo.log({ communityIds: [MINE], actorUserId: OTHER_MOD, limit: 10 })).entries,
     ).toHaveLength(1)
   })
 
@@ -159,7 +159,7 @@ describe('the moderator log', () => {
       internalCursor: 'abc',
     })
 
-    const entry = (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 }))
+    const entry = (await repo.log({ communityIds: [MINE], actorUserId: MOD, limit: 10 }))
       .entries[0]!
     const labels = entry.detail.map((d) => d.label)
     expect(labels).toContain('Threads')
@@ -169,15 +169,15 @@ describe('the moderator log', () => {
 
   it('is newest first and keyset-paged', async () => {
     for (let i = 0; i < 4; i += 1) {
-      await logRow('thread.lock', { threadId: i, forumId: MINE })
+      await logRow('thread.lock', { threadId: i, communityId: MINE })
     }
 
-    const first = await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 2 })
+    const first = await repo.log({ communityIds: [MINE], actorUserId: MOD, limit: 2 })
     expect(first.entries).toHaveLength(2)
     expect(first.nextCursor).toBeDefined()
 
     const second = await repo.log({
-      forumIds: [MINE],
+      communityIds: [MINE],
       actorUserId: MOD,
       limit: 2,
       after: first.nextCursor!,
@@ -191,19 +191,19 @@ describe('the moderator log', () => {
 })
 
 describe('the dashboard workload', () => {
-  async function seedHeldThread(forumId: number): Promise<void> {
+  async function seedHeldThread(communityId: number): Promise<void> {
     await db.execute(sql`
-      insert into threads (forum_id, title, slug, author_user_id, author_username, visibility)
-      values (${forumId}, 'Held', 'held', ${IVAN}, 'ivan', 'unapproved')
+      insert into threads (community_id, title, slug, author_user_id, author_username, visibility)
+      values (${communityId}, 'Held', 'held', ${IVAN}, 'ivan', 'unapproved')
     `)
   }
 
-  it('counts held threads and open reports per forum, in one query', async () => {
+  it('counts held threads and open reports per community, in one query', async () => {
     await seedHeldThread(MINE)
     await seedHeldThread(MINE)
     await seedHeldThread(THEIRS)
     await db.execute(sql`
-      insert into reports (target_kind, target_id, forum_id, reporter_user_id, reason, status)
+      insert into reports (target_kind, target_id, community_id, reporter_user_id, reason, status)
       values ('post', 1, ${MINE}, ${IVAN}, 'spam', 'open')
     `)
 
@@ -215,7 +215,7 @@ describe('the dashboard workload', () => {
 
   it('ignores a resolved report', async () => {
     await db.execute(sql`
-      insert into reports (target_kind, target_id, forum_id, reporter_user_id, reason, status)
+      insert into reports (target_kind, target_id, community_id, reporter_user_id, reason, status)
       values ('post', 1, ${MINE}, ${IVAN}, 'spam', 'resolved')
     `)
     expect(await repo.workload([MINE])).toEqual(
@@ -223,7 +223,7 @@ describe('the dashboard workload', () => {
     )
   })
 
-  it('asks nothing at all for an empty forum list', async () => {
+  it('asks nothing at all for an empty community list', async () => {
     expect(await repo.workload([])).toEqual(new Map())
   })
 })
@@ -313,7 +313,7 @@ describe('the address lookup', () => {
   it('appears in the moderator"s own log', async () => {
     await repo.recordIpLookup({ actorUserId: MOD, subjectUserId: IVAN, matches: 0, at: AT })
 
-    const page = await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })
+    const page = await repo.log({ communityIds: [MINE], actorUserId: MOD, limit: 10 })
     expect(page.entries[0]).toMatchObject({ action: 'modcp.ip_lookup' })
   })
 })

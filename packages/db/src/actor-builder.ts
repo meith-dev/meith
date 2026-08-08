@@ -51,7 +51,7 @@ export interface ActorBuilderConfig {
   /**
    * The group every unauthenticated visitor belongs to. Guests are never in an
    * empty group — an anonymous request still resolves a real permission set (the
-   * guest group's), which is what lets a public forum be readable with no login.
+   * guest group's), which is what lets a public community be readable with no login.
    */
   readonly guestGroupId: number
 }

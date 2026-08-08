@@ -30,7 +30,7 @@ export const metadata: Metadata = {
    * convention. The convention would give the URL a content hash for free, which
    * this loses; what it buys is that the icon is stated where the rest of the
    * document's metadata is stated, and is served as an ordinary static file.
-   * The board's own app does the same with `apps/forum/public/icon.svg`.
+   * The board's own app does the same with `apps/community/public/icon.svg`.
    */
   icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }] },
 }

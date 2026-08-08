@@ -23,18 +23,18 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: forum
+      POSTGRES_USER: community
       # Generate this with `openssl rand -hex 32`, not base64. It is substituted
       # into the postgres:// URL below, and base64's alphabet includes `/` and
       # `+` — which makes the connection string unparseable and the migration
       # fail with `TypeError: Invalid URL`, naming nothing that would send you
       # here.
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-forum}
-      POSTGRES_DB: forum
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-community}
+      POSTGRES_DB: community
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U forum -d forum']
+      test: ['CMD-SHELL', 'pg_isready -U community -d community']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -46,10 +46,10 @@ services:
     environment:
       # A role, not a command: drizzle-kit is a development tool and is not in
       # the pruned standalone node_modules, so `node node_modules/.bin/drizzle-kit`
-      # never worked here. `FORUM_ROLE=migrate` runs the same runMigrations()
+      # never worked here. `COMMUNITY_ROLE=migrate` runs the same runMigrations()
       # the operator CLI does.
-      FORUM_ROLE: migrate
-      DATABASE_URL: postgres://forum:${POSTGRES_PASSWORD:-forum}@postgres:5432/forum
+      COMMUNITY_ROLE: migrate
+      DATABASE_URL: postgres://community:${POSTGRES_PASSWORD:-community}@postgres:5432/community
       DATA_SOURCE: postgres
       # The migration signs nothing, and still needs these.
       #
@@ -72,7 +72,7 @@ services:
     ports:
       - '${PORT:-3000}:3000'
     environment:
-      DATABASE_URL: postgres://forum:${POSTGRES_PASSWORD:-forum}@postgres:5432/forum
+      DATABASE_URL: postgres://community:${POSTGRES_PASSWORD:-community}@postgres:5432/community
       DATA_SOURCE: postgres
       # Required. Generate with: openssl rand -base64 32
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set}
@@ -109,7 +109,7 @@ services:
       migrate:
         condition: service_completed_successfully
 
-  # F04's worker: the same image, with FORUM_ROLE=worker, running the scheduler
+  # F04's worker: the same image, with COMMUNITY_ROLE=worker, running the scheduler
   # in-process on its own one-minute loop.
   #
   # It replaces the `tick` sidecar below rather than joining it — running both
@@ -121,8 +121,8 @@ services:
     build: .
     restart: unless-stopped
     environment:
-      FORUM_ROLE: worker
-      DATABASE_URL: postgres://forum:${POSTGRES_PASSWORD:-forum}@postgres:5432/forum
+      COMMUNITY_ROLE: worker
+      DATABASE_URL: postgres://community:${POSTGRES_PASSWORD:-community}@postgres:5432/community
       DATA_SOURCE: postgres
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set}
       TICK_SECRET: ${TICK_SECRET:?TICK_SECRET must be set}

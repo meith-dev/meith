@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { Authorizer } from './authorizer'
 import {
   ACTORS,
-  FORUM,
+  COMMUNITY,
   MemoryAuthorizationSource,
   type ActorName,
 } from './fixture'
@@ -40,30 +40,30 @@ const ACTION_OF: Record<F22Action, Action> = {
   split: 'thread.split',
   upload: 'attachment.upload',
   download: 'attachment.download',
-  search: 'forum.search',
-  subscribe: 'forum.subscribe',
+  search: 'community.search',
+  subscribe: 'community.subscribe',
 }
 
-const FORUM_ID: Record<string, number> = {
-  public: FORUM.public,
-  publicSub: FORUM.publicSub,
-  private: FORUM.private,
-  password: FORUM.password,
+const COMMUNITY_ID: Record<string, number> = {
+  public: COMMUNITY.public,
+  publicSub: COMMUNITY.publicSub,
+  private: COMMUNITY.private,
+  password: COMMUNITY.password,
 }
 
 const SELF_OWNED = { self: true } as const
 const OTHER_USER_ID = 999_001
 
 /** A moderator only moderates the public tree in this fixture. */
-function isModeratorOf(actorName: ActorName, forumName: string): boolean {
+function isModeratorOf(actorName: ActorName, communityName: string): boolean {
   return (
-    actorName === 'forumModerator' &&
-    (forumName === 'public' || forumName === 'publicSub')
+    actorName === 'communityModerator' &&
+    (communityName === 'public' || communityName === 'publicSub')
   )
 }
 
 /**
- * Build the Target for one (actor, forum, action) cell: resolve the real forum
+ * Build the Target for one (actor, community, action) cell: resolve the real community
  * matrix, then set ownership so "own" actions act on the actor's own content
  * and "others" actions act on someone else's.
  */
@@ -71,28 +71,28 @@ async function buildTarget(
   authorizer: Authorizer,
   actor: Actor,
   actorName: ActorName,
-  forumName: string,
+  communityName: string,
   f22: F22Action,
 ): Promise<Target> {
-  const forumId = FORUM_ID[forumName]!
-  const forum = await authorizer.forumMatrix(actor, forumId)
+  const communityId = COMMUNITY_ID[communityName]!
+  const community = await authorizer.communityMatrix(actor, communityId)
 
   const ownsThisAction = f22 === 'editOwn' || f22 === 'deleteOwn'
   const ownerId = ownsThisAction ? actor.userId : OTHER_USER_ID
 
   return {
-    forumId,
-    forum,
+    communityId,
+    community,
     ownerId,
-    isForumModerator: isModeratorOf(actorName, forumName),
+    isCommunityModerator: isModeratorOf(actorName, communityName),
     /*
      * The fixture's appointment carries every granular right, so the F50 tools
-     * and `approve` follow `isForumModerator` in this table. A *partial*
-     * appointment is the case `moderated-forums.test.ts` and
+     * and `approve` follow `isCommunityModerator` in this table. A *partial*
+     * appointment is the case `moderated-communities.test.ts` and
      * `thread-tool-rights.test.ts` cover: the F22 matrix is about the
      * permission model, and a partial appointment is about the appointment.
      */
-    moderatorRights: isModeratorOf(actorName, forumName)
+    moderatorRights: isModeratorOf(actorName, communityName)
       ? {
           canApproveContent: true,
           canEditPosts: true,
@@ -105,7 +105,7 @@ async function buildTarget(
           canSplitThreads: true,
         }
       : NO_MODERATOR_RIGHTS,
-    passwordRequired: forumName === 'password',
+    passwordRequired: communityName === 'password',
     passwordSatisfied: false,
     visibility: 'visible',
   }
@@ -115,10 +115,10 @@ describe('F22 permission matrix', () => {
   const actorNames = Object.keys(EXPECTED) as ActorName[]
 
   for (const actorName of actorNames) {
-    for (const forumName of Object.keys(EXPECTED[actorName]!)) {
-      const allowed = new Set<F22Action>(EXPECTED[actorName]![forumName]!)
+    for (const communityName of Object.keys(EXPECTED[actorName]!)) {
+      const allowed = new Set<F22Action>(EXPECTED[actorName]![communityName]!)
 
-      describe(`${actorName} @ ${forumName}`, () => {
+      describe(`${actorName} @ ${communityName}`, () => {
         for (const f22 of F22_ACTIONS) {
           const shouldAllow = allowed.has(f22)
           it(`${shouldAllow ? 'allows' : 'denies'} ${f22}`, async () => {
@@ -129,7 +129,7 @@ describe('F22 permission matrix', () => {
               authorizer,
               actor,
               actorName,
-              forumName,
+              communityName,
               f22,
             )
             expect(authorizer.can(actor, ACTION_OF[f22], target)).toBe(
@@ -175,11 +175,11 @@ describe('F22 bypasses are logged (R4.2)', () => {
       onBypass: (e) => events.push(`${e.kind}:${e.action}`),
     })
     const admin = ACTORS.administrator
-    // The private forum denies registered members; admin gets in by bypass.
-    const forum = await authorizer.forumMatrix(admin, FORUM.private)
+    // The private community denies registered members; admin gets in by bypass.
+    const community = await authorizer.communityMatrix(admin, COMMUNITY.private)
     const ok = authorizer.can(admin, 'thread.view', {
-      forumId: FORUM.private,
-      forum,
+      communityId: COMMUNITY.private,
+      community,
     })
     expect(ok).toBe(true)
     expect(events).toContain('administrator:thread.view')

@@ -141,7 +141,7 @@ const installInputObject = z
       .min(1, 'The board needs to know its own address.')
       .refine(
         isUsableOrigin,
-        'Give the absolute address, with no path — https://forum.example.',
+        'Give the absolute address, with no path — https://community.example.',
       )
       .transform(normaliseOrigin),
     /*
@@ -435,12 +435,12 @@ export function parseInstallInput(
 }
 
 /**
- * A slug for the first forum, from the board's name.
+ * A slug for the first community, from the board's name.
  *
  * Not asked for. A slug is a URL detail nobody has an opinion about at install
- * time, and the forum screen can rename it in a minute.
+ * time, and the community screen can rename it in a minute.
  */
-export function defaultForumSlug(boardName: string): string {
+export function defaultCommunitySlug(boardName: string): string {
   const slug = boardName
     .toLowerCase()
     .normalize('NFKD')

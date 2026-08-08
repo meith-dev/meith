@@ -669,7 +669,7 @@ body {
   border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 }
 
-/* The marker beside a space: neutral, because it is not a second accent. */
+/* The marker beside a community: neutral, because it is not a second accent. */
 .preview-dot {
   display: grid;
   place-items: center;

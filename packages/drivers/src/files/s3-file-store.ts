@@ -217,7 +217,7 @@ export class S3FileStore implements FileStore {
   /**
    * A time-limited URL for a private object.
    *
-   * This is what F42 relies on so an attachment in a forum the actor cannot see
+   * This is what F42 relies on so an attachment in a community the actor cannot see
    * is not downloadable by direct URL: the app checks permission, then mints a
    * short-lived signature. An unsigned public URL here would hand out every
    * attachment on the board to anyone who can guess a key.

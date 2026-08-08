@@ -39,7 +39,7 @@ function toDate(value: string | Date): Date {
 interface RawAttachment {
   id: number
   post_id: number
-  forum_id: number
+  community_id: number
   uploader_user_id: number | null
   filename: string
   content_type: string
@@ -56,7 +56,7 @@ interface RawAttachment {
 }
 
 const COLUMNS = sql`
-  id, post_id, forum_id, uploader_user_id, filename, content_type, size_bytes,
+  id, post_id, community_id, uploader_user_id, filename, content_type, size_bytes,
   storage_key, source_key, thumbnail_key, width, height, status,
   failure_reason, download_count, created_at
 `
@@ -65,7 +65,7 @@ function toRecord(row: RawAttachment): AttachmentRecord {
   return {
     id: Number(row.id),
     postId: Number(row.post_id),
-    forumId: Number(row.forum_id),
+    communityId: Number(row.community_id),
     uploaderUserId: row.uploader_user_id === null ? null : Number(row.uploader_user_id),
     filename: row.filename,
     contentType: row.content_type,
@@ -98,9 +98,9 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
     const rows = resultRows(
       await this.db.execute(sql`
         insert into attachments
-               (post_id, forum_id, uploader_user_id, filename, content_type,
+               (post_id, community_id, uploader_user_id, filename, content_type,
                 size_bytes, storage_key, source_key, status, ready_at)
-        values (${input.postId}, ${input.forumId}, ${input.uploaderUserId},
+        values (${input.postId}, ${input.communityId}, ${input.uploaderUserId},
                 ${input.filename}, ${input.contentType}, ${input.sizeBytes},
                 ${input.storageKey}, ${input.sourceKey}, ${input.status},
                 ${input.status === 'ready' ? sql`now()` : sql`null`})
@@ -132,7 +132,7 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
   async findForDownload(id: number): Promise<AttachmentForDownload | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select a.id, a.post_id, a.forum_id, a.uploader_user_id, a.filename,
+        select a.id, a.post_id, a.community_id, a.uploader_user_id, a.filename,
                a.content_type, a.size_bytes, a.storage_key, a.source_key,
                a.thumbnail_key, a.width, a.height, a.status, a.failure_reason,
                a.download_count, a.created_at,

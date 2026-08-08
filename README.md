@@ -61,7 +61,7 @@ at any price.
 ## What you get
 
 - **A real permission model.** 46 permission fields — 27 resolved per actor per
-  forum, 19 board-wide — not a three-tier guess. Search, feeds and the API all
+  community, 19 board-wide — not a three-tier guess. Search, feeds and the API all
   answer to it, so there is no path that reads around the rules.
 - **Themes that cannot break the board.** A frozen slot contract, documented
   and generated from the registry, so a theme is replaceable rather than a fork.
@@ -137,7 +137,7 @@ Four applications share the workspace:
 
 | Directory | Package | What it is |
 |---|---|---|
-| [`apps/forum`](./apps/forum) | `@meith/web` | The board itself. `pnpm dev`. |
+| [`apps/community`](./apps/community) | `@meith/web` | The board itself. `pnpm dev`. |
 | [`apps/web`](./apps/web) | `@meith/site` | meith.dev — the landing page and the documentation. `pnpm site:dev`, on port 3100. |
 | [`apps/worker`](./apps/worker), [`apps/cli`](./apps/cli) | `@meith/worker`, `@meith/cli` | Background work, and the operator CLI. |
 

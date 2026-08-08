@@ -8,10 +8,10 @@
  *
  * ## Why a cell is three states and not a checkbox
  *
- * `forum_permissions` columns are nullable and **null means inherit** (R4.1
+ * `community_permissions` columns are nullable and **null means inherit** (R4.1
  * layer 2). A two-state checkbox cannot express that: it would force every
- * operator opening a forum's permissions to write an explicit value for every
- * field, which pins the whole matrix at that forum forever and makes a later
+ * operator opening a community's permissions to write an explicit value for every
+ * field, which pins the whole matrix at that community forever and makes a later
  * change at the parent invisible. Every board where "I changed it at the top
  * and nothing happened" is true has this bug.
  *
@@ -30,20 +30,20 @@
  *
  * ## The effective value is per group, deliberately
  *
- * `Authorizer.forumMatrix` combines across an actor's groups (R4.2: booleans
+ * `Authorizer.communityMatrix` combines across an actor's groups (R4.2: booleans
  * OR, numerics MAX). A matrix editor must **not** do that: the operator is
  * editing one group's row, and showing them a value that a different group
  * would win would make every cell a lie. So each row resolves as if that group
  * were the actor's only one — which is exactly what the stored row means.
  */
 import {
-  FORUM_PERMISSION_FIELDS,
-  type ForumPermissions,
+  COMMUNITY_PERMISSION_FIELDS,
+  type CommunityPermissions,
   type PermissionField,
 } from '@meith/core'
 
-import { resolveForumMatrix } from './resolve'
-import type { ForumOverride, GroupDefaults } from './types'
+import { resolveCommunityMatrix } from './resolve'
+import type { CommunityOverride, GroupDefaults } from './types'
 
 /** What one cell of the grid is set to, and what that produces. */
 export interface MatrixCell {
@@ -51,12 +51,12 @@ export interface MatrixCell {
   /** The registry's own words. There is no second copy of them. */
   readonly description: string
   readonly kind: PermissionField['kind']
-  /** This forum's own stored value. `null` is inherit, and is the common case. */
+  /** This community's own stored value. `null` is inherit, and is the common case. */
   readonly stored: boolean | number | null
   /** What the cell resolves to for this group, after the ancestor walk. */
   readonly effective: boolean | number
   /**
-   * Which forum supplied the effective value when this forum did not.
+   * Which community supplied the effective value when this community did not.
    *
    * `null` while `stored` is also null means nothing in the chain set it and
    * the group's global default applies — a different explanation, which the
@@ -72,15 +72,15 @@ export interface MatrixRow {
 }
 
 export interface MatrixInput {
-  /** Forum ids from the target up to the root, nearest first, inclusive. */
+  /** Community ids from the target up to the root, nearest first, inclusive. */
   readonly chain: readonly number[]
   readonly groups: readonly (GroupDefaults & { readonly title: string })[]
-  readonly overrides: readonly ForumOverride[]
+  readonly overrides: readonly CommunityOverride[]
 }
 
-function index(overrides: readonly ForumOverride[]): Map<string, ForumOverride> {
-  const map = new Map<string, ForumOverride>()
-  for (const override of overrides) map.set(`${override.forumId}:${override.groupId}`, override)
+function index(overrides: readonly CommunityOverride[]): Map<string, CommunityOverride> {
+  const map = new Map<string, CommunityOverride>()
+  for (const override of overrides) map.set(`${override.communityId}:${override.groupId}`, override)
   return map
 }
 
@@ -89,20 +89,20 @@ function sourceOf(
   chain: readonly number[],
   groupId: number,
   key: string,
-  byForumGroup: ReadonlyMap<string, ForumOverride>,
+  byCommunityGroup: ReadonlyMap<string, CommunityOverride>,
 ): number | null {
-  for (const forumId of chain) {
-    const value = byForumGroup.get(`${forumId}:${groupId}`)?.overrides[
-      key as keyof ForumPermissions
+  for (const communityId of chain) {
+    const value = byCommunityGroup.get(`${communityId}:${groupId}`)?.overrides[
+      key as keyof CommunityPermissions
     ]
-    if (value !== undefined && value !== null) return forumId
+    if (value !== undefined && value !== null) return communityId
   }
   return null
 }
 
 export function buildPermissionMatrix(input: MatrixInput): readonly MatrixRow[] {
-  const byForumGroup = index(input.overrides)
-  const forumId = input.chain[0]
+  const byCommunityGroup = index(input.overrides)
+  const communityId = input.chain[0]
 
   return input.groups.map((group) => {
     /*
@@ -110,24 +110,24 @@ export function buildPermissionMatrix(input: MatrixInput): readonly MatrixRow[] 
      * show the operator a number some *other* group produced, on a row they
      * believe they are editing.
      */
-    const resolved = resolveForumMatrix(input.chain, [group], byForumGroup)
-    const own = forumId === undefined ? undefined : byForumGroup.get(`${forumId}:${group.groupId}`)
+    const resolved = resolveCommunityMatrix(input.chain, [group], byCommunityGroup)
+    const own = communityId === undefined ? undefined : byCommunityGroup.get(`${communityId}:${group.groupId}`)
 
     return {
       groupId: group.groupId,
       groupTitle: group.title,
-      cells: FORUM_PERMISSION_FIELDS.map((field) => {
-        const stored = own?.overrides[field.key as keyof ForumPermissions]
-        const source = sourceOf(input.chain, group.groupId, field.key, byForumGroup)
+      cells: COMMUNITY_PERMISSION_FIELDS.map((field) => {
+        const stored = own?.overrides[field.key as keyof CommunityPermissions]
+        const source = sourceOf(input.chain, group.groupId, field.key, byCommunityGroup)
 
         return {
           key: field.key,
           description: field.description,
           kind: field.kind,
           stored: stored === undefined ? null : stored,
-          effective: resolved[field.key as keyof ForumPermissions] as boolean | number,
-          /* Only report an ancestor when this forum is not the source. */
-          inheritedFrom: source === null || source === forumId ? null : source,
+          effective: resolved[field.key as keyof CommunityPermissions] as boolean | number,
+          /* Only report an ancestor when this community is not the source. */
+          inheritedFrom: source === null || source === communityId ? null : source,
         }
       }),
     }
@@ -135,11 +135,11 @@ export function buildPermissionMatrix(input: MatrixInput): readonly MatrixRow[] 
 }
 
 /* ------------------------------------------------------------------ *
- * Copying a forum's permissions down its subtree
+ * Copying a community's permissions down its subtree
  * ------------------------------------------------------------------ */
 
 export interface CopyChange {
-  readonly forumId: number
+  readonly communityId: number
   readonly groupId: number
   readonly key: string
   readonly from: boolean | number | null
@@ -153,43 +153,43 @@ export interface CopyPlan {
 }
 
 /**
- * What copying this forum's stored overrides to its descendants would do.
+ * What copying this community's stored overrides to its descendants would do.
  *
- * **A plan, not a write.** Copy-to-subforums is the single most destructive
- * button in a forum administration screen: it overwrites work somebody did
- * deliberately, on forums they are not looking at, and there is no undo. So the
- * screen shows exactly which cells on which forums would change before anything
+ * **A plan, not a write.** Copy-to-subcommunities is the single most destructive
+ * button in a community administration screen: it overwrites work somebody did
+ * deliberately, on communities they are not looking at, and there is no undo. So the
+ * screen shows exactly which cells on which communities would change before anything
  * happens, and this is the function that answers it.
  *
- * What is copied is this forum's **stored** values, nulls included. Copying only
+ * What is copied is this community's **stored** values, nulls included. Copying only
  * the non-nulls would be the more cautious-sounding choice and is wrong: a
  * descendant that explicitly denies something the source inherits would keep
  * denying it, so "copy" would not have copied. Making a descendant *identical*
  * is the only meaning of the word that an operator can predict.
  */
 export function planCopyToDescendants(input: {
-  readonly sourceForumId: number
+  readonly sourceCommunityId: number
   readonly descendantIds: readonly number[]
   readonly groupIds: readonly number[]
-  readonly overrides: readonly ForumOverride[]
+  readonly overrides: readonly CommunityOverride[]
 }): CopyPlan {
-  const byForumGroup = index(input.overrides)
+  const byCommunityGroup = index(input.overrides)
   const changes: CopyChange[] = []
   const touched = new Set<number>()
 
-  for (const forumId of input.descendantIds) {
+  for (const communityId of input.descendantIds) {
     for (const groupId of input.groupIds) {
-      const source = byForumGroup.get(`${input.sourceForumId}:${groupId}`)?.overrides ?? {}
-      const target = byForumGroup.get(`${forumId}:${groupId}`)?.overrides ?? {}
+      const source = byCommunityGroup.get(`${input.sourceCommunityId}:${groupId}`)?.overrides ?? {}
+      const target = byCommunityGroup.get(`${communityId}:${groupId}`)?.overrides ?? {}
 
-      for (const field of FORUM_PERMISSION_FIELDS) {
-        const key = field.key as keyof ForumPermissions
+      for (const field of COMMUNITY_PERMISSION_FIELDS) {
+        const key = field.key as keyof CommunityPermissions
         const from = (target[key] ?? null) as boolean | number | null
         const to = (source[key] ?? null) as boolean | number | null
 
         if (Object.is(from, to)) continue
-        changes.push({ forumId, groupId, key: field.key, from, to })
-        touched.add(forumId)
+        changes.push({ communityId, groupId, key: field.key, from, to })
+        touched.add(communityId)
       }
     }
   }

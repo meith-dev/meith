@@ -4,7 +4,7 @@
  * This package exists because **three entry points need the same wiring**: the
  * Next app's `/api/system/tick`, the operator CLI's `task:run`, and the
  * self-hosted worker loop. Before it, that wiring lived in
- * `apps/forum/src/server/` behind `server-only`, which is correct for the app
+ * `apps/community/src/server/` behind `server-only`, which is correct for the app
  * and unusable from the other two — so the CLI would have had to build its own
  * copy of "which tasks exist and what backs them", and the two would drift the
  * first time a task was added to one and not the other.

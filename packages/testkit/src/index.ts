@@ -38,11 +38,11 @@ export {
 
 export {
   createFactories,
-  type FactoryForum,
+  type FactoryCommunity,
   type FactoryPost,
   type FactoryThread,
   type FactoryUser,
-  type ForumFactoryOptions,
+  type CommunityFactoryOptions,
   type PostFactoryOptions,
   type ThreadFactoryOptions,
   type UserFactoryOptions,

@@ -1,0 +1,783 @@
+@import "tailwindcss";
+
+/*
+ * Theme and UI packages must be scanned for class names (F25).
+ *
+ * Tailwind v4 detects sources automatically, but only under the directory it is
+ * invoked from — here `apps/community`. `themes/` and `packages/ui/` are separate
+ * workspace packages outside that tree, so every class a theme slot uses was
+ * being dropped from the generated stylesheet. Nothing fails when that happens:
+ * the build is green, the classes are simply absent, and the page renders
+ * unstyled with no error anywhere to explain why.
+ *
+ * Paths are relative to this file, and deliberately not the `node_modules`
+ * symlinks: scanning through a symlinked workspace package is inconsistent
+ * between pnpm layouts.
+ */
+@source "../../../../themes";
+@source "../../../../plugins";
+@source "../../../../examples";
+@source "../../../../packages/ui/src";
+
+/*
+ * R7 design tokens.
+ *
+ * Every token in the R7 list is defined here as the theme *default*. At runtime
+ * `themes.token_overrides` is resolved on top of these and injected as a single
+ * <style> block in <head> (F26), so a board can be restyled without a deploy.
+ *
+ * Components must never hardcode a colour. A CI grep bans `#`, `rgb(` and
+ * `hsl(` literals in component files precisely so this file stays the only
+ * place colour is decided.
+ *
+ * ## The ground is neutral; the accent is one colour
+ *
+ * Every greyscale token here has **zero chroma**. Not "nearly grey" — zero. An
+ * earlier palette was the Meith identity applied to the whole page (hedgerow
+ * green ground, gorse accent), and it was a good palette for Meith and a bad
+ * default for everybody else: a board with a blue mark had a green wall behind
+ * it and no way to fix that short of overriding a dozen tokens by hand. The
+ * ground still holds no opinion about hue, and that part has not changed.
+ *
+ * What changed is `primary`. It was **ink** — near-black in light, near-white in
+ * dark — on the reasoning that a board's one loud control should be strongest by
+ * contrast rather than by hue. That is a real argument and it had a real cost: a
+ * board that never opened the theme editor had no accent at all, so "post reply"
+ * looked exactly like every other dark rectangle on the page, and the
+ * marketing site and a live board shared no visual language whatsoever.
+ *
+ * So `primary` is now the green the marketing site uses, and the rule it follows
+ * is the one that site states: *the ground is greyscale, the accent is a single
+ * colour, and it is spent deliberately.* It marks the one primary action, the
+ * current item in a list, a link's underline and a focus ring — and nothing
+ * else. A page where six things are green is a page where the button does not
+ * stand out.
+ *
+ * The two schemes carry different greens, and that is not a slip. The light
+ * scheme's pine (`oklch(0.508 …)`) reads at 5.2:1 against white; the emerald
+ * that works on near-black would read at about 3.5:1 there, under the floor for
+ * the small text it marks. Each scheme carries the step of the ramp that clears
+ * AA against its own ground.
+ *
+ * **None of this costs an operator their brand.** Branding is still the same
+ * one-group operation it was when the default was colourless: set `--primary`,
+ * `--primary-hover`, `--primary-foreground` and `--ring` in the control panel —
+ * or press one of the brand presets, which write all four — and nothing else in
+ * the palette argues with the result, because nothing else in the palette has a
+ * hue to argue with. The default now has an opinion; it is still one click to
+ * replace it.
+ *
+ * ## The semantic tokens still carry hue, because they carry meaning
+ *
+ * `thread-locked` is not decoration; it is the difference between a thread you
+ * can answer and one you cannot. Those keep conventional hues — amber for "needs
+ * an eye", rust for "stopped", green for "approved", blue and violet for the
+ * staff badges — held to chroma 0.11–0.17 so they read as information beside a
+ * brand rather than competing with it. Colour is never the only carrier: every
+ * state that a hue marks is also a word in the markup.
+ *
+ * ## Contrast is measured, not eyeballed
+ *
+ * Every foreground/surface pair below meets WCAG AA (4.5:1) for body text, and
+ * every semantic colour meets it against `card` — including the ambers, which is
+ * why they sit near L 0.55 in light rather than at the brighter value that looks
+ * nicer in isolation and fails on white. `input` is deliberately darker than
+ * `border`: a field's boundary is essential information (1.4.11, 3:1) and a
+ * rule between two rows is not.
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /*
+   * The middle surface. `background` is the page, `card` is a panel raised off
+   * it, and `surface` is the band cut *into* it — a header, a table head, a
+   * panel's own toolbar. Those were `muted` before, which also means "a control
+   * that is disabled" and "the tint behind a hovered row"; one token doing three
+   * jobs is a token an operator cannot change without changing all three.
+   */
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  /*
+   * The filled control under the cursor. This was `hover:opacity-90`, which
+   * fades the button *and its label* toward whatever is behind it — on a card
+   * that is white, so the one control the page is for got lighter and lower
+   * contrast at exactly the moment the reader aimed at it.
+   */
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Domain-semantic tokens. These carry meaning, not just appearance. */
+  --color-community-unread: var(--community-unread);
+  --color-community-read: var(--community-read);
+  --color-community-locked: var(--community-locked);
+  --color-thread-pinned: var(--thread-pinned);
+  --color-thread-locked: var(--thread-locked);
+  --color-thread-moved: var(--thread-moved);
+  --color-thread-unapproved: var(--thread-unapproved);
+  --color-thread-deleted: var(--thread-deleted);
+  --color-post-highlight: var(--post-highlight);
+  --color-post-own: var(--post-own);
+  --color-post-unapproved: var(--post-unapproved);
+  --color-moderation-pending: var(--moderation-pending);
+  --color-moderation-approved: var(--moderation-approved);
+  --color-moderation-rejected: var(--moderation-rejected);
+  --color-group-admin: var(--group-admin);
+  --color-group-supermod: var(--group-supermod);
+  --color-group-mod: var(--group-mod);
+  --color-group-banned: var(--group-banned);
+
+  /*
+   * A token like the mono stack is, rather than a literal, so a board can change
+   * the face it reads in from the control panel. That was already true of code
+   * and false of everything else, which is backwards — the face a board is *read*
+   * in is the one an operator is most likely to have an opinion about.
+   */
+  --font-sans: var(--font-sans-stack);
+  --font-mono: var(--font-mono-stack);
+  /*
+   * The face headings are set in, and the reason `font-serif` no longer exists
+   * here.
+   *
+   * It used to be a literal — Newsreader, then a five-deep serif fallback — so
+   * "what face are this board's headings" was the one typographic question an
+   * operator could not answer from the control panel, while the *code* face next
+   * to it had been a token all along. That is backwards twice over: it is the
+   * more visible decision, and it is the one a board with its own identity is
+   * likeliest to have an opinion about.
+   *
+   * Dropping the Tailwind mapping rather than repointing it is deliberate.
+   * `font-serif` still existing would leave forty call sites compiling to a face
+   * the board no longer ships, and the next heading somebody wrote would reach
+   * for it out of habit. There is no `font-serif` utility now; there is
+   * `font-heading`, and it resolves to whatever the board says.
+   */
+  --font-heading: var(--font-heading-stack);
+
+  /*
+   * Panel lift. The board used to separate a panel from its page with a border
+   * and nothing else, which works and is why it survived this long — but a
+   * 1px rule is the only depth cue on the page, so a long listing reads as one
+   * flat sheet with lines ruled across it.
+   *
+   * Both stops are tinted with `--shadow-tint` rather than a literal black, so
+   * the dark scheme can carry a deeper shadow (a 5%-black shadow is invisible on
+   * a near-black page) and an operator can turn the whole thing off by setting
+   * `--elevation: none`.
+   */
+  --shadow-elevation: var(--elevation);
+
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
+
+  /*
+   * Density unit. Classic communities are information-dense; a compact theme sets
+   * this lower and every row inherits the change.
+   */
+  --spacing-density: var(--density-unit);
+}
+
+:root {
+  color-scheme: light;
+
+  /*
+   * Paper on a desk. The page is a light grey so that `card` — plain white — is
+   * a surface that sits *on* it: a board is a stack of panels, and a panel that
+   * is the same colour as its page needs a border to exist at all.
+   */
+  --background: oklch(0.968 0 0);
+  --foreground: oklch(0.205 0 0);
+  /* The band between page and panel: header, table head, a panel's toolbar. */
+  --surface: oklch(0.941 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.205 0 0);
+
+  /*
+   * Pine, not emerald. See this file's header: the dark scheme's green reads at
+   * about 3.5:1 on white, and the small text this marks needs 4.5. This is the
+   * step of the same ramp that clears it — 5.2:1 on the page, 5.5:1 on a card.
+   */
+  --primary: oklch(0.508 0.105 165.6);
+  --primary-foreground: oklch(0.985 0 0);
+  --primary-hover: oklch(0.434 0.089 165.6);
+  --secondary: oklch(0.94 0 0);
+  --secondary-foreground: oklch(0.269 0 0);
+  --muted: oklch(0.958 0 0);
+  --muted-foreground: oklch(0.494 0 0);
+  /*
+   * A hover surface, which is what `accent` means in this vocabulary — the
+   * previous palette used it as the one loud colour, and a token that is a
+   * highlight in one theme and a wash in another is a token nobody can style
+   * against. Anything that needs to shout uses a semantic token, which has a
+   * meaning to justify the volume.
+   */
+  --accent: oklch(0.951 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.514 0.183 28.5);
+  --destructive-foreground: oklch(0.985 0 0);
+
+  --border: oklch(0.905 0 0);
+  /* Darker than `border` on purpose: a field's edge is information. */
+  --input: oklch(0.64 0 0);
+  /*
+   * The ring follows the accent rather than staying grey. A focus outline is one
+   * of the four things the accent is spent on, and a neutral ring on a branded
+   * board looks like the board forgot to brand one thing.
+   */
+  --ring: oklch(0.508 0.105 165.6);
+
+  /*
+   * The shadow's colour, apart from its geometry, because only this half changes
+   * between the schemes. Tinted with the foreground rather than pure black: a
+   * neutral-black shadow over a warm surface reads as dirt.
+   */
+  --shadow-tint: oklch(0.205 0 0 / 8%);
+
+  /*
+   * 8px, up from 6. The rounding that matters is on the *outer* panels; rows
+   * inside them are ruled, not boxed, so density survives the softer corner.
+   * `radius-sm` derives 4px from this for the things that must stay tight —
+   * badges, a code span — so the increase does not propagate to every chip.
+   */
+  --radius: 0.5rem;
+  --density-unit: 0.25rem;
+  --font-mono-stack: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  --font-sans-stack: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /*
+   * Headings, and by default the same face as everything else.
+   *
+   * `var(--font-sans-stack)` rather than a repeat of its value, so a board that
+   * changes the face it is *read* in gets headings that follow — which is what
+   * an operator means nine times in ten by "change the font". Setting this token
+   * is the tenth: headings alone, to anything, including a serif
+   * (`Georgia, ui-serif, serif` needs no download) or a face the board already
+   * loads.
+   */
+  --font-heading-stack: var(--font-sans-stack);
+  --elevation: 0 1px 2px var(--shadow-tint), 0 12px 32px -16px var(--shadow-tint);
+
+  /*
+   * Read state: unread is emphatic, read recedes. Both are neutral, so a board
+   * that brands `--primary` does not accidentally turn every unread marker into
+   * its logo colour — and an operator who *wants* that overrides one token.
+   */
+  --community-unread: oklch(0.205 0 0);
+  --community-read: oklch(0.556 0 0);
+  --community-locked: oklch(0.554 0.135 32);
+
+  --thread-pinned: oklch(0.55 0.12 68);
+  --thread-locked: oklch(0.554 0.135 32);
+  --thread-moved: oklch(0.556 0 0);
+  --thread-unapproved: oklch(0.545 0.11 88);
+  --thread-deleted: oklch(0.487 0.164 26);
+
+  /* Row washes. Held near the card so text on them keeps its full contrast. */
+  --post-highlight: oklch(0.964 0.036 92);
+  --post-own: oklch(0.972 0 0);
+  --post-unapproved: oklch(0.956 0.035 84);
+
+  --moderation-pending: oklch(0.55 0.12 68);
+  --moderation-approved: oklch(0.518 0.113 150);
+  --moderation-rejected: oklch(0.554 0.135 32);
+
+  --group-admin: oklch(0.505 0.169 27);
+  --group-supermod: oklch(0.496 0.153 305);
+  --group-mod: oklch(0.489 0.127 250);
+  --group-banned: oklch(0.556 0 0);
+}
+
+.dark {
+  color-scheme: dark;
+
+  /*
+   * The same neutral, inverted, and not to pure black: `background` at L 0.15
+   * rather than 0 leaves room for `card` to sit *above* it, which is the same
+   * page-and-panel relationship the light scheme has. Pure black would flatten
+   * the two and force every panel to be found by its border.
+   *
+   * `foreground` stops at 0.967 rather than 1 for the opposite reason —
+   * full-white body text on a near-black ground haloes, and a board is read for
+   * an hour at a time.
+   */
+  --background: oklch(0.15 0 0);
+  --foreground: oklch(0.967 0 0);
+  --surface: oklch(0.17 0 0);
+  --card: oklch(0.196 0 0);
+  --card-foreground: oklch(0.967 0 0);
+
+  /*
+   * Emerald, and a near-black label on it. A mid-tone accent cannot carry white
+   * text on one scheme and dark text on the other from a single value, which is
+   * why `primary-foreground` is a token and not `white`.
+   */
+  --primary: oklch(0.773 0.153 163.2);
+  --primary-foreground: oklch(0.181 0.029 166.6);
+  --primary-hover: oklch(0.84 0.139 166.8);
+  --secondary: oklch(0.256 0 0);
+  --secondary-foreground: oklch(0.94 0 0);
+  --muted: oklch(0.228 0 0);
+  --muted-foreground: oklch(0.702 0 0);
+  --accent: oklch(0.276 0 0);
+  --accent-foreground: oklch(0.967 0 0);
+  --destructive: oklch(0.674 0.174 26);
+  --destructive-foreground: oklch(0.18 0 0);
+
+  --border: oklch(0.31 0 0);
+  --input: oklch(0.52 0 0);
+  --ring: oklch(0.773 0.153 163.2);
+
+  /*
+   * Far heavier than the light scheme's 8%. A shadow is the absence of light,
+   * and on a near-black page there is almost none to take away — the light
+   * value is literally invisible here, so a panel would lose its lift entirely
+   * in dark mode while keeping it in light.
+   */
+  --shadow-tint: oklch(0 0 0 / 45%);
+
+  --community-unread: oklch(0.967 0 0);
+  --community-read: oklch(0.6 0 0);
+  --community-locked: oklch(0.708 0.13 34);
+
+  --thread-pinned: oklch(0.769 0.13 74);
+  --thread-locked: oklch(0.708 0.13 34);
+  --thread-moved: oklch(0.6 0 0);
+  --thread-unapproved: oklch(0.777 0.12 85);
+  --thread-deleted: oklch(0.664 0.157 27);
+
+  --post-highlight: oklch(0.276 0.043 92);
+  --post-own: oklch(0.221 0 0);
+  --post-unapproved: oklch(0.263 0.04 85);
+
+  --moderation-pending: oklch(0.769 0.13 74);
+  --moderation-approved: oklch(0.716 0.126 151);
+  --moderation-rejected: oklch(0.708 0.13 34);
+
+  --group-admin: oklch(0.687 0.166 27);
+  --group-supermod: oklch(0.703 0.144 305);
+  --group-mod: oklch(0.694 0.122 250);
+  --group-banned: oklch(0.6 0 0);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+
+    --background: oklch(0.15 0 0);
+    --foreground: oklch(0.967 0 0);
+    --surface: oklch(0.17 0 0);
+    --card: oklch(0.196 0 0);
+    --card-foreground: oklch(0.967 0 0);
+
+    --primary: oklch(0.773 0.153 163.2);
+    --primary-foreground: oklch(0.181 0.029 166.6);
+    --primary-hover: oklch(0.84 0.139 166.8);
+    --secondary: oklch(0.256 0 0);
+    --secondary-foreground: oklch(0.94 0 0);
+    --muted: oklch(0.228 0 0);
+    --muted-foreground: oklch(0.702 0 0);
+    --accent: oklch(0.276 0 0);
+    --accent-foreground: oklch(0.967 0 0);
+    --destructive: oklch(0.674 0.174 26);
+    --destructive-foreground: oklch(0.18 0 0);
+
+    --border: oklch(0.31 0 0);
+    --input: oklch(0.52 0 0);
+    --ring: oklch(0.773 0.153 163.2);
+
+    --shadow-tint: oklch(0 0 0 / 45%);
+
+    --community-unread: oklch(0.967 0 0);
+    --community-read: oklch(0.6 0 0);
+    --community-locked: oklch(0.708 0.13 34);
+
+    --thread-pinned: oklch(0.769 0.13 74);
+    --thread-locked: oklch(0.708 0.13 34);
+    --thread-moved: oklch(0.6 0 0);
+    --thread-unapproved: oklch(0.777 0.12 85);
+    --thread-deleted: oklch(0.664 0.157 27);
+
+    --post-highlight: oklch(0.276 0.043 92);
+    --post-own: oklch(0.221 0 0);
+    --post-unapproved: oklch(0.263 0.04 85);
+
+    --moderation-pending: oklch(0.769 0.13 74);
+    --moderation-approved: oklch(0.716 0.126 151);
+    --moderation-rejected: oklch(0.708 0.13 34);
+
+    --group-admin: oklch(0.687 0.166 27);
+    --group-supermod: oklch(0.703 0.144 305);
+    --group-mod: oklch(0.694 0.122 250);
+    --group-banned: oklch(0.6 0 0);
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  /*
+   * Balance only — deliberately **not** a font-family.
+   *
+   * An earlier version of this rule set every heading in the serif, as a
+   * backstop for markup that had not opted in. That was wrong, and rendering
+   * the midnight theme is what showed it: midnight is a terminal, its headings
+   * are IBM Plex Mono, and its slots only escaped the rule because every one of
+   * them happens to say `font-mono` explicitly. Any heading that did not — a
+   * plugin's, a future slot's — would have been silently overruled into the
+   * *default theme's* voice. Which face a heading wears is the theme's decision,
+   * and this file is the app.
+   *
+   * The default theme's slots and the app's own pages already carry
+   * `font-serif`, so nothing was gained by it either.
+   *
+   * Balance stays, because it is not a voice decision. Thread subjects are
+   * user-supplied and unbounded, and a two-line title with one orphaned word is
+   * the commonest way a dense listing looks broken — in any theme.
+   */
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+
+  /*
+   * The paragraph counterpart. `balance` is quadratic and browsers cap it at a
+   * handful of lines, so it is wrong for a post body; `pretty` only fixes the
+   * last line, which is the orphan that makes a paragraph look broken.
+   */
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Keyboard focus must always be visible — R5 pages are used without a mouse. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /*
+   * A permalink to `#post-4102` otherwise lands the post flush against the top
+   * of the viewport, with its own header cropped and the previous post's footer
+   * nowhere — the reader cannot tell they arrived at the right one.
+   */
+  :target {
+    scroll-margin-block-start: 1.5rem;
+  }
+
+  ::selection {
+    background-color: var(--secondary);
+    color: var(--secondary-foreground);
+  }
+
+  /*
+   * Transitions on this board are hover and focus feedback of 100–150ms, and
+   * every one of them is an affordance rather than an animation. Honour the
+   * preference anyway: the setting is often on for reasons that have nothing to
+   * do with how large the movement is.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Skip link: visually hidden until focused. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/*
+ * `.prose-md` — the typography of a rendered post body.
+ *
+ * **This block is a bug fix as much as a design.** Both shipped themes have
+ * carried a prose class on the elements that receive `bodyHtml` since the slots
+ * were written, and it was defined nowhere in the workspace. Tailwind's
+ * preflight zeroes the margin on `p`, `ul` and `ol` and removes the underline
+ * and colour from `a`, so a four-paragraph post rendered as one unbroken block
+ * of text with invisible links in it. Nothing failed — there is no such thing
+ * as a stylesheet error — and the contract suite could not see it, because the
+ * markup was correct and only its appearance was not.
+ *
+ * It lives here rather than in a theme for the same reason the `.md-*` rules
+ * below do: the class names are emitted by `@meith/markdown`, which is the
+ * app's renderer, and a theme that had to restate all of this to show a
+ * paragraph break would be inheriting a bug rather than a baseline. Everything
+ * is in tokens and `em`, so a theme changes it by changing its tokens and its
+ * base size — and a board's operator reaches it through F26 like any other
+ * surface.
+ *
+ * Markdown widened what a post can contain — headings, tables, task lists, a
+ * horizontal rule — so this block is longer than the BBCode one it replaces.
+ * Every addition is a construct the parser can now produce; nothing here styles
+ * anything a post cannot emit.
+ */
+.prose-md {
+  /* Long enough to read, short enough to track back to the next line. */
+  max-width: 72ch;
+  line-height: 1.65;
+  overflow-wrap: break-word;
+}
+
+.prose-md > :first-child {
+  margin-top: 0;
+}
+
+.prose-md > :last-child {
+  margin-bottom: 0;
+}
+
+.prose-md p {
+  margin-block: 0.75em;
+}
+
+/*
+ * A link keeps the body's colour and is marked by its *underline*, which is the
+ * accent's third job (see this file's header).
+ *
+ * Colouring the text itself is the obvious alternative and it is the one that
+ * breaks under branding: a board whose operator has set a pale yellow accent has
+ * just made every link in every post unreadable, and the post body is the one
+ * region where that is not survivable. An underline carries the affordance at
+ * any accent lightness, because the text under it never stopped being body text.
+ *
+ * `color-mix` rather than a second token: the rule is "this accent, quieter",
+ * and an operator who changes the accent should not have to remember to change
+ * its underline to match.
+ */
+.prose-md a {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  transition: text-decoration-color 120ms ease;
+}
+
+.prose-md a:hover {
+  text-decoration-color: var(--primary);
+}
+
+.prose-md strong,
+.prose-md b {
+  font-weight: 600;
+}
+
+/*
+ * A URL a member pasted is one unbroken token, and a long one widens the post,
+ * then the thread, then the page. Breaking it is uglier than the alternative
+ * only until you meet the alternative.
+ */
+.prose-md a,
+.prose-md code {
+  overflow-wrap: anywhere;
+}
+
+/*
+ * A post's headings start at `h2` — the renderer offsets them, because the page
+ * already has an `h1` — and they must not out-shout the thread's subject. Sized
+ * in `em` off the post's own text rather than the browser's defaults, which
+ * would make an `h2` in a post twice the size of the title above it.
+ */
+.prose-md h2,
+.prose-md h3,
+.prose-md h4,
+.prose-md h5,
+.prose-md h6 {
+  margin-block: 1.2em 0.5em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.prose-md h2 { font-size: 1.35em; }
+.prose-md h3 { font-size: 1.2em; }
+.prose-md h4 { font-size: 1.05em; }
+.prose-md h5,
+.prose-md h6 { font-size: 1em; }
+
+/* Inline images and smilies sit on the text baseline, not below it. */
+.md-smiley {
+  display: inline-block;
+  height: 1.25em;
+  width: auto;
+  vertical-align: text-bottom;
+}
+
+/*
+ * F36 — the Markdown renderer's output.
+ *
+ * `@meith/markdown` emits a fixed, closed set of class names and no inline
+ * styling at all. Everything below is therefore the *theme's* say in what a
+ * quote or a code block looks like, expressed in tokens so a runtime override
+ * (F26) reaches it like any other surface.
+ */
+.md-quote {
+  /* `em`, so a quote inside a heading scales with the text it is in. */
+  margin-block: 0.85em;
+  padding: 0.55em 0.85em;
+  border-inline-start: 3px solid var(--border);
+  background-color: var(--muted);
+  border-start-end-radius: var(--radius);
+  border-end-end-radius: var(--radius);
+}
+
+/*
+ * A quote of a quote of a quote is how a community argument is shaped, and three
+ * nested backgrounds of the same colour are indistinguishable. The inner ones
+ * drop the fill and keep the rule, so depth reads as a stack of margins.
+ */
+.md-quote .md-quote {
+  background-color: transparent;
+}
+
+.md-code {
+  margin-block: 0.85em;
+  padding: 0.75em 0.85em;
+  overflow-x: auto;
+  background-color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875em;
+  line-height: 1.6;
+  /* `pre` already preserves newlines; wrapping long lines would hide overflow. */
+  white-space: pre;
+  /*
+   * Tabs in pasted code default to eight columns, which throws away a third of
+   * the width of a post before the code has said anything.
+   */
+  tab-size: 2;
+}
+
+/*
+ * A code *span* is a word inside a sentence, so it gets a tint and no border —
+ * a boxed word breaks the line's rhythm, and at this size a border is thicker
+ * than the letterforms it surrounds.
+ */
+.md-code-span {
+  padding: 0.15em 0.35em;
+  background-color: var(--muted);
+  border-radius: calc(var(--radius) - 2px);
+  font-size: 0.9em;
+}
+
+.md-list {
+  margin: 0.5em 0 0.5em 1.5em;
+  list-style-position: outside;
+}
+
+.md-list li {
+  margin-block: 0.2em;
+}
+
+ul.md-list {
+  list-style-type: disc;
+}
+
+ol.md-list {
+  list-style-type: decimal;
+}
+
+/*
+ * A task list is a list of statements, not of bullets: the checkbox is the
+ * marker, and leaving the disc there gives every line two.
+ */
+.md-list li.md-task {
+  list-style: none;
+  margin-inline-start: -1.2em;
+}
+
+.md-task input {
+  margin-inline-end: 0.35em;
+  vertical-align: baseline;
+}
+
+/* An oversized image must not widen the thread and force a horizontal scroll. */
+.md-image {
+  max-width: 100%;
+  height: auto;
+}
+
+.md-rule {
+  margin-block: 1.2em;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/*
+ * The scroller is the renderer's, not the theme's: a table wider than the post
+ * would otherwise make the *thread* scroll sideways, which on a phone is every
+ * table with four columns in it.
+ */
+.md-table-scroll {
+  margin-block: 0.85em;
+  overflow-x: auto;
+}
+
+.md-table {
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.md-table th,
+.md-table td {
+  padding: 0.35em 0.6em;
+  border: 1px solid var(--border);
+  text-align: start;
+}
+
+.md-table th {
+  background-color: var(--muted);
+  font-weight: 600;
+}
+
+.md-align-left { text-align: start; }
+.md-align-center { text-align: center; }
+.md-align-right { text-align: end; }
+
+/*
+ * A board's own directives (F71). The renderer gives each one a class and
+ * nothing else — no colour, no box — because what a `spoiler` looks like is a
+ * decision for the board that defined it, made in its theme's own stylesheet.
+ * The only thing stated here is that a block one is a block.
+ */
+div.md-directive {
+  margin-block: 0.85em;
+}
+

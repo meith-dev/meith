@@ -18,7 +18,7 @@
  * purged through `invalidateTags`, never `set()`.
  *
  * Per R2 this package may import `next`; domain packages may not, which is why
- * this file lives here and not in `@meith/forums`.
+ * this file lives here and not in `@meith/communities`.
  */
 
 import type { CacheDriver, CacheSetOptions } from '@meith/core'

@@ -57,7 +57,7 @@ function fakeS3(): S3Like & { objects: Map<string, Uint8Array> } {
 }
 
 const CONFIG = {
-  bucket: 'forum-uploads',
+  bucket: 'community-uploads',
   region: 'eu-west-2',
   accessKeyId: 'AKIA-test',
   secretAccessKey: 'secret-test',
@@ -71,7 +71,7 @@ describe('S3FileStore specifics', () => {
 
   /*
    * This was the reason for taking the SDK rather than
-   * hand-rolling SigV4: F42 needs "an attachment in a forum the actor cannot
+   * hand-rolling SigV4: F42 needs "an attachment in a community the actor cannot
    * view is not downloadable by direct URL". The app checks permission, then
    * mints a short-lived signature — an unsigned URL here would hand out every
    * attachment on the board to anyone who can guess a key.
@@ -101,7 +101,7 @@ describe('S3FileStore specifics', () => {
 
   it('falls back to the bucket URL when no public base is configured', () => {
     expect(new S3FileStore(CONFIG, fakeS3()).url('a.png')).toBe(
-      'https://forum-uploads.s3.eu-west-2.amazonaws.com/a.png',
+      'https://community-uploads.s3.eu-west-2.amazonaws.com/a.png',
     )
   })
 

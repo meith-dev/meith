@@ -69,7 +69,7 @@ export interface ReputationRow {
    * The thread the rated post is in, so the history can link to it.
    *
    * The thread *id* and nothing else — no title and no slug. A profile is
-   * visible to more people than every forum on the board is, and the thread
+   * visible to more people than every community on the board is, and the thread
    * page enforces its own visibility, so a bare id leaks nothing a 404 would
    * not already say.
    */

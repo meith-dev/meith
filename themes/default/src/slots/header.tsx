@@ -10,7 +10,7 @@ import { LINK, PAGE } from '../shared'
  *
  * ## Two rows, and the second one scrolls
  *
- * The board's navigation is six items today — forums, two discovery views, the
+ * The board's navigation is six items today — communities, two discovery views, the
  * member's own posts, search, who's online — and `HeaderModel.navigation` is a
  * list the app is free to grow. Wrapping six links onto three lines on a phone
  * pushes the first thread of the board below the fold; a hamburger costs a

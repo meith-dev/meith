@@ -16,7 +16,7 @@ import {
   planCopyToDescendants,
   readMatrixCell,
 } from './matrix-editor'
-import type { ForumOverride } from './types'
+import type { CommunityOverride } from './types'
 
 const ROOT = 10
 const PARENT = 20
@@ -57,15 +57,15 @@ describe('a cell with nothing set anywhere', () => {
      * `inheritedFrom: null` with `stored: null` is a *different* explanation
      * from "inherited from the parent" — it means the group's own default — and
      * the screen has to word it differently. Kills the mutant that reports the
-     * forum itself as the source.
+     * community itself as the source.
      */
     expect(cell(rows, REGISTERED, 'canPostThreads').inheritedFrom).toBeNull()
   })
 })
 
 describe('a cell inherited from an ancestor', () => {
-  const overrides: ForumOverride[] = [
-    { forumId: PARENT, groupId: REGISTERED, overrides: { canPostThreads: false } },
+  const overrides: CommunityOverride[] = [
+    { communityId: PARENT, groupId: REGISTERED, overrides: { canPostThreads: false } },
   ]
   const rows = buildPermissionMatrix({
     chain: CHAIN,
@@ -85,7 +85,7 @@ describe('a cell inherited from an ancestor', () => {
     expect(found.effective).toBe(false)
   })
 
-  it('names which forum supplied it', () => {
+  it('names which community supplied it', () => {
     expect(cell(rows, REGISTERED, 'canPostThreads').inheritedFrom).toBe(PARENT)
   })
 
@@ -95,27 +95,27 @@ describe('a cell inherited from an ancestor', () => {
       groups: [group(REGISTERED, 'Registered', { canPostThreads: true })],
       overrides: [
         ...overrides,
-        { forumId: ROOT, groupId: REGISTERED, overrides: { canPostThreads: true } },
+        { communityId: ROOT, groupId: REGISTERED, overrides: { canPostThreads: true } },
       ],
     })
     expect(cell(rows2, REGISTERED, 'canPostThreads').inheritedFrom).toBe(PARENT)
   })
 })
 
-describe('a cell set on this forum', () => {
+describe('a cell set on this community', () => {
   const rows = buildPermissionMatrix({
     chain: CHAIN,
     groups: [group(REGISTERED, 'Registered', { canPostThreads: true })],
     overrides: [
-      { forumId: CHILD, groupId: REGISTERED, overrides: { canPostThreads: false } },
-      { forumId: PARENT, groupId: REGISTERED, overrides: { canPostThreads: true } },
+      { communityId: CHILD, groupId: REGISTERED, overrides: { canPostThreads: false } },
+      { communityId: PARENT, groupId: REGISTERED, overrides: { canPostThreads: true } },
     ],
   })
 
   it('shows its own value and reports no inheritance', () => {
     /*
-     * Kills the mutant that reports the *forum itself* as an ancestor, which
-     * would render "inherited from this forum" on every explicit cell.
+     * Kills the mutant that reports the *community itself* as an ancestor, which
+     * would render "inherited from this community" on every explicit cell.
      */
     const found = cell(rows, REGISTERED, 'canPostThreads')
     expect(found.stored).toBe(false)
@@ -127,7 +127,7 @@ describe('a cell set on this forum', () => {
 describe('a row resolves for its own group only', () => {
   it('does not show one group the value another group would win', () => {
     /*
-     * `Authorizer.forumMatrix` combines across an actor's groups — booleans OR.
+     * `Authorizer.communityMatrix` combines across an actor's groups — booleans OR.
      * A matrix editor must not: the operator is editing the Registered row, and
      * showing them `true` because Staff has it would make the cell a lie about
      * the thing they are about to change. Kills the mutant that passes every
@@ -153,7 +153,7 @@ describe('numeric cells', () => {
       chain: CHAIN,
       groups: [group(REGISTERED, 'Registered', { maxAttachmentsPerPost: 4 })],
       overrides: [
-        { forumId: PARENT, groupId: REGISTERED, overrides: { maxAttachmentsPerPost: 2 } },
+        { communityId: PARENT, groupId: REGISTERED, overrides: { maxAttachmentsPerPost: 2 } },
       ],
     })
 
@@ -196,22 +196,22 @@ describe('readMatrixCell', () => {
 
 describe('planCopyToDescendants', () => {
   const base = {
-    sourceForumId: PARENT,
+    sourceCommunityId: PARENT,
     descendantIds: [CHILD],
     groupIds: [REGISTERED],
   }
 
-  it('reports exactly which cells would change, and on which forum', () => {
+  it('reports exactly which cells would change, and on which community', () => {
     const plan = planCopyToDescendants({
       ...base,
       overrides: [
-        { forumId: PARENT, groupId: REGISTERED, overrides: { canPostThreads: false } },
+        { communityId: PARENT, groupId: REGISTERED, overrides: { canPostThreads: false } },
       ],
     })
 
     expect(plan.changes).toEqual([
       {
-        forumId: CHILD,
+        communityId: CHILD,
         groupId: REGISTERED,
         key: 'canPostThreads',
         from: null,
@@ -226,17 +226,17 @@ describe('planCopyToDescendants', () => {
      * The cautious-sounding alternative — copy only the non-nulls — is wrong: a
      * child that explicitly denies something the parent inherits would keep
      * denying it, and the operator who pressed "copy" would be looking at two
-     * forums that are not the same. Kills the mutant that skips null sources.
+     * communities that are not the same. Kills the mutant that skips null sources.
      */
     const plan = planCopyToDescendants({
       ...base,
       overrides: [
-        { forumId: CHILD, groupId: REGISTERED, overrides: { canPostThreads: false } },
+        { communityId: CHILD, groupId: REGISTERED, overrides: { canPostThreads: false } },
       ],
     })
 
     expect(plan.changes).toEqual([
-      { forumId: CHILD, groupId: REGISTERED, key: 'canPostThreads', from: false, to: null },
+      { communityId: CHILD, groupId: REGISTERED, key: 'canPostThreads', from: false, to: null },
     ])
   })
 
@@ -244,8 +244,8 @@ describe('planCopyToDescendants', () => {
     const plan = planCopyToDescendants({
       ...base,
       overrides: [
-        { forumId: PARENT, groupId: REGISTERED, overrides: { canPostThreads: false } },
-        { forumId: CHILD, groupId: REGISTERED, overrides: { canPostThreads: false } },
+        { communityId: PARENT, groupId: REGISTERED, overrides: { canPostThreads: false } },
+        { communityId: CHILD, groupId: REGISTERED, overrides: { canPostThreads: false } },
       ],
     })
 
@@ -255,25 +255,25 @@ describe('planCopyToDescendants', () => {
 
   it('covers every group it was given, not only those with a source row', () => {
     /*
-     * A group the source forum does not override still has to be copied — the
+     * A group the source community does not override still has to be copied — the
      * copy is "make them the same", and the descendant may well have a value
      * that the source does not.
      */
     const plan = planCopyToDescendants({
-      sourceForumId: PARENT,
+      sourceCommunityId: PARENT,
       descendantIds: [CHILD],
       groupIds: [REGISTERED, STAFF],
       overrides: [
-        { forumId: CHILD, groupId: STAFF, overrides: { canPostThreads: true } },
+        { communityId: CHILD, groupId: STAFF, overrides: { canPostThreads: true } },
       ],
     })
 
     expect(plan.changes).toEqual([
-      { forumId: CHILD, groupId: STAFF, key: 'canPostThreads', from: true, to: null },
+      { communityId: CHILD, groupId: STAFF, key: 'canPostThreads', from: true, to: null },
     ])
   })
 
-  it('is empty for a forum with no descendants', () => {
+  it('is empty for a community with no descendants', () => {
     const plan = planCopyToDescendants({ ...base, descendantIds: [], overrides: [] })
     expect(plan).toEqual({ changes: [], unchanged: [] })
   })

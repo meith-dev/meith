@@ -25,13 +25,13 @@ only what the bundler saw):
 
 1. Put the package in the workspace (these two already are; a copy of one, or a
    `pnpm add`-ed package, joins the same way).
-2. Name it in the registry: themes in `apps/forum/forum.config.ts`, plugins in
-   `apps/forum/forum.plugins.ts`. For these two that is
+2. Name it in the registry: themes in `apps/community/community.config.ts`, plugins in
+   `apps/community/community.plugins.ts`. For these two that is
    `{ key: 'hello', plugin: helloPlugin }` in the plugins list, and an `iris`
    entry beside `midnight` in the themes map — each file's comments show the
    shape.
-3. Add the package to `apps/forum/package.json` and `pnpm install`, then
-   redeploy. If the plugin ships migrations, run `forum upgrade`.
+3. Add the package to `apps/community/package.json` and `pnpm install`, then
+   redeploy. If the plugin ships migrations, run `community upgrade`.
 
 A registered theme is immediately offered to members on the appearance screen
 and to administrators under **Admin → Themes** — and is enrolled in the

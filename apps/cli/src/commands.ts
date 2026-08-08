@@ -2,7 +2,7 @@
  * F13 — the board-management subcommands.
  *
  * Each one drives the same services the app does (`IdentityService`,
- * `PostgresForumRepository`, `PostgresSettingsRepository`), so a value the CLI
+ * `PostgresCommunityRepository`, `PostgresSettingsRepository`), so a value the CLI
  * writes is one the app would have accepted. That is the whole point of the
  * layer being thin.
  */
@@ -14,7 +14,7 @@ import {
   type SettingKey,
 } from '@meith/settings'
 import { ValidationError } from '@meith/core'
-import { FORUM_TYPES, type ForumType } from '@meith/forums'
+import { COMMUNITY_TYPES, type CommunityType } from '@meith/communities'
 import { foldIdentifier } from '@meith/accounts'
 
 import { createContext, type CliContext } from './context'
@@ -33,7 +33,7 @@ async function readPassword(flags: Flags): Promise<string> {
   if (inline !== undefined) {
     console.warn(
       'warning: --password is visible in shell history and to `ps`. ' +
-        'Prefer:  echo "secret" | forum user:create --username u --email e@x.com',
+        'Prefer:  echo "secret" | community user:create --username u --email e@x.com',
     )
     return inline
   }
@@ -41,7 +41,7 @@ async function readPassword(flags: Flags): Promise<string> {
   if (process.stdin.isTTY) {
     throw new ValidationError(
       'No password supplied. Pipe one in:\n' +
-        '  echo "correct horse battery staple" | forum user:create --username u --email u@example.com',
+        '  echo "correct horse battery staple" | community user:create --username u --email u@example.com',
     )
   }
 
@@ -114,18 +114,18 @@ export async function userPromote(args: readonly string[]): Promise<number> {
   return 0
 }
 
-export async function forumCreate(args: readonly string[]): Promise<number> {
+export async function communityCreate(args: readonly string[]): Promise<number> {
   const { flags } = parseFlags(args)
 
-  const rawType = optional(flags, 'type') ?? 'forum'
-  if (!(FORUM_TYPES as readonly string[]).includes(rawType)) {
-    throw new ValidationError(`--type must be one of ${FORUM_TYPES.join(', ')}, got "${rawType}".`)
+  const rawType = optional(flags, 'type') ?? 'community'
+  if (!(COMMUNITY_TYPES as readonly string[]).includes(rawType)) {
+    throw new ValidationError(`--type must be one of ${COMMUNITY_TYPES.join(', ')}, got "${rawType}".`)
   }
 
   // Everything the command needs is resolved before the database is opened, so
   // a missing --title is reported as a missing --title.
   const input = {
-    type: rawType as ForumType,
+    type: rawType as CommunityType,
     title: required(flags, 'title'),
     slug: required(flags, 'slug'),
     description: optional(flags, 'description'),
@@ -134,7 +134,7 @@ export async function forumCreate(args: readonly string[]): Promise<number> {
   }
 
   const ctx = await createContext()
-  const created = await ctx.forums.create(input)
+  const created = await ctx.communities.create(input)
 
   console.log(
     `Created ${created.type} "${created.title}" (id ${created.id}, path ${created.path}).`,
@@ -145,7 +145,7 @@ export async function forumCreate(args: readonly string[]): Promise<number> {
 export async function settingsGet(args: readonly string[]): Promise<number> {
   const { positional } = parseFlags(args)
   const key = positional[0]
-  if (key === undefined) throw new ValidationError('Usage: forum settings:get <key>')
+  if (key === undefined) throw new ValidationError('Usage: community settings:get <key>')
 
   const ctx = await createContext()
   const snapshot = SettingsSnapshot.fromOverrides(await ctx.settings.loadAll())
@@ -163,7 +163,7 @@ export async function settingsSet(args: readonly string[]): Promise<number> {
   const { positional } = parseFlags(args)
   const [key, raw] = positional
   if (key === undefined || raw === undefined) {
-    throw new ValidationError('Usage: forum settings:set <key> <value>')
+    throw new ValidationError('Usage: community settings:set <key> <value>')
   }
 
   const definition = SETTING_DEFINITION_BY_KEY.get(key)

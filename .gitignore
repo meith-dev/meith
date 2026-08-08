@@ -22,7 +22,7 @@ next-env.d.ts
 # Build output.
 #
 # `.next*/` rather than the two names that happen to exist today. The Next build
-# directory is chosen at *runtime* by FORUM_DIST_DIR — `.next` for `pnpm dev`,
+# directory is chosen at *runtime* by COMMUNITY_DIST_DIR — `.next` for `pnpm dev`,
 # `.next-e2e` for the Playwright server, and whatever a developer passes to run a
 # second server beside their own. Listing them individually means the next value
 # anybody uses is untracked-but-not-ignored, which is how a hundred megabytes of

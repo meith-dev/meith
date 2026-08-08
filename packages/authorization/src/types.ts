@@ -2,7 +2,7 @@
  * Authorization vocabulary and the port it resolves against.
  *
  * This package is the *only* place in the codebase that knows a group ID is a
- * number or that forum permissions inherit down a tree (F20). Everything else
+ * number or that community permissions inherit down a tree (F20). Everything else
  * asks `can(actor, action, target)` and receives a boolean. The moment a group
  * ID comparison appears anywhere else, the model rots — there is a lint rule
  * (see eslint.config.mjs `no-restricted-syntax`) that fires on it.
@@ -15,7 +15,7 @@
  */
 import type {
   ContentVisibility,
-  ForumPermissions,
+  CommunityPermissions,
   PermissionSet,
 } from '@meith/core'
 
@@ -55,8 +55,8 @@ export interface Actor {
  * fixture — which is exactly the regression net F22 demands.
  */
 export type Action =
-  // --- forum-scoped, in a Target with a resolved matrix ---
-  | 'forum.view'
+  // --- community-scoped, in a Target with a resolved matrix ---
+  | 'community.view'
   | 'thread.view'
   | 'thread.post'
   | 'reply.post'
@@ -88,27 +88,27 @@ export type Action =
   | 'thread.split'
   | 'attachment.upload'
   | 'attachment.download'
-  | 'forum.search'
-  | 'forum.subscribe'
-  // --- global, need no forum context ---
+  | 'community.search'
+  | 'community.subscribe'
+  // --- global, need no community context ---
   | 'profile.view'
   | 'memberlist.view'
   | 'pm.use'
   /**
    * Upload an avatar (F58).
    *
-   * Global, and deliberately not in the F22 forum matrix: an avatar follows the
+   * Global, and deliberately not in the F22 community matrix: an avatar follows the
    * member everywhere they appear — a member list, a profile, a quote — so a
-   * per-forum grant would have to answer "an avatar where?" about an image that
-   * has no forum. The same argument `user.warn` makes.
+   * per-community grant would have to answer "an avatar where?" about an image that
+   * has no community. The same argument `user.warn` makes.
    */
   | 'avatar.upload'
   /**
    * File a report (F49).
    *
-   * Global, and deliberately not in the F22 forum matrix: reporting is a
-   * board-wide capability granted by `canReportContent`, not a per-forum grant.
-   * The *target* is still checked forum by forum — a member cannot report what
+   * Global, and deliberately not in the F22 community matrix: reporting is a
+   * board-wide capability granted by `canReportContent`, not a per-community grant.
+   * The *target* is still checked community by community — a member cannot report what
    * they could not see — but that check is `thread.view`, which the matrix
    * already covers.
    */
@@ -118,17 +118,17 @@ export type Action =
   /**
    * Warn a member, or revoke a warning (F53).
    *
-   * Global, and deliberately not in the F22 forum matrix: a warning is aimed at
+   * Global, and deliberately not in the F22 community matrix: a warning is aimed at
    * a *person* and its points follow them across the whole board, so a
-   * per-forum grant would have to answer "warned where?" about a total that has
-   * no forum. MyBB's `canwarnusers` is global for the same reason.
+   * per-community grant would have to answer "warned where?" about a total that has
+   * no community. MyBB's `canwarnusers` is global for the same reason.
    */
   | 'user.warn'
   /**
    * Exempt from the between-posts flood interval (F39/F40).
    *
-   * Global, and deliberately not in the F22 forum matrix: the interval is a
-   * board setting rather than a per-forum grant, which is the parity decision
+   * Global, and deliberately not in the F22 community matrix: the interval is a
+   * board setting rather than a per-community grant, which is the parity decision
    * recorded in `docs/mybb-parity.md#flood-intervals`. It exists as an action so
    * the posting path can ask `can()` instead of reading a permission field —
    * group and permission reasoning does not leave this package (R4).
@@ -137,10 +137,10 @@ export type Action =
   /**
    * Rate another member (F62).
    *
-   * Global, and deliberately not in the F22 forum matrix: reputation is about
+   * Global, and deliberately not in the F22 community matrix: reputation is about
    * a *person* and their total follows them across the whole board, so a
-   * per-forum grant would have to answer "well regarded where?" about a number
-   * that has no forum. The same argument `user.warn` makes.
+   * per-community grant would have to answer "well regarded where?" about a number
+   * that has no community. The same argument `user.warn` makes.
    */
   | 'reputation.give'
   /**
@@ -177,44 +177,44 @@ export type { ContentVisibility }
 /**
  * What an action is being performed *on*.
  *
- * `forum` carries the already-resolved per-forum matrix so `can()` stays
- * synchronous and pure — the async walk happens once in `forumMatrix()`, and its
- * result is threaded into every `can()` call for that forum. A forum-scoped
- * action with no `forum` present is a programming error, not a denial, and
+ * `community` carries the already-resolved per-community matrix so `can()` stays
+ * synchronous and pure — the async walk happens once in `communityMatrix()`, and its
+ * result is threaded into every `can()` call for that community. A community-scoped
+ * action with no `community` present is a programming error, not a denial, and
  * throws rather than silently returning false.
  */
 export interface Target {
-  readonly forumId?: number
-  /** Resolved forum matrix from `Authorizer.forumMatrix()`. */
-  readonly forum?: ForumPermissions
+  readonly communityId?: number
+  /** Resolved community matrix from `Authorizer.communityMatrix()`. */
+  readonly community?: CommunityPermissions
   /** Author of the content being acted on, for own-vs-others checks. */
   readonly ownerId?: number | null
   /** Visibility of the content, for the view-unapproved / view-deleted actions. */
   readonly visibility?: ContentVisibility
   /**
-   * Whether the actor is a moderator of this forum (F21 forum_moderators,
-   * including subforum cascade). Resolved by the repository alongside the matrix.
+   * Whether the actor is a moderator of this community (F21 community_moderators,
+   * including subcommunity cascade). Resolved by the repository alongside the matrix.
    */
-  readonly isForumModerator?: boolean
+  readonly isCommunityModerator?: boolean
   /**
-   * This actor's appointment rights in this forum, if any (F48/F50).
+   * This actor's appointment rights in this community, if any (F48/F50).
    *
-   * Separate from `isForumModerator` because an appointment's rights are
+   * Separate from `isCommunityModerator` because an appointment's rights are
    * granular: being a moderator here does not by itself mean being trusted to
    * empty the queue, move threads, or lock them. Resolved by
    * `Authorizer.moderatorRightsIn`.
    */
   readonly moderatorRights?: ModeratorRights
   /**
-   * Whether this forum is password-protected. Orthogonal to the permission
-   * matrix: password protection is a property of the forum row, not a group
+   * Whether this community is password-protected. Orthogonal to the permission
+   * matrix: password protection is a property of the community row, not a group
    * grant, so it cannot be expressed as a permission field.
    */
   readonly passwordRequired?: boolean
   /**
-   * For password-protected forums: whether the actor has already entered the
-   * password this session. A forum can still be seen to *exist* in the index
-   * (forum.view) while everything inside it stays gated until this is true.
+   * For password-protected communities: whether the actor has already entered the
+   * password this session. A community can still be seen to *exist* in the index
+   * (community.view) while everything inside it stays gated until this is true.
    */
   readonly passwordSatisfied?: boolean
 }
@@ -230,14 +230,14 @@ export interface GroupDefaults {
 }
 
 /**
- * One `forum_permissions(forum_id, group_id)` row. Every forum-scoped field is
- * nullable; `null` means "inherit from the parent forum" (R4.1 layer 2).
+ * One `community_permissions(community_id, group_id)` row. Every community-scoped field is
+ * nullable; `null` means "inherit from the parent community" (R4.1 layer 2).
  */
-export interface ForumOverride {
-  readonly forumId: number
+export interface CommunityOverride {
+  readonly communityId: number
   readonly groupId: number
   /** Partial: only the keys this row actually overrides are present and non-null. */
-  readonly overrides: Partial<ForumPermissions>
+  readonly overrides: Partial<CommunityPermissions>
 }
 
 /**
@@ -249,39 +249,39 @@ export interface AuthorizationSource {
   /** Global defaults for exactly these groups. */
   groupDefaults(groupIds: readonly number[]): Promise<readonly GroupDefaults[]>
   /**
-   * Forum IDs from `forumId` up to the root, nearest first, inclusive. Empty
-   * when the forum does not exist.
+   * Community IDs from `communityId` up to the root, nearest first, inclusive. Empty
+   * when the community does not exist.
    */
-  ancestorChain(forumId: number): Promise<readonly number[]>
-  /** Overrides for any of these forums and any of these groups. */
-  forumOverrides(
-    forumIds: readonly number[],
+  ancestorChain(communityId: number): Promise<readonly number[]>
+  /** Overrides for any of these communities and any of these groups. */
+  communityOverrides(
+    communityIds: readonly number[],
     groupIds: readonly number[],
-  ): Promise<readonly ForumOverride[]>
-  /** Every forum ID on the board, used to compute the visible set. */
-  allForumIds(): Promise<readonly number[]>
+  ): Promise<readonly CommunityOverride[]>
+  /** Every community ID on the board, used to compute the visible set. */
+  allCommunityIds(): Promise<readonly number[]>
 
   /**
-   * Every forum's ancestor chain in one call, nearest-first and inclusive —
+   * Every community's ancestor chain in one call, nearest-first and inclusive —
    * the same shape `ancestorChain` returns, for the whole board at once.
    *
-   * Exists because `visibleForumIds` needs the chain for *every* forum, and
-   * asking per forum is an N+1 that scales with the size of the board. Every
+   * Exists because `visibleCommunityIds` needs the chain for *every* community, and
+   * asking per community is an N+1 that scales with the size of the board. Every
    * list page filters by the visible set, so that cost is multiplied across the
    * entire product. F21 makes this an explicit acceptance criterion.
    */
   allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>>
 
   /**
-   * This actor's moderator appointments (F21's `forum_moderators`, read for the
+   * This actor's moderator appointments (F21's `community_moderators`, read for the
    * first time at F48).
    *
    * The table has existed since F21 and nothing has ever consulted it, so until
    * now "moderator" in practice meant "member of a staff group". An appointment
-   * is the other half: one person given rights over one forum, optionally
-   * cascading to its subforums, with each right granted individually.
+   * is the other half: one person given rights over one community, optionally
+   * cascading to its subcommunities, with each right granted individually.
    *
-   * Returns the appointments themselves rather than an expanded forum set,
+   * Returns the appointments themselves rather than an expanded community set,
    * because expansion needs the tree and the tree already lives in
    * `allAncestorChains()` — resolving it here would mean a second walk in the
    * adapter and a second place to get the prefix trap wrong (D22).
@@ -311,15 +311,15 @@ export interface ModeratorRights {
   readonly canSplitThreads: boolean
 }
 
-/** One row of `forum_moderators`, as the Authorizer needs it. */
+/** One row of `community_moderators`, as the Authorizer needs it. */
 export interface ModeratorAppointment extends ModeratorRights {
-  readonly forumId: number
-  readonly cascadeToSubforums: boolean
+  readonly communityId: number
+  readonly cascadeToSubcommunities: boolean
 }
 
 /**
  * Whether an appointment grants anything at all — the value of
- * `Target.isForumModerator` (F52).
+ * `Target.isCommunityModerator` (F52).
  *
  * A named function rather than `Object.values(rights).some(Boolean)` written
  * out at each call site, because it is a *permission* question and R4 says
@@ -358,7 +358,7 @@ export const NO_MODERATOR_RIGHTS: ModeratorRights = {
  * Turns a user id — or nobody — into a fully-resolved `Actor`.
  *
  * Kept separate from `AuthorizationSource`: that port answers *permission*
- * questions (what does group N grant in forum F), whereas this one assembles the
+ * questions (what does group N grant in community F), whereas this one assembles the
  * *principal* (which groups is user U in, what is their state, combine it all).
  * The authorizer consumes the `Actor` this produces and never calls back into
  * it. Two implementations: `ActorBuilder` in `@meith/db` (Postgres, primary +
@@ -376,5 +376,5 @@ export interface ActorSource {
 
 /** Marker for rows that can be visibility-filtered by `filterVisible`. */
 export interface Visible {
-  readonly forumId: number
+  readonly communityId: number
 }

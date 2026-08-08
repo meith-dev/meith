@@ -88,7 +88,7 @@ describe('delivery headers', () => {
   )
 
   it('carries the event, the delivery id, the timestamp and the signature', () => {
-    expect(headers['x-forum-event']).toBe('post.created')
+    expect(headers['x-community-event']).toBe('post.created')
     expect(headers[DELIVERY_HEADER]).toBe('dlv_1')
     expect(headers[TIMESTAMP_HEADER]).toBe(String(AT))
     expect(headers[SIGNATURE_HEADER]).toBe(signPayload(SECRET, AT, BODY))

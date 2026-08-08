@@ -10,10 +10,10 @@
  * found.
  *
  * So the migrator is bundled the same way the worker is, and reached the same
- * way: `FORUM_ROLE=migrate`. One image, three roles, one build — which is the
+ * way: `COMMUNITY_ROLE=migrate`. One image, three roles, one build — which is the
  * property F04 actually asks for.
  *
- * It runs the *same* `runMigrations()` the operator CLI's `forum migrate` runs,
+ * It runs the *same* `runMigrations()` the operator CLI's `community migrate` runs,
  * rather than shelling out to drizzle-kit, so a board migrated by the image and
  * a board migrated by an operator have been through identical code.
  */
@@ -38,7 +38,7 @@ const log = () => logger({ module: 'migrate' })
  *
  * A no-op in the image, where the container supplies the environment and there
  * is no workspace to find. It costs one `existsSync` per parent directory and
- * it means this bundle and `forum migrate` are configured the same way when run
+ * it means this bundle and `community migrate` are configured the same way when run
  * from a checkout — which is the point of them sharing `runMigrations()`.
  */
 loadEnvFiles()

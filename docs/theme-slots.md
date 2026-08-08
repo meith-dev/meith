@@ -29,14 +29,14 @@ works and has a removal scheduled below.
 | [`Announcement`](#announcement) | `server` | stable | `AnnouncementModel` |
 | [`BoardIndex`](#boardindex) | `server` | stable | `BoardIndexModel` |
 | [`CategoryBlock`](#categoryblock) | `server` | stable | `CategoryBlockModel` |
-| [`ForumRow`](#forumrow) | `server` | stable | `ForumRowSlotModel` |
+| [`CommunityRow`](#communityrow) | `server` | stable | `CommunityRowSlotModel` |
 | [`BoardStats`](#boardstats) | `server` | stable | `BoardStatsModel` |
 | [`WhoIsOnline`](#whoisonline) | `server` | stable | `WhoIsOnlineModel` |
 | [`LatestThreads`](#latestthreads) | `server` | stable | `LatestThreadsModel` |
 | [`LatestPosts`](#latestposts) | `server` | stable | `LatestPostsModel` |
-| [`ForumDisplay`](#forumdisplay) | `server` | stable | `ForumDisplayModel` |
+| [`CommunityDisplay`](#communitydisplay) | `server` | stable | `CommunityDisplayModel` |
 | [`ThreadRow`](#threadrow) | `server` | stable | `ThreadRowSlotModel` |
-| [`SubforumList`](#subforumlist) | `server` | stable | `SubforumListModel` |
+| [`SubcommunityList`](#subcommunitylist) | `server` | stable | `SubcommunityListModel` |
 | [`Pagination`](#pagination) | `server` | stable | `PaginationModel` |
 | [`ThreadView`](#threadview) | `server` | stable | `ThreadViewModel` |
 | [`PostBit`](#postbit) | `server` | stable | `PostBitSlotModel` |
@@ -46,7 +46,7 @@ works and has a removal scheduled below.
 | [`EditorToolbar`](#editortoolbar) | `client` | provisional | `EditorToolbarModel` |
 | [`MemberProfile`](#memberprofile) | `server` | stable | `MemberProfileModel` |
 | [`SearchForm`](#searchform) | `server` | stable | `SearchFormModel` |
-| [`ForumJump`](#forumjump) | `server` | stable | `ForumJumpModel` |
+| [`CommunityJump`](#communityjump) | `server` | stable | `CommunityJumpModel` |
 | [`RedirectNotice`](#redirectnotice) | `server` | stable | `RedirectNoticeModel` |
 | [`ErrorNotice`](#errornotice) | `server` | stable | `ErrorNoticeModel` |
 
@@ -103,7 +103,7 @@ Props: `UserPanelModel`
 
 `server` · stable
 
-The breadcrumb trail. Board → category → forum → thread.
+The breadcrumb trail. Board → category → community → thread.
 
 Props: `NavigationModel`
 
@@ -144,7 +144,7 @@ Props: `NoticeModel`
 
 `server` · stable
 
-One announcement: a dated, authored notice shown above the forums. Distinct from Notice, which is a flash message about what the viewer just did — these are for everybody and last until they expire.
+One announcement: a dated, authored notice shown above the communities. Distinct from Notice, which is a flash message about what the viewer just did — these are for everybody and last until they expire.
 
 Props: `AnnouncementModel`
 
@@ -154,7 +154,7 @@ Props: `AnnouncementModel`
 | `bodyHtml` | `string` | Trusted HTML, from `@meith/markdown`'s own renderer — the same contract as a post body, and the reason a theme inserts it rather than escaping it. |
 | `postedBy` | `UserRefModel \| null` |  |
 | `postedAt` | `TimeModel` |  |
-| `forum` | `LinkModel \| null` | The forum it belongs to, or `null` when it is board-wide. |
+| `community` | `LinkModel \| null` | The community it belongs to, or `null` when it is board-wide. |
 
 ### BoardIndex
 
@@ -173,26 +173,26 @@ Props: `BoardIndexModel`
 
 `server` · stable
 
-One top-level category and the forum rows under it.
+One top-level category and the community rows under it.
 
 Props: `CategoryBlockModel`
 
 | Field | Type | Notes |
 |---|---|---|
-| `category` | `ForumRowModel` |  |
+| `category` | `CommunityRowModel` |  |
 | `children` | `ReactNode` | optional |
 
-### ForumRow
+### CommunityRow
 
 `server` · stable
 
-One forum in a listing: title, description, counters, last post, subforum links.
+One community in a listing: title, description, counters, last post, subcommunity links.
 
-Props: `ForumRowSlotModel`
+Props: `CommunityRowSlotModel`
 
 | Field | Type | Notes |
 |---|---|---|
-| `forum` | `ForumRowModel` |  |
+| `community` | `CommunityRowModel` |  |
 
 ### BoardStats
 
@@ -253,20 +253,20 @@ Props: `LatestPostsModel`
 | `posts` | `readonly LatestPostModel[]` |  |
 | `capturedAt` | `TimeModel` |  |
 
-### ForumDisplay
+### CommunityDisplay
 
 `server` · stable
 
-A forum page body: subforums, thread list, pagination.
+A community page body: subcommunities, thread list, pagination.
 
-Props: `ForumDisplayModel`
+Props: `CommunityDisplayModel`
 
 | Field | Type | Notes |
 |---|---|---|
-| `forum` | `ForumRowModel` |  |
+| `community` | `CommunityRowModel` |  |
 | `newThreadHref` | `string \| null` |  |
 | `markReadAction` | `string \| null` |  |
-| `regions` | `{ /** * Controls scoped to this forum — the thread ordering, and the follow * form for a member who may subscribe. Rendered by the route because both * carry a Server Action or a URL contract the theme does not own. * * **A theme renders this under its heading, not above it.** That placement * is the reason the field exists: these were app-rendered strips stacked * *before* `ForumDisplay`, so the first thing on a forum page was a filter * with nothing yet to say what it filtered. A control belongs after the * thing it acts on has been named. * * Optional, which is what makes it a **minor** addition under the * versioning policy — a theme written against 0.3 keeps compiling. * * Only what acts on the listing *below* it belongs here. Following the * forum is in `afterContent`, for the reason given there. */ readonly tools?: ReactNode readonly subforums: ReactNode /** One `ThreadRow` per thread. Empty-state markup is the theme's. */ readonly threads: ReactNode readonly pagination: ReactNode /** * This forum's announcements *and* the board's — an announcement being * board-wide would mean little if it appeared only on the index, which is * the page fewest people arrive on. */ readonly announcements?: ReactNode /** * Controls for somebody who has finished with the page — today, the form * that follows this forum. * * A theme renders it after the listing. "Do you want to hear about this * forum?" is a question you can only answer once you have seen what is in * it, and asked above the threads it is a panel between a reader and the * thing they came for. The ordering tabs stay at the top in `tools`, * because those act on the list underneath them. */ readonly afterContent?: ReactNode }` |  |
+| `regions` | `{ /** * Controls scoped to this community — the thread ordering, and the follow * form for a member who may subscribe. Rendered by the route because both * carry a Server Action or a URL contract the theme does not own. * * **A theme renders this under its heading, not above it.** That placement * is the reason the field exists: these were app-rendered strips stacked * *before* `CommunityDisplay`, so the first thing on a community page was a filter * with nothing yet to say what it filtered. A control belongs after the * thing it acts on has been named. * * Optional, which is what makes it a **minor** addition under the * versioning policy — a theme written against 0.3 keeps compiling. * * Only what acts on the listing *below* it belongs here. Following the * community is in `afterContent`, for the reason given there. */ readonly tools?: ReactNode readonly subcommunities: ReactNode /** One `ThreadRow` per thread. Empty-state markup is the theme's. */ readonly threads: ReactNode readonly pagination: ReactNode /** * This community's announcements *and* the board's — an announcement being * board-wide would mean little if it appeared only on the index, which is * the page fewest people arrive on. */ readonly announcements?: ReactNode /** * Controls for somebody who has finished with the page — today, the form * that follows this community. * * A theme renders it after the listing. "Do you want to hear about this * community?" is a question you can only answer once you have seen what is in * it, and asked above the threads it is a panel between a reader and the * thing they came for. The ordering tabs stay at the top in `tools`, * because those act on the list underneath them. */ readonly afterContent?: ReactNode }` |  |
 
 ### ThreadRow
 
@@ -281,17 +281,17 @@ Props: `ThreadRowSlotModel`
 | `thread` | `ThreadRowModel` |  |
 | `select` | `SelectionModel \| null` | The inline-moderation checkbox, or `null`. |
 
-### SubforumList
+### SubcommunityList
 
 `server` · stable
 
-The compact list of child forums shown above a thread list.
+The compact list of child communities shown above a thread list.
 
-Props: `SubforumListModel`
+Props: `SubcommunityListModel`
 
 | Field | Type | Notes |
 |---|---|---|
-| `forums` | `readonly ForumRowModel[]` |  |
+| `communities` | `readonly CommunityRowModel[]` |  |
 
 ### Pagination
 
@@ -320,10 +320,10 @@ Props: `ThreadViewModel`
 | Field | Type | Notes |
 |---|---|---|
 | `thread` | `ThreadRowModel` |  |
-| `forum` | `LinkModel` |  |
+| `community` | `LinkModel` |  |
 | `replyHref` | `string \| null` |  |
 | `markReadAction` | `string \| null` | A native POST target for the last visible post on this page. |
-| `regions` | `{ /** * Controls scoped to this thread — following it, rating it, its poll, and * the moderator's thread tools. Rendered by the route, for the reason * every app-rendered region exists: each one carries a Server Action. * * **A theme renders this under its heading, not above it**, and the same * history is behind this field as behind `ForumDisplayModel`'s. Four of * these strips used to stack before `ThreadView`, so a thread opened on a * phone began with a follow control, a star rating and a poll, and the * title of the thing being followed, rated and voted on was a screen * further down. * * Only what belongs *before* the posts: the moderator's bar, and the * poll, which is content rather than a control. Rating and following are * in `afterContent`. * * Optional under the versioning policy: a theme written against 0.3 compiles * and simply does not offer them. */ readonly tools?: ReactNode /** One `PostBit` per post on this page. */ readonly posts: ReactNode readonly pagination: ReactNode /** * Controls for a reader who has reached the end — rating the thread, and * following it. * * A theme renders it after the posts and **before** the quick reply, which * is the order the two are wanted in: somebody who has just read fifty * posts is deciding what they think and whether to keep hearing about it, * and then whether to answer. Both used to be above the first post, where * they were asking for a verdict on something the reader had not read yet. */ readonly afterContent?: ReactNode /** * The quick-reply island, or `null` when the viewer may not reply — in which * case nothing is rendered and no island bytes are shipped. */ readonly quickReply: ReactNode }` |  |
+| `regions` | `{ /** * Controls scoped to this thread — following it, rating it, its poll, and * the moderator's thread tools. Rendered by the route, for the reason * every app-rendered region exists: each one carries a Server Action. * * **A theme renders this under its heading, not above it**, and the same * history is behind this field as behind `CommunityDisplayModel`'s. Four of * these strips used to stack before `ThreadView`, so a thread opened on a * phone began with a follow control, a star rating and a poll, and the * title of the thing being followed, rated and voted on was a screen * further down. * * Only what belongs *before* the posts: the moderator's bar, and the * poll, which is content rather than a control. Rating and following are * in `afterContent`. * * Optional under the versioning policy: a theme written against 0.3 compiles * and simply does not offer them. */ readonly tools?: ReactNode /** One `PostBit` per post on this page. */ readonly posts: ReactNode readonly pagination: ReactNode /** * Controls for a reader who has reached the end — rating the thread, and * following it. * * A theme renders it after the posts and **before** the quick reply, which * is the order the two are wanted in: somebody who has just read fifty * posts is deciding what they think and whether to keep hearing about it, * and then whether to answer. Both used to be above the first post, where * they were asking for a verdict on something the reader had not read yet. */ readonly afterContent?: ReactNode /** * The quick-reply island, or `null` when the viewer may not reply — in which * case nothing is rendered and no island bytes are shipped. */ readonly quickReply: ReactNode }` |  |
 
 ### PostBit
 
@@ -381,7 +381,7 @@ Props: `PostFormModel`
 |---|---|---|
 | `mode` | `'thread' \| 'reply' \| 'edit'` |  |
 | `heading` | `string` | e.g. "Post a new thread in General". |
-| `cancelHref` | `string` | Where a cancel link returns to — the forum, or the thread being replied to. |
+| `cancelHref` | `string` | Where a cancel link returns to — the community, or the thread being replied to. |
 | `cancelLabel` | `string` |  |
 | `errorMessage` | `string \| null` |  |
 | `regions` | `{ /** The app-rendered `<form>` carrying the Server Action and its controls. */ readonly form: ReactNode /** * The `EditorToolbar` island, or `null`. A `null` here must leave a working * plain-textarea form: the island enhances, it never enables. */ readonly toolbar: ReactNode }` |  |
@@ -432,29 +432,29 @@ Props: `SearchFormModel`
 | Field | Type | Notes |
 |---|---|---|
 | `action` | `string` | Where the form submits. A GET form: a search is a URL. |
-| `fields` | `{ readonly query: string readonly forum: string readonly sort: string }` | The names to give the controls, owned by the app. |
+| `fields` | `{ readonly query: string readonly community: string readonly sort: string }` | The names to give the controls, owned by the app. |
 | `query` | `string` |  |
 | `maxQueryLength` | `number` | The server's limit, so the browser can refuse over-long input first. |
-| `forums` | `readonly OptionModel[]` | Forums this viewer may search. The first option is "everywhere". |
+| `communities` | `readonly OptionModel[]` | Communities this viewer may search. The first option is "everywhere". |
 | `sorts` | `readonly OptionModel[]` |  |
 | `hint` | `string \| null` | Guidance for an empty form: quoting, exclusion. `null` once submitted. |
 | `errorMessage` | `string \| null` |  |
 
-### ForumJump
+### CommunityJump
 
 `server` · stable
 
-The jump box at the foot of every page. A GET form with a submit control, never a select that navigates on change — choosing an option is not committing to it, and arrow-keying through one would teleport a keyboard user to the first forum in the list.
+The jump box at the foot of every page. A GET form with a submit control, never a select that navigates on change — choosing an option is not committing to it, and arrow-keying through one would teleport a keyboard user to the first community in the list.
 
-Props: `ForumJumpModel`
+Props: `CommunityJumpModel`
 
 | Field | Type | Notes |
 |---|---|---|
 | `action` | `string` | Where the form submits. GET, because a jump is a navigation. |
 | `field` | `string` | The query-parameter name to give the select. The app owns it. |
-| `forums` | `readonly ForumJumpOption[]` | Visible forums, in tree order. |
+| `communities` | `readonly CommunityJumpOption[]` | Visible communities, in tree order. |
 | `submitLabel` | `string` | The label for the submit control. Always rendered. |
-| `label` | `string` | Accessible name for the control, e.g. "Jump to forum". |
+| `label` | `string` | Accessible name for the control, e.g. "Jump to community". |
 
 ### RedirectNotice
 
@@ -491,7 +491,7 @@ Props: `ErrorNoticeModel`
 Referenced by the models above. Same promise: a field of a shared model reached
 from a stable slot is stable.
 
-### ForumJumpOption
+### CommunityJumpOption
 
 | Field | Type | Notes |
 |---|---|---|
@@ -501,7 +501,7 @@ from a stable slot is stable.
 | `isCategory` | `boolean` | A category is a heading, not a destination — rendered disabled. |
 | `isSelected` | `boolean` |  |
 
-### ForumRowModel
+### CommunityRowModel
 
 Submitted as the form value. Opaque to the theme. readonly value: string readonly label: string readonly isSelected: boolean } /* ------------------------------------------------------------------ * Listing models ------------------------------------------------------------------
 
@@ -511,16 +511,16 @@ Submitted as the form value. Opaque to the theme. readonly value: string readonl
 | `title` | `string` |  |
 | `description` | `string \| null` |  |
 | `href` | `string` |  |
-| `type` | `'category' \| 'forum' \| 'link'` | `link` rows navigate away and have no counters. |
+| `type` | `'category' \| 'community' \| 'link'` | `link` rows navigate away and have no counters. |
 | `threadCount` | `number` |  |
 | `postCount` | `number` |  |
 | `lastPost` | `LastPostModel \| null` |  |
 | `isUnread` | `boolean` | `false` for a guest, who has no read state. |
-| `subforums` | `readonly LinkModel[]` |  |
+| `subcommunities` | `readonly LinkModel[]` |  |
 
 ### LastPostModel
 
-The last post in a forum or thread, as a listing shows it.
+The last post in a community or thread, as a listing shows it.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -537,20 +537,20 @@ One post in the index's "latest posts" panel.
 |---|---|---|
 | `threadTitle` | `string` | The thread it is in. A post has no title of its own. |
 | `href` | `string` | `/thread/12-slug#post-34` — the post, not the top of its thread. |
-| `forum` | `LinkModel` |  |
+| `community` | `LinkModel` |  |
 | `author` | `UserRefModel` |  |
 | `excerpt` | `string` | The post as text: flattened out of its Markdown source and cut on a word boundary, the same way a feed entry's summary is. Flattened rather than rendered, because the board's HTML carries quotes, directives and attachment markup whose meaning is lost in two lines — and because a theme dropping raw post HTML into a sidebar is one plugin away from being an injection point. |
 | `postedAt` | `TimeModel` |  |
 
 ### LatestThreadModel
 
-One thread in the index's "latest threads" panel. Every row carries its forum, because these two panels are the only lists on the board that cross it: without the forum, two identically-titled threads in two forums are the same row printed twice.
+One thread in the index's "latest threads" panel. Every row carries its community, because these two panels are the only lists on the board that cross it: without the community, two identically-titled threads in two communities are the same row printed twice.
 
 | Field | Type | Notes |
 |---|---|---|
 | `title` | `string` |  |
 | `href` | `string` |  |
-| `forum` | `LinkModel` | The forum it was started in, resolved — a theme never builds an href. |
+| `community` | `LinkModel` | The community it was started in, resolved — a theme never builds an href. |
 | `author` | `UserRefModel` |  |
 | `replyCount` | `number` |  |
 | `startedAt` | `TimeModel` |  |
@@ -576,7 +576,7 @@ A board's logo, already resolved for this reader's colour scheme. Optional, and 
 
 ### OnlineMemberModel
 
-One visitor in the online list. `location` is **already resolved against the reader**: a forum they may not see arrives as the bare label, never as a title with a link. The theme renders what it is given and cannot leak what it was not.
+One visitor in the online list. `location` is **already resolved against the reader**: a community they may not see arrives as the bare label, never as a title with a link. The theme renders what it is given and cannot leak what it was not.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -674,7 +674,7 @@ A thread prefix; `token` supplies its styling.
 
 ### SelectionModel
 
-One inline-moderation checkbox, or `null` when this viewer has no business selecting rows. Plain data, and it has to be: the *form* it belongs to carries a Server Action reference, and such references never cross the theme contract. So the app renders the form — below the listing, where a bar of buttons belongs — and the theme renders a checkbox that says which form it belongs to. `formId` is the whole trick, and it is why this works with scripting off. HTML's `form` attribute associates a control with a form **by id, anywhere in the document**, so the checkboxes can live inside table rows, list items or article elements without the listing having to be wrapped in a `<form>` — which it cannot be, because `ForumDisplay` already renders a mark-read form and nested forms are not a thing browsers will parse.
+One inline-moderation checkbox, or `null` when this viewer has no business selecting rows. Plain data, and it has to be: the *form* it belongs to carries a Server Action reference, and such references never cross the theme contract. So the app renders the form — below the listing, where a bar of buttons belongs — and the theme renders a checkbox that says which form it belongs to. `formId` is the whole trick, and it is why this works with scripting off. HTML's `form` attribute associates a control with a form **by id, anywhere in the document**, so the checkboxes can live inside table rows, list items or article elements without the listing having to be wrapped in a `<form>` — which it cannot be, because `CommunityDisplay` already renders a mark-read form and nested forms are not a thing browsers will parse.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -732,7 +732,7 @@ Who is looking. The only actor data a theme is given.
 | `profileHref` | `string \| null` |  |
 | `avatarUrl` | `string \| null` |  |
 | `canAccessAdminCp` | `boolean` | Whether to render the admin-panel link. A *rendering* hint, resolved by the Authorizer already — a theme must never conclude anything about permissions on its own, and themes stay out of authorization entirely. |
-| `canAccessModCp` | `boolean` | Whether to render the moderation link. Same shape and same rule as `canAccessAdminCp`: a rendering hint the Authorizer has already decided. Group-level only, which is a real limitation rather than an oversight: a per-forum appointee's queue exists and is reachable, but answering "does this person moderate anything" for them costs the tree, and the shell renders on every page. The moderation control panel is where that link earns its query. |
+| `canAccessModCp` | `boolean` | Whether to render the moderation link. Same shape and same rule as `canAccessAdminCp`: a rendering hint the Authorizer has already decided. Group-level only, which is a real limitation rather than an oversight: a per-community appointee's queue exists and is reachable, but answering "does this person moderate anything" for them costs the tree, and the shell renders on every page. The moderation control panel is where that link earns its query. |
 
 ## Scheduled removals
 

@@ -47,7 +47,7 @@ import { SEED_GROUP } from './groups'
 import { resolveMailBrand, resolveSenderName } from './mail-brand'
 import { pluginTasks } from './plugin-tasks'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
-import { visibleForumSource } from './visible-forums'
+import { visibleCommunitySource } from './visible-communities'
 
 export interface SchedulerBundle {
   readonly repository: TaskRepository
@@ -100,10 +100,10 @@ export function buildSchedulerBundle(deps: {
    * F69. The board's enabled plugins, so their declared tasks are registered.
    *
    * An argument rather than an import, for the reason `pluginUpgrades` gives:
-   * `forum.config.ts` belongs to the *board's* project and this package is
+   * `community.config.ts` belongs to the *board's* project and this package is
    * installed from npm. The web app passes its own; the CLI and the worker pass
    * what they can see, which is nothing — and a plugin task that is therefore
-   * absent from a `forum task:run` is better than one that appears in the
+   * absent from a `community task:run` is better than one that appears in the
    * registry and cannot be executed.
    */
   readonly plugins?: readonly PluginDefinition[]
@@ -241,7 +241,7 @@ export function buildSchedulerBundle(deps: {
         threadViews,
         warnings: new PostgresWarningRepository(db),
         /*
-         * F56. The notifier needs the Authorizer, because "which forums may
+         * F56. The notifier needs the Authorizer, because "which communities may
          * this member still see" is a permission question and a task is not
          * allowed a second answer to it (F47). Built here rather than shared
          * with the request path's container: the tick can run in a process that
@@ -250,7 +250,7 @@ export function buildSchedulerBundle(deps: {
         subscriptions: {
           repository: new PostgresSubscriptionRepository(db),
           notifications: new NotificationService({ notifications }),
-          forums: visibleForumSource({
+          communities: visibleCommunitySource({
             authorizer: new Authorizer(new PostgresAuthorizationSource(db), {}),
             actors: new ActorBuilder(db, { guestGroupId: SEED_GROUP.guest }),
           }),

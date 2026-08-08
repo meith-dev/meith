@@ -30,8 +30,8 @@ const IMAGE_MIGRATIONS = '/app/migrations'
  * `runMigrations()` is called from four programs that disagree about where they
  * are standing:
  *
- *  - `forum migrate` and `forum upgrade`, from a checkout or from the image;
- *  - the worker's `FORUM_ROLE=migrate` bundle, which passes the folder itself;
+ *  - `community migrate` and `community upgrade`, from a checkout or from the image;
+ *  - the worker's `COMMUNITY_ROLE=migrate` bundle, which passes the folder itself;
  *  - **the installer**, which runs inside the Next standalone server.
  *
  * That last one is why this exists. `path.resolve(dirname(import.meta.url),
@@ -63,7 +63,7 @@ export function migrationFolderCandidates(input: {
 
   /*
    * Upwards from wherever the process was started, because that differs per
-   * program: `next dev` runs in `apps/forum`, the CLI in the repository root,
+   * program: `next dev` runs in `apps/community`, the CLI in the repository root,
    * and the standalone server in `/app`. Both shapes are tried at each level —
    * a workspace has `packages/db/migrations`, an image has `migrations`.
    */

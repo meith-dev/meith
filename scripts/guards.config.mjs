@@ -47,13 +47,13 @@ export const GUARDS = [
   {
     id: 'no-runtime-filesystem-scan',
     why:
-      'Invariant 6: everything installable is registered in forum.config.ts, and ' +
+      'Invariant 6: everything installable is registered in community.config.ts, and ' +
       'nothing is discovered by scanning a directory at runtime. A serverless ' +
       'bundle contains only what the bundler could see statically, so a readdir ' +
       'over themes/ or plugins/ is empty in production while working perfectly ' +
       'on the developer machine that wrote it. It also makes the installed set ' +
       'unknowable at build time, so a broken plugin is a 500 rather than a ' +
-      'compile error. Import it in forum.config.ts instead.',
+      'compile error. Import it in community.config.ts instead.',
     files: /\.(ts|tsx)$/,
     pattern: /\b(readdir|readdirSync|globSync|opendir|opendirSync)\s*\(/,
     /*
@@ -83,7 +83,7 @@ export const GUARDS = [
       /^(scripts\/|apps\/cli\/|packages\/create-meith\/|packages\/testkit\/|packages\/db\/src\/migrate\.ts|packages\/drivers\/src\/images\/locate-wasm\.ts)/,
     probe: {
       violates: "const themes = await readdir('./themes')",
-      clean: "import themes from './forum.config'",
+      clean: "import themes from './community.config'",
     },
   },
   {
@@ -100,7 +100,7 @@ export const GUARDS = [
      * each per-runtime compilation, and reading it literally is what lets the
      * Edge build drop a Node-only branch. Routed through `env` in @meith/core it
      * would become a runtime value, the branch would stay reachable, and
-     * `apps/forum/instrumentation.ts` would go back to failing to compile for
+     * `apps/community/instrumentation.ts` would go back to failing to compile for
      * Edge — silently, as a warning. Every real config read stays banned.
      */
     pattern: /process\.env(?!\.NEXT_RUNTIME\b)/,
@@ -242,7 +242,7 @@ export const GUARDS = [
       'ever built DATA_SOURCE=fixture and none of the three run on that path. ' +
       'Importing costs nothing that matters: getDb() creates its client lazily ' +
       'and refuses in fixture mode, so nothing opens a socket at import.',
-    files: /^apps\/forum\/.*\.tsx?$/,
+    files: /^apps\/community\/.*\.tsx?$/,
     pattern: /require\(\s*['"]@meith\/db['"]\s*\)/,
     probe: {
       violates: "const { getDb } = require('@meith/db') as typeof import('@meith/db')",
@@ -260,7 +260,7 @@ export const GUARDS = [
       'public while looking like a filter. The exempt files are the counter and ' +
       'write paths, where naming a state is the definition of the work (D41) rather ' +
       'than a decision about a reader.',
-    files: /^(packages\/db\/src\/[^/]+\.tsx?|apps\/forum\/(app|src)\/.*\.tsx?)$/,
+    files: /^(packages\/db\/src\/[^/]+\.tsx?|apps\/community\/(app|src)\/.*\.tsx?)$/,
     /*
      * Query-shaped only, on purpose. A domain rule saying "a deleted post cannot
      * be edited" and a view model deciding whether to offer Restore both compare

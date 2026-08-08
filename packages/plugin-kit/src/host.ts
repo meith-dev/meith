@@ -17,7 +17,7 @@
  * ## 2. Deterministic order
  *
  * Handlers are sorted by **(priority, plugin key)** — both total, both declared,
- * neither derived from module evaluation order or from how `forum.config.ts`
+ * neither derived from module evaluation order or from how `community.config.ts`
  * happens to list its plugins. Two plugins filtering the same value therefore
  * compose the same way on the dev server, in a serverless bundle and in the
  * worker.
@@ -337,7 +337,7 @@ export class PluginHost {
    *
    * A key that names no installed plugin is ignored. That is the ordinary case
    * rather than an error: an operator who disables a plugin and then removes it
-   * from `forum.config.ts` leaves exactly that row behind, and refusing to boot
+   * from `community.config.ts` leaves exactly that row behind, and refusing to boot
    * over it would turn a tidy-up into an outage.
    */
   setOperatorDisabled(keys: readonly string[]): void {

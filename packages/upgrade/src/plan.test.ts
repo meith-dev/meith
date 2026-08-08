@@ -274,7 +274,7 @@ describe('the admin notice', () => {
     expect(notice).toContain('1.0.0')
     expect(notice).toContain('1.1.0')
     expect(notice).toContain('2 migration(s)')
-    expect(notice).toContain('forum upgrade')
+    expect(notice).toContain('community upgrade')
   })
 
   it('omits the migration count when there are none', () => {

@@ -3,8 +3,8 @@
  *
  * ## Why this is worth a table
  *
- * A forum's inbound links are most of its traffic, and they accumulate for
- * years: search results, other forums' posts, bookmarks, e-mails somebody sent
+ * A community's inbound links are most of its traffic, and they accumulate for
+ * years: search results, other communities' posts, bookmarks, e-mails somebody sent
  * in 2013. An import that changes every URL without redirecting throws that away
  * on migration day, and unlike almost every other migration mistake it is not
  * recoverable afterwards — the links are on other people's servers.
@@ -33,7 +33,7 @@
 
 export type LegacyTarget =
   | { readonly kind: 'thread'; readonly legacyId: number; readonly postId: number | null; readonly page: number | null }
-  | { readonly kind: 'forum'; readonly legacyId: number; readonly page: number | null }
+  | { readonly kind: 'community'; readonly legacyId: number; readonly page: number | null }
   | { readonly kind: 'post'; readonly legacyId: number }
   | { readonly kind: 'user'; readonly legacyId: number }
   | { readonly kind: 'home' }
@@ -78,7 +78,7 @@ export function resolveLegacyUrl(pathname: string, search: string): LegacyTarget
 
     case 'forumdisplay.php': {
       const fid = id(params.get('fid'))
-      return fid === null ? null : { kind: 'forum', legacyId: fid, page: id(params.get('page')) }
+      return fid === null ? null : { kind: 'community', legacyId: fid, page: id(params.get('page')) }
     }
 
     case 'member.php': {
@@ -132,10 +132,10 @@ function resolveRewrittenUrl(path: string, params: URLSearchParams): LegacyTarge
   const threadPaged = /^thread-.*?-page-(\d+)$/.exec(path)
   if (threadPaged !== null) return null
 
-  const forum = /^forum-[^/]*?-(\d+)$/.exec(path)
-  if (forum !== null) {
-    const fid = id(forum[1] ?? null)
-    return fid === null ? null : { kind: 'forum', legacyId: fid, page: id(params.get('page')) }
+  const community = /^forum-[^/]*?-(\d+)$/.exec(path)
+  if (community !== null) {
+    const fid = id(community[1] ?? null)
+    return fid === null ? null : { kind: 'community', legacyId: fid, page: id(params.get('page')) }
   }
 
   const thread = /^thread-[^/]*?-(\d+)$/.exec(path)
@@ -165,9 +165,9 @@ export function legacyRedirectPath(
     case 'home':
       return '/'
 
-    case 'forum': {
+    case 'community': {
       if (newId === null) return null
-      const base = `/forum/${newId}-${slug ?? 'forum'}`
+      const base = `/community/${newId}-${slug ?? 'community'}`
       return target.page !== null && target.page > 1 ? `${base}?page=${target.page}` : base
     }
 

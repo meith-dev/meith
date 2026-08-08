@@ -75,7 +75,7 @@ async function drainUntil(
 test('a member posts a thread and a reply, and both land in the database', async ({ page }) => {
   await signUp(page, 'poster')
 
-  await page.goto('/forum/200-general')
+  await page.goto('/community/200-general')
   await page.getByRole('link', { name: 'New thread' }).click()
 
   const title = `A thread from the browser ${Date.now()}`
@@ -100,19 +100,19 @@ test('a member posts a thread and a reply, and both land in the database', async
   await expect(page.getByText('And a reply, also without scripting.')).toBeVisible()
 
   /*
-   * The forum listing's denormalised counters moved. This is the half of
+   * The community listing's denormalised counters moved. This is the half of
    * posting that unit tests cover in isolation and nothing had ever exercised
    * end to end — the write, the counter update and the read are three different
    * modules and this is the only place all three run together.
    */
-  await page.goto('/forum/200-general')
+  await page.goto('/community/200-general')
   await expect(page.getByRole('link', { name: title })).toBeVisible()
 })
 
 test('an image attachment is not served until it has been re-encoded', async ({ page, request }) => {
   await signUp(page, 'uploader')
 
-  await page.goto('/forum/200-general')
+  await page.goto('/community/200-general')
   await page.getByRole('link', { name: 'New thread' }).click()
 
   const title = `With a picture ${Date.now()}`
@@ -169,7 +169,7 @@ test('an image attachment is not served until it has been re-encoded', async ({ 
 test('a file the board will not accept is refused, and nothing is posted', async ({ page }) => {
   await signUp(page, 'refused')
 
-  await page.goto('/forum/200-general')
+  await page.goto('/community/200-general')
   await page.getByRole('link', { name: 'New thread' }).click()
 
   const title = `Should not exist ${Date.now()}`
@@ -190,7 +190,7 @@ test('a file the board will not accept is refused, and nothing is posted', async
    */
   await expect(page.getByText(/not a type this board accepts/)).toBeVisible()
 
-  await page.goto('/forum/200-general')
+  await page.goto('/community/200-general')
   await expect(page.getByRole('link', { name: title })).toHaveCount(0)
 })
 

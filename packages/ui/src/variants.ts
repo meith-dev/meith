@@ -31,7 +31,7 @@
  *   double it or, worse, replace it with something that disappears on the one
  *   theme that changed `--ring`.
  * - **Hit targets are at least 32px, and the interactive sizes reach 36–40.**
- *   A forum is used on a phone, one thumb, on a train.
+ *   A community is used on a phone, one thumb, on a train.
  */
 
 import { cva, type VariantProps } from 'class-variance-authority'
@@ -41,7 +41,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
  *
  * `primary` is deliberately the only variant with a filled background: a page
  * with two primary buttons on it has told the reader nothing about which one it
- * expects them to press. Everything else on a forum page — mark read, cancel,
+ * expects them to press. Everything else on a community page — mark read, cancel,
  * jump, the moderation bar — is `secondary`, `outline` or `ghost`.
  */
 export const buttonVariants = cva(
@@ -101,7 +101,7 @@ export type ButtonVariants = VariantProps<typeof buttonVariants>
 /**
  * A small status token: a thread prefix, an unread count, a staff badge.
  *
- * The `tone` variants exist because a forum's badges mean things — pinned,
+ * The `tone` variants exist because a community's badges mean things — pinned,
  * locked, awaiting approval — and the semantic tokens are where those meanings
  * are already written down. A badge that took a colour prop would put the
  * mapping in every call site instead, which is how "amber" ends up meaning

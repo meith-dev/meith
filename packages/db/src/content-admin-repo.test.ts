@@ -133,29 +133,29 @@ describe('thread prefixes', () => {
       label: 'Last',
       token: 'thread-pinned',
       displayOrder: 30,
-      forumPathPrefix: null,
+      communityPathPrefix: null,
     })
     await repo.createPrefix({
       label: 'Ask',
       token: null,
       displayOrder: 10,
-      forumPathPrefix: '1.2',
+      communityPathPrefix: '1.2',
     })
     await repo.createPrefix({
       label: 'Middle',
       token: null,
       displayOrder: 20,
-      forumPathPrefix: null,
+      communityPathPrefix: null,
     })
 
     const prefixes = await repo.listPrefixes()
     expect(prefixes.map((row) => row.label)).toEqual(['Ask', 'Middle', 'Last'])
-    expect(prefixes[0]).toMatchObject({ forumPathPrefix: '1.2', token: null })
+    expect(prefixes[0]).toMatchObject({ communityPathPrefix: '1.2', token: null })
   })
 
   it('refuses a blank label', async () => {
     await expect(
-      repo.createPrefix({ label: '  ', token: null, displayOrder: 0, forumPathPrefix: null }),
+      repo.createPrefix({ label: '  ', token: null, displayOrder: 0, communityPathPrefix: null }),
     ).rejects.toThrow(/needs a label/)
   })
 
@@ -166,18 +166,18 @@ describe('thread prefixes', () => {
      * threads would be absurd.
      */
     await db.execute(sql`
-      insert into forums (id, type, title, slug, path)
-      values (1, 'forum', 'General', 'general', '1')
+      insert into communities (id, type, title, slug, path)
+      values (1, 'community', 'General', 'general', '1')
       on conflict (id) do nothing
     `)
     const prefixId = await repo.createPrefix({
       label: 'Ask',
       token: null,
       displayOrder: 0,
-      forumPathPrefix: null,
+      communityPathPrefix: null,
     })
     await db.execute(sql`
-      insert into threads (id, forum_id, author_username, title, slug, prefix_id)
+      insert into threads (id, community_id, author_username, title, slug, prefix_id)
       values (900, 1, 'ann', 'T', 't-900', ${prefixId})
     `)
 

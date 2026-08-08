@@ -148,7 +148,7 @@ Pressing Install runs five steps. They are listed beside the button under
 2. **Record the board's name, address and mail settings** — the only settings
    it writes.
 3. **Create the administrator** — your account.
-4. **Create a first forum** — so the index is not empty.
+4. **Create a first community** — so the index is not empty.
 5. **Disable the installer**.
 
 If you filled in section 3, it sends a **test message to the address from section
@@ -306,7 +306,7 @@ and retry. What to do depends on how far it got:
   empty database, or drop and recreate it, and start again. If the only thing
   missing is administrator access on a board that otherwise works, do not
   reinstall — use the
-  [operator CLI](./operating.md#the-operator-cli): `forum user:promote`.
+  [operator CLI](./operating.md#the-operator-cli): `community user:promote`.
 
 ## When something else goes wrong
 

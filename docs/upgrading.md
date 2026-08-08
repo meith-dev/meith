@@ -8,8 +8,8 @@ far you can jump.
 Deploy the new code, then run the upgrade:
 
 ```sh
-forum upgrade --dry-run   # read what it will do
-forum upgrade
+community upgrade --dry-run   # read what it will do
+community upgrade
 ```
 
 On the documented deployments the *core* migrations are already applied by then
@@ -17,7 +17,7 @@ On the documented deployments the *core* migrations are already applied by then
 `upgrade` is what carries plugin migrations and records the version. The admin
 panel shows a notice until you run it.
 
-`forum` is the operator CLI, and how you invoke it depends on how the board was
+`community` is the operator CLI, and how you invoke it depends on how the board was
 deployed; [Running a board § The operator CLI](./operating.md#the-operator-cli)
 has the three spellings.
 
@@ -37,7 +37,7 @@ Take a backup before every upgrade, and make sure it is one you have actually
 restored at least once. See
 [backup and restore](./operating.md#backup-and-restore).
 
-## What `forum upgrade` does
+## What `community upgrade` does
 
 Four things, in this order:
 
@@ -102,9 +102,9 @@ A board further behind is not stuck. Upgrade in stages — check out each major
 in turn, deploy it, and run the upgrade before moving on:
 
 ```sh
-git checkout v2 && docker compose up -d --build && forum upgrade
-git checkout v3 && docker compose up -d --build && forum upgrade
-git checkout main && docker compose up -d --build && forum upgrade
+git checkout v2 && docker compose up -d --build && community upgrade
+git checkout v3 && docker compose up -d --build && community upgrade
+git checkout main && docker compose up -d --build && community upgrade
 ```
 
 Each stage is an ordinary upgrade with an ordinary backup in front of it.
@@ -143,7 +143,7 @@ migrations are forward-only, and recovery is by restore. Coolify's scheduled
 backup covers Postgres; the uploads volume is a second thing, and yours.
 
 That applies **core migrations only**. Plugin migrations run through
-`forum upgrade`, which carries your board's plugin list with it — see
+`community upgrade`, which carries your board's plugin list with it — see
 [the operator CLI](./operating.md#the-operator-cli) for how to run it on your
 deployment.
 
@@ -276,7 +276,7 @@ Accounts stuck at *awaiting activation* can be activated by hand from their
 member screen under **Admin → Members**, and anybody who never received a link
 can ask for another at `/verify/resend`.
 
-The CLI and the installer are deliberately unaffected: `forum user:create` and
+The CLI and the installer are deliberately unaffected: `community user:create` and
 the founding administrator are still created active, because an operator at a
 terminal cannot follow a link in somebody else's mailbox, and an unactivatable
 first administrator is a board with no way in.
@@ -288,7 +288,7 @@ first administrator is a board with no way in.
 every one of them served from a constant, so the fields moved and the
 registration form went on enforcing 8, 3 and 30.
 
-They are read now, by the board **and by `forum user:create`**, which matters
+They are read now, by the board **and by `community user:create`**, which matters
 more than it sounds: a CLI that enforced different rules is a way to create
 accounts the board itself would have rejected.
 
@@ -304,9 +304,9 @@ untouched and no one is locked out; F17 rehashes on next login regardless.
 
 ## What the CLI applies
 
-`forum upgrade` applies **core migrations, then each installed plugin's, then
+`community upgrade` applies **core migrations, then each installed plugin's, then
 records the version** — the three steps it prints. It reads the plugin list from
-your board's `forum.plugins.ts`, which is compiled into the command when the
+your board's `community.plugins.ts`, which is compiled into the command when the
 image is built, so there is no separate entry point to remember and nothing to
 point it at.
 
@@ -314,7 +314,7 @@ point it at.
 > This was not true before, and three places said it was. The command passed no
 > plugins at all, so a board could be told by the panel to run it and be no
 > further on afterwards. If you have been running a plugin whose migrations the
-> panel reported as pending, run `forum upgrade` once more — it is safe to
+> panel reported as pending, run `community upgrade` once more — it is safe to
 > repeat, since applying a migration and recording it happen in one transaction
 > and a re-run of an applied one is a no-op.
 

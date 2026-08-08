@@ -4,7 +4,7 @@
  * Three things only the database settles: that the one-open-report-per-target
  * index is what stops a repeat click rather than a check that could race it,
  * that every write lands with its history row, and that the scope predicate
- * puts a forum moderator's forums and board staff's user reports in one ordered
+ * puts a community moderator's communities and board staff's user reports in one ordered
  * page without either seeing the other's.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -16,22 +16,22 @@ import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresReportRepository } from './report-repo'
 import { resultRows } from './result-rows'
-import { forums, users } from './schema'
+import { communities, users } from './schema'
 
 let harness: TestDb
 let db: Database
 let repo: PostgresReportRepository
 
 const CATEGORY = 1
-const FORUM = 4
+const COMMUNITY = 4
 const OTHER = 5
 const AUTHOR = 1
 const REPORTER = 2
 const MOD = 3
 const AT = new Date('2026-07-30T12:00:00Z')
 
-const IN_FORUM = { forumIds: [FORUM], global: false }
-const BOARD_STAFF = { forumIds: [FORUM, OTHER], global: true }
+const IN_COMMUNITY = { communityIds: [COMMUNITY], global: false }
+const BOARD_STAFF = { communityIds: [COMMUNITY, OTHER], global: true }
 
 beforeAll(async () => {
   harness = await createTestDb()
@@ -50,7 +50,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from reports`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values(
@@ -69,29 +69,29 @@ beforeEach(async () => {
       primaryGroupId: 2,
     })),
   )
-  await db.insert(forums).values([
+  await db.insert(communities).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
-    { id: FORUM, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
+    { id: COMMUNITY, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
     { id: OTHER, title: 'Elsewhere', slug: 'elsewhere', path: '1.5', depth: 1, parentId: CATEGORY },
   ])
 })
 
 async function seedThread(
   id: number,
-  forumId = FORUM,
+  communityId = COMMUNITY,
   visibility = 'visible',
 ): Promise<number> {
   const postId = id * 10
   await db.execute(sql`
-    insert into threads (id, forum_id, title, slug, author_user_id, author_username,
+    insert into threads (id, community_id, title, slug, author_user_id, author_username,
                          visibility, first_post_id, last_post_at, created_at, updated_at)
-    values (${id}, ${forumId}, ${'Thread ' + String(id)}, ${'t' + String(id)},
+    values (${id}, ${communityId}, ${'Thread ' + String(id)}, ${'t' + String(id)},
             ${AUTHOR}, 'ada', ${visibility}, ${postId}, ${AT}, ${AT}, ${AT})
   `)
   await db.execute(sql`
-    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+    insert into posts (id, thread_id, community_id, author_user_id, author_username,
                        message, visibility, is_first_post, created_at)
-    values (${postId}, ${id}, ${forumId}, ${AUTHOR}, 'ada', 'a body',
+    values (${postId}, ${id}, ${communityId}, ${AUTHOR}, 'ada', 'a body',
             ${visibility}, true, ${AT})
   `)
   return postId
@@ -102,13 +102,13 @@ function service(): ReportService {
 }
 
 describe('resolveTarget', () => {
-  it('resolves a post to its forum, thread and thread title', async () => {
+  it('resolves a post to its community, thread and thread title', async () => {
     const postId = await seedThread(100)
 
     expect(await repo.resolveTarget('post', postId, REPORTER)).toEqual({
       kind: 'post',
       id: postId,
-      forumId: FORUM,
+      communityId: COMMUNITY,
       threadId: 100,
       label: 'Thread 100',
     })
@@ -118,14 +118,14 @@ describe('resolveTarget', () => {
     await seedThread(100)
 
     expect(await repo.resolveTarget('thread', 100, REPORTER)).toMatchObject({
-      forumId: FORUM,
+      communityId: COMMUNITY,
       threadId: 100,
       label: 'Thread 100',
     })
     expect(await repo.resolveTarget('user', AUTHOR, REPORTER)).toEqual({
       kind: 'user',
       id: AUTHOR,
-      forumId: null,
+      communityId: null,
       threadId: null,
       label: 'ada',
     })
@@ -137,7 +137,7 @@ describe('resolveTarget', () => {
    * content that is already held or removed.
    */
   it('refuses a target that is not public', async () => {
-    const postId = await seedThread(100, FORUM, 'unapproved')
+    const postId = await seedThread(100, COMMUNITY, 'unapproved')
     expect(await repo.resolveTarget('post', postId, REPORTER)).toBeNull()
     expect(await repo.resolveTarget('thread', 100, REPORTER)).toBeNull()
   })
@@ -175,15 +175,15 @@ describe('resolveTarget', () => {
       return id
     }
 
-    it('resolves for somebody who was sent it, with no forum', async () => {
+    it('resolves for somebody who was sent it, with no community', async () => {
       const id = await seedMessage()
 
       expect(await repo.resolveTarget('private_message', id, REPORTER)).toEqual({
         kind: 'private_message',
         id,
-        /* No forum, so it routes to `modcp.access` rather than to a forum's
-           moderators — a private message belongs to no forum's staff. */
-        forumId: null,
+        /* No community, so it routes to `modcp.access` rather than to a community's
+           moderators — a private message belongs to no community's staff. */
+        communityId: null,
         threadId: null,
         label: 'Read this',
       })
@@ -216,7 +216,7 @@ describe('filing a report', () => {
     expect(found!.report).toMatchObject({
       kind: 'post',
       targetId: postId,
-      forumId: FORUM,
+      communityId: COMMUNITY,
       threadId: 100,
       targetLabel: 'Thread 100',
       reporterUsername: 'bob',
@@ -283,8 +283,8 @@ describe('filing a report', () => {
 })
 
 describe('the moderator list', () => {
-  async function fileOn(forumId: number, threadId: number): Promise<number> {
-    const postId = await seedThread(threadId, forumId)
+  async function fileOn(communityId: number, threadId: number): Promise<number> {
+    const postId = await seedThread(threadId, communityId)
     const { reportId } = await service().file({
       kind: 'post',
       targetId: postId,
@@ -294,19 +294,19 @@ describe('the moderator list', () => {
     return reportId
   }
 
-  it('shows only the forums in scope', async () => {
-    const mine = await fileOn(FORUM, 100)
+  it('shows only the communities in scope', async () => {
+    const mine = await fileOn(COMMUNITY, 100)
     await fileOn(OTHER, 101)
 
-    const page = await repo.listOpen(IN_FORUM, { limit: 10 })
+    const page = await repo.listOpen(IN_COMMUNITY, { limit: 10 })
     expect(page.rows.map((r) => r.id)).toEqual([mine])
-    expect(await repo.countOpen(IN_FORUM)).toBe(1)
+    expect(await repo.countOpen(IN_COMMUNITY)).toBe(1)
   })
 
   /*
-   * A report about a *member* belongs to no forum, so it is board staff's or it
-   * is nobody's. A forum moderator must not see it; staff must see it in the
-   * same ordered page as their forums'.
+   * A report about a *member* belongs to no community, so it is board staff's or it
+   * is nobody's. A community moderator must not see it; staff must see it in the
+   * same ordered page as their communities'.
    */
   it('gives a user report to board staff and to nobody else', async () => {
     await service().file({
@@ -316,12 +316,12 @@ describe('the moderator list', () => {
       reporterUserId: REPORTER,
     })
 
-    expect(await repo.countOpen(IN_FORUM)).toBe(0)
+    expect(await repo.countOpen(IN_COMMUNITY)).toBe(0)
     expect(await repo.countOpen(BOARD_STAFF)).toBe(1)
   })
 
-  it('lists forum and user reports together, oldest first', async () => {
-    const first = await fileOn(FORUM, 100)
+  it('lists community and user reports together, oldest first', async () => {
+    const first = await fileOn(COMMUNITY, 100)
     const { reportId: second } = await service().file({
       kind: 'user',
       targetId: AUTHOR,
@@ -334,7 +334,7 @@ describe('the moderator list', () => {
   })
 
   it('drops a report once it is closed', async () => {
-    const id = await fileOn(FORUM, 100)
+    const id = await fileOn(COMMUNITY, 100)
     await repo.close({
       reportId: id,
       status: 'resolved',
@@ -343,16 +343,16 @@ describe('the moderator list', () => {
       at: AT,
     })
 
-    expect((await repo.listOpen(IN_FORUM, { limit: 10 })).rows).toEqual([])
+    expect((await repo.listOpen(IN_COMMUNITY, { limit: 10 })).rows).toEqual([])
   })
 
   it('pages with a keyset cursor', async () => {
-    const ids = [await fileOn(FORUM, 100), await fileOn(FORUM, 101), await fileOn(FORUM, 102)]
+    const ids = [await fileOn(COMMUNITY, 100), await fileOn(COMMUNITY, 101), await fileOn(COMMUNITY, 102)]
 
-    const first = await repo.listOpen(IN_FORUM, { limit: 2 })
+    const first = await repo.listOpen(IN_COMMUNITY, { limit: 2 })
     expect(first.rows.map((r) => r.id)).toEqual(ids.slice(0, 2))
 
-    const second = await repo.listOpen(IN_FORUM, { limit: 2, after: first.nextCursor! })
+    const second = await repo.listOpen(IN_COMMUNITY, { limit: 2, after: first.nextCursor! })
     expect(second.rows.map((r) => r.id)).toEqual([ids[2]])
     expect(second.nextCursor).toBeUndefined()
   })
@@ -454,7 +454,7 @@ describe('assignment and closing', () => {
 describe('through the service', () => {
   /*
    * The same answer for "does not exist" and "not yours": a moderator of one
-   * forum probing ids must not learn that a report exists in another.
+   * community probing ids must not learn that a report exists in another.
    */
   it('will not open, assign or close a report outside the actor"s scope', async () => {
     const postId = await seedThread(100, OTHER)
@@ -465,9 +465,9 @@ describe('through the service', () => {
       reporterUserId: REPORTER,
     })
 
-    expect(await service().open(reportId, IN_FORUM)).toBeNull()
+    expect(await service().open(reportId, IN_COMMUNITY)).toBeNull()
     await expect(
-      service().assign({ reportId, toUserId: MOD, actorUserId: MOD, scope: IN_FORUM }),
+      service().assign({ reportId, toUserId: MOD, actorUserId: MOD, scope: IN_COMMUNITY }),
     ).rejects.toThrow(/does not exist/i)
     await expect(
       service().close({
@@ -475,7 +475,7 @@ describe('through the service', () => {
         status: 'resolved',
         note: '',
         actorUserId: MOD,
-        scope: IN_FORUM,
+        scope: IN_COMMUNITY,
       }),
     ).rejects.toThrow(/does not exist/i)
 
@@ -490,7 +490,7 @@ describe('through the service', () => {
       reason: 'spam',
       reporterUserId: REPORTER,
     })
-    const scope = { forumIds: [OTHER], global: false }
+    const scope = { communityIds: [OTHER], global: false }
 
     expect(await service().open(reportId, scope)).not.toBeNull()
     await service().assign({ reportId, toUserId: MOD, actorUserId: MOD, scope })

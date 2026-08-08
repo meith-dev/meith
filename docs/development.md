@@ -32,11 +32,11 @@ Then set two lines in `.env`:
 
 ```sh
 DATA_SOURCE=postgres
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/forum_test
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/community_test
 ```
 
 ```sh
-pnpm forum migrate
+pnpm community migrate
 pnpm dev
 ```
 
@@ -73,11 +73,11 @@ A pnpm workspace. Applications in `apps/`, everything else in `packages/`,
 
 | Directory | Package | What it is |
 |---|---|---|
-| `apps/forum` | `@meith/web` | The board itself. `pnpm dev`, on port 3000. |
+| `apps/community` | `@meith/web` | The board itself. `pnpm dev`, on port 3000. |
 | `apps/web` | `@meith/site` | meith.dev — the landing page and these documents. `pnpm site:dev`, on port 3100. |
 | `apps/worker` | `@meith/worker` | The tick, as a long-running process. |
-| `apps/cli` | `@meith/cli` | The operator CLI. `pnpm forum …`. |
-| `packages/*` | `@meith/*` | The domain: accounts, forums, posts, authorization, search, drivers, and the rest. |
+| `apps/cli` | `@meith/cli` | The operator CLI. `pnpm community …`. |
+| `packages/*` | `@meith/*` | The domain: accounts, communities, posts, authorization, search, drivers, and the rest. |
 | `themes/*`, `plugins/*` | | The default theme, a second worked theme, and the reference plugin. |
 | `examples/*` | | Reference code to copy, not installed: the worked example plugin and theme. See [`examples/README.md`](https://github.com/meith-dev/meith/tree/main/examples). |
 
@@ -95,7 +95,7 @@ How those packages relate — the layers, what may import what, and why — is
 |---|---|
 | `pnpm dev` | The board, on 3000. |
 | `pnpm site:dev` | meith.dev, on 3100. |
-| `pnpm forum <command>` | The operator CLI against your `.env`. `--help` lists it. |
+| `pnpm community <command>` | The operator CLI against your `.env`. `--help` lists it. |
 | `pnpm test` | The whole suite. `pnpm test:watch` while you work. |
 | `pnpm typecheck` | The workspace. `:app` and `:site` are the two Next projects. |
 | `pnpm lint` | ESLint. |
@@ -124,7 +124,7 @@ write every real server rejected. It skips unless `TEST_DATABASE_URL` is set:
 
 ```sh
 docker compose -f docker-compose.dev.yml up -d
-TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/forum_test pnpm test
+TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/community_test pnpm test
 ```
 
 CI's `migrations` job sets it, so "it passed locally" covers everything except

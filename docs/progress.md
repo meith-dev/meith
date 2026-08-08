@@ -25,7 +25,7 @@ does not update its published reference fails CI), dependency-cruiser (560
 modules, 0 violations), typecheck (root **and** app), **4084 tests** (a large
 share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
-`/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
+`/modcp/communities`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
 `/notifications/preferences`, `/subscriptions`, `/unsubscribe` and the five
 `/usercp` routes in the route table. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
@@ -34,7 +34,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
 
 **Gate holes closed this pass:**
 
-- The root `tsconfig.json` excludes `apps/forum`, so the whole app tier was
+- The root `tsconfig.json` excludes `apps/community`, so the whole app tier was
   type-checked by nothing but `next build` — which was not in `verify` and had
   itself never passed. Both now run `typecheck:app` (D18/D19).
 - `pnpm guards` passing proved nothing: a rule whose pattern stopped matching
@@ -56,7 +56,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   `Authorizer`, R4.2 combination, ancestor-chain resolution, logged bypasses,
   388-cell matrix gate + focused unit/mutation tests, F20 group-ID lint rule.
   See D12/D13.
-- **Composition root (D11 resolved)** — `apps/forum/src/server/container.ts`
+- **Composition root (D11 resolved)** — `apps/community/src/server/container.ts`
   selects the `AuthorizationSource` from `env.DATA_SOURCE`; Postgres adapter in
   `@meith/db` (acyclic), fixture adapter in-memory; wiring proven end-to-end. The
   Postgres branch is lazily required so fixture mode opens no socket. See D14.
@@ -101,9 +101,9 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   returned to the browser: account takeover) and **D21** (locale-dependent
   identifier folding). Both mutation-verified.
 
-- **Forum tree operations (F16)** — `@meith/forums`: path arithmetic,
-  `buildTree`, `planMove`/`planCreate`, `CachedForumRepository`, plus
-  `PostgresForumRepository`. One-query tree read (now *measured*), four-level
+- **Community tree operations (F16)** — `@meith/communities`: path arithmetic,
+  `buildTree`, `planMove`/`planCreate`, `CachedCommunityRepository`, plus
+  `PostgresCommunityRepository`. One-query tree read (now *measured*), four-level
   reparent, derived-path create, tag-invalidated caching. See **D22** — the
   prefix-sharing-sibling trap (`1.40` vs `1.4`) is the whole feature.
 - **F10 caching harness** — `cachedGlobal` implemented (it was an interface with
@@ -111,15 +111,15 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   `pnpm guards:probe` against a must-match and a must-not-match sample, so an
   inert *or* an over-broad rule fails CI. See D25.
 - **F11 testkit** — deterministic seeder + the **query-budget helper**. It found
-  a 32-query N+1 in `visibleForumIds` within an hour (**D26**).
+  a 32-query N+1 in `visibleCommunityIds` within an hour (**D26**).
 - **F13 operator CLI** — eight commands; a board can be set up end to end.
   Passwords read from stdin, never `argv`. See D24.
 - **F14** — `docs/nextjs-conventions.md`, the deliverable that did not exist.
 - **F15 group ladder** — seeded by migration `0001`. It **had never been seeded
   at all**: the initial migration contains zero INSERTs, so a fresh Postgres
   board had no groups and registration would have failed on a foreign key (D23).
-- **F21 forum permissions** — four-level resolution now tested over real
-  Postgres, and `visibleForumIds` reduced from 32 queries to a constant 3 (D26).
+- **F21 community permissions** — four-level resolution now tested over real
+  Postgres, and `visibleCommunityIds` reduced from 32 queries to a constant 3 (D26).
 - **F05 driver contract suite** — all four driver families pass a shared
   contract. It immediately exposed that `PostgresQueue` only worked with
   postgres.js's result shape and would have broken on the Neon driver F03's seam
@@ -133,7 +133,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
 - **F06 the tick actually runs** — `PostgresTaskRepository` plus app-tier
   workers; `/api/system/tick` calls `tick()` instead of returning `ran: []`.
   Tasks whose workers do not exist are **omitted rather than stubbed** (**D32**).
-- **`forum.config.ts`** — the build-time registry, read by `layout.tsx` so it is
+- **`community.config.ts`** — the build-time registry, read by `layout.tsx` so it is
   load-bearing, plus a guard banning runtime filesystem scans (**D33**).
 - **F05 `S3FileStore`** — per ADR 0002, passing the shared contract with real
   presigning. Measuring it disproved the ADR's own lazy-require condition, which
@@ -162,20 +162,20 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   query (budget-asserted across two board sizes, mutation-verified), filters
   invisible **subtrees whole** — closing open question 5 — and is cached nowhere,
   because every row depends on who is asking. See **D38**.
-- **F30 forum display** — `/forum/[id]-[slug]` resolves a visible forum, then
-  renders `ForumDisplay`, `SubforumList`, `ThreadRow`, and `Pagination` through
+- **F30 community display** — `/community/[id]-[slug]` resolves a visible community, then
+  renders `CommunityDisplay`, `SubcommunityList`, `ThreadRow`, and `Pagination` through
   the theme. The first thread read is an opaque-cursor keyset query over sticky,
   last-post time, and id; it is one statement at both 3 and 50 rows, and the
   equal-timestamp tie-breaker is tested against real Postgres.
 - **F31 thread view** — `/thread/[id]-[slug]` checks `thread.view` against the
-  resolved forum matrix before rendering. Posts keyset-page by id in one
+  resolved community matrix before rendering. Posts keyset-page by id in one
   statement while retaining their absolute thread number; the plain-text
   fallback escapes raw content before the theme inserts it as HTML. BBCode,
   replies, and post actions remain unadvertised until their owning features.
-- **F32 read tracking** — member read state is stored as forum timestamps plus
-  per-thread last-post markers. The index receives computed unread forum ids;
-  forum rows compare their last post against both watermarks. Native POST forms
-  mark all, one forum, or the last post on a thread page, and all targets are
+- **F32 read tracking** — member read state is stored as community timestamps plus
+  per-thread last-post markers. The index receives computed unread community ids;
+  community rows compare their last post against both watermarks. Native POST forms
+  mark all, one community, or the last post on a thread page, and all targets are
   re-authorised at the route before writing. The state read is a constant three
   statements and a late tab cannot move a marker backwards.
 - **F33 member profile** — `/member/[id]` authorises `profile.view`, reads the
@@ -196,7 +196,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   has the other three parts around it: the `post.created` event reaches a
   consumer, ancestors are rolled up by path prefix and cannot be double-counted
   on replay, thread views are buffered out of the listing index and flushed by a
-  task, and `PostgresCounterRecount` walks threads → forums → users in bounded
+  task, and `PostgresCounterRecount` walks threads → communities → users in bounded
   batches from a stored cursor, writing computed truth. A deliberately corrupted
   board converges; a second sweep corrects nothing. See **D41**, including the
   one definition of "counts" the recount and the writer had to agree on, and the
@@ -208,7 +208,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   rules, `PostgresThreadWriteRepository` writes the thread, its opening post,
   its counters and its event in one transaction, and `createThreadAction`
   re-authorises both `thread.view` and `thread.post` before any of it. A held
-  thread is written unapproved, counts nowhere, and redirects to its forum with
+  thread is written unapproved, counts nowhere, and redirects to its community with
   a notice rather than to a page its author would 404 on. `posting.flood_seconds`
   and `posting.max_length` are the first settings the app has ever read. See
   **D42** for why the composer's `<form>` is a slot region rather than a set of
@@ -235,7 +235,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   longer visible) and reports a race rather than enforcing one: the reply is
   written either way. Quoting is a link with a server-resolved prefill, so it
   works with scripting off, and the quoted post is re-read thread-scoped so
-  `?quote=` cannot lift a post out of a forum the quoter may not read. See
+  `?quote=` cannot lift a post out of a community the quoter may not read. See
   **D43**, including why the quote is BBCode (F36 renders it now) and why the
   redirect sometimes opens a page at the reply rather than in context.
 
@@ -265,19 +265,19 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   paths, and found two real hits on its first run. The leak suite is a property
   (every path × every scope, every row inside the scope handed in) plus
   exact-set assertions so it cannot pass by returning nothing. See **D46**,
-  including why numbering is a disclosure and why `locateForum` returns an id
+  including why numbering is a disclosure and why `locateCommunity` returns an id
   and never a row.
 
 - **F48 the moderation queue** — the first moderator surface. `/moderation`
   lists held threads and held replies, oldest first, scoped by
-  `moderatedForumIds`, and approves or rejects them in bounded batches. The
+  `moderatedCommunityIds`, and approves or rejects them in bounded batches. The
   transitions are F41's, reused rather than reimplemented. Two things came out
-  of it worth knowing: **`forum_moderators` had never been read** — the table
-  has existed since F21 and `Target.isForumModerator` has never once been set,
+  of it worth knowing: **`community_moderators` had never been read** — the table
+  has existed since F21 and `Target.isCommunityModerator` has never once been set,
   so an appointed moderator was appointed to nothing — and approving turned out
   to need its own action, which cost the F22 matrix a thirteenth column exactly
   as the gate intends. The selection is never trusted: every submitted id is
-  re-read for its real forum, and the moderated set is resolved per request
+  re-read for its real community, and the moderated set is resolved per request
   rather than carried in the form. See **D47**.
 
 - **F49 reports** — members can report a post, a thread or a member, and
@@ -288,7 +288,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   partial unique index rather than a prior read: two clicks arriving together
   would both pass a check, and a report button that adds a queue row every time
   is the cheapest denial-of-service on the board. Scoped by F48's
-  `moderatedForumIds` for content and `modcp.access` for member reports, with
+  `moderatedCommunityIds` for content and `modcp.access` for member reports, with
   "does not exist" and "not yours" giving the same answer. See **D48**.
 
 - **F50 thread tools** — lock, pin, move and delete/restore, each logged. The
@@ -296,11 +296,11 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   the first place the permission model diverges from its own pattern and is
   deliberate: "may lock threads everywhere" is something you are appointed to,
   not a checkbox on a group. So F48's debt came due — `moderatorApproves` became
-  a full `ModeratorRights`, `forum_moderators` grew to seven rights in the
+  a full `ModeratorRights`, `community_moderators` grew to seven rights in the
   reader, and `moderatorRightsIn` is the seam that answers *what* to
-  `moderatedForumIds`' *where*. A move needs the right at **both ends**,
+  `moderatedCommunityIds`' *where*. A move needs the right at **both ends**,
   resolved as two matrices. The counters take one tally and reuse it for the
-  forum, the ancestors and every author, and the two chain updates cancel
+  community, the ancestors and every author, and the two chain updates cancel
   exactly at a shared ancestor. **Copy and the move redirect stub are not
   built** — see D49 and `mybb-parity.md` for why copy is a product question
   rather than a missing function. F50's row is `PARTIAL` and says so.
@@ -308,9 +308,9 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
 
 - **F51 merge and split** — the two operations that move posts *between*
   threads, and one arithmetic seen from either side. A split takes "from this
-  post onwards" and lands the new thread in the **same forum**, always: splitting
+  post onwards" and lands the new thread in the **same community**, always: splitting
   and moving are two acts, and doing both at once would hand a moderator a second
-  forum to place content in. A merge absorbs the named source into the named
+  community to place content in. A merge absorbs the named source into the named
   target, which is never inferred from age or size — guessing it is how a merge
   destroys the thread somebody meant to keep. Post order survives by construction
   because F31 pages by id; `is_first_post` does not and is set and cleared
@@ -323,19 +323,19 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   three `mybb-parity.md` entries.
 
 - **F52 inline moderation** — the same power as the queue, exercised where the
-  content is. Checkboxes down a forum listing and a thread page, one bar below,
+  content is. Checkboxes down a community listing and a thread page, one bar below,
   eight tools; every transition is F41's, F48's or F50's, and the arithmetic F50
   kept inline moved to `thread-counters.ts` so the bulk path cannot drift from
   the single-target one. Two things are worth carrying forward. **The checkboxes
-  are not inside the form**, because `ForumDisplay` already renders a mark-read
+  are not inside the form**, because `CommunityDisplay` already renders a mark-read
   form and nested forms are not parsed — they are associated by HTML's `form`
   attribute, which is native, works with scripting off, and is what
   `new FormData(form)` reads after hydration. And **the re-read is scoped**:
-  `Authorizer.forumIdsWhere(actor, action)` is new, keyed by action rather than
+  `Authorizer.communityIdsWhere(actor, action)` is new, keyed by action rather than
   by a rights field because `canSoftDeletePosts` means two different things
   depending on which action asks. Without that scope, "refused" and "no such
   thing" are different answers, and the outcome counts enumerate every private
-  forum on the board. It chunks rather than refusing, which is safe only because
+  community on the board. It chunks rather than refusing, which is safe only because
   every write is state-guarded. See **D51**.
 
 - **F53 warnings** — the first moderator act aimed at a *person*.
@@ -353,17 +353,17 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   rather than MyBB's percentages.
 
 - **F54 the moderator control panel — Phase 4 closes.** `/modcp` with an
-  overview, *my forums*, the log, and the address lookup. Access is a group grant
+  overview, *my communities*, the log, and the address lookup. Access is a group grant
   **or** an appointment, because F48's appointed moderator has work and no grant.
-  *My forums* is the screen F50 made necessary: once locking became something you
-  are appointed to per forum, a moderator's only way to find out what they had
+  *My communities* is the screen F50 made necessary: once locking became something you
+  are appointed to per community, a moderator's only way to find out what they had
   been appointed to was to press a button and be refused. The log is an
   **allow-list** of moderation actions rather than a deny-list, because
   `admin_log` is shared with the ACP and will keep growing row types. The address
   lookup is gated separately, audited on every call including the empty ones, and
   searches the truncated prefix F09 stores — and says so on screen, because
   "shares an address" is a certainty the data does not support. **F48's debt is
-  paid**: `Target.isForumModerator` is now set on every per-page `can()` call.
+  paid**: `Target.isCommunityModerator` is now set on every per-page `can()` call.
   See **D53**.
 
 - **F55 notifications and mail — Phase 5 opens.** Three finished features were
@@ -427,7 +427,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   *thread* under F55's dedupe key — five replies are one row and one e-mail —
   and digests raise one per member per period with no key at all, because two
   digests are two periods. Permission is re-resolved per member at notify time
-  through the Authorizer: a subscription is not a standing grant, and a forum
+  through the Authorizer: a subscription is not a standing grant, and a community
   can go private long after somebody followed it.
 
   The unsubscribe link is stateless (an HMAC over who/scope/which, no table) and
@@ -740,7 +740,7 @@ tests mock.
 
   `admin_log` turned out to be the third column-with-no-reader this project has
   found: it has had *writers* since F48, and the only reader was the ModCP's
-  forum-scoped view. `/admin/log` is the unscoped one.
+  community-scoped view. `/admin/log` is the unscoped one.
 
 ## NEXT ACTION — resume here
 
@@ -753,14 +753,14 @@ budget — 5,486 ms to 98 ms.
 **Closed since, working the `PARTIAL` rows:**
 
 - **F43** — polls and one-per-member thread ratings now use database-enforced
-  boundaries, native forms, and the forum's keyset-paged Top rated order.
+  boundaries, native forms, and the community's keyset-paged Top rated order.
 - **F44** — native thread and reply draft saves persist durable values without
   creating content; autosave and the UserCP list remain deferred.
 - **F28** — the 2M-post seed is real and `pnpm perf explain` is the `EXPLAIN`
   evidence, as a *check* rather than a paragraph (D96).
 - **F06** — re-audited and closed. Its gap paragraph had described no gap since
   F55; nobody had changed the status.
-- **F27** — the forum jump box, the last shell gap (D97).
+- **F27** — the community jump box, the last shell gap (D97).
 - **F69** — plugin manager. The five deliverables that were blocked on F79 are
   written: durable enable/disable, applied-vs-pending migrations, a settings
   editor, mounted ACP pages, hook health (D98). It also closed the last of
@@ -783,7 +783,7 @@ budget — 5,486 ms to 98 ms.
 - **Markdown replaces BBCode, board-wide** (D101). `@meith/bbcode` is deleted,
   not deprecated: a board runs one markup language, and the alternative — two
   renderers, two escaping rule sets, two answers to "what does `[b]` do" — is
-  the state every forum that took the cheap path is still in a decade later.
+  the state every community that took the cheap path is still in a decade later.
   The **source** is converted instead, by a parser, in exactly two places: the
   importer marks what MyBB hands over as BBCode, and F36's render backfill
   converts each row the first time it touches it. `RENDER_VERSION` 1 → 2 does
@@ -845,7 +845,7 @@ for exactly that and points the other way. Audit the row, not the prose.
   in the same group — every one of them served from `DEFAULT_AUTH_POLICY`, so
   the ACP fields moved and the registration form went on enforcing 8, 3 and 30.
   `resolveAuthPolicy` lives in `@meith/accounts` rather than in the app because
-  **three** composition roots resolve them: a `forum user:create` still
+  **three** composition roots resolve them: a `community user:create` still
   enforcing the built-in minimum on a board that asked for sixteen characters is
   a way to create accounts weaker than the board's own rule, which is the exact
   drift `policy.ts` was written to prevent. Both enforcement paths that were
@@ -886,7 +886,7 @@ project cannot yet `npm install`.
 
 ```sh
 docker compose -f docker-compose.dev.yml up -d
-pnpm forum migrate
+pnpm community migrate
 pnpm perf seed                 # ~20 min; --phase posts|counters|search|analyze
 pnpm perf measure --record     # writes docs/perf-results.json
 pnpm perf explain              # asserts the partial visible indexes are used
@@ -948,7 +948,7 @@ board.
 
 ### Also fixed: `Date` parameters did not work on real Postgres
 
-`forum task:run` failed against a real server with *"Received an instance of
+`community task:run` failed against a real server with *"Received an instance of
 Date"*. The cause turned out to be `drizzle()` itself: constructing it
 overwrites postgres.js's serialisers for every date and timestamp OID with a
 passthrough, which is right for its *typed* columns (they convert to strings
@@ -971,7 +971,7 @@ The whole scheduler now runs against real Postgres, which it never had.
 F04 asked CI to build **and boot** the image. Building it for the first time
 found five things that had rotted invisibly, all now fixed:
 
-1. **No `.dockerignore` at all**, so a developer's gitignored `apps/forum/.env`
+1. **No `.dockerignore` at all**, so a developer's gitignored `apps/community/.env`
    was copied into the build — and its `QUEUE_DRIVER=postgres` broke the
    fixture build. The patterns must be `**/.env`: dockerignore is anchored to
    the context root, so a bare `.env` matches only the repo root.
@@ -984,7 +984,7 @@ found five things that had rotted invisibly, all now fixed:
 4. **Three different pnpm versions**: the image took whatever was latest
    (11.18), dev used 10.6, CI pinned 9. One `packageManager` field now.
 5. **compose's migrate service ran `drizzle-kit`**, which is a development tool
-   and is not in the pruned standalone tree. It is `FORUM_ROLE=migrate` now,
+   and is not in the pruned standalone tree. It is `COMMUNITY_ROLE=migrate` now,
    running the same `runMigrations()` the CLI does.
 
 Also worth knowing: **do not add `sharp` to `onlyBuiltDependencies`.** Letting
@@ -1002,23 +1002,23 @@ Still outstanding and worth keeping visible:
   throw" rule was written for *structure*; this is the fourth time it has cost
   coverage.
 - **Nobody is notified when a report is filed.** F55 tells the reporter when one
-  is closed; telling the forum's moderators needs `moderatedForumIds` inverted,
-  which means resolving the forum matrix per *group* rather than per actor. It
+  is closed; telling the community's moderators needs `moderatedCommunityIds` inverted,
+  which means resolving the community matrix per *group* rather than per actor. It
   is named in D55 and in F49's row rather than left to be discovered.
 - **The notifier costs an actor build per member per run.** F56 resolves
-  `visibleForumIds` through the Authorizer for every member it notifies, which
+  `visibleCommunityIds` through the Authorizer for every member it notifies, which
   is the only correct answer (F47) and is bounded at 50 members per run. On a
   board where thousands follow something busy, that ceiling is what to raise
   first — and the query budget helper (F11) is how to find out whether it
   matters before changing it.
 - **`ViewerModel.canAccessModCp` is group-level only**, so the shell's ModCP
-  link does not appear for a per-forum appointee even though `/modcp` admits
+  link does not appear for a per-community appointee even though `/modcp` admits
   them. Answering it properly costs the tree on every page render.
 - Permission columns are generated into a `Record<string, …>`, so
   `usergroups.canView` is not statically typed anywhere (D23).
 - **Deleting or renaming a route breaks `typecheck:app`** until `next build`
   runs, because `.next/types/validator.ts` still imports the removed page.
-- **`apps/forum/tsconfig.json` hand-copies the workspace path aliases** from
+- **`apps/community/tsconfig.json` hand-copies the workspace path aliases** from
   `tsconfig.base.json` — a new package must be added in both places.
 
 **Test harness note:** integration tests use PGlite via `createTestDb()` in

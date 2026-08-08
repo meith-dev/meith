@@ -19,13 +19,13 @@ import { group } from "../format"
  * it costs no request, and it stays sharp at any density.
  */
 export function BoardPreview() {
-  const { caption, name, blurb, spaces, latest } = boardPreview
+  const { caption, name, blurb, communities, latest } = boardPreview
 
   return (
     <figure className="flex flex-col gap-3">
       {/*
         `aria-hidden` on the drawing itself, and the caption left readable. A
-        screen reader gains nothing from three invented space names and a
+        screen reader gains nothing from three invented community names and a
         thread count; it gains the sentence that says what the picture is.
       */}
       <div aria-hidden className="card overflow-hidden shadow-[var(--lift-lg)]">
@@ -36,17 +36,17 @@ export function BoardPreview() {
           </span>
         </div>
 
-        {spaces.map((space) => (
-          <div key={space.title} className="preview-row">
+        {communities.map((community) => (
+          <div key={community.title} className="preview-row">
             <span className="preview-dot">#</span>
             <div className="min-w-0">
-              <p className="truncate text-base font-medium text-fg">{space.title}</p>
-              <p className="truncate text-micro text-fg-subtle">{space.blurb}</p>
+              <p className="truncate text-base font-medium text-fg">{community.title}</p>
+              <p className="truncate text-micro text-fg-subtle">{community.blurb}</p>
             </div>
             <p className="text-right font-mono text-[0.66rem] leading-[1.6] text-fg-subtle tabular-nums">
-              {group(space.threads)} threads
+              {group(community.threads)} threads
               <br />
-              {group(space.posts)} posts
+              {group(community.posts)} posts
             </p>
           </div>
         ))}

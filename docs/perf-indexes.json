@@ -2,18 +2,18 @@
   "checkedAt": "2026-08-04T05:43:37.031Z",
   "results": [
     {
-      "id": "forum-listing-visible",
-      "index": "threads_forum_listing_idx",
+      "id": "community-listing-visible",
+      "index": "threads_community_listing_idx",
       "used": true,
-      "chosen": "Bitmap Index Scan on threads_forum_listing_idx",
+      "chosen": "Bitmap Index Scan on threads_community_listing_idx",
       "ms": 2.734,
       "rows": 2083
     },
     {
-      "id": "forum-listing-moderator",
-      "index": "threads_forum_listing_all_idx",
+      "id": "community-listing-moderator",
+      "index": "threads_community_listing_all_idx",
       "used": true,
-      "chosen": "Bitmap Index Scan on threads_forum_listing_all_idx",
+      "chosen": "Bitmap Index Scan on threads_community_listing_all_idx",
       "ms": 2.924,
       "rows": 2119
     },
@@ -35,9 +35,9 @@
     },
     {
       "id": "moderation-queue",
-      "index": "posts_forum_visibility_idx",
+      "index": "posts_community_visibility_idx",
       "used": true,
-      "chosen": "Index Scan using posts_forum_visibility_idx",
+      "chosen": "Index Scan using posts_community_visibility_idx",
       "ms": 1.224,
       "rows": 940
     }

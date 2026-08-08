@@ -104,7 +104,7 @@ prefilled from the address you load it at.
 > [!NOTE]
 > `hex` for the database password and `base64` for the two secrets, and the
 > difference is not stylistic. The password is substituted into a
-> `postgres://forum:…@postgres:5432/forum` URL, and base64's alphabet includes
+> `postgres://community:…@postgres:5432/community` URL, and base64's alphabet includes
 > `/` and `+` — so about one password in three produces `TypeError: Invalid
 > URL` from the migration and a stack trace that says nothing about passwords.
 > Hex has no such characters. The two secrets are never part of a URL.
@@ -267,7 +267,7 @@ laptop or in CI, push it to a registry, and replace `build: .` with
 `image: your-registry/meith:latest` in the compose file. Everything else is
 unchanged.
 
-The image takes `FORUM_ROLE` — `web`, `worker` or `migrate` — so one image is
+The image takes `COMMUNITY_ROLE` — `web`, `worker` or `migrate` — so one image is
 all three services. That is what makes the roles impossible to drift apart, and
 it is why there is no second Dockerfile.
 

@@ -9,10 +9,10 @@
  *     construction is `is_first_post`, which is a flag rather than a
  *     computation — a split has to set it on the new thread's earliest post and
  *     a merge has to clear it on the absorbed thread's.
- *   - **`posts.forum_id`**, denormalised from the thread (R3.3) and rewritten
- *     whenever posts change forum, for the reason D49 records.
+ *   - **`posts.community_id`**, denormalised from the thread (R3.3) and rewritten
+ *     whenever posts change community, for the reason D49 records.
  *   - **Every counter**, including the last-post pointer on both threads and
- *     both forum chains.
+ *     both community chains.
  *   - **Authors.** No post is created or destroyed by either operation, so
  *     `users.post_count` never moves. Only `thread_count` does, by one.
  */
@@ -28,7 +28,7 @@ import type {
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
-import { repairForumLastPostChain, repairThreadLastPost } from './visibility-counters'
+import { repairCommunityLastPostChain, repairThreadLastPost } from './visibility-counters'
 
 interface Tx {
   execute(query: ReturnType<typeof sql>): Promise<unknown>
@@ -42,21 +42,21 @@ function idList(ids: readonly number[]): ReturnType<typeof sql> {
   )})`
 }
 
-/** Forum and every ancestor, in one statement. See D49. */
-async function applyForumChain(
+/** Community and every ancestor, in one statement. See D49. */
+async function applyCommunityChain(
   tx: Tx,
-  forumId: number,
+  communityId: number,
   posts: number,
   threads: number,
 ): Promise<void> {
   if (posts === 0 && threads === 0) return
   await tx.execute(sql`
-    update forums f
+    update communities f
        set post_count = greatest(f.post_count + ${posts}, 0),
            thread_count = greatest(f.thread_count + ${threads}, 0),
            updated_at = now()
-      from forums child
-     where child.id = ${forumId}
+      from communities child
+     where child.id = ${communityId}
        and (f.id = child.id or child.path like f.path || '.%')
   `)
 }
@@ -80,14 +80,14 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
   async find(threadId: number): Promise<SurgeryThread | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select t.id, t.forum_id, t.slug, t.title, t.visibility, t.first_post_id,
+        select t.id, t.community_id, t.slug, t.title, t.visibility, t.first_post_id,
                (select count(*)::int from posts p
                  where p.thread_id = t.id and p.visibility = 'visible') as visible_posts
           from threads t where t.id = ${threadId}
       `),
     ) as Array<{
       id: number
-      forum_id: number
+      community_id: number
       slug: string
       title: string
       visibility: SurgeryThread['visibility']
@@ -99,7 +99,7 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
     if (!row) return null
     return {
       id: Number(row.id),
-      forumId: Number(row.forum_id),
+      communityId: Number(row.community_id),
       slug: row.slug,
       title: row.title,
       visibility: row.visibility,
@@ -159,10 +159,10 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
     return this.db.transaction(async (tx) => {
       const source = resultRows(
         await tx.execute(sql`
-          select forum_id, slug from threads where id = ${plan.sourceThreadId}
+          select community_id, slug from threads where id = ${plan.sourceThreadId}
         `),
-      ) as Array<{ forum_id: number; slug: string }>
-      const forumId = Number(source[0]!.forum_id)
+      ) as Array<{ community_id: number; slug: string }>
+      const communityId = Number(source[0]!.community_id)
 
       const opener = plan.postIds[0]!
       const author = resultRows(
@@ -185,9 +185,9 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
       const created = resultRows(
         await tx.execute(sql`
           insert into threads
-            (forum_id, title, slug, author_user_id, author_username, visibility,
+            (community_id, title, slug, author_user_id, author_username, visibility,
              first_post_id, last_post_at, created_at, updated_at)
-          values (${forumId}, ${plan.title}, ${slugFor(plan.title)},
+          values (${communityId}, ${plan.title}, ${slugFor(plan.title)},
                   ${opening.author_user_id}, ${opening.author_username}, 'visible',
                   ${opener}, ${opening.created_at}, ${opening.created_at}, ${plan.at})
           returning id, slug
@@ -202,11 +202,11 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
 
       const moved = plan.postIds.length
       /*
-       * The forum keeps every post — they did not leave it — and gains one
+       * The community keeps every post — they did not leave it — and gains one
        * thread. Only the *threads* trade posts, which is why the reply counts
-       * move and the forum's post count does not.
+       * move and the community's post count does not.
        */
-      await applyForumChain(tx, forumId, 0, 1)
+      await applyCommunityChain(tx, communityId, 0, 1)
       await tx.execute(sql`
         update threads
            set reply_count = greatest(reply_count - ${moved}, 0), updated_at = ${plan.at}
@@ -226,7 +226,7 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
 
       await repairThreadLastPost(tx, plan.sourceThreadId)
       await repairThreadLastPost(tx, newThreadId)
-      await repairForumLastPostChain(tx, forumId)
+      await repairCommunityLastPostChain(tx, communityId)
 
       await log(
         tx,
@@ -246,14 +246,14 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
     return this.db.transaction(async (tx) => {
       const rows = resultRows(
         await tx.execute(sql`
-          select id, forum_id, slug, author_user_id,
+          select id, community_id, slug, author_user_id,
                  (select count(*)::int from posts p
                    where p.thread_id = t.id and p.visibility = 'visible') as visible_posts
             from threads t where t.id in (${plan.sourceThreadId}, ${plan.targetThreadId})
         `),
       ) as Array<{
         id: number
-        forum_id: number
+        community_id: number
         slug: string
         author_user_id: number | null
         visible_posts: number
@@ -261,8 +261,8 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
 
       const source = rows.find((r) => Number(r.id) === plan.sourceThreadId)!
       const target = rows.find((r) => Number(r.id) === plan.targetThreadId)!
-      const sourceForum = Number(source.forum_id)
-      const targetForum = Number(target.forum_id)
+      const sourceCommunity = Number(source.community_id)
+      const targetCommunity = Number(target.community_id)
       const moved = Number(source.visible_posts)
 
       /*
@@ -273,7 +273,7 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
       await tx.execute(sql`
         update posts
            set thread_id = ${plan.targetThreadId},
-               forum_id = ${targetForum},
+               community_id = ${targetCommunity},
                is_first_post = false
          where thread_id = ${plan.sourceThreadId}
       `)
@@ -291,12 +291,12 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
        */
       await tx.execute(sql`delete from threads where id = ${plan.sourceThreadId}`)
 
-      if (sourceForum === targetForum) {
+      if (sourceCommunity === targetCommunity) {
         /* One thread fewer, same posts. */
-        await applyForumChain(tx, sourceForum, 0, -1)
+        await applyCommunityChain(tx, sourceCommunity, 0, -1)
       } else {
-        await applyForumChain(tx, sourceForum, -moved, -1)
-        await applyForumChain(tx, targetForum, moved, 0)
+        await applyCommunityChain(tx, sourceCommunity, -moved, -1)
+        await applyCommunityChain(tx, targetCommunity, moved, 0)
       }
 
       if (source.author_user_id !== null) {
@@ -308,9 +308,9 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
       }
 
       await repairThreadLastPost(tx, plan.targetThreadId)
-      await repairForumLastPostChain(tx, sourceForum)
-      if (sourceForum !== targetForum) {
-        await repairForumLastPostChain(tx, targetForum)
+      await repairCommunityLastPostChain(tx, sourceCommunity)
+      if (sourceCommunity !== targetCommunity) {
+        await repairCommunityLastPostChain(tx, targetCommunity)
       }
 
       await log(
@@ -321,8 +321,8 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
           from: plan.sourceThreadId,
           to: plan.targetThreadId,
           posts: moved,
-          fromForum: sourceForum,
-          toForum: targetForum,
+          fromCommunity: sourceCommunity,
+          toCommunity: targetCommunity,
         },
         plan.at,
       )

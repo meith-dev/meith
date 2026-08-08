@@ -13,7 +13,7 @@
  * value is indistinguishable from real data once it is in the database.
  */
 
-import type { MybbForum, MybbPost, MybbThread, MybbUser } from './source'
+import type { MybbCommunity, MybbPost, MybbThread, MybbUser } from './source'
 
 /** What the board stores, as the importer produces it. */
 export interface ImportedUser {
@@ -28,7 +28,7 @@ export interface ImportedUser {
    * password hashes at all, since the plaintext is not in the export.
    *
    * A board that discarded these would force every member through a password
-   * reset, which is the single largest source of attrition in a forum migration.
+   * reset, which is the single largest source of attrition in a community migration.
    */
   readonly legacyPasswordHash: string
   readonly registeredAt: Date
@@ -37,9 +37,9 @@ export interface ImportedUser {
   readonly legacyGroupId: number
 }
 
-export interface ImportedForum {
+export interface ImportedCommunity {
   readonly legacyId: number
-  readonly type: 'category' | 'forum' | 'link'
+  readonly type: 'category' | 'community' | 'link'
   readonly title: string
   readonly description: string | null
   readonly legacyParentId: number | null
@@ -51,7 +51,7 @@ export type Visibility = 'visible' | 'unapproved' | 'deleted'
 
 export interface ImportedThread {
   readonly legacyId: number
-  readonly legacyForumId: number
+  readonly legacyCommunityId: number
   readonly title: string
   readonly legacyAuthorId: number
   readonly authorUsername: string
@@ -67,7 +67,7 @@ export interface ImportedThread {
 export interface ImportedPost {
   readonly legacyId: number
   readonly legacyThreadId: number
-  readonly legacyForumId: number
+  readonly legacyCommunityId: number
   readonly legacyAuthorId: number
   readonly authorUsername: string
   readonly body: string
@@ -133,21 +133,21 @@ export function mapUser(row: MybbUser): ImportedUser {
   }
 }
 
-const FORUM_TYPES: Readonly<Record<string, ImportedForum['type']>> = {
-  f: 'forum',
+const COMMUNITY_TYPES: Readonly<Record<string, ImportedCommunity['type']>> = {
+  f: 'community',
   c: 'category',
   l: 'link',
 }
 
-export function mapForum(row: MybbForum): ImportedForum {
+export function mapCommunity(row: MybbCommunity): ImportedCommunity {
   return {
     legacyId: row.fid,
     /*
-     * An unknown type becomes a forum. MyBB has exactly three and a fourth would
-     * come from a plugin; a forum is the type that loses nothing — its threads
+     * An unknown type becomes a community. MyBB has exactly three and a fourth would
+     * come from a plugin; a community is the type that loses nothing — its threads
      * still import, where treating it as a link would orphan them.
      */
-    type: FORUM_TYPES[row.type] ?? 'forum',
+    type: COMMUNITY_TYPES[row.type] ?? 'community',
     title: row.name,
     description: row.description.trim() === '' ? null : row.description,
     /* MyBB uses 0 for "top level"; this board uses null. */
@@ -162,7 +162,7 @@ export function mapThread(row: MybbThread): ImportedThread {
 
   return {
     legacyId: row.tid,
-    legacyForumId: row.fid,
+    legacyCommunityId: row.fid,
     title: row.subject,
     legacyAuthorId: row.uid,
     /*
@@ -188,7 +188,7 @@ export function mapPost(row: MybbPost): ImportedPost {
   return {
     legacyId: row.pid,
     legacyThreadId: row.tid,
-    legacyForumId: row.fid,
+    legacyCommunityId: row.fid,
     legacyAuthorId: row.uid,
     authorUsername: row.username,
     body: row.message,

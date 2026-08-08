@@ -150,7 +150,7 @@ describe('seeded usergroups', () => {
     expect((await byKey('administrators'))?.canAccessAdminCp).toBe(true)
     expect((await byKey('administrators'))?.isAdministrator).toBe(true)
 
-    // R4.2: super moderators bypass forum permissions but NOT admin-only
+    // R4.2: super moderators bypass community permissions but NOT admin-only
     // actions. An ACP that a super moderator can reach is a privilege bug.
     expect((await byKey('super_moderators'))?.canAccessAdminCp).toBe(false)
     expect((await byKey('super_moderators'))?.isAdministrator).toBe(false)
@@ -163,7 +163,7 @@ describe('seeded usergroups', () => {
     expect(mods?.canViewUnapproved).toBe(true)
     expect(mods?.canAccessModCp).toBe(true)
 
-    // Which forums they may act in is decided by forum_moderators, not a bypass.
+    // Which communities they may act in is decided by community_moderators, not a bypass.
     expect(mods?.isSuperModerator).toBe(false)
     expect(mods?.isAdministrator).toBe(false)
   })

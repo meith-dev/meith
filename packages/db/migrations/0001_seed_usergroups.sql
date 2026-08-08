@@ -13,7 +13,7 @@
 --
 -- The ids are explicit and must stay stable: `ActorBuilder` is constructed with
 -- `guestGroupId: 1`, and `AUTH_CONFIG.defaultMemberGroupId` is the registered
--- group. The fixture board in apps/forum/src/server/seed-board.ts uses the same
+-- group. The fixture board in apps/community/src/server/seed-board.ts uses the same
 -- numbering (guest 1, registered 2, administrators 3, super moderators 4) so a
 -- fixture actor and a Postgres actor resolve identically — that parity is the
 -- reason the order looks arbitrary.
@@ -48,7 +48,7 @@ VALUES (2, 'registered', 'Registered', 'Members with an activated account.', 10,
   false, false, false);
 --> statement-breakpoint
 
--- Administrators bypass forum permissions entirely (R4.2), so the forum-scoped
+-- Administrators bypass community permissions entirely (R4.2), so the community-scoped
 -- grants here are belt-and-braces: what actually matters is `is_administrator`.
 -- The bypass is explicit and logged in @meith/authorization, never emergent.
 INSERT INTO "usergroups" ("id", "key", "title", "description", "display_order", "is_system", "is_staff_group", "badge_token",
@@ -77,7 +77,7 @@ VALUES (3, 'administrators', 'Administrators', 'Full control of the board.', 40,
   false, false, false);
 --> statement-breakpoint
 
--- Super moderators bypass forum permissions but NOT admin-only actions, so
+-- Super moderators bypass community permissions but NOT admin-only actions, so
 -- `can_access_admin_cp` is deliberately absent here.
 INSERT INTO "usergroups" ("id", "key", "title", "description", "display_order", "is_system", "is_staff_group", "badge_token",
   "can_view", "can_view_threads", "can_view_others_threads", "can_search",
@@ -90,7 +90,7 @@ INSERT INTO "usergroups" ("id", "key", "title", "description", "display_order", 
   "can_use_signature", "can_upload_avatar", "can_report_content",
   "can_bypass_flood_check", "can_access_mod_cp", "is_super_moderator",
   "requires_thread_approval", "requires_post_approval", "requires_approval_on_edit")
-VALUES (4, 'super_moderators', 'Super Moderators', 'Moderates every forum.', 30, true, true, 'group-supermod',
+VALUES (4, 'super_moderators', 'Super Moderators', 'Moderates every community.', 30, true, true, 'group-supermod',
   true, true, true, true,
   true, true, true, true, true,
   true, true, true,
@@ -103,8 +103,8 @@ VALUES (4, 'super_moderators', 'Super Moderators', 'Moderates every forum.', 30,
   false, false, false);
 --> statement-breakpoint
 
--- Moderators get the moderation verbs globally but no bypass: which forums they
--- may act in is decided by `forum_moderators` (R4.1 layer 3).
+-- Moderators get the moderation verbs globally but no bypass: which communities they
+-- may act in is decided by `community_moderators` (R4.1 layer 3).
 INSERT INTO "usergroups" ("id", "key", "title", "description", "display_order", "is_system", "is_staff_group", "badge_token",
   "can_view", "can_view_threads", "can_view_others_threads", "can_search",
   "can_post_threads", "can_post_replies", "can_post_polls", "can_vote_polls", "can_rate_threads",
@@ -116,7 +116,7 @@ INSERT INTO "usergroups" ("id", "key", "title", "description", "display_order", 
   "can_use_signature", "can_upload_avatar", "can_report_content",
   "can_bypass_flood_check", "can_access_mod_cp",
   "requires_thread_approval", "requires_post_approval", "requires_approval_on_edit")
-VALUES (5, 'moderators', 'Moderators', 'Moderates the forums they are assigned to.', 20, true, true, 'group-mod',
+VALUES (5, 'moderators', 'Moderators', 'Moderates the communities they are assigned to.', 20, true, true, 'group-mod',
   true, true, true, true,
   true, true, true, true, true,
   true, true, true,

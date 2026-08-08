@@ -1,7 +1,7 @@
 /**
  * A panel — shadcn/ui's Card, with the pieces a board actually stacks.
  *
- * A forum page is panels containing *rows*: a category with twenty forums under
+ * A community page is panels containing *rows*: a category with twenty communities under
  * it, a thread page with fifty posts. So `CardContent` is not the only body
  * shape here — `CardRows` renders a `<ul>` whose children are separated by a
  * rule rather than by a gap, which is the difference between a listing you can

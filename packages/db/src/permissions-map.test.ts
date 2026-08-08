@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  FORUM_PERMISSION_FIELDS,
+  COMMUNITY_PERMISSION_FIELDS,
   PERMISSION_FIELDS,
   emptyPermissionSet,
 } from '@meith/core'
 
-import { forumRowToOverride, groupRowToPermissionSet } from './permissions-map'
+import { communityRowToOverride, groupRowToPermissionSet } from './permissions-map'
 
 describe('groupRowToPermissionSet', () => {
   it('produces a complete set even from an empty row (registry defaults)', () => {
@@ -51,28 +51,28 @@ describe('groupRowToPermissionSet', () => {
   })
 })
 
-describe('forumRowToOverride', () => {
-  it('keeps only non-null forum-scoped keys (null means inherit)', () => {
-    const forumField = FORUM_PERMISSION_FIELDS[0]!
+describe('communityRowToOverride', () => {
+  it('keeps only non-null community-scoped keys (null means inherit)', () => {
+    const communityField = COMMUNITY_PERMISSION_FIELDS[0]!
     const row: Record<string, unknown> = {}
-    for (const f of FORUM_PERMISSION_FIELDS) row[f.key] = null
-    row[forumField.key] = forumField.kind === 'numeric' ? 3 : true
+    for (const f of COMMUNITY_PERMISSION_FIELDS) row[f.key] = null
+    row[communityField.key] = communityField.kind === 'numeric' ? 3 : true
 
-    const override = forumRowToOverride(row)
+    const override = communityRowToOverride(row)
     // Exactly one key survives; every null column is absent, not false.
-    expect(Object.keys(override)).toEqual([forumField.key])
+    expect(Object.keys(override)).toEqual([communityField.key])
   })
 
   it('never includes global-only fields even if present on the row', () => {
     const globalOnly = PERMISSION_FIELDS.find((f) => f.scope === 'global')
     if (!globalOnly) return
-    const override = forumRowToOverride({ [globalOnly.key]: true })
+    const override = communityRowToOverride({ [globalOnly.key]: true })
     expect(globalOnly.key in override).toBe(false)
   })
 
   it('returns an empty object when every column is null (pure inherit)', () => {
     const row: Record<string, unknown> = {}
-    for (const f of FORUM_PERMISSION_FIELDS) row[f.key] = null
-    expect(forumRowToOverride(row)).toEqual({})
+    for (const f of COMMUNITY_PERMISSION_FIELDS) row[f.key] = null
+    expect(communityRowToOverride(row)).toEqual({})
   })
 })

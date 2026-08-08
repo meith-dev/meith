@@ -28,7 +28,7 @@ const TARGET = 1
 const RATER = 2
 const OTHER = 3
 
-const FORUM = 10
+const COMMUNITY = 10
 const THREAD = 20
 
 const AT = new Date('2026-08-01T12:00:00Z')
@@ -47,7 +47,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from reputation`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`delete from users`)
 
   await db.execute(sql`
@@ -61,19 +61,19 @@ beforeEach(async () => {
 
 async function seedPost(postId: number): Promise<void> {
   await db.execute(sql`
-    insert into forums (id, type, title, slug, path)
-    values (${FORUM}, 'forum', 'A forum', 'a-forum', '/a-forum')
+    insert into communities (id, type, title, slug, path)
+    values (${COMMUNITY}, 'community', 'A community', 'a-community', '/a-community')
         on conflict (id) do nothing
   `)
   await db.execute(sql`
-    insert into threads (id, forum_id, title, slug, author_user_id, author_username)
-    values (${THREAD}, ${FORUM}, 'A thread', 'a-thread', ${TARGET}, 'ada')
+    insert into threads (id, community_id, title, slug, author_user_id, author_username)
+    values (${THREAD}, ${COMMUNITY}, 'A thread', 'a-thread', ${TARGET}, 'ada')
         on conflict (id) do nothing
   `)
   await db.execute(sql`
-    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+    insert into posts (id, thread_id, community_id, author_user_id, author_username,
                        message, is_first_post)
-    values (${postId}, ${THREAD}, ${FORUM}, ${TARGET}, 'ada', 'Something.', true)
+    values (${postId}, ${THREAD}, ${COMMUNITY}, ${TARGET}, 'ada', 'Something.', true)
   `)
 }
 

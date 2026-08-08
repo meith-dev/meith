@@ -84,7 +84,7 @@ export const settings = pgTable(
 export const themes = pgTable(
   'themes',
   {
-    /** Matches a theme key registered in `forum.config.ts` (R1 rule 6). */
+    /** Matches a theme key registered in `community.config.ts` (R1 rule 6). */
     key: text('key').primaryKey(),
     title: text('title').notNull(),
 
@@ -117,7 +117,7 @@ export const themes = pgTable(
     /**
      * Whether members may choose this theme.
      *
-     * True by default: a theme named in `forum.config.ts` is one somebody
+     * True by default: a theme named in `community.config.ts` is one somebody
      * installed on purpose, so the state that needs recording is the decision
      * to turn it *off*. An absent row therefore still means "exactly as it
      * ships", which is the rule every other column here follows.
@@ -313,7 +313,7 @@ export const adminLog = pgTable(
     }),
     /** e.g. 'permission.bypass', 'settings.update'. */
     action: text('action').notNull(),
-    /** Structured context: which action was bypassed, which forum, etc. */
+    /** Structured context: which action was bypassed, which community, etc. */
     detail: jsonb('detail').notNull().default({}),
     ipPrefix: text('ip_prefix'),
     correlationId: text('correlation_id'),
@@ -358,7 +358,7 @@ export const contentCounterRollups = pgTable('content_counter_rollups', {
  */
 export const counterRecountState = pgTable('counter_recount_state', {
   id: text('id').primaryKey(),
-  /** 'threads' | 'forums' | 'users' — see the recount's phase order. */
+  /** 'threads' | 'communities' | 'users' — see the recount's phase order. */
   phase: text('phase').notNull().default('threads'),
   cursor: integer('cursor').notNull().default(0),
   /** Completed sweeps of all three phases. Operator visibility only. */
@@ -432,7 +432,7 @@ export const searches = pgTable(
      */
     sessionKey: text('session_key'),
     terms: text('terms').notNull(),
-    /** The rest of the query — authors, forums, dates, sort — as submitted. */
+    /** The rest of the query — authors, communities, dates, sort — as submitted. */
     filters: jsonb('filters').notNull().default({}),
     /** What the search found when it was run, for the "N results" line. */
     hitCount: integer('hit_count').notNull().default(0),
@@ -456,8 +456,8 @@ export const searches = pgTable(
  * six numbers six rows and makes an atomic update of all six impossible.
  *
  * The totals are a **rollup**, recomputed by a task rather than incremented on
- * every post. F38's counters already do the incremental work per forum and per
- * user; summing them on demand is a scan of the forum table, which is tens of
+ * every post. F38's counters already do the incremental work per community and per
+ * user; summing them on demand is a scan of the community table, which is tens of
  * rows, but `member_count` is a count of `users` and that one is not free on a
  * board with two hundred thousand accounts. So the numbers here are as fresh as
  * the last run and the page says when that was — a number that is ten minutes

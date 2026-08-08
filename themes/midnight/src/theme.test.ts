@@ -12,9 +12,9 @@ import { DARK_TOKENS, LIGHT_TOKENS } from './tokens'
 /**
  * F78 — what is true of *this* theme.
  *
- * The rendering-contract suite (`apps/forum/src/theme/contract.test.ts`) already
+ * The rendering-contract suite (`apps/community/src/theme/contract.test.ts`) already
  * drives midnight through every stable slot, because it reads the theme list out
- * of `forum.config.ts` rather than a constant. What is here is what that suite
+ * of `community.config.ts` rather than a constant. What is here is what that suite
  * cannot see: the inheritance chain, the token contract, and the two pairs of
  * slots that have to be overridden together.
  */
@@ -60,8 +60,8 @@ describe('the midnight theme', () => {
    * failure rather than a discovery.
    */
   it.each([
-    ['ForumRow', 'CategoryBlock'],
-    ['ThreadRow', 'ForumDisplay'],
+    ['CommunityRow', 'CategoryBlock'],
+    ['ThreadRow', 'CommunityDisplay'],
   ])('overrides %s together with its container %s', (row, container) => {
     const own = Object.keys(midnightTheme.slots)
     expect(own).toContain(row)

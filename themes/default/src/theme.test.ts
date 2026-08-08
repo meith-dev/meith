@@ -7,7 +7,7 @@ import { defaultTheme } from './theme'
  * The board's own theme, held against the contract it is the reference
  * implementation of (F77).
  *
- * `apps/forum/src/server/theme.ts` makes the same assertion at module load, so a
+ * `apps/community/src/server/theme.ts` makes the same assertion at module load, so a
  * hole in the theme already fails a boot. This one fails `pnpm test`, which is
  * the gate somebody actually runs before pushing — and it names the theme rather
  * than the app, which is where the fix goes.

@@ -86,7 +86,7 @@ export const SLOTS = {
   Navigation: {
     kind: 'server',
     feature: 'F27',
-    purpose: 'The breadcrumb trail. Board → category → forum → thread.',
+    purpose: 'The breadcrumb trail. Board → category → community → thread.',
   },
   Footer: {
     kind: 'server',
@@ -105,7 +105,7 @@ export const SLOTS = {
     kind: 'server',
     feature: 'F71',
     purpose:
-      'One announcement: a dated, authored notice shown above the forums. ' +
+      'One announcement: a dated, authored notice shown above the communities. ' +
       'Distinct from Notice, which is a flash message about what the viewer ' +
       'just did — these are for everybody and last until they expire.',
   },
@@ -119,14 +119,14 @@ export const SLOTS = {
   CategoryBlock: {
     kind: 'server',
     feature: 'F29',
-    purpose: 'One top-level category and the forum rows under it.',
+    purpose: 'One top-level category and the community rows under it.',
   },
-  ForumRow: {
+  CommunityRow: {
     kind: 'server',
     feature: 'F29',
     purpose:
-      'One forum in a listing: title, description, counters, last post, ' +
-      'subforum links.',
+      'One community in a listing: title, description, counters, last post, ' +
+      'subcommunity links.',
   },
   BoardStats: {
     kind: 'server',
@@ -159,21 +159,21 @@ export const SLOTS = {
       'rendering and same refresh path as LatestThreads.',
   },
 
-  /* ---- Forum display ---- */
-  ForumDisplay: {
+  /* ---- Community display ---- */
+  CommunityDisplay: {
     kind: 'server',
     feature: 'F30',
-    purpose: 'A forum page body: subforums, thread list, pagination.',
+    purpose: 'A community page body: subcommunities, thread list, pagination.',
   },
   ThreadRow: {
     kind: 'server',
     feature: 'F30',
     purpose: 'One thread in a listing: prefix, title, author, counters, last post.',
   },
-  SubforumList: {
+  SubcommunityList: {
     kind: 'server',
     feature: 'F30',
-    purpose: 'The compact list of child forums shown above a thread list.',
+    purpose: 'The compact list of child communities shown above a thread list.',
   },
   Pagination: {
     kind: 'server',
@@ -244,14 +244,14 @@ export const SLOTS = {
   },
 
   /* ---- Navigation ---- */
-  ForumJump: {
+  CommunityJump: {
     kind: 'server',
     feature: 'F27',
     purpose:
       'The jump box at the foot of every page. A GET form with a submit ' +
       'control, never a select that navigates on change — choosing an option ' +
       'is not committing to it, and arrow-keying through one would teleport a ' +
-      'keyboard user to the first forum in the list.',
+      'keyboard user to the first community in the list.',
   },
 
   /* ---- Errors and redirects ---- */

@@ -19,7 +19,7 @@ export interface PostRepository {
    *
    * Scoped to a thread on purpose: a quote is only ever of a post in the thread
    * being replied to, and taking the thread as part of the lookup means
-   * `?quote=<id>` cannot paste a post out of a forum the quoter may not read.
+   * `?quote=<id>` cannot paste a post out of a community the quoter may not read.
    */
   findQuotable(threadId: number, postId: number): Promise<QuotablePost | null>
 

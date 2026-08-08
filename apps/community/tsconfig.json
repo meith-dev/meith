@@ -1,0 +1,111 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@meith/core": ["../../packages/core/src/index.ts"],
+      "@meith/core/*": ["../../packages/core/src/*"],
+      "@meith/db": ["../../packages/db/src/index.ts"],
+      "@meith/db/*": ["../../packages/db/src/*"],
+      "@meith/drivers": ["../../packages/drivers/src/index.ts"],
+      "@meith/drivers/images": ["../../packages/drivers/src/images/index.ts"],
+      "@meith/drivers/*": ["../../packages/drivers/src/*"],
+      "@meith/events": ["../../packages/events/src/index.ts"],
+      "@meith/events/*": ["../../packages/events/src/*"],
+      "@meith/search": ["../../packages/search/src/index.ts"],
+      "@meith/settings": ["../../packages/settings/src/index.ts"],
+      "@meith/subscriptions": ["../../packages/subscriptions/src/index.ts"],
+      "@meith/search/*": ["../../packages/search/src/*"],
+      "@meith/settings/*": ["../../packages/settings/src/*"],
+      "@meith/tasks": ["../../packages/tasks/src/index.ts"],
+      "@meith/runtime": ["../../packages/runtime/src/index.ts"],
+      "@meith/tasks/*": ["../../packages/tasks/src/*"],
+      "@meith/accounts": ["../../packages/accounts/src/index.ts"],
+      "@meith/accounts/*": ["../../packages/accounts/src/*"],
+      "@meith/antispam": ["../../packages/antispam/src/index.ts"],
+      "@meith/antispam/*": ["../../packages/antispam/src/*"],
+      "@meith/groups": ["../../packages/groups/src/index.ts"],
+      "@meith/groups/*": ["../../packages/groups/src/*"],
+      "@meith/attachments": ["../../packages/attachments/src/index.ts"],
+      "@meith/attachments/*": ["../../packages/attachments/src/*"],
+      "@meith/avatars": ["../../packages/avatars/src/index.ts"],
+      "@meith/avatars/*": ["../../packages/avatars/src/*"],
+      "@meith/authorization": ["../../packages/authorization/src/index.ts"],
+      "@meith/authorization/*": ["../../packages/authorization/src/*"],
+      "@meith/communities": ["../../packages/communities/src/index.ts"],
+      "@meith/communities/*": ["../../packages/communities/src/*"],
+      "@meith/threads": ["../../packages/threads/src/index.ts"],
+      "@meith/threads/*": ["../../packages/threads/src/*"],
+      "@meith/moderation": ["../../packages/moderation/src/index.ts"],
+      "@meith/notifications": ["../../packages/notifications/src/index.ts"],
+      "@meith/moderation/*": ["../../packages/moderation/src/*"],
+      "@meith/polls": ["../../packages/polls/src/index.ts"],
+      "@meith/drafts": ["../../packages/drafts/src/index.ts"],
+      "@meith/posts": ["../../packages/posts/src/index.ts"],
+      "@meith/profile-fields": ["../../packages/profile-fields/src/index.ts"],
+      "@meith/messages": ["../../packages/messages/src/index.ts"],
+      "@meith/relations": ["../../packages/relations/src/index.ts"],
+      "@meith/reputation": ["../../packages/reputation/src/index.ts"],
+      "@meith/signatures": ["../../packages/signatures/src/index.ts"],
+      "@meith/admin": ["../../packages/admin/src/index.ts"],
+      "@meith/posts/*": ["../../packages/posts/src/*"],
+      "@meith/markdown": ["../../packages/markdown/src/index.ts"],
+      "@meith/markdown/*": ["../../packages/markdown/src/*"],
+      "@meith/plugin-reference": ["../../plugins/reference/src/index.ts"],
+      "@meith/import": ["../../packages/import/src/index.ts"],
+      "@meith/upgrade": ["../../packages/upgrade/src/index.ts"],
+      "@meith/install": ["../../packages/install/src/index.ts"],
+      "@meith/api": ["../../packages/api/src/index.ts"],
+      "@meith/api/*": ["../../packages/api/src/*"],
+      "@meith/plugin-kit": ["../../packages/plugin-kit/src/index.ts"],
+      "@meith/plugin-kit/*": ["../../packages/plugin-kit/src/*"],
+      "@meith/theme-kit": ["../../packages/theme-kit/src/index.ts"],
+      "@meith/theme-kit/*": ["../../packages/theme-kit/src/*"],
+      "@meith/ui": ["../../packages/ui/src/index.ts"],
+      "@meith/ui/*": ["../../packages/ui/src/*"],
+      "@meith/shared": ["../../packages/shared/src/index.ts"],
+      "@meith/shared/*": ["../../packages/shared/src/*"],
+      "@meith/theme-default": ["../../themes/default/src/index.ts"],
+      "@meith/theme-default/*": ["../../themes/default/src/*"],
+      "@meith/theme-midnight": ["../../themes/midnight/src/index.ts"],
+      "@meith/theme-midnight/*": ["../../themes/midnight/src/*"],
+      /*
+       * Needed even though the app never imports it: this config compiles
+       * `../../packages/**`, which includes package *tests*, and those import
+       * the testkit. Without the alias, `typecheck:app` fails on a package test
+       * for a module the app itself does not use.
+       *
+       * This list is a hand-maintained copy of tsconfig.base.json's — TypeScript
+       * replaces `paths` rather than merging it, and this config needs its own
+       * `@/*` and baseUrl. Adding a package means adding it in both places; the
+       * failure mode is exactly this one.
+       */
+      "@meith/testkit": ["../../packages/testkit/src/index.ts"],
+      "@meith/testkit/*": ["../../packages/testkit/src/*"]
+    }
+  },
+  /*
+   * `.next/types` is emitted by `next build` and validates route signatures, so
+   * it is worth checking when present and matches nothing when absent.
+   *
+   * `.next/dev/types` is deliberately NOT here. It is dev-server output that no
+   * step in `verify` regenerates, so after any route rename it holds dangling
+   * references to files that no longer exist and fails `typecheck:app` for a
+   * reason that has nothing to do with the source. A gate that breaks on a
+   * stale artefact trains people to ignore it.
+   */
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "../../packages/**/*.ts",
+    "../../packages/**/*.tsx",
+    "../../themes/**/*.ts",
+    "../../themes/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

@@ -10,7 +10,7 @@ export interface ThreadLastPost {
 
 export interface ThreadListingRow {
   readonly id: number
-  readonly forumId: number
+  readonly communityId: number
   readonly title: string
   readonly slug: string
   readonly prefix: {

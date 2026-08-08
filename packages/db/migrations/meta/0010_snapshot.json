@@ -699,8 +699,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.forum_moderators": {
-      "name": "forum_moderators",
+    "public.community_moderators": {
+      "name": "community_moderators",
       "schema": "",
       "columns": {
         "id": {
@@ -710,7 +710,7 @@
           "notNull": true,
           "identity": {
             "type": "byDefault",
-            "name": "forum_moderators_id_seq",
+            "name": "community_moderators_id_seq",
             "schema": "public",
             "increment": "1",
             "startWith": "1",
@@ -720,8 +720,8 @@
             "cycle": false
           }
         },
-        "forum_id": {
-          "name": "forum_id",
+        "community_id": {
+          "name": "community_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -738,8 +738,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "cascade_to_subforums": {
-          "name": "cascade_to_subforums",
+        "cascade_to_subcommunities": {
+          "name": "cascade_to_subcommunities",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -838,11 +838,11 @@
         }
       },
       "indexes": {
-        "forum_moderators_user_key": {
-          "name": "forum_moderators_user_key",
+        "community_moderators_user_key": {
+          "name": "community_moderators_user_key",
           "columns": [
             {
-              "expression": "forum_id",
+              "expression": "community_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -855,16 +855,16 @@
             }
           ],
           "isUnique": true,
-          "where": "\"forum_moderators\".\"user_id\" is not null",
+          "where": "\"community_moderators\".\"user_id\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
         },
-        "forum_moderators_group_key": {
-          "name": "forum_moderators_group_key",
+        "community_moderators_group_key": {
+          "name": "community_moderators_group_key",
           "columns": [
             {
-              "expression": "forum_id",
+              "expression": "community_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -877,13 +877,13 @@
             }
           ],
           "isUnique": true,
-          "where": "\"forum_moderators\".\"group_id\" is not null",
+          "where": "\"community_moderators\".\"group_id\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
         },
-        "forum_moderators_user_idx": {
-          "name": "forum_moderators_user_idx",
+        "community_moderators_user_idx": {
+          "name": "community_moderators_user_idx",
           "columns": [
             {
               "expression": "user_id",
@@ -897,8 +897,8 @@
           "method": "btree",
           "with": {}
         },
-        "forum_moderators_group_idx": {
-          "name": "forum_moderators_group_idx",
+        "community_moderators_group_idx": {
+          "name": "community_moderators_group_idx",
           "columns": [
             {
               "expression": "group_id",
@@ -914,12 +914,12 @@
         }
       },
       "foreignKeys": {
-        "forum_moderators_forum_id_forums_id_fk": {
-          "name": "forum_moderators_forum_id_forums_id_fk",
-          "tableFrom": "forum_moderators",
-          "tableTo": "forums",
+        "community_moderators_community_id_communities_id_fk": {
+          "name": "community_moderators_community_id_communities_id_fk",
+          "tableFrom": "community_moderators",
+          "tableTo": "communities",
           "columnsFrom": [
-            "forum_id"
+            "community_id"
           ],
           "columnsTo": [
             "id"
@@ -927,9 +927,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "forum_moderators_user_id_users_id_fk": {
-          "name": "forum_moderators_user_id_users_id_fk",
-          "tableFrom": "forum_moderators",
+        "community_moderators_user_id_users_id_fk": {
+          "name": "community_moderators_user_id_users_id_fk",
+          "tableFrom": "community_moderators",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
@@ -940,9 +940,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "forum_moderators_group_id_usergroups_id_fk": {
-          "name": "forum_moderators_group_id_usergroups_id_fk",
-          "tableFrom": "forum_moderators",
+        "community_moderators_group_id_usergroups_id_fk": {
+          "name": "community_moderators_group_id_usergroups_id_fk",
+          "tableFrom": "community_moderators",
           "tableTo": "usergroups",
           "columnsFrom": [
             "group_id"
@@ -960,8 +960,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.forum_password_grants": {
-      "name": "forum_password_grants",
+    "public.community_password_grants": {
+      "name": "community_password_grants",
       "schema": "",
       "columns": {
         "session_id": {
@@ -970,8 +970,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "forum_id": {
-          "name": "forum_id",
+        "community_id": {
+          "name": "community_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -985,8 +985,8 @@
         }
       },
       "indexes": {
-        "forum_password_grants_pkey": {
-          "name": "forum_password_grants_pkey",
+        "community_password_grants_pkey": {
+          "name": "community_password_grants_pkey",
           "columns": [
             {
               "expression": "session_id",
@@ -995,7 +995,7 @@
               "nulls": "last"
             },
             {
-              "expression": "forum_id",
+              "expression": "community_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1008,12 +1008,12 @@
         }
       },
       "foreignKeys": {
-        "forum_password_grants_forum_id_forums_id_fk": {
-          "name": "forum_password_grants_forum_id_forums_id_fk",
-          "tableFrom": "forum_password_grants",
-          "tableTo": "forums",
+        "community_password_grants_community_id_communities_id_fk": {
+          "name": "community_password_grants_community_id_communities_id_fk",
+          "tableFrom": "community_password_grants",
+          "tableTo": "communities",
           "columnsFrom": [
-            "forum_id"
+            "community_id"
           ],
           "columnsTo": [
             "id"
@@ -1028,12 +1028,12 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.forum_permissions": {
-      "name": "forum_permissions",
+    "public.community_permissions": {
+      "name": "community_permissions",
       "schema": "",
       "columns": {
-        "forum_id": {
-          "name": "forum_id",
+        "community_id": {
+          "name": "community_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -1215,11 +1215,11 @@
         }
       },
       "indexes": {
-        "forum_permissions_pkey": {
-          "name": "forum_permissions_pkey",
+        "community_permissions_pkey": {
+          "name": "community_permissions_pkey",
           "columns": [
             {
-              "expression": "forum_id",
+              "expression": "community_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1236,8 +1236,8 @@
           "method": "btree",
           "with": {}
         },
-        "forum_permissions_group_idx": {
-          "name": "forum_permissions_group_idx",
+        "community_permissions_group_idx": {
+          "name": "community_permissions_group_idx",
           "columns": [
             {
               "expression": "group_id",
@@ -1253,12 +1253,12 @@
         }
       },
       "foreignKeys": {
-        "forum_permissions_forum_id_forums_id_fk": {
-          "name": "forum_permissions_forum_id_forums_id_fk",
-          "tableFrom": "forum_permissions",
-          "tableTo": "forums",
+        "community_permissions_community_id_communities_id_fk": {
+          "name": "community_permissions_community_id_communities_id_fk",
+          "tableFrom": "community_permissions",
+          "tableTo": "communities",
           "columnsFrom": [
-            "forum_id"
+            "community_id"
           ],
           "columnsTo": [
             "id"
@@ -1266,9 +1266,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "forum_permissions_group_id_usergroups_id_fk": {
-          "name": "forum_permissions_group_id_usergroups_id_fk",
-          "tableFrom": "forum_permissions",
+        "community_permissions_group_id_usergroups_id_fk": {
+          "name": "community_permissions_group_id_usergroups_id_fk",
+          "tableFrom": "community_permissions",
           "tableTo": "usergroups",
           "columnsFrom": [
             "group_id"
@@ -1286,8 +1286,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.forum_subscriptions": {
-      "name": "forum_subscriptions",
+    "public.community_subscriptions": {
+      "name": "community_subscriptions",
       "schema": "",
       "columns": {
         "user_id": {
@@ -1296,8 +1296,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "forum_id": {
-          "name": "forum_id",
+        "community_id": {
+          "name": "community_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -1325,8 +1325,8 @@
         }
       },
       "indexes": {
-        "forum_subscriptions_pkey": {
-          "name": "forum_subscriptions_pkey",
+        "community_subscriptions_pkey": {
+          "name": "community_subscriptions_pkey",
           "columns": [
             {
               "expression": "user_id",
@@ -1335,7 +1335,7 @@
               "nulls": "last"
             },
             {
-              "expression": "forum_id",
+              "expression": "community_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1346,11 +1346,11 @@
           "method": "btree",
           "with": {}
         },
-        "forum_subscriptions_forum_idx": {
-          "name": "forum_subscriptions_forum_idx",
+        "community_subscriptions_community_idx": {
+          "name": "community_subscriptions_community_idx",
           "columns": [
             {
-              "expression": "forum_id",
+              "expression": "community_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1361,8 +1361,8 @@
           "method": "btree",
           "with": {}
         },
-        "forum_subscriptions_user_idx": {
-          "name": "forum_subscriptions_user_idx",
+        "community_subscriptions_user_idx": {
+          "name": "community_subscriptions_user_idx",
           "columns": [
             {
               "expression": "user_id",
@@ -1382,8 +1382,8 @@
           "method": "btree",
           "with": {}
         },
-        "forum_subscriptions_mode_idx": {
-          "name": "forum_subscriptions_mode_idx",
+        "community_subscriptions_mode_idx": {
+          "name": "community_subscriptions_mode_idx",
           "columns": [
             {
               "expression": "mode",
@@ -1405,9 +1405,9 @@
         }
       },
       "foreignKeys": {
-        "forum_subscriptions_user_id_users_id_fk": {
-          "name": "forum_subscriptions_user_id_users_id_fk",
-          "tableFrom": "forum_subscriptions",
+        "community_subscriptions_user_id_users_id_fk": {
+          "name": "community_subscriptions_user_id_users_id_fk",
+          "tableFrom": "community_subscriptions",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
@@ -1418,12 +1418,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "forum_subscriptions_forum_id_forums_id_fk": {
-          "name": "forum_subscriptions_forum_id_forums_id_fk",
-          "tableFrom": "forum_subscriptions",
-          "tableTo": "forums",
+        "community_subscriptions_community_id_communities_id_fk": {
+          "name": "community_subscriptions_community_id_communities_id_fk",
+          "tableFrom": "community_subscriptions",
+          "tableTo": "communities",
           "columnsFrom": [
-            "forum_id"
+            "community_id"
           ],
           "columnsTo": [
             "id"
@@ -1438,8 +1438,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.forums": {
-      "name": "forums",
+    "public.communities": {
+      "name": "communities",
       "schema": "",
       "columns": {
         "id": {
@@ -1449,7 +1449,7 @@
           "notNull": true,
           "identity": {
             "type": "byDefault",
-            "name": "forums_id_seq",
+            "name": "communities_id_seq",
             "schema": "public",
             "increment": "1",
             "startWith": "1",
@@ -1464,7 +1464,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'forum'"
+          "default": "'community'"
         },
         "title": {
           "name": "title",
@@ -1657,8 +1657,8 @@
         }
       },
       "indexes": {
-        "forums_parent_slug_key": {
-          "name": "forums_parent_slug_key",
+        "communities_parent_slug_key": {
+          "name": "communities_parent_slug_key",
           "columns": [
             {
               "expression": "parent_id",
@@ -1674,13 +1674,13 @@
             }
           ],
           "isUnique": true,
-          "where": "\"forums\".\"parent_id\" is not null",
+          "where": "\"communities\".\"parent_id\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
         },
-        "forums_root_slug_key": {
-          "name": "forums_root_slug_key",
+        "communities_root_slug_key": {
+          "name": "communities_root_slug_key",
           "columns": [
             {
               "expression": "slug",
@@ -1690,13 +1690,13 @@
             }
           ],
           "isUnique": true,
-          "where": "\"forums\".\"parent_id\" is null",
+          "where": "\"communities\".\"parent_id\" is null",
           "concurrently": false,
           "method": "btree",
           "with": {}
         },
-        "forums_parent_order_idx": {
-          "name": "forums_parent_order_idx",
+        "communities_parent_order_idx": {
+          "name": "communities_parent_order_idx",
           "columns": [
             {
               "expression": "parent_id",
@@ -1716,8 +1716,8 @@
           "method": "btree",
           "with": {}
         },
-        "forums_path_idx": {
-          "name": "forums_path_idx",
+        "communities_path_idx": {
+          "name": "communities_path_idx",
           "columns": [
             {
               "expression": "path",
@@ -1731,8 +1731,8 @@
           "method": "btree",
           "with": {}
         },
-        "forums_legacy_mybb_fid_key": {
-          "name": "forums_legacy_mybb_fid_key",
+        "communities_legacy_mybb_fid_key": {
+          "name": "communities_legacy_mybb_fid_key",
           "columns": [
             {
               "expression": "legacy_mybb_fid",
@@ -1742,7 +1742,7 @@
             }
           ],
           "isUnique": true,
-          "where": "\"forums\".\"legacy_mybb_fid\" is not null",
+          "where": "\"communities\".\"legacy_mybb_fid\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1755,8 +1755,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.forums_read": {
-      "name": "forums_read",
+    "public.communities_read": {
+      "name": "communities_read",
       "schema": "",
       "columns": {
         "user_id": {
@@ -1765,8 +1765,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "forum_id": {
-          "name": "forum_id",
+        "community_id": {
+          "name": "community_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -1780,8 +1780,8 @@
         }
       },
       "indexes": {
-        "forums_read_pkey": {
-          "name": "forums_read_pkey",
+        "communities_read_pkey": {
+          "name": "communities_read_pkey",
           "columns": [
             {
               "expression": "user_id",
@@ -1790,7 +1790,7 @@
               "nulls": "last"
             },
             {
-              "expression": "forum_id",
+              "expression": "community_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1803,9 +1803,9 @@
         }
       },
       "foreignKeys": {
-        "forums_read_user_id_users_id_fk": {
-          "name": "forums_read_user_id_users_id_fk",
-          "tableFrom": "forums_read",
+        "communities_read_user_id_users_id_fk": {
+          "name": "communities_read_user_id_users_id_fk",
+          "tableFrom": "communities_read",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
@@ -1816,12 +1816,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "forums_read_forum_id_forums_id_fk": {
-          "name": "forums_read_forum_id_forums_id_fk",
-          "tableFrom": "forums_read",
-          "tableTo": "forums",
+        "communities_read_community_id_communities_id_fk": {
+          "name": "communities_read_community_id_communities_id_fk",
+          "tableFrom": "communities_read",
+          "tableTo": "communities",
           "columnsFrom": [
-            "forum_id"
+            "community_id"
           ],
           "columnsTo": [
             "id"
@@ -2692,8 +2692,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "forum_id": {
-          "name": "forum_id",
+        "community_id": {
+          "name": "community_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -2886,11 +2886,11 @@
           "method": "btree",
           "with": {}
         },
-        "posts_forum_visibility_idx": {
-          "name": "posts_forum_visibility_idx",
+        "posts_community_visibility_idx": {
+          "name": "posts_community_visibility_idx",
           "columns": [
             {
-              "expression": "forum_id",
+              "expression": "community_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2954,12 +2954,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "posts_forum_id_forums_id_fk": {
-          "name": "posts_forum_id_forums_id_fk",
+        "posts_community_id_communities_id_fk": {
+          "name": "posts_community_id_communities_id_fk",
           "tableFrom": "posts",
-          "tableTo": "forums",
+          "tableTo": "communities",
           "columnsFrom": [
-            "forum_id"
+            "community_id"
           ],
           "columnsTo": [
             "id"
@@ -3620,8 +3620,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "forum_id": {
-          "name": "forum_id",
+        "community_id": {
+          "name": "community_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -3696,7 +3696,7 @@
           "name": "reports_open_idx",
           "columns": [
             {
-              "expression": "forum_id",
+              "expression": "community_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3725,7 +3725,7 @@
             }
           ],
           "isUnique": false,
-          "where": "\"reports\".\"status\" = 'open' and \"reports\".\"forum_id\" is null",
+          "where": "\"reports\".\"status\" = 'open' and \"reports\".\"community_id\" is null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -3760,12 +3760,12 @@
         }
       },
       "foreignKeys": {
-        "reports_forum_id_forums_id_fk": {
-          "name": "reports_forum_id_forums_id_fk",
+        "reports_community_id_communities_id_fk": {
+          "name": "reports_community_id_communities_id_fk",
           "tableFrom": "reports",
-          "tableTo": "forums",
+          "tableTo": "communities",
           "columnsFrom": [
-            "forum_id"
+            "community_id"
           ],
           "columnsTo": [
             "id"
@@ -3871,8 +3871,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "location_forum_id": {
-          "name": "location_forum_id",
+        "location_community_id": {
+          "name": "location_community_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -4443,8 +4443,8 @@
           "notNull": true,
           "default": 0
         },
-        "forum_path_prefix": {
-          "name": "forum_path_prefix",
+        "community_path_prefix": {
+          "name": "community_path_prefix",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4717,8 +4717,8 @@
             "cycle": false
           }
         },
-        "forum_id": {
-          "name": "forum_id",
+        "community_id": {
+          "name": "community_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -4847,11 +4847,11 @@
         }
       },
       "indexes": {
-        "threads_forum_listing_idx": {
-          "name": "threads_forum_listing_idx",
+        "threads_community_listing_idx": {
+          "name": "threads_community_listing_idx",
           "columns": [
             {
-              "expression": "forum_id",
+              "expression": "community_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4875,11 +4875,11 @@
           "method": "btree",
           "with": {}
         },
-        "threads_forum_listing_all_idx": {
-          "name": "threads_forum_listing_all_idx",
+        "threads_community_listing_all_idx": {
+          "name": "threads_community_listing_all_idx",
           "columns": [
             {
-              "expression": "forum_id",
+              "expression": "community_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4941,12 +4941,12 @@
         }
       },
       "foreignKeys": {
-        "threads_forum_id_forums_id_fk": {
-          "name": "threads_forum_id_forums_id_fk",
+        "threads_community_id_communities_id_fk": {
+          "name": "threads_community_id_communities_id_fk",
           "tableFrom": "threads",
-          "tableTo": "forums",
+          "tableTo": "communities",
           "columnsFrom": [
-            "forum_id"
+            "community_id"
           ],
           "columnsTo": [
             "id"

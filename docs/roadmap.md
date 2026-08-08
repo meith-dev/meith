@@ -25,7 +25,7 @@ reading this file—use the evidence in `plan-status.md`.
   leaf enhancements. Pages/layouts compose typed view models; domain packages
   contain commands and interfaces, never Next, React, or SQL.
 - Only `@meith/db` opens the database. Installable themes/plugins are explicit
-  `forum.config.ts` entries; no runtime filesystem discovery.
+  `community.config.ts` entries; no runtime filesystem discovery.
 - Permission-sensitive output is never cached. Global data is tagged and
   invalidated after mutation. `proxy.ts` is cookie triage, never authorization.
 - No-JS forms and server routes come before islands. Every Server Action parses
@@ -38,7 +38,7 @@ reading this file—use the evidence in `plan-status.md`.
   baseline". The platform went with D105; the discipline stayed, because it is
   what lets a board run on one box and scale to several.)*
 - `authorization.can()` / `require()` make all access decisions. SQL list
-  queries filter by `visibleForumIds()` in-query; group IDs and admin checks do
+  queries filter by `visibleCommunityIds()` in-query; group IDs and admin checks do
   not escape `@meith/authorization`.
 - Components and API responses receive typed view models, never database rows.
   Migrations are forward-only. Counter changes are atomic and every counter has
@@ -66,7 +66,7 @@ parity decision when the feature changes one of those public contracts.
 | Self-hosted | **The one deployment route.** Compose on your own server: Postgres, a one-shot migration, the web server and the worker loop, all from one image so the roles cannot drift. CI brings the documented stack up so this path stays real. |
 | Rendering | Server-rendered board, form-first mutations, serializable client props, conservative tagged cache policy. Cache Components adoption remains an explicit human decision. |
 | Security | Argon2id, opaque rotating sessions/remember tokens, Postgres-backed rate limits, permission checks in every route/action, a Markdown renderer that constructs its output rather than sanitising it, attachment magic-byte validation, and audit logs. |
-| Data scale | Schema/indexes and deterministic seeding support a target of 50 forums, 100k threads, 2M posts, and 20k users; hot lists have measured query budgets. |
+| Data scale | Schema/indexes and deterministic seeding support a target of 50 communities, 100k threads, 2M posts, and 20k users; hot lists have measured query budgets. |
 | Themes/plugins | Default plus materially different second theme; runtime override cascade; typed hook registry, generated slot/hook docs, reference plugin, and safe hook isolation. |
 | Ship promise | Scaffold → deploy → install in five minutes; upgrades, MyBB import, legacy passwords/URLs, backup/restore docs, and published p95s. |
 
@@ -92,23 +92,23 @@ than being duplicated in the tracker.
 | F10 | F05/F09 | Tagged global cache helpers and tested guard against caching actor-dependent output. |
 | F11 | F01/F03 | Enforced dependency boundaries, deterministic large-data seeder, DB reset/factories, and query-budget helper. |
 | F12 | F11 | Required CI: install, lint, typecheck, unit/integration, build, preview; target under 12 minutes. |
-| F13 | F03/F08 | Operator CLI: migrations, users/groups, forums, settings, tasks, cache; an operator can establish a board without ACP. |
+| F13 | F03/F08 | Operator CLI: migrations, users/groups, communities, settings, tasks, cache; an operator can establish a board without ACP. |
 | F14 | F01–F13 | Next.js conventions document governs actions, client boundary, tags, error form shape, and view-model names. |
 
 **Checkpoint 0:** deployment, a queued/ticked task, and CLI setup work on a
 fresh board.
 
-### Phase 1 — Identity, forum tree, permissions
+### Phase 1 — Identity, community tree, permissions
 
 | ID | Depends on | Deliverable and acceptance |
 |---|---|---|
 | F15 | F03 | Identity/group schema and seeded Guests, Registered, Activation, Moderator, Super Moderator, Administrator, and Banned ladders; primary + secondary memberships. |
-| F16 | F03 | Category/forum/link hierarchy with materialised paths, counter columns, cached one-query tree, and transactionally correct subtree reparenting. |
+| F16 | F03 | Category/community/link hierarchy with materialised paths, counter columns, cached one-query tree, and transactionally correct subtree reparenting. |
 | F17 | F15 | Argon2id, opaque rotated sessions, remembered-token reuse detection, request actor, and throttled location updates; fixation and reuse tests. |
 | F18 | F17/F08 | No-JS registration with validation, case-insensitive uniqueness, reserved names, activation modes, captcha seam, and optional DOB gate. |
 | F19 | F17 | No-JS login/logout/reset, PostgreSQL rate limit/lockout, and replay-proof expiring reset tokens. |
 | F20 | F15/F17 | Global Authorizer with documented combination semantics, explicit/logged bypasses, actor versioning, and guard against external group-ID checks. |
-| F21 | F16/F20 | Ancestor-inherited forum matrix, granular moderator rights, one-source `visibleForumIds`, and tested invalidation. |
+| F21 | F16/F20 | Ancestor-inherited community matrix, granular moderator rights, one-source `visibleCommunityIds`, and tested invalidation. |
 | F22 | F21 | **Gate:** matrix for all representative actors/contexts/actions; regression test for every new permission-sensitive path. |
 | F23 | F17/F20 | Temporary/permanent bans and username/email/IP filters at registration and login; captured prior group restored at expiry. |
 | F24 | F15/F06 | Idempotent, paged group-promotion preview/apply task that never promotes bans or demotes users. |
@@ -124,15 +124,15 @@ permission resolution is demonstrably correct.
 | F26 | F25/F08 | CSS token cascade (theme defaults → DB overrides → custom CSS), cached/tagged runtime `<style>` injection, and token validation including browser theme colour. |
 | F27 | F26 | Responsive light/dark shell: app/header/nav/user bar/breadcrumb/footer/mobile/jump box/skip link; keyboard and no-JS jump-box coverage. |
 | F28 | F16 | Thread/post/revision schema, visible/moderator indexes, realistic 2M-post seed, and `EXPLAIN` evidence for partial visible indexes. |
-| F29 | F27/F28/F21 | Permission-filtered, no-JS board index with categories/subforums/last post/unread/stats/online/newest member; budgeted against seeded data. |
-| F30 | F29 | No-JS, budgeted thread listing: stickies, pagination, prefixes, announcements, controls, rules, and scoped password-forum grant. |
+| F29 | F27/F28/F21 | Permission-filtered, no-JS board index with categories/subcommunities/last post/unread/stats/online/newest member; budgeted against seeded data. |
+| F30 | F29 | No-JS, budgeted thread listing: stickies, pagination, prefixes, announcements, controls, rules, and scoped password-community grant. |
 | F31 | F30 | Zero-guest-JS thread view with paged postbits, author panels, signature/edit notices, post deep links, browsing/print views, and strict visibility. |
-| F32 | F31 | Forum/thread read markers, cutoff and mark controls; no-JS and without per-thread list queries. |
+| F32 | F31 | Community/thread read markers, cutoff and mark controls; no-JS and without per-thread list queries. |
 | F33 | F31 | Public profile, permitted activity/contact data, and fields omitted—not CSS-hidden—when invisible. |
 | F34 | F27 | Themed, distinct 403/404/error and no-JS redirect/interstitial. |
 | F35 | F29–F34 | Playwright JS-on/off flow for every required reading surface plus axe clean board-wide, wired to CI. |
 
-**Checkpoint 2:** index → forum → thread → profile is themed, paginated,
+**Checkpoint 2:** index → community → thread → profile is themed, paginated,
 permission-correct, accessible, fast at target data volume, and works without
 JavaScript. Theme database changes take effect on refresh.
 
@@ -141,9 +141,9 @@ JavaScript. Theme database changes take effect on refresh.
 | ID | Depends on | Deliverable and acceptance |
 |---|---|---|
 | F36 | F11 | Block/inline parser, AST and renderer for Markdown, with limits, a corpus, safe cached HTML, and lazy render invalidation/backfill. |
-| F37 | F36 | Smilies plus declarative custom directives, per-forum capability toggles and code exclusion; never admin-supplied regex or unsanitized output. |
+| F37 | F36 | Smilies plus declarative custom directives, per-community capability toggles and code exclusion; never admin-supplied regex or unsanitized output. |
 | F38 | F28/F07 | Atomic content counters, outbox ancestor roll-up, buffered views, and batched resumable recount for every counter. |
-| F39 | F38/F36/F21 | No-JS new-thread form with auth recheck, prefixes/subscription/preview/flood/moderation, and correct author/forum/ancestor counters. |
+| F39 | F38/F36/F21 | No-JS new-thread form with auth recheck, prefixes/subscription/preview/flood/moderation, and correct author/community/ancestor counters. |
 | F40 | F39 | No-JS reply and quote with attribution, race notice, and F39 counter guarantees. |
 | F41 | F40 | **Gate:** server-enforced edit limit/reason/revisions, soft-delete/restore and permission-aware notices with correct counters. |
 | F42 | F39/F05 | Route-handler FileStore upload, magic-byte/type/quota checks, re-encoded images, async thumbnails, protected downloads, and orphan cleanup. |
@@ -163,10 +163,10 @@ rate with or without JS; recount converges deliberately corrupted counters.
 | F48 | F47 | Chunked approval queue for threads/posts/attachments with every transition counter-correct. |
 | F49 | F47 | No-JS reports for post/thread/user/PM with assignment/history/notifications and private moderator resolution notes. |
 | F50 | F48 | Logged open/close/stick/move/copy/delete/restore/approve tools with full affected-row counter assertions. |
-| F51 | F50 | Test-first merge/split across forums, preserving post order and all pointers/counters/authors. |
+| F51 | F50 | Test-first merge/split across communities, preserving post order and all pointers/counters/authors. |
 | F52 | F50 | No-JS inline bulk moderation, chunked for 200+ items. |
 | F53 | F49/F23 | Warnings with expiry/revocation/threshold actions/history and recalculation. |
-| F54 | F48–F53 | Rights-aware ModCP: queues/logs/announcements/bans/forums and audited, permission-gated IP lookup. |
+| F54 | F48–F53 | Rights-aware ModCP: queues/logs/announcements/bans/communities and audited, permission-gated IP lookup. |
 
 **Checkpoint 4:** moderation is reversible, logged, permission-correct, and
 counter-correct.
@@ -176,7 +176,7 @@ counter-correct.
 | ID | Depends on | Deliverable and acceptance |
 |---|---|---|
 | F55 | F05/F07 | Queued, themed mail and no-JS notification centre/preferences; failures become admin notifications. |
-| F56 | F55 | Thread/forum subscriptions, instant/daily/weekly catch-up digests, management, and no-login/no-JS unsubscribe. |
+| F56 | F55 | Thread/community subscriptions, instant/daily/weekly catch-up digests, management, and no-login/no-JS unsubscribe. |
 | F57 | F19/F55 | No-JS UserCP: profile/options/theme/timezone/paging/invisible mode, re-auth email/password changes, drafts/subscriptions. |
 | F58 | F42/F57 | Safe avatar upload/remote URL and group-limited, moderated signature Markdown; no SSRF/tracking vector. |
 | F59 | F57 | Typed custom fields with per-group visibility/edit/registration requirements and themed profile/postbit slots. |
@@ -193,7 +193,7 @@ notifications, reputation, and social controls without JavaScript.
 |---|---|---|
 | F63 | F20 | Separate `/admin` auth/layout, optional IP allowlist, re-auth for destructive operations, and actor/IP/payload admin log. |
 | F64 | F63/F08 | Registry-driven grouped/searchable settings UI with advanced fields, audit log, and immediate cache invalidation. |
-| F65 | F63/F21 | Forum tree/options/moderators plus visual permission matrix with clear inherit/grant/deny and previewed copy-to-subforums. |
+| F65 | F63/F21 | Community tree/options/moderators plus visual permission matrix with clear inherit/grant/deny and previewed copy-to-subcommunities. |
 | F66 | F65 | Group grid/promotions dry run and chunked mass memberships; permission-version invalidation. |
 | F67 | F63 | User search/filter/edit/merge/prune/ban/IP/activation/mass mail; chunked long work and correct reassignment on merge. |
 | F68 | F63/F26 | Theme selection and approachable token/layout/custom-CSS editor with live preview, reset, exact JSON export/import. |
@@ -215,7 +215,7 @@ observe the board without shell access or redeploy.
 | F76 | F72 | Guest-filtered RSS/Atom, sitemap/robots, correct canonical paginated URLs, OG/Twitter/JSON-LD; explicit private-content leak tests. |
 
 **Checkpoint 7:** discovery, search, feeds, and metadata are useful without
-leaking private forums.
+leaking private communities.
 
 ### Phase 8 — Public APIs: themes and plugins
 
@@ -235,7 +235,7 @@ contracts without reading core source.
 | ID | Depends on | Deliverable and acceptance |
 |---|---|---|
 | F82 | F04 | `npx create-meith` scaffold with config/env/README; the generated project builds without a database and names what runs the tick. *(Was "Deploy-to-Vercel; push-to-deploy" — see D105.)* |
-| F83 | F82/F63 | One-time `/install`: safe preflight, migrations/setup/admin/default forum, then irreversible self-disable. |
+| F83 | F82/F63 | One-time `/install`: safe preflight, migrations/setup/admin/default community, then irreversible self-disable. |
 | F84 | F83 | Core/plugin upgrade command, dependency order, version/ACP notice, documented two-version no-data-loss upgrade. |
 | F85 | F83 | Chunked, resumable, idempotent MyBB import preserving legacy IDs across all supported content; fixture round trip/report/counter proof. |
 | F86 | F85 | Legacy hash verify-and-upgrade plus toggleable, table-tested 301s for every MyBB URL form. |

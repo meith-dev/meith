@@ -33,7 +33,7 @@ const SCOPE = [4, 5]
 
 function target(over: Partial<InlineTarget> & Pick<InlineTarget, 'kind' | 'id'>): InlineTarget {
   return {
-    forumId: 4,
+    communityId: 4,
     visibility: 'visible',
     threadVisibility: 'visible',
     isLocked: false,
@@ -44,7 +44,7 @@ function target(over: Partial<InlineTarget> & Pick<InlineTarget, 'kind' | 'id'>)
 
 class FakeInline implements InlineModerationRepository {
   rows: InlineTarget[] = []
-  destination: MoveDestination | null = { id: 5, type: 'forum' }
+  destination: MoveDestination | null = { id: 5, type: 'community' }
   /** Every chunk this repository was handed, in order. */
   readonly chunks: Array<{ tool: InlineTool; threadIds: number[]; postIds: number[] }> = []
   /** Ids the write is to report as having lost a race. */
@@ -52,11 +52,11 @@ class FakeInline implements InlineModerationRepository {
 
   async resolve(
     selection: readonly QueueSelection[],
-    forumIds: readonly number[],
+    communityIds: readonly number[],
   ): Promise<readonly InlineTarget[]> {
     const wanted = new Set(selection.map((s) => `${s.kind}:${s.id}`))
     return this.rows.filter(
-      (row) => wanted.has(`${row.kind}:${row.id}`) && forumIds.includes(row.forumId),
+      (row) => wanted.has(`${row.kind}:${row.id}`) && communityIds.includes(row.communityId),
     )
   }
 
@@ -68,7 +68,7 @@ class FakeInline implements InlineModerationRepository {
     tool: InlineTool
     threadIds: readonly number[]
     postIds: readonly number[]
-    toForumId?: number | undefined
+    toCommunityId?: number | undefined
     actorUserId: number
     at: Date
   }): Promise<number> {
@@ -87,14 +87,14 @@ function commandFor(inline: FakeInline): InlineModeration {
 
 /** A rights resolver that answers the same thing everywhere. */
 function everywhere(rights: InlineRights): {
-  rightsIn: (forumId: number) => Promise<InlineRights>
+  rightsIn: (communityId: number) => Promise<InlineRights>
   asked: number[]
 } {
   const asked: number[] = []
   return {
     asked,
-    rightsIn: async (forumId: number) => {
-      asked.push(forumId)
+    rightsIn: async (communityId: number) => {
+      asked.push(communityId)
       return rights
     },
   }
@@ -116,7 +116,7 @@ describe('InlineModeration', () => {
     const outcome = await commandFor(inline).apply({
       selection: ids('thread', [1, 2, 3]),
       tool: 'lock',
-      scopeForumIds: SCOPE,
+      scopeCommunityIds: SCOPE,
       rights: everywhere(ALL),
       actorUserId: 9,
     })
@@ -138,7 +138,7 @@ describe('InlineModeration', () => {
     const outcome = await commandFor(inline).apply({
       selection: ids('thread', [1, 1, 1]),
       tool: 'lock',
-      scopeForumIds: SCOPE,
+      scopeCommunityIds: SCOPE,
       rights: everywhere(ALL),
       actorUserId: 9,
     })
@@ -151,24 +151,24 @@ describe('InlineModeration', () => {
   /*
    * The security property. A row outside the scope is not "refused", because
    * that would be an answer, and the difference between an answer and no answer
-   * is a content-existence oracle over every private forum on the board.
+   * is a content-existence oracle over every private community on the board.
    */
   it('reports a row outside the scope as missing, exactly like one that does not exist', async () => {
     const inline = new FakeInline()
     inline.rows = [
-      target({ kind: 'thread', id: 1, forumId: 4 }),
-      target({ kind: 'thread', id: 2, forumId: 99 }),
+      target({ kind: 'thread', id: 1, communityId: 4 }),
+      target({ kind: 'thread', id: 2, communityId: 99 }),
     ]
 
     const outcome = await commandFor(inline).apply({
       selection: ids('thread', [1, 2, 3]),
       tool: 'lock',
-      scopeForumIds: SCOPE,
+      scopeCommunityIds: SCOPE,
       rights: everywhere(ALL),
       actorUserId: 9,
     })
 
-    // #2 is in a forum out of scope, #3 does not exist: one number, both cases.
+    // #2 is in a community out of scope, #3 does not exist: one number, both cases.
     expect(outcome).toMatchObject({ applied: 1, refused: 0, missing: 2 })
   })
 
@@ -179,7 +179,7 @@ describe('InlineModeration', () => {
     const outcome = await commandFor(inline).apply({
       selection: ids('thread', [1]),
       tool: 'delete',
-      scopeForumIds: [],
+      scopeCommunityIds: [],
       rights: everywhere(ALL),
       actorUserId: 9,
     })
@@ -199,7 +199,7 @@ describe('InlineModeration', () => {
     const outcome = await commandFor(inline).apply({
       selection: ids('thread', [1]),
       tool: 'lock',
-      scopeForumIds: SCOPE,
+      scopeCommunityIds: SCOPE,
       rights: everywhere({ ...NO_INLINE_RIGHTS, approve: true }),
       actorUserId: 9,
     })
@@ -217,7 +217,7 @@ describe('InlineModeration', () => {
     const outcome = await commandFor(inline).apply({
       selection: [...ids('thread', [1]), ...ids('post', [7])],
       tool: 'delete',
-      scopeForumIds: SCOPE,
+      scopeCommunityIds: SCOPE,
       rights: everywhere({ ...NO_INLINE_RIGHTS, deletePosts: true }),
       actorUserId: 9,
     })
@@ -226,19 +226,19 @@ describe('InlineModeration', () => {
     expect(inline.chunks).toEqual([{ tool: 'delete', threadIds: [], postIds: [7] }])
   })
 
-  it('resolves rights once per forum, not once per row', async () => {
+  it('resolves rights once per community, not once per row', async () => {
     const inline = new FakeInline()
     inline.rows = [
-      target({ kind: 'thread', id: 1, forumId: 4 }),
-      target({ kind: 'thread', id: 2, forumId: 4 }),
-      target({ kind: 'thread', id: 3, forumId: 5 }),
+      target({ kind: 'thread', id: 1, communityId: 4 }),
+      target({ kind: 'thread', id: 2, communityId: 4 }),
+      target({ kind: 'thread', id: 3, communityId: 5 }),
     ]
     const rights = everywhere(ALL)
 
     await commandFor(inline).apply({
       selection: ids('thread', [1, 2, 3]),
       tool: 'lock',
-      scopeForumIds: SCOPE,
+      scopeCommunityIds: SCOPE,
       rights,
       actorUserId: 9,
     })
@@ -271,10 +271,10 @@ describe('InlineModeration', () => {
         const outcome = await commandFor(inline).apply({
           selection: ids('thread', [1]),
           tool,
-          scopeForumIds: SCOPE,
+          scopeCommunityIds: SCOPE,
           rights: everywhere(ALL),
           actorUserId: 9,
-          ...(tool === 'move' ? { toForumId: 5 } : {}),
+          ...(tool === 'move' ? { toCommunityId: 5 } : {}),
         })
 
         expect(outcome.applied).toBe(expected ? 1 : 0)
@@ -300,7 +300,7 @@ describe('InlineModeration', () => {
       const outcome = await commandFor(inline).apply({
         selection: ids('post', [7]),
         tool: 'approve',
-        scopeForumIds: SCOPE,
+        scopeCommunityIds: SCOPE,
         rights: everywhere(ALL),
         actorUserId: 9,
       })
@@ -322,7 +322,7 @@ describe('InlineModeration', () => {
       const outcome = await commandFor(inline).apply({
         selection: ids('thread', [1]),
         tool: 'approve',
-        scopeForumIds: SCOPE,
+        scopeCommunityIds: SCOPE,
         rights: everywhere(ALL),
         actorUserId: 9,
       })
@@ -340,7 +340,7 @@ describe('InlineModeration', () => {
       const outcome = await commandFor(inline).apply({
         selection: [...ids('thread', [1]), ...ids('post', [7])],
         tool: 'stick',
-        scopeForumIds: SCOPE,
+        scopeCommunityIds: SCOPE,
         rights: everywhere(ALL),
         actorUserId: 9,
       })
@@ -352,20 +352,20 @@ describe('InlineModeration', () => {
   describe('move', () => {
     it('needs the right at the destination as well as the source', async () => {
       const inline = new FakeInline()
-      inline.rows = [target({ kind: 'thread', id: 1, forumId: 4 })]
+      inline.rows = [target({ kind: 'thread', id: 1, communityId: 4 })]
 
-      /* Everywhere-move except forum 5, which is where they are aiming. */
+      /* Everywhere-move except community 5, which is where they are aiming. */
       const rights = {
-        rightsIn: async (forumId: number) =>
-          forumId === 5 ? { ...ALL, move: false } : ALL,
+        rightsIn: async (communityId: number) =>
+          communityId === 5 ? { ...ALL, move: false } : ALL,
       }
 
       await expect(
         commandFor(inline).apply({
           selection: ids('thread', [1]),
           tool: 'move',
-          toForumId: 5,
-          scopeForumIds: SCOPE,
+          toCommunityId: 5,
+          scopeCommunityIds: SCOPE,
           rights,
           actorUserId: 9,
         }),
@@ -373,7 +373,7 @@ describe('InlineModeration', () => {
       expect(inline.chunks).toEqual([])
     })
 
-    it('refuses a destination that is not a forum threads can live in', async () => {
+    it('refuses a destination that is not a community threads can live in', async () => {
       const inline = new FakeInline()
       inline.rows = [target({ kind: 'thread', id: 1 })]
       inline.destination = { id: 5, type: 'category' }
@@ -382,8 +382,8 @@ describe('InlineModeration', () => {
         commandFor(inline).apply({
           selection: ids('thread', [1]),
           tool: 'move',
-          toForumId: 5,
-          scopeForumIds: SCOPE,
+          toCommunityId: 5,
+          scopeCommunityIds: SCOPE,
           rights: everywhere(ALL),
           actorUserId: 9,
         }),
@@ -398,7 +398,7 @@ describe('InlineModeration', () => {
         commandFor(inline).apply({
           selection: ids('thread', [1]),
           tool: 'move',
-          scopeForumIds: SCOPE,
+          scopeCommunityIds: SCOPE,
           rights: everywhere(ALL),
           actorUserId: 9,
         }),
@@ -408,15 +408,15 @@ describe('InlineModeration', () => {
     it('skips a thread already in the destination', async () => {
       const inline = new FakeInline()
       inline.rows = [
-        target({ kind: 'thread', id: 1, forumId: 5 }),
-        target({ kind: 'thread', id: 2, forumId: 4 }),
+        target({ kind: 'thread', id: 1, communityId: 5 }),
+        target({ kind: 'thread', id: 2, communityId: 4 }),
       ]
 
       const outcome = await commandFor(inline).apply({
         selection: ids('thread', [1, 2]),
         tool: 'move',
-        toForumId: 5,
-        scopeForumIds: SCOPE,
+        toCommunityId: 5,
+        scopeCommunityIds: SCOPE,
         rights: everywhere(ALL),
         actorUserId: 9,
       })
@@ -436,7 +436,7 @@ describe('InlineModeration', () => {
       const outcome = await commandFor(inline).apply({
         selection: ids('thread', selected),
         tool: 'delete',
-        scopeForumIds: SCOPE,
+        scopeCommunityIds: SCOPE,
         rights: everywhere(ALL),
         actorUserId: 9,
       })
@@ -463,7 +463,7 @@ describe('InlineModeration', () => {
       const outcome = await commandFor(inline).apply({
         selection: ids('thread', selected),
         tool: 'delete',
-        scopeForumIds: SCOPE,
+        scopeCommunityIds: SCOPE,
         rights: everywhere(ALL),
         actorUserId: 9,
       })
@@ -479,7 +479,7 @@ describe('InlineModeration', () => {
         commandFor(inline).apply({
           selection: ids('thread', selected),
           tool: 'delete',
-          scopeForumIds: SCOPE,
+          scopeCommunityIds: SCOPE,
           rights: everywhere(ALL),
           actorUserId: 9,
         }),
@@ -492,7 +492,7 @@ describe('InlineModeration', () => {
         commandFor(inline).apply({
           selection: [],
           tool: 'delete',
-          scopeForumIds: SCOPE,
+          scopeCommunityIds: SCOPE,
           rights: everywhere(ALL),
           actorUserId: 9,
         }),
@@ -516,7 +516,7 @@ describe('InlineModeration', () => {
     const outcome = await commandFor(inline).apply({
       selection: ids('thread', [1, 2]),
       tool: 'delete',
-      scopeForumIds: SCOPE,
+      scopeCommunityIds: SCOPE,
       rights: everywhere(ALL),
       actorUserId: 9,
     })

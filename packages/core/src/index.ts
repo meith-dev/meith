@@ -24,15 +24,15 @@ export type {
 export {
   PERMISSION_FIELDS,
   PERMISSION_FIELD_BY_KEY,
-  FORUM_PERMISSION_FIELDS,
+  COMMUNITY_PERMISSION_FIELDS,
   emptyPermissionSet,
   type PermissionField,
   type PermissionKey,
   type PermissionKind,
   type PermissionScope,
   type PermissionSet,
-  type ForumPermissionKey,
-  type ForumPermissions,
+  type CommunityPermissionKey,
+  type CommunityPermissions,
 } from "./permissions"
 export {
   AppError,
@@ -61,8 +61,8 @@ export {
   type RequestContext,
 } from "./logger"
 export {
-  defineForumConfig,
-  type ForumConfig,
+  defineCommunityConfig,
+  type CommunityConfig,
   type InstalledPlugin,
   type InstalledTheme,
 } from './config'

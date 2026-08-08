@@ -28,13 +28,13 @@ describe('PostgresThemeRepository', () => {
       key: 'default',
       title: 'Default',
       tokenOverrides: { primary: '#123456' },
-      customCss: '.forum-row { font-weight: 600; }',
+      customCss: '.community-row { font-weight: 600; }',
     })
     await db.insert(themes).values({ key: 'other', title: 'Other' })
 
     await expect(new PostgresThemeRepository(db).findRuntimeByKey('default')).resolves.toEqual({
       tokenOverrides: { primary: '#123456' },
-      customCss: '.forum-row { font-weight: 600; }',
+      customCss: '.community-row { font-weight: 600; }',
     })
     await expect(new PostgresThemeRepository(db).findRuntimeByKey('missing')).resolves.toBeNull()
   })
@@ -64,7 +64,7 @@ describe('PostgresThemeRepository', () => {
      * An empty table is a board that has never opened the theme screen, and it
      * renders exactly as it did before the table had a writer. The composition
      * that turns this into a palette lives in the app, where the registry is —
-     * which theme exists is `forum.config.ts`'s answer, not a row's.
+     * which theme exists is `community.config.ts`'s answer, not a row's.
      */
     it('is empty for a board that has decided nothing', async () => {
       await expect(new PostgresThemeRepository(db).listRuntime()).resolves.toEqual([])

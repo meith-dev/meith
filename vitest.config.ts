@@ -68,7 +68,7 @@ export default defineConfig({
        * here, a route handler under `app/` cannot be imported by a test at all —
        * which is how the API's route table would have gone uncovered.
        */
-      '@': resolve(root, 'apps/forum/src'),
+      '@': resolve(root, 'apps/community/src'),
     },
   },
   test: {
@@ -79,7 +79,7 @@ export default defineConfig({
       'apps/**/*.test.ts',
       /*
        * F77: themes are workspace packages and were the one tier with nowhere to
-       * put a test. Their coverage lived in `apps/forum` (the token sync test),
+       * put a test. Their coverage lived in `apps/community` (the token sync test),
        * which meant a theme could not assert anything about itself — and F78
        * ships a second one whose whole job is to prove the contract holds for a
        * theme that is not the default.

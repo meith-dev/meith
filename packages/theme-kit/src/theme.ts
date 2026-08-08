@@ -61,7 +61,7 @@ export type SlotImplementations = { readonly [K in SlotName]: SlotComponent<K> }
 export type PartialSlotImplementations = { readonly [K in SlotName]?: SlotComponent<K> }
 
 export interface ThemeDefinition {
-  /** Stable key. Matches the key it is registered under in `forum.config.ts`. */
+  /** Stable key. Matches the key it is registered under in `community.config.ts`. */
   readonly key: string
   readonly title: string
   /** The theme this one inherits unfilled slots from. */
@@ -110,7 +110,7 @@ function isClientReference(value: unknown): boolean {
 /**
  * Validate a theme manifest and return it typed.
  *
- * Same shape and same reasoning as `defineForumConfig` (invariant 6): an
+ * Same shape and same reasoning as `defineCommunityConfig` (invariant 6): an
  * identity function whose job is to attach the type and check the things that
  * would otherwise fail a long way from their cause.
  *

@@ -12,7 +12,7 @@ const OPTIONS = { name: 'my-board', version: '1.2.3', repositoryUrl: DEFAULT_REP
 describe('the project name', () => {
   it('accepts an npm-shaped name', () => {
     expect(validateName('my-board')).toBeNull()
-    expect(validateName('forum.example')).toBeNull()
+    expect(validateName('community.example')).toBeNull()
     expect(validateName('board_2')).toBeNull()
   })
 
@@ -38,7 +38,7 @@ describe('what the scaffold writes', () => {
       '.env.example',
       '.gitignore',
       'README.md',
-      'forum.config.ts',
+      'community.config.ts',
       'package.json',
     ])
   })
@@ -62,7 +62,7 @@ describe('what the scaffold writes', () => {
 
   it('gives the project the three scripts an operator needs', () => {
     const manifest = JSON.parse(files.get('package.json')!)
-    expect(Object.keys(manifest.scripts).sort()).toEqual(['build', 'dev', 'forum', 'start'])
+    expect(Object.keys(manifest.scripts).sort()).toEqual(['build', 'community', 'dev', 'start'])
   })
 
   /*
@@ -189,7 +189,7 @@ describe('the CLI', () => {
         '.env.example',
         '.gitignore',
         'README.md',
-        'forum.config.ts',
+        'community.config.ts',
         'package.json',
       ])
 
