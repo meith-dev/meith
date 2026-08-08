@@ -118,12 +118,14 @@ Four lines, and each one matters:
 | | |
 |---|---|
 | `POSTGRES_PASSWORD` | The database's own password. Generated, never typed, and hex — see the note above. |
-| `AUTH_SECRET` | Signs sessions. There is deliberately no default — a shipped one is a board every reader of the source can sign a session for. |
+| `AUTH_SECRET` | Signs unsubscribe links in outgoing mail. Sessions are not derived from it — they are random tokens stored hashed in the database. There is deliberately no default — a shipped one is a link every reader of the source can forge. |
 | `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. |
 | `PORT` | **`127.0.0.1:3000`, not `3000`.** Binding to all interfaces publishes the board on port 3000 alongside your HTTPS one — plaintext, no certificate, and Docker writes its own iptables rules, so `ufw` does not stop it. |
 
-Rotating `AUTH_SECRET` later signs everybody out. That is the whole consequence;
-it is a safe thing to do if you think it leaked.
+Rotating `AUTH_SECRET` later signs nobody out — sessions do not depend on it.
+What it does break is the unsubscribe link in every message already sent, which
+then answers with a polite failure rather than unsubscribing anybody. That is
+the whole consequence; it is a safe thing to do if you think it leaked.
 
 [`.env.example`](../.env.example) at the repository root documents every other
 variable, including `APP_URL` and the `MAIL_*` set — both optional, both
@@ -288,7 +290,7 @@ things doing one job.
 
 | What you see | What it is |
 |---|---|
-| `AUTH_SECRET must be set` from `migrate` | `.env` is not beside the compose file, or you ran `docker compose` from another directory. |
+| `AUTH_SECRET must be set`, before any container starts | Compose itself refusing to interpolate: `.env` is not beside the compose file, or you ran `docker compose` from another directory. |
 | `TypeError: Invalid URL` from `migrate` | A `/` or `+` in `POSTGRES_PASSWORD`. Generate it with `openssl rand -hex 32`. |
 | `migrate` exits non-zero | Read its log. A failed migration stops the stack on purpose rather than serving against a half-applied schema. |
 | Worker logs `worker started` every few seconds | It is crash-looping. `docker compose logs worker` shows the throw above each restart. |

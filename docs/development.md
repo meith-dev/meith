@@ -78,7 +78,7 @@ A pnpm workspace. Applications in `apps/`, everything else in `packages/`,
 | `apps/worker` | `@meith/worker` | The tick, as a long-running process. |
 | `apps/cli` | `@meith/cli` | The operator CLI. `pnpm forum …`. |
 | `packages/*` | `@meith/*` | The domain: accounts, forums, posts, authorization, search, drivers, and the rest. |
-| `themes/*`, `plugins/*` | | The default theme, and worked examples. |
+| `themes/*`, `plugins/*` | | The default theme, a second worked theme, and the reference plugin. |
 
 Every `@meith/*` import resolves through tsconfig path aliases straight to
 `src/index.ts`. There is no build step between packages, which is why a
@@ -98,7 +98,7 @@ How those packages relate — the layers, what may import what, and why — is
 | `pnpm test` | The whole suite. `pnpm test:watch` while you work. |
 | `pnpm typecheck` | The workspace. `:app` and `:site` are the two Next projects. |
 | `pnpm lint` | ESLint. |
-| `pnpm verify` | **Everything CI runs.** Run it before opening a pull request. |
+| `pnpm verify` | **Everything CI's `static` job runs.** Run it before opening a pull request; CI's other jobs build the image and drive a browser. |
 | `pnpm test:e2e` | Playwright: the no-JS paths and the accessibility checks. |
 
 `pnpm verify` is the one that matters: invariant guards, the generated-document
@@ -112,18 +112,22 @@ suite. If it passes locally, CI's `static` job will too.
 
 ## The database in tests
 
-Most tests use fixture mode and no database. The ones that cannot — repository
-tests, migrations, anything asserting on real SQL — expect the dev Postgres on
-port 55432:
+`pnpm test` needs no database at all. Repository tests, migrations, anything
+asserting on real SQL — all of it runs against PGlite, a real Postgres compiled
+to WebAssembly, booted in-process per suite with the checked-in migration SQL
+applied.
+
+One suite is the exception: `packages/db/src/client.pg.test.ts` needs a real
+Postgres *server*, because PGlite bypasses the client driver and has accepted a
+write every real server rejected. It skips unless `TEST_DATABASE_URL` is set:
 
 ```sh
 docker compose -f docker-compose.dev.yml up -d
-pnpm test
+TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/forum_test pnpm test
 ```
 
-Without it those tests are skipped rather than failed, which keeps a fresh
-checkout green. CI runs them with a real Postgres, so "it passed locally" is not
-the same as "it passed" if you have never started one.
+CI's `migrations` job sets it, so "it passed locally" covers everything except
+that one seam — and CI covers the seam.
 
 ## The scripts that fail on purpose
 
@@ -136,7 +140,7 @@ nothing else reads:
 | `workspace:check` | A package directory with sources and no `package.json`, or a manifest the lockfile has not seen. Both pass every other gate and fail `pnpm install --frozen-lockfile`, which is CI's first step. |
 | `guards` | Textual invariants — the things a grep can prove and a type cannot. |
 | `slots:check` | The server/client boundary in theme slots. |
-| `hooks:wired` | Every declared plugin hook has a call site. |
+| `hooks:wired` | A hook fired by name that the registry does not declare — the typo that would otherwise be a call nothing listens to. It also derives the wired/unwired list that `pnpm plugin:docs` publishes. |
 | `theme:docs:check`, `plugin:docs:check`, `api:docs:check`, `perf:docs:check` | A generated reference that has drifted from the code it describes. |
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that no index links to, or that is neither published nor explicitly repository-only. |
 
@@ -166,7 +170,7 @@ Adding a document means putting it in `docs/`, naming it in
 `internal` to keep it in the repository — and running:
 
 ```sh
-pnpm site:docs      # rewrites the tables in README.md and checks the set
+pnpm site:docs      # rewrites the documentation table in README.md and checks the set
 ```
 
 Both index checks fail on a file that is in neither list, so a new document

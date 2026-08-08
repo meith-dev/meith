@@ -68,8 +68,9 @@ In the panel: **New Resource → Docker Compose → Public Repository**.
 > [!IMPORTANT]
 > The compose file path is the one field worth checking twice. Coolify defaults
 > to `/docker-compose.yml`, which is the *other* shape — it publishes a port and
-> expects a `.env` you have not written, so it deploys, appears to succeed, and
-> is not reachable through the proxy.
+> expects a `.env` you have not written, so the deploy stops at once with
+> `required variable AUTH_SECRET is missing a value`. A clear failure, but the
+> fix is the file path, not the variable it names.
 
 ## 3. Set your domain and deploy
 
@@ -84,7 +85,7 @@ up, in order:
 | `postgres` | The board. A named volume, so recreating the container keeps the data. |
 | `migrate` | Applies the schema and **exits 0**. The next two wait for it, so the code never talks to a schema behind it. |
 | `web` | The board itself. |
-| `worker` | The background tick, on its own one-minute loop. |
+| `worker` | The background tick, on its own one-minute loop. Its first tick runs every scheduled task once to catch up — a long `ran` list in that log is it working, not failing. |
 
 Four things happen without your involvement, and they are the reason this route
 exists:
@@ -144,7 +145,8 @@ Pressing Install runs five steps. They are listed beside the button under
 **How far it got**, marking each one *done*, *failed* or *not run*:
 
 1. **Apply migrations** — every table, index and seeded usergroup.
-2. **Record the board's name and mail settings** — the only settings it writes.
+2. **Record the board's name, address and mail settings** — the only settings
+   it writes.
 3. **Create the administrator** — your account.
 4. **Create a first forum** — so the index is not empty.
 5. **Disable the installer**.
@@ -161,6 +163,10 @@ anybody.
 
 That is a board. It sends you to the sign-in page and says so; sign in with the
 account you just made.
+
+If the header still says *Meith* rather than your board's name, wait a minute
+and reload — settings are cached briefly, and the name you typed outlives the
+cache. Nothing needs doing.
 
 Then go to **`/admin`**, which asks for your password a second time. That is not
 a bug and not a failed sign-in: the control panel keeps a session of its own,
@@ -253,9 +259,9 @@ setting that turns a mail problem into a board nobody can join.
 > None of this is an environment variable, and on this route none of it needs to
 > be. `MAIL_DRIVER` and its companions still exist and still win outright when
 > set — the installer then hides its mail section and says so, and the settings
-> screen goes read-only. That is for a deployment configured wholly from files,
-> at the cost of a redeploy to rotate a key, and it is
-> [Running a board § Mail](./operating.md#mail).
+> screen warns that what it stores is not used until the variable is unset. That
+> is for a deployment configured wholly from files, at the cost of a redeploy to
+> rotate a key, and it is [Running a board § Mail](./operating.md#mail).
 
 ## 6. Set up backups
 
@@ -306,8 +312,7 @@ and retry. What to do depends on how far it got:
 
 | What you see | What it is |
 |---|---|
-| The deploy succeeds and the domain 404s | Almost always the wrong compose file. It has to be `/docker-compose.coolify.yml`. |
-| `AUTH_SECRET must be set` in the migrate log | Same cause: the other compose file expects a `.env` that does not exist here. |
+| The deploy fails before any container starts, naming `AUTH_SECRET` or `TICK_SECRET` | Almost always the wrong compose file. It has to be `/docker-compose.coolify.yml` — the other one expects a `.env` that does not exist here, and Compose refuses to start without it. |
 | `migrate` exits non-zero | Read its log. A failed migration stops the stack on purpose rather than serving against a half-applied schema. |
 | The worker logs `worker started` every few seconds | It is crash-looping; the throw is in the log above each restart. |
 | 413 on an upload | The proxy's body limit, not the board's. Raise it on the resource. |

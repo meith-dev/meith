@@ -38,7 +38,7 @@ own URL, and redeploys on push. Nothing is typed in.
 
 ```sh
 git clone https://github.com/meith-dev/meith.git && cd meith
-cp .env.example .env          # three secrets, generated not typed
+cp .env.example .env          # three secrets, generated not typed — the file says how
 docker compose up -d --build
 ```
 
@@ -60,9 +60,9 @@ at any price.
 
 ## What you get
 
-- **A real permission model.** Around 45 permission fields resolved per actor
-  per forum, not a three-tier guess. Search, feeds and the API all answer to it,
-  so there is no path that reads around the rules.
+- **A real permission model.** 46 permission fields — 27 resolved per actor per
+  forum, 19 board-wide — not a three-tier guess. Search, feeds and the API all
+  answer to it, so there is no path that reads around the rules.
 - **Themes that cannot break the board.** A frozen slot contract, documented
   and generated from the registry, so a theme is replaceable rather than a fork.
 - **Plugins with contained failures.** Hooks with typed payloads; a plugin that
@@ -128,8 +128,10 @@ Posting needs Postgres, which is one more command.
 [Development](./docs/development.md) is the full walkthrough: the dev database,
 the commands, the gates, and what to do before opening a pull request.
 
-`pnpm verify` runs what CI runs — the invariant guards, the generated-doc checks,
-lint, dependency rules, all three typecheck projects and the full test suite.
+`pnpm verify` runs what CI's `static` job runs — the invariant guards, the
+generated-doc checks, lint, dependency rules, all three typecheck projects and
+the full test suite. CI's other jobs build the image and drive a browser; the
+static job is the one a pull request fails first.
 
 Four applications share the workspace:
 

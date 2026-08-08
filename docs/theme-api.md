@@ -1,7 +1,7 @@
 # The theme API
 
 `@meith/theme-kit` is the contract between the board and a theme, frozen since
-**0.1** and currently at **0.8**.
+**0.1** and currently at **0.9**.
 
 This document is the policy — what the freeze covers, what it does not, and how
 something is removed from it. The reference (every slot, every field) is
@@ -29,7 +29,7 @@ export const acmeTheme = defineTheme({
 
 Register it in `forum.config.ts` and set `defaultTheme` to its key.
 
-`themes/midnight` is the worked example: nineteen slots overridden, four
+`themes/midnight` is the worked example: twenty-two slots overridden, five
 inherited, tables where the default theme has lists, and no change to any package
 to make it possible.
 
@@ -58,7 +58,7 @@ Worth knowing before they fire.
 
 | It cannot | Because |
 |---|---|
-| Read the database, the request, cookies or the session | `@meith/theme-kit` depends on nothing, and dependency-cruiser makes an import of `@meith/db`, `next/headers` or a domain package an error rather than a review comment |
+| Read the database, the request, cookies or the session | `@meith/theme-kit` depends on `@meith/core` alone — no database, no request, no domain package — and dependency-cruiser makes a theme's import of `@meith/db`, a driver or a domain package an error rather than a review comment |
 | Decide anything about permissions | `ViewerModel.canAccessAdminCp` and its siblings are *rendering hints* the Authorizer has already resolved. CSS is not authorization — anything a viewer must not see is not in the model at all |
 | Build a URL | Every href arrives resolved, so the board can change its URL shape without breaking installed themes |
 | Render another slot | Slots are flat. The page composes them and passes rendered output in `regions` — rendering a slot needs the resolved theme, and there is no way to reach one from inside a slot |
@@ -133,8 +133,8 @@ behaviour of its own; a bug fixed in `resolveTheme` is a package version.
 > no installed board for a rename to break. Every rule in this document is
 > enforced by code in `packages/theme-kit/src/api.ts` and has been since the
 > freeze — but the major those rules count toward is `1.0`, which ships with the
-> product rather than ahead of it. Practically: write a theme against `0.8` and a
-> later `0.9` will not break it, because a minor is additive whatever the major
+> product rather than ahead of it. Practically: write a theme against `0.9` and a
+> later `0.10` will not break it, because a minor is additive whatever the major
 > says.
 
 > [!NOTE]
@@ -145,8 +145,9 @@ behaviour of its own; a bug fixed in `resolveTheme` is a package version.
 
 ## Deprecation
 
-Nothing is deprecated yet; there is no earlier promise to withdraw. The
-mechanism exists anyway, and it is machinery rather than prose.
+No *slot* is deprecated. One field is: `PostBitModel.quoteSource`, deprecated in
+0.5 and scheduled out at 1.0 in favour of `PostBitModel.post.id` — the first
+entry through the machinery below, which is machinery rather than prose.
 
 1. **Mark and schedule.** The slot is marked `deprecated` in `SLOT_STABILITY`,
    and an entry is added to `DEPRECATIONS` naming when it was deprecated, which
@@ -156,17 +157,20 @@ mechanism exists anyway, and it is machinery rather than prose.
 2. **It keeps working.** A deprecated slot is still *required* of a theme,
    because a page still renders it in this version. A theme that drops it early
    has a hole in it.
-3. **It is reported.** `checkThemeContract` lists it in `deprecatedInUse`, so the
-   admin theme screen and a theme's own CI test can both see it coming.
+3. **It is reported.** `checkThemeContract` lists a deprecated *slot* a theme
+   still fills in `deprecatedInUse`, so the admin theme screen and a theme's own
+   CI test can both see it coming. A deprecated field is visible in the type and
+   the generated reference instead — no runtime report can tell whether a theme
+   reads a prop.
 4. **It is removed at the scheduled major** — and if it is not, the build fails.
    `assertDeprecationPolicy` throws once the current version reaches `removeIn`.
 
 Step 4 is the reason to trust the schedule: a deadline that can pass quietly is
 how a deprecation becomes permanent.
 
-The same applies to a model field, scheduled as `Model.field`. A whole model is
-never deprecated on its own — a model exists because a slot is handed it, so
-removing the slot *is* the deprecation.
+A field is scheduled the same way, as `Model.field` — `quoteSource` above is the
+live example. A whole model is never deprecated on its own — a model exists
+because a slot is handed it, so removing the slot *is* the deprecation.
 
 ## Tokens
 
@@ -184,7 +188,7 @@ The cascade, in order:
 ```text
 compiled defaults                       (globals.css)
   → the board default theme's values + its overrides + its custom CSS   :root / .dark
-    → each other enabled theme's difference from that   :root[data-theme="<key>"]
+    → each other enabled theme's difference from that   [data-theme="<key>"]
 ```
 
 A board with one enabled theme emits exactly the first two lines, byte for byte
@@ -211,20 +215,22 @@ test for that, because a hand-written pair goes stale silently.
 
 ### The default theme's palette is neutral on purpose
 
-Every greyscale token the default theme ships is at **chroma zero**, and
-`primary` is ink — near-black in light, near-white in dark — rather than a house
-colour. A board brands itself by overriding `primary` and `primary-foreground`
-and nothing else fights the result; a default that shipped its author's green
-would make every other community's mark look like a mistake on their own board.
+Every greyscale token the default theme ships is at **chroma zero** — the one
+colour in the palette is `primary`, the green the project's own site uses. A
+board brands itself by overriding one group — `primary`, `primary-hover`,
+`primary-foreground`, `ring`, or a single press of a brand preset on the theme
+screen — and nothing else fights the result, because nothing else in the
+palette carries a hue to clash with.
 
 Two consequences worth knowing before you write a theme or a plugin:
 
 - **`accent` is a hover surface, not a highlight.** It carries shadcn/ui's
   meaning here. Anything that needs to shout uses a semantic token, which has a
   meaning to justify the volume.
-- **Links are weight and an underline, never colour.** With `primary` equal to
-  the body colour, a coloured link would be invisible — and a board whose
-  operator has just set `primary` to a pale yellow would be unreadable.
+- **Link text is weight and an underline; only the underline takes `primary`.**
+  Colouring the text itself would put every operator's brand choice between
+  their members and the words — a pale yellow `primary` should cost a pale
+  yellow underline, not a page nobody can read.
 
 Neither is a rule the contract enforces. A theme is free to disagree; it should
 disagree deliberately.
@@ -240,8 +246,9 @@ the thing to understand before importing from it:
 
 | Import | What it is |
 |---|---|
-| `@meith/ui` | Everything that renders on the **server**: `Card`, `Badge`, `Alert`, `Avatar`, `Field`, `Input`, `NativeSelect`, `Separator`, `Empty`, plus the `buttonVariants` and `badgeVariants` class recipes |
+| `@meith/ui` | Everything that renders on the **server**: `Card`, `Badge`, `Alert`, `Avatar`, `Field`, `Input`, `NativeSelect`, `Separator`, `Empty`, `Disclosure`, plus the `buttonVariants` and `badgeVariants` class recipes |
 | `@meith/ui/button` | The Base UI `Button` — a `"use client"` island |
+| `@meith/ui/menu` | The Base UI `Menu` — the other `"use client"` island |
 
 Nothing reachable from the barrel declares `"use client"`, which is what makes it
 safe in a server slot. `PostBit` is rendered fifty times on a thread page, and a

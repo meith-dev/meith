@@ -87,8 +87,8 @@ services:
       - DATA_SOURCE=postgres
       # 64 characters of randomness each, generated on the first deploy. These
       # are the two values a board cannot have a default for: a shipped
-      # AUTH_SECRET is a board anybody who has read the source can sign a
-      # session for.
+      # AUTH_SECRET is an unsubscribe link anybody who has read the source can
+      # forge, and a shipped TICK_SECRET is a tick anybody can drive.
       - AUTH_SECRET=$SERVICE_BASE64_64_AUTH
       - TICK_SECRET=$SERVICE_BASE64_64_TICK
       - QUEUE_DRIVER=postgres

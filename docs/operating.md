@@ -45,10 +45,10 @@ not the same as encrypted, and is worth knowing before choosing.
 | Variable | Required | Notes |
 |---|---|---|
 | `DATABASE_URL` | For a real board | On a *managed* database, use the transaction-mode pooler string. See [connection pooling](#connection-pooling). |
-| `AUTH_SECRET` | Yes | Signs sessions and tokens. No default, deliberately. |
-| `TICK_SECRET` | Depends how you tick | Guards `/api/system/tick`, and without it that route refuses every call. It is **not** what drives the tick on the Docker Compose stack: the `worker` container runs the loop in-process and never calls the route, so scheduled work happens there either way. Required if anything external — a cron, a platform scheduler, the `curl-tick` sidecar — is what calls it. |
-| `APP_URL` | No | The board's public origin, absolute and with no trailing slash. Optional since the installer began asking for it: unset, it comes from **Board address** in the settings, and set here it wins and the settings field goes read-only. Something has to supply it — a digest sent from the worker has no request to be relative to. |
-| `MAIL_DRIVER` | No | `log`, `http` or `smtp`. Optional for the same reason as `APP_URL`: `http` or `smtp` here wins outright and makes the mail settings screen read-only, while `log` or unset leaves mail to the board. See [Mail](#mail) for the companions each transport needs. |
+| `AUTH_SECRET` | Yes | Signs the unsubscribe links in outgoing mail. Sessions do not depend on it — they are random tokens stored hashed — so rotating it signs nobody out. No default, deliberately. |
+| `TICK_SECRET` | Yes, in production | Guards `/api/system/tick`: with it set, a caller without it gets a 404. It is **not** what drives the tick on the Docker Compose stack: the `worker` container runs the loop in-process and never calls the route, so scheduled work happens there either way — but the board still refuses to boot in production without the secret, so the route is never left open. Only an external caller — a cron, a platform scheduler, the `curl-tick` sidecar — actually presents it. |
+| `APP_URL` | No | The board's public origin, absolute and with no trailing slash. Optional since the installer began asking for it: unset, it comes from **Board address** in the settings, and set here it wins — the settings screen still accepts edits but warns they are stored, not read, until the variable is unset. Something has to supply it — a digest sent from the worker has no request to be relative to. |
+| `MAIL_DRIVER` | No | `log`, `http` or `smtp`. Optional for the same reason as `APP_URL`: `http` or `smtp` here wins outright, and the mail settings screen warns that what it stores is not used while the variable is set. `log` or unset leaves mail to the board. See [Mail](#mail) for the companions each transport needs. |
 | `DATA_SOURCE` | No | `postgres` or `fixture`. Defaults to `fixture` when `DATABASE_URL` is unset. |
 | `ADMIN_IP_ALLOWLIST` | No | Comma-separated address prefixes. Empty allows everything. |
 | `FILESTORE_DRIVER` | No | `local` or `s3`. Defaults to `local`, which is right for a board with a disk. See below. |
@@ -121,8 +121,8 @@ alias forum='docker compose -f ~/meith/docker-compose.yml run --rm --no-deps web
 
 ```sh
 forum --help                     # everything it can do
-forum env:check                  # is the environment valid, and can it connect?
-forum user:create --admin        # a second administrator, or the first if /install is sealed
+forum env:check                  # is the environment valid? (it does not open a connection)
+forum user:create --group admin  # a second administrator, or the first if /install is sealed — password on stdin
 forum user:promote               # administrator access on a board that already works
 forum task:run                   # run the tick once, by hand
 forum search:reindex             # after a large import, to hurry the tick along
@@ -141,9 +141,9 @@ missing rather than hidden.
 
 ## Permissions
 
-Around 45 permission fields, resolved per member per forum. Every read path —
-pages, search, feeds, the REST API — asks the same resolver, so there is no route
-that quietly reads around the rules.
+46 permission fields — 27 resolved per member per forum, 19 board-wide. Every
+read path — pages, search, feeds, the REST API — asks the same resolver, so
+there is no route that quietly reads around the rules.
 
 ### The three layers
 
@@ -165,8 +165,8 @@ understanding the model.
 
 ### Numbers behave differently from switches
 
-Numeric permissions — maximum post length, attachments per post — combine as the
-**most generous** value across a member's groups.
+Numeric permissions — attachments per post, signature length, edit window —
+combine as the **most generous** value across a member's groups.
 
 > [!NOTE]
 > **`0` means unlimited, not none.** A cell showing `0` is not a restriction.
@@ -309,10 +309,10 @@ board starts and where most stay.
   Set **Heading font** on its own if you want headings in a different voice; any
   CSS font stack works, and one built from faces the reader already has
   (`Georgia, ui-serif, serif`) downloads nothing.
-- **Custom CSS.** On a board with more than one theme enabled this is nested
+- **Custom CSS.** For any theme other than the board's default this is nested
   under that theme's own selector, so it stops applying when a member picks
-  another one. A rule aimed at `:root` will not match there — target `body` or a
-  class.
+  another one — and a rule aimed at `:root` will not match inside the nesting.
+  Target `body` or a class and it works in both positions.
 - **Export and import** — an exact JSON round-trip, so a look can be moved
   between boards. Documents written before per-scheme overrides existed
   (`"version": 1`) still import; their values apply to both schemes.
@@ -339,12 +339,12 @@ Writing a theme: [The theme API](./theme-api.md). Every slot and view model:
 
 ## Cookies and consent
 
-The board sets five cookies of its own and no third-party ones:
+The board sets six cookies of its own and no third-party ones:
 
 | Cookie | What it is for |
 |---|---|
-| session, remember-me | signing in |
-| CSRF | protecting the forms of that session |
+| session, remember-me | signing in. The session row also carries the CSRF secret that protects that session's forms — a column, not a cookie of its own |
+| admin session | the control panel's separate sign-in |
 | `meith_theme`, `meith_scheme` | the appearance controls, written only when a member presses one |
 | `meith_consent` | the answer to the notice below |
 
@@ -406,7 +406,7 @@ Three things are worth knowing before you need them.
 
 | It says | It means | Fix |
 |---|---|---|
-| Not in the build | The plugin is not in `forum.config.ts`. | Edit the config, redeploy |
+| Disabled in `forum.config.ts` | The entry in the installed list (`forum.plugins.ts`) sets `enabled: false`. A plugin missing from that list entirely is not shown at all. | Edit the list, redeploy |
 | Switched off | Somebody pressed the button on this screen. | Press it again |
 | Failing | The server stopped calling it after repeated errors. | The error is on the plugin's own page |
 
@@ -495,7 +495,7 @@ Dates are entered in UTC.
 
 ## Reputation
 
-`/admin/settings` under **Reputation**. Four switches, and the first two decide
+`/admin/settings` under **Reputation**. Four settings, and the first two decide
 what the feature *is* on your board.
 
 **Allow negative ratings** — off by default. Off, reputation is a thanks
@@ -842,17 +842,20 @@ mail arrives, it is polite, and it is useless. Feeds and canonical URLs fall bac
 to a localhost origin, which is obviously wrong rather than subtly wrong.
 
 The address is an **origin** — scheme, host, optional port, nothing else.
-`https://forum.example/board` is rejected on the way in, because every link the
-board built from it would carry `/board` in the middle.
+`https://forum.example/board` is rejected by the settings screen on the way in,
+because every link the board built from it would carry `/board` in the middle.
+`APP_URL` is checked more loosely — only that it is a URL — so a path pasted
+into the environment is the one place this mistake can still get through.
 
 ## Spam
 
 Registration questions are at `/admin/antispam`; the numbers are in
 `/admin/settings` under **Anti-spam**.
 
-Everything except the hidden-field trap ships switched off. A fresh board has no
-spam on it, and a feature that arrives switched on introduces itself by breaking
-your registration form.
+Everything except the hidden-field trap and a three-second minimum fill time
+ships switched off. A fresh board has no spam on it, and a feature that arrives
+switched on introduces itself by breaking your registration form — those two are
+on by default because no human notices either.
 
 ### What each control is actually worth
 
@@ -993,7 +996,8 @@ Then check three things, in this order:
 
 1. `select count(*) from posts;` — is the content there?
 2. Sign in as an administrator — did the credentials survive?
-3. `forum migrate` — is the schema at the version the code expects?
+3. `forum migrate` — it applies anything missing and reports what it did, so on
+   a good restore it says there was nothing to do.
 
 ### Rehearse it
 
@@ -1054,9 +1058,11 @@ and nothing errors, because nothing ran.*
    loop with the reason logged above each restart.
 3. If instead you drive the tick from outside — a cron, a platform scheduler, the
    `curl-tick` sidecar — then it is the route that runs it, and `TICK_SECRET`
-   has to be set *and* presented. Without it the route answers 404 to everything,
+   has to be set *and* presented. A caller with the wrong secret gets a 404,
    deliberately, so an unauthorised caller cannot confirm the endpoint exists;
-   from the caller's side that looks identical to a wrong URL.
+   from the caller's side that looks identical to a wrong URL. (An *unset*
+   secret would leave the route open, which is why production refuses to boot
+   without one.)
 
 Notification and mass mail are delivered on this tick, so a stopped one is also
 a board that has stopped sending them — see [Mail](#mail). Verification and
@@ -1122,10 +1128,10 @@ map.
 The CLI does not need the web app:
 
 ```sh
-forum env:check       # is the environment valid, and can it connect?
+forum env:check       # is the environment valid? (no connection is opened)
 forum settings:list   # what the board thinks its settings are
-forum task:list       # what is scheduled, and when each last ran
-forum migrate         # is the schema behind the code?
+forum task:list       # what is scheduled, and how often each runs
+forum migrate         # apply anything the schema is missing
 ```
 
 `forum --help` lists everything. The commands that exist are the ones listed
