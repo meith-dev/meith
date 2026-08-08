@@ -9,7 +9,9 @@ generated into [Plugin hooks](./plugin-hooks.md).
 ## Writing a plugin
 
 A plugin is a module that calls `definePlugin` and is registered in
-`forum.config.ts`.
+`forum.plugins.ts` — the installed list lives in its own file, beside
+`forum.config.ts`, so the operator CLI can read it without importing the
+themes' component trees.
 
 ```ts
 export const greeter = definePlugin({
@@ -28,7 +30,7 @@ export const greeter = definePlugin({
 })
 ```
 
-Installing it is `pnpm add`, a line in `forum.config.ts`, and a redeploy.
+Installing it is `pnpm add`, a line in `forum.plugins.ts`, and a redeploy.
 
 ### What a plugin can declare
 
@@ -40,7 +42,7 @@ Installing it is `pnpm add`, a line in `forum.config.ts`, and a redeploy.
 | `tasks` | Scheduled work, registered as `plugin.<key>.<id>` and run by the same tick as core's. |
 | `adminPages` | Pages mounted under `/admin/plugins/<key>/`. |
 | `contributions` | Markup in named UI regions. |
-| `onInstall` / `onEnable` / `onDisable` / `onUninstall` | Lifecycle callbacks. |
+| `onInstall` / `onEnable` / `onDisable` / `onUninstall` | Lifecycle callbacks — declared and typed, not yet dispatched by the host. See the inventory below. |
 
 > [!NOTE]
 > Everything but the callbacks is **declarative**. A plugin does not call
@@ -155,6 +157,11 @@ so a plugin cannot collide with another or reach a core one.
 | Task | `plugin.<key>.<task>` |
 | Admin page | `/admin/plugins/<key>/<path>` |
 
+One name in that namespace is the host's: `plugin.<key>._enabled` is the
+operator's kill switch. A plugin cannot declare it — setting names cannot start
+with an underscore — which is what makes the collision impossible rather than
+unlikely.
+
 `definePlugin` refuses a key, setting name, task id or page path that would not
 namespace cleanly — a dot in a plugin key produces an ambiguous setting key, and
 a slash in a page path escapes the admin prefix.
@@ -188,8 +195,9 @@ that does not run. It is derived rather than remembered:
 `scripts/hook-callsites.mjs` computes it by scanning the tree, so the generated
 reference's column cannot drift from the code.
 
-**21 of the 91 hooks are wired** — the shell filters, the index, forum, thread,
-member, search and error-page view models, and the three posting events.
+**25 of the 95 hooks are wired** — the shell filters, the view models of every
+reading surface, and the three posting events. The generated reference's wired
+column is the authoritative list.
 
 A hook that is declared but not wired is not broken; it is a call site that has
 not been written. Registering a handler for one is legal, does nothing, and the
@@ -199,6 +207,12 @@ reference marks it so you find out before you ship.
 That is the ratchet: wiring a new call site into the board fails the reference
 plugin's test until a handler is added there, so a hook cannot join the running
 product without something proving it fires.
+
+**The lifecycle callbacks do not run yet.** `onInstall`, `onEnable`,
+`onDisable` and `onUninstall` are part of the declared shape and validated like
+everything else, but no host code dispatches them today. Write them if the
+shape of your plugin wants them — just do not put anything there that must run
+for the plugin to be correct.
 
 ### The four descriptors execute
 
@@ -226,7 +240,7 @@ What that leaves, stated plainly:
   panel's switch writes a row that every instance reconciles against on its next
   request, so it survives a redeploy — the plugin somebody switched off at 2am is
   exactly the one that must stay off. Removing a plugin is `pnpm remove`, a line
-  out of `forum.config.ts`, and a redeploy; a button that dropped the rows and
+  out of `forum.plugins.ts`, and a redeploy; a button that dropped the rows and
   left the code running would produce a state neither installing nor removing
   does.
 

@@ -18,7 +18,7 @@ If you read nothing else on this page, read this.
 
 | Rule | Where it is enforced |
 |---|---|
-| `app/` never imports `@meith/db` | dependency-cruiser |
+| `app/` reads through the container, not `@meith/db` | Review — two admin pages currently break it |
 | `"use client"` on leaf components only — never a page, never a layout | Review, and `pnpm slots:check` for themes |
 | Every Server Action re-checks authorization itself | Review |
 | `redirect()` goes **outside** the `try` | Review |
@@ -53,8 +53,11 @@ A file under `app/` should be short enough to read in one screen. If a page is
 long, the length is domain logic that belongs in a package, or view-model
 assembly that belongs in `src/view/`.
 
-**`app/` never imports `@meith/db`.** Enforced by dependency-cruiser. Pages get
-their data from the container in `src/server/container.ts`.
+**`app/` reads through the container in `src/server/container.ts`, not
+`@meith/db`.** Held by review rather than a tool — dependency-cruiser has no
+rule for it — and two admin pages (`admin/users/[id]/merge`,
+`admin/forums/[id]`) currently import `@meith/db` directly. Do not add a third;
+the rule is the direction of travel.
 
 ---
 
@@ -247,8 +250,8 @@ satisfy all three — the thread and forum counters are the worked example:
   path back to a computed truth, batched and resumable (`PostgresCounterRecount`).
   A counter with no recount is a number that is wrong forever after one crash.
 
-Event handlers live in `src/server/event-handlers.ts` and are built per
-container, never registered onto a module-level singleton — registration throws
+Event handlers live in `packages/runtime/src/event-handlers.ts` and are built
+per container, never registered onto a module-level singleton — registration throws
 on a duplicate id, and a dev server re-evaluating the module would hit that on
 its second pass.
 
@@ -316,10 +319,12 @@ into every theme, where it becomes a timezone-dependent hydration mismatch. A
 timestamp crosses as `TimeModel` (`iso` + a preformatted `label`); paging crosses
 as resolved hrefs, never a function that builds them.
 
-**Never link to a route that does not exist.** `buildUserPanelModel` returns an
-empty link list for a member because the profile, user panel and admin screens
-are not built. That is the accurate rendering of the board as it is; a header link
-to a 404 on every page is not.
+**Never link to a route that does not exist.** The user-panel builder earned
+this rule by example: while the profile and control-panel screens were unbuilt,
+`buildUserPanelModel` returned an empty link list rather than advertising pages
+that 404. The screens exist now and the list is populated — the rule outlives
+the example, so when a view model covers a page that is not built yet, render
+the absence.
 
 **Never expose a database row to a component or an API response.** Row shapes
 change with migrations, and a component reading `row.password_hash` because it
@@ -354,7 +359,7 @@ adding a field is minor, renaming or removing one needs a deprecation cycle.
 ## Before opening a PR
 
 `pnpm verify` — guards, guard probes, the slot boundary check and its probe,
-lint, dependency-cruiser, both typechecks, tests. `pnpm build` if you touched
+lint, dependency-cruiser, all three typechecks, tests. `pnpm build` if you touched
 anything under `app/` — and if you touched a theme, check the class you used is
 actually in the built CSS: Tailwind scans `themes/` only because `globals.css`
 says so, and a missing `@source` is a green build that renders unstyled.

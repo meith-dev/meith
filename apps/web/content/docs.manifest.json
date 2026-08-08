@@ -162,6 +162,15 @@
       "primary": true
     },
     {
+      "slug": "architecture",
+      "file": "architecture.md",
+      "section": "development",
+      "title": "Architecture",
+      "blurb": "How it fits together: the processes, the layers, the path a request takes, and the seams everything else hangs off.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "nextjs-conventions",
       "file": "nextjs-conventions.md",
       "section": "development",
