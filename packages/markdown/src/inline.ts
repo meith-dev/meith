@@ -54,6 +54,29 @@ const BARE_URL = /^(https?:\/\/|www\.)[^\s<]*/i
 const AUTOLINK = /^<([a-z][a-z0-9+.-]{1,31}:[^\s<>]*)>/i
 const AUTOLINK_EMAIL = /^<([^\s<>@]+@[^\s<>@]+\.[^\s<>@]+)>/
 
+/**
+ * `@name` — a mention of a member.
+ *
+ * The character set is the username rule (`USERNAME_RE` in `@meith/accounts`)
+ * minus the space, because a bare mention has to end somewhere and mid-sentence
+ * the space is where. A member whose name contains one is mentioned with the
+ * quoted form below.
+ */
+const MENTION = /^@([\p{L}\p{N}][\p{L}\p{N}._-]*)/u
+
+/** `@"name with spaces"` — the quoted form, for names the bare one cannot say. */
+const MENTION_QUOTED = /^@"([^"\n]+)"/
+
+/** What the quoted form's content must still be: a possible username. */
+const MENTION_NAME = /^[\p{L}\p{N}][\p{L}\p{N} ._-]*$/u
+
+/**
+ * The most a username can be: `registration.username_max` is clamped to the
+ * 64-character database column. Restated here because the parser reads no
+ * settings. Past it the run stays text — whatever it is, it is not a name.
+ */
+const MENTION_MAX = 64
+
 type Delimiter = {
   readonly t: 'delim'
   readonly char: string
@@ -414,6 +437,47 @@ export function parseInline(
           flush()
           if (!push({ kind: 'directive', name: match[1]!, children })) break
           index = close + 1
+          continue
+        }
+      }
+      buffer += character
+      index += 1
+      continue
+    }
+
+    /*
+     * `@name`, at a boundary only — the same rule the bare-URL branch applies,
+     * and for the same two reasons: `someone@example.com` must stay an address,
+     * and text already inside a construct must not sprout a second one. Gated on
+     * `allowLinks` because a mention renders as an anchor, and an anchor inside
+     * a link's own text is the nesting the parameter exists to prevent.
+     */
+    if (character === '@' && allowLinks && context.features.mentions) {
+      const before = index === 0 ? undefined : source[index - 1]
+      if (before === undefined || /[\s(<*_~]/.test(before)) {
+        const rest = source.slice(index)
+        const quoted = MENTION_QUOTED.exec(rest)
+        const bare = quoted === null ? MENTION.exec(rest) : null
+
+        let name: string | null = null
+        let consumed = 0
+        if (quoted !== null && MENTION_NAME.test(quoted[1]!)) {
+          name = quoted[1]!
+          consumed = quoted[0].length
+        } else if (bare !== null) {
+          /*
+           * A sentence ending "…thanks @wren." means the full stop is the
+           * sentence's, exactly as `trimBareUrl` decides for URLs. A name
+           * really ending in dots loses them here and gains the quoted form.
+           */
+          name = bare[1]!.replace(/\.+$/, '')
+          consumed = 1 + name.length
+        }
+
+        if (name !== null && name.length > 0 && name.length <= MENTION_MAX) {
+          flush()
+          if (!push({ kind: 'mention', name })) break
+          index += consumed
           continue
         }
       }

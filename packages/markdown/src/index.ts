@@ -25,6 +25,7 @@ export {
   type RenderedBody,
 } from './body'
 export { parse, type ParseOptions } from './blocks'
+export { extractMentions, extractQuotedAuthors } from './mentions'
 export { plainText, summarise } from './plain'
 export { renderDocument, renderInline, type RenderContext } from './render'
 export { parseInline, type InlineContext } from './inline'

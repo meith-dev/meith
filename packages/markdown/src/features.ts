@@ -36,6 +36,8 @@ export interface MarkdownFeatures {
   readonly emphasis: boolean
   /** `:::name` blocks and `:name[…]` spans, from the board's vocabulary (F71). */
   readonly directives: boolean
+  /** `@name` and `@"name with spaces"` member mentions. */
+  readonly mentions: boolean
 }
 
 /** Everything. What a post body is rendered with. */
@@ -51,6 +53,7 @@ export const FULL_FEATURES: MarkdownFeatures = {
   links: true,
   emphasis: true,
   directives: true,
+  mentions: true,
 }
 
 /**
@@ -69,6 +72,10 @@ export const FULL_FEATURES: MarkdownFeatures = {
  *   - **quotes** — a quote block inside a signature is a quote of nothing.
  *   - **code blocks, tables, rules, lists** — all four are walls, and the
  *     signature length limit is measured in characters, not in height.
+ *   - **mentions** — a mention in a signature repeats under every post its
+ *     author has ever made, which turns one `@name` into a link on a thousand
+ *     pages nobody addressed to anybody. The characters stay, the link does
+ *     not.
  */
 export const SIGNATURE_FEATURES: MarkdownFeatures = {
   headings: false,
@@ -82,4 +89,5 @@ export const SIGNATURE_FEATURES: MarkdownFeatures = {
   links: true,
   emphasis: true,
   directives: false,
+  mentions: false,
 }

@@ -94,6 +94,20 @@ export function renderInline(nodes: readonly Inline[], context: RenderContext = 
       case 'directive':
         html += `<span class="md-directive md-directive-${escapeAttribute(node.name)}">${renderInline(node.children, context)}</span>`
         break
+      case 'mention': {
+        /*
+         * The href is constructed, never the author's: a board-relative path
+         * around a percent-encoded name whose character set the parser already
+         * checked. `/member/by-name/…` resolves it to an account — or to a 404
+         * — at click time, because this HTML is cached and a render that needed
+         * a lookup to be replayed could not be. No `rel`: that attribute exists
+         * for member-*supplied* destinations, and this one goes nowhere a
+         * member chose.
+         */
+        const href = `/member/by-name/${encodeURIComponent(node.name)}`
+        html += `<a class="md-mention" href="${escapeAttribute(href)}">@${escapeHtml(node.name)}</a>`
+        break
+      }
     }
   }
   return html

@@ -254,6 +254,10 @@ describe('preferences', () => {
       ['report.actioned', false, true],
       ['subscription.reply', true, true],
       ['subscription.digest', true, true],
+      /* Mail on for a mention (addressed to one person by name), off for a
+         quote (how threads converse — once per participant would be a lot). */
+      ['post.mentioned', true, true],
+      ['post.quoted', false, true],
       /* F60. On by default for a message, off for a receipt: the sender already
          asked to be told and can see the read time on the message itself. */
       ['pm.received', true, true],
