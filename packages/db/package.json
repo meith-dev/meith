@@ -41,6 +41,7 @@
   },
   "scripts": {
     "generate": "drizzle-kit generate",
-    "check": "drizzle-kit check"
+    "check": "drizzle-kit check",
+    "migrate": "tsx src/migrate-run.ts"
   }
 }
