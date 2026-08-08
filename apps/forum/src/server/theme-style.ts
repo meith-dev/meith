@@ -234,6 +234,49 @@ function differing(
 }
 
 /**
+ * Restate, in the dark block, every token the light block declares.
+ *
+ * ## The bug this fixes, which was invisible in the emitted CSS
+ *
+ * A light-only override — the exact thing this file grew per-scheme overrides
+ * *for* — used to emit `:root{--primary:…}` and no dark block at all, on the
+ * reasoning that the theme's dark value equals the baseline and the baseline is
+ * already in the stylesheet. It is, in `globals.css`'s `.dark` rule, and that
+ * rule loses: `:root` and `.dark` are both one class's worth of specificity, and
+ * this block is injected *after* the stylesheet, so at equal specificity the
+ * later rule wins. A board that set a light-mode brand colour got it in dark
+ * mode too, which is precisely the failure the scheme-keyed shape was introduced
+ * to end.
+ *
+ * The asymmetry is real rather than an oversight in the fix: a **dark**-only
+ * override needs no restatement in light, because the dark block is scoped to
+ * `.dark` and to `prefers-color-scheme: dark`, and neither is in force when the
+ * reader is in light mode. Only light travels, because only light is unscoped.
+ *
+ * The value restated is the theme's **effective** dark value, so a token
+ * overridden in both schemes keeps its dark override rather than being rewritten
+ * with the theme's own.
+ */
+function restatedForDark(
+  light: Readonly<Record<string, string>>,
+  dark: Record<string, string>,
+  darkValues: Readonly<Record<string, string>>,
+): Record<string, string> {
+  const out = { ...dark }
+
+  for (const name of Object.keys(light)) {
+    if (name in out) continue
+    const value = darkValues[name]
+    /* A theme that does not declare it has nothing to restate. */
+    if (value === undefined) continue
+    assertSafeCssValue(`token "${name}"`, value)
+    out[name] = value
+  }
+
+  return out
+}
+
+/**
  * A light block and a dark block, written so both win however the reader's
  * browser decides which scheme it is in.
  *
@@ -287,9 +330,15 @@ export function renderBoardStyle(input: {
    * each of which is scoped to an attribute the default never carries, so a
    * later block can only win when the reader has actually chosen that theme.
    */
+  const activeLight = differing(activeTokens.light, input.baseline.light)
+
   let css = schemeBlocks(
-    differing(activeTokens.light, input.baseline.light),
-    differing(activeTokens.dark, input.baseline.dark),
+    activeLight,
+    restatedForDark(
+      activeLight,
+      differing(activeTokens.dark, input.baseline.dark),
+      activeTokens.dark,
+    ),
     { light: ':root', dark: '.dark', media: ':root:not(.light)' },
   )
   css += validateCustomCss(active.customCss) ?? ''
@@ -300,10 +349,17 @@ export function renderBoardStyle(input: {
 
     const tokens = effectiveTokens(theme)
     const scope = `[data-theme="${theme.key}"]`
+    const light = differing(tokens.light, activeTokens.light)
 
     css += schemeBlocks(
-      differing(tokens.light, activeTokens.light),
-      differing(tokens.dark, activeTokens.dark),
+      light,
+      /*
+       * Same rule, one specificity up. `:root[data-theme="x"]` outranks both
+       * the stylesheet's `.dark` and the board default's, so a token this theme
+       * disagrees about in light only would paint its light value on a reader
+       * in dark mode.
+       */
+      restatedForDark(light, differing(tokens.dark, activeTokens.dark), tokens.dark),
       {
         light: `:root${scope}`,
         dark: `.dark${scope}`,

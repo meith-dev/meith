@@ -99,6 +99,20 @@ export function oklchToRgb(colour: Oklch): { rgb: Rgb; inGamut: boolean } {
   }
 }
 
+/**
+ * WCAG relative luminance, from sRGB channels in 0–1.
+ *
+ * Here rather than in `@/view/contrast`, which is the only caller, because it
+ * is the *same transfer function* as the encode two lines up — and a second
+ * copy of a gamma curve written from the same specification is the kind of
+ * duplicate that stays right until somebody fixes a threshold in one of them.
+ * What belongs in the contrast module is which colour sits on which, not how
+ * sRGB is linearised.
+ */
+export function relativeLuminance({ r, g, b }: Rgb): number {
+  return 0.2126 * gammaDecode(r) + 0.7152 * gammaDecode(g) + 0.0722 * gammaDecode(b)
+}
+
 /** sRGB → OKLCH. Needed to seed the picker from a hex value. */
 export function rgbToOklch({ r, g, b }: Rgb): Oklch {
   const lr = gammaDecode(r)

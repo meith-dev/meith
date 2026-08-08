@@ -89,6 +89,7 @@ const {
   saveThemeAction,
   setDefaultThemeAction,
   setThemeEnabledAction,
+  themeEditorAction,
 } = await import('./theme-admin-actions')
 
 function form(fields: Record<string, string>): FormData {
@@ -349,6 +350,22 @@ describe('previewThemeAction', () => {
     expect(state.preview).toContain('[data-theme-preview].dark{--primary:#abcdef;}')
   })
 
+  /*
+   * The tokens were carefully scoped and then arbitrary author CSS was appended
+   * unscoped, so previewing `body{display:none}` blanked the control panel that
+   * would have undone it. Nesting it under the same attribute is what
+   * `renderBoardStyle` already does for an alternate theme's CSS.
+   */
+  it('nests the custom CSS inside the sample rather than letting it out', async () => {
+    const state = await previewThemeAction(
+      {},
+      form({ key: 'default', customCss: 'body{display:none}' }),
+    )
+
+    expect(state.preview).toContain('[data-theme-preview]{body{display:none}}')
+    expect(state.preview?.startsWith('body')).toBe(false)
+  })
+
   it('runs the same validation a save would, so a preview cannot hide a refusal', async () => {
     /*
      * A preview that approximated the rules in the browser would show an
@@ -385,6 +402,50 @@ describe('previewThemeAction', () => {
       form({ key: 'default', 'token.light.primary': '#abcdef' }),
     )
     expect(state.values?.preview).toBeUndefined()
+  })
+})
+
+/**
+ * The router the editor's single form posts to.
+ *
+ * It exists because two `useActionState` hooks on one form silently lose the
+ * second one's result when the browser has no JavaScript — both write an
+ * `$ACTION_KEY` field, both are posted, and the form's own action wins. The
+ * consequence was a preview that returned a validated style block the page then
+ * threw away. That is a wiring failure no unit test of either action could
+ * catch, so what is asserted here is the wiring: which action a given submitter
+ * reaches.
+ */
+describe('themeEditorAction', () => {
+  it('previews when the preview button was the submitter', async () => {
+    const state = await themeEditorAction(
+      {},
+      form({ key: 'default', intent: 'preview', 'token.light.primary': '#abcdef' }),
+    )
+
+    expect(saved).toEqual([])
+    expect(state.preview).toContain('--primary:#abcdef;')
+  })
+
+  /*
+   * Save is the default rather than a second `intent` value, so a browser that
+   * submits the form without a submitter — the Enter key in a text field — does
+   * the thing the form is for.
+   */
+  it('saves when no intent is given at all', async () => {
+    const state = await themeEditorAction(
+      {},
+      form({ key: 'default', 'token.light.primary': '#abcdef' }),
+    )
+
+    expect(state.notice).toBe('saved')
+    expect(saved).toHaveLength(1)
+  })
+
+  it('saves when the save button was the submitter', async () => {
+    await themeEditorAction({}, form({ key: 'default', intent: 'save' }))
+
+    expect(saved).toHaveLength(1)
   })
 })
 

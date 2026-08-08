@@ -39,8 +39,15 @@ describe('theme runtime style', () => {
       const { css } = renderThemeStyle(midnight, undefined, null, baseline)
 
       expect(css).toContain(':root{--background:#101820;--primary:#33cccc;}')
-      expect(css).toContain('.dark{--background:#05080b;}')
-      /* Unchanged tokens are left to the stylesheet rather than restated. */
+      /*
+       * `--primary` appears in the dark block although midnight's dark value is
+       * the stylesheet's own. It has to: the light declaration is unscoped and
+       * comes after the stylesheet, so it would otherwise beat `.dark` on
+       * document order and paint `#33cccc` on a reader in dark mode. See
+       * `restatedForDark`.
+       */
+      expect(css).toContain(`.dark{--background:#05080b;--primary:${DARK_TOKENS.primary};}`)
+      /* A token neither block declares is still left to the stylesheet. */
       expect(css).not.toContain('--foreground')
     })
 
@@ -83,6 +90,40 @@ describe('theme runtime style', () => {
 
       expect(css).toContain(':root{--primary:#0a58ca;}')
       expect(css).toContain('.dark{--primary:#6ea8fe;}')
+    })
+
+    /*
+     * The bug the scheme-keyed shape was introduced to end, which survived it.
+     *
+     * An override in light alone used to emit `:root{--primary:…}` and no dark
+     * block, on the reasoning that the theme's own dark value is already in
+     * `globals.css`. It is — in a `.dark` rule of exactly the same specificity,
+     * *earlier* in the document than this block, so it loses. The board got its
+     * light-mode brand colour in dark mode too.
+     *
+     * The theme's dark value is restated rather than the override repeated:
+     * "light only" has to mean light only, in the emitted CSS and not just in
+     * the row.
+     */
+    it('restates the theme’s dark value when only light is overridden', () => {
+      const { css } = renderThemeStyle(tokens, { light: { primary: '#0a58ca' }, dark: {} }, null)
+
+      expect(css).toContain(':root{--primary:#0a58ca;}')
+      expect(css).toContain(`.dark{--primary:${DARK_TOKENS.primary};}`)
+      expect(css).toContain(
+        `@media (prefers-color-scheme: dark){:root:not(.light){--primary:${DARK_TOKENS.primary};}}`,
+      )
+    })
+
+    /*
+     * The asymmetry, asserted so nobody "fixes" it into symmetry: the dark
+     * block is scoped to `.dark` and to the media query, neither of which is in
+     * force in light mode, so a dark-only override has nothing to leak into.
+     */
+    it('says nothing in light when only dark is overridden', () => {
+      const { css } = renderThemeStyle(tokens, { light: {}, dark: { primary: '#6ea8fe' } }, null)
+
+      expect(css.startsWith('.dark{--primary:#6ea8fe;}')).toBe(true)
     })
 
     /*
@@ -179,9 +220,16 @@ describe('renderBoardStyle', () => {
     const { css } = board()
 
     expect(css).toContain(':root[data-theme="midnight"]{--background:#101820;--primary:#33cccc;}')
-    expect(css).toContain('.dark[data-theme="midnight"]{--background:#05080b;}')
+    /*
+     * `--primary` is restated in dark for the same reason it is in the unscoped
+     * block, one specificity up: `:root[data-theme="midnight"]` outranks both
+     * the stylesheet's `.dark` and the board default's, so a token this theme
+     * disagrees about in light alone would paint its light value in dark mode.
+     */
+    const scoped = `--background:#05080b;--primary:${DARK_TOKENS.primary};`
+    expect(css).toContain(`.dark[data-theme="midnight"]{${scoped}}`)
     expect(css).toContain(
-      '@media (prefers-color-scheme: dark){:root[data-theme="midnight"]:not(.light){--background:#05080b;}}',
+      `@media (prefers-color-scheme: dark){:root[data-theme="midnight"]:not(.light){${scoped}}}`,
     )
   })
 
