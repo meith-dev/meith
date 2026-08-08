@@ -8,7 +8,7 @@ import 'server-only'
  * A Server Action re-renders the route it was posted from, but the client
  * Router Cache holds the **layout** — so an action that changes something the
  * *root layout* renders appears to do nothing until the next full navigation.
- * That is exactly what the appearance and consent controls change: `data-theme`
+ * That is exactly what the appearance controls change: `data-theme`
  * and the colour-scheme class live on `<html>`.
  *
  * It is a real bug and an invisible one. With scripting off, the browser's own

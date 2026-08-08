@@ -10,10 +10,8 @@ import { resolveBoardUrl } from "@meith/settings"
  * uses, so installing a second one would mean editing the layout — exactly the
  * retrofit `forum.config.ts` exists to avoid.
  */
-import { CookieNotice } from "@/components/shell/cookie-notice"
 import { GroupNameStyle } from "@/components/shell/group-name-style"
 import { ThemeRuntimeStyle } from "@/components/shell/theme-runtime-style"
-import { getConsentState } from "@/server/consent"
 import { getSettings } from "@/server/settings"
 import { currentColourScheme, currentThemeKey } from "@/server/theme"
 import { getThemeRuntimeStyle } from "@/server/theme-runtime"
@@ -166,10 +164,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const [theme, scheme, consent] = await Promise.all([
+  const [theme, scheme] = await Promise.all([
     currentThemeKey(),
     currentColourScheme(),
-    getConsentState(),
   ])
 
   return (
@@ -185,17 +182,7 @@ export default async function RootLayout({
       </head>
       <body className="font-sans antialiased">
         {children}
-        <CookieNotice />
-        {/*
-          The board's one piece of optional processing, and the shape any second
-          one should copy: gated on `optionalAllowed` and not rendered at all
-          until it is true — not loaded and then told to stay quiet. A script
-          that is on the page has already been fetched from a third party, which
-          is the thing being consented to. The flag is false for a reader who
-          has been asked and has not yet answered, so silence is the default
-          rather than the fallback.
-        */}
-        {env.NODE_ENV === "production" && consent.optionalAllowed && <Analytics />}
+        {env.NODE_ENV === "production" && <Analytics />}
       </body>
     </html>
   )

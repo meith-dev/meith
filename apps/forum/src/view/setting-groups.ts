@@ -31,7 +31,6 @@ export const GROUP_LABELS: Record<SettingGroup, string> = {
   reputation: 'Reputation',
   security: 'Security',
   antispam: 'Anti-spam',
-  privacy: 'Privacy',
 }
 
 /** The order the groups appear in: the order an operator sets a board up. */
@@ -44,12 +43,6 @@ export const GROUP_ORDER: readonly SettingGroup[] = [
   'reputation',
   'mail',
   'security',
-  /*
-   * Beside security rather than at the end: it is a question about the board's
-   * obligations to its readers, and an operator answering it is usually
-   * answering security's questions in the same sitting.
-   */
-  'privacy',
   /*
    * Last, because it is the group an operator reaches for when something is
    * already wrong rather than while setting a board up — and because every
