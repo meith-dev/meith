@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { findScenario, readFacts } from "./facts"
-import { performance as performanceCopy, proof } from "./site"
+import { performance as performanceCopy } from "./site"
 
 /**
  * The landing page quotes figures out of the generated references, and the whole
@@ -58,14 +58,6 @@ describe("the figures the landing page quotes", () => {
     }
   })
 
-  it("measures every scenario the page names", async () => {
-    const facts = await readFacts()
-
-    for (const page of performanceCopy.featured) {
-      expect(() => findScenario(facts.performance, page)).not.toThrow()
-    }
-  })
-
   it("says how a scenario the page names went missing", async () => {
     const facts = await readFacts()
 
@@ -74,13 +66,17 @@ describe("the figures the landing page quotes", () => {
     )
   })
 
-  it("gives every figure under the hero a value", async () => {
+  /*
+   * The speed band quotes exactly one measurement, in a sentence. The sentence
+   * is built from the reference at build time, so what is asserted is that the
+   * scenario it names is still measured and that the figures arrive as numbers
+   * — the two ways the sentence could go quietly wrong.
+   */
+  it("gives the speed band its sentence, with real numbers in it", async () => {
     const facts = await readFacts()
+    const sentence = performanceCopy.evidence(facts)
 
-    for (const stat of proof(facts)) {
-      expect(stat.value).not.toBe("")
-      expect(stat.value).not.toContain("NaN")
-      expect(stat.label).not.toBe("")
-    }
+    expect(sentence).not.toContain("NaN")
+    expect(sentence).toMatch(/\d+(\.\d+)? ms/)
   })
 })

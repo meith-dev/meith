@@ -579,46 +579,6 @@ body {
   background: var(--surface);
 }
 
-/* ── the numbers ──────────────────────────────────────────────────────── */
-
-/*
- * Tabular figures, tight, in the body face. The old rule set these in the serif
- * display face and argued for it — which was right when the headline voice was
- * a serif, and is wrong now that the whole page is one grotesque. A stat set in
- * the same face as the heading above it reads as part of the page.
- */
-.stat-value {
-  font-size: var(--step-2);
-  font-weight: 640;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-  color: var(--fg);
-}
-
-/*
- * A budget and what was measured against it, as a bar.
- *
- * One series, so no legend and no palette to validate: the fill is the accent,
- * the track is the accent at low alpha — a lighter step of the same ramp, so the
- * whole bar reads as one measurement rather than as two colours. The number is
- * beside it in text, because a bar alone is not a value.
- */
-.meter {
-  height: 0.375rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  overflow: hidden;
-}
-
-.meter > span {
-  display: block;
-  height: 100%;
-  min-width: 0.375rem;
-  border-radius: 999px;
-  background: var(--accent);
-}
-
 /* ── the terminal ─────────────────────────────────────────────────────── */
 
 /*
@@ -1142,61 +1102,6 @@ body {
 
 .doc-table code {
   white-space: nowrap;
-}
-
-/*
- * The budget table on the landing page: the documentation's table, with three
- * differences. The first column is prose rather than a value, so it reads at
- * body size; the two numeric columns align on their right edge, which is the
- * only way a column of milliseconds is comparable at a glance; and the rows are
- * centred, because the last cell contains a bar rather than a line of text.
- *
- * After `.doc-table` in the file on purpose — the two selectors have the same
- * specificity, so this one wins by being second, and moving it above would
- * silently stop it applying.
- */
-.perf-table {
-  background: var(--raised);
-  border-radius: var(--radius-card);
-}
-
-.perf-table th,
-.perf-table td {
-  vertical-align: middle;
-}
-
-/*
- * The page name does not wrap. On a phone it otherwise broke into four lines
- * beside a one-line measurement, and the bar in the last column was squeezed to
- * nothing rather than the table scrolling — which is what `.doc-table` is set up
- * to do, and the honest behaviour for a table that does not fit.
- */
-.perf-table td:first-child {
-  font-size: var(--step-0);
-  color: var(--fg);
-  white-space: nowrap;
-}
-
-.perf-table th:nth-child(4),
-.perf-table td:nth-child(4) {
-  min-width: 9rem;
-}
-
-.perf-table th:nth-child(2),
-.perf-table th:nth-child(3),
-.perf-table td:nth-child(2),
-.perf-table td:nth-child(3) {
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.perf-table td:nth-child(2) {
-  color: var(--fg);
-}
-
-.perf-table tbody tr:last-child td {
-  border-bottom: 0;
 }
 
 .doc-body blockquote {
