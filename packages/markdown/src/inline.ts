@@ -54,6 +54,34 @@ const BARE_URL = /^(https?:\/\/|www\.)[^\s<]*/i
 const AUTOLINK = /^<([a-z][a-z0-9+.-]{1,31}:[^\s<>]*)>/i
 const AUTOLINK_EMAIL = /^<([^\s<>@]+@[^\s<>@]+\.[^\s<>@]+)>/
 
+/**
+ * What may follow the `@` of a mention.
+ *
+ * The username charset (`@meith/accounts`) minus the space: a name is allowed
+ * to contain one, but `@John Smith says` gives a scanner no way to know where
+ * the name stops, so the bare form reaches only space-free names. Same
+ * trade-off every board that mentions people has made.
+ */
+const MENTION_NAME = /^[\p{L}\p{N}][\p{L}\p{N}._-]*/u
+
+/**
+ * A character that rules out a mention when it comes just before the `@`.
+ *
+ * Letters and digits, because `foo@example.com` is an address, not a mention
+ * of `example.com`'s owner — plus the rest of an e-mail local part's usual
+ * charset, so `first.last@` and `tag+filter@` stay whole too.
+ */
+const MENTION_BEFORE = /[\p{L}\p{N}@._%+-]/u
+
+/**
+ * The longest name worth scanning for.
+ *
+ * The board's username length is a setting this package cannot read; this is
+ * the backstop that keeps a five-hundred-character run of dots and dashes from
+ * becoming one giant link. Comfortably above the shipped maximum of 30.
+ */
+const MENTION_MAX = 64
+
 type Delimiter = {
   readonly t: 'delim'
   readonly char: string
@@ -415,6 +443,35 @@ export function parseInline(
           if (!push({ kind: 'directive', name: match[1]!, children })) break
           index = close + 1
           continue
+        }
+      }
+      buffer += character
+      index += 1
+      continue
+    }
+
+    /*
+     * `@name` — a mention. Gated on `allowLinks` like every other construct
+     * that renders as an anchor: a mention inside a link's own text would be
+     * a link inside a link.
+     */
+    if (character === '@' && context.features.mentions && allowLinks) {
+      const before = index === 0 ? undefined : source[index - 1]
+      if (before === undefined || !MENTION_BEFORE.test(before)) {
+        const match = MENTION_NAME.exec(source.slice(index + 1))
+        if (match !== null && match[0].length <= MENTION_MAX) {
+          /*
+           * A sentence-final full stop is the sentence's, not the name's —
+           * the same manners `trimBareUrl` shows a URL. Dots are the only
+           * overlap between the name charset and sentence punctuation.
+           */
+          const name = match[0].replace(/\.+$/, '')
+          if (name.length > 0) {
+            flush()
+            if (!push({ kind: 'mention', name })) break
+            index += 1 + name.length
+            continue
+          }
         }
       }
       buffer += character

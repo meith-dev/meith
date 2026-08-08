@@ -37,6 +37,7 @@ import { attachStaged, stageAttachments, submittedFiles } from './attachments'
 import { getActor } from './context'
 import { holdsNewMember, limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
+import { notifyMentionsAndQuotes } from './post-notifications'
 import { resolveReplyTarget, submitReply } from './reply-core'
 import { resolvePostScope } from './post-scope'
 import { getSettings } from './settings'
@@ -203,6 +204,7 @@ export async function createThreadAction(
   const settings = await getSettings()
   let created
   let community
+  let author
   let staged: Awaited<ReturnType<typeof stageAttachments>>
   try {
     community = await threadWrites.postingRules(communityId)
@@ -264,7 +266,7 @@ export async function createThreadAction(
      */
     staged = await stageAttachments(actor, target, await submittedFiles(form))
 
-    const author = await authorProfile(actor.userId)
+    author = await authorProfile(actor.userId)
 
     created = await composer.create(
       {
@@ -347,6 +349,23 @@ export async function createThreadAction(
     },
     viewerRef(actor),
   )
+
+  /*
+   * F55. A new thread's opening post can @mention people (and, pasted by
+   * hand, quote them); same placement and same never-fails contract as the
+   * event above. `reply-core.ts` does this for replies.
+   */
+  await notifyMentionsAndQuotes({
+    postId: created.postId,
+    threadId: created.threadId,
+    threadSlug: created.slug,
+    threadTitle: title,
+    communityId,
+    authorUserId: actor.userId,
+    authorUsername: author.username,
+    message,
+    visibility: created.visibility,
+  })
 
   /*
    * Outside the try: `redirect()` works by throwing, so catching it would turn

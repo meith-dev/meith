@@ -115,6 +115,31 @@ describe('report.actioned', () => {
   })
 })
 
+describe('post.mentioned and post.quoted', () => {
+  it('says who mentioned you and where', () => {
+    const view = render({
+      kind: 'post.mentioned',
+      data: { byUsername: 'bob', threadTitle: 'Hello world' },
+    })
+    expect(view.subject).toBe('bob mentioned you in Hello world')
+    expect(view.body).toContain('refers to you by name')
+  })
+
+  it('says who quoted you, and never carries the quoted text', () => {
+    const view = render({
+      kind: 'post.quoted',
+      data: { byUsername: 'bob', threadTitle: 'Hello world' },
+    })
+    expect(view.subject).toBe('bob quoted your post in Hello world')
+    expect(view.body).toContain('quotes a post of yours')
+  })
+
+  it('degrades to placeholders when the data is missing', () => {
+    const view = render({ kind: 'post.quoted', data: {} })
+    expect(view.subject).toBe('Somebody quoted your post in a thread')
+  })
+})
+
 describe('read state', () => {
   it('reports whether the row has been read', () => {
     expect(render().isRead).toBe(false)

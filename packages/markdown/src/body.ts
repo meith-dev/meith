@@ -25,12 +25,12 @@ import type { BoardVocabulary } from './vocabulary'
 /**
  * Current version of the renderer's output. Bump to invalidate every render.
  *
- * Two, and the jump is the whole of this release: version 1 was BBCode. Every
- * row a running board already has is stale the moment this deploys, renders
- * live, and is rewritten behind the read path — which is exactly the mechanism
- * a renderer change was always supposed to use.
+ * Three: version 1 was BBCode, version 2 the first Markdown renderer, and
+ * three adds `@name` mentions — a stored version-2 render of a post that says
+ * `@ada` has her as plain text, so it is stale the moment this deploys,
+ * renders live, and is rewritten behind the read path.
  */
-export const RENDER_VERSION = 2
+export const RENDER_VERSION = 3
 
 /**
  * Which language a stored source column is written in.

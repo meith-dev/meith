@@ -14,6 +14,7 @@
  */
 import { escapeAttribute, escapeHtml } from './escape'
 import { renderSmilies, type CompiledSmilies } from './extensions'
+import { mentionHref } from './mention'
 import type { Alignment, Block, Inline, ListItem, MarkdownDocument } from './nodes'
 import { safeImageUrl, safeUrl } from './url'
 
@@ -93,6 +94,16 @@ export function renderInline(nodes: readonly Inline[], context: RenderContext = 
       }
       case 'directive':
         html += `<span class="md-directive md-directive-${escapeAttribute(node.name)}">${renderInline(node.children, context)}</span>`
+        break
+      case 'mention':
+        /*
+         * No `rel="nofollow ugc …"`, unlike `anchor()`: the destination is not
+         * member-supplied — it is built here, from a name the parser already
+         * held to the username charset, and it points at the board's own
+         * member route. Marking the board's internal links `ugc` would tell a
+         * crawler the board does not vouch for its own pages.
+         */
+        html += `<a href="${escapeAttribute(mentionHref(node.name))}" class="md-mention">@${escapeHtml(node.name)}</a>`
         break
     }
   }

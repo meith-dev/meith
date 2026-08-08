@@ -32,6 +32,7 @@ import { restrictsPosting } from '@meith/moderation'
 import { holdsNewMember, limitMessage, spendLimit } from './antispam'
 import { emitEvent, viewerRef } from './plugin-view'
 import { getContainer } from './container'
+import { notifyMentionsAndQuotes } from './post-notifications'
 import { getSettings } from './settings'
 
 /** What `resolveReplyTarget` proved, and what writing the reply needs. */
@@ -165,6 +166,23 @@ export async function submitReply(
     { postId: created.postId, threadId: created.threadId, communityId, authorId: userId },
     viewerRef(actor),
   )
+
+  /*
+   * F55. After the commit, like the event above, and unable to fail it: the
+   * people this reply @mentions or quotes are told about a post that already
+   * exists, and a notification store being down must not refuse the reply.
+   */
+  await notifyMentionsAndQuotes({
+    postId: created.postId,
+    threadId: created.threadId,
+    threadSlug: created.slug,
+    threadTitle: target.title,
+    communityId,
+    authorUserId: userId,
+    authorUsername: profile.username,
+    message: input.message,
+    visibility: created.visibility,
+  })
 
   return created
 }

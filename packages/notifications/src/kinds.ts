@@ -121,6 +121,38 @@ export const NOTIFICATION_KINDS = [
     emailConfigurable: true,
   },
   {
+    id: 'post.mentioned',
+    title: 'Somebody mentions you in a post',
+    description:
+      'A post names you with an @mention. The notification says who wrote it ' +
+      'and links to the post.',
+    audience: 'member',
+    /*
+     * On by default. A mention is a direct address — the author typed this
+     * member's name expecting them to see it — and unlike a reply it can land
+     * in a thread the member never subscribed to, so nothing else will carry
+     * the news.
+     */
+    emailByDefault: true,
+    emailConfigurable: true,
+  },
+  {
+    id: 'post.quoted',
+    title: 'Somebody quotes your post',
+    description:
+      'A reply quotes something you wrote. The notification says who quoted ' +
+      'you and links to their reply.',
+    audience: 'member',
+    /*
+     * Off by default. Quoting is how conversation works in a busy thread, and
+     * the quoted author is very often subscribed to it already — a mail per
+     * quote on top of `subscription.reply` would be the same reply announced
+     * twice. The on-site notification is always delivered.
+     */
+    emailByDefault: false,
+    emailConfigurable: true,
+  },
+  {
     id: 'pm.received',
     title: 'You receive a private message',
     description:

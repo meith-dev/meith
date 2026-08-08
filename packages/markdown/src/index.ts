@@ -41,6 +41,7 @@ export { escapeHtml, escapeAttribute } from './escape'
 export { safeUrl, safeImageUrl, type UrlPolicy } from './url'
 export { bbcodeToMarkdown } from './bbcode'
 export { escapeMarkdownText, plainAuthorName } from './escape-source'
+export { extractMentions, extractQuotedAuthors, mentionHref } from './mention'
 export { quoteBlock, type QuoteInput } from './quote'
 export {
   applyWordFilter,

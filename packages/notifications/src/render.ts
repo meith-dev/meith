@@ -187,6 +187,29 @@ const TEMPLATES: Readonly<
     }
   },
 
+  'post.mentioned': (data) => {
+    const by = str(data, 'byUsername', 'Somebody')
+    const title = str(data, 'threadTitle', 'a thread')
+    return {
+      subject: `${by} mentioned you in ${title}`,
+      body: `A post by ${by} in “${title}” refers to you by name.`,
+    }
+  },
+
+  'post.quoted': (data) => {
+    const by = str(data, 'byUsername', 'Somebody')
+    const title = str(data, 'threadTitle', 'a thread')
+    return {
+      subject: `${by} quoted your post in ${title}`,
+      /*
+       * Who and where, never the quoted text itself: a notification row
+       * outlives the post that caused it (F55), and the member can delete
+       * their post without a copy of it surviving in somebody's centre.
+       */
+      body: `A reply by ${by} in “${title}” quotes a post of yours.`,
+    }
+  },
+
   'pm.received': (data) => {
     const from = str(data, 'fromUsername', 'Somebody')
     const subject = str(data, 'subject', 'a private message')

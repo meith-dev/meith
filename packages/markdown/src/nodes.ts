@@ -35,6 +35,15 @@ export type Inline =
   | { readonly kind: 'break' }
   /** `:name[text]` — a board-defined inline directive (F71). */
   | { readonly kind: 'directive'; readonly name: string; readonly children: readonly Inline[] }
+  /**
+   * `@name` — a reference to a member by username.
+   *
+   * The name is held as typed, unresolved: whether an account by that name
+   * exists is a database question, and this package answers none. `render.ts`
+   * turns it into a link to the board's member-by-name route, which does the
+   * resolving when somebody follows it.
+   */
+  | { readonly kind: 'mention'; readonly name: string }
 
 export interface TableCell {
   readonly inline: readonly Inline[]
@@ -99,6 +108,7 @@ export function textOf(nodes: readonly Inline[]): string {
     if (node.kind === 'text' || node.kind === 'code') out += node.value
     else if (node.kind === 'image') out += node.alt
     else if (node.kind === 'break') out += '\n'
+    else if (node.kind === 'mention') out += `@${node.name}`
     else out += textOf(node.children)
   }
   return out

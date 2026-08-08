@@ -27,6 +27,10 @@ function fromInline(nodes: readonly Inline[]): string {
         /* The alt text, which is the only part of an image that is words. */
         out += node.alt
         break
+      case 'mention':
+        /* As typed, `@` included — that is what somebody searching for it types. */
+        out += `@${node.name}`
+        break
       case 'break':
         out += ' '
         break
