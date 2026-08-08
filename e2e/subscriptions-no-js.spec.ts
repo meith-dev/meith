@@ -1,5 +1,5 @@
 /**
- * Following threads and communities, in a browser, with JavaScript off (F56).
+ * Following threads and forums, in a browser, with JavaScript off (F56).
  *
  * The unit tiers prove `subscribe` upserts and the notifier coalesces. What
  * only a browser can prove is the loop as a member lives it: the checkbox on
@@ -105,7 +105,7 @@ test('a follower is notified of a reply once the queue has run', async ({ browse
       followerPage.getByRole('button', { name: 'Stop following' }),
     ).toBeVisible()
 
-    /* Following a community works the same way, from its own page. */
+    /* Following a forum works the same way, from its own page. */
     await followerPage.goto('/200-general')
     await followerPage.getByRole('button', { name: 'Follow', exact: true }).click()
     await expect(

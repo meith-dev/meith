@@ -29,7 +29,7 @@ import {
  * exactly three answers, for ever, and three icons are smaller than a menu as
  * well as being one press instead of two.
  *
- * The menu is deliberately the same shape as the community jump box directly above
+ * The menu is deliberately the same shape as the forum jump box directly above
  * it: a label, a `<select>`, a small submit. That is not imitation for its own
  * sake — the two sit in the same block of chrome, and a reader who has used one
  * should not have to work out that the other behaves the same way. It is also
@@ -100,7 +100,7 @@ export async function ThemeSwitcher() {
     <div className="border-t border-border bg-card text-card-foreground">
       {/*
         `BOARD_MEASURE`, not a width of its own. This strip sits directly under
-        the community jump box, which is a *theme* slot on the theme's measure — so a
+        the forum jump box, which is a *theme* slot on the theme's measure — so a
         strip on any other width is one whose controls stop short of the page
         they belong to, which is exactly what a hand-written `max-w-5xl` here
         did. The constant is the app's half of that agreement and it already

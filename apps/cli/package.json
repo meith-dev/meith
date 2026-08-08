@@ -18,7 +18,7 @@
     "@meith/db": "workspace:*",
     "@meith/drivers": "workspace:*",
     "@meith/events": "workspace:*",
-    "@meith/communities": "workspace:*",
+    "@meith/forums": "workspace:*",
     "@meith/profile-fields": "workspace:*",
     "@meith/settings": "workspace:*",
     "@meith/tasks": "workspace:*"

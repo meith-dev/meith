@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { defineCommunityConfig, type InstalledTheme } from './config'
+import { defineForumConfig, type InstalledTheme } from './config'
 
 function theme(key: string): InstalledTheme {
   return {
@@ -10,9 +10,9 @@ function theme(key: string): InstalledTheme {
   }
 }
 
-describe('defineCommunityConfig', () => {
+describe('defineForumConfig', () => {
   it('returns the config it was given', () => {
-    const config = defineCommunityConfig({
+    const config = defineForumConfig({
       themes: { default: theme('default') },
       defaultTheme: 'default',
     })
@@ -20,7 +20,7 @@ describe('defineCommunityConfig', () => {
   })
 
   it('accepts several themes', () => {
-    const config = defineCommunityConfig({
+    const config = defineForumConfig({
       themes: { default: theme('default'), midnight: theme('midnight') },
       defaultTheme: 'midnight',
     })
@@ -34,13 +34,13 @@ describe('defineCommunityConfig', () => {
    */
   it('refuses a defaultTheme that is not registered', () => {
     expect(() =>
-      defineCommunityConfig({ themes: { default: theme('default') }, defaultTheme: 'midnight' }),
+      defineForumConfig({ themes: { default: theme('default') }, defaultTheme: 'midnight' }),
     ).toThrow(/defaultTheme "midnight" is not registered/)
   })
 
   it('lists what is available when the default is wrong', () => {
     expect(() =>
-      defineCommunityConfig({
+      defineForumConfig({
         themes: { a: theme('a'), b: theme('b') },
         defaultTheme: 'c',
       }),
@@ -54,19 +54,19 @@ describe('defineCommunityConfig', () => {
    */
   it('refuses a theme whose key disagrees with its registration', () => {
     expect(() =>
-      defineCommunityConfig({ themes: { light: theme('default') }, defaultTheme: 'light' }),
+      defineForumConfig({ themes: { light: theme('default') }, defaultTheme: 'light' }),
     ).toThrow(/declares key "default"/)
   })
 
   it('refuses an empty registry', () => {
-    expect(() => defineCommunityConfig({ themes: {}, defaultTheme: 'default' })).toThrow(
+    expect(() => defineForumConfig({ themes: {}, defaultTheme: 'default' })).toThrow(
       /at least one theme/,
     )
   })
 
   it('refuses a plugin registered twice', () => {
     expect(() =>
-      defineCommunityConfig({
+      defineForumConfig({
         themes: { default: theme('default') },
         defaultTheme: 'default',
         plugins: [{ key: 'hello' }, { key: 'hello' }],
@@ -76,7 +76,7 @@ describe('defineCommunityConfig', () => {
 
   it('allows no plugins at all', () => {
     expect(() =>
-      defineCommunityConfig({ themes: { default: theme('default') }, defaultTheme: 'default' }),
+      defineForumConfig({ themes: { default: theme('default') }, defaultTheme: 'default' }),
     ).not.toThrow()
   })
 
@@ -89,7 +89,7 @@ describe('defineCommunityConfig', () => {
    */
   it('refuses a plugin whose declared key disagrees with its registration', () => {
     expect(() =>
-      defineCommunityConfig({
+      defineForumConfig({
         themes: { default: theme('default') },
         defaultTheme: 'default',
         plugins: [{ key: 'hello', plugin: { key: 'goodbye' } }],
@@ -103,7 +103,7 @@ describe('defineCommunityConfig', () => {
      * in its code. The key check must not fire on the absence.
      */
     expect(() =>
-      defineCommunityConfig({
+      defineForumConfig({
         themes: { default: theme('default') },
         defaultTheme: 'default',
         plugins: [{ key: 'hello', enabled: false }],

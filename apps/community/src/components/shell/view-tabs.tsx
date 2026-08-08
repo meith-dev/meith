@@ -5,7 +5,7 @@
  * ## The board had four of these and no two looked alike
  *
  * Discovery drew filled and outlined pills. The inbox drew bold text against
- * muted text over a rule. A community's ordering drew an underline and a weight
+ * muted text over a rule. A forum's ordering drew an underline and a weight
  * change. Each was written where it was needed, each is defensible on its own,
  * and together they taught a member three different things about what "the one
  * you are looking at" looks like — on three pages they reach from the same

@@ -3,7 +3,7 @@
  *
  * Events are the seam between "a thing happened" and "everything that must
  * follow from it". A reply being posted has to bump counters, touch the parent
- * community's last-post pointer, fan out subscription notifications, and reindex for
+ * forum's last-post pointer, fan out subscription notifications, and reindex for
  * search. Doing that inline makes the request slow and couples posting to the
  * mail driver being up.
  *
@@ -39,15 +39,15 @@ export interface DomainEventMap {
    */
   'user.group_changed': { userId: number; addedGroupIds: number[]; removedGroupIds: number[] }
 
-  'thread.created': { threadId: number; communityId: number; authorId: number | null }
-  'thread.moved': { threadId: number; fromCommunityId: number; toCommunityId: number }
-  'thread.deleted': { threadId: number; communityId: number }
-  'thread.visibility_changed': { threadId: number; communityId: number; visible: boolean }
+  'thread.created': { threadId: number; forumId: number; authorId: number | null }
+  'thread.moved': { threadId: number; fromForumId: number; toForumId: number }
+  'thread.deleted': { threadId: number; forumId: number }
+  'thread.visibility_changed': { threadId: number; forumId: number; visible: boolean }
 
-  'post.created': { postId: number; threadId: number; communityId: number; authorId: number | null }
+  'post.created': { postId: number; threadId: number; forumId: number; authorId: number | null }
   'post.edited': { postId: number; threadId: number }
-  'post.deleted': { postId: number; threadId: number; communityId: number }
-  'post.visibility_changed': { postId: number; threadId: number; communityId: number; visible: boolean }
+  'post.deleted': { postId: number; threadId: number; forumId: number }
+  'post.visibility_changed': { postId: number; threadId: number; forumId: number; visible: boolean }
 
   /**
    * F55. Raised inside the same transaction as the notification row, and only
@@ -68,7 +68,7 @@ export interface DomainEventMap {
   /** F58. Same shape and same reason as `attachment.uploaded`. */
   'avatar.uploaded': { userId: number }
 
-  'community.structure_changed': { communityIds: number[] }
+  'forum.structure_changed': { forumIds: number[] }
   'settings.changed': { keys: string[] }
   'theme.changed': { themeId: number }
 

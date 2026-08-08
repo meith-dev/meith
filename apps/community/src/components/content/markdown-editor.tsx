@@ -7,7 +7,7 @@
  *
  * This board posts with JavaScript off (R5), so the editor cannot *be* the
  * editor — it has to be a plain `<textarea>` that something helpful is wrapped
- * around. That single constraint settles the question every community re-asks:
+ * around. That single constraint settles the question every forum re-asks:
  *
  *   - **Not a WYSIWYG.** A ProseMirror or Lexical surface replaces the
  *     textarea, which means with scripting off the board has no composer at
@@ -458,7 +458,7 @@ export function MarkdownEditor({
  *
  * A `<details>`, so it is there with scripting off, costs nothing when closed,
  * and does not spend the vertical space above the box that the member came here
- * to type in. Nine lines: what a community post actually uses.
+ * to type in. Nine lines: what a forum post actually uses.
  */
 function FormattingHelp({ scope }: { scope: PreviewScope }) {
   const inline: readonly (readonly [string, string])[] = [

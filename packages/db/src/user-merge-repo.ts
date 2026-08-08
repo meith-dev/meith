@@ -6,7 +6,7 @@
  *
  * **Every column, including the denormalised ones.** Forty columns in this
  * schema point at a user; two of them (`threads.last_post_user_id`,
- * `communities.last_post_user_id`) are display caches with no foreign key at all.
+ * `forums.last_post_user_id`) are display caches with no foreign key at all.
  * Missing one leaves rows pointing at an account that no longer participates —
  * which raises no error and is noticed months later. The map is a declaration
  * in `user-merge-map.ts` and a test holds it against `information_schema`.

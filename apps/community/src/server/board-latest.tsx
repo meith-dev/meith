@@ -83,7 +83,7 @@ export async function latestScopeFor(actor: Actor): Promise<LatestScope> {
   const staff = actor.global.isAdministrator === true || actor.global.isSuperModerator === true
 
   return {
-    communityIds: await authorizer.communityIdsWhere(actor, 'thread.view'),
+    forumIds: await authorizer.forumIdsWhere(actor, 'thread.view'),
     content: contentScopeFrom({ seesUnapproved: staff, seesDeleted: staff }),
   }
 }

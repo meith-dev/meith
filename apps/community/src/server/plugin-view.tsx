@@ -68,7 +68,7 @@ export async function emitEvent<K extends HookName>(
  * Returns `null` rather than an empty fragment when no plugin contributes, so a
  * theme's `{regions.plugins !== null && …}` does not wrap emptiness in a border.
  *
- * The keys are plugin keys, which are unique by construction — `defineCommunityConfig`
+ * The keys are plugin keys, which are unique by construction — `defineForumConfig`
  * refuses a duplicate — so React's reconciliation is stable across renders
  * without the host inventing an index.
  */

@@ -117,7 +117,7 @@ describe('isUsableOrigin', () => {
     ['mailto:hi@board.example', 'parses as a URL, and is not one a link can use'],
     ['javascript:alert(1)', 'the entire reason this is not z.string().url()'],
     ['ftp://board.example', 'a scheme no browser will follow from an e-mail'],
-    ['https://board.example/community', 'a page address — every link would carry /community'],
+    ['https://board.example/forum', 'a page address — every link would carry /forum'],
     ['https://board.example/?ref=x', 'a query that would end up mid-URL'],
     ['https://board.example/#top', 'a fragment, same problem'],
   ])('refuses %o — %s', (value) => {

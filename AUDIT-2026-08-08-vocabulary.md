@@ -4,6 +4,17 @@
 rebrand) and `b468568` (entity rename), and a recommendation for what the
 renamed entity should actually be called.
 
+> [!NOTE]
+> **Decided and done.** The entity is now **`forum`** — the runner-up below
+> rather than the leading recommendation, chosen for comprehension over brand
+> impression. The three index-link fixes landed with it: the nav item is
+> **Home**, the breadcrumb root is the **board's own name**, and the seeded
+> category is **Main**. The product stays community software, a running
+> installation stays a *board*, and the installation-level identifiers
+> (`COMMUNITY_ROLE`, the Postgres role and database, the `community` CLI binary,
+> `community.config.ts`, `apps/community/`) are deliberately untouched — those
+> name the product, not the entity. `pnpm verify` passes.
+
 The short version: the rebrand in `45cc0dd` was right and should stand. The
 entity rename in `b468568` gave one word two jobs at two different scales, and
 the symptom the rename is being judged by — a nav item reading **Communities**

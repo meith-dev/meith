@@ -39,7 +39,7 @@ the limits.
 |---|---|---|---|---|
 | `markdown.parse.text` | filter | — | `string` | `ViewerRef & { source: 'post' \| 'signature' \| 'pm' }` |
 | `markdown.render.html` | filter | — | `string` | `ViewerRef & { source: 'post' \| 'signature' \| 'pm' }` |
-| `markdown.directives` | filter | — | `readonly string[]` | `CommunityRef \| Record<string, never>` |
+| `markdown.directives` | filter | — | `readonly string[]` | `ForumRef \| Record<string, never>` |
 | `post.body.html` | filter | — | `string` | `PostRef & ViewerRef` |
 | `signature.html` | filter | — | `string` | `ViewerRef & { authorId: number }` |
 | `smilies.list` | filter | — | `readonly { readonly code: string; readonly imageUrl: string }[]` | `ViewerRef` |
@@ -61,11 +61,11 @@ the limits.
 | `view.user-panel` | filter | yes | `UserPanelModel` | `ViewerRef & RequestRef` |
 | `view.navigation` | filter | — | `NavigationModel` | `ViewerRef & RequestRef` |
 | `view.footer` | filter | yes | `FooterModel` | `ViewerRef & RequestRef` |
-| `view.community-jump` | filter | yes | `CommunityJumpModel` | `ViewerRef & RequestRef` |
+| `view.forum-jump` | filter | yes | `ForumJumpModel` | `ViewerRef & RequestRef` |
 | `view.announcement` | filter | yes | `AnnouncementModel` | `ViewerRef` |
 | `view.board-index` | filter | yes | `BoardIndexModel` | `ViewerRef` |
-| `view.community-row` | filter | yes | `CommunityRowSlotModel` | `ViewerRef` |
-| `view.thread-row` | filter | yes | `ThreadRowSlotModel` | `ViewerRef & CommunityRef` |
+| `view.forum-row` | filter | yes | `ForumRowSlotModel` | `ViewerRef` |
+| `view.thread-row` | filter | yes | `ThreadRowSlotModel` | `ViewerRef & ForumRef` |
 | `view.post-bit` | filter | yes | `PostBitSlotModel` | `ViewerRef & ThreadRef` |
 | `view.post-actions` | filter | yes | `PostActionsSlotModel` | `ViewerRef & ThreadRef` |
 | `view.member-profile` | filter | yes | `MemberProfileModel` | `ViewerRef` |
@@ -79,8 +79,8 @@ the limits.
 | `view.shell` | filter | yes | `ShellModel` | `ViewerRef & RequestRef` |
 | `view.notice` | filter | — | `NoticeModel` | `ViewerRef` |
 | `view.category-block` | filter | — | `CategoryBlockModel` | `ViewerRef` |
-| `view.subcommunity-list` | filter | yes | `SubcommunityListModel` | `ViewerRef & CommunityRef` |
-| `view.community-display` | filter | yes | `CommunityDisplayModel` | `ViewerRef & CommunityRef` |
+| `view.subforum-list` | filter | yes | `SubforumListModel` | `ViewerRef & ForumRef` |
+| `view.forum-display` | filter | yes | `ForumDisplayModel` | `ViewerRef & ForumRef` |
 | `view.thread-view` | filter | yes | `ThreadViewModel` | `ViewerRef & ThreadRef` |
 | `view.post-form` | filter | — | `PostFormModel` | `ViewerRef` |
 | `view.redirect-notice` | filter | — | `RedirectNoticeModel` | `ViewerRef` |
@@ -89,10 +89,10 @@ the limits.
 - **`view.user-panel`** — The user panel model: greeting, counts, account links.
 - **`view.navigation`** — The breadcrumb trail.
 - **`view.footer`** — The footer model, including its link list.
-- **`view.community-jump`** — The jump box model. A plugin adding a destination must give it a real community id — the route re-authorises whatever is submitted.
+- **`view.forum-jump`** — The jump box model. A plugin adding a destination must give it a real forum id — the route re-authorises whatever is submitted.
 - **`view.announcement`** — One announcement, on its way to the theme. Its body is already rendered HTML from the boardu2019s own renderer, so a plugin replacing it is replacing trusted markup — the one hook where that is true of a body.
 - **`view.board-index`** — The index page model.
-- **`view.community-row`** — One community row in a listing. Runs once per row — keep it cheap.
+- **`view.forum-row`** — One forum row in a listing. Runs once per row — keep it cheap.
 - **`view.thread-row`** — One thread row in a listing. Runs once per row.
 - **`view.post-bit`** — One post as the theme will receive it. The busiest hook on the board: it runs once per post on every thread page.
 - **`view.post-actions`** — The per-post control links. Adding one here does not create permission to use it.
@@ -106,9 +106,9 @@ the limits.
 - **`view.error-notice`** — The error page model. Runs on the page that renders when things are broken.
 - **`view.shell`** — The page frame’s model. Runs on every page including the error pages.
 - **`view.notice`** — A board notice or flash message, before the theme renders it.
-- **`view.category-block`** — One category on the index, with its rendered community rows.
-- **`view.subcommunity-list`** — The compact child-community list above a thread listing.
-- **`view.community-display`** — A community page’s model, including its rendered regions.
+- **`view.category-block`** — One category on the index, with its rendered forum rows.
+- **`view.subforum-list`** — The compact child-forum list above a thread listing.
+- **`view.forum-display`** — A forum page’s model, including its rendered regions.
 - **`view.thread-view`** — A thread page’s model, including its rendered post list.
 - **`view.post-form`** — The composer page’s model. The form itself is app-rendered and arrives as a region.
 - **`view.redirect-notice`** — The interstitial shown after a mutation, before the meta refresh fires.
@@ -128,7 +128,7 @@ the limits.
 | `post.delete.before` | event | — | `PostRef` | `ModerationRef` |
 | `post.deleted` | event | — | `PostRef` | `ModerationRef` |
 | `post.restored` | event | — | `PostRef` | `ModerationRef` |
-| `thread.moved` | event | — | `{ readonly threadId: number; readonly fromCommunityId: number; readonly toCommunityId: number }` | `ModerationRef` |
+| `thread.moved` | event | — | `{ readonly threadId: number; readonly fromForumId: number; readonly toForumId: number }` | `ModerationRef` |
 | `thread.merged` | event | — | `{ readonly keptThreadId: number; readonly mergedThreadId: number; readonly postCount: number }` | `ModerationRef` |
 | `thread.split` | event | — | `{ readonly sourceThreadId: number; readonly newThreadId: number; readonly postCount: number }` | `ModerationRef` |
 | `thread.locked` | event | — | `ThreadRef & { isLocked: boolean }` | `ModerationRef` |
@@ -151,7 +151,7 @@ the limits.
 - **`post.delete.before`** — A post is about to be soft-deleted. Observation only: refusing is a permission.
 - **`post.deleted`** — A post was soft-deleted.
 - **`post.restored`** — A soft-deleted post was restored.
-- **`thread.moved`** — A thread changed community. Carries both community ids.
+- **`thread.moved`** — A thread changed forum. Carries both forum ids.
 - **`thread.merged`** — Two threads became one.
 - **`thread.split`** — Posts were split out into a new thread.
 - **`thread.locked`** — A thread was opened or closed.
@@ -223,7 +223,7 @@ the limits.
 | `mail.sent` | event | — | `{ readonly to: string; readonly template: string }` | `RequestRef` |
 | `pm.send.before` | filter | — | `{ readonly senderId: number readonly recipientIds: readonly number[] readonly subject: string readonly body: string } \| null` | `RequestRef` |
 | `pm.sent` | event | — | `{ readonly messageId: number; readonly recipientIds: readonly number[] }` | `RequestRef` |
-| `subscription.changed` | event | — | `{ readonly userId: number readonly target: 'thread' \| 'community' readonly targetId: number readonly subscribed: boolean }` | `RequestRef` |
+| `subscription.changed` | event | — | `{ readonly userId: number readonly target: 'thread' \| 'forum' readonly targetId: number readonly subscribed: boolean }` | `RequestRef` |
 | `reputation.changed` | event | — | `{ readonly userId: number; readonly delta: number; readonly total: number }` | `ViewerRef` |
 
 - **`notification.create.before`** — A notification about to be created. Returning `null` suppresses it.
@@ -232,7 +232,7 @@ the limits.
 - **`mail.sent`** — A message was accepted by the driver. Not proof of delivery.
 - **`pm.send.before`** — A private message, before it is stored.
 - **`pm.sent`** — A private message was delivered to its recipients’ folders.
-- **`subscription.changed`** — A member subscribed to or unsubscribed from a thread or community.
+- **`subscription.changed`** — A member subscribed to or unsubscribed from a thread or forum.
 - **`reputation.changed`** — Reputation was given, changed or removed.
 
 ## Search, discovery, syndication
@@ -241,7 +241,7 @@ the limits.
 |---|---|---|---|---|
 | `search.query.before` | filter | — | `string` | `ViewerRef` |
 | `search.results` | filter | — | `readonly { readonly postId: number; readonly threadId: number; readonly rank: number }[]` | `ViewerRef & { terms: string }` |
-| `feed.items` | filter | — | `readonly { readonly title: string readonly href: string readonly publishedAt: string readonly summary: string }[] /** Always a guest: a feed is cached under a shared URL. */` | `{ readonly feed: 'board' \| 'community' \| 'thread' }` |
+| `feed.items` | filter | — | `readonly { readonly title: string readonly href: string readonly publishedAt: string readonly summary: string }[] /** Always a guest: a feed is cached under a shared URL. */` | `{ readonly feed: 'board' \| 'forum' \| 'thread' }` |
 | `sitemap.entries` | filter | — | `readonly { readonly href: string; readonly lastModified: string \| null }[]` | `{ readonly chunk: number }` |
 | `metadata.page` | filter | — | `{ readonly title: string readonly description: string \| null readonly canonical: string readonly imageUrl: string \| null }` | `{ readonly route: string }` |
 

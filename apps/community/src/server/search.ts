@@ -6,10 +6,10 @@ import 'server-only'
  * One job, and it is the one the whole feature's safety rests on: **turn an
  * Actor into a `SearchScope` before any query runs.**
  *
- * The scope is built from `Authorizer.communityIdsWhere(actor, 'thread.view')` —
- * F47's answer to "which communities may this actor see" — rather than from
+ * The scope is built from `Authorizer.forumIdsWhere(actor, 'thread.view')` —
+ * F47's answer to "which forums may this actor see" — rather than from
  * anything the request supplied. That is what stops a search from being a way
- * around community permissions, and it is why the provider takes a scope as a
+ * around forum permissions, and it is why the provider takes a scope as a
  * required argument instead of an optional filter: there is no call shape that
  * accidentally searches everything.
  */
@@ -41,7 +41,7 @@ export function requireSearch(): PostgresSearchRepository {
  *
  * `thread.view` rather than `post.view`: search returns posts, but a member who
  * cannot open the thread must not be told what is in it — and F47 resolves the
- * community-level answer once rather than per hit.
+ * forum-level answer once rather than per hit.
  *
  * The content scope is the only place this file interprets a permission rather
  * than delegating one. It reads two flags off the resolved actor and draws no
@@ -49,7 +49,7 @@ export function requireSearch(): PostgresSearchRepository {
  */
 export async function searchScopeFor(actor: Actor): Promise<SearchScope> {
   const { authorizer } = getContainer()
-  const communityIds = await authorizer.communityIdsWhere(actor, 'thread.view')
+  const forumIds = await authorizer.forumIdsWhere(actor, 'thread.view')
 
   /*
    * The content scope is built here rather than decided in the provider,
@@ -61,7 +61,7 @@ export async function searchScopeFor(actor: Actor): Promise<SearchScope> {
     actor.global.isAdministrator === true || actor.global.isSuperModerator === true
 
   return {
-    communityIds,
+    forumIds,
     viewerUserId: actor.userId,
     content: contentScopeFrom({ seesUnapproved: staff, seesDeleted: staff }),
   }

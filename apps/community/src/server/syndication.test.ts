@@ -4,7 +4,7 @@
  * Not as whoever asked. Feeds, sitemaps and social cards are fetched by things
  * that cache one response per URL and hand it to everybody — aggregators,
  * crawlers, link unfurlers, the CDN in front of the board — so a feed built for
- * a signed-in member and cached under a shared URL is a private community served to
+ * a signed-in member and cached under a shared URL is a private forum served to
  * whoever asks next. The leak happens in somebody else's cache, where nothing
  * about the request that caused it is visible.
  *
@@ -28,7 +28,7 @@ vi.mock('./container', () => ({
       buildForUser: async () => ({ userId: 42, tag: 'member' }),
     },
     authorizer: {
-      communityIdsWhere: async (actor: { tag: string }) => {
+      forumIdsWhere: async (actor: { tag: string }) => {
         asked.push(actor.tag)
         return actor.tag === 'guest' ? [1] : [1, 2]
       },
@@ -55,7 +55,7 @@ describe('publicScope', () => {
   it('asks the authorizer about the guest, never the request’s actor', async () => {
     /*
      * The claim, and the only place it can be checked. The mocked container
-     * offers both principals and the member sees a second community; a scope built
+     * offers both principals and the member sees a second forum; a scope built
      * from the request's actor would carry it. Kills the mutant that calls
      * `getActor()` — which is what "just personalise the feed" looks like in a
      * diff, and which reads as an improvement.
@@ -64,7 +64,7 @@ describe('publicScope', () => {
     const scope = await publicScope()
 
     expect(asked).toEqual(['guest'])
-    expect(scope.communityIds).toEqual([1])
+    expect(scope.forumIds).toEqual([1])
   })
 
   it('uses the public content states', async () => {

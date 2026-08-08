@@ -5,7 +5,7 @@ import 'server-only'
  *
  * ## The writer F17 built and nothing called
  *
- * `sessions.location_path`, `location_community_id` and `location_thread_id` have
+ * `sessions.location_path`, `location_forum_id` and `location_thread_id` have
  * been in the schema since `0000`, and `touchLocation` — a conditional UPDATE
  * whose throttle *is* its `where` clause — since F17. Neither had a caller.
  * This is it, and it goes in the page shell beside `touchActivity` for the same
@@ -13,7 +13,7 @@ import 'server-only'
  *
  * ## What a location may say
  *
- * The **path** the visitor is on, and the community and thread ids if the route has
+ * The **path** the visitor is on, and the forum and thread ids if the route has
  * them. Never a title, and never a query string: a stored search's token, a
  * filter, or a moderation queue's parameters are not things to put in a table
  * that an online list reads. What the reader is then *told* is decided when the
@@ -51,7 +51,7 @@ const LOCATION_WINDOW_SECONDS = 60
 
 export interface BoardLocation {
   readonly path: string
-  readonly communityId: number | null
+  readonly forumId: number | null
   readonly threadId: number | null
 }
 
@@ -74,12 +74,12 @@ export function parseLocation(path: string | null): BoardLocation | null {
      anyway rather than trusting a header that anything upstream could set. */
   const clean = path.split('?')[0] ?? path
 
-  const community = /^\/(\d+)(?:-|\/|$)/.exec(clean)
+  const forum = /^\/(\d+)(?:-|\/|$)/.exec(clean)
   const thread = /^\/thread\/(\d+)-/.exec(clean)
 
   return {
     path: clean,
-    communityId: community === null ? null : Number(community[1]),
+    forumId: forum === null ? null : Number(forum[1]),
     threadId: thread === null ? null : Number(thread[1]),
   }
 }
@@ -128,7 +128,7 @@ export async function touchLocation(location: BoardLocation): Promise<void> {
       session.sessionId,
       {
         path: location.path,
-        communityId: location.communityId,
+        forumId: location.forumId,
         threadId: location.threadId,
       },
       new Date(),
@@ -142,8 +142,8 @@ export async function touchLocation(location: BoardLocation): Promise<void> {
 /**
  * What this actor may be told about who is here.
  *
- * The community list is the Authorizer's, so "which communities may I be told the names
- * of" has the same answer as "which communities may I read" — one rule, one place.
+ * The forum list is the Authorizer's, so "which forums may I be told the names
+ * of" has the same answer as "which forums may I read" — one rule, one place.
  * `seesInvisible` is `modcp.access`, not a group check: a moderator needs to
  * know who is present, and an administrator is already covered by that answer.
  */
@@ -153,7 +153,7 @@ export async function onlineScopeFor(actor: Actor): Promise<OnlineScope> {
     actor.global.isAdministrator === true || actor.global.isSuperModerator === true
 
   return {
-    communityIds: await authorizer.communityIdsWhere(actor, 'thread.view'),
+    forumIds: await authorizer.forumIdsWhere(actor, 'thread.view'),
     content: contentScopeFrom({ seesUnapproved: staff, seesDeleted: staff }),
     seesInvisible: await authorizer.can(actor, 'modcp.access'),
   }

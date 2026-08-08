@@ -47,10 +47,10 @@
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
-export const SIGNATURE_HEADER = 'x-community-signature'
-export const TIMESTAMP_HEADER = 'x-community-timestamp'
-export const EVENT_HEADER = 'x-community-event'
-export const DELIVERY_HEADER = 'x-community-delivery'
+export const SIGNATURE_HEADER = 'x-forum-signature'
+export const TIMESTAMP_HEADER = 'x-forum-timestamp'
+export const EVENT_HEADER = 'x-forum-event'
+export const DELIVERY_HEADER = 'x-forum-delivery'
 
 /** How long a receiver should accept a signature for. Advice, enforced by them. */
 export const REPLAY_TOLERANCE_SECONDS = 300

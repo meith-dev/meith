@@ -19,7 +19,7 @@
  * Subscribing re-authorises `thread.view` for itself. A member who could see a
  * thread when the link was rendered may not be able to now, and a subscribe
  * endpoint that took the caller's word for it would be a way to be notified
- * about a private community's activity.
+ * about a private forum's activity.
  */
 import { redirect } from 'next/navigation'
 
@@ -56,24 +56,24 @@ function text(form: FormData, name: string): string {
  * May this actor read the thing they are subscribing to?
  *
  * Resolved through the Authorizer at the moment of the act, never taken from
- * the form. A community id in a hidden field is a claim, not a permission.
+ * the form. A forum id in a hidden field is a claim, not a permission.
  */
-async function mayView(target: 'thread' | 'community', targetId: number): Promise<boolean> {
+async function mayView(target: 'thread' | 'forum', targetId: number): Promise<boolean> {
   const actor = await getActor()
-  const { authorizer, threads, communities } = getContainer()
+  const { authorizer, threads, forums } = getContainer()
 
-  const communityId =
-    target === 'community' ? targetId : await threads.locateCommunity(targetId)
-  if (communityId === null) return false
+  const forumId =
+    target === 'forum' ? targetId : await threads.locateForum(targetId)
+  if (forumId === null) return false
 
-  const community = await communities.findById(communityId)
-  if (!community) return false
+  const forum = await forums.findById(forumId)
+  if (!forum) return false
 
-  const matrix = await authorizer.communityMatrix(actor, communityId)
+  const matrix = await authorizer.forumMatrix(actor, forumId)
   return authorizer.can(
     actor,
-    target === 'community' ? 'community.view' : 'thread.view',
-    { communityId, community: matrix },
+    target === 'forum' ? 'forum.view' : 'thread.view',
+    { forumId, forum: matrix },
   )
 }
 
@@ -134,7 +134,7 @@ export async function unsubscribeAction(_prev: FormState, form: FormData): Promi
 
     /*
      * No permission check, deliberately. Stopping being notified about
-     * something is always allowed — including for a community that has since been
+     * something is always allowed — including for a forum that has since been
      * hidden from this member, which is exactly the case where they would
      * otherwise be stuck with a subscription they cannot reach.
      */

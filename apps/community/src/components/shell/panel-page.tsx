@@ -6,7 +6,7 @@
  * Every panel screen used to open with its own container — `mx-auto flex w-full
  * max-w-3xl flex-col gap-8 px-6 py-8` on one, `max-w-4xl` and `gap-6` on the
  * next, `max-w-5xl` on a third — and each of those centred itself in whatever
- * space the rail left over. So moving from Board settings to Communities to the
+ * space the rail left over. So moving from Board settings to Forums to the
  * admin log slid the content sideways by a hundred and thirty pixels, twice,
  * for no reason a reader could name. Forty-odd files each held their own answer
  * to a question nobody had asked them.

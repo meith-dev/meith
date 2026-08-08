@@ -29,7 +29,7 @@ export async function sendEmailChangeConfirmation(input: {
   readonly email: string
 }): Promise<void> {
   const settings = await getSettings()
-  const boardName = settings.get('board.name') || 'the community'
+  const boardName = settings.get('board.name') || 'the forum'
   /* The display name beside `MAIL_FROM`. Empty — the default — means bare. */
   const fromName = settings.get('mail.from_name')
 

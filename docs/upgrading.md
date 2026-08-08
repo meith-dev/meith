@@ -17,7 +17,7 @@ On the documented deployments the *core* migrations are already applied by then
 `upgrade` is what carries plugin migrations and records the version. The admin
 panel shows a notice until you run it.
 
-`community` is the operator CLI, and how you invoke it depends on how the board was
+`forum` is the operator CLI, and how you invoke it depends on how the board was
 deployed; [Running a board § The operator CLI](./operating.md#the-operator-cli)
 has the three spellings.
 

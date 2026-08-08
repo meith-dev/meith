@@ -1,32 +1,32 @@
-/** Durable community/thread read watermarks (F32). */
+/** Durable forum/thread read watermarks (F32). */
 import { and, eq, gt, isNull, or, sql } from 'drizzle-orm'
 
 import { PUBLIC_CONTENT } from '@meith/core'
 import type { ReadState, ReadStateRepository } from '@meith/threads'
 
 import type { Database } from './client'
-import { communitiesRead, threads, threadsRead } from './schema'
+import { forumsRead, threads, threadsRead } from './schema'
 import { visibleIn } from './visibility'
 
 export class PostgresReadStateRepository implements ReadStateRepository {
   constructor(private readonly db: Database) {}
 
   async forUser(userId: number): Promise<ReadState> {
-    const [communities, threadReads, unread] = await Promise.all([
+    const [forums, threadReads, unread] = await Promise.all([
       this.db
-        .select({ communityId: communitiesRead.communityId, readAt: communitiesRead.readAt })
-        .from(communitiesRead)
-        .where(eq(communitiesRead.userId, userId)),
+        .select({ forumId: forumsRead.forumId, readAt: forumsRead.readAt })
+        .from(forumsRead)
+        .where(eq(forumsRead.userId, userId)),
       this.db
         .select({ threadId: threadsRead.threadId, lastReadPostId: threadsRead.lastReadPostId })
         .from(threadsRead)
         .where(eq(threadsRead.userId, userId)),
       this.db
-        .selectDistinct({ communityId: threads.communityId })
+        .selectDistinct({ forumId: threads.forumId })
         .from(threads)
         .leftJoin(
-          communitiesRead,
-          and(eq(communitiesRead.userId, userId), eq(communitiesRead.communityId, threads.communityId)),
+          forumsRead,
+          and(eq(forumsRead.userId, userId), eq(forumsRead.forumId, threads.forumId)),
         )
         .leftJoin(
           threadsRead,
@@ -36,36 +36,36 @@ export class PostgresReadStateRepository implements ReadStateRepository {
           and(
             /*
              * Public, always (F47). Unread state is about content a member can
-             * actually go and read: flagging a community unread because of a post
+             * actually go and read: flagging a forum unread because of a post
              * in the moderation queue would send a moderator to a thread that
              * looks identical to the one they already read.
              */
             visibleIn(threads.visibility, PUBLIC_CONTENT),
             sql`${threads.lastPostId} is not null`,
             or(isNull(threadsRead.lastReadPostId), gt(threads.lastPostId, threadsRead.lastReadPostId)),
-            or(isNull(communitiesRead.readAt), gt(threads.lastPostAt, communitiesRead.readAt)),
+            or(isNull(forumsRead.readAt), gt(threads.lastPostAt, forumsRead.readAt)),
           ),
         ),
     ])
 
     return {
-      communityReadAt: new Map(communities.map((row) => [row.communityId, row.readAt])),
+      forumReadAt: new Map(forums.map((row) => [row.forumId, row.readAt])),
       threadLastPostId: new Map(
         threadReads.flatMap((row) =>
           row.lastReadPostId === null ? [] : [[row.threadId, row.lastReadPostId] as const],
         ),
       ),
-      unreadCommunityIds: new Set(unread.map((row) => row.communityId)),
+      unreadForumIds: new Set(unread.map((row) => row.forumId)),
     }
   }
 
-  async markCommunitiesRead(userId: number, communityIds: readonly number[], at: Date): Promise<void> {
-    if (communityIds.length === 0) return
+  async markForumsRead(userId: number, forumIds: readonly number[], at: Date): Promise<void> {
+    if (forumIds.length === 0) return
     await this.db
-      .insert(communitiesRead)
-      .values(communityIds.map((communityId) => ({ userId, communityId, readAt: at })))
+      .insert(forumsRead)
+      .values(forumIds.map((forumId) => ({ userId, forumId, readAt: at })))
       .onConflictDoUpdate({
-        target: [communitiesRead.userId, communitiesRead.communityId],
+        target: [forumsRead.userId, forumsRead.forumId],
         set: { readAt: at },
       })
   }

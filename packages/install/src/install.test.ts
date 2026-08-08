@@ -4,7 +4,7 @@ import {
   INSTALL_STEPS,
   blockers,
   canProceed,
-  defaultCommunitySlug,
+  defaultForumSlug,
   ECHOED_FIELDS,
   fieldErrorsFromReport,
   firstFailure,
@@ -154,7 +154,7 @@ describe('warnings — the dangerous category', () => {
    * how an operator learns to read past the warnings that matter.
    */
   it('says nothing about the connection string beyond it being set', () => {
-    const direct = idsOf(preflight(ready({ databaseUrl: 'postgresql://u:p@db:5432/community' })))
+    const direct = idsOf(preflight(ready({ databaseUrl: 'postgresql://u:p@db:5432/forum' })))
     expect(direct).toContain('database-url')
     expect(direct).not.toContain('pooler')
   })
@@ -162,7 +162,7 @@ describe('warnings — the dangerous category', () => {
   it('never lets a warning stop the install', () => {
     const checks = preflight(
       ready({
-        databaseUrl: 'postgresql://u:p@db.example.com:5432/community',
+        databaseUrl: 'postgresql://u:p@db.example.com:5432/forum',
         hasTickSecret: false,
         mail: {
           configured: false,
@@ -193,8 +193,8 @@ describe('the step plan', () => {
     )
   })
 
-  it('creates a community, so a fresh board does not look broken', () => {
-    expect(idsOf(INSTALL_STEPS)).toContain('community')
+  it('creates a forum, so a fresh board does not look broken', () => {
+    expect(idsOf(INSTALL_STEPS)).toContain('forum')
   })
 
   it('starts every step pending', () => {
@@ -228,7 +228,7 @@ describe('the step plan', () => {
   })
 
   /*
-   * The step ids are `migrate`, `settings`, `admin`, `community`, `seal`. They are
+   * The step ids are `migrate`, `settings`, `admin`, `forum`, `seal`. They are
    * keys, and the screen used to print them: *The "admin" step failed. That
    * username is reserved.* — where the quoted word is the step, and the reader
    * has just typed `admin` into the box the message is about. Titles are the
@@ -398,26 +398,26 @@ describe('the form', () => {
   })
 })
 
-describe('the first community’s slug', () => {
+describe('the first forum’s slug', () => {
   it('comes from the board name', () => {
-    expect(defaultCommunitySlug('The Bike Shed')).toBe('the-bike-shed')
-    expect(defaultCommunitySlug('Board  &  Friends!')).toBe('board-friends')
+    expect(defaultForumSlug('The Bike Shed')).toBe('the-bike-shed')
+    expect(defaultForumSlug('Board  &  Friends!')).toBe('board-friends')
   })
 
   /* A board named only in a non-Latin script slugs to nothing. */
   it('falls back rather than producing an empty path', () => {
-    expect(defaultCommunitySlug('日本語')).toBe('general')
-    expect(defaultCommunitySlug('!!!')).toBe('general')
-    expect(defaultCommunitySlug('')).toBe('general')
+    expect(defaultForumSlug('日本語')).toBe('general')
+    expect(defaultForumSlug('!!!')).toBe('general')
+    expect(defaultForumSlug('')).toBe('general')
   })
 
   it('does not produce a leading or trailing hyphen', () => {
-    expect(defaultCommunitySlug('  Hello  ')).toBe('hello')
-    expect(defaultCommunitySlug('---x---')).toBe('x')
+    expect(defaultForumSlug('  Hello  ')).toBe('hello')
+    expect(defaultForumSlug('---x---')).toBe('x')
   })
 
   it('bounds the length', () => {
-    expect(defaultCommunitySlug('a'.repeat(200)).length).toBeLessThanOrEqual(40)
+    expect(defaultForumSlug('a'.repeat(200)).length).toBeLessThanOrEqual(40)
   })
 })
 
@@ -930,7 +930,7 @@ describe('the board address', () => {
     ['board.example', 'no scheme, so nothing can be built from it'],
     ['mailto:hi@board.example', 'a URL, and not one a link can be made from'],
     ['javascript:alert(1)', 'the reason this is not z.string().url()'],
-    ['https://board.example/community', 'a page address, not the board’s'],
+    ['https://board.example/forum', 'a page address, not the board’s'],
     ['https://board.example/?ref=x', 'a query nobody meant to keep'],
   ])('refuses %o — %s', (boardUrl) => {
     const result = parseInstallInput({ ...valid, boardUrl })
@@ -942,7 +942,7 @@ describe('the board address', () => {
     'https://board.example',
     'http://localhost:3000',
     'https://board.example:8443',
-    'https://community.board.example/',
+    'https://forum.board.example/',
   ])('accepts %o', (boardUrl) => {
     expect(parseInstallInput({ ...valid, boardUrl }).ok).toBe(true)
   })

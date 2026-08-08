@@ -47,7 +47,7 @@ export interface CookieAttrs {
 
 /**
  * Base flags for both cookies. `SameSite=Lax` (not Strict) so a top-level
- * navigation *to* the community from an external link still carries the session —
+ * navigation *to* the forum from an external link still carries the session —
  * Strict would log the user out every time they follow a link in from email or
  * another site. HttpOnly keeps the token out of `document.cookie`, so an XSS
  * payload cannot read it.

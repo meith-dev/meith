@@ -2,8 +2,8 @@
  * The Authorizer (R4.3). The only object in the system that answers "may this
  * actor do this?".
  *
- * `can()` is synchronous and pure over an Actor and a Target whose community matrix
- * is already resolved. The async methods (`communityMatrix`, `visibleCommunityIds`) do
+ * `can()` is synchronous and pure over an Actor and a Target whose forum matrix
+ * is already resolved. The async methods (`forumMatrix`, `visibleForumIds`) do
  * the ancestor walk via the AuthorizationSource port and are the only ones that
  * touch data. This split is what lets the F22 matrix drive `can()` directly with
  * fixture data.
@@ -12,12 +12,12 @@ import {
   ForbiddenError,
   contentScopeFrom,
   type ContentScope,
-  type CommunityPermissions,
+  type ForumPermissions,
 } from '@meith/core'
 
 import { NO_MODERATOR_RIGHTS, type ModeratorRights } from './types'
 
-import { resolveCommunityMatrix, indexOverrides } from './resolve'
+import { resolveForumMatrix, indexOverrides } from './resolve'
 import type {
   Action,
   Actor,
@@ -32,21 +32,21 @@ export interface BypassEvent {
   readonly kind: 'administrator' | 'super_moderator'
   readonly userId: number | null
   readonly action: Action
-  readonly communityId: number | undefined
+  readonly forumId: number | undefined
 }
 
 export interface AuthorizerOptions {
   /**
-   * Called every time a bypass grants an action that the community matrix would
+   * Called every time a bypass grants an action that the forum matrix would
    * otherwise have denied. R4.2 requires bypasses be logged and never silent;
    * wiring this to the audit log is the composition root's job.
    */
   onBypass?: (event: BypassEvent) => void
 }
 
-/** Actions that are meaningless without a community + resolved matrix in the Target. */
-const COMMUNITY_SCOPED: ReadonlySet<Action> = new Set<Action>([
-  'community.view',
+/** Actions that are meaningless without a forum + resolved matrix in the Target. */
+const FORUM_SCOPED: ReadonlySet<Action> = new Set<Action>([
+  'forum.view',
   'thread.view',
   'thread.post',
   'reply.post',
@@ -68,8 +68,8 @@ const COMMUNITY_SCOPED: ReadonlySet<Action> = new Set<Action>([
   'thread.split',
   'attachment.upload',
   'attachment.download',
-  'community.search',
-  'community.subscribe',
+  'forum.search',
+  'forum.subscribe',
 ])
 
 /**
@@ -79,14 +79,14 @@ const COMMUNITY_SCOPED: ReadonlySet<Action> = new Set<Action>([
  * can() by the explicit `canAccessAdminCp` column and returns before this set is
  * ever consulted, so listing it would be dead code and — worse — misleading, by
  * implying the bypass can reach the ACP when the entire point is that it cannot.
- * The community-scoped actions (spread in) plus the global staff/profile actions are
+ * The forum-scoped actions (spread in) plus the global staff/profile actions are
  * fair game; the one door the god-mode bypass never opens is the control panel.
  *
  * The four content/post actions previously listed here are already in
- * COMMUNITY_SCOPED, so the spread covers them — they were redundant.
+ * FORUM_SCOPED, so the spread covers them — they were redundant.
  */
 const ADMIN_ALWAYS: ReadonlySet<Action> = new Set<Action>([
-  ...COMMUNITY_SCOPED,
+  ...FORUM_SCOPED,
   'modcp.access',
   'profile.view',
   'memberlist.view',
@@ -129,27 +129,27 @@ export class Authorizer {
     //    owns that decision, and the ADMIN_ALWAYS membership test is what the
     //    bypass-isolation test pins.
     if (actor.global.isAdministrator === true && ADMIN_ALWAYS.has(action)) {
-      this.logBypass('administrator', actor, action, target.communityId)
+      this.logBypass('administrator', actor, action, target.forumId)
       return true
     }
 
-    // 3. Super-moderator bypass: community permissions only. admincp.access is not
-    //    in COMMUNITY_SCOPED, so this branch structurally cannot grant it.
-    if (actor.global.isSuperModerator === true && COMMUNITY_SCOPED.has(action)) {
-      this.logBypass('super_moderator', actor, action, target.communityId)
+    // 3. Super-moderator bypass: forum permissions only. admincp.access is not
+    //    in FORUM_SCOPED, so this branch structurally cannot grant it.
+    if (actor.global.isSuperModerator === true && FORUM_SCOPED.has(action)) {
+      this.logBypass('super_moderator', actor, action, target.forumId)
       return true
     }
 
     // 4. Ordinary resolution.
-    return COMMUNITY_SCOPED.has(action)
-      ? this.canCommunity(actor, action, target)
+    return FORUM_SCOPED.has(action)
+      ? this.canForum(actor, action, target)
       : this.canGlobal(actor, action)
   }
 
   require(actor: Actor, action: Action, target: Target = {}): void {
     if (!this.can(actor, action, target)) {
       throw new ForbiddenError(`Not permitted: ${action}`, {
-        meta: { userId: actor.userId, action, communityId: target.communityId },
+        meta: { userId: actor.userId, action, forumId: target.forumId },
       })
     }
   }
@@ -157,21 +157,21 @@ export class Authorizer {
   /* -------------------------------------------------------------- *
    * Async resolution against the source.
    * -------------------------------------------------------------- */
-  async communityMatrix(actor: Actor, communityId: number): Promise<CommunityPermissions> {
-    const chain = await this.source.ancestorChain(communityId)
+  async forumMatrix(actor: Actor, forumId: number): Promise<ForumPermissions> {
+    const chain = await this.source.ancestorChain(forumId)
     const groups = await this.source.groupDefaults(actor.groupIds)
-    const overrides = await this.source.communityOverrides(chain, actor.groupIds)
-    return resolveCommunityMatrix(chain, groups, indexOverrides(overrides))
+    const overrides = await this.source.forumOverrides(chain, actor.groupIds)
+    return resolveForumMatrix(chain, groups, indexOverrides(overrides))
   }
 
   /**
-   * The single source of truth for visibility (F21). A community the actor cannot
+   * The single source of truth for visibility (F21). A forum the actor cannot
    * view is invisible everywhere, so every listing/search/feed funnels through
    * this set rather than re-deriving visibility ad hoc.
    */
-  async visibleCommunityIds(actor: Actor): Promise<number[]> {
+  async visibleForumIds(actor: Actor): Promise<number[]> {
     if (actor.global.isAdministrator === true) {
-      return [...(await this.source.allCommunityIds())]
+      return [...(await this.source.allForumIds())]
     }
 
     /*
@@ -179,7 +179,7 @@ export class Authorizer {
      * ancestor chains, the actor's group defaults, and every override for those
      * groups. Resolution then happens in memory.
      *
-     * This used to walk per community — two queries each — which is an N+1 that
+     * This used to walk per forum — two queries each — which is an N+1 that
      * grows with the board. Every list page filters by this set, so the cost was
      * multiplied across the entire product; F21 makes it an explicit acceptance
      * criterion and the testkit's budget assertion now holds it.
@@ -193,42 +193,42 @@ export class Authorizer {
     const chains = await this.source.allAncestorChains()
     const groups = await this.source.groupDefaults(actor.groupIds)
 
-    const everyCommunityInvolved = [...new Set([...chains.values()].flat())]
+    const everyForumInvolved = [...new Set([...chains.values()].flat())]
     const overrides = indexOverrides(
-      await this.source.communityOverrides(everyCommunityInvolved, actor.groupIds),
+      await this.source.forumOverrides(everyForumInvolved, actor.groupIds),
     )
 
     const visible: number[] = []
-    // canView still applies to super-moderators: a hidden staff community stays
+    // canView still applies to super-moderators: a hidden staff forum stays
     // hidden until a group grants canView, which matches MyBB.
-    for (const [communityId, chain] of chains) {
-      const matrix = resolveCommunityMatrix(chain, groups, overrides)
-      if (matrix.canView === true) visible.push(communityId)
+    for (const [forumId, chain] of chains) {
+      const matrix = resolveForumMatrix(chain, groups, overrides)
+      if (matrix.canView === true) visible.push(forumId)
     }
     return visible
   }
 
   /**
-   * The communities where this actor holds one moderator right (F48/F50).
+   * The forums where this actor holds one moderator right (F48/F50).
    *
    * The first list on the board scoped by *moderator rights* rather than by
-   * view permission, and the first thing ever to read `community_moderators`. Two
+   * view permission, and the first thing ever to read `forum_moderators`. Two
    * sources, unioned:
    *
    *   - a group-level grant (`canApproveContent` on the resolved matrix), which
    *     is how staff groups get the whole board; and
-   *   - an **appointment**, which is how one person gets one community — expanded
+   *   - an **appointment**, which is how one person gets one forum — expanded
    *     down the tree when it cascades.
    *
-   * A community the actor cannot even view is excluded from both. An appointment
-   * over a community that has since been hidden from its moderator's groups is a
+   * A forum the actor cannot even view is excluded from both. An appointment
+   * over a forum that has since been hidden from its moderator's groups is a
    * configuration mistake, and the safe reading of it is the restrictive one.
    *
-   * Constant-query like `visibleCommunityIds`, and for the same reason (D26): the
+   * Constant-query like `visibleForumIds`, and for the same reason (D26): the
    * chains, the group defaults, the overrides and now the appointments, then
    * resolution in memory.
    */
-  async moderatedCommunityIds(
+  async moderatedForumIds(
     actor: Actor,
     right: keyof ModeratorRights = 'canApproveContent',
   ): Promise<number[]> {
@@ -236,7 +236,7 @@ export class Authorizer {
       actor.global.isAdministrator === true ||
       actor.global.isSuperModerator === true
     ) {
-      return [...(await this.source.allCommunityIds())]
+      return [...(await this.source.allForumIds())]
     }
 
     const [chains, groups, appointments] = await Promise.all([
@@ -245,45 +245,45 @@ export class Authorizer {
       this.source.moderatorAppointments(actor.userId, actor.groupIds),
     ])
 
-    const everyCommunityInvolved = [...new Set([...chains.values()].flat())]
+    const everyForumInvolved = [...new Set([...chains.values()].flat())]
     const overrides = indexOverrides(
-      await this.source.communityOverrides(everyCommunityInvolved, actor.groupIds),
+      await this.source.forumOverrides(everyForumInvolved, actor.groupIds),
     )
 
     /*
-     * An appointment applies to its own community always, and to a descendant only
+     * An appointment applies to its own forum always, and to a descendant only
      * when it cascades. "Descendant" is read off the ancestor chain rather than
      * from a path prefix — the chain is already the authoritative answer here,
      * and it cannot fall into D22's `1.4` / `1.40` trap because it compares ids.
      */
     const approvesByAppointment = new Set<number>()
-    for (const [communityId, chain] of chains) {
+    for (const [forumId, chain] of chains) {
       for (const appointment of appointments) {
         if (!appointment[right]) continue
-        if (appointment.communityId === communityId) {
-          approvesByAppointment.add(communityId)
+        if (appointment.forumId === forumId) {
+          approvesByAppointment.add(forumId)
         } else if (
-          appointment.cascadeToSubcommunities &&
-          chain.includes(appointment.communityId)
+          appointment.cascadeToSubforums &&
+          chain.includes(appointment.forumId)
         ) {
-          approvesByAppointment.add(communityId)
+          approvesByAppointment.add(forumId)
         }
       }
     }
 
     const moderated: number[] = []
-    for (const [communityId, chain] of chains) {
-      const matrix = resolveCommunityMatrix(chain, groups, overrides)
+    for (const [forumId, chain] of chains) {
+      const matrix = resolveForumMatrix(chain, groups, overrides)
       if (matrix.canView !== true) continue
       /*
        * The group-level half only exists for approval — F50's thread tools have
-       * no usergroup column at all, by design (see `canCommunity`). For those
+       * no usergroup column at all, by design (see `canForum`). For those
        * rights the appointment is the only route short of a staff bypass, which
        * is handled above.
        */
       const byGroup =
         right === 'canApproveContent' && matrix.canApproveContent === true
-      if (byGroup || approvesByAppointment.has(communityId)) moderated.push(communityId)
+      if (byGroup || approvesByAppointment.has(forumId)) moderated.push(forumId)
     }
     return moderated
   }
@@ -291,9 +291,9 @@ export class Authorizer {
   /**
    * Which per-group configuration rows apply to this actor (F59).
    *
-   * The generic half of what `communityMatrix` does for community permissions, and it
+   * The generic half of what `forumMatrix` does for forum permissions, and it
    * exists because F59's profile fields carry the same nullable-inheritance
-   * shape F21 gave `community_permissions` — but for a table this package has no
+   * shape F21 gave `forum_permissions` — but for a table this package has no
    * business knowing about.
    *
    * **It returns rows, never ids.** That is the whole design: a caller gets the
@@ -338,10 +338,10 @@ export class Authorizer {
   }
 
   /**
-   * This actor's granular moderator rights in one community (F50).
+   * This actor's granular moderator rights in one forum (F50).
    *
-   * The other half of `moderatedCommunityIds`: that answers *where*, this answers
-   * *what*. Rights from several appointments covering the same community are
+   * The other half of `moderatedForumIds`: that answers *where*, this answers
+   * *what*. Rights from several appointments covering the same forum are
    * **unioned** — a personal appointment that can lock plus a group appointment
    * that can move means both, because two grants are two grants.
    *
@@ -353,7 +353,7 @@ export class Authorizer {
    */
   async moderatorRightsIn(
     actor: Actor,
-    communityId: number,
+    forumId: number,
   ): Promise<ModeratorRights> {
     if (
       actor.global.isAdministrator === true ||
@@ -364,13 +364,13 @@ export class Authorizer {
     if (actor.userId === null) return NO_MODERATOR_RIGHTS
 
     const [chain, appointments] = await Promise.all([
-      this.source.ancestorChain(communityId),
+      this.source.ancestorChain(forumId),
       this.source.moderatorAppointments(actor.userId, actor.groupIds),
     ])
     if (chain.length === 0) return NO_MODERATOR_RIGHTS
 
     /*
-     * `chain` is [self, ...ancestors]. An appointment applies to its own community
+     * `chain` is [self, ...ancestors]. An appointment applies to its own forum
      * always, and to a descendant only when it cascades — read off the chain by
      * id rather than by path prefix, which is why it cannot fall into D22's
      * `1.4` / `1.40` trap.
@@ -378,17 +378,17 @@ export class Authorizer {
     let rights = NO_MODERATOR_RIGHTS
     for (const appointment of appointments) {
       const covers =
-        appointment.communityId === communityId ||
-        (appointment.cascadeToSubcommunities && chain.includes(appointment.communityId))
+        appointment.forumId === forumId ||
+        (appointment.cascadeToSubforums && chain.includes(appointment.forumId))
       if (covers) rights = unionRights(rights, appointment)
     }
     return rights
   }
 
   /**
-   * Every community where this actor may perform one community-scoped action (F52).
+   * Every forum where this actor may perform one forum-scoped action (F52).
    *
-   * The generalisation of `moderatedCommunityIds`, and the difference matters.
+   * The generalisation of `moderatedForumIds`, and the difference matters.
    * That one is keyed by a `ModeratorRights` field, which is the right question
    * for the queue — "where am I a moderator" — and the wrong one for a *tool*,
    * because one rights field can mean two things. `canSoftDeletePosts` grants
@@ -398,21 +398,21 @@ export class Authorizer {
    * **action** can, because `can()` already knows.
    *
    * So this builds the same Target a page would build — resolved matrix,
-   * resolved appointment rights, and `isCommunityModerator` actually set — and asks
-   * `can()` once per community. Same three source reads as `visibleCommunityIds` plus
-   * the appointments, resolved in memory (D26): constant-query, not per community.
+   * resolved appointment rights, and `isForumModerator` actually set — and asks
+   * `can()` once per forum. Same three source reads as `visibleForumIds` plus
+   * the appointments, resolved in memory (D26): constant-query, not per forum.
    *
    * F52 needs it as a *scope*, not as a convenience. Inline moderation re-reads
-   * every submitted id to find its real community, and if that read ranged over the
+   * every submitted id to find its real forum, and if that read ranged over the
    * whole board then "refused" and "no such thing" would be different answers —
-   * which is a content-existence oracle over every private community on the board
+   * which is a content-existence oracle over every private forum on the board
    * (the trap F51 named for its merge box). Scoping the re-read to this set
    * makes both cases indistinguishable.
    */
-  async communityIdsWhere(actor: Actor, action: Action): Promise<number[]> {
-    if (!COMMUNITY_SCOPED.has(action)) {
+  async forumIdsWhere(actor: Actor, action: Action): Promise<number[]> {
+    if (!FORUM_SCOPED.has(action)) {
       throw new Error(
-        `communityIdsWhere is only meaningful for community-scoped actions: ${action}`,
+        `forumIdsWhere is only meaningful for forum-scoped actions: ${action}`,
       )
     }
     if (actor.state === 'banned') return []
@@ -422,24 +422,24 @@ export class Authorizer {
      * twice over.
      *
      *   - **It logs once.** Running the loop for an administrator would call
-     *     `can()` once per community and every one of those calls logs a bypass —
+     *     `can()` once per forum and every one of those calls logs a bypass —
      *     fifty audit lines for one page load, burying the bypasses that
      *     describe an actual decision.
-     *   - **It agrees with `can()`.** The loop below drops any community the actor
+     *   - **It agrees with `can()`.** The loop below drops any forum the actor
      *     cannot view, which is right for an ordinary moderator and wrong for
-     *     staff: `can()` grants every community-scoped action to a super-moderator
+     *     staff: `can()` grants every forum-scoped action to a super-moderator
      *     *before* it looks at the matrix at all. A scope narrower than `can()`
      *     would report work as out of reach that the action would then permit,
      *     which is the screen and the decision disagreeing.
-     *     `moderatedCommunityIds` returns the whole board for the same reason.
+     *     `moderatedForumIds` returns the whole board for the same reason.
      */
     if (actor.global.isAdministrator === true && ADMIN_ALWAYS.has(action)) {
       this.logBypass('administrator', actor, action, undefined)
-      return [...(await this.source.allCommunityIds())]
+      return [...(await this.source.allForumIds())]
     }
     if (actor.global.isSuperModerator === true) {
       this.logBypass('super_moderator', actor, action, undefined)
-      return [...(await this.source.allCommunityIds())]
+      return [...(await this.source.allForumIds())]
     }
 
     const [chains, groups, appointments] = await Promise.all([
@@ -448,16 +448,16 @@ export class Authorizer {
       this.source.moderatorAppointments(actor.userId, actor.groupIds),
     ])
 
-    const everyCommunityInvolved = [...new Set([...chains.values()].flat())]
+    const everyForumInvolved = [...new Set([...chains.values()].flat())]
     const overrides = indexOverrides(
-      await this.source.communityOverrides(everyCommunityInvolved, actor.groupIds),
+      await this.source.forumOverrides(everyForumInvolved, actor.groupIds),
     )
 
     const permitted: number[] = []
-    for (const [communityId, chain] of chains) {
-      const community = resolveCommunityMatrix(chain, groups, overrides)
-      // A community the actor cannot even view is never a place they may act.
-      if (community.canView !== true) continue
+    for (const [forumId, chain] of chains) {
+      const forum = resolveForumMatrix(chain, groups, overrides)
+      // A forum the actor cannot even view is never a place they may act.
+      if (forum.canView !== true) continue
 
       /*
        * The appointment, folded down the chain exactly as `moderatorRightsIn`
@@ -468,36 +468,36 @@ export class Authorizer {
       let appointed = false
       for (const appointment of appointments) {
         const covers =
-          appointment.communityId === communityId ||
-          (appointment.cascadeToSubcommunities &&
-            chain.includes(appointment.communityId))
+          appointment.forumId === forumId ||
+          (appointment.cascadeToSubforums &&
+            chain.includes(appointment.forumId))
         if (!covers) continue
         appointed = true
         moderatorRights = unionRights(moderatorRights, appointment)
       }
 
       /*
-       * `isCommunityModerator` set from the appointment — the flag F48 introduced
+       * `isForumModerator` set from the appointment — the flag F48 introduced
        * and then had to record as debt because no per-page `can()` call ever
        * set it. Here it is set, which is why an appointee's `post.softDelete`
        * resolves the same way in bulk as it does on their own post.
        */
       if (
         this.can(actor, action, {
-          communityId,
-          community,
+          forumId,
+          forum,
           moderatorRights,
-          isCommunityModerator: appointed,
+          isForumModerator: appointed,
         })
       ) {
-        permitted.push(communityId)
+        permitted.push(forumId)
       }
     }
     return permitted
   }
 
   /**
-   * Which content states this actor may see in this community (F47).
+   * Which content states this actor may see in this forum (F47).
    *
    * The **only** producer of a `ContentScope`. Every viewer-facing read takes
    * one and no read names a visibility state itself, so "who can see removed
@@ -505,7 +505,7 @@ export class Authorizer {
    * query's own predicate. `pnpm guards` fails the build on the alternative.
    *
    * Synchronous and pure like the rest of `can()`: the caller supplies the
-   * already-resolved community matrix, so this adds no queries to a page that has
+   * already-resolved forum matrix, so this adds no queries to a page that has
    * already resolved one.
    */
   contentScope(actor: Actor, target: Target): ContentScope {
@@ -539,41 +539,41 @@ export class Authorizer {
     return typeof value === 'number' ? value : 0
   }
 
-  /** Drop rows in communities the actor cannot view. Synchronous: caller supplies the visible set. */
+  /** Drop rows in forums the actor cannot view. Synchronous: caller supplies the visible set. */
   filterVisible<T extends Visible>(
     _actor: Actor,
-    visibleCommunityIds: ReadonlySet<number>,
+    visibleForumIds: ReadonlySet<number>,
     rows: readonly T[],
   ): T[] {
-    return rows.filter((r) => visibleCommunityIds.has(r.communityId))
+    return rows.filter((r) => visibleForumIds.has(r.forumId))
   }
 
   /* -------------------------------------------------------------- *
    * Internals
    * -------------------------------------------------------------- */
-  private canCommunity(actor: Actor, action: Action, target: Target): boolean {
-    const community = target.community
-    if (!community) {
+  private canForum(actor: Actor, action: Action, target: Target): boolean {
+    const forum = target.forum
+    if (!forum) {
       // A missing matrix is a wiring bug, not a denial. Failing loud stops a
-      // forgotten `communityMatrix()` call from silently locking users out (or, if
-      // it defaulted open, silently exposing a private community).
+      // forgotten `forumMatrix()` call from silently locking users out (or, if
+      // it defaulted open, silently exposing a private forum).
       throw new Error(
-        `Community-scoped action "${action}" requires target.community (resolved matrix). ` +
-          `Call authorizer.communityMatrix() first.`,
+        `Forum-scoped action "${action}" requires target.forum (resolved matrix). ` +
+          `Call authorizer.forumMatrix() first.`,
       )
     }
 
-    // canView underpins everything: no view, no community-scoped action at all.
-    if (community.canView !== true) return false
+    // canView underpins everything: no view, no forum-scoped action at all.
+    if (forum.canView !== true) return false
 
-    // Password gate. Seeing the community exists (community.view) survives an
+    // Password gate. Seeing the forum exists (forum.view) survives an
     // unsatisfied password so it still renders in the index with a lock icon;
     // everything else is gated until the password is entered. Bypasses (admin,
     // super-mod) already returned true in can() before reaching here.
     if (
       target.passwordRequired === true &&
       target.passwordSatisfied !== true &&
-      action !== 'community.view'
+      action !== 'forum.view'
     ) {
       return false
     }
@@ -582,60 +582,60 @@ export class Authorizer {
       target.ownerId != null && target.ownerId === actor.userId
 
     switch (action) {
-      case 'community.view':
+      case 'forum.view':
         return true
       case 'thread.view':
-        return community.canViewThreads === true
-      case 'community.search':
-        return community.canSearch === true
-      case 'community.subscribe':
-        return community.canSubscribe === true
+        return forum.canViewThreads === true
+      case 'forum.search':
+        return forum.canSearch === true
+      case 'forum.subscribe':
+        return forum.canSubscribe === true
       case 'thread.post':
-        return community.canPostThreads === true
+        return forum.canPostThreads === true
       case 'reply.post':
-        return community.canPostReplies === true
+        return forum.canPostReplies === true
       case 'poll.post':
-        return community.canPostPolls === true
+        return forum.canPostPolls === true
       case 'poll.vote':
-        return community.canVotePolls === true
+        return forum.canVotePolls === true
       case 'thread.rate':
-        return community.canRateThreads === true
+        return forum.canRateThreads === true
       case 'attachment.upload':
-        return community.canUploadAttachments === true
+        return forum.canUploadAttachments === true
       case 'attachment.download':
-        return community.canDownloadAttachments === true
+        return forum.canDownloadAttachments === true
       case 'post.editOwn':
-        return ownsContent && community.canEditOwnPosts === true
+        return ownsContent && forum.canEditOwnPosts === true
       case 'post.deleteOwn':
-        return ownsContent && community.canDeleteOwnPosts === true
+        return ownsContent && forum.canDeleteOwnPosts === true
       case 'post.editOthers':
         return (
-          (target.isCommunityModerator === true ||
-            community.canEditOthersPosts === true) &&
+          (target.isForumModerator === true ||
+            forum.canEditOthersPosts === true) &&
           !ownsContent
         )
       case 'post.softDelete':
         return (
-          target.isCommunityModerator === true || community.canSoftDeletePosts === true
+          target.isForumModerator === true || forum.canSoftDeletePosts === true
         )
       case 'content.viewUnapproved':
-        // A community moderator must see the queue they are meant to action; the
+        // A forum moderator must see the queue they are meant to action; the
         // permission field is the group-level alternative for non-mod staff.
         return (
-          target.isCommunityModerator === true || community.canViewUnapproved === true
+          target.isForumModerator === true || forum.canViewUnapproved === true
         )
       case 'content.viewDeleted':
-        return target.isCommunityModerator === true || community.canViewDeleted === true
+        return target.isForumModerator === true || forum.canViewDeleted === true
       case 'content.approve':
         /*
-         * `isCommunityModerator` alone is not enough here, unlike the actions
+         * `isForumModerator` alone is not enough here, unlike the actions
          * above: an appointment carries granular rights, and one that does not
          * include `canApproveContent` appoints somebody to *read* the queue.
          * The caller resolves those rights and passes them as `moderatorRights`.
          */
         return (
           target.moderatorRights?.canApproveContent === true ||
-          community.canApproveContent === true
+          forum.canApproveContent === true
         )
 
       /*
@@ -699,18 +699,18 @@ export class Authorizer {
     kind: BypassEvent['kind'],
     actor: Actor,
     action: Action,
-    communityId: number | undefined,
+    forumId: number | undefined,
   ): void {
-    this.options.onBypass?.({ kind, userId: actor.userId, action, communityId })
+    this.options.onBypass?.({ kind, userId: actor.userId, action, forumId })
   }
 }
 
 /** Read-ish actions an unactivated account may still perform. */
 function isReadAction(action: Action): boolean {
   return (
-    action === 'community.view' ||
+    action === 'forum.view' ||
     action === 'thread.view' ||
-    action === 'community.search' ||
+    action === 'forum.search' ||
     action === 'profile.view' ||
     action === 'memberlist.view'
   )

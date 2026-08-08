@@ -10,7 +10,7 @@
     "@meith/core": "workspace:*",
     "@meith/db": "workspace:*",
     "@meith/drivers": "workspace:*",
-    "@meith/communities": "workspace:*",
+    "@meith/forums": "workspace:*",
     "drizzle-orm": "^0.44.7"
   }
 }

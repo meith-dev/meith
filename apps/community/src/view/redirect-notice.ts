@@ -4,7 +4,7 @@ export const REDIRECT_DELAY_SECONDS = 2
 
 function localHref(value: string | undefined): string {
   if (value === undefined || !value.startsWith('/')) return '/'
-  const origin = 'https://community.invalid'
+  const origin = 'https://forum.invalid'
   const url = new URL(value, origin)
   return url.origin === origin ? `${url.pathname}${url.search}${url.hash}` : '/'
 }

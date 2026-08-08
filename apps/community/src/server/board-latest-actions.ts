@@ -21,14 +21,14 @@
  * ## Why it is not the page
  *
  * `router.refresh()` would have been three lines and no action at all, and it
- * re-runs **the whole index**: the community listing, the permission resolution,
+ * re-runs **the whole index**: the forum listing, the permission resolution,
  * the read state, presence, the totals, the announcements. A tab left open for
  * a working day would ask for the board's most expensive page several hundred
  * times to keep two panels current. This asks for the two panels.
  *
  * ## Authorization
  *
- * `renderLatestPanels` resolves the actor and builds the community scope itself,
+ * `renderLatestPanels` resolves the actor and builds the forum scope itself,
  * exactly as the page does — an action is a public endpoint, and rendering the
  * page that mounted the island is not authorization for what the island then
  * calls. There is no argument to this function for the same reason: nothing a

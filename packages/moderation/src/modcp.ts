@@ -7,13 +7,13 @@
  * done here lately". That is all this file is: three read models, each scoped by
  * the same rule.
  *
- * **The rule: a moderator's ModCP shows their own communities, and nothing else.**
+ * **The rule: a moderator's ModCP shows their own forums, and nothing else.**
  * The panel is not an administrator's view with fewer buttons. A moderator of
- * one community opening the log must see that community's log — not a board-wide feed
+ * one forum opening the log must see that forum's log — not a board-wide feed
  * with the other entries filtered out of the rendering, which is how a count or
  * a paging boundary leaks what it hid.
  *
- * The one section that is not community-scoped is the IP lookup, and it is the one
+ * The one section that is not forum-scoped is the IP lookup, and it is the one
  * that needed the most care. See `IpLookup`.
  */
 import { ValidationError } from '@meith/core'
@@ -26,8 +26,8 @@ export interface ModLogEntry {
   readonly action: string
   readonly actorUserId: number | null
   readonly actorUsername: string | null
-  readonly communityId: number | null
-  readonly communityTitle: string | null
+  readonly forumId: number | null
+  readonly forumTitle: string | null
   /** Already-flattened detail: label/value pairs, never raw JSON. */
   readonly detail: readonly { readonly label: string; readonly value: string }[]
   readonly at: Date
@@ -38,9 +38,9 @@ export interface ModLogPage {
   readonly nextCursor?: string
 }
 
-/** One community this actor moderates, with what they may do in it. */
-export interface ModeratedCommunity {
-  readonly communityId: number
+/** One forum this actor moderates, with what they may do in it. */
+export interface ModeratedForum {
+  readonly forumId: number
   readonly title: string
   readonly slug: string
   /** Held threads and held replies waiting here. */
@@ -68,21 +68,21 @@ export interface IpMatch {
 
 export interface ModCpRepository {
   /**
-   * The log, restricted to `communityIds` plus the actor's own entries.
+   * The log, restricted to `forumIds` plus the actor's own entries.
    *
    * Their own, because a moderator has to be able to check what they did — and
-   * because an entry they wrote in a community they have since stopped moderating
+   * because an entry they wrote in a forum they have since stopped moderating
    * is still theirs.
    */
   log(input: {
-    readonly communityIds: readonly number[]
+    readonly forumIds: readonly number[]
     readonly actorUserId: number
     readonly limit: number
     readonly after?: string | undefined
   }): Promise<ModLogPage>
 
-  /** Counts for the dashboard, one query rather than one per community. */
-  workload(communityIds: readonly number[]): Promise<
+  /** Counts for the dashboard, one query rather than one per forum. */
+  workload(forumIds: readonly number[]): Promise<
     ReadonlyMap<number, { pending: number; openReports: number }>
   >
 
@@ -125,12 +125,12 @@ export class ModeratorPanel {
   }
 
   async log(input: {
-    readonly communityIds: readonly number[]
+    readonly forumIds: readonly number[]
     readonly actorUserId: number
     readonly after?: string | undefined
   }): Promise<ModLogPage> {
     return this.repo.log({
-      communityIds: input.communityIds,
+      forumIds: input.forumIds,
       actorUserId: input.actorUserId,
       limit: MODCP_PAGE_SIZE,
       ...(input.after === undefined ? {} : { after: input.after }),
@@ -138,25 +138,25 @@ export class ModeratorPanel {
   }
 
   /**
-   * The dashboard: every community this actor moderates, with its workload.
+   * The dashboard: every forum this actor moderates, with its workload.
    *
-   * `communities` and `rights` arrive already resolved because both are permission
+   * `forums` and `rights` arrive already resolved because both are permission
    * answers, and permission answers are made in `@meith/authorization` (R4).
    * What this adds is the counts and the ordering — busiest first, because a
-   * moderator with fourteen communities opens the panel to find the one that needs
+   * moderator with fourteen forums opens the panel to find the one that needs
    * them.
    */
   async dashboard(input: {
-    readonly communities: readonly { communityId: number; title: string; slug: string; rights: readonly string[] }[]
-  }): Promise<readonly ModeratedCommunity[]> {
-    if (input.communities.length === 0) return []
+    readonly forums: readonly { forumId: number; title: string; slug: string; rights: readonly string[] }[]
+  }): Promise<readonly ModeratedForum[]> {
+    if (input.forums.length === 0) return []
 
-    const workload = await this.repo.workload(input.communities.map((f) => f.communityId))
-    return input.communities
-      .map((community) => ({
-        ...community,
-        pending: workload.get(community.communityId)?.pending ?? 0,
-        openReports: workload.get(community.communityId)?.openReports ?? 0,
+    const workload = await this.repo.workload(input.forums.map((f) => f.forumId))
+    return input.forums
+      .map((forum) => ({
+        ...forum,
+        pending: workload.get(forum.forumId)?.pending ?? 0,
+        openReports: workload.get(forum.forumId)?.openReports ?? 0,
       }))
       .sort(
         (a, b) =>
@@ -170,7 +170,7 @@ export class ModeratorPanel {
    *
    * Three things make this different from every other read in the panel.
    *
-   *  1. **It is not community-scoped**, because an address is not. That is exactly
+   *  1. **It is not forum-scoped**, because an address is not. That is exactly
    *     why it has its own permission rather than riding on `modcp.access`.
    *  2. **It is audited, and the audit row is written whether or not anything
    *     was found.** A lookup that returned nothing is still a moderator having

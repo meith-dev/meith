@@ -4,7 +4,7 @@
  * ## Why a component and not one layout
  *
  * Because the panel straddles two route trees. `/modcp` holds the overview, My
- * communities, the log and the address lookup; `/moderation` holds the approval
+ * forums, the log and the address lookup; `/moderation` holds the approval
  * queue, the reports list and the warn screen — and those three are the panel's
  * whole point. A layout under `/modcp` alone gave a moderator a rail on the
  * screens they check and no rail on the screens they work, which is worse than

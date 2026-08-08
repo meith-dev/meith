@@ -15,7 +15,7 @@ import { buildQueueView } from '@/view/moderation-queue'
 export const metadata: Metadata = { title: 'Moderation queue' }
 
 /**
- * F48 — what is waiting for approval, in the communities this actor moderates.
+ * F48 — what is waiting for approval, in the forums this actor moderates.
  *
  * **App-owned, not a theme slot**, and deliberately so. The 25-slot registry is
  * R6's list and is frozen at F77; a moderator tool is an operator surface like
@@ -45,7 +45,7 @@ export default async function ModerationPage({
    */
   if (moderationQueue === null || actor.userId === null) notFound()
 
-  const moderated = await authorizer.moderatedCommunityIds(actor)
+  const moderated = await authorizer.moderatedForumIds(actor)
   const queue = new ModerationQueue({ queue: moderationQueue })
   const [page, pending] = await Promise.all([
     queue.list(moderated, query.after === undefined ? {} : { after: query.after }),
@@ -72,7 +72,7 @@ export default async function ModerationPage({
     const verb = query.did === 'approve' ? 'Approved' : 'Rejected'
     parts.push(`${verb} ${query.n} item${query.n === '1' ? '' : 's'}.`)
     if (query.refused !== undefined) {
-      parts.push(`${query.refused} were in communities you do not moderate.`)
+      parts.push(`${query.refused} were in forums you do not moderate.`)
     }
     if (query.gone !== undefined) {
       parts.push(`${query.gone} had already been handled.`)
@@ -98,13 +98,13 @@ export default async function ModerationPage({
           <Empty className="py-8">
             <EmptyTitle>
               {view.emptyReason === 'nothing-moderated'
-                ? 'You do not moderate any communities'
+                ? 'You do not moderate any forums'
                 : 'Nothing is waiting'}
             </EmptyTitle>
             <EmptyDescription>
               {view.emptyReason === 'nothing-moderated'
-                ? 'Posts held for approval appear here once you are appointed to a community, or given a group permission that moderates one.'
-                : 'Every post held for approval in the communities you moderate has been dealt with.'}
+                ? 'Posts held for approval appear here once you are appointed to a forum, or given a group permission that moderates one.'
+                : 'Every post held for approval in the forums you moderate has been dealt with.'}
             </EmptyDescription>
           </Empty>
         </Card>

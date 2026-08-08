@@ -141,10 +141,10 @@ export async function createPrefixAction(
       displayOrder: order,
       /*
        * A path prefix scopes the prefix to one branch of the tree (F16's
-       * dot-path). Blank means every community, which is what most boards want.
+       * dot-path). Blank means every forum, which is what most boards want.
        */
-      communityPathPrefix:
-        text(form, 'communityPathPrefix') === '' ? null : text(form, 'communityPathPrefix'),
+      forumPathPrefix:
+        text(form, 'forumPathPrefix') === '' ? null : text(form, 'forumPathPrefix'),
     })
 
     await drivers().cache.invalidateTags([CacheTags.prefixes()])
@@ -414,7 +414,7 @@ export async function deleteDirectiveAction(_prev: FormState, form: FormData): P
  * dozens of times in a row is a prompt people learn to type through.
  *
  * It stays unprompted because the blast radius is one row: there is no "delete
- * all", no filter-wide action and no cascade. F65's copy-to-subcommunities and F67's
+ * all", no filter-wide action and no cascade. F65's copy-to-subforums and F67's
  * merges are re-authenticated because one press changes many things at once,
  * which is the distinction rather than "is it destructive".
  *
@@ -473,10 +473,10 @@ function moment(form: FormData, name: string): Date | null {
 }
 
 function announcementInput(form: FormData): AnnouncementInput {
-  const communityText = text(form, 'communityId')
+  const forumText = text(form, 'forumId')
   return {
     /* Empty is board-wide. One column says it; see the migration. */
-    communityId: communityText === '' ? null : id(form, 'communityId'),
+    forumId: forumText === '' ? null : id(form, 'forumId'),
     title: text(form, 'title'),
     /* Untrimmed body: leading whitespace can be deliberate in Markdown. */
     message: typeof form.get('message') === 'string' ? (form.get('message') as string) : '',

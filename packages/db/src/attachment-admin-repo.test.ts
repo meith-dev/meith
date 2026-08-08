@@ -19,14 +19,14 @@ import type { Database } from './client'
 import { PostgresAttachmentAdminRepository } from './attachment-admin-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
-import { communities, users } from './schema'
+import { forums, users } from './schema'
 
 let harness: TestDb
 let db: Database
 let repo: PostgresAttachmentAdminRepository
 
 const CATEGORY = 1
-const COMMUNITY = 4
+const FORUM = 4
 const AT = new Date('2026-07-30T12:00:00Z')
 
 beforeAll(async () => {
@@ -44,7 +44,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from attachments`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values({
@@ -57,19 +57,19 @@ beforeEach(async () => {
     passwordAlgo: 'argon2id',
     primaryGroupId: 2,
   })
-  await db.insert(communities).values([
+  await db.insert(forums).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
-    { id: COMMUNITY, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
+    { id: FORUM, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
   ])
   await db.execute(sql`
-    insert into threads (id, community_id, title, slug, author_user_id, author_username,
+    insert into threads (id, forum_id, title, slug, author_user_id, author_username,
                          visibility, last_post_at, created_at, updated_at)
-    values (1, ${COMMUNITY}, 'A thread', 'a-thread', 1, 'ada', 'visible', ${AT}, ${AT}, ${AT})
+    values (1, ${FORUM}, 'A thread', 'a-thread', 1, 'ada', 'visible', ${AT}, ${AT}, ${AT})
   `)
   await db.execute(sql`
-    insert into posts (id, thread_id, community_id, author_user_id, author_username,
+    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
                        message, visibility, is_first_post, created_at)
-    values (1, 1, ${COMMUNITY}, 1, 'ada', 'hello', 'visible', true, ${AT})
+    values (1, 1, ${FORUM}, 1, 'ada', 'hello', 'visible', true, ${AT})
   `)
 })
 
@@ -81,10 +81,10 @@ async function addAttachment(input: {
   keys?: { storage?: string | null; source?: string | null; thumbnail?: string | null }
 }): Promise<void> {
   await db.execute(sql`
-    insert into attachments (id, post_id, community_id, uploader_user_id, filename,
+    insert into attachments (id, post_id, forum_id, uploader_user_id, filename,
                              content_type, size_bytes, storage_key, source_key,
                              thumbnail_key, status, created_at)
-    values (${input.id}, 1, ${COMMUNITY}, 1, ${input.filename}, 'image/png',
+    values (${input.id}, 1, ${FORUM}, 1, ${input.filename}, 'image/png',
             ${input.sizeBytes ?? 1024},
             ${input.keys?.storage ?? null}, ${input.keys?.source ?? null},
             ${input.keys?.thumbnail ?? null},

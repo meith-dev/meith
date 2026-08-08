@@ -14,7 +14,7 @@
  * puts on that background — not a matrix of every colour against every other,
  * which would be forty failures nobody can act on. Each one is a sentence an
  * operator can check against their own page: *the label on a primary button*,
- * *a timestamp in a community row*, *a locked thread's title*.
+ * *a timestamp in a forum row*, *a locked thread's title*.
  *
  * ## The pairs are the claim, and a test holds the shipped themes to them
  *
@@ -75,7 +75,7 @@ export interface ContrastPair {
  * ones listed — and a panel of sixty rows is a panel nobody reads. The rule for
  * adding one: a *named* place on the board where those two tokens meet.
  *
- * The semantic colours are all checked against `card`, because a community row, a
+ * The semantic colours are all checked against `card`, because a forum row, a
  * thread row and a post header are panels. On the page background they are a
  * shade more contrasty in light and a shade less in dark, and a second entry for
  * each would double the panel to say the same thing.
@@ -83,7 +83,7 @@ export interface ContrastPair {
 export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   { foreground: 'foreground', background: 'background', label: 'Body text on the page', need: 'text' },
   { foreground: 'foreground', background: 'surface', label: 'Text on a band — the header, a table heading', need: 'text' },
-  { foreground: 'card-foreground', background: 'card', label: 'Text in a panel — a post, a community row', need: 'text' },
+  { foreground: 'card-foreground', background: 'card', label: 'Text in a panel — a post, a forum row', need: 'text' },
   { foreground: 'muted-foreground', background: 'card', label: 'Timestamps and counts in a panel', need: 'text' },
   { foreground: 'muted-foreground', background: 'background', label: 'Timestamps and counts on the page', need: 'text' },
   { foreground: 'primary-foreground', background: 'primary', label: 'The label on a primary button', need: 'text' },
@@ -96,9 +96,9 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   { foreground: 'card-foreground', background: 'post-own', label: 'Your own post’s text', need: 'text' },
   { foreground: 'card-foreground', background: 'post-unapproved', label: 'A held post’s text', need: 'text' },
 
-  { foreground: 'community-unread', background: 'card', label: 'A community with new posts, in its row', need: 'text' },
-  { foreground: 'community-read', background: 'card', label: 'A community with nothing new', need: 'text' },
-  { foreground: 'community-locked', background: 'card', label: 'A closed community', need: 'text' },
+  { foreground: 'forum-unread', background: 'card', label: 'A forum with new posts, in its row', need: 'text' },
+  { foreground: 'forum-read', background: 'card', label: 'A forum with nothing new', need: 'text' },
+  { foreground: 'forum-locked', background: 'card', label: 'A closed forum', need: 'text' },
   { foreground: 'thread-pinned', background: 'card', label: 'A pinned thread’s title', need: 'text' },
   { foreground: 'thread-locked', background: 'card', label: 'A locked thread’s title', need: 'text' },
   { foreground: 'thread-moved', background: 'card', label: 'A moved thread’s stub', need: 'text' },

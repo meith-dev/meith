@@ -102,7 +102,7 @@ export function QuoteInPlace({ threadId }: { threadId: number }) {
         const quote = await quotePostAction(threadId, postId)
         /*
          * `null` is "the server will not quote that for you" — a post that has
-         * been deleted since the page was drawn, or one in a community this reader
+         * been deleted since the page was drawn, or one in a forum this reader
          * lost access to while reading. Falling back to the link means they get
          * the reply page's answer, which is the honest one, rather than a
          * button that silently did nothing.

@@ -30,7 +30,7 @@ import {
   type PluginDefinition,
 } from '@meith/plugin-kit'
 
-import communityConfig from '../../community.config'
+import forumConfig from '../../community.config'
 import { recordAdminAction, requireAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { syncOperatorDisables } from './plugin-host'
@@ -44,7 +44,7 @@ import { syncOperatorDisables } from './plugin-host'
  * key. Refused rather than stored.
  */
 function requireDefinition(key: string): PluginDefinition {
-  const entry = (communityConfig.plugins ?? []).find((candidate) => candidate.key === key)
+  const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === key)
   const definition = entry?.plugin as PluginDefinition | undefined
 
   if (entry === undefined) {

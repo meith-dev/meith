@@ -18,7 +18,7 @@
  * somebody notices the page is missing a region.
  *
  * Twenty-two slots are overridden — every surface that carries the look. Five
- * are inherited: `PostForm`, `SearchForm`, `CommunityJump`, `RedirectNotice` and
+ * are inherited: `PostForm`, `SearchForm`, `ForumJump`, `RedirectNotice` and
  * `ErrorNotice`, which are forms and interstitials whose default markup is
  * already plain, token-only and correct. Inheriting them is not laziness; it is
  * the partial override that `extends` exists for, and it means this theme's
@@ -26,8 +26,8 @@
  *
  * ## The pairing rule a theme author needs to know
  *
- * Midnight renders listings as tables, so `CommunityRow` and `ThreadRow` return
- * `<tr>`. That only works because `CategoryBlock` and `CommunityDisplay` — which
+ * Midnight renders listings as tables, so `ForumRow` and `ThreadRow` return
+ * `<tr>`. That only works because `CategoryBlock` and `ForumDisplay` — which
  * receive the rendered rows as a region — put a `<table>` around them. **Those
  * pairs must be overridden together.** Overriding the row and inheriting the
  * container would put a `<tr>` inside the default theme's `<ul>`, which browsers
@@ -43,8 +43,8 @@ import { BoardIndex } from './slots/board-index'
 import { BoardStats } from './slots/board-stats'
 import { CategoryBlock } from './slots/category-block'
 import { Footer } from './slots/footer'
-import { CommunityDisplay } from './slots/community-display'
-import { CommunityRow } from './slots/community-row'
+import { ForumDisplay } from './slots/forum-display'
+import { ForumRow } from './slots/forum-row'
 import { Header } from './slots/header'
 import { LatestPosts } from './slots/latest-posts'
 import { LatestThreads } from './slots/latest-threads'
@@ -56,7 +56,7 @@ import { Pagination } from './slots/pagination'
 import { PostActions } from './slots/post-actions'
 import { PostBit } from './slots/post-bit'
 import { Shell } from './slots/shell'
-import { SubcommunityList } from './slots/subcommunity-list'
+import { SubforumList } from './slots/subforum-list'
 import { ThreadRow } from './slots/thread-row'
 import { ThreadView } from './slots/thread-view'
 import { UserPanel } from './slots/user-panel'
@@ -77,15 +77,15 @@ export const midnightTheme = defineTheme({
 
     BoardIndex,
     CategoryBlock,
-    CommunityRow,
+    ForumRow,
     BoardStats,
     WhoIsOnline,
     LatestThreads,
     LatestPosts,
 
-    CommunityDisplay,
+    ForumDisplay,
     ThreadRow,
-    SubcommunityList,
+    SubforumList,
     Pagination,
 
     ThreadView,

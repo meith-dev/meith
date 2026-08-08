@@ -77,7 +77,7 @@ export default async function UnsubscribePage({
             description={
               claim.scope === 'email'
                 ? 'This will stop subscription e-mails. What you follow stays as it is, and new posts will still appear in your notifications on the board.'
-                : 'This will stop notifications about the thread or community this message was about. Everything else you follow stays as it is.'
+                : 'This will stop notifications about the thread or forum this message was about. Everything else you follow stays as it is.'
             }
           />
         )}

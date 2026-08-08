@@ -27,7 +27,7 @@ import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresPostRepository } from './post-repo'
 import { PostgresReadStateRepository } from './read-state-repo'
 import { PostgresThreadRepository } from './thread-repo'
-import { communities, users } from './schema'
+import { forums, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -36,7 +36,7 @@ let posts: PostgresPostRepository
 let readState: PostgresReadStateRepository
 
 const CATEGORY = 1
-const COMMUNITY = 4
+const FORUM = 4
 const READER = 1
 const AT = new Date('2026-07-30T12:00:00Z')
 
@@ -79,9 +79,9 @@ afterAll(async () => {
 
 async function seedThread(id: number, visibility: ContentVisibility): Promise<void> {
   await db.execute(sql`
-    insert into threads (id, community_id, title, slug, author_user_id, author_username,
+    insert into threads (id, forum_id, title, slug, author_user_id, author_username,
                          visibility, last_post_id, last_post_at, created_at, updated_at)
-    values (${id}, ${COMMUNITY}, ${'T' + String(id)}, ${'t' + String(id)}, ${READER}, 'ada',
+    values (${id}, ${FORUM}, ${'T' + String(id)}, ${'t' + String(id)}, ${READER}, 'ada',
             ${visibility}, ${id * 10}, ${AT}, ${AT}, ${AT})
   `)
 }
@@ -92,19 +92,19 @@ async function seedPost(
   visibility: ContentVisibility,
 ): Promise<void> {
   await db.execute(sql`
-    insert into posts (id, thread_id, community_id, author_user_id, author_username,
+    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
                        message, visibility, is_first_post, created_at)
-    values (${id}, ${threadId}, ${COMMUNITY}, ${READER}, 'ada', ${'body ' + String(id)},
+    values (${id}, ${threadId}, ${FORUM}, ${READER}, 'ada', ${'body ' + String(id)},
             ${visibility}, ${id === POST.visible}, ${AT})
   `)
 }
 
 beforeEach(async () => {
   await db.execute(sql`delete from threads_read`)
-  await db.execute(sql`delete from communities_read`)
+  await db.execute(sql`delete from forums_read`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values({
@@ -117,9 +117,9 @@ beforeEach(async () => {
     passwordAlgo: 'argon2id',
     primaryGroupId: 2,
   })
-  await db.insert(communities).values([
+  await db.insert(forums).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
-    { id: COMMUNITY, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
+    { id: FORUM, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
   ])
 
   await seedThread(THREAD.visible, 'visible')
@@ -143,9 +143,9 @@ const PATHS: ReadonlyArray<{
   run(scope: ContentScope): Promise<readonly ContentVisibility[]>
 }> = [
   {
-    name: 'threads.listCommunity',
+    name: 'threads.listForum',
     async run(scope) {
-      const page = await threads.listCommunity(COMMUNITY, { limit: 50, scope })
+      const page = await threads.listForum(FORUM, { limit: 50, scope })
       return page.rows.map((row) => row.visibility)
     },
   },
@@ -186,7 +186,7 @@ describe('no read path returns content outside its scope', () => {
    */
   it('shows exactly the expected threads at each scope', async () => {
     const listed = async (scope: ContentScope): Promise<number[]> =>
-      (await threads.listCommunity(COMMUNITY, { limit: 50, scope })).rows.map((row) => row.id).sort()
+      (await threads.listForum(FORUM, { limit: 50, scope })).rows.map((row) => row.id).sort()
 
     expect(await listed(PUBLIC_CONTENT)).toEqual([THREAD.visible])
     expect(await listed(contentScopeFrom({ seesUnapproved: true, seesDeleted: false }))).toEqual(
@@ -235,16 +235,16 @@ describe('action targets stay public for everybody', () => {
   it('counts only visible threads as unread', async () => {
     const state = await readState.forUser(READER)
     /*
-     * All three threads are in this community and all three are unread. If hidden
-     * threads counted, the community would still be flagged — so the assertion that
+     * All three threads are in this forum and all three are unread. If hidden
+     * threads counted, the forum would still be flagged — so the assertion that
      * bites is the one below, which removes the only visible thread and expects
      * the flag to go with it.
      */
-    expect(state.unreadCommunityIds.has(COMMUNITY)).toBe(true)
+    expect(state.unreadForumIds.has(FORUM)).toBe(true)
 
     await db.execute(sql`update threads set visibility = 'deleted' where id = ${THREAD.visible}`)
     const after = await readState.forUser(READER)
-    expect(after.unreadCommunityIds.has(COMMUNITY)).toBe(false)
+    expect(after.unreadForumIds.has(FORUM)).toBe(false)
   })
 })
 

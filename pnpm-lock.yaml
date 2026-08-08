@@ -66,9 +66,6 @@ importers:
       '@meith/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
-      '@meith/communities':
-        specifier: workspace:*
-        version: link:../../packages/communities
       '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -81,6 +78,9 @@ importers:
       '@meith/events':
         specifier: workspace:*
         version: link:../../packages/events
+      '@meith/forums':
+        specifier: workspace:*
+        version: link:../../packages/forums
       '@meith/profile-fields':
         specifier: workspace:*
         version: link:../../packages/profile-fields
@@ -118,9 +118,6 @@ importers:
       '@meith/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
-      '@meith/communities':
-        specifier: workspace:*
-        version: link:../../packages/communities
       '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -136,6 +133,9 @@ importers:
       '@meith/events':
         specifier: workspace:*
         version: link:../../packages/events
+      '@meith/forums':
+        specifier: workspace:*
+        version: link:../../packages/forums
       '@meith/groups':
         specifier: workspace:*
         version: link:../../packages/groups
@@ -391,12 +391,6 @@ importers:
         specifier: workspace:*
         version: link:../core
 
-  packages/communities:
-    dependencies:
-      '@meith/core':
-        specifier: workspace:*
-        version: link:../core
-
   packages/core:
     dependencies:
       pino:
@@ -431,9 +425,6 @@ importers:
       '@meith/avatars':
         specifier: workspace:*
         version: link:../avatars
-      '@meith/communities':
-        specifier: workspace:*
-        version: link:../communities
       '@meith/core':
         specifier: workspace:*
         version: link:../core
@@ -443,6 +434,9 @@ importers:
       '@meith/events':
         specifier: workspace:*
         version: link:../events
+      '@meith/forums':
+        specifier: workspace:*
+        version: link:../forums
       '@meith/groups':
         specifier: workspace:*
         version: link:../groups
@@ -552,6 +546,12 @@ importers:
         version: 8.0.1
 
   packages/events:
+    dependencies:
+      '@meith/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/forums:
     dependencies:
       '@meith/core':
         specifier: workspace:*
@@ -738,9 +738,6 @@ importers:
       '@meith/authorization':
         specifier: workspace:*
         version: link:../authorization
-      '@meith/communities':
-        specifier: workspace:*
-        version: link:../communities
       '@meith/core':
         specifier: workspace:*
         version: link:../core
@@ -750,6 +747,9 @@ importers:
       '@meith/drivers':
         specifier: workspace:*
         version: link:../drivers
+      '@meith/forums':
+        specifier: workspace:*
+        version: link:../forums
       drizzle-orm:
         specifier: ^0.44.7
         version: 0.44.7(@electric-sql/pglite@0.5.4)(mysql2@3.23.2(@types/node@24.10.4))(postgres@3.4.9)

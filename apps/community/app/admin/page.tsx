@@ -33,7 +33,7 @@ import { formatTime } from '@/view/time'
  * Eleven bullets, each a section name and a sentence about it, above five lines
  * of admin log. That is a table of contents, and it answered no question an
  * administrator actually arrives with. Nobody opens the ACP to discover that a
- * "Communities" screen exists; they open it because something needs doing, or to
+ * "Forums" screen exists; they open it because something needs doing, or to
  * check that nothing does.
  *
  * So the page leads with **what is waiting**: posts held for approval, reports
@@ -87,9 +87,9 @@ export default async function AdminHomePage() {
     moderationQueue === null
       ? Promise.resolve(0)
       : authorizer
-          .moderatedCommunityIds(actor)
-          .then((communityIds) =>
-            new ModerationQueue({ queue: moderationQueue }).countPending(communityIds),
+          .moderatedForumIds(actor)
+          .then((forumIds) =>
+            new ModerationQueue({ queue: moderationQueue }).countPending(forumIds),
           ),
     reports === null
       ? Promise.resolve(0)

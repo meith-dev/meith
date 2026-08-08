@@ -17,7 +17,7 @@ import {
  * one shape to the other later means every crawler that cached the old one has
  * to rediscover the new — so it is an index from the first thread.
  *
- * Chunk zero is the communities; the rest are threads, keyset-paged on the id. The
+ * Chunk zero is the forums; the rest are threads, keyset-paged on the id. The
  * count is the one aggregate this feature runs, once per index request, because
  * an index has to say how many chunks exist before any of them is built.
  */
@@ -40,7 +40,7 @@ export async function GET(): Promise<Response> {
 
   return xmlResponse(
     renderSitemapIndex([
-      { loc: absoluteTo(site, '/sitemap/communities.xml') },
+      { loc: absoluteTo(site, '/sitemap/forums.xml') },
       ...Array.from({ length: chunks }, (_, index) => ({
         loc: absoluteTo(site, `/sitemap/threads-${index + 1}.xml`),
       })),

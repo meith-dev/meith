@@ -3,14 +3,14 @@
  *
  * Everything installable is named here, statically, so the bundler can see it
  * and `tsc` can check it. Nothing is discovered by scanning a directory at
- * runtime — see `defineCommunityConfig` for why that is not merely a style
+ * runtime — see `defineForumConfig` for why that is not merely a style
  * preference on a serverless target.
  *
  * Adding a theme or a plugin is: `pnpm add` it, add a line here, redeploy.
  * That is the honest install story the plugin manager (F69) explains on screen
  * rather than burying in docs.
  */
-import { defineCommunityConfig } from '@meith/core'
+import { defineForumConfig } from '@meith/core'
 
 import { INSTALLED_PLUGINS } from './community.plugins'
 import {
@@ -26,7 +26,7 @@ import {
   midnightTheme,
 } from '@meith/theme-midnight'
 
-export default defineCommunityConfig({
+export default defineForumConfig({
   themes: {
     default: {
       key: 'default',

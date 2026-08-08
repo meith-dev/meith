@@ -4,8 +4,8 @@
  * Three claims, and all three are privacy claims rather than correctness ones —
  * which is why they get a suite of their own rather than a line in a page test:
  *
- *  - **the location is resolved against the reader**, so a private community's name
- *    never reaches somebody who cannot see the community;
+ *  - **the location is resolved against the reader**, so a private forum's name
+ *    never reaches somebody who cannot see the forum;
  *  - **invisible members are absent from the count as well as the list**,
  *    because a member who can be found by subtraction is not hidden;
  *  - **one row per visitor**, so a member with two devices is one person and a
@@ -50,14 +50,14 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.execute(sql`delete from sessions`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
   await db.execute(sql`update board_stats set most_online_count = 0, most_online_at = null`)
 
   await db.execute(sql`
-    insert into communities (id, type, title, slug, path) values
-      (${OPEN}, 'community', 'Open', 'open', '1'),
-      (${SECRET}, 'community', 'Staff room', 'staff', '2')
+    insert into forums (id, type, title, slug, path) values
+      (${OPEN}, 'forum', 'Open', 'open', '1'),
+      (${SECRET}, 'forum', 'Staff room', 'staff', '2')
   `)
   for (const id of [ANN, BOB, CID]) {
     await db.execute(sql`
@@ -73,32 +73,32 @@ interface SeedSession {
   readonly id: number
   readonly userId?: number | null
   readonly lastSeenAt?: Date
-  readonly communityId?: number | null
+  readonly forumId?: number | null
   readonly threadId?: number | null
   readonly revoked?: boolean
 }
 
 async function seedSession(input: SeedSession): Promise<void> {
   await db.execute(sql`
-    insert into sessions (id, token_hash, user_id, location_community_id, location_thread_id,
+    insert into sessions (id, token_hash, user_id, location_forum_id, location_thread_id,
                           last_seen_at, expires_at, revoked_at)
     values (${input.id}, ${`hash-${input.id}`}, ${input.userId ?? null},
-            ${input.communityId ?? null}, ${input.threadId ?? null},
+            ${input.forumId ?? null}, ${input.threadId ?? null},
             ${input.lastSeenAt ?? ago(1)},
             ${new Date(NOW.getTime() + 86_400_000)},
             ${input.revoked === true ? NOW : null})
   `)
 }
 
-async function seedThread(id: number, communityId: number, visibility = 'visible') {
+async function seedThread(id: number, forumId: number, visibility = 'visible') {
   await db.execute(sql`
-    insert into threads (id, community_id, author_user_id, author_username, title, slug, visibility)
-    values (${id}, ${communityId}, ${ANN}, 'ann', ${`Thread ${id}`}, ${`t-${id}`}, ${visibility})
+    insert into threads (id, forum_id, author_user_id, author_username, title, slug, visibility)
+    values (${id}, ${forumId}, ${ANN}, 'ann', ${`Thread ${id}`}, ${`t-${id}`}, ${visibility})
   `)
 }
 
 const scope = (overrides: Partial<OnlineScope> = {}): OnlineScope => ({
-  communityIds: [OPEN],
+  forumIds: [OPEN],
   content: PUBLIC_CONTENT,
   seesInvisible: false,
   ...overrides,
@@ -130,13 +130,13 @@ describe('who is here', () => {
      * that drops the `distinct on` — under which the busiest members inflate
      * the count and appear twice in the list.
      */
-    await seedSession({ id: 1, userId: ANN, lastSeenAt: ago(5), communityId: OPEN })
-    await seedSession({ id: 2, userId: ANN, lastSeenAt: ago(1), communityId: null })
+    await seedSession({ id: 1, userId: ANN, lastSeenAt: ago(5), forumId: OPEN })
+    await seedSession({ id: 2, userId: ANN, lastSeenAt: ago(1), forumId: null })
 
     const snapshot = await repo.onlineNow(NOW, scope())
     expect(snapshot.members).toHaveLength(1)
     /* And it is the *most recent* session, so the location is the current one. */
-    expect(snapshot.members[0]?.communityId).toBeNull()
+    expect(snapshot.members[0]?.forumId).toBeNull()
   })
 
   it('ignores a revoked session', async () => {
@@ -157,51 +157,51 @@ describe('who is here', () => {
 })
 
 describe('the location is resolved against the reader', () => {
-  it('names a community the reader may see', async () => {
-    await seedSession({ id: 1, userId: ANN, communityId: OPEN })
+  it('names a forum the reader may see', async () => {
+    await seedSession({ id: 1, userId: ANN, forumId: OPEN })
 
     const snapshot = await repo.onlineNow(NOW, scope())
-    expect(snapshot.members[0]).toMatchObject({ communityId: OPEN, communityTitle: 'Open' })
+    expect(snapshot.members[0]).toMatchObject({ forumId: OPEN, forumTitle: 'Open' })
   })
 
-  it('withholds a community the reader may not see, and still lists the member', async () => {
+  it('withholds a forum the reader may not see, and still lists the member', async () => {
     /*
      * The central claim. A member reading the staff room is online — that is
      * not secret — but where they are is. Kills the mutant that returns the
-     * title regardless, which puts a private community's name in a view model any
+     * title regardless, which puts a private forum's name in a view model any
      * theme can print.
      */
-    await seedSession({ id: 1, userId: ANN, communityId: SECRET })
+    await seedSession({ id: 1, userId: ANN, forumId: SECRET })
 
-    const snapshot = await repo.onlineNow(NOW, scope({ communityIds: [OPEN] }))
+    const snapshot = await repo.onlineNow(NOW, scope({ forumIds: [OPEN] }))
     expect(snapshot.members).toHaveLength(1)
-    expect(snapshot.members[0]).toMatchObject({ communityId: null, communityTitle: null })
+    expect(snapshot.members[0]).toMatchObject({ forumId: null, forumTitle: null })
   })
 
-  it('names nothing at all when the reader can see no community', async () => {
+  it('names nothing at all when the reader can see no forum', async () => {
     /*
      * An empty list is `false`, not "no filter". `in ()` is a syntax error and
-     * the tempting fix — skipping the clause — names every community on the board.
+     * the tempting fix — skipping the clause — names every forum on the board.
      */
-    await seedSession({ id: 1, userId: ANN, communityId: OPEN })
+    await seedSession({ id: 1, userId: ANN, forumId: OPEN })
 
-    const snapshot = await repo.onlineNow(NOW, scope({ communityIds: [] }))
-    expect(snapshot.members[0]?.communityTitle).toBeNull()
+    const snapshot = await repo.onlineNow(NOW, scope({ forumIds: [] }))
+    expect(snapshot.members[0]?.forumTitle).toBeNull()
   })
 
   it('withholds a thread the reader’s content scope hides', async () => {
     /*
-     * A visible community can hold a thread that is not. A moderator reading a
+     * A visible forum can hold a thread that is not. A moderator reading a
      * soft-deleted thread must not put its title on the front page. Kills the
-     * mutant that checks only the community.
+     * mutant that checks only the forum.
      */
     await seedThread(10, OPEN, 'deleted')
-    await seedSession({ id: 1, userId: ANN, communityId: OPEN, threadId: 10 })
+    await seedSession({ id: 1, userId: ANN, forumId: OPEN, threadId: 10 })
 
     const asMember = await repo.onlineNow(NOW, scope())
     expect(asMember.members[0]).toMatchObject({ threadId: null, threadTitle: null })
-    /* The community is still named — that part the reader may know. */
-    expect(asMember.members[0]?.communityTitle).toBe('Open')
+    /* The forum is still named — that part the reader may know. */
+    expect(asMember.members[0]?.forumTitle).toBe('Open')
 
     const staffScope = scope({
       content: contentScopeFrom({ seesUnapproved: true, seesDeleted: true }),
@@ -212,7 +212,7 @@ describe('the location is resolved against the reader', () => {
 
   it('names a thread the reader may see, with its slug for the link', async () => {
     await seedThread(11, OPEN)
-    await seedSession({ id: 1, userId: ANN, communityId: OPEN, threadId: 11 })
+    await seedSession({ id: 1, userId: ANN, forumId: OPEN, threadId: 11 })
 
     expect((await repo.onlineNow(NOW, scope())).members[0]).toMatchObject({
       threadId: 11,

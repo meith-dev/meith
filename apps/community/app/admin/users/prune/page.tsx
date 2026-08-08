@@ -59,7 +59,7 @@ export default async function AdminPrunePage({
       lede={
         <>
           Closes dormant accounts in batches. It will never touch anybody who has posted,
-          anybody in a staff group, any community moderator, or a banned account — those are
+          anybody in a staff group, any forum moderator, or a banned account — those are
           exclusions rather than options, because closing one of them does damage a date
           filter cannot justify.
         </>
@@ -123,7 +123,7 @@ export default async function AdminPrunePage({
       ) : preview !== null && preview.total === 0 ? (
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
           Nothing matches. Every account registered before that date has posted, is staff,
-          moderates a community, or is banned.
+          moderates a forum, or is banned.
         </p>
       ) : preview !== null ? (
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">

@@ -23,7 +23,7 @@
  * the board.
  */
 
-/** Entries in a board or community feed. */
+/** Entries in a board or forum feed. */
 export interface FeedEntry {
   readonly id: string
   readonly title: string
@@ -158,7 +158,7 @@ export function renderSitemap(urls: readonly SitemapUrl[]): string {
     .map((url) => {
       /*
        * `lastmod` is omitted rather than defaulted. A crawler treats it as a
-       * promise about when the page changed, and inventing "now" for a community
+       * promise about when the page changed, and inventing "now" for a forum
        * nobody has posted in teaches it to re-fetch a page that never moves.
        */
       const lastmod =

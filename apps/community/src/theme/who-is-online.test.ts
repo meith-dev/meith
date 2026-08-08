@@ -8,7 +8,7 @@
  * flatten, and midnight's version of this panel is a single inline run with no
  * collapse at all.
  *
- * But the default theme's panel now sits in a rail beside the community listing,
+ * But the default theme's panel now sits in a rail beside the forum listing,
  * and there it has a job the contract has no vocabulary for: **it has to stay
  * short on a board where a lot of people are reading.** A version that rendered
  * every name would pass every assertion over there and push the two panels

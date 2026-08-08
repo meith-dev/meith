@@ -3,7 +3,7 @@ import { schema, type Database } from '@meith/db'
 import { eq, sql } from 'drizzle-orm'
 
 export type FactoryUser = typeof schema.users.$inferSelect
-export type FactoryCommunity = typeof schema.communities.$inferSelect
+export type FactoryForum = typeof schema.forums.$inferSelect
 export type FactoryThread = typeof schema.threads.$inferSelect
 export type FactoryPost = typeof schema.posts.$inferSelect
 
@@ -12,15 +12,15 @@ export interface UserFactoryOptions {
   readonly primaryGroupId?: number
 }
 
-export interface CommunityFactoryOptions {
+export interface ForumFactoryOptions {
   readonly title?: string
   readonly slug?: string
-  readonly parent?: FactoryCommunity
-  readonly type?: 'category' | 'community' | 'link'
+  readonly parent?: FactoryForum
+  readonly type?: 'category' | 'forum' | 'link'
 }
 
 export interface ThreadFactoryOptions {
-  readonly community?: FactoryCommunity
+  readonly forum?: FactoryForum
   readonly author?: FactoryUser
   readonly title?: string
 }
@@ -76,41 +76,41 @@ export function createFactories(db: Database) {
     return created
   }
 
-  const community = async (options: CommunityFactoryOptions = {}): Promise<FactoryCommunity> => {
+  const forum = async (options: ForumFactoryOptions = {}): Promise<FactoryForum> => {
     const n = next()
     const parent = options.parent
-    const title = options.title ?? `Community ${n}`
+    const title = options.title ?? `Forum ${n}`
     const [created] = await db
-      .insert(schema.communities)
+      .insert(schema.forums)
       .values({
-        type: options.type ?? 'community',
+        type: options.type ?? 'forum',
         title,
-        slug: options.slug ?? `community-${n}`,
+        slug: options.slug ?? `forum-${n}`,
         parentId: parent?.id,
         path: '',
         depth: parent === undefined ? 0 : parent.depth + 1,
       })
       .returning()
-    if (created === undefined) throw new Error('createFactories: community insert returned no row')
+    if (created === undefined) throw new Error('createFactories: forum insert returned no row')
 
     const path = parent === undefined ? String(created.id) : `${parent.path}.${created.id}`
     const [withPath] = await db
-      .update(schema.communities)
+      .update(schema.forums)
       .set({ path })
-      .where(eq(schema.communities.id, created.id))
+      .where(eq(schema.forums.id, created.id))
       .returning()
-    if (withPath === undefined) throw new Error('createFactories: community path update returned no row')
+    if (withPath === undefined) throw new Error('createFactories: forum path update returned no row')
     return withPath
   }
 
   const thread = async (options: ThreadFactoryOptions = {}): Promise<FactoryThread> => {
     const n = next()
-    const communityRow = options.community ?? (await community())
+    const forumRow = options.forum ?? (await forum())
     const author = options.author ?? (await user())
     const [created] = await db
       .insert(schema.threads)
       .values({
-        communityId: communityRow.id,
+        forumId: forumRow.id,
         title: options.title ?? `Thread ${n}`,
         slug: `thread-${n}`,
         authorUserId: author.id,
@@ -129,7 +129,7 @@ export function createFactories(db: Database) {
       .insert(schema.posts)
       .values({
         threadId: threadRow.id,
-        communityId: threadRow.communityId,
+        forumId: threadRow.forumId,
         authorUserId: author.id,
         authorUsername: author.username,
         subject: isFirstPost ? threadRow.title : null,
@@ -163,5 +163,5 @@ export function createFactories(db: Database) {
     return created
   }
 
-  return { user, community, thread, post }
+  return { user, forum, thread, post }
 }

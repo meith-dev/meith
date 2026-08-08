@@ -14,7 +14,7 @@
     "@meith/core": "workspace:*",
     "@meith/drafts": "workspace:*",
     "@meith/events": "workspace:*",
-    "@meith/communities": "workspace:*",
+    "@meith/forums": "workspace:*",
     "@meith/groups": "workspace:*",
     "@meith/moderation": "workspace:*",
     "@meith/messages": "workspace:*",

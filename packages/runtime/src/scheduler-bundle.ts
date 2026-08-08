@@ -47,7 +47,7 @@ import { SEED_GROUP } from './groups'
 import { resolveMailBrand, resolveSenderName } from './mail-brand'
 import { pluginTasks } from './plugin-tasks'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
-import { visibleCommunitySource } from './visible-communities'
+import { visibleForumSource } from './visible-forums'
 
 export interface SchedulerBundle {
   readonly repository: TaskRepository
@@ -241,7 +241,7 @@ export function buildSchedulerBundle(deps: {
         threadViews,
         warnings: new PostgresWarningRepository(db),
         /*
-         * F56. The notifier needs the Authorizer, because "which communities may
+         * F56. The notifier needs the Authorizer, because "which forums may
          * this member still see" is a permission question and a task is not
          * allowed a second answer to it (F47). Built here rather than shared
          * with the request path's container: the tick can run in a process that
@@ -250,7 +250,7 @@ export function buildSchedulerBundle(deps: {
         subscriptions: {
           repository: new PostgresSubscriptionRepository(db),
           notifications: new NotificationService({ notifications }),
-          communities: visibleCommunitySource({
+          forums: visibleForumSource({
             authorizer: new Authorizer(new PostgresAuthorizationSource(db), {}),
             actors: new ActorBuilder(db, { guestGroupId: SEED_GROUP.guest }),
           }),

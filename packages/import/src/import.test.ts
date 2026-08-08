@@ -6,7 +6,7 @@ import {
   NO_PROGRESS,
   compareCounters,
   fromUnixSeconds,
-  mapCommunity,
+  mapForum,
   mapPost,
   mapThread,
   mapUser,
@@ -35,7 +35,7 @@ class MemorySink implements ImportSink {
   readonly calls: string[] = []
 
   putUsers = (rows: readonly { legacyId: number }[]) => this.#put('users', rows)
-  putCommunities = (rows: readonly { legacyId: number }[]) => this.#put('communities', rows)
+  putForums = (rows: readonly { legacyId: number }[]) => this.#put('forums', rows)
   putThreads = (rows: readonly { legacyId: number }[]) => this.#put('threads', rows)
   putPosts = (rows: readonly { legacyId: number }[]) => this.#put('posts', rows)
 
@@ -108,8 +108,8 @@ const post = (pid: number, overrides: Partial<MybbPost> = {}): MybbPost => ({
 
 const BOARD = {
   users: [user(1), user(2), user(3)],
-  communities: [
-    { fid: 1, name: 'Community', description: '', type: 'c', pid: 0, disporder: 1, linkto: '', threads: 0, posts: 0 },
+  forums: [
+    { fid: 1, name: 'Forum', description: '', type: 'c', pid: 0, disporder: 1, linkto: '', threads: 0, posts: 0 },
     { fid: 2, name: 'General', description: 'Chat', type: 'f', pid: 1, disporder: 1, linkto: '', threads: 2, posts: 3 },
     { fid: 3, name: 'Our wiki', description: '', type: 'l', pid: 1, disporder: 2, linkto: 'https://wiki.test', threads: 0, posts: 0 },
   ],
@@ -177,30 +177,30 @@ describe('users', () => {
   })
 })
 
-describe('communities', () => {
+describe('forums', () => {
   it('maps the three MyBB types', () => {
-    expect(mapCommunity(BOARD.communities[0]!).type).toBe('category')
-    expect(mapCommunity(BOARD.communities[1]!).type).toBe('community')
-    expect(mapCommunity(BOARD.communities[2]!).type).toBe('link')
+    expect(mapForum(BOARD.forums[0]!).type).toBe('category')
+    expect(mapForum(BOARD.forums[1]!).type).toBe('forum')
+    expect(mapForum(BOARD.forums[2]!).type).toBe('link')
   })
 
   /*
-   * A fourth type comes from a plugin. A community is the reading that loses
+   * A fourth type comes from a plugin. A forum is the reading that loses
    * nothing — its threads still import, where treating it as a link would orphan
    * them.
    */
-  it('reads an unknown type as a community', () => {
-    expect(mapCommunity({ ...BOARD.communities[1]!, type: 'x' }).type).toBe('community')
+  it('reads an unknown type as a forum', () => {
+    expect(mapForum({ ...BOARD.forums[1]!, type: 'x' }).type).toBe('forum')
   })
 
   it('turns MyBB’s parent 0 into null', () => {
-    expect(mapCommunity(BOARD.communities[0]!).legacyParentId).toBeNull()
-    expect(mapCommunity(BOARD.communities[1]!).legacyParentId).toBe(1)
+    expect(mapForum(BOARD.forums[0]!).legacyParentId).toBeNull()
+    expect(mapForum(BOARD.forums[1]!).legacyParentId).toBe(1)
   })
 
   it('keeps a link URL only for a link', () => {
-    expect(mapCommunity(BOARD.communities[2]!).linkUrl).toBe('https://wiki.test')
-    expect(mapCommunity({ ...BOARD.communities[1]!, linkto: 'https://x.test' }).linkUrl).toBeNull()
+    expect(mapForum(BOARD.forums[2]!).linkUrl).toBe('https://wiki.test')
+    expect(mapForum({ ...BOARD.forums[1]!, linkto: 'https://x.test' }).linkUrl).toBeNull()
   })
 })
 
@@ -243,7 +243,7 @@ describe('the fixture round trip', () => {
 
     expect(report.finished).toBe(true)
     expect(sink.count('users')).toBe(3)
-    expect(sink.count('communities')).toBe(3)
+    expect(sink.count('forums')).toBe(3)
     expect(sink.count('threads')).toBe(2)
     expect(sink.count('posts')).toBe(3)
   })
@@ -322,7 +322,7 @@ describe('the fixture round trip', () => {
   })
 
   /*
-   * Order is a dependency graph: a thread references a community, a post references
+   * Order is a dependency graph: a thread references a forum, a post references
    * a thread. Importing posts first means inventing parents or holding every post
    * in memory — the design that works on a small board and dies on a real one.
    */
@@ -331,8 +331,8 @@ describe('the fixture round trip', () => {
     await runImport({ source: new FixtureMybbSource(BOARD), sink })
 
     const kinds = sink.calls.map((call) => call.split(':')[0])
-    expect(kinds.indexOf('users')).toBeLessThan(kinds.indexOf('communities'))
-    expect(kinds.indexOf('communities')).toBeLessThan(kinds.indexOf('threads'))
+    expect(kinds.indexOf('users')).toBeLessThan(kinds.indexOf('forums'))
+    expect(kinds.indexOf('forums')).toBeLessThan(kinds.indexOf('threads'))
     expect(kinds.indexOf('threads')).toBeLessThan(kinds.indexOf('posts'))
   })
 
@@ -351,17 +351,17 @@ describe('the fixture round trip', () => {
  * ------------------------------------------------------------------ */
 
 describe('the counter comparison', () => {
-  const communities = BOARD.communities.map(mapCommunity)
+  const forums = BOARD.forums.map(mapForum)
   const threads = BOARD.threads.map(mapThread)
   const posts = BOARD.posts.map(mapPost)
 
   it('reports nothing when MyBB’s counters agree with its content', () => {
     expect(
       compareCounters({
-        communities,
+        forums,
         threads,
         posts,
-        claimedCommunityTotals: { 2: { threads: 2, posts: 3 } },
+        claimedForumTotals: { 2: { threads: 2, posts: 3 } },
       }),
     ).toEqual([])
   })
@@ -371,12 +371,12 @@ describe('the counter comparison', () => {
    * delete. The comparison exists to *say so*, not to fail: importing somebody
    * else's arithmetic as truth is what bakes their bug into a fresh board.
    */
-  it('names a community whose claimed totals are wrong', () => {
+  it('names a forum whose claimed totals are wrong', () => {
     const differences = compareCounters({
-      communities,
+      forums,
       threads,
       posts,
-      claimedCommunityTotals: { 2: { threads: 9, posts: 3 } },
+      claimedForumTotals: { 2: { threads: 9, posts: 3 } },
     })
 
     expect(differences).toEqual([{ legacyId: 2, field: 'threads', claimed: 9, actual: 2 }])
@@ -387,27 +387,27 @@ describe('the counter comparison', () => {
     const withHidden = [...posts, mapPost(post(4, { pid: 4, visible: -1 }))]
     expect(
       compareCounters({
-        communities,
+        forums,
         threads,
         posts: withHidden,
-        claimedCommunityTotals: { 2: { threads: 2, posts: 3 } },
+        claimedForumTotals: { 2: { threads: 2, posts: 3 } },
       }),
     ).toEqual([])
   })
 
   it('names a thread whose reply count is wrong', () => {
     const differences = compareCounters({
-      communities,
+      forums,
       threads: [mapThread(thread(1, { replies: 7 }))],
       posts,
-      claimedCommunityTotals: {},
+      claimedForumTotals: {},
     })
 
     /* Two posts in thread 1, so one reply. */
     expect(differences).toEqual([{ legacyId: 1, field: 'replies', claimed: 7, actual: 1 }])
   })
 
-  it('says nothing about a community MyBB gave no totals for', () => {
-    expect(compareCounters({ communities, threads, posts, claimedCommunityTotals: {} })).toEqual([])
+  it('says nothing about a forum MyBB gave no totals for', () => {
+    expect(compareCounters({ forums, threads, posts, claimedForumTotals: {} })).toEqual([])
   })
 })

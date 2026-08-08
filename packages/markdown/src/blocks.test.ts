@@ -16,7 +16,7 @@ describe('paragraphs and line breaks', () => {
     /*
      * CommonMark folds a soft break into a space. That is right for documents
      * and wrong for a message box: people write addresses and set lists in
-     * posts and press Return where they mean it. Every community-flavoured Markdown
+     * posts and press Return where they mean it. Every forum-flavoured Markdown
      * ever shipped has made this same change.
      */
     expect(html('one\ntwo')).toBe('<p>one<br>\ntwo</p>')
@@ -80,7 +80,7 @@ describe('code', () => {
 })
 
 describe('quotes', () => {
-  it('nests, which is the shape of a community argument', () => {
+  it('nests, which is the shape of a forum argument', () => {
     expect(html('> a\n> > b')).toContain('<blockquote class="md-quote"><p>a</p>')
     expect(html('> a\n> > b')).toContain('<blockquote class="md-quote"><p>b</p>')
   })

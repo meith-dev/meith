@@ -32,7 +32,7 @@ import { logger } from '@meith/core'
 import { resolvePluginSettings, type PluginDefinition } from '@meith/plugin-kit'
 import type { ReactNode } from 'react'
 
-import communityConfig from '../../community.config'
+import forumConfig from '../../community.config'
 import { getSettingOverrides } from './settings'
 
 export interface RenderedPluginPage {
@@ -59,7 +59,7 @@ export async function renderPluginAdminPage(
   pluginKey: string,
   path: string,
 ): Promise<RenderedPluginPage | null> {
-  const entry = (communityConfig.plugins ?? []).find((candidate) => candidate.key === pluginKey)
+  const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === pluginKey)
   const definition = entry?.plugin as PluginDefinition | undefined
 
   if (entry === undefined || definition === undefined) return null

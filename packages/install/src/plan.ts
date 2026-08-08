@@ -8,8 +8,8 @@
  * ## Order is the correctness argument
  *
  * Migrations first, obviously. Then settings, because the account creation reads
- * the board's own registration rules. Then the administrator. Then a community,
- * because a board with no community renders an index that looks broken. Then — last,
+ * the board's own registration rules. Then the administrator. Then a forum,
+ * because a board with no forum renders an index that looks broken. Then — last,
  * and only if everything above succeeded — the marker that disables the
  * installer.
  *
@@ -58,9 +58,9 @@ export const INSTALL_STEPS: readonly InstallStep[] = [
     detail: 'Argon2id, the same registration path a member uses, then promoted.',
   },
   {
-    id: 'community',
-    title: 'Create a first community',
-    detail: 'A category and one community inside it, so the index is not empty.',
+    id: 'forum',
+    title: 'Create a first forum',
+    detail: 'A category and one forum inside it, so the index is not empty.',
   },
   {
     id: 'seal',

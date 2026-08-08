@@ -24,7 +24,7 @@ class FakeThreads implements ThreadSurgeryRepository {
       20,
       {
         id: 20,
-        communityId: 4,
+        forumId: 4,
         slug: 'hello',
         title: 'Hello',
         visibility: 'visible',
@@ -36,7 +36,7 @@ class FakeThreads implements ThreadSurgeryRepository {
       21,
       {
         id: 21,
-        communityId: 4,
+        forumId: 4,
         slug: 'other',
         title: 'Other',
         visibility: 'visible',
@@ -205,7 +205,7 @@ describe('ThreadSurgery.merge', () => {
     expect(outcome.threadId).toBe(20)
   })
 
-  it('refuses without the right in the source community', async () => {
+  it('refuses without the right in the source forum', async () => {
     const threads = new FakeThreads()
     await expect(surgeryFor(threads).merge(mergeInput({ rights: NONE }))).rejects.toThrow(
       /cannot merge threads here/,
@@ -217,7 +217,7 @@ describe('ThreadSurgery.merge', () => {
     const threads = new FakeThreads()
     await expect(
       surgeryFor(threads).merge(mergeInput({ targetRights: NONE })),
-    ).rejects.toThrow(/into that community/)
+    ).rejects.toThrow(/into that forum/)
     expect(threads.merges).toEqual([])
   })
 

@@ -8,7 +8,7 @@ import 'server-only'
  * search re-runs it against the *current* viewer's scope, so:
  *
  *   - a post deleted since the search was run is simply gone from page two;
- *   - a member who has lost access to a community stops seeing its hits at once;
+ *   - a member who has lost access to a forum stops seeing its hits at once;
  *   - "search within results" is another query rather than a set intersection.
  *
  * The alternative — freezing a list of post ids — is faster on page two and
@@ -51,7 +51,7 @@ function newToken(): string {
 /** What the form submitted, as stored and as re-read. */
 export interface SearchFilters {
   readonly sort: SearchQuery['sort']
-  readonly communityIds?: readonly number[] | undefined
+  readonly forumIds?: readonly number[] | undefined
   readonly authorUserIds?: readonly number[] | undefined
 }
 
@@ -169,7 +169,7 @@ export async function openSearch(input: {
       sort: filters.sort,
       limit: SEARCH_PAGE,
       after: input.after,
-      ...(filters.communityIds === undefined ? {} : { communityIds: filters.communityIds }),
+      ...(filters.forumIds === undefined ? {} : { forumIds: filters.forumIds }),
       ...(filters.authorUserIds === undefined ? {} : { authorUserIds: filters.authorUserIds }),
     },
     scope,
@@ -194,7 +194,7 @@ export function readFilters(raw: Readonly<Record<string, unknown>>): SearchFilte
 
   return {
     sort: sort === 'newest' || sort === 'oldest' ? sort : 'relevance',
-    ...(ids(raw.communityIds) === undefined ? {} : { communityIds: ids(raw.communityIds) }),
+    ...(ids(raw.forumIds) === undefined ? {} : { forumIds: ids(raw.forumIds) }),
     ...(ids(raw.authorUserIds) === undefined ? {} : { authorUserIds: ids(raw.authorUserIds) }),
   }
 }

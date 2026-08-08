@@ -64,8 +64,8 @@ describe('emit', () => {
 
     await emit(
       store,
-      { name: 'post.created', payload: { postId: 1, threadId: 1, communityId: 1, authorId: 7 } },
-      { name: 'thread.created', payload: { threadId: 1, communityId: 1, authorId: 7 } },
+      { name: 'post.created', payload: { postId: 1, threadId: 1, forumId: 1, authorId: 7 } },
+      { name: 'thread.created', payload: { threadId: 1, forumId: 1, authorId: 7 } },
     )
 
     expect(store.rows).toHaveLength(2)
@@ -98,7 +98,7 @@ describe('relayOutbox', () => {
     const store = new FakeOutbox()
     await emit(store, {
       name: 'post.created',
-      payload: { postId: 1, threadId: 1, communityId: 1, authorId: 7 },
+      payload: { postId: 1, threadId: 1, forumId: 1, authorId: 7 },
     })
 
     const result = await relayOutbox({
@@ -119,7 +119,7 @@ describe('relayOutbox', () => {
     const store = new FakeOutbox()
     await emit(store, {
       name: 'post.created',
-      payload: { postId: 1, threadId: 1, communityId: 1, authorId: 7 },
+      payload: { postId: 1, threadId: 1, forumId: 1, authorId: 7 },
     })
 
     const handlerMap = handlers({ 'post.created': ['search.index'] })
@@ -140,7 +140,7 @@ describe('relayOutbox', () => {
     const store = new FakeOutbox()
     await emit(store, {
       name: 'post.created',
-      payload: { postId: 1, threadId: 1, communityId: 1, authorId: 7 },
+      payload: { postId: 1, threadId: 1, forumId: 1, authorId: 7 },
     })
 
     const crashingReader: OutboxReader = {
@@ -191,13 +191,13 @@ describe('relayOutbox', () => {
   it('respects the batch size', async () => {
     const store = new FakeOutbox()
     for (let i = 0; i < 5; i++) {
-      await emit(store, { name: 'community.structure_changed', payload: { communityIds: [i] } })
+      await emit(store, { name: 'forum.structure_changed', payload: { forumIds: [i] } })
     }
 
     const result = await relayOutbox({
       reader: store,
       target: store,
-      handlerIdsFor: handlers({ 'community.structure_changed': ['cache.bust'] }),
+      handlerIdsFor: handlers({ 'forum.structure_changed': ['cache.bust'] }),
       batchSize: 2,
     })
 

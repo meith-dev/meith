@@ -178,7 +178,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: community_test
+          POSTGRES_DB: forum_test
         ports: ['5432:5432']
         options: >-
           --health-cmd pg_isready --health-interval 10s
@@ -187,7 +187,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build the image
-        run: docker build -t community:ci .
+        run: docker build -t forum:ci .
 
       # COMMUNITY_ROLE=migrate, not `node node_modules/.bin/drizzle-kit` — drizzle-kit
       # is a development tool and is not in the pruned standalone node_modules,
@@ -196,11 +196,11 @@ jobs:
         run: |
           docker run --rm --network host \
             -e COMMUNITY_ROLE=migrate \
-            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/community_test \
+            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_test \
             -e DATA_SOURCE=postgres \
             -e AUTH_SECRET=ci-auth-secret-ci-auth-secret-32b \
             -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
-            community:ci
+            forum:ci
 
       # The web role. Polls the real health route rather than the port, so a
       # server that bound and cannot render is reported as the failure it is.
@@ -213,13 +213,13 @@ jobs:
       # built and ran `DATA_SOURCE=fixture`, which takes none of those paths.
       - name: Boot the web role
         run: |
-          docker run -d --name community-web --network host \
-            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/community_test \
+          docker run -d --name forum-web --network host \
+            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_test \
             -e DATA_SOURCE=postgres \
             -e AUTH_SECRET=ci-auth-secret-ci-auth-secret-32b \
             -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
             -e APP_URL=http://127.0.0.1:3000 \
-            community:ci
+            forum:ci
           for i in $(seq 1 40); do
             if curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1; then
               echo "web role healthy after ${i}s"; exit 0
@@ -227,7 +227,7 @@ jobs:
             sleep 1
           done
           echo "::error::the web role never became healthy"
-          docker logs community-web
+          docker logs forum-web
           exit 1
 
       # Renders, not merely responds: the failure this guards against produced a
@@ -235,7 +235,7 @@ jobs:
       - name: The board renders against Postgres
         run: |
           curl -fsS http://127.0.0.1:3000/ | grep -q '<main' \
-            || { echo "::error::the board did not render"; docker logs community-web; exit 1; }
+            || { echo "::error::the board did not render"; docker logs forum-web; exit 1; }
 
       # The worker role — F04's "the same image runs the worker with a flag".
       # A worker that starts, registers its tasks and survives a tick is the
@@ -251,26 +251,26 @@ jobs:
       # so counting the line matters more than finding it.
       - name: Boot the worker role
         run: |
-          docker run -d --name community-worker --network host --restart=no \
+          docker run -d --name forum-worker --network host --restart=no \
             -e COMMUNITY_ROLE=worker \
-            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/community_test \
+            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_test \
             -e DATA_SOURCE=postgres \
             -e AUTH_SECRET=ci-auth-secret-ci-auth-secret-32b \
             -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
             -e QUEUE_DRIVER=postgres -e CACHE_DRIVER=memory \
-            community:ci
+            forum:ci
           sleep 90
-          docker logs community-worker
-          docker ps --filter name=community-worker --filter status=running | grep -q community-worker \
+          docker logs forum-worker
+          docker ps --filter name=forum-worker --filter status=running | grep -q forum-worker \
             || { echo "::error::the worker exited instead of looping"; exit 1; }
 
-          starts=$(docker logs community-worker 2>&1 | grep -c 'worker started' || true)
+          starts=$(docker logs forum-worker 2>&1 | grep -c 'worker started' || true)
           test "$starts" = "1" \
             || { echo "::error::expected one 'worker started', saw $starts — it is restarting"; exit 1; }
 
           # And the image agrees it is healthy. The single web-shaped healthcheck
           # this replaced reported every worker unhealthy for its whole life.
-          state=$(docker inspect -f '{{.State.Health.Status}}' community-worker)
+          state=$(docker inspect -f '{{.State.Health.Status}}' forum-worker)
           test "$state" = "healthy" \
             || { echo "::error::worker health is $state"; exit 1; }
 
@@ -279,13 +279,13 @@ jobs:
       - name: The worker registered its tasks
         run: |
           docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
-            psql -h 127.0.0.1 -U postgres -d community_test -tAc 'select count(*) from tasks' \
+            psql -h 127.0.0.1 -U postgres -d forum_test -tAc 'select count(*) from tasks' \
             | grep -qE '^[1-9]' \
-            || { echo "::error::no tasks were registered"; docker logs community-worker; exit 1; }
+            || { echo "::error::no tasks were registered"; docker logs forum-worker; exit 1; }
 
       - name: Stop
         if: always()
-        run: docker rm -f community-web community-worker 2>/dev/null || true
+        run: docker rm -f forum-web forum-worker 2>/dev/null || true
 
   compose:
     name: Both self-hosting shapes come up
@@ -533,7 +533,7 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: community_test
+          POSTGRES_DB: forum_test
         ports: ['5432:5432']
         # Without this the first migration can race the container's startup.
         options: >-
@@ -557,7 +557,7 @@ jobs:
       - name: Apply migrations
         run: pnpm --filter @meith/db migrate
         env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/community_test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
 
       # Catches the common drift where someone edits schema.ts but forgets to
       # generate the migration. A non-empty diff here means the checked-in SQL no
@@ -579,7 +579,7 @@ jobs:
             exit 1
           fi
         env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/community_test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
 
       # `TEST_DATABASE_URL` switches on client.pg.test.ts, the suite that needs a
       # *real* server rather than PGlite. Everything else here runs on PGlite,
@@ -590,6 +590,6 @@ jobs:
       - name: Postgres-backed tests
         run: pnpm test
         env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/community_test
-          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/community_test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
           DATA_SOURCE: postgres

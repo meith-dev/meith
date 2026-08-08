@@ -6,7 +6,7 @@
  *
  *  - a held or soft-deleted post never reaches a digest, because the pending
  *    read goes through F47's `visibleIn` like every other read on the board;
- *  - a community the member can no longer see is filtered out, per member, from
+ *  - a forum the member can no longer see is filtered out, per member, from
  *    the visible set the caller resolves;
  *  - nobody is told about their own post;
  *  - the watermark only ever moves forward, so a run that raced another one
@@ -27,13 +27,13 @@ let repo: PostgresSubscriptionRepository
 const IVAN = 1
 const MOD = 2
 
-const COMMUNITY = 10
-const OTHER_COMMUNITY = 11
+const FORUM = 10
+const OTHER_FORUM = 11
 const THREAD = 20
 const OTHER_THREAD = 21
 
 const AT = new Date('2026-07-31T12:00:00Z')
-const ALL_COMMUNITIES = [COMMUNITY, OTHER_COMMUNITY]
+const ALL_FORUMS = [FORUM, OTHER_FORUM]
 
 beforeAll(async () => {
   harness = await createTestDb()
@@ -48,10 +48,10 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.execute(sql`delete from digest_runs`)
   await db.execute(sql`delete from thread_subscriptions`)
-  await db.execute(sql`delete from community_subscriptions`)
+  await db.execute(sql`delete from forum_subscriptions`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
 
   await db.execute(sql`
@@ -64,17 +64,17 @@ beforeEach(async () => {
   `)
 
   await db.execute(sql`
-    insert into communities (id, type, title, slug, path, display_order)
-    values (${COMMUNITY}, 'community', 'General', 'general', '10', 1),
-           (${OTHER_COMMUNITY}, 'community', 'Private', 'private', '11', 2)
+    insert into forums (id, type, title, slug, path, display_order)
+    values (${FORUM}, 'forum', 'General', 'general', '10', 1),
+           (${OTHER_FORUM}, 'forum', 'Private', 'private', '11', 2)
   `)
 
   await db.execute(sql`
-    insert into threads (id, community_id, title, slug, author_user_id, author_username,
+    insert into threads (id, forum_id, title, slug, author_user_id, author_username,
                          visibility, created_at, last_post_at)
-    values (${THREAD}, ${COMMUNITY}, 'A thread', 'a-thread', ${IVAN}, 'ivan',
+    values (${THREAD}, ${FORUM}, 'A thread', 'a-thread', ${IVAN}, 'ivan',
             'visible', ${AT}, ${AT}),
-           (${OTHER_THREAD}, ${OTHER_COMMUNITY}, 'Elsewhere', 'elsewhere', ${IVAN}, 'ivan',
+           (${OTHER_THREAD}, ${OTHER_FORUM}, 'Elsewhere', 'elsewhere', ${IVAN}, 'ivan',
             'visible', ${AT}, ${AT})
   `)
 })
@@ -89,25 +89,25 @@ async function addPost(
   },
 ): Promise<number> {
   await db.execute(sql`
-    insert into posts (id, thread_id, community_id, author_user_id, author_username,
+    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
                        message, visibility, created_at)
-    select ${over.id}, t.id, t.community_id, ${over.authorId ?? MOD}, 'mod',
+    select ${over.id}, t.id, t.forum_id, ${over.authorId ?? MOD}, 'mod',
            'hello', ${over.visibility ?? 'visible'}, ${AT}
       from threads t where t.id = ${over.threadId ?? THREAD}
   `)
   return over.id
 }
 
-async function storedMode(target: 'thread' | 'community', userId = IVAN): Promise<string | null> {
-  const table = target === 'thread' ? sql`thread_subscriptions` : sql`community_subscriptions`
+async function storedMode(target: 'thread' | 'forum', userId = IVAN): Promise<string | null> {
+  const table = target === 'thread' ? sql`thread_subscriptions` : sql`forum_subscriptions`
   const rows = resultRows(
     await db.execute(sql`select mode from ${table} where user_id = ${userId}`),
   ) as Array<{ mode: string }>
   return rows[0]?.mode ?? null
 }
 
-async function watermark(target: 'thread' | 'community', userId = IVAN): Promise<number> {
-  const table = target === 'thread' ? sql`thread_subscriptions` : sql`community_subscriptions`
+async function watermark(target: 'thread' | 'forum', userId = IVAN): Promise<number> {
+  const table = target === 'thread' ? sql`thread_subscriptions` : sql`forum_subscriptions`
   const rows = resultRows(
     await db.execute(
       sql`select last_notified_post_id from ${table} where user_id = ${userId}`,
@@ -166,7 +166,7 @@ describe('subscribing', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'weekly',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
     expect(pending.posts.map((p) => p.postId)).toEqual([101])
@@ -184,14 +184,14 @@ describe('subscribing', () => {
     ).toBe(false)
   })
 
-  it('follows a community the same way', async () => {
+  it('follows a forum the same way', async () => {
     await addPost({ id: 100 })
-    await db.execute(sql`update communities set last_post_id = 100 where id = ${COMMUNITY}`)
+    await db.execute(sql`update forums set last_post_id = 100 where id = ${FORUM}`)
 
-    await repo.subscribe({ userId: IVAN, target: 'community', targetId: COMMUNITY, mode: 'daily', at: AT })
+    await repo.subscribe({ userId: IVAN, target: 'forum', targetId: FORUM, mode: 'daily', at: AT })
 
-    expect(await storedMode('community')).toBe('daily')
-    expect(await watermark('community')).toBe(100)
+    expect(await storedMode('forum')).toBe('daily')
+    expect(await watermark('forum')).toBe(100)
   })
 
   it('unsubscribes, and says whether there was anything to remove', async () => {
@@ -220,7 +220,7 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
 
@@ -237,7 +237,7 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
 
@@ -252,7 +252,7 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
 
@@ -267,21 +267,21 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
 
     expect(pending.posts).toEqual([])
   })
 
-  it('drops a community the member can no longer see', async () => {
+  it('drops a forum the member can no longer see', async () => {
     await addPost({ id: 100 })
 
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      /* The community this thread lives in is not in the visible set. */
-      visibleCommunityIds: [OTHER_COMMUNITY],
+      /* The forum this thread lives in is not in the visible set. */
+      visibleForumIds: [OTHER_FORUM],
       limit: 50,
     })
 
@@ -294,7 +294,7 @@ describe('what is pending', () => {
     const daily = await repo.pendingFor({
       userId: IVAN,
       mode: 'daily',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
 
@@ -307,7 +307,7 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
 
@@ -315,7 +315,7 @@ describe('what is pending', () => {
       threadTitle: 'A thread',
       threadSlug: 'a-thread',
       authorUsername: 'mod',
-      communityId: COMMUNITY,
+      forumId: FORUM,
     })
   })
 
@@ -326,7 +326,7 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
 
@@ -334,16 +334,16 @@ describe('what is pending', () => {
   })
 })
 
-describe('a community subscription', () => {
+describe('a forum subscription', () => {
   beforeEach(async () => {
-    await repo.subscribe({ userId: IVAN, target: 'community', targetId: COMMUNITY, mode: 'instant', at: AT })
+    await repo.subscribe({ userId: IVAN, target: 'forum', targetId: FORUM, mode: 'instant', at: AT })
   })
 
   it('finds posts in every thread beneath it', async () => {
     await db.execute(sql`
-      insert into threads (id, community_id, title, slug, author_user_id, author_username,
+      insert into threads (id, forum_id, title, slug, author_user_id, author_username,
                            visibility, created_at, last_post_at)
-      values (22, ${COMMUNITY}, 'Second', 'second', ${MOD}, 'mod', 'visible', ${AT}, ${AT})
+      values (22, ${FORUM}, 'Second', 'second', ${MOD}, 'mod', 'visible', ${AT}, ${AT})
     `)
     await addPost({ id: 100, threadId: THREAD })
     await addPost({ id: 101, threadId: 22 })
@@ -351,21 +351,21 @@ describe('a community subscription', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
 
     expect(pending.posts.map((p) => p.postId).sort()).toEqual([100, 101])
   })
 
-  it('reports one post once when both a thread and its community are followed', async () => {
+  it('reports one post once when both a thread and its forum are followed', async () => {
     await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
     await addPost({ id: 100 })
 
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
 
@@ -386,7 +386,7 @@ describe('watermarks', () => {
     const first = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
     await repo.advanceWatermarks({ userId: IVAN, watermarks: first.watermarks })
@@ -394,7 +394,7 @@ describe('watermarks', () => {
     const second = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
 
@@ -424,7 +424,7 @@ describe('watermarks', () => {
     const capped = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 2,
     })
     await repo.advanceWatermarks({ userId: IVAN, watermarks: capped.watermarks })
@@ -432,7 +432,7 @@ describe('watermarks', () => {
     const rest = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleCommunityIds: ALL_COMMUNITIES,
+      visibleForumIds: ALL_FORUMS,
       limit: 50,
     })
 
@@ -481,7 +481,7 @@ describe('who is due', () => {
 
   it('keeps the two cadences on separate clocks', async () => {
     await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'daily', at: AT })
-    await repo.subscribe({ userId: IVAN, target: 'community', targetId: COMMUNITY, mode: 'weekly', at: AT })
+    await repo.subscribe({ userId: IVAN, target: 'forum', targetId: FORUM, mode: 'weekly', at: AT })
     await addPost({ id: 100 })
 
     const dueBefore = new Date(AT.getTime() - 3_600_000)
@@ -506,27 +506,27 @@ describe('who is due', () => {
 describe('the management screen', () => {
   it('lists both kinds with their pending counts', async () => {
     await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
-    await repo.subscribe({ userId: IVAN, target: 'community', targetId: OTHER_COMMUNITY, mode: 'weekly', at: AT })
+    await repo.subscribe({ userId: IVAN, target: 'forum', targetId: OTHER_FORUM, mode: 'weekly', at: AT })
     await addPost({ id: 100 })
 
-    const rows = await repo.listFor(IVAN, { visibleCommunityIds: ALL_COMMUNITIES, limit: 50 })
+    const rows = await repo.listFor(IVAN, { visibleForumIds: ALL_FORUMS, limit: 50 })
 
     expect(rows).toHaveLength(2)
     const thread = rows.find((r) => r.target === 'thread')
     expect(thread).toMatchObject({ title: 'A thread', mode: 'instant', pending: 1 })
     expect(thread?.href).toBe(`/thread/${THREAD}-a-thread`)
 
-    const community = rows.find((r) => r.target === 'community')
-    expect(community).toMatchObject({ title: 'Private', mode: 'weekly', pending: 0 })
+    const forum = rows.find((r) => r.target === 'forum')
+    expect(forum).toMatchObject({ title: 'Private', mode: 'weekly', pending: 0 })
   })
 
-  it('hides a subscription whose community the member may no longer see', async () => {
+  it('hides a subscription whose forum the member may no longer see', async () => {
     await repo.subscribe({ userId: IVAN, target: 'thread', targetId: OTHER_THREAD, mode: 'instant', at: AT })
 
-    const rows = await repo.listFor(IVAN, { visibleCommunityIds: [COMMUNITY], limit: 50 })
+    const rows = await repo.listFor(IVAN, { visibleForumIds: [FORUM], limit: 50 })
 
     /*
-     * Dropped, not greyed out: a row that names a now-private community back at
+     * Dropped, not greyed out: a row that names a now-private forum back at
      * somebody is a disclosure, and the subscription still works if access
      * returns.
      */
@@ -537,6 +537,6 @@ describe('the management screen', () => {
     await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
     await db.execute(sql`update threads set visibility = 'deleted' where id = ${THREAD}`)
 
-    expect(await repo.listFor(IVAN, { visibleCommunityIds: ALL_COMMUNITIES, limit: 50 })).toEqual([])
+    expect(await repo.listFor(IVAN, { visibleForumIds: ALL_FORUMS, limit: 50 })).toEqual([])
   })
 })

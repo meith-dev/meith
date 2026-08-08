@@ -13,7 +13,7 @@ import type { Actor } from '@meith/authorization'
 import { describe, expect, it } from 'vitest'
 
 import { getContainer } from './container'
-import { SEED_BOARD, SEED_COMMUNITY, SEED_GROUP } from './seed-board'
+import { SEED_BOARD, SEED_FORUM, SEED_GROUP } from './seed-board'
 
 function actorInGroups(userId: number | null, groupIds: number[]): Actor {
   // Combine the seed board's group defaults the way the real repo will.
@@ -58,12 +58,12 @@ describe('getContainer (fixture mode)', () => {
     const { authorizer } = getContainer()
     const guest = actorInGroups(null, [SEED_GROUP.guest])
 
-    const community = await authorizer.communityMatrix(guest, SEED_COMMUNITY.announcements)
-    expect(authorizer.can(guest, 'community.view', { communityId: SEED_COMMUNITY.announcements, community })).toBe(
+    const forum = await authorizer.forumMatrix(guest, SEED_FORUM.announcements)
+    expect(authorizer.can(guest, 'forum.view', { forumId: SEED_FORUM.announcements, forum })).toBe(
       true,
     )
     expect(
-      authorizer.can(guest, 'thread.post', { communityId: SEED_COMMUNITY.announcements, community }),
+      authorizer.can(guest, 'thread.post', { forumId: SEED_FORUM.announcements, forum }),
     ).toBe(false)
   })
 
@@ -71,24 +71,24 @@ describe('getContainer (fixture mode)', () => {
     const { authorizer } = getContainer()
     const user = actorInGroups(10, [SEED_GROUP.registered])
 
-    const community = await authorizer.communityMatrix(user, SEED_COMMUNITY.general)
-    expect(authorizer.can(user, 'thread.post', { communityId: SEED_COMMUNITY.general, community })).toBe(
+    const forum = await authorizer.forumMatrix(user, SEED_FORUM.general)
+    expect(authorizer.can(user, 'thread.post', { forumId: SEED_FORUM.general, forum })).toBe(
       true,
     )
   })
 
-  it('inherits general -> off-topic (child community resolves through parent)', async () => {
+  it('inherits general -> off-topic (child forum resolves through parent)', async () => {
     const { authorizer } = getContainer()
     const user = actorInGroups(10, [SEED_GROUP.registered])
 
-    const community = await authorizer.communityMatrix(user, SEED_COMMUNITY.generalOffTopic)
+    const forum = await authorizer.forumMatrix(user, SEED_FORUM.generalOffTopic)
     // canView is not overridden on the child, so it inherits true from general.
     expect(
-      authorizer.can(user, 'community.view', { communityId: SEED_COMMUNITY.generalOffTopic, community }),
+      authorizer.can(user, 'forum.view', { forumId: SEED_FORUM.generalOffTopic, forum }),
     ).toBe(true)
   })
 
-  it('grants an administrator the ACP via the column, and posts a bypass for community actions', async () => {
+  it('grants an administrator the ACP via the column, and posts a bypass for forum actions', async () => {
     const { authorizer } = getContainer()
     const admin = actorInGroups(1, [SEED_GROUP.administrators])
 
@@ -97,7 +97,7 @@ describe('getContainer (fixture mode)', () => {
 
   it('rebuilds an HMR-stale container that predates a newly-added repository or fixture rows', () => {
     const current = getContainer()
-    const key = Symbol.for('@meith/community.container')
+    const key = Symbol.for('@meith/forum.container')
     ;(globalThis as Record<symbol, unknown>)[key] = {
       ...current,
       threads: current.threads,
@@ -109,7 +109,7 @@ describe('getContainer (fixture mode)', () => {
     const rebuilt = getContainer()
 
     expect(rebuilt).not.toBe(current)
-    expect(typeof rebuilt.threads.locateCommunity).toBe('function')
+    expect(typeof rebuilt.threads.locateForum).toBe('function')
     expect(typeof rebuilt.posts.listThread).toBe('function')
     expect(typeof rebuilt.memberProfiles.findPublicById).toBe('function')
     expect(rebuilt.fixtureDataVersion).not.toBe(-1)

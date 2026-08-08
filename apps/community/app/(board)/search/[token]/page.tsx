@@ -18,7 +18,7 @@ const INPUT =
  *
  * The page **re-runs** the stored query rather than reading a frozen list of
  * hits, so every visit applies the current viewer's scope: a post deleted since
- * the search was run is gone, and a member who has lost access to a community stops
+ * the search was run is gone, and a member who has lost access to a forum stops
  * seeing its hits at once. A frozen list would be faster here and wrong in both
  * of those ways.
  *

@@ -54,7 +54,7 @@ export interface PrefixOption {
 }
 
 export function NewThreadForm({
-  communityId,
+  forumId,
   prefixes,
   requiresPrefix,
   canSubscribe,
@@ -62,7 +62,7 @@ export function NewThreadForm({
   attachmentLimits,
   draft,
 }: {
-  communityId: number
+  forumId: number
   prefixes: readonly PrefixOption[]
   requiresPrefix: boolean
   canSubscribe: boolean
@@ -95,10 +95,10 @@ export function NewThreadForm({
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
       {state.notice === "saved" && <p role="status">Draft saved.</p>}
-      {/* The community is a hidden field rather than a route param the action
+      {/* The forum is a hidden field rather than a route param the action
           trusts: the action re-resolves the matrix for whatever id arrives, so
           tampering with this buys a permission check, not a bypass. */}
-      <input type="hidden" name="communityId" value={communityId} />
+      <input type="hidden" name="forumId" value={forumId} />
 
       <Field
         label="Subject"

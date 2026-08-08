@@ -194,17 +194,17 @@ export const terminal: {
  * picture of an interface implies a screenshot unless it tells you otherwise.
  */
 export const boardPreview = {
-  caption: "A board, in outline — its communities, what is in them, and the last thing said.",
+  caption: "A board, in outline — its forums, what is in them, and the last thing said.",
   name: "Workshop",
   blurb: "community board",
-  communities: [
+  forums: [
     { title: "Announcements", blurb: "Releases, and what changed.", threads: 96, posts: 1_204 },
     { title: "Build logs", blurb: "Work in progress, in public.", threads: 1_204, posts: 18_332 },
     { title: "Help & support", blurb: "Ask, answer, search first.", threads: 2_891, posts: 21_470 },
   ],
   latest: {
     thread: "Migrating a 12-year MyBB archive",
-    community: "Help & support",
+    forum: "Help & support",
     when: "4 min ago",
   },
 } as const
@@ -277,8 +277,8 @@ export const capabilities: readonly Capability[] = [
   {
     title: "A place for every kind of member",
     body:
-      "Open communities for everyone, a members-only floor, a staff room nobody else sees. " +
-      "Who can read, post, search or reply is decided per member, per community — and every " +
+      "Open forums for everyone, a members-only floor, a staff room nobody else sees. " +
+      "Who can read, post, search or reply is decided per member, per forum — and every " +
       "way into the board, search and feeds included, respects the same rules.",
     doc: "operating",
     anchor: "permissions",

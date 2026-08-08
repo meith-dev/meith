@@ -44,7 +44,7 @@ import { DARK_TOKENS as DEFAULT_DARK, LIGHT_TOKENS as DEFAULT_LIGHT } from '@mei
 import { unstable_cache } from 'next/cache'
 import { cache } from 'react'
 
-import communityConfig from '../../community.config'
+import forumConfig from '../../community.config'
 
 import { renderBoardStyle, type BoardTheme, type ThemeRuntimeStyle } from './theme-style'
 
@@ -61,8 +61,8 @@ export interface BoardThemeStyle extends ThemeRuntimeStyle {
   readonly defaultKey: string
 }
 
-const registered = Object.values(communityConfig.themes)
-const buildTheme = communityConfig.themes[communityConfig.defaultTheme]!
+const registered = Object.values(forumConfig.themes)
+const buildTheme = forumConfig.themes[forumConfig.defaultTheme]!
 
 /**
  * What `globals.css` has compiled into it (F78).

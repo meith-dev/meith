@@ -35,8 +35,8 @@ interface DbGlobal {
    * `exactOptionalPropertyTypes` distinguishes "absent" from
    * "present and undefined", and closeDb() assigns undefined to reset.
    */
-  __communitySql: ReturnType<typeof postgres> | undefined
-  __communityDb: Database | undefined
+  __forumSql: ReturnType<typeof postgres> | undefined
+  __forumDb: Database | undefined
 }
 
 const globalRef = globalThis as unknown as DbGlobal
@@ -83,7 +83,7 @@ export function getDb(): Database {
     )
   }
 
-  if (globalRef.__communityDb) return globalRef.__communityDb
+  if (globalRef.__forumDb) return globalRef.__forumDb
 
   const url = env.DATABASE_URL
   if (!url) {
@@ -98,8 +98,8 @@ export function getDb(): Database {
   const db = drizzle(sql, { schema, casing: 'snake_case' })
   restoreDateSerialisers(sql)
 
-  globalRef.__communitySql = sql
-  globalRef.__communityDb = db
+  globalRef.__forumSql = sql
+  globalRef.__forumDb = db
 
   return db
 }
@@ -168,11 +168,11 @@ export function createIsolatedDb(url: string, poolMax = 1) {
  * let the process exit; request handlers should never call this.
  */
 export async function closeDb(): Promise<void> {
-  const sql = globalRef.__communitySql
+  const sql = globalRef.__forumSql
   if (!sql) return
   await sql.end({ timeout: 5 })
-  globalRef.__communitySql = undefined
-  globalRef.__communityDb = undefined
+  globalRef.__forumSql = undefined
+  globalRef.__forumDb = undefined
 }
 
 export { schema }

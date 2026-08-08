@@ -32,7 +32,7 @@ export const dynamic = 'force-dynamic'
  * ## Why this is a 404 rather than a "already installed" page
  *
  * Once sealed, `/install` does not exist. An informative page here would confirm
- * to anybody who asks that this is a community-software board and that it has been
+ * to anybody who asks that this is a forum-software board and that it has been
  * installed — and more usefully to them, that the route *was* reachable. A 404 is
  * the same answer the board gives for any path it does not serve, which is the
  * only answer that says nothing.

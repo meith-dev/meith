@@ -24,7 +24,7 @@ import { expect, test, type Page } from '@playwright/test'
  */
 test.use({ javaScriptEnabled: false })
 
-const THREAD = '/thread/4-welcome-to-the-community'
+const THREAD = '/thread/4-welcome-to-the-forum'
 
 /** The seeded group's light colour, resolved by the browser to `rgb(...)`. */
 const LIGHT = 'oklch(0.45 0.13 155)'

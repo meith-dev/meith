@@ -179,7 +179,7 @@ describeIfPg('against real Postgres', () => {
       await harness.db.execute(sql`
         insert into api_tokens (user_id, name, lookup, secret_hash, scopes,
                                 created_at, expires_at, last_used_at)
-        values (1, 'ci', 'abcd1234', 'x', '["communities:read"]'::jsonb,
+        values (1, 'ci', 'abcd1234', 'x', '["forums:read"]'::jsonb,
                 now(), now() + interval '1 day', now())
       `)
     })

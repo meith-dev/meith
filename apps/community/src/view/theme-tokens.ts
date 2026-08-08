@@ -76,7 +76,7 @@ const GROUPS: readonly GroupSpec[] = [
       ['background', 'Page background', 'Behind the whole board. Also becomes the browser’s own toolbar colour on mobile.'],
       ['foreground', 'Body text', 'Ordinary text on the page background.'],
       ['surface', 'Band background', 'The header, a table’s heading row, and a panel’s own toolbar. Sits between the page and a panel.'],
-      ['card', 'Panel background', 'Community rows, post bodies and the footer.'],
+      ['card', 'Panel background', 'Forum rows, post bodies and the footer.'],
       ['card-foreground', 'Text on panels', 'Ordinary text inside a panel.'],
       ['muted', 'Quiet surface', 'Table headers, disabled controls and other backgrounds that should recede.'],
       ['muted-foreground', 'Quiet text', 'Timestamps, counts and captions.'],
@@ -98,16 +98,16 @@ const GROUPS: readonly GroupSpec[] = [
     ],
   },
   {
-    title: 'Communities and threads',
+    title: 'Forums and threads',
     blurb:
       'These carry meaning rather than decoration — a locked thread is not merely ' +
       'a different colour — so every state a hue marks is also a word in the page. ' +
       'Changing them is safe; removing the difference between them is not.',
     tokens: [
-      ['community-unread', 'Community with new posts', 'The community name when there is something unread in it.'],
-      ['community-read', 'Community with nothing new', 'The same name once everything has been read.'],
-      ['community-locked', 'Closed community', 'A community nobody may post in.'],
-      ['thread-pinned', 'Pinned thread', 'Held at the top of its community.'],
+      ['forum-unread', 'Forum with new posts', 'The forum name when there is something unread in it.'],
+      ['forum-read', 'Forum with nothing new', 'The same name once everything has been read.'],
+      ['forum-locked', 'Closed forum', 'A forum nobody may post in.'],
+      ['thread-pinned', 'Pinned thread', 'Held at the top of its forum.'],
       ['thread-locked', 'Locked thread', 'Readable, but closed to replies.'],
       ['thread-moved', 'Moved thread', 'The stub left behind when a thread is moved.'],
       ['thread-unapproved', 'Thread awaiting approval', 'Visible to its author and to staff.'],

@@ -17,10 +17,10 @@
  *
  * This is the whole privacy story and it is easy to get backwards. The session
  * records where its owner is; the panel must describe that in terms of what the
- * *reader* is allowed to know. So the row carries the community and thread ids and
+ * *reader* is allowed to know. So the row carries the forum and thread ids and
  * the repository returns them **only when they are in the reader's scope** —
- * everything else becomes a bare "Viewing a community". Returning the title and
- * letting the page decide would put a private community's name in a view model that
+ * everything else becomes a bare "Viewing a forum". Returning the title and
+ * letting the page decide would put a private forum's name in a view model that
  * a theme, a feed or a debug dump could print.
  *
  * ## Invisible members are absent from the count as well as the list
@@ -42,12 +42,12 @@ import { visibleIn } from './visibility'
 export const ONLINE_WINDOW_MINUTES = 15
 
 export interface OnlineScope {
-  /** Communities whose names this reader may be told, from `communityIdsWhere` (F47). */
-  readonly communityIds: readonly number[]
+  /** Forums whose names this reader may be told, from `forumIdsWhere` (F47). */
+  readonly forumIds: readonly number[]
   /**
    * The reader's content scope, for the thread title.
    *
-   * A visible community can hold a thread that is not: somebody reading a
+   * A visible forum can hold a thread that is not: somebody reading a
    * soft-deleted thread they moderate must not put its title in front of
    * everybody else on the index.
    */
@@ -64,12 +64,12 @@ export interface OnlineMember {
   /**
    * Where they are, already filtered.
    *
-   * `communityId`/`threadId` are null when the reader may not see that community — not
+   * `forumId`/`threadId` are null when the reader may not see that forum — not
    * because the session did not record them. The page renders "Viewing a
-   * community" for that, which is true and says nothing.
+   * forum" for that, which is true and says nothing.
    */
-  readonly communityId: number | null
-  readonly communityTitle: string | null
+  readonly forumId: number | null
+  readonly forumTitle: string | null
   readonly threadId: number | null
   readonly threadTitle: string | null
   readonly threadSlug: string | null
@@ -96,8 +96,8 @@ export class PostgresPresenceRepository {
    * Everybody here in the last `ONLINE_WINDOW_MINUTES`.
    *
    * One query. A session per visitor, not a row per request, and the location
-   * joins are `left` because a visitor on the board index has no community and a
-   * visitor in a community has no thread — an inner join would quietly drop
+   * joins are `left` because a visitor on the board index has no forum and a
+   * visitor in a forum has no thread — an inner join would quietly drop
    * everybody who is not reading a thread, which is most of them.
    *
    * **One row per member, not per session.** Somebody with a phone and a laptop
@@ -108,21 +108,21 @@ export class PostgresPresenceRepository {
     const since = new Date(now.getTime() - ONLINE_WINDOW_MINUTES * 60_000)
 
     /*
-     * The community filter is a value rather than a fragment when the list is
+     * The forum filter is a value rather than a fragment when the list is
      * empty: `in ()` is a syntax error, and `false` is the honest reading —
-     * this reader may be told about no community at all.
+     * this reader may be told about no forum at all.
      */
     const mayName =
-      scope.communityIds.length === 0
+      scope.forumIds.length === 0
         ? sql`false`
-        : sql`s.location_community_id in (${sql.join(
-            scope.communityIds.map((id) => sql`${id}`),
+        : sql`s.location_forum_id in (${sql.join(
+            scope.forumIds.map((id) => sql`${id}`),
             sql`, `,
           )})`
 
     /*
-     * The thread needs both: its community must be nameable *and* the thread itself
-     * must be in the reader's content scope. The community check alone would name a
+     * The thread needs both: its forum must be nameable *and* the thread itself
+     * must be in the reader's content scope. The forum check alone would name a
      * soft-deleted thread that a moderator is reading.
      */
     const mayNameThread = sql`(${mayName} and ${visibleIn(sql`t.visibility`, scope.content)})`
@@ -132,14 +132,14 @@ export class PostgresPresenceRepository {
         select distinct on (coalesce(s.user_id, -s.id))
                s.user_id, s.id as session_id, s.last_seen_at,
                u.username, u.invisible,
-               case when ${mayName} then s.location_community_id end as community_id,
-               case when ${mayName} then f.title end as community_title,
+               case when ${mayName} then s.location_forum_id end as forum_id,
+               case when ${mayName} then f.title end as forum_title,
                case when ${mayNameThread} then s.location_thread_id end as thread_id,
                case when ${mayNameThread} then t.title end as thread_title,
                case when ${mayNameThread} then t.slug end as thread_slug
           from sessions s
           left join users u on u.id = s.user_id
-          left join communities f on f.id = s.location_community_id
+          left join forums f on f.id = s.location_forum_id
           left join threads t on t.id = s.location_thread_id
          where s.revoked_at is null
            and s.last_seen_at >= ${since}
@@ -171,8 +171,8 @@ export class PostgresPresenceRepository {
         username: String(row.username),
         invisible,
         lastSeenAt: toDate(row.last_seen_at),
-        communityId: row.community_id === null ? null : Number(row.community_id),
-        communityTitle: row.community_title === null ? null : String(row.community_title),
+        forumId: row.forum_id === null ? null : Number(row.forum_id),
+        forumTitle: row.forum_title === null ? null : String(row.forum_title),
         threadId: row.thread_id === null ? null : Number(row.thread_id),
         threadTitle: row.thread_title === null ? null : String(row.thread_title),
         threadSlug: row.thread_slug === null ? null : String(row.thread_slug),

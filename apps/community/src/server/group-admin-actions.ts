@@ -7,7 +7,7 @@
  * endpoint reachable without rendering any page, so the ACP layout having
  * checked is not a check.
  *
- * Unlike F65's, none of them needs to invalidate the community tree and **all of
+ * Unlike F65's, none of them needs to invalidate the forum tree and **all of
  * them invalidate the permission version**, because a group is nothing but
  * permissions: its defaults are R4.1 layer 1, its membership decides whose
  * defaults those are, and F20 caches a resolved Actor against that version. The
@@ -53,7 +53,7 @@ async function invalidatePermissions(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.permissions()])
   /*
    * And Next's client Router Cache for the screens that list groups, for the
-   * reason `invalidateTree` in `community-admin-actions.ts` sets out at length: the
+   * reason `invalidateTree` in `forum-admin-actions.ts` sets out at length: the
    * board's own cache being clear does not refresh a payload the browser
    * already holds, so a created or deleted group would show its notice beside
    * the list it was missing from.
@@ -124,8 +124,8 @@ export async function saveGroupIdentityAction(
 /**
  * Save a group's global permissions.
  *
- * **Two states per cell, not three.** F65's community cells are three because
- * `community_permissions` is nullable and null means inherit; a group's defaults
+ * **Two states per cell, not three.** F65's forum cells are three because
+ * `forum_permissions` is nullable and null means inherit; a group's defaults
  * are the bottom of the resolution and have nothing above them to inherit from,
  * so every cell has an answer and reusing the three-state control out of
  * symmetry would invent an "inherit" that means nothing.

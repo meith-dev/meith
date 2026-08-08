@@ -12,7 +12,7 @@
  *
  * ## The tone is in the border and the text, not the fill
  *
- * A page can carry several of these at once — a flash message, a community notice, a
+ * A page can carry several of these at once — a flash message, a forum notice, a
  * moderation banner — and four saturated blocks stacked up read as a broken page
  * rather than as four things worth knowing. A left rule plus coloured text puts
  * the same information in a shape that stacks.

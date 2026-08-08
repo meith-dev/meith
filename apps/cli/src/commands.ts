@@ -2,7 +2,7 @@
  * F13 — the board-management subcommands.
  *
  * Each one drives the same services the app does (`IdentityService`,
- * `PostgresCommunityRepository`, `PostgresSettingsRepository`), so a value the CLI
+ * `PostgresForumRepository`, `PostgresSettingsRepository`), so a value the CLI
  * writes is one the app would have accepted. That is the whole point of the
  * layer being thin.
  */
@@ -14,7 +14,7 @@ import {
   type SettingKey,
 } from '@meith/settings'
 import { ValidationError } from '@meith/core'
-import { COMMUNITY_TYPES, type CommunityType } from '@meith/communities'
+import { FORUM_TYPES, type ForumType } from '@meith/forums'
 import { foldIdentifier } from '@meith/accounts'
 
 import { createContext, type CliContext } from './context'
@@ -114,18 +114,18 @@ export async function userPromote(args: readonly string[]): Promise<number> {
   return 0
 }
 
-export async function communityCreate(args: readonly string[]): Promise<number> {
+export async function forumCreate(args: readonly string[]): Promise<number> {
   const { flags } = parseFlags(args)
 
-  const rawType = optional(flags, 'type') ?? 'community'
-  if (!(COMMUNITY_TYPES as readonly string[]).includes(rawType)) {
-    throw new ValidationError(`--type must be one of ${COMMUNITY_TYPES.join(', ')}, got "${rawType}".`)
+  const rawType = optional(flags, 'type') ?? 'forum'
+  if (!(FORUM_TYPES as readonly string[]).includes(rawType)) {
+    throw new ValidationError(`--type must be one of ${FORUM_TYPES.join(', ')}, got "${rawType}".`)
   }
 
   // Everything the command needs is resolved before the database is opened, so
   // a missing --title is reported as a missing --title.
   const input = {
-    type: rawType as CommunityType,
+    type: rawType as ForumType,
     title: required(flags, 'title'),
     slug: required(flags, 'slug'),
     description: optional(flags, 'description'),
@@ -134,7 +134,7 @@ export async function communityCreate(args: readonly string[]): Promise<number> 
   }
 
   const ctx = await createContext()
-  const created = await ctx.communities.create(input)
+  const created = await ctx.forums.create(input)
 
   console.log(
     `Created ${created.type} "${created.title}" (id ${created.id}, path ${created.path}).`,

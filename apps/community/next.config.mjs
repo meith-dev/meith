@@ -68,7 +68,7 @@ const nextConfig = {
    */
   poweredByHeader: false,
   // Lets the isolated Playwright dev server run beside a developer's `.next`.
-  distDir: process.env.COMMUNITY_DIST_DIR ?? ".next",
+  distDir: process.env.FORUM_DIST_DIR ?? ".next",
 
   /*
    * Kept out of the compiled chunks and required from node_modules at runtime.
@@ -119,7 +119,7 @@ const nextConfig = {
     "@meith/db",
     "@meith/drivers",
     "@meith/events",
-    "@meith/communities",
+    "@meith/forums",
     "@meith/groups",
     "@meith/polls",
     "@meith/drafts",

@@ -33,7 +33,7 @@ const entry = (overrides: Partial<Parameters<typeof renderRss>[0]['entries'][num
 })
 
 const channel = (entries: ReturnType<typeof entry>[]) => ({
-  title: 'Community',
+  title: 'Forum',
   description: 'A board.',
   href: 'https://example.test/',
   selfHref: 'https://example.test/feed.xml',
@@ -195,7 +195,7 @@ describe('renderSitemapIndex', () => {
      * names, and a crawler rejects one served as the other. Kills the mutant
      * that shares a renderer between them.
      */
-    const xml = renderSitemapIndex([{ loc: 'https://example.test/sitemap/communities.xml' }])
+    const xml = renderSitemapIndex([{ loc: 'https://example.test/sitemap/forums.xml' }])
 
     expect(xml).toContain('<sitemapindex')
     expect(xml).toContain('<sitemap>')

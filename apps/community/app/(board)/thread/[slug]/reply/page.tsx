@@ -45,8 +45,8 @@ export default async function ReplyPage({
   if (!target || target.visibility !== 'visible') notFound()
 
   const scope = {
-    communityId: target.community.id,
-    community: await authorizer.communityMatrix(actor, target.community.id),
+    forumId: target.forum.id,
+    forum: await authorizer.forumMatrix(actor, target.forum.id),
   }
   if (!authorizer.can(actor, 'thread.view', scope)) notFound()
   if (!authorizer.can(actor, 'reply.post', scope)) notFound()
@@ -59,7 +59,7 @@ export default async function ReplyPage({
    * off: it is a link to this page, not a button that edits a textarea. The
    * quoted post is re-read through the visible-post lookup rather than trusted
    * from the query string — otherwise `?quote=<id>` is a way to paste any post
-   * on the board, including one in a community the quoter cannot see, into a community
+   * on the board, including one in a forum the quoter cannot see, into a forum
    * where everyone can.
    */
   const quoteId = quotedPostId(query.quote)
@@ -91,11 +91,11 @@ export default async function ReplyPage({
               threadId={target.threadId}
               seenLastPostId={target.lastPostId}
               prefill={prefill}
-              canSubscribe={authorizer.can(actor, 'community.subscribe', scope)}
+              canSubscribe={authorizer.can(actor, 'forum.subscribe', scope)}
               attachmentLimits={
                 canAttach(actor, scope) ? attachmentLimits(scope) : null
               }
-              draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, target.community.id, target.threadId)}
+              draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, target.forum.id, target.threadId)}
             />
           ),
           toolbar: null,

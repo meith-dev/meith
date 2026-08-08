@@ -15,7 +15,7 @@ import { getSettings } from '@/server/settings'
 import { avatarsFor } from '@/server/avatars'
 import { currentTheme } from '@/server/theme'
 import { boardRegion, filterView, viewerRef } from '@/server/plugin-view'
-import { buildCommunityJumpModel } from '@/view/community-jump'
+import { buildForumJumpModel } from '@/view/forum-jump'
 import {
   buildBoardNavigation,
   buildFooterModel,
@@ -26,13 +26,13 @@ import {
 
 /** The jump box's data, kept out of the component body for legibility. */
 async function buildJumpModel(actor: Actor) {
-  const { authorizer, communities } = getContainer()
+  const { authorizer, forums } = getContainer()
   const [rows, visible] = await Promise.all([
-    communities.listAll(),
-    authorizer.communityIdsWhere(actor, 'community.view'),
+    forums.listAll(),
+    authorizer.forumIdsWhere(actor, 'forum.view'),
   ])
 
-  return buildCommunityJumpModel({ rows, visibleCommunityIds: new Set(visible) })
+  return buildForumJumpModel({ rows, visibleForumIds: new Set(visible) })
 }
 
 /**
@@ -67,7 +67,7 @@ export async function PageShell({
   const Header = requireSlot(theme, 'Header')
   const UserPanel = requireSlot(theme, 'UserPanel')
   const Footer = requireSlot(theme, 'Footer')
-  const CommunityJump = requireSlot(theme, 'CommunityJump')
+  const ForumJump = requireSlot(theme, 'ForumJump')
 
   /*
    * The board's name, from `board.name` (F08). Cached globally and tagged, so
@@ -195,19 +195,19 @@ export async function PageShell({
    * F27's jump box, on every page because that is what a jump box is for.
    *
    * Two reads, and both are already paid for on most pages: the tree comes from
-   * `CachedCommunityRepository` (one query, tag-invalidated, shared per request) and
-   * the visibility set is the same `communityIdsWhere` call every list page makes,
-   * memoised by the authorizer. On a board with no communities the model has no
+   * `CachedForumRepository` (one query, tag-invalidated, shared per request) and
+   * the visibility set is the same `forumIdsWhere` call every list page makes,
+   * memoised by the authorizer. On a board with no forums the model has no
    * options and the theme renders nothing.
    *
    * Failure is swallowed to an empty box rather than propagated. The shell also
    * renders the error pages, and a jump box that could take the whole page down
-   * would mean a community-tree problem showed as a blank screen instead of as the
+   * would mean a forum-tree problem showed as a blank screen instead of as the
    * error it is.
    */
   const built = await buildJumpModel(actor).catch(() => null)
   const jump =
-    built === null ? null : await filterView('view.community-jump', built, pluginContext)
+    built === null ? null : await filterView('view.forum-jump', built, pluginContext)
 
   return (
     <Shell boardTitle={shellModel.boardTitle} viewer={shellModel.viewer}>
@@ -232,7 +232,7 @@ export async function PageShell({
 
       {children}
 
-      {jump !== null && jump.communities.length > 0 && <CommunityJump {...jump} />}
+      {jump !== null && jump.forums.length > 0 && <ForumJump {...jump} />}
 
       {/*
        * The appearance control, above the footer and outside the theme.

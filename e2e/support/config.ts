@@ -53,4 +53,4 @@ export const E2E_INSTALL_BASE_URL = `http://127.0.0.1:${E2E_INSTALL_PORT}`
  * directory, so an upload written inside it is a filesystem change that can
  * restart the server in the middle of a test.
  */
-export const E2E_UPLOADS_DIR = join(tmpdir(), 'community-e2e-uploads')
+export const E2E_UPLOADS_DIR = join(tmpdir(), 'forum-e2e-uploads')

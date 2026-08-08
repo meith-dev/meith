@@ -93,7 +93,7 @@ export const NOTIFICATION_KINDS = [
     id: 'subscription.reply',
     title: 'A thread you follow gets a reply',
     description:
-      'Somebody replies in a thread or community you follow and asked to hear ' +
+      'Somebody replies in a thread or forum you follow and asked to hear ' +
       'about as it happens.',
     audience: 'member',
     /*
@@ -108,7 +108,7 @@ export const NOTIFICATION_KINDS = [
     id: 'subscription.digest',
     title: 'Your daily or weekly digest is ready',
     description:
-      'A summary of what arrived in the threads and communities you follow on a ' +
+      'A summary of what arrived in the threads and forums you follow on a ' +
       'digest cadence.',
     audience: 'member',
     /*

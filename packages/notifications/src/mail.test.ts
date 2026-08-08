@@ -119,7 +119,7 @@ describe('the message', () => {
 
   it('names the board even when it has none configured', () => {
     expect(render({}, { boardName: '' }).subject).toBe(
-      '[the community] You have been warned: Spamming',
+      '[the forum] You have been warned: Spamming',
     )
   })
 

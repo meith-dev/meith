@@ -4,7 +4,7 @@ import 'server-only'
  * F76 — turning rows into a feed channel.
  *
  * The four feed routes differ only in what they read; the mapping from rows to
- * entries is one function per shape, here, so the board feed and the community feed
+ * entries is one function per shape, here, so the board feed and the forum feed
  * cannot drift in how they build an entry id or a permalink.
  *
  * ## Entry ids are not URLs

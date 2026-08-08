@@ -31,7 +31,7 @@ flowchart LR
         migrate["migrate — one-shot, runs first"]
         web["web — apps/community, Next.js"]
         worker["worker — apps/worker, ticks every 60s"]
-        cli["community CLI — docker compose run"]
+        cli["forum CLI — docker compose run"]
     end
     web --> pg[("Postgres")]
     worker --> pg
@@ -66,11 +66,11 @@ A pnpm workspace: applications in `apps/`, everything else in `packages/`,
 
 ```mermaid
 flowchart TD
-    apps["apps/ — community · worker · cli (the composition roots)"]
+    apps["apps/ — forum · worker · cli (the composition roots)"]
     runtime["@meith/runtime — shared non-Next wiring"]
     db["@meith/db — every Postgres adapter"]
     drivers["@meith/drivers — queue · cache · files · mail"]
-    domain["~30 domain packages — accounts, communities, threads, posts, moderation, …"]
+    domain["~30 domain packages — accounts, forums, threads, posts, moderation, …"]
     core["@meith/core — types · env · errors · cache tags · permission registry · driver ports"]
     apps --> runtime
     apps --> db
@@ -115,10 +115,10 @@ agree on:
   `NotFoundError`, `ConflictError`, `RateLimitedError`. Each maps to a status
   and a rendered page; callers key off the types.
 - **Cache tags** — every tag name spelled once in `CacheTags`, because a
-  writer invalidating `"community-tree"` while a reader cached under `"communityTree"`
+  writer invalidating `"forum-tree"` while a reader cached under `"forumTree"`
   is stale data no test catches.
 - **The permission registry** — `PERMISSION_FIELDS` in `permissions.ts`: 46
-  typed fields (27 community-scoped, 19 global), each with a `kind` that fixes how
+  typed fields (27 forum-scoped, 19 global), each with a `kind` that fixes how
   values combine across groups: `boolean` is OR, `numeric` is MAX with `0`
   meaning unlimited, `negative` is AND — a restriction any exempting group
   lifts everywhere.
@@ -127,7 +127,7 @@ agree on:
   infrastructure interfaces core declares.
 
 Repository interfaces are *not* in core. Each lives beside the logic that
-consumes it — `CommunityRepository` in `@meith/communities`, `TaskRepository` in
+consumes it — `ForumRepository` in `@meith/forums`, `TaskRepository` in
 `@meith/tasks` — so a package's port and its policy travel together.
 
 ### The domain
@@ -141,11 +141,11 @@ The middle of the graph is nearly flat: almost every domain package depends on
 |---|---|---|
 | Identity | `accounts`, `groups`, `admin` | Password and token crypto, sessions, bans, group promotion rules, the ACP's second session with its own clocks and IP allowlist. |
 | Authorization | `authorization` | The only code that knows how permissions resolve — see [the request path](#a-request-end-to-end). |
-| Structure & content | `communities`, `threads`, `posts`, `polls`, `drafts`, `attachments`, `avatars` | The community tree (materialised paths), thread and reply composers, the post editor, and the rule that an upload is made safe by re-encoding, not by validating. |
+| Structure & content | `forums`, `threads`, `posts`, `polls`, `drafts`, `attachments`, `avatars` | The forum tree (materialised paths), thread and reply composers, the post editor, and the rule that an upload is made safe by re-encoding, not by validating. |
 | Members | `profile-fields`, `messages`, `relations`, `reputation`, `signatures` | Custom profile fields, private messages, buddy/ignore, ratings, signatures rendered with a deliberately narrower Markdown feature set. |
 | Moderation & safety | `moderation`, `antispam` | Approval queue, reports, thread tools and surgery, warnings; rate limits counted in the database, honeypot, question captcha, held first posts. |
 | Rendering | `markdown` | The one place member text becomes markup: parse → render, word filter, BBCode migration, URL safety. |
-| Delivery | `notifications`, `subscriptions`, `events` | The single "somebody needs to be told" path, thread/community following, and the transactional outbox. |
+| Delivery | `notifications`, `subscriptions`, `events` | The single "somebody needs to be told" path, thread/forum following, and the transactional outbox. |
 | Platform | `settings`, `tasks`, `search`, `api` | The typed settings registry, the scheduled-task contract, the search provider seam, and the REST route registry as data. |
 | Lifecycle | `install`, `upgrade`, `import`, `create-meith` | The installer's decisions, the upgrade planner, the resumable MyBB import, the project scaffolder. |
 
@@ -219,7 +219,7 @@ There is intentionally no single factory that wires everything for everyone:
 
 - **`apps/community/src/server/container.ts`** — the request path's root, marked
   `server-only`. Branches on `DATA_SOURCE`, builds every repository, and wraps
-  `CommunityRepository` in its caching decorator in *both* branches, so a caching
+  `ForumRepository` in its caching decorator in *both* branches, so a caching
   bug shows up in fixture tests too.
 - **`apps/cli/src/context.ts`** — the CLI's own root (the container is
   `server-only` and pulls `next/headers`). It shares *policy* instead of
@@ -246,8 +246,8 @@ sequenceDiagram
     Note over E: cookie triage only — no DB, no authz
     E->>P: request + path header
     P->>P: getActor() — session cookie to Actor, guest fallback
-    P->>A: communityMatrix(actor, communityId)
-    A-->>P: resolved CommunityPermissions
+    P->>A: forumMatrix(actor, forumId)
+    A-->>P: resolved ForumPermissions
     P->>A: can("thread.view") · contentScope(...)
     P->>R: findById(id, { scope })
     Note over R: visibility filtered in the query, never after it
@@ -264,7 +264,7 @@ public HTTP endpoint whatever rendered the form.
 
 **Authorization is one implementation with no way around it.** The
 `Authorizer` answers `can(actor, action, target)` synchronously over resolved
-permission sets; resolution (`resolveCommunityMatrix`) walks the community's ancestor
+permission sets; resolution (`resolveForumMatrix`) walks the forum's ancestor
 chain nearest-first *per group*, then combines across groups by each field's
 kind. Content visibility is a `scope` object compiled into the SQL `where`
 clause — pages, feeds, search and the REST API all pass through it, which is

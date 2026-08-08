@@ -82,10 +82,10 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
         private: true,
         type: 'module',
         scripts: {
-          dev: 'community-web dev',
-          build: 'community-web build',
-          start: 'community-web start',
-          /* The operator CLI: migrations, users, communities, settings, tasks (F13). */
+          dev: 'forum-web dev',
+          build: 'forum-web build',
+          start: 'forum-web start',
+          /* The operator CLI: migrations, users, forums, settings, tasks (F13). */
           community: 'community',
         },
         dependencies: {
@@ -113,7 +113,7 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
  *
  * Adding a theme or a plugin is: \`npm install\` it, add a line here, redeploy.
  */
-import { defineCommunityConfig } from '@meith/web/config'
+import { defineForumConfig } from '@meith/web/config'
 import {
   BROWSER_THEME_COLOR,
   DARK_TOKENS,
@@ -121,7 +121,7 @@ import {
   LIGHT_TOKENS,
 } from '@meith/theme-default'
 
-export default defineCommunityConfig({
+export default defineForumConfig({
   themes: {
     default: {
       key: 'default',
@@ -217,7 +217,7 @@ APP_URL=
     'README.md',
     `# ${name}
 
-A community, built on [Meith](${repositoryUrl}).
+A forum, built on [Meith](${repositoryUrl}).
 
 ## Deploy
 
@@ -257,8 +257,8 @@ With no \`DATABASE_URL\`, the board runs on deterministic in-memory sample data 
 enough to click through every reading surface. Posting needs a database:
 
 \`\`\`sh
-npm run community -- migrate
-npm run community -- user:create --admin
+npm run forum -- migrate
+npm run forum -- user:create --admin
 \`\`\`
 
 ## Configuring
@@ -266,17 +266,17 @@ npm run community -- user:create --admin
 - **\`community.config.ts\`** — installed themes and plugins. Everything installable
   is named here so the bundler can see it; nothing is found by scanning a
   directory at runtime.
-- **\`/admin\`** — settings, communities, groups, members, themes, maintenance. An
+- **\`/admin\`** — settings, forums, groups, members, themes, maintenance. An
   administrator re-enters their password to get in, and again for anything
   destructive.
-- **\`npm run community -- --help\`** — the operator CLI. Everything the panel does
+- **\`npm run forum -- --help\`** — the operator CLI. Everything the panel does
   and a few things it cannot, without a browser.
 
 ## Upgrading
 
 \`\`\`sh
 npm install @meith/web@latest @meith/cli@latest
-npm run community -- upgrade
+npm run forum -- upgrade
 \`\`\`
 
 Migrations are forward-only. Recovery is by restore, so take a backup first —

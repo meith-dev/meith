@@ -14,7 +14,7 @@ const DOMAIN = [
   'antispam',
   'groups',
   'authorization',
-  'communities',
+  'forums',
   'threads',
   'posts',
   'profile-fields',
@@ -77,9 +77,9 @@ module.exports = {
            * no importer in the module graph by design. Flagging them as dead
            * code would make the rule useless for every real page.
            */
-          'apps/(community|web)/app/.*/(page|layout|route|template|loading|error|not-found|default|sitemap|robots|opengraph-image|icon)\\.(ts|tsx)$',
-          'apps/(community|web)/app/(page|layout|route|template|loading|error|not-found|global-error|sitemap|robots)\\.(ts|tsx)$',
-          'apps/community/(instrumentation|middleware|proxy)\\.(ts|tsx)$',
+          'apps/(forum|web)/app/.*/(page|layout|route|template|loading|error|not-found|default|sitemap|robots|opengraph-image|icon)\\.(ts|tsx)$',
+          'apps/(forum|web)/app/(page|layout|route|template|loading|error|not-found|global-error|sitemap|robots)\\.(ts|tsx)$',
+          'apps/forum/(instrumentation|middleware|proxy)\\.(ts|tsx)$',
         ],
       },
       to: {},
@@ -116,7 +116,7 @@ module.exports = {
        * only one of those three shapes reports a clean run while enforcing
        * nothing — which is exactly what happened here: the original
        * `^packages/drivers/`-only rule never covered @meith/db at all, and a
-       * probe importing getDb() into packages/communities passed silently.
+       * probe importing getDb() into packages/forums passed silently.
        *
        * Verify with: create packages/<domain>/src/__probe.ts importing @meith/db
        * and confirm this rule fires before trusting a green run.
@@ -179,7 +179,7 @@ module.exports = {
     },
     {
       /*
-       * F80. The strongest form of "a plugin cannot leak a private community" is
+       * F80. The strongest form of "a plugin cannot leak a private forum" is
        * that it cannot reach the query layer at all. `@meith/plugin-kit` hands a
        * plugin what a viewer may already see; a plugin importing `@meith/db` or a
        * domain package would be outside every guarantee the host makes, and no
@@ -232,7 +232,7 @@ module.exports = {
         /*
          * Build output. `.next-e2e` is the same thing under another name — the
          * browser suite builds into it so a run does not invalidate the dev
-         * server's cache — and it is inside `apps/community/`, which this scans.
+         * server's cache — and it is inside `apps/forum/`, which this scans.
          */
         '\\.next(-e2e)?/',
         'dist/',
@@ -253,7 +253,7 @@ module.exports = {
      */
     tsConfig: { fileName: 'tsconfig.base.json' },
     /*
-     * The app's `@/*` alias, which lives in `apps/community/tsconfig.json` and so
+     * The app's `@/*` alias, which lives in `apps/forum/tsconfig.json` and so
      * not in the `tsconfig.base.json` above. Without it every `@/…` edge from
      * `app/` is invisible to this tool — see the file's own header for what
      * that costs.

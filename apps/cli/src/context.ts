@@ -22,7 +22,7 @@ import {
 import { ConfigurationError, env } from '@meith/core'
 import {
   PostgresAdminRepository,
-  PostgresCommunityRepository,
+  PostgresForumRepository,
   PostgresSettingsRepository,
   createPostgresAccountStore,
   getDb,
@@ -33,7 +33,7 @@ import { SettingsSnapshot } from '@meith/settings'
 export interface CliContext {
   readonly db: Database
   readonly identity: IdentityService
-  readonly communities: PostgresCommunityRepository
+  readonly forums: PostgresForumRepository
   readonly settings: PostgresSettingsRepository
   readonly admin: PostgresAdminRepository
 }
@@ -113,7 +113,7 @@ export async function createContext(): Promise<CliContext> {
   return {
     db,
     identity: new IdentityService({ store: createPostgresAccountStore(db), config }),
-    communities: new PostgresCommunityRepository(db),
+    forums: new PostgresForumRepository(db),
     settings,
     admin,
   }

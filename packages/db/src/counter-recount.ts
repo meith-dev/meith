@@ -16,7 +16,7 @@
  *   - It must therefore be resumable, so where it got to lives in
  *     `counter_recount_state` rather than in the process.
  *
- * The phases are ordered threads → communities → users deliberately. Community totals
+ * The phases are ordered threads → forums → users deliberately. Forum totals
  * are aggregated from the same post rows the thread phase reads, so running
  * threads first means a single sweep leaves the two consistent with each other
  * rather than one sweep behind.
@@ -26,7 +26,7 @@ import { sql } from 'drizzle-orm'
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 
-export const RECOUNT_PHASES = ['threads', 'communities', 'users'] as const
+export const RECOUNT_PHASES = ['threads', 'forums', 'users'] as const
 export type RecountPhase = (typeof RECOUNT_PHASES)[number]
 
 export interface RecountRun {
@@ -147,7 +147,7 @@ export class PostgresCounterRecount {
     cursor: number,
     batchSize: number,
   ): Promise<{ ids: number[]; maxId: number }> {
-    const table = { threads: sql`threads`, communities: sql`communities`, users: sql`users` }[phase]
+    const table = { threads: sql`threads`, forums: sql`forums`, users: sql`users` }[phase]
     const rows = resultRows(
       await this.db.execute(sql`
         select id from ${table} where id > ${cursor} order by id limit ${batchSize}
@@ -164,7 +164,7 @@ export class PostgresCounterRecount {
     batchSize: number,
   ): Promise<number> {
     if (phase === 'threads') return this.correctThreads(cursor, batchSize)
-    if (phase === 'communities') return this.correctCommunities(cursor, batchSize)
+    if (phase === 'forums') return this.correctForums(cursor, batchSize)
     return this.correctUsers(cursor, batchSize)
   }
 
@@ -224,10 +224,10 @@ export class PostgresCounterRecount {
   }
 
   /**
-   * Community counters over the whole subtree.
+   * Forum counters over the whole subtree.
    *
-   * Community totals are subtree-inclusive — a category's row on the index counts
-   * everything beneath it — so the truth for a community is aggregated over itself
+   * Forum totals are subtree-inclusive — a category's row on the index counts
+   * everything beneath it — so the truth for a forum is aggregated over itself
    * plus every descendant, matched by path prefix *with the separator*: without
    * the trailing dot, `1.4` also matches `1.40` and a sibling's posts land in
    * the wrong category (D22).
@@ -236,26 +236,26 @@ export class PostgresCounterRecount {
    * differs from the incremental writer: the writer only ever sees new content,
    * where the two definitions agree.
    */
-  private async correctCommunities(cursor: number, batchSize: number): Promise<number> {
+  private async correctForums(cursor: number, batchSize: number): Promise<number> {
     const result = await this.db.execute(sql`
       with batch as (
-        select id, path from communities where id > ${cursor} order by id limit ${batchSize}
+        select id, path from forums where id > ${cursor} order by id limit ${batchSize}
       ),
       subtree as (
-        select b.id as root_id, d.id as community_id
+        select b.id as root_id, d.id as forum_id
           from batch b
-          join communities d on d.id = b.id or d.path like b.path || '.%'
+          join forums d on d.id = b.id or d.path like b.path || '.%'
       ),
       thread_agg as (
         select s.root_id, count(*)::int as thread_count
           from subtree s
-          join threads th on th.community_id = s.community_id and th.visibility = 'visible'
+          join threads th on th.forum_id = s.forum_id and th.visibility = 'visible'
          group by s.root_id
       ),
       post_agg as (
         select s.root_id, count(*)::int as post_count
           from subtree s
-          join posts p on p.community_id = s.community_id and p.visibility = 'visible'
+          join posts p on p.forum_id = s.forum_id and p.visibility = 'visible'
           join threads th on th.id = p.thread_id and th.visibility = 'visible'
          group by s.root_id
       ),
@@ -264,11 +264,11 @@ export class PostgresCounterRecount {
                s.root_id, p.id, p.thread_id, th.title, p.author_user_id,
                p.author_username, p.created_at
           from subtree s
-          join posts p on p.community_id = s.community_id and p.visibility = 'visible'
+          join posts p on p.forum_id = s.forum_id and p.visibility = 'visible'
           join threads th on th.id = p.thread_id and th.visibility = 'visible'
          order by s.root_id, p.created_at desc, p.id desc
       )
-      update communities f
+      update forums f
          set thread_count = coalesce(ta.thread_count, 0),
              post_count = coalesce(pa.post_count, 0),
              last_post_id = la.id,
@@ -305,7 +305,7 @@ export class PostgresCounterRecount {
    * and postbit both claim to be showing.
    *
    * A visible post inside a soft-deleted thread does not count, for the same
-   * reason it does not count towards its community: the whole thread is gone from
+   * reason it does not count towards its forum: the whole thread is gone from
    * the board, and leaving its posts on their authors' totals would mean a
    * moderator deleting a thread silently leaves every participant's count
    * higher than the posts anyone can find.

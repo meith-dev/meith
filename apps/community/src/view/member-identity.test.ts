@@ -44,7 +44,7 @@ describe('nameClassOf', () => {
 describe('distinctUserIds', () => {
   /*
    * A thread listing yields two ids per row — who started it and who posted
-   * last — and on a quiet community those are mostly the same handful of people.
+   * last — and on a quiet forum those are mostly the same handful of people.
    * Passing the raw list would ask the database about the same member twenty
    * times in one `in (...)`.
    */

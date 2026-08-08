@@ -7,7 +7,7 @@
  * something a member cannot see.
  *
  * Its own file rather than an addition to `content.ts` because a private
- * message is not board content: it has no community, no `visibility` column, and is
+ * message is not board content: it has no forum, no `visibility` column, and is
  * outside F47's `ContentScope` by construction. Filing it beside `posts` would
  * invite exactly the query that treats it like one.
  */

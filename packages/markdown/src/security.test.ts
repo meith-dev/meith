@@ -79,7 +79,7 @@ describe('what may become an href', () => {
 
   it('allows the three things a post legitimately links to', () => {
     expect(html('[x](https://ok.example/a)')).toContain('href="https://ok.example/a"')
-    expect(html('[x](/community/1-general)')).toContain('href="/community/1-general"')
+    expect(html('[x](/forum/1-general)')).toContain('href="/forum/1-general"')
     expect(html('[x](mailto:a@b.example)')).toContain('href="mailto:a@b.example"')
   })
 

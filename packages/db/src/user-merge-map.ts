@@ -59,7 +59,7 @@ export const MERGE_REASSIGN: readonly ReassignColumn[] = [
   { table: 'bans', column: 'banned_by_user_id' },
   { table: 'bans', column: 'user_id' },
   /* Denormalised display columns. Missing these leaves the old name on screen. */
-  { table: 'communities', column: 'last_post_user_id' },
+  { table: 'forums', column: 'last_post_user_id' },
   { table: 'threads', column: 'last_post_user_id' },
   { table: 'post_revisions', column: 'edited_by_user_id' },
   { table: 'posts', column: 'author_user_id' },
@@ -93,9 +93,9 @@ export const MERGE_REASSIGN: readonly ReassignColumn[] = [
 
 export const MERGE_DEDUPE: readonly DedupeColumn[] = [
   { table: 'digest_runs', column: 'user_id', keys: ['cadence'] },
-  { table: 'community_moderators', column: 'user_id', keys: ['community_id'] },
-  { table: 'community_subscriptions', column: 'user_id', keys: ['community_id'] },
-  { table: 'communities_read', column: 'user_id', keys: ['community_id'] },
+  { table: 'forum_moderators', column: 'user_id', keys: ['forum_id'] },
+  { table: 'forum_subscriptions', column: 'user_id', keys: ['forum_id'] },
+  { table: 'forums_read', column: 'user_id', keys: ['forum_id'] },
   {
     table: 'notifications',
     column: 'user_id',
@@ -148,7 +148,7 @@ export const MERGE_DISCARD: readonly DiscardColumn[] = [
    * asked a merge for.
    *
    * It could not be deduped even if that were wanted. `post_drafts` carries
-   * *two* partial unique indexes — one per community for a new thread, one per
+   * *two* partial unique indexes — one per forum for a new thread, one per
    * thread for a reply — and a `DedupeColumn` describes a single uniqueness
    * rule. Expressing it would need the column in two lists, which the coverage
    * test forbids on purpose.
@@ -210,7 +210,7 @@ export interface RenameColumn {
 
 export const MERGE_RENAME: readonly RenameColumn[] = [
   { table: 'board_stats', column: 'newest_username', idColumn: 'newest_user_id' },
-  { table: 'communities', column: 'last_post_username', idColumn: 'last_post_user_id' },
+  { table: 'forums', column: 'last_post_username', idColumn: 'last_post_user_id' },
   { table: 'posts', column: 'author_username', idColumn: 'author_user_id' },
   { table: 'private_messages', column: 'author_username', idColumn: 'author_user_id' },
   { table: 'threads', column: 'author_username', idColumn: 'author_user_id' },

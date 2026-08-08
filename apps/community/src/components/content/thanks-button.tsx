@@ -6,7 +6,7 @@
  * F62 gave the board reputation and one way to use it: a **Rate** link to a
  * separate page carrying a form. That is the right shape for a considered
  * rating with a reason attached, and the wrong shape for the thing people
- * actually do on a community, which is say thanks for an answer that helped. A
+ * actually do on a forum, which is say thanks for an answer that helped. A
  * page load, a form and a redirect is enough friction that most boards' totals
  * stay at zero, and `reputation.allow_negative` — off by default — describes
  * itself as making reputation "a thanks button". There was no thanks button.

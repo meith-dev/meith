@@ -4,7 +4,7 @@
  * ## Why a board carries somebody else's hashes at all
  *
  * The alternative is forcing every member through a password reset on migration
- * day, which is the single largest source of attrition in a community migration:
+ * day, which is the single largest source of attrition in a forum migration:
  * the people who do not read the e-mail simply stop being members. Carrying the
  * old hash and upgrading it on the next successful sign-in costs one comparison
  * and loses nobody.

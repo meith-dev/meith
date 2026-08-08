@@ -5,7 +5,7 @@
  * optionally asked at registration. F57 gave a member three fields the board
  * decided on; this hands the same idea to the operator.
  *
- * The per-group half is shaped exactly like F21's `community_permissions` —
+ * The per-group half is shaped exactly like F21's `forum_permissions` —
  * nullable rules that inherit a default, combined by R4.2's "any grant is a
  * grant". Reusing that shape is the point: "who can see this" means one thing
  * everywhere on this board.

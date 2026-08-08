@@ -4,7 +4,7 @@
  * F49 — the report actions.
  *
  * Three, and they split along the line the whole feature is about: `file` is a
- * *member's* action and re-authorises against the target's community; `assign` and
+ * *member's* action and re-authorises against the target's forum; `assign` and
  * `close` are moderators' and re-authorise against the report's scope. Nothing
  * a member can call touches an event, and nothing a moderator writes reaches a
  * member.
@@ -68,24 +68,24 @@ export async function fileReportAction(
     authorizer.require(actor, 'content.report')
 
     /*
-     * Resolve the target first, then re-authorise against *its* community. The form
+     * Resolve the target first, then re-authorise against *its* forum. The form
      * says which row; whether this member could see it is a question only the
-     * row's community can answer, and reporting something you cannot see would be a
+     * row's forum can answer, and reporting something you cannot see would be a
      * way to confirm it exists.
      */
     target = await reports.resolveTarget(kind, targetId, actor.userId)
     if (target === null) throw new ValidationError('That does not exist.')
 
-    if (target.communityId !== null) {
-      const matrix = await authorizer.communityMatrix(actor, target.communityId)
-      if (!authorizer.can(actor, 'thread.view', { communityId: target.communityId, community: matrix })) {
+    if (target.forumId !== null) {
+      const matrix = await authorizer.forumMatrix(actor, target.forumId)
+      if (!authorizer.can(actor, 'thread.view', { forumId: target.forumId, forum: matrix })) {
         throw new ValidationError('That does not exist.')
       }
     } else if (kind === 'user') {
       authorizer.require(actor, 'profile.view')
     }
     /*
-     * A private message has no community and needs no third check: `resolveTarget`
+     * A private message has no forum and needs no third check: `resolveTarget`
      * only returns one this member holds a copy of (F60), which is a stronger
      * statement than any permission could make about it.
      */

@@ -199,10 +199,10 @@ describe('permission', () => {
     expect(await resolveAdmin()).toEqual({ denied: 'permission' })
   })
 
-  it('refuses a super-moderator, whose bypass is community-scoped only', async () => {
+  it('refuses a super-moderator, whose bypass is forum-scoped only', async () => {
     /*
      * The one door the bypasses never open. `admincp.access` is absent from
-     * `ADMIN_ALWAYS` and from `COMMUNITY_SCOPED`, so it falls through to the
+     * `ADMIN_ALWAYS` and from `FORUM_SCOPED`, so it falls through to the
      * explicit column — which the seeded super-moderator does not have.
      */
     actorRef.current = await actorFor(SEED_GROUP.superModerators, BOB)

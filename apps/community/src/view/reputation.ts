@@ -56,7 +56,7 @@ export function buildReputationView(input: {
       comment: row.comment,
       /*
        * A post rating links to the post, by thread *id* and anchor — no slug
-       * and no title. A profile is visible to more people than every community is,
+       * and no title. A profile is visible to more people than every forum is,
        * and the thread page enforces its own visibility, so a bare id leaks
        * nothing a 404 would not already say.
        */

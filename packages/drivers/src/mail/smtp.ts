@@ -105,7 +105,7 @@ export class SmtpMailDriver implements MailDriver {
    * connection that was already going to be re-established.
    *
    * Unpooled also means there is nothing to shut down: nodemailer opens and
-   * closes one connection per `sendMail`, so a one-shot `community tasks:run` that
+   * closes one connection per `sendMail`, so a one-shot `forum tasks:run` that
    * sent a message exits rather than sitting at the prompt holding a socket.
    * That is why this class has no `close`.
    */

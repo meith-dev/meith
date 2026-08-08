@@ -14,7 +14,7 @@ import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresSearchRepository } from './search-repo'
 import { PostgresThreadWriteRepository } from './thread-writes'
-import { communities, outbox, posts, threads, threadSubscriptions, users } from './schema'
+import { forums, outbox, posts, threads, threadSubscriptions, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -23,7 +23,7 @@ let repo: PostgresThreadWriteRepository
 const AT = new Date('2026-07-30T12:00:00Z')
 
 const CATEGORY = 1
-const COMMUNITY = 4
+const FORUM = 4
 
 beforeAll(async () => {
   harness = await createTestDb()
@@ -42,7 +42,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
   await db.execute(sql`delete from thread_prefixes`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values({
@@ -55,14 +55,14 @@ beforeEach(async () => {
     passwordAlgo: 'argon2id',
     primaryGroupId: 2,
   })
-  await db.insert(communities).values([
+  await db.insert(forums).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
-    { id: COMMUNITY, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
+    { id: FORUM, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
   ])
 })
 
 const RECORD = {
-  communityId: COMMUNITY,
+  forumId: FORUM,
   title: 'Hello there',
   slug: 'hello-there',
   message: 'First!',
@@ -80,7 +80,7 @@ describe('PostgresThreadWriteRepository.create', () => {
 
     const [thread] = await db.select().from(threads).where(eq(threads.id, created.threadId))
     expect(thread).toMatchObject({
-      communityId: COMMUNITY,
+      forumId: FORUM,
       title: 'Hello there',
       visibility: 'visible',
       firstPostId: created.postId,
@@ -91,11 +91,11 @@ describe('PostgresThreadWriteRepository.create', () => {
     const [post] = await db.select().from(posts).where(eq(posts.id, created.postId))
     expect(post).toMatchObject({ threadId: created.threadId, isFirstPost: true, message: 'First!' })
 
-    // Direct community and author counters are exact immediately; the ancestor is
+    // Direct forum and author counters are exact immediately; the ancestor is
     // the roll-up's job and is driven by this event.
-    const [community] = await db.select().from(communities).where(eq(communities.id, COMMUNITY))
-    expect(community).toMatchObject({ threadCount: 1, postCount: 1, lastPostId: created.postId })
-    const [category] = await db.select().from(communities).where(eq(communities.id, CATEGORY))
+    const [forum] = await db.select().from(forums).where(eq(forums.id, FORUM))
+    expect(forum).toMatchObject({ threadCount: 1, postCount: 1, lastPostId: created.postId })
+    const [category] = await db.select().from(forums).where(eq(forums.id, CATEGORY))
     expect(category).toMatchObject({ threadCount: 0, postCount: 0 })
 
     const [user] = await db.select().from(users).where(eq(users.id, 1))
@@ -122,17 +122,17 @@ describe('PostgresThreadWriteRepository.create', () => {
     // The opening post is still linked: the thread is complete, just not visible.
     expect(thread).toMatchObject({ visibility: 'unapproved', firstPostId: created.postId })
 
-    const [community] = await db.select().from(communities).where(eq(communities.id, COMMUNITY))
-    expect(community).toMatchObject({ threadCount: 0, postCount: 0, lastPostId: null })
+    const [forum] = await db.select().from(forums).where(eq(forums.id, FORUM))
+    expect(forum).toMatchObject({ threadCount: 0, postCount: 0, lastPostId: null })
     const [user] = await db.select().from(users).where(eq(users.id, 1))
     expect(user).toMatchObject({ threadCount: 0, postCount: 0 })
     expect(await db.select().from(outbox)).toEqual([])
   })
 
   it('leaves nothing behind when the write fails', async () => {
-    // A community id that no row has: the post's foreign key rejects it after the
+    // A forum id that no row has: the post's foreign key rejects it after the
     // thread insert has already succeeded inside the transaction.
-    await expect(repo.create({ ...RECORD, communityId: 9999 })).rejects.toThrow()
+    await expect(repo.create({ ...RECORD, forumId: 9999 })).rejects.toThrow()
 
     expect(await db.select().from(threads)).toEqual([])
     expect(await db.select().from(posts)).toEqual([])
@@ -147,7 +147,7 @@ describe('PostgresThreadWriteRepository replies (F40)', () => {
 
     const { postId } = await repo.createReply({
       threadId: thread.threadId,
-      communityId: COMMUNITY,
+      forumId: FORUM,
       threadTitle: RECORD.title,
       message: 'Quite so.',
       authorUserId: 1,
@@ -167,8 +167,8 @@ describe('PostgresThreadWriteRepository replies (F40)', () => {
 
     // The counter that a reply must *not* move. Getting this wrong inflates
     // every ancestor's thread total by one per reply.
-    const [community] = await db.select().from(communities).where(eq(communities.id, COMMUNITY))
-    expect(community).toMatchObject({ threadCount: 1, postCount: 2, lastPostId: postId })
+    const [forum] = await db.select().from(forums).where(eq(forums.id, FORUM))
+    expect(forum).toMatchObject({ threadCount: 1, postCount: 2, lastPostId: postId })
 
     const [user] = await db.select().from(users).where(eq(users.id, 1))
     expect(user).toMatchObject({ threadCount: 1, postCount: 2 })
@@ -181,7 +181,7 @@ describe('PostgresThreadWriteRepository replies (F40)', () => {
     const thread = await repo.create(RECORD)
     await repo.createReply({
       threadId: thread.threadId,
-      communityId: COMMUNITY,
+      forumId: FORUM,
       threadTitle: RECORD.title,
       message: 'Held.',
       authorUserId: 1,
@@ -193,15 +193,15 @@ describe('PostgresThreadWriteRepository replies (F40)', () => {
 
     const [row] = await db.select().from(threads).where(eq(threads.id, thread.threadId))
     expect(row).toMatchObject({ replyCount: 0, lastPostId: thread.postId })
-    const [community] = await db.select().from(communities).where(eq(communities.id, COMMUNITY))
-    expect(community).toMatchObject({ postCount: 1 })
+    const [forum] = await db.select().from(forums).where(eq(forums.id, FORUM))
+    expect(forum).toMatchObject({ postCount: 1 })
   })
 
   it('subscribes the replier when asked', async () => {
     const thread = await repo.create(RECORD)
     await repo.createReply({
       threadId: thread.threadId,
-      communityId: COMMUNITY,
+      forumId: FORUM,
       threadTitle: RECORD.title,
       message: 'Subscribe me.',
       authorUserId: 1,
@@ -225,7 +225,7 @@ describe('PostgresThreadWriteRepository replies (F40)', () => {
       visibility: 'visible',
       lastPostId: thread.postId,
       replyCount: 0,
-      community: { id: COMMUNITY, allowReplies: true, moderateNewPosts: false },
+      forum: { id: FORUM, allowReplies: true, moderateNewPosts: false },
     })
   })
 
@@ -258,7 +258,7 @@ describe('PostgresThreadWriteRepository.lastPostAt', () => {
 describe('PostgresThreadWriteRepository prefixes', () => {
   beforeEach(async () => {
     await db.execute(sql`
-      insert into thread_prefixes (id, label, token, display_order, community_path_prefix)
+      insert into thread_prefixes (id, label, token, display_order, forum_path_prefix)
       values (1, 'Board-wide', null, 0, null),
              (2, 'This subtree', null, 1, '1.4'),
              (3, 'Elsewhere', null, 2, '1.40')
@@ -266,12 +266,12 @@ describe('PostgresThreadWriteRepository prefixes', () => {
   })
 
   it('offers board-wide prefixes and those scoped to this subtree', async () => {
-    expect(await repo.allowedPrefixIds(COMMUNITY)).toEqual([1, 2])
+    expect(await repo.allowedPrefixIds(FORUM)).toEqual([1, 2])
   })
 
   it('does not offer a prefix scoped to a text-prefix sibling', async () => {
     // `1.40` shares its opening characters with `1.4` and is a different tree.
-    const labels = (await repo.listPrefixes(COMMUNITY)).map((p) => p.label)
+    const labels = (await repo.listPrefixes(FORUM)).map((p) => p.label)
     expect(labels).toEqual(['Board-wide', 'This subtree'])
   })
 })
@@ -286,7 +286,7 @@ describe('PostgresThreadWriteRepository prefixes', () => {
  */
 describe('PostgresThreadWriteRepository and the search index', () => {
   const search = () => new PostgresSearchRepository(db)
-  const scope = { communityIds: [COMMUNITY], viewerUserId: null, content: PUBLIC_CONTENT }
+  const scope = { forumIds: [FORUM], viewerUserId: null, content: PUBLIC_CONTENT }
   const find = async (terms: string) =>
     (
       await search().search(
@@ -351,7 +351,7 @@ describe('PostgresThreadWriteRepository and the search index', () => {
     const thread = await repo.create({ ...RECORD, title: 'Kestrel sightings', message: 'A bird.' })
     const reply = await repo.createReply({
       threadId: thread.threadId,
-      communityId: COMMUNITY,
+      forumId: FORUM,
       threadTitle: 'Kestrel sightings',
       authorUserId: 1,
       authorUsername: 'ada',

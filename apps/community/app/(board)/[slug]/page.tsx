@@ -12,11 +12,12 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { currentTheme } from '@/server/theme'
-import { decodeCommunityCursor, encodeCommunityCursor } from '@/view/community-cursor'
+import { decodeForumCursor, encodeForumCursor } from '@/view/forum-cursor'
 import { FollowForm } from '@/components/account/subscription-forms'
 import { ViewTabs } from '@/components/shell/view-tabs'
+import { getSettings } from '@/server/settings'
 import { buildBreadcrumb } from '@/view/breadcrumb'
-import { buildCommunityDisplayView } from '@/view/community-display'
+import { buildForumDisplayView } from '@/view/forum-display'
 import { identitiesFor } from '@/server/group-identity'
 import { distinctUserIds } from '@/view/member-identity'
 import { canonicalPath } from '@/view/metadata'
@@ -29,14 +30,14 @@ import {
 } from '@/view/inline-moderation'
 
 /**
- * F76 — one community's metadata, resolved in the viewer's scope.
+ * F76 — one forum's metadata, resolved in the viewer's scope.
  *
  * Same shape and same reasoning as the thread page's: it repeats the locate →
  * authorise sequence rather than trusting the page to have run it, because a
- * metadata function that assumed would put a private community's title into an
+ * metadata function that assumed would put a private forum's title into an
  * Open Graph card on any request where the two got out of step.
  *
- * The canonical carries the page number, so page 3 of a community is its own
+ * The canonical carries the page number, so page 3 of a forum is its own
  * document rather than a duplicate of page 1 — which is the single most common
  * way a board ends up with only its first pages in an index.
  */
@@ -48,57 +49,57 @@ export async function generateMetadata({
   searchParams: Promise<{ page?: string }>
 }): Promise<Metadata> {
   const [{ slug }, query] = await Promise.all([params, searchParams])
-  const id = communityId(slug)
-  if (id === null) return { title: 'Community' }
+  const id = forumId(slug)
+  if (id === null) return { title: 'Forum' }
 
   const actor = await getActor()
-  const { communities, authorizer } = getContainer()
+  const { forums, authorizer } = getContainer()
 
-  const community = await communities.findById(id)
-  if (!community || community.type !== 'community') return { title: 'Community' }
+  const forum = await forums.findById(id)
+  if (!forum || forum.type !== 'forum') return { title: 'Forum' }
 
-  const matrix = await authorizer.communityMatrix(actor, community.id)
+  const matrix = await authorizer.forumMatrix(actor, forum.id)
   if (
-    !authorizer.can(actor, 'thread.view', { communityId: community.id, community: matrix })
+    !authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })
   ) {
-    /* The same title an unknown community gets — see the thread page. */
-    return { title: 'Community' }
+    /* The same title an unknown forum gets — see the thread page. */
+    return { title: 'Forum' }
   }
 
   const page = Number(query.page ?? '1')
   const canonical = canonicalPath({
-    path: `/${community.id}-${community.slug}`,
+    path: `/${forum.id}-${forum.slug}`,
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
   })
-  const description = community.description ?? `Discussions in ${community.title}.`
+  const description = forum.description ?? `Discussions in ${forum.title}.`
 
   return {
-    title: community.title,
+    title: forum.title,
     description,
     alternates: {
       canonical,
       types: {
-        'application/rss+xml': `/${community.id}-${community.slug}/feed.xml`,
+        'application/rss+xml': `/${forum.id}-${forum.slug}/feed.xml`,
       },
     },
     openGraph: {
       type: 'website',
-      title: community.title,
+      title: forum.title,
       description,
       url: canonical,
     },
-    twitter: { card: 'summary', title: community.title, description },
+    twitter: { card: 'summary', title: forum.title, description },
   }
 }
 
-function communityId(value: string): number | null {
+function forumId(value: string): number | null {
   const match = /^(\d+)(?:-|$)/.exec(value)
   if (!match) return null
   const id = Number(match[1])
   return Number.isSafeInteger(id) && id > 0 ? id : null
 }
 
-export default async function CommunityPage({
+export default async function ForumPage({
   params,
   searchParams,
 }: {
@@ -117,8 +118,8 @@ export default async function CommunityPage({
   }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
-  const id = communityId(slug)
-  const after = decodeCommunityCursor(query.after)
+  const id = forumId(slug)
+  const after = decodeForumCursor(query.after)
   const sort = query.sort === 'rating' ? 'rating' : 'activity'
   const page = query.page === undefined ? 1 : Number(query.page)
   if (
@@ -132,7 +133,7 @@ export default async function CommunityPage({
 
   const actor = await getActor()
   const {
-    communities,
+    forums,
     threads,
     authorizer,
     readState,
@@ -140,16 +141,16 @@ export default async function CommunityPage({
     inlineModeration,
   } = getContainer()
   const [rows, visible, read] = await Promise.all([
-    communities.listListing(),
-    authorizer.visibleCommunityIds(actor),
+    forums.listListing(),
+    authorizer.visibleForumIds(actor),
     actor.userId === null || readState === null
       ? Promise.resolve(null)
       : readState.forUser(actor.userId),
   ])
-  const community = rows.find((row) => row.id === id)
-  if (!community || community.type !== 'community' || !visible.includes(id)) notFound()
-  const matrix = await authorizer.communityMatrix(actor, id)
-  if (!authorizer.can(actor, 'thread.view', { communityId: id, community: matrix }))
+  const forum = rows.find((row) => row.id === id)
+  if (!forum || forum.type !== 'forum' || !visible.includes(id)) notFound()
+  const matrix = await authorizer.forumMatrix(actor, id)
+  if (!authorizer.can(actor, 'thread.view', { forumId: id, forum: matrix }))
     notFound()
 
   /*
@@ -158,7 +159,7 @@ export default async function CommunityPage({
    * return, which is what makes "does this page leak the queue" a question with
    * one answer instead of one per query.
    */
-  const scope = authorizer.contentScope(actor, { communityId: id, community: matrix })
+  const scope = authorizer.contentScope(actor, { forumId: id, forum: matrix })
   /*
    * F57. The member's own page size, falling back to the board setting and then
    * to the module constant — resolved *before* the read, because the page size
@@ -166,14 +167,14 @@ export default async function CommunityPage({
    * setting that does nothing.
    */
   const preferences = await getViewerPreferences()
-  const threadPage = await threads.listCommunity(id, {
+  const threadPage = await threads.listForum(id, {
     ...(after === undefined ? {} : { after }),
     limit: preferences.threadsPerPage,
     scope,
     sort,
   })
   const nextHref = threadPage.nextCursor
-    ? `/${id}-${community.slug}?after=${encodeCommunityCursor(threadPage.nextCursor)}&page=${page + 1}${sort === 'rating' ? '&sort=rating' : ''}`
+    ? `/${id}-${forum.slug}?after=${encodeForumCursor(threadPage.nextCursor)}&page=${page + 1}${sort === 'rating' ? '&sort=rating' : ''}`
     : null
   /*
    * The composer link appears only when this actor may actually use it, and
@@ -182,21 +183,21 @@ export default async function CommunityPage({
    */
   const canPost =
     threadWrites !== null &&
-    community.type === 'community' &&
-    authorizer.can(actor, 'thread.post', { communityId: id, community: matrix })
+    forum.type === 'forum' &&
+    authorizer.can(actor, 'thread.post', { forumId: id, forum: matrix })
 
   /*
-   * F52's tools, resolved once for this community. `moderatorRightsIn` reads the
+   * F52's tools, resolved once for this forum. `moderatorRightsIn` reads the
    * appointment and `can()` turns it into a decision that also honours the
    * staff bypasses — the same route F50's bar takes, and the same route the
    * action takes again for itself. A checkbox is not authorisation.
    */
   const moderatorRights = await authorizer.moderatorRightsIn(actor, id)
   const inlineTarget = {
-    communityId: id,
-    community: matrix,
+    forumId: id,
+    forum: matrix,
     moderatorRights,
-    isCommunityModerator: hasAnyModeratorRight(moderatorRights),
+    isForumModerator: hasAnyModeratorRight(moderatorRights),
   }
   const inlineRights = {
     approve:
@@ -219,10 +220,10 @@ export default async function CommunityPage({
   /* Two extra queries for a moderator who may move, none for anybody else. */
   const inlineMoveTargets = !inlineRights.move
     ? []
-    : (await authorizer.communityIdsWhere(actor, 'thread.move')).flatMap(
-        (communityId) => {
-          const row = rows.find((r) => r.id === communityId)
-          return row === undefined || row.type !== 'community' || row.id === id
+    : (await authorizer.forumIdsWhere(actor, 'thread.move')).flatMap(
+        (forumId) => {
+          const row = rows.find((r) => r.id === forumId)
+          return row === undefined || row.type !== 'forum' || row.id === id
             ? []
             : [{ id: row.id, title: row.title }]
         },
@@ -238,17 +239,17 @@ export default async function CommunityPage({
     ),
   )
 
-  const view = buildCommunityDisplayView({
-    community,
-    newThreadHref: canPost ? `/${id}-${community.slug}/new` : null,
-    subcommunities: rows.filter(
+  const view = buildForumDisplayView({
+    forum,
+    newThreadHref: canPost ? `/${id}-${forum.slug}/new` : null,
+    subforums: rows.filter(
       (row) => row.parentId === id && visible.includes(row.id),
     ),
     page: threadPage,
     pageNumber: page,
     nextHref,
     readState: read,
-    markReadAction: read === null ? null : `/api/read/community/${id}`,
+    markReadAction: read === null ? null : `/api/read/forum/${id}`,
     now: new Date(),
     timeZone: preferences.timezone,
     identities,
@@ -259,7 +260,7 @@ export default async function CommunityPage({
   const followMode =
     subscriptions === null || actor.userId === null
       ? null
-      : await subscriptions.modeFor(actor.userId, 'community', community.id)
+      : await subscriptions.modeFor(actor.userId, 'forum', forum.id)
   const followOffered = subscriptions !== null && actor.userId !== null
   const followModes = buildSubscriptionsView({
     rows: [],
@@ -267,7 +268,7 @@ export default async function CommunityPage({
   }).modes
 
   /*
-   * F71. This community's announcements *and* the board-wide ones — an announcement
+   * F71. This forum's announcements *and* the board-wide ones — an announcement
    * that appeared only on the index would be invisible to everybody who arrives
    * from a search engine, which is most people.
    *
@@ -275,18 +276,18 @@ export default async function CommunityPage({
    * be here at all, so the scoped read costs no extra permission work.
    */
   const announcements = await liveAnnouncements({
-    visibleCommunityIds: visible,
+    visibleForumIds: visible,
     scope: id,
     now: new Date(),
     timeZone: preferences.timezone,
   })
 
   const Announcement = requireSlot(await currentTheme(), 'Announcement')
-  const CommunityDisplay = requireSlot(await currentTheme(), 'CommunityDisplay')
+  const ForumDisplay = requireSlot(await currentTheme(), 'ForumDisplay')
   const Navigation = requireSlot(await currentTheme(), 'Navigation')
   const Notice = requireSlot(await currentTheme(), 'Notice')
   const ThreadRow = requireSlot(await currentTheme(), 'ThreadRow')
-  const SubcommunityList = requireSlot(await currentTheme(), 'SubcommunityList')
+  const SubforumList = requireSlot(await currentTheme(), 'SubforumList')
   const Pagination = requireSlot(await currentTheme(), 'Pagination')
 
   const notice =
@@ -295,7 +296,7 @@ export default async function CommunityPage({
       : inlineOutcomeNotice(query)
 
   /* F80. `view.thread-row` runs once per row; see the index page for the cost. */
-  const pluginContext = { ...viewerRef(actor), communityId: id }
+  const pluginContext = { ...viewerRef(actor), forumId: id }
 
   /* F80's wiring for F71's slot; see the board index for the shape. */
   const filteredAnnouncements = await Promise.all(
@@ -322,10 +323,10 @@ export default async function CommunityPage({
     ),
   )
 
-  const subcommunities =
-    view.subcommunities === null
+  const subforums =
+    view.subforums === null
       ? null
-      : await filterView('view.subcommunity-list', view.subcommunities, pluginContext)
+      : await filterView('view.subforum-list', view.subforums, pluginContext)
 
   const pagination = await filterView(
     'view.pagination',
@@ -344,9 +345,9 @@ export default async function CommunityPage({
    * same `ViewTabs` the inbox and the discovery views draw, so "the one you
    * are looking at" means one thing across the board.
    *
-   * They are also *under the community's name* now, through theme API 1.3's
-   * `tools` region. Rendered above `<CommunityDisplay>`, as they were, the first
-   * thing on a community page was a sort control with nothing above it saying what
+   * They are also *under the forum's name* now, through theme API 1.3's
+   * `tools` region. Rendered above `<ForumDisplay>`, as they were, the first
+   * thing on a forum page was a sort control with nothing above it saying what
    * was being sorted.
    */
   const orderTabs = (
@@ -354,12 +355,12 @@ export default async function CommunityPage({
       label="Thread order"
       tabs={[
         {
-          href: `/${id}-${community.slug}`,
+          href: `/${id}-${forum.slug}`,
           label: 'Latest',
           isCurrent: sort === 'activity',
         },
         {
-          href: `/${id}-${community.slug}?sort=rating`,
+          href: `/${id}-${forum.slug}?sort=rating`,
           label: 'Top rated',
           isCurrent: sort === 'rating',
         },
@@ -367,33 +368,33 @@ export default async function CommunityPage({
     />
   )
 
-  const communityDisplayModel = await filterView(
-    'view.community-display',
+  const forumDisplayModel = await filterView(
+    'view.forum-display',
     {
       ...view.display,
       regions: {
         tools: orderTabs,
         /*
-         * Following the community, under the threads (theme API 1.4). It was above
+         * Following the forum, under the threads (theme API 1.4). It was above
          * them, which put a subscription panel between a reader and the list
          * they had come for — and asked whether they wanted to hear about a
-         * community before showing them what was in it.
+         * forum before showing them what was in it.
          */
         ...(followOffered
           ? {
               afterContent: (
                 <FollowForm
-                  target="community"
-                  targetId={community.id}
+                  target="forum"
+                  targetId={forum.id}
                   mode={followMode}
                   modes={followModes}
-                  back={`/${id}-${community.slug}`}
-                  label="Follow this community"
+                  back={`/${id}-${forum.slug}`}
+                  label="Follow this forum"
                 />
               ),
             }
           : {}),
-        subcommunities: subcommunities === null ? null : <SubcommunityList {...subcommunities} />,
+        subforums: subforums === null ? null : <SubforumList {...subforums} />,
         threads: threadRows.map((row) => (
           <ThreadRow key={row.thread.id} {...row} />
         )),
@@ -416,9 +417,12 @@ export default async function CommunityPage({
    * navigation, and "skip to content" should skip it.
    */
   const trail = buildBreadcrumb({
-    communities: rows,
-    communityId: id,
-    visibleCommunityIds: new Set(visible),
+    forums: rows,
+    forumId: id,
+    visibleForumIds: new Set(visible),
+    /* The board's own name as the root crumb. `board.name` is globally cached
+       and tagged (F08), so reading it here costs no query. */
+    homeLabel: (await getSettings()).get('board.name'),
   })
 
   return (
@@ -427,7 +431,7 @@ export default async function CommunityPage({
       <main id="board-content" tabIndex={-1} className="flex-1">
       {/*
         Where a held thread lands, and where F52 reports what a bulk action did.
-        The author cannot be sent to a thread nobody can see, so the community tells
+        The author cannot be sent to a thread nobody can see, so the forum tells
         them what happened; dismissal is the same link without the parameter,
         which needs no JavaScript and no state.
       */}
@@ -436,15 +440,15 @@ export default async function CommunityPage({
           <Notice
             kind="info"
             message={notice}
-            dismissHref={`/${id}-${community.slug}`}
+            dismissHref={`/${id}-${forum.slug}`}
           />
         </div>
       )}
-      <CommunityDisplay {...communityDisplayModel} />
+      <ForumDisplay {...forumDisplayModel} />
       {/*
         Below the listing, not around it: the checkboxes reach this form by id
         (see `SelectionModel`), so it does not have to contain them — and it
-        could not, because `CommunityDisplay` renders a mark-read form of its own.
+        could not, because `ForumDisplay` renders a mark-read form of its own.
       */}
       {inlineOffered && (
         <InlineModerationForm
@@ -452,7 +456,7 @@ export default async function CommunityPage({
           scope="threads"
           rights={inlineRights}
           moveTargets={inlineMoveTargets}
-          returnTo={`/${id}-${community.slug}`}
+          returnTo={`/${id}-${forum.slug}`}
         />
       )}
       </main>

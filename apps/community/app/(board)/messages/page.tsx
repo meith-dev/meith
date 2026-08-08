@@ -175,7 +175,7 @@ export default async function MessagesPage({
                     {/* Unread is a word as well as a weight: a difference in
                           font weight alone is not one everybody can see. */}
                     {row.isUnread && (
-                      <span className="mr-2 text-xs font-semibold uppercase text-community-unread">
+                      <span className="mr-2 text-xs font-semibold uppercase text-forum-unread">
                         New
                       </span>
                     )}

@@ -22,7 +22,7 @@
 --     table would be worse than a name that is one feature out of date.
 --   * **It is shown to people who are not reading a thread.** A member list, a
 --     profile, a quote — so the permission that governs it is `profile.view`
---     rather than anything community-scoped.
+--     rather than anything forum-scoped.
 --
 -- Moderation is `0014`'s lock, for `0014`'s reason: a moderator who deletes an
 -- avatar has left nothing to stop the same image being uploaded again the next

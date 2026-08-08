@@ -35,8 +35,8 @@ export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
               </a>
               <span className="text-muted-foreground">
                 {' · '}
-                <a href={post.community.href} className="hover:text-foreground">
-                  {post.community.label}
+                <a href={post.forum.href} className="hover:text-foreground">
+                  {post.forum.label}
                 </a>
                 {' · '}
                 <UserRef user={post.author} className="hover:text-foreground" />

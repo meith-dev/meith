@@ -79,7 +79,7 @@ export interface Budget {
  * The hot pages, in rough order of how much traffic a real board sends them.
  *
  * "Hot" is the roadmap's word and it means *this is what the traffic does*: a
- * community's requests are overwhelmingly thread views and community listings, and an
+ * forum's requests are overwhelmingly thread views and forum listings, and an
  * optimisation anywhere else is an optimisation of something nobody waits for.
  */
 export const BUDGETS: readonly Budget[] = [
@@ -89,7 +89,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'listThread(limit 20) on a long thread',
     p95Ms: 50,
     kind: 'target',
-    why: 'The single most requested page on any community. Everything else is rounding.',
+    why: 'The single most requested page on any forum. Everything else is rounding.',
   },
   {
     id: 'thread-page-deep',
@@ -100,17 +100,17 @@ export const BUDGETS: readonly Budget[] = [
     why: 'The keyset claim. Under OFFSET this degrades with depth; it must not.',
   },
   {
-    id: 'community-page-first',
-    page: 'Community, page 1',
-    work: 'listCommunity(limit 20) on the busiest community',
+    id: 'forum-page-first',
+    page: 'Forum, page 1',
+    work: 'listForum(limit 20) on the busiest forum',
     p95Ms: 50,
     kind: 'target',
     why: 'Sticky-first ordering over the largest thread set on the board.',
   },
   {
-    id: 'community-page-deep',
-    page: 'Community, deep page',
-    work: 'listCommunity(after cursor) deep into the busiest community',
+    id: 'forum-page-deep',
+    page: 'Forum, deep page',
+    work: 'listForum(after cursor) deep into the busiest forum',
     p95Ms: 60,
     kind: 'target',
     why: 'Same keyset claim on the other axis, and the one an archive crawler hits.',
@@ -118,15 +118,15 @@ export const BUDGETS: readonly Budget[] = [
   {
     id: 'board-index',
     page: 'Board index',
-    work: 'listListing() — every community with its counters and last post',
+    work: 'listListing() — every forum with its counters and last post',
     p95Ms: 80,
     kind: 'target',
     why: 'One query for the whole tree, and the page every visitor lands on.',
   },
   {
-    id: 'visible-communities',
+    id: 'visible-forums',
     page: 'Permission filter',
-    work: 'communityIdsWhere(actor, thread.view)',
+    work: 'forumIdsWhere(actor, thread.view)',
     p95Ms: 40,
     kind: 'target',
     why: 'Every list page pays this before it reads anything, so its cost multiplies.',
@@ -134,11 +134,11 @@ export const BUDGETS: readonly Budget[] = [
   {
     id: 'discovery-latest',
     page: 'Latest threads',
-    work: 'Discovery page 1, scoped to visible communities',
+    work: 'Discovery page 1, scoped to visible forums',
     p95Ms: 150,
     kind: 'target',
     why:
-      'Ordered across the whole board rather than within one community — the widest scan, ' +
+      'Ordered across the whole board rather than within one forum — the widest scan, ' +
       'and the most run-to-run variance of anything here. It was budgeted at 80ms ' +
       'against a typical p95 near 50, which is 1.6× and breaks the 2–3× rule stated ' +
       'at the top of this file; it duly went red on a noisy run at 110ms with a 621ms ' +

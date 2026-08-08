@@ -123,9 +123,9 @@
   --color-ring: var(--ring);
 
   /* Domain-semantic tokens. These carry meaning, not just appearance. */
-  --color-community-unread: var(--community-unread);
-  --color-community-read: var(--community-read);
-  --color-community-locked: var(--community-locked);
+  --color-forum-unread: var(--forum-unread);
+  --color-forum-read: var(--forum-read);
+  --color-forum-locked: var(--forum-locked);
   --color-thread-pinned: var(--thread-pinned);
   --color-thread-locked: var(--thread-locked);
   --color-thread-moved: var(--thread-moved);
@@ -188,7 +188,7 @@
   --radius-xl: calc(var(--radius) * 1.5);
 
   /*
-   * Density unit. Classic communities are information-dense; a compact theme sets
+   * Density unit. Classic forums are information-dense; a compact theme sets
    * this lower and every row inherits the change.
    */
   --spacing-density: var(--density-unit);
@@ -278,9 +278,9 @@
    * that brands `--primary` does not accidentally turn every unread marker into
    * its logo colour — and an operator who *wants* that overrides one token.
    */
-  --community-unread: oklch(0.205 0 0);
-  --community-read: oklch(0.556 0 0);
-  --community-locked: oklch(0.554 0.135 32);
+  --forum-unread: oklch(0.205 0 0);
+  --forum-read: oklch(0.556 0 0);
+  --forum-locked: oklch(0.554 0.135 32);
 
   --thread-pinned: oklch(0.55 0.12 68);
   --thread-locked: oklch(0.554 0.135 32);
@@ -351,9 +351,9 @@
    */
   --shadow-tint: oklch(0 0 0 / 45%);
 
-  --community-unread: oklch(0.967 0 0);
-  --community-read: oklch(0.6 0 0);
-  --community-locked: oklch(0.708 0.13 34);
+  --forum-unread: oklch(0.967 0 0);
+  --forum-read: oklch(0.6 0 0);
+  --forum-locked: oklch(0.708 0.13 34);
 
   --thread-pinned: oklch(0.769 0.13 74);
   --thread-locked: oklch(0.708 0.13 34);
@@ -403,9 +403,9 @@
 
     --shadow-tint: oklch(0 0 0 / 45%);
 
-    --community-unread: oklch(0.967 0 0);
-    --community-read: oklch(0.6 0 0);
-    --community-locked: oklch(0.708 0.13 34);
+    --forum-unread: oklch(0.967 0 0);
+    --forum-read: oklch(0.6 0 0);
+    --forum-locked: oklch(0.708 0.13 34);
 
     --thread-pinned: oklch(0.769 0.13 74);
     --thread-locked: oklch(0.708 0.13 34);
@@ -659,7 +659,7 @@
 }
 
 /*
- * A quote of a quote of a quote is how a community argument is shaped, and three
+ * A quote of a quote of a quote is how a forum argument is shaped, and three
  * nested backgrounds of the same colour are indistinguishable. The inner ones
  * drop the fill and keep the rule, so depth reads as a stack of margins.
  */

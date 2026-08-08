@@ -6,7 +6,7 @@
  * pinning and moving a thread is F50's. What is new is doing a *chunk* of them
  * in one transaction, and the two rules that come with that:
  *
- *   - **`resolve` is scoped.** It takes the communities the actor may use this tool
+ *   - **`resolve` is scoped.** It takes the forums the actor may use this tool
  *     in and never looks outside them, so an id from anywhere else is absent
  *     rather than forbidden. Without that the outcome counts are a
  *     content-existence oracle over the whole board.
@@ -29,7 +29,7 @@ import type { Database } from './client'
 import { resultRows } from './result-rows'
 import {
   applyAuthorCounts,
-  applyCommunityChain,
+  applyForumChain,
   logModeratorAction,
   syncLedger,
   tallyThread,
@@ -38,7 +38,7 @@ import {
 import { PENDING_APPROVAL } from './visibility'
 import {
   applyVisibilityChangeCounters,
-  repairCommunityLastPostChain,
+  repairForumLastPostChain,
 } from './visibility-counters'
 
 /**
@@ -60,7 +60,7 @@ function idList(ids: readonly number[]): SQL {
 interface TargetRow {
   kind: 'thread' | 'post'
   id: number
-  community_id: number
+  forum_id: number
   visibility: InlineTarget['visibility']
   thread_visibility: InlineTarget['visibility']
   is_locked: boolean
@@ -72,40 +72,40 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
 
   async resolve(
     selection: readonly QueueSelection[],
-    communityIds: readonly number[],
+    forumIds: readonly number[],
   ): Promise<readonly InlineTarget[]> {
-    if (communityIds.length === 0) return []
+    if (forumIds.length === 0) return []
     const threadIds = selection.filter((s) => s.kind === 'thread').map((s) => s.id)
     const postIds = selection.filter((s) => s.kind === 'post').map((s) => s.id)
     if (threadIds.length === 0 && postIds.length === 0) return []
 
     /*
-     * `t.community_id in (…)` on both halves is the scope, and it is on the *thread*
-     * for a post too — `posts.community_id` is denormalised (R3.3) and a move keeps
+     * `t.forum_id in (…)` on both halves is the scope, and it is on the *thread*
+     * for a post too — `posts.forum_id` is denormalised (R3.3) and a move keeps
      * the two in step, but the thread is the authority on where a post lives and
      * the join is already there.
      */
     const rows = resultRows(
       await this.db.execute(sql`
-        select 'thread'::text as kind, t.id, t.community_id, t.visibility,
+        select 'thread'::text as kind, t.id, t.forum_id, t.visibility,
                t.visibility as thread_visibility, t.is_locked, t.is_sticky
           from threads t
          where t.id in ${idList(threadIds)}
-           and t.community_id in ${idList(communityIds)}
+           and t.forum_id in ${idList(forumIds)}
         union all
-        select 'post'::text, p.id, t.community_id, p.visibility,
+        select 'post'::text, p.id, t.forum_id, p.visibility,
                t.visibility as thread_visibility, false, false
           from posts p
           join threads t on t.id = p.thread_id
          where p.id in ${idList(postIds)}
-           and t.community_id in ${idList(communityIds)}
+           and t.forum_id in ${idList(forumIds)}
       `),
     ) as TargetRow[]
 
     return rows.map((row) => ({
       kind: row.kind,
       id: Number(row.id),
-      communityId: Number(row.community_id),
+      forumId: Number(row.forum_id),
       visibility: row.visibility,
       threadVisibility: row.thread_visibility,
       isLocked: row.is_locked,
@@ -113,9 +113,9 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
     }))
   }
 
-  async findDestination(communityId: number): Promise<MoveDestination | null> {
+  async findDestination(forumId: number): Promise<MoveDestination | null> {
     const rows = resultRows(
-      await this.db.execute(sql`select id, type from communities where id = ${communityId}`),
+      await this.db.execute(sql`select id, type from forums where id = ${forumId}`),
     ) as Array<{ id: number; type: MoveDestination['type'] }>
     const row = rows[0]
     return row === undefined ? null : { id: Number(row.id), type: row.type }
@@ -125,7 +125,7 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
     readonly tool: InlineTool
     readonly threadIds: readonly number[]
     readonly postIds: readonly number[]
-    readonly toCommunityId?: number | undefined
+    readonly toForumId?: number | undefined
     readonly actorUserId: number
     readonly at: Date
   }): Promise<number> {
@@ -165,9 +165,9 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
         }
 
         case 'move': {
-          if (input.toCommunityId === undefined) return 0
+          if (input.toForumId === undefined) return 0
           for (const threadId of input.threadIds) {
-            applied += (await moveThread(tx, threadId, input.toCommunityId, input.at)) ? 1 : 0
+            applied += (await moveThread(tx, threadId, input.toForumId, input.at)) ? 1 : 0
           }
           break
         }
@@ -186,7 +186,7 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
           {
             threadIds: input.threadIds,
             postIds: input.postIds,
-            ...(input.toCommunityId === undefined ? {} : { toCommunityId: input.toCommunityId }),
+            ...(input.toForumId === undefined ? {} : { toForumId: input.toForumId }),
             applied,
           },
           input.at,
@@ -243,11 +243,11 @@ async function approveThread(tx: CounterTx, threadId: number): Promise<boolean> 
     await tx.execute(sql`
       update threads set visibility = 'visible', updated_at = now()
        where id = ${threadId} and visibility = ${PENDING_APPROVAL}
-       returning id, community_id, first_post_id, author_user_id
+       returning id, forum_id, first_post_id, author_user_id
     `),
   ) as Array<{
     id: number
-    community_id: number
+    forum_id: number
     first_post_id: number | null
     author_user_id: number | null
   }>
@@ -267,7 +267,7 @@ async function approveThread(tx: CounterTx, threadId: number): Promise<boolean> 
       await applyVisibilityChangeCounters(tx, {
         postId: Number(post[0].id),
         threadId: Number(thread.id),
-        communityId: Number(thread.community_id),
+        forumId: Number(thread.forum_id),
         authorId: thread.author_user_id === null ? null : Number(thread.author_user_id),
         isFirstPost: true,
         delta: 1,
@@ -295,12 +295,12 @@ async function movePost(
     await tx.execute(sql`
       update posts set visibility = ${to}
        where id = ${postId} and visibility = ${from}
-       returning id, thread_id, community_id, author_user_id, is_first_post
+       returning id, thread_id, forum_id, author_user_id, is_first_post
     `),
   ) as Array<{
     id: number
     thread_id: number
-    community_id: number
+    forum_id: number
     author_user_id: number | null
     is_first_post: boolean
   }>
@@ -312,7 +312,7 @@ async function movePost(
     await applyVisibilityChangeCounters(tx, {
       postId: Number(post.id),
       threadId: Number(post.thread_id),
-      communityId: Number(post.community_id),
+      forumId: Number(post.forum_id),
       authorId: post.author_user_id === null ? null : Number(post.author_user_id),
       isFirstPost: post.is_first_post,
       delta: delta as 1 | -1,
@@ -341,70 +341,70 @@ async function setThreadVisibility(
     await tx.execute(sql`
       update threads set visibility = ${to}, updated_at = ${at}
        where id = ${threadId} and visibility = ${from}
-       returning community_id
+       returning forum_id
     `),
-  ) as Array<{ community_id: number }>
+  ) as Array<{ forum_id: number }>
   const row = moved[0]
   if (!row) return false
 
-  const communityId = Number(row.community_id)
+  const forumId = Number(row.forum_id)
   const delta: 1 | -1 = to === 'visible' ? 1 : -1
 
-  await applyCommunityChain(tx, communityId, delta, tally)
+  await applyForumChain(tx, forumId, delta, tally)
   await applyAuthorCounts(tx, delta, tally)
   await syncLedger(tx, threadId, to === 'visible')
-  await repairCommunityLastPostChain(tx, communityId)
+  await repairForumLastPostChain(tx, forumId)
   return true
 }
 
-/** F50's move, likewise. Both chains, and `posts.community_id` kept in step. */
+/** F50's move, likewise. Both chains, and `posts.forum_id` kept in step. */
 async function moveThread(
   tx: CounterTx,
   threadId: number,
-  toCommunityId: number,
+  toForumId: number,
   at: Date,
 ): Promise<boolean> {
   /*
    * Where it is *now*, read before the write rather than returned by it. Both
-   * community chains have to be adjusted and one of them is the one being left, so
-   * the update cannot be the thing that tells us — and `from_community_id` is then
+   * forum chains have to be adjusted and one of them is the one being left, so
+   * the update cannot be the thing that tells us — and `from_forum_id` is then
    * the guard on the update itself, which is what makes a double submit move no
    * counters.
    */
   const current = resultRows(
-    await tx.execute(sql`select community_id, visibility from threads where id = ${threadId}`),
-  ) as Array<{ community_id: number; visibility: string }>
+    await tx.execute(sql`select forum_id, visibility from threads where id = ${threadId}`),
+  ) as Array<{ forum_id: number; visibility: string }>
   const before = current[0]
   if (!before || before.visibility !== 'visible') return false
 
-  const fromCommunityId = Number(before.community_id)
-  if (fromCommunityId === toCommunityId) return false
+  const fromForumId = Number(before.forum_id)
+  if (fromForumId === toForumId) return false
 
   const tally = await tallyThread(tx, threadId)
 
   const moved = resultRows(
     await tx.execute(sql`
-      update threads set community_id = ${toCommunityId}, updated_at = ${at}
-       where id = ${threadId} and community_id = ${fromCommunityId}
+      update threads set forum_id = ${toForumId}, updated_at = ${at}
+       where id = ${threadId} and forum_id = ${fromForumId}
        returning id
     `),
   ) as Array<{ id: number }>
   if (moved.length === 0) return false
 
   await tx.execute(sql`
-    update posts set community_id = ${toCommunityId} where thread_id = ${threadId}
+    update posts set forum_id = ${toForumId} where thread_id = ${threadId}
   `)
 
   /*
    * Both chains, in this order. Where they share an ancestor the two statements
    * cancel to zero, which is exactly right: a thread moved between two
-   * subcommunities of one category has not left the category. Author counts are
+   * subforums of one category has not left the category. Author counts are
    * deliberately untouched — a move changes where somebody wrote, never how
    * much (F51 settled that).
    */
-  await applyCommunityChain(tx, fromCommunityId, -1, tally)
-  await applyCommunityChain(tx, toCommunityId, 1, tally)
-  await repairCommunityLastPostChain(tx, fromCommunityId)
-  await repairCommunityLastPostChain(tx, toCommunityId)
+  await applyForumChain(tx, fromForumId, -1, tally)
+  await applyForumChain(tx, toForumId, 1, tally)
+  await repairForumLastPostChain(tx, fromForumId)
+  await repairForumLastPostChain(tx, toForumId)
   return true
 }

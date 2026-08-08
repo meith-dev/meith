@@ -148,7 +148,7 @@ Pressing Install runs five steps. They are listed beside the button under
 2. **Record the board's name, address and mail settings** — the only settings
    it writes.
 3. **Create the administrator** — your account.
-4. **Create a first community** — so the index is not empty.
+4. **Create a first forum** — so the index is not empty.
 5. **Disable the installer**.
 
 If you filled in section 3, it sends a **test message to the address from section
@@ -331,5 +331,5 @@ failures that are about the board rather than about the deploy.
 | Deploy it without a panel | [Deploying by hand](./self-hosting.md) |
 | Change how it looks | [The theme API](./theme-api.md) |
 | Add behaviour | [The plugin API](./plugin-api.md) |
-| Move a MyBB community here | [MyBB parity](./mybb-parity.md) |
+| Move a MyBB forum here | [MyBB parity](./mybb-parity.md) |
 | Work on Meith itself | [Development](./development.md) |

@@ -7,7 +7,7 @@
  *    all return nothing and no caller can forget one of the three;
  *  - `touch` extends the session on the same conditional-UPDATE throttle the
  *    rest of the board uses, and **never** moves `authenticated_at`;
- *  - the log is unscoped and pages backwards, unlike the ModCP's community-scoped
+ *  - the log is unscoped and pages backwards, unlike the ModCP's forum-scoped
  *    view of the same table.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -194,7 +194,7 @@ describe('the admin log', () => {
 
   it('is unscoped, unlike the ModCP view of the same table', async () => {
     /*
-     * The ModCP filters by the communities one moderator covers; that constraint has
+     * The ModCP filters by the forums one moderator covers; that constraint has
      * no analogue for an administrator reading the audit log, which is the
      * point of there being one.
      */

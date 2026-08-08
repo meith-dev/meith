@@ -1,7 +1,7 @@
 /**
  * `@meith/subscriptions` — F56.
  *
- * Following a thread or a community, and being told about what arrives in it. The
+ * Following a thread or a forum, and being told about what arrives in it. The
  * two tables this reads have existed since migration `0000` and were written by
  * F39's composer checkbox since Phase 3; nothing has ever read one until now.
  *
@@ -53,5 +53,5 @@ export type {
   SubscriptionNotifierPort,
   SubscriptionRepository,
   SubscriptionRow,
-  VisibleCommunitySource,
+  VisibleForumSource,
 } from './types'

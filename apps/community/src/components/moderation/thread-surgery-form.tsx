@@ -12,7 +12,7 @@
  * number: the moderator is looking at those posts, and a select cannot name a
  * post that is not one of them. Merge has to ask for a number, because the
  * thread to merge into is by definition not on this screen — the action treats
- * that number as untrusted and re-authorises the community it lands in.
+ * that number as untrusted and re-authorises the forum it lands in.
  */
 import { useActionState } from "react"
 

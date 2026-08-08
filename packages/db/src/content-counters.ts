@@ -10,7 +10,7 @@ import { applyAncestorVisibilityChange } from './visibility-counters'
 export interface CreatedContent {
   readonly postId: number
   readonly threadId: number
-  readonly communityId: number
+  readonly forumId: number
   readonly authorId: number | null
   readonly authorUsername: string
   readonly threadTitle: string
@@ -43,7 +43,7 @@ export async function applyCreatedContentCounters(
   const threadNewer = content.isNewThread ? sql`true` : newer
 
   await tx.execute(sql`
-    update communities
+    update forums
        set post_count = post_count + 1,
            thread_count = thread_count + ${content.isNewThread ? 1 : 0},
            last_post_id = case when ${newer} then ${content.postId} else last_post_id end,
@@ -53,7 +53,7 @@ export async function applyCreatedContentCounters(
            last_post_username = case when ${newer} then ${content.authorUsername} else last_post_username end,
            last_post_at = case when ${newer} then ${content.createdAt} else last_post_at end,
            updated_at = now()
-     where id = ${content.communityId}
+     where id = ${content.forumId}
   `)
 
   await tx.execute(sql`
@@ -79,7 +79,7 @@ export async function applyCreatedContentCounters(
   }
 
   /*
-   * Direct-community counters are immediately correct for the list page. Ancestor
+   * Direct-forum counters are immediately correct for the list page. Ancestor
    * roll-up is asynchronous because one post can touch an arbitrarily deep
    * path; the transactional event makes that later work durable without making
    * the request wait for every parent row.
@@ -91,7 +91,7 @@ export async function applyCreatedContentCounters(
       ${JSON.stringify({
         postId: content.postId,
         threadId: content.threadId,
-        communityId: content.communityId,
+        forumId: content.forumId,
         authorId: content.authorId,
       })}::jsonb
     )
@@ -99,11 +99,11 @@ export async function applyCreatedContentCounters(
 }
 
 /**
- * Add a created post to its community's **ancestors**.
+ * Add a created post to its forum's **ancestors**.
  *
- * Community counters are subtree-inclusive: a category shows the totals of
+ * Forum counters are subtree-inclusive: a category shows the totals of
  * everything beneath it, which is what makes the board index's category rows
- * mean anything. The posting community is counted synchronously (above) because the
+ * mean anything. The posting forum is counted synchronously (above) because the
  * page the author lands on must be right; ancestors are counted here, from the
  * `post.created` event, because a post four levels deep would otherwise make
  * every reply update four rows inside the request.
@@ -135,7 +135,7 @@ export async function rollUpAncestorCounters(
     if (resultRows(claimed).length === 0) return false
 
     const found = await tx.execute(sql`
-      select p.thread_id, p.community_id, p.author_user_id, p.author_username,
+      select p.thread_id, p.forum_id, p.author_user_id, p.author_username,
              p.created_at, p.is_first_post, t.title as thread_title
         from posts p
         join threads t on t.id = p.thread_id
@@ -144,7 +144,7 @@ export async function rollUpAncestorCounters(
     const post = resultRows(found)[0] as
       | {
           thread_id: number
-          community_id: number
+          forum_id: number
           author_user_id: number | null
           author_username: string
           created_at: Date
@@ -164,13 +164,13 @@ export async function rollUpAncestorCounters(
       or (f.last_post_at = ${post.created_at} and f.last_post_id < ${postId})`
 
     /*
-     * Ancestors are the communities whose path is a proper prefix of this community's,
+     * Ancestors are the forums whose path is a proper prefix of this forum's,
      * terminated by a separator. The trailing dot is not decoration: without it
      * `1.4` matches `1.40`'s path and a sibling subtree inherits the count —
      * the same prefix trap D22 documents for the tree itself.
      */
     await tx.execute(sql`
-      update communities f
+      update forums f
          set post_count = f.post_count + 1,
              thread_count = f.thread_count + ${post.is_first_post ? 1 : 0},
              last_post_id = case when ${ancestorNewer} then ${postId} else f.last_post_id end,
@@ -180,8 +180,8 @@ export async function rollUpAncestorCounters(
              last_post_username = case when ${ancestorNewer} then ${post.author_username} else f.last_post_username end,
              last_post_at = case when ${ancestorNewer} then ${post.created_at} else f.last_post_at end,
              updated_at = now()
-        from communities child
-       where child.id = ${post.community_id}
+        from forums child
+       where child.id = ${post.forum_id}
          and f.id <> child.id
          and child.path like f.path || '.%'
     `)
@@ -198,7 +198,7 @@ export class PostgresContentCounterRepository {
     await this.db.transaction((tx) => applyCreatedContentCounters(tx, content))
   }
 
-  /** Applies one `post.created` event to the posting community's ancestors. */
+  /** Applies one `post.created` event to the posting forum's ancestors. */
   async rollUpAncestors(postId: number): Promise<boolean> {
     return rollUpAncestorCounters(this.db, postId)
   }

@@ -27,8 +27,8 @@ export const REASON_MAX = 1000
 export interface ReportTarget {
   readonly kind: ReportTargetKind
   readonly id: number
-  /** Null for a user or private-message report: neither lives in a community. */
-  readonly communityId: number | null
+  /** Null for a user or private-message report: neither lives in a forum. */
+  readonly forumId: number | null
   readonly threadId: number | null
   /** Captured now, because the target may be edited or removed afterwards. */
   readonly label: string
@@ -45,7 +45,7 @@ export interface ReportRow {
   readonly id: number
   readonly kind: ReportTargetKind
   readonly targetId: number
-  readonly communityId: number | null
+  readonly forumId: number | null
   readonly threadId: number | null
   readonly targetLabel: string
   readonly reporterUserId: number | null
@@ -75,13 +75,13 @@ export interface ReportPage {
 /**
  * Which reports an actor may see.
  *
- * Two sets, because reports have two scopes. `communityIds` are the communities this
+ * Two sets, because reports have two scopes. `forumIds` are the forums this
  * actor moderates; `global` says whether they may also see reports with no
- * community at all — a report about a *member* belongs to nobody's community, so it is
+ * forum at all — a report about a *member* belongs to nobody's forum, so it is
  * board staff's or it is nobody's.
  */
 export interface ReportScope {
-  readonly communityIds: readonly number[]
+  readonly forumIds: readonly number[]
   readonly global: boolean
 }
 
@@ -174,7 +174,7 @@ export class ReportService {
    * File a report.
    *
    * The target is resolved from the database, not taken from the form: a form
-   * says *which* row, and everything else about it — which community it is in, what
+   * says *which* row, and everything else about it — which forum it is in, what
    * it is called — has to be read. The caller has already checked that this
    * actor may see the target; what this adds is that the report is about
    * something real.
@@ -222,7 +222,7 @@ export class ReportService {
     scope: ReportScope,
     options: { readonly after?: string } = {},
   ): Promise<ReportPage> {
-    if (scope.communityIds.length === 0 && !scope.global) return { rows: [] }
+    if (scope.forumIds.length === 0 && !scope.global) return { rows: [] }
     return this.reports.listOpen(scope, {
       limit: REPORTS_PAGE_SIZE,
       ...(options.after === undefined ? {} : { after: options.after }),
@@ -230,7 +230,7 @@ export class ReportService {
   }
 
   async countOpen(scope: ReportScope): Promise<number> {
-    if (scope.communityIds.length === 0 && !scope.global) return 0
+    if (scope.forumIds.length === 0 && !scope.global) return 0
     return this.reports.countOpen(scope)
   }
 
@@ -238,7 +238,7 @@ export class ReportService {
    * Read one report, if this actor's scope covers it.
    *
    * The scope check is here rather than in the query because a report's scope
-   * is a property of the report (its community, or the absence of one) and the set
+   * is a property of the report (its forum, or the absence of one) and the set
    * belongs to the actor — putting both in SQL would mean the answer to "may I
    * see this" lived in two places.
    */
@@ -334,7 +334,7 @@ export class ReportService {
     const found = await this.reports.find(reportId)
     /*
      * The same answer for "does not exist" and "not yours". A moderator of one
-     * community probing ids should not be able to learn that a report exists in
+     * forum probing ids should not be able to learn that a report exists in
      * another — which is the same rule every other read on the board follows.
      */
     if (found === null || !inScope(found.report, scope)) {
@@ -344,11 +344,11 @@ export class ReportService {
   }
 }
 
-/** A community report belongs to its community's moderators; a user report to staff. */
+/** A forum report belongs to its forum's moderators; a user report to staff. */
 export function inScope(report: ReportRow, scope: ReportScope): boolean {
-  return report.communityId === null
+  return report.forumId === null
     ? scope.global
-    : scope.communityIds.includes(report.communityId)
+    : scope.forumIds.includes(report.forumId)
 }
 
 /** Parse `?kind=` without trusting it. */

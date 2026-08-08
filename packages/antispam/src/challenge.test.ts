@@ -179,7 +179,7 @@ describe('first-post moderation', () => {
   })
 
   /*
-   * Follows the community queue's rule rather than the warning's: this is a
+   * Follows the forum queue's rule rather than the warning's: this is a
    * statement about trust in an account, and an account explicitly granted
    * `moderation.bypass` has already been trusted. Otherwise every newly
    * appointed moderator's first post lands in the queue.

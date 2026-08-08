@@ -43,8 +43,8 @@ const inter = Inter({
  * The board's own name and description, not this project's.
  *
  * These were literals — `Meith`, and "A discussion board." — which meant every
- * browser tab, every bookmark and every unfurled link on somebody else's community
- * said the name of the software rather than the name of the community running
+ * browser tab, every bookmark and every unfurled link on somebody else's forum
+ * said the name of the software rather than the name of the forum running
  * it. `board.name` has been in the settings registry since F08 and the header
  * has always rendered it; the `<title>` never did, so a board could be renamed
  * everywhere it was visible on the page and stay "Meith" everywhere it was

@@ -70,8 +70,8 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
                 <p className="truncate text-xs text-muted-foreground">
                   <UserRef user={thread.author} className="font-normal" />
                   {' in '}
-                  <a href={thread.community.href} className={MUTED_LINK}>
-                    {thread.community.label}
+                  <a href={thread.forum.href} className={MUTED_LINK}>
+                    {thread.forum.label}
                   </a>
                   {' · '}
                   <Stamp at={thread.startedAt} />

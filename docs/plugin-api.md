@@ -69,7 +69,7 @@ These are not discouraged. There is no API for them.
 | It cannot | Why |
 |---|---|
 | Decide authorization | No hook filters `authorization.can()`, and none ever will. A plugin able to change that answer is a plugin able to grant itself anything |
-| Reach inside the visibility filter | No hook sits in the query path. A plugin that could rewrite a `where` clause could publish a private community, and no amount of isolation makes that recoverable |
+| Reach inside the visibility filter | No hook sits in the query path. A plugin that could rewrite a `where` clause could publish a private forum, and no amount of isolation makes that recoverable |
 | See an `Actor` | Payloads carry `{ userId, isGuest }`. An `Actor` carries resolved group membership, which invites a plugin to make its own permission decision from group ids |
 | Open a database connection | Migrations are SQL text the host runs. A plugin does not import `@meith/db` |
 | Patch core | There is no monkey-patching seam and no way to replace a domain command |

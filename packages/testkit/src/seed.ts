@@ -6,7 +6,7 @@
  * on every run so a budget assertion is a fact rather than a coin flip.
  *
  * **Scale is a parameter, and that is the honest part.** The plan's target is
- * 50 communities / 100k threads / 2M posts / 20k users. That is a real-Postgres
+ * 50 forums / 100k threads / 2M posts / 20k users. That is a real-Postgres
  * workload: PGlite is Postgres compiled to WASM holding the database in process
  * memory, and two million posts there would exhaust the heap long before it
  * finished. So `SMOKE_SCALE` runs in every test run, and `FULL_SCALE` is the
@@ -18,7 +18,7 @@
  *    20k passwords at the real cost factor takes minutes and proves nothing the
  *    crypto suite does not already cover;
  *  - rows go in as batched multi-row INSERTs, never one statement each;
- *  - community paths are tracked in memory rather than read back per community.
+ *  - forum paths are tracked in memory rather than read back per forum.
  */
 import { schema, type Database } from '@meith/db'
 import { eq } from 'drizzle-orm'
@@ -27,10 +27,10 @@ import { createRandom, paragraphs, words, type Random } from './random'
 
 export interface SeedScale {
   readonly users: number
-  /** Top-level categories. Communities are distributed beneath them. */
+  /** Top-level categories. Forums are distributed beneath them. */
   readonly categories: number
-  /** Communities in total, across all categories. */
-  readonly communities: number
+  /** Forums in total, across all categories. */
+  readonly forums: number
   readonly threads: number
   /** Replies per thread, inclusive. The first post is extra. */
   readonly repliesPerThread: readonly [number, number]
@@ -106,7 +106,7 @@ export interface SeedScale {
 export const SMOKE_SCALE: SeedScale = {
   users: 40,
   categories: 3,
-  communities: 12,
+  forums: 12,
   threads: 120,
   repliesPerThread: [0, 6],
 }
@@ -123,7 +123,7 @@ export const SMOKE_SCALE: SeedScale = {
 export const FULL_SCALE: SeedScale = {
   users: 20_000,
   categories: 6,
-  communities: 50,
+  forums: 50,
   threads: 100_000,
   repliesPerThread: [10, 30],
   longThreads: { count: 30, posts: [2_000, 15_000] },
@@ -143,7 +143,7 @@ const SEEDED_PASSWORD_HASH =
 export interface SeededBoard {
   readonly userIds: readonly number[]
   readonly categoryIds: readonly number[]
-  readonly communityIds: readonly number[]
+  readonly forumIds: readonly number[]
   readonly threadIds: readonly number[]
   readonly postCount: number
 }
@@ -174,10 +174,10 @@ export async function seedBoard(
   const groupId = await registeredGroupId(db)
 
   const userIds = await seedUsers(db, scale, random, groupId)
-  const { categoryIds, communityIds } = await seedCommunities(db, scale, random)
-  const { threadIds, postCount } = await seedThreads(db, scale, random, communityIds, userIds)
+  const { categoryIds, forumIds } = await seedForums(db, scale, random)
+  const { threadIds, postCount } = await seedThreads(db, scale, random, forumIds, userIds)
 
-  return { userIds, categoryIds, communityIds, threadIds, postCount }
+  return { userIds, categoryIds, forumIds, threadIds, postCount }
 }
 
 async function registeredGroupId(db: Database): Promise<number> {
@@ -229,34 +229,34 @@ async function seedUsers(
 }
 
 /**
- * Communities are created one at a time because `path` needs the id the database
+ * Forums are created one at a time because `path` needs the id the database
  * assigns. Paths are accumulated in memory rather than read back, so this is
- * two statements per community and never a query per ancestor.
+ * two statements per forum and never a query per ancestor.
  *
- * There are at most a few dozen communities even at full scale — this is the one
+ * There are at most a few dozen forums even at full scale — this is the one
  * place where per-row work is affordable, and it buys a genuinely nested tree.
  */
-async function seedCommunities(
+async function seedForums(
   db: Database,
   scale: SeedScale,
   random: Random,
-): Promise<{ categoryIds: number[]; communityIds: number[] }> {
+): Promise<{ categoryIds: number[]; forumIds: number[] }> {
   const pathById = new Map<number, string>()
   const categoryIds: number[] = []
-  const communityIds: number[] = []
+  const forumIds: number[] = []
 
   const create = async (
-    values: typeof schema.communities.$inferInsert,
+    values: typeof schema.forums.$inferInsert,
     parentPath: string | null,
   ): Promise<number> => {
     const [row] = await db
-      .insert(schema.communities)
+      .insert(schema.forums)
       .values({ ...values, path: '' })
-      .returning({ id: schema.communities.id })
+      .returning({ id: schema.forums.id })
 
     const id = row?.id as number
     const path = parentPath === null ? String(id) : `${parentPath}.${id}`
-    await db.update(schema.communities).set({ path }).where(eq(schema.communities.id, id))
+    await db.update(schema.forums).set({ path }).where(eq(schema.forums.id, id))
     pathById.set(id, path)
     return id
   }
@@ -277,25 +277,25 @@ async function seedCommunities(
     )
   }
 
-  for (let i = 0; i < scale.communities; i++) {
+  for (let i = 0; i < scale.forums; i++) {
     /*
-     * About a quarter of communities nest under another community rather than under a
+     * About a quarter of forums nest under another forum rather than under a
      * category, so the tree has real depth. A flat board would let a broken
      * ancestor walk pass every test.
      */
     const parentId =
-      communityIds.length > 0 && random.chance(0.25)
-        ? random.pick(communityIds)
+      forumIds.length > 0 && random.chance(0.25)
+        ? random.pick(forumIds)
         : random.pick(categoryIds)
 
     const parentPath = pathById.get(parentId) as string
 
-    communityIds.push(
+    forumIds.push(
       await create(
         {
-          type: 'community',
+          type: 'forum',
           title: `${words(random, 2)} ${i + 1}`,
-          slug: `community-${i + 1}`,
+          slug: `forum-${i + 1}`,
           description: words(random, 8),
           parentId,
           path: '',
@@ -307,21 +307,21 @@ async function seedCommunities(
     )
   }
 
-  return { categoryIds, communityIds }
+  return { categoryIds, forumIds }
 }
 
 async function seedThreads(
   db: Database,
   scale: SeedScale,
   random: Random,
-  communityIds: readonly number[],
+  forumIds: readonly number[],
   userIds: readonly number[],
 ): Promise<{ threadIds: number[]; postCount: number }> {
   const threadRows = Array.from({ length: scale.threads }, (_, i) => {
     const authorIndex = random.int(0, userIds.length - 1)
     const createdAt = daysAgo(random.int(0, 500))
     return {
-      communityId: random.pick(communityIds),
+      forumId: random.pick(forumIds),
       title: `${words(random, 4)} ${i + 1}`,
       slug: `thread-${i + 1}`,
       authorUserId: userIds[authorIndex] as number,
@@ -388,7 +388,7 @@ async function seedThreads(
       const authorIndex = random.int(0, userIds.length - 1)
       batch.push({
         threadId,
-        communityId: thread.communityId,
+        forumId: thread.forumId,
         authorUserId: userIds[authorIndex] as number,
         authorUsername: `user${authorIndex + 1}`,
         subject: p === 0 ? thread.title : null,
@@ -421,13 +421,13 @@ async function seedThreads(
     for (let i = 0; i < count; i++) {
       const authorIndex = random.int(0, userIds.length - 1)
       const createdAt = daysAgo(random.int(200, 900))
-      const communityId = random.pick(communityIds)
+      const forumId = random.pick(forumIds)
       const title = `${words(random, 4)} archive ${i + 1}`
 
       const [inserted] = await db
         .insert(schema.threads)
         .values({
-          communityId,
+          forumId,
           title,
           slug: `archive-thread-${i + 1}`,
           authorUserId: userIds[authorIndex] as number,
@@ -447,7 +447,7 @@ async function seedThreads(
         const poster = random.int(0, userIds.length - 1)
         batch.push({
           threadId,
-          communityId,
+          forumId,
           authorUserId: userIds[poster] as number,
           authorUsername: `user${poster + 1}`,
           subject: p === 0 ? title : null,

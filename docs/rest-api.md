@@ -15,7 +15,7 @@
 A bearer token in the `Authorization` header:
 
 ```
-Authorization: Bearer community_pat_<lookup>_<secret>
+Authorization: Bearer forum_pat_<lookup>_<secret>
 ```
 
 A token is a **restriction on an actor, never a grant to one**. Every request
@@ -30,7 +30,7 @@ telling a caller "expired" confirms the token was real.
 
 ## Scopes
 
-- `communities:read`
+- `forums:read`
 - `threads:read`
 - `threads:write`
 - `posts:read`
@@ -45,7 +45,7 @@ keyboard with the admin panel’s re-authentication in front of them.
 
 ## Rate limits
 
-Metered in **units of work, not requests** — a search is not a community listing, and
+Metered in **units of work, not requests** — a search is not a forum listing, and
 a limit that prices them the same invites the expensive call. Every response,
 refused or not, carries `x-ratelimit-limit`, `x-ratelimit-remaining` and
 `x-ratelimit-reset`; a refusal is `429` with `retry-after`.
@@ -55,8 +55,8 @@ refused or not, carries `x-ratelimit-limit`, `x-ratelimit-remaining` and
 | Method | Path | Scope | Cost | Summary |
 |---|---|---|---|---|
 | `GET` | `/me` | `members:read` | 1 | The token’s owner, and the scopes this token carries. |
-| `GET` | `/communities` | `communities:read` | 1 | Every community the token’s owner may see, as a flat list with parent ids. |
-| `GET` | `/communities/:communityId/threads` | `threads:read` | 1 | Threads in a community, newest activity first, keyset-paged. |
+| `GET` | `/forums` | `forums:read` | 1 | Every forum the token’s owner may see, as a flat list with parent ids. |
+| `GET` | `/forums/:forumId/threads` | `threads:read` | 1 | Threads in a forum, newest activity first, keyset-paged. |
 | `GET` | `/threads/:threadId` | `threads:read` | 1 | One thread’s metadata. |
 | `GET` | `/threads/:threadId/posts` | `posts:read` | 1 | Posts in a thread, oldest first, keyset-paged. |
 | `POST` | `/threads/:threadId/posts` | `posts:write` | 5 | Post a reply. Subject to the same flood control and moderation as the web form. |
@@ -89,10 +89,10 @@ The board POSTs a JSON body and four headers:
 
 | Header | Meaning |
 |---|---|
-| `x-community-event` | The topic. |
-| `x-community-delivery` | Stable across retries — de-duplicate on this. |
-| `x-community-timestamp` | Unix seconds, and part of the signed material. |
-| `x-community-signature` | `sha256=<hex>` of `HMAC(secret, "<timestamp>.<body>")`. |
+| `x-forum-event` | The topic. |
+| `x-forum-delivery` | Stable across retries — de-duplicate on this. |
+| `x-forum-timestamp` | Unix seconds, and part of the signed material. |
+| `x-forum-signature` | `sha256=<hex>` of `HMAC(secret, "<timestamp>.<body>")`. |
 
 Verify by recomputing the HMAC over `` `${timestamp}.${rawBody}` `` and comparing in
 constant time — **and reject anything older than five minutes**. The timestamp is

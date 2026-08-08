@@ -12,7 +12,7 @@ import { buildNewThreadView } from '@/view/post-form'
 
 export const metadata: Metadata = { title: 'New thread' }
 
-function communityId(value: string): number | null {
+function forumId(value: string): number | null {
   const match = /^(\d+)(?:-|$)/.exec(value)
   if (!match) return null
   const id = Number(match[1])
@@ -25,11 +25,11 @@ export default async function NewThreadPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const id = communityId(slug)
+  const id = forumId(slug)
   if (id === null) notFound()
 
   const actor = await getActor()
-  const { authorizer, communities, threadWrites, drafts } = getContainer()
+  const { authorizer, forums, threadWrites, drafts } = getContainer()
 
   /*
    * Fixture mode has no writer, so the composer does not exist there rather
@@ -38,13 +38,13 @@ export default async function NewThreadPage({
    */
   if (threadWrites === null) notFound()
 
-  const community = await communities.findById(id)
-  if (!community || community.type !== 'community') notFound()
+  const forum = await forums.findById(id)
+  if (!forum || forum.type !== 'forum') notFound()
 
-  const matrix = await authorizer.communityMatrix(actor, id)
-  const target = { communityId: id, community: matrix }
+  const matrix = await authorizer.forumMatrix(actor, id)
+  const target = { forumId: id, forum: matrix }
   /*
-   * Two checks, not one. Without `thread.view` the community is not something this
+   * Two checks, not one. Without `thread.view` the forum is not something this
    * actor may know exists, so the answer is the same 404 the listing gives;
    * with it but without `thread.post`, they may look and not write. The action
    * repeats both — rendering a page is not authorisation.
@@ -58,14 +58,14 @@ export default async function NewThreadPage({
   const prefixes = await threadWrites.listPrefixes(id)
 
   const view = buildNewThreadView({
-    community: { id: community.id, title: community.title, slug: community.slug },
-    // A closed community still renders its composer, with the reason stated. The
-    // alternative — a 404 — reads as "this community vanished" to someone who was
+    forum: { id: forum.id, title: forum.title, slug: forum.slug },
+    // A closed forum still renders its composer, with the reason stated. The
+    // alternative — a 404 — reads as "this forum vanished" to someone who was
     // just looking at it.
     errorMessage:
       rules.isOpen && rules.allowThreads
         ? null
-        : 'This community is closed to new threads.',
+        : 'This forum is closed to new threads.',
   })
 
   const PostForm = requireSlot(await currentTheme(), 'PostForm')
@@ -78,10 +78,10 @@ export default async function NewThreadPage({
           form:
             rules.isOpen && rules.allowThreads ? (
               <NewThreadForm
-                communityId={id}
+                forumId={id}
                 prefixes={prefixes.map((p) => ({ id: p.id, label: p.label }))}
                 requiresPrefix={rules.requiresPrefix}
-                canSubscribe={authorizer.can(actor, 'community.subscribe', target)}
+                canSubscribe={authorizer.can(actor, 'forum.subscribe', target)}
                 canPostPoll={authorizer.can(actor, 'poll.post', target)}
                 attachmentLimits={
                   canAttach(actor, target) ? attachmentLimits(target) : null

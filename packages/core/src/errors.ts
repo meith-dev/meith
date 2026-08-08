@@ -72,7 +72,7 @@ export class ForbiddenError extends AppError {
 }
 
 /**
- * Resource absent *or* invisible to this actor. Invariant 8: a community the actor
+ * Resource absent *or* invisible to this actor. Invariant 8: a forum the actor
  * cannot see must 404, not 403 — otherwise the response leaks its existence.
  */
 export class NotFoundError extends AppError {

@@ -26,9 +26,9 @@ const threadRow = (overrides: Partial<LatestThreadRow> = {}): LatestThreadRow =>
   threadId: 91,
   title: 'Bikeshedding',
   slug: 'bikeshedding',
-  communityId: 3,
-  communityTitle: 'General',
-  communitySlug: 'general',
+  forumId: 3,
+  forumTitle: 'General',
+  forumSlug: 'general',
   authorUserId: 12,
   authorUsername: 'marlow',
   replyCount: 4,
@@ -41,9 +41,9 @@ const postRow = (overrides: Partial<LatestPostRow> = {}): LatestPostRow => ({
   threadId: 91,
   threadTitle: 'Bikeshedding',
   threadSlug: 'bikeshedding',
-  communityId: 3,
-  communityTitle: 'General',
-  communitySlug: 'general',
+  forumId: 3,
+  forumTitle: 'General',
+  forumSlug: 'general',
   authorUserId: 12,
   authorUsername: 'marlow',
   createdAt: new Date('2026-05-05T11:55:00Z'),
@@ -52,13 +52,13 @@ const postRow = (overrides: Partial<LatestPostRow> = {}): LatestPostRow => ({
 })
 
 describe('buildLatestThreadsModel', () => {
-  it('resolves the thread, its community and its author', () => {
+  it('resolves the thread, its forum and its author', () => {
     const { threads } = buildLatestThreadsModel({ rows: [threadRow()], now: NOW })
 
     expect(threads[0]).toMatchObject({
       title: 'Bikeshedding',
       href: '/thread/91-bikeshedding',
-      community: { label: 'General', href: '/3-general' },
+      forum: { label: 'General', href: '/3-general' },
       author: { userId: 12, username: 'marlow', profileHref: '/member/12' },
       replyCount: 4,
     })
@@ -133,9 +133,9 @@ describe('buildLatestPostsModel', () => {
     expect(posts[0]?.excerpt).toBe('')
   })
 
-  it('carries the community, because these lists cross the whole board', () => {
+  it('carries the forum, because these lists cross the whole board', () => {
     const { posts } = buildLatestPostsModel({ rows: [postRow()], now: NOW })
 
-    expect(posts[0]?.community).toEqual({ label: 'General', href: '/3-general' })
+    expect(posts[0]?.forum).toEqual({ label: 'General', href: '/3-general' })
   })
 })

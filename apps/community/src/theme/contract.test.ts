@@ -11,7 +11,7 @@ import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import communityConfig from '../../community.config'
+import forumConfig from '../../community.config'
 
 import { SLOT_FIXTURES } from './contract.fixture'
 
@@ -36,7 +36,7 @@ import { SLOT_FIXTURES } from './contract.fixture'
 
 /** Every theme in the registry, whether or not it is the active one. */
 const themes: readonly { key: string; definition: ThemeDefinition }[] = Object.values(
-  communityConfig.themes,
+  forumConfig.themes,
 )
   .filter((installed) => installed.theme !== undefined)
   .map((installed) => ({

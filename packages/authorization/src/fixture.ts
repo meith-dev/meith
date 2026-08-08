@@ -1,12 +1,12 @@
 /**
- * The F22 world: eight actors, four community contexts, and an in-memory
+ * The F22 world: eight actors, four forum contexts, and an in-memory
  * AuthorizationSource that resolves them without a database.
  *
  * This is a fixture, not test code, so it lives in `src/` and is type-checked
  * and boundary-linted like everything else. `matrix.test.ts` drives the cross
  * product; `matrix.fixture.ts` holds the human-reviewed expected results.
  *
- * The group/community numbers here mirror the shape the Postgres source will
+ * The group/forum numbers here mirror the shape the Postgres source will
  * produce, so the same Authorizer runs unchanged against both.
  */
 import {
@@ -18,7 +18,7 @@ import { combinePermissionSets } from './combine'
 import type {
   Actor,
   AuthorizationSource,
-  CommunityOverride,
+  ForumOverride,
   GroupDefaults,
   ModeratorAppointment,
 } from './types'
@@ -40,18 +40,18 @@ export const GROUP = {
 } as const
 
 /*
- * Community-scoped grants shared by every group that can participate. Pulled out so
+ * Forum-scoped grants shared by every group that can participate. Pulled out so
  * the guest/registered/staff defaults differ only where they should.
  */
-const PARTICIPANT_COMMUNITY_GRANTS: Partial<PermissionSet> = {
+const PARTICIPANT_FORUM_GRANTS: Partial<PermissionSet> = {
   canView: true,
   canViewThreads: true,
   canViewOthersThreads: true,
   canSearch: true,
 }
 
-const POSTER_COMMUNITY_GRANTS: Partial<PermissionSet> = {
-  ...PARTICIPANT_COMMUNITY_GRANTS,
+const POSTER_FORUM_GRANTS: Partial<PermissionSet> = {
+  ...PARTICIPANT_FORUM_GRANTS,
   // Subscribing needs an account, so it starts at the poster tier, not guests.
   canSubscribe: true,
   canPostThreads: true,
@@ -69,13 +69,13 @@ const POSTER_COMMUNITY_GRANTS: Partial<PermissionSet> = {
 /** Global group defaults, keyed by group ID. */
 export const GROUP_DEFAULTS: Record<number, PermissionSet> = {
   [GROUP.guest]: makePermissionSet({
-    ...PARTICIPANT_COMMUNITY_GRANTS,
+    ...PARTICIPANT_FORUM_GRANTS,
     canViewProfiles: true,
     // Guests never post; approval flags stay restricted (true) but are moot.
   }),
 
   [GROUP.registered]: makePermissionSet({
-    ...POSTER_COMMUNITY_GRANTS,
+    ...POSTER_FORUM_GRANTS,
     canViewProfiles: true,
     canViewMemberList: true,
     canUsePrivateMessages: true,
@@ -93,7 +93,7 @@ export const GROUP_DEFAULTS: Record<number, PermissionSet> = {
   }),
 
   [GROUP.superMod]: makePermissionSet({
-    ...POSTER_COMMUNITY_GRANTS,
+    ...POSTER_FORUM_GRANTS,
     canViewProfiles: true,
     canViewMemberList: true,
     canUsePrivateMessages: true,
@@ -103,7 +103,7 @@ export const GROUP_DEFAULTS: Record<number, PermissionSet> = {
   }),
 
   [GROUP.admin]: makePermissionSet({
-    ...POSTER_COMMUNITY_GRANTS,
+    ...POSTER_FORUM_GRANTS,
     canViewProfiles: true,
     canViewMemberList: true,
     canUsePrivateMessages: true,
@@ -113,8 +113,8 @@ export const GROUP_DEFAULTS: Record<number, PermissionSet> = {
   }),
 }
 
-/* ----------------------------- Community IDs ----------------------------- */
-export const COMMUNITY = {
+/* ----------------------------- Forum IDs ----------------------------- */
+export const FORUM = {
   public: 100,
   publicSub: 101, // child of `public`, read-only override
   private: 200,
@@ -126,22 +126,22 @@ export const COMMUNITY = {
  * inheritance is exercised; the others are roots.
  */
 const CHAINS: Record<number, number[]> = {
-  [COMMUNITY.public]: [COMMUNITY.public],
-  [COMMUNITY.publicSub]: [COMMUNITY.publicSub, COMMUNITY.public],
-  [COMMUNITY.private]: [COMMUNITY.private],
-  [COMMUNITY.password]: [COMMUNITY.password],
+  [FORUM.public]: [FORUM.public],
+  [FORUM.publicSub]: [FORUM.publicSub, FORUM.public],
+  [FORUM.private]: [FORUM.private],
+  [FORUM.password]: [FORUM.password],
 }
 
 /**
- * Per-(community, group) overrides. Only the private community and the read-only
- * subcommunity carry any; the public and password communities resolve purely from group
+ * Per-(forum, group) overrides. Only the private forum and the read-only
+ * subforum carry any; the public and password forums resolve purely from group
  * defaults (password gating is a Target flag, not a permission).
  */
-const OVERRIDES: CommunityOverride[] = [
-  // Private community: hide from guests and ordinary members entirely. Staff reach
+const OVERRIDES: ForumOverride[] = [
+  // Private forum: hide from guests and ordinary members entirely. Staff reach
   // it via bypass, not via an override, which is what R4.2 intends.
   ...[GROUP.guest, GROUP.registered, GROUP.veterans].map((groupId) => ({
-    communityId: COMMUNITY.private,
+    forumId: FORUM.private,
     groupId,
     overrides: {
       canView: false,
@@ -152,16 +152,16 @@ const OVERRIDES: CommunityOverride[] = [
     },
   })),
 
-  // Read-only subcommunity: members may read but not post. canView is left null so
+  // Read-only subforum: members may read but not post. canView is left null so
   // it inherits `true` from the public parent — proving inheritance and a
   // same-level override coexist.
   {
-    communityId: COMMUNITY.publicSub,
+    forumId: FORUM.publicSub,
     groupId: GROUP.registered,
     overrides: { canPostThreads: false, canPostReplies: false },
   },
   {
-    communityId: COMMUNITY.publicSub,
+    forumId: FORUM.publicSub,
     groupId: GROUP.veterans,
     overrides: { canPostThreads: false, canPostReplies: false },
   },
@@ -175,44 +175,44 @@ export class MemoryAuthorizationSource implements AuthorizationSource {
       .map((groupId) => ({ groupId, permissions: GROUP_DEFAULTS[groupId]! }))
   }
 
-  async ancestorChain(communityId: number): Promise<number[]> {
-    return CHAINS[communityId] ?? []
+  async ancestorChain(forumId: number): Promise<number[]> {
+    return CHAINS[forumId] ?? []
   }
 
-  async communityOverrides(
-    communityIds: readonly number[],
+  async forumOverrides(
+    forumIds: readonly number[],
     groupIds: readonly number[],
-  ): Promise<CommunityOverride[]> {
-    const fset = new Set(communityIds)
+  ): Promise<ForumOverride[]> {
+    const fset = new Set(forumIds)
     const gset = new Set(groupIds)
-    return OVERRIDES.filter((o) => fset.has(o.communityId) && gset.has(o.groupId))
+    return OVERRIDES.filter((o) => fset.has(o.forumId) && gset.has(o.groupId))
   }
 
-  async allCommunityIds(): Promise<number[]> {
-    return [COMMUNITY.public, COMMUNITY.publicSub, COMMUNITY.private, COMMUNITY.password]
+  async allForumIds(): Promise<number[]> {
+    return [FORUM.public, FORUM.publicSub, FORUM.private, FORUM.password]
   }
 
   async allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>> {
-    const ids = await this.allCommunityIds()
+    const ids = await this.allForumIds()
     return new Map(ids.map((id) => [id, CHAINS[id] ?? []]))
   }
 
   /**
-   * One appointment: `communityModerator` over the public tree, cascading.
+   * One appointment: `forumModerator` over the public tree, cascading.
    *
    * It carries every granular right, which is what makes the F22 table's
    * moderator rows readable. Appointments that grant only *some* rights are
-   * exercised by `moderated-communities.test.ts`, where the point is the
+   * exercised by `moderated-forums.test.ts`, where the point is the
    * appointment rather than the matrix.
    */
   async moderatorAppointments(
     userId: number | null,
   ): Promise<readonly ModeratorAppointment[]> {
-    if (userId !== ACTORS.communityModerator.userId) return []
+    if (userId !== ACTORS.forumModerator.userId) return []
     return [
       {
-        communityId: COMMUNITY.public,
-        cascadeToSubcommunities: true,
+        forumId: FORUM.public,
+        cascadeToSubforums: true,
         canApproveContent: true,
         canEditPosts: true,
         canSoftDeletePosts: true,
@@ -258,7 +258,7 @@ export const ACTORS = {
     groupIds: [GROUP.registered, GROUP.veterans],
     state: 'active',
   }),
-  communityModerator: actor({
+  forumModerator: actor({
     userId: 12,
     groupIds: [GROUP.registered],
     state: 'active',
@@ -282,4 +282,4 @@ export const ACTORS = {
 } as const
 
 export type ActorName = keyof typeof ACTORS
-export type CommunityName = keyof typeof COMMUNITY
+export type ForumName = keyof typeof FORUM

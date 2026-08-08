@@ -17,7 +17,7 @@ import { formatTime } from '@/view/time'
 export const metadata: Metadata = { title: 'Reports' }
 
 /**
- * F49 — outstanding reports, in the communities this actor moderates.
+ * F49 — outstanding reports, in the forums this actor moderates.
  *
  * App-owned rather than a theme slot, for the reason D47 records for the queue:
  * a moderator tool is an operator surface, and the 25-slot registry freezes at
@@ -76,7 +76,7 @@ export default async function ReportsPage({
           <Empty className="py-8">
             <EmptyTitle>Nothing outstanding</EmptyTitle>
             <EmptyDescription>
-              Every report in the communities you moderate has been resolved or dismissed.
+              Every report in the forums you moderate has been resolved or dismissed.
             </EmptyDescription>
           </Empty>
         </Card>

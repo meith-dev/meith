@@ -21,7 +21,7 @@ export const metadata: Metadata = { title: 'Search' }
  * object and nothing else. A theme that typed `name="q"` into its markup would
  * be the same coupling with no way to find it.
  */
-const FIELDS = { query: 'q', community: 'community', sort: 'sort' } as const
+const FIELDS = { query: 'q', forum: 'forum', sort: 'sort' } as const
 
 const SORTS: readonly { readonly value: string; readonly label: string }[] = [
   { value: 'relevance', label: 'Best match' },
@@ -30,7 +30,7 @@ const SORTS: readonly { readonly value: string; readonly label: string }[] = [
 ]
 
 const HINT =
-  'Searches every community you can see. Put a phrase in quotes to match it exactly, ' +
+  'Searches every forum you can see. Put a phrase in quotes to match it exactly, ' +
   'and put a minus in front of a word to exclude it.'
 
 /**
@@ -47,7 +47,7 @@ const HINT =
  * "search within results" link impossible to build.
  *
  * F77 moved the markup into the theme's `SearchForm` slot. The page still owns
- * every decision that is not markup — which communities this viewer may search, what
+ * every decision that is not markup — which forums this viewer may search, what
  * the parameters are called, what went wrong — and hands them over as a model.
  */
 export default async function SearchPage({
@@ -64,7 +64,7 @@ export default async function SearchPage({
 
   const actor = await getActor()
   const terms = value(FIELDS.query)
-  const community = value(FIELDS.community)
+  const forum = value(FIELDS.forum)
   const sort = value(FIELDS.sort)
 
   const SearchForm = requireSlot(await currentTheme(), 'SearchForm')
@@ -73,7 +73,7 @@ export default async function SearchPage({
   if (terms !== '') {
     const filters: SearchFilters = {
       sort: sort === 'newest' || sort === 'oldest' ? sort : 'relevance',
-      ...(community === '' ? {} : { communityIds: [Number(community)] }),
+      ...(forum === '' ? {} : { forumIds: [Number(forum)] }),
     }
 
     const outcome = await runSearch({
@@ -90,7 +90,7 @@ export default async function SearchPage({
         <h1 className="font-heading text-2xl font-semibold">Search</h1>
         <SearchForm
           {...(await filteredForm({
-            ...(await formModel({ terms, community, sort })),
+            ...(await formModel({ terms, forum, sort })),
             hint: null,
             errorMessage:
               outcome.kind === 'flooded'
@@ -114,7 +114,7 @@ export default async function SearchPage({
       <h1 className="font-heading text-2xl font-semibold">Search</h1>
       <SearchForm
         {...(await filteredForm({
-          ...(await formModel({ terms: '', community, sort })),
+          ...(await formModel({ terms: '', forum, sort })),
           hint: HINT,
           errorMessage: null,
         }))}
@@ -127,26 +127,26 @@ export default async function SearchPage({
  * Everything the form needs except the two message fields, which differ between
  * the two branches above and are the only reason this is not the whole model.
  *
- * The "every community" option is first and carries the empty value, so a viewer who
+ * The "every forum" option is first and carries the empty value, so a viewer who
  * never touches the filter submits the same thing the page reads as "no filter".
  */
 async function formModel({
   terms,
-  community,
+  forum,
   sort,
 }: {
   terms: string
-  community: string
+  forum: string
   sort: string
 }): Promise<Omit<SearchFormModel, 'hint' | 'errorMessage'>> {
-  const communities: OptionModel[] = [
-    { value: '', label: 'Every community I can see', isSelected: community === '' },
+  const forums: OptionModel[] = [
+    { value: '', label: 'Every forum I can see', isSelected: forum === '' },
   ]
-  for (const visible of await visibleCommunities()) {
-    communities.push({
+  for (const visible of await visibleForums()) {
+    forums.push({
       value: String(visible.id),
       label: visible.title,
-      isSelected: String(visible.id) === community,
+      isSelected: String(visible.id) === forum,
     })
   }
 
@@ -162,7 +162,7 @@ async function formModel({
     fields: FIELDS,
     query: terms,
     maxQueryLength: MAX_QUERY_LENGTH,
-    communities,
+    forums,
     sorts,
   }
 }
@@ -176,13 +176,13 @@ async function filteredForm(model: SearchFormModel): Promise<SearchFormModel> {
   return filterView('view.search-form', model, viewerRef(await getActor()))
 }
 
-/** The communities this viewer may search, for the filter. */
-async function visibleCommunities(): Promise<readonly { id: number; title: string }[]> {
+/** The forums this viewer may search, for the filter. */
+async function visibleForums(): Promise<readonly { id: number; title: string }[]> {
   const actor = await getActor()
-  const { authorizer, communities } = getContainer()
+  const { authorizer, forums } = getContainer()
 
-  const allowed = new Set(await authorizer.communityIdsWhere(actor, 'thread.view'))
-  return (await communities.listAll())
-    .filter((community) => allowed.has(community.id) && community.type === 'community')
-    .map((community) => ({ id: community.id, title: community.title }))
+  const allowed = new Set(await authorizer.forumIdsWhere(actor, 'thread.view'))
+  return (await forums.listAll())
+    .filter((forum) => allowed.has(forum.id) && forum.type === 'forum')
+    .map((forum) => ({ id: forum.id, title: forum.title }))
 }

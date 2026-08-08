@@ -8,6 +8,6 @@ export async function POST(request: Request) {
   const { authorizer, readState } = getContainer()
   if (actor.userId === null || readState === null) return NextResponse.redirect(new URL('/', request.url), { status: 303 })
 
-  await readState.markCommunitiesRead(actor.userId, await authorizer.visibleCommunityIds(actor), new Date())
+  await readState.markForumsRead(actor.userId, await authorizer.visibleForumIds(actor), new Date())
   return NextResponse.redirect(new URL('/', request.url), { status: 303 })
 }

@@ -242,7 +242,7 @@ export const GUARDS = [
       'ever built DATA_SOURCE=fixture and none of the three run on that path. ' +
       'Importing costs nothing that matters: getDb() creates its client lazily ' +
       'and refuses in fixture mode, so nothing opens a socket at import.',
-    files: /^apps\/community\/.*\.tsx?$/,
+    files: /^apps\/forum\/.*\.tsx?$/,
     pattern: /require\(\s*['"]@meith\/db['"]\s*\)/,
     probe: {
       violates: "const { getDb } = require('@meith/db') as typeof import('@meith/db')",
@@ -260,7 +260,7 @@ export const GUARDS = [
       'public while looking like a filter. The exempt files are the counter and ' +
       'write paths, where naming a state is the definition of the work (D41) rather ' +
       'than a decision about a reader.',
-    files: /^(packages\/db\/src\/[^/]+\.tsx?|apps\/community\/(app|src)\/.*\.tsx?)$/,
+    files: /^(packages\/db\/src\/[^/]+\.tsx?|apps\/forum\/(app|src)\/.*\.tsx?)$/,
     /*
      * Query-shaped only, on purpose. A domain rule saying "a deleted post cannot
      * be edited" and a view model deciding whether to offer Restore both compare

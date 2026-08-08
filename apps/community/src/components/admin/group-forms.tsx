@@ -12,7 +12,7 @@
  * Its cells are **two states, not three**. A group's global permissions are the
  * bottom of the resolution (R4.1 layer 1) and have no ancestor to inherit from,
  * so a third state would be an "inherit" that means nothing. Checkboxes are
- * therefore honest here in a way they would not be on a community.
+ * therefore honest here in a way they would not be on a forum.
  */
 import { useActionState, useState } from "react"
 
@@ -214,7 +214,7 @@ export interface PermissionCellValues {
   readonly key: string
   readonly description: string
   readonly kind: "boolean" | "numeric" | "negative"
-  readonly scope: "global" | "community"
+  readonly scope: "global" | "forum"
   readonly value: boolean | number
 }
 
@@ -273,9 +273,9 @@ export function GroupPermissionsForm({
                     ticked = restricted
                   </span>
                 )}
-                {cell.scope === "community" && (
+                {cell.scope === "forum" && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    default for every community
+                    default for every forum
                   </span>
                 )}
               </span>

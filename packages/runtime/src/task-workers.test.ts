@@ -34,7 +34,7 @@ function postCreated(id: number, postId: number): OutboxRecord {
   return {
     id,
     name: 'post.created',
-    payload: { postId, threadId: 20, communityId: 10, authorId: 1 },
+    payload: { postId, threadId: 20, forumId: 10, authorId: 1 },
     dedupeKey: null,
     createdAt: new Date(),
     relayedAt: null,

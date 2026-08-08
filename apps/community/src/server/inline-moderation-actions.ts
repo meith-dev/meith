@@ -8,12 +8,12 @@
  * particular here is *what* gets re-authorised, and it is two things rather
  * than one:
  *
- *   - **The scope**, `communityIdsWhere(actor, action)` — the communities this actor may
+ *   - **The scope**, `forumIdsWhere(actor, action)` — the forums this actor may
  *     use *this tool* in. It is resolved fresh for the request, never carried
  *     in the form, and it is what the selection is re-read inside. A hidden
  *     field holding it would be the whole permission check sitting in the
  *     browser.
- *   - **The rights**, per community the selection turns out to touch. The scope
+ *   - **The rights**, per forum the selection turns out to touch. The scope
  *     answers *where*; these answer *what*, which is D49's distinction and the
  *     reason a moderator who may delete posts but not threads gets exactly the
  *     rows they are entitled to and a count of the ones they are not.
@@ -92,7 +92,7 @@ export async function inlineModerateAction(
     }
   }
 
-  const toCommunityId = positiveInt(form, 'toCommunityId')
+  const toForumId = positiveInt(form, 'toForumId')
   const returnTo = safeReturn(form)
 
   let outcome: InlineOutcome
@@ -105,17 +105,17 @@ export async function inlineModerateAction(
     )
     if (selection.length === 0) throw new ValidationError('Select at least one item.')
 
-    const scopeCommunityIds = await scopeFor(tool, actor)
-    if (scopeCommunityIds.length === 0) {
+    const scopeForumIds = await scopeFor(tool, actor)
+    if (scopeForumIds.length === 0) {
       throw new ForbiddenError('You cannot moderate anything here.')
     }
 
     outcome = await new InlineModeration({ inline: inlineModeration }).apply({
       selection,
       tool,
-      ...(toCommunityId === null ? {} : { toCommunityId }),
-      scopeCommunityIds,
-      rights: { rightsIn: (communityId) => rightsIn(actor, communityId) },
+      ...(toForumId === null ? {} : { toForumId }),
+      scopeForumIds,
+      rights: { rightsIn: (forumId) => rightsIn(actor, forumId) },
       actorUserId: actor.userId,
     })
   } catch (err) {
@@ -127,7 +127,7 @@ export async function inlineModerateAction(
 }
 
 /**
- * The communities this tool may be used in, unioned over the actions that authorise
+ * The forums this tool may be used in, unioned over the actions that authorise
  * it.
  *
  * The union is what lets a group-level post deleter and an appointed thread
@@ -139,35 +139,35 @@ async function scopeFor(tool: InlineTool, actor: Actor): Promise<number[]> {
   const { authorizer } = getContainer()
   const sets = await Promise.all(
     INLINE_TOOL_ACTIONS[tool].map((action) =>
-      authorizer.communityIdsWhere(actor, action as Action),
+      authorizer.forumIdsWhere(actor, action as Action),
     ),
   )
   return [...new Set(sets.flat())]
 }
 
 /**
- * This actor's six answers in one community.
+ * This actor's six answers in one forum.
  *
  * `can()` rather than reading the appointment directly, so the administrator
  * and super-moderator bypasses stay logged and the permission model stays in
  * one package (R4) — the same reasoning F50's `resolveRights` records.
  */
-async function rightsIn(actor: Actor, communityId: number): Promise<InlineRights> {
+async function rightsIn(actor: Actor, forumId: number): Promise<InlineRights> {
   const { authorizer } = getContainer()
-  const [community, moderatorRights] = await Promise.all([
-    authorizer.communityMatrix(actor, communityId),
-    authorizer.moderatorRightsIn(actor, communityId),
+  const [forum, moderatorRights] = await Promise.all([
+    authorizer.forumMatrix(actor, forumId),
+    authorizer.moderatorRightsIn(actor, forumId),
   ])
   /*
-   * `isCommunityModerator` set from the appointment, which is what makes
+   * `isForumModerator` set from the appointment, which is what makes
    * `post.softDelete` resolve here the way it resolves on a post's own page.
    * F48 recorded its absence as debt; this is one of the two places F52 pays it.
    */
   const target = {
-    communityId,
-    community,
+    forumId,
+    forum,
     moderatorRights,
-    isCommunityModerator: hasAnyModeratorRight(moderatorRights),
+    isForumModerator: hasAnyModeratorRight(moderatorRights),
   }
 
   return {

@@ -105,7 +105,7 @@ export default async function NotificationsPage({
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="text-sm font-medium">
                   {row.isRead ? null : (
-                    <span className="mr-2 text-xs font-semibold uppercase text-community-unread">
+                    <span className="mr-2 text-xs font-semibold uppercase text-forum-unread">
                       New
                     </span>
                   )}

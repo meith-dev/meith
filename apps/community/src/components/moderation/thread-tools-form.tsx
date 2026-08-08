@@ -123,12 +123,12 @@ export function ThreadToolsForm({
           <label className="flex items-center gap-2 text-xs">
             <span className="sr-only">Move to</span>
             <select
-              name="toCommunityId"
+              name="toForumId"
               className="h-8 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              {moveTargets.map((community) => (
-                <option key={community.id} value={community.id}>
-                  {community.title}
+              {moveTargets.map((forum) => (
+                <option key={forum.id} value={forum.id}>
+                  {forum.title}
                 </option>
               ))}
             </select>
@@ -137,7 +137,7 @@ export function ThreadToolsForm({
             Move
           </button>
           {/*
-            Copy shares the move box: both name a destination community, and the
+            Copy shares the move box: both name a destination forum, and the
             rights are the same at both ends (D49), so a second `<select>` would
             be the same list twice. `name`/`value` on the button carries which
             verb was pressed — the no-JS way to express one form, two actions.

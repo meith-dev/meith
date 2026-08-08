@@ -42,11 +42,11 @@ import { notFound, permanentRedirect } from 'next/navigation'
 import { getContainer } from './container'
 import { getSettings } from './settings'
 
-type Kind = 'thread' | 'community' | 'post' | 'user'
+type Kind = 'thread' | 'forum' | 'post' | 'user'
 
-const LEGACY_KIND: Readonly<Record<Kind, 'thread' | 'community' | 'post' | 'user'>> = {
+const LEGACY_KIND: Readonly<Record<Kind, 'thread' | 'forum' | 'post' | 'user'>> = {
   thread: 'thread',
-  community: 'community',
+  forum: 'forum',
   post: 'post',
   user: 'user',
 }
@@ -129,10 +129,10 @@ export async function serveLegacyUrl(
  */
 async function slugFor(target: LegacyTarget, newId: number): Promise<string | null> {
   try {
-    const { communities } = getContainer()
-    if (target.kind === 'community') {
-      const all = await communities.listAll()
-      return all.find((community) => community.id === newId)?.slug ?? null
+    const { forums } = getContainer()
+    if (target.kind === 'forum') {
+      const all = await forums.listAll()
+      return all.find((forum) => forum.id === newId)?.slug ?? null
     }
     return null
   } catch {

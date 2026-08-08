@@ -36,7 +36,7 @@ export {
   INSTALL_FIELDS,
   MAIL_SKIP,
   SECRET_FIELDS,
-  defaultCommunitySlug,
+  defaultForumSlug,
   installInputFromForm,
   installInputSchema,
   mailConfigFromInstallInput,

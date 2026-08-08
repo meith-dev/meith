@@ -19,7 +19,7 @@ import 'server-only'
  *    bucket carries, and per-request overrides need a signing API the
  *    `FileStore` port does not expose.
  *  - **The permission is re-checked on every fetch.** A signed URL outlives the
- *    permission that issued it: move a thread into a private community and every
+ *    permission that issued it: move a thread into a private forum and every
  *    URL handed out in the last hour still works.
  *  - **The download is counted**, which needs a request to count.
  *
@@ -30,7 +30,7 @@ import 'server-only'
  * ## Every refusal is a 404
  *
  * Distinguishing "no such attachment" from "not for you" would make this an
- * oracle for what exists in communities the caller cannot see, and the id is a small
+ * oracle for what exists in forums the caller cannot see, and the id is a small
  * integer anybody can enumerate.
  */
 import { drivers } from '@meith/drivers'

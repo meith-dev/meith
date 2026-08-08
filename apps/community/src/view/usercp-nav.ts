@@ -57,7 +57,7 @@ export const USERCP_SECTIONS: PanelNav = [
   {
     href: '/subscriptions',
     title: 'Subscriptions',
-    blurb: 'The threads and communities you follow, and how often you hear about them.',
+    blurb: 'The threads and forums you follow, and how often you hear about them.',
   },
   {
     href: '/usercp/profile',

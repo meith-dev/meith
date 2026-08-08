@@ -1,4 +1,4 @@
-/** Postgres community-display listing (F30), scoped by F47. */
+/** Postgres forum-display listing (F30), scoped by F47. */
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm'
 
 import type { ContentScope } from '@meith/core'
@@ -15,7 +15,7 @@ import { threadPrefixes, threads } from './schema'
 import { visibleIn } from './visibility'
 
 /**
- * The R3.5 partial index begins `(community_id, is_sticky DESC, last_post_at DESC)`.
+ * The R3.5 partial index begins `(forum_id, is_sticky DESC, last_post_at DESC)`.
  * `id` is the deterministic tie-breaker: timestamps have millisecond precision,
  * so omitting it eventually drops or repeats threads that share an instant.
  */
@@ -79,7 +79,7 @@ function afterRating(cursor: ThreadCursor) {
 
 function rowToListing(row: {
   id: number
-  communityId: number
+  forumId: number
   title: string
   slug: string
   prefixLabel: string | null
@@ -101,7 +101,7 @@ function rowToListing(row: {
 }): ThreadListingRow {
   return {
     id: row.id,
-    communityId: row.communityId,
+    forumId: row.forumId,
     title: row.title,
     slug: row.slug,
     prefix:
@@ -134,14 +134,14 @@ function rowToListing(row: {
 export class PostgresThreadRepository implements ThreadRepository {
   constructor(private readonly db: Database) {}
 
-  /** The community id alone, unscoped — see the port for why this one is. */
-  async locateCommunity(threadId: number): Promise<number | null> {
+  /** The forum id alone, unscoped — see the port for why this one is. */
+  async locateForum(threadId: number): Promise<number | null> {
     const rows = await this.db
-      .select({ communityId: threads.communityId })
+      .select({ forumId: threads.forumId })
       .from(threads)
       .where(eq(threads.id, threadId))
       .limit(1)
-    return rows[0]?.communityId ?? null
+    return rows[0]?.forumId ?? null
   }
 
   async findById(
@@ -151,7 +151,7 @@ export class PostgresThreadRepository implements ThreadRepository {
     const rows = await this.db
       .select({
         id: threads.id,
-        communityId: threads.communityId,
+        forumId: threads.forumId,
         title: threads.title,
         slug: threads.slug,
         prefixLabel: threadPrefixes.label,
@@ -179,8 +179,8 @@ export class PostgresThreadRepository implements ThreadRepository {
     return row ? rowToListing(row) : null
   }
 
-  async listCommunity(
-    communityId: number,
+  async listForum(
+    forumId: number,
     options: {
       readonly after?: ThreadCursor
       readonly limit: number
@@ -192,7 +192,7 @@ export class PostgresThreadRepository implements ThreadRepository {
     const rows = await this.db
       .select({
         id: threads.id,
-        communityId: threads.communityId,
+        forumId: threads.forumId,
         title: threads.title,
         slug: threads.slug,
         prefixLabel: threadPrefixes.label,
@@ -216,7 +216,7 @@ export class PostgresThreadRepository implements ThreadRepository {
       .leftJoin(threadPrefixes, eq(threads.prefixId, threadPrefixes.id))
       .where(
         and(
-          eq(threads.communityId, communityId),
+          eq(threads.forumId, forumId),
           visibleIn(threads.visibility, options.scope),
           ...(options.after
             ? [

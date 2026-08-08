@@ -69,7 +69,7 @@ causes:
 2. Even resolving correctly, the only infra rule matched `^packages/drivers/`.
    Nothing covered `@meith/db`.
 
-A probe module importing `getDb()` into `packages/communities` passed silently under
+A probe module importing `getDb()` into `packages/forums` passed silently under
 both faults. The merged `domain-no-infra-impl` rule now matches all three shapes
 a workspace import can take (real path, `node_modules` symlink, bare specifier)
 and is verified by probe.
@@ -85,7 +85,7 @@ resolve until that barrel exists. A package whose barrel is missing looks
 dependency-free to the linter. Each package therefore gets its `src/index.ts`
 when it is created, even if nearly empty.
 
-### D6 — Two partial unique indexes for community slugs (F16)
+### D6 — Two partial unique indexes for forum slugs (F16)
 
 Root-level slug uniqueness and sibling slug uniqueness are enforced by *two*
 partial unique indexes (`WHERE parent_id IS NULL` and `WHERE parent_id IS NOT
@@ -143,7 +143,7 @@ proven by a deliberate violation before it is trusted:
 | Gate | Probe used | Observed |
 | --- | --- | --- |
 | `depcruise` R2 | domain module importing `@meith/db` + `next/navigation` | 2 errors |
-| `eslint` F02 | `process.env` read in `packages/communities` | 1 error |
+| `eslint` F02 | `process.env` read in `packages/forums` | 1 error |
 | `guards` F02 | `process.env` read in `apps/community/src` | 1 violation |
 | `vitest` outbox crash-safety | `markRelayed` moved before `enqueue` | correct test failed |
 | tick auth | wrong-length and wrong-value secrets | all rejected, no throw |
@@ -160,11 +160,11 @@ and it is why the 15 passing tests need no Postgres. The corollary is that
 *something* must construct those repositories from either the fixture or
 Postgres. That composition root does not exist yet.
 
-`community` therefore ships three commands (`env:check`, `migrate`,
+`forum` therefore ships three commands (`env:check`, `migrate`,
 `settings:list`) rather than the six first drafted. `tick`, `queue:drain` and
 `settings:get` are omitted, not stubbed: a `--help` that advertises a command
 which throws is worse than one that omits it. They land with the composition
-root in Phase 1, alongside the account and community repositories that need the same
+root in Phase 1, alongside the account and forum repositories that need the same
 wiring.
 
 `runMigrations()` was genuinely missing from `@meith/db` and has been added. It
@@ -236,10 +236,10 @@ on the database. Two placement decisions:
 - **The SQL adapter lives in `@meith/db`, not `@meith/authorization`.**
   authorization is a domain package (core-only). Implementing a domain port with
   SQL is exactly the database layer's job, and the edge `db → authorization →
-  core` is acyclic (verified: 72 modules, no cycle). The community tree uses a
+  core` is acyclic (verified: 72 modules, no cycle). The forum tree uses a
   dot-path (`parentPath`) inclusive of self, so `ancestorChain` is a single row
   read plus a parse — no recursive CTE — and both dimensions of the
-  community-override lookup are filtered in SQL, not post-filtered in JS.
+  forum-override lookup are filtered in SQL, not post-filtered in JS.
 
 - **The container lives in `apps/community/src/server`, the app tier.** Only the app
   may import both `@meith/db` and the domain, so composition belongs there. It
@@ -251,7 +251,7 @@ on the database. Two placement decisions:
 
 The row mappers carry the two subtle rules from D-nothing-yet into code and pin
 them with mutation tests: a group row missing a column falls back to the
-*registry default* (not `undefined`), while a community-override column that is null
+*registry default* (not `undefined`), while a forum-override column that is null
 means **inherit** (dropped from the override), not deny. Mutating null→false
 fails three tests including both inherit cases (verified).
 
@@ -498,15 +498,15 @@ every developer machine and in CI. Guard `F17 no-locale-case-fold` bans
 `toLocaleLowerCase()`/`toLocaleUpperCase()` outright; mutation-verified by
 restoring the old call and watching the guard fire.
 
-### D22 — Community tree: the subtree predicate is the whole feature (F16)
+### D22 — Forum tree: the subtree predicate is the whole feature (F16)
 
 **Plan:** F16 — "Reordering and reparenting must update every descendant's
 `path` in one transaction. Test with a four-level tree."
 
-The schema (materialised `path`, indexes) already existed; `packages/communities` was
+The schema (materialised `path`, indexes) already existed; `packages/forums` was
 an empty package. The operations half now lives there: `path.ts` (path
 arithmetic), `tree.ts` (`buildTree`), `move.ts` (`planMove`), plus
-`PostgresCommunityRepository` in `@meith/db`.
+`PostgresForumRepository` in `@meith/db`.
 
 **The one thing worth writing down.** A materialised-path implementation is
 almost entirely correct if you get one predicate right and catastrophically
@@ -540,7 +540,7 @@ not. Dropping it would make a permission grant vanish silently. Noted as a
 divergence to revisit at F21, which may prefer to filter subtrees whole.
 
 **Deliberately not done in F16** — see progress.md: the tree read is not yet
-cached and tagged. `CacheTags.communityTree()` exists, but `cachedGlobal` is an
+cached and tagged. `CacheTags.forumTree()` exists, but `cachedGlobal` is an
 interface in `packages/core/src/cache.ts` with no implementation anywhere, so
 there is no seam to wire it to. Building F10's caching harness is its own
 feature, not a rider on this one.
@@ -576,7 +576,7 @@ assumption in the test suite quietly stops meaning anything.
 
 - **Explicit ids do not advance the identity sequence.** Without a `setval`, the
   first group an administrator creates collides on id 1. The same applies to any
-  seed or import preserving upstream ids (F85) — it bit the community-tree test
+  seed or import preserving upstream ids (F85) — it bit the forum-tree test
   fixture in the same session, from the same cause.
 - **The PGlite fixture only applied `0000`.** It named one file, so a second
   migration would have been invisible to every integration test. It now reads
@@ -653,16 +653,16 @@ so the table name sits *after* a 900-character column list and was always cut
 off, reporting forty repetitions of an indistinguishable `select "id", "key",
 …`. It now elides from the middle.
 
-Mutation-verified: an N+1 injected into `PostgresCommunityRepository.listAll` fails
+Mutation-verified: an N+1 injected into `PostgresForumRepository.listAll` fails
 the budget assertion. F16's "tree read is one query regardless of depth" is now
 a measurement against a genuinely nested seeded board rather than a claim about
 the code.
 
 **The seeder's scale is a parameter, and that is the honest part.** F11's target
-is 50 communities / 100k threads / 2M posts / 20k users. That is a real-Postgres
+is 50 forums / 100k threads / 2M posts / 20k users. That is a real-Postgres
 workload: PGlite is Postgres compiled to WASM holding the database in process
 memory, and 2M posts would exhaust the heap long before finishing. So
-`SMOKE_SCALE` (12 communities / 120 threads) runs in every test run and `FULL_SCALE`
+`SMOKE_SCALE` (12 forums / 120 threads) runs in every test run and `FULL_SCALE`
 is the plan's number, pointed at a real database for F89's performance pass.
 Recording this rather than quietly shipping a small seeder under the plan's
 heading — the difference matters, because an index that looks fine at 120
@@ -675,19 +675,19 @@ three green runs would teach everyone to re-run a failure rather than read it.
 
 Per-row cost is avoided deliberately — one shared precomputed Argon2id hash
 (hashing 20k passwords at the real cost factor proves nothing the crypto suite
-does not already cover), batched multi-row inserts, and community paths accumulated
-in memory rather than read back per community.
+does not already cover), batched multi-row inserts, and forum paths accumulated
+in memory rather than read back per forum.
 
-### D26 — `visibleCommunityIds` was an N+1; it is now three queries, not one (F21)
+### D26 — `visibleForumIds` was an N+1; it is now three queries, not one (F21)
 
 **Found by the query-budget helper within an hour of building it.** F21's
-acceptance says "`visibleCommunityIds` is one query". It was **32** on a 15-community
-board: the implementation looped over every community asking for that community's
+acceptance says "`visibleForumIds` is one query". It was **32** on a 15-forum
+board: the implementation looped over every forum asking for that forum's
 ancestor chain and its overrides — two round trips each.
 
 This is the worst possible place for an N+1. Every list page on the board
 filters by the visible set (invariant 25), so the cost multiplies across the
-entire product, and it grows with the number of communities — the one dimension a
+entire product, and it grows with the number of forums — the one dimension a
 busy board keeps increasing.
 
 **Fix.** `AuthorizationSource` grew `allAncestorChains()`, which the materialised
@@ -702,17 +702,17 @@ domain logic. Expressing them in SQL would move the permission model into the
 database, where F20's "nothing outside `@meith/authorization` knows what a group
 id is" stops being enforceable, and where the F22 matrix could no longer drive
 it. The property that actually matters is that the cost is **constant**, and
-that is asserted directly by comparing a 15-community board against a 65-community one —
-a bare budget of 3 would still pass on a tiny fixture with a per-community walk.
+that is asserted directly by comparing a 15-forum board against a 65-forum one —
+a bare budget of 3 would still pass on a tiny fixture with a per-forum walk.
 
 **Also closed here:** F21's "four-level tree with overrides at levels 2 and 4"
 had only ever been exercised through the in-memory fixture, which proves the
 rules but not the wiring. There is now a Postgres test over a real four-level
 tree, including the case that separates a correct resolver from one that merely
-works — a level-3 community with no row of its own must inherit level 2's denial
+works — a level-3 forum with no row of its own must inherit level 2's denial
 rather than fall back to the group default, because falling back silently
-exposes the child of a private community. It also asserts that `visibleCommunityIds` and
-`communityMatrix` agree, since a disagreement shows up as a community you can see in a
+exposes the child of a private forum. It also asserts that `visibleForumIds` and
+`forumMatrix` agree, since a disagreement shows up as a forum you can see in a
 listing but cannot open.
 
 ### D27 — The queue only worked with one driver's result shape (F05)
@@ -961,12 +961,12 @@ migration runner — all of which legitimately read a real filesystem outside th
 request path. Probed both ways.
 
 **The registry is load-bearing, not decorative.** `layout.tsx` reads its
-theme-colour through `communityConfig` rather than importing `@meith/theme-default`,
+theme-colour through `forumConfig` rather than importing `@meith/theme-default`,
 so installing a second theme does not mean editing the layout. Verified in the
 built output: the tokens in the registry are the values in the rendered
 `<meta name="theme-color">`.
 
-`defineCommunityConfig` validates the two things that would otherwise fail far from
+`defineForumConfig` validates the two things that would otherwise fail far from
 their cause — a `defaultTheme` naming a theme that is not installed (a blank
 board with no error), and a theme registered under a key that disagrees with its
 own (`themes[key].key !== key`, which breaks every lookup that round-trips
@@ -1111,7 +1111,7 @@ A registered theme now carries its `ThemeDefinition`, whose type lives in
 (`core-depends-on-nothing`, or the graph has no floor). `InstalledTheme<TTheme>`
 takes it as a type parameter, inferred from `community.config.ts` so no call site
 spells it out. The alternatives were `Record<string, unknown>` plus a cast at
-every reader — casts being what `defineCommunityConfig` exists to avoid — or moving
+every reader — casts being what `defineForumConfig` exists to avoid — or moving
 React component types into the package the CLI and worker import.
 
 #### Two things that would have shipped broken, and were only found by rendering
@@ -1153,7 +1153,7 @@ the key sets match exactly". Writing that test (`apps/community/src/styles/token
 found the two had drifted past recognition:
 
 - the mirror named **four tokens the CSS does not define** — `popover`,
-  `popover-foreground`, `community-pinned`, `community-staff`;
+  `popover-foreground`, `forum-pinned`, `forum-staff`;
 - it **omitted fifteen the CSS does** define, including every `thread-*`,
   `post-*`, `moderation-*` and `group-*` token;
 - **every single value differed.** `--background` was `oklch(0.985 0.002 250)` in
@@ -1162,7 +1162,7 @@ found the two had drifted past recognition:
 Nothing failed, because nothing compared them. The consequence is not cosmetic:
 F26 validates `themes.token_overrides` against `TOKEN_NAMES`, so a board
 overriding `thread-pinned` would have been told the token does not exist, while
-an override of `community-pinned` would have been accepted and applied to a variable
+an override of `forum-pinned` would have been accepted and applied to a variable
 no stylesheet reads. `BROWSER_THEME_COLOR` was two hex values from an older
 palette, which is what a phone renders around the page.
 
@@ -1237,7 +1237,7 @@ Phase 2's first real page. Three decisions worth recording.
 
 `plan-status.md` asked whether a visible child of a hidden parent should surface
 at top level (D22 noted `buildTree` promotes orphans to roots) or whether F21
-should filter subtrees whole. **Whole.** A community the viewer cannot see takes its
+should filter subtrees whole. **Whole.** A forum the viewer cannot see takes its
 descendants with it.
 
 Promoting the child leaks structure — a private category's children appearing as
@@ -1250,23 +1250,23 @@ whose parent was dropped *for being orphaned* (not by the visibility filter) has
 to go too, and one pass leaves it behind as a top-level block. That is the same
 leak one level deeper and much easier to miss, so it has its own test.
 
-The cost, stated: a visible community under a hidden parent is unreachable from the
+The cost, stated: a visible forum under a hidden parent is unreachable from the
 index. That is the correct reading of "the parent is hidden"; F65's ACP should
-surface such a community as misconfigured rather than the index papering over it.
+surface such a forum as misconfigured rather than the index papering over it.
 
 #### The listing read is deliberately uncached, and a test says so
 
-`communities` carries denormalised counters and a last-post triplet, so the index is
-one query with no join — the alternative, a correlated subquery per community against
+`forums` carries denormalised counters and a last-post triplet, so the index is
+one query with no join — the alternative, a correlated subquery per forum against
 `posts`, puts the largest table on the board in the path of the page every
 visitor loads first. The budget test asserts one statement across **two board
-sizes**, because with a single fixture "one query" and "one query per community" are
+sizes**, because with a single fixture "one query" and "one query per forum" are
 the same number. Mutation-verified: an injected per-row `findById` fails it and
 the helper names the repeated SQL.
 
-But `CommunityRepository` now has two reads, and only `listAll` is cached.
-`CachedCommunityRepository.listListing` passes straight through, with two tests
-pinning it. Counters change on every post: caching them under the community-tree tag
+But `ForumRepository` now has two reads, and only `listAll` is cached.
+`CachedForumRepository.listListing` passes straight through, with two tests
+pinning it. Counters change on every post: caching them under the forum-tree tag
 would mean invalidating the tree on every reply — making the tag worthless for
 the structural read it exists to serve — and caching them under a tag of their own
 means an entry stale within seconds plus a second thing the posting path must
@@ -1274,7 +1274,7 @@ remember to clear. Both are two lines away in the decorator, which is exactly wh
 the decision is a test rather than a comment.
 
 **The page itself is not cached at all.** Every row depends on who is asking
-(`visibleCommunityIds` per actor, F32's unread marks per user). A cached
+(`visibleForumIds` per actor, F32's unread marks per user). A cached
 permission-filtered index is precisely the leak F10's harness exists to prevent.
 
 #### Timestamps are formatted once, server-side, in a zone the page names
@@ -1302,11 +1302,11 @@ apart.
   prefetcher and link scanner that touches the page, and a Server Action
   reference is not plain data so it can never cross the theme contract. The panel
   slot gained `children`, and the app renders the form into it.
-- **The fixture board grew a category.** The two communities were roots with no
+- **The fixture board grew a category.** The two forums were roots with no
   heading, so the index had to invent one. `type: 'category'` carries no
   overrides and changes no resolution — every ancestor walk through it finds no
   row and inherits, which is F21's nullable-column inheritance.
-- **Fixture writes throw.** `FixtureCommunityRepository` serves real reads so the
+- **Fixture writes throw.** `FixtureForumRepository` serves real reads so the
   board renders with no database, and refuses `create`/`move` — a fixture that
   accepted them would let someone build a board in the dev UI and lose it on
   restart. Same rule as the scheduler in fixture mode (D32).
@@ -1345,9 +1345,9 @@ comparison can leave `last_post_id` null forever.
 
 The shared counter primitive therefore always writes the opening post's
 `first_post_id` and last-post fields. Replies still use timestamp/id ordering,
-which prevents a late-arriving older reply from moving a thread or community
+which prevents a late-arriving older reply from moving a thread or forum
 backwards. This was caught by the real Postgres test using equal timestamps;
-the initial implementation left the thread pointer null while the community pointer
+the initial implementation left the thread pointer null while the forum pointer
 looked correct.
 
 ### D41 — Where each counter becomes true, and how it gets back (F38)
@@ -1356,13 +1356,13 @@ F38 promised four things: atomic counters, an outbox ancestor roll-up, buffered
 views, and a batched resumable recount. The first landed with D40. The other
 three each forced a decision.
 
-#### Community counters are subtree-inclusive, and only the posting community is exact
+#### Forum counters are subtree-inclusive, and only the posting forum is exact
 
-A category with no threads of its own must still show totals, so a community's
+A category with no threads of its own must still show totals, so a forum's
 counters cover its whole subtree. That leaves the question of *when* each row
 becomes true, and the answer differs by distance:
 
-- the **posting community** is updated inside the content transaction, because the
+- the **posting forum** is updated inside the content transaction, because the
   page the author is redirected to must already agree with what they just did;
 - **ancestors** are updated from the `post.created` event, because a post four
   levels deep would otherwise make every reply write four more rows inside the
@@ -1403,7 +1403,7 @@ is also why it is the one number nobody can audit and nothing depends on.
 
 #### The recount writes truth, in phases, from a stored cursor
 
-It runs threads → communities → users, bounded by batch size, resuming from
+It runs threads → forums → users, bounded by batch size, resuming from
 `counter_recount_state`. Two consequences are load-bearing:
 
 - it writes a **computed value, never a delta**, so interrupting it mid-sweep is
@@ -1413,12 +1413,12 @@ It runs threads → communities → users, bounded by batch size, resuming from
   wasted run per phase per sweep at no cost, because re-reading rows has no
   side effects by construction.
 
-Threads run before communities because community totals aggregate the same post rows, so
+Threads run before forums because forum totals aggregate the same post rows, so
 one sweep leaves the two consistent instead of one sweep apart.
 
 **One definition of "counts" throughout:** a post counts when the post is visible
 *and its thread is*. A visible post inside a soft-deleted thread counts nowhere —
-not for its community, not for its author. The incremental writer never sees that
+not for its forum, not for its author. The incremental writer never sees that
 case (new content is always visible), so the two only had to be reconciled here.
 The per-user aggregate needed a `FILTER` rather than a `WHERE` to say it: with a
 `WHERE`, an author whose every post sits in a deleted thread drops out of the
@@ -1486,8 +1486,8 @@ rather than a migration.
   (F48) is the transition that applies them. Writing the counters now and
   correcting them at approval would show the board a thread count for content
   nobody can read.
-- **A held thread redirects to its community, not to itself.** Sending the author to
-  a thread that is invisible to them is a 404 on their own post. The community says
+- **A held thread redirects to its forum, not to itself.** Sending the author to
+  a thread that is invisible to them is a 404 on their own post. The forum says
   what happened, and the notice's dismiss link is the same URL without the
   parameter — no JavaScript, no state.
 - **Flood control is measured from the author's last post**, including posts
@@ -1509,12 +1509,12 @@ rather than a migration.
 
 - **The posting flags were not in any read model.** `is_open`, `allow_threads`,
   `requires_prefix` and `moderate_new_threads` exist as columns that no read
-  path selects. Rather than widening `CommunityRow` — which the index, the listing
+  path selects. Rather than widening `ForumRow` — which the index, the listing
   and the thread view all use, and none of which care — the posting port reads
   them itself. A read model that grows a column per screen ends up a table dump.
 - **Fixture mode has no composer at all.** `threadWrites` is null there, the
   route 404s and the "New thread" link is absent, following D38's rule for
-  community writes and D32's for tasks: never advertise a capability that is not
+  forum writes and D32's for tasks: never advertise a capability that is not
   there. The cost is real and is recorded as F39's gap — the no-JS Playwright
   suite runs against the fixture board, so it can prove reading and
   registration without JavaScript but cannot yet prove posting. The action's
@@ -1547,8 +1547,8 @@ Quoting is a link to the reply page with `?quote=<id>`, so it works with
 scripting off — no button that edits a textarea, no island. The quoted post is
 re-read through a thread-scoped visible-post lookup rather than trusted from the
 query string: without the thread in the lookup, `?quote=<id>` is a way to paste
-any post on the board — including one from a community the quoter cannot read — into
-a community where everyone can.
+any post on the board — including one from a forum the quoter cannot read — into
+a forum where everyone can.
 
 It emits BBCode (`[quote='ada' pid='12']…[/quote]`) even though nothing renders
 it yet. Bodies are stored raw and rendered at read time, so a quote written
@@ -1570,7 +1570,7 @@ the stated price of not counting.
 
 #### Smaller things
 
-- **`moderate_new_posts`, not `moderate_new_threads`.** A community can hold replies
+- **`moderate_new_posts`, not `moderate_new_threads`.** A forum can hold replies
   while letting threads through, and the columns have existed since F16 with
   nothing reading them. Both are now read, and the reply path uses the one that
   is about replies.
@@ -1589,8 +1589,8 @@ the stated price of not counting.
   a decision already on record: `docs/mybb-parity.md#flood-intervals` says the
   interval is a board setting plus the `canBypassFloodCheck` boolean. That
   boolean had no way to be asked for, so the posting path could not use it. It
-  now has a global `flood.bypass` action — outside the F22 community matrix, because
-  the interval is not a per-community grant — and administrators are in
+  now has a global `flood.bypass` action — outside the F22 forum matrix, because
+  the interval is not a per-forum grant — and administrators are in
   `ADMIN_ALWAYS` for it, since an administrator waiting fifteen seconds while
   clearing a spam wave is obstructed by a defence aimed at somebody else.
 
@@ -1700,7 +1700,7 @@ one.
   browser-level proof of any Phase 3 feature (the composer still has no fixture
   writer; see F39/F40's standing gap).
 - **A quote's `pid` is parsed and dropped.** Turning it into a link needs the
-  thread the post lives in, and a post id alone can address a post in a community
+  thread the post lives in, and a post id alone can address a post in a forum
   the reader cannot see. A quote header that 404s for half the board is worse
   than one without a link.
 - **Bare URLs are not auto-linked.** MyBB linkifies loose `http://…` in post
@@ -1724,18 +1724,18 @@ writes is not a counter. `post_count` is a delta and reverses arithmetically;
 newest" is not "subtract one" — it is "find what the newest is now".
 
 So counts are adjusted and pointers are recomputed, and the two get different
-guarantees. Counts on the direct community, thread and author are written in the
+guarantees. Counts on the direct forum, thread and author are written in the
 caller's transaction; ancestor counts ride the event, as F38's do. Pointers on
 the **whole path** are recomputed synchronously, because a board index linking
 to a post that no longer exists is worse than a count being a minute late.
 
-The repair walks deepest-first and takes each community's pointer to be the newest
+The repair walks deepest-first and takes each forum's pointer to be the newest
 of (its own visible threads) and (its children's already-correct pointers) —
 subtree-inclusive by induction, two indexed reads and one update per level. It
 runs on *every* visibility change rather than only when the changed post
 happened to be a pointer, because deciding that costs about as much as doing it
 and getting it subtly wrong is silent. A mutant that repairs only the posting
-community, and one that walks the chain top-down, are both killed by tests.
+forum, and one that walks the chain top-down, are both killed by tests.
 
 #### The ledger already answered the idempotency question
 
@@ -1889,14 +1889,14 @@ rather than an untested path.
 #### Locate, authorise, read
 
 The thread page had a genuine ordering problem: the scope cannot be built before
-the community is known, the community cannot be known before the thread is found, and
+the forum is known, the forum cannot be known before the thread is found, and
 reading the thread unscoped to find out is exactly what the gate forbids.
 
 Three options, and only one is honest. Reading the thread with an all-states
 scope makes the escape hatch a supported feature. Reading it publicly first and
 retrying wider means two reads and a subtle bug when they disagree. What it does
-instead is `locateCommunity(threadId)` — a deliberately unscoped lookup that returns
-a **community id and nothing else**. A community id is not content: it confirms nothing
+instead is `locateForum(threadId)` — a deliberately unscoped lookup that returns
+a **forum id and nothing else**. A forum id is not content: it confirms nothing
 a reader could not learn by being refused, and the `thread.view` check that
 immediately follows decides whether they learn even that. The thread itself is
 then read exactly once, in the scope this actor turns out to have.
@@ -1952,23 +1952,23 @@ Approving was already built: it is F41's `unapproved → visible`, counter-corre
 in both directions and idempotent against replay. What F48 adds is the part F41
 could not have — a *list* of what is waiting, and a bulk decision over it.
 
-#### `community_moderators` had no reader
+#### `forum_moderators` had no reader
 
 F21 created the table. Nothing has consulted it since, and
-`Target.isCommunityModerator` — the flag the Authorizer branches on for four
+`Target.isForumModerator` — the flag the Authorizer branches on for four
 different actions — has never once been set by the app. So in practice
 "moderator" has meant "member of a staff group", and a board that appointed
-somebody to moderate one community appointed them to nothing.
+somebody to moderate one forum appointed them to nothing.
 
-F48 is the first feature where that gap is load-bearing: "the communities I
+F48 is the first feature where that gap is load-bearing: "the forums I
 moderate" is the queue's entire scope. So the port gained
 `moderatorAppointments`, `@meith/db` gained the query, and
-`Authorizer.moderatedCommunityIds` unions two sources — a group-level
+`Authorizer.moderatedForumIds` unions two sources — a group-level
 `canApproveContent`, and an appointment, expanded down the tree when it
-cascades. It is constant-query for the same reason `visibleCommunityIds` is (D26).
+cascades. It is constant-query for the same reason `visibleForumIds` is (D26).
 
-Threading `isCommunityModerator` through every per-page `can()` call is *not* part
-of this feature and remains a real gap: outside the queue, a per-community
+Threading `isForumModerator` through every per-page `can()` call is *not* part
+of this feature and remains a real gap: outside the queue, a per-forum
 appointee still has only their group's rights. That is F54's, where granular
 moderator rights become the subject rather than a dependency.
 
@@ -1980,25 +1980,25 @@ the moderation bypass. Approving is a stronger power — MyBB has had
 years — so `content.approve` is a new `Action`, which by design forces a
 thirteenth column in F22's fixture. That cost is the point of the gate, and it
 was small: the sets are named constants, so `ALL` picked it up and only the
-read-only-subcommunity row needed a decision (a moderator approves there; the
-override takes away *posting*, and a closed community is exactly the kind that still
+read-only-subforum row needed a decision (a moderator approves there; the
+override takes away *posting*, and a closed forum is exactly the kind that still
 has a queue from before it closed).
 
-`content.approve` reads `moderatorApproves` rather than `isCommunityModerator`,
+`content.approve` reads `moderatorApproves` rather than `isForumModerator`,
 because an appointment's rights are granular: being a moderator here does not by
 itself mean being trusted to empty the queue.
 
 #### The selection is never trusted
 
 A form submits `kind:id` checkbox values. Every one is re-read to find out which
-community it is *actually* in, and only then checked against the moderated set. An
+forum it is *actually* in, and only then checked against the moderated set. An
 id in a POST body is a request, not a fact — and the moderated set is resolved
 per request from the actor, never carried in a hidden field, because a hidden
 field holding it is the whole permission check sitting in the browser. Both are
 mutation-verified.
 
 Refusals are reported, not dropped. A moderator who selects twelve items and
-moves eleven is told how many were in communities they do not moderate and how many
+moves eleven is told how many were in forums they do not moderate and how many
 somebody else had already handled — otherwise the screen and the board disagree
 about what just happened and only one of them is right.
 
@@ -2058,7 +2058,7 @@ should exist.
 - **One audit row per batch.** A moderator clearing a queue performed one act;
   twenty rows saying so would bury the next one.
 - **The user-panel link is group-level only.** `canAccessModCp` is read off the
-  already-resolved actor, so the shell costs no extra query — but a per-community
+  already-resolved actor, so the shell costs no extra query — but a per-forum
   appointee does not get the link, only the working page behind it. Resolving
   the tree on every page render to fix that is F54's trade to make.
 
@@ -2110,9 +2110,9 @@ the same `or`.
 
 #### Two scopes, because reports have two
 
-A report about a post or a thread belongs to that community's moderators —
-`moderatedCommunityIds`, the set F48 built. A report about a **member** belongs to no
-community, so it is board staff's (`modcp.access`) or it is nobody's. They are one
+A report about a post or a thread belongs to that forum's moderators —
+`moderatedForumIds`, the set F48 built. A report about a **member** belongs to no
+forum, so it is board staff's (`modcp.access`) or it is nobody's. They are one
 predicate rather than two queries, so a moderator who is also staff sees both in
 one ordered page.
 
@@ -2121,16 +2121,16 @@ switch for "this person is staff", and inventing a second would give an
 administrator two ways to express one decision.
 
 "Does not exist" and "not yours" give the same answer, so a moderator of one
-community cannot learn by probing ids that a report exists in another.
+forum cannot learn by probing ids that a report exists in another.
 
 #### Only public content is reportable
 
 `resolveTarget` uses `PUBLIC_CONTENT` for every actor rather than the reader's
 own scope (F47). A member cannot report what they could not have seen, and a
 moderator has better tools than the report button for content that is already
-held or removed. The community check then happens *after* the target resolves, in
+held or removed. The forum check then happens *after* the target resolves, in
 both the page and the action: a form says which row, and whether this member
-could see it is a question only the row's community can answer.
+could see it is a question only the row's forum can answer.
 
 Reporting your own post is not offered. It is a button that files a complaint
 about yourself, and the only person it helps is somebody flooding the queue.
@@ -2148,8 +2148,8 @@ it by accident and moderators can simply close it.
 #### Smaller things
 
 - **`content.report` is global**, so it costs the F22 matrix nothing — the
-  matrix is community-scoped actions, and reporting is a board-wide capability. What
-  *is* per-community is whether the member could see the target, and that is
+  matrix is forum-scoped actions, and reporting is a board-wide capability. What
+  *is* per-forum is whether the member could see the target, and that is
   `thread.view`, which the matrix already covers.
 - **The moderator screens are app-owned**, for the reason D47 records for the
   queue: the slot registry freezes at F77 and an operator surface does not
@@ -2170,7 +2170,7 @@ every counter the thread's posts contribute.
 
 #### The thread tools have no usergroup permission, on purpose
 
-Every action before F50 reads a field off the resolved community matrix.
+Every action before F50 reads a field off the resolved forum matrix.
 `thread.lock`, `thread.stick`, `thread.move` and `thread.delete` read an
 **appointment right** and nothing else. MyBB has never had a usergroup column
 for these either, and it is right not to: "may lock threads everywhere on the
@@ -2178,25 +2178,25 @@ board" is a thing you are appointed to or a thing you bypass into as staff, not
 a checkbox on a group.
 
 That made F48's debt come due immediately. `moderatorApproves` became a full
-`ModeratorRights` on the Target, `community_moderators` grew from four rights to
+`ModeratorRights` on the Target, `forum_moderators` grew from four rights to
 seven in the reader, and `Authorizer.moderatorRightsIn` is the new seam:
-`moderatedCommunityIds` answers *where* somebody moderates, this answers *what* they
-may do there. Rights from several appointments covering the same community are
+`moderatedForumIds` answers *where* somebody moderates, this answers *what* they
+may do there. Rights from several appointments covering the same forum are
 **unioned** — two grants are two grants.
 
 Four new actions means four new columns in the F22 matrix, now 544 cells. The
 decision per cell was uniform (moderators everywhere, members nowhere) with one
-judgement: a moderator keeps the tools in the read-only subcommunity, because the
-override takes away *posting*, and a community nobody may post in is exactly the
+judgement: a moderator keeps the tools in the read-only subforum, because the
+override takes away *posting*, and a forum nobody may post in is exactly the
 kind that still has a backlog from before it was closed.
 
 #### A move has two ends, and both need the right
 
 The rule a "can this actor moderate here" check gets wrong. Rights in the source
 alone would let a moderator move a thread out from under the people watching it
-and into a community where they have no standing at all — which is how a private
-community acquires content its own moderators never approved. So the action resolves
-rights **twice**, once per community, and the command refuses unless both hold.
+and into a forum where they have no standing at all — which is how a private
+forum acquires content its own moderators never approved. So the action resolves
+rights **twice**, once per forum, and the command refuses unless both hold.
 Mutation-verified by copying the source rights into the destination.
 
 #### Where the ancestors are updated, and why it differs from F38/F41
@@ -2211,7 +2211,7 @@ neighbour, both do their ancestors in the caller's transaction. They are bounded
 by tree depth and they are rare — a board moves a thread far less often than it
 gains a reply. The two chain updates cancel exactly at a shared ancestor, which
 is the assertion a naive implementation fails: a thread moved between two
-subcommunities of one category has not left the category.
+subforums of one category has not left the category.
 
 Thread delete and restore *do* keep the ledger in sync, because their posts stop
 and start being counted. Without it, deleting one post of a deleted thread would
@@ -2219,18 +2219,18 @@ decrement ancestors that the thread had already decremented.
 
 #### The tally is taken once
 
-A thread's contribution is counted once and reused for the community, the ancestors
+A thread's contribution is counted once and reused for the forum, the ancestors
 and every author. Three separate counts of the same thing is how a move leaves a
-community and its category disagreeing by one. It is also per-author: Ada wrote the
+forum and its category disagreeing by one. It is also per-author: Ada wrote the
 opening post and Bob the reply, so a single subtraction applied to "the thread's
 author" would leave Bob credited for a post nobody can read.
 
 A move leaves author counts alone. It changes where somebody wrote, never how
 much.
 
-#### `posts.community_id` is denormalised and has to be rewritten
+#### `posts.forum_id` is denormalised and has to be rewritten
 
-R3.3 carries the community on the post so permission filtering and the moderation
+R3.3 carries the forum on the post so permission filtering and the moderation
 queue can scope without joining `threads`. A move that updated only the thread
 leaves every post claiming to be somewhere it is not — and the queue, F47's
 scope and the recount all read that column. Its own killed mutant.
@@ -2257,7 +2257,7 @@ F50's row says `PARTIAL` for exactly these, rather than `DONE` with a footnote.
 
 ### D50 — Merge and split are one arithmetic seen from either side (F51)
 
-**Plan:** "Test-first merge/split across communities, preserving post order and all
+**Plan:** "Test-first merge/split across forums, preserving post order and all
 pointers/counters/authors."
 
 **Implemented:** `ThreadSurgery` in `@meith/moderation` with
@@ -2267,12 +2267,12 @@ and the two controls in the same moderator bar as F50's.
 #### Why one file, and why two actions
 
 The two operations are one file because they keep the same list of things true:
-post order, the opening-post flag, the reply counts on both threads, both community
+post order, the opening-post flag, the reply counts on both threads, both forum
 chains, and who is credited with what. Splitting them across packages would mean
 maintaining that list twice.
 
 They are two *actions* because they take different arguments and authorise
-different pairs of communities. F50 has one action for four tools precisely because
+different pairs of forums. F50 has one action for four tools precisely because
 those four differ only in a verb; forcing merge and split into that shape would
 mean a parser that ignores half its input depending on a hidden field, which is
 how the wrong end gets authorised.
@@ -2298,14 +2298,14 @@ The new thread is credited to the author of the post it now *opens with*, not to
 whoever started the conversation it came out of. A split exists because that post
 began something different.
 
-#### A split lands in the same community, always
+#### A split lands in the same forum, always
 
 Splitting and moving are two acts. Doing both at once would mean one operation
-with a second community to authorise, and a moderator who may split here but not
-post there could place content in a community they have no standing in. `thread.move`
-is right there afterwards. It also keeps the community arithmetic trivial and
-correct: the community gains **one thread and zero posts**, because the posts never
-left it. Moving the post count too is the mistake that makes a community's total drop
+with a second forum to authorise, and a moderator who may split here but not
+post there could place content in a forum they have no standing in. `thread.move`
+is right there afterwards. It also keeps the forum arithmetic trivial and
+correct: the forum gains **one thread and zero posts**, because the posts never
+left it. Moving the post count too is the mistake that makes a forum's total drop
 every time somebody tidies a thread.
 
 #### A merge moves every post, including the held ones
@@ -2343,11 +2343,11 @@ answers "that thread does not exist" in exactly the words an id nobody has used
 gets.
 
 Rights are resolved at **both** ends, for D49's reason: a merge pushes content
-into the target's community.
+into the target's forum.
 
 #### What is deliberately not here
 
-- **Splitting into another community.** See above; it is split-then-move.
+- **Splitting into another forum.** See above; it is split-then-move.
 - **Splitting a hand-picked set of posts.** The cut is "from this post onwards",
   which is what MyBB's split-from does and what the thread page can express with
   a `<select>`. Arbitrary selection needs the per-post checkbox surface F52 is
@@ -2366,7 +2366,7 @@ two questions the single-target tools never had to.
 
 #### The checkboxes are not inside the form, and cannot be
 
-`CommunityDisplay` already renders a mark-read `<form>`, and nested forms are not
+`ForumDisplay` already renders a mark-read `<form>`, and nested forms are not
 something a browser will parse — the inner one is discarded, silently. So the
 moderation bar cannot wrap the listing.
 
@@ -2388,7 +2388,7 @@ ignores it renders a listing with no bulk moderation and nothing else missing.
 #### The scope is the security boundary, not the rights
 
 F48 established that the selection is never trusted: every id is re-read to find
-the community it is really in, and only then checked. That is necessary and, on its
+the forum it is really in, and only then checked. That is necessary and, on its
 own, not sufficient here — because F48 had one right (`content.approve`) and F52
 has six, so it has to report *refusals*.
 
@@ -2398,15 +2398,15 @@ content-existence oracle: tick an id, read the counts, learn whether it exists.
 F51 named the same trap for its merge box and closed it by putting the raw
 thread number through `thread.view`.
 
-So the re-read itself is scoped. `Authorizer.communityIdsWhere(actor, action)` — new
-in this feature — answers "every community where this actor may perform this
-action", and `resolve` never looks outside it. An id in any other community comes
+So the re-read itself is scoped. `Authorizer.forumIdsWhere(actor, action)` — new
+in this feature — answers "every forum where this actor may perform this
+action", and `resolve` never looks outside it. An id in any other forum comes
 back absent, exactly like an id nobody has used. Within the scope, refusals are
-free to be specific: those are communities the actor already moderates.
+free to be specific: those are forums the actor already moderates.
 
-#### `communityIdsWhere` exists because one rights field means two things
+#### `forumIdsWhere` exists because one rights field means two things
 
-`moderatedCommunityIds` is keyed by a `ModeratorRights` field. That is the right
+`moderatedForumIds` is keyed by a `ModeratorRights` field. That is the right
 question for a queue and the wrong one for a tool, because `canSoftDeletePosts`
 grants `post.softDelete` through a group column *or* an appointment, and grants
 `thread.delete` through the appointment only — F50 gave the thread tools no
@@ -2414,18 +2414,18 @@ group column on purpose. A scope keyed by the right cannot express both.
 
 Keyed by the **action** it can, because `can()` already knows. The new method
 builds the Target a page would build — resolved matrix, resolved appointment
-rights — and asks `can()` once per community, over the same constant set of source
-reads `visibleCommunityIds` uses (D26).
+rights — and asks `can()` once per forum, over the same constant set of source
+reads `visibleForumIds` uses (D26).
 
-It also **sets `Target.isCommunityModerator`**, which F48 introduced and then
+It also **sets `Target.isForumModerator`**, which F48 introduced and then
 recorded as debt because no per-page `can()` call ever set it. That is half of
 F54's debt paid in passing: an appointee's `post.softDelete` now resolves the
 same way in bulk as it does on the post's own page.
 
 Staff short-circuit before the loop, and it is not an optimisation. It logs one
-bypass instead of one per community — fifty audit lines for a page load buries the
+bypass instead of one per forum — fifty audit lines for a page load buries the
 bypasses that describe a decision — and it *agrees with `can()`*, which grants a
-super-moderator every community-scoped action before it looks at the matrix at all.
+super-moderator every forum-scoped action before it looks at the matrix at all.
 A scope narrower than the action it authorises is a screen disagreeing with its
 own decision.
 
@@ -2434,9 +2434,9 @@ own decision.
 Following from the above: `INLINE_TOOL_ACTIONS.delete` is
 `['thread.delete', 'post.softDelete']`, and the scope is the union. Scoping by
 either one alone breaks something — by the narrower, a group-level post deleter
-sees every selection report "gone"; by the wider, a thread id in a community where
+sees every selection report "gone"; by the wider, a thread id in a forum where
 only `post.softDelete` holds comes back as a refusal, which is the oracle again.
-Union scope, per-row right: every community in the scope is one the actor already
+Union scope, per-row right: every forum in the scope is one the actor already
 moderates with this tool, so a refusal there discloses nothing.
 
 #### Four numbers, not one
@@ -2549,16 +2549,16 @@ restriction, so nothing has to be swept for these to be correct.
 
 They arrive at `ThreadComposer` and `ReplyComposer` as two booleans, like
 `bypassesModeration` beside them, and **a warning outranks that bypass**. The
-bypass says "this community's queue does not apply to you"; a warning level says
+bypass says "this forum's queue does not apply to you"; a warning level says
 "your posts are reviewed", and a moderator whose own bypass cancelled their
 sanction would be the one person on the board it could not reach.
 
 #### The permission is global
 
-`user.warn` is a usergroup column with no per-community counterpart, matching MyBB's
+`user.warn` is a usergroup column with no per-forum counterpart, matching MyBB's
 `canwarnusers`. A warning's points follow the member across the whole board, so
-a per-community grant would have to answer "warned where?" about a total that has no
-community. It is therefore **not** in the F22 matrix — the same reasoning
+a per-forum grant would have to answer "warned where?" about a total that has no
+forum. It is therefore **not** in the F22 matrix — the same reasoning
 `content.report` records — so the gate needed no new column.
 
 #### Smaller decisions worth knowing
@@ -2597,14 +2597,14 @@ community. It is therefore **not** in the F22 matrix — the same reasoning
 Phase 4 built the *acts*. What none of them built is the place a moderator goes
 when nobody has handed them a link — and, more importantly, the place they find
 out **what they have been appointed to**. Once F50 made "may lock threads" a
-per-community appointment rather than a checkbox on a group, a moderator's only way
+per-forum appointment rather than a checkbox on a group, a moderator's only way
 to discover their own rights was to press a button and be refused.
 
 #### Access is a grant *or* an appointment
 
 `modcp.access` is a usergroup column and it is not the only route in: an
-appointed moderator of one community has work to do and no group grant. So the gate
-is "holds `modcp.access` **or** moderates at least one community", and the sections
+appointed moderator of one forum has work to do and no group grant. So the gate
+is "holds `modcp.access` **or** moderates at least one forum", and the sections
 inside are filtered by what that resolves to. A member with neither gets
 `notFound()` rather than a 403 — the existence of the panel is not something to
 confirm to somebody who may not open it, which is F48's answer for the queue.
@@ -2624,21 +2624,21 @@ build-time omission that gets noticed, rather than a disclosure that does not.
 The same applies to the `detail` JSON: only keys with a declared label are
 rendered.
 
-Scoping is in SQL, not in the rendering. A moderator of one community sees that
-community's entries plus their own; filtering a board-wide feed afterwards is how a
+Scoping is in SQL, not in the rendering. A moderator of one forum sees that
+forum's entries plus their own; filtering a board-wide feed afterwards is how a
 count or a paging boundary leaks what it hid. Three cases fall out of that and
 each is tested:
 
-- **A move appears in both communities' logs**, because it happened at both ends
+- **A move appears in both forums' logs**, because it happened at both ends
   (D49's rule, applied to the record of it).
-- **A community-less entry — a warning, an address lookup — is its author's business
+- **A forum-less entry — a warning, an address lookup — is its author's business
   only.** Showing every warning on the board through the log would be a wider
   grant than the warn screen itself gives.
-- **Your own acts stay visible in a community you have since left.**
+- **Your own acts stay visible in a forum you have since left.**
 
-The community an entry belongs to is read out of the detail JSON rather than from a
+The forum an entry belongs to is read out of the detail JSON rather than from a
 new column, because every moderation action already records the ids it touched
-and a column on `admin_log` would mean the ACP's rows carrying a community id that
+and a column on `admin_log` would mean the ACP's rows carrying a forum id that
 means nothing.
 
 #### The address lookup: gated separately, audited always, and honest about prefixes
@@ -2671,11 +2671,11 @@ would leave a lookup you can perform without a trace by typing a URL.
 
 #### F48's debt, paid
 
-`Target.isCommunityModerator` has existed since F48 and was never set on a per-page
-`can()` call, so outside the queue a per-community appointee had only their group's
+`Target.isForumModerator` has existed since F48 and was never set on a per-page
+`can()` call, so outside the queue a per-forum appointee had only their group's
 rights — `post.editOthers`, `post.softDelete` and both content-visibility
 actions all read the flag and all saw `undefined`. F52 paid half of it inside
-`Authorizer.communityIdsWhere`; `moderatorTargetFor` pays the rest, and the thread
+`Authorizer.forumIdsWhere`; `moderatorTargetFor` pays the rest, and the thread
 page now builds every affordance on an appointment-aware target.
 
 #### What is deliberately not here
@@ -2895,9 +2895,9 @@ colour travels; a cascade does not.
 #### What is deliberately not here
 
 - **A notification when a report is *filed*.** The recipient set is "everybody
-  who moderates that community", which is `moderatedCommunityIds` inverted — and
-  inverting it correctly means resolving the community matrix per *group*, not per
-  actor, because a group-level approver who cannot view the community must not be
+  who moderates that forum", which is `moderatedForumIds` inverted — and
+  inverting it correctly means resolving the forum matrix per *group*, not per
+  actor, because a group-level approver who cannot view the forum must not be
   notified about it. That is a real piece of work and it is not this feature's;
   the reporter-facing half (`report.actioned`) is here because its recipient is
   one exact person. F49's row still names the gap.
@@ -2915,7 +2915,7 @@ colour travels; a cascade does not.
 
 ### D56 — Following something, and being told about it later (F56)
 
-`thread_subscriptions` and `community_subscriptions` have both existed since
+`thread_subscriptions` and `forum_subscriptions` have both existed since
 migration `0000`. F39's composer has been *writing* thread subscriptions since
 Phase 3 — the "subscribe to this thread" checkbox inserts a row — and nothing
 has ever read one. This is the reader, plus the screen a member needs to see
@@ -2984,13 +2984,13 @@ collapsing this week's into last week's unread one would silently drop a week.
 
 #### Permission is re-checked per member, at notify time
 
-A subscription is not a standing grant. A community can be made private, a group can
+A subscription is not a standing grant. A forum can be made private, a group can
 lose `canView`, a thread can be moved somewhere its subscriber cannot read — all
 after the subscription was created, and all of them mean the member must not be
 told what happened there.
 
 So the notifier resolves the member's visible set through the Authorizer
-(`VisibleCommunitySource` over `ActorBuilder` + `visibleCommunityIds`) and hands it to
+(`VisibleForumSource` over `ActorBuilder` + `visibleForumIds`) and hands it to
 the query. That costs an actor build plus F21's constant three reads per member
 (D26), paid once per member per run. The alternative is a second answer to the
 visibility question living inside a task, and F47's whole argument is that there
@@ -3032,7 +3032,7 @@ preferences screen already draws. The scope is inside the signed payload, so a
 - **A "notify me when somebody quotes me" kind** and the rest of MyBB's
   notification list: they need producers that do not exist yet, and a kind on
   the preferences screen that can never fire is the thing D32 forbids.
-- **Per-community digest cadence defaults** and a UserCP home for the screen —
+- **Per-forum digest cadence defaults** and a UserCP home for the screen —
   `/subscriptions` stands alone until F57 gives it one.
 - **Fixture mode has no subscription store**, like every writer since D38, so
   the follow control and the management screen are absent there rather than
@@ -3166,7 +3166,7 @@ it, who may change it, and is it asked at registration.
 
 `profile_field_groups` is a row per (field, group) with **nullable** `can_view`
 and `can_edit`, where NULL means "inherit the field's default" — the same shape
-`community_permissions` has carried since F21, resolved by the same R4.2 rule that
+`forum_permissions` has carried since F21, resolved by the same R4.2 rule that
 any group granting is a grant.
 
 That is not convenience. It is the model this board already resolves everywhere
@@ -3333,8 +3333,8 @@ Three things make it narrow. `resolveTarget` gained a `reporterUserId`
 parameter, used by exactly this one branch: **a private message "exists" only
 for somebody who holds a copy of it**, so reporting a message you were not sent
 gives the same answer as reporting one that is not there. The report carries no
-community, so it routes to `modcp.access` like a member report rather than to some
-community's staff. And the queue screen fetches the reported bodies *by id*, for the
+forum, so it routes to `modcp.access` like a member report rather than to some
+forum's staff. And the queue screen fetches the reported bodies *by id*, for the
 reports on that page only — there is no listing, no search, and no way to reach
 the message beside it.
 
@@ -3362,7 +3362,7 @@ a reply that quietly grows its audience is not what the button promises.
 
 `maxPrivateMessagesPerDay` has existed since F22 and caps *sends per day*.
 `privateMessageQuota` is new and caps how many a member may **keep** — which is
-what a full inbox means. Both are global numerics, so the F22 community matrix is
+what a full inbox means. Both are global numerics, so the F22 forum matrix is
 untouched.
 
 The check runs for the sender and for every recipient before anything is
@@ -3497,7 +3497,7 @@ the last moments of every interval.
 - **`PostAuthorModel.isOnline`.** Still `false` for every post: filling it needs
   `last_active_at` per author in the post query, and the buddy list is what F61
   actually promised.
-- **Ignoring a thread or a community.** F56 is where "stop telling me about this"
+- **Ignoring a thread or a forum.** F56 is where "stop telling me about this"
   lives, and it is a different verb from "I would rather not read this person".
 
 ### D61 — F58 ships its signature half; the avatar half is F42's (F58)
@@ -3560,7 +3560,7 @@ which closes the race where a moderator locks a signature while the member has
 the form open.
 
 It is gated on `user.warn` rather than a new permission: both are aimed at a
-*person* rather than a community's content, and a board that trusts somebody to warn
+*person* rather than a forum's content, and a board that trusts somebody to warn
 a member trusts them to stop that member's signature.
 
 ### D62 — Two rate limits, two mechanisms (F62)
@@ -3724,18 +3724,18 @@ the requester has already been admitted by both earlier gates.
 
 Unchanged from F20/D12, and now load-bearing: `ADMIN_ALWAYS` omits it, so an
 administrator's bypass cannot force-grant it and the explicit `canAccessAdminCp`
-column decides alone. A super-moderator's bypass is community-scoped, and
-`admincp.access` is not in `COMMUNITY_SCOPED` either. Both are tested here as well
+column decides alone. A super-moderator's bypass is forum-scoped, and
+`admincp.access` is not in `FORUM_SCOPED` either. Both are tested here as well
 as in the authorization package, because this is where it now matters.
 
 #### The log had writers and no reader
 
 `admin_log` has existed since `0000` and has had *writers* since F48 — every
 moderation action records a row. What it never had was a **reader outside the
-ModCP's community-scoped view**. F63 supplies the unscoped one: an administrator
+ModCP's forum-scoped view**. F63 supplies the unscoped one: an administrator
 reading the audit log is reading everything, which is the point of there being
-one. The community filtering in `modcp-repo.ts` exists because a moderator may only
-see their own communities; that constraint has no analogue here.
+one. The forum filtering in `modcp-repo.ts` exists because a moderator may only
+see their own forums; that constraint has no analogue here.
 
 Three details. The detail column is rendered as **plain text**, flattened to
 `key value, key value` rather than JSON, because an audit row is read by a
@@ -3916,7 +3916,7 @@ this class of check gets missed.
 
 Every refusal is the same 404 with no reason. The id is a small integer anybody
 can enumerate, and distinguishing "no such attachment" from "not for you" would
-make the route an oracle for what exists in communities the caller cannot see.
+make the route an oracle for what exists in forums the caller cannot see.
 
 #### What is deliberately not here
 
@@ -3981,11 +3981,11 @@ nothing.
 
 #### The seeded board is the fixture board
 
-The same `SEED_COMMUNITY_ROWS`, `SEED_THREAD_ROWS` and `SEED_POST_ROWS`, inserted
+The same `SEED_FORUM_ROWS`, `SEED_THREAD_ROWS` and `SEED_POST_ROWS`, inserted
 into real tables. One board definition, two stores — which means the specs
 written against fixture mode kept passing unchanged, and a divergence between
 what the fixture serves and what the schema can hold now fails at startup here
-rather than as a mystery later. Seeding `communities.last_post_*` was the first thing
+rather than as a mystery later. Seeding `forums.last_post_*` was the first thing
 that difference surfaced: the fixture carries it as a nested object and Postgres
 as six denormalised columns, and without them the index renders with no
 latest-post link.
@@ -4063,11 +4063,11 @@ everything else in the ledger.
 
 #### The permission is global, and the visibility question is `profile.view`
 
-`avatar.upload` joins F22's global actions rather than the community matrix, for
+`avatar.upload` joins F22's global actions rather than the forum matrix, for
 `user.warn`'s reason: an avatar follows a member everywhere they appear, so a
-per-community grant would have to answer "an avatar where?" about an image that has
-no community. Serving one asks `profile.view` for the same reason — it is shown in a
-member list and on a profile, not only under a post, so the community a thread
+per-forum grant would have to answer "an avatar where?" about an image that has
+no forum. Serving one asks `profile.view` for the same reason — it is shown in a
+member list and on a profile, not only under a post, so the forum a thread
 happens to be in cannot be what decides it.
 
 #### The URL carries a version and never a key
@@ -4088,7 +4088,7 @@ member is still a permission question and a shared cache must not answer it.
   somebody's picture matters and a board cannot know; a theme wanting circles
   can have them in CSS, which is reversible.
 - **No animated avatars.** GIF is not an accepted type anywhere on this board
-  (D65), and an animated one under every post is the reason many communities ban them
+  (D65), and an animated one under every post is the reason many forums ban them
   even when they can store them.
 - **No default silhouette.** A board where nobody has set one would render a
   column of identical grey squares. Absent is more honest and costs less.
@@ -4209,18 +4209,18 @@ defeats the point of having it.
 
 ### D69 — A permission cell is three states, and the copy is previewed (F65)
 
-The community administration screen, and the two decisions in it that are not
+The forum administration screen, and the two decisions in it that are not
 cosmetic.
 
 #### Inherit is a value, not an unset checkbox
 
-`community_permissions` columns are nullable and **null means inherit** (R4.1 layer
+`forum_permissions` columns are nullable and **null means inherit** (R4.1 layer
 2). A two-state checkbox cannot represent that. A screen built from checkboxes
 has to render an inherited-false cell as "off" — and saving the form then writes
-an explicit `false` into it, pinning the community forever and making a later change
+an explicit `false` into it, pinning the forum forever and making a later change
 at the parent do nothing at all.
 
-That is not a hypothetical failure; it is the single commonest way a community's
+That is not a hypothetical failure; it is the single commonest way a forum's
 permissions end up wrong, and every board where "I changed it at the top and
 nothing happened" is true has this bug. So a cell is `inherit | grant | deny`,
 inherit is listed first and is the default, and a numeric cell's empty box means
@@ -4233,14 +4233,14 @@ coerced to zero would silently grant the opposite of what was typed.
 #### Every cell says what it resolves to, and from where
 
 "Inherit" alone tells an operator nothing: inherit *what*? So each cell carries
-its effective value and, when that came from an ancestor, which community supplied
+its effective value and, when that came from an ancestor, which forum supplied
 it. `inheritedFrom: null` on an inherited cell is a *different* explanation —
 nothing in the chain set it and the group's own default applies — and the screen
 words it differently.
 
 #### A row resolves for its own group, not for the combination
 
-`Authorizer.communityMatrix` combines across an actor's groups (R4.2: booleans OR,
+`Authorizer.forumMatrix` combines across an actor's groups (R4.2: booleans OR,
 numerics MAX). The **editor must not**: the operator is editing the Registered
 row, and showing them `allowed` because Staff has it would make the cell a lie
 about the thing they are about to change. Each row therefore resolves as if that
@@ -4248,12 +4248,12 @@ group were the actor's only one, which is exactly what the stored row means.
 
 Mutation-verified: passing every group to the resolver at once fails.
 
-#### Copy-to-subcommunities is previewed, re-authenticated, and means *identical*
+#### Copy-to-subforums is previewed, re-authenticated, and means *identical*
 
-It is the only operation in the panel that rewrites communities the operator is not
+It is the only operation in the panel that rewrites forums the operator is not
 looking at, across a subtree of any size, with no undo. Three things follow.
 
-**It is previewed in full** — every cell, on every community, from what to what —
+**It is previewed in full** — every cell, on every forum, from what to what —
 before the button appears. `planCopyToDescendants` is a pure function that
 answers exactly that, so what the screen promises and what the SQL does come
 from the same description of the change.
@@ -4264,16 +4264,16 @@ destructive operations; this is the first one outside F63 itself to use it.
 **It copies nulls, and clears rows the source does not have.** The
 cautious-sounding alternative — copy only the non-null values — is wrong: a
 descendant that explicitly denies something the source inherits would keep
-denying it, and the operator who pressed "copy" would be looking at two communities
+denying it, and the operator who pressed "copy" would be looking at two forums
 that are not the same. *Identical* is the only meaning of the word an operator
 can predict, so the SQL deletes the target rows and re-inserts from the source
 inside one transaction.
 
 #### Two caches that had never been cleared
 
-`CacheTags.communityTree()` has had `CachedCommunityRepository` behind it since F16 and
-**no writer had ever invalidated it** — `community:create` runs out of process, like
-the settings CLI before F64. Renaming a community in the panel and still seeing the
+`CacheTags.forumTree()` has had `CachedForumRepository` behind it since F16 and
+**no writer had ever invalidated it** — `forum:create` runs out of process, like
+the settings CLI before F64. Renaming a forum in the panel and still seeing the
 old name is how an operator concludes a save failed, so every write here clears
 it. Permission edits clear `CacheTags.permissions()` instead, which is F20's
 en-masse actor invalidation: a rename is a tree change and a grant is not.
@@ -4283,20 +4283,20 @@ en-masse actor invalidation: a rename is a tree change and a grant is not.
 Saving a group's row with every cell on inherit removes the row rather than
 storing one full of nulls. A row that says nothing still costs the resolver a
 lookup on every permission check on every page — and an operator who cleared a
-community's overrides would otherwise have no way to tell it had worked.
+forum's overrides would otherwise have no way to tell it had worked.
 
 #### The subtree is a prefix match, and the dot matters
 
-`communities.path` is the materialised dot-path F16 maintains, so "everything under
+`forums.path` is the materialised dot-path F16 maintains, so "everything under
 this" is one index scan rather than a recursive CTE per level. The prefix is
-`path || '.%'` and **not** `path || '%'`: without the dot, community `10.2` matches
+`path || '.%'` and **not** `path || '%'`: without the dot, forum `10.2` matches
 `10.20`, and a copy reaches into a sibling subtree silently. There is a fixture
-community in the test whose whole job is to be `10.200`.
+forum in the test whose whole job is to be `10.200`.
 
 #### Moderator appointments: the table's first writer
 
-`community_moderators` gained its first *reader* in F48 — appointments resolve into
-`Target.isCommunityModerator` and carry twelve granular rights — and had no writer
+`forum_moderators` gained its first *reader* in F48 — appointments resolve into
+`Target.isForumModerator` and carry twelve granular rights — and had no writer
 at all, so "moderator" could only be configured with SQL.
 
 Three things about the write.
@@ -4308,11 +4308,11 @@ rather than trusting the caller, because the assertion is what makes the
 resolver's assumption true.
 
 **Appointing twice is a rights change, not a second row.** The partial unique
-indexes on (community, user) and (community, group) make it an upsert, so two
+indexes on (forum, user) and (forum, group) make it an upsert, so two
 administrators doing it at once cannot leave two rows that disagree.
 
-**A removal is scoped to the community in the statement.** The appointment id is a
-form value; scoping the `delete` means an id from another community matches nothing
+**A removal is scoped to the forum in the statement.** The appointment id is a
+form value; scoping the `delete` means an id from another forum matches nothing
 rather than being caught by a check somebody could forget — the same shape F60's
 mailbox ownership uses.
 
@@ -4324,13 +4324,13 @@ Appointing is `requireAdmin`, not a moderator permission: it is how moderation
 is *granted*, and a moderator who could appoint moderators could grant
 themselves everything F48 resolves.
 
-#### Moving a community is re-authenticated, like the copy
+#### Moving a forum is re-authenticated, like the copy
 
 `move` rewrites every descendant's path in one transaction and changes what all
-of them inherit — moving a busy community under a private category hides its whole
+of them inherit — moving a busy forum under a private category hides its whole
 subtree. That is a large effect from one dropdown, so it asks for the password
 again. The cycle check stays inside F16's `move`, which re-reads the tree under
-the forest lock; the screen simply does not *offer* the community's own subtree as a
+the forest lock; the screen simply does not *offer* the forum's own subtree as a
 destination, because offering an option that will be refused is not a check, it
 is a trap.
 
@@ -4339,13 +4339,13 @@ inherits has changed, and resolved actors carry that.
 
 #### What is deliberately not here
 
-- **Community passwords.** `communities.password_hash` exists and is F21's; setting one
+- **Forum passwords.** `forums.password_hash` exists and is F21's; setting one
   from the panel needs the same care as any credential write and belongs with
-  whatever screen owns community access as a whole.
+  whatever screen owns forum access as a whole.
 - **Reordering by drag.** `MoveTarget.position` exists and clamps, and `move`
   applies it — but a drag handle is an island, and F45 is where islands are
   proven removable. Display order is a number on the options form until then.
-- **Deleting a community.** Not an oversight: a community holds threads, and what
+- **Deleting a forum.** Not an oversight: a forum holds threads, and what
   happens to them is a decision (move them? delete them? refuse while any
   remain?) that belongs with F71's content administration rather than being
   guessed at here.
@@ -4354,10 +4354,10 @@ inherits has changed, and resolved actors carry that.
 
 Group administration, and the three decisions in it that are not CRUD.
 
-#### Two states here, three on a community — and that is not an inconsistency
+#### Two states here, three on a forum — and that is not an inconsistency
 
-D69 argued at length that a community permission cell must be `inherit | grant |
-deny`, because `community_permissions` is nullable and null means inherit. It would
+D69 argued at length that a forum permission cell must be `inherit | grant |
+deny`, because `forum_permissions` is nullable and null means inherit. It would
 be easy to reuse that control here out of symmetry, and it would be wrong.
 
 A group's global permissions are **R4.1 layer 1** — the bottom of the
@@ -4373,9 +4373,9 @@ operator would untick it, press save, and watch it come back. Every field in
 `PERMISSION_FIELDS` is therefore read whether it arrived or not, and the write is
 a whole set rather than a patch.
 
-The community-scoped fields are on this screen too. They are the group's *default*
-for every community that does not override them, so leaving them off would hide the
-value most communities actually resolve to — an operator would set `canPostThreads`
+The forum-scoped fields are on this screen too. They are the group's *default*
+for every forum that does not override them, so leaving them off would hide the
+value most forums actually resolve to — an operator would set `canPostThreads`
 nowhere and wonder why nobody can post.
 
 #### Every write bumps the permission version, inside the same transaction
@@ -4597,7 +4597,7 @@ belongs to. That is the only version of this that survives twenty more features.
 **It earned its place immediately.** The first version of the map had all forty
 id columns and the test failed anyway: there are five denormalised **username**
 columns — `posts.author_username`, `threads.author_username`,
-`threads.last_post_username`, `communities.last_post_username`,
+`threads.last_post_username`, `forums.last_post_username`,
 `private_messages.author_username` — which carry a *name* rather than an id.
 Reassigning `author_user_id` and stopping there leaves every post displaying the
 merged-away account forever, with no foreign key and nothing to notice. The test
@@ -4701,7 +4701,7 @@ Four exclusions, all unconditional, none of them a checkbox:
   match a naive inactivity filter and the least acceptable to remove. Checking
   only the primary group is the obvious version and the incomplete one, now that
   F67 has given `user_group_memberships` a writer;
-- **community moderators**, whatever group they are in. An appointment is a job
+- **forum moderators**, whatever group they are in. An appointment is a job
   somebody was given; a sweep must not undo it;
 - **banned accounts.** The ban record is the reason they are quiet, and removing
   the account removes the evidence of the decision.
@@ -4833,7 +4833,7 @@ able to read the form that changes it back — a preview that could break the
 panel around it is a trap, and the mutant that emits `:root` is one of the
 fourteen this feature kills.
 
-The sample is real board chrome — a community row, three buttons, body text and a
+The sample is real board chrome — a forum row, three buttons, body text and a
 link — rather than colour swatches, because the question being answered is "is
 this readable", and a row of squares cannot answer it.
 
@@ -5069,7 +5069,7 @@ merely fast.
 
 #### Filtering after the query is a leak *and* a bug
 
-The visible community ids go into the `where` clause. Fetching a page and dropping
+The visible forum ids go into the `where` clause. Fetching a page and dropping
 what the viewer may not see would be wrong twice over: the page comes back short
 — twenty hits becoming three — and the **cursor** is computed from rows the
 viewer cannot see, so paging skips and repeats. An empty scope therefore returns
@@ -5144,7 +5144,7 @@ providers would agree on them.
 
 #### A mutation-testing note
 
-Two guards overlapped: an explicit `scope.communityIds.length === 0` check and the
+Two guards overlapped: an explicit `scope.forumIds.length === 0` check and the
 `allowed.length === 0` check below it. No mutation of the first could fail a
 test, because the second already covered it. It was removed rather than kept —
 the same call F71 made about a defensive `lastIndex` reset. A guard that cannot
@@ -5160,10 +5160,10 @@ The obvious implementation of "stored result sets" is a frozen list of post
 ids: page two is then a cheap `where id in (…)`. It is wrong in two ways that
 matter and one that is merely untidy.
 
-**It goes stale.** A post deleted, moved to a private community, or hidden by a
+**It goes stale.** A post deleted, moved to a private forum, or hidden by a
 moderator after the search was run would still be offered on page two.
 
-**It is a permission snapshot.** A member who loses access to a community would go
+**It is a permission snapshot.** A member who loses access to a forum would go
 on seeing its hits for as long as the stored set lived — the permission model
 frozen at the instant somebody pressed a button.
 
@@ -5247,7 +5247,7 @@ with one private `page` helper, which is the whole design decision.
 Every view differs from the others by exactly one predicate: `last_post_at >=`
 an instant, `reply_count = 0`, `author_user_id =` somebody, or an `exists` over
 their posts. Everything else — the permission filter, the content-scope filter,
-the keyset predicate, the ordering, the community join — is identical, and five
+the keyset predicate, the ordering, the forum join — is identical, and five
 copies of that would be five places for it to drift. The one that drifts is
 never the one somebody is looking at.
 
@@ -5255,7 +5255,7 @@ The permission filter is F72's rule and F47's `visibleIn`, and for the reason
 D78 states: filtering a fetched page returns twenty threads as three and
 computes the cursor from rows the viewer cannot see. **An empty scope returns
 nothing without a query running** — the mutant that omits the `in (…)` clause
-for an empty list shows a member with no visible communities the entire board, and
+for an empty list shows a member with no visible forums the entire board, and
 that is the first test in the file.
 
 #### They are thread listings, not post listings
@@ -5263,8 +5263,8 @@ that is the first test in the file.
 "What is new" is a question about conversations. A thread with forty new
 replies is one row a member wants to see, not forty — MyBB's own search-based
 "new posts" answers it the other way and buries the rest of the board under one
-busy thread. The row carries its community's title *and slug*, because these lists
-cross the whole board and two identically named threads in two communities are
+busy thread. The row carries its forum's title *and slug*, because these lists
+cross the whole board and two identically named threads in two forums are
 otherwise indistinguishable; both come off the join that was already there,
 because fetching them per row is the N+1 the budget test exists to catch.
 
@@ -5344,7 +5344,7 @@ without appearing in either.
 
 #### The columns F17 built and nothing read
 
-`sessions.location_path`, `location_community_id` and `location_thread_id` have been
+`sessions.location_path`, `location_forum_id` and `location_thread_id` have been
 in the schema since `0000`, and `touchLocation` — a conditional UPDATE whose
 throttle *is* its `where` clause — since F17. Neither had a caller until now.
 The writer goes in the page shell beside `touchActivity` for the same reason:
@@ -5375,17 +5375,17 @@ whose location is current.
 
 This is the privacy claim and it is easy to build backwards. The session records
 where its owner is; what a reader is *told* is decided against that reader's
-permissions — in SQL, with the community ids and titles replaced by null when they
-are out of scope. The view builder receives nulls and renders "Viewing a community";
+permissions — in SQL, with the forum ids and titles replaced by null when they
+are out of scope. The view builder receives nulls and renders "Viewing a forum";
 it has no title to leak because it was never given one.
 
 Putting that decision in the view instead would mean every theme that rendered
 the panel, and F76's feeds, and any future API, would each have to make the same
 choice again. One of them would get it wrong.
 
-The thread needs **both** checks: its community must be nameable *and* the thread
+The thread needs **both** checks: its forum must be nameable *and* the thread
 itself must be in the reader's content scope. A moderator reading a soft-deleted
-thread in a public community must not put its title on the front page.
+thread in a public forum must not put its title on the front page.
 
 #### Invisible means absent from the count, not just the list
 
@@ -5423,11 +5423,11 @@ The interval is also the **resolution of the record**, which is why it is not
 slower: an hourly task would miss any peak that did not last an hour, which is
 every peak worth recording.
 
-Thread and post totals are summed from the **root communities**, where F38's ancestor
+Thread and post totals are summed from the **root forums**, where F38's ancestor
 rollup has already accumulated the whole tree. Counting `threads` and `posts`
-directly would be a second opinion that drifts from the number every community row
+directly would be a second opinion that drifts from the number every forum row
 already shows — and the drift appears after a deletion, which is when somebody
-looks. Summing *every* community instead of the roots double-counts the tree: eight
+looks. Summing *every* forum instead of the roots double-counts the tree: eight
 threads reported as twelve.
 
 `computed_at` is null until the first run, and the panel says "not counted yet"
@@ -5448,10 +5448,10 @@ ten minutes old.
 #### Top posters is not permission-filtered, and that is deliberate
 
 A post count is on every profile and beside every post already. Filtering the
-leaderboard by which communities a reader can see would mean recomputing every
+leaderboard by which forums a reader can see would mean recomputing every
 member's count per reader — an aggregate over `posts` per page view — to hide a
 number that is public everywhere else. The two *thread* leaderboards are
-filtered, because a "most viewed threads" table that included the staff community
+filtered, because a "most viewed threads" table that included the staff forum
 would be a leak with a ranking on it.
 
 #### `HeaderModel.navigation` and two theme slots stop being empty
@@ -5465,7 +5465,7 @@ store — the distinction between "no panel" and "zero" is kept, not collapsed.
 #### Two duplicates removed rather than kept
 
 Mutation verification found two places where the same fact was stored twice.
-`locationOf` checked `communityId !== null && communityTitle !== null` when the
+`locationOf` checked `forumId !== null && forumTitle !== null` when the
 repository gates both on one predicate and the title column is NOT NULL, so no
 mutation of the first half could fail a test. And the view model carried the
 repository's `total` when it is exactly `members.length + guestCount` by
@@ -5475,8 +5475,8 @@ that reads as careful, but a *number carried twice* — and a second copy that n
 test can distinguish is a second copy that will diverge silently.
 
 Twenty-two mutants killed across the four modules: invisible members counted
-after being filtered, the community title returned regardless of scope, the thread
-named on the community check alone, an empty community list read as "no filter", one row
+after being filtered, the forum title returned regardless of scope, the thread
+named on the forum check alone, an empty forum list read as "no filter", one row
 per session instead of per member, a record that moves on equality, revoked
 sessions counted as present, the record derived from the visible list, the tree
 double-counted, inactive accounts counted as members, a pending registration
@@ -5497,7 +5497,7 @@ surfaces, one rule, and one bug this feature's own tests found.
 Not "as whoever asked". Every URL in this feature is fetched by something that
 **caches one response and hands it to everybody**: aggregators, crawlers, link
 unfurlers, corporate proxies, the CDN in front of the board. A feed built for a
-signed-in member and cached under a shared URL is a private community served to
+signed-in member and cached under a shared URL is a private forum served to
 whoever asks next — and the leak happens in somebody else's cache, where nothing
 about the request that caused it is visible.
 
@@ -5516,14 +5516,14 @@ whole safety argument.
 The F47 row has said since Phase 4 that feeds and search were the two read paths
 its guard had nothing to check. Search arrived with F72 — and the guard caught
 it on the first run. Feeds arrive here, and the leak suite is written as the
-guard's counterpart: seed a private community *and* a hidden thread in a public
-community, then assert the private title, slug and body appear nowhere in the
+guard's counterpart: seed a private forum *and* a hidden thread in a public
+forum, then assert the private title, slug and body appear nowhere in the
 output. Not "the ids are absent" — a leak through a feed is a leak of text.
 
-The second half of that pair is the one a community-id filter alone misses, and it
+The second half of that pair is the one a forum-id filter alone misses, and it
 is why the suite has two fixtures rather than one: a thread awaiting moderation
-sits in a community a guest may read, and every content check has to be asked
-separately from the community check.
+sits in a forum a guest may read, and every content check has to be asked
+separately from the forum check.
 
 #### A thread feed checks the thread, not just its posts
 
@@ -5531,13 +5531,13 @@ separately from the community check.
 a bare id, so answering it because the posts are visible would publish a thread
 that is not — at an address anybody can guess. The mutant that drops the thread
 check survived the first version of the leak suite, which had only a private
-*community* to test against; closing it needed a hidden thread with a visible post
+*forum* to test against; closing it needed a hidden thread with a visible post
 in it.
 
-#### A private community's feed is a 404, and so is a nonexistent one
+#### A private forum's feed is a 404, and so is a nonexistent one
 
 The same answer, deliberately. Distinguishing them turns the route into an
-oracle for which community ids are private, answered without a cookie, cheaply, in a
+oracle for which forum ids are private, answered without a cookie, cheaply, in a
 loop. An empty feed was the other option and is worse: a reader subscribed to a
 feed that quietly starts returning zero entries shows nothing for as long as the
 condition lasts, while a 404 appears in the reader's own error list.
@@ -5546,7 +5546,7 @@ condition lasts, while a 404 appears in the reader's own error list.
 
 Not at page 1. A thread's page 4 is a distinct document with distinct content,
 and a canonical naming page 1 asks a crawler to drop three quarters of the
-thread — the single most common way a community ends up with only its first pages
+thread — the single most common way a forum ends up with only its first pages
 searchable. What the canonical *does* collapse is the surplus: `?post=812`,
 `?after=…` and `?reveal=…` are three URLs for one document, and only the page
 number survives.
@@ -5598,8 +5598,8 @@ statistics page — because each is a per-request computation over content that 
 already indexed at its own URL, and `/discover/new` is a different page every
 hour, which is the definition of something a crawler never settles on.
 
-No content path is listed. A `Disallow: /community/9-secret` would be a map of the
-board's private communities served to the whole internet. Every private route named
+No content path is listed. A `Disallow: /forum/9-secret` would be a map of the
+board's private forums served to the whole internet. Every private route named
 in that file is one anybody can already find from the header, and every one is
 refused server-side regardless.
 
@@ -5635,7 +5635,7 @@ Adding the two files to the orphan exemption list would have made the warning go
 away and left the blindness in place. That is the fourth time this session a
 check has been the thing to fix rather than the thing to satisfy.
 
-Seventeen mutants killed: the community feed's scope replaced by the requested id,
+Seventeen mutants killed: the forum feed's scope replaced by the requested id,
 the thread scope dropped from the board feed, the thread scope dropped from a
 thread's post feed, the opening-post join made inner, the join keyed on the
 thread so one conversation fills the feed, the sitemap boundary's scope dropped,
@@ -5665,8 +5665,8 @@ was quietly removing it, because search *is* a themeable region. So the markup
 moved into `themes/default/src/slots/search-form.tsx` and the page builds the
 model.
 
-Wiring it is what found the model wrong. `SearchFormModel.communities` was
-`readonly LinkModel[]`, and a community filter is a `<select>`: an option is a value
+Wiring it is what found the model wrong. `SearchFormModel.forums` was
+`readonly LinkModel[]`, and a forum filter is a `<select>`: an option is a value
 and a label, not an href. A theme handed links would have had to invent the
 submitted value, most likely by parsing it back out of the URL. It is now
 `OptionModel[]`, with `isSelected` per option so the theme writes no comparison,
@@ -5814,8 +5814,8 @@ override is for.
 
 #### The coupling that lives inside a theme
 
-Midnight renders listings as tables, so `CommunityRow` and `ThreadRow` return `<tr>`.
-That works only because `CategoryBlock` and `CommunityDisplay` — the slots handed the
+Midnight renders listings as tables, so `ForumRow` and `ThreadRow` return `<tr>`.
+That works only because `CategoryBlock` and `ForumDisplay` — the slots handed the
 rendered rows as a region — put a `<table>` around them. **Those pairs must be
 overridden together**, and a test pins each pair.
 
@@ -5943,7 +5943,7 @@ is a commitment every theme has to render or silently drop.
 No hook filters `authorization.can()`, and none sits inside F47's visibility
 filter. Those are not omissions to be added later: a plugin that can change an
 authorization answer can grant itself anything, and one that can rewrite a
-`where` clause can publish a private community. Payloads carry `{ userId, isGuest }`
+`where` clause can publish a private forum. Payloads carry `{ userId, isGuest }`
 rather than an `Actor` for the same reason — an `Actor` carries resolved group
 membership, and handing one over invites the plugin to make its own permission
 decision from group ids, which is what R4 forbids of core code and doubly of
@@ -6002,7 +6002,7 @@ of the work — the call sites that make "documented" and "fires" the same thing
 
 That was said plainly in its row, and F80 is where it stops being true. Twenty-one
 hooks now have call sites: the four shell filters in `PageShell`, the index,
-community, thread, member, search and error-page view models, and the three posting
+forum, thread, member, search and error-page view models, and the three posting
 events. The remaining seventy are declared and unreached.
 
 The interesting part is not the wiring, it is that **the wired set is derived
@@ -6019,7 +6019,7 @@ The middle one is the ratchet, and it is the point of the feature. Wiring a new
 call site fails the reference plugin's test until a handler is added there. A
 hook cannot join the running product without something proving it fires.
 
-The scanner's first run reported three wired hooks as unwired: the community page is
+The scanner's first run reported three wired hooks as unwired: the forum page is
 double-quoted and the regex knew only about single quotes. A false negative in a
 coverage tool is the worst kind — it makes the gap invisible — so the pattern
 takes both and the reason is at the line.
@@ -6092,7 +6092,7 @@ reposts the same webhook on every accidental double-submit.
 domain package a dependency-cruiser error. The host isolates *failures*; it does
 nothing about access. A plugin with its own database handle is outside every
 guarantee this codebase makes, and "the host catches the exception" is no comfort
-when the plugin succeeded at reading a private community. Probed with a deliberate
+when the plugin succeeded at reading a private forum. Probed with a deliberate
 violation before being trusted.
 
 ### D87 — A token is a restriction on an actor, never a grant to one (F81)
@@ -6104,7 +6104,7 @@ recording are mostly about what is deliberately *not* possible.
 
 A token authenticates as a member and can never do more than that member can.
 Every request resolves the owner's `Actor` and asks the Authorizer — the same
-`communityIdsWhere`, the same `visibleIn`, the same F47 filter a page uses — and the
+`forumIdsWhere`, the same `visibleIn`, the same F47 filter a page uses — and the
 scope check happens **as well**, never instead.
 
 The consequence is that there is no API-specific visibility path, and that is the
@@ -6132,7 +6132,7 @@ slow hash would put ~100ms on every API request — which for an API is the
 difference between usable and not. The threat model, not the habit, picks the
 algorithm.
 
-The token is `community_pat_<lookup>_<secret>`: a greppable prefix so a leaked token
+The token is `forum_pat_<lookup>_<secret>`: a greppable prefix so a leaked token
 is findable by secret scanners, a clear indexed lookup so authenticating one
 request is one index probe rather than a hash against every token on the board,
 and the secret stored only as a digest.
@@ -6387,7 +6387,7 @@ when the database is unreachable. Same rule `ErrorNotice` follows.
 
 Once sealed the route is a **404, not an "already installed" page**. An
 informative page would confirm to anybody who asks that this is a
-community-software board, that it has been installed, and — more usefully to
+forum-software board, that it has been installed, and — more usefully to
 them — that the route was reachable. A 404 is the answer the board gives for
 every path it does not serve, and it is the only one that says nothing.
 
@@ -6588,7 +6588,7 @@ migration:
 - **An unknown `visible` value reads as unapproved**, not visible. It came from a
   plugin, and the safe reading of "I do not know whether this should be public" is
   that it should not be.
-- **An unknown community type becomes a community**, because that is the reading that does
+- **An unknown forum type becomes a forum**, because that is the reading that does
   not orphan its threads.
 - **E-mails are lower-cased**, because this board's uniqueness is
   case-insensitive and MyBB's is not — so two MyBB accounts differing only in
@@ -6600,7 +6600,7 @@ migration:
 member's next successful sign-in — the only way to migrate a hash at all, since
 the plaintext is not in the export. A board that dropped them would force every
 member through a password reset, which is the largest single source of attrition
-in a community migration.
+in a forum migration.
 
 #### MyBB's counters are imported and not trusted
 
@@ -6621,7 +6621,7 @@ itself the moment a moderator looked at it.
 
 Every MyBB URL contains an id, so F86's redirects are a lookup in this table. An
 import that did not record the mapping would break every inbound link a board has
-accumulated — which for a community is most of its traffic, and is not recoverable
+accumulated — which for a forum is most of its traffic, and is not recoverable
 afterwards.
 
 `resolveLegacyIds` takes a list, because the runner needs a page's parents at
@@ -6669,7 +6669,7 @@ case would be almost undiagnosable from "incorrect password".
 
 #### The URLs: a table, because the links are on other people's servers
 
-A community's inbound links accumulate for years — search results, other communities'
+A forum's inbound links accumulate for years — search results, other forums'
 posts, bookmarks, e-mails from 2013 — and an import that changes every address
 without redirecting throws that away permanently. Unlike most migration mistakes
 it cannot be fixed later.
@@ -6750,9 +6750,9 @@ wrong guess is expensive:
   must be visible to the bundler, because a serverless build contains only what
   it could see statically — so "install a plugin" cannot be a database row, and
   the absence of an upload-a-zip button is a consequence rather than an omission.
-- **Null means inherit** in the community permission matrix, and 0 means *unlimited*.
+- **Null means inherit** in the forum permission matrix, and 0 means *unlimited*.
   Both are the opposite of the naive reading. A checkbox editor would write an
-  explicit value into every cell on first save, pinning the community so a later
+  explicit value into every cell on first save, pinning the forum so a later
   change at the parent does nothing — the commonest way a board's permissions end
   up wrong, and invisible when it happens.
 - **`admincp.access` is the one door no bypass opens.** Every other
@@ -6817,7 +6817,7 @@ and a screenshot of a panel that has since changed is a confident lie.
 No CLI reference page either. `community --help` is the list, and a hand-written copy
 of it is a copy that goes stale — the generated-reference pattern would be the
 fix if it becomes worth one. Writing the troubleshooting section, an earlier
-draft referenced a `community doctor` and a `community cache:clear`; neither exists. They
+draft referenced a `community doctor` and a `forum cache:clear`; neither exists. They
 were invented by analogy with other projects, which is exactly the failure a
 generated reference prevents and a hand-written one invites.
 
@@ -6880,7 +6880,7 @@ result in the report.
 #### Nine of ten pass, and the two keyset claims hold
 
 Between 2% and 76% of budget. The two worth naming: a thread page 14,000 posts
-deep costs 16.5 ms against 3.3 ms for page one, and a deep community page costs
+deep costs 16.5 ms against 3.3 ms for page one, and a deep forum page costs
 *less* than its first page — the first page pays for sticky-first ordering that
 a deep cursor has already passed. Under `OFFSET` both would grow with depth.
 
@@ -6946,7 +6946,7 @@ Three properties of the file are tested, and none of them is "does it read
 rows" — that needs a MyBB server. They are the ones a fake connection can prove
 and that would be *damaging* if wrong:
 
-1. **Every statement is a `SELECT`.** This code points at somebody's live community
+1. **Every statement is a `SELECT`.** This code points at somebody's live forum
    while members are posting to it. "We were careful" is not a guarantee that
    survives the next edit; a test over the statement text is.
 2. **Paging is keyset, never `OFFSET`.** An `OFFSET` walk over a table being
@@ -6971,7 +6971,7 @@ by an insert with nothing but optimism in between — and a resumed import is
 precisely when the row appears in the gap.
 
 The refusals are the design. A post whose thread was never imported is skipped
-with the reason printed, not attached to a placeholder; a child community arriving
+with the reason printed, not attached to a placeholder; a child forum arriving
 before its parent waits for the next pass rather than being reparented to the
 root; a username already taken is skipped rather than renamed, because `wren_2`
 is a person who did not agree to be called that. Each of these has an obvious
@@ -7055,14 +7055,14 @@ onto a sequential scan of the largest table on the board. Nothing errors. The
 page is simply slow, at a scale nobody develops against.
 
 The unfiltered twins are checked for the mirror reason: a moderator's predicate
-does not imply the partial index, so without the twin *their* community view is that
+does not imply the partial index, so without the twin *their* forum view is that
 scan — and that failure is invisible to every test written from a member's point
 of view, which is most of them.
 
 #### Failure one: every row was visible
 
-The first run reported `community-listing-visible` using
-`threads_community_listing_all_idx` — the twin — rather than the partial index. The
+The first run reported `forum-listing-visible` using
+`threads_forum_listing_all_idx` — the twin — rather than the partial index. The
 planner was not wrong. The seeder wrote `visible` for every row, so the partial
 index and the twin covered **exactly the same 2.3 million rows** and either was
 an equally good answer.
@@ -7091,7 +7091,7 @@ problems in F89 itself. It has now paid for itself four times.
 
 #### Failure three: the first `EXPLAIN` timing was a cold cache
 
-`community-listing-visible` reported 119 ms, which reads as a problem and is not one
+`forum-listing-visible` reported 119 ms, which reads as a problem and is not one
 — it was the first statement of the run paying for an unwarmed buffer cache. The
 same query warm is 2.7 ms. The runner now executes each statement twice and
 records the second.
@@ -7143,7 +7143,7 @@ sets `location.href`. It is wrong for the same root reason in both cases:
 
 A keyboard user opens the select and arrow-keys down the list. Every keystroke
 fires `change`. An auto-navigating jump box therefore teleports them to the first
-community before they reach the one they wanted, and the way back is a page that does
+forum before they reach the one they wanted, and the way back is a page that does
 it again. The same code does nothing at all without JavaScript.
 
 So it is a real `method="get"` form with a real submit button, and the theme
@@ -7154,14 +7154,14 @@ disabled, tab order from select to button, the 404, and the empty submission.
 
 #### The leak is the hard part, and the filter now lives in one place
 
-A control that lists every community and appears on every page is the worst possible
+A control that lists every forum and appears on every page is the worst possible
 home for a visibility bug. `buildTree` promotes an orphan to a root, so filtering
 row-by-row and then building the tree surfaces a hidden category's children at
 the top level — announcing that they exist, what they are called, and making the
 board's shape depend on who is looking.
 
 The board index already had that rule, inlined. It moved to
-`@meith/communities.keepVisibleSubtrees` when the jump box became its second caller,
+`@meith/forums.keepVisibleSubtrees` when the jump box became its second caller,
 because a security-relevant filter implemented twice is one that gets fixed once
 and stays broken in the other place. Mutation-verified: substituting a row filter
 fails two tests, both named for the leak rather than for the output.
@@ -7170,10 +7170,10 @@ fails two tests, both named for the leak rather than for the output.
 
 The box lists only what the viewer may see, which makes the submitted id look
 trustworthy. It is not: it arrives in a query string anybody can type. A route
-that redirected on it would answer *"does community 42 exist, and what is it called"*
+that redirected on it would answer *"does forum 42 exist, and what is it called"*
 for every id on the board — a jump box turned into an enumeration oracle.
 
-So the route runs the same `communityIdsWhere` check the model was built from, and an
+So the route runs the same `forumIdsWhere` check the model was built from, and an
 id outside it gets a **404 rather than a 403**. The identical answer for "hidden"
 and "absent" is the part that matters; a 403 would confirm existence.
 
@@ -7428,7 +7428,7 @@ can find again, and one that succeeds before a rollback removes a file out from
 under a live row.
 
 Not re-authenticated, and this is the borderline case: the blast radius is one
-row, and F65's copy-to-subcommunities and F67's merges are prompted because one press
+row, and F65's copy-to-subforums and F67's merges are prompted because one press
 changes many things at once. That is the distinction, rather than "is it
 destructive".
 
@@ -7438,21 +7438,21 @@ The last thing on this board with no model at all, and the whole design follows
 from one sentence: **a sticky thread is a conversation and an announcement is
 not.** Members reply to a sticky, it belongs to its author, and taking it down
 deletes what they said — which is why boards built on pinned threads keep a
-three-year-old rules post at the top of every community. An announcement expires on
+three-year-old rules post at the top of every forum. An announcement expires on
 its own date and removing it removes nothing anybody wrote. That is what makes
 the delete button here safe and the same button on a sticky thread not.
 
-- **`community_id NULL` is board-wide**, rather than a `scope` column beside it. Two
-  columns can disagree, and a row claiming to be community-scoped with no community is a
+- **`forum_id NULL` is board-wide**, rather than a `scope` column beside it. Two
+  columns can disagree, and a row claiming to be forum-scoped with no forum is a
   state the reader has to invent a rule for.
 - **"Live" is three conditions and all three are in the query.** The one that
   gets forgotten is `ends_at`: it is null on most rows, so a predicate missing it
   passes every test written from the happy path, and the symptom is a notice that
   never goes away.
-- **The permission filter is in SQL**, so an announcement on a private community
+- **The permission filter is in SQL**, so an announcement on a private forum
   never reaches the process rendering a guest's page. Board-wide ones are an `or`
   in the same predicate rather than a special case.
-- **A community page shows its own announcements and the board's.** One that appeared
+- **A forum page shows its own announcements and the board's.** One that appeared
   only on the index would be seen by almost nobody — the index is the page
   fewest people arrive on.
 - **No stored render.** `message_html` exists because a thread page renders fifty
@@ -7500,7 +7500,7 @@ machinery.
 
 Anti-spam, and the reason there are four mechanisms rather than one good one:
 each is weak alone and they fail to different attacks. What follows is mostly a
-record of what each one *does not* stop, because that is the part every community
+record of what each one *does not* stop, because that is the part every forum
 gets wrong.
 
 #### A limit is not an interval, and the board needs both
@@ -7616,13 +7616,13 @@ no spam on it yet.
 
 #### First-post moderation is a third reason to hold a post, with its own bypass rule
 
-The composer had two — the community's queue and a warning restriction — and F53
-documented the asymmetry: `bypassesModeration` cancels the community's queue and
+The composer had two — the forum's queue and a warning restriction — and F53
+documented the asymmetry: `bypassesModeration` cancels the forum's queue and
 deliberately does *not* cancel a warning, because a moderator under a warning
 whose bypass cancelled it would be the one person the restriction could not
 reach.
 
-The new-member hold follows the **community queue's** rule instead. It is a statement
+The new-member hold follows the **forum queue's** rule instead. It is a statement
 about how much the board trusts an account, and an account explicitly granted
 `moderation.bypass` is one it has already decided to trust — the alternative
 holds the first post of every moderator the board ever appoints, which is a queue
@@ -7726,12 +7726,12 @@ promising anyone a like-for-like move.
 
 `[spoiler]…[/spoiler]` has no Markdown spelling either, so F37's custom tags are
 now **directives** — `:::spoiler` for a block, `:spoiler[…]` for a span — which is
-the syntax the CommonMark community settled on for exactly this. The table was
+the syntax the CommonMark forum settled on for exactly this. The table was
 renamed (`custom_bbcode` → `custom_directives`) and every column kept, because
 the safety argument did not change: a name and inline-or-block, never markup.
 Smilies were already literal codes and images, and are untouched.
 
-#### Three deviations from CommonMark, each with a community's reason
+#### Three deviations from CommonMark, each with a forum's reason
 
 - **A single newline is a line break.** CommonMark folds it into a space, which is
   right for documents and wrong for a message box. A member who has to type two
@@ -7848,7 +7848,7 @@ delivering their careful answer as an empty response.
 
 What a browser does with a bodiless error response is its own business.
 Chromium ≥ 126 refuses the navigation outright with
-`ERR_HTTP_RESPONSE_CODE_FAILURE`, so a member who typed a community id got a browser
+`ERR_HTTP_RESPONSE_CODE_FAILURE`, so a member who typed a forum id got a browser
 network error page; older Chromium and Firefox render blank. The board never got
 to say no.
 
@@ -7859,7 +7859,7 @@ a crawler rather than becoming a redirect to an error page, which is the soft
 files keep their shape: three lines each for the legacy scripts, and
 `serveLegacyUrl` still holds the setting check so it cannot differ between them.
 It takes the script name and `searchParams` now, because a page is not handed a
-request; `parseJumpTarget` moved to `community-jump.ts` for the same reason, and
+request; `parseJumpTarget` moved to `forum-jump.ts` for the same reason, and
 being pure it is finally testable — a page whose every branch throws has nothing
 to assert on.
 
@@ -7868,7 +7868,7 @@ to assert on.
 On Next 16 a `notFound()` thrown from a page ships the not-found tree as an RSC
 payload **without server-rendering it**: the body is
 `<div hidden><!--$--><!--/$--></div>` and the notice is drawn on the client. So
-every page-level 404 on this board — `/member/…`, `/thread/…`, `/community/…`, some
+every page-level 404 on this board — `/member/…`, `/thread/…`, `/forum/…`, some
 ninety call sites — is blank with scripting off, and these four now join them
 rather than escaping it. Only the router-level 404, the one for a path with no
 route, is server-rendered.
@@ -8123,7 +8123,7 @@ documented rather than supported, which is how all five of these got in.
 Mail was four environment variables read once at boot. Every consequence of that
 followed from one fact: **the only way to configure mail was to redeploy.**
 
-A board is installed by somebody who does not yet have a working community to read
+A board is installed by somebody who does not yet have a working forum to read
 the handbook on, and the first thing that needs mail is the confirmation link for
 the second member. Putting that behind an env-var edit put it *after* the board
 went live, which is where it stayed — and the failure is silent by construction.
@@ -8251,17 +8251,17 @@ usual way.
 
 ### D108 — The index has a sidebar, and its two live panels poll a Server Action rather than the page
 
-**Plan:** nothing. F29 built the index as a community listing, and F75 added the
+**Plan:** nothing. F29 built the index as a forum listing, and F75 added the
 statistics and the online list as a two-column strip underneath it. Neither
 names a sidebar or a "latest threads" panel; both are the classic furniture of
 the boards this one is a successor to, and both were absent.
 
 **Implemented:** two new stable slots, `LatestThreads` and `LatestPosts`, a new
 optional `BoardIndexModel.regions.latest` that places them (theme contract
-0.8 → 0.9), and three bands in the default theme's index: the community listing, a
+0.8 → 0.9), and three bands in the default theme's index: the forum listing, a
 right-hand rail holding the live pair, and a two-line footer under both carrying
 the board's totals and its online list. `themes/midnight` keeps its own
-arrangement and stacks everything above the communities, which is the region contract
+arrangement and stacks everything above the forums, which is the region contract
 working: the page hands both themes the same nodes.
 
 **The rail is for what moves; the footer is for what the board is.** The live
@@ -8282,7 +8282,7 @@ no accessible name is an unannounced run of numbers.
 returning markup.** Three shapes were available and two are worse:
 
 - `router.refresh()` on an interval is three lines and no action at all, and it
-  re-runs *the whole index* — community listing, permission resolution, read state,
+  re-runs *the whole index* — forum listing, permission resolution, read state,
   presence, totals, announcements — to keep two panels current. A tab left open
   for a working day would ask for the board's most expensive page several
   hundred times. This asks for the two panels.
@@ -8385,7 +8385,7 @@ The validation is deliberately not `z.string().url()`. This value is
 concatenated with a path and emitted into an `href`, and `mailto:` and
 `javascript:` both parse as URLs — so `isUsableOrigin` tests the *scheme*, and
 rejects a pasted page address as well, since every link built from
-`https://community.example/board` would carry `/board` in the middle.
+`https://forum.example/board` would carry `/board` in the middle.
 
 #### The knock-on: `origin()` had to become async
 
@@ -8866,7 +8866,7 @@ when the board was painting another one" is a bug no type catches.
 making it.** An operator picks a colour they can read, on their screen, with
 their eyes; the member who cannot read the result is somewhere else and is not in
 the conversation. So `@/view/contrast` measures the thirty-one pairs the board
-actually paints — the label on a primary button, a timestamp in a community row, a
+actually paints — the label on a primary button, a timestamp in a forum row, a
 locked thread's title, the focus ring against both surfaces — per scheme, as the
 form moves, and reports them beside the field being changed as well as in a panel
 at the side. A failure is attributed: one the board was already serving before
@@ -8881,7 +8881,7 @@ also runs the other way — a pair added later that the default fails is either 
 wrong pair or a real bug in the palette, and somebody has to decide which.
 
 **The same check found twelve pairs below AA in `midnight`** — eight in its light
-scheme (`community-unread`, `community-read`, `thread-pinned`, `thread-unapproved`,
+scheme (`forum-unread`, `forum-read`, `thread-pinned`, `thread-unapproved`,
 `moderation-pending` and `moderation-approved` against `card`, the focus ring
 against the page, and `input` against `card` at 1.48:1) and four in its dark one.
 The tool's first run found real work in the theme shipped as the worked example,
@@ -8896,7 +8896,7 @@ inversion of the rule the board's own token documentation states and is why it
 sat at 1.48:1 rather than the 3:1 that WCAG 1.4.11 asks of a control's boundary.
 The focus ring was the accent colour exactly, and the accent is placed against
 panels while the ring is drawn on the page — one step darker, same hue, and it
-clears. And `community-read`, `thread-moved` and `group-banned` are now one value in
+clears. And `forum-read`, `thread-moved` and `group-banned` are now one value in
 each scheme, as they are in the default theme and for the reason that file gives:
 they are one signal, *this has receded*, wearing three names.
 

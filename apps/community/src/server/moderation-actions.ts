@@ -5,7 +5,7 @@
  *
  * The same adapter shape the posting actions use: read `FormData`, resolve who
  * is asking, re-authorise, call the domain command, redirect. What is different
- * is *what* gets re-authorised — not a community named in the form, but the community
+ * is *what* gets re-authorised — not a forum named in the form, but the forum
  * each selected item turns out to be in, which only the database knows.
  *
  * Works with JavaScript disabled: native checkboxes, two submit buttons whose
@@ -74,9 +74,9 @@ export async function moderateQueueAction(
      * is the authorisation, so a hidden field holding it would be the whole
      * permission check sitting in the browser.
      */
-    const moderated = new Set(await authorizer.moderatedCommunityIds(actor))
+    const moderated = new Set(await authorizer.moderatedForumIds(actor))
     if (moderated.size === 0) {
-      throw new ForbiddenError('You do not moderate any communities.')
+      throw new ForbiddenError('You do not moderate any forums.')
     }
 
     const selection = parseSelection(
@@ -89,7 +89,7 @@ export async function moderateQueueAction(
     outcome = await new ModerationQueue({ queue: moderationQueue }).decide({
       selection,
       decision,
-      moderatedCommunityIds: moderated,
+      moderatedForumIds: moderated,
       actorUserId: actor.userId,
     })
   } catch (err) {
@@ -108,7 +108,7 @@ export async function moderateQueueAction(
  * there — and stops it rendering and stops the member editing it.
  *
  * Gated on `user.warn` rather than a new permission. Both are aimed at a
- * *person* rather than at a community's content, and a board that trusts somebody
+ * *person* rather than at a forum's content, and a board that trusts somebody
  * to warn a member trusts them to stop that member's signature; inventing a
  * second switch would give an administrator two answers to one question.
  */
@@ -163,7 +163,7 @@ export async function setSignatureLockAction(
  *
  * The same act on the other half, and gated the same way and for the same
  * reason: `user.warn`, because both are aimed at a *person* rather than at a
- * community's content, and inventing a second switch would give an administrator
+ * forum's content, and inventing a second switch would give an administrator
  * two answers to one question.
  *
  * A lock and not a delete, again — but here the argument is stronger rather

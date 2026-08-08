@@ -49,7 +49,7 @@ export async function register(): Promise<void> {
   if (env.DATA_SOURCE === 'fixture') {
     // eslint-disable-next-line no-console -- pre-logger boot diagnostic
     console.info(
-      '[community] DATA_SOURCE=fixture — running against in-memory sample data. ' +
+      '[forum] DATA_SOURCE=fixture — running against in-memory sample data. ' +
         'Set DATABASE_URL to use Postgres.',
     )
   }

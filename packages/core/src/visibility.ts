@@ -24,7 +24,7 @@ export const CONTENT_VISIBILITY = ['visible', 'unapproved', 'deleted'] as const
 export type ContentVisibility = (typeof CONTENT_VISIBILITY)[number]
 
 /**
- * What one actor may see, in one community.
+ * What one actor may see, in one forum.
  *
  * `states` always contains `visible` and is the whole answer for a query. The
  * two booleans are the same answer for a view model — a page that needs to know

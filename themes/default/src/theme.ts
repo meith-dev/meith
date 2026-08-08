@@ -16,7 +16,7 @@
  *
  * ## What this theme is trying to be
  *
- * A board somebody else's community can wear without asking who wrote it.
+ * A board somebody else's forum can wear without asking who wrote it.
  *
  * The palette is fully neutral — every grey at chroma zero, `primary` is ink
  * rather than a house colour — so an operator who sets two tokens in the control
@@ -35,7 +35,7 @@
  *
  * ## Slots, and the one coupling inside this theme
  *
- * `CategoryBlock` and `CommunityDisplay` supply the `<ul>` that `CommunityRow` and
+ * `CategoryBlock` and `ForumDisplay` supply the `<ul>` that `ForumRow` and
  * `ThreadRow` return `<li>`s into. Those pairs move together. A theme that
  * inherits one and overrides the other gets markup browsers silently unwrap —
  * nothing throws, the rows simply vanish from the layout. `themes/midnight`
@@ -49,10 +49,10 @@ import { BoardStats } from './slots/board-stats'
 import { CategoryBlock } from './slots/category-block'
 import { WhoIsOnline } from './slots/who-is-online'
 import { Footer } from './slots/footer'
-import { CommunityRow } from './slots/community-row'
+import { ForumRow } from './slots/forum-row'
 import { LatestPosts } from './slots/latest-posts'
 import { LatestThreads } from './slots/latest-threads'
-import { CommunityDisplay } from './slots/community-display'
+import { ForumDisplay } from './slots/forum-display'
 import { Header } from './slots/header'
 import { Navigation } from './slots/navigation'
 import { Notice } from './slots/notice'
@@ -60,14 +60,14 @@ import { Announcement } from './slots/announcement'
 import { Shell } from './slots/shell'
 import { UserPanel } from './slots/user-panel'
 import { Pagination } from './slots/pagination'
-import { SubcommunityList } from './slots/subcommunity-list'
+import { SubforumList } from './slots/subforum-list'
 import { ThreadRow } from './slots/thread-row'
 import { ThreadView } from './slots/thread-view'
 import { PostBit } from './slots/post-bit'
 import { PostForm } from './slots/post-form'
 import { PostActions } from './slots/post-actions'
 import { MemberProfile } from './slots/member-profile'
-import { CommunityJump } from './slots/community-jump'
+import { ForumJump } from './slots/forum-jump'
 import { SearchForm } from './slots/search-form'
 import { RedirectNotice } from './slots/redirect-notice'
 import { ErrorNotice } from './slots/error-notice'
@@ -86,15 +86,15 @@ export const defaultTheme = defineTheme({
 
     BoardIndex,
     CategoryBlock,
-    CommunityRow,
+    ForumRow,
     BoardStats,
     WhoIsOnline,
     LatestThreads,
     LatestPosts,
 
-    CommunityDisplay,
+    ForumDisplay,
     ThreadRow,
-    SubcommunityList,
+    SubforumList,
     Pagination,
 
     ThreadView,
@@ -106,7 +106,7 @@ export const defaultTheme = defineTheme({
     MemberProfile,
 
     SearchForm,
-    CommunityJump,
+    ForumJump,
 
     RedirectNotice,
     ErrorNotice,

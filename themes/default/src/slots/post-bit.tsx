@@ -20,7 +20,7 @@ import { LINK, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
  * suite was written to find and cannot see, because nothing is broken: the page
  * renders, and a feature is simply invisible.
  *
- * They are not decoration on a community. "Is this person new here, and do they post
+ * They are not decoration on a forum. "Is this person new here, and do they post
  * a lot?" is how a reader weighs an answer from a stranger, and it is the single
  * oldest convention in board software for that reason. So the author gets a
  * column of their own on a wide screen and a compact byline on a narrow one —

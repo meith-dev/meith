@@ -22,7 +22,7 @@ import { absolute, isIndexable } from '@/server/syndication'
  * path in it is publishing that the path exists. That is why the private areas
  * listed are the ones anybody can find from the header anyway, and why no
  * *content* path is listed — a `Disallow: /9-secret` would be a map of
- * the board's private communities served to the whole internet.
+ * the board's private forums served to the whole internet.
  */
 export const dynamic = 'force-dynamic'
 

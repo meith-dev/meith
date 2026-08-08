@@ -23,7 +23,7 @@ import { describe, expect, it } from 'vitest'
 
 import { LIGHT_TOKENS, TOKEN_NAMES } from '@meith/theme-default'
 
-import communityConfig from '../../community.config'
+import forumConfig from '../../community.config'
 
 import {
   CONTRAST_PAIRS,
@@ -187,7 +187,7 @@ describe('the pairs themselves', () => {
 })
 
 describe('every installed theme', () => {
-  const themes = Object.values(communityConfig.themes).flatMap((installed) => [
+  const themes = Object.values(forumConfig.themes).flatMap((installed) => [
     [`${installed.key} (light)`, installed.tokens.light] as const,
     [`${installed.key} (dark)`, installed.tokens.dark] as const,
   ])

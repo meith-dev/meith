@@ -133,7 +133,14 @@ export function buildHeaderModel(
  */
 export function buildBoardNavigation(viewer: ViewerModel): readonly LinkModel[] {
   return [
-    { label: 'Communities', href: '/' },
+    /*
+     * Home, not "Forums". Every other item here names a *view* — new posts,
+     * unanswered, search — and this one is the way back to the index, so naming
+     * it after the collection it happens to contain reads as a directory to
+     * browse between rather than as somewhere to return to. It is also the one
+     * item whose label should survive the board's vocabulary changing under it.
+     */
+    { label: 'Home', href: '/' },
     /* F74. The default view; the rest are tabs once a member is there. */
     { label: 'New posts', href: '/discover/new' },
     { label: 'Unanswered', href: '/discover/unanswered' },
@@ -142,7 +149,7 @@ export function buildBoardNavigation(viewer: ViewerModel): readonly LinkModel[] 
        something a member reaches for from wherever they happen to be. */
     { label: 'Search', href: '/search' },
     /* F75. Both are linked from the index panels too; they are here because a
-       member two communities deep should not have to go home to reach them. */
+       member two forums deep should not have to go home to reach them. */
     { label: "Who's online", href: '/online' },
   ]
 }
@@ -227,7 +234,7 @@ export function buildUserPanelModel(
  * other end of it and holds the same string in `src/content/site.ts`, but it
  * shares no package with the board — it depends on `next`, `react`, `marked` and
  * `shiki`, and nothing in this workspace — so a shared constant would mean
- * making the marketing site a dependent of the community to save one literal.
+ * making the marketing site a dependent of the forum to save one literal.
  */
 const POWERED_BY: LinkModel = { label: 'Powered by Meith', href: 'https://meith.dev' }
 

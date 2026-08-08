@@ -46,14 +46,14 @@ import { cache } from 'react'
 
 import { assertThemeContract, resolveTheme, type ResolvedTheme } from '@meith/theme-kit'
 
-import communityConfig from '../../community.config'
+import forumConfig from '../../community.config'
 
 import { getBoardThemeStyle } from './theme-runtime'
 import { SCHEME_COOKIE, THEME_COOKIE, isColourScheme, type ColourSchemePreference } from '@/view/theme-preference'
 
 /** Every registered theme that has components, resolved once. */
 const RESOLVED: ReadonlyMap<string, ResolvedTheme> = new Map(
-  Object.values(communityConfig.themes)
+  Object.values(forumConfig.themes)
     .filter((theme) => theme.theme !== undefined)
     .map((theme) => [theme.key, resolveTheme(theme.theme!)]),
 )
@@ -61,16 +61,16 @@ const RESOLVED: ReadonlyMap<string, ResolvedTheme> = new Map(
 /**
  * The theme whose components this build renders when nothing else is chosen.
  *
- * The `!` is load-bearing rather than lazy. `defineCommunityConfig` has already
+ * The `!` is load-bearing rather than lazy. `defineForumConfig` has already
  * proven `defaultTheme` names a registered theme, and a board whose build theme
  * fills no slots cannot render a page at all — so failing at boot with a clear
  * stack is right. The alternative is a blank page at request time.
  */
-export const buildTheme: ResolvedTheme = RESOLVED.get(communityConfig.defaultTheme)!
+export const buildTheme: ResolvedTheme = RESOLVED.get(forumConfig.defaultTheme)!
 
 if (buildTheme === undefined) {
   throw new Error(
-    `community.config.ts: defaultTheme "${communityConfig.defaultTheme}" fills no slots, so this ` +
+    `community.config.ts: defaultTheme "${forumConfig.defaultTheme}" fills no slots, so this ` +
       'board cannot render a page. A token-only theme is legitimate as an alternate, ' +
       'never as the theme a build is made of.',
   )

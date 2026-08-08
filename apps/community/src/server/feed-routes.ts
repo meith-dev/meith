@@ -3,7 +3,7 @@ import 'server-only'
 /**
  * F76 — the shared body of every feed route.
  *
- * Four routes (board RSS, board Atom, community, thread) that differ in one read
+ * Four routes (board RSS, board Atom, forum, thread) that differ in one read
  * and one title. Written once here so the parts that must be identical are:
  * the guest scope, the content type, the caching headers, and what happens when
  * there is no store.
@@ -48,9 +48,9 @@ export function xmlResponse(body: string): Response {
  * 404, not an empty feed. A reader subscribed to a feed that started answering
  * with zero entries would quietly show nothing for as long as the condition
  * lasted; a 404 is visible in the reader's own error list. This is the answer
- * for fixture mode (no store) and for a community a signed-out visitor may not see
+ * for fixture mode (no store) and for a forum a signed-out visitor may not see
  * — the same answer, deliberately, because distinguishing them would tell an
- * anonymous caller which community ids are private.
+ * anonymous caller which forum ids are private.
  */
 export function noFeed(): Response {
   return new Response('Not found', {

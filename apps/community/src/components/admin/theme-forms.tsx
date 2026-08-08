@@ -430,7 +430,7 @@ export function ThemeEditorForm({
       Two columns at `xl` and not at `lg`, which is a measurement rather than a
       taste: the panel already spends about 200px on its rail, a token row holds
       two colour pickers side by side, and a sample has to be wide enough to look
-      like a community. Split at 1024px all three are too narrow to use, and the
+      like a forum. Split at 1024px all three are too narrow to use, and the
       screen is worse than the one column it replaced.
     */
     <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] xl:items-start">

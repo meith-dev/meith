@@ -7,7 +7,7 @@
  *
  *   1. **Every affected row still moves.** A set-based flag update and a
  *      per-row counter walk have to reach the same answer as doing them one at
- *      a time, on the community, on its ancestors and on every author.
+ *      a time, on the forum, on its ancestors and on every author.
  *   2. **The state guard survives the batch.** Re-submitting a chunk that
  *      already ran moves nothing and logs nothing, which is what makes a
  *      part-finished bulk action safe to retry.
@@ -23,7 +23,7 @@ import { PostgresInlineModerationRepository } from './inline-moderation'
 import { PostgresThreadWriteRepository } from './thread-writes'
 import { rollUpAncestorCounters } from './content-counters'
 import { resultRows } from './result-rows'
-import { communities, users } from './schema'
+import { forums, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -57,7 +57,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from outbox`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values(
@@ -76,7 +76,7 @@ beforeEach(async () => {
       primaryGroupId: 2,
     })),
   )
-  await db.insert(communities).values([
+  await db.insert(forums).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
     { id: LEFT, title: 'Left', slug: 'left', path: '1.4', depth: 1, parentId: CATEGORY },
     { id: RIGHT, title: 'Right', slug: 'right', path: '1.5', depth: 1, parentId: CATEGORY },
@@ -88,18 +88,18 @@ beforeEach(async () => {
 /** A thread with an opening post by Ada and one reply by Bob. */
 async function seedThread(
   options: {
-    communityId?: number
+    forumId?: number
     title?: string
     visibility?: 'visible' | 'unapproved'
     replies?: boolean
   } = {},
 ): Promise<{ threadId: number; postIds: number[] }> {
-  const communityId = options.communityId ?? LEFT
+  const forumId = options.forumId ?? LEFT
   const title = options.title ?? 'Hello there'
   const visibility = options.visibility ?? 'visible'
 
   const thread = await writes.create({
-    communityId,
+    forumId,
     title,
     slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
     message: 'the opening post',
@@ -115,7 +115,7 @@ async function seedThread(
   if (options.replies !== false) {
     const { postId } = await writes.createReply({
       threadId: thread.threadId,
-      communityId,
+      forumId,
       threadTitle: title,
       message: 'a reply',
       authorUserId: BOB,
@@ -133,9 +133,9 @@ async function seedThread(
   return { threadId: thread.threadId, postIds }
 }
 
-async function communityCounts(id: number): Promise<{ posts: number; threads: number }> {
+async function forumCounts(id: number): Promise<{ posts: number; threads: number }> {
   const rows = resultRows(
-    await db.execute(sql`select post_count, thread_count from communities where id = ${id}`),
+    await db.execute(sql`select post_count, thread_count from forums where id = ${id}`),
   ) as Array<{ post_count: number; thread_count: number }>
   return { posts: Number(rows[0]!.post_count), threads: Number(rows[0]!.thread_count) }
 }
@@ -169,9 +169,9 @@ async function postVisibility(id: number): Promise<string> {
 }
 
 describe('resolve', () => {
-  it('returns the community a row is really in, not the one the form claimed', async () => {
-    const left = await seedThread({ communityId: LEFT, title: 'Left thread' })
-    const right = await seedThread({ communityId: RIGHT, title: 'Right thread' })
+  it('returns the forum a row is really in, not the one the form claimed', async () => {
+    const left = await seedThread({ forumId: LEFT, title: 'Left thread' })
+    const right = await seedThread({ forumId: RIGHT, title: 'Right thread' })
 
     const found = await repo.resolve(
       [
@@ -183,16 +183,16 @@ describe('resolve', () => {
 
     expect(found).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: left.threadId, communityId: LEFT }),
-        expect.objectContaining({ id: right.threadId, communityId: RIGHT }),
+        expect.objectContaining({ id: left.threadId, forumId: LEFT }),
+        expect.objectContaining({ id: right.threadId, forumId: RIGHT }),
       ]),
     )
   })
 
   /* The security boundary: outside the scope is *absent*, never forbidden. */
   it('omits a row outside the scope entirely', async () => {
-    const left = await seedThread({ communityId: LEFT, title: 'Left thread' })
-    const right = await seedThread({ communityId: RIGHT, title: 'Right thread' })
+    const left = await seedThread({ forumId: LEFT, title: 'Left thread' })
+    const right = await seedThread({ forumId: RIGHT, title: 'Right thread' })
 
     const found = await repo.resolve(
       [
@@ -211,7 +211,7 @@ describe('resolve', () => {
     const inScope = await repo.resolve([{ kind: 'post', id: postIds[1]! }], [LEFT])
     expect(inScope[0]).toMatchObject({
       kind: 'post',
-      communityId: LEFT,
+      forumId: LEFT,
       visibility: 'unapproved',
       threadVisibility: 'unapproved',
     })
@@ -231,8 +231,8 @@ describe('bulk delete and restore', () => {
     const first = await seedThread({ title: 'First' })
     const second = await seedThread({ title: 'Second' })
 
-    expect(await communityCounts(LEFT)).toEqual({ posts: 4, threads: 2 })
-    expect(await communityCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 4, threads: 2 })
+    expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
     expect(await userCounts(ADA)).toEqual({ posts: 2, threads: 2 })
     expect(await userCounts(BOB)).toEqual({ posts: 2, threads: 0 })
 
@@ -245,8 +245,8 @@ describe('bulk delete and restore', () => {
     })
 
     expect(applied).toBe(2)
-    expect(await communityCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
-    expect(await communityCounts(CATEGORY)).toEqual({ posts: 0, threads: 0 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
+    expect(await forumCounts(CATEGORY)).toEqual({ posts: 0, threads: 0 })
     expect(await userCounts(ADA)).toEqual({ posts: 0, threads: 0 })
     expect(await userCounts(BOB)).toEqual({ posts: 0, threads: 0 })
     expect(await auditActions()).toEqual(['inline.delete'])
@@ -256,8 +256,8 @@ describe('bulk delete and restore', () => {
     const first = await seedThread({ title: 'First' })
     const second = await seedThread({ title: 'Second' })
     const before = {
-      left: await communityCounts(LEFT),
-      category: await communityCounts(CATEGORY),
+      left: await forumCounts(LEFT),
+      category: await forumCounts(CATEGORY),
       ada: await userCounts(ADA),
       bob: await userCounts(BOB),
     }
@@ -278,8 +278,8 @@ describe('bulk delete and restore', () => {
     })
 
     expect(applied).toBe(2)
-    expect(await communityCounts(LEFT)).toEqual(before.left)
-    expect(await communityCounts(CATEGORY)).toEqual(before.category)
+    expect(await forumCounts(LEFT)).toEqual(before.left)
+    expect(await forumCounts(CATEGORY)).toEqual(before.category)
     expect(await userCounts(ADA)).toEqual(before.ada)
     expect(await userCounts(BOB)).toEqual(before.bob)
   })
@@ -311,7 +311,7 @@ describe('bulk delete and restore', () => {
       }),
     ).toBe(0)
 
-    expect(await communityCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
     expect(await auditActions()).toEqual(['inline.delete'])
   })
 
@@ -327,7 +327,7 @@ describe('bulk delete and restore', () => {
     })
 
     expect(applied).toBe(1)
-    expect(await communityCounts(LEFT)).toEqual({ posts: 1, threads: 1 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 1, threads: 1 })
     expect(await userCounts(BOB)).toEqual({ posts: 0, threads: 0 })
     expect(await threadVisibility(threadId)).toBe('visible')
   })
@@ -352,14 +352,14 @@ describe('bulk delete and restore', () => {
     })
 
     expect(applied).toBe(1)
-    expect(await communityCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
   })
 })
 
 describe('bulk approve', () => {
   it('publishes a held thread with its opening post and counts both', async () => {
     const { threadId, postIds } = await seedThread({ visibility: 'unapproved' })
-    expect(await communityCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
 
     const applied = await repo.apply({
       tool: 'approve',
@@ -374,7 +374,7 @@ describe('bulk approve', () => {
     expect(await postVisibility(postIds[0]!)).toBe('visible')
     /* The held *reply* is its own decision and is deliberately untouched. */
     expect(await postVisibility(postIds[1]!)).toBe('unapproved')
-    expect(await communityCounts(LEFT)).toEqual({ posts: 1, threads: 1 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 1, threads: 1 })
     expect(await userCounts(ADA)).toEqual({ posts: 1, threads: 1 })
   })
 
@@ -397,7 +397,7 @@ describe('bulk approve', () => {
     })
 
     expect(applied).toBe(1)
-    expect(await communityCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
     expect(await userCounts(BOB)).toEqual({ posts: 1, threads: 0 })
   })
 })
@@ -470,59 +470,59 @@ describe('bulk lock and pin', () => {
 
 describe('bulk move', () => {
   it('debits one chain and credits the other, cancelling at the shared ancestor', async () => {
-    const first = await seedThread({ communityId: LEFT, title: 'First' })
-    const second = await seedThread({ communityId: LEFT, title: 'Second' })
+    const first = await seedThread({ forumId: LEFT, title: 'First' })
+    const second = await seedThread({ forumId: LEFT, title: 'Second' })
 
     const applied = await repo.apply({
       tool: 'move',
       threadIds: [first.threadId, second.threadId],
       postIds: [],
-      toCommunityId: RIGHT,
+      toForumId: RIGHT,
       actorUserId: MOD,
       at: AT,
     })
 
     expect(applied).toBe(2)
-    expect(await communityCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
-    expect(await communityCounts(RIGHT)).toEqual({ posts: 4, threads: 2 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
+    expect(await forumCounts(RIGHT)).toEqual({ posts: 4, threads: 2 })
     /* The category holds both, so a move between its children changes nothing. */
-    expect(await communityCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
+    expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
     /* And a move never changes how much anybody wrote (F51). */
     expect(await userCounts(ADA)).toEqual({ posts: 2, threads: 2 })
   })
 
-  it('rewrites the denormalised community id on every post', async () => {
-    const { threadId } = await seedThread({ communityId: LEFT })
+  it('rewrites the denormalised forum id on every post', async () => {
+    const { threadId } = await seedThread({ forumId: LEFT })
 
     await repo.apply({
       tool: 'move',
       threadIds: [threadId],
       postIds: [],
-      toCommunityId: RIGHT,
+      toForumId: RIGHT,
       actorUserId: MOD,
       at: AT,
     })
 
     const rows = resultRows(
-      await db.execute(sql`select distinct community_id from posts where thread_id = ${threadId}`),
-    ) as Array<{ community_id: number }>
-    expect(rows.map((r) => Number(r.community_id))).toEqual([RIGHT])
+      await db.execute(sql`select distinct forum_id from posts where thread_id = ${threadId}`),
+    ) as Array<{ forum_id: number }>
+    expect(rows.map((r) => Number(r.forum_id))).toEqual([RIGHT])
   })
 
   it('moves nothing when the thread is already there', async () => {
-    const { threadId } = await seedThread({ communityId: RIGHT })
+    const { threadId } = await seedThread({ forumId: RIGHT })
 
     const applied = await repo.apply({
       tool: 'move',
       threadIds: [threadId],
       postIds: [],
-      toCommunityId: RIGHT,
+      toForumId: RIGHT,
       actorUserId: MOD,
       at: AT,
     })
 
     expect(applied).toBe(0)
-    expect(await communityCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
     expect(await auditActions()).toEqual([])
   })
 })

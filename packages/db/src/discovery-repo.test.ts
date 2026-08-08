@@ -42,12 +42,12 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
   await db.execute(sql`
-    insert into communities (id, type, title, slug, path) values
-      (${OPEN}, 'community', 'Open', 'open', '1'),
-      (${PRIVATE}, 'community', 'Private', 'private', '2')
+    insert into forums (id, type, title, slug, path) values
+      (${OPEN}, 'forum', 'Open', 'open', '1'),
+      (${PRIVATE}, 'forum', 'Private', 'private', '2')
   `)
   for (const id of [ANN, BOB]) {
     await db.execute(sql`
@@ -61,7 +61,7 @@ beforeEach(async () => {
 
 interface SeedThread {
   readonly id: number
-  readonly communityId?: number
+  readonly forumId?: number
   readonly authorUserId?: number | null
   readonly replyCount?: number
   readonly lastPostAt?: string
@@ -70,9 +70,9 @@ interface SeedThread {
 
 async function seedThread(thread: SeedThread): Promise<void> {
   await db.execute(sql`
-    insert into threads (id, community_id, author_user_id, author_username, title, slug,
+    insert into threads (id, forum_id, author_user_id, author_username, title, slug,
                          reply_count, last_post_at, visibility)
-    values (${thread.id}, ${thread.communityId ?? OPEN}, ${thread.authorUserId ?? ANN}, 'ann',
+    values (${thread.id}, ${thread.forumId ?? OPEN}, ${thread.authorUserId ?? ANN}, 'ann',
             ${`Thread ${thread.id}`}, ${`t-${thread.id}`},
             ${thread.replyCount ?? 0},
             ${thread.lastPostAt ?? '2026-01-01T00:00:00Z'},
@@ -82,14 +82,14 @@ async function seedThread(thread: SeedThread): Promise<void> {
 
 async function seedPost(id: number, threadId: number, authorUserId: number, visibility = 'visible') {
   await db.execute(sql`
-    insert into posts (id, thread_id, community_id, author_user_id, author_username,
+    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
                        message, visibility)
     values (${id}, ${threadId}, ${OPEN}, ${authorUserId}, 'ann', 'hello', ${visibility})
   `)
 }
 
 const scope = (overrides: Partial<DiscoveryScope> = {}): DiscoveryScope => ({
-  communityIds: [OPEN, PRIVATE],
+  forumIds: [OPEN, PRIVATE],
   content: PUBLIC_CONTENT,
   viewerUserId: ANN,
   ...overrides,
@@ -102,19 +102,19 @@ describe('the permission filter', () => {
   it('returns nothing for an empty scope, rather than everything', async () => {
     /*
      * The claim every one of these screens rests on. Kills the mutant that
-     * omits the community clause when the list is empty — under which a member with
-     * no visible communities is shown the entire board.
+     * omits the forum clause when the list is empty — under which a member with
+     * no visible forums is shown the entire board.
      */
     await seedThread({ id: 1 })
 
-    expect((await repo.activeSince(EPOCH, query, scope({ communityIds: [] }))).rows).toEqual([])
+    expect((await repo.activeSince(EPOCH, query, scope({ forumIds: [] }))).rows).toEqual([])
   })
 
-  it('lists only threads in communities the viewer may see', async () => {
-    await seedThread({ id: 1, communityId: OPEN })
-    await seedThread({ id: 2, communityId: PRIVATE })
+  it('lists only threads in forums the viewer may see', async () => {
+    await seedThread({ id: 1, forumId: OPEN })
+    await seedThread({ id: 2, forumId: PRIVATE })
 
-    const page = await repo.activeSince(EPOCH, query, scope({ communityIds: [OPEN] }))
+    const page = await repo.activeSince(EPOCH, query, scope({ forumIds: [OPEN] }))
     expect(page.rows.map((row) => row.threadId)).toEqual([1])
   })
 
@@ -261,10 +261,10 @@ describe('paging', () => {
 })
 
 describe('the row', () => {
-  it('carries the community title and slug, so a listing needs no second query', async () => {
+  it('carries the forum title and slug, so a listing needs no second query', async () => {
     /*
      * The slug is here because these lists cross the whole board and every row
-     * links back to its community with the canonical `/<id>-<slug>` address.
+     * links back to its forum with the canonical `/<id>-<slug>` address.
      * Fetching it per row is the N+1 the budget test exists to catch, so it
      * comes off the join that was already there.
      */
@@ -272,8 +272,8 @@ describe('the row', () => {
 
     const row = (await repo.activeSince(EPOCH, query, scope())).rows[0]
     expect(row).toMatchObject({
-      communityTitle: 'Open',
-      communitySlug: 'open',
+      forumTitle: 'Open',
+      forumSlug: 'open',
       title: 'Thread 1',
       replyCount: 0,
     })

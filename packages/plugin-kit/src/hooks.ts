@@ -43,7 +43,7 @@
  *
  * For the same reason there is no hook inside the visibility filter. A
  * plugin that could rewrite a `where` clause is a plugin that can leak a private
- * community, and no amount of isolation makes that recoverable.
+ * forum, and no amount of isolation makes that recoverable.
  */
 
 export type HookKind = 'filter' | 'event'
@@ -123,12 +123,12 @@ export const HOOKS = {
     feature: 'F27',
     purpose: 'The footer model, including its link list.',
   },
-  'view.community-jump': {
+  'view.forum-jump': {
     kind: 'filter',
     feature: 'F27',
     purpose:
       'The jump box model. A plugin adding a destination must give it a real ' +
-      'community id — the route re-authorises whatever is submitted.',
+      'forum id — the route re-authorises whatever is submitted.',
   },
   'view.announcement': {
     kind: 'filter',
@@ -143,10 +143,10 @@ export const HOOKS = {
     feature: 'F29',
     purpose: 'The index page model.',
   },
-  'view.community-row': {
+  'view.forum-row': {
     kind: 'filter',
     feature: 'F29',
-    purpose: 'One community row in a listing. Runs once per row — keep it cheap.',
+    purpose: 'One forum row in a listing. Runs once per row — keep it cheap.',
   },
   'view.thread-row': {
     kind: 'filter',
@@ -220,17 +220,17 @@ export const HOOKS = {
   'view.category-block': {
     kind: 'filter',
     feature: 'F29',
-    purpose: 'One category on the index, with its rendered community rows.',
+    purpose: 'One category on the index, with its rendered forum rows.',
   },
-  'view.subcommunity-list': {
+  'view.subforum-list': {
     kind: 'filter',
     feature: 'F30',
-    purpose: 'The compact child-community list above a thread listing.',
+    purpose: 'The compact child-forum list above a thread listing.',
   },
-  'view.community-display': {
+  'view.forum-display': {
     kind: 'filter',
     feature: 'F30',
-    purpose: 'A community page’s model, including its rendered regions.',
+    purpose: 'A forum page’s model, including its rendered regions.',
   },
   'view.thread-view': {
     kind: 'filter',
@@ -307,7 +307,7 @@ export const HOOKS = {
   'thread.moved': {
     kind: 'event',
     feature: 'F50',
-    purpose: 'A thread changed community. Carries both community ids.',
+    purpose: 'A thread changed forum. Carries both forum ids.',
   },
   'thread.merged': {
     kind: 'event',
@@ -501,7 +501,7 @@ export const HOOKS = {
   'subscription.changed': {
     kind: 'event',
     feature: 'F56',
-    purpose: 'A member subscribed to or unsubscribed from a thread or community.',
+    purpose: 'A member subscribed to or unsubscribed from a thread or forum.',
   },
   'reputation.changed': {
     kind: 'event',

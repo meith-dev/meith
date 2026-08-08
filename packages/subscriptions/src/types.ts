@@ -19,7 +19,7 @@ import type { DigestCadence, SubscriptionMode, SubscriptionTarget } from './mode
 /** One row of the management screen. */
 export interface SubscriptionRow {
   readonly target: SubscriptionTarget
-  /** Thread id or community id. */
+  /** Thread id or forum id. */
   readonly targetId: number
   readonly title: string
   /** Where the thing itself is. */
@@ -36,7 +36,7 @@ export interface PendingPost {
   readonly threadId: number
   readonly threadTitle: string
   readonly threadSlug: string
-  readonly communityId: number
+  readonly forumId: number
   /** Null when the account has been deleted; the name is still shown. */
   readonly authorUsername: string | null
   readonly createdAt: Date
@@ -96,13 +96,13 @@ export interface SubscriptionRepository {
   ): Promise<SubscriptionMode | null>
 
   /**
-   * The management screen. Scoped to what this member may still see: a community
+   * The management screen. Scoped to what this member may still see: a forum
    * whose permissions changed under them keeps its row invisible rather than
    * naming a private thread back at them.
    */
   listFor(
     userId: number,
-    options: { readonly visibleCommunityIds: readonly number[]; readonly limit: number },
+    options: { readonly visibleForumIds: readonly number[]; readonly limit: number },
   ): Promise<readonly SubscriptionRow[]>
 
   /**
@@ -118,7 +118,7 @@ export interface SubscriptionRepository {
   }): Promise<readonly number[]>
 
   /**
-   * What one member has waiting, filtered to communities they can still see.
+   * What one member has waiting, filtered to forums they can still see.
    *
    * The visible set is resolved per member by the caller and passed in, because
    * permissions live in `@meith/authorization` and a repository that decided
@@ -127,7 +127,7 @@ export interface SubscriptionRepository {
   pendingFor(input: {
     readonly userId: number
     readonly mode: SubscriptionMode
-    readonly visibleCommunityIds: readonly number[]
+    readonly visibleForumIds: readonly number[]
     readonly limit: number
   }): Promise<PendingForUser>
 
@@ -163,7 +163,7 @@ export interface SubscriptionNotifierPort {
 }
 
 /**
- * Which communities a member may see, resolved by the caller through the Authorizer.
+ * Which forums a member may see, resolved by the caller through the Authorizer.
  *
  * The whole permission question in one call. It costs a constant three queries
  * per member (D26) and it is asked once per member per digest run, which is the
@@ -171,6 +171,6 @@ export interface SubscriptionNotifierPort {
  * itself, and F47's entire argument is that there is exactly one answer to that
  * question and one place it comes from.
  */
-export interface VisibleCommunitySource {
-  visibleCommunityIdsFor(userId: number): Promise<readonly number[]>
+export interface VisibleForumSource {
+  visibleForumIdsFor(userId: number): Promise<readonly number[]>
 }

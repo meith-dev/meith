@@ -3,7 +3,7 @@
  *
  * The interesting function is `locationOf`, and it is interesting for a reason
  * that is easy to miss: **it never decides anything.** The repository has
- * already replaced every community and thread the reader may not be told about with
+ * already replaced every forum and thread the reader may not be told about with
  * null, so this turns a resolved row into a label and a link and nothing more.
  *
  * That split is the design. If this function chose what to hide, every theme
@@ -26,8 +26,8 @@ export interface OnlineRow {
   readonly username: string
   readonly invisible: boolean
   readonly lastSeenAt: Date
-  readonly communityId: number | null
-  readonly communityTitle: string | null
+  readonly forumId: number | null
+  readonly forumTitle: string | null
   readonly threadId: number | null
   readonly threadTitle: string | null
   readonly threadSlug: string | null
@@ -48,9 +48,9 @@ export interface OnlineInput {
  * Where somebody is, in words.
  *
  * The three cases are three different amounts of knowledge, and the fallback is
- * the honest one: a null community id does not mean "nowhere", it means the reader
- * may not be told. "Viewing a community" is true of somebody in the staff room and
- * true of somebody in a community this build has no route for, and it gives away
+ * the honest one: a null forum id does not mean "nowhere", it means the reader
+ * may not be told. "Viewing a forum" is true of somebody in the staff room and
+ * true of somebody in a forum this build has no route for, and it gives away
  * neither.
  */
 export function locationOf(row: OnlineRow): { label: string; href: string | null } {
@@ -65,10 +65,10 @@ export function locationOf(row: OnlineRow): { label: string; href: string | null
    * The repository gates the id and the title on the same predicate, so the
    * two are never different — but the href genuinely consumes the id, so each
    * half of the check carries its own weight. The session row holds no slug,
-   * and it does not need one: the community route accepts a bare `/<id>`.
+   * and it does not need one: the forum route accepts a bare `/<id>`.
    */
-  if (row.communityId !== null && row.communityTitle !== null) {
-    return { label: `Viewing ${row.communityTitle}`, href: `/${row.communityId}` }
+  if (row.forumId !== null && row.forumTitle !== null) {
+    return { label: `Viewing ${row.forumTitle}`, href: `/${row.forumId}` }
   }
 
   return { label: 'Somewhere on the board', href: null }

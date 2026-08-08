@@ -283,7 +283,7 @@ export class PostgresSessionRepository implements SessionRepository {
       .update(sessions)
       .set({
         locationPath: location.path,
-        locationCommunityId: location.communityId,
+        locationForumId: location.forumId,
         locationThreadId: location.threadId,
         lastSeenAt: now,
       })

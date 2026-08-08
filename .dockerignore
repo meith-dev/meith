@@ -1,7 +1,7 @@
 # Everything the image must not carry, and the reason it matters.
 #
 # There was no .dockerignore at all, so `docker build` sent the whole working
-# tree — including `apps/community/.env`, a *developer's* file that is gitignored
+# tree — including `apps/forum/.env`, a *developer's* file that is gitignored
 # and sets QUEUE_DRIVER=postgres. Next loads it during the build, so the
 # prerender resolved a Postgres queue while DATA_SOURCE was fixture and the
 # build died on `getDb() called while DATA_SOURCE is "fixture"`. The image
@@ -16,7 +16,7 @@
 #
 # The `**/` matters and is the whole bug: dockerignore patterns are anchored to
 # the build context, so a bare `.env` matches only the repo root — and the file
-# that broke the build was `apps/community/.env`, which Next loads and which set
+# that broke the build was `apps/forum/.env`, which Next loads and which set
 # QUEUE_DRIVER=postgres.
 **/.env
 **/.env.*

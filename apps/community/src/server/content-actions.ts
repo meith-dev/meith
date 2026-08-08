@@ -102,7 +102,7 @@ export async function renderPreviewAction(
  * on top of one: the source comes from the database, not from the page. The
  * caller sends two numbers; everything about what may be quoted is decided
  * here, by the same lookup `/thread/…/reply?quote=` has always used —
- * `thread.view` on the community, then a thread-scoped read that only ever returns
+ * `thread.view` on the forum, then a thread-scoped read that only ever returns
  * a *publicly visible* post.
  *
  * That closes both holes the obvious client-side version leaves open. A reader
@@ -128,8 +128,8 @@ export async function quotePostAction(
   const target = threadWrites === null ? null : await threadWrites.replyTarget(threadId)
   if (target === null) return null
 
-  const communityId = target.community.id
-  const scope = { communityId, community: await authorizer.communityMatrix(actor, communityId) }
+  const forumId = target.forum.id
+  const scope = { forumId, forum: await authorizer.forumMatrix(actor, forumId) }
   if (!authorizer.can(actor, 'thread.view', scope)) return null
 
   const quoted = await posts.findQuotable(threadId, postId)
@@ -167,7 +167,7 @@ export async function createThreadAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
-  const communityId = positiveInt(field(form, 'communityId'))
+  const forumId = positiveInt(field(form, 'forumId'))
   const title = field(form, 'title')
   const message = field(form, 'message')
   const prefixId =
@@ -179,7 +179,7 @@ export async function createThreadAction(
     .filter((value): value is string => typeof value === 'string')
   const values = { title, message, prefixId: field(form, 'prefixId') }
 
-  if (communityId === null) return { error: 'That community does not exist.', values }
+  if (forumId === null) return { error: 'That forum does not exist.', values }
 
   /*
    * Preview never writes. It is handled before authorisation deliberately —
@@ -203,24 +203,24 @@ export async function createThreadAction(
 
   const settings = await getSettings()
   let created
-  let community
+  let forum
   let author: Awaited<ReturnType<typeof authorProfile>>
   let staged: Awaited<ReturnType<typeof stageAttachments>>
   try {
-    community = await threadWrites.postingRules(communityId)
-    if (!community) throw new ValidationError('That community does not exist.')
+    forum = await threadWrites.postingRules(forumId)
+    if (!forum) throw new ValidationError('That forum does not exist.')
 
     /*
      * The re-check that matters. Rendering the composer authorised the *page*;
      * this is a public endpoint and nothing stops a direct POST to it, so the
-     * matrix is resolved again here against the community the form claims.
+     * matrix is resolved again here against the forum the form claims.
      */
-    const matrix = await authorizer.communityMatrix(actor, communityId)
-    const target = { communityId, community: matrix }
+    const matrix = await authorizer.forumMatrix(actor, forumId)
+    const target = { forumId, forum: matrix }
     if (!authorizer.can(actor, 'thread.view', target)) {
-      // Same answer as an invisible community gives everywhere else: the existence
-      // of a community you cannot see is not something to confirm.
-      throw new ValidationError('That community does not exist.')
+      // Same answer as an invisible forum gives everywhere else: the existence
+      // of a forum you cannot see is not something to confirm.
+      throw new ValidationError('That forum does not exist.')
     }
     authorizer.require(actor, 'thread.post', target)
 
@@ -233,7 +233,7 @@ export async function createThreadAction(
 
     if (field(form, 'intent') === 'save_draft') {
       if (drafts === null) throw new ValidationError('Drafts are unavailable on this board.')
-      await drafts.save(actor.userId, { communityId, threadId: null, title, message, prefixId })
+      await drafts.save(actor.userId, { forumId, threadId: null, title, message, prefixId })
       return { notice: 'saved', values }
     }
 
@@ -282,8 +282,8 @@ export async function createThreadAction(
         }),
         /*
          * The `requiresThreadApproval` permission, resolved for this actor in
-         * this community. The authorizer has already AND-combined it across their
-         * groups and applied any per-community override, so this is a read.
+         * this forum. The authorizer has already AND-combined it across their
+         * groups and applied any per-forum override, so this is a read.
          */
         requiresApproval: matrix.requiresThreadApproval === true,
         poll:
@@ -293,8 +293,8 @@ export async function createThreadAction(
             : { question: pollQuestion, options: pollOptions, closesAt: null },
         mayPostPoll: authorizer.can(actor, 'poll.post', target),
         /*
-         * Moderators of the community post straight through; everyone else waits
-         * when the community holds new threads. `content.viewUnapproved` is the
+         * Moderators of the forum post straight through; everyone else waits
+         * when the forum holds new threads. `content.viewUnapproved` is the
          * permission that says "this actor deals with the queue", so it is the
          * one that decides they need not join it.
          */
@@ -318,15 +318,15 @@ export async function createThreadAction(
         restriction: await authorRestriction(actor.userId),
       },
       { userId: actor.userId, username: author.username },
-      community,
+      forum,
     )
 
     await attachStaged(staged, {
       postId: created.postId,
-      communityId,
+      forumId,
       userId: actor.userId,
     })
-    await drafts?.remove(actor.userId, communityId, null)
+    await drafts?.remove(actor.userId, forumId, null)
   } catch (err) {
     return toFormState(err, values)
   }
@@ -343,7 +343,7 @@ export async function createThreadAction(
     'thread.created',
     {
       threadId: created.threadId,
-      communityId,
+      forumId,
       authorId: actor.userId,
       subject: values.title,
     },
@@ -371,8 +371,8 @@ export async function createThreadAction(
    */
   if (created.visibility === 'unapproved') {
     // The thread exists but nothing can see it yet, so sending the author to it
-    // would be a 404 on their own post. The community says what happened instead.
-    redirect(`/${community.id}-${community.slug}?posted=moderated`)
+    // would be a 404 on their own post. The forum says what happened instead.
+    redirect(`/${forum.id}-${forum.slug}?posted=moderated`)
   }
   redirect(`/thread/${created.threadId}-${created.slug}`)
 }
@@ -413,29 +413,29 @@ export async function createReplyAction(
      * previews, drafts, attachments and where to send the author afterwards.
      */
     const resolved = await resolveReplyTarget(actor, threadId)
-    const { communityId, scope } = resolved
+    const { forumId, scope } = resolved
 
     /* Narrowed by `resolveReplyTarget`, which refuses an anonymous author. */
     const userId = actor.userId!
 
     if (field(form, 'intent') === 'save_draft') {
       if (drafts === null) throw new ValidationError('Drafts are unavailable on this board.')
-      await drafts.save(userId, { communityId, threadId, title: '', message, prefixId: null })
+      await drafts.save(userId, { forumId, threadId, title: '', message, prefixId: null })
       return { notice: 'saved', values }
     }
 
     /*
      * Staged before the post exists and attached after it, which is why
      * `reply-core` hands back the scope instead of doing the whole write: an
-     * upload has to be validated against the community's limits before anything is
+     * upload has to be validated against the forum's limits before anything is
      * committed, and cannot carry a post id that has not been issued.
      */
     const staged = await stageAttachments(actor, scope, await submittedFiles(form))
 
     created = await submitReply(actor, resolved, { message, subscribe, seenLastPostId })
 
-    await attachStaged(staged, { postId: created.postId, communityId, userId })
-    await drafts?.remove(userId, communityId, threadId)
+    await attachStaged(staged, { postId: created.postId, forumId, userId })
+    await drafts?.remove(userId, forumId, threadId)
   } catch (err) {
     return toFormState(err, values)
   }
@@ -568,7 +568,7 @@ export async function editPostAction(
       {
         postId: edited.postId,
         threadId: edited.threadId,
-        communityId: scope.target.community.id,
+        forumId: scope.target.forum.id,
         editorId: editorId,
         revision: 0,
       },

@@ -4,7 +4,7 @@
  * The interesting table is `legacy_ids`. Every MyBB URL contains an id, so F86's
  * redirects are a lookup here — and an import that did not record the mapping
  * would be a one-way door that breaks every inbound link a board has
- * accumulated, which for a community is most of its traffic.
+ * accumulated, which for a forum is most of its traffic.
  */
 
 import { sql } from 'drizzle-orm'
@@ -23,7 +23,7 @@ import type { Database } from './client'
  */
 import { resultRows } from './result-rows'
 
-export type LegacyKind = 'user' | 'community' | 'thread' | 'post'
+export type LegacyKind = 'user' | 'forum' | 'thread' | 'post'
 
 /**
  * Record a mapping. Idempotent, because the import is.

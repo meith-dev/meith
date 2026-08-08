@@ -75,7 +75,7 @@ import { SLOT_NAMES, isSlotName, type SlotName } from './slots'
  * policy, and the first time it covered a new *slot* rather than a new field.
  *
  * **0.4** added the optional `regions.tools` on `ThreadViewModel` and
- * `CommunityDisplayModel`. Same rule as 0.2's, and it is worth saying what it
+ * `ForumDisplayModel`. Same rule as 0.2's, and it is worth saying what it
  * bought: the thread-scoped controls a route renders — follow, rate, vote,
  * moderate — had nowhere in the contract to go, so they were stacked *above*
  * the slot, which put four widgets ahead of the `<h1>` naming the thread they
@@ -83,9 +83,9 @@ import { SLOT_NAMES, isSlotName, type SlotName } from './slots'
  *
  * **0.5** added `regions.afterContent` beside it on both, because "where they
  * belong" turned out to be two places rather than one. A poll and a
- * moderator's bar precede the posts; rating a thread and following a community
+ * moderator's bar precede the posts; rating a thread and following a forum
  * follow them. Asking somebody to rate a discussion above its first post, or
- * to subscribe to a community above its thread list, is asking for a verdict on
+ * to subscribe to a forum above its thread list, is asking for a verdict on
  * something they have not read.
  *
  * **0.8** added the optional `FooterModel.poweredBy`, so the board can say what
@@ -147,7 +147,7 @@ export const SLOT_STABILITY: Readonly<Record<SlotName, Stability>> = {
 
   BoardIndex: 'stable',
   CategoryBlock: 'stable',
-  CommunityRow: 'stable',
+  ForumRow: 'stable',
   BoardStats: 'stable',
   WhoIsOnline: 'stable',
   /*
@@ -159,9 +159,9 @@ export const SLOT_STABILITY: Readonly<Record<SlotName, Stability>> = {
   LatestThreads: 'stable',
   LatestPosts: 'stable',
 
-  CommunityDisplay: 'stable',
+  ForumDisplay: 'stable',
   ThreadRow: 'stable',
-  SubcommunityList: 'stable',
+  SubforumList: 'stable',
   Pagination: 'stable',
 
   ThreadView: 'stable',
@@ -177,7 +177,7 @@ export const SLOT_STABILITY: Readonly<Record<SlotName, Stability>> = {
   MemberProfile: 'stable',
 
   SearchForm: 'stable',
-  CommunityJump: 'stable',
+  ForumJump: 'stable',
 
   RedirectNotice: 'stable',
   ErrorNotice: 'stable',

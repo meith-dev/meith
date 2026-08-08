@@ -18,23 +18,23 @@ export async function rateThreadAction(form: FormData): Promise<void> {
   const threadId = number(form, 'threadId')
   const rating = Number(form.get('rating'))
   const actor = await getActor()
-  const { authorizer, communities, polls, threads } = getContainer()
+  const { authorizer, forums, polls, threads } = getContainer()
   if (actor.userId === null || polls === null)
     throw new ForbiddenError('You must be logged in to rate a thread.')
-  const communityId = await threads.locateCommunity(threadId)
-  const community = communityId === null ? null : await communities.findById(communityId)
+  const forumId = await threads.locateForum(threadId)
+  const forum = forumId === null ? null : await forums.findById(forumId)
   /*
-   * `communityId` is tested as well as `community`, and not only to satisfy the
+   * `forumId` is tested as well as `forum`, and not only to satisfy the
    * compiler: the scope below is what every permission check reads, and a null
-   * community id would resolve a matrix for "no community" — which grants the group
-   * defaults with no per-community override applied. Narrowing `community` alone left
-   * `communityId` nullable, and the two must fail together.
+   * forum id would resolve a matrix for "no forum" — which grants the group
+   * defaults with no per-forum override applied. Narrowing `forum` alone left
+   * `forumId` nullable, and the two must fail together.
    */
-  if (communityId === null || community === null || community.type !== 'community')
+  if (forumId === null || forum === null || forum.type !== 'forum')
     throw new ValidationError('That thread does not exist.')
   const target = {
-    communityId,
-    community: await authorizer.communityMatrix(actor, communityId),
+    forumId,
+    forum: await authorizer.forumMatrix(actor, forumId),
   }
   if (!authorizer.can(actor, 'thread.view', target))
     throw new ValidationError('That thread does not exist.')

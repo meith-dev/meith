@@ -19,10 +19,10 @@ import { formatTime } from '@/view/time'
 export const metadata: Metadata = { title: 'Moderator log' }
 
 /**
- * F54 — what has been done in the communities this moderator is responsible for.
+ * F54 — what has been done in the forums this moderator is responsible for.
  *
- * Scoped in SQL, not in the rendering. A moderator of one community sees that
- * community's entries plus their own; filtering a board-wide feed afterwards is how
+ * Scoped in SQL, not in the rendering. A moderator of one forum sees that
+ * forum's entries plus their own; filtering a board-wide feed afterwards is how
  * a count or a paging boundary leaks what it hid.
  */
 export default async function ModLogPage({
@@ -38,7 +38,7 @@ export default async function ModLogPage({
   if (modcp === null) notFound()
 
   const page = await new ModeratorPanel({ modcp }).log({
-    communityIds: access.communityIds,
+    forumIds: access.forumIds,
     actorUserId: access.userId,
     ...(query.after === undefined ? {} : { after: query.after }),
   })
@@ -47,14 +47,14 @@ export default async function ModLogPage({
   return (
     <PanelPage
       title="Moderator log"
-      lede="Scoped to the communities you moderate, plus your own actions elsewhere."
+      lede="Scoped to the forums you moderate, plus your own actions elsewhere."
     >
       <Card>
         {page.entries.length === 0 ? (
           <Empty className="py-8">
             <EmptyTitle>Nothing has been logged yet</EmptyTitle>
             <EmptyDescription>
-              Approvals, locks, moves and deletions in your communities appear here as they
+              Approvals, locks, moves and deletions in your forums appear here as they
               happen.
             </EmptyDescription>
           </Empty>
@@ -77,7 +77,7 @@ export default async function ModLogPage({
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {entry.actorUsername ?? 'a former moderator'}
-                      {entry.communityTitle !== null && <> in {entry.communityTitle}</>} ·{' '}
+                      {entry.forumTitle !== null && <> in {entry.forumTitle}</>} ·{' '}
                       <time dateTime={at.iso}>{at.label}</time>
                     </span>
                   </div>

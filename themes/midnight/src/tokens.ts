@@ -141,14 +141,14 @@ export const LIGHT_TOKENS: Record<string, string> = {
    * in lightness alone: the hue and the chroma are the ones this theme was
    * written with, so the palette is the same palette, legibly.
    *
-   * `community-read`, `thread-moved` and `group-banned` are now one value, as they
+   * `forum-read`, `thread-moved` and `group-banned` are now one value, as they
    * are in the default theme and for the same reason — they are one signal,
    * *this has receded*, wearing three names. They stay three names so a board
    * can tell them apart later by overriding one.
    */
-  'community-unread': 'oklch(0.49 0.13 195)',
-  'community-read': 'oklch(0.52 0.016 240)',
-  'community-locked': 'oklch(0.52 0.1 20)',
+  'forum-unread': 'oklch(0.49 0.13 195)',
+  'forum-read': 'oklch(0.52 0.016 240)',
+  'forum-locked': 'oklch(0.52 0.1 20)',
   'thread-pinned': 'oklch(0.5 0.14 150)',
   'thread-locked': 'oklch(0.52 0.1 20)',
   'thread-moved': 'oklch(0.52 0.016 240)',
@@ -195,10 +195,10 @@ export const DARK_TOKENS: Record<string, string> = {
   'font-sans-stack': '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
   'font-heading-stack': 'var(--font-sans-stack)',
   elevation: 'none',
-  'community-unread': 'oklch(0.8 0.13 195)',
+  'forum-unread': 'oklch(0.8 0.13 195)',
   /* The receded trio again, one value, at 4.6:1 on this scheme's panel. */
-  'community-read': 'oklch(0.59 0.016 250)',
-  'community-locked': 'oklch(0.62 0.12 20)',
+  'forum-read': 'oklch(0.59 0.016 250)',
+  'forum-locked': 'oklch(0.62 0.12 20)',
   'thread-pinned': 'oklch(0.72 0.14 150)',
   'thread-locked': 'oklch(0.62 0.12 20)',
   'thread-moved': 'oklch(0.59 0.016 250)',

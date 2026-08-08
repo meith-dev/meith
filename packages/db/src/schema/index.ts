@@ -16,5 +16,5 @@ export * from './messages'
 export {
   columnName,
   groupPermissionColumns,
-  communityPermissionColumns,
+  forumPermissionColumns,
 } from './permission-columns'

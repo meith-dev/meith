@@ -16,7 +16,7 @@
  *  - it turns "what is installed" into a property of the filesystem, which
  *    differs between a developer's machine, CI, and production.
  *
- * So the config is a *module*, imported statically. `defineCommunityConfig` is an
+ * So the config is a *module*, imported statically. `defineForumConfig` is an
  * identity function whose only job is to attach the type — the same shape as
  * `defineConfig` in tooling everywhere, and for the same reason: it gives
  * editors and `tsc` something to check without a schema at runtime.
@@ -33,7 +33,7 @@
  *
  * The alternatives were to declare the slot map here as
  * `Record<string, unknown>` and have every reader cast it — casts being exactly
- * what this file's `defineCommunityConfig` exists to avoid — or to move the slot
+ * what this file's `defineForumConfig` exists to avoid — or to move the slot
  * contract into core, which would put React component types in the package the
  * CLI and the worker import. A type parameter costs nothing at runtime, is
  * inferred from the config so no call site spells it out, and keeps core's
@@ -93,7 +93,7 @@ export interface InstalledPlugin<TPlugin = unknown> {
   readonly plugin?: TPlugin | undefined
 }
 
-export interface CommunityConfig<TTheme = unknown, TPlugin = unknown> {
+export interface ForumConfig<TTheme = unknown, TPlugin = unknown> {
   /** Every installed theme, keyed by its `key`. */
   readonly themes: Readonly<Record<string, InstalledTheme<TTheme>>>
   /** Which theme a board uses when it has no preference stored. */
@@ -110,9 +110,9 @@ export interface CommunityConfig<TTheme = unknown, TPlugin = unknown> {
  * `themes[key].key !== key` and breaks every lookup that round-trips through
  * one or the other.
  */
-export function defineCommunityConfig<TTheme, TPlugin>(
-  config: CommunityConfig<TTheme, TPlugin>,
-): CommunityConfig<TTheme, TPlugin> {
+export function defineForumConfig<TTheme, TPlugin>(
+  config: ForumConfig<TTheme, TPlugin>,
+): ForumConfig<TTheme, TPlugin> {
   const keys = Object.keys(config.themes)
 
   if (keys.length === 0) {

@@ -10,4 +10,4 @@
  * every page into the shell would mean every page that forgot silently recorded
  * the wrong location. The proxy already has the pathname.
  */
-export const PATH_HEADER = 'x-community-path'
+export const PATH_HEADER = 'x-forum-path'

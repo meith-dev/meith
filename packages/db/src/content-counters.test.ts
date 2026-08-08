@@ -4,7 +4,7 @@ import { eq, sql } from 'drizzle-orm'
 import type { Database } from './client'
 import { applyCreatedContentCounters } from './content-counters'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { communities, outbox, posts, threads, users } from './schema'
+import { forums, outbox, posts, threads, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -24,7 +24,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from outbox`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values({
@@ -37,10 +37,10 @@ beforeEach(async () => {
     passwordAlgo: 'argon2id',
     primaryGroupId: 2,
   })
-  await db.insert(communities).values({ id: 10, title: 'General', slug: 'general', path: '10' })
+  await db.insert(forums).values({ id: 10, title: 'General', slug: 'general', path: '10' })
   await db.insert(threads).values({
     id: 20,
-    communityId: 10,
+    forumId: 10,
     title: 'Hello',
     slug: 'hello',
     authorUserId: 1,
@@ -52,7 +52,7 @@ async function addPost(id: number, isFirstPost: boolean): Promise<void> {
   await db.insert(posts).values({
     id,
     threadId: 20,
-    communityId: 10,
+    forumId: 10,
     authorUserId: 1,
     authorUsername: 'ada',
     message: 'Hello',
@@ -62,13 +62,13 @@ async function addPost(id: number, isFirstPost: boolean): Promise<void> {
 }
 
 describe('applyCreatedContentCounters', () => {
-  it('updates direct community, thread and author counters with an outbox event', async () => {
+  it('updates direct forum, thread and author counters with an outbox event', async () => {
     await addPost(30, true)
     await db.transaction((tx) =>
       applyCreatedContentCounters(tx, {
         postId: 30,
         threadId: 20,
-        communityId: 10,
+        forumId: 10,
         authorId: 1,
         authorUsername: 'ada',
         threadTitle: 'Hello',
@@ -82,7 +82,7 @@ describe('applyCreatedContentCounters', () => {
       applyCreatedContentCounters(tx, {
         postId: 31,
         threadId: 20,
-        communityId: 10,
+        forumId: 10,
         authorId: 1,
         authorUsername: 'ada',
         threadTitle: 'Hello',
@@ -91,11 +91,11 @@ describe('applyCreatedContentCounters', () => {
       }),
     )
 
-    const [community] = await db.select().from(communities).where(eq(communities.id, 10))
+    const [forum] = await db.select().from(forums).where(eq(forums.id, 10))
     const [thread] = await db.select().from(threads).where(eq(threads.id, 20))
     const [user] = await db.select().from(users).where(eq(users.id, 1))
 
-    expect(community).toMatchObject({ threadCount: 1, postCount: 2, lastPostId: 31 })
+    expect(forum).toMatchObject({ threadCount: 1, postCount: 2, lastPostId: 31 })
     expect(thread).toMatchObject({ firstPostId: 30, replyCount: 1, lastPostId: 31 })
     expect(user).toMatchObject({ threadCount: 1, postCount: 2 })
     expect(await db.select({ topic: outbox.topic }).from(outbox)).toEqual([
@@ -112,7 +112,7 @@ describe('applyCreatedContentCounters', () => {
         await applyCreatedContentCounters(tx, {
           postId: 30,
           threadId: 20,
-          communityId: 10,
+          forumId: 10,
           authorId: 1,
           authorUsername: 'ada',
           threadTitle: 'Hello',
@@ -123,8 +123,8 @@ describe('applyCreatedContentCounters', () => {
       }),
     ).rejects.toThrow('abort')
 
-    const [community] = await db.select().from(communities).where(eq(communities.id, 10))
-    expect(community).toMatchObject({ threadCount: 0, postCount: 0, lastPostId: null })
+    const [forum] = await db.select().from(forums).where(eq(forums.id, 10))
+    expect(forum).toMatchObject({ threadCount: 0, postCount: 0, lastPostId: null })
     expect(await db.select().from(outbox)).toEqual([])
   })
 })

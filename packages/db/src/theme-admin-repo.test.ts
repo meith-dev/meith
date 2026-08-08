@@ -92,7 +92,7 @@ describe('save', () => {
   })
 
   it('stores custom CSS and reads it back unchanged', async () => {
-    const css = '.community-row { font-weight: 600; }'
+    const css = '.forum-row { font-weight: 600; }'
     await repo.save({ key: 'default', title: 'Default', tokenOverrides: {}, customCss: css })
 
     expect((await repo.read('default'))?.customCss).toBe(css)
@@ -244,7 +244,7 @@ describe('export and import', () => {
      * whole document survives the trip, not that a couple of fields do.
      */
     const tokenOverrides = { primary: '#123456', radius: '0.5rem' }
-    const customCss = '.community-row { font-weight: 600; }'
+    const customCss = '.forum-row { font-weight: 600; }'
     await repo.save({ key: 'default', title: 'Default', tokenOverrides, customCss })
 
     const exported = await repo.exportTheme('default')

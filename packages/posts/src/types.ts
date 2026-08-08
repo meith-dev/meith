@@ -2,7 +2,7 @@
 export interface PostListingRow {
   readonly id: number
   readonly threadId: number
-  readonly communityId: number
+  readonly forumId: number
   /** Position among visible posts in the thread, 1-based. */
   readonly number: number
   readonly authorUserId: number | null

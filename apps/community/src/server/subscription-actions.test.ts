@@ -4,8 +4,8 @@
  * The cadence rules are unit-tested in `@meith/subscriptions` and the SQL
  * against real Postgres. What is proven here is the seam neither can see:
  *
- *  - subscribing re-authorises `thread.view` against the *target's* community, so a
- *    member cannot be notified about activity in a community they may not read;
+ *  - subscribing re-authorises `thread.view` against the *target's* forum, so a
+ *    member cannot be notified about activity in a forum they may not read;
  *  - the token action works with **no session at all**, and its authority is
  *    the HMAC rather than anything the request claims;
  *  - the return path a form carries cannot become an open redirect.
@@ -53,7 +53,7 @@ const {
   unsubscribeByTokenAction,
 } = await import('./subscription-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { SEED_BOARD, SEED_COMMUNITY, SEED_GROUP } = await import('./seed-board')
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 const { installTestContainer } = await import('./test-container')
 
 class FakeSubscriptions implements SubscriptionRepository {
@@ -135,18 +135,18 @@ async function run(
 }
 
 /**
- * A container whose thread lookup resolves into the given community.
+ * A container whose thread lookup resolves into the given forum.
  *
- * `hidden` adds a deny override so the board has a community Registered genuinely
+ * `hidden` adds a deny override so the board has a forum Registered genuinely
  * cannot view — the fixture board has none, and a test that faked the refusal
  * would be testing its own fake rather than the Authorizer.
  */
-function install(communityId: number | null = SEED_COMMUNITY.general, hidden = false) {
+function install(forumId: number | null = SEED_FORUM.general, hidden = false) {
   installTestContainer({
     overrides: hidden
       ? [
           {
-            communityId: SEED_COMMUNITY.general,
+            forumId: SEED_FORUM.general,
             groupId: SEED_GROUP.registered,
             overrides: { canView: false, canViewThreads: false },
           },
@@ -156,14 +156,14 @@ function install(communityId: number | null = SEED_COMMUNITY.general, hidden = f
       subscriptions,
       notifications,
       threads: {
-        locateCommunity: async () => communityId,
-        findById: async () => ({ id: communityId ?? 0, type: 'community', title: 'A community', slug: 'a-community' }),
-        listCommunity: async () => ({ rows: [], nextCursor: null }),
+        locateForum: async () => forumId,
+        findById: async () => ({ id: forumId ?? 0, type: 'forum', title: 'A forum', slug: 'a-forum' }),
+        listForum: async () => ({ rows: [], nextCursor: null }),
       },
-      communities: {
+      forums: {
         listAll: async () => [],
         listListing: async () => [],
-        findById: async () => ({ id: communityId ?? 0, type: 'community', title: 'A community', slug: 'a-community' }),
+        findById: async () => ({ id: forumId ?? 0, type: 'forum', title: 'A forum', slug: 'a-forum' }),
       },
     },
   })
@@ -197,13 +197,13 @@ describe('following', () => {
     })
   })
 
-  it('refuses a thread whose community this actor cannot see', async () => {
+  it('refuses a thread whose forum this actor cannot see', async () => {
     /*
-     * The community is resolved from the *thread*, and the answer comes from the
+     * The forum is resolved from the *thread*, and the answer comes from the
      * Authorizer — not from anything the form said. Without this, subscribing
-     * is a way to be told about activity in a private community.
+     * is a way to be told about activity in a private forum.
      */
-    install(SEED_COMMUNITY.general, true)
+    install(SEED_FORUM.general, true)
 
     const result = await run(
       subscribeAction,
@@ -294,21 +294,21 @@ describe('following', () => {
 describe('unfollowing', () => {
   it('stops a subscription without asking whether the member may still read it', async () => {
     /*
-     * Deliberately no permission check: a member locked out of a community still
+     * Deliberately no permission check: a member locked out of a forum still
      * has to be able to stop being notified about it.
      */
-    install(SEED_COMMUNITY.general, true)
+    install(SEED_FORUM.general, true)
 
     const result = await run(
       unsubscribeAction,
       form([
-        ['target', 'community'],
+        ['target', 'forum'],
         ['targetId', '3'],
       ]),
     )
 
     expect(result.redirectedTo).toBe('/subscriptions?stopped=1')
-    expect(subscriptions.removed).toEqual([{ userId: 7, target: 'community', targetId: 3 }])
+    expect(subscriptions.removed).toEqual([{ userId: 7, target: 'forum', targetId: 3 }])
   })
 })
 

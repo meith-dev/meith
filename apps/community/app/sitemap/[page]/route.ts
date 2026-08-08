@@ -12,7 +12,7 @@ import {
 /**
  * F76 — one chunk of the sitemap.
  *
- * `/sitemap/communities.xml` and `/sitemap/threads-<n>.xml`, both named by the index
+ * `/sitemap/forums.xml` and `/sitemap/threads-<n>.xml`, both named by the index
  * rather than discovered. A crawler works through the chunks over hours or
  * days, so the pages have to be **stable while it does**: the thread chunks are
  * keyset-paged on the id, ascending, because ordering by activity would move
@@ -40,13 +40,13 @@ export async function GET(
   /* Resolved once: a threads page builds up to SITEMAP_CHUNK of these. */
   const site = await origin()
 
-  if (page === 'communities.xml') {
-    const communities = await repo.sitemapCommunities(scope)
+  if (page === 'forums.xml') {
+    const forums = await repo.sitemapForums(scope)
     return xmlResponse(
       renderSitemap(
-        communities.map((community) => ({
-          loc: absoluteTo(site, `/${community.communityId}-${community.slug}`),
-          ...(community.lastPostAt === null ? {} : { lastmod: community.lastPostAt }),
+        forums.map((forum) => ({
+          loc: absoluteTo(site, `/${forum.forumId}-${forum.slug}`),
+          ...(forum.lastPostAt === null ? {} : { lastmod: forum.lastPostAt }),
         })),
       ),
     )

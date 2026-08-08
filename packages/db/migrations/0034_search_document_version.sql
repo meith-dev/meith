@@ -15,7 +15,7 @@
 -- The symptom is the one that is hardest to report: search *works*. The form
 -- submits, the query runs, hits come back for words in a post's body — and a
 -- member searching for the thread they remember, by its title, is told nothing
--- matched. Which is the most common search anybody runs on a community.
+-- matched. Which is the most common search anybody runs on a forum.
 --
 -- ## Why a version column rather than a rewrite here
 --

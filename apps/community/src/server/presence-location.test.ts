@@ -20,22 +20,22 @@ vi.mock('@meith/db', () => ({ getDb: () => ({}), PostgresPresenceRepository: cla
 const { parseLocation } = await import('./presence')
 
 describe('parseLocation', () => {
-  it('reads the community id out of a community path', () => {
+  it('reads the forum id out of a forum path', () => {
     expect(parseLocation('/12-news')).toEqual({
       path: '/12-news',
-      communityId: 12,
+      forumId: 12,
       threadId: null,
     })
     /* The route accepts a bare id — the delete redirect and the moderation
        queue link carry no slug — so presence must read it the same way. */
-    expect(parseLocation('/12')?.communityId).toBe(12)
-    expect(parseLocation('/12-news/new')?.communityId).toBe(12)
+    expect(parseLocation('/12')?.forumId).toBe(12)
+    expect(parseLocation('/12-news/new')?.forumId).toBe(12)
   })
 
   it('reads the thread id out of a thread path', () => {
     expect(parseLocation('/thread/34-hello')).toEqual({
       path: '/thread/34-hello',
-      communityId: null,
+      forumId: null,
       threadId: 34,
     })
   })
@@ -49,7 +49,7 @@ describe('parseLocation', () => {
     expect(parseLocation('/search/abc123?rank=0.4')?.path).toBe('/search/abc123')
     expect(parseLocation('/thread/34-hello?post=9')).toEqual({
       path: '/thread/34-hello',
-      communityId: null,
+      forumId: null,
       threadId: 34,
     })
   })
@@ -57,7 +57,7 @@ describe('parseLocation', () => {
   it('keeps an unrecognised path with no ids', () => {
     expect(parseLocation('/usercp/options')).toEqual({
       path: '/usercp/options',
-      communityId: null,
+      forumId: null,
       threadId: null,
     })
   })
@@ -65,21 +65,21 @@ describe('parseLocation', () => {
   it('refuses to invent an id from a path that only looks like one', () => {
     /*
      * A digit run followed by anything but the id's own delimiters is a
-     * different route: `/2fa` would be a page, not community 2. Kills the
+     * different route: `/2fa` would be a page, not forum 2. Kills the
      * mutant that matches digits anywhere in the first segment.
      */
     expect(parseLocation('/thread/34')?.threadId).toBeNull()
-    expect(parseLocation('/12news')?.communityId).toBeNull()
-    expect(parseLocation('/abc-news')?.communityId).toBeNull()
+    expect(parseLocation('/12news')?.forumId).toBeNull()
+    expect(parseLocation('/abc-news')?.forumId).toBeNull()
   })
 
   it('matches only at the start of the path', () => {
     /*
-     * Kills the mutant that drops the anchor. An admin screen *about* a community
+     * Kills the mutant that drops the anchor. An admin screen *about* a forum
      * is not somebody reading it, and the online list saying otherwise would
-     * put a moderator in a community they are administering rather than viewing.
+     * put a moderator in a forum they are administering rather than viewing.
      */
-    expect(parseLocation('/admin/communities/12-news')?.communityId).toBeNull()
+    expect(parseLocation('/admin/forums/12-news')?.forumId).toBeNull()
     expect(parseLocation('/redirect/thread/34-hello')?.threadId).toBeNull()
   })
 
