@@ -38,7 +38,15 @@ export function escapeMarkdownText(value: string): string {
  * `**ada**` escaped to `\*\*ada\*\*` is uglier in the composer than one reading
  * `ada`, and the *source* is what somebody then edits. The rendered form is
  * safe either way — this is about what the box shows them.
+ *
+ * The underscore stays, alone of Markdown's delimiters, because it is the one
+ * that is also a legal username character — and since `extractQuotedAuthors`
+ * resolves attributions back to accounts, an attribution that silently loses
+ * it names a *different member*, which stopped being cosmetic the day quoting
+ * somebody notified them. Safe to keep: `_` inside a word can never open or
+ * close emphasis (the flanking rule `inline.ts` explains), and the extractor
+ * refuses an attribution the renderer reformatted.
  */
 export function plainAuthorName(name: string): string {
-  return name.replace(/[*_[\]`\\]/g, '').trim()
+  return name.replace(/[*[\]`\\]/g, '').trim()
 }

@@ -37,7 +37,9 @@ describe('quoteBlock', () => {
      * replier then edits — a name carrying `**` would close the bold early and
      * stay broken in whatever they post.
      */
-    expect(quoteBlock({ author: '**ada**_[x]`', markdown: 'x' })).toBe('> **adax wrote:**\n>\n> x')
+    /* `_` survives: it is a legal username character, and `extractQuotedAuthors`
+       resolves attributions to accounts — see `plainAuthorName`'s header. */
+    expect(quoteBlock({ author: '**ada**_[x]`', markdown: 'x' })).toBe('> **ada_x wrote:**\n>\n> x')
   })
 
   it('quotes markup as the markup it is, because the source is already source', () => {

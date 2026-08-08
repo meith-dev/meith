@@ -127,6 +127,18 @@ describe('extractQuotedAuthors', () => {
     expect(extractQuotedAuthors(outer)).toEqual(['outer'])
   })
 
+  it('keeps an underscore, which is a legal username character', () => {
+    expect(extractQuotedAuthors(quoteBlock({ author: 'wren_17', markdown: 'hi' }))).toEqual([
+      'wren_17',
+    ])
+  })
+
+  it('refuses an attribution the renderer reformatted, which no longer names anybody', () => {
+    /* A member called `_foo_`: the underscores pair into emphasis, and the
+       flattened text would attribute the quote to a different member, `foo`. */
+    expect(extractQuotedAuthors('> **_foo_ wrote:**\n>\n> hi')).toEqual([])
+  })
+
   it('does not read an unquoted strong line as an attribution', () => {
     expect(extractQuotedAuthors('**ada wrote:** something bold')).toEqual([])
   })

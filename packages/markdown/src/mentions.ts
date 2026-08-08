@@ -82,9 +82,16 @@ export function extractMentions(source: string, options: ParseOptions = {}): rea
 function attributionsIn(nodes: readonly Inline[], out: Set<string>): void {
   let atLineStart = true
   for (const node of nodes) {
-    if (node.kind === 'strong' && atLineStart) {
+    /*
+     * The strong must hold exactly one text run. `quoteBlock` never writes
+     * more, so anything else means the "name" grew markup of its own — a
+     * member called `_foo_` whose underscores paired into emphasis, say — and
+     * reading the flattened text would attribute the quote to whoever is left
+     * when the delimiters are gone, which is a different member.
+     */
+    if (node.kind === 'strong' && atLineStart && node.children.length === 1) {
       const match = ATTRIBUTION.exec(textOf(node.children).trim())
-      if (match !== null) out.add(match[1]!)
+      if (match !== null && node.children[0]!.kind === 'text') out.add(match[1]!)
     }
     atLineStart = node.kind === 'break'
   }

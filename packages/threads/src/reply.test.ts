@@ -283,7 +283,9 @@ describe('quotePrefill', () => {
       message: 'x',
     })
 
-    expect(quoted).toBe('> **adax wrote:**\n>\n> x\n\n')
+    /* `_` survives: it is a legal username character, and quote notifications
+       resolve the attribution back to an account — see `plainAuthorName`. */
+    expect(quoted).toBe('> **ada_x wrote:**\n>\n> x\n\n')
   })
 })
 
