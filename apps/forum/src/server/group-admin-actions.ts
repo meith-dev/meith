@@ -14,6 +14,8 @@
  * repository bumps the number inside the same transaction as the write; this
  * clears the tag that makes the caches holding the old number let go.
  */
+import { revalidatePath } from 'next/cache'
+
 import { CacheTags, PERMISSION_FIELDS, ValidationError, isAppError, logger } from '@meith/core'
 import { drivers } from '@meith/drivers'
 
@@ -49,6 +51,15 @@ function toFormState(err: unknown): FormState {
 /** Every write here changes what somebody is allowed to do. */
 async function invalidatePermissions(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.permissions()])
+  /*
+   * And Next's client Router Cache for the screens that list groups, for the
+   * reason `invalidateTree` in `forum-admin-actions.ts` sets out at length: the
+   * board's own cache being clear does not refresh a payload the browser
+   * already holds, so a created or deleted group would show its notice beside
+   * the list it was missing from.
+   */
+  revalidatePath('/admin/groups')
+  revalidatePath('/admin/groups/[id]', 'page')
 }
 
 /**
@@ -180,6 +191,24 @@ export async function createGroupAction(
 
     const title = text(form, 'title')
     if (title === '') throw new ValidationError('A group needs a title.')
+
+    /*
+     * Named rather than left to `groupId`'s generic refusal.
+     *
+     * The select's first option is a blank "— choose a group —", the form is
+     * `noValidate` so the browser does not insist, and the shared helper turned
+     * an unmade choice into *"No such group."* — which reads as "the group you
+     * picked has vanished" to somebody who picked nothing. The field's own help
+     * text already says why it is required; this says the same thing at the
+     * moment it matters.
+     */
+    if (text(form, 'copyFromGroupId') === '') {
+      throw new ValidationError(
+        'Choose a group to copy permissions from. Starting from the defaults ' +
+          'would deny everything, which makes a group whose members cannot see ' +
+          'the board.',
+      )
+    }
 
     const id = await requireGroupAdmin().create({
       key,

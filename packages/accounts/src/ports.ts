@@ -237,6 +237,22 @@ export interface LoginAttemptRepository {
   clear(bucket: string): Promise<void>
 }
 
+/**
+ * One lockout counter: a key to count failures under, and how many it tolerates.
+ *
+ * A *list* of these rather than the single key `login` used to take, because one
+ * counter cannot be both of the things a lockout has to be. Keyed narrowly
+ * enough to stop a brute force it is also narrow enough for a stranger to fill
+ * on somebody else's behalf; keyed widely enough that nobody else can reach it,
+ * it stops nothing. The two compose: see `loginBuckets` in the app, which is
+ * where the policy is chosen.
+ */
+export interface LoginBucket {
+  readonly key: string
+  /** Failures tolerated before this bucket locks. Defaults to `maxLoginAttempts`. */
+  readonly max?: number | undefined
+}
+
 /** Everything the service needs from the settings registry, injected by the caller. */
 export interface AuthConfig {
   readonly minPasswordLength: number
@@ -245,6 +261,19 @@ export interface AuthConfig {
   readonly activationMethod: 'none' | 'email' | 'admin' | 'both'
   /** 0 disables lockout. */
   readonly maxLoginAttempts: number
+  /**
+   * Failures tolerated for one *account* across every address, before the
+   * account itself locks. 0 disables it.
+   *
+   * Deliberately far higher than `maxLoginAttempts`, because the two answer
+   * different questions. `maxLoginAttempts` is spent per address and is what
+   * stops somebody guessing; this is the backstop for a guess spread across
+   * many addresses — or across a forged `X-Forwarded-For`, which is the same
+   * thing to anything downstream of a proxy. It has to sit above any number a
+   * real person mistyping their own password could reach, or it becomes the
+   * denial of service it exists to bound.
+   */
+  readonly maxAccountLoginAttempts: number
   readonly lockoutMinutes: number
   readonly sessionIdleDays: number
   readonly resetTokenTtlMinutes: number

@@ -57,6 +57,24 @@ export interface ComposeReplyInput {
    * settings.
    */
   readonly heldAsNewMember: boolean
+  /**
+   * The `requiresPostApproval` permission, already resolved for this author in
+   * this forum.
+   *
+   * A *fourth* reason to hold, and a different one from `forum.moderateNewPosts`
+   * beside it: that flag is the forum's switch and applies to everybody who
+   * posts there, this is the actor's, AND-combined across their groups with any
+   * per-forum override on top. A board holds a probationary group's replies
+   * everywhere with this, and holds everybody's replies in one forum with that.
+   *
+   * Resolved by the caller for the reason `heldAsNewMember` gives — it is a
+   * permission lookup, and the composer does not do those. Until the audit of
+   * 7 August 2026 nothing resolved it at all: the field existed in the registry,
+   * was editable on the group and forum-permission screens, was combined
+   * correctly by the authorizer, and was read by no write path, so ticking it
+   * did nothing.
+   */
+  readonly requiresApproval: boolean
   readonly bypassesFlood: boolean
   /** Moderators may reply to a locked thread; nobody else may. */
   readonly bypassesLock: boolean
@@ -165,7 +183,8 @@ export class ReplyComposer {
      * `bypassesModeration` while F46's new-member hold does not.
      */
     const visibility =
-      (target.forum.moderateNewPosts && !input.bypassesModeration) ||
+      ((target.forum.moderateNewPosts || input.requiresApproval) &&
+        !input.bypassesModeration) ||
       input.heldAsNewMember ||
       restriction.moderated
         ? 'unapproved'

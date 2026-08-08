@@ -27,6 +27,7 @@ import type {
   BanFilterRepository,
   Clock,
   AccountRecord,
+  LoginBucket,
 } from './ports'
 
 export interface IdentityDeps {
@@ -286,17 +287,30 @@ export class IdentityService {
   }
 
   /**
-   * `bucket` is a caller-chosen lockout key — typically the lower-cased username
-   * (so guessing one account cannot lock another) optionally combined with a
-   * coarse client identifier. Kept a parameter so the policy lives at the edge.
+   * `buckets` are the caller-chosen lockout counters, and the policy lives at
+   * the edge: see `loginBuckets` in `apps/forum/src/server/auth-actions.ts`.
+   *
+   * A **list**, because a single counter cannot do the job. Keyed on the
+   * username alone — which is what this took until the audit of 7 August 2026
+   * — five wrong guesses by a stranger lock the named account for everybody,
+   * including its owner with the right password, and usernames are printed on
+   * every post. Keyed on the address alone, one account is no more protected
+   * than the whole board. Every bucket is counted, every one can refuse, and a
+   * success clears them all.
+   *
+   * A bare string is still accepted and means one bucket at the configured
+   * ceiling — the shape the whole test suite is written in, and the honest
+   * reading of "one counter" for a caller that only wants one.
    */
   async login(
     identifier: string,
     password: string,
-    bucket: string,
+    buckets: string | readonly LoginBucket[],
     context: RequestContext = {},
   ): Promise<LoginResult> {
     const at = this.now()
+    const counters: readonly LoginBucket[] =
+      typeof buckets === 'string' ? [{ key: buckets }] : buckets
 
     /*
      * 0. IP filters first, before any hashing. There is no enumeration risk —
@@ -306,11 +320,15 @@ export class IdentityService {
     await this.assertNotFiltered({ ip: context.ip })
 
     // 1. Lockout check FIRST — before any hashing — so a locked bucket cannot be
-    //    used as a hashing oracle or CPU sink.
-    if (this.config.maxLoginAttempts > 0) {
-      const since = new Date(at.getTime() - this.config.lockoutMinutes * 60_000)
-      const failures = await this.store.loginAttempts.countFailuresSince(bucket, since)
-      if (failures >= this.config.maxLoginAttempts) {
+    //    used as a hashing oracle or CPU sink. Every counter is consulted: they
+    //    are separate limits, not a fallback chain, and any one of them refusing
+    //    is a refusal.
+    const since = new Date(at.getTime() - this.config.lockoutMinutes * 60_000)
+    for (const counter of counters) {
+      const max = counter.max ?? this.config.maxLoginAttempts
+      if (max <= 0) continue
+      const failures = await this.store.loginAttempts.countFailuresSince(counter.key, since)
+      if (failures >= max) {
         throw new ForbiddenError(
           'Too many failed attempts. Please wait before trying again.',
         )
@@ -330,17 +348,23 @@ export class IdentityService {
     // real bug the service tests caught before it could break every login.
     const ok = await verifyPassword(password, encoded)
 
+    const recordFailure = async (): Promise<void> => {
+      for (const counter of counters) {
+        await this.store.loginAttempts.record(counter.key, false, at)
+      }
+    }
+
     if (!account || !ok || account.passwordHash === null) {
-      await this.store.loginAttempts.record(bucket, false, at)
+      await recordFailure()
       throw new ValidationError('Incorrect username or password.')
     }
 
     if (account.state === 'banned') {
-      await this.store.loginAttempts.record(bucket, false, at)
+      await recordFailure()
       throw new ForbiddenError('This account is banned.')
     }
     if (account.state === 'awaiting_activation') {
-      await this.store.loginAttempts.record(bucket, false, at)
+      await recordFailure()
       throw new ForbiddenError('This account is not yet activated.')
     }
 
@@ -356,9 +380,16 @@ export class IdentityService {
      */
     await this.assertNotFiltered({ username: account.username, email: account.email })
 
-    // 3. Success. Clear the bucket and transparently upgrade a stale hash (F17).
-    await this.store.loginAttempts.record(bucket, true, at)
-    await this.store.loginAttempts.clear(bucket)
+    /*
+     * 3. Success. Clear *every* counter and transparently upgrade a stale hash
+     *    (F17). Clearing all of them is what keeps the wide backstop from
+     *    accumulating across a member's ordinary mistyping over a long session:
+     *    proving the password empties the record of having failed to.
+     */
+    for (const counter of counters) {
+      await this.store.loginAttempts.record(counter.key, true, at)
+      await this.store.loginAttempts.clear(counter.key)
+    }
 
     if (needsRehash(encoded)) {
       const upgraded = await hashPassword(password)

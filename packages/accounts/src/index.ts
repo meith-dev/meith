@@ -106,6 +106,7 @@ export type {
   CredentialTokenRepository,
   CredentialPurpose,
   LoginAttemptRepository,
+  LoginBucket,
   AuthConfig,
   Clock,
   NewAccount,

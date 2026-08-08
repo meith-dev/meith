@@ -23,6 +23,18 @@ import { PERMISSION_FIELDS } from '@meith/core'
 const adminCalls: Array<{ action: string; detail: unknown }> = []
 const requireAdminMock = vi.fn(async () => ({ userId: 1 }))
 const requireFreshAdminMock = vi.fn(async () => ({ userId: 1 }))
+/*
+ * The group writes clear Next's client Router Cache for the screens that list
+ * groups — see `invalidatePermissions`. Recorded rather than ignored, so the
+ * test can say which paths were refreshed.
+ */
+const revalidated: string[] = []
+vi.mock('next/cache', () => ({
+  revalidatePath: (path: string) => {
+    revalidated.push(path)
+  },
+}))
+
 vi.mock('./admin', () => ({
   requireAdmin: () => requireAdminMock(),
   requireFreshAdmin: () => requireFreshAdminMock(),
@@ -96,6 +108,7 @@ function form(fields: Record<string, string>): FormData {
 beforeEach(() => {
   adminCalls.length = 0
   invalidated.length = 0
+  revalidated.length = 0
   saved.length = 0
   identities.length = 0
   created.length = 0
@@ -269,6 +282,24 @@ describe('createGroupAction', () => {
     expect(created).toEqual([])
   })
 
+  it('names the field when the copy source was simply not chosen', async () => {
+    /*
+     * The select's blank first option used to fall through to the shared
+     * `groupId` helper and come back as *"No such group."*, which tells somebody
+     * who picked nothing that the group they picked has vanished. Found by the
+     * audit of 7 August 2026; the form is `noValidate` on purpose, so the server
+     * is the only place this message can be right.
+     */
+    const state = await createGroupAction(
+      {},
+      form({ key: 'veterans', title: 'V', copyFromGroupId: '' }),
+    )
+
+    expect(state.error).toMatch(/choose a group to copy permissions from/i)
+    expect(state.error).not.toMatch(/no such group/i)
+    expect(created).toEqual([])
+  })
+
   it('refuses a key that is not an identifier', async () => {
     /*
      * The key is how code names the group. Kills the mutant that drops the
@@ -291,6 +322,21 @@ describe('createGroupAction', () => {
     expect(state.notice).toBe('created')
     expect(created[0]).toEqual({ key: 'veterans', title: 'Veterans', copyFromGroupId: 2 })
     expect(adminCalls[0]?.detail).toEqual({ groupId: 42, key: 'veterans' })
+  })
+
+  it('refreshes the listing the new group belongs in', async () => {
+    /*
+     * The board's own cache being clear does not refresh a payload the browser
+     * already holds, so without this the operator saw "Created." beside a list
+     * the group was missing from — the shape the audit found on the forum tree,
+     * and the reason this is checked here too.
+     */
+    await createGroupAction(
+      {},
+      form({ key: 'veterans', title: 'Veterans', copyFromGroupId: '2' }),
+    )
+
+    expect(revalidated).toContain('/admin/groups')
   })
 })
 

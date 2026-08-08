@@ -77,6 +77,12 @@ export interface ComposeThreadInput {
    * settings.
    */
   readonly heldAsNewMember: boolean
+  /**
+   * The `requiresThreadApproval` permission, already resolved for this author in
+   * this forum. See the same field on `ComposeReplyInput` for why it sits beside
+   * `forum.moderateNewThreads` rather than replacing it.
+   */
+  readonly requiresApproval: boolean
   /** Whether the flood interval applies. Staff are exempt (F46 generalises this). */
   readonly bypassesFlood: boolean
   /** F53's warning-level restriction. Absent means none. */
@@ -281,7 +287,8 @@ export class ThreadComposer {
      * already accounted for it.
      */
     const visibility =
-      (forum.moderateNewThreads && !input.bypassesModeration) ||
+      ((forum.moderateNewThreads || input.requiresApproval) &&
+        !input.bypassesModeration) ||
       input.heldAsNewMember ||
       restriction.moderated
         ? 'unapproved'

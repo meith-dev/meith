@@ -171,15 +171,25 @@ const commands: Command[] = [
       }
 
       const { upgrade } = await import('./upgrade')
+      /*
+       * The board's own plugin registry, imported statically so esbuild bundles
+       * it into `cli.cjs`.
+       *
+       * This used to be `plugins: []` with a comment explaining that an operator
+       * CLI installed from npm cannot see `forum.config.ts`. True of a published
+       * CLI, and this one is not published — `@meith/cli` is `private: true` and
+       * ships inside the image, built from the same tree as the config. Passing
+       * nothing meant the panel could tell an operator to run this command to
+       * apply a plugin's migrations and the command would report success without
+       * applying them, which the 7 August 2026 audit found and this closes.
+       *
+       * `forum.plugins.ts` rather than `forum.config.ts`: the latter imports
+       * every theme, and a CLI has no use for a slot map of React components.
+       */
+      const { installedPluginDefinitions } = await import('../../forum/forum.plugins')
       return upgrade({
         dryRun: args.includes('--dry-run'),
-        /*
-         * Empty, and honestly so: `forum.config.ts` lives in the board's project
-         * and an operator CLI installed from npm has no path to it. Plugin
-         * migrations are applied by the board's own upgrade entry point; this
-         * command handles core, which is what an operator at a terminal has.
-         */
-        plugins: [],
+        plugins: installedPluginDefinitions(),
         log: (line) => console.log(line),
       })
     },

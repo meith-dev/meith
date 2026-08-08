@@ -100,10 +100,26 @@ export class PostgresApiTokenRepository {
       name: string
       lookup: string
       scopes: unknown
-      created_at: Date
-      expires_at: Date | null
-      revoked_at: Date | null
-      last_used_at: Date | null
+      /*
+       * `Date | string`, and the `string` is the whole point.
+       *
+       * A raw `db.execute` returns whatever the driver parsed, and for a
+       * timestamp that is **not the same thing on both drivers this repository
+       * runs against**. PGlite hands back a `Date`; postgres.js under drizzle
+       * hands back a string, because `drizzle()` replaces the date OID handlers
+       * and `restoreDateSerialisers` in `client.ts` only repairs the *writing*
+       * direction. This row type used to claim `Date` on both, which type-checked,
+       * passed every test — the suite is PGlite — and made `/admin/api-tokens`
+       * throw `at.toISOString is not a function` on a real server the moment any
+       * token had been used, taking the revoke button down with the page.
+       *
+       * Typed honestly here and converted below, which is what every other
+       * repository in this package already does.
+       */
+      created_at: Date | string
+      expires_at: Date | string | null
+      revoked_at: Date | string | null
+      last_used_at: Date | string | null
     }>
 
     return rows.map((row) => ({
@@ -113,10 +129,10 @@ export class PostgresApiTokenRepository {
       name: row.name,
       lookup: row.lookup,
       scopes: parseScopes(row.scopes, this.isScope),
-      createdAt: row.created_at,
-      expiresAt: row.expires_at,
-      revokedAt: row.revoked_at,
-      lastUsedAt: row.last_used_at,
+      createdAt: new Date(row.created_at),
+      expiresAt: row.expires_at === null ? null : new Date(row.expires_at),
+      revokedAt: row.revoked_at === null ? null : new Date(row.revoked_at),
+      lastUsedAt: row.last_used_at === null ? null : new Date(row.last_used_at),
     }))
   }
 

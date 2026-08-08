@@ -278,6 +278,12 @@ export async function createThreadAction(
           postCount: author.postCount,
           settings,
         }),
+        /*
+         * The `requiresThreadApproval` permission, resolved for this actor in
+         * this forum. The authorizer has already AND-combined it across their
+         * groups and applied any per-forum override, so this is a read.
+         */
+        requiresApproval: matrix.requiresThreadApproval === true,
         poll:
           pollQuestion === '' &&
           pollOptions.every((option) => option.trim() === '')

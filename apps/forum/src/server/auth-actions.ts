@@ -25,8 +25,9 @@ import {
   logger,
 } from '@meith/core'
 
-import { foldIdentifier } from '@meith/accounts'
+import { DEFAULT_AUTH_POLICY, foldIdentifier, type LoginBucket } from '@meith/accounts'
 
+import { remoteAddress } from './admin'
 import { spendResendLimit, verifyChallenge } from './antispam'
 import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
 import { configuredIdentity, getContainer } from './container'
@@ -67,16 +68,50 @@ function toFormState(err: unknown, values?: Record<string, string>): FormState {
 }
 
 /**
- * A coarse per-request lockout bucket. The username is the primary key (so
- * guessing account A cannot lock account B); we deliberately do NOT mix in IP
- * here in fixture mode because the demo has no proxy header to trust. The
- * Postgres path can compose a richer bucket later without touching this action.
+ * The lockout counters for one attempt.
+ *
+ * **Two, and the second is not a fallback.** Until the audit of 7 August 2026
+ * this was one bucket keyed on the username alone, which reads as safe — nobody
+ * can lock account B by guessing at account A — and is not: five wrong guesses
+ * by *any* stranger lock the named account for fifteen minutes, its owner
+ * included, with the correct password. Usernames are printed on every post and
+ * listed on `/online`, so the input to that attack is public and it costs five
+ * requests. Repeated every fifteen minutes it keeps an administrator out of
+ * their own control panel indefinitely.
+ *
+ * So the narrow counter — the one that locks at five — is now per *address*, and
+ * a wide per-account counter with a far higher ceiling sits behind it:
+ *
+ *  - **`login:<account>@<address>`** stops somebody guessing, and one visitor
+ *    filling it affects only themselves.
+ *  - **`login:<account>`** at `maxAccountLoginAttempts` is the backstop for a
+ *    guess spread across many addresses, or across a forged `X-Forwarded-For`
+ *    — which is the same thing to anything downstream of a proxy. It is set
+ *    high enough that no honest member reaches it, so it cannot be used for the
+ *    denial of service the narrow one used to allow.
+ *
+ * **With no address, there is no narrow counter at all.** `remoteAddress()`
+ * returns null when nothing sets a forwarding header — fixture mode, and a board
+ * running with no proxy in front. Bucketing those under a shared literal would
+ * put every visitor back in one counter and restore the original bug in a form
+ * that is harder to see, so this returns the account-wide counter on its own:
+ * still a limit, ten times harder to weaponise, and it tightens the moment a
+ * proxy is configured.
  */
-function loginBucket(identifier: string): string {
+async function loginBuckets(identifier: string): Promise<readonly LoginBucket[]> {
   // Same folding the account lookup uses, and for the same reason: a
   // locale-dependent fold would let an attacker alternate case to get two
   // independent lockout buckets for one account. See `foldIdentifier`.
-  return `login:${foldIdentifier(identifier)}`
+  const account = foldIdentifier(identifier)
+  const wide: LoginBucket = {
+    key: `login:${account}`,
+    max: DEFAULT_AUTH_POLICY.maxAccountLoginAttempts,
+  }
+
+  const address = await remoteAddress()
+  if (address === null || address === '') return [wide]
+
+  return [{ key: `login:${account}@${address}` }, wide]
 }
 
 export async function registerAction(
@@ -246,7 +281,11 @@ export async function loginAction(
   const { identity, sessions } = getContainer()
 
   try {
-    const result = await identity.login(identifier, password, loginBucket(identifier))
+    const result = await identity.login(
+      identifier,
+      password,
+      await loginBuckets(identifier),
+    )
     await setSessionCookie(result.sessionToken, result.expiresAt)
 
     if (remember) {

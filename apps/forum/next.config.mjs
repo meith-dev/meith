@@ -61,6 +61,12 @@ if (process.env.NODE_ENV !== "production" && loadedEnvFiles.length > 0) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  /*
+   * `X-Powered-By: Next.js` on every response, named in the audit of
+   * 7 August 2026. Not a vulnerability — it is one line of reconnaissance
+   * somebody could get from the markup anyway — and one line to stop sending.
+   */
+  poweredByHeader: false,
   // Lets the isolated Playwright dev server run beside a developer's `.next`.
   distDir: process.env.FORUM_DIST_DIR ?? ".next",
 
@@ -139,8 +145,31 @@ const nextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()",
           },
+          /*
+           * **Enforced**, not report-only.
+           *
+           * It was `Content-Security-Policy-Report-Only` with no `report-uri`
+           * and no `report-to`, which the 7 August 2026 audit pointed out is a
+           * header that does nothing at all: report-only blocks nothing by
+           * definition, and with nowhere to send a report it does not report
+           * either. A policy that neither enforces nor observes is worse than
+           * none, because it reads on a headers scan as though the board had
+           * one.
+           *
+           * `script-src` keeps `'unsafe-inline'` and that is not an oversight:
+           * Next's App Router inlines the RSC payload and the bootstrap in
+           * `<script>` tags on every page, so dropping it turns the board into
+           * a blank screen. Removing it needs a per-request nonce threaded
+           * through the proxy, which is a change of its own — and the reason
+           * this is still worth enforcing meanwhile is everything else in the
+           * list: `default-src 'self'` and `connect-src 'self'` stop an
+           * injection reaching a third-party host, `object-src 'none'` and
+           * `base-uri 'self'` close two injection routes that owe nothing to
+           * inline script, and `form-action 'self'` stops a planted form
+           * posting a member's session somewhere else.
+           */
           {
-            key: "Content-Security-Policy-Report-Only",
+            key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
               "img-src 'self' data: https:",
@@ -148,6 +177,13 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline'",
               "connect-src 'self'",
               "frame-ancestors 'self'",
+              /* Nothing on this board embeds a plugin, and `default-src` does
+                 not cover `<object>` in every browser that matters. */
+              "object-src 'none'",
+              /* An injected `<base>` rewrites every relative URL on the page,
+                 including the form actions below. */
+              "base-uri 'self'",
+              "form-action 'self'",
             ].join("; "),
           },
         ],

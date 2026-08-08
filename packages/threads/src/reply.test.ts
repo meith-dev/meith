@@ -62,6 +62,7 @@ const INPUT = {
   bypassesFlood: false,
   /* F46. Off in the shared fixture; the tests that care set it. */
   heldAsNewMember: false,
+  requiresApproval: false,
   bypassesLock: false,
 }
 
@@ -147,6 +148,46 @@ describe('ReplyComposer', () => {
     // `moderate_new_posts`, not `moderate_new_threads`: a forum can hold replies
     // while letting threads through, and vice versa.
     expect(result.visibility).toBe('unapproved')
+  })
+
+  /*
+   * The `requiresPostApproval` permission, which until the 7 August 2026 audit
+   * was written to the database by the group screen and read by nothing. The
+   * forum's own switch above and this one are different axes: a board holds one
+   * group's replies everywhere with this, and everybody's replies in one forum
+   * with that.
+   */
+  it('holds the reply when the permission requires approval', async () => {
+    const posts = new RecordingReplies()
+    const result = await composer(posts).create(
+      { ...INPUT, requiresApproval: true },
+      AUTHOR,
+      { ...TARGET, forum: { ...TARGET.forum, moderateNewPosts: false } },
+    )
+
+    expect(result.visibility).toBe('unapproved')
+  })
+
+  it('leaves the reply visible when neither the forum nor the permission asks', async () => {
+    const posts = new RecordingReplies()
+    const result = await composer(posts).create(
+      { ...INPUT, requiresApproval: false },
+      AUTHOR,
+      { ...TARGET, forum: { ...TARGET.forum, moderateNewPosts: false } },
+    )
+
+    expect(result.visibility).toBe('visible')
+  })
+
+  it('lets an explicit moderation bypass through the permission', async () => {
+    const posts = new RecordingReplies()
+    const result = await composer(posts).create(
+      { ...INPUT, requiresApproval: true, bypassesModeration: true },
+      AUTHOR,
+      { ...TARGET, forum: { ...TARGET.forum, moderateNewPosts: false } },
+    )
+
+    expect(result.visibility).toBe('visible')
   })
 
   it('applies the flood interval', async () => {

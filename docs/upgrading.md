@@ -143,8 +143,7 @@ migrations are forward-only, and recovery is by restore. Coolify's scheduled
 backup covers Postgres; the uploads volume is a second thing, and yours.
 
 That applies **core migrations only**. Plugin migrations run through
-`forum upgrade`, which needs your `forum.config.ts` to know which plugins are
-installed — see
+`forum upgrade`, which carries your board's plugin list with it — see
 [the operator CLI](./operating.md#the-operator-cli) for how to run it on your
 deployment.
 
@@ -303,15 +302,25 @@ untouched and no one is locked out; F17 rehashes on next login regardless.
 > ignored rather than enforced: both fall back to the built-in 3 and 30, and the
 > board keeps registering people. Fix the pair on the settings screen.
 
-## What the CLI cannot do
+## What the CLI applies
+
+`forum upgrade` applies **core migrations, then each installed plugin's, then
+records the version** — the three steps it prints. It reads the plugin list from
+your board's `forum.plugins.ts`, which is compiled into the command when the
+image is built, so there is no separate entry point to remember and nothing to
+point it at.
 
 > [!NOTE]
-> `forum upgrade` installed from npm applies **core** migrations and records the
-> core version. It cannot apply plugin migrations.
+> This was not true before, and three places said it was. The command passed no
+> plugins at all, so a board could be told by the panel to run it and be no
+> further on afterwards. If you have been running a plugin whose migrations the
+> panel reported as pending, run `forum upgrade` once more — it is safe to
+> repeat, since applying a migration and recording it happen in one transaction
+> and a re-run of an applied one is a no-op.
 
-`forum.config.ts` lives in your project, and an operator CLI installed as a
-dependency has no path to it. Run the board's own upgrade entry point for
-plugins.
+A plugin listed with `enabled: false` is skipped: creating tables for code that
+will not run leaves your schema ahead of your board, which is the state the
+panel's refusal to offer a migrate button exists to prevent.
 
 This is a real limitation rather than an oversight, and it is written down here
 because discovering it during an upgrade is the wrong moment.

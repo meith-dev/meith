@@ -142,6 +142,13 @@ export async function submitReply(
         settings,
       }),
       /*
+       * The `requiresPostApproval` permission, resolved for this actor in this
+       * forum. AND-combined across their groups by the authorizer and
+       * overridable per forum, so reading the matrix is the whole of it — the
+       * exemption rules are already applied by the time it gets here.
+       */
+      requiresApproval: scope.forum.requiresPostApproval === true,
+      /*
        * Replying to a locked thread is a moderator act, and `content.viewDeleted`
        * would be the wrong test — seeing removed content says nothing about
        * writing to a closed thread.
