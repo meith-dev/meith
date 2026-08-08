@@ -187,7 +187,7 @@ export default async function DiscoverPage({
                     the row (F74's budget), not a lookup per line.
                   */}
                   in{' '}
-                  <a href={`/community/${row.communityId}-${row.communitySlug}`} className="hover:underline">
+                  <a href={`/${row.communityId}-${row.communitySlug}`} className="hover:underline">
                     {row.communityTitle}
                   </a>{' '}
                   · started by {row.authorUsername}

@@ -58,7 +58,7 @@ describe('buildLatestThreadsModel', () => {
     expect(threads[0]).toMatchObject({
       title: 'Bikeshedding',
       href: '/thread/91-bikeshedding',
-      community: { label: 'General', href: '/community/3-general' },
+      community: { label: 'General', href: '/3-general' },
       author: { userId: 12, username: 'marlow', profileHref: '/member/12' },
       replyCount: 4,
     })
@@ -136,6 +136,6 @@ describe('buildLatestPostsModel', () => {
   it('carries the community, because these lists cross the whole board', () => {
     const { posts } = buildLatestPostsModel({ rows: [postRow()], now: NOW })
 
-    expect(posts[0]?.community).toEqual({ label: 'General', href: '/community/3-general' })
+    expect(posts[0]?.community).toEqual({ label: 'General', href: '/3-general' })
   })
 })

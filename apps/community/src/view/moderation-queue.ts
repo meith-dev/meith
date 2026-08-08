@@ -56,7 +56,7 @@ function row(item: QueueItem, now: Date, timeZone: string | undefined): QueueRow
     kindLabel: item.kind === 'thread' ? 'New thread' : 'Reply',
     communityTitle: item.communityTitle,
     threadTitle: item.threadTitle,
-    href: item.kind === 'thread' ? `/community/${item.communityId}` : `${thread}#post-${item.id}`,
+    href: item.kind === 'thread' ? `/${item.communityId}` : `${thread}#post-${item.id}`,
     authorUsername: item.authorUsername,
     authorHref: item.authorUserId === null ? null : `/member/${item.authorUserId}`,
     /*

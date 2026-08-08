@@ -21,7 +21,7 @@ import { absolute, isIndexable } from '@/server/syndication'
  * by the crawlers that matter and ignored by everything else, and listing a
  * path in it is publishing that the path exists. That is why the private areas
  * listed are the ones anybody can find from the header anyway, and why no
- * *content* path is listed — a `Disallow: /community/9-secret` would be a map of
+ * *content* path is listed — a `Disallow: /9-secret` would be a map of
  * the board's private communities served to the whole internet.
  */
 export const dynamic = 'force-dynamic'

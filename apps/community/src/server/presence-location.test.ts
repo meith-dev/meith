@@ -21,11 +21,15 @@ const { parseLocation } = await import('./presence')
 
 describe('parseLocation', () => {
   it('reads the community id out of a community path', () => {
-    expect(parseLocation('/community/12-news')).toEqual({
-      path: '/community/12-news',
+    expect(parseLocation('/12-news')).toEqual({
+      path: '/12-news',
       communityId: 12,
       threadId: null,
     })
+    /* The route accepts a bare id — the delete redirect and the moderation
+       queue link carry no slug — so presence must read it the same way. */
+    expect(parseLocation('/12')?.communityId).toBe(12)
+    expect(parseLocation('/12-news/new')?.communityId).toBe(12)
   })
 
   it('reads the thread id out of a thread path', () => {
@@ -60,14 +64,13 @@ describe('parseLocation', () => {
 
   it('refuses to invent an id from a path that only looks like one', () => {
     /*
-     * The route wants `<id>-<slug>`, so `/community/12` is a 404 — and recording
-     * somebody as reading a community whose page they were never shown is a claim
-     * the board cannot support. Kills the mutant that drops the trailing hyphen.
+     * A digit run followed by anything but the id's own delimiters is a
+     * different route: `/2fa` would be a page, not community 2. Kills the
+     * mutant that matches digits anywhere in the first segment.
      */
-    expect(parseLocation('/community/12')?.communityId).toBeNull()
     expect(parseLocation('/thread/34')?.threadId).toBeNull()
-    expect(parseLocation('/communities/12-news')?.communityId).toBeNull()
-    expect(parseLocation('/community/abc-news')?.communityId).toBeNull()
+    expect(parseLocation('/12news')?.communityId).toBeNull()
+    expect(parseLocation('/abc-news')?.communityId).toBeNull()
   })
 
   it('matches only at the start of the path', () => {

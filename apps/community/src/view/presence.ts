@@ -62,14 +62,13 @@ export function locationOf(row: OnlineRow): { label: string; href: string | null
   }
 
   /*
-   * The title alone, not `communityId !== null && communityTitle !== null`. The two are
-   * never different: the repository gates both on the same predicate, and a
-   * community that is in scope has a title because the column is NOT NULL. The
-   * redundant half was here first and no mutation of it could fail a test —
-   * which is the definition of a check the next reader would trust wrongly.
+   * The repository gates the id and the title on the same predicate, so the
+   * two are never different — but the href genuinely consumes the id, so each
+   * half of the check carries its own weight. The session row holds no slug,
+   * and it does not need one: the community route accepts a bare `/<id>`.
    */
-  if (row.communityTitle !== null) {
-    return { label: `Viewing ${row.communityTitle}`, href: null }
+  if (row.communityId !== null && row.communityTitle !== null) {
+    return { label: `Viewing ${row.communityTitle}`, href: `/${row.communityId}` }
   }
 
   return { label: 'Somewhere on the board', href: null }

@@ -24,7 +24,7 @@ test('the fixture board, registration, and login work without JavaScript', async
    * input verbatim would still show the sentence.
    */
   await expect(page.locator('#post-10 strong')).toHaveText('new community')
-  const rules = page.locator('#post-10 a[href="/community/100-announcements"]')
+  const rules = page.locator('#post-10 a[href="/100-announcements"]')
   await expect(rules).toHaveText('Announcements')
   await expect(rules).toHaveAttribute('rel', 'nofollow ugc noopener noreferrer')
 
@@ -91,7 +91,7 @@ test('the community jump box works without JavaScript', async ({ page }) => {
   await jump.selectOption('100')
   await page.getByRole('button', { name: 'Go' }).click()
 
-  await expect(page).toHaveURL(/\/community\/100-announcements/)
+  await expect(page).toHaveURL(/\/100-announcements/)
 })
 
 test('the jump box is reachable and operable from the keyboard', async ({ page }) => {

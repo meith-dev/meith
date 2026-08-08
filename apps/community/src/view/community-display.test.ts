@@ -65,7 +65,7 @@ describe('buildCommunityDisplayView', () => {
         },
       },
       pageNumber: 1,
-      nextHref: '/community/2-general?after=cursor&page=2',
+      nextHref: '/2-general?after=cursor&page=2',
       now: new Date('2026-07-30T09:00:00Z'),
     })
 
@@ -77,7 +77,7 @@ describe('buildCommunityDisplayView', () => {
     })
     expect(view.pagination).toMatchObject({
       page: 1,
-      nextHref: '/community/2-general?after=cursor&page=2',
+      nextHref: '/2-general?after=cursor&page=2',
     })
   })
 })

@@ -114,7 +114,7 @@ export async function threadToolAction(
     redirect(`/thread/${outcome.threadId}-${outcome.slug}?tool=copy`)
   }
   if (outcome.tool === 'delete') {
-    redirect(`/community/${(await threadTools.find(threadId))?.communityId ?? ''}?thread=deleted`)
+    redirect(`/${(await threadTools.find(threadId))?.communityId ?? ''}?thread=deleted`)
   }
   redirect(`/thread/${outcome.threadId}-${outcome.slug}?tool=${outcome.tool}`)
 }

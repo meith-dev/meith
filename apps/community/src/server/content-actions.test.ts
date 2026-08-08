@@ -331,7 +331,7 @@ describe('createThreadAction', () => {
 
     const to = await redirectOf(createThreadAction(EMPTY_STATE, form(VALID)))
 
-    expect(to).toBe(`/community/${SEED_COMMUNITY.general}-general?posted=moderated`)
+    expect(to).toBe(`/${SEED_COMMUNITY.general}-general?posted=moderated`)
     expect(writes.written[0]!.visibility).toBe('unapproved')
   })
 

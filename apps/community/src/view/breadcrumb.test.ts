@@ -32,9 +32,9 @@ describe('buildBreadcrumb', () => {
     expect(labels(trail)).toEqual(['Communities', 'Community', 'General', 'Off topic'])
     expect(trail.map((item) => item.href)).toEqual([
       '/',
-      '/community/1-community',
-      '/community/4-general',
-      '/community/9-off-topic',
+      '/1-community',
+      '/4-general',
+      '/9-off-topic',
     ])
   })
 

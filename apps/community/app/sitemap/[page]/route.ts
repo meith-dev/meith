@@ -45,7 +45,7 @@ export async function GET(
     return xmlResponse(
       renderSitemap(
         communities.map((community) => ({
-          loc: absoluteTo(site, `/community/${community.communityId}-${community.slug}`),
+          loc: absoluteTo(site, `/${community.communityId}-${community.slug}`),
           ...(community.lastPostAt === null ? {} : { lastmod: community.lastPostAt }),
         })),
       ),

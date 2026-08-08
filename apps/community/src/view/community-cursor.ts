@@ -1,6 +1,6 @@
 import type { ThreadCursor } from '@meith/threads'
 
-/** Decode the opaque keyset cursor carried by `/community/[id]-[slug]`. */
+/** Decode the opaque keyset cursor carried by `/[id]-[slug]`. */
 export function decodeCommunityCursor(
   value: string | undefined,
 ): ThreadCursor | null | undefined {

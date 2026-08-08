@@ -264,9 +264,9 @@ describe('the row', () => {
   it('carries the community title and slug, so a listing needs no second query', async () => {
     /*
      * The slug is here because these lists cross the whole board and every row
-     * links back to its community — and `/community/<id>` alone is a 404, the route
-     * wants `<id>-<slug>`. Fetching it per row is the N+1 the budget test
-     * exists to catch, so it comes off the join that was already there.
+     * links back to its community with the canonical `/<id>-<slug>` address.
+     * Fetching it per row is the N+1 the budget test exists to catch, so it
+     * comes off the join that was already there.
      */
     await seedThread({ id: 1 })
 

@@ -136,7 +136,7 @@ describe('the redirect path', () => {
 
   it('sends a community, a post and a member to theirs', () => {
     expect(legacyRedirectPath(resolve('/forumdisplay.php?fid=3')!, 2, 'general')).toBe(
-      '/community/2-general',
+      '/2-general',
     )
     expect(legacyRedirectPath(resolve('/showthread.php?pid=4102')!, 55, null)).toBe('/post/55')
     expect(legacyRedirectPath(resolve('/member.php?uid=12')!, 4, 'marlow')).toBe('/member/4-marlow')
