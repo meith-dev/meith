@@ -5,17 +5,25 @@
  * something. That claim is only worth anything if the board does not ship
  * failures of its own: a panel that is red on a pristine install teaches an
  * operator within a day to ignore it, and the one failure they caused
- * themselves then scrolls past with the rest. So the default theme is held to
- * every pair, in both schemes, here.
+ * themselves then scrolls past with the rest. So **every theme in the registry**
+ * is held to every pair, in both schemes, here.
  *
- * It runs in both directions on purpose. A pair added to `CONTRAST_PAIRS` that
- * the default theme fails is either a wrong pair or a real bug in the palette,
- * and this test makes somebody decide which — rather than the pair being quietly
+ * The list comes from `forum.config.ts` rather than from a constant, the same
+ * way F77's rendering contract takes it: registering a theme enrols it, and
+ * there is no list to forget to add yourself to. `midnight` failed twelve pairs
+ * on the day this test was written — the tool's first real finding, in the theme
+ * shipped as the worked example — and its palette moved rather than the test.
+ *
+ * It runs in both directions on purpose. A pair added to `CONTRAST_PAIRS` that a
+ * shipped theme fails is either a wrong pair or a real bug in the palette, and
+ * this test makes somebody decide which — rather than the pair being quietly
  * dropped because the panel looked untidy.
  */
 import { describe, expect, it } from 'vitest'
 
-import { DARK_TOKENS, LIGHT_TOKENS, TOKEN_NAMES } from '@meith/theme-default'
+import { LIGHT_TOKENS, TOKEN_NAMES } from '@meith/theme-default'
+
+import forumConfig from '../../forum.config'
 
 import {
   CONTRAST_PAIRS,
@@ -178,11 +186,13 @@ describe('the pairs themselves', () => {
   })
 })
 
-describe('the default theme', () => {
-  it.each([
-    ['light', LIGHT_TOKENS],
-    ['dark', DARK_TOKENS],
-  ])('passes every pair in %s', (_scheme, values) => {
+describe('every installed theme', () => {
+  const themes = Object.values(forumConfig.themes).flatMap((installed) => [
+    [`${installed.key} (light)`, installed.tokens.light] as const,
+    [`${installed.key} (dark)`, installed.tokens.dark] as const,
+  ])
+
+  it.each(themes)('passes every pair — %s', (_name, values) => {
     const failures = checkContrast(values)
       .filter((check) => check.state !== 'pass')
       .map(
@@ -193,6 +203,15 @@ describe('the default theme', () => {
       )
 
     expect(failures).toEqual([])
+  })
+
+  /*
+   * The registry really is being read. A `themes` map this test found empty
+   * would pass every assertion above by having nothing to assert, which is the
+   * failure mode of every "we run it over all of them" suite.
+   */
+  it('finds more than one theme to check', () => {
+    expect(themes.length).toBeGreaterThan(2)
   })
 })
 

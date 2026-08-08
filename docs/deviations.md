@@ -8911,14 +8911,35 @@ and the one failure they caused themselves then scrolls past with the rest. It
 also runs the other way — a pair added later that the default fails is either a
 wrong pair or a real bug in the palette, and somebody has to decide which.
 
-**The same check says `midnight` has twelve pairs below AA** — eight in its light
+**The same check found twelve pairs below AA in `midnight`** — eight in its light
 scheme (`forum-unread`, `forum-read`, `thread-pinned`, `thread-unapproved`,
 `moderation-pending` and `moderation-approved` against `card`, the focus ring
 against the page, and `input` against `card` at 1.48:1) and four in its dark one.
-They are left alone and reported by the screen rather than corrected here:
-repainting a second theme's palette is a design change to somebody else's stated
-look, and the first job of a measuring instrument is to be believed rather than
-to be quietly satisfied. It is the tool finding real work on its first run.
+The tool's first run found real work in the theme shipped as the worked example,
+which is the strongest evidence available that the pairs are the right pairs.
+
+**The palette moved, and only in lightness.** Same hues, same chromas: this is a
+theme whose whole argument is a dusk-grey terminal beside a cyan accent, and a
+correction that reached for the chroma slider would have fixed the ratios by
+making it a different theme. Three of the moves are worth naming. The field
+outline was *lighter* than the rule between two rows, which is the exact
+inversion of the rule the board's own token documentation states and is why it
+sat at 1.48:1 rather than the 3:1 that WCAG 1.4.11 asks of a control's boundary.
+The focus ring was the accent colour exactly, and the accent is placed against
+panels while the ring is drawn on the page — one step darker, same hue, and it
+clears. And `forum-read`, `thread-moved` and `group-banned` are now one value in
+each scheme, as they are in the default theme and for the reason that file gives:
+they are one signal, *this has receded*, wearing three names.
+
+Several pairs now sit within a few hundredths of their threshold, and that is
+deliberate rather than sloppy: every extra step of lightness is a step away from
+the look the theme exists to demonstrate, and a ramp placed by measurement should
+sit where the measurement says.
+
+The gate is the registry, not a list: `contrast.test.ts` reads
+`forum.config.ts` the way F77's rendering contract does, so registering a theme
+enrols it — and a theme cannot be added with a palette nobody can read without
+somebody deciding, in the same diff, that the pair is wrong.
 
 Three promises turned out not to be kept, and none of them was visible in a diff.
 
