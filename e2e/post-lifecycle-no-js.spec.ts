@@ -29,11 +29,27 @@
  * They are one test because they are one question asked twice, and a fix for
  * either that reintroduced the other would still be wrong.
  */
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 import { enterAdminPanel, signInAsModerator, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
+
+/*
+ * Headroom, not an estimate.
+ *
+ * Playwright's default is 30 seconds and these tests sit just under it, which
+ * is the worst place to be: they passed alone and failed in a full run, twice,
+ * on a navigation that was merely slow. The work is real rather than wasteful —
+ * every `signUp` is a registration *and* a sign-in, so two Argon2id hashes, the
+ * panel asks for the password a second time on purpose, and the board runs on
+ * `DATABASE_POOL_MAX=1` (see `e2e/support/database.ts`), so none of it overlaps.
+ *
+ * A spec that fails one run in three teaches people to re-run it, after which a
+ * real failure gets re-run too — the same reasoning `playwright.config.ts`
+ * records for the installer's project.
+ */
+test.describe.configure({ timeout: 120_000 })
 
 const GENERAL = '/200-general'
 const OFF_TOPIC = '/201-off-topic'
@@ -131,18 +147,19 @@ test('an author deletes their own post, and a moderator puts it back', async ({ 
  * and asserts "Nobody moderates this forum." — an appointment left behind here
  * would fail a spec in another file, which is the worst kind of failure to
  * debug.
+ *
+ * It takes a page that is **already inside the panel** rather than opening one.
+ * `enterAdminPanel` is a sign-in and a second password prompt — two Argon2id
+ * verifications — and calling it once per appointment is most of what made this
+ * test the slowest in the suite.
  */
 async function withAppointment(
-  browser: Browser,
+  admin: Page,
   member: string,
   rights: readonly string[],
   body: () => Promise<void>,
 ): Promise<void> {
-  const context = await browser.newContext({ javaScriptEnabled: false })
-  const admin = await context.newPage()
-
   try {
-    await enterAdminPanel(admin)
     await admin.goto('/admin/forums')
     await admin.getByRole('link', { name: 'Options for Off Topic' }).click()
 
@@ -163,7 +180,6 @@ async function withAppointment(
       await row.getByRole('button', { name: 'Remove' }).click()
       await expect(admin.locator('li').filter({ hasText: member })).toHaveCount(0)
     }
-    await context.close()
   }
 }
 
@@ -177,7 +193,11 @@ test('an appointment grants the rights it names, and only those', async ({ brows
   const editorContext = await browser.newContext({ javaScriptEnabled: false })
   const editor = await editorContext.newPage()
 
+  const staffContext = await browser.newContext({ javaScriptEnabled: false })
+  const admin = await staffContext.newPage()
+
   try {
+    await enterAdminPanel(admin)
     await signUp(author, 'wrote')
     const splitterName = await signUp(splitter, 'onlysplit')
     const editorName = await signUp(editor, 'mayedit')
@@ -193,7 +213,7 @@ test('an appointment grants the rights it names, and only those', async ({ brows
      * action performed it, on the strength of an appointment to a completely
      * different job.
      */
-    await withAppointment(browser, splitterName, ['Split threads'], async () => {
+    await withAppointment(admin, splitterName, ['Split threads'], async () => {
       await splitter.goto(url)
 
       await expect(
@@ -237,7 +257,7 @@ test('an appointment grants the rights it names, and only those', async ({ brows
      * *work*: the link was offered and the screen behind it was a 404, because
      * the page and the scope resolved the appointment differently.
      */
-    await withAppointment(browser, editorName, ['Edit posts', 'Delete posts'], async () => {
+    await withAppointment(admin, editorName, ['Edit posts', 'Delete posts'], async () => {
       await editor.goto(url)
       const edit = await editor.locator('a[href*="/edit?post="]').first().getAttribute('href')
       expect(edit, 'the postbit offers the Edit it was appointed to').not.toBeNull()
@@ -261,6 +281,7 @@ test('an appointment grants the rights it names, and only those', async ({ brows
     await authorContext.close()
     await splitterContext.close()
     await editorContext.close()
+    await staffContext.close()
   }
 })
 

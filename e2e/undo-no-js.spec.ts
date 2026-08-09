@@ -26,6 +26,22 @@ import { signInAsModerator, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
+/*
+ * Headroom, not an estimate.
+ *
+ * Playwright's default is 30 seconds and these tests sit just under it, which
+ * is the worst place to be: they passed alone and failed in a full run, twice,
+ * on a navigation that was merely slow. The work is real rather than wasteful —
+ * every `signUp` is a registration *and* a sign-in, so two Argon2id hashes, the
+ * panel asks for the password a second time on purpose, and the board runs on
+ * `DATABASE_POOL_MAX=1` (see `e2e/support/database.ts`), so none of it overlaps.
+ *
+ * A spec that fails one run in three teaches people to re-run it, after which a
+ * real failure gets re-run too — the same reasoning `playwright.config.ts`
+ * records for the installer's project.
+ */
+test.describe.configure({ timeout: 120_000 })
+
 /** Send one message from `from` to `to`, and return its subject. */
 async function sendMessage(from: Page, to: string, subject: string): Promise<string> {
   await from.goto('/messages/compose')
