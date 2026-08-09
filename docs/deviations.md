@@ -9225,3 +9225,52 @@ nothing in the browser suite had ever written an announcement. `liveAnnouncement
 now resolves `nameClass` for its authors through the same `identitiesFor` every
 other surface uses — `React.cache`d and deduped, so on the index it is a map
 lookup rather than a query.
+
+### D123 — An appointment granted more than it named, and less than it named (F48, F50, F52, F54, F41)
+
+Two defects, opposite in direction, one root confusion. Both were found by
+walking the moderator screens in a browser with a *partial* appointment — which
+nothing had ever done, because every moderation spec was driven as the seeded
+super moderator, who holds everything everywhere and therefore cannot tell the
+two apart.
+
+**More than it named.** `Target.isForumModerator` is `hasAnyModeratorRight(rights)`
+— true if the appointee holds any one of the nine. `post.editOthers` and
+`post.softDelete` read that flag:
+
+```ts
+case 'post.softDelete':
+  return target.isForumModerator === true || forum.canSoftDeletePosts === true
+```
+
+So an appointment to **Split threads and nothing else** granted the right to
+edit and delete other people's posts in that forum. The escalation was invisible
+from both ends of the product: the ACP offers Edit posts and Delete posts as
+their own checkboxes, and `/modcp/forums` told the appointee — correctly, from
+the stored row — that they held neither. `content.approve` had had the right
+shape all along, and its comment says why in as many words; the two beside it
+had simply never been brought into line.
+
+They read their own right now. The **seeing** pair, `content.viewUnapproved` and
+`content.viewDeleted`, deliberately still follow the flag, and the asymmetry is
+the point: an appointee has to be able to read the queue and find the deleted
+posts in the forum they look after in order to do any of the jobs they *were*
+appointed to. Seeing is not acting — which is exactly the distinction
+`content.approve` already drew from the other side.
+
+**Less than it named.** The mirror image, in `resolvePostScope`. F54 wrote
+`moderatorTargetFor` to pay off the debt F48 recorded — an appointee's rights
+never reaching a per-page `can()` call — and wired it into the thread page only.
+`post-scope.ts` is what the *edit page* and all three post actions ask, and it
+built its target without an appointment at all. So a member appointed to Edit
+posts was offered an Edit link by the postbit and got a **404** behind it: two
+answers to "may this actor touch this post", from two modules, one of which the
+helper had been written for and never given to.
+
+Fixing either alone would have been worse than fixing neither. Wiring the scope
+up first would have turned the first defect into a *working* edit screen for a
+member appointed to split threads.
+
+`e2e/post-lifecycle-no-js.spec.ts` pins both in one test, because they are one
+question asked twice, and `thread-tool-rights.test.ts` holds the permission rule
+itself — including the case that keeps the queue readable to every appointee.

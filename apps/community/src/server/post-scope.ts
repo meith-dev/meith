@@ -12,6 +12,7 @@ import type { EditCapabilities, PostWriteRepository } from '@meith/posts'
 
 import { getActor } from './context'
 import { getContainer } from './container'
+import { moderatorTargetFor } from './modcp'
 
 /**
  * Resolve the post and decide, once, what this actor may do to it.
@@ -43,9 +44,20 @@ export async function resolvePostScope(
   const target = await postWrites.findEditTarget(threadId, postId)
   if (!target) return null
 
+  /*
+   * The **appointment-aware** target, which this used to build without.
+   *
+   * F54 wrote `moderatorTargetFor` to pay off the debt F48 recorded — a
+   * per-forum appointee's rights never reaching a per-page `can()` call — and
+   * wired it into the thread page only. This module is what the *edit page* and
+   * all three post actions ask, so the two disagreed: the postbit offered a
+   * moderator appointed to Edit posts an Edit link, and following it 404'd,
+   * because the scope it was decided against carried no appointment at all.
+   * There is no second answer to "may this actor touch this post" now.
+   */
+  const matrix = await authorizer.forumMatrix(actor, target.forum.id)
   const scope = {
-    forumId: target.forum.id,
-    forum: await authorizer.forumMatrix(actor, target.forum.id),
+    ...(await moderatorTargetFor(actor, target.forum.id, matrix)),
     ownerId: target.post.authorUserId,
   }
   // The existence of a post in a forum you cannot read is not something to
