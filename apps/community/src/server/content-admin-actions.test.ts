@@ -5,8 +5,39 @@
  * set is read on the render path, so a stale one is visible on every thread
  * page on the board — an operator who adds a filter and still sees the word
  * would reasonably conclude the feature does not work.
+ *
+ * And **every write refreshes the screen it was posted from**, which is a
+ * different claim about a different cache: clearing the board's own store makes
+ * the next server render correct and says nothing about Next's Router Cache,
+ * which holds the payload for the page the form is on. With scripting enabled
+ * — how an administrator actually uses the panel — an action that skips this
+ * returns its success notice above a list that has not changed.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+/*
+ * Recorded rather than ignored, so a test can say which screen was refreshed.
+ * The mock is also load-bearing on its own: `revalidatePath` outside a Next
+ * request throws, so an unmocked call turns a successful action into an error
+ * state and the failure reads as a broken write.
+ */
+const revalidated: string[] = []
+vi.mock('next/cache', async (importOriginal) => {
+  /*
+   * Spread the real module rather than replacing it. `next/cache` also exports
+   * `unstable_cache`, which modules reached transitively from here call at
+   * import time — a mock that returned only `revalidatePath` makes the file
+   * fail to load, with a stack that points at a theme module nothing here is
+   * testing.
+   */
+  const actual = (await importOriginal()) as Record<string, unknown>
+  return {
+    ...actual,
+    revalidatePath: (path: string) => {
+      revalidated.push(path)
+    },
+  }
+})
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
 const requireAdminMock = vi.fn(async () => ({ session: { userId: 1 } }))
@@ -74,6 +105,7 @@ function form(fields: Record<string, string>): FormData {
 beforeEach(() => {
   adminCalls.length = 0
   invalidated.length = 0
+  revalidated.length = 0
   created.length = 0
   updated.length = 0
   deleted.length = 0
@@ -118,6 +150,25 @@ describe('word filter writes', () => {
     await deleteWordFilterAction({}, form({ id: '1' }))
 
     expect(invalidated).toEqual([['word-filters'], ['word-filters'], ['word-filters']])
+  })
+
+  it('refreshes the screen it was posted from, not only the board cache', async () => {
+    /*
+     * The other cache, and the one the operator is looking at. Clearing the
+     * board's store fixes the *next* server render; the page the form is on
+     * keeps the payload it was rendered with until the route is revalidated —
+     * so without this an administrator adds a filter, is told "Added.", and
+     * reads "No filters. Posts show as written." underneath it.
+     *
+     * Only reachable with scripting on, which is why the browser suite could
+     * not catch it: a form post with scripting off is a full navigation, and a
+     * full navigation renders the page again whatever this does.
+     */
+    await createWordFilterAction({}, form({ pattern: 'a' }))
+    await updateWordFilterAction({}, form({ id: '1', pattern: 'a' }))
+    await deleteWordFilterAction({}, form({ id: '1' }))
+
+    expect(revalidated).toEqual(['/admin/content', '/admin/content', '/admin/content'])
   })
 
   it('reads an unticked whole-word box as a substring filter', async () => {
@@ -178,9 +229,10 @@ describe('prefix writes', () => {
     expect(prefixes).toEqual([])
   })
 
-  it('deletes by id', async () => {
+  it('deletes by id, and refreshes the screen it was posted from', async () => {
     const state = await deletePrefixAction({}, form({ id: '3' }))
     expect(state.notice).toBe('removed')
     expect(prefixDeletes).toEqual([3])
+    expect(revalidated).toEqual(['/admin/content'])
   })
 })

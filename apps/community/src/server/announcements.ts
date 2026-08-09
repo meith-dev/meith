@@ -32,7 +32,9 @@ import { PostgresAnnouncementRepository, getDb, type AnnouncementRow } from '@me
 import type { AnnouncementModel } from '@meith/theme-kit'
 
 import { activeVocabulary } from './content-admin'
+import { identitiesFor } from './group-identity'
 import { forumHref } from '../view/board-index'
+import { distinctUserIds, nameClassOf, type MemberIdentity } from '../view/member-identity'
 import { formatTime } from '../view/time'
 
 export function announcementRepository(): PostgresAnnouncementRepository | null {
@@ -66,7 +68,26 @@ export async function liveAnnouncements(input: {
       activeVocabulary(),
     ])
 
-    return rows.map((row) => toModel(row, input.now, input.timeZone, vocabulary))
+    /*
+     * The byline gets the author's group colour, like every other name on the
+     * board.
+     *
+     * It did not, and that is the *partial* failure F73's colour was specified
+     * against: applied at five call sites out of six, the same person is green
+     * in a thread, green in a listing, and grey above them — which reads as a
+     * rendering bug rather than as a missing feature. An announcement is the
+     * board speaking, usually in an administrator's name, so it is the byline
+     * where the hierarchy is most worth showing.
+     *
+     * `identitiesFor` is `React.cache`d and deduped, and an announcement page
+     * has a handful of authors — usually one, usually already resolved by the
+     * index's own call — so this is a map lookup far more often than a query.
+     */
+    const identities = await identitiesFor(
+      distinctUserIds(rows.map((row) => row.authorUserId)),
+    )
+
+    return rows.map((row) => toModel(row, input.now, input.timeZone, vocabulary, identities))
   } catch (error) {
     logger().warn({ err: String(error) }, 'could not read announcements')
     return []
@@ -78,6 +99,7 @@ function toModel(
   now: Date,
   timeZone: string | undefined,
   vocabulary: BoardVocabulary | undefined,
+  identities: ReadonlyMap<number, MemberIdentity>,
 ): AnnouncementModel {
   return {
     title: row.title,
@@ -94,6 +116,7 @@ function toModel(
              * rule every other attribution on this board follows.
              */
             profileHref: row.authorUserId === null ? null : `/member/${row.authorUserId}`,
+            nameClass: nameClassOf(identities, row.authorUserId),
           },
     postedAt: formatTime(row.startsAt, now, timeZone),
     forum:

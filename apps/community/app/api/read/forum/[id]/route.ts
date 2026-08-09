@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server'
-
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { seeOther } from '@/server/see-other'
 
 function idFrom(value: string): number | null {
   if (!/^[1-9]\d*$/.test(value)) return null
@@ -9,17 +8,17 @@ function idFrom(value: string): number | null {
   return Number.isSafeInteger(id) ? id : null
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const id = idFrom((await params).id)
   const actor = await getActor()
   const { forums, authorizer, readState } = getContainer()
-  if (id === null || actor.userId === null || readState === null) return NextResponse.redirect(new URL('/', request.url), { status: 303 })
+  if (id === null || actor.userId === null || readState === null) return seeOther('/')
 
   const forum = await forums.findById(id)
-  if (!forum || forum.type !== 'forum') return NextResponse.redirect(new URL('/', request.url), { status: 303 })
+  if (!forum || forum.type !== 'forum') return seeOther('/')
   const matrix = await authorizer.forumMatrix(actor, id)
-  if (!authorizer.can(actor, 'forum.view', { forumId: id, forum: matrix })) return NextResponse.redirect(new URL('/', request.url), { status: 303 })
+  if (!authorizer.can(actor, 'forum.view', { forumId: id, forum: matrix })) return seeOther('/')
 
   await readState.markForumsRead(actor.userId, [id], new Date())
-  return NextResponse.redirect(new URL(`/${id}-${forum.slug}`, request.url), { status: 303 })
+  return seeOther(`/${id}-${forum.slug}`)
 }

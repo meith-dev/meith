@@ -18,6 +18,7 @@ import type {
   SmileyRow,
 } from '@meith/db'
 import { drivers } from '@meith/drivers'
+import { revalidatePath } from 'next/cache'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import { announcementRepository } from './announcements'
@@ -42,8 +43,34 @@ function toFormState(err: unknown): FormState {
   return { error: 'Something went wrong. Please try again.' }
 }
 
+/**
+ * Refresh the panel screen the action was posted from.
+ *
+ * `drivers().cache` is the board's own store, and clearing it is what makes the
+ * next *server* render correct. It says nothing about Next's client Router
+ * Cache, which holds the RSC payload for the page the form is on — so with
+ * JavaScript enabled, which is how an administrator actually uses the panel, an
+ * action returned its success notice and left the list showing what was there a
+ * moment ago. Add a word filter and the screen still says "No filters. Posts
+ * show as written."; add an announcement and it still says "None."; add a
+ * question and the challenge still asks nothing.
+ *
+ * With JavaScript **off** the browser's own reload hid it completely, which is
+ * why the browser suite — which runs the panel with scripting disabled by
+ * design — did not catch it, and why it survived the 7 August 2026 audit that
+ * found and fixed exactly this on `/admin/forums` and `/admin/groups`.
+ *
+ * The named routes rather than the `('/', 'layout')` sweep `redirect-back.ts`
+ * warns about: that one purges cached data for every route under `/` — the
+ * whole board's settings and forum tree, for everybody — to refresh one list.
+ */
+function refreshPanel(path: string): void {
+  revalidatePath(path)
+}
+
 async function invalidateWordFilters(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.wordFilters()])
+  refreshPanel('/admin/content')
 }
 
 export async function createWordFilterAction(
@@ -148,6 +175,7 @@ export async function createPrefixAction(
     })
 
     await drivers().cache.invalidateTags([CacheTags.prefixes()])
+    refreshPanel('/admin/content')
     await recordAdminAction({ action: 'content.prefix_added', detail: { prefixId } })
 
     return { notice: 'saved' }
@@ -174,6 +202,7 @@ export async function deletePrefixAction(
     await requireContentAdmin().deletePrefix(prefixId)
 
     await drivers().cache.invalidateTags([CacheTags.prefixes()])
+    refreshPanel('/admin/content')
     await recordAdminAction({ action: 'content.prefix_removed', detail: { prefixId } })
 
     return { notice: 'removed' }
@@ -198,6 +227,7 @@ export async function deletePrefixAction(
  */
 async function invalidateVocabulary(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.markdownVocabulary()])
+  refreshPanel('/admin/content')
 }
 
 /**
@@ -503,6 +533,7 @@ export async function createAnnouncementAction(
     })
 
     await recordAdminAction({ action: 'content.announcement_added', detail: { announcementId } })
+    refreshPanel('/admin/content/announcements')
 
     return { notice: 'saved' }
   } catch (err) {
@@ -522,6 +553,7 @@ export async function updateAnnouncementAction(
     await requireAnnouncements().update(announcementId, announcementInput(form))
 
     await recordAdminAction({ action: 'content.announcement_changed', detail: { announcementId } })
+    refreshPanel('/admin/content/announcements')
 
     return { notice: 'saved' }
   } catch (err) {
@@ -548,6 +580,7 @@ export async function deleteAnnouncementAction(
     await requireAnnouncements().delete(announcementId)
 
     await recordAdminAction({ action: 'content.announcement_removed', detail: { announcementId } })
+    refreshPanel('/admin/content/announcements')
 
     return { notice: 'deleted' }
   } catch (err) {
@@ -594,6 +627,7 @@ export async function createCaptchaQuestionAction(
     })
 
     await recordAdminAction({ action: 'content.captcha_added', detail: { questionId } })
+    refreshPanel('/admin/antispam')
 
     return { notice: 'saved' }
   } catch (err) {
@@ -616,6 +650,7 @@ export async function updateCaptchaQuestionAction(
     })
 
     await recordAdminAction({ action: 'content.captcha_changed', detail: { questionId } })
+    refreshPanel('/admin/antispam')
 
     return { notice: 'saved' }
   } catch (err) {
@@ -642,6 +677,7 @@ export async function deleteCaptchaQuestionAction(
     await requireCaptcha().delete(questionId)
 
     await recordAdminAction({ action: 'content.captcha_removed', detail: { questionId } })
+    refreshPanel('/admin/antispam')
 
     return { notice: 'deleted' }
   } catch (err) {

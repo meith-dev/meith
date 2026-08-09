@@ -15,6 +15,7 @@
  * avoid.
  */
 import { isAppError, logger } from '@meith/core'
+import { revalidatePath } from 'next/cache'
 
 import { requireAdmin } from './admin'
 import { apiTokenStore, issueApiToken } from './api-tokens-admin'
@@ -24,6 +25,27 @@ import type { FormState } from './auth-form-state'
 function field(form: FormData, name: string): string {
   const value = form.get(name)
   return typeof value === 'string' ? value.trim() : ''
+}
+
+/**
+ * Refresh the token table this action was posted from.
+ *
+ * Without it the screen keeps the RSC payload it was rendered with, so with
+ * JavaScript on — which is how an administrator uses the panel — issuing a
+ * token showed the secret above a table that did not contain it, and revoking
+ * one left the row reading **live**. The write had happened both times.
+ *
+ * Revocation is the one operation here performed under time pressure, which is
+ * what makes the stale row worse than untidy: an operator containing a leaked
+ * token is looking at this table for confirmation, and it was telling them the
+ * token was still good.
+ *
+ * Same fix and same reasoning as `invalidateTree` in `forum-admin-actions.ts`,
+ * which the 7 August 2026 audit added for exactly this on `/admin/forums`. This
+ * screen was missed then; `e2e/api-v1.spec.ts` is what found it.
+ */
+function refreshTokenList(): void {
+  revalidatePath('/admin/api-tokens')
 }
 
 function toState(err: unknown): FormState {
@@ -69,6 +91,8 @@ export async function issueApiTokenAction(
       detail: { name: field(form, 'name') },
     })
 
+    refreshTokenList()
+
     /* The one and only copy. `values` carries it back to the screen; nothing
        writes it to a log, and the audit row above records the name only. */
     return { notice: 'issued', values: { token } }
@@ -97,6 +121,7 @@ export async function revokeApiTokenAction(
       await recordAdminAction({ action: 'system.api_token_revoked', detail: { tokenId: id } })
     }
 
+    refreshTokenList()
     return { notice: 'revoked' }
   } catch (err) {
     return toState(err)

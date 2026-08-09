@@ -9079,3 +9079,149 @@ second tab** while the install is half-built, and ends by walking index → foru
 New thread and asserting a 200 with a composer on it. A second tab rather than
 navigating the install form away, because it is also what an operator does. That
 spec failed on the composer before either fix and passes after.
+
+### D118 — The suite could not be staff, so a third of the board had never been opened in a browser (F63, F49, F50, F35)
+
+**The gap was structural, not an oversight.** Every browser spec that needs a
+session registers through the form, because that is the only way in: the seeded
+accounts carry `password_hash: 'x'`, a value nothing can match, deliberately, so
+that the path a member actually takes is the one the suite exercises.
+
+A registration always lands in the Registered group. So the suite could be a
+member and could be nothing else — and the control panel, the moderation queue,
+the report list, the thread tools, warnings, the moderator log and the API token
+screen had **no browser-level proof at all**, while ten features were built on
+them. `plan-status.md` recorded the inline-moderation half of this feature after
+feature without it moving, and named the wrong cause: the missing capability was
+not a fixture for checkboxes, it was an account.
+
+**Staff is now seeded**, in `e2e/support/database.ts`: `admin` gets a real
+Argon2id hash of a known password, and a second account joins group 4 beside it.
+
+Hashed at start-up rather than checked in as a literal, because the parameters
+travel *with* the hash — a pasted string would go on verifying against whatever
+`hashPassword` was configured with on the day it was pasted, and a board that
+had since raised its cost would accept it anyway. It costs about eighty
+milliseconds, once.
+
+**A super moderator rather than a second administrator**, and that is the point
+of the account: `admin` bypasses forum permissions entirely (R4.2), so a
+moderation spec driven as `admin` proves the bypass works and says nothing about
+the path nearly every board runs on. Group 4 also carries `can_access_mod_cp`
+and **not** `can_access_admin_cp`, so the same account proves the panel is shut
+to somebody who moderates every forum.
+
+The credential and the names live in `e2e/support/config.ts` rather than beside
+the seeder, for that file's stated reason: `database.ts` uses `import.meta.url`,
+which forces ESM, and Playwright loads a spec through a CommonJS transform — so
+a spec that reached the seeder for a constant would fail to load at all.
+
+#### What it found, in the order it found it
+
+Four defects, none of which any other tier could have seen.
+
+### D119 — The Mark-read controls did nothing, and the CSP is why (F32, F09)
+
+Every read marker on the board — **Mark all forums read**, and **Mark read** on
+a forum and on a thread — was inert in a browser. The write happened; the page
+did not change; pressing the button again looked equally broken. Nothing was
+logged, because from the server's point of view the request succeeded.
+
+The three routes answered `NextResponse.redirect(new URL('/', request.url), 303)`.
+Inside a route handler `request.url` is **not** the address the browser is on —
+Next reconstructs it from the server it is listening on — so the `Location` named
+`localhost`. The board's own Content-Security-Policy says `form-action 'self'`,
+and `form-action` governs where a form may end up *including through a redirect*,
+so Chromium refused to follow it:
+
+> Refused to send form data to '…/api/read/all' because it violates the
+> following Content Security Policy directive: "form-action 'self'".
+
+Behind a reverse proxy — which is every real deployment — that is every request,
+not an edge case.
+
+**`seeOther()` answers relatively.** A `Location` may be a relative reference
+(RFC 7231 §7.1.2) and the browser resolves it against the URL it actually asked
+for, so the answer cannot be wrong about the board's own address: it never states
+it. It satisfies `form-action 'self'` by construction, and it is guarded against
+`//host` — a protocol-relative URL reads as a path and is not one, which is a
+plausible slip when building a path from a slug.
+
+`NextResponse.redirect` cannot express this; it requires an absolute URL and
+would re-introduce the guess. A bare `Response` can.
+
+Every other write on this board is a Server Action redirecting through
+`redirect()`, which is already relative. These three routes were the only ones
+affected, and nothing else needs it.
+
+**The test shape matters as much as the fix.** The obvious assertion —
+`toHaveURL('/')` after pressing a control that is already on `/` — passes
+whether the navigation happened or was blocked, which is exactly how a control
+that does nothing keeps a green suite. `read-markers-no-js.spec.ts` asserts
+instead on things that are only true once the browser has *arrived*: a 303 with
+a relative `Location`, and a page whose unread markers have gone.
+
+### D120 — `CACHE_DRIVER=memory` could not invalidate half of what the app caches (F10, F71, F73)
+
+On a board configured with `CACHE_DRIVER=memory`, an administrator could add a
+word filter, save a smiley, change a group's colour or edit a theme token, be
+told it was saved, and watch the board go on rendering the old value **for ever**
+— no error, no stale-for-a-minute, nothing to expire the entry.
+
+Four of the board's global reads live in Next's data cache rather than in the
+driver — `activeWordFilter` and the markdown vocabulary in `content-admin.ts`,
+the styled-group set in `group-identity.ts`, and the board style in
+`theme-runtime.ts` — all tagged with the same `CacheTags` vocabulary every
+writer invalidates through. `MemoryCache.invalidateTags` swept its own map and
+nothing else, so it purged half of what the tag names, and the half it missed is
+the half the control panel edits.
+
+**`buildCache` now returns `NextCacheDriver` for both.** That is not the option
+being ignored: `NextCacheDriver`'s `get`/`set` *are* a `MemoryCache`, so an
+operator who asked for process-local storage gets exactly that. The only thing it
+adds is that `invalidateTags` also calls `revalidateTag`, which it has to,
+because that is where the app put the entries. The forward was already being made
+in every process this repo runs — `next` is the derived default on a Postgres
+board, so `apps/worker` and the CLI have called it through this same driver since
+F05.
+
+Found by `admin-no-js.spec.ts`, which adds a filter in the panel and then reads
+a post that was written before the filter existed.
+
+### D121 — The panel's lists did not refresh after their own actions, and only a scripted browser could see it (F63, F71, F81)
+
+The 7 August 2026 audit found this on `/admin/forums` and `/admin/groups` and
+fixed both. It was still on the content screens and on API tokens.
+
+`drivers().cache` is the board's own store, and clearing it makes the next
+*server* render correct. It says nothing about Next's Router Cache, which holds
+the payload for the page the form is on. With scripting **off** a form post is a
+full navigation, so the page is re-rendered whatever the action did about
+caching — and with scripting on, which is how an administrator actually uses the
+panel, the list stays as it was. Add a word filter and the screen still reads
+"No filters. Posts show as written."; issue a token and the secret appears above
+a table that does not contain it; **revoke one and the row still reads `live`**,
+which is the last thing an operator containing a leak should be shown.
+
+The fix is the audit's own — `revalidatePath` on the screens that render the
+list, named routes rather than the `('/', 'layout')` sweep `redirect-back.ts`
+warns about.
+
+**The reason it survived an audit that was looking for exactly this** is that
+the board's browser suite runs with scripting disabled, by design and for good
+reasons — so the one mode where the bug is invisible is the only mode that was
+covered. `e2e/admin-panel-live.spec.ts` is the answer: one spec, scripting on,
+whose entire subject is that a list agrees with the action that just changed it.
+
+### D122 — The announcement byline was the sixth call site (F71, F73)
+
+F73's group colour was specified "across the board", and its spec says in as
+many words that the failure worth catching is the *partial* one: a colour applied
+at five call sites out of six reads as a rendering bug, because the same person
+is green in a thread and grey in a listing.
+
+The sixth was the announcement byline, and nothing had ever noticed because
+nothing in the browser suite had ever written an announcement. `liveAnnouncements`
+now resolves `nameClass` for its authors through the same `identitiesFor` every
+other surface uses — `React.cache`d and deduped, so on the index it is a map
+lookup rather than a query.

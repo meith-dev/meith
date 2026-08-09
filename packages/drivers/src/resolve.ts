@@ -25,7 +25,6 @@ import {
   type MailConfig,
 } from '@meith/settings'
 
-import { MemoryCache } from './cache/memory-cache'
 import { NextCacheDriver } from './cache/next-cache'
 import { LocalFileStore } from './files/local-file-store'
 import { S3FileStore } from './files/s3-file-store'
@@ -59,12 +58,40 @@ function buildQueue(): QueueDriver {
   }
 }
 
+/**
+ * `memory` chooses the **storage**, never whether invalidation works.
+ *
+ * Both cases return `NextCacheDriver`, and that is a fix rather than the option
+ * being ignored: `NextCacheDriver`'s `get`/`set` *are* a `MemoryCache`, so an
+ * operator who asked for process-local storage gets exactly that. The only
+ * thing it adds is that `invalidateTags` also calls `revalidateTag`.
+ *
+ * It has to. Four of this board's global reads live in Next's data cache rather
+ * than in the driver — `activeWordFilter` and the markdown vocabulary in
+ * `content-admin.ts`, the styled-group set in `group-identity.ts`, and the
+ * board style in `theme-runtime.ts` — all tagged with the same `CacheTags`
+ * vocabulary every writer invalidates through. A driver whose `invalidateTags`
+ * only swept its own map therefore purged half of what the tag names, and the
+ * half it missed is the half the control panel edits.
+ *
+ * What that looked like on a `CACHE_DRIVER=memory` board: an administrator adds
+ * a word filter, saves a smiley, changes a group's colour or edits a theme
+ * token — the panel confirms the write, the row is in the table, and **the
+ * board goes on rendering the old value indefinitely**, because nothing will
+ * ever expire the entry. No error, no stale-for-a-minute; just a control panel
+ * whose four content screens do nothing until the process restarts. Found by
+ * `admin-no-js.spec.ts`, which adds a filter and then reads the post.
+ *
+ * The forward is safe in every process this repo runs, and was already being
+ * made in all of them: `next` is the derived default on a Postgres board, so
+ * `apps/worker` and the CLI have been calling `revalidateTag` through this same
+ * driver since F05.
+ */
 function buildCache(): CacheDriver {
   switch (env.CACHE_DRIVER) {
     case 'next':
-      return new NextCacheDriver()
     case 'memory':
-      return new MemoryCache()
+      return new NextCacheDriver()
     case 'redis':
       throw new ConfigurationError(
         'CACHE_DRIVER=redis is not implemented yet. Use "next" or "memory".',
