@@ -32,13 +32,28 @@ migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workfl
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
 
-**`pnpm test:e2e` is green (9 passed) and now covers *writing*.** The suite
-starts its own Postgres — PGlite behind the wire protocol, nothing to install —
-so posting, attachment upload, avatar upload, re-encoding and the protected
-download all have browser-level proof with scripting disabled (D66). The standing read-only gap
-since F39 is closed. What is still absent is a spec for the inline-moderation
-checkboxes, whose claim is that the HTML `form` attribute submits them with
-scripting off; that is now ordinary work rather than a blocked capability.
+**`pnpm test:e2e` is green and now covers *staff*.** The suite starts its own
+Postgres — PGlite behind the wire protocol, nothing to install — so posting,
+attachment upload, avatar upload, re-encoding and the protected download all
+have browser-level proof with scripting disabled (D66), and the standing
+read-only gap since F39 is closed.
+
+The standing **staff** gap is closed too, and it was never the gap this file
+described. "No spec for the inline-moderation checkboxes" was recorded feature
+after feature as a piece of ordinary work nobody had done; it was in fact
+unreachable, because nothing in the suite could *be* staff — a registration
+always lands in the Registered group and the seeded `admin` carried a hash
+nothing could match. The control panel, the moderation queue, the report list,
+the thread tools, warnings, the moderator log and the API token screen therefore
+had no browser-level proof at all. `e2e/support/database.ts` now seeds a real
+password for `admin` and a super moderator beside it (D118), and seven new specs
+walk through the door: moderation, the panel, the panel with **scripting on**
+(D121), the REST API, syndication, discovery, read markers and account security.
+
+They found four defects no other tier could see: every Mark-read control was
+inert in a browser (D119), `CACHE_DRIVER=memory` could not invalidate half of
+what the app caches (D120), four panel screens did not refresh their own lists
+(D121), and the announcement byline was missing F73's group colour (D122).
 
 Counts below are features, not effort. A `GATE` row counts as done once it is
 green, which all three are.
@@ -127,7 +142,7 @@ tables/indexes exist, while content writers and the Markdown package begin in F3
 | F32 | Read tracking | `DONE` | `PostgresReadStateRepository` reads forum watermarks, thread markers, and unread forum ids in a constant three statements; a real-PGlite test proves the budget and prevents a slower tab from regressing the marker. Index and forum rows show unread state. POST-only routes mark all visible forums, one forum, or the last visible post in a thread; the post target is revalidated against the visible thread before it writes. Guests and fixture mode remain stateless. |
 | F33 | Member profile | `DONE` | `/member/[id]` validates its numeric target, checks `profile.view`, and reads only public profile fields through the composition root. Deleted accounts return 404 while their historical author names remain plain text. The default `MemberProfile` slot renders identity and stats; profile links now work from the shell, listings, threads, and posts. Fixture mode supplies the same route with an admin profile; the Postgres adapter is covered on real PGlite. |
 | F34 | Error and redirect pages | `DONE` | Database-free `not-found.tsx` renders the `ErrorNotice` slot; the required client error boundary presents a generic token-styled fallback without leaking exception details. `/redirect` renders `RedirectNotice`, uses a two-second meta refresh, and includes a real link for no-JS clients. Its target is constrained to a same-origin path, with `/` as the safe fallback; focused tests cover the open-redirect boundary. |
-| F35 | No-JS and accessibility pass | `DONE` | Playwright now runs in CI against an isolated fixture dev server. With JavaScript disabled it follows an index thread link, registers, logs in, receives a session cookie, and sees the profile link. A keyboard check proves the skip link is first, moves focus to `#board-content`, and exposed the missing `tabIndex`; every existing target now supports focus. Development uses non-`__Host-` cookie names because the browser rejects an insecure `__Host-` cookie, while production keeps the secure prefix. |
+| F35 | No-JS and accessibility pass | `DONE` | Playwright now runs in CI against an isolated fixture dev server. With JavaScript disabled it follows an index thread link, registers, logs in, receives a session cookie, and sees the profile link. A keyboard check proves the skip link is first, moves focus to `#board-content`, and exposed the missing `tabIndex`; every existing target now supports focus. Development uses non-`__Host-` cookie names because the browser rejects an insecure `__Host-` cookie, while production keeps the secure prefix. **The suite can now be staff**, which is what it never could: `e2e/support/database.ts` seeds a real password for `admin` and a super moderator beside it, so the panel, the moderation queue, reports, warnings, the thread tools, the inline-moderation checkboxes and the REST API are all driven from a browser (D118). One spec runs with **scripting on** — `admin-panel-live.spec.ts` — because the suite's own no-JavaScript discipline is a blind spot for anything a full navigation would hide, and that is where D121 was living. |
 
 ## Phase 3 — Posting
 

@@ -12,6 +12,34 @@ import { join } from 'node:path'
 
 export const E2E_DB_PORT = 55_432
 
+/* ------------------------------------------------------------------ *
+ * The accounts a spec cannot register
+ * ------------------------------------------------------------------ */
+
+/**
+ * The password the seeded staff accounts share.
+ *
+ * Here rather than beside the seed that hashes it, for this file's stated
+ * reason: `database.ts` forces ESM and cannot be imported by a spec. A
+ * constants leaf both sides can read is the whole fix, and it keeps the
+ * credential from being written down twice.
+ */
+export const STAFF_PASSWORD = 'long-enough-password'
+
+/**
+ * The two accounts the browser suite cannot create for itself.
+ *
+ * A registration always lands in the Registered group, so a suite where every
+ * account registers can never open the control panel, act on the moderation
+ * queue or close a report — which is exactly why those had no browser coverage
+ * at all. Staff is seeded, in `database.ts`, with a real password; these are
+ * the names it seeds under.
+ */
+export const STAFF = {
+  admin: { id: 1, username: 'admin' },
+  moderator: { id: 9002, username: 'e2e_moderator' },
+} as const
+
 export const E2E_DATABASE_URL = `postgres://postgres:postgres@127.0.0.1:${E2E_DB_PORT}/postgres`
 
 /* ------------------------------------------------------------------ *

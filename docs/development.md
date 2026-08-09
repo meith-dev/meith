@@ -100,7 +100,7 @@ How those packages relate — the layers, what may import what, and why — is
 | `pnpm typecheck` | The workspace. `:app` and `:site` are the two Next projects. |
 | `pnpm lint` | ESLint. |
 | `pnpm verify` | **Everything CI's `static` job runs.** Run it before opening a pull request; CI's other jobs build the image and drive a browser. |
-| `pnpm test:e2e` | Playwright: the no-JS paths and the accessibility checks. |
+| `pnpm test:e2e` | Playwright: the no-JS paths, the staff panels, and the accessibility checks. It starts its own Postgres and two dev servers — nothing to install. |
 
 `pnpm verify` is the one that matters: invariant guards, the generated-document
 checks, lint, dependency rules, all three typecheck projects and the full test
@@ -129,6 +129,45 @@ TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/community_test 
 
 CI's `migrations` job sets it, so "it passed locally" covers everything except
 that one seam — and CI covers the seam.
+
+## The browser suite, and who it can be
+
+`pnpm test:e2e` starts everything it needs: a PGlite behind the Postgres wire
+protocol, a `next dev` against it, and a second empty database and server for
+`/install`. There is nothing to install and nothing to leave running.
+
+**Almost every spec runs with JavaScript disabled.** That is the point rather
+than a flourish: this board's claim is that a native `<form>` does the work and
+the islands are optional, so a suite that tested the enhanced path would prove
+the opposite of what is claimed.
+
+A spec that needs a member **registers through the form** — the seeded accounts
+carry a hash nothing can match, so the only way in is the way a member takes.
+A spec that needs *staff* cannot do that, because a registration always lands in
+the Registered group. Two accounts are therefore seeded with a real password,
+both named in `e2e/support/config.ts`:
+
+| Account | Group | For |
+|---|---|---|
+| `admin` | Administrators | The control panel. Bypasses forum permissions (R4.2). |
+| `e2e_moderator` | Super Moderators | Moderation. Deliberately **not** an administrator, so the specs prove the moderator's own path rather than the bypass — and prove the panel is shut to them. |
+
+Use `signUp`, `signInAsModerator` and `enterAdminPanel` from
+`e2e/support/session.ts` rather than repeating the forms; `signUp` also asserts
+the username fits the board's 30-character maximum, because the registration
+input silently truncates a longer one and the sign-in that follows then fails
+with "Incorrect username or password".
+
+**One spec runs with scripting on**, `admin-panel-live.spec.ts`, and it is the
+exception that the rule needs. With scripting off a form post is a full
+navigation, so the page is re-rendered whatever the action did about caching —
+which makes the whole suite blind to a panel screen that does not refresh its own
+list. That blindness was hiding four of them (D121).
+
+The suite **shares one database across every spec**, in file order. A spec that
+changes something every page shows — a board-wide announcement, a board setting,
+a pinned thread — puts it back, or a later file fails for a reason nothing in it
+can explain.
 
 ## The scripts that fail on purpose
 
