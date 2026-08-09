@@ -19,6 +19,7 @@
  */
 import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
 import { drivers } from '@meith/drivers'
+import { revalidatePath } from 'next/cache'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import { requireSearch } from './search'
@@ -47,6 +48,28 @@ function toFormState(err: unknown): FormState {
 }
 
 /**
+ * Re-read the screen, because every button on it changes a number the screen is
+ * *made of*.
+ *
+ * This page is almost entirely counts — how many sessions are prunable, how many
+ * posts are not yet searchable, how far the recount has got, how many jobs are
+ * waiting — and each button's own label carries one of them: *"Prune 0 expired
+ * sessions"*, *"Index the next batch of 6"*. Next's client Router Cache holds the
+ * RSC payload the form was rendered with, so with JavaScript on the action's
+ * notice arrived beside the numbers it had just made wrong: "6 indexed. Every
+ * post on the board is searchable." directly under a line still reading *"0
+ * indexed · 6 not yet searchable"*, above a button still offering to index them.
+ *
+ * With JavaScript **off** the browser's own reload hides it, which is why the
+ * browser suite — scripting disabled by design — did not catch it, and why
+ * `admin-no-js.spec.ts` could assert the count moves and pass. Same defect,
+ * same fix as `invalidateTree` in `forum-admin-actions.ts`.
+ */
+function refreshSystemScreen(): void {
+  revalidatePath('/admin/system')
+}
+
+/**
  * Delete expired sessions and revoked ones past their grace period.
  *
  * The grace exists so that "you were signed out" can still be explained: a
@@ -59,6 +82,7 @@ export async function pruneSessionsAction(): Promise<FormState> {
 
     const removed = await requireMaintenance().pruneSessions(new Date(), SWEEP_LIMIT)
 
+    refreshSystemScreen()
     await recordAdminAction({ action: 'system.sessions_pruned', detail: { removed } })
     return { notice: 'pruned', values: { removed: String(removed) } }
   } catch (err) {
@@ -73,6 +97,7 @@ export async function pruneTokensAction(): Promise<FormState> {
 
     const removed = await requireMaintenance().pruneExpiredTokens(new Date(), SWEEP_LIMIT)
 
+    refreshSystemScreen()
     await recordAdminAction({ action: 'system.tokens_pruned', detail: { removed } })
     return { notice: 'pruned', values: { removed: String(removed) } }
   } catch (err) {
@@ -94,6 +119,7 @@ export async function recountAction(): Promise<FormState> {
 
     const { corrected } = await requireRecount().run(RECOUNT_BATCH)
 
+    refreshSystemScreen()
     await recordAdminAction({ action: 'system.recount_ran', detail: { corrected } })
     return { notice: 'ran', values: { corrected: String(corrected) } }
   } catch (err) {
@@ -123,6 +149,7 @@ export async function reindexSearchAction(): Promise<FormState> {
     const result = await requireSearch().reindexChunk(0, REINDEX_BATCH)
     const progress = await requireSearch().indexProgress()
 
+    refreshSystemScreen()
     await recordAdminAction({
       action: 'system.search_reindexed',
       detail: { indexed: result.indexed, pending: progress.pending },
@@ -164,6 +191,7 @@ export async function clearCacheAction(
 
     await drivers().cache.invalidateTags([tag])
 
+    refreshSystemScreen()
     await recordAdminAction({ action: 'system.cache_cleared', detail: { tag } })
     return { notice: 'cleared', values: { tag } }
   } catch (err) {
@@ -190,6 +218,7 @@ export async function retryJobAction(_prev: FormState, form: FormData): Promise<
 
     await drivers().queue.retry(jobId.trim())
 
+    refreshSystemScreen()
     await recordAdminAction({ action: 'system.job_retried', detail: { jobId } })
     return { notice: 'retried' }
   } catch (err) {

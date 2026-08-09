@@ -33,6 +33,7 @@ import { ValidationError } from '@meith/core'
 import type { Database } from './client'
 import { withPermissionVersionBump, type Tx } from './permission-version'
 import { resultRows } from './result-rows'
+import { BANNED_PREDICATE } from './user-admin-repo'
 import {
   MERGE_DEDUPE,
   MERGE_DISCARD,
@@ -82,8 +83,9 @@ export class PostgresUserMergeRepository {
             as private_messages,
           (select count(*) from attachments where uploader_user_id = ${fromUserId})::int
             as attachments,
-          (select count(*) from users
-            where id in (${fromUserId}, ${toUserId}) and state = 'banned')::int as banned
+          (select count(*) from users u
+            where u.id in (${fromUserId}, ${toUserId})
+              and ${BANNED_PREDICATE})::int as banned
       `),
     ) as Array<Record<string, unknown>>
 
@@ -158,8 +160,9 @@ export class PostgresUserMergeRepository {
         await tx.execute(sql`
           select
             (select count(*) from users where id in (${fromUserId}, ${toUserId}))::int as found,
-            (select count(*) from users
-              where id in (${fromUserId}, ${toUserId}) and state = 'banned')::int as banned,
+            (select count(*) from users u
+              where u.id in (${fromUserId}, ${toUserId})
+                and ${BANNED_PREDICATE})::int as banned,
             (select count(*) from posts where author_user_id = ${fromUserId})::int as posts
         `),
       ) as Array<Record<string, unknown>>

@@ -13,7 +13,12 @@ import { hashToken } from './crypto/tokens'
 import { createMemoryStore } from './memory-repos'
 import { MemoryBanFilters } from './memory-bans'
 import { rejectedField, type RegisterField } from './register-fields'
-import { IdentityService, VERIFICATION_TTL_HOURS, type RegisterInput } from './service'
+import {
+  IdentityService,
+  VERIFICATION_TTL_HOURS,
+  type BanLookup,
+  type RegisterInput,
+} from './service'
 import type { AccountStore, AuthConfig } from './ports'
 
 const BASE_CONFIG: AuthConfig = {
@@ -48,11 +53,14 @@ function makeService(
   store: AccountStore,
   overrides: Partial<AuthConfig> = {},
   clock = fixedClock(),
+  /** F23's ban records, for the tests about the login refusal. */
+  bans?: BanLookup,
 ) {
   const service = new IdentityService({
     store,
     config: { ...BASE_CONFIG, ...overrides },
     clock,
+    ...(bans === undefined ? {} : { bans }),
   })
   return { service, clock }
 }
@@ -310,6 +318,54 @@ describe('login', () => {
     await expect(
       service.login('alice', 'correct horse battery', 'alice'),
     ).rejects.toThrow(/banned/i)
+  })
+
+  /**
+   * The way a ban is actually recorded, and the reason this check moved.
+   *
+   * F23 bans by writing a `bans` row and moving the member's group; it never
+   * touches `users.state`, deliberately, because a column saying `banned` with
+   * no row behind it is an account nothing can un-ban correctly. So the check
+   * above — the only one there used to be — could not fire on this board, and a
+   * banned member signed straight back in. It looked like a ban to everybody
+   * except the person it was for: their sessions were gone and their group was
+   * the banned one, so the board they arrived on was nearly empty.
+   */
+  it('refuses an account with an unlifted ban, and tells them the public reason', async () => {
+    const acc = await store.accounts.findByUsernameLower('alice')
+    const { service } = makeService(store, {}, fixedClock(), {
+      findActive: async (userId) =>
+        userId === acc!.id
+          ? {
+              id: 1,
+              userId,
+              reason: 'Linked to the account we banned last week.',
+              publicReason: 'Posting nonsense in every thread.',
+              previousPrimaryGroupId: 2,
+              expiresAt: null,
+              liftedAt: null,
+            }
+          : null,
+    })
+
+    const message = await service
+      .login('alice', 'correct horse battery', 'alice')
+      .then(() => '', (error: Error) => error.message)
+
+    expect(message).toContain('Posting nonsense in every thread.')
+    /* Never the staff note: it is written for staff, about them. */
+    expect(message).not.toContain('banned last week')
+  })
+
+  /** A lifted ban is over, and the repository answers null for one. */
+  it('lets a member back in once their ban is lifted', async () => {
+    const { service } = makeService(store, {}, fixedClock(), {
+      findActive: async () => null,
+    })
+
+    await expect(
+      service.login('alice', 'correct horse battery', 'alice'),
+    ).resolves.toBeTruthy()
   })
 
   it('upgrades a stale-cost hash on successful login, and leaves a current one alone', async () => {

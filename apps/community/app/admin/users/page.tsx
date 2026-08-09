@@ -215,10 +215,22 @@ export default async function AdminUsersPage({
               <span className="flex min-w-0 flex-col">
                 <span className="truncate text-sm font-medium">
                   {row.username}
-                  {row.state !== 'active' && (
+                  {/*
+                    `isBanned`, not the state column. A ban is a `bans` row and a
+                    group move — F23 never writes `state`, deliberately — so this
+                    marked nobody as banned on any board, on the screen an
+                    operator opens to find out who is.
+                  */}
+                  {row.isBanned ? (
                     <span className="ml-2 text-xs font-normal text-muted-foreground">
-                      {row.state === 'banned' ? 'banned' : 'awaiting activation'}
+                      banned
                     </span>
+                  ) : (
+                    row.state !== 'active' && (
+                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        awaiting activation
+                      </span>
+                    )
                   )}
                   {row.deletedAt !== null && (
                     <span className="ml-2 text-xs font-normal text-muted-foreground">
@@ -234,8 +246,19 @@ export default async function AdminUsersPage({
                     : ` · last seen ${formatTime(row.lastActiveAt, now).label}`}
                 </span>
               </span>
+              {/*
+                Named for the member it opens, not "Edit".
+
+                Fifty rows produce fifty links, and a reader moving by link — a
+                screen reader's link list, or anything that reads the page out of
+                order — gets "Edit, Edit, Edit…" with no way to tell which
+                account is which. The visible word stays short because the name
+                is already on the row beside it; `aria-label` is what carries the
+                rest (WCAG 2.4.4).
+              */}
               <a
                 href={`/admin/users/${row.id}`}
+                aria-label={`Edit ${row.username}`}
                 className="shrink-0 text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
                 Edit

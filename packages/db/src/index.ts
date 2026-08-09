@@ -230,7 +230,7 @@ export {
   type AnnouncementRow,
 } from './announcement-repo'
 /* F71 — the compiled vocabulary, for the render and write paths. */
-export { readBoardVocabulary } from './vocabulary-repo'
+export { readBoardVocabulary, readVocabularySource } from './vocabulary-repo'
 export {
   PostgresAdminRepository,
   type GroupSummary,

@@ -23,6 +23,7 @@ import {
   SessionService,
   createMemoryStore,
   type AccountStore,
+  type BanLookup,
   type MemberProfileRepository,
   type MemberSettingsRepository,
 } from '@meith/accounts'
@@ -418,12 +419,28 @@ function cached(inner: ForumRepository): ForumRepository {
  * store they were handed — the only per-mode difference is the store and the
  * ActorSource, so this keeps the policy wiring in exactly one place.
  */
-function identityServices(store: AccountStore): {
+function identityServices(
+  store: AccountStore,
+  /**
+   * F23's ban records, where the board has a table for them.
+   *
+   * The fixture path passes nothing, which is why this is optional rather than
+   * required — and it is the *only* thing that answers "is this account banned"
+   * at the login form: a ban is a `bans` row and a group move, never a write to
+   * `users.state`, so the state check this replaces could not fire and a banned
+   * member signed straight back in.
+   */
+  bans?: BanLookup,
+): {
   identity: IdentityService
   sessions: SessionService
 } {
   return {
-    identity: new IdentityService({ store, config: AUTH_CONFIG }),
+    identity: new IdentityService({
+      store,
+      config: AUTH_CONFIG,
+      ...(bans === undefined ? {} : { bans }),
+    }),
     sessions: new SessionService({
       store,
       rememberDays: REMEMBER_DAYS,
@@ -511,7 +528,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     threadViews,
     fixtureDataVersion: null,
     accountStore: store,
-    ...identityServices(store),
+    ...identityServices(store, new PostgresBanRepository(db)),
     /*
      * F13's `task:run` and F04's worker build the identical object, so the
      * wiring lives in `@meith/runtime` rather than here — see that package's

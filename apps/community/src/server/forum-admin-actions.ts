@@ -73,6 +73,29 @@ async function invalidateTree(): Promise<void> {
   revalidatePath('/admin/forums/[id]', 'page')
 }
 
+/**
+ * The permission version, and the two screens that read a forum's own rules.
+ *
+ * Same argument as `invalidateTree` above, applied to the half of this file that
+ * was left out of it. A moderator appointment and a permission row are read by
+ * `/admin/forums/[id]` and `/admin/forums/[id]/permissions`, and neither was
+ * refreshed — so with JavaScript on, appointing somebody returned "Saved." above
+ * a list that still said *"Nobody moderates this forum"*, and removing an
+ * appointment left the person listed. An operator revoking moderation from
+ * somebody is doing it for a reason, and a screen that still shows them in place
+ * is the last thing that should be shown.
+ */
+async function invalidateForumPermissions(): Promise<void> {
+  /*
+   * Resolved actors carry a permission version and F20's scheme invalidates them
+   * en masse when a permission input changes. A rename is a tree change; this is
+   * not.
+   */
+  await drivers().cache.invalidateTags([CacheTags.permissions()])
+  revalidatePath('/admin/forums/[id]', 'page')
+  revalidatePath('/admin/forums/[id]/permissions', 'page')
+}
+
 export async function saveForumOptionsAction(
   _prev: FormState,
   form: FormData,
@@ -161,12 +184,8 @@ export async function saveForumPermissionsAction(
 
     await requireForumAdmin().saveOverrides(id, groupId, values)
 
-    /*
-     * The permission version, not the forum tree: resolved actors carry a
-     * version and F20's scheme invalidates them en masse when a permission
-     * input changes. A rename is a tree change; this is not.
-     */
-    await drivers().cache.invalidateTags([CacheTags.permissions()])
+    /* Not the forum tree — see `invalidateForumPermissions`. */
+    await invalidateForumPermissions()
     await recordAdminAction({
       action: 'forum.permissions_changed',
       detail: { forumId: id, groupId },
@@ -204,7 +223,7 @@ export async function copyForumPermissionsAction(
     const groups = (await repository.listGroups()).map((group) => group.id)
     await repository.copyToDescendants(id, descendants, groups)
 
-    await drivers().cache.invalidateTags([CacheTags.permissions()])
+    await invalidateForumPermissions()
     await recordAdminAction({
       action: 'forum.permissions_copied',
       /* How far it reached is the number somebody asks about afterwards. */
@@ -315,7 +334,7 @@ export async function moveForumAction(
      * A move changes what every descendant inherits, so resolved actors have to
      * go too — the permission version, not only the tree.
      */
-    await drivers().cache.invalidateTags([CacheTags.permissions()])
+    await invalidateForumPermissions()
     await recordAdminAction({
       action: 'forum.moved',
       detail: { forumId: id, newParentId },
@@ -389,7 +408,7 @@ export async function appointModeratorAction(
       rights,
     })
 
-    await drivers().cache.invalidateTags([CacheTags.permissions()])
+    await invalidateForumPermissions()
     await recordAdminAction({
       action: 'forum.moderator_appointed',
       detail: { forumId: id, userId, groupId },
@@ -416,7 +435,7 @@ export async function removeModeratorAction(
     /* Scoped to the forum in the statement: the id is a form value. */
     await requireForumAdmin().removeModerator(id, appointmentId)
 
-    await drivers().cache.invalidateTags([CacheTags.permissions()])
+    await invalidateForumPermissions()
     await recordAdminAction({
       action: 'forum.moderator_removed',
       detail: { forumId: id, appointmentId },

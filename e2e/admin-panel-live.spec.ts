@@ -22,6 +22,22 @@
  * contain it, and revoking one left the row reading **live** — the last thing an
  * operator containing a leak should be shown.
  *
+ * ## And it was still on five more screens
+ *
+ * Everything below the token test is the rest of that sweep. The member screen,
+ * the forum's moderators, the theme list, the maintenance counts and the
+ * settings alerts were all reading a payload their own action had just made
+ * wrong — so banning somebody returned "Banned. Their sessions have been
+ * revoked." above a section still offering **Ban this member**, switching a
+ * theme off left its row still offering **Turn off**, and indexing the backlog
+ * printed "every post on the board is searchable" directly under a line that
+ * still said how many were not.
+ *
+ * Each of those has the same shape and the same consequence: the operator has no
+ * reason to believe the first press worked, so they press again. Each test below
+ * therefore asserts on the *screen*, never on the notice — a notice is what the
+ * action said, and the bug is what the page shows beside it.
+ *
  * ## Reading these assertions
  *
  * A list row is often an **edit form**, so what it holds is an `<input value>`
@@ -31,7 +47,8 @@
  */
 import { expect, test, type Page } from '@playwright/test'
 
-import { enterAdminPanel } from './support/session'
+import { STAFF } from './support/config'
+import { enterAdminPanel, signUp } from './support/session'
 
 /** The patterns the word-filter list currently holds, from its edit forms. */
 async function filterPatterns(page: Page): Promise<string[]> {
@@ -144,4 +161,185 @@ test('an announcement added in the panel is in the list without a reload', async
     .getByRole('button', { name: 'Remove', exact: true })
     .click()
   await expect.poll(titles, { timeout: 15_000 }).not.toContain(title)
+})
+
+/**
+ * The member screen, which is the one where pressing twice does damage.
+ *
+ * A ban revokes their sessions, moves their group and locks them out. If the
+ * screen still offers **Ban this member** afterwards — which it did — the
+ * operator's reasonable conclusion is that nothing happened, and the second
+ * press is refused with *"That user is already banned"* on a member who is, in
+ * fact, banned. The confirmation an operator needs is the section becoming the
+ * ban, not a sentence above a form.
+ */
+test('a member banned in the panel is shown as banned, without a reload', async ({
+  page,
+  browser,
+}) => {
+  const memberContext = await browser.newContext()
+  const memberPage = await memberContext.newPage()
+
+  try {
+    const username = await signUp(memberPage, 'live_ban')
+
+    await enterAdminPanel(page)
+    await page.goto('/admin/users')
+    await page.getByLabel('Username contains').fill(username)
+    await page.getByRole('button', { name: 'Search' }).click()
+    await page.getByRole('link', { name: `Edit ${username}` }).click()
+
+    await page.getByLabel('Length in days').fill('3')
+    await page.getByLabel('Staff note').fill('Banned by the browser suite.')
+    await page.getByRole('button', { name: 'Ban this member' }).click()
+
+    /* The ban itself, on a screen nobody reloaded. */
+    await expect(page.getByText(/^Banned until/)).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('Staff note: Banned by the browser suite.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Lift this ban' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Ban this member' })).toHaveCount(0)
+
+    /* And lifting it puts the form back, on the same unreloaded screen. */
+    await page.getByRole('button', { name: 'Lift this ban' }).click()
+    await expect(page.getByRole('button', { name: 'Ban this member' })).toBeVisible({
+      timeout: 15_000,
+    })
+
+    /* A rename reaches the heading, which is the same payload going stale. */
+    await page.getByLabel('Username').fill(`${username}x`)
+    await page.getByRole('button', { name: 'Save account' }).click()
+    await expect(page.getByRole('heading', { name: `${username}x`, level: 1 })).toBeVisible({
+      timeout: 15_000,
+    })
+  } finally {
+    await memberContext.close()
+  }
+})
+
+/**
+ * The forum's moderators, which is a list its own two buttons rewrite.
+ *
+ * Removing an appointment and being left looking at the person you just removed
+ * is the worst reading of this bug: revoking moderation is something somebody
+ * does *because* of what that person did, and the screen said it had not
+ * happened.
+ */
+test('a moderator appointed and then removed is listed and unlisted, without a reload', async ({
+  page,
+}) => {
+  await enterAdminPanel(page)
+
+  await page.goto('/admin/forums')
+  await page.getByRole('link', { name: 'Options for Off Topic' }).click()
+
+  const appoint = page
+    .locator('form')
+    .filter({ has: page.getByRole('button', { name: 'Save appointment' }) })
+  await appoint.getByLabel('Member').fill(STAFF.moderator.username)
+  await appoint.getByRole('checkbox', { name: 'Stick threads' }).check()
+  await appoint.getByRole('button', { name: 'Save appointment' }).click()
+
+  const listed = page.locator('li').filter({ hasText: STAFF.moderator.username })
+  await expect(listed).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Nobody moderates this forum.')).toHaveCount(0)
+
+  await listed.getByRole('button', { name: 'Remove' }).click()
+  await expect(page.getByText('Nobody moderates this forum.')).toBeVisible({ timeout: 15_000 })
+})
+
+/**
+ * The theme list, whose buttons *are* its state.
+ *
+ * A row that still offers **Turn off** after being turned off is the control an
+ * administrator reaches for when a theme is breaking the board, telling them it
+ * did not work.
+ */
+test('a theme turned off is marked off, without a reload', async ({ page }) => {
+  await enterAdminPanel(page)
+  await page.goto('/admin/themes')
+
+  try {
+    await page.getByRole('button', { name: 'Turn Midnight off' }).click()
+    await expect(page.getByRole('button', { name: 'Turn Midnight on' })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(page.locator('li').filter({ hasText: 'midnight ·' })).toContainText('Off')
+  } finally {
+    /* Back on: the appearance control on every page offers it. */
+    await page.goto('/admin/themes')
+    if ((await page.getByRole('button', { name: 'Turn Midnight on' }).count()) > 0) {
+      await page.getByRole('button', { name: 'Turn Midnight on' }).click()
+    }
+  }
+
+  await expect(page.getByRole('button', { name: 'Turn Midnight off' })).toBeVisible({
+    timeout: 15_000,
+  })
+})
+
+/**
+ * The maintenance screen, which is almost entirely counts — and each button's
+ * own label carries one of them.
+ *
+ * This is the assertion `admin-no-js.spec.ts` used to make and structurally
+ * could not: with scripting off the browser reloads, so the number was always
+ * right there. Here the notice and the line it contradicts are on screen
+ * together, which is what an administrator actually sees.
+ */
+test('the search-index count agrees with the button that changed it, without a reload', async ({
+  page,
+}) => {
+  await enterAdminPanel(page)
+  await page.goto('/admin/system')
+
+  /*
+   * `p:not([role=status])` — pressing the button leaves a status notice that
+   * also says "N indexed", and the whole point here is to read the *line* rather
+   * than the notice.
+   */
+  const line = page.locator('p:not([role="status"])').filter({ hasText: /\d+ indexed/ })
+  const pending = Number(/(\d+) not yet searchable/.exec(await line.innerText())?.[1] ?? '0')
+
+  /*
+   * The seeded board is imported rather than posted — a bulk insert leaves F72's
+   * index unwritten — so there is a backlog here, and this spec is the first to
+   * press the button. Asserted rather than assumed: a vacuous version of this
+   * test would pass for ever.
+   */
+  expect(pending, 'the seeded board has posts that are not yet searchable').toBeGreaterThan(0)
+
+  await page.getByRole('button', { name: `Index the next batch of ${pending}` }).click()
+  await expect(page.getByText(/Every post on the board is searchable\./)).toBeVisible()
+
+  /* The line, and the button's own label, on a screen nobody reloaded. */
+  await expect(line).not.toContainText('not yet searchable', { timeout: 15_000 })
+  await expect(page.getByRole('button', { name: 'Nothing to index' })).toBeVisible()
+})
+
+/**
+ * The settings screen, whose two alerts are the reason to open it.
+ *
+ * "This board does not know its own address" must go the moment an address is
+ * saved — it is a `role="alert"` about password-reset links arriving with no
+ * link in them, and one that stays up after being fixed teaches an operator to
+ * ignore the next one.
+ */
+test('saving the board address takes the warning off the settings screen, without a reload', async ({
+  page,
+}) => {
+  await enterAdminPanel(page)
+  await page.goto('/admin/settings?group=board')
+
+  const alert = page.getByText('This board does not know its own address')
+  await expect(alert, 'the e2e board runs with no APP_URL, so the alert is up').toBeVisible()
+
+  await page.getByLabel('Board address').fill('http://127.0.0.1:3001')
+  await page.getByRole('button', { name: 'Save settings' }).click()
+
+  await expect(alert).toHaveCount(0, { timeout: 15_000 })
+
+  /* Put it back, so the specs that read this screen see the board they expect. */
+  await page.getByLabel('Board address').fill('')
+  await page.getByRole('button', { name: 'Save settings' }).click()
+  await expect(alert).toBeVisible({ timeout: 15_000 })
 })

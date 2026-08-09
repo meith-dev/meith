@@ -33,6 +33,30 @@ export type AccountState = 'active' | 'awaiting_activation' | 'banned'
 
 const STATES: readonly AccountState[] = ['active', 'awaiting_activation', 'banned']
 
+/**
+ * Whether a member is banned — which is **not** `users.state = 'banned'` alone.
+ *
+ * F23 bans by writing a `bans` row and moving the member into the banned group;
+ * it deliberately does not touch the state column, because a column saying
+ * `banned` with no ban row behind it is an account that cannot be un-banned
+ * correctly. That is a sound design and it left three screens reading a value no
+ * write on this board produces: the member list marked nobody, the **Banned**
+ * option in its state filter matched nobody ever, and the merge and prune
+ * screens each printed a guarantee about banned accounts that their SQL could
+ * not keep.
+ *
+ * So "banned" is the union: the column, for a board imported from somewhere that
+ * used it, **or** an unlifted ban, which is how this board records one.
+ *
+ * Written against the alias `u`, which is what every query that splices it in
+ * calls the `users` table — here, in the prune predicate and in both halves of
+ * the merge guard. A parameter would mean `sql.raw` on the way in, and a raw
+ * fragment in a predicate about who is banned is not worth the flexibility.
+ */
+export const BANNED_PREDICATE: SQL = sql`(u.state = 'banned' or exists (
+  select 1 from bans b where b.user_id = u.id and b.lifted_at is null
+))`
+
 export interface UserSearchFilter {
   /** Matched against `username_lower`, as a contains. */
   readonly username?: string | undefined
@@ -57,6 +81,11 @@ export interface UserSearchRow {
   readonly username: string
   readonly email: string
   readonly state: AccountState
+  /**
+   * Whether a ban is in force, which the state column does not answer on its
+   * own. See `BANNED_PREDICATE`.
+   */
+  readonly isBanned: boolean
   readonly primaryGroupId: number
   readonly primaryGroupTitle: string
   readonly postCount: number
@@ -125,6 +154,7 @@ function toSearchRow(row: Record<string, unknown>): UserSearchRow {
     username: String(row.username),
     email: String(row.email),
     state: assertState(String(row.state)),
+    isBanned: row.is_banned === true || row.is_banned === 't',
     primaryGroupId: Number(row.primary_group_id),
     primaryGroupTitle: String(row.primary_group_title ?? ''),
     postCount: Number(row.post_count),
@@ -183,7 +213,19 @@ export class PostgresUserAdminRepository {
       conditions.push(sql`u.primary_group_id = ${filter.primaryGroupId}`)
     }
     if (filter.state !== undefined) {
-      conditions.push(sql`u.state = ${assertState(filter.state)}`)
+      /*
+       * "Banned" is the one state the column does not own — see
+       * `BANNED_PREDICATE`. Asked for any other, the column is the whole answer;
+       * asked for banned, a member with an unlifted ban has to be found whatever
+       * their column says, and a member the column calls active but whom the
+       * board has banned must not be answered as active either.
+       */
+      const state = assertState(filter.state)
+      conditions.push(
+        state === 'banned'
+          ? BANNED_PREDICATE
+          : sql`u.state = ${state} and not ${BANNED_PREDICATE}`,
+      )
     }
     if (filter.registeredAfter !== undefined) {
       conditions.push(sql`u.created_at >= ${filter.registeredAfter}`)
@@ -212,7 +254,8 @@ export class PostgresUserAdminRepository {
                g.title as primary_group_title,
                u.post_count, u.reputation, u.warning_points,
                u.registration_ip_prefix, u.last_ip_prefix,
-               u.last_active_at, u.created_at, u.deleted_at
+               u.last_active_at, u.created_at, u.deleted_at,
+               ${BANNED_PREDICATE} as is_banned
           from users u
           join usergroups g on g.id = u.primary_group_id
          where ${sql.join(conditions, sql` and `)}
@@ -233,7 +276,8 @@ export class PostgresUserAdminRepository {
   async readDetail(userId: number): Promise<UserDetail | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select u.*, g.title as primary_group_title
+        select u.*, g.title as primary_group_title,
+               ${BANNED_PREDICATE} as is_banned
           from users u
           join usergroups g on g.id = u.primary_group_id
          where u.id = ${userId}

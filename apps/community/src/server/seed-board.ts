@@ -235,10 +235,33 @@ export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
     depth: 0,
     displayOrder: 1,
     linkUrl: null,
-    // A category holds no threads; its counters are always zero.
-    threadCount: 0,
-    postCount: 0,
-    lastPost: null,
+    /*
+     * A category holds no threads **of its own**, and its counters are not zero.
+     *
+     * Forum counters on this board are subtree-inclusive — `rollUpAncestorCounters`
+     * adds every post to its forum's ancestors, and F38's recount rebuilds each
+     * row as "itself plus every descendant" — so a category carries the totals of
+     * everything beneath it. That is what makes a category row on the index mean
+     * anything, and it is what `PostgresStatsRepository.rollUp` relies on: the
+     * board's totals are the sum of the *root* forums, so a root category
+     * claiming zero makes the whole board claim zero.
+     *
+     * This row said zero, and `seed-board.test.ts` skipped categories, so nothing
+     * caught it: the control panel's Overview reported **0 threads and 0 posts**
+     * on a board with three and six. The numbers below are the subtree's, and the
+     * last post is the newest in it — exactly what one press of the recount on
+     * `/admin/system` writes.
+     */
+    threadCount: 3,
+    postCount: 6,
+    lastPost: {
+      postId: 143,
+      threadId: 22,
+      threadTitle: 'What are you reading this week?',
+      userId: null,
+      username: 'departed',
+      at: new Date('2026-07-30T08:41:00Z'),
+    },
   },
   {
     id: SEED_FORUM.announcements,

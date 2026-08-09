@@ -351,41 +351,34 @@ test('the admin log records the panel action that caused it', async ({ page }) =
 })
 
 /**
- * The system screen is the operator's, and its two buttons do real work.
+ * The system screen is the operator's, and it is mostly numbers.
  *
- * The search backfill is the one worth driving from here: it is the path an
- * imported board takes, it is bounded to a batch by design, and the number
- * beside it is the only place on the board that says how much is not yet
- * searchable.
+ * **The search backfill is not driven from here**, and moving it out was not
+ * tidying. Its assertion is "the count on the screen moves", the count only
+ * moves while a backfill is outstanding, and this file runs first — so pressing
+ * the button here left every later spec looking at a fully indexed board and the
+ * assertion that mattered vacuous wherever it was written next. It lives in
+ * `admin-panel-live.spec.ts` now, which is also where it belongs: the number
+ * going stale beside the notice that changed it is a *scripting-on* failure, and
+ * this file cannot see one — a form post without JavaScript is a full navigation,
+ * so the page is freshly rendered whatever the action did about caching.
  */
-test('the system screen indexes a batch of posts, and the count moves', async ({ page }) => {
+test('the system screen reports the board it is looking at', async ({ page }) => {
   await enterAdminPanel(page)
+  await page.goto('/admin/system')
 
   /*
-   * The pending half of the line is only rendered while there *is* one — a
-   * fully indexed board reads "N indexed." and nothing else — so the two
-   * numbers are read separately rather than out of one sentence that changes
-   * shape at zero.
-   */
-  /*
-   * `p:not([role=status])`, because pressing the button leaves a status notice
-   * on the page that also counts — "6 indexed. Every post on the board…" beside
-   * the line's own "9 indexed." An unscoped text match finds both, and reads
+   * The pending half of the line is only rendered while there *is* one — a fully
+   * indexed board reads "N indexed." and nothing else — so this asserts the line
+   * exists rather than what it says.
+   *
+   * `p:not([role=status])`, because pressing a button leaves a status notice on
+   * the page that also counts. An unscoped text match finds both and reads
    * whichever it happens to resolve first.
    */
-  const line = async (): Promise<string> =>
-    page.locator('p:not([role="status"])').filter({ hasText: /\d+ indexed/ }).innerText()
-  const indexed = async (): Promise<number> => Number(/(\d+) indexed/.exec(await line())?.[1])
-  const pending = async (): Promise<number> =>
-    Number(/(\d+) not yet searchable/.exec(await line())?.[1] ?? 0)
-
-  await page.goto('/admin/system')
-  const indexedBefore = await indexed()
-
-  if ((await pending()) > 0) {
-    await page.getByRole('button', { name: /Index the next batch/ }).click()
-    expect(await indexed()).toBeGreaterThan(indexedBefore)
-  }
+  await expect(
+    page.locator('p:not([role="status"])').filter({ hasText: /\d+ indexed/ }),
+  ).toBeVisible()
 
   /* The volumes panel is the board as the operator sees it, not a placeholder. */
   await expect(page.getByText(/\d+ members/)).toBeVisible()

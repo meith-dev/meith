@@ -17,6 +17,27 @@ import { SettingsSnapshot } from '@meith/settings'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
 const requireAdminMock = vi.fn(async () => ({ userId: 1 }))
+/**
+ * `revalidatePath` outside a Next request throws, so an unmocked call turns a
+ * successful action into an error state and the failure reads as a broken
+ * write. Recorded rather than only silenced: which screen an action refreshes
+ * is a claim worth asserting — see the cases that read `revalidated`.
+ *
+ * Spread the real module rather than replacing it. `next/cache` also exports
+ * `unstable_cache`, which modules reached transitively from here call at import
+ * time, so a mock returning only `revalidatePath` makes the file fail to load.
+ */
+const revalidated: string[] = []
+vi.mock('next/cache', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>
+  return {
+    ...actual,
+    revalidatePath: (path: string) => {
+      revalidated.push(path)
+    },
+  }
+})
+
 vi.mock('./admin', () => ({
   requireAdmin: () => requireAdminMock(),
   recordAdminAction: async (input: { action: string; detail?: unknown }) => {
@@ -66,6 +87,7 @@ function form(fields: Record<string, string>): FormData {
 beforeEach(() => {
   adminCalls.length = 0
   invalidated.length = 0
+  revalidated.length = 0
   written.length = 0
   deleted.length = 0
   requireAdminMock.mockClear()
@@ -214,5 +236,28 @@ describe('validation', () => {
 
     expect(state.error).toMatch(/posting.flood_seconds/)
     expect(written).toEqual([])
+  })
+})
+
+/**
+ * The screen the save was made on, which is more than the field values.
+ *
+ * The tags above are the board's own cache. This is Next's client Router Cache,
+ * which holds the payload this page was rendered with — and this page renders
+ * two alerts *from the settings it is editing*: "This board does not know its
+ * own address", which has to disappear the moment one is saved, and "Nobody can
+ * finish registering", which has to appear the moment the activation method is
+ * set to one this board cannot deliver. With scripting on, both were a reload
+ * behind the save.
+ */
+describe('the screen the save was made on', () => {
+  it('is refreshed when something changed', async () => {
+    await saveAdminSettingsAction({}, form({ keys: 'board.name', 'board.name': 'Renamed' }))
+    expect(revalidated).toEqual(['/admin/settings'])
+  })
+
+  it('is left alone when nothing was different, because nothing was written', async () => {
+    await saveAdminSettingsAction({}, form({ keys: 'board.name', 'board.name': 'Meith' }))
+    expect(revalidated).toEqual([])
   })
 })

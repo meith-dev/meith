@@ -19,6 +19,7 @@
 import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import { parseThemeExport } from '@meith/db'
+import { revalidatePath } from 'next/cache'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import { isBuildTheme, requireThemeAdmin, themeListing, themeTitle, themeTokens } from './theme-admin'
@@ -97,8 +98,27 @@ function themeKey(form: FormData): string {
   return key
 }
 
+/**
+ * Drop the theme's compiled style, and the two panel screens that describe it.
+ *
+ * `drivers().cache` is the board's own store, and clearing it is what makes the
+ * next *server* render paint the new colours. It says nothing about Next's
+ * client Router Cache, which holds the RSC payload for the screen the form is on
+ * — so with JavaScript on, which is how an administrator actually uses the
+ * panel, turning a theme off left its row still offering **Turn off**, and
+ * making one the default left the badge on the theme that had just stopped being
+ * it. Both are a list arguing with the action that changed it, and the operator's
+ * reasonable next move is to press the button again.
+ *
+ * With JavaScript **off** the browser's own reload hides it, which is why the
+ * browser suite — scripting disabled by design — did not catch it. Same defect,
+ * same reasoning and same fix as `invalidateTree` in `forum-admin-actions.ts`;
+ * this is the screen it had not reached.
+ */
 async function invalidateTheme(key: string): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.theme(key)])
+  revalidatePath('/admin/themes')
+  revalidatePath('/admin/themes/[key]', 'page')
 }
 
 /**

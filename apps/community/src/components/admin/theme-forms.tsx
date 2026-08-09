@@ -245,6 +245,12 @@ function TokenRow({
                 {token.kind === "colour" ? (
                   <OklchPicker
                     name={name}
+                    /*
+                      Which of the eighty swatches on this page this one is.
+                      The scheme as well as the token, because every token
+                      renders two of them side by side.
+                    */
+                    describes={`${token.label}, ${schemeLabel(scheme).toLowerCase()}`}
                     value={value}
                     shipped={shipped}
                     onChange={(next) => onChange(name, next)}
@@ -745,11 +751,22 @@ export function ImportThemeForm({ themeKey }: { themeKey: string }) {
  */
 export function ThemeStateForms({
   themeKey,
+  title,
   enabled,
   isDefault,
   isBuildTheme,
 }: {
   themeKey: string
+  /**
+   * The theme's name, for the controls' accessible names.
+   *
+   * Every row on this screen renders the same two or three words — "Make
+   * default", "Turn off", "Customise" — so on a board with four themes a reader
+   * moving by control is offered four identical buttons and has to infer the row
+   * from position. The visible label stays short because the theme's name is
+   * beside it; this is what the label carries (WCAG 2.4.6).
+   */
+  title: string
   enabled: boolean
   isDefault: boolean
   isBuildTheme: boolean
@@ -765,7 +782,11 @@ export function ThemeStateForms({
         {!isDefault && enabled && (
           <form action={defaultAction}>
             <input type="hidden" name="key" value={themeKey} />
-            <button type="submit" className={GHOST_BUTTON}>
+            <button
+              type="submit"
+              aria-label={`Make ${title} the default`}
+              className={GHOST_BUTTON}
+            >
               Make default
             </button>
           </form>
@@ -781,7 +802,11 @@ export function ThemeStateForms({
           <form action={enabledAction}>
             <input type="hidden" name="key" value={themeKey} />
             <input type="hidden" name="enabled" value={enabled ? "false" : "true"} />
-            <button type="submit" className={GHOST_BUTTON}>
+            <button
+              type="submit"
+              aria-label={enabled ? `Turn ${title} off` : `Turn ${title} on`}
+              className={GHOST_BUTTON}
+            >
               {enabled ? "Turn off" : "Turn on"}
             </button>
           </form>
@@ -789,6 +814,7 @@ export function ThemeStateForms({
 
         <a
           href={`/admin/themes/${themeKey}`}
+          aria-label={`Customise ${title}`}
           className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
         >
           Customise

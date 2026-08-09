@@ -18,6 +18,7 @@
  */
 import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
 import { drivers } from '@meith/drivers'
+import { revalidatePath } from 'next/cache'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { banService, requireUserAdmin, requireUserBulk, requireUserMerge } from './user-admin'
@@ -49,8 +50,34 @@ function toFormState(err: unknown): FormState {
   return { error: 'Something went wrong. Please try again.' }
 }
 
+/**
+ * The permission version, and the screens that show what just changed.
+ *
+ * **Two caches, and only one of them was being cleared.** `drivers().cache` is
+ * the board's own store, and clearing it is what makes the next *server* render
+ * correct. It says nothing about Next's client Router Cache, which holds the RSC
+ * payload for the page the action was posted from — so with JavaScript on, which
+ * is how an administrator actually uses the panel, banning a member returned
+ * "Banned. Their sessions have been revoked." above a section still offering
+ * **Ban this member**, and a rename left the heading reading the old name.
+ *
+ * Pressing a stale Ban again is the failure that matters: the operator has no
+ * reason to believe the first press worked, and the screen is telling them it
+ * did not.
+ *
+ * With JavaScript **off** the browser's own reload hides all of it, which is why
+ * the browser suite — which runs the panel with scripting disabled by design —
+ * did not catch it, and why the 7 August 2026 audit fixed exactly this on
+ * `/admin/forums` and `/admin/groups` and left the member screens alone.
+ *
+ * The two named routes rather than the `('/', 'layout')` sweep `redirect-back.ts`
+ * warns about: that one purges cached data for every route under `/` — the whole
+ * board's settings and forum tree, for everybody — to refresh one screen.
+ */
 async function invalidatePermissions(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.permissions()])
+  revalidatePath('/admin/users')
+  revalidatePath('/admin/users/[id]', 'page')
 }
 
 export async function saveMemberAccountAction(
