@@ -12,8 +12,14 @@ test('the fixture board, registration, and login work without JavaScript', async
    * three times: the forum row's last post, and both panels in the activity
    * rail. The one this test is about is the listing's — an unscoped locator
    * here stopped being unambiguous the day the rail landed.
+   *
+   * The label is the seed **category's title** (`SEED_FORUM.main`), since the
+   * block is `aria-labelledby` its own heading. It read `Forum` and matched
+   * nothing: the forum→community→forum rename swept this line from `Community`
+   * to `Forum` while renaming that category to `Main` in the same commit, so
+   * the scope named a label the page has never had.
    */
-  await page.getByLabel('Forum').getByRole('link', { name: 'Version 0.1 is live' }).click()
+  await page.getByLabel('Main').getByRole('link', { name: 'Version 0.1 is live' }).click()
   await expect(page).toHaveURL(/\/thread\/4(?:#|$)/)
 
   /*

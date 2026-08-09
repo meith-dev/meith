@@ -28,6 +28,36 @@ import type {
 /** One key, one tag: the tree is read and invalidated as a single unit. */
 const TREE_KEY = ['forum-tree'] as const
 
+/**
+ * How long a tree nobody has invalidated is trusted for.
+ *
+ * F10's rule is that a global entry lives until its writer clears it, and every
+ * writer *in this process* does — that is what the methods below are for. The
+ * rule holds only as far as the process, and three writers sit outside it:
+ *
+ *  - `community forum:create` and the importer (F85), which run in their own
+ *    process against the same database and cannot reach this map;
+ *  - the installer, which has to build its repositories by hand because the
+ *    container cannot resolve against a schema that does not exist yet;
+ *  - a second web instance, which holds its own copy — `cachedGlobal` reads
+ *    through the driver's process-local map even under `CACHE_DRIVER=next`,
+ *    where only `revalidateTag` is distributed.
+ *
+ * With no expiry, any of those left this copy wrong **until the process was
+ * replaced**, and the symptom was not an obviously stale tree: `listListing()`
+ * is uncached, so the index showed the new forum while every read that resolves
+ * a forum by id — the composer, the thread page, the feed, the REST reads —
+ * served it from here and answered 404. A board where posting only worked after
+ * a redeploy (D117).
+ *
+ * A minute is the same number `getSettingOverrides` picked for the same reason,
+ * and it is the honest one: long enough that the shell's read on every page
+ * costs nothing, short enough that an operator who has just created a forum does
+ * not conclude the board is broken. It does not replace invalidation — a rename
+ * in the panel is still instant — it bounds what invalidation cannot see.
+ */
+export const TREE_TTL_SECONDS = 60
+
 export class CachedForumRepository implements ForumRepository {
   constructor(
     private readonly inner: ForumRepository,
@@ -37,7 +67,11 @@ export class CachedForumRepository implements ForumRepository {
   async listAll(): Promise<ForumRow[]> {
     return cachedGlobal(
       this.cache,
-      { key: TREE_KEY, tags: [CacheTags.forumTree()] },
+      {
+        key: TREE_KEY,
+        tags: [CacheTags.forumTree()],
+        revalidate: TREE_TTL_SECONDS,
+      },
       () => this.inner.listAll(),
     )
   }

@@ -15,6 +15,10 @@ import 'server-only'
  * settings or the group ladder at construction. So the installer wires the three
  * services it needs directly, after its own migrations have run — which is also
  * why the step order in `INSTALL_STEPS` is not a suggestion.
+ *
+ * The cost of that is the reason `forgetCachedBoard` exists: repositories built
+ * here are the bare Postgres ones, so every write below goes *behind* the cache
+ * decorators the container wraps them in, and nothing is invalidated. See D117.
  */
 
 import {
@@ -36,8 +40,8 @@ import {
   PostgresSettingsRepository,
   runMigrations,
 } from '@meith/db'
-import { env, logger } from '@meith/core'
-import { currentMailConfig } from '@meith/drivers'
+import { GLOBAL_TAGS, env, logger } from '@meith/core'
+import { currentMailConfig, drivers } from '@meith/drivers'
 import {
   SettingsSnapshot,
   canSendMail,
@@ -154,7 +158,82 @@ export async function installerIsSealed(): Promise<boolean> {
 }
 
 /**
- * Run the install.
+ * Everything this process cached about the board that was here before, dropped.
+ *
+ * ## The bug this ends
+ *
+ * F16 caches the forum tree under `CacheTags.forumTree()`, and F10's rule is
+ * that a global entry is invalidated by its writer rather than by a clock. Every
+ * writer in the app tier honours that, because they all go through
+ * `CachedForumRepository`. **The installer does not** — it builds a bare
+ * `PostgresForumRepository` (see this file's header for why it must), so the
+ * forum it creates is a write the cache never hears about.
+ *
+ * That is harmless on a process that has never read the tree, and it was not
+ * harmless in practice. A deployment applies its migrations before the web
+ * server starts — `docker-compose.coolify.yml` has a `migrate` service that does
+ * exactly this — so from that moment there is a complete schema with no forums
+ * in it, and *anybody who loads the board* in the window before the install
+ * finishes caches an empty tree. An install refused at the administrator step
+ * opens the same window, and widens it: the operator's next move is usually to
+ * go and look at the board.
+ *
+ * What that cost was a board where the index worked and posting did not. The
+ * index reads `listListing()`, which `CachedForumRepository` deliberately passes
+ * straight through; the composer, the thread page, the per-forum feed and the
+ * REST reads all resolve a forum by id, which is served from the cached tree. So
+ * "New thread" was rendered and linked, and answered 404 — until the board was
+ * redeployed, which is the only thing that cleared it.
+ *
+ * ## Why every global tag, and not the forum tree
+ *
+ * This function runs once in the life of a board, at the moment the board comes
+ * into existence. Anything cached before it describes a board that was not there
+ * — the settings, the group ladder, the statistics, the tree — so `GLOBAL_TAGS`
+ * is the honest scope, and it is the list that grows by itself when F10 gains a
+ * tag. Naming three of them here would be a fourth thing to remember.
+ *
+ * ## What it does not fix
+ *
+ * A second web instance holds its own memoised copy and cannot be reached from
+ * here — `cachedGlobal` reads through the driver's process-local map even when
+ * `CACHE_DRIVER=next`. That is what the tree's expiry is for; see
+ * `CachedForumRepository`. The two are complementary: this makes the common
+ * single-instance deployment correct immediately, and the expiry bounds every
+ * case this cannot see.
+ *
+ * Failure is logged and swallowed. A cache that would not clear must not turn a
+ * finished install into a failed one — the board is installed either way, and
+ * the operator can reach it.
+ */
+async function forgetCachedBoard(): Promise<void> {
+  try {
+    await drivers().cache.invalidateTags(GLOBAL_TAGS)
+  } catch (error) {
+    logger().warn(
+      { err: String(error) },
+      'install could not clear the cache; restart the server if the board looks empty',
+    )
+  }
+}
+
+/**
+ * Run the install, and then forget the board that was here before it.
+ *
+ * The sweep is in a `finally` rather than on the success path because a refused
+ * install is the case that poisons the cache: it applies the migrations, stops,
+ * and leaves a schema with no forum in it for the next page load to cache.
+ */
+export async function runInstall(input: InstallInput): Promise<readonly StepOutcome[]> {
+  try {
+    return await performInstall(input)
+  } finally {
+    await forgetCachedBoard()
+  }
+}
+
+/**
+ * The steps themselves.
  *
  * Sequential, and it stops at the first failure: a step whose predecessor did
  * not happen cannot succeed, and attempting it produces a second error that
@@ -162,7 +241,7 @@ export async function installerIsSealed(): Promise<boolean> {
  * screen has to show *which* step failed — an exception carrying a message would
  * lose the fact that migrations succeeded and the administrator did not.
  */
-export async function runInstall(input: InstallInput): Promise<readonly StepOutcome[]> {
+async function performInstall(input: InstallInput): Promise<readonly StepOutcome[]> {
   const report: StepOutcome[] = []
   const db = getDb()
 
