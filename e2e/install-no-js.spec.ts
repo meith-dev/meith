@@ -178,6 +178,38 @@ test('a board is installed from an empty database, with no scripting', async ({ 
   await expect(page.locator('#password')).toHaveValue('')
 
   /* ---------------------------------------------------------------- *
+   * The board, looked at while it is half-built
+   * ---------------------------------------------------------------- */
+
+  /*
+   * **This detour is the regression test, and it is not incidental.**
+   *
+   * The refused attempt above applied the migrations before it stopped, so the
+   * board now has every table and no forum — which is exactly the state a
+   * Coolify deployment is in from the moment its `migrate` service finishes,
+   * before anybody has opened `/install` at all. Anyone who loads the board in
+   * that window makes the server read the forum tree and cache it, and F16's
+   * entry carried no expiry: whatever it held, it held until the process was
+   * replaced.
+   *
+   * The installer then created its forum through a `PostgresForumRepository`
+   * it builds by hand, behind the decorator that would have cleared the entry.
+   * So the board index worked — it reads `listListing()`, which is deliberately
+   * uncached — and every page that resolves a forum by id did not. Posting was
+   * the one people hit: "New thread" was rendered, linked, and answered 404
+   * until the board was redeployed.
+   *
+   * A second tab rather than navigating this one, because it is also what
+   * actually happens: the operator whose install has just been refused opens
+   * the board to see what state it is in.
+   */
+  const board = await page.context().newPage()
+  const halfBuilt = await board.goto('/')
+  expect(halfBuilt?.status()).toBe(200)
+  await expect(board.getByRole('link', { name: 'General discussion' })).toHaveCount(0)
+  await board.close()
+
+  /* ---------------------------------------------------------------- *
    * The install
    * ---------------------------------------------------------------- */
 
@@ -217,6 +249,32 @@ test('a board is installed from an empty database, with no scripting', async ({ 
    * broken rather than new, which is the whole reason the installer creates one.
    */
   await expect(page.getByRole('link', { name: 'General discussion' })).toBeVisible()
+
+  /*
+   * And a thread can be started in it — the first thing an administrator does
+   * on a board they have just installed, and the thing that was broken.
+   *
+   * The forum's own page is not enough to prove this and never was: it renders
+   * from `listListing()`, which is uncached by design, while the composer
+   * resolves the forum by id through the cached tree. One read said the forum
+   * was there and the other said it did not exist, from the same request, and
+   * only the second one 404s. So the assertion walks the route a person walks —
+   * index, forum, "New thread" — and ends on the field they would type into.
+   */
+  await page.getByRole('link', { name: 'General discussion' }).click()
+
+  /*
+   * The status, and then the field. They fail differently and a reader of the
+   * failure needs to know which: a 404 means the composer decided the forum
+   * does not exist, and a missing box on a 200 means it rendered and the form
+   * did not.
+   */
+  const [composer] = await Promise.all([
+    page.waitForResponse((response) => response.url().endsWith('/2-general-discussion/new')),
+    page.getByRole('link', { name: 'New thread' }).click(),
+  ])
+  expect(composer.status(), 'the composer 404d on a forum the index had just linked to').toBe(200)
+  await expect(page.getByLabel('Subject')).toBeVisible()
 
   /*
    * And the control panel asks for the password again, saying so *without*

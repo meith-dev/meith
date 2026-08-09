@@ -8986,3 +8986,96 @@ filtering or folding the token list **hides** rows instead of
 unmounting them, which is correctness rather than taste: this form posts every
 token at once, so a field that is not in the DOM is not submitted, and an
 unmounted row would have silently deleted the override it was hiding.
+
+### D117 — The board that could not be posted in until it was redeployed (F10, F16, F83)
+
+**Reported from a real install.** A new board, installed through `/install`,
+administrator signed in, index showing "General discussion". Clicking **New
+thread** answered **404** at `/2-general-discussion/new`. Redeploying the
+container fixed it, permanently and without touching a row.
+
+That combination is the whole diagnosis, because a 404 that a redeploy cures is
+not a route and not a permission — both of those are decided from the request
+and the database, and neither knows how old the process is. It is a cache.
+
+#### One table, two reads, and only one of them was wrong
+
+`CachedForumRepository` caches the structural tree under
+`CacheTags.forumTree()` and **deliberately passes `listListing()` straight
+through**, because the listing carries counters that change on every post
+(pinned by two tests since F16, and see the class's own comment). `findById` is
+served from the cached tree.
+
+So a process holding a tree cached before the board had forums served a board
+that disagreed with itself. The index and the forum page read the listing and
+were correct. Everything that resolves a forum **by id** read the cache and got
+`null`: the composer, the thread page, the per-forum feed, the two REST reads,
+the subscribe and poll actions — and, through the same entry, the jump box and
+the ACP's own forum list, which rendered empty on a board with a forum in it.
+
+`buildForumDisplayView` decides whether to render "New thread" from the listing
+row. So the link was drawn, from correct data, pointing at a page that had
+already concluded the forum did not exist.
+
+#### The window is opened by a normal deployment, and by a normal mistake
+
+`getContainer()` cannot resolve against a schema that does not exist, so
+`runInstall` builds bare `PostgresForumRepository`, `PostgresSettingsRepository`
+and `PostgresAdminRepository` handles and writes through them — behind every
+cache decorator the container would have wrapped them in. Nothing invalidated
+anything.
+
+That is inert on a process that has never read the tree, and there are two
+ordinary ways it has:
+
+- **`docker-compose.coolify.yml` runs migrations in a one-shot `migrate`
+  service, before the web server starts.** From the moment it finishes there is
+  a complete schema with no forums in it, and any request to the board — the
+  operator checking the domain resolves, a health check, a crawler — caches an
+  empty tree.
+- **An install refused at the administrator step does the same thing**, and
+  invites it: migrations have run, no forum exists, and the operator's next move
+  is to go and look at the board. The e2e spec walks exactly this sequence
+  because it was already walking most of it.
+
+And the entry had no expiry. F10's model is that a global entry lives until its
+writer clears it, which is right when every writer is in the process — so the
+board was wrong until the process was replaced, which is precisely what
+redeploying does.
+
+#### Two fixes, because they cover different failures
+
+**The installer forgets the board that was there before it** —
+`forgetCachedBoard()` invalidates `GLOBAL_TAGS` in a `finally`, so a refused
+attempt sweeps too. Every tag rather than the tree: this runs once in the life of
+a board, at the moment the board begins to exist, so *everything* cached before
+it describes something that was not there — the settings, the ladder, the
+statistics — and `GLOBAL_TAGS` is the list that grows by itself when F10 gains a
+tag. A failure to clear is logged and swallowed; the board is installed either
+way and must not be reported as broken because a cache would not drop an entry.
+
+**The tree entry expires after a minute** — `TREE_TTL_SECONDS`, the same value
+`getSettingOverrides` picked for the same reason. Three writers are outside any
+web process and can never invalidate this map: `community forum:create`, the
+importer, and a second web instance (`cachedGlobal` reads through the driver's
+process-local map even under `CACHE_DRIVER=next`, where only `revalidateTag`
+travels). The sweep makes the single-instance deployment correct immediately;
+the expiry bounds every case the sweep cannot see. Invalidation still does the
+work it always did — a rename in the panel is instant — and this is the floor
+under it, not a replacement for it.
+
+#### What was covered, and why it was covered anyway
+
+`cached-repo.test.ts` had six tests about this class and all six passed
+throughout, because every one of them writes through the decorator. The bug is
+in the writes that do not, which is not a case a test of the decorator thinks to
+construct. It is constructed now — a tree read while the board is empty, a row
+appended behind the decorator's back, `findById` still answering `null` — and
+the fake cache driver honours `ttlSeconds`, which it previously ignored, since
+otherwise the expiry protecting this entry could not be asserted at all.
+
+The real proof is in `install-no-js.spec.ts`, which now opens the board **in a
+second tab** while the install is half-built, and ends by walking index → forum →
+New thread and asserting a 200 with a composer on it. A second tab rather than
+navigating the install form away, because it is also what an operator does. That
+spec failed on the composer before either fix and passes after.

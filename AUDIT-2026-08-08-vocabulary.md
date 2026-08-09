@@ -14,6 +14,13 @@ renamed entity should actually be called.
 > (`COMMUNITY_ROLE`, the Postgres role and database, the `community` CLI binary,
 > `community.config.ts`, `apps/community/`) are deliberately untouched — those
 > name the product, not the entity. `pnpm verify` passes.
+>
+> **One casualty survived it, in the one suite `verify` does not run.** The
+> rename swept `e2e/reading-no-js.spec.ts` from `getByLabel('Community')` to
+> `getByLabel('Forum')` while renaming that same seeded category to **Main**, so
+> the locator scoped the click to a label the page has never had and the board
+> project's first spec timed out. `pnpm verify` stops at `pnpm test`; the browser
+> suite is `pnpm test:e2e` and runs in CI only. Fixed alongside D117.
 
 The short version: the rebrand in `45cc0dd` was right and should stand. The
 entity rename in `b468568` gave one word two jobs at two different scales, and

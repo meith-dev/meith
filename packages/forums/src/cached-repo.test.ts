@@ -1,16 +1,43 @@
 import { CacheTags, type CacheDriver, type CacheSetOptions } from '@meith/core'
 import { describe, expect, it, vi } from 'vitest'
 
-import { CachedForumRepository } from './cached-repo'
+import { CachedForumRepository, TREE_TTL_SECONDS } from './cached-repo'
 import type { ForumRepository } from './ports'
 import type { ForumRow } from './types'
 
+interface Entry {
+  value: unknown
+  tags: readonly string[]
+  /** Epoch ms, or absent for "until invalidated". */
+  expiresAt?: number
+}
+
+/**
+ * A driver that honours `ttlSeconds`, because the real ones do.
+ *
+ * It did not, and the omission would have made the tree's expiry untestable
+ * here — the one property protecting this cache from a writer in another
+ * process. Expiry is a read-side miss rather than a sweep, exactly as
+ * `MemoryCache` implements it.
+ */
 function cacheDriver(): CacheDriver {
-  const entries = new Map<string, { value: unknown; tags: readonly string[] }>()
+  const entries = new Map<string, Entry>()
   return {
-    get: <T>(k: string) => Promise.resolve(entries.get(k)?.value as T | undefined),
+    get: <T>(k: string) => {
+      const entry = entries.get(k)
+      if (entry === undefined) return Promise.resolve(undefined)
+      if (entry.expiresAt !== undefined && entry.expiresAt <= Date.now()) {
+        entries.delete(k)
+        return Promise.resolve(undefined)
+      }
+      return Promise.resolve(entry.value as T)
+    },
     set: <T>(k: string, v: T, o: CacheSetOptions = {}) => {
-      entries.set(k, { value: v, tags: o.tags ?? [] })
+      entries.set(k, {
+        value: v,
+        tags: o.tags ?? [],
+        ...(o.ttlSeconds === undefined ? {} : { expiresAt: Date.now() + o.ttlSeconds * 1000 }),
+      })
       return Promise.resolve()
     },
     delete: (k: string) => {
@@ -46,7 +73,13 @@ function innerRepo(
   listAll: ReturnType<typeof vi.fn>
   listListing: ReturnType<typeof vi.fn>
 } {
-  const listAll = vi.fn().mockImplementation(() => Promise.resolve(rows))
+  /*
+   * A copy per call, like a query. Returning the array itself would let a test
+   * that appends a row afterwards mutate the value the cache is holding — the
+   * cached tree would update itself, and the staleness these tests are about
+   * would be invisible.
+   */
+  const listAll = vi.fn().mockImplementation(() => Promise.resolve([...rows]))
   const listListing = vi.fn().mockImplementation(() =>
     Promise.resolve(rows.map((r) => ({ ...r, threadCount: 0, postCount: 0, lastPost: null }))),
   )
@@ -128,14 +161,51 @@ describe('CachedForumRepository', () => {
     expect(order).toEqual(['write', 'invalidate'])
   })
 
-  it('stores the entry under the forum-tree tag', async () => {
+  it('stores the entry under the forum-tree tag, and with an expiry', async () => {
     const cache = cacheDriver()
     const set = vi.spyOn(cache, 'set')
 
     await new CachedForumRepository(innerRepo([row(1)]), cache).listAll()
     expect(set).toHaveBeenCalledWith(expect.any(String), [row(1)], {
       tags: [CacheTags.forumTree()],
+      ttlSeconds: TREE_TTL_SECONDS,
     })
+  })
+
+  /*
+   * The expiry is not belt-and-braces on top of invalidation; it is the only
+   * protection against a writer this process cannot see. `community
+   * forum:create`, the importer and the installer all write forums without going
+   * through this class, and a second web instance holds its own copy of the map.
+   *
+   * The failure it ends is D117's, and the shape below is exactly that board: a
+   * tree cached while the board had no forums, a forum inserted behind the
+   * decorator's back, and `findById` — which the composer, the thread page, the
+   * feed and the REST reads all go through — answering "no such forum" for the
+   * life of the process. The index went on working the whole time, because
+   * `listListing()` is uncached.
+   */
+  it('sees a forum written behind its back, once the entry expires', async () => {
+    vi.useFakeTimers()
+    try {
+      const rows: ForumRow[] = []
+      const inner = innerRepo(rows)
+      const repo = new CachedForumRepository(inner, cacheDriver())
+
+      /* Somebody loads the board before it has a forum. */
+      expect(await repo.findById(2)).toBeNull()
+
+      /* The installer creates one, through a repository that is not this one. */
+      rows.push(row(2))
+
+      /* Still absent: nothing told this process. This was the 404. */
+      expect(await repo.findById(2)).toBeNull()
+
+      vi.advanceTimersByTime(TREE_TTL_SECONDS * 1000 + 1)
+      expect((await repo.findById(2))?.id).toBe(2)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   /*
