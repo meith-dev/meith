@@ -55,6 +55,26 @@ inert in a browser (D119), `CACHE_DRIVER=memory` could not invalidate half of
 what the app caches (D120), four panel screens did not refresh their own lists
 (D121), and the announcement byline was missing F73's group colour (D122).
 
+**The gap after that one was the *writers nobody had pressed*.** Being able to
+be staff is not the same as having walked what staff do, and a route-by-route
+sweep of the board against the specs found whole features with no browser proof
+at all: F48's approval queue (nothing had ever put an item *in* it), F51's split
+and merge, F41's delete and restore, F53's revoke, F54's three ModCP screens,
+F18's activation setting, F60's message folders, F62's withdrawal, and log out.
+Six specs cover them now — `approval`, `thread-surgery`, `post-lifecycle`,
+`activation`, `undo` and `session`.
+
+They found two more defects, both in the same place and both invisible from
+either end on their own. A member appointed to **Split threads and nothing
+else** could delete other people's posts, because `post.editOthers` and
+`post.softDelete` read `Target.isForumModerator` — which is `hasAnyModeratorRight`
+— rather than the right each is named after, while the ACP offered those rights
+as separate checkboxes and `/modcp/forums` told the appointee they did not hold
+them. And the reverse: a member appointed to **Edit posts** was offered an Edit
+link and got a 404 behind it, because F54's `moderatorTargetFor` was wired into
+the thread page and not into `resolvePostScope`, which is what the edit page and
+all three post actions ask. See **D123**.
+
 Counts below are features, not effort. A `GATE` row counts as done once it is
 green, which all three are.
 

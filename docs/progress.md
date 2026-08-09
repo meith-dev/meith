@@ -993,14 +993,33 @@ optimisation yet (F42/F58 would).
 
 Still outstanding and worth keeping visible:
 
-- **The e2e board cannot post.** Playwright runs against fixture mode, which has
-  no writer, so no browser test covers posting, moderating, warning or the
-  notification centre without JavaScript — including F52's central claim that
-  `form`-attribute-associated checkboxes submit with scripting off, and F55's
-  that marking a notification read is a POST. Either the e2e harness gains a
-  real database or the fixture gains a content store. D38's "fixture writes
-  throw" rule was written for *structure*; this is the fourth time it has cost
-  coverage.
+- ~~**The e2e board cannot post.**~~ Closed. `e2e/support/database.ts` starts a
+  real Postgres (PGlite behind the wire protocol, nothing to install) and seeds
+  staff with a password, so the suite writes and can be staff. What was still
+  missing after that was narrower and is closed too — see the next bullet.
+- **What the browser suite still does not reach**, after the route-by-route
+  sweep that added `approval`, `thread-surgery`, `post-lifecycle`, `activation`,
+  `undo` and `session`. Each of these is a *reason*, not a to-do nobody has got
+  to:
+  - **A confirmation link is never followed.** `MAIL_DRIVER=log` means there is
+    no mailbox for a browser to open. `activation-no-js` covers both sides of
+    the mail — the account that cannot sign in, and the two screens that get
+    somebody unstuck — and `activateAccount`'s five outcomes stay with the
+    domain suite. The same is true of F56's signed unsubscribe link: the invalid
+    and post-action screens are covered, the redemption is `tokens.test.ts`.
+  - **A legacy MyBB URL never redirects successfully.** `board.legacy_redirects`
+    resolves through `legacy_ids`, which only an import writes, and the seed has
+    no imported rows — so only the 404 half (the setting off) is covered. The
+    fixture would need seeded `legacy_ids` rows to reach the 301.
+  - **`usergroups.can_restore_posts` is not consulted by `can()`.** It is a
+    stored appointment right, an ACP checkbox and a line on `/modcp/forums`, and
+    nothing reads it for a decision: restoring is `post.softDelete` *and*
+    `content.viewDeleted`, so the box changes nothing either way. Giving it a
+    meaning is a new action in the matrix, not a bug fix, which is why D123
+    left it alone and named it here instead.
+  - **Deep pagination** — a thread or forum listing long enough to page — is
+    covered for search results only. It needs a corpus the seed does not have,
+    which is the same gap `perf` reports (F28).
 - **Nobody is notified when a report is filed.** F55 tells the reporter when one
   is closed; telling the forum's moderators needs `moderatedForumIds` inverted,
   which means resolving the forum matrix per *group* rather than per actor. It
@@ -1027,7 +1046,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D104). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D123). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

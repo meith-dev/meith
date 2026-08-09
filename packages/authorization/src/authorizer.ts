@@ -608,16 +608,42 @@ export class Authorizer {
         return ownsContent && forum.canEditOwnPosts === true
       case 'post.deleteOwn':
         return ownsContent && forum.canDeleteOwnPosts === true
+      /*
+       * The two acting-on-somebody-else's-post grants read the appointment
+       * *right*, not the bare `isForumModerator` flag — the shape
+       * `content.approve` below has always had, and for the same reason.
+       *
+       * They did read the flag, and the flag is `hasAnyModeratorRight`: any one
+       * of the nine rights makes it true. So an appointment to Split threads
+       * and nothing else granted `post.editOthers` and `post.softDelete` in
+       * that forum, which is a member deleting other people's posts on the
+       * strength of a right they were never given. The ACP offers Edit posts
+       * and Delete posts as their own checkboxes and `/modcp/forums` tells the
+       * appointee which of them they hold, so the escalation was invisible from
+       * both ends: the panel said Split threads, and the board allowed a delete.
+       *
+       * The group columns are unchanged and still grant board-wide, which is
+       * how non-appointed staff hold these.
+       */
       case 'post.editOthers':
         return (
-          (target.isForumModerator === true ||
+          (target.moderatorRights?.canEditPosts === true ||
             forum.canEditOthersPosts === true) &&
           !ownsContent
         )
       case 'post.softDelete':
         return (
-          target.isForumModerator === true || forum.canSoftDeletePosts === true
+          target.moderatorRights?.canSoftDeletePosts === true ||
+          forum.canSoftDeletePosts === true
         )
+      /*
+       * The two *seeing* actions keep the flag, and that asymmetry is the
+       * point: an appointee has to be able to read the queue and the deleted
+       * posts in the forum they look after in order to do any of the jobs they
+       * were appointed to, and seeing is not acting. It is the same call
+       * `content.approve` makes from the other side — reading the queue is open
+       * to the appointment, approving out of it is not.
+       */
       case 'content.viewUnapproved':
         // A forum moderator must see the queue they are meant to action; the
         // permission field is the group-level alternative for non-mod staff.
@@ -628,10 +654,10 @@ export class Authorizer {
         return target.isForumModerator === true || forum.canViewDeleted === true
       case 'content.approve':
         /*
-         * `isForumModerator` alone is not enough here, unlike the actions
-         * above: an appointment carries granular rights, and one that does not
-         * include `canApproveContent` appoints somebody to *read* the queue.
-         * The caller resolves those rights and passes them as `moderatorRights`.
+         * `isForumModerator` alone is not enough here: an appointment carries
+         * granular rights, and one that does not include `canApproveContent`
+         * appoints somebody to *read* the queue. The caller resolves those
+         * rights and passes them as `moderatorRights`.
          */
         return (
           target.moderatorRights?.canApproveContent === true ||

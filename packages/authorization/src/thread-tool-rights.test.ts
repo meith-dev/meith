@@ -198,3 +198,111 @@ describe('moderatorRightsIn', () => {
     )
   })
 })
+
+/**
+ * The two post actions an appointment can grant, which are not F50 tools and
+ * were not decided like them.
+ *
+ * `post.editOthers` and `post.softDelete` used to read `Target.isForumModerator`
+ * — which is `hasAnyModeratorRight`, true for *any* of the nine. So an
+ * appointment to split threads and nothing else granted both of them, and a
+ * member appointed as a thread janitor could delete other people's posts. They
+ * read the right they are named after now, the way `content.approve` always
+ * has.
+ *
+ * The two *seeing* actions deliberately still follow the flag, and the last
+ * test pins that asymmetry so a later tidy-up does not "make them consistent"
+ * and take the queue away from the people appointed to work it.
+ */
+describe('what an appointment grants over posts', () => {
+  const POST_ACTIONS: readonly Action[] = [
+    'post.editOthers',
+    'post.softDelete',
+    'content.approve',
+  ]
+
+  async function overPosts(
+    who: Actor,
+    moderators: readonly MemoryAppointment[],
+  ): Promise<Action[]> {
+    const authorizer = authorizerFor(moderators)
+    const forum = await authorizer.forumMatrix(who, FORUM.general)
+    const moderatorRights = await authorizer.moderatorRightsIn(who, FORUM.general)
+    /* `ownerId` is somebody else: `post.editOthers` is refused to the author. */
+    return POST_ACTIONS.filter((action) =>
+      authorizer.can(who, action, {
+        forumId: FORUM.general,
+        forum,
+        ownerId: 99,
+        moderatorRights,
+        isForumModerator: true,
+      }),
+    )
+  }
+
+  function appointment(over: Partial<MemoryAppointment>): MemoryAppointment {
+    return { ...NONE, userId: 10, forumId: FORUM.general, cascadeToSubforums: false, ...over }
+  }
+
+  it('grants nothing over posts for an appointment that only splits threads', async () => {
+    expect(
+      await overPosts(actor([GROUP.registered]), [appointment({ canSplitThreads: true })]),
+    ).toEqual([])
+  })
+
+  it('grants each post action to the right that names it, and no other', async () => {
+    expect(
+      await overPosts(actor([GROUP.registered]), [appointment({ canEditPosts: true })]),
+    ).toEqual(['post.editOthers'])
+
+    expect(
+      await overPosts(actor([GROUP.registered]), [appointment({ canSoftDeletePosts: true })]),
+    ).toEqual(['post.softDelete'])
+
+    expect(
+      await overPosts(actor([GROUP.registered]), [appointment({ canApproveContent: true })]),
+    ).toEqual(['content.approve'])
+  })
+
+  /*
+   * The group columns are the other way in, and unchanged: staff who hold
+   * `canEditOthersPosts` board-wide have never needed an appointment, and
+   * narrowing the appointment must not have narrowed them.
+   */
+  it('still grants a group that holds the column outright, with no appointment', async () => {
+    const authorizer = new Authorizer(
+      new InMemoryAuthorizationSource({
+        ...board([]),
+        groups: [
+          {
+            groupId: GROUP.registered,
+            permissions: set({ ...READ, canEditOthersPosts: true, canSoftDeletePosts: true }),
+          },
+        ],
+      }),
+    )
+    const who = actor([GROUP.registered])
+    const forum = await authorizer.forumMatrix(who, FORUM.general)
+    const target = { forumId: FORUM.general, forum, ownerId: 99 }
+
+    expect(authorizer.can(who, 'post.editOthers', target)).toBe(true)
+    expect(authorizer.can(who, 'post.softDelete', target)).toBe(true)
+  })
+
+  /*
+   * Seeing is not acting. An appointee has to be able to read the queue and
+   * find the deleted posts in the forum they look after, whichever of the nine
+   * rights they hold — that is what makes `content.approve` a *second* gate
+   * rather than the only one.
+   */
+  it('lets any appointee see held and deleted content, whatever they may act on', async () => {
+    const authorizer = authorizerFor([appointment({ canSplitThreads: true })])
+    const who = actor([GROUP.registered])
+    const forum = await authorizer.forumMatrix(who, FORUM.general)
+    const moderatorRights = await authorizer.moderatorRightsIn(who, FORUM.general)
+    const target = { forumId: FORUM.general, forum, moderatorRights, isForumModerator: true }
+
+    expect(authorizer.can(who, 'content.viewUnapproved', target)).toBe(true)
+    expect(authorizer.can(who, 'content.viewDeleted', target)).toBe(true)
+  })
+})
