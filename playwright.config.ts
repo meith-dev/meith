@@ -52,6 +52,39 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: 'list',
+  /**
+   * One retry, for the one thing that is not the test's fault: `next dev`
+   * restarts itself part-way through the run.
+   *
+   * It is not a guess. The dev server checks, in the `finally` of every request:
+   *
+   * ```js
+   * if (v8.getHeapStatistics().used_heap_size > 0.8 * heap_size_limit) {
+   *   log.warn('Server is approaching the used memory threshold, restarting...')
+   * ```
+   *
+   * Twenty minutes of Turbopack compiling every route crosses that — 6.6 GB of
+   * an 8.2 GB ceiling here — and while the server bounces, the port is closed.
+   * Whichever navigation is in flight at that instant gets
+   * `ERR_CONNECTION_REFUSED`, and *which test that is* is decided by the clock.
+   * Two full runs put it on two unrelated specs, one of which nobody had
+   * touched in months.
+   *
+   * Raising the heap is the wrong lever: the trigger is a ratio, an unknown
+   * share of that 6.6 GB is garbage V8 has not bothered to collect because it
+   * has room, and a bigger ceiling either changes nothing or turns a
+   * self-healing restart into an OOM kill on a box that is also holding two
+   * PGlite instances and a browser.
+   *
+   * **One, and it hides nothing.** The restart is transient and self-healing,
+   * so a second attempt against the server that came back passes
+   * deterministically — while a test that is genuinely unstable fails twice and
+   * still fails the run. Anything that passes on the retry is reported as
+   * `flaky` in the summary rather than as a pass, so a real flake arriving here
+   * is louder than it was before, not quieter. Raise this number and that stops
+   * being true.
+   */
+  retries: 1,
   use: {
     baseURL: 'http://127.0.0.1:3001',
     ...(executablePath === undefined ? {} : { launchOptions: { executablePath } }),
