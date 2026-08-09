@@ -146,6 +146,23 @@ describe('preview', () => {
     expect((await repo.preview(LOSER, WINNER))?.blockedByBan).toBe(true)
   })
 
+  /**
+   * The way a ban is actually recorded on this board.
+   *
+   * F23 writes a `bans` row and moves the member's group and never touches
+   * `users.state`, so a guard reading the column alone reported `false` for
+   * every ban this board has ever issued — and the merge would then have carried
+   * an active ban onto the account somebody chose to keep, which is the one
+   * outcome the screen says it prevents.
+   */
+  it('reports an unlifted ban, however the state column reads', async () => {
+    await seedUser(WINNER, 'keeper')
+    await seedUser(LOSER, 'duplicate')
+    await db.execute(sql`insert into bans (user_id, created_at) values (${LOSER}, now())`)
+
+    expect((await repo.preview(LOSER, WINNER))?.blockedByBan).toBe(true)
+  })
+
   it('is null when either account does not exist', async () => {
     await seedPair()
     expect(await repo.preview(LOSER, 9_999)).toBeNull()
@@ -208,6 +225,15 @@ describe('finish', () => {
      */
     await seedUser(WINNER, 'keeper')
     await seedUser(LOSER, 'duplicate', 'banned')
+
+    await expect(repo.finish(LOSER, WINNER)).rejects.toThrow(/banned/)
+  })
+
+  /** And when the ban is a `bans` row, which is how F23 records every one. */
+  it('refuses when either account carries an unlifted ban', async () => {
+    await seedUser(WINNER, 'keeper')
+    await seedUser(LOSER, 'duplicate')
+    await db.execute(sql`insert into bans (user_id, created_at) values (${LOSER}, now())`)
 
     await expect(repo.finish(LOSER, WINNER)).rejects.toThrow(/banned/)
   })

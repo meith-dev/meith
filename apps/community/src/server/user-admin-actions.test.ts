@@ -18,6 +18,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const adminCalls: Array<{ action: string; detail: unknown }> = []
 const requireAdminMock = vi.fn(async () => ({ session: { userId: 1 } }))
 const requireFreshAdminMock = vi.fn(async () => ({ session: { userId: 1 } }))
+/**
+ * `revalidatePath` outside a Next request throws, so an unmocked call turns a
+ * successful action into an error state and the failure reads as a broken
+ * write. Recorded rather than only silenced: which screen an action refreshes
+ * is a claim worth asserting — see the cases that read `revalidated`.
+ *
+ * Spread the real module rather than replacing it. `next/cache` also exports
+ * `unstable_cache`, which modules reached transitively from here call at import
+ * time, so a mock returning only `revalidatePath` makes the file fail to load.
+ */
+const revalidated: string[] = []
+vi.mock('next/cache', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>
+  return {
+    ...actual,
+    revalidatePath: (path: string) => {
+      revalidated.push(path)
+    },
+  }
+})
+
 vi.mock('./admin', () => ({
   requireAdmin: () => requireAdminMock(),
   requireFreshAdmin: () => requireFreshAdminMock(),
@@ -136,6 +157,7 @@ function form(fields: Record<string, string>): FormData {
 beforeEach(() => {
   adminCalls.length = 0
   invalidated.length = 0
+  revalidated.length = 0
   accounts.length = 0
   states.length = 0
   bans.length = 0
@@ -566,5 +588,34 @@ describe('mass mail', () => {
     await startMassMailAction({}, form({ subject: 'Hi', body: 'All' }))
     expect(requireFreshAdminMock).toHaveBeenCalledTimes(1)
     expect(requireAdminMock).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * The member screens the writes here are read back from.
+ *
+ * The permission tag above is the board's own cache; this is Next's client
+ * Router Cache, which holds the RSC payload the form was rendered with. Without
+ * it, banning somebody returned "Banned. Their sessions have been revoked."
+ * above a section still offering **Ban this member**, and a rename left the
+ * heading reading the old name — so the operator's reasonable next move was to
+ * press again, on a member who was already banned.
+ */
+describe('the screens the write is read back from', () => {
+  it('are refreshed by every write, not only the board’s own cache', async () => {
+    await saveMemberAccountAction({}, form({ userId: '7', username: 'ann', email: 'a@b.test', primaryGroupId: '2' }))
+    expect(revalidated).toEqual(['/admin/users', '/admin/users/[id]'])
+  })
+
+  it('are refreshed by a ban and by lifting one', async () => {
+    await banMemberAction({}, form({ userId: '7' }))
+    await liftBanAction({}, form({ userId: '7' }))
+
+    expect(revalidated).toEqual([
+      '/admin/users',
+      '/admin/users/[id]',
+      '/admin/users',
+      '/admin/users/[id]',
+    ])
   })
 })

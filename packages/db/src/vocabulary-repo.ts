@@ -26,22 +26,45 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { EMPTY_VOCABULARY, compileVocabulary, type BoardVocabulary } from '@meith/markdown'
+import {
+  EMPTY_VOCABULARY,
+  compileVocabulary,
+  type BoardVocabulary,
+  type VocabularySource,
+} from '@meith/markdown'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 
 /**
- * The compiled vocabulary, and the revision that produced it.
+ * The rows, uncompiled — and the only shape that may cross a cache.
  *
  * Read inside one transaction so the two halves agree. Read separately, an
  * operator's edit landing between them would stamp the *new* revision onto HTML
  * rendered from the *old* list — a stored render that is wrong and that the
  * backfill will never revisit, because its stamp claims it is current. Every
  * other failure in this feature is transient; that one would be permanent.
+ *
+ * `BoardVocabulary` holds the parser's two directive **`Set`s**, and a `Set`
+ * does not survive `JSON.stringify`: it comes back as `{}`. Next's
+ * `unstable_cache` serialises, so a board that had ever configured a smiley or a
+ * directive served a vocabulary whose registry had no `has` method, and the
+ * first post containing `:name[…]` or a `:::name` fence took the *thread page*
+ * down with `context.directives.has is not a function` — a 500 any member could
+ * cause by typing four characters, on a board where nobody had defined that
+ * name.
+ *
+ * So the cache holds this — numbers, strings and arrays — and compiling happens
+ * on the other side of it. That is what `activeWordFilter` already does with its
+ * rules, and this is the same arrangement rather than a new idea.
+ *
+ * `null` means "nothing configured", the overwhelmingly common case, answered
+ * without touching either table.
  */
-export async function readBoardVocabulary(db: Database): Promise<BoardVocabulary> {
-  const source = await db.transaction(async (tx) => {
+export async function readVocabularySource(
+  db: Database,
+): Promise<VocabularySource | null> {
+  return db.transaction(async (tx) => {
     const revision = resultRows(
       await tx.execute(sql`select version from cache_versions where key = 'markdown_vocabulary'`),
     ) as Array<{ version: number }>
@@ -74,6 +97,16 @@ export async function readBoardVocabulary(db: Database): Promise<BoardVocabulary
       })),
     }
   })
+}
 
+/**
+ * The compiled vocabulary, for a caller with no cache between it and the rows.
+ *
+ * The write path is that caller: it reads inside its own transaction and hands
+ * the result straight to the renderer. A caller that *does* cache must cache
+ * `readVocabularySource` and compile afterwards — see that function.
+ */
+export async function readBoardVocabulary(db: Database): Promise<BoardVocabulary> {
+  const source = await readVocabularySource(db)
   return source === null ? EMPTY_VOCABULARY : compileVocabulary(source)
 }

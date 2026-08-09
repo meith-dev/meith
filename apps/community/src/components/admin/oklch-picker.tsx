@@ -114,12 +114,27 @@ function Slider({
 
 export function OklchPicker({
   name,
+  describes,
   value,
   shipped,
   onChange,
 }: {
   /** The form field. The text input carries it; the sliders do not. */
   name: string
+  /**
+   * What this swatch adjusts, in words — "Button and link accent, light".
+   *
+   * The theme editor renders one picker per token per scheme, which on the
+   * default theme is **eighty buttons on one page** whose accessible name was
+   * the same four words. A screen reader's element list, or anything that reads
+   * the page out of order, offered eighty identical "Adjust this colour" and no
+   * way to tell which was which — the field beside each one is labelled, and the
+   * button that opens its sliders was not (WCAG 2.4.6).
+   *
+   * Optional because the swatch still says what it does without it; the caller
+   * supplies the context only it knows.
+   */
+  describes?: string | undefined
   /** What is in the field now. Empty means "not overridden". */
   value: string
   /** The theme's own value, so an empty field still opens somewhere sensible. */
@@ -140,6 +155,12 @@ export function OklchPicker({
 
   const set = (next: Partial<Oklch>): void => onChange(formatOklch({ ...colour, ...next }))
 
+  const opens = describes === undefined ? 'Adjust this colour' : `Adjust ${describes}`
+  const hides =
+    describes === undefined
+      ? 'Hide the colour sliders'
+      : `Hide the sliders for ${describes}`
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
@@ -153,11 +174,11 @@ export function OklchPicker({
           type="button"
           onClick={() => setOpen((current) => !current)}
           aria-expanded={open}
-          title={open ? "Hide the colour sliders" : "Adjust this colour"}
+          title={open ? hides : opens}
           style={{ background: rgbToHex(rgb) }}
           className="size-9 shrink-0 rounded-md border border-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          <span className="sr-only">Adjust this colour</span>
+          <span className="sr-only">{opens}</span>
         </button>
 
         <input

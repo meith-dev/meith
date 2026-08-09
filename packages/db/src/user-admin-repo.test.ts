@@ -188,6 +188,42 @@ describe('search', () => {
       .toEqual([2, 3])
   })
 
+  /**
+   * "Banned" is a `bans` row, not a value in the state column.
+   *
+   * F23 bans by writing that row and moving the member's group, and never
+   * touches `users.state` — so a filter reading the column alone offered the
+   * operator a **Banned** option that matched nobody on any board, on the screen
+   * whose job is finding the people it matched. Reported on the row too, because
+   * the list marks them and it was marking nobody.
+   */
+  it('finds a member banned the way the board bans them, and marks the row', async () => {
+    await seed({ id: 1, username: 'ann' })
+    await seed({ id: 2, username: 'bob' })
+    await db.execute(sql`insert into bans (user_id, created_at) values (2, now())`)
+
+    const banned = await repo.search({ ...ALL, state: 'banned' })
+    expect(banned.rows.map((r) => r.id)).toEqual([2])
+    expect(banned.rows[0]?.isBanned).toBe(true)
+
+    /* And they are no longer answered as active, whatever the column says. */
+    expect((await repo.search({ ...ALL, state: 'active' })).rows.map((r) => r.id)).toEqual([1])
+    expect((await repo.readDetail(2))?.isBanned).toBe(true)
+    expect((await repo.readDetail(1))?.isBanned).toBe(false)
+  })
+
+  /** A lifted ban is over: they are active again, and the list stops marking them. */
+  it('stops reporting a ban once it has been lifted', async () => {
+    await seed({ id: 1, username: 'ann' })
+    await db.execute(
+      sql`insert into bans (user_id, created_at, lifted_at) values (1, now(), now())`,
+    )
+
+    expect((await repo.search({ ...ALL, state: 'banned' })).rows).toEqual([])
+    expect((await repo.search({ ...ALL, state: 'active' })).rows.map((r) => r.id)).toEqual([1])
+    expect((await repo.readDetail(1))?.isBanned).toBe(false)
+  })
+
   it('filters by registration date, with the window half-open', async () => {
     /*
      * `before` is exclusive and `after` inclusive, so two adjacent windows

@@ -23,6 +23,7 @@
 import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
 import { PostgresSettingsRepository, getDb } from '@meith/db'
 import { drivers } from '@meith/drivers'
+import { revalidatePath } from 'next/cache'
 import {
   parsePluginSetting,
   pluginEnabledKey,
@@ -58,9 +59,26 @@ function requireDefinition(key: string): PluginDefinition {
   return definition
 }
 
-/** Both writes invalidate the same tag, because both wrote to the same table. */
+/**
+ * Both writes invalidate the same tag, because both wrote to the same table —
+ * and both refresh the two screens that read it back.
+ *
+ * The tag is the board's own cache, and clearing it is what makes the next
+ * *server* render correct. Next's client Router Cache is separate: it holds the
+ * RSC payload the form was rendered with, so with JavaScript on — which is how
+ * an administrator actually uses the panel — switching a plugin off returned its
+ * notice above a row still marked as running, next to a button still offering to
+ * turn it off. That is the screen contradicting the action that changed it, on
+ * the one control an operator reaches for *because the plugin is breaking the
+ * board*.
+ *
+ * Same defect, same reasoning and same fix as `invalidateTree` in
+ * `forum-admin-actions.ts`. The two named routes rather than a sweep under `/`.
+ */
 async function invalidateSettings(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.settings()])
+  revalidatePath('/admin/plugins')
+  revalidatePath('/admin/plugins/[key]/[[...path]]', 'page')
 }
 
 /**

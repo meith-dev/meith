@@ -65,15 +65,27 @@ export default async function AdminForumsPage() {
                 {forum.type} · /{forum.slug} · path {forum.path}
               </span>
             </span>
+            {/*
+              Named for the forum they open, not "Options" and "Permissions".
+
+              A board with thirty forums renders sixty links carrying two words
+              between them, so a reader moving by link — a screen reader's link
+              list, or anything that reads the page out of order — is offered
+              thirty identical "Options" with nothing to tell them apart. The
+              visible word stays short because the title is on the row beside it;
+              `aria-label` carries the rest (WCAG 2.4.4).
+            */}
             <span className="flex shrink-0 gap-3 text-sm">
               <a
                 href={`/admin/forums/${forum.id}`}
+                aria-label={`Options for ${forum.title}`}
                 className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
                 Options
               </a>
               <a
                 href={`/admin/forums/${forum.id}/permissions`}
+                aria-label={`Permissions for ${forum.title}`}
                 className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
                 Permissions

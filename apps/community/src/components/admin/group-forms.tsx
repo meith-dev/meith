@@ -160,6 +160,8 @@ export function GroupIdentityForm({
               <span className="text-xs text-muted-foreground">{label}</span>
               <OklchPicker
                 name={scheme === 'dark' ? 'nameColorDark' : 'nameColorLight'}
+                /* Two swatches on this screen, and they differ only by scheme. */
+                describes={`the ${label.toLowerCase()} name colour`}
                 value={value}
                 onChange={set}
               />

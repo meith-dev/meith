@@ -79,8 +79,10 @@ export default async function AdminGroupsPage() {
                 {group.description === null ? '' : ` · ${group.description}`}
               </span>
             </span>
+            {/* Named for the group it opens — see `/admin/users` for why. */}
             <a
               href={`/admin/groups/${group.id}`}
+              aria-label={`Edit ${group.title}`}
               className="shrink-0 text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
             >
               Edit

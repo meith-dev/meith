@@ -24,6 +24,7 @@ import { ValidationError } from '@meith/core'
 import type { Database } from './client'
 import { withPermissionVersionBump } from './permission-version'
 import { resultRows } from './result-rows'
+import { BANNED_PREDICATE } from './user-admin-repo'
 
 export interface PruneCriteria {
   /** Registered strictly before this. Required — a prune needs a boundary. */
@@ -94,6 +95,12 @@ export class PostgresUserBulkRepository {
    *    filter, and the least acceptable to delete;
    *  - **banned accounts.** The ban record is the reason they are quiet.
    *    Removing the account removes the evidence and, on some schemas, the ban.
+   *
+   * That last exclusion was written as `state <> 'banned'` and therefore excluded
+   * nobody: F23 bans by writing a `bans` row and moving the member's group, and
+   * deliberately never touches the state column. The screen promised the
+   * exclusion in as many words while the sweep would have closed exactly the
+   * accounts a moderator had banned and gone quiet. See `BANNED_PREDICATE`.
    */
   private pruneWhere(criteria: PruneCriteria): SQL {
     const conditions: SQL[] = [
@@ -101,7 +108,7 @@ export class PostgresUserBulkRepository {
       sql`u.created_at < ${criteria.registeredBefore}`,
       sql`u.post_count = 0`,
       sql`u.thread_count = 0`,
-      sql`u.state <> 'banned'`,
+      sql`not ${BANNED_PREDICATE}`,
       sql`not exists (
         select 1 from usergroups g
          where g.id = u.primary_group_id and g.is_staff_group = true

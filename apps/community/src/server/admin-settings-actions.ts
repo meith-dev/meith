@@ -29,6 +29,7 @@
 import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import { PostgresSettingsRepository, getDb } from '@meith/db'
+import { revalidatePath } from 'next/cache'
 import {
   SETTING_DEFINITIONS,
   coerceFormValue,
@@ -107,6 +108,21 @@ export async function saveAdminSettingsAction(
         CacheTags.settings(),
         ...result.invalidates,
       ])
+
+      /*
+       * And Next's client Router Cache, for the screen itself.
+       *
+       * The invalidation above clears the board's own store; it says nothing
+       * about the RSC payload the browser is holding for this page. That payload
+       * carries more than the field values — the "Changed" marker beside every
+       * overridden setting, and the two alerts this screen renders from the
+       * settings it is editing: *"This board does not know its own address"*,
+       * which must disappear the moment an address is saved, and *"Nobody can
+       * finish registering"*, which must appear the moment the activation method
+       * is set to one this board cannot deliver. Both are the screen's whole
+       * value, and with scripting on both were a reload behind the save.
+       */
+      revalidatePath('/admin/settings')
 
       await recordAdminAction({
         action: 'settings.changed',

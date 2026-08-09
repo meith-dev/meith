@@ -143,6 +143,7 @@ export default async function AdminThemesPage() {
 
             <ThemeStateForms
               themeKey={theme.key}
+              title={theme.title}
               enabled={theme.enabled}
               isDefault={theme.isDefault}
               isBuildTheme={theme.isBuildTheme}

@@ -16,6 +16,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
 const requireAdminMock = vi.fn(async () => ({ session: { userId: 1 } }))
+/**
+ * `revalidatePath` outside a Next request throws, so an unmocked call turns a
+ * successful action into an error state and the failure reads as a broken
+ * write. Recorded rather than only silenced: which screen an action refreshes
+ * is a claim worth asserting — see the cases that read `revalidated`.
+ *
+ * Spread the real module rather than replacing it. `next/cache` also exports
+ * `unstable_cache`, which modules reached transitively from here call at import
+ * time, so a mock returning only `revalidatePath` makes the file fail to load.
+ */
+const revalidated: string[] = []
+vi.mock('next/cache', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>
+  return {
+    ...actual,
+    revalidatePath: (path: string) => {
+      revalidated.push(path)
+    },
+  }
+})
+
 vi.mock('./admin', () => ({
   requireAdmin: () => requireAdminMock(),
   requireFreshAdmin: () => requireAdminMock(),
@@ -80,6 +101,7 @@ function form(fields: Record<string, string>): FormData {
 
 beforeEach(() => {
   adminCalls.length = 0
+  revalidated.length = 0
   invalidated.length = 0
   retried.length = 0
   sessionSweeps.length = 0
@@ -185,5 +207,40 @@ describe('retryJobAction', () => {
     const state = await retryJobAction({}, form({ jobId: '  ' }))
     expect(state.error).toBeDefined()
     expect(retried).toEqual([])
+  })
+})
+
+/**
+ * Every button on this screen changes a number the screen is made of — how many
+ * sessions are prunable, how many posts are not yet searchable — and two of them
+ * carry one in their own label. Next's client Router Cache holds the payload the
+ * form was rendered with, so without this the action's notice arrived beside the
+ * counts it had just made wrong: "6 indexed. Every post on the board is
+ * searchable." directly under a line still reading "0 indexed · 6 not yet
+ * searchable", above a button still offering to index them.
+ *
+ * With scripting off the browser's own reload hid it, which is why the browser
+ * suite could not catch it — see `admin-panel-live.spec.ts`.
+ */
+describe('the screen the press was made on', () => {
+  it('is refreshed by every sweep, so its counts stop contradicting the notice', async () => {
+    /*
+     * The reindex is not in this list: `requireSearch` is not mocked here, so it
+     * is the one action in the file that cannot run at this layer. Its refresh is
+     * asserted where it is visible instead — `admin-panel-live.spec.ts` presses
+     * the button in a browser and reads the line beside it.
+     */
+    await pruneSessionsAction()
+    await pruneTokensAction()
+    await recountAction()
+    await clearCacheAction({}, form({ what: 'forums' }))
+    await retryJobAction({}, form({ jobId: 'job-1' }))
+
+    expect(revalidated).toEqual(Array.from({ length: 5 }, () => '/admin/system'))
+  })
+
+  it('is left alone by a refusal, which changed nothing to show', async () => {
+    await clearCacheAction({}, form({ what: 'everything' }))
+    expect(revalidated).toEqual([])
   })
 })

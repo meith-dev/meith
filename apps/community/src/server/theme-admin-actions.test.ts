@@ -20,6 +20,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
 const requireAdminMock = vi.fn(async () => ({ session: { userId: 1 } }))
+/**
+ * `revalidatePath` outside a Next request throws, so an unmocked call turns a
+ * successful action into an error state and the failure reads as a broken
+ * write. Recorded rather than only silenced: which screen an action refreshes
+ * is a claim worth asserting — see the cases that read `revalidated`.
+ *
+ * Spread the real module rather than replacing it. `next/cache` also exports
+ * `unstable_cache`, which modules reached transitively from here call at import
+ * time, so a mock returning only `revalidatePath` makes the file fail to load.
+ */
+const revalidated: string[] = []
+vi.mock('next/cache', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>
+  return {
+    ...actual,
+    revalidatePath: (path: string) => {
+      revalidated.push(path)
+    },
+  }
+})
+
 vi.mock('./admin', () => ({
   requireAdmin: () => requireAdminMock(),
   requireFreshAdmin: () => requireAdminMock(),
@@ -101,6 +122,7 @@ function form(fields: Record<string, string>): FormData {
 beforeEach(() => {
   adminCalls.length = 0
   invalidated.length = 0
+  revalidated.length = 0
   saved.length = 0
   resets.length = 0
   enabling.length = 0
@@ -590,5 +612,28 @@ describe('importThemeAction', () => {
   it('refuses text that is not a document at all', async () => {
     const state = await importThemeAction({}, form({ key: 'default', document: 'paste here' }))
     expect(state.error).toBeDefined()
+  })
+})
+
+/**
+ * The two screens a theme write is read back from.
+ *
+ * The tag above is the board's own cache — what makes the *next* render paint
+ * the new colours. This is Next's client Router Cache, which holds the payload
+ * the form was rendered with: without it, turning a theme off left its row still
+ * offering **Turn off**, and making one the default left the badge on the theme
+ * that had just stopped being it. On the control an administrator reaches for
+ * *because a theme is breaking the board*, that is the screen telling them the
+ * press did nothing.
+ */
+describe('the screens a theme write is read back from', () => {
+  it('are refreshed when a theme is turned off', async () => {
+    await setThemeEnabledAction({}, form({ key: 'midnight', enabled: 'false' }))
+    expect(revalidated).toEqual(['/admin/themes', '/admin/themes/[key]'])
+  })
+
+  it('are refreshed when the default moves', async () => {
+    await setDefaultThemeAction({}, form({ key: 'midnight' }))
+    expect(revalidated).toEqual(['/admin/themes', '/admin/themes/[key]'])
   })
 })

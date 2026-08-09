@@ -11,6 +11,7 @@ import 'server-only'
  */
 import { CacheTags, ForbiddenError } from '@meith/core'
 import {
+  compileVocabulary,
   compileWordFilter,
   type BoardVocabulary,
   type CompiledWordFilter,
@@ -19,7 +20,7 @@ import {
   PostgresAttachmentAdminRepository,
   PostgresContentAdminRepository,
   getDb,
-  readBoardVocabulary,
+  readVocabularySource,
 } from '@meith/db'
 import { unstable_cache } from 'next/cache'
 
@@ -62,7 +63,7 @@ export async function activeWordFilter(): Promise<CompiledWordFilter | undefined
 }
 
 /**
- * The board's markup vocabulary, for the render path (F71).
+ * The board's markup vocabulary, for the render path (F71) — as **rows**.
  *
  * Cached under its own tag, like the filters, and for a stronger reason: this
  * one is read by *every* page that renders a body, and a board's smilies change
@@ -71,22 +72,47 @@ export async function activeWordFilter(): Promise<CompiledWordFilter | undefined
  * invalidation and the stored renders' staleness are the same fact rather than
  * two that can disagree.
  *
+ * ## The rows, not the compiled vocabulary: a cache is a serialisation boundary
+ *
+ * `BoardVocabulary` carries the parser's two directive `Set`s, and a `Set` comes
+ * back from `JSON` as `{}` — so caching it handed the renderer a registry with
+ * no `has` method, and the first post containing `:name[…]` or a `:::name` fence
+ * threw `context.directives.has is not a function` and took the whole thread
+ * page down with it. Any member could cause that by typing four characters, on
+ * any board that had ever saved a smiley or a directive; boards with an empty
+ * vocabulary were spared only because `activeVocabulary` returns `undefined`
+ * before the value is used.
+ *
+ * `compileVocabulary` therefore runs on *this* side of the cache, which is
+ * exactly what `activeWordFilter` above does with its rules. It is cheap — a
+ * board's vocabulary is a handful of rows, and the editor says so — and it is
+ * the only arrangement in which what is cached is data.
+ *
  * `undefined` on a board that has configured nothing — the common case, and the
  * one where the render path should pay nothing at all. Note that `undefined`
  * and `EMPTY_VOCABULARY` mean the same thing to `postBodyHtml`, both being
  * revision 0, so a caller cannot get this wrong in the expensive direction.
  */
-const loadVocabulary = unstable_cache(
-  async () => readBoardVocabulary(getDb()),
-  ['markdown-vocabulary'],
+const loadVocabularySource = unstable_cache(
+  async () => readVocabularySource(getDb()),
+  /*
+   * A new key, because the *shape* under it changed. An entry written by a
+   * previous release holds a compiled vocabulary, and reading one as a source
+   * would iterate a `Set` that JSON turned into `{}` — the same class of failure
+   * one release later. Renaming the key retires those entries rather than
+   * trusting every deployment to have a cold cache.
+   */
+  ['markdown-vocabulary-rows'],
   { tags: [CacheTags.markdownVocabulary()] },
 )
 
 export async function activeVocabulary(): Promise<BoardVocabulary | undefined> {
   if (getContainer().dataSource !== 'postgres') return undefined
 
-  const vocabulary = await loadVocabulary()
-  return vocabulary.revision === 0 ? undefined : vocabulary
+  const source = await loadVocabularySource()
+  if (source === null || source.revision === 0) return undefined
+
+  return compileVocabulary(source)
 }
 
 /**

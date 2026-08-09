@@ -25,6 +25,7 @@ import type {
   AccountStore,
   AuthConfig,
   BanFilterRepository,
+  BanRecord,
   Clock,
   AccountRecord,
   LoginBucket,
@@ -42,6 +43,25 @@ export interface IdentityDeps {
    * them coming back, or it only keeps out people who were never here.
    */
   readonly banFilters?: BanFilterRepository
+  /**
+   * F23's ban records, consulted on login.
+   *
+   * Optional in the same way and for the same reason as `banFilters`: the
+   * fixture path has no ban table. Where it *is* supplied, it is the only thing
+   * that answers "is this account banned" — see the check in `signIn`.
+   */
+  readonly bans?: BanLookup
+}
+
+/**
+ * The half of `BanRepository` a login needs.
+ *
+ * Narrowed to one method on purpose: this service must not grow the ability to
+ * ban, lift or expire. `BanService` owns those, and it takes the whole
+ * repository.
+ */
+export interface BanLookup {
+  findActive(userId: number): Promise<BanRecord | null>
 }
 
 /** Request-scoped facts a filter may match on. */
@@ -132,11 +152,15 @@ export class IdentityService {
   /** Optional (F23): absent on a board with no filters, and in the fixture path. */
   private readonly banFilters: BanFilterRepository | undefined
 
+  /** Optional (F23): absent in the fixture path, which has no ban table. */
+  private readonly bans: BanLookup | undefined
+
   constructor(deps: IdentityDeps) {
     this.store = deps.store
     this.config = deps.config
     this.now = deps.clock ?? (() => new Date())
     this.banFilters = deps.banFilters
+    this.bans = deps.bans
   }
 
   async register(
@@ -359,9 +383,31 @@ export class IdentityService {
       throw new ValidationError('Incorrect username or password.')
     }
 
-    if (account.state === 'banned') {
+    /*
+     * The ban **record**, not the state column.
+     *
+     * A ban is a `bans` row and a group move; F23 deliberately never writes
+     * `users.state`, because a column saying `banned` with no row behind it is
+     * an account nothing can un-ban correctly. So this check — written against
+     * the column — could not fire, and a banned member signed straight back in.
+     * Their sessions had been revoked and their group moved, so the board they
+     * arrived on was mostly empty, which is the reason it went unnoticed: it
+     * looked like a ban to everyone except the person it was for.
+     *
+     * The public reason is what they are shown. `reason` is the staff note and
+     * routinely says things ("linked to the account we banned last week") that
+     * must never be handed to the person it is about — the same rule
+     * `BanService.assertNotBanned` states, which is where this refusal's wording
+     * comes from.
+     */
+    const ban = await this.bans?.findActive(account.id)
+    if (ban || account.state === 'banned') {
       await recordFailure()
-      throw new ForbiddenError('This account is banned.')
+      throw new ForbiddenError(
+        ban?.publicReason
+          ? `This account is banned: ${ban.publicReason}`
+          : 'This account is banned.',
+      )
     }
     if (account.state === 'awaiting_activation') {
       await recordFailure()

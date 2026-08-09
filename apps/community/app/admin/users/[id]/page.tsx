@@ -115,7 +115,14 @@ export default async function AdminMemberPage({
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-heading text-lg font-semibold">State</h2>
-        {member.state === 'banned' ? (
+        {/*
+          The ban record, not the state column. F23 bans by writing a `bans` row
+          and moving the group and never touches `state`, so this branch could
+          not be reached — and the screen went on offering to set a banned
+          member's state, which is the one thing the paragraph below says it must
+          not do.
+        */}
+        {activeBan !== null || member.state === 'banned' ? (
           <p className="text-sm text-muted-foreground">
             This member is banned. Lift the ban below to change their state — flipping the
             column here would leave the ban record active.

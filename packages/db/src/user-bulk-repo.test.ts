@@ -166,6 +166,34 @@ describe('prunePreview', () => {
     expect((await repo.prunePreview(CRITERIA)).sample.map((r) => r.id)).toEqual([1])
   })
 
+  /**
+   * The way a ban is actually recorded, which is not the state column.
+   *
+   * F23 writes a `bans` row and moves the member's group; it never touches
+   * `users.state`, deliberately. So the exclusion above — written as
+   * `state <> 'banned'` — held for a value nothing on this board writes, and the
+   * sweep would have closed exactly the quiet accounts a moderator had banned
+   * while the screen promised in as many words that it would not.
+   */
+  it('excludes an account with an unlifted ban, however its state column reads', async () => {
+    await seed({ id: 1, username: 'ghost' })
+    await seed({ id: 2, username: 'banned-properly' })
+    await db.execute(sql`insert into bans (user_id, created_at) values (2, now())`)
+
+    expect((await repo.prunePreview(CRITERIA)).sample.map((r) => r.id)).toEqual([1])
+  })
+
+  /** And a ban that was lifted is not a reason to keep an account for ever. */
+  it('does not exclude an account whose ban was lifted', async () => {
+    await seed({ id: 1, username: 'ghost' })
+    await seed({ id: 2, username: 'forgiven' })
+    await db.execute(
+      sql`insert into bans (user_id, created_at, lifted_at) values (2, now(), now())`,
+    )
+
+    expect((await repo.prunePreview(CRITERIA)).sample.map((r) => r.id)).toEqual([1, 2])
+  })
+
   it('respects the registration boundary', async () => {
     await seed({ id: 1, username: 'ghost' })
     await seed({ id: 2, username: 'newcomer', createdAt: new Date('2026-01-01T00:00:00Z') })

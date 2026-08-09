@@ -22,6 +22,27 @@ const config = {
     plugins: [] as Array<{ key: string; enabled?: boolean; plugin?: unknown }>,
   },
 }
+/**
+ * `revalidatePath` outside a Next request throws, so an unmocked call turns a
+ * successful action into an error state and the failure reads as a broken
+ * write. Recorded rather than only silenced: which screen an action refreshes
+ * is a claim worth asserting — see the cases that read `revalidated`.
+ *
+ * Spread the real module rather than replacing it. `next/cache` also exports
+ * `unstable_cache`, which modules reached transitively from here call at import
+ * time, so a mock returning only `revalidatePath` makes the file fail to load.
+ */
+const revalidated: string[] = []
+vi.mock('next/cache', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>
+  return {
+    ...actual,
+    revalidatePath: (path: string) => {
+      revalidated.push(path)
+    },
+  }
+})
+
 vi.mock('../../community.config', () => ({
   get default() {
     return config.current
@@ -91,6 +112,7 @@ beforeEach(() => {
   config.current.plugins = [{ key: 'alpha', plugin: ALPHA }]
   adminCalls.length = 0
   invalidated.length = 0
+  revalidated.length = 0
   written.length = 0
   deleted.length = 0
   synced.count = 0
@@ -241,5 +263,26 @@ describe('saving settings', () => {
 
     expect(state.error).toContain('no settings')
     expect(written).toEqual([])
+  })
+})
+
+/**
+ * The two screens a plugin write is read back from.
+ *
+ * The settings tag above is the board's own cache. This is Next's client Router
+ * Cache, which holds the payload the form was rendered with: without it,
+ * switching a plugin off returned its notice above a row still marked as
+ * running, beside a button still offering to turn it off — on the one control an
+ * operator reaches for while a plugin is breaking the board.
+ */
+describe('the screens a plugin write is read back from', () => {
+  it('are refreshed when the switch is thrown', async () => {
+    await setPluginEnabledAction({}, form({ key: 'alpha', enabled: '0' }))
+    expect(revalidated).toEqual(['/admin/plugins', '/admin/plugins/[key]/[[...path]]'])
+  })
+
+  it('are left alone when the key names no installed plugin', async () => {
+    await setPluginEnabledAction({}, form({ key: 'nothing-installed', enabled: '0' }))
+    expect(revalidated).toEqual([])
   })
 })
