@@ -1,6 +1,7 @@
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { seeOther } from '@/server/see-other'
+import { canHoldThreads } from '@meith/forums'
 
 function idFrom(value: string): number | null {
   if (!/^[1-9]\d*$/.test(value)) return null
@@ -15,7 +16,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   if (id === null || actor.userId === null || readState === null) return seeOther('/')
 
   const forum = await forums.findById(id)
-  if (!forum || forum.type !== 'forum') return seeOther('/')
+  if (!forum || !canHoldThreads(forum.type)) return seeOther('/')
   const matrix = await authorizer.forumMatrix(actor, id)
   if (!authorizer.can(actor, 'forum.view', { forumId: id, forum: matrix })) return seeOther('/')
 

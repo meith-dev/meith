@@ -7,6 +7,7 @@ import { buildForumDisplayView } from './forum-display'
 const forum: ForumListingRow = {
   id: 2,
   type: 'forum',
+  allowThreads: true,
   title: 'General',
   slug: 'general',
   description: null,

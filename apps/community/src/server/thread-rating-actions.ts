@@ -6,6 +6,7 @@ import { ThreadRatingService } from '@meith/polls'
 import { getContainer } from './container'
 import { getActor } from './context'
 import { getSettings } from './settings'
+import { canHoldThreads } from '@meith/forums'
 
 const number = (form: FormData, name: string) => {
   const value = Number(form.get(name))
@@ -23,7 +24,7 @@ export async function rateThreadAction(form: FormData): Promise<void> {
     throw new ForbiddenError('You must be logged in to rate a thread.')
   const forumId = await threads.locateForum(threadId)
   const forum = forumId === null ? null : await forums.findById(forumId)
-  if (forumId === null || forum === null || forum.type !== 'forum')
+  if (forumId === null || forum === null || !canHoldThreads(forum.type))
     throw new ValidationError('That thread does not exist.')
   const target = {
     forumId,

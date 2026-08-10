@@ -23,6 +23,11 @@ export interface ThreadToolTarget {
 export interface MoveDestination {
   readonly id: number
   readonly type: 'category' | 'forum' | 'link'
+  readonly allowThreads: boolean
+}
+
+export function keepsThreads(destination: MoveDestination): boolean {
+  return destination.type === 'forum' || (destination.type === 'category' && destination.allowThreads)
 }
 
 export interface ThreadToolRights {
@@ -214,7 +219,7 @@ export class ThreadTools {
     }
 
     const destination = await this.threads.findDestination(input.toForumId)
-    if (destination === null || destination.type !== 'forum') {
+    if (destination === null || !keepsThreads(destination)) {
       throw new ValidationError('That is not a forum threads can live in.')
     }
 
@@ -248,7 +253,7 @@ export class ThreadTools {
     }
 
     const destination = await this.threads.findDestination(input.toForumId)
-    if (destination === null || destination.type !== 'forum') {
+    if (destination === null || !keepsThreads(destination)) {
       throw new ValidationError('That is not a forum threads can live in.')
     }
 

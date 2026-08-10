@@ -109,6 +109,7 @@ function seedSql(staffHash: string): string {
   const forums = SEED_FORUM_ROWS.map((forum) => ({
     id: forum.id,
     type: forum.type,
+    allow_threads: forum.allowThreads,
     title: forum.title,
     slug: forum.slug,
     description: forum.description,

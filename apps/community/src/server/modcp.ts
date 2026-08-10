@@ -12,6 +12,7 @@ import { ModerationQueue } from '@meith/moderation'
 import { getActor } from './context'
 import { getContainer } from './container'
 import { hasReportScope, resolveReportScope } from './report-scope'
+import { canHoldThreads } from '@meith/forums'
 
 export interface ModCpAccess {
   readonly actor: Actor
@@ -100,7 +101,7 @@ export async function moderatedForumRights(
   const resolved = await Promise.all(
     access.forumIds.map(async (forumId): Promise<ModeratedForumRights | null> => {
       const row = rows.find((r) => r.id === forumId)
-      if (row === undefined || row.type !== 'forum') return null
+      if (row === undefined || !canHoldThreads(row.type)) return null
       const rights = await authorizer.moderatorRightsIn(access.actor, forumId)
       return {
         forumId,

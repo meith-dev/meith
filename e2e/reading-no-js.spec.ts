@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { enterAdminPanel, signUp } from './support/session'
+
 test.use({ javaScriptEnabled: false })
 
 test('the fixture board, registration, and login work without JavaScript', async ({ page }, testInfo) => {
@@ -144,4 +146,46 @@ test('the index rail renders, and only its pause control needs JavaScript', asyn
 
   const post = rail.locator('section', { hasText: 'Latest posts' }).locator('li a').first()
   await expect(post).toHaveAttribute('href', /\/thread\/\d+-[^?]+\?post=\d+$/)
+})
+
+test('a category takes threads once an admin turns them on', async ({ browser }) => {
+  const staff = await browser.newContext({ javaScriptEnabled: false })
+  const admin = await staff.newPage()
+  const readerContext = await browser.newContext({ javaScriptEnabled: false })
+  const reader = await readerContext.newPage()
+
+  async function allowThreads(on: boolean): Promise<void> {
+    await admin.goto('/admin/forums')
+    await admin.getByRole('link', { name: 'Options for Main' }).click()
+    const box = admin.getByLabel('Allow new threads')
+    if (on) await box.check()
+    else await box.uncheck()
+    await admin.getByRole('button', { name: 'Save forum' }).click()
+    await expect(admin.getByText('Saved.')).toBeVisible()
+  }
+
+  try {
+    await signUp(reader, 'sections')
+
+    await reader.goto('/10-main')
+    await expect(reader.getByText('No threads here yet')).toHaveCount(0)
+    await expect(reader.getByRole('link', { name: 'New thread' })).toHaveCount(0)
+    await expect(reader.getByRole('link', { name: 'General Discussion', exact: true })).toBeVisible()
+
+    await enterAdminPanel(admin)
+    await allowThreads(true)
+
+    await reader.goto('/10-main')
+    await expect(reader.getByText('No threads here yet')).toBeVisible()
+    await expect(reader.getByRole('link', { name: 'New thread' })).toBeVisible()
+    await expect(reader.getByRole('link', { name: 'General Discussion', exact: true })).toBeVisible()
+
+    await allowThreads(false)
+    await reader.goto('/10-main')
+    await expect(reader.getByText('No threads here yet')).toHaveCount(0)
+    await expect(reader.getByRole('link', { name: 'New thread' })).toHaveCount(0)
+  } finally {
+    await staff.close()
+    await readerContext.close()
+  }
 })

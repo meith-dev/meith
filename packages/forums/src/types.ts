@@ -31,6 +31,7 @@ export interface LastPostSummary {
 }
 
 export interface ForumListingRow extends ForumRow {
+  readonly allowThreads: boolean
   readonly threadCount: number
   readonly postCount: number
   readonly lastPost: LastPostSummary | null

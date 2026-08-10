@@ -1,6 +1,6 @@
 import { ValidationError } from '@meith/core'
 
-import type { MoveDestination } from './thread-tools'
+import { keepsThreads, type MoveDestination } from './thread-tools'
 import type { QueueSelection } from './queue'
 
 export type InlineTool =
@@ -177,7 +177,7 @@ export class InlineModeration {
       throw new ValidationError('You cannot move threads into that forum.')
     }
     const destination = await this.repo.findDestination(toForumId)
-    if (destination === null || destination.type !== 'forum') {
+    if (destination === null || !keepsThreads(destination)) {
       throw new ValidationError('That is not a forum threads can live in.')
     }
   }

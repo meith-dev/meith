@@ -84,10 +84,14 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
 
   async findDestination(forumId: number): Promise<MoveDestination | null> {
     const rows = resultRows(
-      await this.db.execute(sql`select id, type from forums where id = ${forumId}`),
-    ) as Array<{ id: number; type: MoveDestination['type'] }>
+      await this.db.execute(
+        sql`select id, type, allow_threads from forums where id = ${forumId}`,
+      ),
+    ) as Array<{ id: number; type: MoveDestination['type']; allow_threads: boolean }>
     const row = rows[0]
-    return row === undefined ? null : { id: Number(row.id), type: row.type }
+    return row === undefined
+      ? null
+      : { id: Number(row.id), type: row.type, allowThreads: row.allow_threads === true }
   }
 
   async apply(input: {

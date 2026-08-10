@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { hasAnyModeratorRight } from '@meith/authorization'
+import { acceptsThreads, canHoldThreads } from '@meith/forums'
 import { requireSlot } from '@meith/theme-kit'
 
 import { filterView, viewerRef } from '@/server/plugin-view'
@@ -147,7 +148,7 @@ export default async function ForumPage({
   const forum = rows.find((row) => row.id === id)
   if (!forum || !visible.includes(id)) notFound()
 
-  if (forum.type === 'category') {
+  if (forum.type === 'category' && !acceptsThreads(forum)) {
     return (
       <SectionPage
         category={forum}
@@ -159,7 +160,7 @@ export default async function ForumPage({
     )
   }
 
-  if (forum.type !== 'forum') notFound()
+  if (!canHoldThreads(forum.type)) notFound()
   const matrix = await authorizer.forumMatrix(actor, id)
   if (!authorizer.can(actor, 'thread.view', { forumId: id, forum: matrix }))
     notFound()
@@ -177,7 +178,7 @@ export default async function ForumPage({
     : null
   const canPost =
     threadWrites !== null &&
-    forum.type === 'forum' &&
+    acceptsThreads(forum) &&
     authorizer.can(actor, 'thread.post', { forumId: id, forum: matrix })
 
   const moderatorRights = await authorizer.moderatorRightsIn(actor, id)

@@ -1,5 +1,5 @@
 import { buildTree, planMove } from '@meith/forums'
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
@@ -13,8 +13,8 @@ let repo: PostgresForumRepository
 
 async function seedTree(): Promise<void> {
   await db.insert(forums).values([
-    { id: 1, type: 'category', title: 'Category one', slug: 'cat-one', path: '1', depth: 0, displayOrder: 0 },
-    { id: 2, type: 'category', title: 'Category two', slug: 'cat-two', path: '2', depth: 0, displayOrder: 1 },
+    { id: 1, type: 'category', title: 'Category one', slug: 'cat-one', path: '1', depth: 0, displayOrder: 0, allowThreads: false },
+    { id: 2, type: 'category', title: 'Category two', slug: 'cat-two', path: '2', depth: 0, displayOrder: 1, allowThreads: false },
     { id: 4, type: 'forum', title: 'General', slug: 'general', parentId: 1, path: '1.4', depth: 1, displayOrder: 0 },
     { id: 9, type: 'forum', title: 'Off-topic', slug: 'off-topic', parentId: 4, path: '1.4.9', depth: 2, displayOrder: 0 },
     { id: 12, type: 'forum', title: 'Deep', slug: 'deep', parentId: 9, path: '1.4.9.12', depth: 3, displayOrder: 0 },
@@ -229,5 +229,30 @@ describe('create', () => {
     const created = await repo.create({ type: 'forum', title: 'Support', slug: 'support', parentId: 1 })
     await repo.move(created.id, { newParentId: 2 })
     expect((await pathsById()).get(created.id)?.path).toBe(`2.${created.id}`)
+  })
+})
+
+describe('create', () => {
+  it('opens a new forum to threads and leaves a new category closed', async () => {
+    const forum = await repo.create({ type: 'forum', title: 'Talk', slug: 'talk', parentId: 1 })
+    const category = await repo.create({ type: 'category', title: 'Side', slug: 'side', parentId: null })
+
+    const rows = await db
+      .select({ id: forums.id, allowThreads: forums.allowThreads })
+      .from(forums)
+    const flags = new Map(rows.map((row) => [row.id, row.allowThreads]))
+
+    expect(flags.get(forum.id)).toBe(true)
+    expect(flags.get(category.id)).toBe(false)
+  })
+
+  it('reports whether a listed row takes threads', async () => {
+    await db.update(forums).set({ allowThreads: true }).where(eq(forums.id, 2))
+
+    const listed = new Map((await repo.listListing()).map((row) => [row.id, row.allowThreads]))
+
+    expect(listed.get(1)).toBe(false)
+    expect(listed.get(2)).toBe(true)
+    expect(listed.get(4)).toBe(true)
   })
 })

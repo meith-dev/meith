@@ -91,7 +91,7 @@ export class ReplyComposer {
     if (target.visibility !== 'visible') {
       throw new ValidationError('That thread is not available.')
     }
-    if (target.forum.type !== 'forum' || !target.forum.isOpen || !target.forum.allowReplies) {
+    if (target.forum.type === 'link' || !target.forum.isOpen || !target.forum.allowReplies) {
       throw new ValidationError('This forum is closed to replies.')
     }
     if (target.isLocked && !input.bypassesLock) {

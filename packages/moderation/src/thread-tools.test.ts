@@ -18,7 +18,7 @@ const NONE: ThreadToolRights = { lock: false, stick: false, move: false, delete:
 class FakeThreads implements ThreadToolsRepository {
   readonly calls: string[] = []
   target: Partial<ThreadToolTarget> = {}
-  destination: MoveDestination | null = { id: 9, type: 'forum' }
+  destination: MoveDestination | null = { id: 9, type: 'forum', allowThreads: true }
 
   async find(): Promise<ThreadToolTarget | null> {
     if (this.target === null) return null
@@ -142,7 +142,7 @@ describe('ThreadTools', () => {
 
     it.each(['category', 'link'] as const)('refuses a %s as a destination', async (type) => {
       const threads = new FakeThreads()
-      threads.destination = { id: 9, type }
+      threads.destination = { id: 9, type, allowThreads: false }
 
       await expect(
         toolsFor(threads).apply({
@@ -302,7 +302,7 @@ describe('copy', () => {
 
   it('refuses a destination that is not a forum threads can live in', async () => {
     const threads = new FakeThreads()
-    threads.destination = { id: 9, type: 'category' }
+    threads.destination = { id: 9, type: 'category', allowThreads: false }
     await expect(
       toolsFor(threads).apply({
         threadId: 20,
