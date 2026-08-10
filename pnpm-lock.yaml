@@ -72,6 +72,9 @@ importers:
       '@meith/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@meith/demo':
+        specifier: workspace:*
+        version: link:../../packages/demo
       '@meith/drivers':
         specifier: workspace:*
         version: link:../../packages/drivers
@@ -124,6 +127,9 @@ importers:
       '@meith/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@meith/demo':
+        specifier: workspace:*
+        version: link:../../packages/demo
       '@meith/drafts':
         specifier: workspace:*
         version: link:../../packages/drafts
@@ -495,6 +501,33 @@ importers:
       drizzle-kit:
         specifier: ^0.31.6
         version: 0.31.10
+
+  packages/demo:
+    dependencies:
+      '@meith/accounts':
+        specifier: workspace:*
+        version: link:../accounts
+      '@meith/core':
+        specifier: workspace:*
+        version: link:../core
+      '@meith/db':
+        specifier: workspace:*
+        version: link:../db
+      '@meith/markdown':
+        specifier: workspace:*
+        version: link:../markdown
+      '@meith/settings':
+        specifier: workspace:*
+        version: link:../settings
+      '@meith/tasks':
+        specifier: workspace:*
+        version: link:../tasks
+      '@meith/threads':
+        specifier: workspace:*
+        version: link:../threads
+      drizzle-orm:
+        specifier: ^0.44.7
+        version: 0.44.7(@electric-sql/pglite@0.5.4)(mysql2@3.23.2(@types/node@24.10.4))(postgres@3.4.9)
 
   packages/drafts:
     dependencies:

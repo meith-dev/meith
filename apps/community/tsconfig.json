@@ -10,6 +10,8 @@
       "@meith/core/*": ["../../packages/core/src/*"],
       "@meith/db": ["../../packages/db/src/index.ts"],
       "@meith/db/*": ["../../packages/db/src/*"],
+      "@meith/demo": ["../../packages/demo/src/index.ts"],
+      "@meith/demo/*": ["../../packages/demo/src/*"],
       "@meith/drivers": ["../../packages/drivers/src/index.ts"],
       "@meith/drivers/images": ["../../packages/drivers/src/images/index.ts"],
       "@meith/drivers/*": ["../../packages/drivers/src/*"],

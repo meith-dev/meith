@@ -1,0 +1,115 @@
+# demo.meith.dev — a public board that throws itself away every hour.
+#
+# A third Coolify resource beside the other two, from the same repository and
+# the same instance: the board at community.meith.dev, the site at meith.dev,
+# and this. Nobody self-hosting a board needs this file.
+#
+# It is **not** `docker-compose.coolify.yml` with a flag added. Three things are
+# deliberately different, and each is the flag's doing:
+#
+#  - **No worker.** The reset has to clear the web server's cache, and the
+#    worker is a different process holding a different map — a reset it ran
+#    would leave the board serving a forum tree that no longer exists. So the
+#    tick is driven against the web server instead, by the `ticker` service
+#    below, and every task runs in the process that can see the consequences.
+#  - **No volumes.** Not an oversight: a redeploy should be as clean as a reset.
+#    Postgres data and uploads both live in the container's own layer and go
+#    when it does.
+#  - **`seed` in place of `migrate`.** `demo:reset` drops, migrates and writes
+#    the board in one command, so the first visitor after a deploy finds a
+#    finished board rather than an empty one with `/install` open on it.
+#
+# Requires Coolify v4.0.0-beta.411 or newer, as the other two files do.
+# See docs/demo-mode.md.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: community
+      POSTGRES_PASSWORD: $SERVICE_PASSWORD_POSTGRES
+      POSTGRES_DB: community
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U community -d community']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Runs to completion, then exits. `web` waits for it.
+  #
+  # This is the same command the hourly reset runs, which is the point: the
+  # board a visitor lands on one minute after a deploy is byte-for-byte the
+  # board they would land on one minute after any reset. A deploy is not a
+  # special case that only gets exercised on deploy day.
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ['node', 'apps/cli/cli.cjs', 'demo:reset', '--yes']
+    environment:
+      DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
+      DATA_SOURCE: postgres
+      DEMO_MODE: '1'
+      AUTH_SECRET: $SERVICE_BASE64_64_AUTH
+      TICK_SECRET: $SERVICE_BASE64_64_TICK
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - SERVICE_FQDN_WEB_3000
+      - APP_URL=$SERVICE_URL_WEB
+      - DATABASE_URL=postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
+      - DATA_SOURCE=postgres
+      - AUTH_SECRET=$SERVICE_BASE64_64_AUTH
+      # Not decoration here: the ticker below presents this on every request,
+      # and the tick is what resets the board. An unset TICK_SECRET is a reset
+      # anybody on the internet can drive.
+      - TICK_SECRET=$SERVICE_BASE64_64_TICK
+      - QUEUE_DRIVER=postgres
+      - CACHE_DRIVER=next
+      - FILESTORE_DRIVER=local
+      # Reads as belt and braces, and is not: demo mode pins mail to nowhere in
+      # code, before the environment and before the settings table. This line is
+      # here so that an operator reading the file is not left wondering.
+      - MAIL_DRIVER=log
+      - DEMO_MODE=1
+      - DEMO_RESET_MINUTES=${DEMO_RESET_MINUTES:-60}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+
+  # The tick, as a curl loop rather than a process.
+  #
+  # A board normally runs `docker-compose.coolify.yml`'s worker for this. A demo
+  # cannot: see the note at the top of this file.
+  ticker:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    environment:
+      - TICK_SECRET=$SERVICE_BASE64_64_TICK
+    # `--max-time 300` because one tick an hour is the reset, and that one drops
+    # the schema and replays every migration before it answers. The sleep is
+    # after the request rather than beside it, so a slow tick delays the next
+    # one instead of overlapping it.
+    command:
+      - sh
+      - -c
+      - |
+        while true; do
+          curl -fsS --max-time 300 \
+            -H "Authorization: Bearer $$TICK_SECRET" \
+            http://web:3000/api/system/tick > /dev/null || true
+          sleep 60
+        done
+    depends_on:
+      - web

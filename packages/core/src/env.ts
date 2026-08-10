@@ -12,6 +12,13 @@ const secret = z
   .string()
   .min(32, "must be at least 32 characters of high-entropy random data")
 
+// Deliberately not z.coerce.boolean(), which reads "false" as true. A typo in a
+// flag that disarms mail and webhooks should stop the boot, not be rounded up.
+const flag = z
+  .enum(["0", "1", "true", "false"], { message: "must be one of 0, 1, true or false" })
+  .default("0")
+  .transform((value) => value === "1" || value === "true")
+
 const envSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -61,6 +68,13 @@ const envSchema = z
 
     ADMIN_IP_ALLOWLIST: z.string().optional(),
 
+    // A public demo board: seeded content, published credentials, and a reset on
+    // a timer. It is not a lighter board — it is the whole board with the
+    // outbound surfaces disarmed, because everybody who visits is an
+    // administrator. See docs/demo-mode.md.
+    DEMO_MODE: flag,
+    DEMO_RESET_MINUTES: z.coerce.number().int().min(5).max(1440).default(60),
+
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   })
   .superRefine((value, ctx) => {
@@ -69,6 +83,16 @@ const envSchema = z
         code: z.ZodIssueCode.custom,
         path: ["DATABASE_URL"],
         message: "is required when DATA_SOURCE=postgres",
+      })
+    }
+
+    if (value.DEMO_MODE && value.DATA_SOURCE !== "postgres") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["DEMO_MODE"],
+        message:
+          "requires DATA_SOURCE=postgres. A demo whose visitors cannot post is " +
+          "a screenshot, and fixture mode has no write side to offer them.",
       })
     }
 
@@ -257,3 +281,4 @@ export function resetEnvForTests(): void {
 
 export const isProduction = (): boolean => assertEnv().NODE_ENV === "production"
 export const isTest = (): boolean => assertEnv().NODE_ENV === "test"
+export const isDemoMode = (): boolean => assertEnv().DEMO_MODE

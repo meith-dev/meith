@@ -96,6 +96,7 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 | Running a board | [`operating.md`](./docs/operating.md) | The operator handbook. Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
 | Running a board | [`upgrading.md`](./docs/upgrading.md) | How to take a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
 | Running a board | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
+| Running a board | [`demo-mode.md`](./docs/demo-mode.md) | A public board with its password printed on it, seeded with content, that deletes everything and rebuilds itself on a timer. What runs at demo.meith.dev. |
 | Advanced deployment | [`self-hosting.md`](./docs/self-hosting.md) | The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Advanced — the Quickstart is the route most boards should take. |
 | Themes | [`theme-api.md`](./docs/theme-api.md) | What the freeze covers, what a theme may do, and how to write one. |
 | Themes | [`theme-slots.md`](./docs/theme-slots.md) | Every slot and every view model, generated from the theme registry. *(generated)* |

@@ -49,6 +49,7 @@ import type {
 } from '@meith/threads'
 import type { TaskDefinition, TaskRepository } from '@meith/tasks'
 import { imageProcessor } from '@meith/drivers/images'
+import { demoResetTask } from '@meith/demo'
 import { buildSchedulerBundle } from '@meith/runtime'
 import {
   getDb,
@@ -96,6 +97,7 @@ import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
 import { FixturePostRepository } from './fixture-post-repo'
 import { FixtureThreadRepository } from './fixture-thread-repo'
+import { clearUploadedFiles } from './demo-uploads'
 import { activeDefinitions } from './plugin-host'
 import { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_GROUP } from './seed-board'
 
@@ -298,16 +300,43 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     fixtureDataVersion: null,
     accountStore: store,
     ...identityServices(store, new PostgresBanRepository(db)),
-    scheduler: buildSchedulerBundle({
-      queue: drivers().queue,
+    scheduler: withDemoReset(
+      buildSchedulerBundle({
+        queue: drivers().queue,
+        db,
+        mail: drivers().mail,
+        themeKey: forumConfig.defaultTheme,
+        files: drivers().files,
+        images: imageProcessor,
+        plugins: activeDefinitions(),
+      }),
       db,
-      mail: drivers().mail,
-      themeKey: forumConfig.defaultTheme,
-      files: drivers().files,
-      images: imageProcessor,
-      plugins: activeDefinitions(),
-    }),
+    ),
     dataSource: 'postgres',
+  }
+}
+
+/**
+ * The reset is registered here rather than in `buildSchedulerBundle` because
+ * this is the only composition root with a cache to clear afterwards. The
+ * worker's `NextCacheDriver` is a different process holding a different map, so
+ * a reset it ran would leave this process serving the forum tree of a board
+ * that no longer exists — for up to the tree's 60-second TTL, on the one page
+ * every visitor lands on.
+ */
+function withDemoReset(bundle: SchedulerBundle, db: ReturnType<typeof getDb>): SchedulerBundle {
+  if (!env.DEMO_MODE) return bundle
+
+  return {
+    ...bundle,
+    tasks: [
+      ...bundle.tasks,
+      demoResetTask({
+        db,
+        cache: drivers().cache,
+        clearUploads: () => clearUploadedFiles(),
+      }),
+    ],
   }
 }
 

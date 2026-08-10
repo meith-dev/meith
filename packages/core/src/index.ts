@@ -6,6 +6,7 @@ export {
   resetEnvForTests,
   isProduction,
   isTest,
+  isDemoMode,
   type Env,
 } from "./env"
 export type {

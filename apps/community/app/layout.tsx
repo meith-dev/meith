@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 
 import { env } from "@meith/core"
 import { resolveBoardUrl } from "@meith/settings"
+import { DemoBanner } from "@/components/shell/demo-banner"
 import { GroupNameStyle } from "@/components/shell/group-name-style"
 import { ThemeRuntimeStyle } from "@/components/shell/theme-runtime-style"
 import { getSettings } from "@/server/settings"
@@ -93,6 +94,7 @@ export default async function RootLayout({
         <GroupNameStyle />
       </head>
       <body className="font-sans antialiased">
+        <DemoBanner />
         {children}
         {env.NODE_ENV === "production" && <Analytics />}
       </body>

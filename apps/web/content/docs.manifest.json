@@ -90,6 +90,15 @@
       "primary": false
     },
     {
+      "slug": "demo-mode",
+      "file": "demo-mode.md",
+      "section": "running",
+      "title": "Demo mode",
+      "blurb": "A public board with its password printed on it, seeded with content, that deletes everything and rebuilds itself on a timer. What runs at demo.meith.dev.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "self-hosting",
       "file": "self-hosting.md",
       "section": "advanced",

@@ -12,6 +12,7 @@ import { adminService } from './admin'
 import { AVATAR_FIELD, canUploadAvatar, requireAvatarService } from './avatars'
 import { getActor } from './context'
 import { getContainer } from './container'
+import { assertDemoAccountChangeable } from './demo'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
 import { signatureStore, viewerSignatureLimits } from './signatures'
 import { sendEmailChangeConfirmation } from './usercp-mail'
@@ -100,6 +101,8 @@ export async function changePasswordAction(
   try {
     const { service, userId } = await requireOwnSettings()
 
+    await assertDemoAccountChangeable(userId, 'password')
+
     const next = text(form, 'newPassword')
     if (next !== text(form, 'confirmPassword')) {
       return { error: 'The two new passwords do not match.' }
@@ -131,6 +134,8 @@ export async function requestEmailChangeAction(
   let pending: { token: string; email: string }
   try {
     const { service, userId } = await requireOwnSettings()
+
+    await assertDemoAccountChangeable(userId, 'email')
 
     pending = await service.requestEmailChange({
       userId,
