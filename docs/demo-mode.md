@@ -46,7 +46,9 @@ carrying eighty-nine posts, and sixteen members with join dates spread over two
 years. There is a poll with votes in it, a sticky, a locked thread, private
 messages in the administrator's inbox, a post held in the moderation queue and
 an open report against another that got through. An empty ModCP demonstrates
-nothing, so it is not empty.
+nothing, so it is not empty. Two replies quote the post they answer, so the
+attribution — the member's name, linked, and the link back to what was quoted —
+is on the board rather than only in these documents.
 
 Every timestamp is an **offset from the reset**, not a date. The newest post is
 always minutes old and the board is always six hundred days into its life,
