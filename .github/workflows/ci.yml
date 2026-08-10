@@ -287,6 +287,46 @@ jobs:
         if: always()
         run: docker rm -f forum-web forum-worker 2>/dev/null || true
 
+  # meith.dev's own image. A different app, Dockerfile and Next config branch
+  # from the board above, so a green `image` job says nothing about it.
+  site-image:
+    name: The site image serves meith.dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the site image
+        run: docker build -f Dockerfile.site -t meith-site:ci .
+
+      - name: Boot it
+        run: |
+          docker run -d --name meith-site --network host meith-site:ci
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:3100/ >/dev/null 2>&1; then
+              echo "site up after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::the site never answered"
+          docker logs meith-site
+          exit 1
+
+      # The doc routes read docs/ at request time and 500 when the image ships
+      # the standalone output alone, which the landing page cannot show. So
+      # each one is asked for by name.
+      - name: It renders, docs included
+        run: |
+          curl -fsS http://127.0.0.1:3100/ | grep -q '<main' \
+            || { echo "::error::the landing page did not render"; docker logs meith-site; exit 1; }
+          for path in /docs /docs/quickstart /llms.txt /docs/search-index.json /sitemap.xml /robots.txt; do
+            curl -fsS "http://127.0.0.1:3100$path" >/dev/null \
+              || { echo "::error::$path failed"; docker logs meith-site; exit 1; }
+          done
+
+      - name: Stop
+        if: always()
+        run: docker rm -f meith-site 2>/dev/null || true
+
   compose:
     name: Both self-hosting shapes come up
     runs-on: ubuntu-latest
@@ -303,6 +343,7 @@ jobs:
           SERVICE_BASE64_64_TICK: stub
           SERVICE_URL_WEB: http://127.0.0.1:3000
           SERVICE_FQDN_WEB_3000: 127.0.0.1
+          SERVICE_FQDN_SITE_3100: 127.0.0.1
           POSTGRES_PASSWORD: stub
           AUTH_SECRET: stub-auth-secret-stub-auth-secret
           TICK_SECRET: stub-tick-secret-stub-tick-secret
@@ -310,6 +351,7 @@ jobs:
           docker compose -f docker-compose.yml config >/dev/null
           docker compose -f docker-compose.coolify.yml config >/dev/null
           docker compose -f docker-compose.dev.yml config >/dev/null
+          docker compose -f docker-compose.site.coolify.yml config >/dev/null
 
       # docs/self-hosting.md tells an operator to write a `.env` and run one
       # command. This job is that, verbatim, because three separate bugs got
