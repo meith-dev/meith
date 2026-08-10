@@ -72,7 +72,10 @@ describe('definePlugin', () => {
   })
 
   describe('migrations', () => {
-    const migration = (id: string) => ({ id, statements: ['select 1'] })
+    const migration = (id: string) => ({
+      id,
+      statements: ['create table if not exists plugin_example_note (id serial primary key)'],
+    })
 
     it('accepts ascending ids', () => {
       expect(() =>
@@ -100,6 +103,70 @@ describe('definePlugin', () => {
       expect(() => plugin({ migrations: [{ id: '0001_empty', statements: [] }] })).toThrow(
         /no statements/,
       )
+    })
+
+    const single = (statement: string) => ({
+      migrations: [{ id: '0001_init', statements: [statement] }],
+    })
+
+    it.each([
+      'create table notes (id int)',
+      'create table plugin_other_notes (id int)',
+      'alter table users add column plugin_example_flag boolean',
+      'drop table posts',
+      'create index plugin_example_idx on users (id)',
+      'create index users_idx on plugin_example_note (id)',
+      'insert into settings values (1)',
+      'update usergroups set title = 1',
+      'delete from user_group_memberships',
+      'truncate users',
+    ])('refuses DDL and writes outside the prefix: %s', (statement) => {
+      expect(() => plugin(single(statement))).toThrow(/namespace|plugin_example_/)
+    })
+
+    it.each([
+      'select 1',
+      'grant all on plugin_example_note to public',
+      'set statement_timeout = 0',
+      'create extension pgcrypto',
+    ])('refuses a statement form migrations may not use: %s', (statement) => {
+      expect(() => plugin(single(statement))).toThrow(/not a form plugin/)
+    })
+
+    it('refuses a foreign key that reaches a core table', () => {
+      expect(() =>
+        plugin(
+          single(
+            'create table plugin_example_pass (id serial primary key, user_id int references users(id))',
+          ),
+        ),
+      ).toThrow(/foreign key/)
+    })
+
+    it.each([
+      'create table if not exists plugin_example_note (id serial primary key)',
+      'CREATE TABLE "plugin_example_caps" (id int)',
+      'create table public.plugin_example_schema (id int)',
+      'alter table plugin_example_note add column note text',
+      'create unique index if not exists plugin_example_note_key on plugin_example_note (note)',
+      'insert into plugin_example_note (note) values ($1)',
+      "update plugin_example_note set note = 'x'",
+      'delete from plugin_example_note where id = 1',
+      'comment on table plugin_example_note is s',
+      'create table plugin_example_pair (a int references plugin_example_note(id))',
+    ])('accepts its own namespace: %s', (statement) => {
+      expect(() => plugin(single(statement))).not.toThrow()
+    })
+
+    it('a hyphenated key namespaces with underscores', () => {
+      expect(() =>
+        plugin({
+          key: 'two-words',
+          migrations: [
+            { id: '0001_init', statements: ['create table plugin_two_words_note (id int)'] },
+          ],
+        }),
+      ).not.toThrow()
     })
   })
 

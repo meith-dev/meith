@@ -27,6 +27,7 @@ export {
   definePlugin,
   pluginAdminPath,
   pluginSettingKey,
+  pluginTablePrefix,
   pluginTaskId,
   type EventHandler,
   type FilterHandler,
@@ -70,7 +71,12 @@ export {
 } from './host'
 
 export {
+  unavailablePluginData,
   unavailablePluginGrants,
+  unavailablePluginUsers,
+  type PluginData,
   type PluginGrantRow,
   type PluginGrants,
+  type PluginUserRef,
+  type PluginUsers,
 } from './runtime'

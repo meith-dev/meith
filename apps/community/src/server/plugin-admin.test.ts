@@ -73,8 +73,8 @@ const ALPHA = {
     { key: 'verbose', label: 'Verbose', default: false },
   ],
   migrations: [
-    { id: '0001_first', statements: ['select 1'] },
-    { id: '0002_second', statements: ['select 1'] },
+    { id: '0001_first', statements: ['create table plugin_alpha_first (id int)'] },
+    { id: '0002_second', statements: ['create table plugin_alpha_second (id int)'] },
   ],
   tasks: [{ id: 'sweep', intervalSeconds: 300, run: () => {} }],
   adminPages: [{ path: 'report', title: 'Report', render: () => null }],

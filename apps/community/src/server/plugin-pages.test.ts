@@ -19,11 +19,13 @@ vi.mock('./settings', () => ({ getSettingOverrides: async () => overrides.curren
 const logged: unknown[] = []
 vi.mock(import('@meith/core'), async (importOriginal) => ({
   ...(await importOriginal()),
-  logger: () => ({
+  logger: (() => ({
     info: () => {},
     warn: () => {},
-    error: (detail: unknown) => logged.push(detail),
-  }),
+    error: (detail: unknown) => {
+      logged.push(detail)
+    },
+  })) as never,
 }))
 
 const { renderPluginAdminPage } = await import('./plugin-pages')
@@ -96,14 +98,24 @@ describe('what crosses the boundary', () => {
     overrides.current = new Map([['plugin.alpha.batch', '42']])
     await renderPluginAdminPage('alpha', 'report')
 
-    expect(Object.keys(handed as object).sort()).toEqual(['grants', 'logger', 'settings'])
+    expect(Object.keys(handed as object).sort()).toEqual([
+      'data',
+      'grants',
+      'logger',
+      'settings',
+      'users',
+    ])
     expect((handed as { settings: unknown }).settings).toEqual({ batch: 42 })
   })
 
-  it('hands out grants that refuse cleanly when the board runs on sample data', async () => {
+  it('hands out grants and data that refuse cleanly when the board runs on sample data', async () => {
     await renderPluginAdminPage('alpha', 'report')
-    const grants = (handed as { grants: { list(userId: number): Promise<unknown> } }).grants
-    await expect(grants.list(1)).rejects.toThrow(/sample data/)
+    const context = handed as {
+      grants: { list(userId: number): Promise<unknown> }
+      data: { query(text: string): Promise<unknown> }
+    }
+    await expect(context.grants.list(1)).rejects.toThrow(/sample data/)
+    await expect(context.data.query('select 1')).rejects.toThrow(/sample data/)
   })
 })
 

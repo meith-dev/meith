@@ -20,6 +20,15 @@ vi.mock('@meith/db', () => ({
     revoke: async () => {},
     list: async () => [],
   }),
+  pluginData: () => ({
+    query: async () => [],
+    one: async () => null,
+    tx: async () => undefined,
+  }),
+  pluginUsers: () => ({
+    byUsername: async () => null,
+    byId: async () => null,
+  }),
 }))
 
 const { pluginTasks } = await import('./plugin-tasks')

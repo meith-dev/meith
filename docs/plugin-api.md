@@ -71,7 +71,7 @@ These are not discouraged. There is no API for them.
 | Decide authorization | No hook filters `authorization.can()`, and none ever will. A plugin able to change that answer is a plugin able to grant itself anything. The one, narrow exception — putting a member in a group the operator pre-approved, for a limited time — is below, and the design of its refusals is what keeps it from being this row |
 | Reach inside the visibility filter | No hook sits in the query path. A plugin that could rewrite a `where` clause could publish a private forum, and no amount of isolation makes that recoverable |
 | See an `Actor` | Payloads carry `{ userId, isGuest }`. An `Actor` carries resolved group membership, which invites a plugin to make its own permission decision from group ids |
-| Open a database connection | Migrations are SQL text the host runs. A plugin does not import `@meith/db` |
+| Open a database connection | A plugin does not import `@meith/db` and never holds a connection. Its own tables are reachable through `context.data` — host-run, parameterised, under a database-side timeout — and its migrations can only create objects under its own prefix |
 | Patch core | There is no monkey-patching seam and no way to replace a domain command |
 | Fill a theme slot | A theme owns its slots. Plugins contribute to *regions* — see below |
 
@@ -179,9 +179,11 @@ a slash in a page path escapes the admin prefix.
 
 `context.grants` — on every runtime context — is the only write a plugin gets
 against the board's own data: it can put a member in a usergroup **until a
-date**. That is the whole API, and it is enough to build paid membership,
-trials, and time-boxed access, because a usergroup already carries forum
-permissions, a badge and a name colour.
+date**. That is the whole API, deliberately. A usergroup already carries forum
+permissions, a badge and a name colour, so time-limited membership of one is a
+complete building block — a paid pass, a trial, a course cohort, an event's
+temporary access, a reward a member can gift to another — and the host does
+not know or care which of these a plugin is building.
 
 ```ts
 await context.grants.grant({ userId, groupKey: 'supporters', until, reason: 'order 42 paid' })
@@ -209,6 +211,11 @@ A grant is always an additive secondary membership: `primary_group_id` and
 member is displayed or what happens when the grant ends — they fall back to
 exactly what they were.
 
+`grant` takes a plain `userId`, and nothing ties it to whoever is acting: who
+may cause a grant for whom — a member for themselves, one member for another,
+an automated rule for anyone — is the plugin's own policy, decided in its own
+code with its own records.
+
 **Expiry is true at the read, not enforced by a sweep.** Actor assembly skips
 a lapsed row, so access ends at the boundary even if no task ever runs again —
 uninstalling the plugin, stopping the tick, or the plugin's own bugs cannot
@@ -219,6 +226,63 @@ a stale or replayed call cannot shorten what a member already holds.
 
 Where the board runs on fixture data there is no membership table; every call
 rejects with a clear error rather than pretending.
+
+## A database of its own
+
+`context.data` — on every runtime context — reads and writes the tables this
+plugin's migrations created. Three methods, parameterised only:
+
+```ts
+await context.data.query('insert into plugin_example_entry (user_id, note) values ($1, $2)', [userId, note])
+const row = await context.data.one('select * from plugin_example_entry where user_id = $1', [userId])
+await context.data.tx(async (tx) => {
+  // everything in here commits together or not at all
+})
+```
+
+Three properties are the contract:
+
+- **Values travel as `$1`, `$2`, …** and are bound by the driver. There is no
+  string-building helper on purpose — the ordinary path is the safe one.
+- **Every call runs under a database-side `statement_timeout`** — short in a
+  page render, longer in a task. This is the one timeout in the plugin API
+  that actually holds, because Postgres can abort a query where JavaScript
+  cannot abort a handler.
+- **`tx` is a real transaction.** A throw rolls the whole body back; a nested
+  `tx` joins the outer one rather than opening a second.
+
+### The namespace is enforced where it can be
+
+`definePlugin` refuses a migration whose statements create, alter, drop or
+fill anything not named `plugin_<key>_*` (hyphens in the key become
+underscores) — and refuses a foreign key that reaches outside that namespace,
+because a plugin table referencing a core one couples the plugin's schema to
+the board's and breaks the moment either migrates. Copy ids into plain
+columns instead; the reconcile-and-sweep shape handles rows whose subject has
+since gone.
+
+Stated honestly: this is a rail, not a sandbox. Plugin code runs in the
+host's process, and `context.data` does not rewrite queries — a plugin *can*
+select from a core table, the way any code in the process can. The migration
+rule guards the part that would corrupt a board (a plugin altering somebody
+else's schema); the rest is the same trust you extended when you installed
+the code. There is no per-plugin database role today; if that changes, the
+contract here does not.
+
+## Looking up a member
+
+`context.users` resolves a member to the pair a plugin is allowed to see —
+`{ userId, username }` — by name or by id:
+
+```ts
+const recipient = await context.users.byUsername(input)   // null if unknown
+```
+
+It exists because a plugin's own records point at members, and its UI asks
+for them by name — "award this to @name" needs an id before anything can be
+stored. Deleted accounts do not resolve. Nothing richer is exposed — no
+email, no state, no groups — for the same reason payloads carry a `ViewerRef`
+and not an `Actor`.
 
 ## Migrations
 

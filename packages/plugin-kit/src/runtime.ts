@@ -58,3 +58,73 @@ export function unavailablePluginGrants(reason: string): PluginGrants {
   }
   return { grant: refuse, extend: refuse, revoke: refuse, list: refuse }
 }
+
+/**
+ * A plugin's window onto its own tables — the ones its migrations created
+ * under the `plugin_<key>_` prefix.
+ *
+ * Parameterised only: values travel as `$1`, `$2`, … and there is no
+ * string-building helper on purpose, so the ordinary path is the safe one.
+ * Every statement runs under a database-side `statement_timeout`, which is a
+ * limit that actually holds — unlike a JavaScript "timeout", which cannot
+ * abort anything.
+ *
+ * This is a contract, not a sandbox: plugin code runs in the host's process
+ * and its queries are not rewritten. The prefix rule is enforced where it can
+ * be — on what migrations may create — and stated honestly here for the rest.
+ */
+export interface PluginData {
+  query<T extends Record<string, unknown> = Record<string, unknown>>(
+    text: string,
+    params?: readonly unknown[],
+  ): Promise<readonly T[]>
+
+  /** The first row, or null. For the `limit 1` shape every lookup takes. */
+  one<T extends Record<string, unknown> = Record<string, unknown>>(
+    text: string,
+    params?: readonly unknown[],
+  ): Promise<T | null>
+
+  /**
+   * Everything inside `work` commits together or not at all. A nested `tx`
+   * joins the outer transaction rather than opening a second one.
+   */
+  tx<T>(work: (data: PluginData) => Promise<T>): Promise<T>
+}
+
+/** The shape handed out where no database exists (fixture mode). Every call rejects. */
+export function unavailablePluginData(reason: string): PluginData {
+  const refuse = async (): Promise<never> => {
+    throw new Error(`Plugin data access is unavailable: ${reason}`)
+  }
+  return { query: refuse, one: refuse, tx: refuse }
+}
+
+/**
+ * A member, as a plugin is allowed to see one: an id and a public name.
+ * Deliberately nothing else — no email, no state, no groups. The same
+ * philosophy as hook payloads carrying a `ViewerRef` rather than an `Actor`.
+ */
+export interface PluginUserRef {
+  readonly userId: number
+  readonly username: string
+}
+
+/**
+ * Resolving members a plugin's own records point at, or that its UI asks for
+ * by name — "award this to @name" needs an id before anything can be stored
+ * against it. Lookups exclude deleted accounts; anything richer than
+ * existence is not a plugin's to know.
+ */
+export interface PluginUsers {
+  byUsername(username: string): Promise<PluginUserRef | null>
+  byId(userId: number): Promise<PluginUserRef | null>
+}
+
+/** The shape handed out where no database exists (fixture mode). Every call rejects. */
+export function unavailablePluginUsers(reason: string): PluginUsers {
+  const refuse = async (): Promise<never> => {
+    throw new Error(`Plugin user lookup is unavailable: ${reason}`)
+  }
+  return { byUsername: refuse, byId: refuse }
+}

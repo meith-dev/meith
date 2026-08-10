@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { isHookName, type HOOKS, type HookName } from './hooks'
 import type { HookContext, HookValue } from './payloads'
 import { isPluginRegion, type PluginRegion, type PluginRegionContext } from './regions'
-import type { PluginGrants } from './runtime'
+import type { PluginData, PluginGrants, PluginUsers } from './runtime'
 
 export type FilterHandler<K extends HookName> = (
   value: HookValue<K>,
@@ -67,6 +67,8 @@ export interface PluginRuntimeContext {
     readonly error: (message: string, detail?: Record<string, unknown>) => void
   }
   readonly grants: PluginGrants
+  readonly data: PluginData
+  readonly users: PluginUsers
 }
 
 export interface PluginDefinition {
@@ -96,6 +98,90 @@ const SETTING_KEY_PATTERN = /^[a-z][a-z0-9_]{1,39}$/
 const MIGRATION_ID_PATTERN = /^\d{4}_[a-z0-9_]{1,60}$/
 const TASK_ID_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
 const PAGE_PATH_PATTERN = /^[a-z][a-z0-9-]{0,39}$/
+
+/** Every object a plugin's migrations create lives under this prefix. */
+export function pluginTablePrefix(pluginKey: string): string {
+  return `plugin_${pluginKey.replace(/-/g, '_')}_`
+}
+
+/**
+ * The statement forms a plugin migration may use, each with the identifiers
+ * that must carry the plugin's prefix. This is a rail, not a SQL parser: it
+ * recognises the shapes migrations are actually written in, and refuses what
+ * it does not recognise — the failure mode of a too-strict rule is a clear
+ * error at definition time, where the failure mode of a too-loose one is a
+ * plugin quietly altering somebody else's table.
+ */
+const MIGRATION_FORMS: readonly {
+  readonly pattern: RegExp
+  readonly describe: string
+}[] = [
+  { pattern: /^create\s+table(?:\s+if\s+not\s+exists)?\s+(\S+)/i, describe: 'create table' },
+  { pattern: /^alter\s+table(?:\s+if\s+exists)?(?:\s+only)?\s+(\S+)/i, describe: 'alter table' },
+  { pattern: /^drop\s+table(?:\s+if\s+exists)?\s+(\S+)/i, describe: 'drop table' },
+  {
+    pattern:
+      /^create\s+(?:unique\s+)?index(?:\s+if\s+not\s+exists)?\s+(\S+)\s+on\s+(\S+)/i,
+    describe: 'create index',
+  },
+  { pattern: /^drop\s+index(?:\s+if\s+exists)?\s+(\S+)/i, describe: 'drop index' },
+  { pattern: /^create\s+sequence(?:\s+if\s+not\s+exists)?\s+(\S+)/i, describe: 'create sequence' },
+  { pattern: /^create\s+(?:or\s+replace\s+)?view\s+(\S+)/i, describe: 'create view' },
+  { pattern: /^insert\s+into\s+(\S+)/i, describe: 'insert into' },
+  { pattern: /^update\s+(\S+)/i, describe: 'update' },
+  { pattern: /^delete\s+from\s+(\S+)/i, describe: 'delete from' },
+  { pattern: /^truncate(?:\s+table)?\s+(\S+)/i, describe: 'truncate' },
+  { pattern: /^comment\s+on\s+(?:table|column|index|view)\s+(\S+)/i, describe: 'comment on' },
+]
+
+function bareIdentifier(raw: string): string {
+  let name = raw.replace(/[(;,].*$/s, '').replace(/"/g, '').toLowerCase()
+  if (name.startsWith('public.')) name = name.slice('public.'.length)
+  // A column comment names the table part: comment on column t.c is checked as t.
+  const dot = name.indexOf('.')
+  return dot === -1 ? name : name.slice(0, dot)
+}
+
+function assertMigrationStatement(where: string, prefix: string, statement: string): void {
+  const trimmed = statement.trim()
+
+  const form = MIGRATION_FORMS.map((candidate) => ({
+    candidate,
+    match: trimmed.match(candidate.pattern),
+  })).find((entry) => entry.match !== null)
+
+  if (form === undefined || form.match === null) {
+    throw new Error(
+      `${where}: migration statement "${trimmed.slice(0, 60)}…" is not a form plugin ` +
+        `migrations may use. Migrations create and fill this plugin's own ${prefix}* ` +
+        'objects; anything else belongs to core or to a query at runtime.',
+    )
+  }
+
+  for (const raw of form.match.slice(1)) {
+    const name = bareIdentifier(raw)
+    if (!name.startsWith(prefix)) {
+      throw new Error(
+        `${where}: ${form.candidate.describe} "${name}" is outside this plugin's namespace. ` +
+          `Every object a plugin's migrations touch must be named ${prefix}* — that is what ` +
+          'lets two plugins coexist and keeps either out of the board’s own tables.',
+      )
+    }
+  }
+
+  // A foreign key to a core table couples this plugin's schema to the board's
+  // and outlives the plugin. Ids are copied, not referenced.
+  for (const match of trimmed.matchAll(/references\s+(\S+)/gi)) {
+    const target = bareIdentifier(match[1] as string)
+    if (!target.startsWith(prefix)) {
+      throw new Error(
+        `${where}: a foreign key to "${target}" reaches outside this plugin's namespace. ` +
+          'Store the id as a plain column instead — a plugin table must not couple itself ' +
+          'to the board’s schema.',
+      )
+    }
+  }
+}
 
 export function definePlugin(plugin: PluginDefinition): PluginDefinition {
   const where = `definePlugin("${plugin.key}")`
@@ -165,6 +251,13 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
   for (const migration of plugin.migrations ?? []) {
     if (migration.statements.length === 0) {
       throw new Error(`${where}: migration "${migration.id}" has no statements.`)
+    }
+    for (const statement of migration.statements) {
+      assertMigrationStatement(
+        `${where}, migration "${migration.id}"`,
+        pluginTablePrefix(plugin.key),
+        statement,
+      )
     }
   }
 

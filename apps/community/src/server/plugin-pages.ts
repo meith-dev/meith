@@ -1,22 +1,41 @@
 import 'server-only'
 
 import { env, logger } from '@meith/core'
-import { getDb, pluginGrants } from '@meith/db'
+import { getDb, pluginData, pluginGrants, pluginUsers } from '@meith/db'
 import {
   resolvePluginSettings,
+  unavailablePluginData,
   unavailablePluginGrants,
+  unavailablePluginUsers,
+  type PluginData,
   type PluginDefinition,
   type PluginGrants,
+  type PluginUsers,
 } from '@meith/plugin-kit'
 import type { ReactNode } from 'react'
 
 import forumConfig from '../../community.config'
 import { getSettingOverrides } from './settings'
 
+/** Short: this runs inside a page render or a request-path route handler. */
+const REQUEST_STATEMENT_TIMEOUT_MS = 3_000
+
 export function grantsFor(pluginKey: string): PluginGrants {
   return env.DATA_SOURCE === 'postgres'
     ? pluginGrants(getDb(), pluginKey)
     : unavailablePluginGrants('this board is running on in-memory sample data')
+}
+
+export function dataFor(pluginKey: string): PluginData {
+  return env.DATA_SOURCE === 'postgres'
+    ? pluginData(getDb(), pluginKey, { statementTimeoutMs: REQUEST_STATEMENT_TIMEOUT_MS })
+    : unavailablePluginData('this board is running on in-memory sample data')
+}
+
+export function usersFor(): PluginUsers {
+  return env.DATA_SOURCE === 'postgres'
+    ? pluginUsers(getDb())
+    : unavailablePluginUsers('this board is running on in-memory sample data')
 }
 
 export interface RenderedPluginPage {
@@ -53,6 +72,8 @@ export async function renderPluginAdminPage(
           error: (message, detail) => log.error(detail ?? {}, message),
         },
         grants: grantsFor(pluginKey),
+        data: dataFor(pluginKey),
+        users: usersFor(),
       }),
     }
   } catch (error) {

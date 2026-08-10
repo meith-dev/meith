@@ -260,6 +260,10 @@ export {
   pluginGrants,
 } from './plugin-grants'
 
+export { bindPluginSql, pluginData } from './plugin-data'
+
+export { pluginUsers } from './plugin-users'
+
 export {
   currentImportRun,
   finishImportRun,

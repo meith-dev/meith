@@ -398,9 +398,10 @@ The worked example to copy is
 
 It cannot decide authorization, reach the visibility filter, open its own
 database connection, or patch core. Everything it *can* do is in a typed
-registry. The one write it gets against the board's own data is a timed
-group membership, and only in a group you have explicitly marked
-[grantable](#groups-a-plugin-may-grant).
+registry. Its own data lives in tables named `plugin_<key>_*` — the host
+refuses a migration that names anything else — and the one write it gets
+against the board's own data is a timed group membership, only in a group you
+have explicitly marked [grantable](#groups-a-plugin-may-grant).
 
 Failures are contained: a plugin that throws leaves the page intact, and the
 error is counted, logged, and — after repeated failures — the plugin is switched

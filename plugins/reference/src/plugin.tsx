@@ -53,8 +53,8 @@ export const referencePlugin = definePlugin({
   ],
 
   migrations: [
-    { id: '0001_create_table', statements: ['create table if not exists reference_plugin_note (id serial primary key)'] },
-    { id: '0002_add_column', statements: ['alter table reference_plugin_note add column if not exists note text'] },
+    { id: '0001_create_table', statements: ['create table if not exists plugin_reference_note (id serial primary key)'] },
+    { id: '0002_add_column', statements: ['alter table plugin_reference_note add column if not exists note text'] },
   ],
 
   tasks: [
