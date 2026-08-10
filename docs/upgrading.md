@@ -328,7 +328,9 @@ anchor](./theme-api.md#the-post-anchor) is the shape.
 
 Quotes written before the upgrade are unaffected: their attribution is text in
 the post, so it keeps rendering, without the member link and the link back that
-new quotes carry.
+new quotes carry. A quote written against the build that had two anchors carries
+`#pid-90` in its text — that link now lands at the top of its thread rather than
+at the post, and quoting the post again writes the current form.
 
 ## A category is a page now
 
