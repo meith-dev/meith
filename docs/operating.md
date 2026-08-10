@@ -430,6 +430,12 @@ a plugin is misbehaving — you do not need to deploy to stop one.
 **The panel never runs migrations.** It tells you which are outstanding;
 `community upgrade` applies them.
 
+**A plugin can carry its own pages and endpoints.** Pages appear under
+`/plugins/<key>/…` inside the board's own chrome; endpoints under
+`/api/plugins/<key>/…` — a payment provider's webhook, a form's target. Both
+obey the disable switch: a plugin that is off answers 404 everywhere, the
+same as one that was never installed.
+
 > [!WARNING]
 > A plugin with unapplied migrations is running against a schema that does not
 > have what it expects. Treat that line as urgent, not informational.

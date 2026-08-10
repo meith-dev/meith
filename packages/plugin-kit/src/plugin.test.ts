@@ -170,6 +170,73 @@ describe('definePlugin', () => {
     })
   })
 
+  describe('routes and pages', () => {
+    const route = (overrides: Record<string, unknown> = {}) => ({
+      path: 'ping',
+      method: 'GET' as const,
+      access: 'anonymous' as const,
+      handler: () => ({ kind: 'json' as const, body: {} }),
+      ...overrides,
+    })
+
+    it('accepts single- and multi-segment route paths', () => {
+      expect(() =>
+        plugin({ routes: [route(), route({ path: 'hook/stripe', method: 'POST' })] }),
+      ).not.toThrow()
+    })
+
+    it.each(['Hook', 'hook//x', '/hook', 'hook/', 'a/b/c/d/e', 'hook/../x', ''])(
+      'refuses the route path %o',
+      (path) => {
+        expect(() => plugin({ routes: [route({ path })] })).toThrow(/route path/)
+      },
+    )
+
+    it('refuses two routes on the same method and path, but allows a GET/POST pair', () => {
+      expect(() => plugin({ routes: [route(), route()] })).toThrow(/declared twice/)
+      expect(() => plugin({ routes: [route(), route({ method: 'POST' })] })).not.toThrow()
+    })
+
+    it('refuses a bad access value, a bad method, and a missing handler', () => {
+      expect(() => plugin({ routes: [route({ access: 'admin' })] })).toThrow(/access/)
+      expect(() => plugin({ routes: [route({ method: 'DELETE' })] })).toThrow(/method/)
+      expect(() => plugin({ routes: [route({ handler: undefined })] })).toThrow(/handler/)
+    })
+
+    it('bounds the body cap', () => {
+      expect(() => plugin({ routes: [route({ maxBodyBytes: 0 })] })).toThrow(/maxBodyBytes/)
+      expect(() => plugin({ routes: [route({ maxBodyBytes: 10_000_000 })] })).toThrow(
+        /maxBodyBytes/,
+      )
+      expect(() => plugin({ routes: [route({ maxBodyBytes: 1024 })] })).not.toThrow()
+    })
+
+    const page = (overrides: Record<string, unknown> = {}) => ({
+      path: '',
+      title: 'Index',
+      access: 'member' as const,
+      render: () => null,
+      ...overrides,
+    })
+
+    it('accepts an index page and a named page', () => {
+      expect(() => plugin({ pages: [page(), page({ path: 'manage' })] })).not.toThrow()
+    })
+
+    it('refuses a slashed page path, an untitled page, and a duplicate', () => {
+      expect(() => plugin({ pages: [page({ path: 'a/b' })] })).toThrow(/page path/)
+      expect(() => plugin({ pages: [page({ title: '  ' })] })).toThrow(/title/)
+      expect(() => plugin({ pages: [page(), page()] })).toThrow(/declared twice/)
+    })
+
+    it('accepts bare redirect hosts and refuses anything with more than a host in it', () => {
+      expect(() => plugin({ allowedRedirectHosts: ['checkout.stripe.com'] })).not.toThrow()
+      for (const host of ['https://x.com', 'x.com/path', 'x.com:8443', 'localhost', '']) {
+        expect(() => plugin({ allowedRedirectHosts: [host] })).toThrow(/host/)
+      }
+    })
+  })
+
   describe('tasks', () => {
     const task = (id: string, intervalSeconds = 300) => ({ id, intervalSeconds, run: () => {} })
 

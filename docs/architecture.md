@@ -373,8 +373,12 @@ carry a `ViewerRef` (an id and a guest flag), never an `Actor`: an `Actor` is
 the input to authorization, and handing one over invites the plugin to make
 its own permission decisions. No hook exists inside `can()` or the visibility
 filter, deliberately. A plugin is a declarative object — settings, SQL
-migrations the *host* runs, scheduled tasks, admin pages, region
-contributions, lifecycle callbacks — validated at `definePlugin()`. Failure
+migrations the *host* runs, scheduled tasks, admin pages, HTTP routes and
+member-facing pages the host mounts and guards, region contributions,
+lifecycle callbacks — validated at `definePlugin()`. At runtime it is handed
+narrow capabilities rather than infrastructure: its own prefixed tables,
+timed membership grants in operator-approved groups, and member lookup by
+name — each host-implemented, each refusing what a plugin must not do. Failure
 containment is one `try/catch` around every handler call: a throwing filter
 keeps the previous value, five failures auto-disable the plugin for that
 instance, and there are deliberately no timeouts — JavaScript cannot abort a

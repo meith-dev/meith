@@ -59,6 +59,97 @@ export interface PluginContribution {
   readonly render: (context: PluginRegionContext) => ReactNode
 }
 
+/** Who is making the request. An id and a guest flag — never an `Actor`. */
+export interface PluginViewer {
+  readonly userId: number | null
+  readonly isGuest: boolean
+}
+
+/**
+ * What a route handler is handed. Built by the host from the real request:
+ * `cookie` and `authorization` never appear in `headers` — the session is the
+ * board's, and a handler that could read it could replay it.
+ */
+export interface PluginRequest {
+  readonly viewer: PluginViewer
+  readonly method: 'GET' | 'POST'
+  /** The declared route path that matched, e.g. `"hook/stripe"`. */
+  readonly path: string
+  readonly query: Readonly<Record<string, string>>
+  readonly headers: Readonly<Record<string, string>>
+  /** The exact request bytes, present only on a route declaring `rawBody`. */
+  readonly rawBody: Uint8Array | null
+  /** Parsed form fields, when the body was a form and `rawBody` is off. */
+  readonly form: Readonly<Record<string, string>> | null
+  /** Parsed JSON, when the body was `application/json` and `rawBody` is off. */
+  readonly json: unknown
+  /** The board's public origin, or '' when the board does not know it. */
+  readonly boardUrl: string
+}
+
+/**
+ * What a route handler may answer. There is deliberately no header field and
+ * no cookie field: a plugin route cannot set a cookie, which is the single
+ * restriction that stops it becoming a second authentication system.
+ */
+export type PluginResponse =
+  | { readonly kind: 'json'; readonly status?: number | undefined; readonly body: unknown }
+  | {
+      readonly kind: 'text'
+      readonly status?: number | undefined
+      readonly body: string
+      readonly contentType?: string | undefined
+    }
+  /**
+   * `to` is a same-origin path, or an absolute https URL whose host the
+   * plugin listed in `allowedRedirectHosts`. Anything else is refused by the
+   * host — an open redirect is not something a setting should be able to
+   * create.
+   */
+  | { readonly kind: 'redirect'; readonly to: string }
+
+export type PluginRouteAccess = 'anonymous' | 'member'
+
+/**
+ * An HTTP endpoint, mounted by the host under `/api/plugins/<key>/<path>`.
+ * The host decides who reaches it: `access` is enforced before the handler
+ * runs, a member POST must come from the board's own origin, and the body is
+ * capped. A disabled plugin's routes 404 — an off plugin has no endpoints,
+ * not broken ones.
+ */
+export interface PluginRoute {
+  readonly path: string
+  readonly method: 'GET' | 'POST'
+  readonly access: PluginRouteAccess
+  /** Hand the handler the exact request bytes — what signature verification needs. */
+  readonly rawBody?: boolean | undefined
+  /** Cap on the request body, default 64 KiB, at most 1 MiB. */
+  readonly maxBodyBytes?: number | undefined
+  readonly handler: (
+    request: PluginRequest,
+    context: PluginRuntimeContext,
+  ) => Promise<PluginResponse> | PluginResponse
+}
+
+export interface PluginPageContext extends PluginRuntimeContext {
+  readonly viewer: PluginViewer
+  readonly path: string
+  readonly query: Readonly<Record<string, string>>
+  readonly boardUrl: string
+}
+
+/**
+ * A member-facing page, mounted at `/plugins/<key>/<path>` and rendered
+ * inside the board's own shell, so it looks like the board. `access:
+ * 'member'` sends a guest to the sign-in page and back.
+ */
+export interface PluginBoardPage {
+  readonly path: string
+  readonly title: string
+  readonly access: PluginRouteAccess
+  readonly render: (context: PluginPageContext) => ReactNode | Promise<ReactNode>
+}
+
 export interface PluginRuntimeContext {
   readonly settings: Readonly<Record<string, string | number | boolean>>
   readonly logger: {
@@ -86,6 +177,10 @@ export interface PluginDefinition {
   readonly tasks?: readonly PluginTask[] | undefined
   readonly adminPages?: readonly PluginAdminPage[] | undefined
   readonly contributions?: readonly PluginContribution[] | undefined
+  readonly routes?: readonly PluginRoute[] | undefined
+  readonly pages?: readonly PluginBoardPage[] | undefined
+  /** Hosts an absolute redirect from this plugin's routes may point at. */
+  readonly allowedRedirectHosts?: readonly string[] | undefined
 
   readonly onInstall?: ((context: PluginRuntimeContext) => Promise<void> | void) | undefined
   readonly onEnable?: ((context: PluginRuntimeContext) => Promise<void> | void) | undefined
@@ -98,6 +193,11 @@ const SETTING_KEY_PATTERN = /^[a-z][a-z0-9_]{1,39}$/
 const MIGRATION_ID_PATTERN = /^\d{4}_[a-z0-9_]{1,60}$/
 const TASK_ID_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
 const PAGE_PATH_PATTERN = /^[a-z][a-z0-9-]{0,39}$/
+const ROUTE_PATH_PATTERN = /^[a-z][a-z0-9-]{0,39}(\/[a-z0-9-]{1,40}){0,3}$/
+const REDIRECT_HOST_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/
+
+export const MAX_ROUTE_BODY_BYTES = 1_048_576
+export const DEFAULT_ROUTE_BODY_BYTES = 65_536
 
 /** Every object a plugin's migrations create lives under this prefix. */
 export function pluginTablePrefix(pluginKey: string): string {
@@ -295,6 +395,71 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
     }
   }
 
+  assertUnique(
+    where,
+    'route',
+    (plugin.routes ?? []).map((route) => `${route.method} ${route.path}`),
+  )
+  for (const route of plugin.routes ?? []) {
+    if (!ROUTE_PATH_PATTERN.test(route.path)) {
+      throw new Error(
+        `${where}: route path "${route.path}" must be one to four lower-case segments, ` +
+          'like "checkout" or "hook/stripe". Routes are mounted under ' +
+          '/api/plugins/<plugin>/<path>; anything else would escape that prefix.',
+      )
+    }
+    if (route.method !== 'GET' && route.method !== 'POST') {
+      throw new Error(`${where}: route "${route.path}" method must be GET or POST.`)
+    }
+    if (route.access !== 'anonymous' && route.access !== 'member') {
+      throw new Error(`${where}: route "${route.path}" access must be "anonymous" or "member".`)
+    }
+    if (typeof route.handler !== 'function') {
+      throw new Error(`${where}: route "${route.path}" needs a handler function.`)
+    }
+    if (route.maxBodyBytes !== undefined) {
+      if (
+        !Number.isInteger(route.maxBodyBytes) ||
+        route.maxBodyBytes < 1 ||
+        route.maxBodyBytes > MAX_ROUTE_BODY_BYTES
+      ) {
+        throw new Error(
+          `${where}: route "${route.path}" maxBodyBytes must be between 1 and ` +
+            `${MAX_ROUTE_BODY_BYTES}. A bigger payload belongs in an attachment, not a route body.`,
+        )
+      }
+    }
+  }
+
+  assertUnique(where, 'page', (plugin.pages ?? []).map((page) => page.path))
+  for (const page of plugin.pages ?? []) {
+    if (page.path !== '' && !PAGE_PATH_PATTERN.test(page.path)) {
+      throw new Error(
+        `${where}: page path "${page.path}" must be empty (the plugin's index page) or a ` +
+          'single lower-case segment. Pages are mounted under /plugins/<plugin>/<path>.',
+      )
+    }
+    if (page.title.trim() === '') {
+      throw new Error(`${where}: the page at "${page.path}" needs a title.`)
+    }
+    if (page.access !== 'anonymous' && page.access !== 'member') {
+      throw new Error(`${where}: page "${page.path}" access must be "anonymous" or "member".`)
+    }
+    if (typeof page.render !== 'function') {
+      throw new Error(`${where}: page "${page.path}" needs a render function.`)
+    }
+  }
+
+  assertUnique(where, 'redirect host', plugin.allowedRedirectHosts ?? [])
+  for (const host of plugin.allowedRedirectHosts ?? []) {
+    if (!REDIRECT_HOST_PATTERN.test(host)) {
+      throw new Error(
+        `${where}: "${host}" is not a plain host name. List bare hosts like ` +
+          '"checkout.stripe.com" — no scheme, no path, no port.',
+      )
+    }
+  }
+
   return plugin
 }
 
@@ -315,4 +480,12 @@ export function pluginTaskId(pluginKey: string, taskId: string): string {
 
 export function pluginAdminPath(pluginKey: string, path: string): string {
   return `/admin/plugins/${pluginKey}${path === '' ? '' : `/${path}`}`
+}
+
+export function pluginRoutePath(pluginKey: string, path: string): string {
+  return `/api/plugins/${pluginKey}/${path}`
+}
+
+export function pluginPagePath(pluginKey: string, path: string): string {
+  return `/plugins/${pluginKey}${path === '' ? '' : `/${path}`}`
 }

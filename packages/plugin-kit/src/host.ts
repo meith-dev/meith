@@ -194,6 +194,31 @@ export class PluginHost {
     }
   }
 
+  /**
+   * Whether the plugin is currently allowed to run here: registered, not
+   * switched off by the operator, and not auto-disabled by its own failures.
+   */
+  isEnabled(pluginKey: string): boolean {
+    return this.#isEnabled(pluginKey)
+  }
+
+  /**
+   * Runs plugin code from a surface that is not a hook — a route handler, a
+   * page render — under the same accounting: timed, counted, failures logged
+   * against the plugin, auto-disable applied. `disabled` is the caller's cue
+   * to answer 404 rather than 500: an off plugin has no surfaces.
+   */
+  async run<T>(
+    pluginKey: string,
+    surface: string,
+    invoke: () => Promise<T> | T,
+  ): Promise<{ status: 'ok'; value: T } | { status: 'failed' } | { status: 'disabled' }> {
+    if (!this.#isEnabled(pluginKey)) return { status: 'disabled' }
+
+    const outcome = await this.#call(pluginKey, surface, invoke)
+    return outcome.ok ? { status: 'ok', value: outcome.value as T } : { status: 'failed' }
+  }
+
   listeners(): Readonly<Record<string, readonly string[]>> {
     const out: Record<string, string[]> = {}
     for (const [hook, entries] of this.#entries) {

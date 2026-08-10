@@ -50,6 +50,9 @@ Installing it is `pnpm add`, a line in `community.plugins.ts`, and a redeploy.
 | `migrations` | Forward-only SQL, applied in ascending id order and recorded per plugin. |
 | `tasks` | Scheduled work, registered as `plugin.<key>.<id>` and run by the same tick as core's. |
 | `adminPages` | Pages mounted under `/admin/plugins/<key>/`. |
+| `routes` | HTTP endpoints mounted under `/api/plugins/<key>/`, dispatched by the host. |
+| `pages` | Member-facing pages mounted under `/plugins/<key>/`, rendered inside the board's shell. |
+| `allowedRedirectHosts` | The only hosts an absolute redirect from this plugin's routes may point at. |
 | `contributions` | Markup in named UI regions. |
 | `onInstall` / `onEnable` / `onDisable` / `onUninstall` | Lifecycle callbacks — declared and typed, not yet dispatched by the host. See the inventory below. |
 
@@ -283,6 +286,74 @@ for them by name — "award this to @name" needs an id before anything can be
 stored. Deleted accounts do not resolve. Nothing richer is exposed — no
 email, no state, no groups — for the same reason payloads carry a `ViewerRef`
 and not an `Actor`.
+
+## HTTP routes
+
+A plugin declares endpoints the way it declares everything else — as data —
+and the host mounts them under `/api/plugins/<key>/<path>`:
+
+```ts
+routes: [
+  { path: 'hook/stripe', method: 'POST', access: 'anonymous', rawBody: true, handler },
+  { path: 'checkout',    method: 'POST', access: 'member',    handler },
+],
+allowedRedirectHosts: ['checkout.stripe.com'],
+```
+
+A handler receives a `PluginRequest` — viewer, method, path, query, headers,
+a parsed or raw body, the board's URL — plus the same runtime context as every
+other surface, and answers with an envelope: `{ kind: 'json' | 'text' |
+'redirect', … }`. A route declaring `rawBody: true` gets the exact request
+bytes, which is what webhook signature verification needs.
+
+**The host owns every decision a plugin must not:**
+
+- **`access` is enforced before the handler runs.** `'member'` answers 401 to
+  a guest; the handler never sees the request.
+- **A member POST must come from the board's own origin.** The Origin header
+  is checked against the request's host; a cross-site form post is a 403.
+- **`cookie` and `authorization` never reach the handler**, and the response
+  envelope has no header or cookie field at all. That single restriction is
+  what stops a plugin route becoming a second authentication system.
+- **Redirects are allow-listed.** A relative path always passes; an absolute
+  URL must be https and its host declared in `allowedRedirectHosts`, so a
+  compromised setting cannot turn a board route into an open redirect.
+- **Bodies are capped** — 64 KiB by default, `maxBodyBytes` up to 1 MiB.
+- **Every response is `cache-control: no-store`.**
+- **A disabled plugin's routes 404** — operator-disabled and auto-disabled
+  alike. An off plugin has no endpoints, not broken ones.
+- **Failures count.** A route runs under the same accounting as a hook:
+  timed, logged against the plugin, and auto-disabling after repeated
+  failures — visible on the plugin's health screen.
+
+Two honest limits: route paths are exact matches (put ids in the query
+string, not the path), and there is no per-route rate limit yet — a route
+that does expensive work should do its own bookkeeping until there is.
+
+## Board pages
+
+`pages` are the member-facing half, mounted at `/plugins/<key>/<path>` and
+rendered inside the board's shell with the page's declared title, so a
+plugin's screen looks like the board rather than an iframe of somewhere else:
+
+```ts
+pages: [
+  { path: '',       title: 'Membership', access: 'member',    render },
+  { path: 'return', title: 'Confirming', access: 'anonymous', render },
+]
+```
+
+`render` gets a `PluginPageContext` — the runtime context plus the viewer,
+the path, the query and the board URL — and returns markup. The same
+containment as admin pages applies: a throw is logged and the page renders a
+plain failure notice in the shell, not a 500. `access: 'member'` sends a
+guest to the sign-in page and back to the plugin page afterwards. A page on a
+disabled plugin is a 404, exactly like a route.
+
+Build your markup in the render function rather than returning a component
+that does work — the host's try/catch is around the call, and a component
+that throws later, inside React's own render, cannot be contained from the
+server.
 
 ## Migrations
 

@@ -24,8 +24,12 @@ export type {
 } from './payloads'
 
 export {
+  DEFAULT_ROUTE_BODY_BYTES,
+  MAX_ROUTE_BODY_BYTES,
   definePlugin,
   pluginAdminPath,
+  pluginPagePath,
+  pluginRoutePath,
   pluginSettingKey,
   pluginTablePrefix,
   pluginTaskId,
@@ -34,13 +38,20 @@ export {
   type HookHandler,
   type HookRegistration,
   type PluginAdminPage,
+  type PluginBoardPage,
   type PluginContribution,
   type PluginDefinition,
   type PluginHooks,
   type PluginMigration,
+  type PluginPageContext,
+  type PluginRequest,
+  type PluginResponse,
+  type PluginRoute,
+  type PluginRouteAccess,
   type PluginRuntimeContext,
   type PluginSetting,
   type PluginTask,
+  type PluginViewer,
 } from './plugin'
 
 export {
