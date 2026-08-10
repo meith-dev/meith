@@ -302,6 +302,30 @@ untouched and no one is locked out; they rehash on next login regardless.
 > ignored rather than enforced: both fall back to the built-in 3 and 30, and the
 > board keeps registering people. Fix the pair on the settings screen.
 
+## Links into a post changed shape
+
+A post used to be anchored by its id alone — `#post-90`, under a corner that
+read `#6`. It carries two anchors now: `#post-6`, which the permalink beside it
+uses and which agrees with the corner, and `#pid-90`, which is what the board
+writes into notifications, feeds, search results and a quote's link back.
+
+**Nothing the board renders is affected.** Every link the software holds is
+built from the post's id when the page renders, so all of them moved to `#pid-`
+together. What changes is a link *already out in the world* — pasted into
+another forum, a chat, or a post on your own board before the upgrade.
+`#post-90` now names the ninetieth post of that thread if it has one, and lands
+at the top of the thread if it does not. Either way the reader is on the right
+thread, and there is nothing to run.
+
+**A theme you maintain needs both ids.** The board resolves the hrefs and the
+theme owns what they land on; a `PostBit` that renders only one leaves half of
+these links at the top of the page. [Theme API § Two ids per
+post](./theme-api.md#two-ids-per-post) is the shape.
+
+Quotes written before the upgrade are unaffected and stay as they were: their
+attribution is text in the post, so it keeps rendering, without the member link
+and the link back that new quotes carry.
+
 ## What the CLI applies
 
 `community upgrade` applies **core migrations, then each installed plugin's, then
