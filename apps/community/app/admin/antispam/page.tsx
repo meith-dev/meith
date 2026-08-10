@@ -5,14 +5,14 @@ import {
   NewCaptchaQuestionForm,
 } from '@/components/admin/content-forms'
 import { PanelPage } from '@/components/shell/panel-page'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { captchaQuestionRepository } from '@/server/antispam'
 import { getSettings } from '@/server/settings'
 
 export const metadata: Metadata = { title: 'Anti-spam' }
 
 export default async function AdminAntispamPage() {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const repository = captchaQuestionRepository()
   const settings = await getSettings()

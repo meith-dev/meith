@@ -113,7 +113,7 @@ test('a moderator revokes a warning, and the points come off', async ({ browser 
     await member.getByLabel('Message').fill('Something a moderator will act on.')
     await member.getByRole('button', { name: 'Post thread' }).click()
     await expect(member).toHaveURL(/\/thread\/\d+-/)
-    const threadUrl = member.url().split('#')[0]
+    const threadUrl = member.url().replace(/#.*$/, '')
 
     await signInAsModerator(mod)
     await mod.goto(threadUrl)

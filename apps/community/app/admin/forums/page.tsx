@@ -4,13 +4,13 @@ import { buildTree, type ForumNode, type ForumRow } from '@meith/forums'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { CreateForumForm } from '@/components/admin/forum-forms'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
 
 export const metadata: Metadata = { title: 'Forums' }
 
 export default async function AdminForumsPage() {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const forums = await getContainer().forums.listAll()
 

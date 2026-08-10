@@ -169,6 +169,18 @@ changes something every page shows — a board-wide announcement, a board settin
 a pinned thread — puts it back, or a later file fails for a reason nothing in it
 can explain.
 
+The specs are typechecked by `pnpm typecheck` with everything else. Playwright
+transpiles TypeScript without checking it, so until `e2e/` was added to the root
+project a spec that did not compile failed only when it ran — and a support file
+that did not compile never failed at all.
+
+**Passing is not enough — the run also fails on what the board logged.**
+`e2e/support/server-errors.ts` is a reporter that reads the dev server's output
+and fails the run on an unhandled server error however many tests passed. It
+exists because a green run was hiding fifty-six: every control-panel page threw
+a `ForbiddenError` on a visit its layout had already answered with the sign-in
+form, and every spec asserting on that form passed over the top of it.
+
 ## The scripts that fail on purpose
 
 Several gates in `pnpm verify` exist because something once passed every other

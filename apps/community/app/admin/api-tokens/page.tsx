@@ -2,14 +2,14 @@ import type { Metadata } from 'next'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { IssueTokenForm, RevokeTokenForm } from '@/components/admin/api-token-forms'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { buildApiTokenView } from '@/server/api-tokens-admin'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'API tokens' }
 
 export default async function AdminApiTokensPage() {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const now = new Date()
   const view = await buildApiTokenView(now)

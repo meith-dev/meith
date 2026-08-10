@@ -8,7 +8,7 @@ import {
 } from '@/components/admin/group-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { BadgeUploadForm } from '@/components/admin/badge-forms'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { badgeKey, badgeSrc } from '@/server/group-badge'
 import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { buildGroupPermissionView, groupAdminRepository } from '@/server/group-admin'
@@ -21,7 +21,7 @@ export default async function AdminGroupPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const { id } = await params
   if (!/^[1-9]\d*$/.test(id)) notFound()

@@ -24,6 +24,12 @@ vi.mock('./session-cookies', () => ({
   clearAdminCookie: async () => {},
 }))
 
+vi.mock('next/navigation', () => ({
+  notFound: () => {
+    throw new Error('NEXT_NOT_FOUND')
+  },
+}))
+
 const allowlistRef: { current: string | undefined } = { current: undefined }
 vi.mock('@meith/core', async () => {
   const actual = await vi.importActual<typeof import('@meith/core')>('@meith/core')
@@ -41,7 +47,8 @@ vi.mock('@meith/core', async () => {
   }
 })
 
-const { requireAdmin, requireFreshAdmin, resolveAdmin } = await import('./admin')
+const { adminPageContext, requireAdmin, requireFreshAdmin, resolveAdmin } =
+  await import('./admin')
 const { SEED_BOARD, SEED_GROUP } = await import('./seed-board')
 const { installTestContainer } = await import('./test-container')
 
@@ -197,6 +204,34 @@ describe('requireAdmin', () => {
   it('throws for each denial, with a message that fits it', async () => {
     allowlistRef.current = '198.51.100.'
     await expect(requireAdmin()).rejects.toThrow(/not available from this address/)
+  })
+})
+
+describe('adminPageContext', () => {
+  it('returns the context when every gate passes', async () => {
+    expect((await adminPageContext())?.userId).toBe(ADA)
+  })
+
+  it('answers null for the denials the layout answers with the sign-in form', async () => {
+    tokenRef.current = null
+    expect(await adminPageContext()).toBeNull()
+
+    tokenRef.current = 'a-token'
+    adminSessions.row = null
+    expect(await adminPageContext()).toBeNull()
+  })
+
+  it('404s the denials the layout 404s, so the page never renders past one', async () => {
+    allowlistRef.current = '198.51.100.'
+    await expect(adminPageContext()).rejects.toThrow('NEXT_NOT_FOUND')
+
+    allowlistRef.current = undefined
+    actorRef.current = await actorFor(SEED_GROUP.registered, BOB)
+    await expect(adminPageContext()).rejects.toThrow('NEXT_NOT_FOUND')
+
+    actorRef.current = await actorFor(SEED_GROUP.administrators, ADA)
+    installTestContainer({ container: { adminSessions: null, adminLog: null } })
+    await expect(adminPageContext()).rejects.toThrow('NEXT_NOT_FOUND')
   })
 })
 

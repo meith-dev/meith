@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { MergeForm } from '@/components/admin/user-forms'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { userAdminRepository } from '@/server/user-admin'
 import { PostgresUserMergeRepository, getDb } from '@meith/db'
 
@@ -19,7 +19,7 @@ export default async function AdminMergePage({
   params: Promise<{ id: string }>
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const { id } = await params
   if (!/^[1-9]\d*$/.test(id)) notFound()

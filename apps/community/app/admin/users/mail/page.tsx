@@ -2,13 +2,13 @@ import type { Metadata } from 'next'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { MassMailForm } from '@/components/admin/user-forms'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { userAdminRepository, userBulkRepository } from '@/server/user-admin'
 
 export const metadata: Metadata = { title: 'Mass mail' }
 
 export default async function AdminMassMailPage() {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const bulk = userBulkRepository()
   const users = userAdminRepository()

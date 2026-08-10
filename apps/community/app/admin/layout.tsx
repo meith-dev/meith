@@ -7,7 +7,7 @@ import { AdminNav } from '@/components/admin/admin-nav'
 import { AdminSignInForm, AdminSignOutForm } from '@/components/admin/admin-forms'
 import type { PanelLink } from '@/components/shell/panel-links'
 import { PanelShell } from '@/components/shell/panel-shell'
-import { resolveAdmin } from '@/server/admin'
+import { askForPassword, resolveAdmin } from '@/server/admin'
 import { getActor } from '@/server/context'
 
 export const metadata: Metadata = { title: 'Control panel' }
@@ -16,8 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const resolved = await resolveAdmin()
 
   if ('denied' in resolved) {
-    if (resolved.denied === 'address' || resolved.denied === 'permission') notFound()
-    if (resolved.denied === 'unavailable') notFound()
+    if (!askForPassword(resolved.denied)) notFound()
 
     return (
       <main

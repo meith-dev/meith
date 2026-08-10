@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { DeleteAttachmentForm } from '@/components/admin/content-forms'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { attachmentAdminRepository } from '@/server/content-admin'
 import { formatBytes } from '@/view/attachments'
 import { formatTime } from '@/view/time'
@@ -16,7 +16,7 @@ export default async function AdminAttachmentsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const repository = attachmentAdminRepository()
   if (repository === null) {

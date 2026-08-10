@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { PanelPage } from '@/components/shell/panel-page'
 import { LogoUploadForm } from '@/components/admin/branding-forms'
 import { ThemeStateForms } from '@/components/admin/theme-forms'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { logoKey, logoSrc } from '@/server/branding'
 import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { themeListing } from '@/server/theme-admin'
@@ -12,7 +12,7 @@ import { formatTime } from '@/view/time'
 export const metadata: Metadata = { title: 'Themes' }
 
 export default async function AdminThemesPage() {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const themes = await themeListing()
   const [lightKey, darkKey] = await Promise.all([logoKey('light'), logoKey('dark')])

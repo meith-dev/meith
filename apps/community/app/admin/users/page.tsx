@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 import { PanelPage } from '@/components/shell/panel-page'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { formatTime } from '@/view/time'
 import { nextPageQuery, parseUserFilter, userAdminRepository } from '@/server/user-admin'
 
@@ -15,7 +15,7 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const repository = userAdminRepository()
   if (repository === null) {

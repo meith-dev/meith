@@ -2,13 +2,13 @@ import type { Metadata } from 'next'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { CreateGroupForm } from '@/components/admin/group-forms'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { groupAdminRepository } from '@/server/group-admin'
 
 export const metadata: Metadata = { title: 'Groups' }
 
 export default async function AdminGroupsPage() {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const repository = groupAdminRepository()
   if (repository === null) {

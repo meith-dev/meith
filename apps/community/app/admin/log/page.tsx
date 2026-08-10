@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 import { PanelPage } from '@/components/shell/panel-page'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { buildAdminLogView } from '@/view/admin-log'
 
@@ -12,7 +12,7 @@ export default async function AdminLogPage({
 }: {
   searchParams: Promise<{ before?: string; action?: string }>
 }) {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const query = await searchParams
   const { adminLog } = getContainer()

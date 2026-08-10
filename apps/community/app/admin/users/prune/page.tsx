@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { PruneForm } from '@/components/admin/user-forms'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { parsePruneCriteria, userBulkRepository } from '@/server/user-admin'
 
 export const metadata: Metadata = { title: 'Prune members' }
@@ -15,7 +15,7 @@ export default async function AdminPrunePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const repository = userBulkRepository()
   if (repository === null) {

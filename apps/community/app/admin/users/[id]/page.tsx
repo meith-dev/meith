@@ -9,7 +9,7 @@ import {
   SecondaryGroupsForm,
 } from '@/components/admin/user-forms'
 import { PanelPage } from '@/components/shell/panel-page'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { buildMemberView } from '@/server/user-admin'
 import { formatTime } from '@/view/time'
 
@@ -20,7 +20,7 @@ export default async function AdminMemberPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const { id } = await params
   if (!/^[1-9]\d*$/.test(id)) notFound()
