@@ -1,0 +1,20 @@
+# meith.dev — the landing page and the documentation, deployed by Coolify.
+#
+# A second Coolify resource beside the board, from the same repository and the
+# same instance: this one at meith.dev, `docker-compose.coolify.yml` at
+# community.meith.dev.
+#
+# Nobody self-hosting a board needs this file. It holds no data and reads
+# nothing the board writes.
+#
+# No published ports — Coolify's proxy routes to the container and issues the
+# certificate. `SERVICE_FQDN_SITE_3100` asks it for a domain on port 3100.
+
+services:
+  site:
+    build:
+      context: .
+      dockerfile: Dockerfile.site
+    restart: unless-stopped
+    environment:
+      - SERVICE_FQDN_SITE_3100

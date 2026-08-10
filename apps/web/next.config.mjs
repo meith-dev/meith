@@ -1,14 +1,24 @@
+// Set by Dockerfile.site. The excludes below drop every traced file, which a
+// standalone server cannot survive — it carries its own node_modules.
+const standalone = process.env.SITE_STANDALONE === "1"
+
 const nextConfig = {
+  ...(standalone ? { output: "standalone" } : {}),
+
   outputFileTracingRoot: new URL("../../", import.meta.url).pathname,
 
-  outputFileTracingExcludes: {
-    "/": ["**"],
-    "/docs": ["**"],
-    "/docs/[...slug]": ["**"],
-    "/docs/search-index.json": ["**"],
-    "/llms.txt": ["**"],
-    "/sitemap.xml": ["**"],
-  },
+  ...(standalone
+    ? {}
+    : {
+        outputFileTracingExcludes: {
+          "/": ["**"],
+          "/docs": ["**"],
+          "/docs/[...slug]": ["**"],
+          "/docs/search-index.json": ["**"],
+          "/llms.txt": ["**"],
+          "/sitemap.xml": ["**"],
+        },
+      }),
 
   async headers() {
     return [
