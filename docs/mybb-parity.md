@@ -124,9 +124,9 @@ what does not is worth stating precisely.
 
 **Converted with no loss.** `b i s url email img quote code list` all have a
 Markdown spelling, and the converter produces it. A quote keeps its
-attribution — `[quote='Bob']` becomes `> **Bob wrote:**` above the quoted lines
-— and a `[code]` body is fenced with a rail long enough that its own backticks
-cannot close it.
+attribution — `[quote='Bob']` becomes `> **[Bob](/member/by-name/Bob) wrote:**`
+above the quoted lines — and a `[code]` body is fenced with a rail long enough
+that its own backticks cannot close it.
 
 **Converted with the styling dropped, the words kept.** `u`, `color` and `size`
 have no Markdown spelling. `[color=red]stop[/color]` becomes `stop`. Inventing a
@@ -167,6 +167,12 @@ quoting it.
 **Cost:** one request per quote, where a board doing it in the browser makes
 none. With scripting off, or on a page with no composer, the Quote link is a
 link to the reply page exactly as it always was.
+
+**A quote names its source twice.** The attribution links the member, the way a
+mention does, and carries a link back to the post it was taken from. Both are
+written into the Markdown rather than held as attributes, so they survive the
+reply being edited, and the link back uses the post's durable `#pid-` anchor
+rather than its position in the thread, which moves.
 
 **A directive is not MyBB's custom MyCode.** MyBB's takes a *replacement
 pattern* — a regular expression and the HTML to put in its place — so an
@@ -1489,6 +1495,23 @@ canonical is actually for here is collapsing `?post=812`, `?after=…` and
 **Cost:** a permalink to post 812 is canonicalised to the page containing it, so
 a search result lands on the page rather than the post. The anchor still works
 for anybody who follows the original link.
+
+### A post has two anchors: the number you see, and the id that never moves
+
+**MyBB:** links a post as `#pid1234` and prints `#6` beside it. The two never
+agree, and the one a reader copies is the one they cannot read.
+
+**Here:** the permalink beside a post is `#post-6` — the number the corner
+shows — and the same post is also anchored at `#pid-1234`. Everything the
+software writes (a notification, a search hit, a quote's link back, the reveal
+link on an ignored post) uses `#pid-`.
+
+**Why:** the two anchors answer different questions. "The sixth post in this
+thread" is what a person means and it moves when an earlier post is deleted;
+"post 1234" is what a stored link means and it must not move at all.
+
+**Cost:** two ids in the markup per post, and a `#post-6` link shared today may
+name a different post after a deletion — which is what the number itself does.
 
 ### The sitemap is an index of chunks, ordered by id
 

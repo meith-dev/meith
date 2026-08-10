@@ -14,6 +14,7 @@ import { ThreadComposer, type AuthorRestriction } from '@meith/threads'
 import { restrictsPosting } from '@meith/moderation'
 
 import { POSTS_PER_PAGE } from '../view/paging'
+import { postAnchor } from '../view/post-anchor'
 
 import { emitEvent, viewerRef } from './plugin-view'
 
@@ -68,7 +69,11 @@ export async function quotePostAction(
   const quoted = await posts.findQuotable(threadId, postId)
   if (quoted === null) return null
 
-  return quoteBlock({ author: quoted.authorUsername, markdown: quoted.message })
+  return quoteBlock({
+    author: quoted.authorUsername,
+    markdown: quoted.message,
+    sourceHref: `/thread/${target.threadId}-${target.slug}#${postAnchor(quoted.id)}`,
+  })
 }
 
 function field(form: FormData, name: string): string {
@@ -299,7 +304,7 @@ function replyAnchor(created: {
   if (created.raced) query.push('replied=race')
 
   const search = query.length === 0 ? '' : `?${query.join('&')}`
-  return `${search}#post-${created.postId}`
+  return `${search}#${postAnchor(created.postId)}`
 }
 
 async function authorProfile(
@@ -386,7 +391,7 @@ export async function editPostAction(
   if (edited.heldForApproval) {
     redirect(`${thread}?posted=moderated`)
   }
-  redirect(`${thread}#post-${edited.postId}`)
+  redirect(`${thread}#${postAnchor(edited.postId)}`)
 }
 
 export async function deletePostAction(
@@ -452,7 +457,7 @@ async function moveVisibility(
   redirect(
     to === 'deleted'
       ? `${thread}?post=deleted`
-      : `${thread}#post-${moved.postId}`,
+      : `${thread}#${postAnchor(moved.postId)}`,
   )
 }
 

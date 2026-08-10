@@ -15,6 +15,7 @@ import type {
 import { formatTime } from './time'
 import { nameClassOf, type MemberIdentity } from './member-identity'
 import { memberHref } from './member-profile'
+import { postAnchor } from './post-anchor'
 
 export interface BoardIndexInput {
   readonly rows: readonly ForumListingRow[]
@@ -36,7 +37,7 @@ function hrefFor(row: ForumListingRow): string {
 }
 
 function threadHref(threadId: number, postId: number): string {
-  return `/thread/${threadId}#post-${postId}`
+  return `/thread/${threadId}#${postAnchor(postId)}`
 }
 
 function toLastPost(

@@ -10,8 +10,8 @@ test('the fixture board, registration, and login work without JavaScript', async
   await page.getByLabel('Main').getByRole('link', { name: 'Version 0.1 is live' }).click()
   await expect(page).toHaveURL(/\/thread\/4(?:#|$)/)
 
-  await expect(page.locator('#post-10 strong')).toHaveText('new forum')
-  const rules = page.locator('#post-10 a[href="/100-announcements"]')
+  await expect(page.locator('#pid-10 strong')).toHaveText('new forum')
+  const rules = page.locator('#pid-10 a[href="/100-announcements"]')
   await expect(rules).toHaveText('Announcements')
   await expect(rules).toHaveAttribute('rel', 'nofollow ugc noopener noreferrer')
 
@@ -33,10 +33,30 @@ test('the fixture board, registration, and login work without JavaScript', async
 test('a quoted reply renders as a quote block, not as its own markup', async ({ page }) => {
   await page.goto('/thread/21-show-us-your-desk-setup')
 
-  const quote = page.locator('#post-132 blockquote.md-quote')
+  const quote = page.locator('#pid-132 blockquote.md-quote')
   await expect(quote).toContainText('admin wrote:')
   await expect(quote).toContainText('Show us the place where you make things.')
-  await expect(page.locator('#post-132')).not.toContainText('> **admin')
+  await expect(page.locator('#pid-132')).not.toContainText('> **admin')
+
+  await expect(quote.locator('a.md-quote-author')).toHaveAttribute(
+    'href',
+    '/member/by-name/admin',
+  )
+  await expect(quote.locator('a.md-quote-source')).toHaveAttribute(
+    'href',
+    '/thread/21-show-us-your-desk-setup#pid-121',
+  )
+})
+
+test('a post is linked by its number, and reachable by its id', async ({ page }) => {
+  await page.goto('/thread/21-show-us-your-desk-setup')
+
+  const second = page.locator('#pid-132')
+  await expect(second.getByRole('link', { name: /#2/ })).toHaveAttribute(
+    'href',
+    '/thread/21-show-us-your-desk-setup#post-2',
+  )
+  await expect(page.locator('#post-2')).toBeAttached()
 })
 
 test('the forum jump box works without JavaScript', async ({ page }) => {
@@ -106,5 +126,5 @@ test('the index rail renders, and only its pause control needs JavaScript', asyn
   await expect(page.getByRole('button', { name: 'Pause' })).toHaveCount(0)
 
   const post = rail.locator('section', { hasText: 'Latest posts' }).locator('li a').first()
-  await expect(post).toHaveAttribute('href', /\/thread\/\d+-[^?]+\?post=\d+#post-\d+$/)
+  await expect(post).toHaveAttribute('href', /\/thread\/\d+-[^?]+\?post=\d+#pid-\d+$/)
 })

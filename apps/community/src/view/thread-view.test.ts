@@ -77,7 +77,7 @@ describe('buildThreadView', () => {
     })
 
     expect(view.posts[0]).toMatchObject({
-      permalink: '/thread/3-hello#post-4',
+      permalink: '/thread/3-hello#post-1',
       bodyHtml: '<p>&lt;script&gt;alert(1)&lt;/script&gt;<br>\nHello</p>',
       author: { username: 'departed', profileHref: null },
     })
@@ -434,8 +434,14 @@ describe('ignored posts', () => {
     expect(view.posts[0]?.bodyHtml).toBe('')
     expect(view.posts[0]?.ignored).toEqual({
       authorUsername: 'noisy',
-      revealHref: '/thread/3-a-thread?page=2&reveal=4#post-4',
+      revealHref: '/thread/3-a-thread?page=2&reveal=4#pid-4',
     })
+  })
+
+  it('links a post by its number, so the href says what the corner says', () => {
+    const view = build([row({ id: 90, number: 6 })])
+
+    expect(view.posts[0]?.permalink).toBe('/thread/3-hello#post-6')
   })
 
   it('keeps the post in the page, with its number', () => {

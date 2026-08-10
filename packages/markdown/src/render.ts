@@ -1,3 +1,4 @@
+import { memberByNameHref, quoteAttribution, type QuoteAttribution } from './attribution'
 import { escapeAttribute, escapeHtml } from './escape'
 import { renderSmilies, type CompiledSmilies } from './extensions'
 import type { Alignment, Block, Inline, ListItem, MarkdownDocument } from './nodes'
@@ -15,9 +16,10 @@ function alignmentClass(alignment: Alignment): string {
   return ` class="md-align-${alignment}"`
 }
 
-function anchor(href: string, title: string | null, inner: string): string {
+function anchor(href: string, title: string | null, inner: string, className?: string): string {
   const titleAttribute = title === null || title === '' ? '' : ` title="${escapeAttribute(title)}"`
-  return `<a href="${escapeAttribute(href)}" rel="nofollow ugc noopener noreferrer"${titleAttribute}>${inner}</a>`
+  const classAttribute = className === undefined ? '' : ` class="${className}"`
+  return `<a${classAttribute} href="${escapeAttribute(href)}" rel="nofollow ugc noopener noreferrer"${titleAttribute}>${inner}</a>`
 }
 
 export function renderInline(nodes: readonly Inline[], context: RenderContext = {}): string {
@@ -60,13 +62,27 @@ export function renderInline(nodes: readonly Inline[], context: RenderContext = 
         html += `<span class="md-directive md-directive-${escapeAttribute(node.name)}">${renderInline(node.children, context)}</span>`
         break
       case 'mention': {
-        const href = `/member/by-name/${encodeURIComponent(node.name)}`
+        const href = memberByNameHref(node.name)
         html += `<a class="md-mention" href="${escapeAttribute(href)}">@${escapeHtml(node.name)}</a>`
         break
       }
     }
   }
   return html
+}
+
+function renderAttribution(attribution: QuoteAttribution): string {
+  const name = escapeHtml(attribution.name)
+  const profile = attribution.href === null ? null : safeUrl(attribution.href)
+  const author = profile === null ? name : anchor(profile, null, name, 'md-quote-author')
+
+  const source = attribution.sourceHref === null ? null : safeUrl(attribution.sourceHref)
+  const citation =
+    source === null
+      ? ''
+      : anchor(source, null, escapeHtml(attribution.sourceLabel), 'md-quote-source')
+
+  return `<p class="md-quote-attribution"><strong>${author} wrote:</strong>${citation}</p>\n`
 }
 
 function renderItem(item: ListItem, tight: boolean, context: RenderContext): string {
@@ -90,9 +106,12 @@ function renderBlocks(blocks: readonly Block[], context: RenderContext, tight = 
         html += `<h${level}>${renderInline(block.inline, context)}</h${level}>\n`
         break
       }
-      case 'quote':
-        html += `<blockquote class="md-quote">${renderBlocks(block.children, context)}</blockquote>\n`
+      case 'quote': {
+        const attribution = quoteAttribution(block.children[0])
+        const body = attribution === null ? block.children : block.children.slice(1)
+        html += `<blockquote class="md-quote">${attribution === null ? '' : renderAttribution(attribution)}${renderBlocks(body, context)}</blockquote>\n`
         break
+      }
       case 'list': {
         const items = block.items.map((item) => renderItem(item, block.tight, context)).join('')
         html += block.ordered

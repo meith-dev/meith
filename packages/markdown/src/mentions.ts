@@ -1,8 +1,6 @@
+import { attributedAuthor } from './attribution'
 import { parse, type ParseOptions } from './blocks'
 import type { Block, Inline } from './nodes'
-import { textOf } from './nodes'
-
-const ATTRIBUTION = /^(.+) wrote:$/
 
 function mentionsIn(nodes: readonly Inline[], out: Set<string>): void {
   for (const node of nodes) {
@@ -45,9 +43,9 @@ export function extractMentions(source: string, options: ParseOptions = {}): rea
 function attributionsIn(nodes: readonly Inline[], out: Set<string>): void {
   let atLineStart = true
   for (const node of nodes) {
-    if (node.kind === 'strong' && atLineStart && node.children.length === 1) {
-      const match = ATTRIBUTION.exec(textOf(node.children).trim())
-      if (match !== null && node.children[0]!.kind === 'text') out.add(match[1]!)
+    if (atLineStart) {
+      const author = attributedAuthor(node)
+      if (author !== null) out.add(author.name)
     }
     atLineStart = node.kind === 'break'
   }

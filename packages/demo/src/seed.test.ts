@@ -149,6 +149,37 @@ describe('the seeded board', () => {
     )
   })
 
+  it('quotes with a live profile link and a live link back to the post', async () => {
+    const quoting = DEMO_THREADS.flatMap((thread) => thread.replies ?? []).filter(
+      (reply) => reply.quotes !== undefined,
+    )
+    expect(quoting.length).toBeGreaterThan(0)
+
+    const rows = resultRows(
+      await db.execute(sql`select message, message_html as html from posts where message like '> **[%'`),
+    ) as Array<{ message: string; html: string }>
+    expect(rows).toHaveLength(quoting.length)
+
+    for (const row of rows) {
+      const source = /\[View post\]\(\/thread\/(\d+)-[^#]+#pid-(\d+)\)/.exec(row.message)
+      expect(source).not.toBeNull()
+
+      const [, threadId, postId] = source!
+      expect(
+        await count('posts', sql`id = ${Number(postId)} and thread_id = ${Number(threadId)}`),
+      ).toBe(1)
+
+      const profile = /\[([^\]]+)\]\(\/member\/by-name\/([^)]+)\)/.exec(row.message)
+      expect(profile).not.toBeNull()
+      expect(
+        await count('users', sql`username_lower = ${decodeURIComponent(profile![2]!).toLowerCase()}`),
+      ).toBe(1)
+
+      expect(row.html).toContain('class="md-quote-source"')
+      expect(row.html).toContain('class="md-quote-author"')
+    }
+  })
+
   it('seals the installer, so /install is not a way back into a live demo', async () => {
     expect(await count('install_state')).toBe(1)
   })

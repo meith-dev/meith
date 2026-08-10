@@ -18,6 +18,7 @@ import type { ThreadListingRow } from '@meith/threads'
 import { forumHref } from './board-index'
 import { threadRowModel } from './forum-display'
 import { memberHref } from './member-profile'
+import { numberAnchor, postAnchor } from './post-anchor'
 import type { MemberIdentity } from './member-identity'
 import { formatDate, formatTime } from './time'
 
@@ -104,7 +105,7 @@ function post(
   return {
     id: post.id,
     number: post.number,
-    permalink: `/thread/${thread.id}-${thread.slug}#post-${post.id}`,
+    permalink: `/thread/${thread.id}-${thread.slug}#${numberAnchor(post.number)}`,
     quoteSource: hidden ? '' : post.message,
     author: {
       userId: post.authorUserId,
@@ -210,7 +211,7 @@ export function revealHref(currentHref: string, postId: number): string {
   const [path = '', hash] = currentHref.split('#')
   void hash
   const separator = path.includes('?') ? '&' : '?'
-  return `${path}${separator}reveal=${postId}#post-${postId}`
+  return `${path}${separator}reveal=${postId}#${postAnchor(postId)}`
 }
 
 export function revealedFrom(raw: string | readonly string[] | undefined): ReadonlySet<number> {

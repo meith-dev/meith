@@ -12,6 +12,7 @@ import { getActor } from '@/server/context'
 import { messageService } from '@/server/messages'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { currentTheme } from '@/server/theme'
+import { postAnchor } from '@/view/post-anchor'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Reports' }
@@ -78,7 +79,7 @@ export default async function ReportsPage({
                   ? `/thread/${report.targetId}`
                   : report.kind === 'private_message'
                     ? null
-                    : `/thread/${report.threadId ?? 0}#post-${report.targetId}`
+                    : `/thread/${report.threadId ?? 0}#${postAnchor(report.targetId)}`
 
             return (
               <li

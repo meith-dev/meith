@@ -536,7 +536,7 @@ One post in the index's "latest posts" panel.
 | Field | Type | Notes |
 |---|---|---|
 | `threadTitle` | `string` | The thread it is in. A post has no title of its own. |
-| `href` | `string` | `/thread/12-slug#post-34` — the post, not the top of its thread. |
+| `href` | `string` | `/thread/12-slug#pid-34` — the post, not the top of its thread. |
 | `forum` | `LinkModel` |  |
 | `author` | `UserRefModel` |  |
 | `excerpt` | `string` | The post as text: flattened out of its Markdown source and cut on a word boundary, the same way a feed entry's summary is. Flattened rather than rendered, because the board's HTML carries quotes, directives and attachment markup whose meaning is lost in two lines — and because a theme dropping raw post HTML into a sidebar is one plugin away from being an injection point. |
@@ -651,7 +651,7 @@ The author block beside a post.
 |---|---|---|
 | `id` | `number` |  |
 | `number` | `number` | Position within the thread, 1-based. What "#12" in the corner means. |
-| `permalink` | `string` |  |
+| `permalink` | `string` | `/thread/12-slug#post-3` — anchored by `number`, so the link says what the corner says. |
 | `author` | `PostAuthorModel` |  |
 | `bodyHtml` | `string` | Pre-rendered Markdown. |
 | `quoteSource` | `string` | @deprecated Since theme API 1.4, removed in 2.0. Use `post.id`. It existed so the client could assemble a quote out of the page. Quoting asks the server for a post **by id** now, which re-checks who may see it and cannot hand back what a deleted post used to say — so this is a copy of every post's source in the HTML of every thread page, for nobody. Still populated, because a theme could have read it; see `DEPRECATIONS`. |

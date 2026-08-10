@@ -1,5 +1,6 @@
 import type { QueueItem } from '@meith/moderation'
 
+import { postAnchor } from './post-anchor'
 import { formatTime } from './time'
 import type { TimeModel } from '@meith/theme-kit'
 
@@ -40,7 +41,7 @@ function row(item: QueueItem, now: Date, timeZone: string | undefined): QueueRow
     kindLabel: item.kind === 'thread' ? 'New thread' : 'Reply',
     forumTitle: item.forumTitle,
     threadTitle: item.threadTitle,
-    href: item.kind === 'thread' ? `/${item.forumId}` : `${thread}#post-${item.id}`,
+    href: item.kind === 'thread' ? `/${item.forumId}` : `${thread}#${postAnchor(item.id)}`,
     authorUsername: item.authorUsername,
     authorHref: item.authorUserId === null ? null : `/member/${item.authorUserId}`,
     excerpt: item.excerpt,

@@ -498,7 +498,7 @@ describe('thankForPostAction', () => {
   })
 
   it('returns the reader to the post, not the top of the thread', async () => {
-    expect((await thank()).redirectedTo).toBe('/thread/4-hello#post-10')
+    expect((await thank()).redirectedTo).toBe('/thread/4-hello#pid-10')
   })
 
   it('refuses an off-site returnTo', async () => {
@@ -511,7 +511,7 @@ describe('thankForPostAction', () => {
       ]),
     )
 
-    expect(result.redirectedTo).toBe(`/member/${TARGET}#post-10`)
+    expect(result.redirectedTo).toBe(`/member/${TARGET}#pid-10`)
   })
 
   it('refuses a guest', async () => {

@@ -29,6 +29,12 @@ export { bbcodeToMarkdown } from './bbcode'
 export { escapeMarkdownText, plainAuthorName } from './escape-source'
 export { quoteBlock, type QuoteInput } from './quote'
 export {
+  memberByNameHref,
+  quoteAttribution,
+  type AttributedAuthor,
+  type QuoteAttribution,
+} from './attribution'
+export {
   applyWordFilter,
   compileWordFilter,
   type CompiledWordFilter,

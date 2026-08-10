@@ -96,6 +96,21 @@ Worth knowing before they fire.
 >   `ForumRow` and `CategoryBlock` together is now a rule a *member* can trip
 >   over, not only an operator.
 
+### Two ids per post
+
+Resolving every href leaves the *other* end of a link to the theme. `PostBit`
+renders both anchors a post is reached by:
+
+| Id | What links to it |
+|---|---|
+| `pid-<post.id>` | Everything the board writes — a notification, a search hit, a feed entry, a quote's link back, the reveal link on an ignored post |
+| `post-<post.number>` | `permalink`, and so the "#12" beside the post — what a reader copies out of the address bar |
+
+Both, because they answer different questions. "The sixth post in this thread"
+is what a person means and it moves when an earlier post is deleted; a link
+already sent somewhere must not move at all. A theme that renders one of them
+leaves half the board's links landing at the top of the page.
+
 ## What the freeze covers
 
 | Covered | Not covered |

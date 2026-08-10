@@ -1,3 +1,4 @@
+import { quoteAttribution } from './attribution'
 import { parse, type ParseOptions } from './blocks'
 import type { Block, Inline } from './nodes'
 
@@ -36,7 +37,12 @@ function fromBlocks(blocks: readonly Block[]): string[] {
       case 'code':
         parts.push(block.value)
         break
-      case 'quote':
+      case 'quote': {
+        const attribution = quoteAttribution(block.children[0])
+        if (attribution !== null) parts.push(`${attribution.name} wrote:`)
+        parts.push(...fromBlocks(attribution === null ? block.children : block.children.slice(1)))
+        break
+      }
       case 'directive':
         parts.push(...fromBlocks(block.children))
         break

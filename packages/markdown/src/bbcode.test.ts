@@ -19,12 +19,14 @@ describe('the tags with a Markdown spelling', () => {
 
   it('marks every line of a quote, blank ones included', () => {
     expect(bbcodeToMarkdown('[quote=Bob]one\n\ntwo[/quote]')).toBe(
-      '> **Bob wrote:**\n>\n> one\n>\n> two',
+      '> **[Bob](/member/by-name/Bob) wrote:**\n>\n> one\n>\n> two',
     )
   })
 
   it('reads MyBB’s quote attributes and drops the post id', () => {
-    expect(bbcodeToMarkdown("[quote='Bob' pid='42']x[/quote]")).toContain('**Bob wrote:**')
+    expect(bbcodeToMarkdown("[quote='Bob' pid='42']x[/quote]")).toContain(
+      '**[Bob](/member/by-name/Bob) wrote:**',
+    )
   })
 
   it('fences a code body long enough that its own backticks cannot close it', () => {
@@ -86,9 +88,9 @@ describe('nesting', () => {
   it('converts a quote inside a quote', () => {
     const out = bbcodeToMarkdown('[quote=A]outer [quote=B]inner[/quote][/quote]')
     expect(shown('[quote=A]outer [quote=B]inner[/quote][/quote]')).toContain(
-      '<blockquote class="md-quote"><p><strong>A wrote:</strong></p>',
+      '<blockquote class="md-quote"><p class="md-quote-attribution"><strong>',
     )
-    expect(out).toContain('> > **B wrote:**')
+    expect(out).toContain('> > **[B](/member/by-name/B) wrote:**')
   })
 
   it('converts styling inside a list item', () => {

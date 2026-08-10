@@ -1,5 +1,7 @@
 import type { PostFormModel } from '@meith/theme-kit'
 
+import { postAnchor } from './post-anchor'
+
 export interface PostFormInput {
   readonly forum: { readonly id: number; readonly title: string; readonly slug: string }
   readonly errorMessage?: string | null
@@ -47,7 +49,7 @@ export function buildEditView(
   return {
     mode: 'edit',
     heading: input.isDeleted ? 'Deleted post' : 'Edit post',
-    cancelHref: `/thread/${input.thread.id}-${input.thread.slug}#post-${input.postId}`,
+    cancelHref: `/thread/${input.thread.id}-${input.thread.slug}#${postAnchor(input.postId)}`,
     cancelLabel: 'Back to the thread',
     errorMessage: input.errorMessage ?? null,
   }
