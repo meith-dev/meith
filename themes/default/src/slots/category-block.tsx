@@ -10,13 +10,9 @@ export function CategoryBlock({ category, children }: CategoryBlockModel) {
     <Card aria-labelledby={headingId}>
       <CardHeader className="flex-col items-start gap-0.5">
         <CardTitle id={headingId}>
-          {category.type === 'category' ? (
-            category.title
-          ) : (
-            <a href={category.href} className={LINK}>
-              {category.title}
-            </a>
-          )}
+          <a href={category.href} className={LINK}>
+            {category.title}
+          </a>
         </CardTitle>
         {category.description !== null && (
           <CardDescription className="text-xs">{category.description}</CardDescription>
