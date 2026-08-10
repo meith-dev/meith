@@ -126,12 +126,11 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
   return (
     <Card
       as="article"
-      id={`pid-${post.id}`}
+      id={`post-${post.number}`}
+      data-post-id={post.id}
       data-visibility={post.visibility}
       className={VISIBILITY_TINT[post.visibility]}
     >
-      <span id={`post-${post.number}`} aria-hidden="true" />
-
       <StatusBanner visibility={post.visibility} />
 
       <div className="grid grid-cols-1 sm:grid-cols-[11rem_minmax(0,1fr)]">

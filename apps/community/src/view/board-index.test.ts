@@ -1,7 +1,7 @@
 import type { ForumListingRow } from '@meith/forums'
 import { describe, expect, it } from 'vitest'
 
-import { buildBoardIndexView } from './board-index'
+import { buildBoardIndexView, buildSectionView } from './board-index'
 
 const NOW = new Date('2026-07-30T12:00:00Z')
 
@@ -130,7 +130,7 @@ describe('buildBoardIndexView', () => {
     )
 
     const last = result.blocks[0]!.block.category.lastPost!
-    expect(last.href).toBe('/thread/7#pid-99')
+    expect(last.href).toBe('/thread/7?post=99')
     expect(last.at.label).toBe('Today, 09:14')
     expect(last.author.username).toBe('ada')
     expect(last.author.profileHref).toBe('/member/3')
@@ -201,5 +201,44 @@ describe('buildBoardIndexView', () => {
 
   it('renders an empty board as no blocks rather than throwing', () => {
     expect(view([], []).blocks).toEqual([])
+  })
+})
+
+describe('buildSectionView', () => {
+  const rows = [
+    forum({ id: 1, type: 'category', title: 'The board' }),
+    forum({ id: 2, title: 'General', parentId: 1, path: '1.2' }),
+    forum({ id: 3, title: 'Announcements', parentId: 1, path: '1.3' }),
+    forum({ id: 4, title: 'Sub', parentId: 2, path: '1.2.4' }),
+    forum({ id: 5, type: 'category', title: 'Elsewhere' }),
+  ]
+
+  function section(categoryId: number, visible: readonly number[] = [1, 2, 3, 4, 5]) {
+    return buildSectionView({
+      rows,
+      visibleForumIds: new Set(visible),
+      categoryId,
+      now: NOW,
+    })
+  }
+
+  it('lists the forums in that category, and their subforums as links', () => {
+    const result = section(1)
+
+    expect(result?.block.category.title).toBe('The board')
+    expect(result?.forums.map((entry) => entry.title)).toEqual(['General', 'Announcements'])
+    expect(result?.forums[0]?.subforums).toEqual([{ label: 'Sub', href: '/4-forum-4' }])
+  })
+
+  it('leaves out a forum the viewer cannot see', () => {
+    expect(section(1, [1, 3])?.forums.map((entry) => entry.title)).toEqual(['Announcements'])
+  })
+
+  it('answers nothing for a category this viewer cannot see', () => {
+    expect(section(1, [5])).toBeNull()
+  })
+
+  it('answers for an empty category rather than pretending it is missing', () => {
+    expect(section(5)?.forums).toEqual([])
   })
 })

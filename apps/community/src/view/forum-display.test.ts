@@ -70,7 +70,7 @@ describe('buildForumDisplayView', () => {
     expect(view.threads[0]).toMatchObject({
       href: '/thread/3-hello',
       author: { username: 'departed', profileHref: null },
-      lastPost: { href: '/thread/3-hello#pid-4' },
+      lastPost: { href: '/thread/3-hello?post=4' },
     })
     expect(view.pagination).toMatchObject({
       page: 1,

@@ -291,7 +291,7 @@ function quoting(
   const block = quoteBlock({
     author: requireUser(target.userIds, author).username,
     markdown: quoted,
-    sourceHref: `/thread/${target.threadId}-${target.slug}#pid-${postId}`,
+    sourceHref: `/thread/${target.threadId}-${target.slug}?post=${postId}`,
   })
 
   return `${block}\n\n${reply.message}`

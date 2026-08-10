@@ -71,7 +71,7 @@ describe('notifyPostAudience', () => {
     expect(notifications.raised[0]).toMatchObject({
       userId: wren,
       kind: 'post.mentioned',
-      href: '/thread/7-hello#pid-99',
+      href: '/thread/7-hello?post=99',
       data: { byUsername: 'Poster', threadTitle: 'Hello' },
       dedupeKey: 'post.mentioned:99',
     })

@@ -1,5 +1,5 @@
 export type { PostRepository } from './ports'
-export type { PostListingRow, PostPage, QuotablePost } from './types'
+export type { PostListingRow, PostLocation, PostPage, QuotablePost } from './types'
 
 export {
   PostEditor,

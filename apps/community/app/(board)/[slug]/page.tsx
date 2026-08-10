@@ -17,6 +17,7 @@ import { FollowForm } from '@/components/account/subscription-forms'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { getSettings } from '@/server/settings'
 import { buildBreadcrumb } from '@/view/breadcrumb'
+import { SectionPage } from '@/components/board/section-page'
 import { buildForumDisplayView } from '@/view/forum-display'
 import { identitiesFor } from '@/server/group-identity'
 import { distinctUserIds } from '@/view/member-identity'
@@ -44,7 +45,17 @@ export async function generateMetadata({
   const { forums, authorizer } = getContainer()
 
   const forum = await forums.findById(id)
-  if (!forum || forum.type !== 'forum') return { title: 'Forum' }
+  if (!forum || forum.type === 'link') return { title: 'Forum' }
+
+  if (forum.type === 'category') {
+    const visible = await authorizer.visibleForumIds(actor)
+    if (!visible.includes(forum.id)) return { title: 'Forum' }
+    return {
+      title: forum.title,
+      description: forum.description ?? `Forums in ${forum.title}.`,
+      alternates: { canonical: canonicalPath({ path: `/${forum.id}-${forum.slug}`, page: 1 }) },
+    }
+  }
 
   const matrix = await authorizer.forumMatrix(actor, forum.id)
   if (
@@ -134,7 +145,21 @@ export default async function ForumPage({
       : readState.forUser(actor.userId),
   ])
   const forum = rows.find((row) => row.id === id)
-  if (!forum || forum.type !== 'forum' || !visible.includes(id)) notFound()
+  if (!forum || !visible.includes(id)) notFound()
+
+  if (forum.type === 'category') {
+    return (
+      <SectionPage
+        category={forum}
+        rows={rows}
+        visibleForumIds={new Set(visible)}
+        {...(read === null ? {} : { unreadForumIds: read.unreadForumIds })}
+        homeLabel={(await getSettings()).get('board.name')}
+      />
+    )
+  }
+
+  if (forum.type !== 'forum') notFound()
   const matrix = await authorizer.forumMatrix(actor, id)
   if (!authorizer.can(actor, 'thread.view', { forumId: id, forum: matrix }))
     notFound()

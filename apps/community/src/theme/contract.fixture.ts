@@ -280,7 +280,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       posts: [
         {
           threadTitle: 'Bikeshedding the bike shed',
-          href: '/thread/91-bikeshedding?post=4102#pid-4102',
+          href: '/thread/91-bikeshedding?post=4102',
           forum: { label: 'General discussion', href: '/f/3-general' },
           author: AUTHOR,
           excerpt: 'The roof should be corrugated, not slate.',
@@ -290,7 +290,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       capturedAt: TIME,
     },
     requires: [
-      '/thread/91-bikeshedding?post=4102#pid-4102',
+      '/thread/91-bikeshedding?post=4102',
       'The roof should be corrugated, not slate.',
       'General discussion',
     ],

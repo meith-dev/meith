@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 
+import type { PostLocation } from '@meith/posts'
 import { requireSlot } from '@meith/theme-kit'
 
 import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
@@ -39,6 +40,7 @@ import { identitiesFor } from '@/server/group-identity'
 import { activeVocabulary, activeWordFilter } from '@/server/content-admin'
 import { getSettings } from '@/server/settings'
 import { buildBreadcrumb } from '@/view/breadcrumb'
+import { postAnchor } from '@/view/post-link'
 import { buildThreadView, revealedFrom } from '@/view/thread-view'
 import {
   cardDescription,
@@ -137,6 +139,31 @@ function afterId(value: string | undefined): number | null | undefined {
   return Number.isSafeInteger(id) ? id : null
 }
 
+function requestedPostId(value: string | undefined): number | null {
+  if (value === undefined || !/^[1-9]\d*$/.test(value)) return null
+  const id = Number(value)
+  return Number.isSafeInteger(id) ? id : null
+}
+
+function locatedHref(
+  path: string,
+  query: Record<string, string | string[] | undefined>,
+  location: PostLocation,
+): string {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || key === 'post' || key === 'after' || key === 'page') continue
+    for (const one of typeof value === 'string' ? [value] : value) params.append(key, one)
+  }
+  if (location.afterId !== null) {
+    params.set('after', String(location.afterId))
+    params.set('page', String(location.page))
+  }
+
+  const search = params.toString()
+  return `${path}${search === '' ? '' : `?${search}`}#${postAnchor(location.number)}`
+}
+
 export default async function ThreadPage({
   params,
   searchParams,
@@ -148,6 +175,8 @@ export default async function ThreadPage({
     replied?: string
     posted?: string
     post?: string
+    removed?: string
+    unchanged?: string
     tool?: string
     did?: string
     n?: string
@@ -202,6 +231,18 @@ export default async function ThreadPage({
   }
 
   const preferences = await getViewerPreferences()
+
+  const requested = requestedPostId(query.post)
+  if (requested !== null) {
+    const location = await posts.locate(thread.id, requested, {
+      scope,
+      pageSize: preferences.postsPerPage,
+    })
+    if (location !== null) {
+      redirect(locatedHref(`/thread/${thread.id}-${thread.slug}`, query, location))
+    }
+  }
+
   const postPage = await posts.listThread(thread.id, {
     ...(after === undefined ? {} : { afterId: after }),
     limit: preferences.postsPerPage,
@@ -387,9 +428,9 @@ export default async function ThreadPage({
         ? 'Your post is waiting for a moderator to approve it.'
         : query.tool !== undefined
           ? (TOOL_NOTICE[query.tool] ?? null)
-          : query.post === 'deleted'
+          : query.removed === 'post'
             ? 'That post has been deleted.'
-            : query.post === 'unchanged'
+            : query.unchanged === 'post'
               ? 'Nothing changed — that post was already in this state.'
               : inlineOutcomeNotice(query)
 

@@ -161,7 +161,7 @@ describe('the seeded board', () => {
     expect(rows).toHaveLength(quoting.length)
 
     for (const row of rows) {
-      const source = /\[View post\]\(\/thread\/(\d+)-[^#]+#pid-(\d+)\)/.exec(row.message)
+      const source = /\[View post\]\(\/thread\/(\d+)-[^?]+\?post=(\d+)\)/.exec(row.message)
       expect(source).not.toBeNull()
 
       const [, threadId, postId] = source!

@@ -13,8 +13,7 @@ import { PostEditor, type PostWriteRepository } from '@meith/posts'
 import { ThreadComposer, type AuthorRestriction } from '@meith/threads'
 import { restrictsPosting } from '@meith/moderation'
 
-import { POSTS_PER_PAGE } from '../view/paging'
-import { postAnchor } from '../view/post-anchor'
+import { postLink } from '../view/post-link'
 
 import { emitEvent, viewerRef } from './plugin-view'
 
@@ -72,7 +71,7 @@ export async function quotePostAction(
   return quoteBlock({
     author: quoted.authorUsername,
     markdown: quoted.message,
-    sourceHref: `/thread/${target.threadId}-${target.slug}#${postAnchor(quoted.id)}`,
+    sourceHref: postLink(`/thread/${target.threadId}-${target.slug}`, quoted.id),
   })
 }
 
@@ -292,19 +291,9 @@ export async function createReplyAction(
   redirect(`${thread}${replyAnchor(created)}`)
 }
 
-function replyAnchor(created: {
-  postId: number
-  repliesBefore: number
-  raced: boolean
-}): string {
-  const query: string[] = []
-  if (created.repliesBefore + 1 >= POSTS_PER_PAGE && created.postId > 1) {
-    query.push(`after=${created.postId - 1}`)
-  }
-  if (created.raced) query.push('replied=race')
-
-  const search = query.length === 0 ? '' : `?${query.join('&')}`
-  return `${search}#${postAnchor(created.postId)}`
+function replyAnchor(created: { postId: number; raced: boolean }): string {
+  const link = postLink('', created.postId)
+  return created.raced ? `${link}&replied=race` : link
 }
 
 async function authorProfile(
@@ -391,7 +380,7 @@ export async function editPostAction(
   if (edited.heldForApproval) {
     redirect(`${thread}?posted=moderated`)
   }
-  redirect(`${thread}#${postAnchor(edited.postId)}`)
+  redirect(postLink(thread, edited.postId))
 }
 
 export async function deletePostAction(
@@ -453,12 +442,8 @@ async function moveVisibility(
   }
 
   const thread = `/thread/${moved.threadId}-${moved.threadSlug}`
-  if (!moved.changed) redirect(`${thread}?post=unchanged`)
-  redirect(
-    to === 'deleted'
-      ? `${thread}?post=deleted`
-      : `${thread}#${postAnchor(moved.postId)}`,
-  )
+  if (!moved.changed) redirect(`${thread}?unchanged=post`)
+  redirect(to === 'deleted' ? `${thread}?removed=post` : postLink(thread, moved.postId))
 }
 
 async function authorRestriction(userId: number): Promise<AuthorRestriction> {

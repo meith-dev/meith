@@ -96,20 +96,18 @@ Worth knowing before they fire.
 >   `ForumRow` and `CategoryBlock` together is now a rule a *member* can trip
 >   over, not only an operator.
 
-### Two ids per post
+### The post anchor
 
 Resolving every href leaves the *other* end of a link to the theme. `PostBit`
-renders both anchors a post is reached by:
+anchors each post at **`post-<post.number>`** — the number in its corner — and
+that is the whole scheme: `permalink` points at it, and so does every link the
+board writes, once the thread page has resolved it.
 
-| Id | What links to it |
-|---|---|
-| `pid-<post.id>` | Everything the board writes — a notification, a search hit, a feed entry, a quote's link back, the reveal link on an ignored post |
-| `post-<post.number>` | `permalink`, and so the "#12" beside the post — what a reader copies out of the address bar |
-
-Both, because they answer different questions. "The sixth post in this thread"
-is what a person means and it moves when an earlier post is deleted; a link
-already sent somewhere must not move at all. A theme that renders one of them
-leaves half the board's links landing at the top of the page.
+Nothing links a post by its id. A link that has to survive a deletion carries
+`?post=<id>` in the query instead, and the thread page turns that into the page
+holding the post and this anchor, so a theme never sees an id in a fragment. A
+theme that anchors a post by `post.id` leaves those links at the top of the
+page.
 
 ## What the freeze covers
 

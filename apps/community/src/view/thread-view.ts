@@ -18,7 +18,7 @@ import type { ThreadListingRow } from '@meith/threads'
 import { forumHref } from './board-index'
 import { threadRowModel } from './forum-display'
 import { memberHref } from './member-profile'
-import { numberAnchor, postAnchor } from './post-anchor'
+import { postAnchor } from './post-link'
 import type { MemberIdentity } from './member-identity'
 import { formatDate, formatTime } from './time'
 
@@ -69,7 +69,7 @@ interface PostContext {
   readonly identities: ReadonlyMap<number, MemberIdentity>
   readonly ignoredIds: ReadonlySet<number>
   readonly revealedPostIds: ReadonlySet<number>
-  readonly revealHref: (postId: number) => string
+  readonly revealHref: (postId: number, number: number) => string
   readonly wordFilter: CompiledWordFilter | undefined
   readonly vocabulary: BoardVocabulary | undefined
   readonly attachments: ReadonlyMap<number, readonly PostAttachmentModel[]>
@@ -105,7 +105,7 @@ function post(
   return {
     id: post.id,
     number: post.number,
-    permalink: `/thread/${thread.id}-${thread.slug}#${numberAnchor(post.number)}`,
+    permalink: `/thread/${thread.id}-${thread.slug}#${postAnchor(post.number)}`,
     quoteSource: hidden ? '' : post.message,
     author: {
       userId: post.authorUserId,
@@ -146,7 +146,7 @@ function post(
     ignored: hidden
       ? {
           authorUsername: post.authorUsername,
-          revealHref: context.revealHref(post.id),
+          revealHref: context.revealHref(post.id, post.number),
         }
       : null,
     actions: {
@@ -207,11 +207,11 @@ const EMPTY_ATTACHMENTS: ReadonlyMap<number, readonly PostAttachmentModel[]> = n
 const EMPTY_AVATARS: ReadonlyMap<number, string> = new Map()
 const EMPTY_IDENTITIES: ReadonlyMap<number, MemberIdentity> = new Map()
 
-export function revealHref(currentHref: string, postId: number): string {
+export function revealHref(currentHref: string, postId: number, number: number): string {
   const [path = '', hash] = currentHref.split('#')
   void hash
   const separator = path.includes('?') ? '&' : '?'
-  return `${path}${separator}reveal=${postId}#${postAnchor(postId)}`
+  return `${path}${separator}reveal=${postId}#${postAnchor(number)}`
 }
 
 export function revealedFrom(raw: string | readonly string[] | undefined): ReadonlySet<number> {
@@ -254,7 +254,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
         identities: input.identities ?? EMPTY_IDENTITIES,
         ignoredIds: input.ignoredIds ?? EMPTY_IDS,
         revealedPostIds: input.revealedPostIds ?? EMPTY_IDS,
-        revealHref: (postId) => revealHref(input.currentHref ?? '', postId),
+        revealHref: (postId, number) => revealHref(input.currentHref ?? '', postId, number),
         wordFilter: input.wordFilter,
         vocabulary: input.vocabulary,
       }),

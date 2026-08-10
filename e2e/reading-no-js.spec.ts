@@ -8,10 +8,10 @@ test('the fixture board, registration, and login work without JavaScript', async
 
   await page.goto('/')
   await page.getByLabel('Main').getByRole('link', { name: 'Version 0.1 is live' }).click()
-  await expect(page).toHaveURL(/\/thread\/4(?:#|$)/)
+  await expect(page).toHaveURL(/\/thread\/4-version-0-1-is-live#post-\d+$/)
 
-  await expect(page.locator('#pid-10 strong')).toHaveText('new forum')
-  const rules = page.locator('#pid-10 a[href="/100-announcements"]')
+  await expect(page.locator('#post-1 strong')).toHaveText('new forum')
+  const rules = page.locator('#post-1 a[href="/100-announcements"]')
   await expect(rules).toHaveText('Announcements')
   await expect(rules).toHaveAttribute('rel', 'nofollow ugc noopener noreferrer')
 
@@ -33,10 +33,10 @@ test('the fixture board, registration, and login work without JavaScript', async
 test('a quoted reply renders as a quote block, not as its own markup', async ({ page }) => {
   await page.goto('/thread/21-show-us-your-desk-setup')
 
-  const quote = page.locator('#pid-132 blockquote.md-quote')
+  const quote = page.locator('#post-2 blockquote.md-quote')
   await expect(quote).toContainText('admin wrote:')
   await expect(quote).toContainText('Show us the place where you make things.')
-  await expect(page.locator('#pid-132')).not.toContainText('> **admin')
+  await expect(page.locator('#post-2')).not.toContainText('> **admin')
 
   await expect(quote.locator('a.md-quote-author')).toHaveAttribute(
     'href',
@@ -44,19 +44,36 @@ test('a quoted reply renders as a quote block, not as its own markup', async ({ 
   )
   await expect(quote.locator('a.md-quote-source')).toHaveAttribute(
     'href',
-    '/thread/21-show-us-your-desk-setup#pid-121',
+    '/thread/21-show-us-your-desk-setup?post=121',
   )
 })
 
-test('a post is linked by its number, and reachable by its id', async ({ page }) => {
+test('a post is linked by its number, and a link by id lands on it', async ({ page }) => {
   await page.goto('/thread/21-show-us-your-desk-setup')
 
-  const second = page.locator('#pid-132')
+  const second = page.locator('#post-2')
   await expect(second.getByRole('link', { name: /#2/ })).toHaveAttribute(
     'href',
     '/thread/21-show-us-your-desk-setup#post-2',
   )
-  await expect(page.locator('#post-2')).toBeAttached()
+
+  await page.goto('/thread/21-show-us-your-desk-setup?post=132')
+  await expect(page).toHaveURL('/thread/21-show-us-your-desk-setup#post-2')
+  await expect(second).toBeInViewport()
+})
+
+test('a category in the breadcrumb is a page, not a 404', async ({ page }) => {
+  await page.goto('/200-general')
+
+  const section = page.getByLabel('Breadcrumb').getByRole('link', { name: 'Main' })
+  await expect(section).toHaveAttribute('href', '/10-main')
+
+  await section.click()
+  await expect(page).toHaveURL('/10-main')
+  await expect(page.getByRole('heading', { name: 'Main' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'General Discussion', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Announcements', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Off Topic', exact: true })).toBeVisible()
 })
 
 test('the forum jump box works without JavaScript', async ({ page }) => {
@@ -126,5 +143,5 @@ test('the index rail renders, and only its pause control needs JavaScript', asyn
   await expect(page.getByRole('button', { name: 'Pause' })).toHaveCount(0)
 
   const post = rail.locator('section', { hasText: 'Latest posts' }).locator('li a').first()
-  await expect(post).toHaveAttribute('href', /\/thread\/\d+-[^?]+\?post=\d+#pid-\d+$/)
+  await expect(post).toHaveAttribute('href', /\/thread\/\d+-[^?]+\?post=\d+$/)
 })

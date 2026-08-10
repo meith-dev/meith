@@ -1477,6 +1477,24 @@ deliver to a member rather than to a URL. A per-member feed token would restore
 it — a capability URL, cached safely because it is unguessable — and it is a
 feature with its own decisions to make, not a flag on this one.
 
+### A category is a page, not only a heading
+
+**MyBB:** a category is a heading on the index and a `forumdisplay.php?fid=`
+page of its own, which lists the forums under it.
+
+**Here:** the same — `/{id}-{slug}` on a category renders its forums, using the
+index's own blocks so the two never drift apart. It exists because the
+breadcrumb on every forum and thread page names the category, and a named
+ancestor that 404s is a trail that stops halfway.
+
+**Why it is not the index filtered:** a section is the one page that answers
+"what else is in here?" on a board large enough for the index to be long, and it
+is where a category's own description belongs. Neither needs a new slot: it is
+`CategoryBlock` and `ForumRow`, the pair the index already hands a theme.
+
+**Cost:** one more page per category to keep working. It shares the index's view
+model, so the cost is a route rather than a feature.
+
 ### Every page of a thread is its own canonical URL
 
 **MyBB:** emits no canonical link. Duplicate URLs for one page — `showthread.php`
@@ -1496,22 +1514,33 @@ canonical is actually for here is collapsing `?post=812`, `?after=…` and
 a search result lands on the page rather than the post. The anchor still works
 for anybody who follows the original link.
 
-### A post has two anchors: the number you see, and the id that never moves
+### A post is anchored by its number, and reached by its id
 
-**MyBB:** links a post as `#pid1234` and prints `#6` beside it. The two never
-agree, and the one a reader copies is the one they cannot read.
+**MyBB:** links a post as `showthread.php?pid=1234#pid1234` and prints `#6`
+beside it. The two never agree, and the one a reader copies is the one they
+cannot read.
 
-**Here:** the permalink beside a post is `#post-6` — the number the corner
-shows — and the same post is also anchored at `#pid-1234`. Everything the
-software writes (a notification, a search hit, a quote's link back, the reveal
-link on an ignored post) uses `#pid-`.
+**Here:** there is one anchor, `#post-6`, and it is the number the corner shows.
+Everything the board writes — a notification, a search hit, a feed entry, the
+last-post link on the index, a quote's link back — links `?post=1234` instead,
+and the thread page answers that by finding the post and redirecting to the page
+holding it, anchored at its number.
 
-**Why:** the two anchors answer different questions. "The sixth post in this
-thread" is what a person means and it moves when an earlier post is deleted;
-"post 1234" is what a stored link means and it must not move at all.
+**Why:** the two jobs conflict. "The sixth post in this thread" is what a person
+means, and it moves when an earlier post is deleted; "post 1234" is what a
+stored link means, and it must not move at all. Splitting them across the query
+and the fragment lets each be what it is, and leaves one anchor scheme in the
+markup rather than two.
 
-**Cost:** two ids in the markup per post, and a `#post-6` link shared today may
-name a different post after a deletion — which is what the number itself does.
+**It is also the only way the link lands.** A fragment is never sent to the
+server, so `#post-812` on a thread that paginates can only work if the post
+happens to be on the page that loaded. Resolving `?post=812` server-side finds
+the page as well as the anchor, which is what makes a link to the four-hundredth
+post of a thread arrive at it.
+
+**Cost:** one redirect per link followed. A board that served the anchor
+directly makes none — and lands the reader at the top of page one whenever the
+post was not on it.
 
 ### The sitemap is an index of chunks, ordered by id
 

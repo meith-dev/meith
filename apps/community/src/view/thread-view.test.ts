@@ -434,7 +434,7 @@ describe('ignored posts', () => {
     expect(view.posts[0]?.bodyHtml).toBe('')
     expect(view.posts[0]?.ignored).toEqual({
       authorUsername: 'noisy',
-      revealHref: '/thread/3-a-thread?page=2&reveal=4#pid-4',
+      revealHref: '/thread/3-a-thread?page=2&reveal=4#post-1',
     })
   })
 

@@ -2,7 +2,7 @@ import type { ReputationRow, ReputationSummary } from '@meith/reputation'
 import type { TimeModel } from '@meith/theme-kit'
 
 import { memberHref } from './member-profile'
-import { postAnchor } from './post-anchor'
+import { postLink } from './post-link'
 import { formatTime } from './time'
 
 export interface ReputationRowView {
@@ -47,7 +47,7 @@ export function buildReputationView(input: {
       postHref:
         row.postId === null || row.threadId === null
           ? null
-          : `/thread/${row.threadId}#${postAnchor(row.postId)}`,
+          : postLink(`/thread/${row.threadId}`, row.postId),
       at: formatTime(row.createdAt, input.now, input.timeZone),
       isMine: input.viewerUserId !== null && row.givenByUserId === input.viewerUserId,
     })),

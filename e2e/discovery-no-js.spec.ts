@@ -88,7 +88,7 @@ test('answering a thread takes it out of Unanswered', async ({ browser }) => {
     await replierPage.goto(`${threadUrl}/reply`)
     await replierPage.getByLabel('Message').fill('Answered.')
     await replierPage.getByRole('button', { name: 'Post reply' }).click()
-    await expect(replierPage).toHaveURL(/#pid-\d+$/)
+    await expect(replierPage).toHaveURL(/#post-\d+$/)
 
     await replierPage.goto('/discover/unanswered')
     await expect(replierPage.getByRole('link', { name: title })).toHaveCount(0)

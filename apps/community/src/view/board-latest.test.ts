@@ -79,7 +79,7 @@ describe('buildLatestPostsModel', () => {
   it('links to the post rather than to the top of its thread', () => {
     const { posts } = buildLatestPostsModel({ rows: [postRow()], now: NOW })
 
-    expect(posts[0]?.href).toBe('/thread/91-bikeshedding?post=4102#pid-4102')
+    expect(posts[0]?.href).toBe('/thread/91-bikeshedding?post=4102')
   })
 
   it('flattens the Markdown source into text', () => {

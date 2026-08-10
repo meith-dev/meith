@@ -15,7 +15,7 @@ import type {
 import { formatTime } from './time'
 import { nameClassOf, type MemberIdentity } from './member-identity'
 import { memberHref } from './member-profile'
-import { postAnchor } from './post-anchor'
+import { postLink } from './post-link'
 
 export interface BoardIndexInput {
   readonly rows: readonly ForumListingRow[]
@@ -37,7 +37,7 @@ function hrefFor(row: ForumListingRow): string {
 }
 
 function threadHref(threadId: number, postId: number): string {
-  return `/thread/${threadId}#${postAnchor(postId)}`
+  return postLink(`/thread/${threadId}`, postId)
 }
 
 function toLastPost(
@@ -93,6 +93,33 @@ export interface BoardIndexBlock {
 export interface BoardIndexView {
   readonly index: Omit<BoardIndexModel, 'regions'>
   readonly blocks: readonly BoardIndexBlock[]
+}
+
+export interface SectionInput extends BoardIndexInput {
+  readonly categoryId: number
+}
+
+function findNode(
+  nodes: readonly ForumNode<ForumListingRow>[],
+  id: number,
+): ForumNode<ForumListingRow> | null {
+  for (const node of nodes) {
+    if (node.id === id) return node
+    const found = findNode(node.children, id)
+    if (found !== null) return found
+  }
+  return null
+}
+
+export function buildSectionView(input: SectionInput): BoardIndexBlock | null {
+  const tree = buildTree(keepVisibleSubtrees(input.rows, (row) => input.visibleForumIds.has(row.id)))
+  const node = findNode(tree, input.categoryId)
+  if (node === null) return null
+
+  const row = (candidate: ForumNode<ForumListingRow>): ForumRowModel =>
+    toForumRow(candidate, input.now, input.timeZone, input.unreadForumIds, input.identities)
+
+  return { block: { category: row(node) }, forums: node.children.map(row) }
 }
 
 export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {

@@ -304,27 +304,49 @@ untouched and no one is locked out; they rehash on next login regardless.
 
 ## Links into a post changed shape
 
-A post used to be anchored by its id alone — `#post-90`, under a corner that
-read `#6`. It carries two anchors now: `#post-6`, which the permalink beside it
-uses and which agrees with the corner, and `#pid-90`, which is what the board
-writes into notifications, feeds, search results and a quote's link back.
+A post used to be anchored by its id — `#post-90`, under a corner that read
+`#6`. It is anchored by that number now, `#post-6`, and nothing links a post by
+id in a fragment any more. Everything the board writes links `?post=90`
+instead, and the thread page answers that by finding the post and redirecting
+to the page holding it, anchored at its number.
 
-**Nothing the board renders is affected.** Every link the software holds is
-built from the post's id when the page renders, so all of them moved to `#pid-`
-together. What changes is a link *already out in the world* — pasted into
-another forum, a chat, or a post on your own board before the upgrade.
-`#post-90` now names the ninetieth post of that thread if it has one, and lands
-at the top of the thread if it does not. Either way the reader is on the right
-thread, and there is nothing to run.
+**The board rebuilds its own links, so there is nothing to run.** The gain is
+that they now land: a fragment never reaches the server, so the old
+`#post-90` could only work when that post happened to be on the page that
+loaded, and a link to the four-hundredth post of a thread arrived at the top of
+page one. This one arrives at the post.
 
-**A theme you maintain needs both ids.** The board resolves the hrefs and the
-theme owns what they land on; a `PostBit` that renders only one leaves half of
-these links at the top of the page. [Theme API § Two ids per
-post](./theme-api.md#two-ids-per-post) is the shape.
+What changes without asking is a link *already out in the world* — pasted into
+a chat, another forum, or a post on your own board before the upgrade. An old
+`#post-90` now names the ninetieth post of that thread if it has one, and
+otherwise lands at the top. Either way the reader is on the right thread.
 
-Quotes written before the upgrade are unaffected and stay as they were: their
-attribution is text in the post, so it keeps rendering, without the member link
-and the link back that new quotes carry.
+**A theme you maintain anchors posts by number.** The board resolves the hrefs
+and the theme owns what they land on; a `PostBit` that anchors by `post.id`
+leaves every one of these links at the top of the page. [Theme API § The post
+anchor](./theme-api.md#the-post-anchor) is the shape.
+
+Quotes written before the upgrade are unaffected: their attribution is text in
+the post, so it keeps rendering, without the member link and the link back that
+new quotes carry.
+
+## A category is a page now
+
+A category — the heading a group of forums sits under — used to be a 404 if you
+asked for it directly, which the breadcrumb on every thread and forum page
+happily invited you to do. `/{id}-{slug}` on a category is a section page: its
+forums, listed the way the index lists them, under the trail that got you there.
+
+Nothing to run, and nothing to configure. A board with no categories is
+unaffected.
+
+## Two notice parameters were renamed
+
+Deleting a post returned to `/thread/12-slug?post=deleted`, and restoring one
+that was already visible to `?post=unchanged`. `?post=` now means "take me to
+this post", so those two moved out of its way: they are `?removed=post` and
+`?unchanged=post`. They are notices on a redirect the board issues itself —
+nothing stores them, and there is nothing to update.
 
 ## What the CLI applies
 
