@@ -5,6 +5,7 @@ export const site = {
   name: "Meith",
   domain: "meith.dev",
   url: "https://meith.dev",
+  demo: "https://demo.meith.dev",
   repository: "https://github.com/meith-dev/meith",
   tagline: "Open-source community software you run on your own server.",
   description:
@@ -34,7 +35,7 @@ export const hero = {
     "fragmented crowd. Meith is community software for putting the neighbourhood back — " +
     "open source, self-hostable, and built for communities that have work to do together.",
   primary: "Start a board",
-  secondary: "Read the docs",
+  secondary: "View live demo",
   assurance: "No hosted captcha, and no third-party script between your members and your board.",
 } as const
 

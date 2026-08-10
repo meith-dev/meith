@@ -54,9 +54,9 @@ export default async function LandingPage() {
                   →
                 </span>
               </Link>
-              <Link className="btn btn-quiet" href="/docs">
+              <a className="btn btn-quiet" href={site.demo}>
                 {hero.secondary}
-              </Link>
+              </a>
             </div>
 
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
