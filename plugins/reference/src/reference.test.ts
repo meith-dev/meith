@@ -1,4 +1,12 @@
-import { HOOKS, PluginHost, REGION_NAMES, type HookName } from '@meith/plugin-kit'
+import {
+  HOOKS,
+  PluginHost,
+  REGION_NAMES,
+  unavailablePluginData,
+  unavailablePluginGrants,
+  unavailablePluginUsers,
+  type HookName,
+} from '@meith/plugin-kit'
 import { describe, expect, it } from 'vitest'
 
 import { MARK, RECORDED, referencePlugin, resetRecorder } from './plugin'
@@ -130,5 +138,106 @@ describe('driven through a real host', () => {
     )
 
     expect(board.health()[0]).toMatchObject({ failures: 0, enabled: true })
+  })
+})
+
+describe('routes and pages', () => {
+  it('declares at least one route of each shape, and a page', () => {
+    const routes = referencePlugin.routes ?? []
+    expect(routes.some((route) => route.rawBody === true)).toBe(true)
+    expect(routes.some((route) => route.access === 'member')).toBe(true)
+    expect(routes.some((route) => route.access === 'anonymous')).toBe(true)
+    expect((referencePlugin.pages ?? []).length).toBeGreaterThan(0)
+  })
+
+  it('declares a secret setting with an environment override, and a select', () => {
+    const settings = referencePlugin.settings ?? []
+    const secret = settings.find((setting) => setting.type === 'secret')
+    expect(secret?.env).toBeDefined()
+    expect(secret?.default).toBe('')
+    expect(settings.some((setting) => setting.type === 'select')).toBe(true)
+  })
+
+  it('answers a route through the host with the same accounting as a hook', async () => {
+    resetRecorder()
+    const board = new PluginHost({ plugins: [referencePlugin] })
+
+    const context = {
+      settings: {},
+      logger: { info: () => {}, warn: () => {}, error: () => {} },
+      grants: unavailablePluginGrants('test'),
+      data: unavailablePluginData('test'),
+      users: unavailablePluginUsers('test'),
+    }
+
+    const route = (referencePlugin.routes ?? []).find((entry) => entry.path === 'ping')!
+    const outcome = await board.run('reference', 'route GET ping', () =>
+      route.handler(
+        {
+          viewer: { userId: 7, isGuest: false },
+          method: 'GET',
+          path: 'ping',
+          query: {},
+          headers: {},
+          rawBody: null,
+          form: null,
+          json: null,
+          boardUrl: 'https://board.example',
+        },
+        context,
+      ),
+    )
+
+    expect(outcome).toMatchObject({ status: 'ok', value: { kind: 'json' } })
+    expect(RECORDED.routes).toEqual([{ path: 'ping', method: 'GET' }])
+    expect(board.health()[0]).toMatchObject({ calls: 1, failures: 0 })
+  })
+
+  it('hands the raw-body route its exact bytes', async () => {
+    resetRecorder()
+    const route = (referencePlugin.routes ?? []).find((entry) => entry.path === 'hook/echo')!
+
+    const answer = await route.handler(
+      {
+        viewer: { userId: null, isGuest: true },
+        method: 'POST',
+        path: 'hook/echo',
+        query: {},
+        headers: { 'stripe-signature': 't=1,v1=abc' },
+        rawBody: new Uint8Array([1, 2, 3]),
+        form: null,
+        json: null,
+        boardUrl: '',
+      },
+      {
+        settings: {},
+        logger: { info: () => {}, warn: () => {}, error: () => {} },
+        grants: unavailablePluginGrants('test'),
+        data: unavailablePluginData('test'),
+        users: unavailablePluginUsers('test'),
+      },
+    )
+
+    expect(answer).toEqual({ kind: 'text', body: '3' })
+  })
+
+  it('renders its board page with the page context', async () => {
+    resetRecorder()
+    const page = (referencePlugin.pages ?? []).find((entry) => entry.path === '')!
+
+    const node = await page.render({
+      settings: {},
+      logger: { info: () => {}, warn: () => {}, error: () => {} },
+      grants: unavailablePluginGrants('test'),
+      data: unavailablePluginData('test'),
+      users: unavailablePluginUsers('test'),
+      viewer: { userId: null, isGuest: true },
+      path: '',
+      query: {},
+      boardUrl: '',
+    })
+
+    expect(node).not.toBeNull()
+    expect(RECORDED.pages).toEqual([''])
   })
 })

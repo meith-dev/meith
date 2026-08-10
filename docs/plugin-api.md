@@ -430,7 +430,10 @@ reference marks it so you find out before you ship.
 **`plugins/reference` must handle every wired hook**, enforced by its own test.
 That is the ratchet: wiring a new call site into the board fails the reference
 plugin's test until a handler is added there, so a hook cannot join the running
-product without something proving it fires.
+product without something proving it fires. The same plugin declares a route
+of every shape, a board page, a secret setting with an environment override
+and a select — and its tests drive each one, so none of those surfaces can
+silently rot either.
 
 **The lifecycle callbacks do not run yet.** `onInstall`, `onEnable`,
 `onDisable` and `onUninstall` are part of the declared shape and validated like
@@ -438,12 +441,17 @@ everything else, but no host code dispatches them today. Write them if the
 shape of your plugin wants them — just do not put anything there that must run
 for the plugin to be correct.
 
-### The four descriptors execute
+### The descriptors execute
 
 Migrations are applied by `community upgrade` in dependency order, one transaction
 each. Settings are stored at `plugin.<key>.<name>` and edited in the control
-panel. Tasks are registered as `plugin.<key>.<id>` and run by the same tick as
-everything else. Admin pages are mounted at `/admin/plugins/<key>/<path>`.
+panel, with environment overrides resolved as described above. Tasks are
+registered as `plugin.<key>.<id>` and run by the same tick as everything
+else. Admin pages are mounted at `/admin/plugins/<key>/<path>`, routes at
+`/api/plugins/<key>/<path>`, board pages at `/plugins/<key>/<path>`. The
+runtime capabilities — `grants`, `data`, `users` — are live on every context;
+on a fixture-mode board they reject with a clear error instead of
+pretending.
 
 What that leaves, stated plainly:
 
