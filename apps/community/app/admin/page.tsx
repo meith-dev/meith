@@ -16,7 +16,7 @@ import {
 
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { PanelSectionGrid, PanelWaitingList } from '@/components/shell/panel-overview'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { pendingUpgradeNotice } from '@/server/upgrade-notice'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
@@ -26,7 +26,9 @@ import { ADMIN_SECTIONS } from '@/view/admin-nav'
 import { formatTime } from '@/view/time'
 
 export default async function AdminHomePage() {
-  const context = await requireAdmin()
+  const context = await adminPageContext()
+  if (context === null) return null
+
   const actor = await getActor()
   const { adminLog, authorizer, moderationQueue, reports } = getContainer()
 

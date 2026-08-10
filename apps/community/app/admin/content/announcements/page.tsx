@@ -7,14 +7,14 @@ import {
   type ForumChoice,
 } from '@/components/admin/content-forms'
 import { PanelPage } from '@/components/shell/panel-page'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { announcementRepository } from '@/server/announcements'
 import { getContainer } from '@/server/container'
 
 export const metadata: Metadata = { title: 'Announcements' }
 
 export default async function AdminAnnouncementsPage() {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const repository = announcementRepository()
   if (repository === null) {

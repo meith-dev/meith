@@ -7,7 +7,7 @@ import {
   ThemeEditorForm,
 } from '@/components/admin/theme-forms'
 import { PanelPage } from '@/components/shell/panel-page'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { buildThemeAdminView, themeAdminRepository } from '@/server/theme-admin'
 import { formatTime } from '@/view/time'
 
@@ -18,7 +18,7 @@ export default async function AdminThemePage({
 }: {
   params: Promise<{ key: string }>
 }) {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const { key } = await params
   const view = await buildThemeAdminView(key)

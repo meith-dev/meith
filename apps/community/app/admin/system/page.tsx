@@ -9,14 +9,14 @@ import {
   RetryJobForm,
 } from '@/components/admin/system-forms'
 import { PanelPage } from '@/components/shell/panel-page'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { buildSystemHealthView } from '@/server/system-admin'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'System health' }
 
 export default async function AdminSystemPage() {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const now = new Date()
   const view = await buildSystemHealthView(now)

@@ -2,13 +2,13 @@ import type { Metadata } from 'next'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { ApplyPromotionsForm } from '@/components/admin/group-forms'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { groupAdminRepository, previewPromotions } from '@/server/group-admin'
 
 export const metadata: Metadata = { title: 'Promotions' }
 
 export default async function AdminPromotionsPage() {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const repository = groupAdminRepository()
   const result = await previewPromotions()

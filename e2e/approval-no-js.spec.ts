@@ -122,7 +122,7 @@ test('a rejected reply never reaches the thread', async ({ browser }) => {
     await member.getByLabel('Message').fill('The opening post is not held.')
     await member.getByRole('button', { name: 'Post thread' }).click()
     await expect(member).toHaveURL(/\/thread\/\d+-/)
-    const threadUrl = member.url().split('#')[0]
+    const threadUrl = member.url().replace(/#.*$/, '')
 
     const body = `A reply nobody will let through ${Date.now()}`
     await member.goto(`${threadUrl}/reply`)

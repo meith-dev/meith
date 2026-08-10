@@ -18,7 +18,7 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   workers: 1,
-  reporter: 'list',
+  reporter: [['list'], ['./e2e/support/server-errors.ts']],
   use: {
     baseURL: 'http://127.0.0.1:3001',
     ...(executablePath === undefined ? {} : { launchOptions: { executablePath } }),

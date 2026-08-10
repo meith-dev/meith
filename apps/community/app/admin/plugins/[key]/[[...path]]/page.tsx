@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { PluginEnableForm, PluginSettingsForm } from '@/components/admin/plugin-forms'
 import { PanelPage } from '@/components/shell/panel-page'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { pluginRow } from '@/server/plugin-admin'
 import { renderPluginAdminPage } from '@/server/plugin-pages'
 
@@ -14,7 +14,7 @@ export default async function AdminPluginPage({
 }: {
   params: Promise<{ key: string; path?: string[] }>
 }) {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const { key, path } = await params
   const plugin = await pluginRow(key)

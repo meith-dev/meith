@@ -6,7 +6,7 @@ import {
   ForumPermissionRowForm,
 } from '@/components/admin/forum-forms'
 import { PanelPage } from '@/components/shell/panel-page'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { buildForumMatrixView, previewCopy } from '@/server/forum-admin'
 
 export const metadata: Metadata = { title: 'Forum permissions' }
@@ -16,7 +16,7 @@ export default async function ForumPermissionsPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const { id } = await params
   if (!/^[1-9]\d*$/.test(id)) notFound()

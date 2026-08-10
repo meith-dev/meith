@@ -11,13 +11,13 @@ import {
   WordFilterRowForm,
 } from '@/components/admin/content-forms'
 import { PanelPage } from '@/components/shell/panel-page'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { contentAdminRepository } from '@/server/content-admin'
 
 export const metadata: Metadata = { title: 'Content' }
 
 export default async function AdminContentPage() {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const repository = contentAdminRepository()
   if (repository === null) {

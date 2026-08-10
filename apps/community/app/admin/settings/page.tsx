@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, Input, buttonVariants, cn } from '@meith
 import { PanelPage } from '@/components/shell/panel-page'
 import { AdminSettingsForm } from '@/components/admin/settings-form'
 import { MailTestCard } from '@/components/admin/mail-test-card'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { boardUrlResolution } from '@/server/board-url'
 import { assessMailReadiness } from '@/server/mail-health'
 import { getSettings } from '@/server/settings'
@@ -23,7 +23,7 @@ export default async function AdminSettingsPage({
 }: {
   searchParams: Promise<{ group?: string; q?: string; advanced?: string }>
 }) {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const query = await searchParams
 

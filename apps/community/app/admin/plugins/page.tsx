@@ -2,13 +2,13 @@ import type { Metadata } from 'next'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { PluginEnableForm } from '@/components/admin/plugin-forms'
-import { requireAdmin } from '@/server/admin'
+import { adminPageContext } from '@/server/admin'
 import { hookListeners, pluginInventory } from '@/server/plugin-admin'
 
 export const metadata: Metadata = { title: 'Plugins' }
 
 export default async function AdminPluginsPage() {
-  await requireAdmin()
+  if ((await adminPageContext()) === null) return null
 
   const { plugins, migrationsKnown } = await pluginInventory()
   const listeners = hookListeners()

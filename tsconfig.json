@@ -12,6 +12,7 @@
     "examples/**/*.tsx",
     "apps/cli/**/*.ts",
     "apps/worker/**/*.ts",
+    "e2e/**/*.ts",
     "*.ts",
     "*.mts"
   ],
