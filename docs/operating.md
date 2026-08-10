@@ -206,6 +206,27 @@ A member's group is their **display group** where they have chosen one, and
 their primary group otherwise — so a moderator who prefers to post as an
 ordinary member is shown as one.
 
+### Groups a plugin may grant
+
+The same screen carries one more switch: **may be granted by plugins**. It is
+off by default, and it is the opt-in behind any plugin that hands out
+membership — a paid pass, a trial, time-boxed access. A plugin can only put a
+member in a group you have marked this way, only as an *additional* group
+(never the primary one, never the badge they chose to wear), and only **until
+a date**: every plugin-granted membership expires, and the expiry holds even
+if the plugin is removed or the tick stops, because the permission model
+simply stops reading a lapsed row.
+
+The switch refuses some groups, with the reason spelled out when you try:
+system groups, staff groups, and any group whose permissions carry
+administrative or moderation power. If what you want a plugin to sell is
+"members plus one private forum and a badge", make a group that says exactly
+that and mark *it* grantable — never a group that also moderates.
+
+A `groups.expire` task tidies lapsed memberships every fifteen minutes; it is
+on the system health screen with everything else. It is housekeeping, not
+enforcement — access ended at the expiry regardless.
+
 The colour reaches **every** username: the postbit, who started a thread, who
 posted last, the profile heading, who is online. It is delivered as a stylesheet
 rule rather than a colour on each name, which is why it works for a reader whose
@@ -377,7 +398,10 @@ The worked example to copy is
 
 It cannot decide authorization, reach the visibility filter, open its own
 database connection, or patch core. Everything it *can* do is in a typed
-registry.
+registry. Its own data lives in tables named `plugin_<key>_*` — the host
+refuses a migration that names anything else — and the one write it gets
+against the board's own data is a timed group membership, only in a group you
+have explicitly marked [grantable](#groups-a-plugin-may-grant).
 
 Failures are contained: a plugin that throws leaves the page intact, and the
 error is counted, logged, and — after repeated failures — the plugin is switched
@@ -405,6 +429,19 @@ a plugin is misbehaving — you do not need to deploy to stop one.
 
 **The panel never runs migrations.** It tells you which are outstanding;
 `community upgrade` applies them.
+
+**A plugin can carry its own pages and endpoints.** Pages appear under
+`/plugins/<key>/…` inside the board's own chrome; endpoints under
+`/api/plugins/<key>/…` — a payment provider's webhook, a form's target. Both
+obey the disable switch: a plugin that is off answers 404 everywhere, the
+same as one that was never installed.
+
+**Plugin credentials go in either of two places, and the screen says which
+one is winning.** A secret-type setting can be filled in the panel — the
+field is write-only; the board will tell you a value is set but never show
+it — or supplied as the environment variable named beside the field, which
+overrides the panel and greys its box. Prefer the environment where you can
+set one: it keeps credentials out of the database and out of backups.
 
 > [!WARNING]
 > A plugin with unapplied migrations is running against a schema that does not

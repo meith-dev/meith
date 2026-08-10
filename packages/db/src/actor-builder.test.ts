@@ -102,6 +102,44 @@ describe('ActorBuilder.buildForUser — group combination (R4.2)', () => {
   })
 })
 
+describe('ActorBuilder.buildForUser — timed memberships', () => {
+  it('sees a membership with no expiry and one expiring in the future', async () => {
+    const members = await group('members', { canView: true })
+    const paid = await group('supporters', { canUploadAttachments: true })
+    const uid = await user('Carol', members)
+
+    await h.db.insert(userGroupMemberships).values({ userId: uid, groupId: paid })
+    const withPermanent = await new ActorBuilder(h.db, { guestGroupId: members }).buildForUser(uid)
+    expect(new Set(withPermanent!.groupIds)).toEqual(new Set([members, paid]))
+
+    await h.db.delete(userGroupMemberships)
+    await h.db.insert(userGroupMemberships).values({
+      userId: uid,
+      groupId: paid,
+      expiresAt: new Date(Date.now() + 60_000),
+    })
+    const withTimed = await new ActorBuilder(h.db, { guestGroupId: members }).buildForUser(uid)
+    expect(new Set(withTimed!.groupIds)).toEqual(new Set([members, paid]))
+    expect(withTimed!.global.canUploadAttachments).toBe(true)
+  })
+
+  it('does not see a lapsed membership, even before any sweep runs', async () => {
+    const members = await group('members', { canView: true })
+    const paid = await group('supporters', { canUploadAttachments: true })
+    const uid = await user('Dan', members)
+
+    await h.db.insert(userGroupMemberships).values({
+      userId: uid,
+      groupId: paid,
+      expiresAt: new Date(Date.now() - 1),
+    })
+
+    const actor = await new ActorBuilder(h.db, { guestGroupId: members }).buildForUser(uid)
+    expect(actor!.groupIds).toEqual([members])
+    expect(actor!.global.canUploadAttachments).toBe(false)
+  })
+})
+
 describe('ActorBuilder.buildForUser — lifecycle state', () => {
   let members: number
   beforeEach(async () => {

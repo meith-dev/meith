@@ -27,6 +27,7 @@
     "@meith/signatures": "workspace:*",
     "@meith/profile-fields": "workspace:*",
     "@meith/notifications": "workspace:*",
+    "@meith/plugin-kit": "workspace:*",
     "@meith/settings": "workspace:*",
     "@meith/subscriptions": "workspace:*",
     "@meith/tasks": "workspace:*",

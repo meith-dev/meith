@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm'
 
 import { combinePermissionSets } from '@meith/authorization'
 import type { Actor, ActorSource, ActorState } from '@meith/authorization'
@@ -68,10 +68,21 @@ export class ActorBuilder implements ActorSource {
     const state = mapState(user.state)
     if (state === 'deleted') return null
 
+    // The expiry predicate is what makes a timed membership end on time: a
+    // lapsed row is invisible here, so access stops at the boundary without
+    // waiting for the sweep that later deletes the row.
     const membershipRows = await this.db
       .select({ groupId: userGroupMemberships.groupId })
       .from(userGroupMemberships)
-      .where(eq(userGroupMemberships.userId, userId))
+      .where(
+        and(
+          eq(userGroupMemberships.userId, userId),
+          or(
+            isNull(userGroupMemberships.expiresAt),
+            gt(userGroupMemberships.expiresAt, new Date()),
+          ),
+        ),
+      )
 
     // eslint-disable-next-line no-restricted-properties -- reading the user's own primary group to assemble the actor's group ladder, not an authz decision
     const primaryGroupId = user.primaryGroupId

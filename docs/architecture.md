@@ -332,7 +332,7 @@ the `tasks` table — so any number of instances can tick concurrently and a
 task runs once, with a stale-claim timeout for workers that die mid-run. Every
 task is written as an idempotent *catch-up* operation ("flush what is
 outstanding"), never "run at 03:00", so a missed day is caught up rather than
-lost. Eighteen built-in tasks ride this: the outbox relay, queue drain and
+lost. Nineteen built-in tasks ride this: the outbox relay, queue drain and
 instant subscriptions at 60 s, down through digest and sweep work to counter
 reconciliation every six hours. Plugin tasks join the same schedule under a
 namespaced id. [Demo mode](./demo-mode.md) adjusts the list at both ends:
@@ -373,8 +373,12 @@ carry a `ViewerRef` (an id and a guest flag), never an `Actor`: an `Actor` is
 the input to authorization, and handing one over invites the plugin to make
 its own permission decisions. No hook exists inside `can()` or the visibility
 filter, deliberately. A plugin is a declarative object — settings, SQL
-migrations the *host* runs, scheduled tasks, admin pages, region
-contributions, lifecycle callbacks — validated at `definePlugin()`. Failure
+migrations the *host* runs, scheduled tasks, admin pages, HTTP routes and
+member-facing pages the host mounts and guards, region contributions,
+lifecycle callbacks — validated at `definePlugin()`. At runtime it is handed
+narrow capabilities rather than infrastructure: its own prefixed tables,
+timed membership grants in operator-approved groups, and member lookup by
+name — each host-implemented, each refusing what a plugin must not do. Failure
 containment is one `try/catch` around every handler call: a throwing filter
 keeps the previous value, five failures auto-disable the plugin for that
 instance, and there are deliberately no timeouts — JavaScript cannot abort a

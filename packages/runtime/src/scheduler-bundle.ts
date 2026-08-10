@@ -26,6 +26,7 @@ import {
   PostgresSubscriptionRepository,
   PostgresAuthorizationSource,
   ActorBuilder,
+  expireTimedGroupMemberships,
   type Database,
 } from '@meith/db'
 import { Authorizer } from '@meith/authorization'
@@ -92,6 +93,7 @@ export function buildSchedulerBundle(deps: {
         guards: defaultPromotionGuards(),
         maintenance: new PostgresMaintenanceRepository(db),
         rateLimits: new PostgresRateLimitBucketStore(db),
+        timedGroups: { expire: (limit) => expireTimedGroupMemberships(db, limit) },
         outbox: new PostgresOutboxReader(db),
         ...(attachmentService === undefined ? {} : { attachments: attachmentService }),
         ...(avatarService === undefined ? {} : { avatars: avatarService }),

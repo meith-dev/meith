@@ -6,6 +6,7 @@ const stored = { current: new Map<string, string>() }
 
 vi.mock('@meith/core', () => ({
   logger: () => ({ info: () => {}, warn: () => {}, error: () => {} }),
+  readPluginEnv: () => undefined,
 }))
 
 vi.mock('@meith/db', () => ({
@@ -14,6 +15,21 @@ vi.mock('@meith/db', () => ({
       return stored.current
     }
   },
+  pluginGrants: () => ({
+    grant: async () => {},
+    extend: async () => {},
+    revoke: async () => {},
+    list: async () => [],
+  }),
+  pluginData: () => ({
+    query: async () => [],
+    one: async () => null,
+    tx: async () => undefined,
+  }),
+  pluginUsers: () => ({
+    byUsername: async () => null,
+    byId: async () => null,
+  }),
 }))
 
 const { pluginTasks } = await import('./plugin-tasks')

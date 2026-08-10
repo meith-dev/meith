@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { CacheTags, PERMISSION_FIELDS, ValidationError, isAppError, logger } from '@meith/core'
+import { permissionsCarryPower } from '@meith/db'
 import { drivers } from '@meith/drivers'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
@@ -62,11 +63,40 @@ export async function saveGroupIdentityAction(
       throw new ValidationError('Display order must be a whole number.')
     }
 
+    const isStaffGroup = checkbox(form, 'isStaffGroup')
+    const pluginGrantable = checkbox(form, 'pluginGrantable')
+
+    if (pluginGrantable) {
+      // The same refusals the grant call makes, made early so the operator
+      // hears them while the checkbox is in front of them rather than when a
+      // plugin's first grant fails.
+      if (isStaffGroup) {
+        throw new ValidationError(
+          'A staff group cannot be granted by plugins — staff is appointed, not sold.',
+        )
+      }
+      const repository = requireGroupAdmin()
+      const summary = (await repository.list()).find((group) => group.id === id)
+      if (summary?.isSystem === true) {
+        throw new ValidationError(
+          'A system group cannot be granted by plugins. The board resolves it by key.',
+        )
+      }
+      const permissions = await repository.readPermissions(id)
+      if (permissions !== null && permissionsCarryPower(permissions)) {
+        throw new ValidationError(
+          'This group carries administrative or moderation power, so plugins may not grant it. ' +
+            'Make a separate group for what a plugin hands out.',
+        )
+      }
+    }
+
     await requireGroupAdmin().updateIdentity(id, {
       title,
       description: text(form, 'description') === '' ? null : text(form, 'description'),
       displayOrder: order,
-      isStaffGroup: checkbox(form, 'isStaffGroup'),
+      isStaffGroup,
+      pluginGrantable,
       badgeToken: text(form, 'badgeToken') === '' ? null : text(form, 'badgeToken'),
       nameColorLight: groupColour(form, 'nameColorLight'),
       nameColorDark: groupColour(form, 'nameColorDark'),

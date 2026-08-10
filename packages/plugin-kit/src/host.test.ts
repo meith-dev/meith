@@ -437,3 +437,44 @@ describe('the logger', () => {
     })
   })
 })
+
+describe('run — plugin code on a non-hook surface', () => {
+  it('returns the value and counts the call', async () => {
+    const host = new PluginHost({ plugins: [makePlugin('alpha', {})] })
+
+    const outcome = await host.run('alpha', 'route GET ping', () => 'pong')
+    expect(outcome).toEqual({ status: 'ok', value: 'pong' })
+    expect(host.health().find((entry) => entry.key === 'alpha')?.calls).toBe(1)
+  })
+
+  it('reports failed, records the error against the plugin, and eventually auto-disables', async () => {
+    const host = new PluginHost({ plugins: [makePlugin('alpha', {})], failureThreshold: 2 })
+
+    const boom = () => {
+      throw new Error('handler blew up')
+    }
+    expect(await host.run('alpha', 'route POST checkout', boom)).toEqual({ status: 'failed' })
+
+    const health = host.health().find((entry) => entry.key === 'alpha')
+    expect(health?.failures).toBe(1)
+    expect(health?.lastError).toEqual({ hook: 'route POST checkout', message: 'handler blew up' })
+
+    await host.run('alpha', 'route POST checkout', boom)
+    expect(await host.run('alpha', 'route POST checkout', () => 'fine')).toEqual({
+      status: 'disabled',
+    })
+  })
+
+  it('reports disabled for an unknown plugin and for an operator-disabled one', async () => {
+    const host = new PluginHost({ plugins: [makePlugin('alpha', {})] })
+
+    expect(await host.run('ghost', 'route GET ping', () => 'x')).toEqual({ status: 'disabled' })
+
+    host.setOperatorDisabled(['alpha'])
+    expect(host.isEnabled('alpha')).toBe(false)
+    expect(await host.run('alpha', 'route GET ping', () => 'x')).toEqual({ status: 'disabled' })
+
+    host.setOperatorDisabled([])
+    expect(host.isEnabled('alpha')).toBe(true)
+  })
+})

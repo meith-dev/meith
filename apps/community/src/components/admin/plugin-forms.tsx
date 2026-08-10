@@ -18,9 +18,14 @@ export interface PluginSettingField {
   readonly label: string
   readonly description: string | null
   readonly advanced: boolean
-  readonly kind: "string" | "number" | "boolean"
+  readonly kind: "string" | "secret" | "number" | "boolean" | "select"
   readonly default: string | number | boolean
   readonly value: string | number | boolean
+  readonly source: "environment" | "board" | "default"
+  readonly set: boolean
+  readonly options: readonly { readonly value: string; readonly label: string }[]
+  readonly envName: string | null
+  readonly problem: string | null
 }
 
 export function PluginEnableForm({
@@ -68,51 +73,124 @@ export function PluginSettingsForm({
       <input type="hidden" name="key" value={pluginKey} />
 
       <div className="flex flex-col divide-y divide-border">
-        {settings.map((setting) => (
-          <div key={setting.key} className="flex flex-col gap-1 py-3">
-            {setting.kind === "boolean" ? (
-              <label className="flex items-start gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  name={`setting.${setting.key}`}
-                  value="1"
-                  defaultChecked={setting.value === true}
-                  className="mt-1"
-                />
-                <span className="flex flex-col gap-0.5">
+        {settings.map((setting) => {
+          const fromEnvironment = setting.source === "environment"
+
+          return (
+            <div key={setting.key} className="flex flex-col gap-1 py-3">
+              {setting.kind === "boolean" ? (
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name={`setting.${setting.key}`}
+                    value="1"
+                    defaultChecked={setting.value === true}
+                    disabled={fromEnvironment}
+                    className="mt-1"
+                  />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="font-medium">{setting.label}</span>
+                    {setting.description !== null && (
+                      <span className="text-xs text-muted-foreground">{setting.description}</span>
+                    )}
+                  </span>
+                </label>
+              ) : setting.kind === "select" ? (
+                <label className="flex flex-col gap-1 text-sm">
                   <span className="font-medium">{setting.label}</span>
+                  <select
+                    name={`setting.${setting.key}`}
+                    defaultValue={String(setting.value)}
+                    disabled={fromEnvironment}
+                    className={INPUT}
+                  >
+                    {setting.options.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                   {setting.description !== null && (
                     <span className="text-xs text-muted-foreground">{setting.description}</span>
                   )}
-                </span>
-              </label>
-            ) : (
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="font-medium">{setting.label}</span>
-                <input
-                  name={`setting.${setting.key}`}
-                  type={setting.kind === "number" ? "number" : "text"}
-                  defaultValue={String(setting.value)}
-                  className={INPUT}
-                />
-                {setting.description !== null && (
-                  <span className="text-xs text-muted-foreground">{setting.description}</span>
-                )}
-              </label>
-            )}
+                </label>
+              ) : setting.kind === "secret" ? (
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">{setting.label}</span>
+                  <input
+                    name={`setting.${setting.key}`}
+                    type="password"
+                    autoComplete="new-password"
+                    defaultValue=""
+                    placeholder={
+                      fromEnvironment
+                        ? "set by the environment"
+                        : setting.set
+                          ? "set — leave blank to keep it"
+                          : "not set"
+                    }
+                    disabled={fromEnvironment}
+                    className={INPUT}
+                  />
+                  {setting.description !== null && (
+                    <span className="text-xs text-muted-foreground">{setting.description}</span>
+                  )}
+                </label>
+              ) : (
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">{setting.label}</span>
+                  <input
+                    name={`setting.${setting.key}`}
+                    type={setting.kind === "number" ? "number" : "text"}
+                    defaultValue={String(setting.value)}
+                    disabled={fromEnvironment}
+                    className={INPUT}
+                  />
+                  {setting.description !== null && (
+                    <span className="text-xs text-muted-foreground">{setting.description}</span>
+                  )}
+                </label>
+              )}
 
-            <span className="text-xs text-muted-foreground">
-              <code className="text-xs">plugin.{pluginKey}.{setting.key}</code>
-              {" · ships as "}
-              {typeof setting.default === "boolean"
-                ? setting.default
-                  ? "on"
-                  : "off"
-                : String(setting.default)}
-              {setting.advanced && " · advanced"}
-            </span>
-          </div>
-        ))}
+              {setting.problem !== null && (
+                <span className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1 text-xs">
+                  {setting.problem}
+                </span>
+              )}
+
+              <span className="text-xs text-muted-foreground">
+                <code className="text-xs">plugin.{pluginKey}.{setting.key}</code>
+                {fromEnvironment && setting.envName !== null && (
+                  <>
+                    {" · set by "}
+                    <code className="text-xs">{setting.envName}</code>
+                    {" in the environment — this box is inert"}
+                  </>
+                )}
+                {!fromEnvironment && setting.envName !== null && (
+                  <>
+                    {" · "}
+                    <code className="text-xs">{setting.envName}</code>
+                    {" overrides this when set"}
+                  </>
+                )}
+                {setting.kind !== "secret" && (
+                  <>
+                    {" · ships as "}
+                    {typeof setting.default === "boolean"
+                      ? setting.default
+                        ? "on"
+                        : "off"
+                      : String(setting.default) === ""
+                        ? "empty"
+                        : String(setting.default)}
+                  </>
+                )}
+                {setting.advanced && " · advanced"}
+              </span>
+            </div>
+          )
+        })}
       </div>
 
       <span className="min-w-40 max-w-48">

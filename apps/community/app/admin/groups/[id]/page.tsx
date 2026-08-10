@@ -63,6 +63,7 @@ export default async function AdminGroupPage({
             description: view.group.description ?? '',
             displayOrder: view.group.displayOrder,
             isStaffGroup: view.group.isStaffGroup,
+            pluginGrantable: view.group.pluginGrantable,
             badgeToken: view.group.badgeToken ?? '',
             nameColorLight: view.group.nameColorLight ?? '',
             nameColorDark: view.group.nameColorDark ?? '',

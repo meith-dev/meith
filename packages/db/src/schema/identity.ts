@@ -37,6 +37,8 @@ export const usergroups = pgTable(
 
     isStaffGroup: boolean('is_staff_group').notNull().default(false),
 
+    pluginGrantable: boolean('plugin_grantable').notNull().default(false),
+
     ...groupPermissionColumns(),
 
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -170,11 +172,21 @@ export const userGroupMemberships = pgTable(
     grantedAt: timestamp('granted_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
+
+    // A membership with an expiry ends by being read, not by being swept:
+    // actor assembly excludes a lapsed row, so access ends on time even when
+    // no task runs. The sweep only tidies rows afterwards.
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    grantedByPlugin: text('granted_by_plugin'),
+    grantReason: text('grant_reason'),
   },
   (t) => [
     uniqueIndex('user_group_memberships_pkey').on(t.userId, t.groupId),
     index('user_group_memberships_user_idx').on(t.userId),
     index('user_group_memberships_group_idx').on(t.groupId),
+    index('user_group_memberships_expiry_idx')
+      .on(t.expiresAt)
+      .where(sql`${t.expiresAt} is not null`),
   ],
 )
 

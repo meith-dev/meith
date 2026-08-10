@@ -1,9 +1,17 @@
-import { logger } from '@meith/core'
-import { PostgresSettingsRepository, type Database } from '@meith/db'
+import { logger, readPluginEnv } from '@meith/core'
+import {
+  PostgresSettingsRepository,
+  pluginData,
+  pluginGrants,
+  pluginUsers,
+  type Database,
+} from '@meith/db'
 import { pluginTaskId, resolvePluginSettings, type PluginDefinition } from '@meith/plugin-kit'
 import type { TaskDefinition } from '@meith/tasks'
 
 const MAX_DURATION_SECONDS = 60
+
+const TASK_STATEMENT_TIMEOUT_MS = 30_000
 
 export function pluginTasks(options: {
   readonly db: Database
@@ -26,12 +34,17 @@ export function pluginTasks(options: {
           const log = logger({ component: 'plugin-task', plugin: plugin.key })
 
           await task.run({
-            settings: resolvePluginSettings(plugin, overrides),
+            settings: resolvePluginSettings(plugin, overrides, readPluginEnv),
             logger: {
               info: (message, detail) => log.info(detail ?? {}, message),
               warn: (message, detail) => log.warn(detail ?? {}, message),
               error: (message, detail) => log.error(detail ?? {}, message),
             },
+            grants: pluginGrants(options.db, plugin.key),
+            data: pluginData(options.db, plugin.key, {
+              statementTimeoutMs: TASK_STATEMENT_TIMEOUT_MS,
+            }),
+            users: pluginUsers(options.db),
           })
 
           return {}

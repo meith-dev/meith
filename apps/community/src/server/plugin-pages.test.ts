@@ -17,15 +17,19 @@ const overrides = { current: new Map<string, string>() }
 vi.mock('./settings', () => ({ getSettingOverrides: async () => overrides.current }))
 
 const logged: unknown[] = []
-vi.mock('@meith/core', () => ({
-  logger: () => ({
+vi.mock(import('@meith/core'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  logger: (() => ({
     info: () => {},
     warn: () => {},
-    error: (detail: unknown) => logged.push(detail),
-  }),
+    error: (detail: unknown) => {
+      logged.push(detail)
+    },
+  })) as never,
 }))
 
-const { renderPluginAdminPage } = await import('./plugin-pages')
+const { renderPluginAdminPage, renderPluginBoardPage, pluginBoardPageTitle } =
+  await import('./plugin-pages')
 
 let handed: unknown = null
 
@@ -91,12 +95,28 @@ describe('a plugin that is switched off has no pages either', () => {
 })
 
 describe('what crosses the boundary', () => {
-  it('hands the page its resolved settings and a logger, and nothing else', async () => {
+  it('hands the page its resolved settings, a logger and the grant capability, and nothing else', async () => {
     overrides.current = new Map([['plugin.alpha.batch', '42']])
     await renderPluginAdminPage('alpha', 'report')
 
-    expect(Object.keys(handed as object).sort()).toEqual(['logger', 'settings'])
+    expect(Object.keys(handed as object).sort()).toEqual([
+      'data',
+      'grants',
+      'logger',
+      'settings',
+      'users',
+    ])
     expect((handed as { settings: unknown }).settings).toEqual({ batch: 42 })
+  })
+
+  it('hands out grants and data that refuse cleanly when the board runs on sample data', async () => {
+    await renderPluginAdminPage('alpha', 'report')
+    const context = handed as {
+      grants: { list(userId: number): Promise<unknown> }
+      data: { query(text: string): Promise<unknown> }
+    }
+    await expect(context.grants.list(1)).rejects.toThrow(/sample data/)
+    await expect(context.data.query('select 1')).rejects.toThrow(/sample data/)
   })
 })
 
@@ -124,5 +144,113 @@ describe('failure', () => {
       node: null,
     })
     expect(logged).toHaveLength(1)
+  })
+})
+
+describe('board pages', () => {
+  const boardPage = (overridesToApply: Record<string, unknown> = {}) =>
+    plugin({
+      pages: [
+        {
+          path: '',
+          title: 'Membership',
+          access: 'member',
+          render: (context: unknown) => {
+            handed = context
+            return 'page-markup'
+          },
+        },
+        {
+          path: 'open',
+          title: 'Open page',
+          access: 'anonymous',
+          render: () => 'open-markup',
+        },
+      ],
+      ...overridesToApply,
+    })
+
+  const member = { viewer: { userId: 7, isGuest: false }, query: { a: '1' }, boardUrl: 'https://b.example' }
+  const guest = { viewer: { userId: null, isGuest: true }, query: {}, boardUrl: '' }
+
+  beforeEach(() => {
+    config.current.plugins = [{ key: 'alpha', plugin: boardPage() }]
+  })
+
+  it('renders for a member, handing the render its page context', async () => {
+    const result = await renderPluginBoardPage('alpha', '', member)
+    expect(result).toEqual({ outcome: 'rendered', title: 'Membership', node: 'page-markup' })
+
+    const context = handed as Record<string, unknown>
+    expect(Object.keys(context).sort()).toEqual([
+      'boardUrl',
+      'data',
+      'grants',
+      'logger',
+      'path',
+      'query',
+      'settings',
+      'users',
+      'viewer',
+    ])
+    expect(context.viewer).toEqual({ userId: 7, isGuest: false })
+    expect(context.query).toEqual({ a: '1' })
+  })
+
+  it('sends a guest to sign in on a member page, and lets one read an anonymous page', async () => {
+    expect(await renderPluginBoardPage('alpha', '', guest)).toEqual({
+      outcome: 'sign-in-first',
+      title: 'Membership',
+    })
+    expect(await renderPluginBoardPage('alpha', 'open', guest)).toEqual({
+      outcome: 'rendered',
+      title: 'Open page',
+      node: 'open-markup',
+    })
+  })
+
+  it('treats unknown, config-disabled and operator-disabled as identically missing', async () => {
+    expect((await renderPluginBoardPage('ghost', '', member)).outcome).toBe('missing')
+    expect((await renderPluginBoardPage('alpha', 'nope', member)).outcome).toBe('missing')
+
+    config.current.plugins = [{ key: 'alpha', enabled: false, plugin: boardPage() }]
+    expect((await renderPluginBoardPage('alpha', '', member)).outcome).toBe('missing')
+
+    config.current.plugins = [{ key: 'alpha', plugin: boardPage() }]
+    overrides.current = new Map([['plugin.alpha._enabled', '0']])
+    expect((await renderPluginBoardPage('alpha', '', member)).outcome).toBe('missing')
+  })
+
+  it('contains a throwing render: title survives, node is null, error is logged', async () => {
+    config.current.plugins = [
+      {
+        key: 'alpha',
+        plugin: boardPage({
+          pages: [
+            {
+              path: '',
+              title: 'Broken',
+              access: 'anonymous',
+              render: () => {
+                throw new Error('render blew up')
+              },
+            },
+          ],
+        }),
+      },
+    ]
+
+    expect(await renderPluginBoardPage('alpha', '', member)).toEqual({
+      outcome: 'rendered',
+      title: 'Broken',
+      node: null,
+    })
+    expect(logged.length).toBeGreaterThan(0)
+  })
+
+  it('reads a page title for metadata without touching enablement', async () => {
+    overrides.current = new Map([['plugin.alpha._enabled', '0']])
+    expect(pluginBoardPageTitle('alpha', '')).toBe('Membership')
+    expect(pluginBoardPageTitle('alpha', 'nope')).toBeNull()
   })
 })

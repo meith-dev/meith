@@ -50,6 +50,9 @@ Installing it is `pnpm add`, a line in `community.plugins.ts`, and a redeploy.
 | `migrations` | Forward-only SQL, applied in ascending id order and recorded per plugin. |
 | `tasks` | Scheduled work, registered as `plugin.<key>.<id>` and run by the same tick as core's. |
 | `adminPages` | Pages mounted under `/admin/plugins/<key>/`. |
+| `routes` | HTTP endpoints mounted under `/api/plugins/<key>/`, dispatched by the host. |
+| `pages` | Member-facing pages mounted under `/plugins/<key>/`, rendered inside the board's shell. |
+| `allowedRedirectHosts` | The only hosts an absolute redirect from this plugin's routes may point at. |
 | `contributions` | Markup in named UI regions. |
 | `onInstall` / `onEnable` / `onDisable` / `onUninstall` | Lifecycle callbacks — declared and typed, not yet dispatched by the host. See the inventory below. |
 
@@ -68,10 +71,10 @@ These are not discouraged. There is no API for them.
 
 | It cannot | Why |
 |---|---|
-| Decide authorization | No hook filters `authorization.can()`, and none ever will. A plugin able to change that answer is a plugin able to grant itself anything |
+| Decide authorization | No hook filters `authorization.can()`, and none ever will. A plugin able to change that answer is a plugin able to grant itself anything. The one, narrow exception — putting a member in a group the operator pre-approved, for a limited time — is below, and the design of its refusals is what keeps it from being this row |
 | Reach inside the visibility filter | No hook sits in the query path. A plugin that could rewrite a `where` clause could publish a private forum, and no amount of isolation makes that recoverable |
 | See an `Actor` | Payloads carry `{ userId, isGuest }`. An `Actor` carries resolved group membership, which invites a plugin to make its own permission decision from group ids |
-| Open a database connection | Migrations are SQL text the host runs. A plugin does not import `@meith/db` |
+| Open a database connection | A plugin does not import `@meith/db` and never holds a connection. Its own tables are reachable through `context.data` — host-run, parameterised, under a database-side timeout — and its migrations can only create objects under its own prefix |
 | Patch core | There is no monkey-patching seam and no way to replace a domain command |
 | Fill a theme slot | A theme owns its slots. Plugins contribute to *regions* — see below |
 
@@ -175,6 +178,218 @@ unlikely.
 namespace cleanly — a dot in a plugin key produces an ambiguous setting key, and
 a slash in a page path escapes the admin prefix.
 
+## Timed group grants
+
+`context.grants` — on every runtime context — is the only write a plugin gets
+against the board's own data: it can put a member in a usergroup **until a
+date**. That is the whole API, deliberately. A usergroup already carries forum
+permissions, a badge and a name colour, so time-limited membership of one is a
+complete building block — a paid pass, a trial, a course cohort, an event's
+temporary access, a reward a member can gift to another — and the host does
+not know or care which of these a plugin is building.
+
+```ts
+await context.grants.grant({ userId, groupKey: 'supporters', until, reason: 'order 42 paid' })
+await context.grants.extend({ userId, groupKey: 'supporters', until })
+await context.grants.revoke({ userId, groupKey: 'supporters', reason: 'refunded' })
+const held = await context.grants.list(userId)
+```
+
+What keeps this from being a plugin deciding authorization is the list of
+things the host refuses, checked on every call:
+
+- A group the operator has not marked **“may be granted by plugins”** on its
+  admin screen. The opt-in is per group and off by default.
+- A **system** or **staff** group, or any group whose permission set carries
+  administrative or moderation power. The checkbox refuses these too, so the
+  refusal is heard when the operator sets it up, not when the first grant fails.
+- A grant with no expiry, an expiry in the past, or one more than two years
+  out. Every grant lapses on its own.
+- A membership **someone else** granted — an administrator's, another
+  plugin's. `grant` refuses it, `revoke` leaves it alone.
+- An empty `reason`. The reason is stored on the row; it is the audit trail.
+
+A grant is always an additive secondary membership: `primary_group_id` and
+`display_group_id` are never touched, so nothing a plugin does changes how a
+member is displayed or what happens when the grant ends — they fall back to
+exactly what they were.
+
+`grant` takes a plain `userId`, and nothing ties it to whoever is acting: who
+may cause a grant for whom — a member for themselves, one member for another,
+an automated rule for anyone — is the plugin's own policy, decided in its own
+code with its own records.
+
+**Expiry is true at the read, not enforced by a sweep.** Actor assembly skips
+a lapsed row, so access ends at the boundary even if no task ever runs again —
+uninstalling the plugin, stopping the tick, or the plugin's own bugs cannot
+leave anyone holding access they no longer have. A `groups.expire` tick
+deletes lapsed rows afterwards and bumps the permission version so derived
+caches follow. Re-granting and extending only ever move an expiry **forward**:
+a stale or replayed call cannot shorten what a member already holds.
+
+Where the board runs on fixture data there is no membership table; every call
+rejects with a clear error rather than pretending.
+
+## A database of its own
+
+`context.data` — on every runtime context — reads and writes the tables this
+plugin's migrations created. Three methods, parameterised only:
+
+```ts
+await context.data.query('insert into plugin_example_entry (user_id, note) values ($1, $2)', [userId, note])
+const row = await context.data.one('select * from plugin_example_entry where user_id = $1', [userId])
+await context.data.tx(async (tx) => {
+  // everything in here commits together or not at all
+})
+```
+
+Three properties are the contract:
+
+- **Values travel as `$1`, `$2`, …** and are bound by the driver. There is no
+  string-building helper on purpose — the ordinary path is the safe one.
+- **Every call runs under a database-side `statement_timeout`** — short in a
+  page render, longer in a task. This is the one timeout in the plugin API
+  that actually holds, because Postgres can abort a query where JavaScript
+  cannot abort a handler.
+- **`tx` is a real transaction.** A throw rolls the whole body back; a nested
+  `tx` joins the outer one rather than opening a second.
+
+### The namespace is enforced where it can be
+
+`definePlugin` refuses a migration whose statements create, alter, drop or
+fill anything not named `plugin_<key>_*` (hyphens in the key become
+underscores) — and refuses a foreign key that reaches outside that namespace,
+because a plugin table referencing a core one couples the plugin's schema to
+the board's and breaks the moment either migrates. Copy ids into plain
+columns instead; the reconcile-and-sweep shape handles rows whose subject has
+since gone.
+
+Stated honestly: this is a rail, not a sandbox. Plugin code runs in the
+host's process, and `context.data` does not rewrite queries — a plugin *can*
+select from a core table, the way any code in the process can. The migration
+rule guards the part that would corrupt a board (a plugin altering somebody
+else's schema); the rest is the same trust you extended when you installed
+the code. There is no per-plugin database role today; if that changes, the
+contract here does not.
+
+## Looking up a member
+
+`context.users` resolves a member to the pair a plugin is allowed to see —
+`{ userId, username }` — by name or by id:
+
+```ts
+const recipient = await context.users.byUsername(input)   // null if unknown
+```
+
+It exists because a plugin's own records point at members, and its UI asks
+for them by name — "award this to @name" needs an id before anything can be
+stored. Deleted accounts do not resolve. Nothing richer is exposed — no
+email, no state, no groups — for the same reason payloads carry a `ViewerRef`
+and not an `Actor`.
+
+## HTTP routes
+
+A plugin declares endpoints the way it declares everything else — as data —
+and the host mounts them under `/api/plugins/<key>/<path>`:
+
+```ts
+routes: [
+  { path: 'hook/stripe', method: 'POST', access: 'anonymous', rawBody: true, handler },
+  { path: 'checkout',    method: 'POST', access: 'member',    handler },
+],
+allowedRedirectHosts: ['checkout.stripe.com'],
+```
+
+A handler receives a `PluginRequest` — viewer, method, path, query, headers,
+a parsed or raw body, the board's URL — plus the same runtime context as every
+other surface, and answers with an envelope: `{ kind: 'json' | 'text' |
+'redirect', … }`. A route declaring `rawBody: true` gets the exact request
+bytes, which is what webhook signature verification needs.
+
+**The host owns every decision a plugin must not:**
+
+- **`access` is enforced before the handler runs.** `'member'` answers 401 to
+  a guest; the handler never sees the request.
+- **A member POST must come from the board's own origin.** The Origin header
+  is checked against the request's host; a cross-site form post is a 403.
+- **`cookie` and `authorization` never reach the handler**, and the response
+  envelope has no header or cookie field at all. That single restriction is
+  what stops a plugin route becoming a second authentication system.
+- **Redirects are allow-listed.** A relative path always passes; an absolute
+  URL must be https and its host declared in `allowedRedirectHosts`, so a
+  compromised setting cannot turn a board route into an open redirect.
+- **Bodies are capped** — 64 KiB by default, `maxBodyBytes` up to 1 MiB.
+- **Every response is `cache-control: no-store`.**
+- **A disabled plugin's routes 404** — operator-disabled and auto-disabled
+  alike. An off plugin has no endpoints, not broken ones.
+- **Failures count.** A route runs under the same accounting as a hook:
+  timed, logged against the plugin, and auto-disabling after repeated
+  failures — visible on the plugin's health screen.
+
+Two honest limits: route paths are exact matches (put ids in the query
+string, not the path), and there is no per-route rate limit yet — a route
+that does expensive work should do its own bookkeeping until there is.
+
+## Board pages
+
+`pages` are the member-facing half, mounted at `/plugins/<key>/<path>` and
+rendered inside the board's shell with the page's declared title, so a
+plugin's screen looks like the board rather than an iframe of somewhere else:
+
+```ts
+pages: [
+  { path: '',       title: 'Membership', access: 'member',    render },
+  { path: 'return', title: 'Confirming', access: 'anonymous', render },
+]
+```
+
+`render` gets a `PluginPageContext` — the runtime context plus the viewer,
+the path, the query and the board URL — and returns markup. The same
+containment as admin pages applies: a throw is logged and the page renders a
+plain failure notice in the shell, not a 500. `access: 'member'` sends a
+guest to the sign-in page and back to the plugin page afterwards. A page on a
+disabled plugin is a 404, exactly like a route.
+
+Build your markup in the render function rather than returning a component
+that does work — the host's try/catch is around the call, and a component
+that throws later, inside React's own render, cannot be contained from the
+server.
+
+## Settings
+
+A setting declares a `type` when its default cannot say enough: `'secret'`
+and `'select'` are strings with extra rules, and `env` names an environment
+variable that overrides whatever the panel stores.
+
+```ts
+settings: [
+  { key: 'secret_key', label: 'API secret', type: 'secret',
+    env: 'MYPLUGIN_SECRET_KEY', required: true, default: '' },
+  { key: 'mode', label: 'Mode', type: 'select', default: 'off',
+    options: [{ value: 'off', label: 'Off' }, { value: 'live', label: 'Live' }] },
+]
+```
+
+**Resolution is environment, then board, then default** — the same rule as
+`APP_URL` and the mail settings. When the variable is set, the panel's box
+goes inert and says which variable owns it, so nobody edits a field that
+cannot take effect.
+
+**A secret is write-only.** `definePlugin` refuses one with a shipped default
+(a working fallback credential is a credential in the repository). The panel
+shows *that* a value is set, never the value; a blank submit keeps what is
+stored, because the form can never show the current value to re-submit. A
+secret's value reaches the plugin's runtime context and nowhere else.
+
+**`required` reports, it does not block.** An unset required setting is a
+named problem on the plugin's screen — set it here or with `THE_VARIABLE` —
+rather than a save that refuses everything else. A board mid-setup can still
+be configured a field at a time.
+
+A `select` whose stored value is no longer among its options — an older
+version of the plugin declared more — resolves to the default instead of
+handing the plugin a value it never declared.
+
 ## Migrations
 
 Forward-only, like core's, and for the same reason: a down migration that drops a
@@ -215,7 +430,10 @@ reference marks it so you find out before you ship.
 **`plugins/reference` must handle every wired hook**, enforced by its own test.
 That is the ratchet: wiring a new call site into the board fails the reference
 plugin's test until a handler is added there, so a hook cannot join the running
-product without something proving it fires.
+product without something proving it fires. The same plugin declares a route
+of every shape, a board page, a secret setting with an environment override
+and a select — and its tests drive each one, so none of those surfaces can
+silently rot either.
 
 **The lifecycle callbacks do not run yet.** `onInstall`, `onEnable`,
 `onDisable` and `onUninstall` are part of the declared shape and validated like
@@ -223,12 +441,17 @@ everything else, but no host code dispatches them today. Write them if the
 shape of your plugin wants them — just do not put anything there that must run
 for the plugin to be correct.
 
-### The four descriptors execute
+### The descriptors execute
 
 Migrations are applied by `community upgrade` in dependency order, one transaction
 each. Settings are stored at `plugin.<key>.<name>` and edited in the control
-panel. Tasks are registered as `plugin.<key>.<id>` and run by the same tick as
-everything else. Admin pages are mounted at `/admin/plugins/<key>/<path>`.
+panel, with environment overrides resolved as described above. Tasks are
+registered as `plugin.<key>.<id>` and run by the same tick as everything
+else. Admin pages are mounted at `/admin/plugins/<key>/<path>`, routes at
+`/api/plugins/<key>/<path>`, board pages at `/plugins/<key>/<path>`. The
+runtime capabilities — `grants`, `data`, `users` — are live on every context;
+on a fixture-mode board they reject with a clear error instead of
+pretending.
 
 What that leaves, stated plainly:
 

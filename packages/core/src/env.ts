@@ -267,6 +267,21 @@ export function assertRuntimeEnv(): Env {
   return cached
 }
 
+const PLUGIN_ENV_NAME = /^[A-Z][A-Z0-9_]{2,63}$/
+
+/**
+ * The one door through which a plugin setting's `env` override is read. It
+ * lives here because this module is the sanctioned reader of `process.env` —
+ * a plugin never touches the environment itself; the host resolves the
+ * variable the plugin *declared* and hands over the value.
+ */
+export function readPluginEnv(name: string): string | undefined {
+  if (!PLUGIN_ENV_NAME.test(name)) return undefined
+  // eslint-disable-next-line no-restricted-properties -- this module is the sanctioned reader
+  const value = process.env[name]
+  return value === undefined || value === '' ? undefined : value
+}
+
 export const env: Env = new Proxy({} as Env, {
   get: (_target, prop: string) => assertEnv()[prop as keyof Env],
   has: (_target, prop: string) => prop in assertEnv(),

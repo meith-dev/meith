@@ -10,13 +10,17 @@ export const RECORDED: {
   regions: PluginRegion[]
   lifecycle: string[]
   tasks: string[]
-} = { hooks: [], regions: [], lifecycle: [], tasks: [] }
+  routes: { path: string; method: string }[]
+  pages: string[]
+} = { hooks: [], regions: [], lifecycle: [], tasks: [], routes: [], pages: [] }
 
 export function resetRecorder(): void {
   RECORDED.hooks = []
   RECORDED.regions = []
   RECORDED.lifecycle = []
   RECORDED.tasks = []
+  RECORDED.routes = []
+  RECORDED.pages = []
 }
 
 function record(name: string, value: unknown): void {
@@ -50,11 +54,30 @@ export const referencePlugin = definePlugin({
     { key: 'greeting', label: 'Greeting', default: 'hello', description: 'Prefixed to the footer.' },
     { key: 'badge_limit', label: 'Badge limit', default: 3 },
     { key: 'noisy', label: 'Log every hook', default: false, advanced: true },
+    {
+      key: 'api_secret',
+      label: 'API secret',
+      type: 'secret',
+      env: 'REFERENCE_API_SECRET',
+      required: true,
+      default: '',
+      description: 'Exists to exercise the write-only secret path.',
+    },
+    {
+      key: 'mode',
+      label: 'Mode',
+      type: 'select',
+      options: [
+        { value: 'record', label: 'Record' },
+        { value: 'replay', label: 'Replay' },
+      ],
+      default: 'record',
+    },
   ],
 
   migrations: [
-    { id: '0001_create_table', statements: ['create table if not exists reference_plugin_note (id serial primary key)'] },
-    { id: '0002_add_column', statements: ['alter table reference_plugin_note add column if not exists note text'] },
+    { id: '0001_create_table', statements: ['create table if not exists plugin_reference_note (id serial primary key)'] },
+    { id: '0002_add_column', statements: ['alter table plugin_reference_note add column if not exists note text'] },
   ],
 
   tasks: [
@@ -78,6 +101,53 @@ export const referencePlugin = definePlugin({
       ),
     },
   ],
+
+  routes: [
+    {
+      path: 'ping',
+      method: 'GET',
+      access: 'anonymous',
+      handler: (request) => {
+        RECORDED.routes.push({ path: request.path, method: request.method })
+        return { kind: 'json', body: { pong: true, viewer: request.viewer } }
+      },
+    },
+    {
+      path: 'hook/echo',
+      method: 'POST',
+      access: 'anonymous',
+      rawBody: true,
+      maxBodyBytes: 1024,
+      handler: (request) => {
+        RECORDED.routes.push({ path: request.path, method: request.method })
+        return { kind: 'text', body: String(request.rawBody?.byteLength ?? 0) }
+      },
+    },
+    {
+      path: 'leave',
+      method: 'POST',
+      access: 'member',
+      handler: () => ({ kind: 'redirect', to: 'https://example.com/away' }),
+    },
+  ],
+
+  pages: [
+    {
+      path: '',
+      title: 'Reference',
+      access: 'anonymous',
+      render: (context) => {
+        RECORDED.pages.push(context.path)
+        return (
+          <p data-plugin={MARK}>
+            {MARK} page for viewer {String(context.viewer.userId ?? 'guest')}
+          </p>
+        )
+      },
+    },
+  ],
+
+  allowedRedirectHosts: ['example.com'],
 
   contributions: REGION_NAMES.map(contribution),
 

@@ -17,6 +17,7 @@ export interface GroupSummaryRow {
   readonly displayOrder: number
   readonly isSystem: boolean
   readonly isStaffGroup: boolean
+  readonly pluginGrantable: boolean
   readonly badgeToken: string | null
   readonly nameColorLight: string | null
   readonly nameColorDark: string | null
@@ -30,6 +31,7 @@ export interface GroupIdentityInput {
   readonly description: string | null
   readonly displayOrder: number
   readonly isStaffGroup: boolean
+  readonly pluginGrantable: boolean
   readonly badgeToken: string | null
   readonly nameColorLight: string | null
   readonly nameColorDark: string | null
@@ -47,7 +49,7 @@ export class PostgresGroupAdminRepository {
     const rows = resultRows(
       await this.db.execute(sql`
         select g.id, g.key, g.title, g.description, g.display_order,
-               g.is_system, g.is_staff_group, g.badge_token,
+               g.is_system, g.is_staff_group, g.plugin_grantable, g.badge_token,
                g.name_color_light, g.name_color_dark,
                g.badge_image_light, g.badge_image_dark,
                (select count(*) from users u where u.primary_group_id = g.id)::int
@@ -65,6 +67,7 @@ export class PostgresGroupAdminRepository {
       displayOrder: Number(row.display_order),
       isSystem: row.is_system === true,
       isStaffGroup: row.is_staff_group === true,
+      pluginGrantable: row.plugin_grantable === true,
       badgeToken: row.badge_token === null ? null : String(row.badge_token),
       nameColorLight: row.name_color_light === null ? null : String(row.name_color_light),
       nameColorDark: row.name_color_dark === null ? null : String(row.name_color_dark),
@@ -113,6 +116,7 @@ export class PostgresGroupAdminRepository {
                description = ${input.description},
                display_order = ${input.displayOrder},
                is_staff_group = ${input.isStaffGroup},
+               plugin_grantable = ${input.pluginGrantable},
                badge_token = ${input.badgeToken},
                name_color_light = ${input.nameColorLight},
                name_color_dark = ${input.nameColorDark},

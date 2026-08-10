@@ -26,6 +26,7 @@ export interface TaskWorkerDeps {
     pruneExpiredTokens(now: Date, limit?: number): Promise<number>
   }
   readonly rateLimits?: { prune(before: Date, limit?: number): Promise<number> }
+  readonly timedGroups?: { expire(limit: number): Promise<number> }
   readonly outbox: OutboxReader
   readonly events: EventRegistry
   readonly recount: { run(batchSize: number): Promise<{ corrected: number }> }
@@ -154,6 +155,14 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
     async expireBans(batchSize) {
       return bans.expireDue(batchSize)
     },
+
+    ...(deps.timedGroups === undefined
+      ? {}
+      : {
+          async expireGroupMemberships(batchSize: number) {
+            return deps.timedGroups!.expire(batchSize)
+          },
+        }),
 
     async expireWarnings(batchSize) {
       return new WarningService({ warnings: deps.warnings, bans: banPort(bans) }).expireDue(
