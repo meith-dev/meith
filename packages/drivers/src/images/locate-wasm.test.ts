@@ -1,9 +1,10 @@
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { compileAsset, locateAsset } from './locate-wasm'
+import { compileAsset, locateAsset, moduleFile } from './locate-wasm'
 
 const SPEC = '@fake/png/codec/pkg/fake_bg.wasm'
 
@@ -118,6 +119,29 @@ describe('when it is not there', () => {
     await expect(locateAsset(SPEC, root)).rejects.toThrow(
       new RegExp(`${SPEC.replace(/[/+@.]/g, '\\$&')}[\\s\\S]*${root}`),
     )
+  })
+})
+
+describe('moduleFile', () => {
+  const here = join('/repo', 'packages', 'drivers', 'src', 'images', 'locate-wasm.ts')
+
+  it('takes the ESM location, which is this module rather than a bundle', () => {
+    expect(moduleFile(pathToFileURL(here).href, '/app/apps/worker/worker.cjs')).toBe(here)
+  })
+
+  it('takes __filename when import.meta is the empty object esbuild leaves in cjs', () => {
+    const bundle = join('/app', 'apps', 'worker', 'worker.cjs')
+
+    expect(moduleFile(undefined, bundle)).toBe(bundle)
+  })
+
+  it('ignores a location that is not a file: URL, such as a bundle served over http', () => {
+    expect(moduleFile('https://example.test/worker.js', undefined)).toBeUndefined()
+  })
+
+  it('has nothing to offer when neither exists, so the caller walks up from cwd', () => {
+    expect(moduleFile(undefined, undefined)).toBeUndefined()
+    expect(moduleFile(undefined, '')).toBeUndefined()
   })
 })
 
