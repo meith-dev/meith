@@ -60,7 +60,7 @@ export const GUARDS = [
       'theme override can ever reach.',
     files: /\.(tsx)$/,
     pattern: /(#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\()/,
-    allow: /^(themes\/[^/]+\/src\/tokens\.ts|packages\/ui\/src\/icons\/)/,
+    allow: /^themes\/[^/]+\/src\/tokens\.ts/,
     probe: {
       violates: "<div className='x' style={{ color: '#ff0000' }} />",
       clean: "<div className='bg-background text-foreground' />",
@@ -142,7 +142,7 @@ export const GUARDS = [
       'ever built DATA_SOURCE=fixture and none of the three run on that path. ' +
       'Importing costs nothing that matters: getDb() creates its client lazily ' +
       'and refuses in fixture mode, so nothing opens a socket at import.',
-    files: /^apps\/forum\/.*\.tsx?$/,
+    files: /^apps\/community\/.*\.tsx?$/,
     pattern: /require\(\s*['"]@meith\/db['"]\s*\)/,
     probe: {
       violates: "const { getDb } = require('@meith/db') as typeof import('@meith/db')",
@@ -160,7 +160,7 @@ export const GUARDS = [
       'public while looking like a filter. The exempt files are the counter and ' +
       'write paths, where naming a state is the definition of the work rather ' +
       'than a decision about a reader.',
-    files: /^(packages\/db\/src\/[^/]+\.tsx?|apps\/forum\/(app|src)\/.*\.tsx?)$/,
+    files: /^(packages\/db\/src\/[^/]+\.tsx?|apps\/community\/(app|src)\/.*\.tsx?)$/,
     pattern:
       /\beq\(\s*\w+\.visibility\s*,|\bvisibility\b\s*(=|<>)\s*['"]|\bvisibility\b\s+in\s*\(/,
     allow:
@@ -173,5 +173,62 @@ export const GUARDS = [
       'update posts set visibility = ${record.to} where id = ${id}',
       "const states = scope.states.includes('deleted')",
     ],
+  },
+  {
+    id: 'no-db-in-app-routes',
+    why:
+      'A file under app/ reads through the container in src/server/container.ts, ' +
+      'never @meith/db directly. The container is what makes a route testable ' +
+      'without Postgres and what lets DATA_SOURCE=fixture serve a whole board ' +
+      'from memory: a route that reaches past it works on a developer machine ' +
+      'with a database and 500s on the demo. Two admin pages predate the rule ' +
+      'and are exempted by name below — they are the debt, not the precedent, ' +
+      'so the exemption list only ever gets shorter.',
+    files: /^apps\/community\/app\/.*\.tsx?$/,
+    pattern: /from\s+['"]@meith\/db['"]|require\(\s*['"]@meith\/db['"]\s*\)/,
+    allow:
+      /^apps\/community\/app\/admin\/(users\/\[id\]\/merge|forums\/\[id\])\/page\.tsx$/,
+    probe: {
+      violates: "import { getDb } from '@meith/db'",
+      clean: "import { getContainer } from '@/server/container'",
+    },
+  },
+  {
+    id: 'no-literal-cache-tag',
+    why:
+      'Every cache tag is spelled once, in CacheTags (packages/core/src/cache.ts), ' +
+      'and never written as a literal at a call site. A writer invalidating ' +
+      '"forum-tree" while a reader cached under "forumTree" leaves stale data ' +
+      'that no test catches: both sides pass in isolation and only disagree in ' +
+      'production, where the symptom is a board that will not update. Going ' +
+      'through the table makes the mismatch a type error instead.',
+    files: /\.(ts|tsx)$/,
+    pattern: /(?:invalidateTags\s*\(\s*\[\s*|revalidateTag\s*\(\s*)['"]/,
+    allow: /^packages\/testkit\/|\.test\.tsx?$/,
+    probe: {
+      violates: "await cache.invalidateTags(['forum-tree'])",
+      clean: 'await cache.invalidateTags([CacheTags.forumTree()])',
+    },
+    alsoClean: [
+      'revalidateTag(CacheTags.thread(threadId))',
+      'await drivers().cache.invalidateTags([tag])',
+      'await drivers().cache.invalidateTags(GLOBAL_TAGS)',
+    ],
+  },
+  {
+    id: 'no-slot-rendering-slot',
+    why:
+      'A slot never resolves another slot. The page resolves both and passes the ' +
+      'rendered one in through regions. If ThreadView reached for PostBit ' +
+      'itself, a child theme overriding PostBit would be ignored inside the ' +
+      "parent's ThreadView — the override silently applies everywhere except " +
+      'the one page it was written for. One place resolves slots so that an ' +
+      'override means the same thing wherever it lands.',
+    files: /^(themes|examples)\/[^/]+\/src\/slots\/.*\.tsx?$/,
+    pattern: /\b(requireSlot|hasSlot)\s*\(/,
+    probe: {
+      violates: "const PostBit = requireSlot(theme, 'PostBit')",
+      clean: 'export function ThreadView({ regions }) {\n  return regions.posts\n}',
+    },
   },
 ]
