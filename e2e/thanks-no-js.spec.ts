@@ -65,7 +65,7 @@ test('pressing it returns the reader to the post they pressed', async ({ page })
   const second = page.locator('article').nth(1)
   await second.getByRole('button', { name: /Thanks/ }).click()
 
-  await expect(page).toHaveURL(/#post-11$/)
+  await expect(page).toHaveURL(/#pid-11$/)
 })
 
 test('there is no Thanks button on your own post', async ({ page }) => {

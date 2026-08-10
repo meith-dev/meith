@@ -172,6 +172,11 @@ export class ReplyComposer {
 export function quotePrefill(quoted: {
   readonly authorUsername: string
   readonly message: string
+  readonly sourceHref?: string | null
 }): string {
-  return `${quoteBlock({ author: quoted.authorUsername, markdown: quoted.message })}\n\n`
+  return `${quoteBlock({
+    author: quoted.authorUsername,
+    markdown: quoted.message,
+    sourceHref: quoted.sourceHref ?? null,
+  })}\n\n`
 }

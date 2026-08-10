@@ -15,7 +15,7 @@ import {
   resultRows,
   type Database,
 } from '@meith/db'
-import { renderMarkdown, vocabularyOptions } from '@meith/markdown'
+import { quoteBlock, renderMarkdown, vocabularyOptions } from '@meith/markdown'
 import { threadSlug } from '@meith/threads'
 import { sql } from 'drizzle-orm'
 
@@ -26,6 +26,7 @@ import {
   DEMO_REPORTS,
   DEMO_THANKS,
   DEMO_THREADS,
+  type DemoReply,
   type DemoThread,
 } from './content'
 
@@ -201,10 +202,11 @@ async function seedThreads(
     }
 
     const openedAt = daysBefore(input.now, thread.daysAgo)
+    const slug = threadSlug(thread.title)
     const created = await writes.create({
       forumId,
       title: thread.title,
-      slug: threadSlug(thread.title),
+      slug,
       message: thread.message,
       prefixId: null,
       authorUserId: author.id,
@@ -222,7 +224,12 @@ async function seedThreads(
         threadId: created.threadId,
         forumId,
         threadTitle: thread.title,
-        message: reply.message,
+        message: quoting(thread, reply, {
+          userIds: input.userIds,
+          threadId: created.threadId,
+          slug,
+          postIds,
+        }),
         authorUserId: replier.id,
         authorUsername: replier.username,
         visibility: reply.visibility ?? 'visible',
@@ -255,6 +262,39 @@ async function seedThreads(
   }
 
   return placed
+}
+
+function quoting(
+  thread: DemoThread,
+  reply: DemoReply,
+  target: {
+    readonly userIds: ReadonlyMap<string, number>
+    readonly threadId: number
+    readonly slug: string
+    readonly postIds: readonly number[]
+  },
+): string {
+  if (reply.quotes === undefined) return reply.message
+
+  const postId = target.postIds[reply.quotes]
+  const quoted =
+    reply.quotes === 0 ? thread.message : (thread.replies ?? [])[reply.quotes - 1]?.message
+  const author =
+    reply.quotes === 0 ? thread.author : (thread.replies ?? [])[reply.quotes - 1]?.author
+
+  if (postId === undefined || quoted === undefined || author === undefined) {
+    throw new Error(
+      `A reply in "${thread.title}" quotes post ${reply.quotes}, which is not above it.`,
+    )
+  }
+
+  const block = quoteBlock({
+    author: requireUser(target.userIds, author).username,
+    markdown: quoted,
+    sourceHref: `/thread/${target.threadId}-${target.slug}#pid-${postId}`,
+  })
+
+  return `${block}\n\n${reply.message}`
 }
 
 async function seedPolls(

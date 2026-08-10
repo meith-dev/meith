@@ -96,7 +96,7 @@ test('inline moderation submits the posts a moderator ticked, with scripting off
       await memberPage.goto(`${threadUrl}/reply`)
       await memberPage.getByLabel('Message').fill(words)
       await memberPage.getByRole('button', { name: 'Post reply' }).click()
-      await expect(memberPage).toHaveURL(/#post-\d+$/)
+      await expect(memberPage).toHaveURL(/#pid-\d+$/)
     }
 
     await modPage.goto(threadUrl)

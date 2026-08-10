@@ -28,6 +28,8 @@ export interface DemoReply {
   /** Hours after the thread's opening post. */
   readonly hoursAfter: number
   readonly visibility?: 'visible' | 'unapproved'
+  /** Quotes an earlier post: 0 is the opening post, 1 the first reply. */
+  readonly quotes?: number
 }
 
 export interface DemoPoll {
@@ -148,18 +150,13 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     daysAgo: 604,
     sticky: true,
     message: [
-      'This is a board for people who run boards. If you are here because you are',
-      'thinking about moving a community off something hosted, or because you have',
-      'already done it and it went sideways, you are in the right place.',
+      'This is a board for people who run boards. If you are here because you are thinking about moving a community off something hosted, or because you have already done it and it went sideways, you are in the right place.',
       '',
       'Three things worth knowing before you post:',
       '',
-      '- **Say what you actually run.** Version, how you deploy it, and whether',
-      '  there is a proxy in front. Half the answers here depend on it.',
-      '- **Paste the error, not a summary of the error.** Nobody has ever been',
-      '  helped faster by a paraphrase.',
-      '- **We are all volunteers**, including the staff. Nothing here is a support',
-      '  contract and nobody is on call.',
+      '- **Say what you actually run.** Version, how you deploy it, and whether there is a proxy in front. Half the answers here depend on it.',
+      '- **Paste the error, not a summary of the error.** Nobody has ever been helped faster by a paraphrase.',
+      '- **We are all volunteers**, including the staff. Nothing here is a support contract and nobody is on call.',
       '',
       'The rules are in the next thread and they are short.',
     ].join('\n'),
@@ -185,8 +182,7 @@ export const DEMO_THREADS: readonly DemoThread[] = [
       '3. One thread per problem. Do not append a new problem to a solved thread.',
       '4. If you disagree with a moderator, say so in a report or a message, not in the thread.',
       '',
-      'That is the whole thing. Locked because there is nothing to discuss — if you',
-      'think a rule is wrong, open a thread in Anything else and make the case.',
+      'That is the whole thing. Locked because there is nothing to discuss — if you think a rule is wrong, open a thread in Anything else and make the case.',
     ].join('\n'),
   },
   {
@@ -198,13 +194,10 @@ export const DEMO_THREADS: readonly DemoThread[] = [
       'Tagged this morning. The short version of what changed:',
       '',
       '- Search is on a keyset now, so page 40 costs what page 1 costs.',
-      '- The permission matrix resolves per actor per forum instead of per request,',
-      '  which took about 300ms off a busy index.',
-      '- Themes have a frozen slot contract. If yours renders on 0.1.0 it will keep',
-      '  rendering, and if it does not, the error names the slot.',
+      '- The permission matrix resolves per actor per forum instead of per request, which took about 300ms off a busy index.',
+      '- Themes have a frozen slot contract. If yours renders on 0.1.0 it will keep rendering, and if it does not, the error names the slot.',
       '',
-      'Upgrade notes are in the docs. Back up first — not because this release is',
-      'risky, but because "back up first" is the advice that is never wrong.',
+      'Upgrade notes are in the docs. Back up first — not because this release is risky, but because "back up first" is the advice that is never wrong.',
     ].join('\n'),
     replies: [
       {
@@ -222,6 +215,7 @@ export const DEMO_THREADS: readonly DemoThread[] = [
       {
         author: 'admin',
         hoursAfter: 6,
+        quotes: 2,
         message: 'Fair. Added to the upgrade page — thank you.',
       },
       {
@@ -240,13 +234,9 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'Hello — moved 40k posts last spring',
     daysAgo: 298,
     message: [
-      'Hi all. I run a board for a translation co-op, about 300 active members and',
-      'a decade of archives. We came off a hosted forum in March because the price',
-      'went up 4x with a month of notice.',
+      'Hi all. I run a board for a translation co-op, about 300 active members and a decade of archives. We came off a hosted forum in March because the price went up 4x with a month of notice.',
       '',
-      'The import took three sessions over a weekend, which sounds bad and was',
-      'actually fine — it is resumable, so I ran it until I got bored and started it',
-      'again the next evening. Attachments were the slow part.',
+      'The import took three sessions over a weekend, which sounds bad and was actually fine — it is resumable, so I ran it until I got bored and started it again the next evening. Attachments were the slow part.',
       '',
       'Happy to answer questions from anyone in the same spot.',
     ].join('\n'),
@@ -267,12 +257,9 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'Self-hosting one service at a time, this is number six',
     daysAgo: 187,
     message: [
-      'Started with a mail server, which was a mistake, and have been working back',
-      'towards easier things ever since. This board is for a group of about forty',
-      'people who restore old radios.',
+      'Started with a mail server, which was a mistake, and have been working back towards easier things ever since. This board is for a group of about forty people who restore old radios.',
       '',
-      'Not a developer. If the deployment path had needed a `docker-compose.yml`',
-      'written by hand I would have closed the tab, so thank you for the panel route.',
+      'Not a developer. If the deployment path had needed a `docker-compose.yml` written by hand I would have closed the tab, so thank you for the panel route.',
     ].join('\n'),
     replies: [
       { author: 'petra', hoursAfter: 11, message: 'Old radios is a great forum topic. Is it public?' },
@@ -285,12 +272,9 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'Just found this, working out if it fits',
     daysAgo: 3,
     message: [
-      'Hi. I help run a regional makers group — currently a chat server, which is',
-      'lovely for the twelve people who are online at 9pm and useless for everyone',
-      'else. Nothing we say is findable a week later.',
+      'Hi. I help run a regional makers group — currently a chat server, which is lovely for the twelve people who are online at 9pm and useless for everyone else. Nothing we say is findable a week later.',
       '',
-      'Is this the sort of thing you would move a chat community onto, or is that a',
-      'known bad idea?',
+      'Is this the sort of thing you would move a chat community onto, or is that a known bad idea?',
     ].join('\n'),
     replies: [
       {
@@ -316,9 +300,7 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'Search finds nothing after restoring a backup',
     daysAgo: 34,
     message: [
-      'Restored a dump onto a new server last night. Everything is there — threads,',
-      'posts, members — but search returns nothing at all for terms I can see on the',
-      'page with my own eyes.',
+      'Restored a dump onto a new server last night. Everything is there — threads, posts, members — but search returns nothing at all for terms I can see on the page with my own eyes.',
       '',
       'No errors in the log. Board is otherwise completely normal.',
     ].join('\n'),
@@ -344,8 +326,7 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'Members getting logged out every few hours',
     daysAgo: 12,
     message: [
-      'Three or four people have said they get logged out during the day. I cannot',
-      'reproduce it on my own account. Nothing in the logs that looks related.',
+      'Three or four people have said they get logged out during the day. I cannot reproduce it on my own account. Nothing in the logs that looks related.',
       '',
       'Running two web containers behind the panel proxy, if that matters.',
     ].join('\n'),
@@ -377,8 +358,7 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'Attachments upload but do not appear',
     daysAgo: 6,
     message: [
-      'Upload goes through, progress bar completes, post saves — and the attachment',
-      'is not on the post. It is in the uploads directory on disk.',
+      'Upload goes through, progress bar completes, post saves — and the attachment is not on the post. It is in the uploads directory on disk.',
       '',
       'Started after I moved the board to a bigger server last week.',
     ].join('\n'),
@@ -400,9 +380,7 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'Is there a way to stop a specific member starting new threads?',
     daysAgo: 2,
     message: [
-      'Without banning them. One person posts constantly, is not breaking any rule,',
-      'and starts six threads a day where one would do. I would like them to be able',
-      'to reply and not to open.',
+      'Without banning them. One person posts constantly, is not breaking any rule, and starts six threads a day where one would do. I would like them to be able to reply and not to open.',
     ].join('\n'),
     replies: [
       {
@@ -433,11 +411,9 @@ export const DEMO_THREADS: readonly DemoThread[] = [
       closesInDays: null,
     },
     message: [
-      'Curious where people land. Include the database and backups, exclude the',
-      'domain — everyone has a domain.',
+      'Curious where people land. Include the database and backups, exclude the domain — everyone has a domain.',
       '',
-      'I am at about €12 for a board with 400 members and 90k posts, on a small VPS',
-      'with the database on the same box. It has never been the bottleneck.',
+      'I am at about €12 for a board with 400 members and 90k posts, on a small VPS with the database on the same box. It has never been the bottleneck.',
     ].join('\n'),
     replies: [
       {
@@ -468,20 +444,15 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     message: [
       'Wrote this up because I got it wrong for a year and nobody told me.',
       '',
-      'What I had: a nightly `pg_dump` to the same disk the database is on. That is',
-      'not a backup. That is a second copy of a file that dies with the disk.',
+      'What I had: a nightly `pg_dump` to the same disk the database is on. That is not a backup. That is a second copy of a file that dies with the disk.',
       '',
       'What I have now:',
       '',
       '1. Nightly dump, pushed off the box to storage on a different provider.',
-      '2. The uploads directory in the same job — attachments are not in the',
-      '   database and a database-only backup restores a board full of broken images.',
-      '3. **A restore, every quarter, onto a scratch server.** This is the one',
-      '   everybody skips. My dumps were fine for a year and my restore procedure',
-      '   was wrong, and I would not have known until it mattered.',
+      '2. The uploads directory in the same job — attachments are not in the database and a database-only backup restores a board full of broken images.',
+      '3. **A restore, every quarter, onto a scratch server.** This is the one everybody skips. My dumps were fine for a year and my restore procedure was wrong, and I would not have known until it mattered.',
       '',
-      'The third one took an afternoon to work out and I would not run a board',
-      'without it now.',
+      'The third one took an afternoon to work out and I would not run a board without it now.',
     ].join('\n'),
     replies: [
       { author: 'niamh', hoursAfter: 5, message: 'The quarterly restore is the whole post. Everything else is well known and that one is not.' },
@@ -501,14 +472,9 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     message: [
       'This comes up enough to be worth a thread.',
       '',
-      'The pool defaults to three connections per process. That looks stingy until',
-      'you count: two web containers, a worker, and a migration one-shot is four',
-      'processes, and a managed Postgres on a small plan often caps you at 20-25',
-      'connections total. A pool of ten per process exhausts that before you have',
-      'any traffic at all.',
+      'The pool defaults to three connections per process. That looks stingy until you count: two web containers, a worker, and a migration one-shot is four processes, and a managed Postgres on a small plan often caps you at 20-25 connections total. A pool of ten per process exhausts that before you have any traffic at all.',
       '',
-      'If you are running behind a transaction-mode pooler, keep the pool small and',
-      'let the pooler do the multiplexing. That is what it is for.',
+      'If you are running behind a transaction-mode pooler, keep the pool small and let the pooler do the multiplexing. That is what it is for.',
     ].join('\n'),
     replies: [
       {
@@ -526,23 +492,15 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'The spam wave last month, and what stopped it',
     daysAgo: 57,
     message: [
-      'We took about 900 registration attempts over four days. Roughly 30 got',
-      'through to a post. Here is what did and did not work, since I know a few',
-      'other boards saw the same wave.',
+      'We took about 900 registration attempts over four days. Roughly 30 got through to a post. Here is what did and did not work, since I know a few other boards saw the same wave.',
       '',
-      '**Did not work:** the honeypot alone. Whatever was driving it filled the form',
-      'like a browser because it *was* a browser.',
+      '**Did not work:** the honeypot alone. Whatever was driving it filled the form like a browser because it *was* a browser.',
       '',
-      '**Worked:** the registration question. One line, specific to the board, that',
-      'you cannot answer by reading the page — ours asks what the group was called',
-      'before it was renamed. Attempts went from ~200 a day to under five.',
+      '**Worked:** the registration question. One line, specific to the board, that you cannot answer by reading the page — ours asks what the group was called before it was renamed. Attempts went from ~200 a day to under five.',
       '',
-      '**Also worked, quietly:** holding first posts for approval. Even the ones that',
-      'got through never became visible, so the board never looked spammed, which',
-      'matters more than the raw numbers.',
+      '**Also worked, quietly:** holding first posts for approval. Even the ones that got through never became visible, so the board never looked spammed, which matters more than the raw numbers.',
       '',
-      'Cost of all this to real people: two members emailed to say the question was',
-      'confusing. Both got in.',
+      'Cost of all this to real people: two members emailed to say the question was confusing. Both got in.',
     ].join('\n'),
     replies: [
       {
@@ -566,11 +524,9 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'How do you handle a member who is technically fine and exhausting?',
     daysAgo: 29,
     message: [
-      'Not a rule-breaker. Never rude. Replies to every thread within a minute, at',
-      'length, usually restating what the previous post said.',
+      'Not a rule-breaker. Never rude. Replies to every thread within a minute, at length, usually restating what the previous post said.',
       '',
-      'Three people have quietly told me they have stopped posting because of it. I',
-      'have no rule that covers this and I am not sure I want one.',
+      'Three people have quietly told me they have stopped posting because of it. I have no rule that covers this and I am not sure I want one.',
     ].join('\n'),
     replies: [
       {
@@ -582,6 +538,7 @@ export const DEMO_THREADS: readonly DemoThread[] = [
       {
         author: 'ken',
         hoursAfter: 6,
+        quotes: 1,
         message:
           'And the fourth?\n\nAsking seriously — the failure case is the one people never write down, and it is the one I would want to know about before trying this.',
       },
@@ -614,16 +571,11 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'Iris: a theme with actual whitespace',
     daysAgo: 214,
     message: [
-      'Put together a theme for boards that are mostly long posts rather than mostly',
-      'threads. Wider measure, bigger line height, quieter forum index.',
+      'Put together a theme for boards that are mostly long posts rather than mostly threads. Wider measure, bigger line height, quieter forum index.',
       '',
-      'It fills the same slots as the default — that is the point of the contract —',
-      'so it drops in and out without touching anything else. Tokens are all',
-      'overridable from the appearance screen, so you can take the layout and keep',
-      'your own colours.',
+      'It fills the same slots as the default — that is the point of the contract — so it drops in and out without touching anything else. Tokens are all overridable from the appearance screen, so you can take the layout and keep your own colours.',
       '',
-      'Feedback welcome, particularly from anyone with a board that is genuinely',
-      'busy. Mine is not and I suspect the index gets worse at scale.',
+      'Feedback welcome, particularly from anyone with a board that is genuinely busy. Mine is not and I suspect the index gets worse at scale.',
     ].join('\n'),
     replies: [
       {
@@ -646,8 +598,7 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'Can a theme add a slot of its own?',
     daysAgo: 40,
     message: [
-      'I want a strip under the header for a rotating notice. Nothing in the slot',
-      'list is quite it. Can I add one, or am I meant to do this a different way?',
+      'I want a strip under the header for a rotating notice. Nothing in the slot list is quite it. Can I add one, or am I meant to do this a different way?',
     ].join('\n'),
     replies: [
       {
@@ -673,18 +624,13 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'A plugin that throws should not take the page down — testing that claim',
     daysAgo: 88,
     message: [
-      'The docs say a plugin failure is contained. I did not believe it, so I wrote',
-      'the worst plugin I could and pointed it at a live-ish board.',
+      'The docs say a plugin failure is contained. I did not believe it, so I wrote the worst plugin I could and pointed it at a live-ish board.',
       '',
-      'Threw synchronously in a render hook: the slot rendered without the plugin,',
-      'the page was fine, one line in the log naming the plugin and the hook.',
+      'Threw synchronously in a render hook: the slot rendered without the plugin, the page was fine, one line in the log naming the plugin and the hook.',
       '',
-      'Threw asynchronously after the response: logged, page unaffected, and the',
-      'plugin was still registered for the next request rather than being silently',
-      'disabled — which I think is right, though I can see the argument.',
+      'Threw asynchronously after the response: logged, page unaffected, and the plugin was still registered for the next request rather than being silently disabled — which I think is right, though I can see the argument.',
       '',
-      'Infinite loop in a hook: this one *did* hang the request, and I do not think',
-      'there is a way around that short of a worker per plugin. Worth knowing.',
+      'Infinite loop in a hook: this one *did* hang the request, and I do not think there is a way around that short of a worker per plugin. Worth knowing.',
     ].join('\n'),
     replies: [
       {
@@ -708,9 +654,7 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'Hook for "member joined a group"?',
     daysAgo: 17,
     message: [
-      'I want to post a line in a forum when someone gets promoted into the veterans',
-      'group. There is a hook for registration and one for a post being created, but',
-      'I cannot find one for group membership changing.',
+      'I want to post a line in a forum when someone gets promoted into the veterans group. There is a hook for registration and one for a post being created, but I cannot find one for group membership changing.',
     ].join('\n'),
     replies: [
       { author: 'admin', hoursAfter: 5, message: 'There is not one. Promotions run in the background tick rather than in a request, and no hook fires from the tick today.' },
@@ -731,8 +675,7 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'What did your community exist as before it was a forum?',
     daysAgo: 63,
     message: [
-      'Ours was a mailing list, then a chat server, then nothing for about two years,',
-      'and now this. The two years of nothing lost more people than either move did.',
+      'Ours was a mailing list, then a chat server, then nothing for about two years, and now this. The two years of nothing lost more people than either move did.',
       '',
       'Curious what everyone else came from.',
     ].join('\n'),
@@ -754,11 +697,9 @@ export const DEMO_THREADS: readonly DemoThread[] = [
     title: 'Small thing that made members happier than any feature',
     daysAgo: 9,
     message: [
-      'Changed the default sort on the index so the forum with the most recent post',
-      'comes first, rather than the fixed order.',
+      'Changed the default sort on the index so the forum with the most recent post comes first, rather than the fixed order.',
       '',
-      'Three people said unprompted that the board "feels more alive". Nothing was',
-      'added. Nothing was faster. It just stopped showing the quiet forum first.',
+      'Three people said unprompted that the board "feels more alive". Nothing was added. Nothing was faster. It just stopped showing the quiet forum first.',
     ].join('\n'),
     replies: [
       { author: 'ada', hoursAfter: 4, message: 'This is genuinely half of design and nobody believes it until they try it.' },

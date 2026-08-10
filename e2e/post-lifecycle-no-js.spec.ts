@@ -25,7 +25,7 @@ async function threadWith(
     await page.goto(`${url}/reply`)
     await page.getByLabel('Message').fill(body)
     await page.getByRole('button', { name: 'Post reply' }).click()
-    await expect(page).toHaveURL(/#post-\d+$/)
+    await expect(page).toHaveURL(/#pid-\d+$/)
   }
   return url
 }

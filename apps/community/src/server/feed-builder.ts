@@ -3,6 +3,7 @@ import 'server-only'
 import type { FeedPost, FeedThread } from '@meith/db'
 
 import { summarise, type FeedChannel, type FeedEntry } from '@/view/feed'
+import { postAnchor } from '@/view/post-anchor'
 
 import { absoluteTo } from './syndication'
 
@@ -35,7 +36,7 @@ export function feedFor(origin: string): {
       id: tagId('post', post.postId),
       title: post.threadTitle,
       href: absolute(
-        `/thread/${post.threadId}-${post.threadSlug}?post=${post.postId}#post-${post.postId}`,
+        `/thread/${post.threadId}-${post.threadSlug}?post=${post.postId}#${postAnchor(post.postId)}`,
       ),
       author: post.authorUsername,
       published: post.createdAt,

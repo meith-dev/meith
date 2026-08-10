@@ -48,13 +48,13 @@ test('a reply that quotes one member and mentions another notifies both', async 
     await posterPage.locator('a[href*="?quote="]').first().click()
 
     const prefilled = await posterPage.getByLabel('Message').inputValue()
-    expect(prefilled).toContain(`> **${quoted} wrote:**`)
+    expect(prefilled).toContain(`> **[${quoted}](/member/by-name/${quoted}) wrote:**`)
 
     await posterPage
       .getByLabel('Message')
       .fill(`${prefilled}\n\nAgreed — and @${mentioned} should see this too.`)
     await posterPage.getByRole('button', { name: 'Post reply' }).click()
-    await expect(posterPage).toHaveURL(/#post-\d+$/)
+    await expect(posterPage).toHaveURL(/#pid-\d+$/)
 
     const mention = posterPage.locator('a.md-mention')
     await expect(mention).toHaveText(`@${mentioned}`)
@@ -82,7 +82,7 @@ test('a reply that quotes one member and mentions another notifies both', async 
     const viewHref = await mentionedRow
       .getByRole('link', { name: 'View', exact: true })
       .getAttribute('href')
-    expect(viewHref).toMatch(/^\/thread\/\d+-.+#post-\d+$/)
+    expect(viewHref).toMatch(/^\/thread\/\d+-.+#pid-\d+$/)
     await mentionedPage.goto(viewHref!)
     await expect(
       mentionedPage.getByText(`@${mentioned} should see this too`),

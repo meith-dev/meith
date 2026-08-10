@@ -477,7 +477,7 @@
   }
 
   /*
-   * A permalink to `#post-4102` otherwise lands the post flush against the top
+   * A permalink to `#post-12` otherwise lands the post flush against the top
    * of the viewport, with its own header cropped and the previous post's footer
    * nowhere — the reader cannot tell they arrived at the right one.
    */
@@ -665,6 +665,23 @@
  */
 .md-quote .md-quote {
   background-color: transparent;
+}
+
+/* Who was quoted on the left, the link back to their post in the corner. */
+.md-quote-attribution {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25em 1em;
+  margin-block: 0 0.5em;
+}
+
+.md-quote-source {
+  margin-inline-start: auto;
+  font-size: 0.9em;
+  white-space: nowrap;
+  opacity: 0.85;
 }
 
 .md-code {

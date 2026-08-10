@@ -9,6 +9,7 @@ import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
+import { postAnchor } from '@/view/post-anchor'
 import { buildReplyView } from '@/view/post-form'
 
 export const metadata: Metadata = { title: 'Reply' }
@@ -62,6 +63,7 @@ export default async function ReplyPage({
       prefill = quotePrefill({
         authorUsername: quoted.authorUsername,
         message: quoted.message,
+        sourceHref: `/thread/${target.threadId}-${target.slug}#${postAnchor(quoted.id)}`,
       })
     }
   }

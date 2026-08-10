@@ -231,13 +231,23 @@ describe('quotePrefill', () => {
         authorUsername: 'ada',
         message: 'Original text',
       }),
-    ).toBe('> **ada wrote:**\n>\n> Original text\n\n')
+    ).toBe('> **[ada](/member/by-name/ada) wrote:**\n>\n> Original text\n\n')
   })
 
   it('marks every line, so a two-paragraph quote stays one quote', () => {
     const quoted = quotePrefill({ authorUsername: 'ada', message: 'one\n\ntwo' })
 
     expect(quoted).toContain('> one\n>\n> two')
+  })
+
+  it('points back at the post it quoted when given one', () => {
+    const quoted = quotePrefill({
+      authorUsername: 'ada',
+      message: 'x',
+      sourceHref: '/thread/3-hello#pid-90',
+    })
+
+    expect(quoted).toContain('wrote:** [View post](/thread/3-hello#pid-90)')
   })
 
   it('keeps the quoted body verbatim, markup and all', () => {
@@ -255,7 +265,9 @@ describe('quotePrefill', () => {
       message: 'x',
     })
 
-    expect(quoted).toBe('> **ada_x wrote:**\n>\n> x\n\n')
+    expect(quoted).toBe(
+      '> **[ada_x](/member/by-name/%2A%2Aada%2A%2A_%5Bx%5D%60) wrote:**\n>\n> x\n\n',
+    )
   })
 })
 

@@ -586,7 +586,9 @@ describe('reply and forward', () => {
     })
 
     const draft = await service.replyDraft({ messageId: id, userId: BOB })
-    expect(draft.message).toBe('> **ivan wrote:**\n>\n> A message.\n\n')
+    expect(draft.message).toBe(
+      '> **[ivan](/member/by-name/iv%2A%2Aan%2A%2A%5B) wrote:**\n>\n> A message.\n\n',
+    )
   })
 
   it('starts a forward with no recipient and no thread', async () => {

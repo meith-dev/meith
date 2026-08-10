@@ -4,6 +4,8 @@ import { foldIdentifier } from '@meith/accounts'
 import { logger } from '@meith/core'
 import { extractMentions, extractQuotedAuthors, vocabularyOptions } from '@meith/markdown'
 
+import { postAnchor } from '@/view/post-anchor'
+
 import { activeVocabulary } from './content-admin'
 import { getContainer } from './container'
 import { notificationService } from './notifications'
@@ -30,7 +32,7 @@ export async function notifyPostAudience(notice: NewPostNotice): Promise<void> {
     const quoted = extractQuotedAuthors(notice.message, options)
     const mentioned = extractMentions(notice.message, options)
 
-    const href = `/thread/${notice.threadId}-${notice.threadSlug}#post-${notice.postId}`
+    const href = `/thread/${notice.threadId}-${notice.threadSlug}#${postAnchor(notice.postId)}`
     const data = { byUsername: notice.authorUsername, threadTitle: notice.threadTitle }
 
     const { accountStore } = getContainer()

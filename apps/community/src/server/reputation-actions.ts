@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
 import { parseRating } from '@meith/reputation'
 
+import { postAnchor } from '@/view/post-anchor'
+
 import { getActor } from './context'
 import { reputationService, reputationSettings, viewerRaterLimits } from './reputation'
 import type { FormState } from './auth-form-state'
@@ -124,5 +126,5 @@ export async function thankForPostAction(_prev: FormState, form: FormData): Prom
     return toFormState(err)
   }
 
-  redirect(`${returnTo}#post-${postId}`)
+  redirect(`${returnTo}#${postAnchor(postId)}`)
 }

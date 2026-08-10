@@ -11,8 +11,8 @@ describe('seeOther', () => {
   })
 
   it('keeps the query and the fragment, which carry where to land', () => {
-    expect(seeOther('/thread/4-welcome?post=11#post-11').headers.get('location')).toBe(
-      '/thread/4-welcome?post=11#post-11',
+    expect(seeOther('/thread/4-welcome?post=11#pid-11').headers.get('location')).toBe(
+      '/thread/4-welcome?post=11#pid-11',
     )
   })
 

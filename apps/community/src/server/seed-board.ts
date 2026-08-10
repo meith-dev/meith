@@ -353,7 +353,9 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     authorPostCount: 5,
     authorJoinedAt: new Date('2026-01-01T00:00:00Z'),
     message:
-      '> **admin wrote:**\n>\n> Show us the place where you make things.\n\n' +
+      '> **[admin](/member/by-name/admin) wrote:** ' +
+      '[View post](/thread/21-show-us-your-desk-setup#pid-121)\n>\n' +
+      '> Show us the place where you make things.\n\n' +
       'A standing desk and a notebook are all I need.',
     messageHtml: null,
     renderVersion: 0,

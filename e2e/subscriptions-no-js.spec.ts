@@ -96,7 +96,7 @@ test('a follower is notified of a reply once the queue has run', async ({ browse
     await authorPage.goto(`${threadUrl}/reply`)
     await authorPage.getByLabel('Message').fill('Here is the reply you followed for.')
     await authorPage.getByRole('button', { name: 'Post reply' }).click()
-    await expect(authorPage).toHaveURL(/#post-\d+$/)
+    await expect(authorPage).toHaveURL(/#pid-\d+$/)
 
     await drainUntil(request, followerPage, '/notifications', async () => {
       await expect(

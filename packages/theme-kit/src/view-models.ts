@@ -350,6 +350,7 @@ export interface PostBitModel {
   readonly id: number
   /** Position within the thread, 1-based. What "#12" in the corner means. */
   readonly number: number
+  /** `/thread/12-slug#post-3` — anchored by `number`, so the link says what the corner says. */
   readonly permalink: string
   readonly author: PostAuthorModel
   /** Pre-rendered Markdown. */
@@ -685,7 +686,7 @@ export interface LatestThreadsModel {
 export interface LatestPostModel {
   /** The thread it is in. A post has no title of its own. */
   readonly threadTitle: string
-  /** `/thread/12-slug#post-34` — the post, not the top of its thread. */
+  /** `/thread/12-slug#pid-34` — the post, not the top of its thread. */
   readonly href: string
   readonly forum: LinkModel
   readonly author: UserRefModel
