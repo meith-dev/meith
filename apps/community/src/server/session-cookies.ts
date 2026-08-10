@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 
 import { env } from '@meith/core'
 
+import { retireGuestPresence } from './presence'
 import {
   ADMIN_COOKIE,
   adminCookie,
@@ -26,6 +27,11 @@ export async function setSessionCookie(
   const jar = await cookies()
   const isSecure = secure()
   jar.set(sessionCookieName(isSecure), token, sessionCookie(expiresAt, isSecure))
+
+  // They were a guest a moment ago, and that row is still inside the online
+  // window. Left alone it counts them twice: once by name, once as somebody
+  // anonymous who is really the same person.
+  await retireGuestPresence()
 }
 
 export async function setRememberCookie(

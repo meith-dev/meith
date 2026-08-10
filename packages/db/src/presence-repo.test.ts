@@ -5,6 +5,7 @@ import { PUBLIC_CONTENT, contentScopeFrom } from '@meith/core'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
+import { resultRows } from './result-rows'
 import {
   ONLINE_WINDOW_MINUTES,
   PostgresPresenceRepository,
@@ -229,5 +230,95 @@ describe('the record', () => {
 
   it('reads back zero and no date before anything has happened', async () => {
     expect(await repo.readRecord()).toEqual({ count: 0, at: null })
+  })
+})
+
+describe('recording a guest', () => {
+  const guest = (over: Partial<Parameters<typeof repo.touchGuest>[0]> = {}) => ({
+    tokenHash: 'guest-one',
+    location: { path: '/', forumId: null, threadId: null },
+    now: NOW,
+    windowSeconds: 60,
+    expiresAt: new Date(NOW.getTime() + 86_400_000),
+    ...over,
+  })
+
+  it('makes an anonymous reader countable at all', async () => {
+    await repo.touchGuest(guest())
+
+    const snapshot = await repo.onlineNow(NOW, scope())
+    expect(snapshot.guestCount).toBe(1)
+    expect(snapshot.total).toBe(1)
+    expect(snapshot.members).toHaveLength(0)
+  })
+
+  it('counts one reader once however many pages they read', async () => {
+    await repo.touchGuest(guest())
+    await repo.touchGuest(guest({ now: new Date(NOW.getTime() + 120_000) }))
+    await repo.touchGuest(guest({ now: new Date(NOW.getTime() + 240_000) }))
+
+    const at = new Date(NOW.getTime() + 240_000)
+    expect((await repo.onlineNow(at, scope())).guestCount).toBe(1)
+  })
+
+  it('counts two readers as two', async () => {
+    await repo.touchGuest(guest({ tokenHash: 'guest-one' }))
+    await repo.touchGuest(guest({ tokenHash: 'guest-two' }))
+
+    expect((await repo.onlineNow(NOW, scope())).guestCount).toBe(2)
+  })
+
+  it('throttles the write, so clicking about does not cost an update a page', async () => {
+    await repo.touchGuest(guest())
+    await repo.touchGuest(
+      guest({ now: new Date(NOW.getTime() + 5_000), location: { path: '/later', forumId: null, threadId: null } }),
+    )
+
+    const rows = resultRows(
+      await db.execute(sql`select location_path from sessions where token_hash = 'guest-one'`),
+    ) as Array<{ location_path: string }>
+
+    expect(rows[0]?.location_path).toBe('/')
+  })
+
+  it('drops out of the window when the reader leaves', async () => {
+    await repo.touchGuest(guest())
+
+    const later = new Date(NOW.getTime() + (ONLINE_WINDOW_MINUTES + 1) * 60_000)
+    expect((await repo.onlineNow(later, scope())).guestCount).toBe(0)
+  })
+
+  /**
+   * A reader who signs in was a guest a second ago, and that row is still well
+   * inside the fifteen-minute window. Left behind it counts them twice — once by
+   * name in the list, once anonymously in the total.
+   */
+  it('is forgotten when the reader holding it signs in', async () => {
+    await repo.touchGuest(guest())
+    expect((await repo.onlineNow(NOW, scope())).guestCount).toBe(1)
+
+    await repo.dropGuest('guest-one')
+    await seedSession({ id: 99, userId: ANN })
+
+    const snapshot = await repo.onlineNow(NOW, scope())
+    expect(snapshot.guestCount).toBe(0)
+    expect(snapshot.members.map((m) => m.userId)).toEqual([ANN])
+    expect(snapshot.total).toBe(1)
+  })
+
+  it('is never dropped by a token that belongs to a member', async () => {
+    await seedSession({ id: 1, userId: ANN })
+    await repo.dropGuest('hash-1')
+
+    expect((await repo.onlineNow(NOW, scope())).members).toHaveLength(1)
+  })
+
+  it('will not overwrite a signed-in member’s session, whatever it is handed', async () => {
+    await seedSession({ id: 1, userId: ANN, lastSeenAt: ago(10) })
+    await repo.touchGuest(guest({ tokenHash: 'hash-1' }))
+
+    const snapshot = await repo.onlineNow(NOW, scope())
+    expect(snapshot.members.map((m) => m.userId)).toEqual([ANN])
+    expect(snapshot.guestCount).toBe(0)
   })
 })

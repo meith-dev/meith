@@ -110,6 +110,63 @@ export class PostgresPresenceRepository {
     }
   }
 
+  /**
+   * Records that an anonymous reader is here, under a session row with no user.
+   *
+   * The read side has counted these rows since presence was written — the
+   * `user_id` column is nullable for exactly this — but nothing ever wrote one,
+   * so every board reported zero guests forever. This is the missing half.
+   *
+   * `windowSeconds` throttles the write the way the member path does: a reader
+   * clicking through a thread should cost one update a minute, not one an
+   * article. The insert is unconditional, though, or a reader whose first page
+   * view landed inside another reader's throttle window would never appear.
+   */
+  async touchGuest(input: {
+    readonly tokenHash: string
+    readonly location: {
+      readonly path: string
+      readonly forumId: number | null
+      readonly threadId: number | null
+    }
+    readonly now: Date
+    readonly windowSeconds: number
+    readonly expiresAt: Date
+  }): Promise<void> {
+    const cutoff = new Date(input.now.getTime() - input.windowSeconds * 1000)
+
+    await this.db.execute(sql`
+      insert into sessions
+        (token_hash, user_id, location_path, location_forum_id, location_thread_id,
+         last_seen_at, expires_at)
+      values
+        (${input.tokenHash}, null, ${input.location.path}, ${input.location.forumId},
+         ${input.location.threadId}, ${input.now}, ${input.expiresAt})
+      on conflict (token_hash) do update
+         set location_path      = excluded.location_path,
+             location_forum_id  = excluded.location_forum_id,
+             location_thread_id = excluded.location_thread_id,
+             last_seen_at       = excluded.last_seen_at,
+             expires_at         = excluded.expires_at
+       where sessions.user_id is null
+         and sessions.last_seen_at < ${cutoff}
+    `)
+  }
+
+  /**
+   * Forgets a guest row, for when the reader holding it has just signed in.
+   *
+   * Without this they are two people for the next fifteen minutes — a member in
+   * the list and a guest in the count — because the row they browsed under is
+   * still inside the window and there is nothing tying it to the account they
+   * have now proved they own.
+   */
+  async dropGuest(tokenHash: string): Promise<void> {
+    await this.db.execute(sql`
+      delete from sessions where token_hash = ${tokenHash} and user_id is null
+    `)
+  }
+
   async concurrentCount(now: Date): Promise<number> {
     const since = new Date(now.getTime() - ONLINE_WINDOW_MINUTES * 60_000)
     const rows = resultRows(

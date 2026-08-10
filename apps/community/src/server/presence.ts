@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { createHash } from 'node:crypto'
+
 import { cookies, headers } from 'next/headers'
 
 import type { Actor } from '@meith/authorization'
@@ -12,8 +14,13 @@ import {
 } from '@meith/db'
 
 import { getContainer } from './container'
-import { sessionCookieName } from './cookies'
-import { PATH_HEADER } from './location-header'
+import {
+  GUEST_COOKIE_DAYS,
+  clearedCookie,
+  guestCookieName,
+  sessionCookieName,
+} from './cookies'
+import { FRESH_GUEST_HEADER, PATH_HEADER } from './location-header'
 
 const LOCATION_WINDOW_SECONDS = 60
 
@@ -57,13 +64,21 @@ export function presenceRepository(): PostgresPresenceRepository | null {
 export async function touchLocation(location: BoardLocation): Promise<void> {
   try {
     const { identity, accountStore } = getContainer()
+    const secure = env.NODE_ENV !== 'development'
 
     const jar = await cookies()
-    const token = jar.get(sessionCookieName(env.NODE_ENV !== 'development'))?.value
-    if (token === undefined || token === '') return
+    const token = jar.get(sessionCookieName(secure))?.value
+
+    if (token === undefined || token === '') {
+      await touchGuestLocation(await returnedGuestToken(secure), location)
+      return
+    }
 
     const session = await identity.locateSession(token)
-    if (session === null) return
+    if (session === null) {
+      await touchGuestLocation(await returnedGuestToken(secure), location)
+      return
+    }
 
     await accountStore.sessions.touchLocation(
       session.sessionId,
@@ -75,6 +90,79 @@ export async function touchLocation(location: BoardLocation): Promise<void> {
       new Date(),
       LOCATION_WINDOW_SECONDS,
     )
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * The guest token, but only once the client has proved it keeps cookies.
+ *
+ * The freshness header is the proof, and it has to come from the middleware
+ * because nothing downstream can supply it: Next reflects a cookie set on a
+ * `NextResponse.next()` into the request the render sees, so on a first-ever
+ * visit both `cookies()` and the raw `Cookie` header already carry a token the
+ * client has never seen. Counting on that wrote one presence row per request
+ * from anything that discards cookies — measured at twelve rows from twelve
+ * crawler requests, and a sessions table that grows without bound.
+ */
+async function returnedGuestToken(secure: boolean): Promise<string | undefined> {
+  if ((await headers()).get(FRESH_GUEST_HEADER) === '1') return undefined
+
+  const value = (await cookies()).get(guestCookieName(secure))?.value
+  return value === '' ? undefined : value
+}
+
+/**
+ * The same reader, one row.
+ *
+ * Only reached when there is no usable member session, which is what keeps a
+ * logged-in member from being counted twice — and signing in drops the guest
+ * row outright, so the two never overlap.
+ */
+async function touchGuestLocation(
+  guestToken: string | undefined,
+  location: BoardLocation,
+): Promise<void> {
+  if (guestToken === undefined || guestToken === '') return
+
+  const repo = presenceRepository()
+  if (repo === null) return
+
+  const now = new Date()
+  await repo.touchGuest({
+    tokenHash: createHash('sha256').update(guestToken).digest('hex'),
+    location: {
+      path: location.path,
+      forumId: location.forumId,
+      threadId: location.threadId,
+    },
+    now,
+    windowSeconds: LOCATION_WINDOW_SECONDS,
+    expiresAt: new Date(now.getTime() + GUEST_COOKIE_DAYS * 86_400_000),
+  })
+}
+
+/**
+ * Retires the guest identity of somebody who has just become a member.
+ *
+ * Called wherever a session cookie is set, rather than only at the login form,
+ * because that is every route into being signed in — the form, the remember-me
+ * resume, and a password change that reissues the session.
+ */
+export async function retireGuestPresence(): Promise<void> {
+  try {
+    const secure = env.NODE_ENV !== 'development'
+    const jar = await cookies()
+    const token = jar.get(guestCookieName(secure))?.value
+
+    if (token !== undefined && token !== '') {
+      await presenceRepository()?.dropGuest(
+        createHash('sha256').update(token).digest('hex'),
+      )
+    }
+
+    jar.set(guestCookieName(secure), '', clearedCookie(secure))
   } catch {
     /* ignore */
   }
