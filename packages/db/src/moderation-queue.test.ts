@@ -1,11 +1,3 @@
-/**
- * F48 — the queue against real Postgres.
- *
- * What only the database can settle: that the union read returns both kinds in
- * one ordered page, that approving a thread brings its opening post with it,
- * that approving moves exactly the counters creating the content would have,
- * and that rejecting moves none.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -76,7 +68,6 @@ beforeEach(async () => {
   ])
 })
 
-/** A held thread, exactly as F39 writes one: thread and opening post both held. */
 async function heldThread(id: number, forumId = FORUM, at = AT): Promise<number> {
   const postId = id * 10
   await db.execute(sql`
@@ -94,7 +85,6 @@ async function heldThread(id: number, forumId = FORUM, at = AT): Promise<number>
   return postId
 }
 
-/** A visible thread with one held reply. */
 async function heldReply(threadId: number, postId: number, at = AT): Promise<void> {
   await db.execute(sql`
     insert into threads (id, forum_id, title, slug, author_user_id, author_username,
@@ -146,11 +136,6 @@ describe('the queue read', () => {
     })
   })
 
-  /*
-   * A reply held inside a thread that is itself held is not a separate
-   * decision. Listing it would let a moderator approve a post into a thread
-   * nobody can see — and approving the thread is what actually publishes it.
-   */
   it('does not list a reply whose thread is itself waiting', async () => {
     await heldThread(100)
     await db.execute(sql`
@@ -181,7 +166,6 @@ describe('the queue read', () => {
     expect(first.items.map((i) => i.id)).toEqual([100, 101])
     expect(first.nextCursor).toBeDefined()
 
-    /* Somebody clears the first page while the moderator is on the second. */
     await db.execute(sql`update threads set visibility = 'visible' where id in (100, 101)`)
 
     const second = await repo.list([FORUM], { limit: 2, after: first.nextCursor! })
@@ -238,11 +222,6 @@ describe('approving', () => {
     expect(await stateOf('posts', postId)).toBe('visible')
   })
 
-  /*
-   * The counters a held thread never wrote. F39 deliberately leaves them to
-   * this transition (D41), so approving is where the board first learns the
-   * thread exists.
-   */
   it('applies the counters creating it would have', async () => {
     await heldThread(100)
     expect(await forumCounts(FORUM)).toEqual({ posts: 0, threads: 0 })
@@ -321,11 +300,6 @@ describe('rejecting', () => {
     expect(await stateOf('posts', postId)).toBe('deleted')
   })
 
-  /*
-   * The silent one, from the other side. Held content was never counted, so
-   * rejecting must not subtract — or a busy queue walks every total down, one
-   * rejected post at a time, in a way no recount would attribute to anything.
-   */
   it('moves no counter, because held content was never counted', async () => {
     await heldThread(100)
     await heldReply(200, 2000)
@@ -379,11 +353,6 @@ describe('the audit trail', () => {
 })
 
 describe('through the command', () => {
-  /*
-   * The end-to-end shape: a selection arrives, the forums are re-read, and only
-   * the items in a moderated forum move. This is the check that the ids in a
-   * POST body buy a permission check rather than a bypass.
-   */
   it('acts only on the forums the actor moderates', async () => {
     await heldThread(100, FORUM)
     await heldThread(101, OTHER)

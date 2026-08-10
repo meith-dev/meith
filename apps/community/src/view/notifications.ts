@@ -1,4 +1,3 @@
-/** F55's pure notification view models. */
 import type { TimeModel } from '@meith/theme-kit'
 import type { NotificationPreferenceView, NotificationView } from '@meith/notifications'
 
@@ -11,13 +10,6 @@ export interface NotificationRowView {
   readonly href: string | null
   readonly at: TimeModel
   readonly isRead: boolean
-  /**
-   * "…and 3 more times", or null.
-   *
-   * Rendered separately from the subject so a theme — or a later screen — can
-   * place it without parsing a sentence, even though `renderNotification`
-   * already folds the count into the subject for the mail path.
-   */
   readonly repeated: string | null
 }
 
@@ -33,10 +25,6 @@ export function buildNotificationCentreView(input: {
   readonly unread: number
   readonly nextCursor?: string | undefined
   readonly now: Date
-  /**
-   * The viewer's timezone (F57). Defaults to UTC — the zone every timestamp on
-   * this board used before members could choose one.
-   */
   readonly timeZone?: string
 }): NotificationCentreView {
   return {
@@ -45,12 +33,6 @@ export function buildNotificationCentreView(input: {
       subject: row.subject,
       body: row.body,
       href: row.href,
-      /*
-       * `updatedAt`, not `createdAt`. A coalesced notification's useful
-       * timestamp is the last time the thing happened — a task that started
-       * failing yesterday and failed again a minute ago is not a day-old
-       * notification.
-       */
       at: formatTime(row.updatedAt, input.now, input.timeZone),
       isRead: row.isRead,
       repeated:
@@ -65,7 +47,6 @@ export function buildNotificationCentreView(input: {
   }
 }
 
-/** The preferences screen is the registry, so its view model is nearly a pass-through. */
 export interface PreferencesView {
   readonly rows: readonly NotificationPreferenceView[]
   readonly backHref: string
@@ -77,7 +58,6 @@ export function buildPreferencesView(
   return { rows, backHref: '/notifications' }
 }
 
-/** The notice after marking something read, assembled from the query string. */
 export function notificationNotice(query: {
   readonly read?: string | undefined
   readonly saved?: string | undefined

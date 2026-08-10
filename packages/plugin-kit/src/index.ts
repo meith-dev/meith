@@ -1,22 +1,3 @@
-/**
- * `@meith/plugin-kit` — the contract between the board and a plugin (F79).
- *
- * Four things:
- *
- *  - `HOOKS` — every point a plugin may observe or alter, each declaring whether
- *    it is a filter (its result is used) or an event (its result is discarded);
- *  - `HookSignatures` — the typed value and context each hook is handed;
- *  - `definePlugin` — what a plugin declares about itself, validated at load;
- *  - `PluginHost` — the only thing that calls a plugin, and the reason a plugin
- *    cannot crash a request.
- *
- * **Everything exported here is public API.** A module not re-exported from this
- * barrel is an internal.
- *
- * The reference generated from the registry is docs/plugin-hooks.md; the policy
- * — versioning, what a plugin may not do, and why — is docs/plugin-api.md.
- */
-
 export {
   HOOKS,
   HOOK_NAMES,

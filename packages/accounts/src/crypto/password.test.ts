@@ -30,7 +30,6 @@ describe('hashPassword / verifyPassword', () => {
     const a = await hashPassword('same-password')
     const b = await hashPassword('same-password')
     expect(a).not.toBe(b)
-    // ...yet both verify.
     expect(await verifyPassword('same-password', a)).toBe(true)
     expect(await verifyPassword('same-password', b)).toBe(true)
   })
@@ -59,7 +58,7 @@ describe('parseArgon2Params', () => {
   })
 
   it('returns null for non-argon2 strings', () => {
-    expect(parseArgon2Params('$2b$12$abcdef')).toBeNull() // bcrypt
+    expect(parseArgon2Params('$2b$12$abcdef')).toBeNull()
     expect(parseArgon2Params('plain')).toBeNull()
   })
 })
@@ -71,7 +70,6 @@ describe('needsRehash', () => {
   })
 
   it('is true for a weaker stored cost', () => {
-    // A hash created under an older, cheaper policy.
     const weak = '$argon2id$v=19$m=4096,t=1,p=1$c2FsdHNhbHQ$aGFzaGhhc2hoYXNo'
     expect(needsRehash(weak)).toBe(true)
   })

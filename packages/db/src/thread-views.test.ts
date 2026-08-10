@@ -1,4 +1,3 @@
-/** F38 — buffered thread views, against real Postgres. */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { eq, sql } from 'drizzle-orm'
 
@@ -58,7 +57,6 @@ describe('PostgresThreadViewBuffer', () => {
     await buffer.record(20)
     await buffer.record(21)
 
-    // The point of the buffer: three views, zero writes to `threads`.
     expect(await viewCount(20)).toBe(0)
 
     const rows = await db.select().from(threadViewBuffer)
@@ -100,7 +98,6 @@ describe('PostgresThreadViewBuffer', () => {
     await buffer.record(21)
 
     expect(await buffer.flush(1)).toBe(1)
-    // The unflushed thread is still buffered, not lost.
     expect(await db.select().from(threadViewBuffer)).toHaveLength(1)
     expect(await buffer.flush(1)).toBe(1)
   })

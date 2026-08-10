@@ -1,23 +1,3 @@
-/**
- * F48 — the approval queue over Postgres.
- *
- * The transitions themselves are F41's and are reused rather than reimplemented:
- * approving is `unapproved → visible`, which is the counter path
- * `applyVisibilityChangeCounters` already owns, already reverses correctly, and
- * already repairs last-post pointers for. What is new is the *read* — a union
- * of two tables, oldest first — and doing a batch of transitions atomically.
- *
- * Two shapes are load-bearing:
- *
- *   - **A thread and its opening post move together.** F39 wrote them held
- *     together, so approving the thread without its first post would produce a
- *     visible thread with nothing to read. Nothing else in the thread moves: a
- *     reply held separately is its own queue item.
- *   - **Rejecting moves no counter.** Held content was never counted (D41), so
- *     `unapproved → deleted` is a state change and nothing else. This is the
- *     same case F41 documents, and it is the one a "deleting always decrements"
- *     implementation gets silently wrong.
- */
 import { sql, type SQL } from 'drizzle-orm'
 
 import type {
@@ -34,18 +14,8 @@ import { resultRows } from './result-rows'
 import { PENDING_APPROVAL } from './visibility'
 import { applyVisibilityChangeCounters } from './visibility-counters'
 
-/** How much of a body the queue shows. Enough to judge, not enough to read. */
 const EXCERPT = 300
 
-/**
- * An `in (…)` list from a set of ids.
- *
- * Not `= any($1::int[])`: drizzle expands a JavaScript array in a template into
- * a comma-separated *placeholder list*, so `any(${ids})` compiles to
- * `any(($1, $2))` — a syntax error, and an empty array to `any(())`. The list
- * form is what the rest of this package already builds, and `in (null)` is the
- * correct reading of an empty set: never true.
- */
 function idList(ids: readonly number[]): SQL {
   if (ids.length === 0) return sql`(null)`
   return sql`(${sql.join(
@@ -68,13 +38,6 @@ interface QueueRow {
   created_at: Date
 }
 
-/**
- * The keyset cursor: the timestamp, kind and id of the last row shown.
- *
- * Opaque to the caller and deliberately not a page number — the queue changes
- * underneath a moderator working through it, and an offset would skip items
- * every time somebody else approved one above.
- */
 function encodeCursor(row: QueueItem): string {
   return Buffer.from(
     `${row.createdAt.toISOString()}|${row.kind}|${row.id}`,
@@ -123,11 +86,6 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
     if (forumIds.length === 0) return { items: [] }
 
     const cursor = options.after === undefined ? null : decodeCursor(options.after)
-    /*
-     * Oldest first — a queue is worked from the front — with (kind, id) as the
-     * tie-breaker so two items created in the same millisecond have a stable
-     * order. Without it, paging repeats or skips them.
-     */
     const after = cursor
       ? sql`and (q.created_at, q.kind, q.id) > (${cursor.at}, ${cursor.kind}, ${cursor.id})`
       : sql``
@@ -197,13 +155,6 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
     return Number(rows[0]?.pending ?? 0)
   }
 
-  /**
-   * Re-read the selection.
-   *
-   * Only still-pending rows come back, with the forum they are really in. That
-   * is the whole purpose: the ids arrived in a POST body, and where they live
-   * decides whether this actor may touch them.
-   */
   async resolve(selection: readonly QueueSelection[]): Promise<readonly PendingItem[]> {
     const threadIds = selection.filter((s) => s.kind === 'thread').map((s) => s.id)
     const postIds = selection.filter((s) => s.kind === 'post').map((s) => s.id)
@@ -226,13 +177,6 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
     }))
   }
 
-  /**
-   * Apply one decision to a checked batch, in a single transaction.
-   *
-   * All-or-nothing on purpose: a bulk approval that half-applied would leave a
-   * moderator with no way to tell which half, and the queue is small enough
-   * (bounded by `MAX_CHUNK`) that one transaction is the right shape.
-   */
   async apply(input: {
     readonly decision: QueueDecision
     readonly threadIds: readonly number[]
@@ -264,13 +208,6 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
         if (!thread) continue
         applied += 1
 
-        /*
-         * The opening post moves with the thread — F39 held them together, so
-         * approving one without the other yields a thread with nothing in it.
-         * The counters follow the *post*, because that is what every counter on
-         * the board is defined over (D41); `isFirstPost` is what makes the
-         * thread counts move too.
-         */
         if (thread.first_post_id !== null) {
           const post = resultRows(
             await tx.execute(sql`
@@ -312,12 +249,6 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
         if (!post) continue
         applied += 1
 
-        /*
-         * Rejecting moves nothing. Held content was never counted, so
-         * `unapproved → deleted` is a state change and no more — the case a
-         * "deleting always decrements" implementation walks every total down
-         * over, silently, one rejected post at a time.
-         */
         if (approving) {
           await applyVisibilityChangeCounters(tx, {
             postId: Number(post.id),
@@ -330,10 +261,6 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
         }
       }
 
-      /*
-       * One audit row per batch, not per item. A moderator clearing a queue
-       * performed one act; twenty rows saying so would bury the next one.
-       */
       if (applied > 0) {
         await tx.execute(sql`
           insert into admin_log (user_id, action, detail, created_at)

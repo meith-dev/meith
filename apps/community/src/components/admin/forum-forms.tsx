@@ -1,13 +1,5 @@
 "use client"
 
-/**
- * F65's forms.
- *
- * The matrix is one form **per group row**, not one form for the whole grid.
- * That is the safety property: a save rewrites exactly the row an operator was
- * reading, and cannot silently rewrite rows they scrolled past. It also keeps
- * each submission to one group's worth of fields rather than groups × fields.
- */
 import { useActionState } from "react"
 
 import type { MatrixCell, MatrixRow } from "@meith/authorization"
@@ -127,7 +119,6 @@ export function ForumOptionsForm({ forum }: { forum: ForumOptionsValues }) {
   )
 }
 
-/** How a cell's current state reads, given what it resolves to. */
 function effectiveLabel(cell: MatrixCell, forumTitles: ReadonlyMap<number, string>): string {
   const value = cell.kind === "boolean" ? (cell.effective ? "allowed" : "denied") : String(cell.effective)
 
@@ -141,8 +132,6 @@ function CellControl({ cell }: { cell: MatrixCell }) {
     const current = cell.stored === null ? "inherit" : cell.stored ? "grant" : "deny"
     return (
       <select name={cell.key} defaultValue={current} className={INPUT}>
-        {/* Inherit first and default, because it is the correct answer for
-            almost every cell — see `matrix-editor.ts`. */}
         <option value="inherit">Inherit</option>
         <option value="grant">Grant</option>
         <option value="deny">Deny</option>
@@ -239,7 +228,6 @@ export function CopyPermissionsForm({
   )
 }
 
-/** A `<select>` of possible parents, shared by create and move. */
 function ParentSelect({
   name,
   parents,
@@ -421,7 +409,6 @@ export function ModeratorsPanel({
                   {moderator.cascadeToSubforums && " · also in subforums"}
                 </span>
               </span>
-              {/* Its own form: a remove is a different verb from an appoint. */}
               <form action={remove}>
                 <input type="hidden" name="forumId" value={forumId} />
                 <input type="hidden" name="appointmentId" value={moderator.id} />

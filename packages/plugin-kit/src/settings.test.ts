@@ -17,12 +17,6 @@ function setting(overrides: Partial<PluginSetting> & Pick<PluginSetting, 'defaul
 }
 
 describe('the reserved key cannot collide with a declared setting', () => {
-  /*
-   * The whole no-collision argument rests on definePlugin refusing a leading
-   * underscore. If that pattern is ever loosened this test fails, which is the
-   * point — the alternative is a plugin declaring `_enabled` and switching
-   * itself off by saving a setting.
-   */
   it('definePlugin refuses the setting key the enabled flag uses', () => {
     expect(() =>
       definePlugin({
@@ -53,7 +47,6 @@ describe('parsing a stored value against the declared default', () => {
   })
 
   it('rejects an empty numeric field instead of storing zero', () => {
-    /* Number('') is 0, which would look like a number the operator typed. */
     expect(parsePluginSetting(setting({ default: 10 }), '')).toBeNull()
     expect(parsePluginSetting(setting({ default: 10 }), '   ')).toBeNull()
     expect(parsePluginSetting(setting({ default: 10 }), '25')).toBe(25)
@@ -175,16 +168,10 @@ describe('the host’s operator switch', () => {
 
   it('ignores a key naming a plugin this build does not have', () => {
     const host = new PluginHost({ plugins: [plugin] })
-    /* A row left behind by a plugin removed from community.config.ts. */
     expect(() => host.setOperatorDisabled(['gone'])).not.toThrow()
     expect(host.health()).toHaveLength(1)
   })
 
-  /*
-   * The interaction the two flags exist for. One field would make "enable" a
-   * way to clear a failure state nobody meant to clear, and the plugin that had
-   * been switched off for throwing would start running again.
-   */
   it('re-enabling does not resurrect a plugin auto-disabled for failing', async () => {
     const host = new PluginHost({ plugins: [plugin] })
     host.disable('demo', 'failed 5 times')

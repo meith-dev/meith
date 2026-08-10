@@ -1,22 +1,8 @@
-/**
- * The one-way door out of BBCode.
- *
- * Two properties matter more than the tag table, and both are tested here
- * rather than assumed:
- *
- *  1. **No words are lost.** A tag this build never had, an unclosed one, a
- *     `[code]` body full of other tags: each keeps its text.
- *  2. **No text is reinterpreted.** A BBCode post is not Markdown source, so
- *     everything Markdown would read as syntax is escaped on the way through.
- *     Without that, every post on a converted board containing `*` or
- *     `snake_case` changes meaning on the day of the upgrade.
- */
 import { describe, expect, it } from 'vitest'
 
 import { bbcodeToMarkdown } from './bbcode'
 import { renderMarkdown } from './body'
 
-/** What a converted post ends up showing, which is what actually matters. */
 const shown = (source: string): string => renderMarkdown(bbcodeToMarkdown(source)).html
 
 describe('the tags with a Markdown spelling', () => {
@@ -32,18 +18,12 @@ describe('the tags with a Markdown spelling', () => {
   })
 
   it('marks every line of a quote, blank ones included', () => {
-    /*
-     * A blockquote ends at the first line without a `>`. Without the marker on
-     * the blank line, a two-paragraph quote would become one quoted paragraph
-     * followed by the second one in nobody's voice.
-     */
     expect(bbcodeToMarkdown('[quote=Bob]one\n\ntwo[/quote]')).toBe(
       '> **Bob wrote:**\n>\n> one\n>\n> two',
     )
   })
 
   it('reads MyBB’s quote attributes and drops the post id', () => {
-    /* The id cannot become a link without the thread; F36 dropped it too. */
     expect(bbcodeToMarkdown("[quote='Bob' pid='42']x[/quote]")).toContain('**Bob wrote:**')
   })
 
@@ -66,12 +46,6 @@ describe('the tags with a Markdown spelling', () => {
 
 describe('the tags with no Markdown spelling', () => {
   it('keeps the words and drops the styling', () => {
-    /*
-     * `[u]`, `[color]` and `[size]` have no Markdown, and inventing a board-only
-     * directive for each would be BBCode again under a different syntax. The
-     * loss is recorded in `docs/mybb-parity.md`, where an operator will look for
-     * it before promising anyone a like-for-like move.
-     */
     expect(bbcodeToMarkdown('[u]under[/u] [color=red]red[/color] [size=5]big[/size]')).toBe(
       'under red big',
     )

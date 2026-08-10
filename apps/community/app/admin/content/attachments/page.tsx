@@ -11,23 +11,6 @@ export const metadata: Metadata = { title: 'Attachments' }
 
 const PAGE_SIZE = 50
 
-/**
- * F71 — what the board is storing, and the decision this screen was waiting on.
- *
- * **Deleting somebody else's upload does nothing to the post showing it**, and
- * that is a property of F42's design rather than a choice made here: an
- * attachment is listed *beside* a post, never embedded in its body, so no
- * stored render mentions one and no member-written text has to be patched. The
- * version of this feature that had to rewrite somebody's post to remove a
- * reference is the version that could not be built safely — which is why the
- * listing waited for a design where the question does not arise.
- *
- * The filter is a plain GET form, like F67's member search: the state is in the
- * address bar, so it reloads, it can be pasted to somebody else, and it needs
- * neither JavaScript nor a Server Action. Paging is keyset, because this screen
- * deletes the rows it is paging and an offset would skip exactly the ones just
- * acted on.
- */
 export default async function AdminAttachmentsPage({
   searchParams,
 }: {
@@ -56,7 +39,6 @@ export default async function AdminAttachmentsPage({
   const filename = one('filename')
   const status = one('status')
   const beforeText = one('before')
-  /* An unparseable cursor is dropped rather than refused: it means page one. */
   const beforeId =
     beforeText !== undefined && /^\d+$/.test(beforeText) ? Number(beforeText) : undefined
 
@@ -102,12 +84,6 @@ export default async function AdminAttachmentsPage({
           <dt className="text-xs text-muted-foreground">Stored</dt>
           <dd className="text-lg">{formatBytes(totals.bytes)}</dd>
         </div>
-        {/*
-          The two an operator can act on. A pending count that never falls means
-          the re-encode queue has stopped — the file is uploaded, nobody can
-          download it, and nothing has failed, which is the quietest way for this
-          feature to be broken.
-        */}
         <div>
           <dt className="text-xs text-muted-foreground">Awaiting processing</dt>
           <dd className={totals.pending > 0 ? 'text-lg text-destructive' : 'text-lg'}>

@@ -1,19 +1,3 @@
-/**
- * F59 at the app layer.
- *
- * The resolution rules are unit-tested in `@meith/profile-fields` and the SQL
- * against real Postgres. What is proven here is the seam neither can see:
- *
- *  - the viewer's rules come from `Authorizer.applicableGroupRows`, so a field
- *    restricted to a group is invisible to somebody outside it — the one thing
- *    that would leak member data if the wiring were wrong;
- *  - the *registration* context is the default member group's, not the guest's,
- *    because an applicant has no groups yet;
- *  - a broken field configuration degrades to no fields rather than taking out
- *    the profile page;
- *  - a submitted `field:` name the member may not edit writes nothing, through
- *    the real Server Action.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
@@ -84,7 +68,6 @@ class FakeFields implements ProfileFieldRepository {
   rules: ProfileFieldGroupRule[] = []
   values = new Map<number, ProfileFieldValue[]>()
   saved: { userId: number; values: readonly ProfileFieldValue[] }[] = []
-  /** Set to make `listFields` throw, standing in for broken configuration. */
   breaks = false
 
   async listFields() {
@@ -113,7 +96,6 @@ class FakeFields implements ProfileFieldRepository {
   }
 }
 
-/** F57's store, needed only because the profile action saves both halves. */
 class FakeSettings implements MemberSettingsRepository {
   row: MemberSettings = {
     userId: OWNER,
@@ -176,11 +158,6 @@ describe('what a viewer sees on a profile', () => {
   })
 
   it('hides a field restricted to a group the viewer is not in', async () => {
-    /*
-     * The leak this whole seam exists to prevent. `defaultVisible: false` plus
-     * one grant for the moderator group means a registered member gets nothing
-     * — and the narrowing that decides so is the Authorizer's, not this file's.
-     */
     fields.fields = [definition({ key: 'staff_note', label: 'Staff note', defaultVisible: false })]
     fields.rules = [{ fieldId: 1, groupId: SEED_GROUP.moderators, canView: true, canEdit: null }]
     fields.values.set(OWNER, [{ fieldId: 1, value: 'watch this one' }])
@@ -240,11 +217,6 @@ describe('the registration form', () => {
   })
 
   it("resolves against the default member group, not the guest looking at the form", async () => {
-    /*
-     * The mistake this test exists to catch: an applicant *is* a guest, so
-     * resolving the viewer's context would ask for whatever guests may edit —
-     * nothing — and the required field would silently never be asked.
-     */
     fields.fields = [
       definition({ id: 1, key: 'referrer', requiredAtRegistration: true, defaultEditable: false }),
     ]
@@ -309,10 +281,6 @@ describe('saving from the profile form', () => {
   })
 
   it('does not read an unprefixed name as a field', async () => {
-    /*
-     * The prefix is what keeps a field keyed `website` from colliding with
-     * F57's fixed input. Kills the mutant that drops it.
-     */
     fields.fields = [definition({ id: 1, key: 'website' })]
 
     await save([

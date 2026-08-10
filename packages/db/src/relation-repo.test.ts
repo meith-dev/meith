@@ -1,16 +1,3 @@
-/**
- * F61 — buddy and ignore lists against real Postgres.
- *
- * Four claims that are about the SQL rather than the rules:
- *
- *  - the pair is the primary key, so `set` is an upsert and buddy/ignore are
- *    mutually exclusive by construction rather than by convention;
- *  - `created_at` survives a change of kind — "on my list since" is a property
- *    of the relationship, not of the last time somebody changed their mind;
- *  - `ignores` asks the *reverse* question (does this recipient ignore that
- *    sender), which F60's send path needs and which is a different index;
- *  - a deleted account drops off the lists, without the row being deleted.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -67,10 +54,6 @@ describe('set', () => {
   })
 
   it('is an upsert, so one member is on exactly one list', async () => {
-    /*
-     * The primary key is what makes buddy and ignore exclusive. A second insert
-     * would otherwise be a duplicate row and two contradictory opinions.
-     */
     await repo.set({ userId: IVAN, otherUserId: BOB, kind: 'ignore', at: AT })
     await repo.set({ userId: IVAN, otherUserId: BOB, kind: 'buddy', at: LATER })
 
@@ -88,11 +71,6 @@ describe('set', () => {
   })
 
   it('is one member’s opinion, not a mutual state', async () => {
-    /*
-     * Ignoring is deliberately asymmetric — a board where it were mutual would
-     * let anybody silence themselves in somebody else's eyes by ignoring them
-     * first.
-     */
     await repo.set({ userId: IVAN, otherUserId: BOB, kind: 'ignore', at: AT })
 
     expect(await repo.ignores(IVAN, BOB)).toBe(true)
@@ -125,7 +103,6 @@ describe('list', () => {
     await db.execute(sql`update users set deleted_at = ${AT} where id = ${BOB}`)
 
     expect(await repo.list({ userId: IVAN, kind: 'buddy' })).toEqual([])
-    /* The row survives: `deleted_at` is a tombstone, not a removal. */
     expect(await repo.count(IVAN)).toBe(1)
   })
 
@@ -144,12 +121,6 @@ describe('ignoredIds', () => {
   })
 
   it('includes somebody whose account was deleted', async () => {
-    /*
-     * Deliberately different from `list`: the listing is a screen a member acts
-     * on, and a name the board no longer recognises is not actionable. The
-     * suppression set is a filter, and a deleted account's old posts are still
-     * on the board — so a member who chose not to read them still should not.
-     */
     await repo.set({ userId: IVAN, otherUserId: BOB, kind: 'ignore', at: AT })
     await db.execute(sql`update users set deleted_at = ${AT} where id = ${BOB}`)
 

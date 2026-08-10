@@ -1,35 +1,7 @@
-/**
- * F71's writes, at the app layer.
- *
- * The claim: **every write clears the tag the filter set is read under.** That
- * set is read on the render path, so a stale one is visible on every thread
- * page on the board — an operator who adds a filter and still sees the word
- * would reasonably conclude the feature does not work.
- *
- * And **every write refreshes the screen it was posted from**, which is a
- * different claim about a different cache: clearing the board's own store makes
- * the next server render correct and says nothing about Next's Router Cache,
- * which holds the payload for the page the form is on. With scripting enabled
- * — how an administrator actually uses the panel — an action that skips this
- * returns its success notice above a list that has not changed.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-/*
- * Recorded rather than ignored, so a test can say which screen was refreshed.
- * The mock is also load-bearing on its own: `revalidatePath` outside a Next
- * request throws, so an unmocked call turns a successful action into an error
- * state and the failure reads as a broken write.
- */
 const revalidated: string[] = []
 vi.mock('next/cache', async (importOriginal) => {
-  /*
-   * Spread the real module rather than replacing it. `next/cache` also exports
-   * `unstable_cache`, which modules reached transitively from here call at
-   * import time — a mock that returned only `revalidatePath` makes the file
-   * fail to load, with a stack that points at a theme module nothing here is
-   * testing.
-   */
   const actual = (await importOriginal()) as Record<string, unknown>
   return {
     ...actual,
@@ -140,11 +112,6 @@ describe('the admin gate', () => {
 
 describe('word filter writes', () => {
   it('clears the render-path tag on create, update and delete', async () => {
-    /*
-     * The filter set is read on every thread page. A write that did not clear
-     * this tag would leave the old set applying board-wide until something else
-     * happened to clear it. Kills the mutant that drops the invalidation.
-     */
     await createWordFilterAction({}, form({ pattern: 'a' }))
     await updateWordFilterAction({}, form({ id: '1', pattern: 'a' }))
     await deleteWordFilterAction({}, form({ id: '1' }))
@@ -153,17 +120,6 @@ describe('word filter writes', () => {
   })
 
   it('refreshes the screen it was posted from, not only the board cache', async () => {
-    /*
-     * The other cache, and the one the operator is looking at. Clearing the
-     * board's store fixes the *next* server render; the page the form is on
-     * keeps the payload it was rendered with until the route is revalidated —
-     * so without this an administrator adds a filter, is told "Added.", and
-     * reads "No filters. Posts show as written." underneath it.
-     *
-     * Only reachable with scripting on, which is why the browser suite could
-     * not catch it: a form post with scripting off is a full navigation, and a
-     * full navigation renders the page again whatever this does.
-     */
     await createWordFilterAction({}, form({ pattern: 'a' }))
     await updateWordFilterAction({}, form({ id: '1', pattern: 'a' }))
     await deleteWordFilterAction({}, form({ id: '1' }))
@@ -172,11 +128,6 @@ describe('word filter writes', () => {
   })
 
   it('reads an unticked whole-word box as a substring filter', async () => {
-    /*
-     * A checkbox submits nothing when it is off, so this has to be read as
-     * presence rather than value. Getting it backwards silently turns every
-     * substring filter into a whole-word one, or worse.
-     */
     await createWordFilterAction({}, form({ pattern: 'a', wholeWord: '1' }))
     expect(created[0]?.wholeWord).toBe(true)
 
@@ -185,10 +136,6 @@ describe('word filter writes', () => {
   })
 
   it('keeps a replacement of spaces rather than trimming it away', async () => {
-    /*
-     * Blanking a word with a space is a legitimate thing to want; trimming
-     * would silently turn it into deletion.
-     */
     await createWordFilterAction({}, form({ pattern: 'a', replacement: '  ' }))
     expect(created[0]?.replacement).toBe('  ')
   })
@@ -210,10 +157,6 @@ describe('word filter writes', () => {
 
 describe('prefix writes', () => {
   it('clears the prefix tag rather than the filter tag', async () => {
-    /*
-     * Different data, different tag. Clearing the render-path filter tag for a
-     * prefix change would throw away a cache the change has nothing to do with.
-     */
     await createPrefixAction({}, form({ label: 'Ask' }))
     expect(invalidated).toEqual([['prefixes']])
   })

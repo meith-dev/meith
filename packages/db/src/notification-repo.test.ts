@@ -1,16 +1,3 @@
-/**
- * F55 — notifications against real Postgres.
- *
- * Three properties can only be proved here, because all three are enforced by
- * the database rather than by code:
- *
- *  - **coalescing**, which is a partial unique index over *unread* rows, so a
- *    read notification starts a fresh one and an unread one absorbs;
- *  - **the outbox row**, written in the same transaction as the notification
- *    and only when e-mail is actually wanted;
- *  - **scoping**, where "not yours" and "does not exist" have to be the same
- *    answer because both are the absence of an updated row.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -29,7 +16,6 @@ const MOD = 2
 const ADMIN = 3
 const AT = new Date('2026-07-31T12:00:00Z')
 
-/** The seeded ladder (migration 0001): administrators hold `canAccessAdminCp`. */
 const REGISTERED_GROUP = 2
 const ADMIN_GROUP = 3
 
@@ -137,7 +123,6 @@ describe('coalescing', () => {
     const page = await repo.listFor(IVAN, { limit: 10 })
     expect(page.rows).toHaveLength(1)
     expect(page.rows[0]?.occurrences).toBe(2)
-    /* The newest facts win: an operator wants the last error, not the first. */
     expect(page.rows[0]?.data).toEqual({ taskId: 'queue.drain', error: 'the newest one' })
   })
 
@@ -154,11 +139,6 @@ describe('coalescing', () => {
 
     const second = await raise({ kind: 'system.task_failed', dedupeKey: KEY, email: true })
 
-    /*
-     * The whole reason the unique index is partial on `read_at is null`: an
-     * administrator who reads and clears an alert is told again the next time
-     * it happens, rather than never again.
-     */
     expect(second.notificationId).not.toBe(first.notificationId)
     expect(second.coalesced).toBe(false)
     expect(await outboxTopics()).toEqual(['notification.created', 'notification.created'])
@@ -168,7 +148,6 @@ describe('coalescing', () => {
     await raise({ dedupeKey: null })
     await raise({ dedupeKey: null })
 
-    /* Two warnings in a minute are two things that happened. */
     expect((await repo.listFor(IVAN, { limit: 10 })).rows).toHaveLength(2)
   })
 
@@ -213,7 +192,6 @@ describe('reading and paging', () => {
     expect(await repo.unreadCount(IVAN)).toBe(5)
     expect(await repo.markAllRead(IVAN)).toBe(5)
     expect(await repo.unreadCount(IVAN)).toBe(0)
-    /* Idempotent: a second click marks nothing. */
     expect(await repo.markAllRead(IVAN)).toBe(0)
   })
 })
@@ -224,7 +202,6 @@ describe('marking read is scoped in the statement', () => {
 
     expect(await repo.markRead(MOD, mine.notificationId)).toBe(false)
     expect(await repo.markRead(MOD, 999_999)).toBe(false)
-    /* Still unread, because the other member's attempt touched nothing. */
     expect(await repo.unreadCount(IVAN)).toBe(1)
   })
 
@@ -279,7 +256,6 @@ describe('delivery lookup', () => {
     const deliverable = await repo.findForDelivery(notificationId)
     expect(deliverable?.recipient.email).toBe('ivan@example.test')
     expect(deliverable?.recipient.username).toBe('ivan')
-    /* No stored row, so the registry default for `warning.received` applies. */
     expect(deliverable?.emailEnabled).toBe(true)
     expect(deliverable?.emailSentAt).toBeNull()
   })
@@ -310,12 +286,6 @@ describe('delivery lookup', () => {
   })
 
   it('refuses to deliver a kind this build does not know', async () => {
-    /*
-     * Written straight to the table rather than through `raise`, because
-     * `RaiseInput.kind` is the registry union and a *caller* cannot produce
-     * this row — only a previous deploy can, which is exactly the case being
-     * covered.
-     */
     const rows = resultRows(
       await db.execute(sql`
         insert into notifications (user_id, kind, data)
@@ -324,7 +294,6 @@ describe('delivery lookup', () => {
       `),
     ) as Array<{ id: number }>
 
-    /* A blank e-mail is worse than none, so an unknown kind resolves to off. */
     expect((await repo.findForDelivery(Number(rows[0]!.id)))?.emailEnabled).toBe(false)
   })
 })

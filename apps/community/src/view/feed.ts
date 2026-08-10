@@ -1,29 +1,3 @@
-/**
- * F76 — RSS, Atom and sitemap XML, as pure functions.
- *
- * ## Why the serialisers are here and not in a route handler
- *
- * XML is the one output format on this board that React does not write, which
- * means it is the one format where escaping is the author's job. Doing it inline
- * in a route handler puts a hand-rolled `&` replacement next to a database read,
- * and the next feed copies it. Here it is one function, used by every emitter,
- * with tests that feed it the characters that break XML.
- *
- * ## What "escaping" has to cover
- *
- * A thread title is member-supplied text, and a feed is consumed by parsers far
- * stricter than a browser: a bare `&` is not a warning, it is a document that
- * fails to parse, and a `]]>` inside a CDATA section ends the section early —
- * which is why nothing here uses CDATA. Everything is escaped, including the
- * two quote forms, because the same function serialises attributes.
- *
- * Control characters are **stripped**, not escaped: XML 1.0 has no
- * representation for most of them, so a post containing one would otherwise
- * produce a feed no reader can parse, from content that renders perfectly on
- * the board.
- */
-
-/** Entries in a board or forum feed. */
 export interface FeedEntry {
   readonly id: string
   readonly title: string
@@ -43,13 +17,6 @@ export interface FeedChannel {
   readonly entries: readonly FeedEntry[]
 }
 
-/**
- * XML text escaping.
- *
- * All five predefined entities, and the quotes are included because attribute
- * values go through the same function — a serialiser with one escaper cannot
- * forget which context it is in.
- */
 export function xmlEscape(value: string): string {
   return stripControl(value)
     .replace(/&/g, '&amp;')
@@ -59,36 +26,13 @@ export function xmlEscape(value: string): string {
     .replace(/'/g, '&apos;')
 }
 
-/**
- * Drop the characters XML 1.0 cannot carry at all.
- *
- * Tab, newline and carriage return are the only control characters the spec
- * allows; the rest have no escape and no literal form. A post carrying a stray
- * NUL or form feed — an import artefact, a paste out of a binary file — would
- * otherwise produce a feed every reader rejects, from content the board itself
- * displays without complaint.
- */
 function stripControl(value: string): string {
   // eslint-disable-next-line no-control-regex -- the point is the control range
   return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
 }
 
-/**
- * A summary, flattened out of the Markdown source.
- *
- * The **source**, not the rendered HTML, and that is a decision. Feed readers
- * sanitise inbound HTML with wildly different rules and several strip it
- * entirely; more to the point, the board's rendered HTML carries quote blocks,
- * directives and attachment markup whose meaning is lost outside the page. So
- * what a reader gets is the text somebody typed, truncated on a word boundary.
- *
- * Re-exported rather than reimplemented: `@meith/markdown` flattens a body by
- * running the real parser, which is the only way to be sure a summary says what
- * the post says.
- */
 export { summarise } from '@meith/markdown'
 
-/** RFC 822, which RSS 2.0 requires and `toUTCString` already produces. */
 function rfc822(at: Date): string {
   return at.toUTCString()
 }
@@ -156,11 +100,6 @@ export interface SitemapUrl {
 export function renderSitemap(urls: readonly SitemapUrl[]): string {
   const entries = urls
     .map((url) => {
-      /*
-       * `lastmod` is omitted rather than defaulted. A crawler treats it as a
-       * promise about when the page changed, and inventing "now" for a forum
-       * nobody has posted in teaches it to re-fetch a page that never moves.
-       */
       const lastmod =
         url.lastmod === undefined ? '' : `\n    <lastmod>${url.lastmod.toISOString()}</lastmod>`
       return `  <url>\n    <loc>${xmlEscape(url.loc)}</loc>${lastmod}\n  </url>`

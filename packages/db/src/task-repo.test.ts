@@ -1,11 +1,3 @@
-/**
- * F06's scheduler storage, on real Postgres.
- *
- * The scheduler's own logic is unit-tested with a fake repository. What needs a
- * database is the claim: "concurrent ticks don't double-run a task" is an
- * atomicity property of one UPDATE, and a mock can only ever confirm the
- * assumption it was written with.
- */
 import { tick, type TaskDefinition } from '@meith/tasks'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -37,7 +29,6 @@ beforeEach(async () => {
   await db.delete(tasks)
 })
 
-/** The shape the scheduler passes; `dueBefore` is now minus the interval. */
 function claimArgs(taskId: string, now = NOW, intervalSeconds = 60) {
   return {
     taskId,
@@ -67,10 +58,6 @@ describe('ensureRegistered', () => {
     expect(row?.i).toBe(300)
   })
 
-  /*
-   * A deploy must not reset a task's history or steal a live lease from a tick
-   * that is still running — only the cadence is code-owned.
-   */
   it('preserves runtime state across re-registration', async () => {
     await repo.ensureRegistered([{ id: 'a', intervalSeconds: 60 }])
     await repo.claim(claimArgs('a'))
@@ -102,17 +89,10 @@ describe('claim', () => {
     await repo.claim(claimArgs('a', first))
     await repo.release({ taskId: 'a', finishedAt: first, success: true })
 
-    // The scheduler needs the old value to compute elapsedSeconds; RETURNING
-    // alone would hand back the value just written.
     const second = await repo.claim(claimArgs('a', NOW))
     expect(second?.previousLastRunAt?.toISOString()).toBe(first.toISOString())
   })
 
-  /*
-   * F06's stated acceptance criterion. Two ticks, no coordination, one winner —
-   * enforced by the WHERE clause rather than by anything in JavaScript, because
-   * serverless instances share no memory.
-   */
   it('lets only one of two concurrent claims win', async () => {
     const [first, second] = await Promise.all([
       repo.claim(claimArgs('a')),
@@ -131,26 +111,13 @@ describe('claim', () => {
     await repo.claim(claimArgs('a'))
     await repo.release({ taskId: 'a', finishedAt: NOW, success: true })
 
-    // Ran a second ago, interval is 60s.
     const soon = new Date(NOW.getTime() + 1000)
     expect(await repo.claim(claimArgs('a', soon))).toBeNull()
   })
 
-  /*
-   * What the lease is actually for, and the case the other concurrency tests
-   * miss: a task that runs *longer than its own interval*. The first claim sets
-   * last_run_at, so by the time the next cron fires the task looks due again —
-   * only the live lease says "someone is still running this".
-   *
-   * Without it, a 10-minute task on a 1-minute interval is re-entered every
-   * minute until the instance falls over. Removing the lease guard passes every
-   * other test in this file, which is why this one exists.
-   */
   it('refuses to re-enter a task that is still running past its interval', async () => {
     await repo.claim(claimArgs('a'))
 
-    // Two minutes later: the 60s interval has elapsed, so it *looks* due, but
-    // the 15-minute lease is still held.
     const overrunning = new Date(NOW.getTime() + 120_000)
     expect(await repo.claim(claimArgs('a', overrunning))).toBeNull()
   })
@@ -185,11 +152,6 @@ describe('release', () => {
     expect(await repo.claim(claimArgs('a', later))).not.toBeNull()
   })
 
-  /*
-   * Anchoring next_run_at to when the task became *due* rather than when it
-   * finished would make an overrunning task fire again immediately, and keep
-   * doing so — one slow run becomes a busy loop.
-   */
   it('schedules the next run from when it finished', async () => {
     const finished = new Date(NOW.getTime() + 300_000)
     await repo.release({ taskId: 'a', finishedAt: finished, success: true })
@@ -219,11 +181,6 @@ describe('release', () => {
     expect(row?.e).toBe('boom')
   })
 
-  /*
-   * F70's System Health reads this to tell "a task is failing" from "a task
-   * failed once", and F06 wants a failing task to raise an admin notification
-   * rather than die quietly.
-   */
   it('counts consecutive failures and resets on success', async () => {
     await repo.release({ taskId: 'a', finishedAt: NOW, success: false, error: 'one' })
 
@@ -275,7 +232,6 @@ describe('driven by the real scheduler', () => {
     expect(await db.select({ id: taskLog.id }).from(taskLog)).toHaveLength(1)
   })
 
-  /* F06: "Concurrent ticks don't double-run a task." */
   it('does not double-run under two concurrent ticks', async () => {
     let runs = 0
     const definitions = [task('demo', async () => void runs++)]

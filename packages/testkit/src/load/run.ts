@@ -1,22 +1,3 @@
-/**
- * F89 — the load runner.
- *
- * Two subcommands, and the split is the point:
- *
- *     pnpm perf seed       # build the board — slow, once
- *     pnpm perf measure    # read it — fast, repeatedly
- *
- * A harness that reseeded before every run would make measuring a change
- * expensive enough that nobody would, and the seed is the slow half by two
- * orders of magnitude. Keeping them apart means "did that index help?" is a
- * thirty-second question.
- *
- * It needs a real Postgres. PGlite is Postgres compiled to WASM holding the
- * database in process memory, which is the right trade for the test suite and
- * the wrong one here: two million posts do not fit, and the numbers would be
- * measuring the WASM boundary rather than the query plan.
- */
-
 import { Authorizer } from '@meith/authorization'
 import { PUBLIC_CONTENT } from '@meith/core'
 import {
@@ -49,42 +30,6 @@ import {
   type Verdict,
 } from './measure'
 
-/* ------------------------------------------------------------------ *
- * Seeding
- * ------------------------------------------------------------------ */
-
-/**
- * Building the board, in four phases that can each be run on their own.
- *
- * ## Why it is phased rather than one command
- *
- * A full-scale seed is twenty minutes of work, and twenty minutes is long
- * enough that something will interrupt it: a laptop sleeping, a CI step timing
- * out, a container being reclaimed. A monolithic seeder that loses everything on
- * interruption is one you learn to run overnight and never again.
- *
- * So the phases are separately invocable — `--phase posts`, `--phase counters`,
- * `--phase search`, `--phase analyze` — and `all` runs them in order. It is the
- * same shape the importer (F85) and the recount (F38) already have, for the same
- * reason, and the standard applies to the tooling too.
- *
- * ## Why each phase exists at all
- *
- * Every one of them is a thing whose *absence* changes what gets measured, and
- * changes it in the flattering direction:
- *
- *  - **Counters.** `seedBoard` writes rows, not the denormalised counts the
- *    listings read. A board index over zeroed counters is a correct-looking page
- *    with none of the work in it.
- *  - **Search.** `search_vector` is filled by the write path, per post. A bulk
- *    insert leaves it null, and a null vector matches nothing — so the search
- *    scenarios would time an index lookup against an empty index.
- *  - **ANALYZE.** Postgres plans from statistics, and a freshly bulk-loaded
- *    table has none. Without it the planner sequential-scans two million rows
- *    for a query that has a perfectly good index, and the run measures a
- *    situation no real board is ever in — autovacuum would have fixed it minutes
- *    later. Skipping this is how a load test invents a crisis.
- */
 const PHASES = ['posts', 'counters', 'search', 'analyze'] as const
 type Phase = (typeof PHASES)[number]
 
@@ -122,12 +67,6 @@ async function seed(
     process.stdout.write('Indexing for search…\n')
     const search = new PostgresSearchRepository(db)
 
-    /*
-     * Resumable by construction, not by bookkeeping: `reindexChunk` selects on
-     * "no vector, or one built under an older document version" — a set that
-     * shrinks monotonically, so a re-run after an interruption picks up exactly
-     * what is left.
-     */
     let cursor = 0
     for (;;) {
       const chunk = await search.reindexChunk(cursor, 20_000)
@@ -158,10 +97,6 @@ function elapsed(since: number): string {
   return `${((Date.now() - since) / 1000).toFixed(1)}s`
 }
 
-/**
- * `full` is the plan's number and the only one whose results may be published.
- * `tenth` is for checking the harness works; `smoke` is for checking it runs.
- */
 const SCALES: Record<string, SeedScale> = {
   full: FULL_SCALE,
   tenth: { ...FULL_SCALE, users: 2_000, threads: 10_000 },
@@ -173,22 +108,12 @@ function argOf(flag: string): string | undefined {
   return index === -1 ? undefined : process.argv[index + 1]
 }
 
-/* ------------------------------------------------------------------ *
- * The board's landmarks
- * ------------------------------------------------------------------ */
-
 interface Landmarks {
-  /** The forum with the most threads — the one whose listing is slowest. */
   readonly busiestForumId: number
-  /** The thread with the most posts. */
   readonly longestThreadId: number
-  /** How many posts that thread has — the deep-page claim needs a real depth. */
   readonly longestThreadPosts: number
-  /** Ids spread through the longest thread, for deep-page reads. */
   readonly deepPostIds: readonly number[]
-  /** A spread of thread ids in the busiest forum, so the cache is not the test. */
   readonly threadIds: readonly number[]
-  /** Cursors deep into the busiest forum's listing. */
   readonly forumCursors: readonly {
     readonly lastPostAt: Date
     readonly id: number
@@ -198,13 +123,6 @@ interface Landmarks {
   readonly viewerUserId: number
 }
 
-/**
- * Find the *worst* case rather than a typical one.
- *
- * A benchmark on an average thread measures an average thread, and the page that
- * falls over on a real board is the one with forty thousand posts in it. Every
- * landmark here is a maximum for that reason.
- */
 async function findLandmarks(db: Database): Promise<Landmarks> {
   const [busiest] = await db
     .select({ id: schema.forums.id })
@@ -253,20 +171,10 @@ async function findLandmarks(db: Database): Promise<Landmarks> {
   if (viewerUserId === undefined)
     throw new Error('No users. Run `pnpm perf seed` first.')
 
-  /*
-   * Cursors come from the middle of each list, never the last page.
-   *
-   * `slice(0, -40)` is not tidiness: a cursor forty rows from the end returns a
-   * short page, and a short page is a *cheaper* query. Sampling right up to the
-   * end would mix full pages with partial ones and quietly pull the p95 down —
-   * a benchmark that gets faster the closer it gets to the end of the data is
-   * measuring how much data was left, not how fast the query is.
-   */
   return {
     busiestForumId,
     longestThreadId,
     longestThreadPosts: postRows.length,
-    /* Spread across the thread rather than clustered: every page is a different page. */
     deepPostIds: spread(postRows.slice(500, -40).map((r) => r.id)),
     threadIds: spread(threadRows.map((r) => r.id)),
     forumCursors: spread(threadRows.slice(200, -40)).map((r) => ({
@@ -279,7 +187,6 @@ async function findLandmarks(db: Database): Promise<Landmarks> {
   }
 }
 
-/** Up to `count` evenly spaced items, so samples cover the whole range. */
 function spread<T>(items: readonly T[], count = 64): T[] {
   if (items.length <= count) return [...items]
   const step = items.length / count
@@ -288,10 +195,6 @@ function spread<T>(items: readonly T[], count = 64): T[] {
     (_, i) => items[Math.floor(i * step)] as T,
   )
 }
-
-/* ------------------------------------------------------------------ *
- * The scenarios
- * ------------------------------------------------------------------ */
 
 async function buildScenarios(
   db: Database,
@@ -386,12 +289,6 @@ async function buildScenarios(
       id: 'discovery-latest',
       minRows: 20,
       run: async () => {
-        /*
-         * `activeSince` with a date early enough to match everything: the point
-         * is the ordering scan across every visible forum, not the filter. A
-         * recent cut-off would narrow the set and measure a much easier query
-         * than the one a quiet board's "latest threads" actually runs.
-         */
         const page = await discovery.activeSince(
           EPOCH,
           { limit: 20, after: null },
@@ -457,26 +354,11 @@ async function buildScenarios(
   ]
 }
 
-/*
- * The seeder's vocabulary, split by how often each word appears. Both halves
- * matter: a fast rare-term search hides a slow common-term one, because the
- * index lookup is identical and only the number of rows to rank differs.
- */
 const EPOCH = new Date('2000-01-01T00:00:00Z')
 
 const COMMON_TERMS = ['thread', 'reply', 'server', 'question']
 
-/*
- * `FULL_SCALE.rareTerm` — the one word the seeder injects into a fraction of a
- * percent of posts. Every other word in the corpus appears in nearly every
- * post, so without it "rare term" would be a synonym for "common term" and the
- * two search budgets would measure the same query twice.
- */
 const RARE_TERMS = [FULL_SCALE.rareTerm?.word ?? 'quinsyflange']
-
-/* ------------------------------------------------------------------ *
- * Reporting
- * ------------------------------------------------------------------ */
 
 function report(verdicts: readonly Verdict[]): boolean {
   const width = Math.max(...BUDGETS.map((b) => b.id.length))
@@ -508,19 +390,6 @@ function report(verdicts: readonly Verdict[]): boolean {
   return true
 }
 
-/* ------------------------------------------------------------------ *
- * Index plans (F28)
- * ------------------------------------------------------------------ */
-
-/**
- * Run every declared plan and fail if the planner did not choose its index.
- *
- * `explain (analyze, buffers)` rather than a bare `explain`: an estimated plan
- * is the planner's opinion, and the question here is what it *did*. The row
- * counts come from the same run, which is what makes a scan obvious even when
- * it happens to be fast — a query that touched two million rows to return
- * twenty is a scan whatever the clock says.
- */
 async function explainIndexes(db: Database, marks: Landmarks): Promise<number> {
   const results: PlanResult[] = []
 
@@ -529,13 +398,6 @@ async function explainIndexes(db: Database, marks: Landmarks): Promise<number> {
       .replace(/\$1/g, String(marks.busiestForumId))
       .replace(/\$2/g, String(marks.longestThreadId))
 
-    /*
-     * Once to warm, once to record. The first execution of a statement pays for
-     * a cold buffer cache and a plan that has not been made yet, and the timing
-     * printed beside "ok" would otherwise be dominated by whichever query
-     * happened to run first — 119ms for a query that costs 3ms warm, which reads
-     * as a problem and is not one.
-     */
     await db.execute(sql.raw(`explain (analyze) ${statement}`))
 
     const rows = resultRowsOf(
@@ -600,28 +462,17 @@ const INDEX_FILE = new URL(
   import.meta.url,
 ).pathname
 
-/** `db.execute` shapes differ by driver; every read here goes through this. */
 function resultRowsOf(result: unknown): Record<string, unknown>[] {
   if (Array.isArray(result)) return result as Record<string, unknown>[]
   const rows = (result as { rows?: unknown }).rows
   return Array.isArray(rows) ? (rows as Record<string, unknown>[]) : []
 }
 
-/* ------------------------------------------------------------------ *
- * Entry
- * ------------------------------------------------------------------ */
-
 async function main(): Promise<number> {
   const command = process.argv[2] ?? 'measure'
   const db = getDb()
 
   if (command === 'seed') {
-    /*
-     * `--scale` exists so the harness itself can be exercised in a minute
-     * instead of half an hour. Every bug in a load runner — a wrong id, an
-     * empty scope, a scenario measuring nothing — shows up at any scale, and
-     * finding them after a thirty-minute seed is how a harness gets abandoned.
-     */
     const name = argOf('--scale') ?? 'full'
     const scale = SCALES[name]
     if (scale === undefined) {
@@ -665,12 +516,6 @@ async function main(): Promise<number> {
   const postCount = counted?.posts ?? 0
   const threadCount = countedThreads?.threads ?? 0
 
-  /*
-   * The visibility mix is recorded because it is what makes the partial-index
-   * evidence mean anything. On an all-visible board a partial index and its
-   * unfiltered twin cover the same rows, so the planner may pick either and
-   * "the index was used" is luck rather than proof.
-   */
   const hidden = resultRowsOf(
     await db.execute(sql`
       select visibility, count(*)::int as n from posts group by visibility order by visibility
@@ -704,11 +549,6 @@ async function main(): Promise<number> {
     verdicts.push(verdict(measurement, budget.p95Ms))
   }
 
-  /*
-   * Every budget must have been exercised. A scenario silently dropped would
-   * leave a documented budget nothing measures — the exact failure this whole
-   * arrangement exists to prevent.
-   */
   const unmeasured = BUDGETS.filter((b) => !verdicts.some((v) => v.id === b.id))
   if (unmeasured.length > 0) {
     throw new Error(
@@ -718,15 +558,6 @@ async function main(): Promise<number> {
 
   const passed = report(verdicts)
 
-  /*
-   * `--record` writes the run to disk, and `docs/performance.md` is generated
-   * from that file rather than typed.
-   *
-   * The alternative — a person copying numbers into Markdown — is how a
-   * performance document ends up describing a board that no longer exists.
-   * Here the published figure and the measured figure are the same bytes, and
-   * a run that was never done is a file that was never written.
-   */
   if (process.argv.includes('--record')) {
     await writeFile(
       RESULTS_FILE,
@@ -758,13 +589,6 @@ const RESULTS_FILE = new URL(
   import.meta.url,
 ).pathname
 
-/**
- * Enough about the machine to know whether two runs are comparable.
- *
- * Never the connection string, and never anything else from the environment: a
- * results file is committed, and a document generated from it is the last place
- * a database password should be able to reach.
- */
 function describeEnvironment(): Record<string, string | number> {
   return {
     platform: `${process.platform}-${process.arch}`,

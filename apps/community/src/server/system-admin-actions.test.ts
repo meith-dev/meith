@@ -1,31 +1,7 @@
-/**
- * F70's maintenance writes, at the app layer.
- *
- * Two claims:
- *
- *  - **every sweep is bounded and reports its count.** This panel runs inside a
- *    request, so a sweep that ran to completion over a large table would be
- *    killed by the platform's execution limit somewhere in the middle, leaving
- *    an operator with no idea how far it got. "Removed 0" and "removed 4,812"
- *    are different answers to the same press;
- *  - **clearing a cache is tag-scoped**, never a blanket flush — on a busy board
- *    that is a stampede, and the reason somebody reaches for it is almost always
- *    one stale thing they can name.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
 const requireAdminMock = vi.fn(async () => ({ session: { userId: 1 } }))
-/**
- * `revalidatePath` outside a Next request throws, so an unmocked call turns a
- * successful action into an error state and the failure reads as a broken
- * write. Recorded rather than only silenced: which screen an action refreshes
- * is a claim worth asserting — see the cases that read `revalidated`.
- *
- * Spread the real module rather than replacing it. `next/cache` also exports
- * `unstable_cache`, which modules reached transitively from here call at import
- * time, so a mock returning only `revalidatePath` makes the file fail to load.
- */
 const revalidated: string[] = []
 vi.mock('next/cache', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>
@@ -135,11 +111,6 @@ describe('the admin gate', () => {
 
 describe('the sweeps', () => {
   it('are bounded, and say how much they removed', async () => {
-    /*
-     * Bounded because this runs in a request and the platform will kill a long
-     * one mid-sweep. Reporting the count is what lets an operator decide
-     * whether to press again. Kills the mutant that sweeps unbounded.
-     */
     const sessions = await pruneSessionsAction()
     expect(sessionSweeps[0]?.limit).toBeGreaterThan(0)
     expect(sessions.values?.removed).toBe('12')
@@ -160,11 +131,6 @@ describe('the sweeps', () => {
 
 describe('recountAction', () => {
   it('runs one bounded batch and reports what it corrected', async () => {
-    /*
-     * Resumable by construction — the phase and cursor are in the database — so
-     * one batch per press is the whole interaction. Kills the mutant that runs
-     * to completion, which on a large board is a request that never returns.
-     */
     const state = await recountAction()
 
     expect(recounts).toHaveLength(1)
@@ -183,11 +149,6 @@ describe('clearCacheAction', () => {
   })
 
   it('refuses anything it cannot name, rather than flushing everything', async () => {
-    /*
-     * The dangerous default. A blanket flush on a busy board sends every
-     * request that was being served from cache to the database at once. Kills
-     * the mutant that falls back to clearing all tags.
-     */
     const state = await clearCacheAction({}, form({ what: 'everything' }))
 
     expect(state.error).toBeDefined()
@@ -210,26 +171,8 @@ describe('retryJobAction', () => {
   })
 })
 
-/**
- * Every button on this screen changes a number the screen is made of — how many
- * sessions are prunable, how many posts are not yet searchable — and two of them
- * carry one in their own label. Next's client Router Cache holds the payload the
- * form was rendered with, so without this the action's notice arrived beside the
- * counts it had just made wrong: "6 indexed. Every post on the board is
- * searchable." directly under a line still reading "0 indexed · 6 not yet
- * searchable", above a button still offering to index them.
- *
- * With scripting off the browser's own reload hid it, which is why the browser
- * suite could not catch it — see `admin-panel-live.spec.ts`.
- */
 describe('the screen the press was made on', () => {
   it('is refreshed by every sweep, so its counts stop contradicting the notice', async () => {
-    /*
-     * The reindex is not in this list: `requireSearch` is not mocked here, so it
-     * is the one action in the file that cannot run at this layer. Its refresh is
-     * asserted where it is visible instead — `admin-panel-live.spec.ts` presses
-     * the button in a browser and reads the line beside it.
-     */
     await pruneSessionsAction()
     await pruneTokensAction()
     await recountAction()

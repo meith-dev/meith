@@ -1,13 +1,5 @@
 "use client"
 
-/**
- * F49's three forms.
- *
- * Client components only for `useActionState`; every one is a native `<form>`
- * that works with scripting off. The close form carries two submit buttons
- * whose `name="status"` says which was pressed — the same no-JS idiom the queue
- * uses for approve/reject.
- */
 import { useActionState } from "react"
 
 import {
@@ -31,7 +23,6 @@ export function ReportForm({
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      {/* Both re-resolved by the action, so tampering buys a permission check. */}
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="targetId" value={targetId} />
 

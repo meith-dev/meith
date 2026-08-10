@@ -2,17 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import { DEFAULT_MEASURE, measure, verdict, type Scenario } from './measure'
 
-/**
- * F89 — tests for the timing loop.
- *
- * A load harness has one characteristic failure and it is not "the numbers are
- * slightly off": it is **reporting a fast time for work that did not happen**.
- * A wrong id, an over-narrow permission scope, a cursor past the end of the
- * data — each produces an empty result set, and an empty result set is very
- * fast. That failure is silent, it looks like success, and it is the one these
- * tests are mostly about.
- */
-
 const quick = { iterations: 20, warmup: 2 }
 
 function scenario(overrides: Partial<Scenario> & { id: string }): Scenario {
@@ -27,17 +16,10 @@ describe('measure', () => {
       { iterations: 10, warmup: 3 },
     )
 
-    /* Thirteen calls, ten samples: the first three paid for the cold path. */
     expect(seen).toHaveLength(13)
     expect(result.summary.n).toBe(10)
   })
 
-  /*
-   * The iteration number is passed through so a scenario can walk a sequence of
-   * arguments. Measuring the same thread twenty times measures Postgres's
-   * buffer cache holding that one thread, which is a thing no real board's
-   * traffic ever does.
-   */
   it('passes a distinct iteration number to every call', async () => {
     const seen: number[] = []
     await measure(scenario({ id: 'seq', run: async (i) => (seen.push(i), 1) }), quick)
@@ -45,11 +27,6 @@ describe('measure', () => {
     expect(new Set(seen).size).toBe(seen.length)
   })
 
-  /*
-   * The important one. Without this check a scenario pointed at a nonexistent
-   * thread reports a p95 of a fraction of a millisecond and reads as the best
-   * result in the report.
-   */
   it('refuses a scenario that produced nothing', async () => {
     await expect(
       measure(scenario({ id: 'empty', minRows: 20, run: async () => 0 }), quick),
@@ -67,10 +44,6 @@ describe('measure', () => {
     expect(result.summary.n).toBe(20)
   })
 
-  /*
-   * A p95 from ten samples is the maximum of ten wearing a percentile's name.
-   * The flag exists so the runner can refuse to publish one.
-   */
   it('flags a sample too small for a p95', async () => {
     const small = await measure(scenario({ id: 'small' }), { iterations: 10, warmup: 0 })
     const enough = await measure(scenario({ id: 'enough' }), { iterations: 20, warmup: 0 })
@@ -107,10 +80,6 @@ describe('verdict', () => {
     expect(verdict(measurement, 39).pass).toBe(false)
   })
 
-  /*
-   * The ratio is in the report because "passed" and "passed with 4% to spare"
-   * are different situations, and only one of them is going to fail next month.
-   */
   it('reports how much of the budget was used', () => {
     expect(verdict(measurement, 80).ratio).toBe(0.5)
   })

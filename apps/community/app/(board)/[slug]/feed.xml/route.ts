@@ -3,15 +3,6 @@ import { feedResponse, noFeed } from '@/server/feed-routes'
 import { getContainer } from '@/server/container'
 import { FEED_LIMIT, feedRepository, origin, publicScope } from '@/server/syndication'
 
-/**
- * F76 — one forum's feed.
- *
- * The forum id is parsed the same way the forum page parses it, and the answer
- * for a forum a signed-out visitor may not read is **the same 404** as for a
- * forum that does not exist. Distinguishing them would turn this route into an
- * oracle for which ids are private, answered without a cookie, cheaply, in a
- * loop.
- */
 export const dynamic = 'force-dynamic'
 
 function forumId(value: string): number | null {
@@ -33,12 +24,6 @@ export async function GET(
   if (id === null) return noFeed()
 
   const scope = await publicScope()
-  /*
-   * The scope check comes first and is the only one: `recentThreads` intersects
-   * the requested forum with the scope, so a forum outside it returns nothing
-   * and this returns 404 — without a second permission call that could answer
-   * differently from the query.
-   */
   if (!scope.forumIds.includes(id)) return noFeed()
 
   const forum = await getContainer().forums.findById(id)

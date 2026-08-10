@@ -1,21 +1,5 @@
 'use server'
 
-/**
- * F68 — the theme writes.
- *
- * **Validation is F26's, not a second copy.** `validateTokenOverrides` and
- * `validateCustomCss` are the functions the *render path* runs on every page,
- * and running the same ones before the write is what makes "saved" mean "will
- * render". A separate validator here would eventually disagree with the one
- * that paints, and the direction it would disagree in is the dangerous one: a
- * value accepted by the editor and rejected at render is a board that goes
- * blank on the next request, from an administrator's own save.
- *
- * That is also why a failed validation comes back as a form error rather than
- * an exception. F26 throws — it is a boundary check against a hand-edited row —
- * and the screen's job is to turn "token `primary` has an unsafe CSS value"
- * into something beside the field rather than into a 500.
- */
 import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import { parseThemeExport } from '@meith/db'
@@ -33,11 +17,6 @@ function text(form: FormData, name: string): string {
 
 function toFormState(err: unknown): FormState {
   if (isAppError(err)) return { error: err.message }
-  /*
-   * F26's validators throw plain `Error`s with messages written for an
-   * operator — "Theme token \"primary\" has an unsafe CSS value." — so those are
-   * shown rather than swallowed. Anything else is logged and generalised.
-   */
   if (err instanceof Error && err.message.startsWith('Theme ')) {
     return { error: err.message }
   }
@@ -45,29 +24,6 @@ function toFormState(err: unknown): FormState {
   return { error: 'Something went wrong. Please try again.' }
 }
 
-/**
- * Every `token.<scheme>.<name>` field that was filled in.
- *
- * Read from the form rather than from the theme's declared list, so that
- * **F26's validator is the only thing deciding what a valid token is**. Walking
- * the declared names instead would silently drop a field naming a token the
- * theme does not have — which is the one case where the editor and the renderer
- * would disagree about the same input, and disagreeing quietly is worse than
- * either answer.
- *
- * `both` is not a third scheme; it is how the editor submits a token that has
- * no light-and-dark distinction — corner radius, the spacing step, the
- * monospace stack. It is expanded here rather than stored as a third key,
- * because the render path has exactly two blocks to write and a stored `both`
- * would need a rule in every reader.
- *
- * A blank value is not an override. The editor shows every token the theme
- * declares, so most fields are empty on any real board, and storing those would
- * write `--primary:;` into the cascade: a token that overrides the theme with
- * nothing. That is also why the colour picker beside each field carries no
- * `name` — a native colour input always submits *something*, so letting it post
- * would turn "unchanged" into an override of every colour on the board.
- */
 function submittedTokens(form: FormData): {
   light: Record<string, string>
   dark: Record<string, string>
@@ -91,45 +47,18 @@ function submittedTokens(form: FormData): {
   return { light, dark }
 }
 
-/** A theme key that names an installed theme, or a refusal. */
 function themeKey(form: FormData): string {
   const key = text(form, 'key')
   if (themeTitle(key) === null) throw new ValidationError('No such theme.')
   return key
 }
 
-/**
- * Drop the theme's compiled style, and the two panel screens that describe it.
- *
- * `drivers().cache` is the board's own store, and clearing it is what makes the
- * next *server* render paint the new colours. It says nothing about Next's
- * client Router Cache, which holds the RSC payload for the screen the form is on
- * — so with JavaScript on, which is how an administrator actually uses the
- * panel, turning a theme off left its row still offering **Turn off**, and
- * making one the default left the badge on the theme that had just stopped being
- * it. Both are a list arguing with the action that changed it, and the operator's
- * reasonable next move is to press the button again.
- *
- * With JavaScript **off** the browser's own reload hides it, which is why the
- * browser suite — scripting disabled by design — did not catch it. Same defect,
- * same reasoning and same fix as `invalidateTree` in `forum-admin-actions.ts`;
- * this is the screen it had not reached.
- */
 async function invalidateTheme(key: string): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.theme(key)])
   revalidatePath('/admin/themes')
   revalidatePath('/admin/themes/[key]', 'page')
 }
 
-/**
- * Save the token overrides and the custom CSS.
- *
- * **A blank field is "use the theme's value", not an empty override.** The
- * editor shows every token the theme declares with its compiled value beside
- * it, so most fields are blank on any real board — storing those as empty
- * strings would write `--primary:;` into the cascade and produce a token that
- * overrides the theme with nothing.
- */
 export async function saveThemeAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
@@ -138,7 +67,6 @@ export async function saveThemeAction(_prev: FormState, form: FormData): Promise
     const tokens = themeTokens(key)
     if (tokens === null) throw new ValidationError('No such theme.')
 
-    /* F26's own validators — the ones the render path uses. */
     const validated = validateTokenOverrides(tokens, submittedTokens(form))
     const css = validateCustomCss(text(form, 'customCss') === '' ? null : text(form, 'customCss'))
 
@@ -152,7 +80,6 @@ export async function saveThemeAction(_prev: FormState, form: FormData): Promise
     await invalidateTheme(key)
     await recordAdminAction({
       action: 'theme.saved',
-      /* Which tokens changed, never their values — the same rule as F64. */
       detail: {
         key,
         tokens: new Set([...Object.keys(validated.light), ...Object.keys(validated.dark)]).size,
@@ -166,20 +93,6 @@ export async function saveThemeAction(_prev: FormState, form: FormData): Promise
   }
 }
 
-/**
- * Validate the pending values and hand them back without saving.
- *
- * The editor previews live in the browser when it can — the sample is painted
- * from the form's own state as a colour is dragged, which is the only thing a
- * person choosing a colour actually wants. This is the **no-JavaScript** path
- * (D06): the form posts back, the action validates exactly as a save would, and
- * the page re-renders with real board chrome painted in the pending tokens. It
- * previews *what a save would do*, because it runs the same validator and the
- * same declaration rendering rather than approximating them.
- *
- * The values come back in `values` so the form keeps what was typed. A preview
- * that cleared the form would be worse than none.
- */
 export async function previewThemeAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
@@ -199,12 +112,6 @@ export async function previewThemeAction(_prev: FormState, form: FormData): Prom
     return {
       notice: 'previewed',
       values: { ...submitted, customCss: text(form, 'customCss') },
-      /*
-       * `preview` is the field this codebase already reserves for trusted,
-       * self-generated markup (F36/F41) — everything in `values` is echoed into
-       * a form control as text, and this is inserted as a style block instead,
-       * so it must not be reachable by the same name.
-       */
       preview: declarationBlock(validated, css),
     }
   } catch (err) {
@@ -212,57 +119,12 @@ export async function previewThemeAction(_prev: FormState, form: FormData): Prom
   }
 }
 
-/**
- * The editor's one form action, which is a fix for a broken promise.
- *
- * ## Two action states on one form, and what it cost
- *
- * The screen has always had two submits — Save, and Preview without saving —
- * written as two `useActionState` hooks with the second on the button's
- * `formAction`. With JavaScript that is exactly right. Without it, it silently
- * half-works, and it took driving the page in a browser with scripting off to
- * see it: React threads an action's return value back into `useActionState`
- * across a no-JS post by writing an `$ACTION_KEY` field into the form, and a
- * form carrying **two** of them posts both. The form's own action wins, so the
- * button's result — the validated style block, and the values that keep the
- * fields filled — was computed on the server, returned, and dropped.
- *
- * The visible symptom was a preview that did nothing at all: the page came back
- * with the stored values and no sample. Every unit test passed, because both
- * actions do exactly what they claim when called; what was broken was the
- * wiring, which only a browser with scripting off exercises.
- *
- * So the form has one action state, and the button says which of the two it
- * wants. `intent` is read from the submitter, which a browser includes in the
- * form data for the button that was pressed and React includes for the same
- * reason — one mechanism, no JavaScript required at either end.
- *
- * The two actions stay exported and separately tested: this is a router, and a
- * router with logic in it is the thing it was supposed to remove.
- */
 export async function themeEditorAction(prev: FormState, form: FormData): Promise<FormState> {
   return text(form, 'intent') === 'preview'
     ? previewThemeAction(prev, form)
     : saveThemeAction(prev, form)
 }
 
-/**
- * The scoped style block a preview paints with.
- *
- * Scoped to `[data-theme-preview]` rather than `:root`, so previewing cannot
- * restyle the control panel around it — an operator previewing an unreadable
- * colour must still be able to see the form to change it back. The dark sample
- * is scoped one level further, to the element that carries `.dark`, so both
- * schemes can be shown side by side on one page.
- *
- * **The custom CSS is nested inside that scope too**, which it was not: the
- * tokens were carefully confined and then arbitrary author CSS was appended
- * unscoped, so previewing `body{display:none}` blanked the control panel that
- * would have undone it. Native nesting is the same tool `renderBoardStyle` uses
- * for an alternate theme's CSS, and it has the same consequence — a rule aimed
- * at `:root` or `body` does not match inside the sample, because neither is a
- * descendant of it. The screen says so beside the preview.
- */
 function declarationBlock(
   overrides: { light: Readonly<Record<string, string>>; dark: Readonly<Record<string, string>> },
   customCss: string | null,
@@ -279,16 +141,6 @@ function declarationBlock(
   )
 }
 
-/**
- * Put the theme back to what it ships with.
- *
- * Not re-authenticated, deliberately, and it is worth saying why when so much
- * else in this panel is: reset is the *undo*. Everything it can destroy is
- * recoverable by pasting back an export, and putting a password prompt in front
- * of the recovery path is how somebody stares at a broken board they cannot
- * fix. The destructive direction here is `save`, and that one an operator can
- * always undo by resetting.
- */
 export async function resetThemeAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
@@ -305,17 +157,6 @@ export async function resetThemeAction(_prev: FormState, form: FormData): Promis
   }
 }
 
-/**
- * Apply an exported theme document.
- *
- * Validated twice over, and both are needed: `parseThemeExport` checks the
- * *envelope* — that this is a document of a version this build understands —
- * and F26's validators check the *values*, because a file that arrived by email
- * is exactly as untrusted as a hand-edited row.
- *
- * The key in the document is ignored in favour of the one being edited, so
- * copying a look between boards works. That is the case import exists for.
- */
 export async function importThemeAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
@@ -350,20 +191,6 @@ export async function importThemeAction(_prev: FormState, form: FormData): Promi
   }
 }
 
-/**
- * Turn a theme on or off for members.
- *
- * Two refusals, and both are about leaving the board in a state the screen
- * cannot get it out of:
- *
- *  - **the build's own theme may not be disabled.** Its components are what
- *    every page renders; disabling it would leave the board painting one
- *    theme's markup in another's palette, and the control that did it would
- *    then be offering no way back.
- *  - **the default may not be disabled.** Move the default first. Silently
- *    reassigning it here would be a second, unrequested change hidden inside
- *    the first.
- */
 export async function setThemeEnabledAction(
   _prev: FormState,
   form: FormData,
@@ -399,13 +226,6 @@ export async function setThemeEnabledAction(
   }
 }
 
-/**
- * Choose the theme a member who has chosen nothing is shown.
- *
- * Enabling is implied and deliberate: a default nobody may pick is a board
- * whose members all see a theme that is not in their own switcher, which is a
- * state with no honest way to describe it on screen.
- */
 export async function setDefaultThemeAction(
   _prev: FormState,
   form: FormData,

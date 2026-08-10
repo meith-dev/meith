@@ -1,4 +1,3 @@
-/** F53 — the warning rules, without a database. */
 import { describe, expect, it } from 'vitest'
 import { ValidationError } from '@meith/core'
 
@@ -30,16 +29,7 @@ const LEVELS: WarningLevel[] = [
 class FakeWarnings implements WarningRepository {
   types = TYPES
   levels = LEVELS
-  /**
-   * The total *after* the change — what `issue` and `revoke` report.
-   *
-   * Separate from `pointsBefore` because the service reads the standing on
-   * both sides of an issue to work out whether a level was *newly* reached, and
-   * a fake that returns one number for both cannot tell the two apart. Two
-   * fields is what makes the double-issue test mean anything.
-   */
   points = 0
-  /** The total *before*, which is what `pointsFor` answers. */
   pointsBefore = 0
   warnable: { id: number; username: string } | null = { id: 5, username: 'ivan' }
   postAuthor: number | null = 5
@@ -120,7 +110,6 @@ describe('issuing', () => {
     expect(warnings.issued[0]).toMatchObject({
       title: 'Spamming',
       points: 2,
-      /* 90 days from now, not "never" and not 99 of anything. */
       expiresAt: new Date(NOW.getTime() + 90 * DAY),
     })
   })
@@ -139,7 +128,6 @@ describe('issuing', () => {
     expect(warnings.issued[0]).toMatchObject({
       title: 'Editing a moderator note',
       points: 5,
-      /* A free-text warning has no configured expiry, so it has none. */
       expiresAt: null,
     })
     expect(outcome.points).toBe(5)
@@ -177,7 +165,6 @@ describe('issuing', () => {
     expect(warnings.issued).toEqual([])
   })
 
-  /* The level actions include a ban, so this is a way to lock yourself out. */
   it('refuses to warn yourself', async () => {
     const warnings = new FakeWarnings()
     await expect(
@@ -220,7 +207,6 @@ describe('levels', () => {
     })
   })
 
-  /* Thresholds, not steps: the *highest* one reached applies. */
   it('applies the highest threshold reached, skipping the ones jumped over', async () => {
     const warnings = new FakeWarnings()
     warnings.points = 8
@@ -243,19 +229,13 @@ describe('levels', () => {
 
     expect(bans.banned).toHaveLength(1)
     expect(bans.banned[0]).toMatchObject({ userId: 5, bannedByUserId: 9 })
-    /* `durationDays: null` means nobody set an end date, so none is passed. */
     expect('expiresAt' in bans.banned[0]!).toBe(false)
-    /* A ban is not a posting restriction; F23 owns the whole lockout. */
     expect(warnings.restrictions.at(-1)!.restriction).toEqual({
       suspendedUntil: null,
       moderatedUntil: null,
     })
   })
 
-  /*
-   * The double-issue trap. Two warnings in a minute that both leave the member
-   * at the suspend level must not extend the suspension to twenty-eight days.
-   */
   it('does not re-apply a level the member was already at', async () => {
     const warnings = new FakeWarnings()
     const bans = new FakeBans()
@@ -282,7 +262,6 @@ describe('levels', () => {
     }
     warnings.points = 12
 
-    /* The warning is still recorded; the punishment was already in force. */
     const outcome = await new WarningService({ warnings, bans, now: () => NOW }).issue(ISSUE)
     expect(outcome.points).toBe(12)
   })
@@ -304,7 +283,6 @@ describe('levels', () => {
 })
 
 describe('revoking', () => {
-  /* The whole reason the total is derived: the restriction has to lift too. */
   it('lifts the restriction when the revocation drops the member below the level', async () => {
     const warnings = new FakeWarnings()
     warnings.revokeResult = { userId: 5, points: 2 }
@@ -366,11 +344,6 @@ describe('revoking', () => {
 })
 
 describe('expiry', () => {
-  /*
-   * The task's real job. Warnings lapsing is already expressed by the live
-   * predicate; what the sweep adds is re-evaluating the *level*, which is how a
-   * suspension ends when the warning behind it ages out.
-   */
   it('re-evaluates every member whose warnings lapsed', async () => {
     const warnings = new FakeWarnings()
     warnings.due = { expired: 3, userIds: [5, 6] }
@@ -414,7 +387,6 @@ describe('restrictsPosting', () => {
     })
   })
 
-  /* A timestamp in the past is a lapsed restriction; nothing has to sweep it. */
   it('is false for a restriction whose date has passed', () => {
     expect(
       restrictsPosting(
@@ -438,7 +410,6 @@ describe('restrictsPosting', () => {
 })
 
 describe('telling the member (F55)', () => {
-  /** The one verb F55 exposes to this package, recorded rather than performed. */
   function recordingNotifier() {
     const told: unknown[] = []
     return {
@@ -463,7 +434,6 @@ describe('telling the member (F55)', () => {
         points: 2,
         totalPoints: 7,
         reason: ISSUE.reason,
-        /* Seven points reaches the suspension threshold in LEVELS. */
         restriction: 'suspend_posting',
       },
     ])
@@ -493,11 +463,6 @@ describe('telling the member (F55)', () => {
       now: () => NOW,
     }).issue(ISSUE)
 
-    /*
-     * The warning, its points and its restriction are all committed by the time
-     * anybody is told, so a throw here would report a successful moderator
-     * action as a failed one — and there would be nothing to undo.
-     */
     expect(outcome.points).toBe(2)
     expect(warnings.issued).toHaveLength(1)
   })
@@ -506,7 +471,6 @@ describe('telling the member (F55)', () => {
     const warnings = new FakeWarnings()
     warnings.points = 2
 
-    /* No notifier: F53 predates F55 and must keep working without it. */
     await expect(serviceFor(warnings).issue(ISSUE)).resolves.toMatchObject({ points: 2 })
   })
 })
@@ -516,7 +480,6 @@ describe('parseWarningAction', () => {
     expect(parseWarningAction('ban')).toBe('ban')
     expect(parseWarningAction('suspend_posting')).toBe('suspend_posting')
     expect(parseWarningAction('moderate_posting')).toBe('moderate_posting')
-    /* Configuration outlives code; an unknown action is dropped, not guessed. */
     expect(parseWarningAction('delete_account')).toBeNull()
     expect(parseWarningAction('')).toBeNull()
   })

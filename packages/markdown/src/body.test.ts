@@ -1,8 +1,3 @@
-/**
- * F36 — the storage policy, which is the part of this package that decides
- * whether a security fix reaches a two-million-post board on deploy or after a
- * migration.
- */
 import { describe, expect, it } from 'vitest'
 
 import { BodyFormat, RENDER_VERSION, postBodyHtml, sourceAsMarkdown } from './body'
@@ -21,10 +16,6 @@ describe('postBodyHtml', () => {
   })
 
   it('renders live when the renderer has moved on', () => {
-    /*
-     * The property that makes an escaping fix deployable: a render from an
-     * older version is not shown, whatever it contains.
-     */
     expect(postBodyHtml({ ...current, renderVersion: RENDER_VERSION - 1 })).toContain(
       '<strong>fresh</strong>',
     )
@@ -42,10 +33,6 @@ describe('postBodyHtml', () => {
   })
 
   it('ignores the stored render of a body still stored as BBCode', () => {
-    /*
-     * Whatever version it claims: a renderer that no longer exists produced it.
-     * The source is converted on the way through until the backfill rewrites it.
-     */
     const html = postBodyHtml({
       message: 'a [b]bold[/b] claim',
       messageHtml: '<p>stale</p>',
@@ -59,12 +46,6 @@ describe('postBodyHtml', () => {
 
 describe('sourceAsMarkdown', () => {
   it('defaults to Markdown when a caller says nothing', () => {
-    /*
-     * The direction matters. A legacy row read as Markdown shows a few `[b]`
-     * tags until the backfill reaches it — visible, harmless, self-healing. A
-     * Markdown row read as BBCode would come back with its asterisks escaped,
-     * which is a permanent corruption of somebody's post.
-     */
     expect(sourceAsMarkdown('a * b', undefined)).toBe('a * b')
   })
 

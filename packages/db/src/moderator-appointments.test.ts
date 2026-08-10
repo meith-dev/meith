@@ -1,12 +1,3 @@
-/**
- * F48 — reading `forum_moderators`, which nothing had ever done.
- *
- * The table has existed since F21 with no reader, so this is the first evidence
- * that the columns are the ones the resolver expects. It runs against real
- * Postgres because the query's whole job is to be a query — a mock would have
- * accepted the `= any($1::int[])` form that drizzle compiles into a syntax
- * error, which is exactly how this file came to exist.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -95,7 +86,6 @@ describe('moderatorAppointments', () => {
     expect(await source.moderatorAppointments(999, [2])).toEqual([])
   })
 
-  /* A guest has no user id and no groups; the query must not be built at all. */
   it('short-circuits for an actor with neither a user id nor groups', async () => {
     expect(await source.moderatorAppointments(null, [])).toEqual([])
   })

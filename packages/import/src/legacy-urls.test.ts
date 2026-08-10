@@ -2,16 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import { legacyRedirectPath, resolveLegacyUrl, type LegacyTarget } from './legacy-urls'
 
-/**
- * F86 — the URL table.
- *
- * A forum's inbound links accumulate for years and live on other people's
- * servers, so getting a form wrong is not recoverable after the migration. Every
- * form is therefore a row rather than a paragraph, and the ones that resolve to
- * *nothing* are rows too — a redirect that guesses is worse than a 404, because
- * a crawler treats a soft 404 as a real page.
- */
-
 const resolve = (url: string): LegacyTarget | null => {
   const [pathname, search = ''] = url.split('?')
   return resolveLegacyUrl(pathname!, search)
@@ -34,11 +24,6 @@ describe('the script forms', () => {
     expect(resolve(url)).toEqual(expected)
   })
 
-  /*
-   * `pid` on its own is a real MyBB link — "the post with this id, wherever it
-   * is". It resolves to a *post* rather than a thread, because working out which
-   * thread needs a lookup this parser cannot do.
-   */
   it('resolves a bare post id to a post', () => {
     expect(resolve('/showthread.php?pid=4102')).toEqual({ kind: 'post', legacyId: 4102 })
   })
@@ -52,7 +37,6 @@ describe('the script forms', () => {
     })
   })
 
-  /* Links appear with and without a leading slash, and in both letter cases. */
   it.each(['/ShowThread.php?tid=91', 'showthread.php?tid=91', '/showthread.php/?tid=91'])(
     'accepts the variant %s',
     (url) => {
@@ -72,11 +56,6 @@ describe('the rewritten forms', () => {
     expect(resolve(url)).toEqual(expected)
   })
 
-  /*
-   * The slug is decoration — MyBB regenerates it from the subject — so matching
-   * on it would break every link to a thread that was ever renamed. Only the id
-   * is read.
-   */
   it('ignores the slug entirely', () => {
     expect(resolve('/Thread-completely-different-words-91')).toMatchObject({ legacyId: 91 })
     expect(resolve('/Thread--91')).toMatchObject({ legacyId: 91 })
@@ -84,11 +63,6 @@ describe('the rewritten forms', () => {
 })
 
 describe('what resolves to nothing', () => {
-  /*
-   * Each of these is a *deliberate* 404. Redirecting an unparseable legacy URL
-   * to the index turns every broken old link into a soft 404, which a crawler
-   * reads as a real page and which hides the breakage from whoever could fix it.
-   */
   it.each([
     ['/showthread.php', 'no id at all'],
     ['/showthread.php?tid=0', 'MyBB ids are never 0'],
@@ -117,18 +91,11 @@ describe('the redirect path', () => {
     expect(legacyRedirectPath(target, 7, 'bikeshedding')).toBe('/thread/7-bikeshedding?page=3')
   })
 
-  /* Page 1 is the bare address, not `?page=1` — two URLs for one page. */
   it('omits page 1', () => {
     const target = resolve('/showthread.php?tid=91&page=1') as LegacyTarget
     expect(legacyRedirectPath(target, 7, 'bikeshedding')).toBe('/thread/7-bikeshedding')
   })
 
-  /*
-   * A post anchor beats a page number. MyBB's `pid` means "this specific post",
-   * and this board pages by post id — so `?post=` lands on the right page *and*
-   * the right post, where copying the page number across would only be right if
-   * both boards paginated identically, which they do not.
-   */
   it('prefers the post anchor over the page number', () => {
     const target = resolve('/showthread.php?tid=91&pid=4102&page=3') as LegacyTarget
     expect(legacyRedirectPath(target, 7, 'bikeshedding')).toBe('/thread/7-bikeshedding?post=4102')
@@ -146,11 +113,6 @@ describe('the redirect path', () => {
     expect(legacyRedirectPath({ kind: 'home' }, null, null)).toBe('/')
   })
 
-  /*
-   * A row that was never imported has no address here. Inventing one — sending
-   * it to the index, or to `/thread/null-…` — would be a redirect to something
-   * that is not the thing the link asked for.
-   */
   it('refuses to invent a path for a row that was never imported', () => {
     expect(legacyRedirectPath(resolve('/showthread.php?tid=91')!, null, null)).toBeNull()
     expect(legacyRedirectPath(resolve('/forumdisplay.php?fid=3')!, null, null)).toBeNull()

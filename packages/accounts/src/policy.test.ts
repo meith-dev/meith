@@ -1,19 +1,9 @@
-/**
- * F13 — laying a board's stored answers over the built-in policy.
- *
- * Four settings were registered with no reader for a long time, so the rules a
- * board actually enforced were the constants in `policy.ts` whatever the ACP
- * showed. This is the mapping that fixed that, and it is shared by three
- * composition roots — the app, the installer and `community user:create` — which is
- * why it is tested here rather than at any one of them.
- */
 import { describe, expect, it } from 'vitest'
 
 import { AUTH_SETTING_KEYS, DEFAULT_AUTH_POLICY, resolveAuthPolicy } from './policy'
 
 const BASE = { ...DEFAULT_AUTH_POLICY, activationMethod: 'none' as const }
 
-/** A reader over a plain object, as a settings snapshot would be. */
 function reader(values: Record<string, unknown>) {
   return (key: string): unknown => values[key]
 }
@@ -47,14 +37,6 @@ describe('resolveAuthPolicy', () => {
     })
   })
 
-  /**
-   * The mutant this kills: trusting the stored value's type.
-   *
-   * `NaN` is the one that matters. It survives a `typeof value === 'number'`
-   * check, and every comparison against it is false — so a `usernameMin` of
-   * `NaN` does not shorten the minimum, it removes the check, and a board with
-   * one hand-edited row silently accepts an empty username.
-   */
   it.each([
     ['NaN', Number.NaN],
     ['a string', '16'],
@@ -85,11 +67,6 @@ describe('resolveAuthPolicy', () => {
     expect(resolved.activationMethod).toBe(BASE.activationMethod)
   })
 
-  /**
-   * The registry validates each field alone, so this pair is savable — and no
-   * username can satisfy it, which is a registration form that refuses
-   * everybody while showing two numbers that each look reasonable.
-   */
   it('reverts both username bounds when the minimum exceeds the maximum', () => {
     const resolved = resolveAuthPolicy(
       reader({
@@ -99,9 +76,6 @@ describe('resolveAuthPolicy', () => {
       BASE,
     )
 
-    // Both, not one: honouring half of an impossible pair is a rule nobody
-    // chose — a minimum of 30 against the built-in maximum of 30 would leave
-    // exactly one acceptable length.
     expect(resolved.usernameMin).toBe(BASE.usernameMin)
     expect(resolved.usernameMax).toBe(BASE.usernameMax)
   })

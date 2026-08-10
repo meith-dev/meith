@@ -1,18 +1,5 @@
 'use server'
 
-/**
- * F60 — the private message Server Actions.
- *
- * Two verbs and one bulk verb, and the rule they share is the one that makes
- * this feature safe: **the acting member's id comes from the session, never
- * from the form.** Every id in a submitted form is a *copy* id, and every write
- * below hands it to a repository method that scopes by owner — so a submitted
- * id belonging to somebody else's mailbox matches nothing rather than being
- * caught by a check.
- *
- * Every one works with scripting off: native inputs, native checkboxes
- * associated by the `form` attribute (F52's trick), and a submit button.
- */
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
@@ -36,12 +23,6 @@ function text(form: FormData, name: string): string {
   return typeof value === 'string' ? value : ''
 }
 
-/**
- * The signed-in member and the service, or a refusal.
- *
- * One place, so no verb can be written that forgets either half — and so
- * "fixture mode has no message store" is refused once rather than five times.
- */
 async function requireMessaging(): Promise<{
   service: NonNullable<ReturnType<typeof messageService>>
   userId: number
@@ -51,11 +32,6 @@ async function requireMessaging(): Promise<{
   const { authorizer, accountStore } = getContainer()
 
   if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
-  /*
-   * `pm.use` for the *sender* as well as the recipient. A group that may not
-   * use private messages may not use them in either direction, and checking
-   * only on receipt would let a member of that group write to everybody.
-   */
   if (!authorizer.can(actor, 'pm.use')) {
     throw new ForbiddenError('You cannot use private messages.')
   }
@@ -84,11 +60,6 @@ export async function sendMessageAction(_prev: FormState, form: FormData): Promi
   try {
     const { service, userId, username } = await requireMessaging()
 
-    /*
-     * F46. Counted per *sender*, not per recipient: one message to ten people
-     * is one send and ten deliveries, and charging it ten times would make the
-     * limit mean something different depending on how sociable somebody is.
-     */
     const limited = await spendLimit({ scope: 'message', actor: await getActor() })
     if (limited !== null && !limited.allowed) {
       return { error: limitMessage(limited), values }
@@ -106,30 +77,12 @@ export async function sendMessageAction(_prev: FormState, form: FormData): Promi
       replyToId: Number.isInteger(replyTo) && replyTo > 0 ? replyTo : null,
     })
   } catch (err) {
-    /*
-     * The typed text comes back with the error. A composer that empties itself
-     * on a rejected recipient name is one somebody retypes a long message into,
-     * and the failure this most often reports is a typo in a username.
-     */
     return toFormState(err, values)
   }
 
   redirect('/messages?folder=sent&sent=1')
 }
 
-/**
- * The bulk verb behind the folder screen's action bar.
- *
- * One action rather than five, because the five differ only in which repository
- * call they make and every one needs the same selection parsing, the same
- * ownership scoping and the same redirect. Five actions would be five chances
- * to forget one of those.
- *
- * The `redirect()` is *after* the try block, as it is in F52's inline
- * moderation and for the same reason: `redirect` throws by design in the App
- * Router, and inside the try it would be caught and reported as an unexpected
- * failure of an action that in fact succeeded.
- */
 export async function messageBulkAction(_prev: FormState, form: FormData): Promise<FormState> {
   const folder = parseFolder(text(form, 'folder')) ?? 'inbox'
   const command = text(form, 'command')
@@ -138,7 +91,6 @@ export async function messageBulkAction(_prev: FormState, form: FormData): Promi
   try {
     const { service, userId } = await requireMessaging()
 
-    /* Emptying the trash names no messages, so it is handled before selection. */
     if (command === 'empty') {
       query = `emptied=${await service.emptyTrash(userId)}`
     } else {
@@ -156,12 +108,6 @@ export async function messageBulkAction(_prev: FormState, form: FormData): Promi
           query = `moved=${await service.move(userId, copyIds, 'trash')}`
           break
         case 'restore':
-          /*
-           * Trash is the only folder with a restore, and everything restored
-           * goes to the inbox — including a sent copy. Remembering where a copy
-           * came from needs a column that exists solely so an undo can be
-           * exact, which is not worth carrying on every row.
-           */
           query = `moved=${await service.move(userId, copyIds, 'inbox')}`
           break
         case 'delete':
@@ -179,14 +125,6 @@ export async function messageBulkAction(_prev: FormState, form: FormData): Promi
   redirect(`${base}${base.includes('?') ? '&' : '?'}${query}`)
 }
 
-/**
- * The ticked checkboxes.
- *
- * Non-numeric values are dropped rather than refused: the field is a form
- * control anybody can post, and the repository would find no such copy anyway.
- * Silently ignoring them keeps the honest path's error message about the
- * honest failure.
- */
 function selectedIds(form: FormData): readonly number[] {
   const ids: number[] = []
   for (const value of form.getAll('copyId')) {

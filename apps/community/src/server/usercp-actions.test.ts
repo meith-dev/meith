@@ -1,12 +1,3 @@
-/**
- * F57 at the app layer.
- *
- * The rules are unit-tested in `@meith/accounts` and the SQL against real
- * Postgres. What is proven here is the seam neither can see: that every verb
- * acts on the *session's* member, that a guest reaches none of them, and that
- * changing a password leaves the device that did it signed in — which is the
- * one place this layer adds behaviour rather than plumbing.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
@@ -31,7 +22,6 @@ vi.mock('next/navigation', () => ({
 const actorRef: { current: Actor | null } = { current: null }
 vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
-/** The cookie jar is a request API; the test only needs to know it was set. */
 const cookieRef: { current: Array<{ token: string }> } = { current: [] }
 vi.mock('./session-cookies', () => ({
   setSessionCookie: async (token: string) => {
@@ -39,7 +29,6 @@ vi.mock('./session-cookies', () => ({
   },
 }))
 
-/** The confirmation mail is F57's one direct send; here it only records. */
 const mailRef: { current: Array<{ email: string; token: string }> } = { current: [] }
 vi.mock('./usercp-mail', () => ({
   sendEmailChangeConfirmation: async (input: { email: string; token: string }) => {
@@ -122,7 +111,6 @@ async function run(
   }
 }
 
-/** A container with a real memory account store, so re-auth is real. */
 async function install(): Promise<void> {
   const container = installTestContainer({ container: { memberSettings: settings } })
   const store = container['accountStore'] as {
@@ -174,7 +162,6 @@ describe('saving the profile', () => {
         ['location', 'Cambridge'],
         ['website', ''],
         ['bio', ''],
-        /* A submitted user id is simply not read. */
         ['userId', '999'],
       ]),
     )
@@ -256,11 +243,6 @@ describe('changing the password', () => {
     )
 
     expect(result.redirectedTo).toBe('/usercp/security?changed=password')
-    /*
-     * The service revoked every session, this one included. Without the fresh
-     * cookie the member would be signed out by their own password change —
-     * which is the behaviour everybody finds alarming and nobody expects.
-     */
     expect(cookieRef.current).toHaveLength(1)
   }, 30_000)
 

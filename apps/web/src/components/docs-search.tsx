@@ -1,20 +1,5 @@
 "use client"
 
-/**
- * Search across the documentation, ⌘K.
- *
- * The index is a static file built at deploy time from the same Markdown the
- * pages render (see `src/docs/search.ts`), so there is no search service to keep
- * in step with the repository and nothing to go stale between deploys. It is
- * fetched the first time the palette opens rather than on page load — most
- * visitors never open it, and it is the largest asset the site has.
- *
- * Matching is deliberately plain: every term must appear somewhere in the
- * section. No fuzzy matching, because a documentation search that quietly
- * answers a *different* question than the one asked is worse than one that
- * returns nothing and lets the reader rephrase.
- */
-
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
@@ -37,13 +22,11 @@ function score(entry: SearchEntry, terms: readonly string[]): number {
   let total = 0
   for (const term of terms) {
     if (!entry.haystack.includes(term)) return -1
-    /* A heading match is what the reader was aiming at; body text is a hint. */
     if (heading.startsWith(term)) total += 6
     else if (heading.includes(term)) total += 4
     else if (title.includes(term)) total += 2
     else total += 1
   }
-  /* Shallower headings name bigger ideas, so they win ties. */
   return total - entry.depth * 0.1
 }
 
@@ -84,7 +67,6 @@ export function DocsSearch() {
     if (!open) return
     void load()
     inputRef.current?.focus()
-    /* The page behind the dialog must not scroll under it. */
     const previous = document.body.style.overflow
     document.body.style.overflow = "hidden"
     return () => {

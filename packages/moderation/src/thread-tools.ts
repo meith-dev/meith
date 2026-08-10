@@ -1,20 +1,3 @@
-/**
- * F50 — the thread-level tools.
- *
- * Post-level transitions were F41's and thread *approval* was F48's; what is
- * left is everything that acts on a thread as a unit. Three of them are cheap
- * flag flips. Two are not:
- *
- *   - **Delete and restore** move every counter the thread's posts contribute,
- *     which is a different sum for every author in it.
- *   - **Move** takes those same counts out of one subtree and puts them into
- *     another, and has to repair the last-post pointer on both chains.
- *
- * As everywhere else in this build, the command decides what is *allowed* and
- * the caller decides *who* is allowed: `thread.lock` and friends are resolved by
- * `Authorizer.can` against the actor's appointment rights, and arrive here as
- * booleans (R4).
- */
 import { ValidationError } from '@meith/core'
 
 export type ThreadTool =
@@ -27,7 +10,6 @@ export type ThreadTool =
   | 'delete'
   | 'restore'
 
-/** The thread as the tools need it. */
 export interface ThreadToolTarget {
   readonly id: number
   readonly forumId: number
@@ -38,17 +20,14 @@ export interface ThreadToolTarget {
   readonly visibility: 'visible' | 'unapproved' | 'deleted'
 }
 
-/** Where a thread may be moved to. */
 export interface MoveDestination {
   readonly id: number
   readonly type: 'category' | 'forum' | 'link'
 }
 
-/** What the caller has already resolved from the actor's rights. */
 export interface ThreadToolRights {
   readonly lock: boolean
   readonly stick: boolean
-  /** `thread.move`. Also what a copy needs, at both ends — see `copyTo`. */
   readonly move: boolean
   readonly delete: boolean
 }
@@ -57,13 +36,11 @@ export interface ThreadToolOutcome {
   readonly tool: ThreadTool
   readonly threadId: number
   readonly slug: string
-  /** False when the thread was already in that state — a double submit. */
   readonly changed: boolean
 }
 
 export interface ThreadToolsRepository {
   find(threadId: number): Promise<ThreadToolTarget | null>
-  /** The destination as the move needs it, or null when it is not a forum. */
   findDestination(forumId: number): Promise<MoveDestination | null>
 
   setLocked(input: {
@@ -80,7 +57,6 @@ export interface ThreadToolsRepository {
     readonly at: Date
   }): Promise<boolean>
 
-  /** Visibility, with every counter the thread's posts contribute. */
   setVisibility(input: {
     readonly threadId: number
     readonly from: 'visible' | 'deleted'
@@ -97,13 +73,6 @@ export interface ThreadToolsRepository {
     readonly at: Date
   }): Promise<boolean>
 
-  /**
-   * Duplicate a thread and its visible posts into another forum.
-   *
-   * Returns the new thread, because a copy is the one tool that produces
-   * something to go and look at — every other one leaves the moderator where
-   * they were.
-   */
   copy(input: {
     readonly threadId: number
     readonly toForumId: number
@@ -124,14 +93,9 @@ export class ThreadTools {
   async apply(input: {
     readonly threadId: number
     readonly tool: ThreadTool
-    /** Required for `move`, ignored otherwise. */
     readonly toForumId?: number | undefined
     readonly actorUserId: number
     readonly rights: ThreadToolRights
-    /**
-     * The actor's rights in the *destination* forum, for a move. Resolved by
-     * the caller because it is a second forum and therefore a second matrix.
-     */
     readonly destinationRights?: ThreadToolRights | undefined
   }): Promise<ThreadToolOutcome> {
     const target = await this.threads.find(input.threadId)
@@ -215,11 +179,6 @@ export class ThreadTools {
 
       case 'copy': {
         const copied = await this.copyTo(input, target, at)
-        /*
-         * The outcome names the *new* thread rather than the source: a copy is
-         * the only tool whose result is somewhere else, and reporting the
-         * source would send the moderator back to what they already had.
-         */
         return {
           tool: 'copy',
           threadId: copied.threadId,
@@ -250,24 +209,12 @@ export class ThreadTools {
       throw new ValidationError('That thread is already in that forum.')
     }
 
-    /*
-     * The rule that matters, and the one a "can this actor moderate here" check
-     * alone gets wrong: **both ends**. A moderator with rights in one forum
-     * only could otherwise move a thread out of the forum whose moderators are
-     * watching it and into one where nobody is — or into a forum they have no
-     * standing in at all, which is how a private forum acquires content its own
-     * moderators never approved.
-     */
     if (input.destinationRights?.move !== true) {
       throw new ValidationError('You cannot move threads into that forum.')
     }
 
     const destination = await this.threads.findDestination(input.toForumId)
     if (destination === null || destination.type !== 'forum') {
-      /*
-       * A category holds forums, not threads, and a link forum holds nothing at
-       * all. Both would produce a thread nobody can navigate to.
-       */
       throw new ValidationError('That is not a forum threads can live in.')
     }
 
@@ -280,21 +227,6 @@ export class ThreadTools {
     })
   }
 
-  /**
-   * Copy a thread into another forum.
-   *
-   * **Authorised by `thread.move`, at both ends**, and not by a right of its
-   * own. Copying is moving that leaves the original behind: it puts content
-   * into a destination forum exactly as a move does, so the destination's
-   * moderators have the same interest in it, and inventing a `thread.copy`
-   * right would mean an eighth column on `forum_moderators` distinguishing two
-   * acts nobody grants separately. D49's two-ended rule therefore applies
-   * unchanged.
-   *
-   * Unlike a move, the destination **may** be the source forum: copying a
-   * thread within its own forum is a legitimate way to fork a discussion, and
-   * there is no pointer to repair because nothing left.
-   */
   private async copyTo(
     input: {
       readonly toForumId?: number | undefined
@@ -332,13 +264,6 @@ export class ThreadTools {
     if (!held) throw new ValidationError(`You cannot ${what} here.`)
   }
 
-  /**
-   * Flag flips and moves apply to threads that are actually on the board.
-   *
-   * Pinning a deleted thread is not wrong so much as meaningless, and allowing
-   * it means the forum listing's sort key depends on a flag set on something
-   * nobody can see. Deletion and restoration have their own checks.
-   */
   private requireLive(target: ThreadToolTarget): void {
     if (target.visibility !== 'visible') {
       throw new ValidationError('That thread is not on the board.')
@@ -346,7 +271,6 @@ export class ThreadTools {
   }
 }
 
-/** Parse the tool name from a form without trusting it. */
 export function parseThreadTool(value: string | undefined): ThreadTool | null {
   const tools: readonly ThreadTool[] = [
     'lock',

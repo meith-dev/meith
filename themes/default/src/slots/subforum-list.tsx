@@ -3,19 +3,6 @@ import type { SubforumListModel } from '@meith/theme-kit'
 
 import { Counts, LINK } from '../shared'
 
-/**
- * The child forums of the forum being displayed (F30).
- *
- * Compact by design: this sits above a thread list, and a reader who wanted the
- * subforums rather than the threads has usually come from the index where the
- * full rows already are. So it is a wrapped row of names with their counts,
- * not a second copy of `ForumRow` — one screen of listing per page.
- *
- * The unread marker is deliberately absent here for the same reason. A forum's
- * read state belongs to the row that shows its last post; repeating it in a
- * summary strip gives a reader a second, smaller version of a decision they
- * have already made.
- */
 export function SubforumList({ forums }: SubforumListModel) {
   if (forums.length === 0) return null
 

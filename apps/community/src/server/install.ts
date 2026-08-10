@@ -1,26 +1,5 @@
 import 'server-only'
 
-/**
- * F83 — the app's half of the installer: gather the facts, then perform the
- * writes.
- *
- * Every *decision* lives in `@meith/install` and is unit-tested there. This file
- * is the part that cannot be: it opens a connection, runs migrations, and calls
- * the same registration command a member uses.
- *
- * ## It builds its own services rather than using the container
- *
- * `getContainer()` resolves the board's repositories against a schema that, at
- * the moment the installer runs, **does not exist**. Several of them read
- * settings or the group ladder at construction. So the installer wires the three
- * services it needs directly, after its own migrations have run — which is also
- * why the step order in `INSTALL_STEPS` is not a suggestion.
- *
- * The cost of that is the reason `forgetCachedBoard` exists: repositories built
- * here are the bare Postgres ones, so every write below goes *behind* the cache
- * decorators the container wraps them in, and nothing is invalidated. See D117.
- */
-
 import {
   IdentityService,
   DEFAULT_AUTH_POLICY,
@@ -60,17 +39,8 @@ import {
   type StepOutcome,
 } from '@meith/install'
 
-/** The version recorded in `install_state`. F84 reads it. */
 const INSTALLED_VERSION = '0.1.0'
 
-/**
- * Measure the environment.
- *
- * Every probe is failure-tolerant, because the whole point of a preflight is to
- * run on a board that is misconfigured. A probe that threw would turn "your
- * DATABASE_URL is wrong" into a 500 — the one page where an unhandled error is
- * least excusable, since it is the page that exists to explain errors.
- */
 export async function gatherPreflight(): Promise<readonly Check[]> {
   const dataSource = env.DATA_SOURCE === 'postgres' ? 'postgres' : 'fixture'
   const databaseUrl = env.DATABASE_URL ?? null
@@ -88,10 +58,6 @@ export async function gatherPreflight(): Promise<readonly Check[]> {
         installed = await isInstalled(db)
       }
     } catch (error) {
-      /*
-       * `getDb()` itself can throw on a malformed URL. Reported as "cannot
-       * connect", which is what it means to the person reading the screen.
-       */
       logger().warn({ err: String(error) }, 'install preflight could not reach the database')
       connected = false
     }
@@ -105,28 +71,12 @@ export async function gatherPreflight(): Promise<readonly Check[]> {
     publicUrl: env.APP_URL ?? null,
     mail: await probeMail(),
     canConnect: connected,
-    /*
-     * Deliberately not measured. Counting pending migrations means reading the
-     * journal *and* the applied list, and the second query fails on a database
-     * with no schema — which is the common case here. The count is a nicety and
-     * the installer says nothing rather than guessing.
-     */
     pendingMigrations: null,
     userCount: users,
     alreadyInstalled: installed,
   })
 }
 
-/**
- * What mail looks like before the form is filled in.
- *
- * Failure-tolerant like every other probe, and for a sharper reason than most:
- * reading the board's stored mail settings means reading the `settings` table,
- * which on a board that has never been installed does not exist. That is the
- * *expected* case here, not an error, and it must produce "nothing is
- * configured" rather than a stack trace on the page whose job is to explain
- * problems.
- */
 export async function probeMail(): Promise<MailProbe> {
   const fromEnvironment = mailConfigFromEnvironment(env)
 
@@ -147,7 +97,6 @@ export async function probeMail(): Promise<MailProbe> {
   }
 }
 
-/** Whether `/install` should exist at all. Read by the page and the action. */
 export async function installerIsSealed(): Promise<boolean> {
   if (env.DATA_SOURCE !== 'postgres') return false
   try {
@@ -157,55 +106,6 @@ export async function installerIsSealed(): Promise<boolean> {
   }
 }
 
-/**
- * Everything this process cached about the board that was here before, dropped.
- *
- * ## The bug this ends
- *
- * F16 caches the forum tree under `CacheTags.forumTree()`, and F10's rule is
- * that a global entry is invalidated by its writer rather than by a clock. Every
- * writer in the app tier honours that, because they all go through
- * `CachedForumRepository`. **The installer does not** — it builds a bare
- * `PostgresForumRepository` (see this file's header for why it must), so the
- * forum it creates is a write the cache never hears about.
- *
- * That is harmless on a process that has never read the tree, and it was not
- * harmless in practice. A deployment applies its migrations before the web
- * server starts — `docker-compose.coolify.yml` has a `migrate` service that does
- * exactly this — so from that moment there is a complete schema with no forums
- * in it, and *anybody who loads the board* in the window before the install
- * finishes caches an empty tree. An install refused at the administrator step
- * opens the same window, and widens it: the operator's next move is usually to
- * go and look at the board.
- *
- * What that cost was a board where the index worked and posting did not. The
- * index reads `listListing()`, which `CachedForumRepository` deliberately passes
- * straight through; the composer, the thread page, the per-forum feed and the
- * REST reads all resolve a forum by id, which is served from the cached tree. So
- * "New thread" was rendered and linked, and answered 404 — until the board was
- * redeployed, which is the only thing that cleared it.
- *
- * ## Why every global tag, and not the forum tree
- *
- * This function runs once in the life of a board, at the moment the board comes
- * into existence. Anything cached before it describes a board that was not there
- * — the settings, the group ladder, the statistics, the tree — so `GLOBAL_TAGS`
- * is the honest scope, and it is the list that grows by itself when F10 gains a
- * tag. Naming three of them here would be a fourth thing to remember.
- *
- * ## What it does not fix
- *
- * A second web instance holds its own memoised copy and cannot be reached from
- * here — `cachedGlobal` reads through the driver's process-local map even when
- * `CACHE_DRIVER=next`. That is what the tree's expiry is for; see
- * `CachedForumRepository`. The two are complementary: this makes the common
- * single-instance deployment correct immediately, and the expiry bounds every
- * case this cannot see.
- *
- * Failure is logged and swallowed. A cache that would not clear must not turn a
- * finished install into a failed one — the board is installed either way, and
- * the operator can reach it.
- */
 async function forgetCachedBoard(): Promise<void> {
   try {
     await drivers().cache.invalidateTags(GLOBAL_TAGS)
@@ -217,13 +117,6 @@ async function forgetCachedBoard(): Promise<void> {
   }
 }
 
-/**
- * Run the install, and then forget the board that was here before it.
- *
- * The sweep is in a `finally` rather than on the success path because a refused
- * install is the case that poisons the cache: it applies the migrations, stops,
- * and leaves a schema with no forum in it for the next page load to cache.
- */
 export async function runInstall(input: InstallInput): Promise<readonly StepOutcome[]> {
   try {
     return await performInstall(input)
@@ -232,15 +125,6 @@ export async function runInstall(input: InstallInput): Promise<readonly StepOutc
   }
 }
 
-/**
- * The steps themselves.
- *
- * Sequential, and it stops at the first failure: a step whose predecessor did
- * not happen cannot succeed, and attempting it produces a second error that
- * explains nothing. The report is returned rather than thrown, because the
- * screen has to show *which* step failed — an exception carrying a message would
- * lose the fact that migrations succeeded and the administrator did not.
- */
 async function performInstall(input: InstallInput): Promise<readonly StepOutcome[]> {
   const report: StepOutcome[] = []
   const db = getDb()
@@ -251,19 +135,8 @@ async function performInstall(input: InstallInput): Promise<readonly StepOutcome
       report.push({ id, status: 'done' })
       return true
     } catch (error) {
-      /*
-       * The message reaches the screen, so it must not carry a connection
-       * string. Postgres errors do not include the URL, and the messages this
-       * code raises are its own — but it is logged in full and shown trimmed.
-       */
       const message = error instanceof Error ? error.message : String(error)
       logger().error({ step: id, err: message }, 'install step failed')
-      /*
-       * A refusal of one of the operator's answers carries the box it is about,
-       * so the screen can put the message beside that box rather than beside a
-       * step id. `rejectedField` returns null for everything else, which keeps a
-       * genuine fault reported as a fault.
-       */
       const field = rejectedField(error)
       report.push({
         id,
@@ -275,34 +148,11 @@ async function performInstall(input: InstallInput): Promise<readonly StepOutcome
     }
   }
 
-  /* 1. Migrations. Nothing below has a table to write to until this succeeds. */
   if (!(await step('migrate', async () => void (await runMigrations())))) return report
 
-  /*
-   * 2. The board's name, and how it sends mail.
-   *
-   * The mail half goes through `saveSettings` rather than a direct `save`, so
-   * the values land under the same validation the settings screen applies —
-   * including the rule that a value equal to its default is *deleted* rather
-   * than stored, which keeps a later change of default reaching this board.
-   * Writing the rows by hand here would be a second, laxer writer for the one
-   * set of keys where a bad value means "no mail" rather than "wrong colour".
-   *
-   * The credentials have already been proved by this point: the action sent a
-   * real message through this exact config before calling `runInstall`. What is
-   * stored is therefore known to work, which is the difference between an
-   * installer that configures mail and one that merely records an intention.
-   */
   const settings = new PostgresSettingsRepository(db)
   if (
     !(await step('settings', async () => {
-      /*
-       * The name and the address together, because they are the two facts the
-       * board cannot derive and both were typed on the same form. The address
-       * matters more than it looks: every link the board ever sends is built
-       * from it, and it is the value that used to be an environment variable
-       * somebody set after going live, if at all.
-       */
       await settings.save(
         new Map([
           ['board.name', input.boardName],
@@ -338,42 +188,14 @@ async function performInstall(input: InstallInput): Promise<readonly StepOutcome
     return report
   }
 
-  /*
-   * 3. The administrator, through the same registration command a member uses
-   * (F18) and then promoted. A second account-creation path would be a second
-   * place for the password policy and the uniqueness rules to live, and the copy
-   * that drifts is always the one used once.
-   */
   const admin = new PostgresAdminRepository(db)
   let adminUserId: number | null = null
 
   if (
     !(await step('admin', async () => {
-      /*
-       * By key, not by id. The seeded ladder's ids are stable today and the keys
-       * are what the migration actually promises — a board whose ids shifted for
-       * any reason would otherwise get an administrator in the wrong group, which
-       * is the least recoverable mistake this function could make.
-       *
-       * Through `SEED_GROUP_KEY` rather than a literal, because the literal was
-       * wrong: `'administrator'` where the seed writes `'administrators'`. It
-       * type-checked, it read correctly, and it failed every install with a
-       * message blaming the migrations. A key the compiler can check is the only
-       * version of this lookup that stays right.
-       */
       const registered = await admin.findGroup(SEED_GROUP_KEY.registered)
       const administrator = await admin.findGroup(SEED_GROUP_KEY.administrators)
       if (registered === null || administrator === null) {
-        /*
-         * Naming the key, and what is actually there.
-         *
-         * The message used to be "The usergroup ladder is missing. Migrations
-         * did not seed it." — which was the author's only theory for an empty
-         * lookup, and was false: the ladder was seeded and the *key* was
-         * misspelled. It sent operators to read a migration log that said
-         * `applied: 34`. A message that prints the key it wanted beside the keys
-         * that exist cannot mislead like that, whichever of the two is wrong.
-         */
         const missing = registered === null ? SEED_GROUP_KEY.registered : SEED_GROUP_KEY.administrators
         const present = await admin.listGroupKeys()
         throw new Error(
@@ -384,15 +206,6 @@ async function performInstall(input: InstallInput): Promise<readonly StepOutcome
         )
       }
 
-      /*
-       * The board's own rules, such as they are on a board being installed.
-       *
-       * Nothing has overridden anything yet, so in practice this resolves to
-       * the registry's defaults — and that is the point: the registry asks for
-       * a minimum password length of 10 where `DEFAULT_AUTH_POLICY` carries 8,
-       * so an installer built on the const alone would accept a founding
-       * administrator whose password the board it is installing would refuse.
-       */
       const stored = SettingsSnapshot.fromOverrides(await settings.loadAll())
 
       const config: AuthConfig = {
@@ -401,14 +214,6 @@ async function performInstall(input: InstallInput): Promise<readonly StepOutcome
           ...DEFAULT_AUTH_POLICY,
           activationMethod: 'none',
         }),
-        /*
-         * 'none', for the same reason the CLI uses it: an e-mail round trip
-         * cannot be a prerequisite for the account that would have to activate
-         * it. The first administrator would otherwise be unable to log in to
-         * activate themselves — and at this point in the install there is no
-         * mail driver configured to send them anything. Applied after the
-         * spread, so it overrules the resolved value rather than racing it.
-         */
         activationMethod: 'none',
         defaultMemberGroupId: registered.id,
       }
@@ -427,11 +232,6 @@ async function performInstall(input: InstallInput): Promise<readonly StepOutcome
     return report
   }
 
-  /*
-   * 4. A category and a forum inside it. A board whose index is empty looks
-   * broken rather than new, and the first thing an operator does otherwise is
-   * hunt for how to add one.
-   */
   const forums = new PostgresForumRepository(db)
   if (
     !(await step('forum', async () => {
@@ -453,19 +253,10 @@ async function performInstall(input: InstallInput): Promise<readonly StepOutcome
     return report
   }
 
-  /*
-   * 5. Seal it. Last, and irreversible.
-   *
-   * Written here rather than first so a failure above leaves a board that can be
-   * fixed by trying again. The case that must *not* be repeatable — an
-   * administrator created, then a later failure — is covered independently by the
-   * account-count gate in the preflight, which needs no marker at all.
-   */
   await step('seal', () => markInstalled(db, INSTALLED_VERSION))
 
   logger().info({ adminUserId, steps: report.length }, 'board installed')
   return report
 }
 
-/** The step list, for the screen. Re-exported so the page imports one module. */
 export { INSTALL_STEPS }

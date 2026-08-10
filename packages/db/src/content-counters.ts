@@ -1,4 +1,3 @@
-/** F38 — atomic counters written alongside a newly persisted post. */
 import type { SQLWrapper } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 
@@ -6,7 +5,6 @@ import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { applyAncestorVisibilityChange } from './visibility-counters'
 
-/** The content write has already inserted before this is called. */
 export interface CreatedContent {
   readonly postId: number
   readonly threadId: number
@@ -15,7 +13,6 @@ export interface CreatedContent {
   readonly authorUsername: string
   readonly threadTitle: string
   readonly createdAt: Date
-  /** The opening post creates one visible thread; replies do not. */
   readonly isNewThread: boolean
 }
 
@@ -23,14 +20,6 @@ interface CounterTransaction {
   execute(query: SQLWrapper): Promise<unknown>
 }
 
-/**
- * Apply the visible-content counters inside the caller's transaction.
- *
- * This deliberately has no ambient database handle: F39 inserts the thread and
- * post first, then calls this with that same transaction. Splitting those into
- * independent transactions is how a failed request leaves a real post behind
- * while every listing still reports zero.
- */
 export async function applyCreatedContentCounters(
   tx: CounterTransaction,
   content: CreatedContent,
@@ -38,8 +27,6 @@ export async function applyCreatedContentCounters(
   const newer = sql`last_post_at is null or last_post_id is null
     or last_post_at < ${content.createdAt}
     or (last_post_at = ${content.createdAt} and last_post_id < ${content.postId})`
-  // A thread row has a default `last_post_at` before its opening post is linked.
-  // Its first post therefore wins regardless of the timestamp that default used.
   const threadNewer = content.isNewThread ? sql`true` : newer
 
   await tx.execute(sql`
@@ -78,12 +65,6 @@ export async function applyCreatedContentCounters(
     `)
   }
 
-  /*
-   * Direct-forum counters are immediately correct for the list page. Ancestor
-   * roll-up is asynchronous because one post can touch an arbitrarily deep
-   * path; the transactional event makes that later work durable without making
-   * the request wait for every parent row.
-   */
   await tx.execute(sql`
     insert into outbox (topic, payload)
     values (
@@ -98,33 +79,11 @@ export async function applyCreatedContentCounters(
   `)
 }
 
-/**
- * Add a created post to its forum's **ancestors**.
- *
- * Forum counters are subtree-inclusive: a category shows the totals of
- * everything beneath it, which is what makes the board index's category rows
- * mean anything. The posting forum is counted synchronously (above) because the
- * page the author lands on must be right; ancestors are counted here, from the
- * `post.created` event, because a post four levels deep would otherwise make
- * every reply update four rows inside the request.
- *
- * Idempotent against replay. The outbox relay is at-least-once by construction
- * (F07), and this is a delta — so the ledger insert and the update share one
- * transaction, and a redelivered event finds its post id already present and
- * changes nothing. Returns whether the roll-up was applied by *this* call.
- */
 export async function rollUpAncestorCounters(
   db: Database,
   postId: number,
 ): Promise<boolean> {
   return db.transaction(async (tx) => {
-    /*
-     * Claim and filter in one statement. No row comes back in three distinct
-     * cases — already rolled up, post deleted since the event was written, post
-     * not visible (moderated) — and all three mean the same thing here. A
-     * post that is approved later is counted by F41's visibility transition,
-     * not by re-running this.
-     */
     const claimed = await tx.execute(sql`
       insert into content_counter_rollups (post_id)
       select p.id from posts p
@@ -154,21 +113,10 @@ export async function rollUpAncestorCounters(
       | undefined
     if (!post) return false
 
-    /*
-     * Same ordering as the direct write — timestamp, then post id as the
-     * tie-breaker — so a reply that arrives late with an older timestamp cannot
-     * drag a category's last-post column backwards.
-     */
     const ancestorNewer = sql`f.last_post_at is null or f.last_post_id is null
       or f.last_post_at < ${post.created_at}
       or (f.last_post_at = ${post.created_at} and f.last_post_id < ${postId})`
 
-    /*
-     * Ancestors are the forums whose path is a proper prefix of this forum's,
-     * terminated by a separator. The trailing dot is not decoration: without it
-     * `1.4` matches `1.40`'s path and a sibling subtree inherits the count —
-     * the same prefix trap D22 documents for the tree itself.
-     */
     await tx.execute(sql`
       update forums f
          set post_count = f.post_count + 1,
@@ -190,7 +138,6 @@ export async function rollUpAncestorCounters(
   })
 }
 
-/** Convenience for an operational import; request writers use the function above. */
 export class PostgresContentCounterRepository {
   constructor(private readonly db: Database) {}
 
@@ -198,12 +145,10 @@ export class PostgresContentCounterRepository {
     await this.db.transaction((tx) => applyCreatedContentCounters(tx, content))
   }
 
-  /** Applies one `post.created` event to the posting forum's ancestors. */
   async rollUpAncestors(postId: number): Promise<boolean> {
     return rollUpAncestorCounters(this.db, postId)
   }
 
-  /** Applies one `post.visibility_changed` event to the same ancestors (F41). */
   async applyVisibilityChange(postId: number): Promise<boolean> {
     return applyAncestorVisibilityChange(this.db, postId)
   }

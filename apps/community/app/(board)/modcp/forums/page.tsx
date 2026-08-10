@@ -8,14 +8,6 @@ import { moderatedForumRights, resolveModCpAccess } from '@/server/modcp'
 
 export const metadata: Metadata = { title: 'My forums' }
 
-/**
- * F54 — the forums this actor moderates and exactly what they may do in each.
- *
- * The screen F50 made necessary. Once "may lock threads" became something you
- * are appointed to per forum rather than a checkbox on a group, a moderator had
- * no way at all to find out what they had been appointed to — they discovered
- * it by pressing a button and being refused.
- */
 export default async function ModCpForumsPage() {
   const access = await resolveModCpAccess()
   if (access === null) notFound()

@@ -9,13 +9,6 @@ import { site } from "../../../src/content/site"
 import { loadDocument } from "../../../src/docs/load"
 import { docHref, documents, findSection, neighbours } from "../../../src/docs/registry"
 
-/**
- * One document, rendered from its Markdown at build time.
- *
- * `dynamicParams = false` because the set of documents is the manifest and
- * nothing else: a slug that is not in it is a mistake, and 404ing at build time
- * is better than rendering an empty page for it at request time.
- */
 export const dynamicParams = false
 
 export function generateStaticParams() {
@@ -67,40 +60,16 @@ export default async function DocumentPage({ params }: PageProps) {
             {rendered.title ?? entry.title}
           </h1>
 
-          {/*
-            The manifest's blurb is deliberately *not* rendered here. Every
-            document opens with its own lead paragraph — it has to, because it is
-            read on GitHub as well — so printing the blurb above it said the same
-            thing twice in slightly different words, which reads as an editing
-            mistake. The blurb earns its keep in the listings, the search results
-            and the page description, where the document's own text is not there
-            to do the job.
-          */}
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-micro text-fg-subtle">
             <a className="textlink" href={sourceUrl}>
               {sourcePath}
             </a>
             {entry.generated ? (
-              /*
-                The generated references carry a "do not edit" comment at the top
-                of the file. That comment is an instruction to whoever opens the
-                file, not to whoever reads the page, so it is stripped in
-                rendering and the fact is stated here instead — where it means
-                something to a reader: this text was derived from the code, so it
-                cannot quietly disagree with the board.
-              */
               <span className="chip">generated from the code</span>
             ) : null}
           </div>
         </header>
 
-        {/*
-          `dangerouslySetInnerHTML` with HTML this app produced itself, from
-          Markdown in this repository, with every raw HTML token escaped rather
-          than emitted (see src/markdown/render.ts). There is no user input on
-          this path and no way for one to arrive: the input set is fixed at build
-          time by the manifest.
-        */}
         <div
           className="doc-body mt-10"
           dangerouslySetInnerHTML={{ __html: rendered.html }}

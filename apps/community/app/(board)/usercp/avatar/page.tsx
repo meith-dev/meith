@@ -13,14 +13,6 @@ import { userCpNotice } from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Your avatar' }
 
-/**
- * F58 — the avatar screen.
- *
- * Absent entirely for a group without `avatar.upload`, and on a board with no
- * file store, rather than shown and then refused: a form whose only button
- * always fails is worse than no form (D32). The same rule the signature screen
- * follows.
- */
 export default async function AvatarPage({
   searchParams,
 }: {
@@ -35,12 +27,6 @@ export default async function AvatarPage({
   const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = userCpNotice(query)
 
-  /*
-   * A measure, like every other screen under `/usercp`. This `<main>` had none
-   * at all, so its heading and its form ran the full width of the viewport
-   * while the panel's index and its siblings were centred — one link away from
-   * each other and half a screen apart.
-   */
   return (
     <PanelPage
       title="Your avatar"

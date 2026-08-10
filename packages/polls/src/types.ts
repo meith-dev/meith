@@ -1,5 +1,3 @@
-/** F43 — polls and thread ratings, with no SQL or HTTP dependency. */
-
 export interface NewPoll {
   readonly question: string
   readonly options: readonly string[]
@@ -24,7 +22,6 @@ export interface Poll {
 export interface PollRepository {
   create(threadId: number, poll: NewPoll): Promise<void>
   find(threadId: number, voterUserId: number | null): Promise<Poll | null>
-  /** False includes a duplicate vote, a closed poll, and an option outside it. */
   vote(input: { readonly pollId: number; readonly optionId: number; readonly userId: number }): Promise<boolean>
 }
 

@@ -1,11 +1,3 @@
-/**
- * In-heap queue for tests, the fixture data source and single-process dev.
- *
- * Rejected in production by env validation: jobs live in the heap, so every cold
- * start would silently discard pending work. It exists so the contract suite and
- * domain tests can exercise queue behaviour without a database.
- */
-
 import { randomUUID } from 'node:crypto'
 
 import type { EnqueueOptions, Job, QueueDriver } from '@meith/core'
@@ -25,10 +17,6 @@ interface Row {
 export class MemoryQueue implements QueueDriver {
   private rows: Row[] = []
 
-  /**
-   * Mirrors PostgresQueue's backoff so a test asserting retry timing behaves the
-   * same against either driver.
-   */
   private backoffMs(attempt: number): number {
     return Math.min(10 * attempt * attempt, 3600) * 1000
   }
@@ -66,11 +54,6 @@ export class MemoryQueue implements QueueDriver {
   ): Promise<{ processed: number; failed: number }> {
     const now = Date.now()
 
-    /*
-     * Claim by flipping status *before* awaiting anything. JS is single-threaded
-     * up to the first await, so this is atomic in the same sense the SQL claim
-     * is — two interleaved drains cannot both see the same pending row.
-     */
     const claimed = this.rows
       .filter((r) => r.status === 'pending' && r.runAt <= now && r.attempts < r.maxAttempts)
       .slice(0, limit)
@@ -129,9 +112,6 @@ export class MemoryQueue implements QueueDriver {
     return Promise.resolve()
   }
 
-  /* ---- test helpers, not part of QueueDriver ---- */
-
-  /** Total rows regardless of status. */
   size(): number {
     return this.rows.length
   }

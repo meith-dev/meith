@@ -1,23 +1,3 @@
-/**
- * An alert — shadcn/ui's, with the accessibility decision made in the component
- * rather than left to each caller.
- *
- * ## `role` is derived from `tone`, and that is deliberate
- *
- * `role="alert"` interrupts a screen-reader user mid-sentence. That is correct
- * for "your reply was not posted" and rude for "scheduled maintenance at 22:00",
- * and the difference is exactly the difference between an error and everything
- * else — so the component decides, and a caller cannot get it wrong by leaving
- * the prop off. `role` is still spreadable for the rare case that knows better.
- *
- * ## The tone is in the border and the text, not the fill
- *
- * A page can carry several of these at once — a flash message, a forum notice, a
- * moderation banner — and four saturated blocks stacked up read as a broken page
- * rather than as four things worth knowing. A left rule plus coloured text puts
- * the same information in a shape that stacks.
- */
-
 import { cva, type VariantProps } from 'class-variance-authority'
 
 import { cn } from './utils'
@@ -56,13 +36,6 @@ function Alert({
   )
 }
 
-/**
- * The kind, in words.
- *
- * Rendered inline with the message rather than as a heading above it: a notice
- * is one sentence, and "Warning" on its own line turns a sentence into a dialog
- * box. It is a `<strong>` so the announcement order is still right.
- */
 function AlertTitle({ className, ...props }: React.ComponentProps<'strong'>) {
   return (
     <strong
@@ -73,27 +46,6 @@ function AlertTitle({ className, ...props }: React.ComponentProps<'strong'>) {
   )
 }
 
-/**
- * The body of an alert.
- *
- * A `<div>` rather than a `<p>`, which is not a styling preference.
- *
- * Most alerts are one sentence and a paragraph was the honest element for them.
- * But an alert is also where a form reports several problems at once, and the
- * installer's failure box does exactly that: a title, a sentence, a `<ul>` of
- * field errors and a closing line. `<ul>` and `<p>` are both forbidden inside
- * `<p>`, so the parser closed the paragraph early and built a DOM that did not
- * match the tree React rendered — a hydration error on the one screen whose job
- * is explaining what went wrong, found by the audit of 7 August 2026.
- *
- * The truncation was the worse half: `role="alert"` sits on the element this
- * renders, so everything after the first block fell outside the announced
- * region. A screen reader was told less about the failure than a sighted reader
- * could see.
- *
- * A `<div>` can hold either shape, and nothing about the announcement or the
- * styling depended on it being a paragraph.
- */
 function AlertDescription({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div

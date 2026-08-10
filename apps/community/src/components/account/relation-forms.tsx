@@ -1,13 +1,5 @@
 "use client"
 
-/**
- * F61's two buttons.
- *
- * Forms rather than links, because both change state: a GET that adds somebody
- * to an ignore list is fired by every prefetcher and link scanner that touches
- * the page. Client components only for `useActionState`; both submit natively
- * with scripting off.
- */
 import { useActionState } from "react"
 
 import { removeRelationAction, setRelationAction } from "@/server/relation-actions"

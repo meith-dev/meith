@@ -13,15 +13,6 @@ import { availableTimezones, optionsFormValues, userCpNotice } from '@/view/user
 
 export const metadata: Metadata = { title: 'Your options' }
 
-/**
- * F57 — the two settings that change how the board renders.
- *
- * Both were constants until this feature: `view/time.ts` formatted everything
- * in UTC and the footer said so, and `view/paging.ts` held two numbers. The
- * screen is only half of the work — the other half is that the values are
- * actually read on every page (`viewer-preferences.ts`), which is what makes
- * this a setting rather than a stored number.
- */
 export default async function OptionsPage({
   searchParams,
 }: {

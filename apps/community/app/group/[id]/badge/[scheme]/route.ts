@@ -1,17 +1,3 @@
-/**
- * Serving a usergroup's badge.
- *
- * The board logo's route with a row id in the path, and the same reasoning
- * throughout: streamed through the app so the headers travel with the bytes,
- * public because a badge appears beside every name a guest can already see, and
- * `immutable` because the URL carries the stored key's UUID and therefore
- * changes whenever the image does.
- *
- * `badgeKey` re-checks the stored value — including that the key names *this*
- * group — before it becomes a path in the file store. A row an operator edited
- * with SQL, or one a restore carried across from another board, is exactly as
- * untrusted as a form field.
- */
 import { drivers } from '@meith/drivers'
 
 import { badgeKey } from '@/server/group-badge'

@@ -1,15 +1,3 @@
-/**
- * F58 — signatures against real Postgres.
- *
- * Two claims only the database settles:
- *
- *  - **a locked signature cannot be written**, because the lock is in the
- *    UPDATE's `where` rather than in a check the caller performs — which is
- *    what closes the race where a moderator locks it while the member has the
- *    form open;
- *  - `readMany` answers a whole page in one query, which is why the postbit is
- *    not an N+1.
- */
 import { BodyFormat } from '@meith/markdown'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
@@ -58,7 +46,6 @@ describe('reading and writing', () => {
   it('starts empty and unlocked', async () => {
     expect(await repo.read(ADA)).toEqual({
       signature: '',
-      /* New rows are Markdown; the column's default says so. */
       signatureFormat: BodyFormat.Markdown,
       signatureHtml: null,
       signatureRenderVersion: 0,
@@ -92,10 +79,6 @@ describe('reading and writing', () => {
 
 describe('the lock', () => {
   it('refuses the write in the query rather than by a prior check', async () => {
-    /*
-     * The race this closes: a moderator locking a signature while the member
-     * has the form open. A read-then-write would lose it.
-     */
     await save(ADA, 'Hello')
     await repo.setLocked({ userId: ADA, locked: true, reason: 'Advertising.' })
 
@@ -141,15 +124,10 @@ describe('readMany', () => {
     const many = await repo.readMany([ADA, BOB, 4242])
     expect(many.get(ADA)?.signature).toBe('Ada here')
     expect(many.get(BOB)?.signature).toBe('Bob here')
-    /* An id with no row is simply absent, not an error. */
     expect(many.has(4242)).toBe(false)
   })
 
   it('includes locked and empty ones, leaving the decision to the caller', async () => {
-    /*
-     * `signatureHtml` answers "should this be shown" in exactly one place, so
-     * the query does not answer it a second time.
-     */
     await save(ADA, 'Ada here')
     await repo.setLocked({ userId: ADA, locked: true, reason: 'x' })
 

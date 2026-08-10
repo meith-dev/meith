@@ -1,17 +1,3 @@
-/**
- * F63 at the app layer.
- *
- * The rules are unit-tested in `@meith/admin` and the SQL against real
- * Postgres. What is proven here is the gate order and the seam:
- *
- *  - the address allowlist is consulted **before** anything else, so a request
- *    from outside it learns nothing about the board;
- *  - `admincp.access` is what admits somebody, and the administrator bypass
- *    cannot force-grant it;
- *  - an ACP session belonging to a *different* member is not accepted, which is
- *    the case where the board cookie changed and the ACP one survived;
- *  - a destructive operation refuses a stale password proof.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
@@ -19,18 +5,8 @@ import type { Actor } from '@meith/authorization'
 import { REAUTH_MINUTES } from '@meith/admin'
 import type { AdminSessionRecord, AdminSessionRepository } from '@meith/admin'
 
-/**
- * The clocks here are **relative to the real one**, not pinned.
- *
- * `resolveAdmin` builds its `AdminService` without a clock override, so it
- * reads `Date.now()`. A fixture that pinned an absolute instant passed only
- * while the wall clock happened to sit inside the fifteen-minute re-auth
- * window of that instant — so this suite went red on its own, hours after it
- * was written, for a reason that had nothing to do with the code.
- */
 const now = () => new Date()
 
-/** The request headers the gate reads for the allowlist. */
 const headerRef: { current: Record<string, string> } = { current: {} }
 vi.mock('next/headers', () => ({
   headers: async () => ({
@@ -48,7 +24,6 @@ vi.mock('./session-cookies', () => ({
   clearAdminCookie: async () => {},
 }))
 
-/** `env` is a lazy proxy; the allowlist is read through it. */
 const allowlistRef: { current: string | undefined } = { current: undefined }
 vi.mock('@meith/core', async () => {
   const actual = await vi.importActual<typeof import('@meith/core')>('@meith/core')
@@ -141,13 +116,6 @@ describe('the address allowlist', () => {
   })
 
   it('is consulted before the permission gate, not after', async () => {
-    /*
-     * The order is the design: a request from outside the allowlist must not
-     * learn whether there is a control panel, who is signed in, or whether they
-     * would have been admitted. A *guest* from a blocked address therefore gets
-     * `address` and not `permission` — which is what pins the ordering, since
-     * an administrator would report `address` either way.
-     */
     allowlistRef.current = '198.51.100.'
     actorRef.current = await actorFor(SEED_GROUP.guest, null)
 
@@ -155,8 +123,6 @@ describe('the address allowlist', () => {
   })
 
   it('is consulted before the session store is even resolved', async () => {
-    /* Same argument, one gate further in: fixture mode must not be disclosed
-       to somebody the allowlist has already refused. */
     allowlistRef.current = '198.51.100.'
     installTestContainer({ container: { adminSessions: null, adminLog: null } })
 
@@ -169,11 +135,6 @@ describe('the address allowlist', () => {
   })
 
   it('reads the left-most forwarded entry, which is the client', async () => {
-    /*
-     * Everything after the first entry is the proxy chain. Kills the mutant
-     * that takes the last one, which would match on the proxy's own address and
-     * admit the whole internet.
-     */
     allowlistRef.current = '203.0.113.'
     headerRef.current = { 'x-forwarded-for': '203.0.113.9, 10.0.0.1, 10.0.0.2' }
 
@@ -200,27 +161,12 @@ describe('permission', () => {
   })
 
   it('refuses a super-moderator, whose bypass is forum-scoped only', async () => {
-    /*
-     * The one door the bypasses never open. `admincp.access` is absent from
-     * `ADMIN_ALWAYS` and from `FORUM_SCOPED`, so it falls through to the
-     * explicit column — which the seeded super-moderator does not have.
-     */
     actorRef.current = await actorFor(SEED_GROUP.superModerators, BOB)
     expect(await resolveAdmin()).toEqual({ denied: 'permission' })
   })
 })
 
 describe('the ACP session', () => {
-  /*
-   * `signin` and `expired` are the same outcome — the password form — and
-   * deliberately different denials, because they are different *sentences*.
-   *
-   * No cookie is a first visit. Every administrator makes one, immediately after
-   * installing, following the handbook's "then go to /admin"; while both
-   * collapsed into one denial the screen told them their control panel session
-   * had expired, on a board minutes old that had never had one. Anything that
-   * merges these two again puts that sentence back.
-   */
   it('asks for a password, blaming nothing, when there is no cookie', async () => {
     tokenRef.current = null
     expect(await resolveAdmin()).toEqual({ denied: 'signin' })
@@ -232,15 +178,6 @@ describe('the ACP session', () => {
   })
 
   it('refuses a session belonging to somebody else', async () => {
-    /*
-     * The case this exists for: somebody signed out and somebody else signed in
-     * on the same browser, and the ACP cookie — which has its own path and its
-     * own lifetime — survived. Kills the mutant that drops the comparison.
-     *
-     * `expired` rather than `signin`: a cookie was presented, so this browser
-     * has been in the panel before and "your session has ended" is the true
-     * account of it.
-     */
     adminSessions.row = session({ userId: BOB })
     expect(await resolveAdmin()).toEqual({ denied: 'expired' })
   })
@@ -269,13 +206,6 @@ describe('requireFreshAdmin', () => {
   })
 
   it('is decided by elapsed time, not by a date the fixture picked', async () => {
-    /*
-     * The regression this suite actually had: an absolute `NOW` made every
-     * assertion here depend on what time of day the suite ran, and it went red
-     * on its own hours after being written. A session proved a moment ago is
-     * fresh and one proved a year ago is not, and neither answer may depend on
-     * today's date.
-     */
     adminSessions.row = session({
       authenticatedAt: new Date(Date.now() - 1_000),
       expiresAt: new Date(Date.now() + 30 * 60_000),
@@ -291,10 +221,6 @@ describe('requireFreshAdmin', () => {
   })
 
   it('refuses one whose proof has gone stale, though the session is alive', async () => {
-    /*
-     * Activity extends the session and does not move the proof. This is the
-     * whole point of the two clocks, seen from the app.
-     */
     adminSessions.row = session({
       authenticatedAt: new Date(Date.now() - (REAUTH_MINUTES + 1) * 60_000),
       lastSeenAt: new Date(),

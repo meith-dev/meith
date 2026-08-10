@@ -15,23 +15,6 @@ import { buildNotificationCentreView, notificationNotice } from '@/view/notifica
 
 export const metadata: Metadata = { title: 'Notifications' }
 
-/**
- * F55 — the notification centre.
- *
- * The board's record of what a member has been told, and the reason on-site
- * delivery is not a preference: e-mail can be declined, but this cannot be
- * switched off, because a member who can erase the record can later say they
- * were never warned with the board's own data agreeing.
- *
- * App-owned rather than a theme slot, for F48's and F53's reason: the slot
- * registry is R6's list, frozen at F77, and this screen arrived after it. The
- * theme still supplies everything around it, and the unread badge that leads
- * here is a `UserPanelModel` field the contract has carried since F27.
- *
- * **Opening the centre does not mark anything read.** Coming back to find
- * everything already marked is how a member loses the one thing they came to
- * re-read; marking is an explicit act, per row or for everything at once.
- */
 export default async function NotificationsPage({
   searchParams,
 }: {
@@ -41,11 +24,6 @@ export default async function NotificationsPage({
   const actor = await getActor()
   const service = notificationService()
 
-  /*
-   * A guest and a board with no notification store get the same answer: this
-   * page is not here. Not a redirect to the login screen — a member's centre is
-   * theirs, and nothing about it should be discoverable by asking for it.
-   */
   if (actor.userId === null || service === null) notFound()
 
   const [page, unread] = await Promise.all([
@@ -97,8 +75,7 @@ export default async function NotificationsPage({
               className={`rounded-lg border p-4 ${
                 row.isRead
                   ? 'border-border bg-card'
-                  : /* Unread is a border, not only a background: a colour
-                         difference alone is not a distinction everyone can see. */
+                  :
                     'border-primary bg-card'
               }`}
             >
@@ -116,11 +93,6 @@ export default async function NotificationsPage({
                 </span>
               </div>
 
-              {/*
-                  Plain text, never markup. A notification body is assembled by
-                  the board from captured facts, and rendering it as Markdown
-                  would give a username capabilities it was never granted.
-                */}
               {row.body !== '' && (
                 <p className="mt-2 whitespace-pre-wrap break-words text-sm">{row.body}</p>
               )}

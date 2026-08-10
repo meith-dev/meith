@@ -1,4 +1,3 @@
-/** F39 — the posting rules, with no database and no HTTP in sight. */
 import { describe, expect, it } from 'vitest'
 import { RateLimitedError, ValidationError } from '@meith/core'
 
@@ -38,7 +37,6 @@ class RecordingWrites implements ThreadWriteRepository {
     return this.prefixes
   }
 
-  /* Reads the composer itself never calls; the route does. */
   async postingRules(): Promise<null> {
     return null
   }
@@ -75,7 +73,6 @@ const INPUT = {
   subscribe: false,
   bypassesModeration: false,
   bypassesFlood: false,
-  /* F46. Off in the shared fixture; the tests that care set it. */
   heldAsNewMember: false,
   requiresApproval: false,
 }
@@ -164,8 +161,6 @@ describe('ThreadComposer', () => {
     })
 
     it('refuses a prefix that is not offered in this forum', async () => {
-      // The whole point of checking against the forum's list rather than mere
-      // existence: prefixes can be scoped to one subtree.
       const writes = new RecordingWrites(null, [7])
 
       await expect(
@@ -300,7 +295,6 @@ describe('threadSlug', () => {
     ['  Spaced   out  ', 'spaced-out'],
     ['Café society', 'cafe-society'],
     ['C++ vs Rust', 'c-vs-rust'],
-    // Every URL carries the id, so a title with nothing to slug still resolves.
     ['日本語', 'thread'],
     ['???', 'thread'],
   ])('slugs %o as %o', (title, expected) => {
@@ -315,15 +309,6 @@ describe('threadSlug', () => {
   })
 })
 
-/**
- * F53's warning-level restrictions, at the one place they bite.
- *
- * They arrive as booleans like every other decision the caller has already
- * made, and the interesting one is that a *warning* outranks the moderation
- * bypass: `bypassesModeration` says "this forum's queue does not apply to you",
- * a warning level says "your posts are reviewed", and a moderator whose own
- * bypass cancelled their sanction would be the one person it could not reach.
- */
 describe('warning restrictions (F53)', () => {
   it('refuses a suspended author before it looks at anything they typed', async () => {
     const writes = new RecordingWrites()
@@ -388,15 +373,6 @@ describe('warning restrictions (F53)', () => {
   })
 })
 
-/**
- * The `requiresThreadApproval` permission — the group/forum-permission route
- * into the queue, as opposed to the forum's own switch beside it.
- *
- * Its own block because it was the gap the 7 August 2026 audit found: the field
- * existed, the group screen wrote it, the authorizer combined it, and no write
- * path read it, so a board that ticked "New threads land as unapproved" got
- * nothing. These tests are what makes that a failure rather than a silence.
- */
 describe('the requiresThreadApproval permission', () => {
   it('holds a thread in a forum that does not moderate', async () => {
     const writes = new RecordingWrites()
@@ -418,11 +394,6 @@ describe('the requiresThreadApproval permission', () => {
     expect(writes.written[0]?.visibility).toBe('visible')
   })
 
-  /*
-   * Unlike the new-member hold, this one *does* yield to an explicit moderation
-   * bypass — the same rule the forum's own flag follows, and for the same
-   * reason: an account trusted with the queue does not queue behind itself.
-   */
   it('yields to an explicit moderation bypass', async () => {
     const writes = new RecordingWrites()
     await composer(writes).create(
@@ -445,10 +416,6 @@ describe('the requiresThreadApproval permission', () => {
   })
 })
 
-/**
- * F46's new-member hold, and the thing that makes it worth its own block: it is
- * the *third* reason to hold a post, and the three do not obey the same bypass.
- */
 describe('holding a new member’s first posts', () => {
   it('holds a post in a forum that does not moderate', async () => {
     const writes = new RecordingWrites()
@@ -471,11 +438,6 @@ describe('holding a new member’s first posts', () => {
     expect(writes.written[0]?.visibility).toBe('visible')
   })
 
-  /*
-   * The caller resolves the bypass (see `holdsForReview`), so this asserts the
-   * composer does not *re-apply* it — a second bypass check here would be a
-   * second opinion that could drift from the first.
-   */
   it('is already resolved by the caller, so the composer just obeys the flag', async () => {
     const writes = new RecordingWrites()
     await composer(writes).create(
@@ -487,7 +449,6 @@ describe('holding a new member’s first posts', () => {
     expect(writes.written[0]?.visibility).toBe('unapproved')
   })
 
-  /* The three reasons are independent: any one of them holds the post. */
   it('still holds when the warning restriction is the reason', async () => {
     const writes = new RecordingWrites()
     await composer(writes).create(

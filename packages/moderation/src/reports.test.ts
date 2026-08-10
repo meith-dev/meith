@@ -1,16 +1,3 @@
-/**
- * F49's service, at the point F55 changed it.
- *
- * The report rules themselves are proven against real Postgres in
- * `packages/db/src/report-repo.test.ts` — the duplicate guard is an index, the
- * scope is a predicate, and neither means anything over a fake. What is here is
- * the decision this feature added: **who gets told when a report is closed, and
- * what they are told.**
- *
- * D48's whole argument is that a report has two audiences and almost every
- * decision keeps them apart, so the tests that matter are the ones about the
- * boundary between them.
- */
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { ReportService } from './reports'
@@ -120,10 +107,6 @@ describe('closing a report', () => {
       scope: SCOPE,
     })
 
-    /*
-     * Not "we remembered not to pass it" — the port has no field that could
-     * carry it, so there is no version of this call that leaks one (D48).
-     */
     expect(JSON.stringify(notifier.told)).not.toContain('feuding')
   })
 
@@ -139,7 +122,6 @@ describe('closing a report', () => {
       scope: SCOPE,
     })
 
-    /* A notification is for something you would not otherwise know. */
     expect(notifier.told).toEqual([])
   })
 

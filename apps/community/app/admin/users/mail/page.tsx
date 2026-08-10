@@ -7,23 +7,6 @@ import { userAdminRepository, userBulkRepository } from '@/server/user-admin'
 
 export const metadata: Metadata = { title: 'Mass mail' }
 
-/**
- * F67 — mass mail.
- *
- * Nothing is sent from this screen. Pressing the button creates the campaign
- * and enqueues **one job per recipient**; the message is handed to a driver
- * only inside the tick, which is F55's rule and the reason a provider hanging
- * for ten seconds is a task's problem rather than a ten-second button press.
- * One job per member also means a rejected address costs that member's message
- * a retry rather than the whole batch's.
- *
- * The audience count is shown before anything happens, and it is smaller than
- * the membership on purpose: **only verified addresses**. An unverified address
- * is as likely to be a typo — or somebody else's mailbox — as it is to be the
- * member's, and a board that mails thousands of them is a board whose domain
- * stops being delivered anywhere. That is in the query rather than in a
- * checkbox, because it is not a preference.
- */
 export default async function AdminMassMailPage() {
   await requireAdmin()
 

@@ -1,17 +1,3 @@
-/**
- * F56 — subscriptions against real Postgres.
- *
- * Four properties can only be proved here, and every one of them is about what
- * a member is *not* told:
- *
- *  - a held or soft-deleted post never reaches a digest, because the pending
- *    read goes through F47's `visibleIn` like every other read on the board;
- *  - a forum the member can no longer see is filtered out, per member, from
- *    the visible set the caller resolves;
- *  - nobody is told about their own post;
- *  - the watermark only ever moves forward, so a run that raced another one
- *    cannot re-deliver a week of posts.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -79,7 +65,6 @@ beforeEach(async () => {
   `)
 })
 
-/** Add a post, and return its id. */
 async function addPost(
   over: {
     id: number
@@ -131,10 +116,6 @@ describe('subscribing', () => {
       }),
     ).toBe(true)
 
-    /*
-     * The whole point of seeding the watermark: following a busy thread must
-     * not produce a notification about everything already in it.
-     */
     expect(await watermark('thread')).toBe(100)
   })
 
@@ -143,26 +124,14 @@ describe('subscribing', () => {
     await db.execute(sql`update threads set last_post_id = 100 where id = ${THREAD}`)
     await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
 
-    /*
-     * A reply arrives *and the thread's pointer moves with it* — which is what
-     * makes this test able to tell the two implementations apart. With only the
-     * post inserted, `excluded.last_notified_post_id` would still be 100 and a
-     * reset would be indistinguishable from leaving it alone.
-     */
     await addPost({ id: 101 })
     await db.execute(sql`update threads set last_post_id = 101 where id = ${THREAD}`)
 
     await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'weekly', at: AT })
 
     expect(await storedMode('thread')).toBe('weekly')
-    /*
-     * Still 100. Resetting here would mark post 101 as told about because
-     * somebody changed how often they want to hear — a notification lost to a
-     * settings change, which is the invisible kind of loss.
-     */
     expect(await watermark('thread')).toBe(100)
 
-    /* And the post is still reported, which is the consequence that matters. */
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'weekly',
@@ -256,7 +225,6 @@ describe('what is pending', () => {
       limit: 50,
     })
 
-    /* A digest is not a moderator surface, whoever is reading it. */
     expect(pending.posts.map((p) => p.postId)).toEqual([102])
   })
 
@@ -280,7 +248,6 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      /* The forum this thread lives in is not in the visible set. */
       visibleForumIds: [OTHER_FORUM],
       limit: 50,
     })
@@ -370,7 +337,6 @@ describe('a forum subscription', () => {
     })
 
     expect(pending.posts.map((p) => p.postId)).toEqual([100])
-    /* Both watermarks still move, so neither subscription re-delivers it. */
     expect(pending.watermarks).toHaveLength(2)
   })
 })
@@ -409,7 +375,6 @@ describe('watermarks', () => {
       userId: IVAN,
       watermarks: [{ target: 'thread', targetId: THREAD, lastPostId: 101 }],
     })
-    /* A slower run finishing late must not re-deliver 101. */
     await repo.advanceWatermarks({
       userId: IVAN,
       watermarks: [{ target: 'thread', targetId: THREAD, lastPostId: 100 }],
@@ -465,14 +430,11 @@ describe('who is due', () => {
 
     const dueBefore = new Date(AT.getTime() - 24 * 3_600_000)
 
-    /* Never sent: due immediately, which is what makes a new subscriber's
-     * first digest arrive rather than never. */
     expect(await repo.usersWithPending({ mode: 'daily', dueBefore, limit: 10 })).toEqual([IVAN])
 
     await repo.recordDigestRun({ userId: IVAN, cadence: 'daily', at: AT })
     expect(await repo.usersWithPending({ mode: 'daily', dueBefore, limit: 10 })).toEqual([])
 
-    /* A day later, due again. */
     const tomorrow = new Date(AT.getTime() + 1)
     expect(
       await repo.usersWithPending({ mode: 'daily', dueBefore: tomorrow, limit: 10 }),
@@ -488,7 +450,6 @@ describe('who is due', () => {
     await repo.recordDigestRun({ userId: IVAN, cadence: 'daily', at: AT })
 
     expect(await repo.usersWithPending({ mode: 'daily', dueBefore, limit: 10 })).toEqual([])
-    /* The weekly clock is untouched by the daily one. */
     expect(await repo.usersWithPending({ mode: 'weekly', dueBefore, limit: 10 })).toEqual([IVAN])
   })
 
@@ -525,11 +486,6 @@ describe('the management screen', () => {
 
     const rows = await repo.listFor(IVAN, { visibleForumIds: [FORUM], limit: 50 })
 
-    /*
-     * Dropped, not greyed out: a row that names a now-private forum back at
-     * somebody is a disclosure, and the subscription still works if access
-     * returns.
-     */
     expect(rows).toEqual([])
   })
 

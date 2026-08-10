@@ -1,28 +1,4 @@
 #!/usr/bin/env node
-/**
- * The performance reference, generated from the budgets and the recorded run.
- *
- * Fourth in the family, and the one where "generated" earns the most. The other
- * three references restate a registry; this one restates a *measurement*, and a
- * measurement transcribed by hand is a measurement that stops being true without
- * anybody editing it.
- *
- * Two inputs, and neither is prose:
- *
- *  - `budgets.ts` — the ceilings, which are code the runner enforces.
- *  - `docs/perf-results.json` — what the last recorded run actually observed,
- *    written by `pnpm perf measure --record`.
- *
- * So a number in the document is either a budget the harness checks or a figure
- * a run produced. There is nowhere for a hopeful number to enter.
- *
- * The prose around them lives in this file rather than in the output, for the
- * same reason as the other three: an editable document beside a generated one
- * gets edited, and then regenerated over.
- *
- * Run: pnpm perf:docs   ·   Check: pnpm perf:docs:check
- */
-
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -33,24 +9,11 @@ const INDEX_FILE = 'docs/perf-indexes.json'
 const PLANS_FILE = 'packages/testkit/src/load/index-plans.ts'
 const OUTPUT_FILE = 'docs/performance.md'
 
-/**
- * Pull the `BUDGETS` array out of the TypeScript source.
- *
- * Text, not an import: these scripts run under plain `node`, and adding a
- * TypeScript loader to the docs pipeline to read ten object literals would be a
- * build step in service of a build step. The shape is pinned by
- * `budgets.test.ts`, so a change that broke this parser breaks a test first.
- */
 async function readBudgets() {
   const source = await readFile(join(ROOT, BUDGETS_FILE), 'utf8')
   const start = source.indexOf('export const BUDGETS')
   if (start === -1) throw new Error(`No BUDGETS array in ${BUDGETS_FILE}`)
 
-  /*
-   * The `[` after the `=`, not the first one after the declaration — the type
-   * annotation is `readonly Budget[]`, whose brackets come first and are empty.
-   * The first draft matched those and cheerfully reported zero budgets.
-   */
   const assign = source.indexOf('=', start)
   const open = source.indexOf('[', assign)
   if (assign === -1 || open === -1) throw new Error('BUDGETS has no array literal')
@@ -82,7 +45,6 @@ async function readBudgets() {
   return budgets
 }
 
-/** Top-level `{ … }` literals, respecting nesting and strings. */
 function splitObjects(body) {
   const objects = []
   let depth = 0
@@ -111,14 +73,6 @@ function splitObjects(body) {
   return objects
 }
 
-/**
- * A field of one object literal.
- *
- * String values may be written as several adjacent literals joined with `+` —
- * prettier breaks a long sentence that way — so the whole run is consumed
- * rather than the first fragment. Reading only the first is how a generated
- * document ends up quoting the opening clause of every explanation.
- */
 function field(entry, name, pattern) {
   if (pattern) {
     const match = pattern.exec(entry)
@@ -131,7 +85,6 @@ function field(entry, name, pattern) {
   return joinStringLiterals(entry.slice(at.index + at[0].length))
 }
 
-/** Consume `'a' + 'b' + "c"` from the front of a fragment, stopping at the comma. */
 function joinStringLiterals(fragment) {
   let out = ''
   let i = 0
@@ -161,7 +114,6 @@ async function readJson(file) {
   return raw === null ? null : JSON.parse(raw)
 }
 
-/** The plan registry, read the same way the budgets are. */
 async function readPlans() {
   const source = await readFile(join(ROOT, PLANS_FILE), 'utf8')
   const assign = source.indexOf('=', source.indexOf('export const INDEX_PLANS'))
@@ -205,7 +157,6 @@ function render({ budgets, results, indexes, plans }) {
   out.push('the last recorded run measured against a full-scale board.')
   out.push('')
 
-  /* ---- The run ---- */
   if (results === null) {
     out.push('## No run recorded')
     out.push('')
@@ -239,7 +190,6 @@ function render({ budgets, results, indexes, plans }) {
     out.push('')
   }
 
-  /* ---- The table ---- */
   out.push('## Budgets and measurements')
   out.push('')
   out.push('| Page | Budget | | Measured p95 | p50 | p99 | Used |')
@@ -269,7 +219,6 @@ function render({ budgets, results, indexes, plans }) {
     out.push('')
   }
 
-  /* ---- The partial-visible indexes ---- */
   out.push('## Partial visible indexes')
   out.push('')
   out.push('`EXPLAIN` evidence that the partial `visibility` indexes are actually used.')
@@ -300,7 +249,6 @@ function render({ budgets, results, indexes, plans }) {
   out.push('from a member’s point of view, which is most of them.')
   out.push('')
 
-  /* ---- Why each one is on the list ---- */
   out.push('## What each scenario is and why it is measured')
   out.push('')
 

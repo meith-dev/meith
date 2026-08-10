@@ -1,11 +1,3 @@
-/**
- * F13 — the board-management subcommands.
- *
- * Each one drives the same services the app does (`IdentityService`,
- * `PostgresForumRepository`, `PostgresSettingsRepository`), so a value the CLI
- * writes is one the app would have accepted. That is the whole point of the
- * layer being thin.
- */
 import {
   SETTING_DEFINITION_BY_KEY,
   SettingsSnapshot,
@@ -20,14 +12,6 @@ import { foldIdentifier } from '@meith/accounts'
 import { createContext, type CliContext } from './context'
 import { integer, optional, parseFlags, required, type Flags } from './args'
 
-/**
- * Read a password without putting it in `argv`.
- *
- * Anything on the command line is visible in shell history and to every user on
- * the box via `ps`. Piping is therefore the supported path; `--password` is
- * accepted for scripted use but warns, because a silent insecure default is
- * worse than a noisy one.
- */
 async function readPassword(flags: Flags): Promise<string> {
   const inline = optional(flags, 'password')
   if (inline !== undefined) {
@@ -53,14 +37,12 @@ async function readPassword(flags: Flags): Promise<string> {
   return password
 }
 
-/** Resolve a user by numeric id or by username, so operators can use either. */
 async function findUser(ctx: CliContext, reference: string) {
   const user = await ctx.admin.findUser(reference, foldIdentifier(reference))
   if (!user) throw new ValidationError(`No such user: ${reference}`)
   return user
 }
 
-/** Resolve a group by key or numeric id. Keys are the stable handle. */
 async function findGroup(ctx: CliContext, reference: string) {
   const group = await ctx.admin.findGroup(reference)
   if (!group) {
@@ -95,8 +77,6 @@ export async function userCreate(args: readonly string[]): Promise<number> {
 
 export async function userPromote(args: readonly string[]): Promise<number> {
   const { flags } = parseFlags(args)
-  // Arguments are validated before the database is touched, so a typo is
-  // reported as a typo rather than as whatever the connection happens to say.
   const userRef = required(flags, 'user')
   const groupRef = required(flags, 'group')
 
@@ -122,8 +102,6 @@ export async function forumCreate(args: readonly string[]): Promise<number> {
     throw new ValidationError(`--type must be one of ${FORUM_TYPES.join(', ')}, got "${rawType}".`)
   }
 
-  // Everything the command needs is resolved before the database is opened, so
-  // a missing --title is reported as a missing --title.
   const input = {
     type: rawType as ForumType,
     title: required(flags, 'title'),
@@ -172,13 +150,6 @@ export async function settingsSet(args: readonly string[]): Promise<number> {
   const ctx = await createContext()
   const snapshot = SettingsSnapshot.fromOverrides(await ctx.settings.loadAll())
 
-  /*
-   * Coerce from the string a shell inevitably supplies, then let the registry's
-   * own schema validate. The CLI does not get its own idea of what is valid —
-   * `saveSettings` is the same call the ACP will make.
-   */
-  // `saveSettings` throws on a value its schema rejects; the dispatcher prints
-  // that message and exits 1, so there is no error branch to handle here.
   const result = await saveSettings(ctx.settings, { [key]: coerce(raw, definition) }, snapshot)
 
   console.log(
@@ -189,17 +160,6 @@ export async function settingsSet(args: readonly string[]): Promise<number> {
   return 0
 }
 
-/**
- * Turn a shell string into the type the registry expects.
- *
- * The target type is read off the definition's `default`, because that is the
- * one place the intended type is stated as a *value*. Zod schemas are not
- * introspectable for this without unwrapping every wrapper type, and guessing
- * from the raw string would make `settings:set board.name 42` a number.
- *
- * The registry's own schema still validates afterwards — this only decides how
- * to read the shell's string, never whether the value is acceptable.
- */
 function coerce(raw: string, definition: SettingDefinition): unknown {
   const type = typeof definition.default
   if (type === 'boolean') {

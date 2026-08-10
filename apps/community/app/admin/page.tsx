@@ -25,63 +25,15 @@ import { readTotals } from '@/server/stats'
 import { ADMIN_SECTIONS } from '@/view/admin-nav'
 import { formatTime } from '@/view/time'
 
-/**
- * F63 — the panel's index.
- *
- * ## It used to be a list of links
- *
- * Eleven bullets, each a section name and a sentence about it, above five lines
- * of admin log. That is a table of contents, and it answered no question an
- * administrator actually arrives with. Nobody opens the ACP to discover that a
- * "Forums" screen exists; they open it because something needs doing, or to
- * check that nothing does.
- *
- * So the page leads with **what is waiting**: posts held for approval, reports
- * nobody has closed, and an upgrade that has not been run. Each is a number, a
- * link straight to the queue it belongs to, and nothing else — and when all
- * three are clear it says so in one line rather than rendering three empty
- * panels. A dashboard that always has something amber on it is one people stop
- * reading.
- *
- * Below that is the board at a glance and the log. The sections are still
- * listed at the bottom — the shell's rail is terse by design, and this is
- * where each one gets a sentence saying what is inside it. Both read the same
- * tree, from `@/view/admin-nav`, so the panel cannot grow a screen that only
- * one of them knows about.
- *
- * ## The counts are the same counts those pages show
- *
- * `countPending` and `countOpen` are called with the scope resolved for *this*
- * actor, exactly as the moderation queue and the report list resolve it for
- * themselves. An administrator who reads "3 waiting" here and opens the queue
- * must not find four, and the only way to guarantee that is to ask the same
- * question through the same authorizer rather than to count rows.
- *
- * ## Everything degrades to absent
- *
- * A board in fixture mode has no moderation queue, no report store and no stats
- * rollup, and this page still renders: every read is `null`-guarded and the
- * panel it feeds is simply not shown. It is also the first screen an operator
- * sees after an install, when the rollup has genuinely never run — which is why
- * "not counted yet" is a state with words rather than three confident zeroes.
- */
-
 export default async function AdminHomePage() {
-  /* Re-run, because a layout is not a security boundary (see the layout). */
   const context = await requireAdmin()
   const actor = await getActor()
   const { adminLog, authorizer, moderationQueue, reports } = getContainer()
 
   const now = new Date()
 
-  /*
-   * Everything the page needs, concurrently rather than in five sequential
-   * round trips: this is the screen an administrator opens first, and no read
-   * here depends on another.
-   */
   const [recent, upgradeNotice, totals, pending, openReports] = await Promise.all([
     adminLog === null ? Promise.resolve([]) : adminLog.list({ limit: 6 }),
-    /* F84. `null` on a current board — a panel that always says "fine" stops being read. */
     pendingUpgradeNotice(),
     readTotals(),
     moderationQueue === null
@@ -191,10 +143,6 @@ export default async function AdminHomePage() {
                       ? 'No members yet'
                       : `Newest member: ${totals.newestUsername}`}
                   </span>
-                  {/*
-                    The same caveat the public panel carries: these are a rollup,
-                    and the number presented as "now" would be wrong.
-                  */}
                   <span>
                     Counted{' '}
                     <time dateTime={totals.computedAt.toISOString()}>
@@ -252,12 +200,6 @@ export default async function AdminHomePage() {
       </PanelSection>
 
       <PanelSection id="sections-heading" title="Sections">
-        {/*
-          Only the sections that **exist** — a panel advertising links to pages
-          that are not there would be worse than one that admits it is new
-          (D32). Each screen is honest about its own limits rather than the
-          index being honest on their behalf.
-        */}
         <PanelSectionGrid sections={ADMIN_SECTIONS} />
       </PanelSection>
     </PanelPage>

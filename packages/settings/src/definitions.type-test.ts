@@ -32,32 +32,22 @@
 
 import type { SettingKey, SettingValue } from './definitions'
 
-/* ---- Must be accepted ---- */
-
-/** Each key resolves to the type its own definition declares. */
 const NAME: SettingValue<'board.name'> = 'The Townland'
 const OFFLINE: SettingValue<'board.offline'> = false
 const PER_PAGE: SettingValue<'display.posts_per_page'> = 20
 const MODE: SettingValue<'registration.method'> = 'none'
 
-/** And a real key is a `SettingKey`. */
 const KEY: SettingKey = 'board.name'
 
-/* ---- Must be rejected ---- */
-
-/* A key the registry does not declare. This was the whole point of the type. */
 // @ts-expect-error — 'not.a.setting' is not a declared key
 const UNKNOWN_KEY: SettingKey = 'not.a.setting'
 
-/* A value of the wrong type for a real key. */
 // @ts-expect-error — board.name is a string, not a number
 const WRONG_TYPE: SettingValue<'board.name'> = 42
 
-/* The failure that started this: a boolean setting read as a string. */
 // @ts-expect-error — board.offline is a boolean
 const WRONG_SHAPE: SettingValue<'board.offline'> = 'yes'
 
-/* A key that is *nearly* right. Typos are the case an operator actually hits. */
 // @ts-expect-error — 'board.nmae' is a typo, not a key
 const TYPO: SettingValue<'board.nmae'> = ''
 

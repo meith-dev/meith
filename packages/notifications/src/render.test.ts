@@ -1,11 +1,3 @@
-/**
- * F55 — rendering, and the four ways a stored row can be odd.
- *
- * Every case here is reachable without anybody doing anything wrong: a row
- * written by a previous deploy outlives the code that wrote it. The property
- * these tests defend is that **nothing throws** — a notification centre that
- * 500s on one strange row is worse in every way than one that renders it flat.
- */
 import { describe, expect, it } from 'vitest'
 
 import { renderNotification } from './render'
@@ -69,7 +61,6 @@ describe('a row this build did not write', () => {
     const view = render({ data: { title: 42, points: '3', totalPoints: 'nonsense' } })
     expect(view.subject).toBe('You have been warned: 42')
     expect(view.body).toContain('worth 3 points')
-    /* Not NaN: an unparseable number falls back rather than propagating. */
     expect(view.body).toContain('total is now 0 points')
   })
 })
@@ -108,7 +99,6 @@ describe('report.actioned', () => {
   it('cannot carry a moderator note, because the data never holds one', () => {
     const view = render({
       kind: 'report.actioned',
-      /* Even if a caller captured one, no template reads it. */
       data: { outcome: 'resolved', targetLabel: 'a post', note: 'obvious spam, banned' },
     })
     expect(view.body).not.toContain('obvious spam')

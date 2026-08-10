@@ -10,7 +10,6 @@ import type {
 
 import { SEED_POST_ROWS } from './seed-board'
 
-/** Read-only demo posts, matching the keyset contract of the Postgres adapter. */
 export class FixturePostRepository implements PostRepository {
   constructor(private readonly rows: readonly PostListingRow[] = SEED_POST_ROWS) {}
 

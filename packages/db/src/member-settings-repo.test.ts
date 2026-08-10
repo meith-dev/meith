@@ -1,12 +1,3 @@
-/**
- * F57 — member settings against real Postgres.
- *
- * The reads and writes are one statement each; what has to be proved here is
- * `adoptEmail`, because it is the only one whose correctness depends on the
- * database rather than on the code: an hour passes between requesting an
- * address change and confirming it, and the unique index is what decides who
- * gets the address when two people are after it.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -51,9 +42,7 @@ describe('reading', () => {
     expect(settings).toEqual({
       userId: IVAN,
       email: 'ivan@example.test',
-      /* F75. Visible is the default a member who never opens the panel gets. */
       invisible: false,
-      /* The column default, which is what every row starts at. */
       timezone: 'UTC',
       postsPerPage: null,
       threadsPerPage: null,
@@ -69,7 +58,6 @@ describe('reading', () => {
 
   it('returns nothing for a deleted account', async () => {
     await db.execute(sql`update users set state = 'deleted' where id = ${IVAN}`)
-    /* The UserCP is a screen for somebody who exists (F33's rule). */
     expect(await repo.read(IVAN)).toBeNull()
   })
 })
@@ -142,11 +130,6 @@ describe('adopting a confirmed address', () => {
 
     expect(rows[0]?.email).toBe('New@example.test')
     expect(rows[0]?.email_lower).toBe('new@example.test')
-    /*
-     * Verified *by this act* — the member followed a link sent to the address.
-     * Leaving the column behind would make a confirmed address look unconfirmed
-     * to F18's activation logic.
-     */
     expect(rows[0]?.email_verified_at).not.toBeNull()
   })
 
@@ -159,7 +142,6 @@ describe('adopting a confirmed address', () => {
       }),
     ).toBe(false)
 
-    /* And leaves the old address exactly where it was. */
     expect((await repo.read(IVAN))?.email).toBe('ivan@example.test')
   })
 
@@ -174,10 +156,6 @@ describe('adopting a confirmed address', () => {
   })
 
   it('lets a member re-adopt the address they already have', async () => {
-    /*
-     * The `other.id <> u.id` half of the guard. Without it, confirming a change
-     * back to your own address would collide with yourself.
-     */
     expect(
       await repo.adoptEmail({
         userId: IVAN,

@@ -1,15 +1,3 @@
-/**
- * F63 — the ACP session and log against real Postgres.
- *
- * Three claims only the database settles:
- *
- *  - `findLive` puts liveness **in the query**, so expired, revoked and unknown
- *    all return nothing and no caller can forget one of the three;
- *  - `touch` extends the session on the same conditional-UPDATE throttle the
- *    rest of the board uses, and **never** moves `authenticated_at`;
- *  - the log is unscoped and pages backwards, unlike the ModCP's forum-scoped
- *    view of the same table.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -81,10 +69,6 @@ describe('findLive', () => {
   })
 
   it('returns nothing once expired — liveness is in the query', async () => {
-    /*
-     * Kills the mutant that drops `expires_at > now` and leaves the caller to
-     * check: the shape that works until somebody moves the check.
-     */
     await open('hash-a')
     expect(await sessions.findLive('hash-a', new Date(AT.getTime() + 31 * 60_000))).toBeNull()
   })
@@ -114,11 +98,6 @@ describe('touch', () => {
   })
 
   it('never moves authenticated_at', async () => {
-    /*
-     * The separation the whole re-auth mechanism rests on. Kills the mutant
-     * that sets `authenticated_at` in the touch, which would make browsing the
-     * panel keep the password proof fresh forever.
-     */
     const created = await open('hash-a')
     await sessions.touch(created.id, LATER, new Date(LATER.getTime() + 60_000), 60)
 
@@ -193,11 +172,6 @@ describe('the admin log', () => {
   })
 
   it('is unscoped, unlike the ModCP view of the same table', async () => {
-    /*
-     * The ModCP filters by the forums one moderator covers; that constraint has
-     * no analogue for an administrator reading the audit log, which is the
-     * point of there being one.
-     */
     await log.record({ userId: ADA, action: 'a.one', detail: {}, ipPrefix: null, at: AT })
     await log.record({ userId: BOB, action: 'b.two', detail: {}, ipPrefix: null, at: AT })
 
@@ -226,10 +200,6 @@ describe('the admin log', () => {
   })
 
   it('keeps a row whose actor has been deleted', async () => {
-    /*
-     * SET NULL, not cascade. The row about a deleted administrator is exactly
-     * the row somebody comes to the audit log to read.
-     */
     await log.record({ userId: ADA, action: 'a.one', detail: {}, ipPrefix: null, at: AT })
     await db.execute(sql`delete from users where id = ${ADA}`)
 
@@ -248,11 +218,6 @@ describe('the admin log', () => {
   })
 
   it('reads a non-object detail as empty rather than failing the page', async () => {
-    /*
-     * The column is `jsonb` and a row written by a previous deploy may hold
-     * anything. An audit log that fails to open because one row is odd is one
-     * that is absent exactly when it is needed.
-     */
     await db.execute(sql`
       insert into admin_log (user_id, action, detail)
       values (${ADA}, 'a.one', '"a bare string"'::jsonb)

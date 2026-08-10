@@ -16,22 +16,6 @@ import { MESSAGE_FORM_ID, buildMessageFolderView, messageNotice } from '@/view/m
 
 export const metadata: Metadata = { title: 'Private messages' }
 
-/**
- * F60 — a folder of private messages.
- *
- * One route for all three folders rather than three, because they differ only
- * in a `where` clause and in which actions the bar offers. Three pages would be
- * three chances for the ownership scoping to be written differently.
- *
- * **Nothing is marked read here.** Opening a folder is not reading a message,
- * and a member who came back to find something they had not got to yet has lost
- * it. Reading happens on the message's own page, one at a time and by choice.
- *
- * App-owned rather than a theme slot, like F55's centre and F56's list: the
- * slot registry is R6's list, frozen at F77, and this arrived after it. The
- * theme still supplies everything around it, and the unread badge that leads
- * here is a `UserPanelModel` field the contract has carried since F27.
- */
 export default async function MessagesPage({
   searchParams,
 }: {
@@ -50,12 +34,6 @@ export default async function MessagesPage({
   const { authorizer } = getContainer()
   const service = messageService()
 
-  /*
-   * A guest, a member whose groups do not grant `pm.use`, and a board with no
-   * message store all get the same answer: this page is not here. Not a
-   * redirect to the login screen — a mailbox is private, and nothing about it
-   * should be discoverable by asking for it.
-   */
   if (actor.userId === null || service === null) notFound()
   if (!authorizer.can(actor, 'pm.use')) notFound()
 
@@ -76,11 +54,6 @@ export default async function MessagesPage({
     folder,
     rows: page.rows,
     counts,
-    /*
-     * The member's own quota, from the one place allowed to resolve it. Shown
-     * rather than only enforced: a send refused for a full store is a bad way
-     * to learn the store has a size.
-     */
     quota: authorizer.globalLimit(actor, 'privateMessageQuota'),
     nextBefore: page.nextBefore,
     now: new Date(),
@@ -148,12 +121,6 @@ export default async function MessagesPage({
           <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
             {view.rows.map((row) => (
               <li key={row.copyId} className="flex items-start gap-3 px-4 py-3">
-                {/*
-                    Associated with the bar's form by the `form` attribute, so a
-                    native submit carries it with scripting off (F52). The label
-                    is the subject, because a screen-reader user tabbing a full
-                    folder otherwise hears "checkbox" twenty-five times.
-                  */}
                 <input
                   type="checkbox"
                   form={MESSAGE_FORM_ID}
@@ -172,8 +139,6 @@ export default async function MessagesPage({
                         : 'truncate text-sm text-foreground hover:underline underline-offset-2'
                     }
                   >
-                    {/* Unread is a word as well as a weight: a difference in
-                          font weight alone is not one everybody can see. */}
                     {row.isUnread && (
                       <span className="mr-2 text-xs font-semibold uppercase text-forum-unread">
                         New

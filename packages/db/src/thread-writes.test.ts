@@ -1,10 +1,3 @@
-/**
- * F39 — the thread write, against real Postgres.
- *
- * What is being proven here is atomicity and counter correctness, both of which
- * are properties of the transaction rather than of the SQL text: a mock would
- * accept a version that writes the post and loses the counters.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { eq, sql } from 'drizzle-orm'
 
@@ -91,8 +84,6 @@ describe('PostgresThreadWriteRepository.create', () => {
     const [post] = await db.select().from(posts).where(eq(posts.id, created.postId))
     expect(post).toMatchObject({ threadId: created.threadId, isFirstPost: true, message: 'First!' })
 
-    // Direct forum and author counters are exact immediately; the ancestor is
-    // the roll-up's job and is driven by this event.
     const [forum] = await db.select().from(forums).where(eq(forums.id, FORUM))
     expect(forum).toMatchObject({ threadCount: 1, postCount: 1, lastPostId: created.postId })
     const [category] = await db.select().from(forums).where(eq(forums.id, CATEGORY))
@@ -119,7 +110,6 @@ describe('PostgresThreadWriteRepository.create', () => {
     const created = await repo.create({ ...RECORD, visibility: 'unapproved' })
 
     const [thread] = await db.select().from(threads).where(eq(threads.id, created.threadId))
-    // The opening post is still linked: the thread is complete, just not visible.
     expect(thread).toMatchObject({ visibility: 'unapproved', firstPostId: created.postId })
 
     const [forum] = await db.select().from(forums).where(eq(forums.id, FORUM))
@@ -130,8 +120,6 @@ describe('PostgresThreadWriteRepository.create', () => {
   })
 
   it('leaves nothing behind when the write fails', async () => {
-    // A forum id that no row has: the post's foreign key rejects it after the
-    // thread insert has already succeeded inside the transaction.
     await expect(repo.create({ ...RECORD, forumId: 9999 })).rejects.toThrow()
 
     expect(await db.select().from(threads)).toEqual([])
@@ -165,15 +153,12 @@ describe('PostgresThreadWriteRepository replies (F40)', () => {
       lastPostAt: at,
     })
 
-    // The counter that a reply must *not* move. Getting this wrong inflates
-    // every ancestor's thread total by one per reply.
     const [forum] = await db.select().from(forums).where(eq(forums.id, FORUM))
     expect(forum).toMatchObject({ threadCount: 1, postCount: 2, lastPostId: postId })
 
     const [user] = await db.select().from(users).where(eq(users.id, 1))
     expect(user).toMatchObject({ threadCount: 1, postCount: 2 })
 
-    // One event per post, so the ancestor roll-up sees the reply too.
     expect(await db.select({ topic: outbox.topic }).from(outbox)).toHaveLength(2)
   })
 
@@ -249,8 +234,6 @@ describe('PostgresThreadWriteRepository.lastPostAt', () => {
       createdAt: later,
     })
 
-    // A queue full of held posts is exactly what the interval is for; exempting
-    // them would make moderation the cheapest way to flood.
     expect(await repo.lastPostAt(1)).toEqual(later)
   })
 })
@@ -270,20 +253,11 @@ describe('PostgresThreadWriteRepository prefixes', () => {
   })
 
   it('does not offer a prefix scoped to a text-prefix sibling', async () => {
-    // `1.40` shares its opening characters with `1.4` and is a different tree.
     const labels = (await repo.listPrefixes(FORUM)).map((p) => p.label)
     expect(labels).toEqual(['Board-wide', 'This subtree'])
   })
 })
 
-/**
- * F72's index, written by the path that writes the post.
- *
- * These belong here rather than beside the search tests because what is being
- * proven is a property of *the writer*: a post that reaches the table with the
- * wrong document is a post nobody can find, and no amount of correctness in the
- * query recovers it.
- */
 describe('PostgresThreadWriteRepository and the search index', () => {
   const search = () => new PostgresSearchRepository(db)
   const scope = { forumIds: [FORUM], viewerUserId: null, content: PUBLIC_CONTENT }
@@ -296,12 +270,6 @@ describe('PostgresThreadWriteRepository and the search index', () => {
     ).hits.map((hit) => hit.postId)
 
   it('makes a new thread findable by its title as well as its body', async () => {
-    /*
-     * The end-to-end shape of the bug, at the layer that caused it. The writer
-     * passed a literal null where the subject goes — `posts.subject` is a
-     * column this board never fills — so a thread was findable by its body and
-     * invisible to a search for its own title.
-     */
     const created = await repo.create({ ...RECORD, title: 'Kestrel sightings', message: 'A bird.' })
 
     expect(await find('kestrel')).toEqual([created.postId])
@@ -309,13 +277,6 @@ describe('PostgresThreadWriteRepository and the search index', () => {
   })
 
   it('writes the same document the backfill would', async () => {
-    /*
-     * The anti-drift claim `searchVectorSql` is exported for, now that the two
-     * sides reach the subject differently: the writer passes the title it is
-     * inserting, the backfill reads it back off the row. A post written today
-     * and one reindexed tomorrow must be findable by the same words, or search
-     * results depend on when a post happened to be written.
-     */
     const created = await repo.create({ ...RECORD, title: 'Kestrel sightings', message: 'A bird.' })
 
     const written = await vectorOf(created.postId)
@@ -326,19 +287,6 @@ describe('PostgresThreadWriteRepository and the search index', () => {
   })
 
   it('leaves the board with nothing outstanding to reindex', async () => {
-    /*
-     * A post the write path indexed must not also be queued for the backfill,
-     * or `search.reindex` never reports itself finished and an operator reads a
-     * pending count that never falls.
-     *
-     * This does not separately pin the `search_version` stamp: the column's own
-     * default is the current version too, so a writer that omitted it would
-     * still land on the right number. Naming it is for the day the version
-     * moves ahead of the default, and for the row saying which rule wrote it
-     * rather than which rule the table happens to assume. What this *does* kill
-     * is a writer that leaves the vector unwritten — four tests here catch that
-     * one, and this is the one that catches it as an operator would see it.
-     */
     await repo.create(RECORD)
 
     expect(await new PostgresSearchRepository(db).indexProgress()).toEqual({
@@ -362,7 +310,6 @@ describe('PostgresThreadWriteRepository and the search index', () => {
     })
 
     expect(await find('peregrine')).toEqual([reply.postId])
-    /* One hit for the title, not one per post in the thread. */
     expect(await find('kestrel')).toEqual([thread.postId])
   })
 })

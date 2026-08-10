@@ -1,20 +1,3 @@
-/**
- * The tests that need a *real* Postgres server, not PGlite.
- *
- * Every other database suite here runs against PGlite, which is the right
- * trade — it is fast, it needs no service, and it runs the actual generated
- * SQL. But it is not the same *driver*, and F11's row has always said so. This
- * file is for the cases where that difference is the whole point.
- *
- * It found its first one immediately: `drizzle(client)` replaces postgres.js's
- * date serialisers with a passthrough, so a `Date` interpolated into a raw
- * `sql` template reached `Buffer.byteLength()` and threw. PGlite does not go
- * through those serialisers, so 1800-odd tests passed while the write path was
- * broken against every real server. See `restoreDateSerialisers` in client.ts.
- *
- * **Skipped unless `TEST_DATABASE_URL` is set**, so a normal `pnpm test` needs
- * no service. CI's `migrations` job already runs a Postgres and sets it.
- */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -28,11 +11,6 @@ import { PostgresApiTokenRepository } from './api-repo'
 import { createIsolatedDb } from './client'
 import { resultRows } from './result-rows'
 
-/**
- * Every migration, in journal order — the same read `pglite.fixture.ts` does,
- * and for the same reason: the journal is what the real runner applies, so a
- * migration that is checked in and never registered fails here too.
- */
 function migrationSql(): string {
   const here = path.dirname(fileURLToPath(import.meta.url))
   const dir = path.resolve(here, '..', 'migrations')
@@ -50,16 +28,6 @@ function migrationSql(): string {
 const URL = process.env.TEST_DATABASE_URL
 const describeIfPg = URL ? describe : describe.skip
 
-/**
- * The suite runs in a scratch database it creates and drops itself, not in the
- * one `TEST_DATABASE_URL` names. That database is not this suite's to assume
- * anything about: CI's migrations job migrates it before `pnpm test` runs, so
- * applying `migrationSql()` there hits "relation already exists" on the first
- * CREATE TABLE — and a developer's `TEST_DATABASE_URL` could point anywhere.
- * A scratch database makes the suite rerunnable against any server, at the
- * cost of requiring a role that may CREATEDB — which the superuser CI supplies
- * (and most local setups) can.
- */
 const SCRATCH = `meith_pg_test_${process.pid}`
 
 function scratchUrl(adminUrl: string): string {
@@ -74,7 +42,6 @@ describeIfPg('against real Postgres', () => {
 
   beforeAll(async () => {
     admin = createIsolatedDb(URL!)
-    /* CREATE DATABASE cannot run in a transaction; execute it on its own. */
     await admin.db.execute(sql.raw(`DROP DATABASE IF EXISTS "${SCRATCH}" WITH (FORCE)`))
     await admin.db.execute(sql.raw(`CREATE DATABASE "${SCRATCH}"`))
     harness = createIsolatedDb(scratchUrl(URL!))
@@ -87,11 +54,6 @@ describeIfPg('against real Postgres', () => {
   })
 
   describe('Date parameters in raw sql templates', () => {
-    /*
-     * The regression. A `Date` in a raw template is how most of this package
-     * writes timestamps — `updated_at = ${at}`, `locked_until = ${lockedUntil}`
-     * — and it threw on every real server until the serialiser was restored.
-     */
     it('accepts a Date and round-trips it', async () => {
       const at = new Date('2026-07-31T12:34:56.000Z')
       const rows = resultRows(
@@ -128,12 +90,6 @@ describeIfPg('against real Postgres', () => {
     })
   })
 
-  /*
-   * The specific query that broke: `PostgresTaskRepository.claim` passes three
-   * Dates. It is exercised here through the driver rather than the repository
-   * because the repository's own behaviour is covered on PGlite — what this
-   * pins is that the *driver* accepts the shape.
-   */
   it('runs the scheduler claim shape', async () => {
     const now = new Date()
     const rows = resultRows(
@@ -147,23 +103,6 @@ describeIfPg('against real Postgres', () => {
     expect(Object.keys(rows[0]!)).toEqual(['now', 'due_before', 'locked_until'])
   })
 
-  /*
-   * The **reading** direction, which this file only covered by accident.
-   *
-   * `restoreDateSerialisers` repairs writing. Reading needs no repair — but it
-   * does need *saying*, because the two drivers differ and the difference is
-   * invisible until a caller assumes one of them. The 7 August 2026 audit found
-   * `PostgresApiTokenRepository.listAll` asserting `created_at: Date` on a raw
-   * execute and handing the value to `formatTime`, which calls `.toISOString()`.
-   * On PGlite that is a Date and it worked; on a real server it is a string, so
-   * `/admin/api-tokens` threw and 500'd for good the moment any token had been
-   * used — with the revoke button on it.
-   *
-   * The repository is driven here rather than the driver, because "a raw execute
-   * returns strings" is a fact about drizzle that may change and does not matter
-   * on its own. What matters, and what this pins, is that the repository hands
-   * its caller a real `Date` **on the driver production uses**.
-   */
   describe('timestamps a repository returns from a raw execute', () => {
     let repo: PostgresApiTokenRepository
 
@@ -191,7 +130,6 @@ describeIfPg('against real Postgres', () => {
       expect(token!.createdAt).toBeInstanceOf(Date)
       expect(token!.expiresAt).toBeInstanceOf(Date)
       expect(token!.lastUsedAt).toBeInstanceOf(Date)
-      /* The exact call the ACP page makes, and the exact one that used to throw. */
       expect(() => token!.lastUsedAt!.toISOString()).not.toThrow()
     })
 

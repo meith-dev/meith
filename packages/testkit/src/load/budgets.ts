@@ -1,87 +1,14 @@
-/**
- * F89 — the p95 budgets, as data.
- *
- * ## Why these are numbers in a file rather than numbers in a document
- *
- * "Documented p95 budgets" could be a table in Markdown, and it would be worth
- * nothing: a budget nobody re-measures is a claim that was true once. So the
- * budgets are a value, the load runner compares against them, and the document
- * is generated from the same source the runner reads. A number that drifts fails
- * something.
- *
- * ## What a budget here covers, and what it does not
- *
- * Each budget is **data-layer time**: the repository calls a hot page makes,
- * against real Postgres, at the plan's full scale. It is not end-to-end HTTP.
- *
- * That is a deliberate boundary and worth being explicit about, because the
- * obvious complaint is fair — a reader wants to know what a *page* costs, and
- * this measures a part of one. The reason is that the part it measures is the
- * part that **scales with the corpus**. React rendering a twenty-post page costs
- * the same on a board with two thousand posts and one with two million;
- * `select … order by … limit 20` does not. A budget's job is to fail when a
- * change makes the board worse as it grows, and mixing in a large constant that
- * moves with the Next.js version would mask exactly that.
- *
- * The end-to-end number is measured too, separately and once, so the constant is
- * known rather than assumed — see `docs/performance.md`.
- *
- * ## Where the numbers came from
- *
- * Measured, then rounded **up** to somewhere between two and three times the
- * observed p95. A budget set at the observed value fails on the next run for
- * reasons that have nothing to do with the code — a noisy neighbour, a cold
- * cache, a checkpoint — and a budget that cries wolf is one that gets raised
- * without being read.
- *
- * The headroom is not generosity: the failures worth catching are order-of-
- * magnitude ones. A missing index does not make a query 40% slower, it makes it
- * 100× slower, and a 3× budget catches that on the first run while surviving an
- * ordinary bad afternoon on shared hardware.
- */
-
-/**
- * A **target** is a number the page is expected to meet, set with headroom over
- * what was measured. A **limit** is a number that was measured, is *not*
- * considered good, and is written down anyway so it cannot get worse quietly.
- *
- * A `limit` is a debt with a number on it, not a pass mark.
- *
- * **Nothing is currently a limit.** The field was added for `search-common`,
- * which F89 measured at 5.5 seconds and could not fix without a decision the
- * working rules reserved for a human; once that decision was taken it became a
- * 98ms target and the debt was paid inside one pass.
- *
- * It is kept rather than deleted because the alternatives it displaced are both
- * bad and both tempting: delete the scenario and the slowness goes undocumented,
- * or leave the budget at its unmet target and CI is permanently red — and a
- * build that is always red is a build nobody reads. The next scenario in that
- * position should have somewhere honest to sit.
- */
 export type BudgetKind = 'target' | 'limit'
 
 export interface Budget {
-  /** Stable id, used in the report and in the generated document. */
   readonly id: string
-  /** The page an operator would recognise. */
   readonly page: string
-  /** What the scenario actually calls, in one line. */
   readonly work: string
-  /** p95 ceiling, milliseconds of data-layer time. */
   readonly p95Ms: number
-  /** Target to meet, or measured limit recorded so it cannot regress. */
   readonly kind: BudgetKind
-  /** Why this page is on the list. */
   readonly why: string
 }
 
-/**
- * The hot pages, in rough order of how much traffic a real board sends them.
- *
- * "Hot" is the roadmap's word and it means *this is what the traffic does*: a
- * forum's requests are overwhelmingly thread views and forum listings, and an
- * optimisation anywhere else is an optimisation of something nobody waits for.
- */
 export const BUDGETS: readonly Budget[] = [
   {
     id: 'thread-page-first',

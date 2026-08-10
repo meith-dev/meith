@@ -1,10 +1,3 @@
-/**
- * F38 — ancestor roll-up, against real Postgres.
- *
- * The interesting cases are all SQL semantics: a prefix match that must not
- * catch a sibling, an insert that must both claim and filter, and a delta that
- * must survive being delivered twice. None of them are visible to a mock.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { eq, sql } from 'drizzle-orm'
 
@@ -18,13 +11,6 @@ let db: Database
 
 const AT = new Date('2026-07-30T12:00:00Z')
 
-/*
- * Two things this tree is shaped to catch:
- *   - `1.4` must not collect `1.40`'s posts (D22's prefix trap, which the
- *     roll-up's `LIKE path || '.%'` is the whole defence against);
- *   - a four-level chain, so "walks all the way up" is distinguishable from
- *     "updates the parent".
- */
 const CATEGORY = 1
 const FORUM = 4
 const SUBFORUM = 9
@@ -65,10 +51,6 @@ beforeEach(async () => {
     { id: FORUM, title: 'Forum', slug: 'forum', path: '1.4', depth: 1, parentId: CATEGORY },
     { id: SUBFORUM, title: 'Sub', slug: 'sub', path: '1.4.9', depth: 2, parentId: FORUM },
     { id: DEEP, title: 'Deep', slug: 'deep', path: '1.4.9.12', depth: 3, parentId: SUBFORUM },
-    // Sibling of `1.4` whose path shares its text prefix, plus a child of it —
-    // the child is what makes the trap reachable: `1.40.41` starts with the
-    // text `1.4`, so a prefix match without the separator makes forum 4 an
-    // ancestor of a forum it has nothing to do with.
     { id: DECOY, title: 'Decoy', slug: 'decoy', path: '1.40', depth: 1, parentId: CATEGORY },
     { id: DECOY_CHILD, title: 'Decoy sub', slug: 'decoy-sub', path: '1.40.41', depth: 2, parentId: DECOY },
   ])
@@ -146,16 +128,11 @@ describe('rollUpAncestorCounters', () => {
       })
     }
 
-    // The posting forum was counted synchronously and must not be counted twice.
     expect(await counters(DEEP)).toMatchObject({ threadCount: 1, postCount: 1 })
-    // `1.40` shares a text prefix with `1.4` and is not an ancestor of anything.
     expect(await counters(DECOY)).toMatchObject({ threadCount: 0, postCount: 0 })
   })
 
   it('does not treat a text-prefix sibling as an ancestor', async () => {
-    // `1.40.41` starts with the characters of `1.4`. A prefix match missing the
-    // separator would credit forum 4 with a post from a subtree it does not
-    // contain — the same trap D22 records for the tree read.
     await db.insert(posts).values({
       id: 40,
       threadId: 22,
@@ -181,7 +158,6 @@ describe('rollUpAncestorCounters', () => {
 
     expect(await rollUpAncestorCounters(db, 30)).toBe(false)
 
-    // The whole reason the ledger exists: at-least-once delivery of a delta.
     expect(await counters(CATEGORY)).toMatchObject({ postCount: 1, threadCount: 1 })
   })
 
@@ -209,8 +185,6 @@ describe('rollUpAncestorCounters', () => {
   it('does not move an ancestor last-post pointer backwards', async () => {
     await addPost(31, true, new Date(AT.getTime() + 60_000))
     await rollUpAncestorCounters(db, 31)
-    // A post created earlier but rolled up later — an import, or a retried
-    // relay running behind a live one.
     await addPost(32, false, AT)
     await rollUpAncestorCounters(db, 32)
 

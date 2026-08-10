@@ -7,11 +7,6 @@ import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import { Field, FormError, SubmitButton } from "./form-controls"
 
-/**
- * `minLength` is the board's configured minimum (F13), passed from the page.
- * The server enforces it; this only stops the form asking for a password it is
- * about to refuse.
- */
 export function ResetConfirmForm({
   token,
   minLength,

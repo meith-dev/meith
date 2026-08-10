@@ -1,4 +1,3 @@
-/** Small valid fixtures for repository tests (F11). */
 import { schema, type Database } from '@meith/db'
 import { eq, sql } from 'drizzle-orm'
 
@@ -32,11 +31,6 @@ export interface PostFactoryOptions {
   readonly isFirstPost?: boolean
 }
 
-/**
- * One factory set per test keeps defaults unique without global state.
- * Each helper creates its missing parents, so a test only names the rows it
- * actually cares about.
- */
 export function createFactories(db: Database) {
   let nextId = 0
   let registeredGroup: Promise<number> | undefined

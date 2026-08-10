@@ -33,11 +33,6 @@ describe('versions', () => {
     expect(parseVersion(' 10.0.99 ')).toEqual({ major: 10, minor: 0, patch: 99 })
   })
 
-  /*
-   * Strict, for the reason theme-kit's parser is: a lenient reader eventually
-   * yields NaN, every comparison against NaN is false, and the checks that
-   * refuse a downgrade or an over-long jump silently stop firing.
-   */
   it.each(['1.2', '1.2.3.4', 'v1.2.3', '1.2.3-beta', '', 'next'])('refuses %o', (value) => {
     expect(() => parseVersion(value)).toThrow(/not a version/)
   })
@@ -56,11 +51,6 @@ describe('the supported span', () => {
     expect(checkUpgradeSpan('2.1.0', '2.1.0')).toBeNull()
   })
 
-  /*
-   * Not unlimited, and the honesty is the point: supporting an arbitrary jump
-   * means every migration must stay correct against every schema that ever
-   * existed, which is a promise nobody can test.
-   */
   it('refuses a jump further than the window', () => {
     expect(checkUpgradeSpan('1.0.0', '4.0.0')).toEqual({
       kind: 'too-far',
@@ -71,11 +61,6 @@ describe('the supported span', () => {
     expect(SUPPORTED_MAJOR_SPAN).toBe(2)
   })
 
-  /*
-   * Migrations are forward-only, so "downgrading" is new code against a schema
-   * already migrated past it — which usually appears to work and corrupts
-   * something a week later.
-   */
   it('refuses a downgrade outright', () => {
     expect(checkUpgradeSpan('2.0.0', '1.9.9')).toEqual({
       kind: 'downgrade',
@@ -95,12 +80,6 @@ describe('dependency order', () => {
     if (result.ok) expect(result.order.map((p) => p.key)).toEqual(['points', 'badges'])
   })
 
-  /*
-   * **Deterministic, not merely correct.** A partial order has many valid
-   * linearisations; picking the same one every time is what makes an upgrade
-   * rehearsed on staging run the same sequence on production. The input here is
-   * deliberately reverse-alphabetical so a sort that did nothing would fail.
-   */
   it('breaks ties on the key, so the order is reproducible', () => {
     const result = orderPlugins([plugin('zulu'), plugin('mike'), plugin('alpha')])
     expect(result.ok).toBe(true)
@@ -128,7 +107,6 @@ describe('dependency order', () => {
     if (result.ok) expect(result.order.map((p) => p.key)).toEqual(['a', 'b', 'c'])
   })
 
-  /* Which plugins are tangled is the entire diagnostic with twenty installed. */
   it('names the plugins in a cycle', () => {
     const result = orderPlugins([
       plugin('a', { dependsOn: ['b'] }),
@@ -202,20 +180,11 @@ describe('the plan', () => {
     expect(step?.migrationIds).toEqual(['0002_add'])
   })
 
-  /*
-   * Last, for the same reason the installer's seal is: a version written before
-   * the work means a failed upgrade leaves a board claiming to be something it
-   * is not, and the next run finds nothing to do.
-   */
   it('records the version last', () => {
     const plan = planUpgrade(state({ pendingCoreMigrations: ['0024_thing'] }))
     expect(plan.steps.at(-1)?.kind).toBe('record-version')
   })
 
-  /*
-   * A release can change behaviour without changing the schema. A board whose
-   * recorded version never moved would show the pending notice forever.
-   */
   it('records the version even when no migration is pending', () => {
     const plan = planUpgrade(state({ recordedVersion: '1.0.0', codeVersion: '1.0.1' }))
     expect(plan.pending).toBe(true)
@@ -257,11 +226,6 @@ describe('the plan', () => {
 })
 
 describe('the admin notice', () => {
-  /*
-   * `null` when there is nothing to say. A panel that permanently displays
-   * "everything is fine" is one people stop reading, and this notice's value is
-   * being unusual.
-   */
   it('says nothing when the board is current', () => {
     const current = state({ recordedVersion: '1.1.0', codeVersion: '1.1.0' })
     expect(upgradeNotice(planUpgrade(current), current)).toBeNull()

@@ -8,13 +8,7 @@ import { EMPTY_STATE } from "@/server/auth-form-state"
 import { Field, FormError, FormNotice, SubmitButton } from "./form-controls"
 
 interface LoginFormProps {
-  /**
-   * Same-origin path to return to after login (sanitised server-side too).
-   * `| undefined` is explicit for `exactOptionalPropertyTypes`: the page passes
-   * `searchParams.next`, which is genuinely optional.
-   */
   next?: string | undefined
-  /** Contextual notices driven by query params (just registered / just reset). */
   notice?: string | undefined
 }
 

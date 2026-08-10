@@ -1,12 +1,3 @@
-/**
- * F06 acceptance: invoking the tick twice concurrently must leave the same state
- * as invoking it once.
- *
- * The fake repository models the *atomic* claim the real implementation performs
- * as a single conditional UPDATE. Modelling it as read-then-write here would let
- * the test pass against an implementation that races in production.
- */
-
 import { describe, expect, it, vi } from 'vitest'
 
 import { builtinTasks, type TaskWorkers } from './builtin'
@@ -30,10 +21,6 @@ class FakeTaskRepository implements TaskRepository {
     }
   }
 
-  /**
-   * Synchronous body on purpose: it mirrors a single atomic statement, so no
-   * `await` can interleave between the check and the write.
-   */
   async claim(input: {
     taskId: string
     now: Date
@@ -102,7 +89,6 @@ describe('tick', () => {
     const start = new Date('2026-01-01T00:00:00Z')
     await tick({ repository, tasks, now: start })
 
-    /* One minute later, against an hourly task. */
     const outcomes = await tick({
       repository,
       tasks,
@@ -113,7 +99,6 @@ describe('tick', () => {
     expect(outcomes[0]?.status).toBe('skipped')
   })
 
-  /* The headline guarantee. */
   it('executes a task once when two ticks overlap', async () => {
     const repository = new FakeTaskRepository()
 
@@ -157,7 +142,6 @@ describe('tick', () => {
 
     expect(outcomes[0]).toMatchObject({ status: 'failed', error: 'boom' })
     expect(onError).toHaveBeenCalledTimes(1)
-    /* Critically: not left holding the lock. */
     expect(repository.rows.get('test.task')?.runningSince).toBeNull()
     expect(repository.releases[0]).toMatchObject({ success: false })
   })
@@ -173,7 +157,6 @@ describe('tick', () => {
     const outcomes = await tick({
       repository,
       tasks: [task({ run })],
-      /* Well past staleClaimSeconds. */
       now: new Date(stale.getTime() + 3_600_000),
       staleClaimSeconds: 900,
     })
@@ -194,7 +177,6 @@ describe('tick', () => {
     const start = new Date('2026-01-01T00:00:00Z')
 
     await tick({ repository, tasks, now: start })
-    /* Two hours of missed ticks. */
     await tick({ repository, tasks, now: new Date(start.getTime() + 7_200_000) })
 
     expect(seen[0]).toBe(60)
@@ -266,11 +248,6 @@ describe('bans.expire is registered (F23)', () => {
     expect(result.detail).toEqual({ lifted: 3 })
   })
 
-  /*
-   * A ban is a punishment with a stated end. A user still locked out an hour
-   * after expiry reasonably concludes it did not work, so this runs far more
-   * often than the housekeeping tasks.
-   */
   it('runs often enough that an expiry is not visibly late', () => {
     const task = builtinTasks(workers()).find((t) => t.id === 'bans.expire')
     expect(task!.intervalSeconds).toBeLessThanOrEqual(900)
@@ -297,7 +274,6 @@ describe('bans.expire is registered (F23)', () => {
   })
 })
 
-/** Every worker the built-in list names. One place to add the next one. */
 function fullWorkerSet(): TaskWorkers {
   return {
     relayOutbox: async () => 0,
@@ -322,14 +298,6 @@ function fullWorkerSet(): TaskWorkers {
 }
 
 describe('search.reindex is registered (F72)', () => {
-  /*
-   * The task that makes a board's search work without an operator knowing to
-   * run a command. `search_vector` is written per post by the write path, so
-   * this is only ever a catch-up — an import, a seeded board, or a release that
-   * changed what the indexed document holds — but until it existed, every one
-   * of those left a board whose search box answered nothing at all and looked
-   * entirely healthy doing it.
-   */
   it('appears in the builtin registry', () => {
     expect(builtinTasks(fullWorkerSet()).map((t) => t.id)).toContain('search.reindex')
   })
@@ -356,13 +324,6 @@ describe('search.reindex is registered (F72)', () => {
 })
 
 describe('builtinTasks registers only what can run', () => {
-  /*
-   * A task whose worker does not exist must not appear. A stub returning 0
-   * would report a healthy run of a task that does nothing; a stub that throws
-   * would raise an admin notification for a task nobody asked for. Absence is
-   * the honest third option — and the day the worker is supplied, the task
-   * appears on its own.
-   */
   it('omits a task whose worker is missing', () => {
     const ids = builtinTasks({ expireBans: async () => 0 }).map((t) => t.id)
 
@@ -378,14 +339,6 @@ describe('builtinTasks registers only what can run', () => {
     expect(after).toContain('counters.reconcile')
   })
 
-  /*
-   * Derived from the worker set rather than counted by hand. Each task requires
-   * exactly one worker and no two share one — which the next test asserts — so
-   * "everything" is "one task per worker supplied". The literal this replaces
-   * went stale the moment a task was added, and the fix for that kind of
-   * failure is always to edit the number, which is how the assertion stops
-   * meaning anything.
-   */
   it('registers everything when the full set is supplied', () => {
     const workers = fullWorkerSet()
     const all = builtinTasks(workers)
@@ -395,10 +348,6 @@ describe('builtinTasks registers only what can run', () => {
   })
 
   it('gives every task a worker mapping, so none can be silently unregisterable', () => {
-    // A new task added without a REQUIRED_WORKER entry would never register,
-    // which would look like the feature simply not working. Comparing against
-    // the worker set rather than a hard-coded number means adding a task
-    // without its mapping fails here instead of quietly registering nothing.
     const ids = builtinTasks(fullWorkerSet()).map((t) => t.id)
 
     expect(new Set(ids).size).toBe(ids.length)

@@ -1,12 +1,5 @@
 import type { PaginationModel } from '@meith/theme-kit'
 
-/**
- * Page links, as bordered cells.
- *
- * Anchors with real hrefs, always. Paging has to work with JavaScript disabled
- * (R5), which is also why the model hands over resolved links rather than a page
- * count and a function — a function could not cross to a client slot anyway.
- */
 export function Pagination({ page, pageCount, pages, previousHref, nextHref }: PaginationModel) {
   if (pageCount <= 1) return null
 

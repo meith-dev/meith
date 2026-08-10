@@ -1,20 +1,3 @@
-/**
- * F52 — inline moderation over Postgres.
- *
- * Every transition in this file already existed. Approving is F48's, which is
- * F41's; deleting and restoring a post is F41's; deleting, restoring, locking,
- * pinning and moving a thread is F50's. What is new is doing a *chunk* of them
- * in one transaction, and the two rules that come with that:
- *
- *   - **`resolve` is scoped.** It takes the forums the actor may use this tool
- *     in and never looks outside them, so an id from anywhere else is absent
- *     rather than forbidden. Without that the outcome counts are a
- *     content-existence oracle over the whole board.
- *   - **Every write is state-guarded.** `where visibility = 'visible'`,
- *     `where is_locked <> true`. That is what makes the count returned here
- *     mean "rows that actually moved" rather than "rows I was asked about", and
- *     it is what makes a chunk that never ran safe to re-submit.
- */
 import { sql, type SQL } from 'drizzle-orm'
 
 import type {
@@ -41,14 +24,6 @@ import {
   repairForumLastPostChain,
 } from './visibility-counters'
 
-/**
- * An `in (…)` list from a set of ids.
- *
- * Not `= any($1::int[])`: drizzle expands a JavaScript array in a template into
- * a comma-separated *placeholder list*, so `any(${ids})` compiles to
- * `any(($1, $2))` — a syntax error. `in (null)` is the correct reading of an
- * empty set: never true. (Same note as the queue's; the trap is the same one.)
- */
 function idList(ids: readonly number[]): SQL {
   if (ids.length === 0) return sql`(null)`
   return sql`(${sql.join(
@@ -79,12 +54,6 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
     const postIds = selection.filter((s) => s.kind === 'post').map((s) => s.id)
     if (threadIds.length === 0 && postIds.length === 0) return []
 
-    /*
-     * `t.forum_id in (…)` on both halves is the scope, and it is on the *thread*
-     * for a post too — `posts.forum_id` is denormalised (R3.3) and a move keeps
-     * the two in step, but the thread is the authority on where a post lives and
-     * the join is already there.
-     */
     const rows = resultRows(
       await this.db.execute(sql`
         select 'thread'::text as kind, t.id, t.forum_id, t.visibility,
@@ -173,11 +142,6 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
         }
       }
 
-      /*
-       * One audit row per chunk, not per row — F48's rule. A moderator clearing
-       * a spam run performed one act, and forty rows saying so would bury the
-       * next one. The ids are in the detail, so the act is still reconstructable.
-       */
       if (applied > 0) {
         await logModeratorAction(
           tx,
@@ -198,14 +162,6 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
   }
 }
 
-/**
- * Lock, unlock, pin or unpin, in one statement for the whole chunk.
- *
- * The `<>` in the WHERE is F50's: it is what makes a double submit report zero
- * instead of writing an audit row claiming a moderator locked an already-locked
- * thread. Unlike the visibility tools these move no counters at all, so there is
- * nothing to do per row and the set update is the honest shape.
- */
 async function flagThreads(
   tx: CounterTx,
   tool: 'lock' | 'unlock' | 'stick' | 'unstick',
@@ -230,14 +186,6 @@ async function flagThreads(
   return moved.length
 }
 
-/**
- * Approve one held thread and the opening post it was held with (F48).
- *
- * The two move together because F39 wrote them together: approving the thread
- * without its first post produces a visible thread with nothing to read.
- * Nothing else in the thread moves — a reply held separately is its own row in
- * the selection.
- */
 async function approveThread(tx: CounterTx, threadId: number): Promise<boolean> {
   const moved = resultRows(
     await tx.execute(sql`
@@ -277,14 +225,6 @@ async function approveThread(tx: CounterTx, threadId: number): Promise<boolean> 
   return true
 }
 
-/**
- * One post between two states, with F41's counter rule intact.
- *
- * `unapproved → deleted` never happens here (rejection is the queue's), but the
- * delta arithmetic is written the same way regardless, because it is the rule
- * that keeps a "deleting always decrements" mistake out of the file: the only
- * state that counts is `visible`.
- */
 async function movePost(
   tx: CounterTx,
   postId: number,
@@ -321,7 +261,6 @@ async function movePost(
   return true
 }
 
-/** F50's thread delete/restore, unchanged and reused rather than reimplemented. */
 async function setThreadVisibility(
   tx: CounterTx,
   threadId: number,
@@ -329,12 +268,6 @@ async function setThreadVisibility(
   to: 'visible' | 'deleted',
   at: Date,
 ): Promise<boolean> {
-  /*
-   * The tally is taken *before* the flip and reused after it. Its subject is
-   * the posts, whose own `visibility` never changes — a post in a deleted
-   * thread keeps its state, so restoring puts back exactly what was there and
-   * approves nothing on the way.
-   */
   const tally = await tallyThread(tx, threadId)
 
   const moved = resultRows(
@@ -357,20 +290,12 @@ async function setThreadVisibility(
   return true
 }
 
-/** F50's move, likewise. Both chains, and `posts.forum_id` kept in step. */
 async function moveThread(
   tx: CounterTx,
   threadId: number,
   toForumId: number,
   at: Date,
 ): Promise<boolean> {
-  /*
-   * Where it is *now*, read before the write rather than returned by it. Both
-   * forum chains have to be adjusted and one of them is the one being left, so
-   * the update cannot be the thing that tells us — and `from_forum_id` is then
-   * the guard on the update itself, which is what makes a double submit move no
-   * counters.
-   */
   const current = resultRows(
     await tx.execute(sql`select forum_id, visibility from threads where id = ${threadId}`),
   ) as Array<{ forum_id: number; visibility: string }>
@@ -395,13 +320,6 @@ async function moveThread(
     update posts set forum_id = ${toForumId} where thread_id = ${threadId}
   `)
 
-  /*
-   * Both chains, in this order. Where they share an ancestor the two statements
-   * cancel to zero, which is exactly right: a thread moved between two
-   * subforums of one category has not left the category. Author counts are
-   * deliberately untouched — a move changes where somebody wrote, never how
-   * much (F51 settled that).
-   */
   await applyForumChain(tx, fromForumId, -1, tally)
   await applyForumChain(tx, toForumId, 1, tally)
   await repairForumLastPostChain(tx, fromForumId)

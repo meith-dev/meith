@@ -1,17 +1,3 @@
-/**
- * F47 — the leak suite. This is what the gate is.
- *
- * Every other visibility test asks whether one query filters correctly. This
- * asks the question the gate is actually about: **can any read path return a
- * state the reader's scope does not admit?** It is written as a table of paths
- * crossed with a table of scopes, and the central assertion is a property
- * rather than an expectation — every row a path returns must be in the scope it
- * was handed, whatever the path and whatever the scope.
- *
- * Adding a read path means adding a row here. A path that cannot be expressed
- * as "takes a scope, returns rows" is a path that does not take a scope, which
- * is the thing `pnpm guards` refuses to let exist.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -40,7 +26,6 @@ const FORUM = 4
 const READER = 1
 const AT = new Date('2026-07-30T12:00:00Z')
 
-/** The four scopes the permission model can produce. */
 const SCOPES: ReadonlyArray<{ name: string; scope: ContentScope }> = [
   { name: 'a guest or ordinary member', scope: PUBLIC_CONTENT },
   {
@@ -57,11 +42,6 @@ const SCOPES: ReadonlyArray<{ name: string; scope: ContentScope }> = [
   },
 ]
 
-/*
- * One thread per state, and one thread carrying a post of each state — so a
- * path that filters threads but not posts, or the reverse, is visible as a
- * different failure rather than as the same one.
- */
 const THREAD = { visible: 100, unapproved: 101, deleted: 102 } as const
 const POST = { visible: 1000, unapproved: 1001, deleted: 1002 } as const
 
@@ -131,13 +111,6 @@ beforeEach(async () => {
   await seedPost(POST.deleted, THREAD.visible, 'deleted')
 })
 
-/**
- * Every scoped read path on the board.
- *
- * `states` returns what each row's visibility actually is, which is what the
- * property below checks. A path added without a row here is a path the gate
- * does not cover — and one added without a scope does not compile.
- */
 const PATHS: ReadonlyArray<{
   name: string
   run(scope: ContentScope): Promise<readonly ContentVisibility[]>
@@ -179,11 +152,6 @@ describe('no read path returns content outside its scope', () => {
     }
   }
 
-  /*
-   * The property above is satisfiable by a path that returns nothing at all, so
-   * each scope is also pinned to the exact set it should see. Together they say
-   * "no more" and "no less".
-   */
   it('shows exactly the expected threads at each scope', async () => {
     const listed = async (scope: ContentScope): Promise<number[]> =>
       (await threads.listForum(FORUM, { limit: 50, scope })).rows.map((row) => row.id).sort()
@@ -211,14 +179,6 @@ describe('no read path returns content outside its scope', () => {
   })
 })
 
-/**
- * The paths that are public whoever is asking.
- *
- * Each is a *target for an action* rather than a view of the board, and each
- * would republish removed content if it followed the reader's scope: a quote
- * puts a body back in front of everybody, and a read watermark set to a hidden
- * post moves backwards the moment that post is removed.
- */
 describe('action targets stay public for everybody', () => {
   it('will not quote a hidden post', async () => {
     expect(await posts.findQuotable(THREAD.visible, POST.visible)).not.toBeNull()
@@ -234,12 +194,6 @@ describe('action targets stay public for everybody', () => {
 
   it('counts only visible threads as unread', async () => {
     const state = await readState.forUser(READER)
-    /*
-     * All three threads are in this forum and all three are unread. If hidden
-     * threads counted, the forum would still be flagged — so the assertion that
-     * bites is the one below, which removes the only visible thread and expects
-     * the flag to go with it.
-     */
     expect(state.unreadForumIds.has(FORUM)).toBe(true)
 
     await db.execute(sql`update threads set visibility = 'deleted' where id = ${THREAD.visible}`)
@@ -248,13 +202,6 @@ describe('action targets stay public for everybody', () => {
   })
 })
 
-/**
- * The scope is the *only* thing that widens a read.
- *
- * A leak of this shape — a path that widens itself because of something about
- * the row rather than something about the reader — would pass every test above,
- * because every test above hands the path a scope and checks what comes back.
- */
 describe('nothing widens a read except the scope', () => {
   it('hides a member"s own hidden posts from them', async () => {
     const page = await posts.listThread(THREAD.visible, {
@@ -264,13 +211,6 @@ describe('nothing widens a read except the scope', () => {
     expect(page.rows.map((row) => row.id)).toEqual([POST.visible])
   })
 
-  /*
-   * Numbering is a disclosure too. If "#4" is computed over everything while
-   * the reader can see three posts, the gap tells them content exists that they
-   * are not allowed to know about — the same thing the filter is there to
-   * prevent, arriving as an integer instead of a body. So the count of what
-   * came before follows the reader's scope, not the table.
-   */
   it('numbers posts within the reader"s own scope', async () => {
     const staff = contentScopeFrom({ seesUnapproved: true, seesDeleted: true })
 
@@ -284,11 +224,6 @@ describe('nothing widens a read except the scope', () => {
       [POST.deleted, 3],
     ])
 
-    /*
-     * The cursor has to sit *past* the hidden posts for this to discriminate:
-     * with it before them, "how many came before" is the same number either
-     * way. Here a public reader's second post must be numbered 2, not 4.
-     */
     await seedPost(POST.deleted + 1, THREAD.visible, 'visible')
     const forMember = await posts.listThread(THREAD.visible, {
       afterId: POST.deleted,
@@ -301,12 +236,6 @@ describe('nothing widens a read except the scope', () => {
   })
 
   it('does not let a cursor page past the filter', async () => {
-    /*
-     * The keyset cursor is a post id, and the id of a *hidden* post is a
-     * perfectly good cursor value. Paging from it must still return only what
-     * the scope admits — a filter applied to the page but not to the cursor
-     * subquery is how a numbering bug becomes a disclosure bug.
-     */
     const page = await posts.listThread(THREAD.visible, {
       afterId: POST.unapproved,
       limit: 50,

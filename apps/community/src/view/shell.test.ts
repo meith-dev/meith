@@ -1,12 +1,3 @@
-/**
- * F25 — the shell view models.
- *
- * These are pure functions, so this suite needs no database and no request. What
- * it is really pinning is the two rules that are easy to break by being helpful:
- * no link to a route that does not exist, and no permission conclusion drawn from
- * an actor's groups.
- */
-
 import type { Actor } from '@meith/authorization'
 import { emptyPermissionSet } from '@meith/core'
 import { describe, expect, it } from 'vitest'
@@ -56,11 +47,6 @@ describe('buildViewerModel', () => {
     expect(buildViewerModel(member).profileHref).toBe('/member/42')
   })
 
-  /*
-   * The panel must never decide admin access by looking at groups — that is F20's
-   * banned pattern, and it drifts from the Authorizer's answer the moment a
-   * permission changes. The caller asks the Authorizer and passes the result.
-   */
   it('takes admin-panel access from the caller, never from the actor', () => {
     expect(buildViewerModel(member).canAccessAdminCp).toBe(false)
     expect(buildViewerModel(member, { canAccessAdminCp: true }).canAccessAdminCp).toBe(true)
@@ -84,8 +70,6 @@ describe('buildUserPanelModel', () => {
       { label: 'Profile', href: '/member/42' },
       { label: 'Your control panel', href: '/usercp' },
       { label: 'Notifications', href: '/notifications' },
-      /* F60. Always present rather than only when something is unread: a
-         mailbox is somewhere a member goes to check. */
       { label: 'Messages', href: '/messages' },
       { label: 'Subscriptions', href: '/subscriptions' },
     ])
@@ -114,7 +98,6 @@ describe('buildUserPanelModel', () => {
     const panel = buildUserPanelModel(buildViewerModel(guest))
 
     expect(panel.unreadNotifications).toBe(0)
-    /* F60 supplies this one; until then zero renders nothing. */
     expect(panel.unreadMessages).toBe(0)
   })
 
@@ -143,24 +126,11 @@ describe('buildHeaderModel', () => {
 })
 
 describe('buildFooterModel', () => {
-  /*
-   * Every timestamp on the board is formatted server-side in one zone, so the
-   * footer is where a reader learns which. Rendering "Today, 09:14" with no zone
-   * stated is how a relative time ends up meaning nothing.
-   */
   it('names the timezone timestamps were formatted in', () => {
     expect(buildFooterModel().timezoneLabel).toBe(TIMEZONE_LABEL)
   })
 })
 
-/**
- * The board title and the viewer's name, both of which were hardcoded.
- *
- * `BOARD_TITLE` stays as a *fallback* rather than being removed: the auth
- * screens and the error pages render the shell when the database may be
- * unreachable, and a header that throws while rendering an error page is the
- * worst possible failure.
- */
 describe('the board title (F08)', () => {
   it('falls back to the constant when nothing resolves one', () => {
     expect(buildHeaderModel(buildViewerModel(guest)).boardTitle).toBe(BOARD_TITLE)
@@ -174,7 +144,6 @@ describe('the board title (F08)', () => {
 })
 
 describe('ViewerModel.username', () => {
-  /* It was `null` for every viewer on every page until the shell read it. */
   it('carries the display name the caller resolved', () => {
     expect(buildViewerModel(member, { displayName: 'ada' }).username).toBe('ada')
   })
@@ -185,18 +154,8 @@ describe('ViewerModel.username', () => {
   })
 })
 
-/**
- * F74. The header's navigation was `[]` for every viewer from F27 until the
- * discovery views gave it something true to say.
- */
 describe('buildBoardNavigation (F74)', () => {
   it('points only at routes that exist', () => {
-    /*
-     * The rule `buildHeaderModel` states in its own doc comment, and the one
-     * this builder is most likely to break later: a nav entry is a promise,
-     * and a header linking to a 404 is worse than a header with one fewer
-     * link. Every href here is checked against a real route in this repo.
-     */
     const hrefs = buildBoardNavigation(buildViewerModel(member)).map((link) => link.href)
 
     expect(hrefs).toEqual([
@@ -210,11 +169,6 @@ describe('buildBoardNavigation (F74)', () => {
   })
 
   it('omits the personal view for a guest rather than offering a refusal', () => {
-    /*
-     * `/discover/participated` needs a signed-in member, and a permanent
-     * header entry that always refuses teaches people to ignore the header.
-     * Kills the mutant that returns the same list for everybody.
-     */
     const hrefs = buildBoardNavigation(buildViewerModel(guest)).map((link) => link.href)
 
     expect(hrefs).not.toContain('/discover/participated')

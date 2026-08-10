@@ -1,9 +1,3 @@
-/**
- * F57 — a member's own settings over Postgres.
- *
- * Six columns on `users`, so every method here is one statement against one row
- * by primary key. The only decision worth stating is in `adoptEmail`.
- */
 import { sql } from 'drizzle-orm'
 
 import type { MemberSettings, MemberSettingsRepository } from '@meith/accounts'
@@ -26,13 +20,6 @@ interface RawSettings {
 export class PostgresMemberSettingsRepository implements MemberSettingsRepository {
   constructor(private readonly db: Database) {}
 
-  /**
-   * The settings row.
-   *
-   * A deleted account resolves to `null` rather than to its stored values: the
-   * UserCP is a screen for somebody who exists, and every other read on this
-   * board makes the same distinction (F33).
-   */
   async read(userId: number): Promise<MemberSettings | null> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -93,20 +80,6 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
     `)
   }
 
-  /**
-   * Adopt a verified address, letting the unique index decide.
-   *
-   * An hour can pass between requesting the change and confirming it, so a
-   * prior "is this taken" read answers a question about the past. The write is
-   * guarded by `not exists` *and* by `users_email_lower_key` behind it: the
-   * predicate gives a clean `false` in the ordinary case, and the index is what
-   * makes two confirmations arriving together impossible to both satisfy.
-   *
-   * `email_verified_at` is stamped in the same statement. The address is
-   * verified *by this very act* — the member followed a link sent to it — and
-   * leaving the column behind would make a confirmed address look unconfirmed
-   * to F18's activation logic.
-   */
   async adoptEmail(input: {
     readonly userId: number
     readonly email: string

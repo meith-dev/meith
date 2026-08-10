@@ -1,10 +1,3 @@
-/**
- * F06 — the cron entry point.
- *
- * Vercel Cron hits this on a schedule. It is a public URL, so it is guarded by a
- * shared secret; without one, anyone could force-drain the queue.
- */
-
 import { timingSafeEqual } from 'node:crypto'
 import { NextResponse } from 'next/server'
 
@@ -13,27 +6,13 @@ import { tick } from '@meith/tasks'
 
 import { getContainer } from '@/server/container'
 
-/**
- * The tick touches the database and must never be cached or prerendered.
- * `force-dynamic` alone is not enough — a route with no dynamic API usage can
- * still be statically evaluated at build time, which would run the scheduler
- * during `next build`.
- */
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-/**
- * Compares the presented secret without leaking length or content via timing.
- *
- * `timingSafeEqual` throws on length mismatch, which is itself a timing signal,
- * so both sides are hashed to a fixed width first. A plain `===` here would let
- * an attacker recover the secret byte-by-byte.
- */
 function secretMatches(presented: string, expected: string): boolean {
   const a = Buffer.from(presented, 'utf8')
   const b = Buffer.from(expected, 'utf8')
   if (a.length !== b.length) {
-    // Still do a comparison so the failure path costs roughly the same.
     timingSafeEqual(b, b)
     return false
   }
@@ -44,11 +23,6 @@ export async function GET(request: Request): Promise<NextResponse> {
   return withRequestContext({}, async () => {
     const expected = env.TICK_SECRET
 
-    /*
-     * In development the secret is optional (F02 only requires it in
-     * production), but an unset secret must not mean "open to everyone" in any
-     * environment that has one configured.
-     */
     if (!expected) {
       logger().warn(
         'TICK_SECRET is not set; the tick endpoint is unauthenticated. This is ' +
@@ -61,19 +35,12 @@ export async function GET(request: Request): Promise<NextResponse> {
         ''
 
       if (!secretMatches(header, expected)) {
-        /* 404, not 401: do not confirm the endpoint exists to an unauthorised caller. */
         return NextResponse.json({ error: 'Not found' }, { status: 404 })
       }
     }
 
     const { scheduler } = getContainer()
 
-    /*
-     * Fixture mode has no scheduler (see SchedulerBundle). Saying so plainly
-     * beats returning `ran: []`, which is indistinguishable from "ran and there
-     * was nothing to do" — the reading that let this endpoint look healthy while
-     * executing nothing for weeks.
-     */
     if (!scheduler) {
       return NextResponse.json(
         {
@@ -90,24 +57,11 @@ export async function GET(request: Request): Promise<NextResponse> {
     const outcomes = await tick({
       repository: scheduler.repository,
       tasks: scheduler.tasks,
-      /*
-       * F06 asked that a failing task be loud rather than dying silently, and
-       * until F55 the only available loudness was a log line nobody reads on a
-       * managed platform. This notifier logs *and* raises `system.task_failed`
-       * for every administrator, coalesced per task so a task failing on every
-       * tick is one unread row with a count on it.
-       */
       onError: scheduler.onTaskFailure,
     })
 
     const failed = outcomes.filter((o) => o.status === 'failed')
 
-    /*
-     * 200 even when a task failed: the tick itself did its job, and returning
-     * non-2xx would make the platform retry the *whole* drain — re-running every
-     * healthy task to chase one broken one. The failure is in the body and in
-     * the log.
-     */
     return NextResponse.json({
       ok: failed.length === 0,
       ran: outcomes,

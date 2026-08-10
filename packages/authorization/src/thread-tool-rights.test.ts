@@ -1,11 +1,3 @@
-/**
- * F50 — the granular half of an appointment.
- *
- * `moderatedForumIds` answers *where* somebody moderates; this answers *what*
- * they may do there. The four thread tools have no group-level permission field
- * at all — MyBB has never had one either — so an appointment and a staff bypass
- * are the only two ways to reach them, and these tests are about the first.
- */
 import { describe, expect, it } from 'vitest'
 
 import { emptyPermissionSet, type PermissionSet } from '@meith/core'
@@ -113,11 +105,6 @@ describe('moderatorRightsIn', () => {
     }
   })
 
-  /*
-   * The point of the whole feature. An appointment that can lock threads and
-   * nothing else must reach exactly one of the four — which is what a board
-   * appointing a "thread janitor" is asking for.
-   */
   it('grants exactly the rights the appointment carries', async () => {
     const canLockOnly: MemoryAppointment = {
       ...NONE,
@@ -169,7 +156,6 @@ describe('moderatorRightsIn', () => {
     expect(await allowed(actor([GROUP.registered]), [cascading], FORUM.category)).toEqual([])
   })
 
-  /* Two grants are two grants: rights union rather than the last one winning. */
   it('unions rights across a personal and a group appointment', async () => {
     const personal: MemoryAppointment = {
       ...NONE,
@@ -199,21 +185,6 @@ describe('moderatorRightsIn', () => {
   })
 })
 
-/**
- * The two post actions an appointment can grant, which are not F50 tools and
- * were not decided like them.
- *
- * `post.editOthers` and `post.softDelete` used to read `Target.isForumModerator`
- * — which is `hasAnyModeratorRight`, true for *any* of the nine. So an
- * appointment to split threads and nothing else granted both of them, and a
- * member appointed as a thread janitor could delete other people's posts. They
- * read the right they are named after now, the way `content.approve` always
- * has.
- *
- * The two *seeing* actions deliberately still follow the flag, and the last
- * test pins that asymmetry so a later tidy-up does not "make them consistent"
- * and take the queue away from the people appointed to work it.
- */
 describe('what an appointment grants over posts', () => {
   const POST_ACTIONS: readonly Action[] = [
     'post.editOthers',
@@ -228,7 +199,6 @@ describe('what an appointment grants over posts', () => {
     const authorizer = authorizerFor(moderators)
     const forum = await authorizer.forumMatrix(who, FORUM.general)
     const moderatorRights = await authorizer.moderatorRightsIn(who, FORUM.general)
-    /* `ownerId` is somebody else: `post.editOthers` is refused to the author. */
     return POST_ACTIONS.filter((action) =>
       authorizer.can(who, action, {
         forumId: FORUM.general,
@@ -264,11 +234,6 @@ describe('what an appointment grants over posts', () => {
     ).toEqual(['content.approve'])
   })
 
-  /*
-   * The group columns are the other way in, and unchanged: staff who hold
-   * `canEditOthersPosts` board-wide have never needed an appointment, and
-   * narrowing the appointment must not have narrowed them.
-   */
   it('still grants a group that holds the column outright, with no appointment', async () => {
     const authorizer = new Authorizer(
       new InMemoryAuthorizationSource({
@@ -289,12 +254,6 @@ describe('what an appointment grants over posts', () => {
     expect(authorizer.can(who, 'post.softDelete', target)).toBe(true)
   })
 
-  /*
-   * Seeing is not acting. An appointee has to be able to read the queue and
-   * find the deleted posts in the forum they look after, whichever of the nine
-   * rights they hold — that is what makes `content.approve` a *second* gate
-   * rather than the only one.
-   */
   it('lets any appointee see held and deleted content, whatever they may act on', async () => {
     const authorizer = authorizerFor([appointment({ canSplitThreads: true })])
     const who = actor([GROUP.registered])

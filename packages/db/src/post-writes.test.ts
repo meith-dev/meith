@@ -1,15 +1,3 @@
-/**
- * F41 — the gate, against real Postgres.
- *
- * Everything worth proving here is a property of a transaction or of SQL, and
- * would be waved through by a mock: that a revision and its post commit
- * together, that a deletion moves exactly the counters a creation moved and no
- * others, that a pointer to a deleted post is replaced rather than decremented,
- * and that the ancestor path converges however the events arrive.
- *
- * Content is created through the real write path rather than inserted, so the
- * starting counters are the ones the board would actually have.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -31,7 +19,6 @@ let db: Database
 let repo: PostgresPostWriteRepository
 let threads: PostgresThreadWriteRepository
 
-/** Two levels, so "ancestor" means something: category 1 > forum 4 > forum 5. */
 const CATEGORY = 1
 const FORUM = 4
 const CHILD = 5
@@ -77,7 +64,6 @@ beforeEach(async () => {
   ])
 })
 
-/** A thread with an opening post and `replies` replies, counters and all. */
 async function seedThread(
   forumId = FORUM,
   replies = 1,
@@ -112,7 +98,6 @@ async function seedThread(
     postIds.push(postId)
   }
 
-  // Ancestors are the event's job; run it so the board starts consistent.
   for (const postId of postIds) await rollUpAncestorCounters(db, postId)
 
   return { threadId: thread.threadId, postIds }
@@ -196,11 +181,6 @@ describe('findEditTarget', () => {
     })
   })
 
-  /*
-   * Thread-scoped, like F40's quote lookup. Without the thread in the lookup a
-   * post id from a URL addresses any post on the board, including one in a
-   * forum the actor was authorised against a different thread for.
-   */
   it('refuses a post that is not in the given thread', async () => {
     const { postIds } = await seedThread()
     expect(await repo.findEditTarget(9999, postIds[1]!)).toBeNull()
@@ -246,11 +226,6 @@ describe('applyEdit', () => {
     })
   })
 
-  /*
-   * F36's backfill would eventually repair a missed render, which is exactly
-   * why the edit must not rely on it: a current-version render is *trusted*, so
-   * until the sweep ran every reader would be served the pre-edit body.
-   */
   it('rewrites the stored render with the message', async () => {
     const { threadId, postIds } = await seedThread()
     await repo.applyEdit(edit(postIds[1]!, threadId))
@@ -284,14 +259,6 @@ describe('applyEdit', () => {
     expect((await postRow(postIds[1]!)).visibility).toBe('unapproved')
   })
 
-  /*
-   * F72. The edit rewrites the document with the body — and has to rebuild the
-   * *whole* document, not the half it can see on the row. Reading `subject`
-   * alone, which is null for everything this board writes, meant editing a
-   * typo out of an opening post silently dropped the thread's title from the
-   * index: the post stayed findable by its body and stopped being findable by
-   * the title it still had.
-   */
   it('keeps the thread’s title in the opening post’s index across an edit', async () => {
     const { threadId, postIds } = await seedThread()
     const first = postIds[0]!
@@ -308,15 +275,6 @@ describe('applyEdit', () => {
   })
 
   it('brings a post from an older document version up to date', async () => {
-    /*
-     * An edit writes the document under the *current* rule, so it has to stamp
-     * the row with that rule too. This is only observable on a row that was
-     * behind — a legacy board's post, edited after the upgrade — which is why
-     * the two posts here are pushed back to version 0 first. Without the stamp
-     * the edited row keeps a vector the backfill will rewrite to something
-     * identical, for ever, and `indexProgress` goes on reporting work that has
-     * already been done.
-     */
     const { threadId, postIds } = await seedThread()
     await db.execute(sql`update posts set search_version = 0`)
 
@@ -325,7 +283,6 @@ describe('applyEdit', () => {
 
     await repo.applyEdit(edit(postIds[1]!, threadId))
 
-    /* Exactly the edited post came forward; the untouched one is still behind. */
     expect(await search.indexProgress()).toEqual({ indexed: 1, pending: 1 })
   })
 
@@ -379,19 +336,12 @@ describe('applyVisibility', () => {
 
     expect(await forumRow(FORUM)).toMatchObject({
       post_count: before.forum.post_count - 1,
-      /* A reply is not a thread. Decrementing here is the mistake that shows a
-       * forum with more threads than it has. */
       thread_count: before.forum.thread_count,
     })
     expect(await threadRow(threadId)).toMatchObject({ reply_count: 0 })
     expect(await userPostCount()).toBe(before.author - 1)
   })
 
-  /*
-   * The silent one. A post in the queue was never counted, so "deleting always
-   * decrements" walks every total down by one per rejected post — invisible
-   * until a recount, and indistinguishable from ordinary drift.
-   */
   it('moves nothing when a post goes from the queue to deleted', async () => {
     const { threadId, postIds } = await seedThread()
     await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))
@@ -418,11 +368,6 @@ describe('applyVisibility', () => {
     expect(await userPostCount()).toBe(before.author)
   })
 
-  /*
-   * The `where visibility = from` clause is the whole concurrency story. Two
-   * submits of the same delete must decrement once, and the counters hang off
-   * this result rather than off the caller's intent so they cannot run twice.
-   */
   it('is a no-op on a second submit', async () => {
     const { threadId, postIds } = await seedThread()
     await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))
@@ -445,11 +390,6 @@ describe('applyVisibility', () => {
       expect(await forumRow(FORUM)).toMatchObject({ last_post_id: postIds[1] })
     })
 
-    /*
-     * The pointer is subtree-inclusive, so a category advertises the newest
-     * post anywhere beneath it. Decrementing a count cannot fix this: the
-     * replacement has to be found.
-     */
     it('repairs every ancestor, not just the posting forum', async () => {
       const { threadId, postIds } = await seedThread(FORUM, 1)
       const newest = postIds[1]!
@@ -465,7 +405,6 @@ describe('applyVisibility', () => {
       const newer = await seedThread(FORUM, 0, new Date('2026-07-30T12:00:00Z'))
       expect(await forumRow(CATEGORY)).toMatchObject({ last_post_id: newer.postIds[0] })
 
-      /* The opening post of the newer thread, taken down by a moderator. */
       await repo.applyVisibility(
         move(newer.postIds[0]!, newer.threadId, 'visible', 'deleted', true),
       )
@@ -523,11 +462,6 @@ describe('applyAncestorVisibilityChange', () => {
     expect(await forumRow(CATEGORY)).toMatchObject({ post_count: before.post_count - 1 })
   })
 
-  /*
-   * At-least-once delivery is the contract. The ledger — read as "this post is
-   * currently counted in its ancestors" — makes the second delivery find
-   * nothing to release.
-   */
   it('is a no-op on redelivery', async () => {
     const { threadId, postIds } = await seedThread()
     await repo.applyVisibility({
@@ -548,11 +482,6 @@ describe('applyAncestorVisibilityChange', () => {
     expect(await forumRow(CATEGORY)).toMatchObject({ post_count: after.post_count })
   })
 
-  /*
-   * The handler reads the row rather than trusting the event's flag, so a
-   * delete/restore pair delivered out of order still converges: whichever runs
-   * last sees the state that actually holds.
-   */
   it('converges when a delete and a restore arrive in the wrong order', async () => {
     const { threadId, postIds } = await seedThread()
     const before = await forumRow(CATEGORY)
@@ -569,7 +498,6 @@ describe('applyAncestorVisibilityChange', () => {
     await repo.applyVisibility({ ...args, from: 'visible', to: 'deleted' })
     await repo.applyVisibility({ ...args, from: 'deleted', to: 'visible' })
 
-    /* Both events, delivered late and in the wrong order. */
     await applyAncestorVisibilityChange(db, postIds[1]!)
     await applyAncestorVisibilityChange(db, postIds[1]!)
 

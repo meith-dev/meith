@@ -1,12 +1,3 @@
-/**
- * F52 at the app layer.
- *
- * The rules are unit-tested in `@meith/moderation` and the counters against
- * real Postgres. What is proven here is the seam neither can see: that the
- * *scope* the selection is re-read inside is resolved from the actor for this
- * request, per tool, and that an id in a forum the actor has no standing in is
- * indistinguishable from an id that does not exist.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -48,11 +39,9 @@ const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
 
 class FakeInline implements InlineModerationRepository {
-  /** Every row the board contains, whatever the scope. */
   rows: InlineTarget[] = []
   destination: MoveDestination | null = { id: SEED_FORUM.announcements, type: 'forum' }
   readonly applied: Array<{ tool: InlineTool; threadIds: number[]; postIds: number[] }> = []
-  /** What `resolve` was actually asked to look inside. */
   scopes: number[][] = []
 
   async resolve(
@@ -124,7 +113,6 @@ function installContainer(moderators: readonly MemoryAppointment[] = []): void {
   installTestContainer({ moderators, container: { inlineModeration: inline } })
 }
 
-/** Native checkboxes submit several values under one name. */
 function form(fields: Record<string, string>, items: readonly string[] = []): FormData {
   const f = new FormData()
   for (const [k, v] of Object.entries(fields)) f.set(k, v)
@@ -195,7 +183,6 @@ describe('inlineModerateAction', () => {
       ),
     )
 
-    /* One locked, one already locked, one that does not exist. */
     expect(where).toBe('/2-general?did=lock&n=1&gone=1&skipped=1')
   })
 
@@ -245,10 +232,6 @@ describe('inlineModerateAction', () => {
     expect(inline.applied).toEqual([{ tool: 'lock', threadIds: [20], postIds: [] }])
   })
 
-  /*
-   * The scope is the authorisation, so it is resolved here rather than read out
-   * of the form. A partial appointment must reach exactly one tool.
-   */
   it('scopes the re-read to the forums this actor may use this tool in', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
     installContainer([appointment(SEED_FORUM.general, { canOpenCloseThreads: true })])
@@ -266,11 +249,6 @@ describe('inlineModerateAction', () => {
     expect(inline.applied).toHaveLength(1)
   })
 
-  /*
-   * The disclosure property, end to end. A thread in a forum this actor has no
-   * standing in must produce the *same* answer as a thread that never existed —
-   * otherwise the counts enumerate the board.
-   */
   it('reports a thread outside the scope exactly as it reports one that does not exist', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
     installContainer([appointment(SEED_FORUM.general, { canOpenCloseThreads: true })])
@@ -295,10 +273,6 @@ describe('inlineModerateAction', () => {
     expect(elsewhere).toBe('/2-general?did=lock&n=0&gone=1')
   })
 
-  /*
-   * Deleting is scoped by the union of the two actions that can authorise it,
-   * because a thread and a post are different grants — see INLINE_TOOL_ACTIONS.
-   */
   it('lets an appointee delete a post in their forum', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
     installContainer([appointment(SEED_FORUM.general, { canSoftDeletePosts: true })])
@@ -347,7 +321,6 @@ describe('inlineModerateAction', () => {
       ).toBe('/?did=lock&n=1')
     })
 
-    /* A field that decides where the browser lands is an open redirect. */
     it('refuses an off-board target', async () => {
       for (const evil of ['//evil.test/x', 'https://evil.test/x', 'javascript:alert(1)']) {
         expect(

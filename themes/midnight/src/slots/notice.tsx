@@ -1,12 +1,5 @@
 import type { NoticeModel } from '@meith/theme-kit'
 
-/**
- * A ruled banner, keyed by kind.
- *
- * The kind is carried by a left border and a word, never by colour alone: a
- * notice whose only signal is a hue is absent for a substantial number of
- * readers, and "error" is exactly the notice they need most.
- */
 const EDGE: Record<NoticeModel['kind'], string> = {
   info: 'border-l-primary',
   success: 'border-l-moderation-approved',

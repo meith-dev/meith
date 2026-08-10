@@ -1,15 +1,5 @@
 "use client"
 
-/**
- * A usergroup's badge upload.
- *
- * The board logo's control with a group id attached, and the same shape for the
- * same reasons: one form per scheme, because a form posts every field it holds
- * and a single form would make replacing the light badge also re-post whatever
- * was sitting in the dark input; and the preview is the *stored* image rather
- * than a thumbnail of the pending file, because what an operator wants to know
- * is what the board is showing now.
- */
 import { useActionState } from "react"
 
 import { removeBadgeAction, saveBadgeAction } from "@/server/group-badge-actions"
@@ -49,11 +39,6 @@ export function BadgeUploadForm({
         </p>
       )}
 
-      {/*
-        Shown against the surface a badge really sits on, with `.dark` on the
-        dark one — checking an icon against the wrong background is how a board
-        ends up with a black badge nobody can see at night.
-      */}
       <div
         className={`flex min-h-12 items-center justify-center rounded-md border border-border bg-card p-2 ${
           scheme === "dark" ? "dark" : ""

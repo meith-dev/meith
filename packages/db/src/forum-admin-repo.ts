@@ -1,27 +1,3 @@
-/**
- * F65 — the writes a forum administration screen needs.
- *
- * Separate from `forum-repo.ts` because that one is the *read* path the whole
- * board depends on, cached and on the index's critical path, and because these
- * are the only statements on this board that write `forum_permissions` at all —
- * the table has existed since F21 with a reader and no writer.
- *
- * Three things are worth reading.
- *
- * **`saveOverrides` writes nulls.** A `forum_permissions` column is nullable
- * and null *means inherit* (R4.1 layer 2), so "clear this cell" is a write of
- * NULL and not a delete of the row — and a row all of whose columns are null is
- * deleted, because that is what it means. Anything else accumulates rows that
- * say nothing and slow the resolver's ancestor walk on every page.
- *
- * **The copy is one statement per (forum, group), inside one transaction.** It
- * is the most destructive operation the panel has, and a half-applied copy
- * would leave a subtree that is neither what it was nor what was asked for.
- *
- * **The subtree is found by `path`, not by recursion.** `forums.path` is the
- * materialised dot-path F16 maintains precisely so "everything under this" is a
- * prefix match — one index scan rather than a recursive CTE per level.
- */
 import { sql } from 'drizzle-orm'
 
 import { FORUM_PERMISSION_FIELDS, ValidationError } from '@meith/core'
@@ -31,7 +7,6 @@ import type { Database } from './client'
 import { columnName } from './schema/permission-columns'
 import { resultRows } from './result-rows'
 
-/** The editable options on a forum row. Everything else is derived or counted. */
 export interface ForumOptionsInput {
   readonly title: string
   readonly slug: string
@@ -48,20 +23,6 @@ export interface ForumOptionsInput {
   readonly moderateNewPosts: boolean
 }
 
-
-/* ------------------------------------------------------------------ *
- * Moderator appointments
- * ------------------------------------------------------------------ */
-
-/**
- * The rights an appointment carries, as the ACP edits them.
- *
- * A superset of `ModeratorRights`: the Authorizer only asks about the nine it
- * decides actions with, and the table has three more (`canHardDeletePosts`,
- * `canManagePolls`, `canViewIps`) that no action reads yet. They are edited
- * anyway rather than hidden, because a right that exists in the schema and not
- * in the screen is one an operator will assume they have granted.
- */
 export const MODERATOR_RIGHTS = [
   'canEditPosts',
   'canSoftDeletePosts',
@@ -82,10 +43,8 @@ export type ModeratorRight = (typeof MODERATOR_RIGHTS)[number]
 export interface ModeratorAppointmentRow {
   readonly id: number
   readonly forumId: number
-  /** Exactly one of these is set. See `appoint` for why the table allows both. */
   readonly userId: number | null
   readonly groupId: number | null
-  /** Resolved for display: the member's name or the group's title. */
   readonly subject: string
   readonly cascadeToSubforums: boolean
   readonly rights: Readonly<Record<ModeratorRight, boolean>>
@@ -102,14 +61,6 @@ export interface AppointModeratorInput {
 export class PostgresForumAdminRepository {
   constructor(private readonly db: Database) {}
 
-  /**
-   * Every group, for the matrix's rows.
-   *
-   * Here rather than on `AuthorizationSource`: that port is deliberately narrow
-   * — "these are the only questions the resolver asks" — and *listing* groups is
-   * not one of them. Widening it for one admin screen would put a method on the
-   * in-memory fixture that the resolver never calls.
-   */
   async listGroups(): Promise<readonly { id: number; title: string }[]> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -120,13 +71,6 @@ export class PostgresForumAdminRepository {
     return rows.map((row) => ({ id: Number(row.id), title: row.title }))
   }
 
-  /**
-   * One forum's editable options.
-   *
-   * A separate read from `forum-repo.ts`'s, which selects what the *board*
-   * needs — a listing does not want eight posting toggles, and adding them
-   * there would widen the query every page of the board runs.
-   */
   async readOptions(forumId: number): Promise<ForumOptionsInput | null> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -157,14 +101,6 @@ export class PostgresForumAdminRepository {
     }
   }
 
-
-  /**
-   * The appointments on one forum, with the name of whoever holds them.
-   *
-   * `forum_moderators` has had a *reader* since F48 — `authorization-source.ts`
-   * resolves appointments into `Target.isForumModerator` — and until now no
-   * writer at all, so "moderator" could only be configured with SQL.
-   */
   async listModerators(forumId: number): Promise<readonly ModeratorAppointmentRow[]> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -186,12 +122,6 @@ export class PostgresForumAdminRepository {
         forumId: Number(row.forum_id),
         userId: row.user_id === null ? null : Number(row.user_id),
         groupId: row.group_id === null ? null : Number(row.group_id),
-        /*
-         * Resolved here rather than left to the caller. A row whose member has
-         * been deleted cascades away, so a missing name means a row written by
-         * hand against an id that never existed — which should read as what it
-         * is rather than as a blank line.
-         */
         subject:
           row.group_title !== null && row.group_title !== undefined
             ? `${String(row.group_title)} (group)`
@@ -204,20 +134,6 @@ export class PostgresForumAdminRepository {
     })
   }
 
-  /**
-   * Appoint, or replace an existing appointment's rights.
-   *
-   * The partial unique indexes on (forum, user) and (forum, group) are what
-   * make this an upsert rather than a check-then-insert: appointing somebody
-   * twice is a rights change, and two administrators doing it at once must not
-   * produce two rows that disagree.
-   *
-   * The table permits a row with neither a user nor a group, and one with both.
-   * Neither is meaningful, so the *caller* is required to supply exactly one —
-   * and this asserts it rather than trusting the caller, because a row with
-   * both would be resolved by F48 as two appointments that cannot be edited
-   * apart.
-   */
   async appoint(input: AppointModeratorInput): Promise<void> {
     const hasUser = input.userId !== null
     const hasGroup = input.groupId !== null
@@ -246,7 +162,6 @@ export class PostgresForumAdminRepository {
     `)
   }
 
-  /** Remove one appointment. Scoped to the forum, so an id from elsewhere misses. */
   async removeModerator(forumId: number, appointmentId: number): Promise<void> {
     await this.db.execute(sql`
       delete from forum_moderators
@@ -254,7 +169,6 @@ export class PostgresForumAdminRepository {
     `)
   }
 
-  /** A member by name, for the appointment form. Exact, case-insensitive. */
   async findMemberByUsername(username: string): Promise<{ id: number; username: string } | null> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -265,7 +179,6 @@ export class PostgresForumAdminRepository {
     const row = rows[0]
     return row === undefined ? null : { id: Number(row.id), username: row.username }
   }
-
 
   async updateOptions(forumId: number, input: ForumOptionsInput): Promise<void> {
     await this.db.execute(sql`
@@ -287,13 +200,6 @@ export class PostgresForumAdminRepository {
     `)
   }
 
-  /**
-   * Every override on a set of forums.
-   *
-   * One query for the whole subtree, because both the matrix and the copy
-   * preview need the *ancestors* as well as the target — the matrix to resolve
-   * what a cell inherits, the preview to say what it would replace.
-   */
   async readOverrides(forumIds: readonly number[]): Promise<readonly ForumOverride[]> {
     if (forumIds.length === 0) return []
 
@@ -311,12 +217,6 @@ export class PostgresForumAdminRepository {
       const overrides: Record<string, boolean | number> = {}
       for (const field of FORUM_PERMISSION_FIELDS) {
         const value = row[columnName(field.key)]
-        /*
-         * Null is dropped rather than carried. `ForumOverride.overrides` is
-         * documented as holding only the keys that are actually set, and the
-         * resolver's walk depends on it: a present-but-null key would stop the
-         * ancestor walk at the wrong forum.
-         */
         if (value === null || value === undefined) continue
         overrides[field.key] =
           field.kind === 'numeric' ? Number(value) : value === true
@@ -330,25 +230,12 @@ export class PostgresForumAdminRepository {
     })
   }
 
-  /**
-   * Write one (forum, group) row.
-   *
-   * `values` carries every forum-scoped field, `null` included — the caller has
-   * already read the whole row off the form, and a partial write would leave
-   * cells at whatever a previous save happened to put there.
-   */
   async saveOverrides(
     forumId: number,
     groupId: number,
     values: Readonly<Record<string, boolean | number | null>>,
   ): Promise<void> {
     await this.db.transaction(async (tx) => {
-      /*
-       * All null is not a row. Keeping one would mean the resolver's ancestor
-       * walk visits a row that says nothing, on every permission check, on
-       * every page — and an operator clearing a forum's overrides would have no
-       * way to tell it had worked.
-       */
       if (FORUM_PERMISSION_FIELDS.every((field) => values[field.key] == null)) {
         await tx.execute(sql`
           delete from forum_permissions
@@ -372,13 +259,6 @@ export class PostgresForumAdminRepository {
     })
   }
 
-  /**
-   * Every forum strictly beneath this one.
-   *
-   * A prefix match on `forums.path`, which F16 maintains as a dot-path for
-   * exactly this question. The trailing dot matters: without it `10.2` would
-   * match `10.20`, and a copy would reach a forum in another subtree.
-   */
   async descendantIds(forumId: number): Promise<readonly number[]> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -393,13 +273,6 @@ export class PostgresForumAdminRepository {
     return rows.map((row) => Number(row.id))
   }
 
-  /**
-   * Make every descendant's overrides identical to this forum's.
-   *
-   * One transaction, because a half-applied copy leaves a subtree that is
-   * neither what it was nor what was asked for — and the operator has no way to
-   * tell which forums were reached.
-   */
   async copyToDescendants(
     forumId: number,
     descendantIds: readonly number[],
@@ -417,13 +290,6 @@ export class PostgresForumAdminRepository {
     )
 
     await this.db.transaction(async (tx) => {
-      /*
-       * Cleared first, so a group the source forum does not override ends up
-       * with no row on the descendant either. Without this the copy would be
-       * "apply the source's rows over the top", which leaves a descendant's
-       * extra rows in place — and two forums the operator was told are now the
-       * same would not be.
-       */
       await tx.execute(sql`
         delete from forum_permissions
          where forum_id in (${targets}) and group_id in (${groups})

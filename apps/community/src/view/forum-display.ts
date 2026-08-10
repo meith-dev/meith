@@ -1,4 +1,3 @@
-/** F30's pure forum-display view model. */
 import type { ForumListingRow } from "@meith/forums";
 import type {
   ForumDisplayModel,
@@ -64,16 +63,7 @@ export function threadRowModel(
   row: ThreadListingRow,
   now: Date,
   readState: Pick<ReadState, "forumReadAt" | "threadLastPostId"> | null = null,
-  /** F57's viewer zone. Defaults to UTC, as every timestamp did before it. */
   timeZone?: string,
-  /**
-   * The group colours for the names in this row, or `undefined`.
-   *
-   * Optional and last, because two callers build a thread row — the forum
-   * listing and the thread page's own header — and only one of them has a page
-   * full of names to resolve. A caller that passes nothing gets exactly the row
-   * this function returned before group colours existed.
-   */
   identities?: ReadonlyMap<number, MemberIdentity>,
 ): ThreadRowModel {
   const last = row.lastPost;
@@ -109,26 +99,11 @@ export interface ForumDisplayInput {
   readonly page: ThreadPage;
   readonly pageNumber: number;
   readonly nextHref: string | null;
-  /**
-   * Where the composer lives, or `null` when this viewer may not post here —
-   * a link nobody may follow is an invitation to a 404 (F39).
-   */
   readonly newThreadHref?: string | null;
   readonly readState?: Pick<ReadState, "forumReadAt" | "threadLastPostId"> | null;
   readonly markReadAction?: string | null;
   readonly now: Date;
-  /**
-   * The viewer's timezone (F57). Defaults to UTC — the zone every timestamp on
-   * this board used before members could choose one.
-   */
   readonly timeZone?: string;
-  /**
-   * The group colours for every name on this page, resolved in one query.
-   *
-   * Optional, and an empty map is a real answer rather than a missing one: a
-   * board with no coloured groups produces exactly what this page rendered
-   * before they existed.
-   */
   readonly identities?: ReadonlyMap<number, MemberIdentity>;
 }
 
@@ -157,7 +132,6 @@ export function buildForumDisplayView(
     ),
     pagination: {
       page: input.pageNumber,
-      // Cursor pagination deliberately does not run a count query just to show a total.
       pageCount: input.pageNumber,
       pages: [{ page: input.pageNumber, href: "", isCurrent: true }],
       previousHref: null,

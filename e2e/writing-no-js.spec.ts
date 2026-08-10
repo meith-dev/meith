@@ -1,17 +1,3 @@
-/**
- * The write path, in a browser, with JavaScript off.
- *
- * **This file is what the standing gap was.** Since F39 the browser suite has
- * run against `DATA_SOURCE=fixture`, which has no writer for anything, so
- * posting, moderation and attachments have had no browser-level proof at all —
- * a hole `plan-status.md` named feature after feature. `e2e/support/database.ts`
- * is what makes it possible; this is the first thing to walk through it.
- *
- * Every test here runs with scripting disabled. That is the point rather than a
- * flourish: this board's claim is that a native `<form>` does the work and the
- * islands are optional, and a suite that tested the enhanced path would prove
- * the opposite of what is claimed.
- */
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
 import { samplePng } from './support/png'
@@ -20,7 +6,6 @@ test.use({ javaScriptEnabled: false })
 
 const PASSWORD = 'long-enough-password'
 
-/** Register through the form, then sign in. The only way to get a session. */
 async function signUp(page: Page, label: string): Promise<string> {
   const username = `e2e_${label}_${Date.now()}_${Math.floor(Math.random() * 1000)}`
 
@@ -39,30 +24,12 @@ async function signUp(page: Page, label: string): Promise<string> {
   return username
 }
 
-/**
- * Run the board's tick until `check` passes.
- *
- * A single tick is *not* enough, and the reason is the scheduler working
- * correctly rather than a flake: `queue.drain` has a sixty-second interval, so
- * the second spec in a run that needs a drain finds the task not yet due and
- * the tick reports it skipped. Asserting "after exactly one tick" was
- * over-specifying — the contract a member experiences is "once the queue has
- * run", and that is what this waits for.
- *
- * The tick URL is the production path: the serverless profile drives it with a
- * cron, so this is not a test hook.
- */
 async function drainUntil(
   request: APIRequestContext,
   page: Page,
   url: string,
   check: () => Promise<void>,
 ): Promise<void> {
-  /*
-   * Longer than the default 30s, because the wait is bounded by that interval
-   * and not by anything this test does. Only the specs that wait on the queue
-   * pay it.
-   */
   test.setTimeout(150_000)
 
   await expect(async () => {
@@ -85,10 +52,6 @@ test('a member posts a thread and a reply, and both land in the database', async
 
   await expect(page).toHaveURL(/\/thread\/\d+-/)
   await expect(page.getByRole('heading', { name: title })).toBeVisible()
-  /*
-   * The renderer ran on the server: asserting the tag rather than the words is
-   * what distinguishes "the Markdown was rendered" from "the input was echoed".
-   */
   await expect(page.locator('article strong').first()).toHaveText('no JavaScript')
 
   const threadUrl = page.url()
@@ -97,22 +60,9 @@ test('a member posts a thread and a reply, and both land in the database', async
   await page.getByLabel('Message').fill('And a reply, also without scripting.')
   await page.getByRole('button', { name: 'Post reply' }).click()
 
-  /*
-   * The URL anchor, not the text. A refused reply re-renders the form with the
-   * attempted text still in the textarea, which a text assertion also matches —
-   * that is exactly how this spec stayed green while the flood interval was
-   * refusing this reply on every fast run. The permalink anchor only exists
-   * once the post does.
-   */
   await expect(page).toHaveURL(/#post-\d+$/)
   await expect(page.getByText('And a reply, also without scripting.')).toBeVisible()
 
-  /*
-   * The forum listing's denormalised counters moved. This is the half of
-   * posting that unit tests cover in isolation and nothing had ever exercised
-   * end to end — the write, the counter update and the read are three different
-   * modules and this is the only place all three run together.
-   */
   await page.goto('/200-general')
   await expect(page.getByRole('link', { name: title })).toBeVisible()
 })
@@ -136,11 +86,6 @@ test('an image attachment is not served until it has been re-encoded', async ({ 
   await expect(page).toHaveURL(/\/thread\/\d+-/)
   const threadUrl = page.url()
 
-  /*
-   * F42's central claim, seen from outside: the post exists and the attachment
-   * does not, because the bytes the member uploaded are never served and the
-   * re-encoded ones do not exist yet.
-   */
   await expect(page.getByText('There should be an image under this.')).toBeVisible()
   await expect(page.locator('article img')).toHaveCount(0)
 
@@ -154,23 +99,12 @@ test('an image attachment is not served until it has been re-encoded', async ({ 
   const download = await request.get(href!)
   expect(download.status()).toBe(200)
 
-  /*
-   * The headers *are* the security control for member-supplied bytes, and they
-   * are the reason this streams through the app rather than redirecting to a
-   * signed object-store URL. Asserting them here is the only place that check
-   * is made against a real HTTP response.
-   */
   expect(download.headers()['content-type']).toBe('image/png')
   expect(download.headers()['content-disposition']).toContain('attachment;')
   expect(download.headers()['x-content-type-options']).toBe('nosniff')
 
   const body = await download.body()
   expect([...body.subarray(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47])
-  /*
-   * Re-encoded, not stored: the served object is the encoder's output and
-   * therefore a different size from what was uploaded. Kills the deployment
-   * where the pipeline silently degrades to storing the original.
-   */
   expect(body.length).not.toBe(samplePng().length)
 })
 
@@ -190,12 +124,6 @@ test('a file the board will not accept is refused, and nothing is posted', async
   })
   await page.getByRole('button', { name: 'Post thread' }).click()
 
-  /*
-   * The name says `.png` and the browser said `image/png`; only the bytes
-   * disagree, and the bytes are the only thing the board trusts. The failure is
-   * reported on the form, and — this is the part that matters — **the thread
-   * was not created**, because files are staged before the post exists.
-   */
   await expect(page.getByText(/not a type this board accepts/)).toBeVisible()
 
   await page.goto('/200-general')
@@ -203,11 +131,6 @@ test('a file the board will not accept is refused, and nothing is posted', async
 })
 
 test('an attachment in a thread a guest may not read is refused by URL', async ({ page, request }) => {
-  /*
-   * The check that a direct URL never goes through the postbit — which is
-   * exactly how it gets missed. A guest asking for an attachment id gets the
-   * same 404 as for one that does not exist.
-   */
   const anonymous = await request.get('/attachment/999999')
   expect(anonymous.status()).toBe(404)
 
@@ -230,12 +153,6 @@ test('an avatar is re-encoded before it appears anywhere', async ({ page, reques
   })
   await page.getByRole('button', { name: 'Upload' }).click()
 
-  /*
-   * The same claim F42 makes, on the other half: what a member uploaded is
-   * never what the board shows, so there is nothing to see until the queue has
-   * run. The screen says so rather than silently showing the old state.
-   */
-  /* The notice and the card both say so; the card is the durable state. */
   await expect(page.getByText(/It will appear shortly/)).toBeVisible()
   await expect(page.locator('img[alt="Your avatar"]')).toHaveCount(0)
 
@@ -244,10 +161,6 @@ test('an avatar is re-encoded before it appears anywhere', async ({ page, reques
     await expect(shown).toBeVisible({ timeout: 2_000 })
   })
 
-  /*
-   * The URL carries the member and a version and never the object key — a key
-   * in a URL is a capability that would outlive a moderator's lock.
-   */
   const src = await shown.getAttribute('src')
   expect(src).toMatch(/^\/avatar\/\d+\?v=\d+$/)
 
@@ -257,7 +170,6 @@ test('an avatar is re-encoded before it appears anywhere', async ({ page, reques
 
   const body = await image.body()
   expect([...body.subarray(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47])
-  /* Re-encoded and fitted to the avatar box, so smaller than what was sent. */
   expect(body.length).toBeLessThan(samplePng(300, 300).length)
 })
 

@@ -108,10 +108,6 @@ describe('parseAllowlist', () => {
 
 describe('ipAllowed', () => {
   it('allows everything when the allowlist is empty', () => {
-    /*
-     * The feature is optional by acceptance. "Unset means nothing is allowed"
-     * would turn forgetting to configure it into a board nobody can administer.
-     */
     expect(ipAllowed('203.0.113.9', [])).toBe(true)
     expect(ipAllowed(null, [])).toBe(true)
   })
@@ -122,21 +118,12 @@ describe('ipAllowed', () => {
   })
 
   it('matches a prefix only when the entry ends in a dot or colon', () => {
-    /*
-     * Kills the mutant that treats every entry as a prefix — which would make
-     * `198.51.100.7` admit `198.51.100.70` through `198.51.100.79`.
-     */
     expect(ipAllowed('203.0.113.9', ['203.0.113.'])).toBe(true)
     expect(ipAllowed('203.0.114.9', ['203.0.113.'])).toBe(false)
     expect(ipAllowed('2001:db8::1', ['2001:db8:'])).toBe(true)
   })
 
   it('refuses a missing address when an allowlist is configured', () => {
-    /*
-     * The one place failing closed matters: if the deployment cannot say where
-     * a request came from, an allowlist cannot do its job, and ignoring it
-     * would make the whole feature theatre.
-     */
     expect(ipAllowed(null, ['203.0.113.'])).toBe(false)
     expect(ipAllowed('   ', ['203.0.113.'])).toBe(false)
   })
@@ -169,7 +156,6 @@ describe('resolving a session', () => {
     const context = await service.resolve('h')
     expect(context?.userId).toBe(USER)
     expect(repo.touched).toHaveLength(1)
-    /* The throttle is the repository's, and it is asked for explicitly. */
     expect(repo.touched[0]?.windowSeconds).toBeGreaterThan(0)
   })
 
@@ -181,11 +167,6 @@ describe('resolving a session', () => {
   })
 
   it('revokes a session past the absolute ceiling, whatever its expiry says', async () => {
-    /*
-     * An idle timeout alone can be defeated by a page that polls. The ceiling
-     * is measured from `createdAt`, so a session kept alive all weekend is
-     * still gone. Kills the mutant that drops the check.
-     */
     const old = new Date(NOW.getTime() - (ADMIN_MAX_HOURS + 1) * 3_600_000)
     repo.rows = [session({ createdAt: old })]
 
@@ -208,11 +189,6 @@ describe('the re-authentication clock', () => {
   })
 
   it('goes stale after the window, even while the session is alive', async () => {
-    /*
-     * The whole mechanism: activity extends `lastSeenAt` and `expiresAt`, and
-     * does *not* move `authenticatedAt`. So browsing the panel for an hour
-     * keeps the session and loses the proof.
-     */
     const proved = new Date(NOW.getTime() - (REAUTH_MINUTES + 1) * 60_000)
     repo.rows = [session({ authenticatedAt: proved, lastSeenAt: NOW })]
 
@@ -236,7 +212,6 @@ describe('the re-authentication clock', () => {
   it('is the only thing `markReauthenticated` moves', async () => {
     await service.markReauthenticated(1)
     expect(repo.reauthed).toEqual([1])
-    /* Not a touch: proving the password is not activity, it is proof. */
     expect(repo.touched).toEqual([])
   })
 })
@@ -259,10 +234,6 @@ describe('assertLogAction', () => {
   })
 
   it('refuses free text, so the log stays groupable', () => {
-    /*
-     * The log is read by grouping on `action`. A value with a member's name in
-     * it makes the column useless.
-     */
     for (const action of ['deleted bob', 'Thread.Merge', 'nodot', '', 'a..b']) {
       expect(() => assertLogAction(action)).toThrow(ValidationError)
     }

@@ -1,22 +1,3 @@
-/**
- * F42 — attachments, over Postgres.
- *
- * Three things are worth reading.
- *
- * **`markReady` clears `source_key` in the same statement that sets
- * `storage_key`.** The two are the before and after of the re-encode, and a row
- * that briefly held both would be a row whose "which bytes does this serve"
- * answer depends on when you asked.
- *
- * **Every state transition is guarded in its `where`.** `markReady` only
- * touches a `pending` row; so does `markFailed`. The queue is at-least-once, so
- * a second delivery is expected rather than exceptional, and putting the guard
- * in the statement means no caller can forget it — the same argument as
- * `findLive` in `admin-session-repo.ts`.
- *
- * **`listForPosts` is one query for a whole page of posts.** The postbit asks
- * per post; answering per post would be an N+1 on the board's heaviest page.
- */
 import { sql } from 'drizzle-orm'
 
 import type {
@@ -31,7 +12,6 @@ import type {
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 
-/** PGlite hands raw templates timestamps as strings; postgres.js hands Dates. */
 function toDate(value: string | Date): Date {
   return value instanceof Date ? value : new Date(value)
 }
@@ -75,11 +55,6 @@ function toRecord(row: RawAttachment): AttachmentRecord {
     thumbnailKey: row.thumbnail_key,
     width: row.width === null ? null : Number(row.width),
     height: row.height === null ? null : Number(row.height),
-    /*
-     * Narrowed rather than asserted. The column is text and a row written by a
-     * previous deploy could hold anything; an unknown status reads as `failed`,
-     * which is the only safe default — it is the one value that serves nothing.
-     */
     status: (['pending', 'ready', 'failed'] as const).includes(
       row.status as AttachmentStatus,
     )
@@ -108,7 +83,6 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
       `),
     ) as RawAttachment[]
 
-    /* Unreachable: the insert returns a row or throws on a key index. */
     if (rows[0] === undefined) throw new Error('Attachment insert returned no row')
     return toRecord(rows[0])
   }
@@ -120,15 +94,6 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
     return rows[0] === undefined ? null : toRecord(rows[0])
   }
 
-  /**
-   * A row and the visibility of the content it hangs from, in one read.
-   *
-   * Both are needed to authorise a download, and fetching them separately would
-   * leave a window in which the post was deleted between the two checks. The
-   * joins are inner: an attachment whose post or thread has gone is not
-   * downloadable, and returning nothing is the same answer as "no such
-   * attachment" — which is also what it should look like from outside.
-   */
   async findForDownload(id: number): Promise<AttachmentForDownload | null> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -153,12 +118,6 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
     }
   }
 
-  /**
-   * Every attachment on a page of posts, in one query.
-   *
-   * Ordered by post and then by id so the postbit renders them in the order
-   * they were uploaded without sorting in JavaScript.
-   */
   async listForPosts(postIds: readonly number[]): Promise<readonly AttachmentRecord[]> {
     if (postIds.length === 0) return []
 
@@ -185,13 +144,6 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
     return Number(rows[0]?.n ?? 0)
   }
 
-  /**
-   * Publish the re-encoded object.
-   *
-   * `source_key` goes to NULL here and nowhere else: the row stops pointing at
-   * the uploaded bytes at the same instant it starts pointing at the safe ones.
-   * The `status = 'pending'` guard makes a duplicate delivery a no-op.
-   */
   async markReady(id: number, input: ReadyInput): Promise<void> {
     await this.db.execute(sql`
       update attachments
@@ -215,12 +167,6 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
     `)
   }
 
-  /**
-   * One more download.
-   *
-   * Deliberately not read-then-write: the counter is incremented in the
-   * statement, so two concurrent downloads of the same file both count.
-   */
   async recordDownload(id: number): Promise<void> {
     await this.db.execute(sql`
       update attachments set download_count = download_count + 1 where id = ${id}
@@ -239,13 +185,6 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
     return rows.map(toRecord)
   }
 
-  /**
-   * Note a key before its object exists.
-   *
-   * `on conflict do nothing` because a retried upload may reuse a key it
-   * already remembered, and a crash there would be a failed upload for a reason
-   * that has nothing to do with the file.
-   */
   async rememberKey(key: string): Promise<void> {
     await this.db.execute(sql`
       insert into attachment_orphans (storage_key) values (${key})

@@ -1,4 +1,3 @@
-/** F54 — the moderator panel's rules, without a database. */
 import { describe, expect, it } from 'vitest'
 import { ValidationError } from '@meith/core'
 
@@ -85,7 +84,6 @@ describe('the dashboard', () => {
     })
   })
 
-  /* A moderator with fourteen forums opens the panel to find the one that needs them. */
   it('puts the busiest forum first, then falls back to the title', async () => {
     const modcp = new FakeModCp()
     modcp.workloads.set(2, { pending: 3, openReports: 1 })
@@ -136,17 +134,12 @@ describe('the address lookup', () => {
     })
 
     expect(result.matches).toHaveLength(1)
-    /* The screen has to be able to say what it searched, not just what it found. */
     expect(result.prefixes).toEqual({
       registration: '203.0.113.',
       lastVisit: '198.51.100.',
     })
   })
 
-  /*
-   * The audit is the feature. A log that only records the productive lookups
-   * cannot answer "who has been going through the membership".
-   */
   it('records the lookup even when it finds nothing', async () => {
     const modcp = new FakeModCp()
     modcp.matches = []
@@ -173,10 +166,6 @@ describe('the address lookup', () => {
     expect(modcp.lookups[0]).toMatchObject({ matches: 2 })
   })
 
-  /*
-   * Its own permission, separate from panel access: seeing the queue and asking
-   * "who else posts from this range" are different powers.
-   */
   it('refuses somebody with panel access but not the lookup right', async () => {
     const modcp = new FakeModCp()
 
@@ -187,7 +176,6 @@ describe('the address lookup', () => {
         rights: { access: true, ipLookup: false },
       }),
     ).rejects.toBeInstanceOf(ValidationError)
-    /* And nothing is read or written. */
     expect(modcp.lookups).toEqual([])
   })
 
@@ -205,11 +193,6 @@ describe('the address lookup', () => {
 })
 
 describe('the log allow-list', () => {
-  /*
-   * `admin_log` is shared with the ACP (F63) and will collect settings changes,
-   * group edits and user merges. A deny-list would turn each of those into a
-   * disclosure the day somebody adds a row type and forgets the filter.
-   */
   it('names every action it shows, and shows nothing it has not named', () => {
     expect(MOD_LOG_ACTIONS).toEqual(Object.keys(MOD_LOG_LABELS))
     expect(MOD_LOG_ACTIONS).not.toContain('settings.update')

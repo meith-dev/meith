@@ -1,14 +1,5 @@
 'use server'
 
-/**
- * F71 — the content administration writes.
- *
- * Every one of them clears the tag its data is read under, and for the word
- * filters that matters more than usual: the set is read on the **render path**,
- * so a stale one is visible on every thread page on the board until it is
- * cleared. An operator who adds a filter and sees the word still there would
- * reasonably conclude the feature does not work.
- */
 import { compileSmilies, createDirectiveRegistry } from '@meith/markdown'
 import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
 import type {
@@ -43,27 +34,6 @@ function toFormState(err: unknown): FormState {
   return { error: 'Something went wrong. Please try again.' }
 }
 
-/**
- * Refresh the panel screen the action was posted from.
- *
- * `drivers().cache` is the board's own store, and clearing it is what makes the
- * next *server* render correct. It says nothing about Next's client Router
- * Cache, which holds the RSC payload for the page the form is on — so with
- * JavaScript enabled, which is how an administrator actually uses the panel, an
- * action returned its success notice and left the list showing what was there a
- * moment ago. Add a word filter and the screen still says "No filters. Posts
- * show as written."; add an announcement and it still says "None."; add a
- * question and the challenge still asks nothing.
- *
- * With JavaScript **off** the browser's own reload hid it completely, which is
- * why the browser suite — which runs the panel with scripting disabled by
- * design — did not catch it, and why it survived the 7 August 2026 audit that
- * found and fixed exactly this on `/admin/forums` and `/admin/groups`.
- *
- * The named routes rather than the `('/', 'layout')` sweep `redirect-back.ts`
- * warns about: that one purges cached data for every route under `/` — the
- * whole board's settings and forum tree, for everybody — to refresh one list.
- */
 function refreshPanel(path: string): void {
   revalidatePath(path)
 }
@@ -82,7 +52,6 @@ export async function createWordFilterAction(
 
     const filterId = await requireContentAdmin().createWordFilter({
       pattern: text(form, 'pattern'),
-      /* Untrimmed: a replacement of "  " is a legitimate way to blank a word. */
       replacement: typeof form.get('replacement') === 'string'
         ? (form.get('replacement') as string)
         : '',
@@ -124,13 +93,6 @@ export async function updateWordFilterAction(
   }
 }
 
-/**
- * Delete a filter.
- *
- * Not re-authenticated, and safe: because filtering happens at render, deleting
- * a rule restores the word everywhere on the next page load. There is nothing
- * here to lose — which is exactly the property applying at render buys.
- */
 export async function deleteWordFilterAction(
   _prev: FormState,
   form: FormData,
@@ -166,10 +128,6 @@ export async function createPrefixAction(
       label: text(form, 'label'),
       token: text(form, 'token') === '' ? null : text(form, 'token'),
       displayOrder: order,
-      /*
-       * A path prefix scopes the prefix to one branch of the tree (F16's
-       * dot-path). Blank means every forum, which is what most boards want.
-       */
       forumPathPrefix:
         text(form, 'forumPathPrefix') === '' ? null : text(form, 'forumPathPrefix'),
     })
@@ -184,13 +142,6 @@ export async function createPrefixAction(
   }
 }
 
-/**
- * Delete a prefix.
- *
- * `threads.prefix_id` is nullable with `on delete set null`, so the threads
- * carrying it lose the prefix and nothing else. Refusing to delete one that is
- * in use would make a mistyped prefix permanent.
- */
 export async function deletePrefixAction(
   _prev: FormState,
   form: FormData,
@@ -211,35 +162,11 @@ export async function deletePrefixAction(
   }
 }
 
-/* ------------------------------------------------------------------ *
- * The board's markup vocabulary
- * ------------------------------------------------------------------ */
-
-/**
- * Every vocabulary write clears the same tag.
- *
- * The repository bumps `cache_versions['markdown_vocabulary']` in the same call,
- * which is the *other* half of the same invalidation: this one drops the
- * compiled vocabulary the render path is holding, and that one marks every
- * stored render on the board stale. Doing one without the other leaves a board
- * that renders the new smilies from source and the old ones from cache, which
- * is the confusing half-applied state this pairing exists to avoid.
- */
 async function invalidateVocabulary(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.markdownVocabulary()])
   refreshPanel('/admin/content')
 }
 
-/**
- * Validate a smiley the way the renderer will.
- *
- * `compileSmilies` is the function that runs on the render path, and calling it
- * here is the same rule F68's theme editor follows: a second validator drifts,
- * and the direction it drifts is a board whose thread pages throw because an
- * admin form accepted something the renderer refuses. The candidate is compiled
- * *with the existing set* so a duplicate code is caught here rather than by a
- * unique-index violation the operator cannot read.
- */
 function assertSmileyCompiles(
   existing: readonly SmileyRow[],
   candidate: { code: string; src: string; alt: string | null },
@@ -265,7 +192,6 @@ export async function createSmileyAction(_prev: FormState, form: FormData): Prom
 
     const repository = requireContentAdmin()
     const candidate = {
-      /* Not trimmed to nothing: `compileSmilies` refuses whitespace outright. */
       code: text(form, 'code'),
       src: text(form, 'src'),
       alt: text(form, 'alt') === '' ? null : text(form, 'alt'),
@@ -307,14 +233,6 @@ export async function updateSmileyAction(_prev: FormState, form: FormData): Prom
   }
 }
 
-/**
- * Delete a smiley.
- *
- * Not re-authenticated, and safe for the same reason a word filter's delete is:
- * the code the author typed is still in `posts.message`, so the only effect is
- * that `:)` goes back to being two characters everywhere on the next render.
- * Nothing a member wrote is lost, so there is nothing to protect.
- */
 export async function deleteSmileyAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
@@ -331,14 +249,6 @@ export async function deleteSmileyAction(_prev: FormState, form: FormData): Prom
   }
 }
 
-/**
- * Validate a directive the way the parser will.
- *
- * `createDirectiveRegistry` is the function the render path runs, and calling
- * it here is the rule F68's theme editor follows: a second validator drifts,
- * and the direction it drifts is a board whose thread pages throw because an
- * admin form accepted something the parser refuses.
- */
 function assertDirectiveCompiles(name: string, block: boolean): void {
   try {
     createDirectiveRegistry([{ name, block }])
@@ -353,12 +263,6 @@ export async function createDirectiveAction(_prev: FormState, form: FormData): P
   try {
     await requireAdmin()
 
-    /*
-     * Lower-cased before anything else looks at it. `:::Spoiler` and
-     * `:::spoiler` are the same directive to the parser, so storing both would
-     * be two rows the registry refuses to build from — and the refusal would
-     * happen on the render path rather than here.
-     */
     const name = text(form, 'name').toLowerCase()
     const block = form.get('block') !== null
     assertDirectiveCompiles(name, block)
@@ -405,14 +309,6 @@ export async function updateDirectiveAction(_prev: FormState, form: FormData): P
   }
 }
 
-/**
- * Delete a directive.
- *
- * `:spoiler[x]` in a post whose directive has gone renders as that literal
- * text, because F36's parser only opens a directive it has been told about. The
- * post shows the markup its author typed, which is the least surprising of the
- * available outcomes and is why this needs no "in use" check.
- */
 export async function deleteDirectiveAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
@@ -429,27 +325,6 @@ export async function deleteDirectiveAction(_prev: FormState, form: FormData): P
   }
 }
 
-/* ------------------------------------------------------------------ *
- * Attachments
- * ------------------------------------------------------------------ */
-
-/**
- * Delete one attachment.
- *
- * **Not re-authenticated, and this is the borderline case on this screen.** The
- * argument for the prompt is that these are bytes a member uploaded and cannot
- * put back; the argument against is that the reason an operator is here is
- * usually that something is wrong — a file over quota, a malicious upload, a
- * queue full of failures — and a password prompt in front of a clean-up done
- * dozens of times in a row is a prompt people learn to type through.
- *
- * It stays unprompted because the blast radius is one row: there is no "delete
- * all", no filter-wide action and no cascade. F65's copy-to-subforums and F67's
- * merges are re-authenticated because one press changes many things at once,
- * which is the distinction rather than "is it destructive".
- *
- * The post is untouched either way — see `attachment-admin-repo.ts`.
- */
 export async function deleteAttachmentAction(
   _prev: FormState,
   form: FormData,
@@ -469,10 +344,6 @@ export async function deleteAttachmentAction(
   }
 }
 
-/* ------------------------------------------------------------------ *
- * Announcements
- * ------------------------------------------------------------------ */
-
 function requireAnnouncements(): PostgresAnnouncementRepository {
   const repository = announcementRepository()
   if (repository === null) {
@@ -483,16 +354,6 @@ function requireAnnouncements(): PostgresAnnouncementRepository {
   return repository
 }
 
-/**
- * Read a `datetime-local` field.
- *
- * The control submits wall-clock text with no zone (`2026-08-04T09:00`), so it
- * is read as UTC rather than as the server's local time — which is the one
- * choice that gives the same answer on a laptop and on a container whose `TZ`
- * nobody set. The screen says so beside the field, because an announcement that
- * appears at the wrong hour with no explanation is worse than one that asks for
- * UTC.
- */
 function moment(form: FormData, name: string): Date | null {
   const value = text(form, name)
   if (value === '') return null
@@ -505,10 +366,8 @@ function moment(form: FormData, name: string): Date | null {
 function announcementInput(form: FormData): AnnouncementInput {
   const forumText = text(form, 'forumId')
   return {
-    /* Empty is board-wide. One column says it; see the migration. */
     forumId: forumText === '' ? null : id(form, 'forumId'),
     title: text(form, 'title'),
-    /* Untrimmed body: leading whitespace can be deliberate in Markdown. */
     message: typeof form.get('message') === 'string' ? (form.get('message') as string) : '',
     startsAt: moment(form, 'startsAt') ?? new Date(),
     endsAt: moment(form, 'endsAt'),
@@ -525,10 +384,6 @@ export async function createAnnouncementAction(
 
     const announcementId = await requireAnnouncements().create({
       ...announcementInput(form),
-      /*
-       * The name is captured by the insert, from `users` — see the repository.
-       * The action supplies the id it is certain of and nothing else.
-       */
       authorUserId: context.userId,
     })
 
@@ -549,7 +404,6 @@ export async function updateAnnouncementAction(
     await requireAdmin()
 
     const announcementId = id(form)
-    /* The author is deliberately not rewritten; see the repository. */
     await requireAnnouncements().update(announcementId, announcementInput(form))
 
     await recordAdminAction({ action: 'content.announcement_changed', detail: { announcementId } })
@@ -561,14 +415,6 @@ export async function updateAnnouncementAction(
   }
 }
 
-/**
- * Delete an announcement.
- *
- * A real delete and not re-authenticated, which is only defensible because of
- * what an announcement *is*: chrome rather than content. Nothing a member wrote
- * hangs off it, so there is nothing to lose — which is exactly the argument
- * that would fail for a sticky thread, and is why this board has both.
- */
 export async function deleteAnnouncementAction(
   _prev: FormState,
   form: FormData,
@@ -588,10 +434,6 @@ export async function deleteAnnouncementAction(
   }
 }
 
-/* ------------------------------------------------------------------ *
- * F46 — captcha questions
- * ------------------------------------------------------------------ */
-
 function requireCaptcha(): PostgresCaptchaQuestionRepository {
   const repository = captchaQuestionRepository()
   if (repository === null) {
@@ -602,13 +444,6 @@ function requireCaptcha(): PostgresCaptchaQuestionRepository {
   return repository
 }
 
-/**
- * The answers box, kept untrimmed line by line.
- *
- * Read straight off the form rather than through `text()`, because the whole
- * value is meaningful: one answer per line, and trimming the block would still
- * leave the individual lines to the repository, which is where they are split.
- */
 function answersField(form: FormData): string {
   const value = form.get('answers')
   return typeof value === 'string' ? value : ''
@@ -658,14 +493,6 @@ export async function updateCaptchaQuestionAction(
   }
 }
 
-/**
- * Delete a question.
- *
- * Safe, and the reason is the fail-open rule in `QuestionCaptcha`: deleting the
- * last question does not lock registration, it turns the challenge off. A
- * visitor holding a token for the deleted question is let through rather than
- * refused, because they loaded the page before the operator changed it.
- */
 export async function deleteCaptchaQuestionAction(
   _prev: FormState,
   form: FormData,

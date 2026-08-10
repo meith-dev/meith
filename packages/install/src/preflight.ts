@@ -1,60 +1,10 @@
-/**
- * F83 — the preflight, and why it is a pure function over probes.
- *
- * An installer's job is not really "create some rows". It is to tell somebody
- * whose board is not working *why*, before they have a board to be confused
- * about. Nearly every failure a new operator hits is visible before anything is
- * written: no database URL, the wrong connection string, a missing secret, a
- * board that is already installed.
- *
- * So the checks are a function from a **probe** — a plain record of what the
- * environment looks like — to a list of findings. Nothing here opens a
- * connection, reads the environment directly, or touches Next; the app gathers
- * the facts and this decides what they mean. That is what makes "what does the installer
- * say when the URL is the direct one" a unit test rather than a manual
- * experiment against a real Supabase project.
- *
- * ## Blockers and warnings are different, and the distinction is the feature
- *
- * A **blocker** means installing cannot succeed. A **warning** means it will
- * succeed and something will be wrong later — which is the more dangerous
- * category, because nothing complains at the time. `TICK_SECRET` is the
- * archetype: a board without it installs perfectly and looks finished, and then
- * bans do not expire and digests do not send, with nothing failing anywhere to
- * say so.
- *
- * There used to be a third: a warning that the connection string did not look
- * like a pooler. It was written for serverless deployments, where every function
- * instance opens its own connection — a way of running this board that is no
- * longer supported (D105). What was left was a warning that fired on the correct
- * configuration for every deployment this project documents, which is how an
- * operator learns to read past the ones that matter. Pooling advice that is still
- * true for a managed database lives in the handbook, where it can be read by
- * somebody who has one.
- */
-
 import type { MailSource } from '@meith/settings'
 
 export type Level = 'blocker' | 'warning' | 'ok'
 
-/**
- * What the environment already says about mail, as the installer finds it.
- *
- * `configured` is about *shape* — a transport with everything it needs — and
- * never about whether the credentials work. Only a send proves that, and the
- * installer does send: see `install-actions`. This is what decides whether to
- * offer the operator a mail form at all.
- */
 export interface MailProbe {
-  /** True when a complete, non-`log` transport is already resolved. */
   readonly configured: boolean
-  /**
-   * `environment` means `MAIL_DRIVER` is set and the form must not offer to
-   * override it — the boxes would be ignored, and a form whose values are
-   * discarded is worse than no form.
-   */
   readonly source: MailSource
-  /** Safe to print: names a host, never a credential. */
   readonly summary: string
 }
 
@@ -62,39 +12,19 @@ export interface Check {
   readonly id: string
   readonly level: Level
   readonly title: string
-  /** What to do about it. Empty for an `ok`. */
   readonly detail: string
 }
 
-/**
- * What the app measured. Every field is a fact, never a judgement.
- *
- * `null` consistently means "not determined" rather than "no": a connection that
- * was never attempted and one that failed are different situations, and an
- * installer that conflated them would report a database problem to somebody who
- * has not configured one yet.
- */
 export interface PreflightProbe {
   readonly dataSource: 'fixture' | 'postgres'
   readonly databaseUrl: string | null
   readonly hasAuthSecret: boolean
   readonly hasTickSecret: boolean
   readonly publicUrl: string | null
-  /**
-   * How the board would send mail *before* this form is submitted — the
-   * environment's answer, or the stored settings of a board being reinstalled.
-   *
-   * A fact, like every other field here: it says what is configured, not whether
-   * the operator ought to configure something. The judgement is below.
-   */
   readonly mail: MailProbe
-  /** `null` when no attempt was made — usually because there was no URL. */
   readonly canConnect: boolean | null
-  /** `null` when unknown (no connection). */
   readonly pendingMigrations: number | null
-  /** `null` when unknown. Any user at all means this is not a fresh board. */
   readonly userCount: number | null
-  /** Whether the one-time marker is already set. */
   readonly alreadyInstalled: boolean
 }
 
@@ -102,17 +32,9 @@ function ok(id: string, title: string): Check {
   return { id, level: 'ok', title, detail: '' }
 }
 
-/**
- * Read the probe and say what it means.
- *
- * Ordered as somebody would fix them: what is missing, then what is
- * unreachable, then what is already done. An installer that reported "no admin
- * account" above "no database" would be technically complete and useless.
- */
 export function preflight(probe: PreflightProbe): readonly Check[] {
   const checks: Check[] = []
 
-  /* ---- Already installed. First, because nothing else matters if so. ---- */
   if (probe.alreadyInstalled) {
     checks.push({
       id: 'already-installed',
@@ -123,12 +45,6 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
         'Use /admin to configure the board, or the operator CLI if you have lost access.',
     })
   } else if (probe.userCount !== null && probe.userCount > 0) {
-    /*
-     * The second, independent gate. A run that created the administrator and
-     * then failed before writing the marker must not be re-runnable — the second
-     * attempt would create a *second* administrator on somebody else's board,
-     * which is the one outcome an installer must make impossible.
-     */
     checks.push({
       id: 'has-members',
       level: 'blocker',
@@ -142,7 +58,6 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
     checks.push(ok('fresh', 'This board has not been installed yet'))
   }
 
-  /* ---- Database ---- */
   if (probe.dataSource !== 'postgres') {
     checks.push({
       id: 'data-source',
@@ -177,11 +92,6 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
   }
 
   if (probe.pendingMigrations !== null && probe.pendingMigrations > 0) {
-    /*
-     * Not a blocker: applying them is a *step of the install*, not a
-     * prerequisite for it. Reporting the count is still worth it — an operator
-     * who sees "42 migrations will be applied" understands what the button does.
-     */
     checks.push({
       id: 'migrations',
       level: 'ok',
@@ -190,7 +100,6 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
     })
   }
 
-  /* ---- Secrets ---- */
   if (!probe.hasAuthSecret) {
     checks.push({
       id: 'auth-secret',
@@ -221,22 +130,6 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
     checks.push(ok('tick-secret', 'TICK_SECRET is set'))
   }
 
-  /*
-   * The board's own address — and it has always been `APP_URL`, never
-   * `PUBLIC_URL`.
-   *
-   * These two checks said `PUBLIC_URL`: a variable that appears nowhere in the
-   * schema, is read by nothing, and would have done nothing had anybody set it.
-   * The probe beside them has read `env.APP_URL` since the day it was written.
-   * On the one screen whose entire job is telling a new operator what to fix,
-   * naming the wrong variable does not merely fail to help — it sends them to
-   * change something that cannot have any effect, and the link in the password
-   * reset stays broken.
-   *
-   * It is no longer a *warning*, because the form below now asks for it and
-   * requires an answer. What is left to report is which of the two places the
-   * answer will come from, since one of them makes the form's box inert.
-   */
   if (probe.publicUrl !== null && probe.publicUrl !== '') {
     checks.push(
       ok(
@@ -257,18 +150,9 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
     })
   }
 
-  /* ---- Mail ---- */
   if (probe.mail.configured) {
     checks.push(ok('mail', `Mail is configured — ${probe.mail.summary}`))
   } else if (probe.mail.source === 'environment') {
-    /*
-     * A blocker, uniquely among the mail states, and the only one here that is
-     * not about the operator's choice. `MAIL_DRIVER` is set, so the environment
-     * has taken the decision away from the form below — and it is incomplete, so
-     * what it took the decision away *for* cannot send. Installing would produce
-     * a board whose mail screen is read-only and whose mail does not work, and
-     * the fix is a variable this screen cannot write.
-     */
     checks.push({
       id: 'mail',
       level: 'blocker',
@@ -296,7 +180,6 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
   return checks
 }
 
-/** May the install proceed? Blockers stop it; warnings never do. */
 export function canProceed(checks: readonly Check[]): boolean {
   return !checks.some((check) => check.level === 'blocker')
 }

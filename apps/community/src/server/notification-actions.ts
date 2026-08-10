@@ -1,22 +1,5 @@
 'use server'
 
-/**
- * F55 — the notification centre's Server Actions.
- *
- * Three verbs, all of them acting on the caller's *own* rows, which makes the
- * authorisation shape different from every moderator action in Phase 4: there
- * is no matrix to resolve and no appointment to read, because there is nothing
- * here anybody could be granted over somebody else.
- *
- * What replaces it is scoping. The signed-in user id goes into the WHERE clause
- * rather than being checked after a read, so "not yours" and "does not exist"
- * are one answer — without that, marking notifications read is a counter for
- * how many the board has ever written.
- *
- * All three are POSTs from native forms. Marking something read is a state
- * change, and a GET that mutates is fired by every prefetcher and link scanner
- * that touches the page — the same reason F27's log out is a form.
- */
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, isAppError, logger } from '@meith/core'
@@ -40,7 +23,6 @@ function positiveInt(form: FormData, name: string): number | null {
   return Number.isSafeInteger(n) ? n : null
 }
 
-/** Every action here needs the same two things, and neither may be assumed. */
 async function requireOwnCentre(): Promise<{
   service: NotificationService
   userId: number
@@ -66,11 +48,6 @@ export async function markNotificationReadAction(
 
   try {
     const { service, userId } = await requireOwnCentre()
-    /*
-     * The return value is deliberately ignored. "Already read" and "not yours"
-     * both come back false, and telling them apart on screen would be the
-     * disclosure the scoped statement exists to prevent.
-     */
     await service.markRead(userId, notificationId)
   } catch (err) {
     return toFormState(err)
@@ -93,15 +70,6 @@ export async function markAllNotificationsReadAction(
   redirect('/notifications?read=all')
 }
 
-/**
- * Save the preferences screen.
- *
- * An unchecked checkbox submits *nothing*, so "off" cannot be read from the
- * form — it is reconstructed from the registry, for the audience whose screen
- * was rendered. The audience is resolved here from the actor rather than taken
- * from the form, because a member submitting `audience=staff` would otherwise
- * write rows for kinds they can never receive.
- */
 export async function saveNotificationPreferencesAction(
   _prev: FormState,
   form: FormData,
@@ -112,13 +80,6 @@ export async function saveNotificationPreferencesAction(
       .getAll('email')
       .filter((value): value is string => typeof value === 'string')
 
-    /*
-     * One save per audience the *actor* is entitled to, resolved from the actor
-     * and never from the form. `savePreferences` writes exactly the audience it
-     * is handed, so a member submitting `system.task_failed` writes nothing:
-     * the kind is not in their audience's list and the set is built from the
-     * registry, not from the submission.
-     */
     for (const audience of await audiencesForActor()) {
       await service.savePreferences(userId, audience, checked)
     }

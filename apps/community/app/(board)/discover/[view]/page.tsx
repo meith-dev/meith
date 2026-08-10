@@ -15,21 +15,6 @@ import { getViewerPreferences } from '@/server/viewer-preferences'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { formatTime } from '@/view/time'
 
-/**
- * F74 — the discovery screens.
- *
- * One route for five views, because they differ only in the question asked:
- * the listing, the paging and the permission scope are identical, and five
- * pages would be five places for those to drift. The view is a path segment
- * rather than a query parameter so each is a real, linkable, bookmarkable
- * address — a member sends somebody `/discover/unanswered`, not a form.
- *
- * **No JavaScript.** Paging is a link carrying the keyset cursor (D06), which
- * is why the cursor is two values in the query string rather than an opaque
- * blob: an address a member can read is one they can trust, and there is
- * nothing in it worth hiding.
- */
-
 const TABS: Record<DiscoveryView, { readonly label: string; readonly blurb: string }> = {
   new: {
     label: 'New posts',
@@ -70,11 +55,6 @@ export default async function DiscoverPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { view } = await params
-  /*
-   * An unknown view is a 404 rather than a redirect to the default. A member
-   * following a stale link should be told the page is gone, not shown a
-   * different list and left believing it is the one they asked for.
-   */
   if (!isDiscoveryView(view)) notFound()
 
   const query = await searchParams
@@ -84,11 +64,6 @@ export default async function DiscoverPage({
     return text === undefined || text === '' ? undefined : text
   }
 
-  /*
-   * Both halves of the cursor or neither. A half-read cursor would silently
-   * become "start from the beginning", so a mangled link would loop the first
-   * page forever rather than saying anything.
-   */
   const at = new Date(one('at') ?? '')
   const threadId = Number(one('after'))
   const after =
@@ -110,21 +85,8 @@ export default async function DiscoverPage({
       after,
     })
   } catch (err) {
-    /*
-     * The two personal views need a signed-in member. That is a refusal with a
-     * reason rather than an empty list, because "no threads" and "you are not
-     * signed in" look identical on screen and lead to opposite next actions.
-     */
     if (isAppError(err)) {
       return (
-        /*
-         * The heading, the blurb and the tabs, exactly as the success branch
-         * renders them. This branch used to open with the tab row and no
-         * `<h1>` at all — a page with no heading has no outline for a screen
-         * reader to navigate, and it is the branch a signed-out visitor is
-         * most likely to land on, because the two personal views are the ones
-         * that refuse.
-         */
         <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8 flex-1">
           <div className="flex flex-col gap-1">
             <h1 className="font-heading text-2xl font-semibold">{TABS[view].label}</h1>
@@ -180,12 +142,6 @@ export default async function DiscoverPage({
                   {row.title}
                 </a>
                 <p className="text-xs text-muted-foreground">
-                  {/*
-                    The forum is on every row because these lists cross the whole
-                    board: without it, two identically named threads in two
-                    forums are indistinguishable. It comes from the same query as
-                    the row (F74's budget), not a lookup per line.
-                  */}
                   in{' '}
                   <a href={`/${row.forumId}-${row.forumSlug}`} className="hover:underline">
                     {row.forumTitle}
@@ -215,17 +171,6 @@ export default async function DiscoverPage({
   )
 }
 
-/**
- * The five views, always all of them.
- *
- * Rendered for a guest too, including the two that will refuse: a member who
- * cannot see a tab does not learn it exists, and the refusal names the reason
- * and offers the sign-in link, which is more useful than the tab disappearing.
- *
- * The row itself is `ViewTabs`, shared with the inbox's folders and a forum's
- * ordering — see that file for why the board had three of these and now has
- * one.
- */
 function Tabs({ current }: { current: DiscoveryView }) {
   return (
     <ViewTabs

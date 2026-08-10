@@ -1,6 +1,5 @@
 import type { SubforumListModel } from '@meith/theme-kit'
 
-/** Child forums as a compact inline strip above the thread table. */
 export function SubforumList({ forums }: SubforumListModel) {
   if (forums.length === 0) return null
 

@@ -1,11 +1,3 @@
-/**
- * F37/F71 — the board's own additions, and the two rules that keep them safe.
- *
- * The **admin form** throws on bad input; the **render path** never does. Both
- * halves are here, because the mistake is to build one function and use it in
- * both places — a board whose thread pages 500 because somebody hand-edited a
- * smiley row is the failure this shape exists to prevent.
- */
 import { describe, expect, it } from 'vitest'
 
 import { renderMarkdown, vocabularyOptions } from './body'
@@ -31,11 +23,6 @@ describe('directives', () => {
   })
 
   it('leaves a name the board has not defined as the text it is', () => {
-    /*
-     * The behaviour that makes removing a directive safe: a post using one that
-     * has gone shows the markup its author typed rather than losing the words
-     * inside it.
-     */
     const out = renderMarkdown(':::mystery\nkept\n:::').html
     expect(out).toContain('kept')
     expect(out).not.toContain('md-directive')
@@ -90,9 +77,6 @@ describe('smilies', () => {
 
 describe('the empty vocabulary', () => {
   it('is revision zero, which is what every stored render is already stamped', () => {
-    /*
-     * So installing the feature does not make every post on the board stale.
-     */
     expect(EMPTY_VOCABULARY.revision).toBe(0)
     expect(EMPTY_VOCABULARY.smilies).toBeUndefined()
   })
@@ -102,11 +86,6 @@ describe('the empty vocabulary', () => {
   })
 
   it('carries the directives and the smilies together, or neither', () => {
-    /*
-     * One place builds the options, so a call site cannot pass the directives
-     * and forget the smilies — which would render a board's directives and
-     * silently drop its smilies, on a page that looked like it worked.
-     */
     const vocabulary = compileVocabulary({
       revision: 2,
       smilies: [{ code: ':)', src: '/a.png' }],

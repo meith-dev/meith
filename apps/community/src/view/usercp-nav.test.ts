@@ -11,14 +11,6 @@ import {
   deepestNavHref,
 } from './usercp-nav'
 
-/**
- * The member panel's rail is rendered by four separate route segments, so the
- * case that matters here is the one the ACP does not have: an address that is
- * simply not in the tree. Lighting the overview for it — which is what the
- * ACP's wrapper does, correctly, because every ACP address begins `/admin` —
- * would put a highlight on a panel the member is not in.
- */
-
 const current = (pathname: string, href: string) =>
   currentProps(pathname, href, deepestNavHref(pathname))['aria-current']
 
@@ -34,13 +26,11 @@ describe('activeSectionHref', () => {
   })
 
   it('answers null outside the panel', () => {
-    /* The rail renders on four route trees; everywhere else it lights nothing. */
     expect(activeSectionHref('/thread/22-hello')).toBeNull()
     expect(activeSectionHref('/admin/settings')).toBeNull()
   })
 
   it('does not let the overview swallow the other sections', () => {
-    /* `/usercp` is a prefix of `/usercp/profile`; longest match must win. */
     expect(activeSectionHref('/usercp/avatar')).toBe('/usercp/avatar')
   })
 })

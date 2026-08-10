@@ -1,11 +1,3 @@
-/**
- * F38 — the recount, against real Postgres.
- *
- * The acceptance criterion this file exists for is the checkpoint's: a
- * deliberately corrupted board converges. Everything else here protects the two
- * properties that make it usable on a real board — it is bounded per run, and it
- * resumes where it stopped instead of restarting the scan.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { eq, sql } from 'drizzle-orm'
 
@@ -58,7 +50,6 @@ beforeEach(async () => {
     { id: SUBFORUM, title: 'Sub', slug: 'sub', path: '1.4.9', depth: 2, parentId: FORUM },
   ])
 
-  // One thread in the forum (2 posts) and one in its subforum (1 post).
   await db.insert(threads).values([
     {
       id: 20,
@@ -87,7 +78,6 @@ beforeEach(async () => {
   ])
 })
 
-/** Run until a full sweep completes, or fail loudly rather than loop forever. */
 async function fullSweep(batchSize = 500, maxRuns = 60): Promise<{ corrected: number; runs: RecountRun[] }> {
   const runs: RecountRun[] = []
   let corrected = 0
@@ -107,15 +97,12 @@ async function forumRow(id: number) {
 
 describe('PostgresCounterRecount', () => {
   it('converges counters that were never maintained at all', async () => {
-    // Everything starts at zero: the state a board is in after an import, or
-    // after content is inserted by anything other than the posting command.
     const { corrected } = await fullSweep()
     expect(corrected).toBeGreaterThan(0)
 
     const [thread] = await db.select().from(threads).where(eq(threads.id, 20))
     expect(thread).toMatchObject({ replyCount: 1, firstPostId: 30, lastPostId: 31 })
 
-    // Forum totals are subtree-inclusive, so the category carries everything.
     expect(await forumRow(CATEGORY)).toMatchObject({ threadCount: 2, postCount: 3, lastPostId: 32 })
     expect(await forumRow(FORUM)).toMatchObject({ threadCount: 2, postCount: 3, lastPostId: 32 })
     expect(await forumRow(SUBFORUM)).toMatchObject({ threadCount: 1, postCount: 1, lastPostId: 32 })
@@ -142,8 +129,6 @@ describe('PostgresCounterRecount', () => {
   it('corrects nothing on a second sweep', async () => {
     await fullSweep()
 
-    // Writing computed truth rather than a delta is what makes this hold, and
-    // it is also how an operator can tell real drift from a noisy recount.
     const { corrected } = await fullSweep()
     expect(corrected).toBe(0)
   })
@@ -156,7 +141,6 @@ describe('PostgresCounterRecount', () => {
 
     const [thread] = await db.select().from(threads).where(eq(threads.id, 20))
     expect(thread).toMatchObject({ replyCount: 0, lastPostId: 30 })
-    // The subforum's only thread is unapproved: neither it nor its post counts.
     expect(await forumRow(CATEGORY)).toMatchObject({ threadCount: 1, postCount: 1 })
     const [user] = await db.select().from(users).where(eq(users.id, 1))
     expect(user).toMatchObject({ postCount: 1, threadCount: 1 })
@@ -167,9 +151,6 @@ describe('PostgresCounterRecount', () => {
     await db.update(threads).set({ visibility: 'deleted' }).where(eq(threads.id, 20))
     await db.update(threads).set({ visibility: 'deleted' }).where(eq(threads.id, 21))
 
-    // The case an aggregate written with a WHERE instead of a FILTER gets
-    // wrong: the author's rows vanish from the aggregate, so the update finds
-    // nothing to correct and the stale count survives the recount.
     await fullSweep()
 
     const [user] = await db.select().from(users).where(eq(users.id, 1))
@@ -186,7 +167,6 @@ describe('PostgresCounterRecount', () => {
     const second = await recount.run(1)
     expect(second).toMatchObject({ phase: 'threads', scanned: 1, cursor: 21 })
 
-    // A short batch means the table is exhausted and the next phase begins.
     const third = await recount.run(1)
     expect(third).toMatchObject({ phase: 'threads', scanned: 0, nextPhase: 'forums', cursor: 0 })
   })
@@ -194,7 +174,6 @@ describe('PostgresCounterRecount', () => {
   it('converges at a batch size of one, in bounded runs', async () => {
     const { runs } = await fullSweep(1)
 
-    // Nothing in the sweep ever examined more than the batch allowed.
     expect(Math.max(...runs.map((r) => r.scanned))).toBe(1)
     expect(await forumRow(CATEGORY)).toMatchObject({ threadCount: 2, postCount: 3 })
     const [user] = await db.select().from(users).where(eq(users.id, 1))
@@ -207,7 +186,6 @@ describe('PostgresCounterRecount', () => {
 
     expect(state.passes).toBe(1)
     expect(state.corrected).toBeGreaterThan(0)
-    // A sweep ends where the next one begins.
     expect(state.phase).toBe('threads')
     expect(state.cursor).toBe(0)
   })

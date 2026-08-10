@@ -10,26 +10,11 @@ export const metadata: Metadata = { title: 'Members' }
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-/**
- * F67 — member search.
- *
- * **The search form is a GET form**, so the filter is in the address bar. It
- * survives a reload, it can be pasted to another administrator, and it needs
- * neither JavaScript nor a Server Action — the browser does all of it. A POST
- * search would be none of those things, and this is a screen operators work
- * from for long stretches.
- *
- * Paging is keyset, on the same cursor the repository returns. The set being
- * paged is `users`, which this screen's own actions mutate — banning somebody
- * changes their state and therefore whether they still match — and an OFFSET
- * page over a set being changed skips exactly the rows just acted on.
- */
 export default async function AdminUsersPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  /* Re-run, because a layout is not a security boundary (see the ACP layout). */
   await requireAdmin()
 
   const repository = userAdminRepository()
@@ -215,12 +200,6 @@ export default async function AdminUsersPage({
               <span className="flex min-w-0 flex-col">
                 <span className="truncate text-sm font-medium">
                   {row.username}
-                  {/*
-                    `isBanned`, not the state column. A ban is a `bans` row and a
-                    group move — F23 never writes `state`, deliberately — so this
-                    marked nobody as banned on any board, on the screen an
-                    operator opens to find out who is.
-                  */}
                   {row.isBanned ? (
                     <span className="ml-2 text-xs font-normal text-muted-foreground">
                       banned
@@ -246,16 +225,6 @@ export default async function AdminUsersPage({
                     : ` · last seen ${formatTime(row.lastActiveAt, now).label}`}
                 </span>
               </span>
-              {/*
-                Named for the member it opens, not "Edit".
-
-                Fifty rows produce fifty links, and a reader moving by link — a
-                screen reader's link list, or anything that reads the page out of
-                order — gets "Edit, Edit, Edit…" with no way to tell which
-                account is which. The visible word stays short because the name
-                is already on the row beside it; `aria-label` is what carries the
-                rest (WCAG 2.4.4).
-              */}
               <a
                 href={`/admin/users/${row.id}`}
                 aria-label={`Edit ${row.username}`}

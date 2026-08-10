@@ -1,13 +1,3 @@
-/**
- * F48 at the app layer.
- *
- * The queue's rules are unit-tested in `@meith/moderation` and its SQL against
- * real Postgres. What is proven here is the adapter tier neither can see: that
- * the set of moderated forums is resolved *server-side* for this request rather
- * than read from the form, that a member who moderates nothing is refused
- * however the form is crafted, and that the redirect reports what actually
- * happened.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -49,7 +39,6 @@ const { installTestContainer } = await import('./test-container')
 
 class FakeQueue implements ModerationQueueRepository {
   readonly applied: Array<{ threadIds: readonly number[]; postIds: readonly number[] }> = []
-  /** Every pending item lives in `announcements` unless a test moves it. */
   forumOf = (_item: QueueSelection): number => SEED_FORUM.announcements
 
   async list(): Promise<QueuePage> {
@@ -128,11 +117,6 @@ describe('moderateQueueAction', () => {
     expect(queue.applied[0]).toMatchObject({ threadIds: [10], postIds: [20] })
   })
 
-  /*
-   * The set of moderated forums is the authorisation, so it is resolved for
-   * this request from the actor — never carried in the form, where it would be
-   * the whole permission check sitting in the browser.
-   */
   it('ignores a forum id supplied by the form', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
     queue.forumOf = () => 4242
@@ -164,18 +148,7 @@ describe('moderateQueueAction', () => {
     expect(queue.applied).toHaveLength(0)
   })
 
-  /*
-   * A moderator of one forum acting on an item in another. The item's forum
-   * comes from the database, so this is refused after the re-read rather than
-   * before — and reported rather than silently dropped.
-   */
   it('reports items in forums this actor does not moderate', async () => {
-    /*
-     * An *appointed* moderator, not a staff group — a super-moderator bypasses
-     * forum permissions everywhere, so they are exactly the wrong actor for
-     * this test. This is also the first time an appointment decides anything at
-     * the app layer: `forum_moderators` had no reader before F48.
-     */
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
     queue.forumOf = (item) =>
       item.kind === 'thread' ? SEED_FORUM.announcements : SEED_FORUM.general

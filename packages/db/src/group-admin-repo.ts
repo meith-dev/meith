@@ -1,24 +1,3 @@
-/**
- * F66 — group administration.
- *
- * Two things about this file are the feature; the rest is CRUD.
- *
- * **Every write bumps `permission_version`, in the same transaction.** F20
- * resolves an Actor once and caches it against that number, so a group
- * permission change whose bump is lost leaves everybody holding their old
- * permissions for the cache's lifetime — a grant that appears not to have
- * worked, and a *revocation that silently did not take effect*. That is the
- * dangerous direction, and it is why the bump is not a separate call the caller
- * could forget: `setPrimaryGroup` established the pattern in `admin-repo.ts`
- * and this follows it exactly.
- *
- * **Mass membership changes are chunked and keyset-paged.** A board with twenty
- * thousand members in a group is a single UPDATE holding row locks for as long
- * as it takes, on the table every request reads. Bounded batches with a cursor
- * on an immutable key mean a long run is interruptible, resumable, and never
- * blocks the board — and F24's promotion loop already pages this way for the
- * same reason.
- */
 import { sql } from 'drizzle-orm'
 
 import { PERMISSION_FIELDS, ValidationError } from '@meith/core'
@@ -30,7 +9,6 @@ import { groupRowToPermissionSet } from './permissions-map'
 import { withPermissionVersionBump, type Tx } from './permission-version'
 import { resultRows } from './result-rows'
 
-/** A group as the grid lists it. */
 export interface GroupSummaryRow {
   readonly id: number
   readonly key: string
@@ -40,13 +18,10 @@ export interface GroupSummaryRow {
   readonly isSystem: boolean
   readonly isStaffGroup: boolean
   readonly badgeToken: string | null
-  /** The colour this group's members' names are shown in, per scheme. */
   readonly nameColorLight: string | null
   readonly nameColorDark: string | null
-  /** File-store keys for the badge image, per scheme. */
   readonly badgeImageLight: string | null
   readonly badgeImageDark: string | null
-  /** How many members hold it as their primary group. */
   readonly memberCount: number
 }
 
@@ -56,35 +31,18 @@ export interface GroupIdentityInput {
   readonly displayOrder: number
   readonly isStaffGroup: boolean
   readonly badgeToken: string | null
-  /**
-   * CSS colours, or null for "no colour in that scheme".
-   *
-   * **Validated by the caller**, with the same function that validates a theme
-   * token — these end up in a `<style>` block, and a second opinion here would
-   * eventually disagree with the one that renders.
-   */
   readonly nameColorLight: string | null
   readonly nameColorDark: string | null
 }
 
-/** How far a chunked membership run got, and whether there is more. */
 export interface MembershipChunkResult {
   readonly moved: number
-  /** Pass back as `afterUserId` to continue. `null` when the run is finished. */
   readonly nextCursor: number | null
 }
 
 export class PostgresGroupAdminRepository {
   constructor(private readonly db: Database) {}
 
-  /**
-   * Every group, with how many members are in it.
-   *
-   * The count is a correlated aggregate rather than a denormalised column: the
-   * grid is one screen an administrator opens occasionally, and a stored count
-   * would be a fourth counter to keep correct for the sake of a page nobody
-   * loads in a loop.
-   */
   async list(): Promise<readonly GroupSummaryRow[]> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -116,21 +74,6 @@ export class PostgresGroupAdminRepository {
     }))
   }
 
-  /**
-   * Point a group's badge at a stored object, and say what it stopped pointing
-   * at.
-   *
-   * `RETURNING` the *old* key is what makes the handover atomic — the avatar
-   * repository's arrangement, and its self-join too: `from usergroups old`
-   * reads the row as it was at the start of the statement, which is the
-   * portable way to return a pre-update value. A read-then-write instead would
-   * let two concurrent uploads both see the same previous key and both try to
-   * delete it, so one of them deletes an object the row now points at.
-   *
-   * No permission-version bump. A badge is presentation; nothing about who may
-   * do what changes, and bumping would invalidate every resolved actor on the
-   * board because somebody uploaded a picture.
-   */
   async setBadge(
     groupId: number,
     scheme: 'light' | 'dark',
@@ -153,7 +96,6 @@ export class PostgresGroupAdminRepository {
     return typeof previous === 'string' ? previous : null
   }
 
-  /** One group's global permissions, complete and coerced (`permissions-map`). */
   async readPermissions(groupId: number): Promise<PermissionSet | null> {
     const rows = resultRows(
       await this.db.execute(sql`select * from usergroups where id = ${groupId}`),
@@ -180,15 +122,6 @@ export class PostgresGroupAdminRepository {
     })
   }
 
-  /**
-   * Write a whole permission set.
-   *
-   * Every field, not a partial: `usergroups` columns are NOT NULL with defaults
-   * and there is **no inherit state here** — a group's global permission is the
-   * bottom of the resolution (R4.1 layer 1), so every cell has an answer and a
-   * partial write would leave the unmentioned ones at whatever a previous save
-   * happened to put there.
-   */
   async savePermissions(
     groupId: number,
     permissions: Readonly<Record<string, boolean | number>>,
@@ -206,14 +139,6 @@ export class PostgresGroupAdminRepository {
     })
   }
 
-  /**
-   * Create a group, copying another's permissions.
-   *
-   * Copying rather than starting from the registry defaults, because the
-   * defaults are deny-everything and a new group made from them is a group
-   * whose members cannot see the board. "Like Registered, but…" is what an
-   * operator means by a new group essentially every time.
-   */
   async create(input: {
     readonly key: string
     readonly title: string
@@ -243,18 +168,6 @@ export class PostgresGroupAdminRepository {
     })
   }
 
-  /**
-   * Delete a group, moving its members somewhere.
-   *
-   * The move is required rather than optional: `users.primary_group_id` is NOT
-   * NULL, so a delete without one either fails on the constraint or — with a
-   * cascade — takes the members with it. Asking where they go is the only
-   * version of this operation that is not a trap.
-   *
-   * A system group is refused. `is_system` marks the four the board's own code
-   * resolves by key (guests, registered, administrators, banned), and deleting
-   * one breaks registration rather than a screen.
-   */
   async remove(groupId: number, moveMembersTo: number): Promise<void> {
     if (groupId === moveMembersTo) {
       throw new ValidationError('Members cannot be moved into the group being deleted.')
@@ -282,19 +195,6 @@ export class PostgresGroupAdminRepository {
     })
   }
 
-  /**
-   * Move one chunk of a group's members into another group.
-   *
-   * Keyset-paged and bounded. The alternative — one UPDATE over every member —
-   * holds row locks on `users` for the duration, on the table every request
-   * reads, and cannot be interrupted or resumed. F24's promotion loop pages the
-   * same way for the same reason.
-   *
-   * Returns the cursor to continue from, so the caller decides how much work to
-   * do in one request. Each chunk bumps the version, which is deliberate: a run
-   * that stops half way has still changed real permissions, and the actors
-   * holding the old ones have to go.
-   */
   async moveMembersChunk(input: {
     readonly fromGroupId: number
     readonly toGroupId: number
@@ -324,30 +224,16 @@ export class PostgresGroupAdminRepository {
       const ids = rows.map((row) => Number(row.id)).sort((a, b) => a - b)
       return {
         moved: ids.length,
-        /*
-         * A short chunk means the source group is exhausted. Reporting `null`
-         * rather than the last id is what lets the caller stop without a second
-         * query that finds nothing.
-         */
         nextCursor: ids.length < input.limit ? null : (ids.at(-1) ?? null),
       }
     })
   }
 
-  /**
-   * Run something, then bump `permission_version` — in one transaction.
-   *
-   * Not a separate call the caller could forget. A lost bump leaves resolved
-   * actors holding permissions that have been revoked, which is the failure
-   * direction that matters. The pairing itself lives in `permission-version.ts`,
-   * because there are now three writers of it.
-   */
   private async withVersionBump<T>(work: (tx: Tx) => Promise<T>): Promise<T> {
     return withPermissionVersionBump(this.db, work)
   }
 }
 
-/** `can_view` → `canView`, which is the shape `permissions-map` expects. */
 function camelise(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(row)) {

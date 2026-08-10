@@ -1,12 +1,3 @@
-/**
- * F39 — persisting a new thread.
- *
- * One transaction covers the thread, its opening post, every counter it moves
- * and the event that rolls those counters up the tree. That is the entire
- * reason `applyCreatedContentCounters` takes a transaction handle rather than
- * opening its own: a post that exists while the forum still reports zero
- * threads is the failure this shape prevents (D40/D41).
- */
 import { sql } from 'drizzle-orm'
 
 import { BodyFormat, renderMarkdown, vocabularyOptions } from '@meith/markdown'
@@ -33,7 +24,6 @@ export class PostgresThreadWriteRepository
 {
   constructor(private readonly db: Database) {}
 
-  /** The posting flags plus the slug the redirect needs, in one row. */
   async postingRules(forumId: number): Promise<ForumPostingTarget | null> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -72,13 +62,6 @@ export class PostgresThreadWriteRepository
   }
 
   async create(record: NewThreadRecord): Promise<CreatedThread> {
-    /*
-     * Read before the transaction, not inside it (F71). The two halves of the
-     * vocabulary are already consistent with each other — that read has its own
-     * transaction — and holding this one open across an extra round trip would
-     * lengthen the window on the busiest write on the board. A vocabulary edit
-     * landing in between costs one stale stamp, which the backfill repairs.
-     */
     const vocabulary = await readBoardVocabulary(this.db)
 
     return this.db.transaction(async (tx) => {
@@ -140,28 +123,12 @@ export class PostgresThreadWriteRepository
           isNewThread: true,
         })
       } else {
-        /*
-         * An unapproved thread moves no counter and emits no event, because
-         * every counter on the board means "visible content" (D41). Approval is
-         * F48's transition, and it is what applies them — deliberately not a
-         * counter written now and corrected later, which would show the board a
-         * thread count for content nobody can read.
-         */
         await tx.execute(sql`
           update threads set first_post_id = ${postId} where id = ${threadId}
         `)
       }
 
       if (record.subscribe) {
-        /*
-         * Inside the same transaction: a subscription that survives a failed
-         * post would notify people about a thread that does not exist.
-         *
-         * The watermark starts at the post just written (F56), so the author is
-         * never notified about their own opening post — the notifier's "posts
-         * newer than this" is then true from the first tick rather than after a
-         * first pass that has to filter the subscriber out of their own thread.
-         */
         await tx.execute(sql`
           insert into thread_subscriptions (user_id, thread_id, mode, last_notified_post_id)
           values (${record.authorUserId}, ${threadId}, 'instant', ${postId})
@@ -178,13 +145,6 @@ export class PostgresThreadWriteRepository
     })
   }
 
-  /**
-   * The thread's posting state (F40).
-   *
-   * `last_post_id` comes from the thread row rather than a `max(id)` over posts:
-   * it is maintained by the same transaction that writes a post (D40), so it is
-   * exactly as current as the listing that told the author what they had seen.
-   */
   async replyTarget(threadId: number): Promise<ReplyTarget | null> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -243,7 +203,6 @@ export class PostgresThreadWriteRepository
     }
   }
 
-  /** The reply write. Same transaction shape as `create`, one row shorter. */
   async createReply(record: NewReplyRecord): Promise<{ postId: number }> {
     const vocabulary = await readBoardVocabulary(this.db)
 
@@ -284,23 +243,11 @@ export class PostgresThreadWriteRepository
           authorUsername: record.authorUsername,
           threadTitle: record.threadTitle,
           createdAt: record.createdAt,
-          /*
-           * The one difference that matters: a reply raises the thread's reply
-           * count and the forum's post count, and raises no thread count
-           * anywhere. Getting this wrong inflates every ancestor's thread total
-           * by one per reply, which no reader would ever question.
-           */
           isNewThread: false,
         })
       }
 
       if (record.subscribe) {
-        /*
-         * Same watermark rule as a new thread: start at the reply just written.
-         * `do nothing` on conflict deliberately leaves an existing subscription
-         * alone — including its watermark, because a member who has not read
-         * the last three replies has not been told about them either.
-         */
         await tx.execute(sql`
           insert into thread_subscriptions (user_id, thread_id, mode, last_notified_post_id)
           values (${record.authorUserId}, ${record.threadId}, 'instant', ${postId})
@@ -312,13 +259,6 @@ export class PostgresThreadWriteRepository
     })
   }
 
-  /**
-   * When this author last posted anything, for the flood check.
-   *
-   * Counts unapproved posts too: a queue full of held posts is exactly the
-   * pattern the interval exists to slow down, and exempting them would make
-   * moderation the cheapest way to flood.
-   */
   async lastPostAt(userId: number): Promise<Date | null> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -333,14 +273,6 @@ export class PostgresThreadWriteRepository
     return at === undefined ? null : new Date(at)
   }
 
-  /**
-   * Prefixes offered in this forum.
-   *
-   * A prefix with no `forum_path_prefix` is board-wide; one with a path is
-   * scoped to that subtree, matched with the separator so `1.4` does not offer
-   * `1.40`'s prefixes (D22's trap again, and the reason this is a query rather
-   * than a filter in JavaScript).
-   */
   async allowedPrefixIds(forumId: number): Promise<readonly number[]> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -357,7 +289,6 @@ export class PostgresThreadWriteRepository
     return rows.map((row) => Number(row.id))
   }
 
-  /** The prefixes a composer form should offer, with their labels. */
   async listPrefixes(
     forumId: number,
   ): Promise<readonly { id: number; label: string; token: string | null }[]> {

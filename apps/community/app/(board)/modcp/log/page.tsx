@@ -18,13 +18,6 @@ import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Moderator log' }
 
-/**
- * F54 — what has been done in the forums this moderator is responsible for.
- *
- * Scoped in SQL, not in the rendering. A moderator of one forum sees that
- * forum's entries plus their own; filtering a board-wide feed afterwards is how
- * a count or a paging boundary leaks what it hid.
- */
 export default async function ModLogPage({
   searchParams,
 }: {
@@ -66,13 +59,6 @@ export default async function ModLogPage({
                 <li key={entry.id} className="px-4 py-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
                     <span className="font-medium">
-                      {/*
-                        Unknown action ids fall through to the raw string. The
-                        log is written by ten features and will be written by
-                        more; a screen rendering only what it has heard of would
-                        hide the newest entries, which are the ones somebody is
-                        looking for.
-                      */}
                       {MOD_LOG_LABELS[entry.action] ?? entry.action}
                     </span>
                     <span className="text-xs text-muted-foreground">

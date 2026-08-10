@@ -6,38 +6,16 @@ import { LoginForm } from "@/components/auth/login-form"
 export const metadata: Metadata = { title: "Sign in" }
 
 const NOTICES: Record<string, string> = {
-  /*
-   * Where `/install` sends the new administrator, and the last thing the
-   * installer does that the operator can see.
-   *
-   * The redirect has always carried `?installed=1`; this page had no entry for
-   * it, so the one screen confirming that a five-step irreversible install
-   * *worked* was an ordinary sign-in form. The installer is gone by then — it
-   * answers 404 — so there was nothing left anywhere that said the board
-   * existed.
-   */
   installed:
     "Your board is installed. Sign in with the administrator account you just created.",
   registered: "Account created. You can sign in now.",
   reset: "Your password has been changed. Sign in with your new password.",
   activated: "Your address is confirmed. You can sign in now.",
-  /*
-   * The `both` policy: the address is proven and an administrator still has to
-   * approve the account. Saying so is the difference between waiting and
-   * assuming something is broken.
-   */
   confirmed:
     "Your address is confirmed. An administrator will review your account before you can sign in.",
   already: "That account is already active. Sign in below.",
 }
 
-/**
- * One sentence for every way a confirmation link can fail.
- *
- * A forged token, a used one and an expired one are deliberately not told
- * apart: the next step is the same for all three, and distinguishing them would
- * tell whoever is holding a token whether it was ever real.
- */
 const VERIFY_FAILED =
   "That confirmation link is no longer valid. Ask for a new one below."
 
@@ -57,7 +35,6 @@ export default async function LoginPage({
 }) {
   const params = await searchParams
   const failedVerification = params.verify === "failed"
-  /* First, because it is the only one that can be somebody's first ever visit. */
   const notice = params.installed
     ? NOTICES.installed
     : params.registered

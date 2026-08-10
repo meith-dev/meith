@@ -16,17 +16,6 @@ export const metadata: Metadata = { title: 'Buddies and ignored members' }
 
 const RETURN_TO = '/usercp/contacts'
 
-/**
- * F61 — the two lists, on one screen.
- *
- * One page rather than two, because they are one decision seen from either
- * side: the same member is on exactly one of them, and moving somebody between
- * them is a thing people do. Two screens would make that a delete on one page
- * and an add on another.
- *
- * App-owned rather than a theme slot, like every account screen since F55: the
- * slot registry is R6's list, frozen at F77, and this arrived after it.
- */
 export default async function ContactsPage({
   searchParams,
 }: {
@@ -36,11 +25,6 @@ export default async function ContactsPage({
   const actor = await getActor()
   const service = relationService()
 
-  /*
-   * A guest and a board with no relation store get the same answer: this page
-   * is not here. Somebody's ignore list is theirs, and nothing about it should
-   * be discoverable by asking for it.
-   */
   if (actor.userId === null || service === null) notFound()
 
   const preferences = await getViewerPreferences()
@@ -124,8 +108,6 @@ function ContactLine({ row }: { row: ContactRowView }) {
       </a>
 
       {row.isOnline ? (
-        /* A word as well as a dot: a colour difference alone is not a
-           distinction everybody can see. */
         <span className="text-xs font-medium text-moderation-approved">Online</span>
       ) : (
         row.lastSeenLabel !== null && (

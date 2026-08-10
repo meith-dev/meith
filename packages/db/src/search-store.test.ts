@@ -1,15 +1,3 @@
-/**
- * F73's stored searches and flood control, against real Postgres.
- *
- * Two claims:
- *
- *  - **the flood check is the insert.** A read-then-write check has a window
- *    between the two, and search flooding is precisely the case where twenty
- *    requests arrive at once — the race is the attack, not a footnote;
- *  - **a stored search is owned.** Not because the results would leak (they are
- *    re-resolved against whoever asks) but because the *terms* are private:
- *    what somebody searched for is often more revealing than what they found.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -76,31 +64,17 @@ describe('create', () => {
   })
 
   it('returns null rather than throwing, because waiting is an ordinary outcome', async () => {
-    /*
-     * The screen shows "you are searching too quickly" beside the box. An
-     * exception here would make an expected interaction an error page.
-     */
     await store.create(input({ floodSeconds: 60 }))
     await expect(store.create(input({ floodSeconds: 60 }))).resolves.toBeNull()
   })
 
   it('does not throttle at all when the interval is zero', async () => {
-    /*
-     * `0` is what an unset `search.flood_seconds` means and what `flood.bypass`
-     * gets. Kills the mutant that treats zero as "no time has passed" and
-     * refuses every search after the first.
-     */
     for (let i = 0; i < 3; i += 1) {
       expect(await store.create(input({ floodSeconds: 0 }))).not.toBeNull()
     }
   })
 
   it('throttles each member separately', async () => {
-    /*
-     * Kills the mutant that checks "any recent search" rather than this
-     * member's — under which one busy member locks out the whole board, which
-     * is a denial of service wearing a rate limit's clothes.
-     */
     await store.create(input({ userId: ANN, floodSeconds: 60 }))
 
     expect(await store.create(input({ userId: BOB, floodSeconds: 60 }))).not.toBeNull()
@@ -125,11 +99,6 @@ describe('create', () => {
   })
 
   it('counts the interval from the newest search, not the oldest', async () => {
-    /*
-     * Kills the mutant that compares against `min(created_at)`: a member who
-     * searched an hour ago and again a second ago would be let straight
-     * through, which is the whole population being throttled.
-     */
     const old = await store.create(input({ floodSeconds: 0 }))
     await db.execute(sql`
       update searches set created_at = now() - interval '1 hour' where id = ${old!.id}
@@ -192,28 +161,11 @@ describe('ownsSearch', () => {
   })
 
   it('does not hand a guest’s search to whoever signs in on that session', async () => {
-    /*
-     * A member who signs in is a different subject. Inheriting the session's
-     * searches would attach a stranger's terms to an account — and on a shared
-     * computer, that stranger is a real person. Kills the mutant that matches
-     * on session alone.
-     */
     const search = { userId: null, sessionKey: 's5' }
     expect(ownsSearch(search, { userId: ANN, sessionKey: 's5' })).toBe(false)
   })
 
   it('lets a search that belongs to nobody be opened with its token', async () => {
-    /*
-     * **This is the guest, not a corner.** The session key is a hash of the
-     * session cookie and a logged-out reader has none, so every search a guest
-     * runs is stored with no user and no session. This used to return false,
-     * which made `/search?q=…` a 404 for every visitor who had not signed in,
-     * on every term — search reported as "does not work", from the reading that
-     * a row nobody owns should be reachable by nobody.
-     *
-     * What guards it now is the token: 144 random bits, held by the one browser
-     * that ran the search. Kills the mutant that restores the refusal.
-     */
     expect(ownsSearch({ userId: null, sessionKey: null }, { userId: null, sessionKey: null }))
       .toBe(true)
     expect(ownsSearch({ userId: null, sessionKey: null }, { userId: ANN, sessionKey: 's1' }))
@@ -221,11 +173,6 @@ describe('ownsSearch', () => {
   })
 
   it('still ties an owned search to its owner', async () => {
-    /*
-     * The guarantee the change above must not have widened: an *owned* row is
-     * owned. Kills the mutant that returns true unconditionally, which the two
-     * assertions above would otherwise be happy with.
-     */
     expect(ownsSearch({ userId: ANN, sessionKey: null }, { userId: null, sessionKey: null }))
       .toBe(false)
     expect(ownsSearch({ userId: null, sessionKey: 's5' }, { userId: null, sessionKey: null }))

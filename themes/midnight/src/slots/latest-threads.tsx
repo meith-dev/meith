@@ -2,19 +2,6 @@ import type { LatestThreadsModel } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-/**
- * The newest threads, as a log.
- *
- * Midnight renders listings as rows of monospace rather than as cards, and this
- * panel is the same idea at one line per thread: title, then the forum and the
- * author in the muted colour, then the time. No excerpt and no reply count —
- * the point of a log is that the lines are the same shape, and a wrapped one
- * breaks the column this theme is made of.
- *
- * `capturedAt` is rendered rather than dropped. The panel updates itself while
- * the page is open, and a list that changes with nothing saying when it was
- * read is indistinguishable from one that has stopped.
- */
 export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
   return (
     <section aria-labelledby="latest-threads-heading" className="border border-border">

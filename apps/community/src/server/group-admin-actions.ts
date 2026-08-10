@@ -1,19 +1,5 @@
 'use server'
 
-/**
- * F66 — the group administration writes.
- *
- * Like F65's, each one re-authorises for itself: a Server Action is a public
- * endpoint reachable without rendering any page, so the ACP layout having
- * checked is not a check.
- *
- * Unlike F65's, none of them needs to invalidate the forum tree and **all of
- * them invalidate the permission version**, because a group is nothing but
- * permissions: its defaults are R4.1 layer 1, its membership decides whose
- * defaults those are, and F20 caches a resolved Actor against that version. The
- * repository bumps the number inside the same transaction as the write; this
- * clears the tag that makes the caches holding the old number let go.
- */
 import { revalidatePath } from 'next/cache'
 
 import { CacheTags, PERMISSION_FIELDS, ValidationError, isAppError, logger } from '@meith/core'
@@ -24,7 +10,6 @@ import { promotionService, requireGroupAdmin } from './group-admin'
 import { assertSafeCssValue } from './theme-style'
 import type { FormState } from './auth-form-state'
 
-/** How many members one press of the button moves. */
 const CHUNK = 500
 
 function text(form: FormData, name: string): string {
@@ -48,32 +33,12 @@ function toFormState(err: unknown): FormState {
   return { error: 'Something went wrong. Please try again.' }
 }
 
-/** Every write here changes what somebody is allowed to do. */
 async function invalidatePermissions(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.permissions()])
-  /*
-   * And Next's client Router Cache for the screens that list groups, for the
-   * reason `invalidateTree` in `forum-admin-actions.ts` sets out at length: the
-   * board's own cache being clear does not refresh a payload the browser
-   * already holds, so a created or deleted group would show its notice beside
-   * the list it was missing from.
-   */
   revalidatePath('/admin/groups')
   revalidatePath('/admin/groups/[id]', 'page')
 }
 
-/**
- * One of the two name colours, validated exactly as a theme token is.
- *
- * The same function the theme editor uses and the render path re-runs, because
- * this value lands in the same kind of `<style>` block from the same kind of
- * database column. A second opinion here would eventually accept something the
- * renderer refuses, and a board finds that out by going blank.
- *
- * Empty is `null` — "no colour in this scheme" — rather than an empty
- * declaration, on the theme editor's rule: a blank field is "use the default",
- * and storing it would write `color:;` into a rule.
- */
 function groupColour(form: FormData, field: string): string | null {
   const value = text(form, field)
   if (value === '') return null
@@ -107,11 +72,6 @@ export async function saveGroupIdentityAction(
       nameColorDark: groupColour(form, 'nameColorDark'),
     })
 
-    /*
-     * A rename is not a permission change, but the badge and the staff flag are
-     * carried on the same resolved actor — so this invalidates too, rather than
-     * making a judgement about which columns matter.
-     */
     await invalidatePermissions()
     await recordAdminAction({ action: 'group.updated', detail: { groupId: id } })
 
@@ -121,19 +81,6 @@ export async function saveGroupIdentityAction(
   }
 }
 
-/**
- * Save a group's global permissions.
- *
- * **Two states per cell, not three.** F65's forum cells are three because
- * `forum_permissions` is nullable and null means inherit; a group's defaults
- * are the bottom of the resolution and have nothing above them to inherit from,
- * so every cell has an answer and reusing the three-state control out of
- * symmetry would invent an "inherit" that means nothing.
- *
- * Every field is read whether it arrived or not — an unchecked checkbox submits
- * nothing, and treating absent as "leave alone" would make it impossible to
- * revoke anything.
- */
 export async function saveGroupPermissionsAction(
   _prev: FormState,
   form: FormData,
@@ -167,14 +114,6 @@ export async function saveGroupPermissionsAction(
   }
 }
 
-/**
- * Create a group by copying another.
- *
- * The copy source is required, not optional. The registry defaults are
- * deny-everything, so a group created from them is one whose members cannot see
- * the board — and an operator who then reports "the new group is broken" is
- * describing the screen's fault, not theirs.
- */
 export async function createGroupAction(
   _prev: FormState,
   form: FormData,
@@ -192,16 +131,6 @@ export async function createGroupAction(
     const title = text(form, 'title')
     if (title === '') throw new ValidationError('A group needs a title.')
 
-    /*
-     * Named rather than left to `groupId`'s generic refusal.
-     *
-     * The select's first option is a blank "— choose a group —", the form is
-     * `noValidate` so the browser does not insist, and the shared helper turned
-     * an unmade choice into *"No such group."* — which reads as "the group you
-     * picked has vanished" to somebody who picked nothing. The field's own help
-     * text already says why it is required; this says the same thing at the
-     * moment it matters.
-     */
     if (text(form, 'copyFromGroupId') === '') {
       throw new ValidationError(
         'Choose a group to copy permissions from. Starting from the defaults ' +
@@ -225,14 +154,6 @@ export async function createGroupAction(
   }
 }
 
-/**
- * Delete a group, moving its members somewhere.
- *
- * **Re-authenticated.** It changes the primary group of every member it holds,
- * with no undo, and a group is a permission set — deleting the wrong one hands
- * a population of members whatever the destination allows. The repository
- * refuses system groups; this asks who is pressing the button.
- */
 export async function deleteGroupAction(
   _prev: FormState,
   form: FormData,
@@ -256,20 +177,6 @@ export async function deleteGroupAction(
   }
 }
 
-/**
- * Move one chunk of a group's members into another group.
- *
- * One chunk per submission, with the cursor carried in the form. A single
- * button that moved every member would hold row locks on `users` — the table
- * every request reads — for as long as it took, on a board where "every member"
- * can be five figures. Chunking makes the run interruptible and resumable, and
- * putting the cursor in the form is what makes it resumable *without JavaScript*
- * (D06): the next press continues where this one stopped.
- *
- * **Re-authenticated**, like the delete: it is a bulk privilege change with no
- * undo. The freshness window means an operator confirms once and can then work
- * through a long run without retyping their password on every press.
- */
 export async function moveMembersAction(
   _prev: FormState,
   form: FormData,
@@ -297,11 +204,6 @@ export async function moveMembersAction(
       detail: { fromGroupId: from, toGroupId: to, moved: chunk.moved },
     })
 
-    /*
-     * The cursor goes back into the form, and `moved` is a running total so a
-     * multi-press run can say what it has done rather than only what the last
-     * press did.
-     */
     const total = Number(text(form, 'movedSoFar') || '0') + chunk.moved
 
     return {
@@ -318,17 +220,6 @@ export async function moveMembersAction(
   }
 }
 
-/**
- * Run the promotion rules for real.
- *
- * The screen shows `preview()` first and this calls `apply()` — the same
- * evaluation, differing only in whether the outcomes are written, which is what
- * stops a preview from ever disagreeing with the run it previewed.
- *
- * **Re-authenticated.** It moves members between groups in bulk on criteria
- * somebody configured earlier, which is the definition of an action whose blast
- * radius is not visible from the button.
- */
 export async function applyPromotionsAction(
   _prev: FormState,
   _form: FormData,

@@ -27,11 +27,6 @@ describe('defineForumConfig', () => {
     expect(Object.keys(config.themes)).toHaveLength(2)
   })
 
-  /*
-   * A defaultTheme naming a theme that is not installed would render a board
-   * with no tokens at all — a blank page and no error pointing at the cause.
-   * Failing at module load names the problem instead.
-   */
   it('refuses a defaultTheme that is not registered', () => {
     expect(() =>
       defineForumConfig({ themes: { default: theme('default') }, defaultTheme: 'midnight' }),
@@ -47,11 +42,6 @@ describe('defineForumConfig', () => {
     ).toThrow(/Available: a, b/)
   })
 
-  /*
-   * `themes[key].key !== key` breaks every lookup that round-trips through one
-   * or the other — a setting stores the registry key, the theme reports its
-   * own, and they stop agreeing.
-   */
   it('refuses a theme whose key disagrees with its registration', () => {
     expect(() =>
       defineForumConfig({ themes: { light: theme('default') }, defaultTheme: 'light' }),
@@ -80,13 +70,6 @@ describe('defineForumConfig', () => {
     ).not.toThrow()
   })
 
-  /*
-   * F79. The same check the themes get, and for the same reason: every lookup
-   * round-trips through one key or the other. A plugin's settings are stored
-   * under `plugin.<key>.…` and its admin routes are namespaced by it, so a
-   * mismatch makes it configurable under one name and running under another —
-   * with nothing failing, because both names are valid.
-   */
   it('refuses a plugin whose declared key disagrees with its registration', () => {
     expect(() =>
       defineForumConfig({
@@ -98,10 +81,6 @@ describe('defineForumConfig', () => {
   })
 
   it('accepts a plugin entry that carries no definition', () => {
-    /*
-     * A board may list a plugin it has switched off without the bundler pulling
-     * in its code. The key check must not fire on the absence.
-     */
     expect(() =>
       defineForumConfig({
         themes: { default: theme('default') },

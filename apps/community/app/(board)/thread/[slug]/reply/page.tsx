@@ -54,14 +54,6 @@ export default async function ReplyPage({
   const moderates = authorizer.can(actor, 'content.viewUnapproved', scope)
   const locked = target.isLocked && !moderates
 
-  /*
-   * The quote is resolved here, on the server, so quoting works with scripting
-   * off: it is a link to this page, not a button that edits a textarea. The
-   * quoted post is re-read through the visible-post lookup rather than trusted
-   * from the query string — otherwise `?quote=<id>` is a way to paste any post
-   * on the board, including one in a forum the quoter cannot see, into a forum
-   * where everyone can.
-   */
   const quoteId = quotedPostId(query.quote)
   let prefill = ''
   if (quoteId !== null) {

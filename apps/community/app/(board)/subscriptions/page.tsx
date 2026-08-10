@@ -17,21 +17,6 @@ import {
 
 export const metadata: Metadata = { title: 'Subscriptions' }
 
-/**
- * F56 — everything a member follows.
- *
- * The screen F39's "subscribe to this thread" checkbox has needed since Phase 3:
- * the box has been writing rows for months and there has been nowhere to see
- * them, change them, or turn one off.
- *
- * **The list is filtered by what the member may still see.** A subscription to
- * a forum that has since been made private is dropped rather than shown greyed
- * out — a row that names a private forum back at somebody is a disclosure, and
- * the subscription itself keeps working the moment access returns.
- *
- * App-owned rather than a theme slot, like F55's centre and Phase 4's screens:
- * the slot registry is R6's list, frozen at F77, and this arrived after it.
- */
 export default async function SubscriptionsPage({
   searchParams,
 }: {
@@ -41,18 +26,8 @@ export default async function SubscriptionsPage({
   const actor = await getActor()
   const { subscriptions, authorizer } = getContainer()
 
-  /*
-   * A guest and a board with no subscription store get the same answer: this
-   * page is not here. A member's follow list is theirs, and nothing about it
-   * should be discoverable by asking for it.
-   */
   if (actor.userId === null || subscriptions === null) notFound()
 
-  /*
-   * One resolution of the visible set, handed to the query — the same answer
-   * the notifier resolves per member when it decides what to tell them, so the
-   * screen and the e-mail cannot disagree about what this member follows.
-   */
   const visibleForumIds = await authorizer.visibleForumIds(actor)
   const rows = await new SubscriptionService({ subscriptions }).list(
     actor.userId,

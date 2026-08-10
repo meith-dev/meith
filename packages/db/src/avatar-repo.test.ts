@@ -1,17 +1,3 @@
-/**
- * F58's avatars against real Postgres.
- *
- * What only the database settles:
- *
- *  - `beginUpload` and `clear` hand back the keys they stopped pointing at, in
- *    the same statement that stops pointing at them — so two concurrent uploads
- *    cannot both believe they own the previous object;
- *  - the lock is enforced in the `where`, so a moderator locking an avatar
- *    while the member has the form open wins the race;
- *  - `markReady` swaps both keys at once and only touches a `pending` row;
- *  - the partial unique indexes stop two members claiming one object while
- *    letting every member have no avatar at all.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -51,10 +37,6 @@ beforeEach(async () => {
 
 describe('find', () => {
   it('reads the never-uploaded state as a value, not an absence', async () => {
-    /*
-     * `none` is the commonest state on any board, and spelling it as a null
-     * every query has to coalesce is how one of them forgets.
-     */
     expect(await repo.find(ADA)).toMatchObject({
       status: 'none',
       key: null,
@@ -91,11 +73,6 @@ describe('beginUpload', () => {
   })
 
   it('reports the object it replaced, in the statement that replaced it', async () => {
-    /*
-     * The handover has to be atomic: a read-then-write would let two concurrent
-     * uploads both see the same previous key and both delete it — one of them
-     * removing an object the other had already handed to a live row.
-     */
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/first/source', at: AT })
     await repo.markReady({ userId: ADA, key: 'attachments/first/file', width: 200, height: 200 })
 
@@ -109,7 +86,6 @@ describe('beginUpload', () => {
   })
 
   it('reports an abandoned source as well as a published one', async () => {
-    /* Uploading twice in a row, with no job in between. */
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/first/source', at: AT })
     const { replaced } = await repo.beginUpload({
       userId: ADA,
@@ -121,12 +97,6 @@ describe('beginUpload', () => {
   })
 
   it('is refused by the lock, and reports the new object as the one to collect', async () => {
-    /*
-     * The race the `where` clause exists for: a moderator locks the avatar
-     * while the member has the form open. Nothing is written, so the object the
-     * caller has already stored is the thing that needs collecting — and saying
-     * so is what stops it leaking. Kills the mutant that drops the guard.
-     */
     await repo.lock({ userId: ADA, locked: true, reason: 'no' })
 
     const { replaced } = await repo.beginUpload({
@@ -163,8 +133,6 @@ describe('markReady', () => {
   })
 
   it('does nothing to a row that is no longer pending', async () => {
-    /* At-least-once delivery. Kills the mutant that drops the status guard,
-       which on redelivery would publish a second object and leak the first. */
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/a/source', at: AT })
     await repo.markReady({ userId: ADA, key: 'attachments/a/file', width: 1, height: 1 })
     await repo.markReady({ userId: ADA, key: 'attachments/second/file', width: 1, height: 1 })
@@ -183,8 +151,6 @@ describe('markReady', () => {
   })
 
   it('lets every member have no avatar at once', async () => {
-    /* Why the unique indexes are partial: a plain one would allow exactly one
-       member with a null key, which is every member on a new board. */
     expect((await repo.find(ADA))?.key).toBeNull()
     expect((await repo.find(BOB))?.key).toBeNull()
   })
@@ -266,11 +232,6 @@ describe('stalled', () => {
 
 describe('the object ledger', () => {
   it('is the one F42 uses, and tolerates the same key twice', async () => {
-    /*
-     * `attachment_orphans` by name because that is where it started; what it
-     * holds is object keys nothing owns, and a replaced avatar is the second
-     * thing to need exactly that.
-     */
     await repo.rememberKey('attachments/x/file')
     await expect(repo.rememberKey('attachments/x/file')).resolves.toBeUndefined()
 

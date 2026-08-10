@@ -1,14 +1,5 @@
 "use client"
 
-/**
- * The documentation sidebar.
- *
- * A client component for one reason: it marks the page you are on, and knowing
- * that needs `usePathname`. The list itself is handed down from the server,
- * built from the manifest, so this component holds no opinion about what the
- * documentation contains.
- */
-
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 

@@ -13,7 +13,6 @@ import {
   type StoredAvatar,
 } from './index'
 
-/** A PNG header declaring a size. All the validator parses. */
 function png(width = 400, height = 300): Uint8Array {
   const bytes = new Uint8Array(64)
   bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
@@ -179,10 +178,6 @@ beforeEach(() => {
 
 describe('avatarVisible', () => {
   it('is false until the re-encode has finished', () => {
-    /*
-     * The claim the whole lifecycle exists for: what a member uploaded is never
-     * shown. Kills the mutant that treats a pending row as displayable.
-     */
     expect(avatarVisible(stored({ status: 'pending', sourceKey: 'k' }))).toBe(false)
     expect(avatarVisible(stored({ status: 'failed' }))).toBe(false)
     expect(avatarVisible(stored())).toBe(false)
@@ -190,23 +185,12 @@ describe('avatarVisible', () => {
   })
 
   it('is false while locked, whatever the status says', () => {
-    /*
-     * A locked avatar reads exactly like no avatar to everybody except its
-     * owner. Kills the mutant that drops the lock from the predicate — which
-     * would leave a moderator's decision applying to the edit form and not to
-     * the thing everybody actually sees.
-     */
     expect(avatarVisible(stored({ status: 'ready', key: 'k', locked: true }))).toBe(false)
   })
 })
 
 describe('avatarUrl', () => {
   it('carries the member and a version, and never the object key', () => {
-    /*
-     * A key in a URL is a capability, and one that outlives a lock. The version
-     * is what makes a replacement a different URL, so no cache keeps showing
-     * the old face.
-     */
     const url = avatarUrl(ADA, stored({ status: 'ready', key: 'secret', updatedAt: NOW }))
     expect(url).toBe(`/avatar/${ADA}?v=${NOW.getTime()}`)
     expect(url).not.toContain('secret')
@@ -228,7 +212,6 @@ describe('uploading', () => {
       key: null,
     })
     expect([...files.objects.values()][0]?.visibility).toBe('private')
-    /* The ledger handed the key over to the row. */
     expect(repo.keys.size).toBe(0)
   })
 
@@ -240,11 +223,6 @@ describe('uploading', () => {
   })
 
   it('refuses while locked, and stores nothing', async () => {
-    /*
-     * The lock is checked here rather than left to the caller because it is a
-     * sanction on one member and not a permission — a caller that had to
-     * remember it would eventually not. Kills the mutant that drops the check.
-     */
     repo.rows.set(ADA, stored({ locked: true, lockedReason: 'no' }))
 
     await expect(
@@ -254,10 +232,6 @@ describe('uploading', () => {
   })
 
   it('refuses a format that is not an image, even though F42 would take it', async () => {
-    /*
-     * A PDF is a legitimate attachment and an absurd avatar. Kills the mutant
-     * that reuses `acceptFile` without narrowing it.
-     */
     await expect(
       service.upload({ userId: ADA, file: { filename: 'cv.pdf', bytes: pdf() }, mayUpload: true }),
     ).rejects.toThrow(/PNG or a JPEG/)
@@ -273,11 +247,6 @@ describe('uploading', () => {
   })
 
   it('hands the previous object to the sweep rather than leaking it', async () => {
-    /*
-     * The difference between an avatar and an attachment: this is an overwrite,
-     * so something has to collect what it replaced. Kills the mutant that
-     * ignores `replaced`.
-     */
     repo.rows.set(ADA, stored({ status: 'ready', key: 'attachments/old/file' }))
     files.objects.set('attachments/old/file', { bytes: new Uint8Array([1]), visibility: 'private' })
 
@@ -305,11 +274,6 @@ describe('processing', () => {
   })
 
   it('asks for the avatar box and no thumbnail', async () => {
-    /*
-     * An avatar renders at a fixed size on every page of the board, so storing
-     * a 2000px original is a cost paid by every reader; and a thumbnail of a
-     * 200px image is a second lossy encode of something nothing asks for.
-     */
     await pending()
     await service.process(ADA)
 
@@ -349,10 +313,6 @@ describe('processing', () => {
   })
 
   it('fails a row whose stored bytes are not an image after all', async () => {
-    /*
-     * The case the re-encode exists to catch, reached from the other side: the
-     * header checks passed at upload and the file is still not decodable.
-     */
     await pending()
     files.objects.set('attachments/k1/source', {
       bytes: new TextEncoder().encode('<?php ?>'),
@@ -383,10 +343,6 @@ describe('removing', () => {
 
 describe('the moderator lock', () => {
   it('requires a reason to lock, and clears it to unlock', async () => {
-    /*
-     * D61's rule: "your avatar has been locked" with no reason is how somebody
-     * concludes the board is broken rather than that they broke a rule.
-     */
     await expect(
       service.setLock({ userId: ADA, locked: true, reason: '   ' }),
     ).rejects.toThrow(ValidationError)
@@ -399,11 +355,6 @@ describe('the moderator lock', () => {
   })
 
   it('keeps the object, so an appeal has something to look at', async () => {
-    /*
-     * The argument is stronger here than for a signature: deleting an image
-     * destroys the evidence entirely, where a deleted signature at least leaves
-     * a description possible.
-     */
     repo.rows.set(ADA, stored({ status: 'ready', key: 'attachments/old/file' }))
     files.objects.set('attachments/old/file', { bytes: new Uint8Array([1]), visibility: 'private' })
 
@@ -428,10 +379,6 @@ describe('the sweep', () => {
   })
 
   it('leaves a job that is merely slow alone', async () => {
-    /*
-     * The grace period. Kills the mutant that fails everything pending, which
-     * would break every upload on a board whose tick runs before its queue.
-     */
     await service.upload({ userId: ADA, file: { filename: 'me.png', bytes: png() }, mayUpload: true })
 
     expect(await service.sweep()).toBe(0)

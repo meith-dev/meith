@@ -1,17 +1,3 @@
-/**
- * F42's storage, against real Postgres.
- *
- * What only the database settles:
- *
- *  - the two keys are swapped in one statement, so no row ever points at both
- *    the uploaded bytes and the safe ones;
- *  - every transition is guarded in its `where`, so an at-least-once queue
- *    delivering twice is a no-op rather than damage;
- *  - the partial unique indexes on the keys mean two rows can never claim the
- *    same object, while any number of rows may have no key at all;
- *  - the orphan ledger answers "which objects does nothing own" as an indexed
- *    query, which is the only cheap way to ask it.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -118,11 +104,6 @@ describe('create', () => {
   })
 
   it('refuses two rows claiming the same object', async () => {
-    /*
-     * The partial unique indexes. Without them, deleting one row's object would
-     * have to check whether another row points at it — a check somebody
-     * eventually forgets.
-     */
     await pending({ storageKey: 'attachments/x/file', sourceKey: null, status: 'ready' })
     await expect(
       pending({ storageKey: 'attachments/x/file', sourceKey: null, status: 'ready' }),
@@ -133,8 +114,6 @@ describe('create', () => {
   })
 
   it('allows any number of rows with no key of a given kind', async () => {
-    /* The indexes are partial for this reason: every ready row has a null
-       source key, and a plain unique index would allow exactly one of them. */
     await pending({ sourceKey: 'attachments/1/source' })
     await pending({ sourceKey: 'attachments/2/source' })
 
@@ -149,11 +128,6 @@ describe('create', () => {
   })
 
   it('survives the uploader being deleted', async () => {
-    /*
-     * SET NULL, not cascade: the attachment belongs to the post, and a member
-     * closing their account must not silently strip images out of a thread
-     * other people are reading.
-     */
     const row = await pending()
     await db.execute(sql`delete from users where id = ${ADA}`)
 
@@ -165,11 +139,6 @@ describe('create', () => {
 
 describe('markReady', () => {
   it('swaps the two keys in one statement', async () => {
-    /*
-     * The claim: no row ever points at both the uploaded bytes and the safe
-     * ones. Kills the mutant that sets `storage_key` and leaves `source_key`,
-     * which would keep the hostile file reachable and unswept.
-     */
     const row = await pending()
     await repo.markReady(row.id, {
       storageKey: 'attachments/a/file',
@@ -191,11 +160,6 @@ describe('markReady', () => {
   })
 
   it('does nothing to a row that is no longer pending', async () => {
-    /*
-     * The queue is at-least-once, so a second delivery is expected. Kills the
-     * mutant that drops the `status = 'pending'` guard, which on redelivery
-     * would publish a second object and leak the first.
-     */
     const row = await pending()
     const ready = {
       storageKey: 'attachments/a/file',
@@ -213,8 +177,6 @@ describe('markReady', () => {
 
 describe('markFailed', () => {
   it('records the reason and drops the source key', async () => {
-    /* The reason is shown to the uploader, not just logged: "your image could
-       not be processed" with no reason is a bug report nobody can act on. */
     const row = await pending()
     await repo.markFailed(row.id, 'That image could not be read.')
 
@@ -263,10 +225,6 @@ describe('listForPosts', () => {
 
 describe('recordDownload', () => {
   it('increments in the statement, so concurrent downloads both count', async () => {
-    /*
-     * Kills the mutant that reads the row and writes back `count + 1`: two
-     * downloads landing together would record one.
-     */
     const row = await pending()
     await Promise.all([repo.recordDownload(row.id), repo.recordDownload(row.id)])
 
@@ -317,8 +275,6 @@ describe('the orphan ledger', () => {
   })
 
   it('tolerates remembering the same key twice', async () => {
-    /* A retried upload may reuse a key it already remembered, and failing there
-       would be a failed upload for a reason unrelated to the file. */
     await repo.rememberKey('attachments/same/file')
     await expect(repo.rememberKey('attachments/same/file')).resolves.toBeUndefined()
   })
@@ -336,11 +292,6 @@ describe('the orphan ledger', () => {
 
 describe('reading a row back', () => {
   it('reads an unknown status as failed, which serves nothing', async () => {
-    /*
-     * The column is text and a row written by a previous deploy could hold
-     * anything. Defaulting to `ready` would serve an object whose processing
-     * state is unknown; `failed` is the one value that cannot.
-     */
     const row = await pending()
     await db.execute(sql`update attachments set status = 'weird' where id = ${row.id}`)
 

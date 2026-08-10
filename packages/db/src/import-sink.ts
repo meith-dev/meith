@@ -1,61 +1,11 @@
-/**
- * F85 — where imported rows land.
- *
- * The `ImportSink` port lives in `@meith/import` and is proved by the fixture
- * round trip; this is the Postgres implementation, and everything difficult
- * about it comes from one requirement: **the import is resumable, so every write
- * happens more than once.**
- *
- * ## Idempotency is a unique index, not a check-then-insert
- *
- * Each table already carries its MyBB id in a partial unique index —
- * `users.legacy_mybb_uid`, `forums.legacy_mybb_fid`, `threads.legacy_mybb_tid`,
- * `posts.legacy_mybb_pid` — so every write here is an `insert … on conflict
- * … do update`. Reading first and inserting if absent would be a race with
- * nothing but optimism between the two statements, and a resumed import is
- * exactly the situation where the row appears in between.
- *
- * `do update` rather than `do nothing`, because re-running an import after
- * fixing something on the source board should carry the fix across. An import
- * that silently ignored the second pass would make "run it again" useless as
- * advice.
- *
- * ## What it refuses, and why refusing is better than guessing
- *
- * A row whose parent was never imported is **skipped with a reason**, never
- * invented. A post in an unknown thread could be attached to some placeholder;
- * a thread in an unknown forum could go to a catch-all. Both would put content
- * on the board in a place its author did not choose, and an operator reading
- * "42 skipped: thread 9912 not imported" can go and find out why — where an
- * operator reading nothing cannot.
- *
- * Usernames and e-mail addresses collide across boards too, and those are
- * skipped rather than renamed for the same reason: `wren_2` is a person who did
- * not agree to be called that.
- */
-
 import { sql } from 'drizzle-orm'
 
 import { BodyFormat } from '@meith/markdown'
 
 import type { Database } from './client'
 import { resolveLegacyIds } from './import-repo'
-/*
- * `db.execute` returns a driver-shaped result, not an array — postgres-js hands
- * back one shape and PGlite a `{ rows }` object. Every read in this package goes
- * through `resultRows` for that reason, and the first draft of this file did
- * not: it cast the result to an array, which is empty under PGlite, so every
- * statement looked like it had returned nothing and seventeen tests failed with
- * "no registered usergroup" against a database that had one.
- */
 import { resultRows } from './result-rows'
 
-/*
- * These mirror `@meith/import`'s `Imported*` types structurally rather than
- * importing them. `@meith/db` is imported *by* `@meith/import`'s consumers, and
- * a dependency in the other direction would close a cycle — the same reason
- * `thread-surgery.ts` keeps its own slug helper.
- */
 interface ImportedUserRow {
   readonly legacyId: number
   readonly username: string
@@ -123,7 +73,6 @@ interface Written {
   readonly inserted: boolean
 }
 
-/** Distinct, non-null parent ids in a page — one lookup instead of one per row. */
 function parentIds(ids: readonly (number | null)[]): number[] {
   return [...new Set(ids.filter((id): id is number => id !== null && id > 0))]
 }
@@ -138,14 +87,6 @@ function tally(rows: readonly Written[], skipped: readonly Skip[]): WriteResult 
   }
 }
 
-/**
- * The slug for an imported row.
- *
- * The same shape the rest of the board produces, and uniqueness is handled by
- * appending the id rather than by probing for a free name: a page of two hundred
- * threads called "Re: help" would otherwise be two hundred round trips, and the
- * id is in the URL anyway.
- */
 function slugFor(title: string, id: number, fallback: string): string {
   const slug = title
     .toLowerCase()
@@ -158,15 +99,6 @@ function slugFor(title: string, id: number, fallback: string): string {
 export class PostgresImportSink {
   constructor(private readonly db: Database) {}
 
-  /**
-   * Users, filed into a group by key rather than by MyBB's numeric id.
-   *
-   * MyBB's group ids are not this board's, and mapping them is a decision an
-   * operator should make rather than one an importer should guess — so every
-   * imported member arrives in `registered` and `legacyGroupId` is carried on
-   * the row for a later pass. Guessing "MyBB group 4 is an administrator" would
-   * be a privilege grant made by string coincidence.
-   */
   async putUsers(rows: readonly ImportedUserRow[]): Promise<WriteResult> {
     if (rows.length === 0) return empty
 
@@ -179,12 +111,6 @@ export class PostgresImportSink {
       throw new Error('No "registered" usergroup. Run migrations before importing.')
     }
 
-    /*
-     * A username or e-mail already on this board belongs to somebody, and it may
-     * not be the same person. Skipped with the collision named, so an operator
-     * can merge deliberately (F67) rather than discovering a stranger holding
-     * their account.
-     */
     const taken = resultRows<{
       username_lower: string
       email_lower: string
@@ -197,7 +123,6 @@ export class PostgresImportSink {
     `),
     )
 
-    /* A collision with *this same* legacy user is a re-run, not a conflict. */
     const byName = new Map(taken.map((row) => [row.username_lower, row.legacy_mybb_uid]))
     const byEmail = new Map(taken.map((row) => [row.email_lower, row.legacy_mybb_uid]))
 
@@ -255,18 +180,6 @@ export class PostgresImportSink {
     return tally(written, skipped)
   }
 
-  /**
-   * Forums, in whatever order they arrive.
-   *
-   * A child whose parent is later in the same page — or in a later page — is
-   * skipped rather than reparented to the root, and the next run picks it up
-   * once the parent exists. MyBB's `fid` order usually puts parents first, and
-   * "usually" is not a thing to build a tree on.
-   *
-   * `path` and `depth` are left for the tree pass to compute rather than derived
-   * here: they are F16's invariant, and two places maintaining a materialised
-   * path is how it stops being one.
-   */
   async putForums(rows: readonly ImportedForumRow[]): Promise<WriteResult> {
     if (rows.length === 0) return empty
 
@@ -348,12 +261,6 @@ export class PostgresImportSink {
         })
         continue
       }
-      /*
-       * A missing *author* is not fatal the way a missing forum is. MyBB keeps
-       * the username on the row and sets `uid` to 0 for a deleted member, so the
-       * post still has an attributable name — which is exactly what the schema's
-       * nullable `author_user_id` beside a non-null `author_username` is for.
-       */
       writable.push({ row, forumId, authorId: authors.get(row.legacyAuthorId) ?? null })
     }
 
@@ -396,25 +303,6 @@ export class PostgresImportSink {
     return tally(written, skipped)
   }
 
-  /**
-   * Posts.
-   *
-   * `is_first_post` is decided by whether this post is the earliest in its
-   * thread, computed after the page lands rather than guessed from MyBB's
-   * ordering — a thread whose first post was deleted has a `pid` that is not the
-   * lowest, and marking the wrong post first puts the wrong body under the
-   * thread title everywhere the board shows an excerpt.
-   *
-   * `message_html` is left null and `body_format` is **BBCode**, because that
-   * is what MyBB hands over. Neither the conversion to Markdown nor the render
-   * happens here: both are the render backfill's job, which does them together,
-   * in bounded batches, and is resumable — and an import is precisely the case
-   * where the alternative (convert and render two million posts inside the
-   * import) turns a resumable migration into one long transaction.
-   *
-   * Until the sweep reaches a row it renders live, converted in memory, so an
-   * imported board is readable the moment the import finishes.
-   */
   async putPosts(rows: readonly ImportedPostRow[]): Promise<WriteResult> {
     if (rows.length === 0) return empty
 
@@ -477,7 +365,6 @@ export class PostgresImportSink {
     return tally(written, skipped)
   }
 
-  /** Record the legacy mapping for a page, in one statement. */
   async #map(kind: string, written: readonly Written[]): Promise<void> {
     if (written.length === 0) return
 
@@ -491,14 +378,6 @@ export class PostgresImportSink {
     `)
   }
 
-  /**
-   * Recompute `path` and `depth` for every forum.
-   *
-   * A recursive CTE over the whole tree rather than per-row arithmetic, because
-   * a page of forums can arrive with parents and children in any order and the
-   * only cheap way to be right is to derive the lot. There are dozens of forums
-   * on the largest board, so "the lot" costs nothing.
-   */
   async #rebuildPaths(): Promise<void> {
     await this.db.execute(sql`
       with recursive tree as (
@@ -515,13 +394,6 @@ export class PostgresImportSink {
     `)
   }
 
-  /**
-   * Mark the earliest post in each touched thread as the first one.
-   *
-   * By `created_at, id` rather than by legacy id: a thread whose original post
-   * was deleted has a lowest `pid` that is not its opening post, and the board
-   * shows the first post's body wherever it shows an excerpt.
-   */
   async #markFirstPosts(threadIds: readonly number[]): Promise<void> {
     if (threadIds.length === 0) return
 

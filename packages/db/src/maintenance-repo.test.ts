@@ -64,11 +64,6 @@ describe('pruneSessions', () => {
     expect(await repo.pruneSessions(NOW)).toBe(0)
   })
 
-  /*
-   * `supersede` points a rotated session at its replacement, so deleting a row
-   * the instant it is revoked would break that chain while a concurrent request
-   * may still be reading it. A day is far longer than any request.
-   */
   it('keeps a recently revoked session through the grace window', async () => {
     await db.insert(sessions).values({
       userId: USER,
@@ -91,8 +86,6 @@ describe('pruneSessions', () => {
     expect(await repo.pruneSessions(NOW)).toBe(1)
   })
 
-  /* Invariant 18: a board that has not pruned in months must not try to delete
-   * a million rows in one function invocation. */
   it('is bounded by the limit', async () => {
     for (let i = 0; i < 10; i++) {
       await db.insert(sessions).values({
@@ -130,10 +123,6 @@ describe('pruneExpiredTokens', () => {
     expect(await repo.pruneExpiredTokens(NOW)).toBe(1)
   })
 
-  /*
-   * These are single-use, so a consumed one has no further purpose — and a
-   * growing table of password-reset hashes is a liability, not just untidy.
-   */
   it('deletes a consumed token even before it expires', async () => {
     await db.insert(credentialTokens).values({
       userId: USER,

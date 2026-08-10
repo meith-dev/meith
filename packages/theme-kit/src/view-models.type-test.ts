@@ -20,17 +20,12 @@
 
 import type { Serialisable, TimeModel } from './view-models'
 
-/** A model is "plain" when it is assignable to its own `Serialisable` image. */
 type IsPlain<T> = T extends Serialisable<T> ? true : false
-
-/* ---- Must be accepted ---- */
 
 const PLAIN_PRIMITIVES: IsPlain<{ a: string; b: number; c: boolean; d: null }> = true
 const PLAIN_NESTED: IsPlain<{ rows: readonly { id: number; title: string | null }[] }> = true
 const PLAIN_TIME: IsPlain<TimeModel> = true
 const PLAIN_OPTIONAL: IsPlain<{ a?: string | undefined }> = true
-
-/* ---- Must be rejected ---- */
 
 /*
  * Each `@ts-expect-error` below is an assertion that the constraint fires. If
@@ -53,10 +48,6 @@ const REJECTS_NESTED_DATE: IsPlain<{ rows: readonly { at: Date }[] }> = true
 // @ts-expect-error a bigint has no JSON representation
 const REJECTS_BIGINT: IsPlain<{ views: bigint }> = true
 
-/*
- * Referenced so `noUnusedLocals`-style tooling and the linter see them used.
- * The values are irrelevant; the annotations above are the test.
- */
 export const _TYPE_TEST_ASSERTIONS = [
   PLAIN_PRIMITIVES,
   PLAIN_NESTED,

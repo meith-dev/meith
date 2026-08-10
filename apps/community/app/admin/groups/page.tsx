@@ -7,20 +7,7 @@ import { groupAdminRepository } from '@/server/group-admin'
 
 export const metadata: Metadata = { title: 'Groups' }
 
-/**
- * F66 — the group grid.
- *
- * Member counts are on it because the two dangerous operations on this screen —
- * deleting a group, and moving a group's members — are both "how many people
- * does this affect?" questions, and a screen that cannot answer that is one an
- * operator has to guess at.
- *
- * System groups are marked rather than hidden. Their permissions are editable
- * (that is most of what this panel is for); it is only *deleting* them that is
- * refused, because the board's own code resolves them by key.
- */
 export default async function AdminGroupsPage() {
-  /* Re-run, because a layout is not a security boundary (see the ACP layout). */
   await requireAdmin()
 
   const repository = groupAdminRepository()
@@ -79,7 +66,6 @@ export default async function AdminGroupsPage() {
                 {group.description === null ? '' : ` · ${group.description}`}
               </span>
             </span>
-            {/* Named for the group it opens — see `/admin/users` for why. */}
             <a
               href={`/admin/groups/${group.id}`}
               aria-label={`Edit ${group.title}`}

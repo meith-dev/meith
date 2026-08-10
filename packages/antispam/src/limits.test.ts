@@ -8,7 +8,6 @@ import {
   type RateLimitStore,
 } from './limits'
 
-/** A store that counts, the way the Postgres one does in one statement. */
 function countingStore(): RateLimitStore & { calls: number } {
   const counts = new Map<string, number>()
   const store = {
@@ -36,11 +35,6 @@ const RULE = { max: 3, windowSeconds: 60 }
 const AT = new Date('2026-08-04T12:00:30Z')
 
 describe('windows', () => {
-  /*
-   * Floored from the epoch, so every instance computes the same boundary from
-   * the clock alone. Derived from anything stored, two instances would
-   * increment different rows and the limit would not exist.
-   */
   it('floors to a multiple of the window from the epoch', () => {
     expect(windowStartFor(new Date('2026-08-04T12:00:30Z'), 60).toISOString()).toBe(
       '2026-08-04T12:00:00.000Z',
@@ -66,10 +60,6 @@ describe('subjects', () => {
     expect(subjectFor({ userId: null, ipPrefix: '198.51.100' })).toBe('ip:198.51.100')
   })
 
-  /*
-   * Deliberately harsh, and the safe direction: a bucket per unknown is no
-   * limit at all, and is reached by omitting a header.
-   */
   it('puts every unidentifiable guest in one shared bucket', () => {
     expect(subjectFor({ userId: null, ipPrefix: null })).toBe('anon')
     expect(subjectFor({ userId: null, ipPrefix: '' })).toBe('anon')
@@ -105,15 +95,9 @@ describe('consuming', () => {
 
     const outcome = await limiter.consume({ scope: 'post', subject: 'u:1', rule: RULE })
     expect(outcome.allowed).toBe(false)
-    /* 30s into a 60s window. */
     expect(outcome.allowed === false && outcome.retryAfterSeconds).toBe(30)
   })
 
-  /*
-   * The difference between a limit and a speed bump. An attacker who ignores
-   * the refusal and keeps going must not get a fresh decision every time — if
-   * a refused attempt did not count, the window would never fill.
-   */
   it('spends against the window even when it refuses', async () => {
     const store = countingStore()
     const limiter = new RateLimiter(store, () => AT)
@@ -128,7 +112,6 @@ describe('consuming', () => {
   })
 
   it('never reports a retry of zero seconds', async () => {
-    /* One millisecond before the window rolls over. */
     const edge = new Date('2026-08-04T12:00:59.999Z')
     const limiter = new RateLimiter(countingStore(), () => edge)
     for (let i = 0; i < 4; i += 1) {
@@ -170,10 +153,6 @@ describe('consuming', () => {
 })
 
 describe('a limit that is not configured', () => {
-  /*
-   * An operator who has set no limit must not pay for a write on every post.
-   * The mutant this kills drops the short-circuit and hits the store anyway.
-   */
   it('costs no store call at all', async () => {
     const store = countingStore()
     const limiter = new RateLimiter(store, () => AT)

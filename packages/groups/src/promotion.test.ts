@@ -16,7 +16,6 @@ const AWAITING = 6
 
 const NOW = new Date('2026-07-30T12:00:00Z')
 
-/** Ranks mirror the seeded ladder: staff above members above guests. */
 const GUARDS: PromotionGuards = {
   protectedGroupIds: [BANNED, ADMINS],
   rank: new Map([
@@ -83,7 +82,6 @@ describe('criteria', () => {
   })
 
   it('treats a rule with no criteria as "everyone in the source group"', () => {
-    // The legitimate "Awaiting Activation → Registered" shape.
     const r = rule({
       minPostCount: undefined,
       fromPrimaryGroupId: AWAITING,
@@ -108,11 +106,6 @@ describe('criteria', () => {
 })
 
 describe('safety', () => {
-  /*
-   * The one that would be a security incident. A banned user with 100 posts
-   * and a "100 posts → Veteran" rule would otherwise be silently un-banned by
-   * a cron job — un-banning belongs to a moderator, via F23.
-   */
   it('never lifts a ban', () => {
     const banned = user({ postCount: 5000, primaryGroupId: BANNED })
     const anyGroup = rule({ fromPrimaryGroupId: null })
@@ -120,10 +113,6 @@ describe('safety', () => {
     expect(evaluatePromotions([anyGroup], [banned], GUARDS, NOW)).toEqual([])
   })
 
-  /*
-   * A rule is a floor, not an assignment. "10 posts → Registered" must not move
-   * an administrator down to Registered, which a naive matches-then-set does.
-   */
   it('never demotes a user into a lower-ranked group', () => {
     const admin = user({ postCount: 5000, primaryGroupId: ADMINS })
     const broad = rule({
@@ -143,7 +132,6 @@ describe('safety', () => {
     })
     const other = user({ primaryGroupId: VETERAN, postCount: 500 })
 
-    // VETERAN outranks REGISTERED, so this is a demotion and is refused.
     expect(evaluatePromotions([sideways], [other], GUARDS, NOW)).toEqual([])
   })
 
@@ -151,17 +139,11 @@ describe('safety', () => {
     const targeted = rule({ fromPrimaryGroupId: BANNED, toPrimaryGroupId: REGISTERED })
     const banned = user({ postCount: 5000, primaryGroupId: BANNED })
 
-    // Naming the banned group explicitly must not be a way around the guard.
     expect(evaluatePromotions([targeted], [banned], GUARDS, NOW)).toEqual([])
   })
 })
 
 describe('idempotence', () => {
-  /*
-   * F24's acceptance: "the task is idempotent across repeated runs." Someone
-   * already in the target group produces no outcome, so a second run writes
-   * nothing rather than writing the same value again.
-   */
   it('produces nothing for a user already in the target group', () => {
     expect(
       evaluatePromotions([rule()], [user({ postCount: 500, primaryGroupId: VETERAN })], GUARDS, NOW),

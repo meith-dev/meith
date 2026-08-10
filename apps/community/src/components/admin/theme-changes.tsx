@@ -1,38 +1,5 @@
 "use client"
 
-/**
- * The two panels that answer "what am I actually changing?"
- *
- * ## The change list
- *
- * The editor shows every token a theme declares — forty-four of them, most of
- * them untouched on any real board — so the three an operator has changed are
- * three rows in a very long form. The old screen said "Overridden by this
- * board." under each one and left the counting to the reader; nothing on the
- * page could answer *what have I changed*, and nothing at all could answer *what
- * have I changed since I opened this screen*, which is the question somebody
- * asks with their finger over the Save button.
- *
- * So each change is listed once, with the value the board is painting **now**
- * beside the value a save would paint, and a badge saying which of the two the
- * board is currently serving. The two questions are genuinely different and a
- * screen that answers only one of them is how an operator saves a colour they
- * were only trying out.
- *
- * ## The legibility report
- *
- * Colour is the one design decision whose failure mode is invisible to the
- * person making it: an operator picks a colour they can read, on their screen,
- * with their eyes. `@/view/contrast` measures the pairs the board actually
- * paints, and this panel reports them per scheme.
- *
- * **It attributes.** A failure that was already on the board before this screen
- * was opened is marked as such, because "you broke this" and "this was already
- * broken" call for different actions from the same operator — and because a
- * panel that blames somebody for a palette they inherited is one they will learn
- * to close.
- */
-
 import {
   checkContrast,
   contrastGrade,
@@ -53,7 +20,6 @@ import {
 const LINK =
   "text-xs font-medium underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 
-/** The state badge. Wording, not colour alone — the board's own rule. */
 function StateBadge({ change }: { change: TokenChange }) {
   const [label, tone] =
     change.state === "saved"
@@ -69,14 +35,6 @@ function StateBadge({ change }: { change: TokenChange }) {
   )
 }
 
-/**
- * One value, shown as what it is.
- *
- * A colour gets a swatch and its text; a corner radius or a font stack gets the
- * text alone, because a square painted with `0.5rem` is a square painted with
- * nothing and reads as a bug. The swatch is set through `style` rather than a
- * class, so a half-typed value is a property the browser drops.
- */
 function Value({ value, colour }: { value: string; colour: boolean }) {
   return (
     <span className="inline-flex min-w-0 items-center gap-1.5">
@@ -105,7 +63,6 @@ export function ChangeSummary({
   onDiscardAll,
 }: {
   changes: readonly TokenChange[]
-  /** The CSS box is one field with no per-token story; it is reported flat. */
   customCssChanged: boolean
   hydrated: boolean
   onUndo: (change: TokenChange) => void
@@ -175,12 +132,6 @@ export function ChangeSummary({
                 <StateBadge change={change} />
               </div>
 
-              {/*
-                One value when a save would not move it, two when it would. The
-                same colour with an arrow between it and itself is a row that
-                looks like a change and is not, which is exactly the confusion
-                this panel exists to end.
-              */}
               <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
                 {change.state === "saved" ? (
                   <span className="text-foreground">
@@ -228,10 +179,6 @@ export function ChangeSummary({
   )
 }
 
-/* ------------------------------------------------------------------ *
- * Legibility
- * ------------------------------------------------------------------ */
-
 function ratioLine(check: ContrastCheck): string {
   return check.ratio === null
     ? "not measurable"
@@ -243,7 +190,6 @@ function Failure({
   inherited,
 }: {
   check: ContrastCheck
-  /** True when the board is already painting this failure. */
   inherited: boolean
 }) {
   return (
@@ -279,7 +225,6 @@ function SchemeReport({
   const unknown = draftChecks.filter((check) => check.state === "unknown")
   const passing = draftChecks.filter((check) => check.state === "pass")
 
-  /* Keyed by the pair, so "was it already failing?" is a lookup and not a guess. */
   const wasFailing = new Set(
     savedChecks
       .filter((check) => check.state === "fail")
@@ -312,12 +257,6 @@ function SchemeReport({
         </ul>
       )}
 
-      {/*
-        The passes behind a disclosure rather than absent. An operator who has
-        just moved a colour to 4.6:1 wants to see the number, and a panel that
-        only ever speaks up to complain teaches people that silence means
-        nothing was checked. `<details>` needs no JavaScript.
-      */}
       <details className="text-xs">
         <summary className="cursor-pointer text-muted-foreground">
           Every pair measured, in {label.toLowerCase()}

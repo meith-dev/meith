@@ -1,29 +1,3 @@
-/**
- * F55 — sending the e-mail for one notification.
- *
- * This runs inside a queued job (F07's relay puts it there; see
- * `@meith/runtime`'s `notifications.email` handler), never on a request path.
- * It takes the `MailDriver` *port* from `@meith/core`, so the domain still has
- * no idea whether the board sends through SMTP, an HTTP provider, or a log
- * line — that choice belongs to the composition root.
- *
- * ## Delivery is at-least-once, and this narrows it once
- *
- * The queue can hand the same job over twice: a worker that sent the message
- * and died before acknowledging it will be given the job again. `emailSentAt`
- * is checked before sending and written after, which removes every duplicate
- * except the one inside that crash window. Closing that window entirely would
- * mean claiming *before* sending, which converts a rare duplicate into a lost
- * message — the wrong trade for a warning somebody is meant to read.
- *
- * ## Three reasons to send nothing, all normal
- *
- * The notification was deleted with its account; the recipient turned this kind
- * off after it was raised; a message already went. None is an error and none
- * throws, because a throw here is a queue retry, and retrying a decision that
- * will be identical every time is how a job reaches its dead-letter for no
- * reason.
- */
 import type { MailDriver } from '@meith/core'
 
 import { renderNotificationMail, type MailBrand } from './mail'
@@ -39,7 +13,6 @@ export type DeliveryOutcome =
 export async function deliverNotificationEmail(deps: {
   readonly notifications: NotificationRepository
   readonly mail: MailDriver
-  /** Resolved per delivery: the board's name and colours can change. */
   readonly brand: MailBrand
   readonly notificationId: number
   readonly now?: () => Date
@@ -55,11 +28,6 @@ export async function deliverNotificationEmail(deps: {
     recipientName: deliverable.recipient.username,
   })
 
-  /*
-   * A throw from the driver propagates on purpose: that is the one failure
-   * worth retrying, and F05's drivers deliberately contain no retry logic of
-   * their own because the queue's backoff is the retry mechanism.
-   */
   const fromName = deps.brand.fromName ?? ''
 
   await deps.mail.send({

@@ -1,19 +1,5 @@
 import 'server-only'
 
-/**
- * F73 at the app layer: running a search and re-opening a stored one.
- *
- * The shape of this feature is set by one decision — a stored search holds the
- * **query**, not the hits — and everything here follows from it. Re-opening a
- * search re-runs it against the *current* viewer's scope, so:
- *
- *   - a post deleted since the search was run is simply gone from page two;
- *   - a member who has lost access to a forum stops seeing its hits at once;
- *   - "search within results" is another query rather than a set intersection.
- *
- * The alternative — freezing a list of post ids — is faster on page two and
- * wrong in all three of those ways.
- */
 import { randomBytes } from 'node:crypto'
 
 import { ForbiddenError, NotFoundError } from '@meith/core'
@@ -26,7 +12,6 @@ import { getContainer } from './container'
 import { requireSearch, searchScopeFor } from './search'
 import { getSettings } from './settings'
 
-/** Results per page. */
 export const SEARCH_PAGE = 20
 
 export function searchStore(): PostgresSearchStore | null {
@@ -35,20 +20,10 @@ export function searchStore(): PostgresSearchStore | null {
     : null
 }
 
-/**
- * The token in the URL.
- *
- * Random rather than sequential, because a stored search is reachable by anyone
- * holding its address and a countable id would make every member's search terms
- * enumerable. Ownership is checked as well — this is the belt, that is the
- * braces, and neither is sufficient alone: the token protects against guessing,
- * the ownership check against a link being forwarded.
- */
 function newToken(): string {
   return randomBytes(18).toString('base64url')
 }
 
-/** What the form submitted, as stored and as re-read. */
 export interface SearchFilters {
   readonly sort: SearchQuery['sort']
   readonly forumIds?: readonly number[] | undefined
@@ -66,17 +41,8 @@ export type RunSearchOutcome =
   | { readonly kind: 'ok'; readonly token: string }
   | { readonly kind: 'refused'; readonly reason: 'empty' | 'too-short' | 'too-long' }
   | { readonly kind: 'flooded'; readonly seconds: number }
-  /* F46. Distinct from `flooded`: an interval says "wait", a limit says "later". */
   | { readonly kind: 'limited'; readonly message: string }
 
-/**
- * Run a search and store it.
- *
- * The flood check happens in the store's insert rather than here, so the check
- * and the write are one statement — search flooding is exactly the traffic that
- * arrives twenty requests at once, and a read-then-write check has a window
- * between them.
- */
 export async function runSearch(input: RunSearchInput): Promise<RunSearchOutcome> {
   const parsed = parseSearchInput(input.terms)
   if (!isRunnable(parsed)) {
@@ -89,23 +55,10 @@ export async function runSearch(input: RunSearchInput): Promise<RunSearchOutcome
   const settings = await getSettings()
   const { authorizer } = getContainer()
 
-  /*
-   * `flood.bypass` is the same global action the posting path asks for, and the
-   * interval is a board setting rather than a permission field — see
-   * `docs/mybb-parity.md#flood-intervals` for why an interval cannot obey R4.2's
-   * numeric rule.
-   */
   const floodSeconds = authorizer.can(input.actor, 'flood.bypass')
     ? 0
     : Number(settings.get('search.flood_seconds') ?? 0)
 
-  /*
-   * F46's hourly limit, beside F73's interval. The two answer different
-   * questions and both are kept: the interval stops a double-submit, the limit
-   * stops somebody running a thousand searches overnight at one every 31
-   * seconds. Searching is the most expensive thing a guest can do, which is why
-   * it is on the list at all.
-   */
   const limited = await spendLimit({ scope: 'search', actor: input.actor, settings })
   if (limited !== null && !limited.allowed) {
     return { kind: 'limited', message: limitMessage(limited) }
@@ -131,14 +84,6 @@ export interface SearchPageView {
   readonly filters: SearchFilters
 }
 
-/**
- * Re-open a stored search and run one page of it.
- *
- * Refuses a search that is not this viewer's. The results could not leak — they
- * are re-resolved against whoever is asking — but the **terms** are private,
- * and what somebody searched for is frequently more revealing than what they
- * found.
- */
 export async function openSearch(input: {
   readonly actor: Actor
   readonly sessionKey: string | null
@@ -152,10 +97,6 @@ export async function openSearch(input: {
   if (search === null) throw new NotFoundError('No such search.')
 
   if (!ownsSearch(search, { userId: input.actor.userId, sessionKey: input.sessionKey })) {
-    /*
-     * Not found rather than forbidden: "this search exists but is not yours"
-     * confirms that somebody ran it, which is the fact being protected.
-     */
     throw new NotFoundError('No such search.')
   }
 
@@ -178,13 +119,6 @@ export async function openSearch(input: {
   return { search, results, filters }
 }
 
-/**
- * Read filters back out of the stored JSON.
- *
- * Defensive because the column is `jsonb`: a row hand-edited, or written by an
- * older build, must degrade to a plain relevance search rather than throw at
- * somebody following their own bookmark.
- */
 export function readFilters(raw: Readonly<Record<string, unknown>>): SearchFilters {
   const sort = raw.sort
   const ids = (value: unknown): readonly number[] | undefined =>

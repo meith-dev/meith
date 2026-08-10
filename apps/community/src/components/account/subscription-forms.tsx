@@ -1,13 +1,5 @@
 "use client"
 
-/**
- * F56's forms.
- *
- * Client components only for `useActionState`, like every other form on the
- * board. All of them work with scripting off: a native `<select>` with a submit
- * button beside it rather than an on-change handler, because an on-change
- * handler is a control that silently does nothing without JavaScript.
- */
 import { useActionState } from "react"
 
 import { subscribeAction, unsubscribeAction, unsubscribeByTokenAction } from "@/server/subscription-actions"
@@ -21,7 +13,6 @@ const BUTTON =
 const QUIET_BUTTON =
   "inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 
-/** Quieter still: no border, for the one control that undoes the other two. */
 const GHOST_BUTTON =
   "inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 
@@ -33,28 +24,6 @@ export interface ModeOption {
   readonly label: string
 }
 
-/**
- * The control on a thread or forum page.
- *
- * One form for three states — not following, following, changing cadence —
- * because they are one act from the member's side and the server treats them
- * as one (`subscribe` is an upsert). The unsubscribe button is a separate form
- * because it posts to a different action.
- *
- * ## A row, not a panel
- *
- * It was briefly a bordered card, to match the rating beside it. Both went
- * back to being bare rows: two one-line controls drawn as two panels, at the
- * foot of a page that already ends with a bordered composer, is three objects
- * where there is one idea. The theme draws a single ruled strip and puts both
- * in it (`regions.afterContent`).
- *
- * Its submit is **not** the filled variant, and that is the more important
- * half. A thread page is supposed to have exactly one loud control and it is
- * "Reply" (see the theme's `ThreadView`); a second filled button offering to
- * *subscribe* competed with it for the eye on every thread a signed-in member
- * opened.
- */
 export function FollowForm({
   target,
   targetId,
@@ -65,7 +34,6 @@ export function FollowForm({
 }: {
   target: "thread" | "forum"
   targetId: number
-  /** The member's current cadence, or null when they do not follow this. */
   mode: string | null
   modes: readonly ModeOption[]
   back: string
@@ -120,7 +88,6 @@ export function FollowForm({
   )
 }
 
-/** One row of the management screen: change the cadence, or stop. */
 export function SubscriptionRowForm({
   target,
   targetId,
@@ -144,14 +111,6 @@ export function SubscriptionRowForm({
   )
 }
 
-/**
- * The one button behind an e-mail's unsubscribe link.
- *
- * The link itself is a GET that only *shows* this page. Unsubscribing is the
- * POST, because mail clients, security scanners and link previewers fetch every
- * URL in a message — a GET that acted would let a member's own spam filter
- * unsubscribe them.
- */
 export function UnsubscribeConfirmForm({
   token,
   description,

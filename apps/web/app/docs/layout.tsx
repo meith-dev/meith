@@ -1,15 +1,6 @@
 import { DocsNav, type NavSection } from "../../src/components/docs-nav"
 import { documentsInSection, sections } from "../../src/docs/registry"
 
-/**
- * The documentation shell: a sidebar built from the manifest, and the page.
- *
- * On a narrow screen the sidebar becomes a `<details>` disclosure above the
- * content rather than a drawer behind a button. It is the same list, it needs no
- * JavaScript, and it works before hydration — which matters more here than
- * anywhere else on the site, because someone who has arrived at a documentation
- * page on a phone is usually trying to find a different one.
- */
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   const nav: NavSection[] = sections.map((section) => ({
     id: section.id,

@@ -10,19 +10,6 @@ import {
   modCpSections,
 } from './modcp-nav'
 
-/**
- * The moderator panel's rail is the one that straddles two route trees, and its
- * tree is the one that varies by who is looking. Both are cases the other two
- * panels do not have, and both are the kind of thing that looks right the day
- * it is written and is quietly wrong two routes later.
- *
- * The case worth the most attention is `/moderation/warn`. It is under
- * `/moderation`, so a naive longest-prefix match hands it to the approval
- * queue and the rail says "Approval queue, current" while a moderator is
- * writing a warning about somebody. It is in the tree as a `record` precisely
- * so that does not happen.
- */
-
 const FULL = { canWarn: true, canLookUpIp: true }
 const PLAIN = { canWarn: false, canLookUpIp: false }
 
@@ -54,7 +41,6 @@ describe('activeSectionHref', () => {
   })
 
   it('does not let the queue swallow reports, which sit under it', () => {
-    /* `/moderation` is a prefix of `/moderation/reports`; longest match wins. */
     expect(activeSectionHref(FULL, '/moderation/reports')).toBe('/moderation/reports')
   })
 
@@ -63,19 +49,11 @@ describe('activeSectionHref', () => {
   })
 
   it('answers null outside the panel', () => {
-    /* The rail renders on two route trees; everywhere else it lights nothing. */
     expect(activeSectionHref(FULL, '/thread/22-hello')).toBeNull()
     expect(activeSectionHref(FULL, '/admin/settings')).toBeNull()
   })
 
   it('falls back to the overview for a section this moderator does not have', () => {
-    /*
-     * `/modcp` is a prefix of `/modcp/ip`, so an address whose own section has
-     * been filtered out of the tree lands on the overview rather than on
-     * nothing. It is moot in practice — the page itself 404s for them, so the
-     * rail is never drawn — but "the nearest thing I do have" is the right
-     * answer for it either way.
-     */
     expect(activeSectionHref(PLAIN, '/modcp/ip')).toBe('/modcp')
   })
 
@@ -90,10 +68,6 @@ describe('deepestNavHref', () => {
   })
 
   it('falls back to the queue when the moderator has no warn screen', () => {
-    /*
-     * The honest second-best: they cannot reach the screen, so the rail has
-     * nothing better to say than which section the address is inside.
-     */
     expect(deepestNavHref(PLAIN, '/moderation/warn')).toBe('/moderation')
   })
 })
@@ -119,7 +93,6 @@ describe('visibleChildren', () => {
   const queue = modCpSections(FULL).find((s) => s.href === '/moderation')
 
   it('hides a record until you are on it', () => {
-    /* Otherwise the queue's own screen would offer a link that 404s bare. */
     expect(visibleChildren(queue!, '/moderation')).toEqual([])
   })
 

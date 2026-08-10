@@ -1,22 +1,3 @@
-/**
- * F67 — the two bulk operations over the membership: pruning and mass mail.
- *
- * They are the same shape as everything else in this panel — dry run first,
- * bounded batches, a keyset cursor — and each has one rule that is not about
- * mechanism at all.
- *
- * **A prune never touches an account that cannot be recovered from a mistake.**
- * Staff, banned accounts and anybody who has posted are excluded, because the
- * damage from pruning one of those is not "an account is gone", it is a hole in
- * the board's history or a lifted ban nobody decided to lift. The criteria are
- * deliberately narrow and the dry run is not optional.
- *
- * **Mass mail goes only to verified addresses.** An unverified address is as
- * likely to be a typo, or somebody else's mailbox, as it is to be the
- * member's — and a board that mails thousands of them stops being delivered
- * anywhere. That rule is in the query rather than in a checkbox, because it is
- * not a preference.
- */
 import { sql, type SQL } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
@@ -27,11 +8,8 @@ import { resultRows } from './result-rows'
 import { BANNED_PREDICATE } from './user-admin-repo'
 
 export interface PruneCriteria {
-  /** Registered strictly before this. Required — a prune needs a boundary. */
   readonly registeredBefore: Date
-  /** Never active, or last active before this. Optional. */
   readonly inactiveSince?: Date | undefined
-  /** Only accounts still awaiting activation. */
   readonly onlyAwaitingActivation?: boolean | undefined
 }
 
@@ -44,7 +22,6 @@ export interface PruneCandidate {
 
 export interface PrunePreview {
   readonly total: number
-  /** A handful of real rows, so the count is not the only evidence. */
   readonly sample: readonly PruneCandidate[]
 }
 
@@ -77,31 +54,6 @@ export interface MassMailChunk {
 export class PostgresUserBulkRepository {
   constructor(private readonly db: Database) {}
 
-  /* ---------------------------------------------------------------- *
-   * Pruning
-   * ---------------------------------------------------------------- */
-
-  /**
-   * The prune predicate, in one place.
-   *
-   * Three exclusions are unconditional and are the reason this is a function
-   * rather than a filter the caller assembles:
-   *
-   *  - **anybody who has posted.** Their account is attached to content, and
-   *    what should happen to that content is a decision (F71's), not something
-   *    a maintenance sweep guesses at;
-   *  - **staff.** A quiet administrator who registered years ago and reads more
-   *    than they write is the most likely person to match a naive "inactive"
-   *    filter, and the least acceptable to delete;
-   *  - **banned accounts.** The ban record is the reason they are quiet.
-   *    Removing the account removes the evidence and, on some schemas, the ban.
-   *
-   * That last exclusion was written as `state <> 'banned'` and therefore excluded
-   * nobody: F23 bans by writing a `bans` row and moving the member's group, and
-   * deliberately never touches the state column. The screen promised the
-   * exclusion in as many words while the sweep would have closed exactly the
-   * accounts a moderator had banned and gone quiet. See `BANNED_PREDICATE`.
-   */
   private pruneWhere(criteria: PruneCriteria): SQL {
     const conditions: SQL[] = [
       sql`u.deleted_at is null`,
@@ -118,10 +70,6 @@ export class PostgresUserBulkRepository {
           join usergroups g on g.id = m.group_id
          where m.user_id = u.id and g.is_staff_group = true
       )`,
-      /*
-       * Never anyone who has moderated a forum, whatever group they are in.
-       * An appointment is a job somebody was given; a sweep must not undo it.
-       */
       sql`not exists (select 1 from forum_moderators f where f.user_id = u.id)`,
     ]
 
@@ -137,7 +85,6 @@ export class PostgresUserBulkRepository {
     return sql.join(conditions, sql` and `)
   }
 
-  /** What a prune would remove: a count, and a few of the actual rows. */
   async prunePreview(criteria: PruneCriteria, sampleSize = 10): Promise<PrunePreview> {
     const where = this.pruneWhere(criteria)
 
@@ -166,15 +113,6 @@ export class PostgresUserBulkRepository {
     }
   }
 
-  /**
-   * Prune one batch.
-   *
-   * Soft-delete, like a merge's losing account and for the same reason: the row
-   * is what anything still pointing at it resolves to, and "a former member"
-   * renders where a dangling id crashes. It also means a prune run against a
-   * wrong date is recoverable — `deleted_at` can be cleared — where a delete of
-   * ten thousand rows is not.
-   */
   async pruneChunk(criteria: PruneCriteria, limit: number): Promise<PruneChunkResult> {
     const where = this.pruneWhere(criteria)
 
@@ -198,10 +136,6 @@ export class PostgresUserBulkRepository {
 
     return { pruned, remaining: Number(remaining[0]?.n ?? 0) }
   }
-
-  /* ---------------------------------------------------------------- *
-   * Mass mail
-   * ---------------------------------------------------------------- */
 
   async createMassMail(input: {
     readonly subject: string
@@ -243,7 +177,6 @@ export class PostgresUserBulkRepository {
     }
   }
 
-  /** How many members a mass mail would reach. */
   async massMailAudience(targetGroupId: number | null): Promise<number> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -254,15 +187,6 @@ export class PostgresUserBulkRepository {
     return Number(rows[0]?.n ?? 0)
   }
 
-  /**
-   * Who is eligible.
-   *
-   * Verified addresses only, and never a deleted or banned account. The
-   * verification rule is not a preference an operator can override: mailing
-   * thousands of unverified addresses is how a board's domain stops being
-   * delivered, and the members it would reach are the ones least likely to have
-   * asked for anything.
-   */
   private audienceWhere(targetGroupId: number | null): SQL {
     const conditions: SQL[] = [
       sql`u.deleted_at is null`,
@@ -283,14 +207,6 @@ export class PostgresUserBulkRepository {
     return sql.join(conditions, sql` and `)
   }
 
-  /**
-   * Claim the next batch of recipients and advance the cursor.
-   *
-   * The cursor moves **in the same transaction** as the read. Two presses of
-   * the button, or a double-submitted form, would otherwise both read from the
-   * same point and mail those members twice — and a duplicate mass mail is the
-   * one mistake in this panel that cannot be taken back at all.
-   */
   async claimMassMailChunk(massMailId: number, limit: number): Promise<MassMailChunk> {
     return this.db.transaction(async (tx) => {
       const mails = resultRows(

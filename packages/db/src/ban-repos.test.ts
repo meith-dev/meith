@@ -1,12 +1,3 @@
-/**
- * The ban repositories on real Postgres.
- *
- * `BanService` is unit-tested against the in-memory store, which proves the
- * rules. What needs a database is the part only SQL can get wrong: that the
- * four writes in a ban are genuinely atomic, that the captured group survives a
- * round trip, and that a group deleted mid-ban does not take the whole restore
- * down with it.
- */
 import { BanService } from '@meith/accounts'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -79,7 +70,6 @@ describe('banning', () => {
 
     expect(await groupOf(USER)).toBe(BANNED)
 
-    // A ban that leaves the session alive is a label, not a ban.
     const [row] = await db.select({ revokedAt: sessions.revokedAt }).from(sessions)
     expect(row?.revokedAt).not.toBeNull()
   })
@@ -135,11 +125,6 @@ describe('expiry', () => {
     expect(await groupOf(USER)).toBe(BANNED)
   })
 
-  /*
-   * A lifted ban that does not retire resolved actors leaves the user holding
-   * banned-group permissions for the cache's lifetime — the ban silently
-   * outlives its own expiry.
-   */
   it('bumps permission_version so resolved actors are retired', async () => {
     let now = new Date('2026-07-30T12:00:00Z')
     const svc = service(() => now)
@@ -160,12 +145,6 @@ describe('expiry', () => {
     expect(await db.select({ v: cacheVersions.version }).from(cacheVersions)).toHaveLength(0)
   })
 
-  /*
-   * `previous_primary_group_id` is ON DELETE SET NULL, so deleting a group
-   * while someone is banned leaves nothing to restore. Writing null back would
-   * violate users.primary_group_id's NOT NULL, so the ban lifts and the group
-   * is left alone — safer than guessing a group and silently granting it.
-   */
   it('still lifts the ban when the captured group has been deleted', async () => {
     let now = new Date('2026-07-30T12:00:00Z')
     const svc = service(() => now)
@@ -177,7 +156,6 @@ describe('expiry', () => {
     expect(await svc.expireDue()).toBe(1)
     expect(await groupOf(USER)).toBe(BANNED)
 
-    // And the ban really is lifted, so the user is not permanently stuck.
     expect(await repo.findActive(USER)).toBeNull()
   })
 
@@ -205,7 +183,6 @@ describe('expiry', () => {
 
     now = new Date('2026-09-01T00:00:00Z')
     expect(await svc.expireDue(1)).toBe(1)
-    // The earliest expiry went first.
     expect(await groupOf(200)).toBe(REGISTERED)
     expect(await groupOf(201)).toBe(BANNED)
   })
@@ -233,7 +210,6 @@ describe('PostgresBanFilterRepository', () => {
     const all = await new PostgresBanFilterRepository(db).listAll()
 
     expect(all).toHaveLength(2)
-    // Read on every registration and login, so one query matters.
     expect(harness.queries.count).toBe(1)
   })
 

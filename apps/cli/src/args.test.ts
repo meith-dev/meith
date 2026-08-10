@@ -14,11 +14,6 @@ describe('parseFlags', () => {
     expect(positional).toEqual(['board.name', 'My Forum'])
   })
 
-  /*
-   * `--force --verbose` must not become force="--verbose". A flag followed by
-   * another flag is a boolean, and getting this wrong silently swallows the
-   * next option.
-   */
   it('treats a flag followed by another flag as a boolean', () => {
     const { flags } = parseFlags(['--force', '--verbose'])
     expect(flags.get('force')).toBe('true')
@@ -30,7 +25,6 @@ describe('parseFlags', () => {
   })
 
   it('keeps a value containing = intact after the first one', () => {
-    // A password or URL may well contain '='.
     expect(parseFlags(['--url=a=b=c']).flags.get('url')).toBe('a=b=c')
   })
 

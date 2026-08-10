@@ -12,18 +12,12 @@ import {
   type ThemeDefinition,
 } from './theme'
 
-/*
- * No JSX in these suites: they run under node, and resolution is about *which*
- * function comes back, which identity comparison answers more precisely than
- * rendering would. Each stand-in is a distinct function object.
- */
 function stub(label: string) {
   const component = () => label
   Object.defineProperty(component, 'name', { value: label })
   return component
 }
 
-/** A stand-in for what a bundler hands a server module for a client component. */
 function clientReference(name: string) {
   return {
     $$typeof: Symbol.for('react.client.reference'),
@@ -60,8 +54,6 @@ describe('defineTheme', () => {
       defineTheme({
         key: 'typo',
         title: 'Typo',
-        // A manifest assembled by spreading, or supplied by a plugin, is not
-        // statically checked — which is the case this runtime check is for.
         slots: { Postbit: stub('x') } as unknown as PartialSlotImplementations,
       }),
     ).toThrow(/unknown slot "Postbit"/)
@@ -77,12 +69,6 @@ describe('defineTheme', () => {
     ).toThrow(/is not a component/)
   })
 
-  /*
-   * The feature's whole point, at runtime. A `"use client"` module imported from
-   * a server module is not the function — it is a reference object carrying
-   * `$$typeof`. Rendering one in a server slot is how the post list ends up in
-   * the browser.
-   */
   it('rejects a client component in a server slot', () => {
     expect(() =>
       defineTheme({
@@ -163,12 +149,6 @@ describe('resolveTheme', () => {
     slots: { Header: childHeader },
   })
 
-  /*
-   * Nearest wins — and three levels is the shortest chain that can tell a
-   * correct walk from a reversed one. With two levels "child wins" and "last
-   * writer wins" agree; here they do not, so a root-inward overwrite would leave
-   * the grandparent's Header in place and fail this.
-   */
   it('prefers the nearest implementation, three levels deep', () => {
     const resolved = resolveTheme(child)
 

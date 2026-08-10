@@ -1,11 +1,3 @@
-/**
- * F07 acceptance: the relay must be safe to run twice.
- *
- * These use hand-written in-memory doubles rather than mocks so the *semantics*
- * under test (claim-then-mark ordering, idempotency-key derivation) are visible
- * in the test file itself.
- */
-
 import { describe, expect, it } from 'vitest'
 
 import { emit, relayOutbox, type OutboxReader, type RelayTarget } from './outbox'
@@ -16,7 +8,6 @@ class FakeOutbox implements OutboxReader, RelayTarget {
   enqueued: Array<{ name: string; idempotencyKey: string }> = []
   private nextId = 1
 
-  /** Mirrors the transactional write side. */
   async insertOutbox(
     rows: Array<{ name: string; payload: unknown; dedupeKey: string | null }>,
   ): Promise<void> {
@@ -49,7 +40,6 @@ class FakeOutbox implements OutboxReader, RelayTarget {
     jobs: Array<{ name: string; payload: unknown; idempotencyKey: string }>,
   ): Promise<void> {
     for (const job of jobs) {
-      /* Models the queue's own dedupe, which is what makes retry safe. */
       if (this.enqueued.some((j) => j.idempotencyKey === job.idempotencyKey)) continue
       this.enqueued.push({ name: job.name, idempotencyKey: job.idempotencyKey })
     }
@@ -114,7 +104,6 @@ describe('relayOutbox', () => {
     ])
   })
 
-  /* The core F07 guarantee. */
   it('produces no duplicate jobs when run twice', async () => {
     const store = new FakeOutbox()
     await emit(store, {
@@ -131,11 +120,6 @@ describe('relayOutbox', () => {
     expect(store.enqueued).toHaveLength(1)
   })
 
-  /*
-   * Simulates a crash between enqueue and markRelayed: the row is still
-   * un-relayed, so the next tick re-enqueues the same idempotency key and the
-   * queue discards it. At-least-once delivery, effectively-once execution.
-   */
   it('re-enqueues identical keys after a crash before markRelayed', async () => {
     const store = new FakeOutbox()
     await emit(store, {
@@ -157,7 +141,6 @@ describe('relayOutbox', () => {
 
     expect(store.enqueued).toHaveLength(1)
 
-    /* Recovery run against healthy storage. */
     const recovered = await relayOutbox({
       reader: store,
       target: store,
@@ -165,7 +148,6 @@ describe('relayOutbox', () => {
     })
 
     expect(recovered.claimed).toBe(1)
-    /* Same key, so the queue deduped it — still exactly one job. */
     expect(store.enqueued).toHaveLength(1)
   })
 

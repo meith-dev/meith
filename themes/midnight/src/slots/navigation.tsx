@@ -1,13 +1,5 @@
 import type { NavigationModel } from '@meith/theme-kit'
 
-/**
- * The breadcrumb, as a path rather than as chevrons.
- *
- * The last item is the page you are on, so it is text with `aria-current` and
- * not a link to here — the same accessibility decision the default theme makes,
- * reached independently because it is the correct one rather than because it was
- * copied.
- */
 export function Navigation({ items }: NavigationModel) {
   return (
     <nav aria-label="Breadcrumb" className="border-b border-border bg-muted px-4 py-1.5">

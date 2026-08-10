@@ -3,30 +3,6 @@ import type { LatestPostsModel } from '@meith/theme-kit'
 
 import { LINK, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
 
-/**
- * The newest posts on the board.
- *
- * The companion to `LatestThreads`, and the difference between them is the
- * whole reason there are two: that one is what has been *started*, this is what
- * is being *said*. A board with three busy threads and no new ones shows an
- * unchanging list up there and a moving one here, which is an accurate picture
- * of that board.
- *
- * ## The excerpt is two lines, clamped, and it is plain text
- *
- * `excerpt` arrives flattened out of the post's Markdown source — no markup,
- * ever, which is what makes it safe to render as text here rather than
- * something a theme has to sanitise. Clamped rather than truncated with an
- * ellipsis in the model, so the cut lands on a rendered line rather than at a
- * character count guessed against a column width nobody knows here.
- *
- * ## The link is the thread title, and it goes to the post
- *
- * A post has no title of its own; the thread's is the only name a reader can
- * recognise. The href is the post's permalink, so following it lands on the
- * reply that is quoted underneath rather than at the top of a thread whose
- * fortieth page it was on.
- */
 export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
   return (
     <Card aria-labelledby="latest-posts-heading">

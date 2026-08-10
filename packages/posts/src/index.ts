@@ -1,4 +1,3 @@
-/** @meith/posts — the thread-view read ports (F31) and the edit command (F41). */
 export type { PostRepository } from './ports'
 export type { PostListingRow, PostPage, QuotablePost } from './types'
 

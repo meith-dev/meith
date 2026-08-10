@@ -1,12 +1,3 @@
-/**
- * Mentions — the syntax, and the two readers built on it.
- *
- * The rendering half proves `@name` becomes a constructed link and nothing an
- * author types can change where it points. The extraction half proves the
- * notification producer's inputs agree with the page: a name is extracted
- * exactly when the render would have linked it, and a quoted author is found
- * exactly where `quoteBlock` writes attributions.
- */
 import { describe, expect, it } from 'vitest'
 
 import { renderMarkdown } from './body'
@@ -134,8 +125,6 @@ describe('extractQuotedAuthors', () => {
   })
 
   it('refuses an attribution the renderer reformatted, which no longer names anybody', () => {
-    /* A member called `_foo_`: the underscores pair into emphasis, and the
-       flattened text would attribute the quote to a different member, `foo`. */
     expect(extractQuotedAuthors('> **_foo_ wrote:**\n>\n> hi')).toEqual([])
   })
 

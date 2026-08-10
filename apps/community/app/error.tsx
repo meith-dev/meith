@@ -1,10 +1,5 @@
 'use client'
 
-/**
- * Next error boundaries must be client components, so this cannot resolve the
- * server-rendered ErrorNotice slot. It deliberately avoids error details and
- * the database, which are both unsafe while handling a failure.
- */
 export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <main id="board-content" tabIndex={-1} className="flex min-h-dvh items-center justify-center px-6 py-12">

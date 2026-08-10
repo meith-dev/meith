@@ -2,18 +2,6 @@ import type { WhoIsOnlineModel } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-/**
- * Who is online.
- *
- * `location` arrives **already resolved against the reader** (F75): a forum they
- * may not see comes through as a bare label with a null href, so there is
- * nothing here to leak and no check for this theme to get wrong.
- *
- * Invisible members are marked in **text**, not colour — and they only appear at
- * all for staff, because the app removed them from the list and the count
- * together. Showing a member as hidden to somebody who should not know they are
- * here would be worse than not offering the setting.
- */
 export function WhoIsOnline({
   guestCount,
   members,

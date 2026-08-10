@@ -1,8 +1,3 @@
-/**
- * The block grammar, and the three places this Markdown is deliberately not
- * CommonMark. Each of those has a test naming the decision, because a deviation
- * nobody wrote down is a bug report waiting to be filed.
- */
 import { describe, expect, it } from 'vitest'
 
 import { SIGNATURE_FEATURES } from './features'
@@ -13,12 +8,6 @@ const html = (source: string): string => renderMarkdown(source).html
 
 describe('paragraphs and line breaks', () => {
   it('makes a single newline a line break, not a space', () => {
-    /*
-     * CommonMark folds a soft break into a space. That is right for documents
-     * and wrong for a message box: people write addresses and set lists in
-     * posts and press Return where they mean it. Every forum-flavoured Markdown
-     * ever shipped has made this same change.
-     */
     expect(html('one\ntwo')).toBe('<p>one<br>\ntwo</p>')
   })
 
@@ -29,11 +18,6 @@ describe('paragraphs and line breaks', () => {
 
 describe('headings', () => {
   it('starts a post at h2, because the page already has an h1', () => {
-    /*
-     * A post that could emit an `<h1>` would break the outline a screen-reader
-     * user navigates the thread by — the thread's subject is the page's only
-     * first-level heading.
-     */
     expect(html('# Top')).toBe('<h2>Top</h2>')
     expect(html('## Second')).toBe('<h3>Second</h3>')
   })
@@ -61,20 +45,10 @@ describe('code', () => {
   })
 
   it('closes an unclosed fence at the end of the post', () => {
-    /*
-     * The alternative — treating an unclosed fence as text — takes a post whose
-     * author forgot three backticks and renders the code they were quoting as
-     * formatting. That is the worse of the two failures.
-     */
     expect(html('```\nkept')).toContain('<pre class="md-code"><code>kept')
   })
 
   it('does not make an indented paragraph into code', () => {
-    /*
-     * The single most common "Markdown ate my post" complaint, and the reason
-     * indented code blocks are not implemented: four spaces is what a pasted,
-     * wrapped or hand-aligned paragraph looks like.
-     */
     expect(html('    just indented text')).toBe('<p>just indented text</p>')
   })
 })
@@ -123,10 +97,6 @@ describe('lists', () => {
   })
 
   it('renders a task item as a checkbox nobody can tick', () => {
-    /*
-     * `disabled`, always: a checkbox a reader could change would be a control
-     * that persists nowhere, on a page of somebody else's post.
-     */
     expect(html('- [x] done')).toContain('<input type="checkbox" disabled checked>')
     expect(html('- [ ] todo')).toContain('<input type="checkbox" disabled>')
   })
@@ -140,10 +110,6 @@ describe('tables', () => {
   })
 
   it('pads a short row rather than refusing the table', () => {
-    /*
-     * GFM's rule, and the humane one: somebody who miscounted a pipe gets their
-     * table, not a paragraph full of them.
-     */
     expect(html('| a | b |\n|---|---|\n| 1 |')).toContain('<td></td>')
   })
 
@@ -162,7 +128,6 @@ describe('limits', () => {
     const { html: out, truncated } = renderMarkdown(source, { limits: { maxInput: 20 } })
 
     expect(truncated).toBe(true)
-    /* Every character is still on the page; only some of it stopped formatting. */
     expect(out).toContain('**bold**')
   })
 

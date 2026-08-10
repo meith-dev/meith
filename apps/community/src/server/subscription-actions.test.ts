@@ -1,15 +1,3 @@
-/**
- * F56 at the app layer.
- *
- * The cadence rules are unit-tested in `@meith/subscriptions` and the SQL
- * against real Postgres. What is proven here is the seam neither can see:
- *
- *  - subscribing re-authorises `thread.view` against the *target's* forum, so a
- *    member cannot be notified about activity in a forum they may not read;
- *  - the token action works with **no session at all**, and its authority is
- *    the HMAC rather than anything the request claims;
- *  - the return path a form carries cannot become an open redirect.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type * as CoreModule from '@meith/core'
@@ -19,11 +7,6 @@ import { mintUnsubscribeToken } from '@meith/subscriptions'
 import type { SubscriptionMode, SubscriptionRepository, SubscriptionTarget } from '@meith/subscriptions'
 
 const { SECRET, RedirectError } = vi.hoisted(() => {
-  /*
-   * Hoisted with the mock that uses it: `vi.mock` factories run before the
-   * module body, so a plain `const` above would still be in its temporal dead
-   * zone when the env mock reads it.
-   */
   const SECRET = 'test-auth-secret-test-auth-secret'
   class RedirectError extends Error {
     constructor(readonly location: string) {
@@ -134,13 +117,6 @@ async function run(
   }
 }
 
-/**
- * A container whose thread lookup resolves into the given forum.
- *
- * `hidden` adds a deny override so the board has a forum Registered genuinely
- * cannot view — the fixture board has none, and a test that faked the refusal
- * would be testing its own fake rather than the Authorizer.
- */
 function install(forumId: number | null = SEED_FORUM.general, hidden = false) {
   installTestContainer({
     overrides: hidden
@@ -198,11 +174,6 @@ describe('following', () => {
   })
 
   it('refuses a thread whose forum this actor cannot see', async () => {
-    /*
-     * The forum is resolved from the *thread*, and the answer comes from the
-     * Authorizer — not from anything the form said. Without this, subscribing
-     * is a way to be told about activity in a private forum.
-     */
     install(SEED_FORUM.general, true)
 
     const result = await run(
@@ -286,17 +257,12 @@ describe('following', () => {
       ]),
     )
 
-    /* F34's boundary, applied to the one field these forms carry. */
     expect(result.redirectedTo).toBe('/subscriptions?followed=1')
   })
 })
 
 describe('unfollowing', () => {
   it('stops a subscription without asking whether the member may still read it', async () => {
-    /*
-     * Deliberately no permission check: a member locked out of a forum still
-     * has to be able to stop being notified about it.
-     */
     install(SEED_FORUM.general, true)
 
     const result = await run(
@@ -314,7 +280,6 @@ describe('unfollowing', () => {
 
 describe('the no-login unsubscribe', () => {
   beforeEach(() => {
-    /* No session at all — the case the whole route exists for. */
     actorRef.current = null
   })
 
@@ -336,10 +301,6 @@ describe('the no-login unsubscribe', () => {
     const result = await run(unsubscribeByTokenAction, form([['token', token]]))
 
     expect(result.redirectedTo).toBe('/unsubscribe?done=email')
-    /*
-     * The subscriptions survive. "Unsubscribe" on a digest means fewer
-     * e-mails, not "delete my follow list".
-     */
     expect(subscriptions.removed).toEqual([])
     expect(notifications.saved[0]?.entries.get('subscription.digest')).toBe(false)
     expect(notifications.saved[0]?.entries.get('subscription.reply')).toBe(false)

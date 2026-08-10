@@ -1,9 +1,3 @@
-/**
- * F09 — the error taxonomy. Domain code throws these; the transport layer (route
- * handlers, Server Actions, error boundaries) maps them to status codes and
- * user-facing copy. Domain packages never import HTTP concepts.
- */
-
 export type ErrorCode =
   | "VALIDATION"
   | "FORBIDDEN"
@@ -11,20 +5,11 @@ export type ErrorCode =
   | "CONFLICT"
   | "RATE_LIMITED"
   | "INTERNAL"
-  /**
-   * A wiring/deployment fault, not a request fault: a driver selected without
-   * credentials, a repository reaching past its seam. Separate from INTERNAL so
-   * alerting can page an operator rather than filing a bug.
-   */
   | "CONFIGURATION"
 
 export abstract class AppError extends Error {
   abstract readonly code: ErrorCode
 
-  /**
-   * Safe to show a user. Internal errors deliberately return a generic string so
-   * a stack trace or SQL fragment can never reach the browser.
-   */
   readonly publicMessage: string
 
   readonly meta: Readonly<Record<string, unknown>>
@@ -37,7 +22,6 @@ export abstract class AppError extends Error {
   }
 }
 
-/** Field-level input failure. `fieldErrors` is shaped for `useActionState` forms. */
 export class ValidationError extends AppError {
   override readonly code = "VALIDATION" as const
   readonly fieldErrors: Readonly<Record<string, string[]>>
@@ -52,10 +36,6 @@ export class ValidationError extends AppError {
   }
 }
 
-/**
- * The actor is known but not permitted. Carries the denied action so the audit
- * log can record *what* was attempted without the caller assembling a string.
- */
 export class ForbiddenError extends AppError {
   override readonly code = "FORBIDDEN" as const
 
@@ -71,10 +51,6 @@ export class ForbiddenError extends AppError {
   }
 }
 
-/**
- * Resource absent *or* invisible to this actor. Invariant 8: a forum the actor
- * cannot see must 404, not 403 — otherwise the response leaks its existence.
- */
 export class NotFoundError extends AppError {
   override readonly code = "NOT_FOUND" as const
 
@@ -86,7 +62,6 @@ export class NotFoundError extends AppError {
   }
 }
 
-/** Optimistic-concurrency or uniqueness collision. */
 export class ConflictError extends AppError {
   override readonly code = "CONFLICT" as const
 
@@ -112,7 +87,6 @@ export class RateLimitedError extends AppError {
   }
 }
 
-/** Wrapper for genuinely unexpected failures. Never exposes its detail. */
 export class InternalError extends AppError {
   override readonly code = "INTERNAL" as const
 
@@ -121,11 +95,6 @@ export class InternalError extends AppError {
   }
 }
 
-/**
- * Deployment/wiring fault. The `message` is written for the operator who has to
- * fix it and should name the variable or seam at fault; the public message stays
- * generic because a misconfiguration message often names infrastructure.
- */
 export class ConfigurationError extends AppError {
   override readonly code = "CONFIGURATION" as const
 
@@ -141,7 +110,6 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   CONFLICT: 409,
   RATE_LIMITED: 429,
   INTERNAL: 500,
-  // 500, not 503: a missing env var is not transient and retrying will not help.
   CONFIGURATION: 500,
 }
 
@@ -153,7 +121,6 @@ export function statusForError(value: unknown): number {
   return isAppError(value) ? STATUS_BY_CODE[value.code] : 500
 }
 
-/** Shape returned to clients. Deliberately free of stack traces and causes. */
 export interface PublicErrorBody {
   error: { code: ErrorCode; message: string; fieldErrors?: Record<string, string[]> }
 }

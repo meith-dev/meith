@@ -42,7 +42,6 @@ function after(
   return compare(row, cursor, sort) > 0
 }
 
-/** Read-only demo data. Like the forum fixture, it deliberately has no writes. */
 export class FixtureThreadRepository implements ThreadRepository {
   constructor(
     private readonly rows: readonly ThreadListingRow[] = SEED_THREAD_ROWS,
@@ -76,8 +75,6 @@ export class FixtureThreadRepository implements ThreadRepository {
       .filter(
         (row) =>
           row.forumId === forumId &&
-          /* The same predicate the Postgres adapter applies, so a fixture-mode
-             leak would be a fixture-mode bug rather than an untested path. */
           options.scope.states.includes(row.visibility) &&
           (!options.after || after(row, options.after, sort)),
       )

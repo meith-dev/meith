@@ -12,21 +12,6 @@ export const metadata: Metadata = { title: 'Merge account' }
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-/**
- * F67 — merging one account into another.
- *
- * Its own page rather than a section on the member screen, because a merge is
- * the one operation here that names *two* accounts and has to show what it
- * would do to both before it does anything.
- *
- * The account being merged is the one in the URL, and it is the one that
- * **disappears**. That direction is stated everywhere on this page in those
- * words: "merge A into B" is ambiguous in ordinary speech, and getting it
- * backwards destroys the account somebody meant to keep, with no undo.
- *
- * Finding the destination is a GET form on a username, so the choice is in the
- * address bar and survives a reload — the same reason the search is a GET form.
- */
 export default async function AdminMergePage({
   params,
   searchParams,
@@ -139,10 +124,6 @@ export default async function AdminMergePage({
         ),
       )}
 
-      {/*
-        Named rather than silently done. Every one of these is a real
-        consequence somebody will ask about afterwards.
-      */}
       <div className="flex flex-col gap-2 rounded-lg border border-border p-4 text-xs text-muted-foreground">
         <p>What a merge does, in full:</p>
         <ul className="flex list-disc flex-col gap-1 pl-4">

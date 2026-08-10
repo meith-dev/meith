@@ -1,12 +1,3 @@
-/**
- * F69 — the one place in the panel where markup comes from installed code.
- *
- * The claims: a page belonging to a switched-off plugin does not render (or
- * "disabled" would mean "hooks stop, screens keep working"), a `render` that
- * throws is contained rather than becoming a broken panel, and the context a
- * page is handed is the same narrow one a task gets — settings and a logger,
- * never an actor or a database.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const config = {
@@ -110,11 +101,6 @@ describe('what crosses the boundary', () => {
 })
 
 describe('failure', () => {
-  /*
-   * Contained here, so a plugin that throws costs its own page and not the
-   * panel. What cannot be contained from here is a *node* that throws during
-   * React's render — that needs an error boundary, which is a client component.
-   */
   it('returns the page with no node, and logs, when render throws', async () => {
     config.current.plugins = [
       {

@@ -1,14 +1,3 @@
-/**
- * F64 — the generated form's field descriptors.
- *
- * The important test in this file is the last one. `ui.min`/`ui.max` restate
- * bounds the zod schema already enforces, because zod is not introspectable for
- * them without unwrapping every wrapper type — and a restatement free to drift
- * is exactly the kind of thing F08's registry exists to prevent. So every
- * declared bound is **probed against the schema that actually validates**: a
- * hint that disagrees fails here rather than shipping a number box that offers
- * values the save will refuse.
- */
 import { describe, expect, it } from 'vitest'
 
 import { SETTING_DEFINITIONS, SETTING_DEFINITION_BY_KEY } from './definitions'
@@ -23,10 +12,6 @@ function definition(key: string): SettingDefinition {
 
 describe('settingField', () => {
   it('derives the kind from the default, not from a declaration', () => {
-    /*
-     * `typeof default` states the type as a *value*, which is the one place it
-     * cannot disagree with itself. Kills the temptation to add a `kind` field.
-     */
     expect(settingField(definition('board.name')).kind).toBe('text')
     expect(settingField(definition('board.offline')).kind).toBe('boolean')
     expect(settingField(definition('posting.max_length')).kind).toBe('number')
@@ -54,10 +39,6 @@ describe('settingField', () => {
   })
 
   it('makes a secret a secret whatever else it is', () => {
-    /*
-     * A secret that is also an enum is still a value that must not reach the
-     * page. Kills the mutant that checks `options` first.
-     */
     const secretEnum: SettingDefinition = {
       ...definition('registration.method'),
       secret: true,
@@ -68,12 +49,6 @@ describe('settingField', () => {
 
 describe('coerceFormValue', () => {
   it('reads a missing checkbox as false, which a shell must never do', () => {
-    /*
-     * The one thing a form and a shell disagree about: an unchecked box submits
-     * nothing at all. Sharing the CLI's `coerce` would make a missing argument
-     * mean `false`, which is how `settings:set` would start silently turning
-     * things off.
-     */
     expect(coerceFormValue(definition('board.offline'), undefined)).toBe(false)
     expect(coerceFormValue(definition('board.offline'), '')).toBe(false)
     expect(coerceFormValue(definition('board.offline'), 'on')).toBe(true)
@@ -84,12 +59,6 @@ describe('coerceFormValue', () => {
   })
 
   it('leaves a non-numeric string alone so the schema can name the problem', () => {
-    /*
-     * `Number('')` is 0 and `Number('abc')` is NaN, and both would reach the
-     * schema *as a number* — one silently valid, the other reported as a range
-     * error. Passing the string through gets "expected number", which is the
-     * message an operator can act on.
-     */
     expect(coerceFormValue(definition('posting.flood_seconds'), 'abc')).toBe('abc')
     expect(coerceFormValue(definition('posting.flood_seconds'), '  ')).toBe('  ')
   })
@@ -111,11 +80,6 @@ describe('every declared bound agrees with the schema that enforces it', () => {
   )
 
   it('covers every numeric setting, so a new one cannot skip this', () => {
-    /*
-     * The check is only worth anything if it is exhaustive: a numeric setting
-     * with no `ui` hint renders an unbounded box, which is a silent downgrade
-     * rather than a visible one.
-     */
     const allNumeric = SETTING_DEFINITIONS.filter((d) => typeof d.default === 'number')
     expect(numeric).toHaveLength(allNumeric.length)
   })
@@ -134,7 +98,6 @@ describe('every declared bound agrees with the schema that enforces it', () => {
         expect(setting.schema.safeParse(max + 1).success).toBe(false)
       }
 
-      /* And the default has to sit inside the box the operator is shown. */
       expect(setting.schema.safeParse(setting.default).success).toBe(true)
     })
   }
@@ -146,7 +109,6 @@ describe('every select’s options agree with its schema', () => {
       for (const option of setting.ui!.options!) {
         expect(setting.schema.safeParse(option.value).success).toBe(true)
       }
-      /* And nothing outside the list is offered as if it were valid. */
       expect(setting.schema.safeParse('not-an-option').success).toBe(false)
     })
   }
