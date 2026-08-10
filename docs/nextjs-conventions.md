@@ -16,18 +16,32 @@ If you read nothing else on this page, read this.
 
 | Rule | Where it is enforced |
 |---|---|
-| `app/` reads through the container, not `@meith/db` | Review — two admin pages currently break it |
+| `app/` reads through the container, not `@meith/db` | Guard `no-db-in-app-routes` — two admin pages are exempted by name |
 | `"use client"` on leaf components only — never a page, never a layout | Review, and `pnpm slots:check` for themes |
 | Every Server Action re-checks authorization itself | Review |
 | `redirect()` goes **outside** the `try` | Review |
 | Never return a credential in `FormState` | Review — this shipped once, as an account-takeover hole |
 | `logger()` is called where you log, never bound at module scope | Guard `no-module-scope-logger` |
-| Cache tags are spelled once, in `CacheTags` | Review |
+| Cache tags are spelled once, in `CacheTags` | Guard `no-literal-cache-tag` |
 | A cached region never reads `cookies()`, `headers()`, `getActor()` or `getUserId()` | Guard `no-request-state-in-cache` |
 | Every counter has a recount | Review |
 | Event handlers are idempotent | Review |
-| A slot never renders another slot | Review |
+| A slot never renders another slot | Guard `no-slot-rendering-slot` |
 | View models are JSON-shaped | The compiler, via `Serialisable<T>` |
+
+A rule enforced by a guard is one you will hear about from `pnpm verify` rather
+than from a reviewer. A rule enforced by review is one where nobody has found a
+pattern that separates the violation from the legitimate code that resembles it:
+five of the twelve, plus the client-component rule, which tooling only covers on
+the theme side. The sections below say what each of those is actually asking
+for, because for those the reviewer is the enforcement.
+
+`pnpm guards:probe` holds the guards themselves to three conditions: each one
+must fire on a violating sample, spare a legal one, and match at least one real
+file. The third condition is the one that catches rot — a guard whose paths stop
+resolving matches nothing and reports success on every run, which is worse than
+no guard, because the table above says it is covered. Rename a directory and the
+probe tells you which guards followed it.
 
 ---
 
@@ -52,10 +66,15 @@ long, the length is domain logic that belongs in a package, or view-model
 assembly that belongs in `src/view/`.
 
 **`app/` reads through the container in `src/server/container.ts`, not
-`@meith/db`.** Held by review rather than a tool — dependency-cruiser has no
-rule for it — and two admin pages (`admin/users/[id]/merge`,
-`admin/forums/[id]`) currently import `@meith/db` directly. Do not add a third;
-the rule is the direction of travel.
+`@meith/db`.** The container is what keeps a route testable without Postgres and
+what lets `DATA_SOURCE=fixture` serve a whole board from memory; a route that
+reaches past it works on a machine with a database and 500s on the demo.
+
+Guard `no-db-in-app-routes` holds this. Two admin pages
+(`admin/users/[id]/merge`, `admin/forums/[id]`) predate it and are exempted by
+name in `scripts/guards.config.mjs`. Adding a third means adding your own path
+to that list in the same commit, which is the point: the exemption is visible in
+review instead of being indistinguishable from a file nobody checked.
 
 ---
 
@@ -79,6 +98,12 @@ In practice the split looks like the auth forms:
 
 The page stays a Server Component even though its child is not. That is the
 shape to copy.
+
+The one file under `app/` that carries `"use client"` is `app/error.tsx`, and
+that is the framework's requirement rather than a judgement call: an error
+boundary has to be a client component to catch anything. It is neither a page
+nor a layout, so it is not the exception it looks like — but it is the only
+`"use client"` in the whole of `app/`, and a second one wants explaining.
 
 **Anything crossing into a client component must be plain serializable data.**
 No class instances, no `Date` inside a deeply nested object you have not
@@ -123,6 +148,16 @@ authorization — an action is a public HTTP endpoint, and nothing stops someone
 POSTing to it directly. `proxy.ts` is not a boundary either; it only decides
 whether to bounce a cookie-less request to `/login`.
 
+In practice the check is a `require*()` call — `requireAdmin()`,
+`requireUserAdmin()`, `requireReputation()` — that throws a `ForbiddenError` the
+`catch` turns into a `FormState`. It is often one hop down, in a helper the
+action delegates to rather than in the exported function itself, which is why
+this stays a review rule: no textual pattern separates an action that delegates
+its check from one that never had it. When you review an action, follow the hop.
+The actions that legitimately have no check are the pre-auth ones — login,
+register, password reset, install — and `unsubscribeByTokenAction`, where the
+token in the URL is the credential.
+
 **`redirect()` goes outside the `try`.** It works by throwing, so a `catch` that
 swallows it turns a successful action into a silent no-op. Look at
 `auth-actions.ts`: every `redirect` is after the `try/catch`, never inside.
@@ -139,13 +174,29 @@ becomes a generic message — see `toFormState`.
 > This is not hypothetical: the password-reset action returned a live reset token
 > to the browser, and it was an account-takeover hole.
 
+The rule has exactly one exception in the codebase, and it is worth knowing
+about because it looks like the bug above. `requestResetAction` returns the reset
+token as `values.devToken` when `env.NODE_ENV === 'development'`, so a board run
+locally without a mailer can still finish the flow; `reset-request-form.tsx`
+renders it as a link. Two tests in `auth-actions.test.ts` pin both directions —
+the token is returned in development and withheld everywhere else.
+
+What makes it safe is the environment gate, so treat that gate as load-bearing.
+`NODE_ENV` defaults to `development` in `packages/core/src/env.ts` when it is
+unset; the shipped `Dockerfile` sets it to `production` explicitly. A deployment
+that runs the app some other way and leaves `NODE_ENV` unset serves reset tokens
+to anyone who submits the form. Nothing else in `FormState` gets this exception,
+and a second one should be argued for in the PR rather than copied from here.
+
 ---
 
 ## Forms and `useActionState`
 
-Every page on the no-JavaScript list must work with JavaScript disabled.
-That is a hard requirement, not an aspiration, and it shapes how forms are
-written:
+Every page on the no-JavaScript list must work with JavaScript disabled. That is
+a hard requirement, not an aspiration, and it shapes how forms are written. The
+list is not prose: it is the `e2e/*-no-js.spec.ts` suite, which drives the real
+pages with scripting turned off. Adding a page to the list means adding a spec
+there.
 
 - The `<form action={...}>` must work as a native submit. No `onSubmit`, no
   `preventDefault`, no client-side validation the server does not repeat.
@@ -214,9 +265,11 @@ which is how one escaped.
 
 Read `packages/core/src/cache.ts` before caching anything.
 
-- **Every tag name is spelled once**, in `CacheTags`. Never write a tag as a
-  literal: a writer invalidating `"forum-tree"` while a reader cached under
-  `"forumTree"` is stale data that no test catches.
+- **Every tag name is spelled once**, in `CacheTags` — guarded by
+  `no-literal-cache-tag`. Never write a tag as a literal: a writer invalidating
+  `"forum-tree"` while a reader cached under `"forumTree"` is stale data that no
+  test catches, because both sides pass in isolation and only disagree in
+  production.
 - **`cachedGlobal` is for global data only.** If a value varies by actor it must
   not go through it.
 
@@ -276,8 +329,14 @@ every viewer of the page it appears on.
 matters: such an island renders once and never becomes interactive, which looks
 correct in a screenshot and does nothing when clicked.
 
-**A slot never renders another slot.** The page resolves both and passes the
-rendered one in:
+Neither client slot is filled by a shipped theme today — `QuickReply` and
+`EditorToolbar` are declared and unimplemented — so that second direction is
+currently exercised only by `pnpm slots:probe`, against a synthetic theme. The
+first theme to fill one is the first to test it for real.
+
+**A slot never renders another slot** — guarded by `no-slot-rendering-slot`,
+which refuses `requireSlot` and `hasSlot` inside a slot module. The page
+resolves both and passes the rendered one in:
 
 ```tsx
 const ThreadView = requireSlot(theme, 'ThreadView')
@@ -356,8 +415,18 @@ adding a field is minor, renaming or removing one needs a deprecation cycle.
 
 ## Before opening a PR
 
-`pnpm verify` — guards, guard probes, the slot boundary check and its probe,
-lint, dependency-cruiser, all three typechecks, tests. `pnpm build` if you touched
-anything under `app/` — and if you touched a theme, check the class you used is
-actually in the built CSS: Tailwind scans `themes/` only because `globals.css`
-says so, and a missing `@source` is a green build that renders unstyled.
+`pnpm verify` runs, in order: the workspace check, guards and guard probes, the
+slot boundary check and its probe, `hooks:wired`, the documentation-sync checks
+(`theme:docs`, `plugin:docs`, `api:docs`, `perf:docs`, `docs:index`,
+`site:docs`), lint, dependency-cruiser, all three typechecks, and the tests.
+
+The docs checks matter more than their position in that list suggests. Pages
+like `theme-api.md`, `plugin-hooks.md` and `rest-api.md` are generated from the
+code they describe, so when one of those checks fails, regenerate with the
+matching `pnpm <name>` rather than editing the page by hand — a hand-edit is
+overwritten by the next run.
+
+`pnpm build` as well if you touched anything under `app/` — and if you touched a
+theme, check the class you used is actually in the built CSS: Tailwind scans
+`themes/` only because `apps/community/src/styles/globals.css` says so with an
+`@source` line, and a missing one is a green build that renders unstyled.
