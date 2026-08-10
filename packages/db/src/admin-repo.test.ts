@@ -1,10 +1,3 @@
-/**
- * The operator-level lookups and the promotion write, on real Postgres.
- *
- * These back `community user:promote`, which is how the first administrator gets
- * made — so "did the privilege change actually land, and did every cached actor
- * get retired" is the whole point.
- */
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -55,12 +48,6 @@ describe('findUser', () => {
     expect(await repo.findUser('nobody', 'nobody')).toBeNull()
   })
 
-  /*
-   * A board may legitimately have a user named "100". Matching a numeric
-   * reference against the id *or* the name means such an account is still
-   * reachable; resolving to a different account would be the worst outcome for
-   * a command whose job is granting privileges.
-   */
   it('still finds a user whose name is numeric', async () => {
     await db.insert(users).values({
       id: 7,
@@ -72,7 +59,6 @@ describe('findUser', () => {
       passwordAlgo: 'argon2id',
       primaryGroupId: 2,
     })
-    // Id 100 exists too, so the id wins — but the name is not unreachable.
     expect((await repo.findUser('100', '100'))?.id).toBeDefined()
   })
 })
@@ -108,11 +94,6 @@ describe('setPrimaryGroup', () => {
     expect(row?.display).toBe(3)
   })
 
-  /*
-   * Without the bump, an already-resolved Actor keeps its old permissions for
-   * the cache's lifetime: a promotion looks like it did not work, and a
-   * demotion silently does not take effect.
-   */
   it('retires every resolved actor by bumping permission_version', async () => {
     const before = await db
       .select({ v: cacheVersions.version })
@@ -136,7 +117,6 @@ describe('setPrimaryGroup', () => {
   })
 
   it('does neither half if the group does not exist', async () => {
-    // The FK rejects it; the version bump must not survive the rollback.
     await expect(repo.setPrimaryGroup(100, 9999)).rejects.toThrow()
 
     const rows = await db

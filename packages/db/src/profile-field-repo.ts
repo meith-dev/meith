@@ -1,23 +1,3 @@
-/**
- * F59 — custom profile fields over Postgres.
- *
- * Three tables, and the reads are deliberately unfiltered: `listFields` and
- * `listGroupRules` return everything, and the *resolution* happens in
- * `@meith/profile-fields` over rows the Authorizer has already narrowed to this
- * actor's groups.
- *
- * That split is not laziness about SQL. Filtering visibility in the query would
- * mean this file deciding who may see what — a second answer to a question F20
- * and F21 already own, expressed in a different language, in a place the
- * permission tests cannot reach. Both tables are configuration-sized (a board
- * has a dozen fields, not a million), so reading them whole costs one small
- * query each and keeps every access decision in one testable place.
- *
- * The one write worth reading is `saveValues`: an emptied field **deletes its
- * row** rather than storing `''`. Otherwise every read on the board would have
- * to treat "empty string" and "no row" as the same thing, and one of them would
- * eventually forget.
- */
 import { sql } from 'drizzle-orm'
 
 import {
@@ -48,14 +28,6 @@ interface RawField {
   show_in_postbit: boolean
 }
 
-/**
- * `options` comes back as whatever the column holds.
- *
- * Anything that is not an array of strings becomes an empty list rather than
- * throwing: a `select` with no options renders as an empty dropdown, which is
- * visibly broken configuration — and visibly broken beats a profile page that
- * 500s for everybody because one field's JSON was hand-edited.
- */
 function toOptions(value: unknown): readonly string[] {
   if (!Array.isArray(value)) return []
   return value.filter((entry): entry is string => typeof entry === 'string')
@@ -67,7 +39,6 @@ function toField(row: RawField): ProfileFieldDefinition {
     key: row.key,
     label: row.label,
     description: row.description,
-    /* Null for a type this build does not know; the caller degrades to text. */
     type: parseFieldType(row.type),
     options: toOptions(row.options),
     maxLength: row.max_length === null ? null : Number(row.max_length),
@@ -128,14 +99,6 @@ export class PostgresProfileFieldRepository implements ProfileFieldRepository {
     return rows.map((row) => ({ fieldId: Number(row.field_id), value: row.value }))
   }
 
-  /**
-   * Write a member's answers, in one transaction.
-   *
-   * An emptied field deletes its row (see the file header). Everything else is
-   * an upsert, so saving the same form twice is the same as saving it once —
-   * which matters because a member who presses the button again after a slow
-   * response should not create anything new.
-   */
   async saveValues(input: {
     readonly userId: number
     readonly values: readonly ProfileFieldValue[]
@@ -205,18 +168,10 @@ export class PostgresProfileFieldRepository implements ProfileFieldRepository {
       `),
     ) as RawField[]
 
-    /* Unreachable: the insert either returns a row or throws on the key index. */
     if (rows[0] === undefined) throw new Error('Profile field insert returned no row')
     return toField(rows[0])
   }
 
-  /**
-   * Remove a field.
-   *
-   * The values go with it, by `on delete cascade` — which is the right
-   * behaviour and the reason an operator who only wants to *hide* a field
-   * should set `is_active` instead. The CLI says so at the point of deletion.
-   */
   async remove(key: string): Promise<boolean> {
     const rows = resultRows(
       await this.db.execute(sql`

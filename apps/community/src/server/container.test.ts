@@ -1,14 +1,3 @@
-/**
- * Integration test for the composition root (D11) in fixture mode.
- *
- * This is the seam where the seed board, the InMemoryAuthorizationSource and the
- * Authorizer meet. Unit tests cover each in isolation; this proves the *wiring*
- * — that getContainer() actually assembles a working authorizer over the seed
- * data, which is what every Server Component will depend on.
- *
- * DATA_SOURCE is 'fixture' in the test env (vitest.config.ts), so this never
- * touches Postgres.
- */
 import type { Actor } from '@meith/authorization'
 import { describe, expect, it } from 'vitest'
 
@@ -16,14 +5,11 @@ import { getContainer } from './container'
 import { SEED_BOARD, SEED_FORUM, SEED_GROUP } from './seed-board'
 
 function actorInGroups(userId: number | null, groupIds: number[]): Actor {
-  // Combine the seed board's group defaults the way the real repo will.
   const container = getContainer()
   void container
   const sets = SEED_BOARD.groups
     .filter((g) => groupIds.includes(g.groupId))
     .map((g) => g.permissions)
-  // Fold with the authorizer's own combine by asking the source — but for the
-  // test we only need `global`, so merge booleans by OR here directly.
   const global = sets.reduce(
     (acc, s) => {
       for (const [k, v] of Object.entries(s)) {
@@ -82,7 +68,6 @@ describe('getContainer (fixture mode)', () => {
     const user = actorInGroups(10, [SEED_GROUP.registered])
 
     const forum = await authorizer.forumMatrix(user, SEED_FORUM.generalOffTopic)
-    // canView is not overridden on the child, so it inherits true from general.
     expect(
       authorizer.can(user, 'forum.view', { forumId: SEED_FORUM.generalOffTopic, forum }),
     ).toBe(true)

@@ -1,19 +1,5 @@
 "use client"
 
-/**
- * F69's forms: the switch, and the settings editor.
- *
- * Both are native `form` posts to Server Actions, so both work with scripting
- * off — which matters more here than on most screens, because the switch is the
- * control an administrator reaches for when a plugin is breaking the board, and
- * "the fix needs JavaScript" is a bad sentence to discover at that moment.
- *
- * The control a setting gets is derived from `typeof default` on the server
- * (see `plugin-admin.ts`) rather than declared by the plugin. One statement of
- * the type, in the place the value already is — the same rule F08 follows for
- * board settings, and the reason a plugin cannot declare a number and render a
- * checkbox.
- */
 import { useActionState } from "react"
 
 import { EMPTY_STATE } from "@/server/auth-form-state"
@@ -37,14 +23,6 @@ export interface PluginSettingField {
   readonly value: string | number | boolean
 }
 
-/**
- * Switch a plugin off, or back on.
- *
- * A single button rather than a checkbox-and-save: the state is already on the
- * screen, and a two-step control for a one-bit change is how somebody ends up
- * having ticked the box and not pressed save on the plugin they were trying to
- * stop.
- */
 export function PluginEnableForm({
   pluginKey,
   enabled,
@@ -94,13 +72,6 @@ export function PluginSettingsForm({
           <div key={setting.key} className="flex flex-col gap-1 py-3">
             {setting.kind === "boolean" ? (
               <label className="flex items-start gap-2 text-sm">
-                {/*
-                  No hidden companion field. The action walks the plugin's
-                  *declared* settings rather than the submitted form, so an
-                  absent checkbox is read as false — which is what an absent
-                  checkbox means, and what a form that iterated its own fields
-                  would silently get wrong.
-                */}
                 <input
                   type="checkbox"
                   name={`setting.${setting.key}`}

@@ -1,14 +1,5 @@
 'use server'
 
-/**
- * F49 — the report actions.
- *
- * Three, and they split along the line the whole feature is about: `file` is a
- * *member's* action and re-authorises against the target's forum; `assign` and
- * `close` are moderators' and re-authorise against the report's scope. Nothing
- * a member can call touches an event, and nothing a moderator writes reaches a
- * member.
- */
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
@@ -67,12 +58,6 @@ export async function fileReportAction(
     }
     authorizer.require(actor, 'content.report')
 
-    /*
-     * Resolve the target first, then re-authorise against *its* forum. The form
-     * says which row; whether this member could see it is a question only the
-     * row's forum can answer, and reporting something you cannot see would be a
-     * way to confirm it exists.
-     */
     target = await reports.resolveTarget(kind, targetId, actor.userId)
     if (target === null) throw new ValidationError('That does not exist.')
 
@@ -84,23 +69,7 @@ export async function fileReportAction(
     } else if (kind === 'user') {
       authorizer.require(actor, 'profile.view')
     }
-    /*
-     * A private message has no forum and needs no third check: `resolveTarget`
-     * only returns one this member holds a copy of (F60), which is a stronger
-     * statement than any permission could make about it.
-     */
 
-    /*
-     * F46, spent after the permission checks rather than before them. Two
-     * reasons: somebody probing for content they cannot see should not be able
-     * to exhaust a real member's reporting allowance, and a limit that fires
-     * before authorisation would answer "too many" where the honest answer is
-     * "that does not exist".
-     *
-     * The allowance should be set generously. A limit on reporting is a limit
-     * on asking for help, and the failure mode is a member in trouble being
-     * told to come back later.
-     */
     const limited = await spendLimit({ scope: 'report', actor })
     if (limited !== null && !limited.allowed) {
       return { error: limitMessage(limited), values }
@@ -113,11 +82,6 @@ export async function fileReportAction(
       reporterUserId: actor.userId,
     })
 
-    /*
-     * A duplicate is reported as success. The member did what they meant to do,
-     * and telling them "you already reported this" is only useful to somebody
-     * probing what is in the queue.
-     */
     void outcome
   } catch (err) {
     return toFormState(err, values)
@@ -178,11 +142,6 @@ export async function closeReportAction(
     const actor = await getActor()
     if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
 
-    /*
-     * The reporter is told the outcome (F55) and never the note: D48's two
-     * audiences stay apart, enforced by `ReportNotifierPort` having no field
-     * that could carry one.
-     */
     await new ReportService({ reports, notifier: reportNotifier() }).close({
       reportId,
       status,

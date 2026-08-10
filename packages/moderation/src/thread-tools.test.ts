@@ -1,4 +1,3 @@
-/** F50 — the thread-tool rules, without a database. */
 import { describe, expect, it } from 'vitest'
 import { ValidationError } from '@meith/core'
 
@@ -102,11 +101,6 @@ describe('ThreadTools', () => {
   })
 
   describe('moving', () => {
-    /*
-     * The rule a "can this actor moderate here" check alone gets wrong. Rights
-     * in the source only would let a moderator move a thread out from under the
-     * people watching it, into a forum where they have no standing at all.
-     */
     it('needs the right at both ends', async () => {
       const threads = new FakeThreads()
 
@@ -146,7 +140,6 @@ describe('ThreadTools', () => {
       ).rejects.toThrow(/choose a forum/i)
     })
 
-    /* A category holds forums and a link holds nothing: both strand the thread. */
     it.each(['category', 'link'] as const)('refuses a %s as a destination', async (type) => {
       const threads = new FakeThreads()
       threads.destination = { id: 9, type }
@@ -180,11 +173,6 @@ describe('ThreadTools', () => {
   })
 
   describe('what has to be on the board', () => {
-    /*
-     * Pinning a deleted thread is not wrong so much as meaningless, and it
-     * makes the listing's sort key depend on a flag set on something nobody can
-     * see.
-     */
     it.each(['lock', 'stick', 'move'] as const)(
       'refuses %s on a thread that is not visible',
       async (tool) => {
@@ -246,10 +234,6 @@ describe('ThreadTools', () => {
 })
 
 describe('parseThreadTool', () => {
-  /*
-   * Eight since copy landed. `copy` was in the *rejected* list until then,
-   * which is what a deferral looks like when it is pinned rather than assumed.
-   */
   it('accepts the eight tools and nothing else', () => {
     for (const tool of [
       'lock',
@@ -269,15 +253,6 @@ describe('parseThreadTool', () => {
   })
 })
 
-/**
- * F50's copy, and the rule it borrows.
- *
- * Authorised by `thread.move` at **both ends** rather than by a right of its
- * own: copying is moving that leaves the original behind, so the destination's
- * moderators have the same interest in it, and an eighth column on
- * `forum_moderators` distinguishing two acts nobody grants separately would be
- * the wrong shape.
- */
 describe('copy', () => {
   it('copies when the move right is held at both ends', async () => {
     const threads = new FakeThreads()
@@ -291,7 +266,6 @@ describe('copy', () => {
       destinationRights: ALL,
     })
 
-    /* The outcome names the *new* thread — the only tool whose result moves. */
     expect(outcome).toMatchObject({ tool: 'copy', threadId: 77, changed: true })
     expect(threads.calls).toEqual(['copy'])
   })
@@ -356,11 +330,6 @@ describe('copy', () => {
     ).rejects.toBeInstanceOf(ValidationError)
   })
 
-  /*
-   * Unlike a move, the destination may be the source forum: forking a
-   * discussion in place is legitimate, and nothing left so there is no pointer
-   * to repair.
-   */
   it('allows a copy into the thread"s own forum', async () => {
     const threads = new FakeThreads()
     const outcome = await toolsFor(threads).apply({

@@ -1,12 +1,3 @@
-/**
- * `@meith/api` — the public REST API's domain half (F81).
- *
- * Tokens, scopes, the route registry, the rate-limit arithmetic, and webhook
- * signing and retry. No Next, no SQL, no `Response`: the app layer owns the
- * HTTP, this package owns the decisions — which is what lets every one of them
- * be tested without a server and reused by the worker that delivers webhooks.
- */
-
 export {
   SCOPES,
   TOKEN_PREFIX,

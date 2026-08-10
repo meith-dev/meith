@@ -18,13 +18,6 @@ export class PostgresDraftRepository implements DraftRepository {
     const row = rows[0]
     return row === undefined ? null : {
       forumId: Number(row.forum_id), threadId: row.thread_id === null ? null : Number(row.thread_id),
-      /*
-       * A draft saved before this board spoke Markdown is converted here, so it
-       * arrives in the composer as the text that will post correctly. Converted
-       * on the way out rather than rewritten in place: a draft is a handful of
-       * rows with a short life, and it is about to be replaced by whatever the
-       * member types next anyway.
-       */
       title: row.title, message: sourceAsMarkdown(row.message, Number(row.body_format)),
       prefixId: row.prefix_id === null ? null : Number(row.prefix_id),
     }

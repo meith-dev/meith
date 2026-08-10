@@ -1,63 +1,18 @@
-/**
- * The permission model, declared once.
- *
- * R4.2 gives three different combination rules depending on a field's *kind*,
- * and R4.1 says the same fields appear in two places: global defaults on
- * `usergroups`, and nullable per-forum overrides on `forum_permissions`. If the
- * field list were written out in each of those places it would be written three
- * times (schema, schema again, combination logic) and would drift on the first
- * feature that adds a permission.
- *
- * So the list lives here, in `@meith/core`, as data:
- *
- *   - `packages/db` generates both tables' columns from it
- *   - `packages/authorization` drives the combination rules from `kind`
- *   - the F22 gate enumerates it, so adding a field fails the suite until the
- *     fixture is extended (exactly what F22's acceptance criteria demand)
- *
- * This file must not import anything. It is the floor of the dependency graph.
- */
-
-/**
- * How a field combines across the several groups a user belongs to.
- *
- * - `boolean`  — OR. Most-permissive wins. Being added to a group can only ever
- *                grant, never take away.
- * - `numeric`  — MAX, but `0` means "unlimited" and therefore beats every other
- *                value. Naive `Math.max` gets this exactly backwards, which is
- *                why the rule is encoded here rather than left to each call site.
- * - `negative` — AND. The field's `true` state is a *restriction*
- *                (`requiresPostApproval`), so any group that exempts the user
- *                exempts them everywhere.
- */
 export type PermissionKind = 'boolean' | 'numeric' | 'negative'
 
-/** Where a field may be set. */
 export type PermissionScope =
-  /** Global group default only. Meaningless per-forum (e.g. "can use PMs"). */
   | 'global'
-  /** Both a global default and a nullable per-forum override. */
   | 'forum'
 
 export interface PermissionField {
   readonly key: string
   readonly kind: PermissionKind
   readonly scope: PermissionScope
-  /**
-   * The value used when no group grants anything — deny by default. For
-   * `negative` fields the safe default is `true` (restricted).
-   */
   readonly fallback: boolean | number
   readonly description: string
 }
 
-/**
- * Actions are the vocabulary callers use; permission fields are the storage.
- * They are close but not identical: `editOthers` consults a field *and* a
- * moderator right. The mapping lives in `packages/authorization`.
- */
 export const PERMISSION_FIELDS = [
-  /* ---- Visibility (forum-scoped) ---- */
   {
     key: 'canView',
     kind: 'boolean',
@@ -93,7 +48,6 @@ export const PERMISSION_FIELDS = [
     description: 'Include this forum in search results.',
   },
 
-  /* ---- Posting (forum-scoped) ---- */
   {
     key: 'canPostThreads',
     kind: 'boolean',
@@ -130,7 +84,6 @@ export const PERMISSION_FIELDS = [
     description: 'Rate threads.',
   },
 
-  /* ---- Editing and deleting own content (forum-scoped) ---- */
   {
     key: 'canEditOwnPosts',
     kind: 'boolean',
@@ -153,7 +106,6 @@ export const PERMISSION_FIELDS = [
     description: 'Delete a whole thread you started.',
   },
 
-  /* ---- Moderation-ish, still forum-scoped ---- */
   {
     key: 'canEditOthersPosts',
     kind: 'boolean',
@@ -201,7 +153,6 @@ export const PERMISSION_FIELDS = [
     description: 'Move unapproved content to visible.',
   },
 
-  /* ---- Attachments (forum-scoped) ---- */
   {
     key: 'canUploadAttachments',
     kind: 'boolean',
@@ -217,7 +168,6 @@ export const PERMISSION_FIELDS = [
     description: 'Download attachments posted by others.',
   },
 
-  /* ---- Subscriptions (forum-scoped) ---- */
   {
     key: 'canSubscribe',
     kind: 'boolean',
@@ -226,7 +176,6 @@ export const PERMISSION_FIELDS = [
     description: 'Subscribe to a forum or thread for notifications.',
   },
 
-  /* ---- Global-only booleans ---- */
   {
     key: 'canViewProfiles',
     kind: 'boolean',
@@ -291,12 +240,6 @@ export const PERMISSION_FIELDS = [
     description: 'Reach the moderator control panel.',
   },
   {
-    /*
-     * F53. Global, like MyBB's `canwarnusers` and for the same reason: a
-     * warning is aimed at a *person*, not at content in a forum, and points
-     * follow them across the whole board. A per-forum grant would have to
-     * answer "warned where?" about a total that has no forum.
-     */
     key: 'canWarnUsers',
     kind: 'boolean',
     scope: 'global',
@@ -304,11 +247,6 @@ export const PERMISSION_FIELDS = [
     description: 'Issue and revoke warnings against members.',
   },
 
-  /*
-   * The two bypass flags. R4.2 requires these be explicit and logged, never
-   * emergent from some other column, which is why they are ordinary declared
-   * fields rather than a derived `groupId === 4` test somewhere.
-   */
   {
     key: 'isSuperModerator',
     kind: 'boolean',
@@ -337,7 +275,6 @@ export const PERMISSION_FIELDS = [
       'trusted role can be granted the panel without the permission bypass.',
   },
 
-  /* ---- Numeric limits. 0 == unlimited and beats everything. ---- */
   {
     key: 'maxPostsPerDay',
     kind: 'numeric',
@@ -408,16 +345,7 @@ export const PERMISSION_FIELDS = [
     fallback: 0,
     description: 'Signature length cap in characters. 0 = unlimited.',
   },
-  /*
-   * NOTE: MyBB has a per-group `searchfloodtime`. It is deliberately absent.
-   * R4.2 combines numerics with MAX and treats 0 as unlimited, but a flood
-   * *interval* is most permissive at its SMALLEST non-zero value, so it cannot
-   * obey the rule without inverting it for one field. Modelled instead as the
-   * board setting `search.flood_seconds` plus the existing `canBypassFloodCheck`
-   * boolean, which combines correctly. See docs/mybb-parity.md#flood-intervals.
-   */
 
-  /* ---- Negative-sense flags. AND across groups. ---- */
   {
     key: 'requiresThreadApproval',
     kind: 'negative',
@@ -445,7 +373,6 @@ export const PERMISSION_FIELDS = [
 
 export type PermissionKey = (typeof PERMISSION_FIELDS)[number]['key']
 
-/** Fields that may be overridden per forum (R4.1 layer 2). */
 export const FORUM_PERMISSION_FIELDS = PERMISSION_FIELDS.filter(
   (f) => f.scope === 'forum',
 )
@@ -455,14 +382,9 @@ export type ForumPermissionKey = Extract<
   { scope: 'forum' }
 >['key']
 
-/** Lookup by key, built once. */
 export const PERMISSION_FIELD_BY_KEY: Record<string, PermissionField> =
   Object.fromEntries(PERMISSION_FIELDS.map((f) => [f.key, f]))
 
-/**
- * The fully-resolved global permission set for an actor.
- * Booleans and negatives are `boolean`; limits are `number`.
- */
 export type PermissionSet = {
   [K in PermissionKey]: Extract<
     (typeof PERMISSION_FIELDS)[number],
@@ -472,10 +394,8 @@ export type PermissionSet = {
     : boolean
 }
 
-/** The forum-scoped subset, as returned by `Authorizer.forumMatrix()`. */
 export type ForumPermissions = Pick<PermissionSet, ForumPermissionKey>
 
-/** Deny-by-default permission set, used as the reduction seed. */
 export function emptyPermissionSet(): PermissionSet {
   const out: Record<string, boolean | number> = {}
   for (const f of PERMISSION_FIELDS) out[f.key] = f.fallback

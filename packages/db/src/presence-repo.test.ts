@@ -1,16 +1,3 @@
-/**
- * F75's online list, against real Postgres.
- *
- * Three claims, and all three are privacy claims rather than correctness ones —
- * which is why they get a suite of their own rather than a line in a page test:
- *
- *  - **the location is resolved against the reader**, so a private forum's name
- *    never reaches somebody who cannot see the forum;
- *  - **invisible members are absent from the count as well as the list**,
- *    because a member who can be found by subtraction is not hidden;
- *  - **one row per visitor**, so a member with two devices is one person and a
- *    guest with two tabs is one guest.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -125,25 +112,15 @@ describe('who is here', () => {
   })
 
   it('counts a member with two devices once', async () => {
-    /*
-     * Somebody on a phone and a laptop is one person online. Kills the mutant
-     * that drops the `distinct on` — under which the busiest members inflate
-     * the count and appear twice in the list.
-     */
     await seedSession({ id: 1, userId: ANN, lastSeenAt: ago(5), forumId: OPEN })
     await seedSession({ id: 2, userId: ANN, lastSeenAt: ago(1), forumId: null })
 
     const snapshot = await repo.onlineNow(NOW, scope())
     expect(snapshot.members).toHaveLength(1)
-    /* And it is the *most recent* session, so the location is the current one. */
     expect(snapshot.members[0]?.forumId).toBeNull()
   })
 
   it('ignores a revoked session', async () => {
-    /*
-     * Logging out should remove somebody from the list. The row survives for
-     * the audit trail, so the query has to say so.
-     */
     await seedSession({ id: 1, userId: ANN, revoked: true })
     expect((await repo.onlineNow(NOW, scope())).total).toBe(0)
   })
@@ -165,12 +142,6 @@ describe('the location is resolved against the reader', () => {
   })
 
   it('withholds a forum the reader may not see, and still lists the member', async () => {
-    /*
-     * The central claim. A member reading the staff room is online — that is
-     * not secret — but where they are is. Kills the mutant that returns the
-     * title regardless, which puts a private forum's name in a view model any
-     * theme can print.
-     */
     await seedSession({ id: 1, userId: ANN, forumId: SECRET })
 
     const snapshot = await repo.onlineNow(NOW, scope({ forumIds: [OPEN] }))
@@ -179,10 +150,6 @@ describe('the location is resolved against the reader', () => {
   })
 
   it('names nothing at all when the reader can see no forum', async () => {
-    /*
-     * An empty list is `false`, not "no filter". `in ()` is a syntax error and
-     * the tempting fix — skipping the clause — names every forum on the board.
-     */
     await seedSession({ id: 1, userId: ANN, forumId: OPEN })
 
     const snapshot = await repo.onlineNow(NOW, scope({ forumIds: [] }))
@@ -190,17 +157,11 @@ describe('the location is resolved against the reader', () => {
   })
 
   it('withholds a thread the reader’s content scope hides', async () => {
-    /*
-     * A visible forum can hold a thread that is not. A moderator reading a
-     * soft-deleted thread must not put its title on the front page. Kills the
-     * mutant that checks only the forum.
-     */
     await seedThread(10, OPEN, 'deleted')
     await seedSession({ id: 1, userId: ANN, forumId: OPEN, threadId: 10 })
 
     const asMember = await repo.onlineNow(NOW, scope())
     expect(asMember.members[0]).toMatchObject({ threadId: null, threadTitle: null })
-    /* The forum is still named — that part the reader may know. */
     expect(asMember.members[0]?.forumTitle).toBe('Open')
 
     const staffScope = scope({
@@ -224,11 +185,6 @@ describe('the location is resolved against the reader', () => {
 
 describe('invisible members', () => {
   it('are absent from the list and from the count', async () => {
-    /*
-     * The claim that makes invisibility real. Kills the mutant that filters the
-     * list after taking the total: "two online, one listed" identifies the
-     * hidden member as surely as printing their name would.
-     */
     await db.execute(sql`update users set invisible = true where id = ${BOB}`)
     await seedSession({ id: 1, userId: ANN })
     await seedSession({ id: 2, userId: BOB })
@@ -254,11 +210,6 @@ describe('invisible members', () => {
 
 describe('the record', () => {
   it('counts everybody, including the invisible', async () => {
-    /*
-     * "Most ever online" is a fact about the board, not about who anybody may
-     * see. Deriving it from the filtered list would make the record depend on
-     * how many members had a preference set.
-     */
     await db.execute(sql`update users set invisible = true where id = ${BOB}`)
     await seedSession({ id: 1, userId: ANN })
     await seedSession({ id: 2, userId: BOB })
@@ -271,11 +222,6 @@ describe('the record', () => {
     expect(await repo.recordIfHigher(5, NOW)).toBe(true)
     expect((await repo.readRecord()).count).toBe(5)
 
-    /*
-     * Equal is not higher. A record that moved on equality would rewrite its
-     * timestamp every quiet afternoon, and "most ever online: 5, an hour ago"
-     * would stop meaning anything.
-     */
     expect(await repo.recordIfHigher(5, new Date(NOW.getTime() + 60_000))).toBe(false)
     expect(await repo.recordIfHigher(4, new Date(NOW.getTime() + 60_000))).toBe(false)
     expect((await repo.readRecord()).at?.toISOString()).toBe(NOW.toISOString())

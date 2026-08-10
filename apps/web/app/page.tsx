@@ -21,31 +21,6 @@ import {
 } from "../src/content/site"
 import { docHref, documentsInSection, sections } from "../src/docs/registry"
 
-/**
- * The landing page.
- *
- * Eight bands, each answering one question somebody actually asks, in the order
- * a person deciding where their community should live asks them. What is it (a
- * picture of a board, not a paragraph about one). Why would my community live
- * here (benefits, in the reader's units). What does it actually do for the
- * people on it. Where does it run, and what does running it look like. Is it
- * fast. What about the board I am already on. What is the licence. Where do I
- * read more.
- *
- * Two bands of figures used to sit where the benefits strip and the speed band
- * now are — a row of four stats under the hero, and a five-row table of p95s
- * against budgets. Both were the software making its case in its own units,
- * and they went for the same reason the etymology band went before them: they
- * answered a question the reader was not asking yet. The measurements
- * themselves are unchanged and one click away in the performance reference,
- * and the one figure still quoted on the page is still read from it at build
- * time.
- *
- * Every word comes from `src/content/site.ts`, every document link from the
- * manifest, and the one *figure* from `src/content/facts.ts`, which reads the
- * generated references at build time rather than trusting anybody to retype a
- * number that changed.
- */
 export default async function LandingPage() {
   const facts = await readFacts()
   const running = sections.find((section) => section.id === "running")
@@ -54,13 +29,7 @@ export default async function LandingPage() {
 
   return (
     <>
-      {/* ── the hero ─────────────────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden border-b border-border">
-        {/*
-          Two divs and no JavaScript, where the old page ran a canvas: a ruled
-          grid, masked so it is gone by the foot of the band, under a soft wash
-          of the accent behind the headline.
-        */}
         <div aria-hidden className="hero-grid" />
         <div aria-hidden className="hero-glow" />
 
@@ -106,7 +75,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── why live here ────────────────────────────────────────────── */}
       <section aria-label="Why a board of your own" className="border-b border-border bg-surface">
         <div className="shell grid gap-x-10 gap-y-8 py-10 sm:grid-cols-2 sm:py-12 lg:grid-cols-4">
           {benefits.map((benefit) => (
@@ -122,7 +90,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── what it does ─────────────────────────────────────────────── */}
       <section className="border-b border-border">
         <div className="shell py-16 sm:py-24">
           <header className="max-w-[46rem]">
@@ -136,10 +103,6 @@ export default async function LandingPage() {
             </p>
           </header>
 
-          {/*
-            The whole card is the link, not the four words at the bottom of it.
-            The lift on hover is what says so.
-          */}
           <div className="card-grid mt-10 sm:grid-cols-2 lg:grid-cols-3">
             {capabilities.map((capability, index) => (
               <Link
@@ -164,25 +127,8 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── where it runs ────────────────────────────────────────────── */}
       <section className="border-b border-border bg-surface">
         <div className="shell py-16 sm:py-24">
-          {/*
-            The header and the transcript share a row, and the two routes run
-            full width underneath. The other way round — cards beside the
-            transcript — makes two narrow columns of eight lines each next to a
-            window of four, and leaves the bottom right of the band empty.
-
-            `minmax(0, 1fr)` at both widths, and the phone one is the one that
-            matters. A grid track sized `auto` — which is what a single stacked
-            column is, unless you say otherwise — takes its floor from the
-            min-content width of what is in it, and what is in it is a shell
-            transcript whose longest line is a clone URL that cannot wrap. The
-            track therefore refused to go below about 430px, and on a 375px
-            phone the whole page scrolled sideways to reach it. The transcript
-            scrolls inside its own window instead, which is what
-            `.terminal-body`'s `overflow-x` was always there to do.
-          */}
           <div className="grid grid-cols-[minmax(0,1fr)] gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_27rem] lg:items-center">
             <header className="max-w-[44rem]">
               <p className="eyebrow">{deployment.eyebrow}</p>
@@ -207,11 +153,6 @@ export default async function LandingPage() {
                 <p className="mt-auto pt-3 font-mono text-micro leading-[1.5] text-fg-subtle">
                   {option.note}
                 </p>
-                {/*
-                  Each card ends somewhere. The band used to carry one link under
-                  both cards, which made the second card an assertion with
-                  nowhere to check it.
-                */}
                 <p className="pt-3">
                   <Link className="textlink text-micro" href={docHref(option.action.doc)}>
                     {option.action.label}
@@ -229,7 +170,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── it stays quick ───────────────────────────────────────────── */}
       <section className="border-b border-border">
         <div className="shell grid gap-x-14 gap-y-6 py-14 sm:py-18 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
           <div>
@@ -238,11 +178,6 @@ export default async function LandingPage() {
           </div>
           <div className="flex max-w-[36rem] flex-col gap-4 lg:pt-1">
             <p className="text-fg-muted text-pretty">{performance.lede}</p>
-            {/*
-              The one number left on the page, in a sentence rather than a
-              table, and still read from the generated reference — see the
-              comment on `performance` in site.ts for where the table went.
-            */}
             <p className="text-micro leading-[1.65] text-fg-subtle text-pretty">
               {performance.evidence(facts)}
             </p>
@@ -255,7 +190,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the board you are already on ─────────────────────────────── */}
       <section className="border-b border-border">
         <div className="shell grid gap-x-14 gap-y-6 py-14 sm:py-18 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
           <div>
@@ -274,7 +208,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the licence ──────────────────────────────────────────────── */}
       <section className="border-b border-border bg-surface">
         <div className="shell py-16 sm:py-20">
           <div className="grid gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
@@ -316,7 +249,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the documentation ────────────────────────────────────────── */}
       <section className="border-b border-border">
         <div className="shell py-16 sm:py-24">
           <header className="max-w-[46rem]">
@@ -356,7 +288,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the ask ──────────────────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden">
         <div aria-hidden className="hero-glow" />
         <div className="shell grid gap-x-14 gap-y-10 py-20 sm:py-24 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">
@@ -377,10 +308,6 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          {/*
-            The question somebody has at exactly this point, answered where they
-            have it rather than one click away in the quickstart.
-          */}
           <dl className="flex flex-col gap-3 border-t border-border pt-5 lg:mt-1 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
             {closing.requirements.map((requirement) => (
               <div key={requirement.label}>

@@ -17,24 +17,10 @@ describe('the slot registry', () => {
     }
   })
 
-  /*
-   * The one that matters.
-   *
-   * `PostBit` renders once per post. As a client component the whole post list —
-   * every body, every author block — is serialised into the browser payload and
-   * hydrated, and a guest thread page stops being cheap. Nothing about that
-   * regression is visible in review or in a screenshot, so it is pinned here by
-   * name: flipping it requires editing a test that says why not to.
-   */
   it('keeps PostBit on the server', () => {
     expect(slotKind('PostBit')).toBe('server')
   })
 
-  /*
-   * Deliberate friction. Every client slot is bytes shipped to every viewer of
-   * the page it appears on, so adding one should mean editing this list and
-   * arguing for it — not just typing 'client' in the registry.
-   */
   it('has exactly two client slots, both editor islands', () => {
     const clientSlots = SLOT_NAMES.filter((name) => SLOTS[name].kind === 'client')
     expect([...clientSlots].sort()).toEqual(['EditorToolbar', 'QuickReply'])

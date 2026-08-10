@@ -1,16 +1,3 @@
-/**
- * What the board will accept as an uploaded image.
- *
- * The property every test here circles: **the bytes decide the format, not the
- * name**. A browser sends whatever content type the operating system guessed
- * from the extension and an attacker sends whatever they like, so the declared
- * type is discarded before it reaches this code — and every payload below would
- * have said something else if anyone had asked its name.
- *
- * Shared by the board logo and by group badges, which is why it is tested here
- * rather than beside either of them: one decision about what a file is, in one
- * place, so the two cannot drift into disagreeing.
- */
 import { describe, expect, it } from 'vitest'
 
 import { contentTypeFor, imageHeaders, sniff } from './image-upload'
@@ -22,14 +9,12 @@ describe('sniff', () => {
   it('recognises the raster formats by signature', () => {
     expect(sniff(bytes(0x89, 0x50, 0x4e, 0x47, 0x0d))?.contentType).toBe('image/png')
     expect(sniff(bytes(0xff, 0xd8, 0xff, 0xe0))?.contentType).toBe('image/jpeg')
-    /* WebP is RIFF with a WEBP tag four bytes later, not at the start. */
     expect(
       sniff(bytes(0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4, 0x57, 0x45, 0x42, 0x50))?.contentType,
     ).toBe('image/webp')
   })
 
   it('refuses a RIFF container that is not WebP', () => {
-    /* A WAV file is RIFF too. Matching the first four bytes alone would take it. */
     expect(sniff(bytes(0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4, 0x57, 0x41, 0x56, 0x45))).toBeNull()
   })
 
@@ -39,21 +24,12 @@ describe('sniff', () => {
     expect(sniff(text('﻿  <svg></svg>'))?.extension).toBe('svg')
   })
 
-  /*
-   * The case that matters most, and the one a name-based check waves through:
-   * markup uploaded as `logo.png`. Nothing here looks at the name.
-   */
   it('refuses markup that is not SVG', () => {
     expect(sniff(text('<html><body>hello</body></html>'))).toBeNull()
     expect(sniff(text('GIF89a'))).toBeNull()
     expect(sniff(new Uint8Array())).toBeNull()
   })
 
-  /*
-   * The third of three defences — an SVG in an `<img>` cannot run script, and
-   * the serving route sandboxes direct navigation — but the cheapest to check
-   * and the only one visible in a diff.
-   */
   it('refuses an SVG carrying script, a handler or a javascript: URL', () => {
     for (const payload of [
       '<svg><script>alert(1)</script></svg>',
@@ -66,26 +42,18 @@ describe('sniff', () => {
   })
 })
 
-
 describe('serving', () => {
   it('serves a stored key as the format its extension records', () => {
     expect(contentTypeFor('board/logo-light-abc.svg')).toBe('image/svg+xml')
     expect(contentTypeFor('group/3/badge-dark-abc.png')).toBe('image/png')
-    /* Never guessed from the bytes at serve time — the store is not re-read. */
     expect(contentTypeFor('board/logo-light-abc')).toBe('application/octet-stream')
   })
 
-  /*
-   * The pair that makes SVG safe to accept. `nosniff` holds the browser to the
-   * declared type, and the sandbox means a reader who navigates straight to the
-   * file gets a document that can run nothing and fetch nothing.
-   */
   it('locks down every image it serves, whatever the format', () => {
     const headers = imageHeaders('group/1/badge-light-abc.svg', 120) as Record<string, string>
 
     expect(headers['X-Content-Type-Options']).toBe('nosniff')
     expect(headers['Content-Security-Policy']).toContain('sandbox')
-    /* Safe only because the URL carries the key's UUID; see `logoSrc`. */
     expect(headers['Cache-Control']).toContain('immutable')
   })
 })

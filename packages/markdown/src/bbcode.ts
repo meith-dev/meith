@@ -1,42 +1,6 @@
-/**
- * The one-way door out of BBCode.
- *
- * Meith wrote BBCode until this release and writes Markdown now. Every board
- * that has been running has posts, private messages, signatures, announcements
- * and drafts full of `[b]…[/b]`, and there are exactly two honest ways to deal
- * with them: keep a second renderer forever, or **convert the source**. This is
- * the second. There is no BBCode renderer left in the tree.
- *
- * ## What that costs, stated plainly
- *
- * `[u]`, `[color]` and `[size]` have no Markdown spelling and are not invented
- * one. Their **text survives** and their styling does not: `[color=red]stop`
- * becomes `stop`. Inventing a directive for each would mean shipping three tags
- * that only exist on this board, which is the thing Markdown was chosen to stop
- * doing. `docs/mybb-parity.md` records the loss where an operator will look for
- * it before promising anyone a like-for-like move.
- *
- * ## Why the plain text is escaped
- *
- * A BBCode post is not Markdown source, and pretending it is would reformat it.
- * `*` was an asterisk on the old board, `# 1 fan` was not a heading, and
- * `snake_case` was a variable name. Every character that Markdown would read as
- * syntax is escaped on the way through, so a converted post renders as the post
- * it was — and an author who opens the editor afterwards sees backslashes only
- * where one was genuinely needed.
- *
- * ## When it runs
- *
- * Twice, and both are idempotent-by-construction rather than by luck: the
- * importer (F85) converts what MyBB hands it, and the render backfill converts
- * a row the first time it touches it, rewriting the source and stamping the row
- * as Markdown so it is never converted again. Nothing converts on write.
- */
-
 import { escapeMarkdownText } from './escape-source'
 import { quoteBlock } from './quote'
 
-/** Tags whose body is verbatim: the scanner must not look for tags inside. */
 const RAW_TAGS = new Set(['code', 'php'])
 
 const TAG = /^\[(\/?)([a-z*][a-z0-9]{0,15})(?:=([^\]\n]{0,256}))?\]/i
@@ -54,12 +18,10 @@ type Node =
 interface Frame {
   readonly tag: string
   readonly attribute: string | null
-  /** The literal opening tag, kept for when it is never closed. */
   readonly raw: string
   readonly children: Node[]
 }
 
-/** Find `[/name]` from `from`, case-insensitively. Returns its start index. */
 function findRawClose(source: string, name: string, from: number): number {
   const pattern = new RegExp(`\\[/${name}\\]`, 'ig')
   pattern.lastIndex = from
@@ -67,14 +29,6 @@ function findRawClose(source: string, name: string, from: number): number {
   return match === null ? -1 : match.index
 }
 
-/**
- * Source to a tree.
- *
- * The same two rules the old parser had, because they are what makes the
- * conversion lossless: an unbalanced close is text, and a tag left open at the
- * end is *demoted* — its opening tag becomes literal text and its children move
- * up to where they were written.
- */
 function parseBBCode(source: string): Node[] {
   const root: Frame = { tag: '', attribute: null, raw: '', children: [] }
   const stack: Frame[] = [root]
@@ -150,7 +104,6 @@ function parseBBCode(source: string): Node[] {
     }
 
     flush()
-    /* `[*]` is self-closing: the previous item ends where the next one starts. */
     if (name === '*' && current().tag === '*') {
       const frame = stack.pop()!
       current().children.push({
@@ -174,7 +127,6 @@ function parseBBCode(source: string): Node[] {
   return root.children
 }
 
-/** The quoted author in `[quote='Bob' pid='42']`. The pid is dropped. */
 function quoteAuthor(attribute: string | null): string | null {
   if (attribute === null) return null
   const trimmed = attribute.trim()
@@ -190,7 +142,6 @@ function quoteAuthor(attribute: string | null): string | null {
   return author === '' ? null : author
 }
 
-/** Prefix every line, so a multi-paragraph quote stays one quote. */
 function prefixLines(value: string, prefix: string): string {
   return value
     .split('\n')
@@ -198,7 +149,6 @@ function prefixLines(value: string, prefix: string): string {
     .join('\n')
 }
 
-/** A fence long enough that the body cannot close it. */
 function fence(value: string): string {
   let longest = 0
   for (const run of value.match(/`+/g) ?? []) longest = Math.max(longest, run.length)
@@ -227,11 +177,6 @@ function convertNode(node: Node): string {
       return inner.trim() === '' ? inner : `*${inner}*`
     case 's':
       return inner.trim() === '' ? inner : `~~${inner}~~`
-    /*
-     * Underline, colour and size: the text, and nothing else. See this file's
-     * header — Markdown has no spelling for any of the three, and a board-only
-     * directive for each would be BBCode again under a different syntax.
-     */
     case 'u':
     case 'color':
     case 'size':
@@ -255,11 +200,6 @@ function convertNode(node: Node): string {
     }
 
     case 'quote':
-      /*
-       * The same builder the reply button uses, so a converted quote and a
-       * freshly written one are the same shape — including the marker on the
-       * blank line, which is what keeps a two-paragraph quote one quote.
-       */
       return `\n\n${quoteBlock({ author: quoteAuthor(node.attribute), markdown: inner.trim() })}\n\n`
 
     case 'list': {
@@ -269,25 +209,18 @@ function convertNode(node: Node): string {
         .map((child, position) => {
           const marker = ordered ? `${position + 1}. ` : '- '
           const body = convertNodes(child.children).trim()
-          /* Continuation lines line up under the marker, or they end the item. */
           return prefixLines(body, ' '.repeat(marker.length)).replace(/^\s+/, marker)
         })
       return items.length === 0 ? inner : `\n\n${items.join('\n')}\n\n`
     }
-    /* A `[*]` outside a list. Its text, on its own line. */
     case '*':
       return `\n- ${inner.trim()}`
 
     default:
-      /*
-       * A tag this build never had — a custom one from the old board, or a typo.
-       * Its source is kept, escaped, so nothing is lost and nothing formats.
-       */
       return escapeMarkdownText(`[${node.tag}${node.attribute === null ? '' : `=${node.attribute}`}]`) + inner + escapeMarkdownText(`[/${node.tag}]`)
   }
 }
 
-/** A subtree's source text, unescaped. Only URL-shaped tags want this. */
 function rawTextOf(nodes: readonly Node[]): string {
   let out = ''
   for (const node of nodes) {
@@ -297,18 +230,7 @@ function rawTextOf(nodes: readonly Node[]): string {
   return out
 }
 
-/**
- * BBCode source to Markdown source.
- *
- * Total: there is no input this refuses, and none for which it throws. The
- * worst case is a post whose unrecognised tags render as the text they were.
- */
 export function bbcodeToMarkdown(source: string): string {
   const converted = convertNodes(parseBBCode(source.replace(/\r\n?/g, '\n')))
-  /*
-   * Block conversions pad themselves with blank lines so that a quote after a
-   * sentence is a quote rather than the fourth word of it. Collapsing the runs
-   * afterwards is simpler than every branch knowing what came before it.
-   */
   return converted.replace(/\n{3,}/g, '\n\n').trim()
 }

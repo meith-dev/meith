@@ -10,8 +10,6 @@ import { forumRowToOverride, groupRowToPermissionSet } from './permissions-map'
 
 describe('groupRowToPermissionSet', () => {
   it('produces a complete set even from an empty row (registry defaults)', () => {
-    // A group row that predates newer fields, or a SELECT that omitted them,
-    // must not leave keys undefined — the authorizer would misread that.
     const result = groupRowToPermissionSet({})
     expect(result).toEqual(emptyPermissionSet())
     for (const field of PERMISSION_FIELDS) {
@@ -26,8 +24,6 @@ describe('groupRowToPermissionSet', () => {
   })
 
   it('coerces numeric columns arriving as strings', () => {
-    // Some driver paths surface integer columns as strings. Math.max over a
-    // string is nonsense, so coercion must happen here, once.
     const numericField = PERMISSION_FIELDS.find((f) => f.kind === 'numeric')
     if (!numericField) throw new Error('expected a numeric field in the registry')
 
@@ -59,7 +55,6 @@ describe('forumRowToOverride', () => {
     row[forumField.key] = forumField.kind === 'numeric' ? 3 : true
 
     const override = forumRowToOverride(row)
-    // Exactly one key survives; every null column is absent, not false.
     expect(Object.keys(override)).toEqual([forumField.key])
   })
 

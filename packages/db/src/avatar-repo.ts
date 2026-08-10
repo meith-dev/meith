@@ -1,23 +1,3 @@
-/**
- * F58's avatars over Postgres.
- *
- * Nine columns on `users` and seven small statements. Three things are worth
- * reading.
- *
- * **Every write that stops pointing at an object returns the key it dropped.**
- * `beginUpload` and `clear` both use `RETURNING` on the *old* values, so the
- * caller can hand them to the sweep in the same breath. Reading first and then
- * writing would leave a window in which two requests both believe they own the
- * old object and one of them deletes it out from under the other.
- *
- * **`markReady` clears the source key in the statement that sets the real one**,
- * exactly as `attachment-repo.ts` does, and guards on `avatar_status =
- * 'pending'` so an at-least-once queue delivering twice is a no-op.
- *
- * **`readMany` answers a whole page of postbits in one query.** An avatar per
- * post would be an N+1 on the board's heaviest page, which is the same reason
- * `signature-repo.ts` has one.
- */
 import { sql } from 'drizzle-orm'
 
 import type { AvatarRepository, AvatarStatus, StoredAvatar } from '@meith/avatars'
@@ -47,11 +27,6 @@ const STATUSES = ['none', 'pending', 'ready', 'failed'] as const
 
 function toAvatar(row: RawAvatar): StoredAvatar {
   return {
-    /*
-     * Narrowed rather than asserted. The column is text and a row written by a
-     * previous deploy could hold anything; an unknown status reads as `failed`,
-     * which is the only safe default — it is the one value that serves nothing.
-     */
     status: STATUSES.includes(row.avatar_status as AvatarStatus)
       ? (row.avatar_status as AvatarStatus)
       : 'failed',
@@ -71,7 +46,6 @@ const COLUMNS = sql`
   avatar_failure_reason, avatar_updated_at, avatar_locked, avatar_locked_reason
 `
 
-/** The keys a row was pointing at, minus the nulls. */
 function droppedKeys(row: { avatar_key: string | null; avatar_source_key: string | null }) {
   return [row.avatar_key, row.avatar_source_key].filter(
     (key): key is string => key !== null,
@@ -104,13 +78,6 @@ export class PostgresAvatarRepository implements AvatarRepository {
     return new Map(rows.map((row) => [Number(row.id), toAvatar(row)]))
   }
 
-  /**
-   * Point the row at a new upload, and say what it stopped pointing at.
-   *
-   * `RETURNING` the *old* values is what makes the handover atomic: a
-   * read-then-write would let two concurrent uploads both see the same previous
-   * key and both try to delete it.
-   */
   async beginUpload(input: {
     readonly userId: number
     readonly sourceKey: string
@@ -135,11 +102,6 @@ export class PostgresAvatarRepository implements AvatarRepository {
     ) as Array<{ avatar_key: string | null; avatar_source_key: string | null }>
 
     const row = rows[0]
-    /*
-     * No row means the lock won the race — somebody locked the avatar between
-     * the service's check and this statement. Nothing was written, so the
-     * caller's freshly stored object is the thing to collect.
-     */
     if (row === undefined) return { replaced: [input.sourceKey] }
     return { replaced: droppedKeys(row) }
   }
@@ -194,12 +156,6 @@ export class PostgresAvatarRepository implements AvatarRepository {
     return { replaced: row === undefined ? [] : droppedKeys(row) }
   }
 
-  /**
-   * Lock or unlock.
-   *
-   * Deliberately the only statement here with no `avatar_locked = false` guard:
-   * it is the moderator's, and it is what changes that column.
-   */
   async lock(input: {
     readonly userId: number
     readonly locked: boolean
@@ -224,14 +180,6 @@ export class PostgresAvatarRepository implements AvatarRepository {
     return rows.map((row) => Number(row.id))
   }
 
-  /**
-   * The object ledger, shared with F42.
-   *
-   * `attachment_orphans` by name because that is where it started; what it
-   * holds is "object keys nothing owns", and an avatar replaced by a new one is
-   * the second thing to need exactly that. A second identical table would be
-   * worse than a name one feature out of date.
-   */
   async rememberKey(key: string): Promise<void> {
     await this.db.execute(sql`
       insert into attachment_orphans (storage_key) values (${key})

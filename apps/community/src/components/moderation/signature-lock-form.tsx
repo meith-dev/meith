@@ -1,18 +1,5 @@
 "use client"
 
-/**
- * F58's moderator controls, for both halves.
- *
- * Forms rather than links, because they change state — and the reason box is
- * required when locking, because the member is shown that text on their own
- * screen.
- *
- * Two components over one generic one: the two actions differ in what they
- * refuse and in what an appeal can recover afterwards (a locked signature keeps
- * readable text; a locked avatar keeps a file nobody can see), and a shared
- * component parameterised by verb would flatten a distinction worth keeping
- * visible in the markup.
- */
 import { useActionState } from "react"
 
 import { setAvatarLockAction, setSignatureLockAction } from "@/server/moderation-actions"
@@ -59,7 +46,6 @@ export function SignatureLockForm({
   )
 }
 
-/** The same act on the avatar. See `setAvatarLockAction` for why it is `user.warn`. */
 export function AvatarLockForm({
   userId,
   locked,

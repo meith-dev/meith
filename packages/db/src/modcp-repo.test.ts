@@ -1,13 +1,3 @@
-/**
- * F54 — the ModCP's reads against real Postgres.
- *
- * Two of these queries decide what a moderator is allowed to *see*, so those
- * are the ones with the most tests: the log's allow-list (an administrative row
- * must never appear in it) and its forum scope (a moderator of one forum must
- * not read another's entries). The address lookup is third, and the thing worth
- * proving about it is that a `null` prefix matches nothing rather than matching
- * every other `null`.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -95,7 +85,6 @@ describe('the moderator log', () => {
     })
   })
 
-  /* Scoped in SQL, not in the rendering. */
   it('hides an entry in a forum this actor does not moderate', async () => {
     await logRow('thread.lock', { threadId: 7, forumId: THEIRS }, OTHER_MOD)
 
@@ -104,7 +93,6 @@ describe('the moderator log', () => {
     )
   })
 
-  /* Their own acts stay visible even in a forum they have since left. */
   it('shows this actor"s own entry wherever it happened', async () => {
     await logRow('thread.lock', { threadId: 7, forumId: THEIRS }, MOD)
 
@@ -113,10 +101,6 @@ describe('the moderator log', () => {
     ).toHaveLength(1)
   })
 
-  /*
-   * The allow-list. `admin_log` is shared with the ACP, and a deny-list would
-   * turn every new administrative row type into a disclosure.
-   */
   it('never shows an administrative entry, whoever wrote it', async () => {
     await logRow('settings.update', { forumId: MINE }, MOD)
     await logRow('permission.bypass', { forumId: MINE }, MOD)
@@ -127,7 +111,6 @@ describe('the moderator log', () => {
     )
   })
 
-  /* A move touches two forums, so it belongs in both moderators' logs (D49). */
   it('shows a move to the destination forum"s moderators as well', async () => {
     await logRow('thread.move', { threadId: 7, from: THEIRS, to: MINE }, OTHER_MOD)
 
@@ -136,10 +119,6 @@ describe('the moderator log', () => {
     ).toHaveLength(1)
   })
 
-  /*
-   * A warning has no forum. Showing every one on the board through the log
-   * would be a wider grant than the warn screen itself gives.
-   */
   it('shows a forum-less entry only to the moderator who wrote it', async () => {
     await logRow('warning.issue', { userId: IVAN, points: 2 }, OTHER_MOD)
 
@@ -155,7 +134,6 @@ describe('the moderator log', () => {
     await logRow('inline.delete', {
       threadIds: [1, 2],
       applied: 2,
-      /* Not in the label map, so not shown. */
       internalCursor: 'abc',
     })
 
@@ -184,7 +162,6 @@ describe('the moderator log', () => {
     })
     expect(second.entries).toHaveLength(2)
     expect(second.nextCursor).toBeUndefined()
-    /* No overlap: a keyset that repeated a row would show the same act twice. */
     const ids = [...first.entries, ...second.entries].map((e) => e.id)
     expect(new Set(ids).size).toBe(4)
   })
@@ -254,10 +231,6 @@ describe('the address lookup', () => {
     expect((await repo.ipMatches(IVAN, 10))[0]).toMatchObject({ matchedOn: 'both' })
   })
 
-  /*
-   * The trap. A board that has not recorded an address for two accounts has not
-   * established that they share one.
-   */
   it('does not treat two unrecorded addresses as a match', async () => {
     await db.execute(sql`
       update users set registration_ip_prefix = null, last_ip_prefix = null
@@ -309,7 +282,6 @@ describe('the address lookup', () => {
     expect(rows[0]!.detail).toMatchObject({ subjectUserId: IVAN, matches: 0 })
   })
 
-  /* And it is one of the actions the log shows, so it is visible to peers. */
   it('appears in the moderator"s own log', async () => {
     await repo.recordIpLookup({ actorUserId: MOD, subjectUserId: IVAN, matches: 0, at: AT })
 

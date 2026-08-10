@@ -1,4 +1,3 @@
--- F44 — separate uniqueness for thread and reply drafts; NULL cannot express it.
 CREATE TABLE "post_drafts" (
   "user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
   "forum_id" integer NOT NULL REFERENCES "forums"("id") ON DELETE CASCADE,

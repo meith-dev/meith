@@ -1,11 +1,3 @@
-/**
- * What an example plugin should assert about itself.
- *
- * The host's behaviour — isolation, ordering, auto-disable — is covered by
- * `@meith/plugin-kit`'s own suite and by `plugins/reference`. A plugin's test
- * belongs to the plugin's *own* claims: that its manifest validates, and that
- * its filters transform a value the way the plugin promises to.
- */
 import type { FilterHandler } from '@meith/plugin-kit'
 import { describe, expect, it } from 'vitest'
 
@@ -34,7 +26,6 @@ describe('the hello plugin', () => {
         { label: 'Hello plugin', href: expect.stringContaining('examples/hello-plugin') },
       ],
     })
-    /* A filter returns a new value; it must not mutate what it was handed. */
     expect(footer.links).toHaveLength(1)
   })
 })

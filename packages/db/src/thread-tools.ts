@@ -1,11 +1,3 @@
-/**
- * F50 — thread tools over Postgres.
- *
- * Two of the five are flag flips with an audit row. The other two move every
- * counter a thread's posts contribute — and that arithmetic now lives in
- * `thread-counters.ts`, because F52 applies exactly the same transitions to a
- * bulk selection and two copies of it would eventually disagree.
- */
 import { sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
@@ -85,13 +77,6 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
     return this.flag('is_sticky', input.sticky, input, 'thread.stick')
   }
 
-  /**
-   * One flag, one audit row, and `<>` in the WHERE.
-   *
-   * The inequality is what makes a double submit report `false` instead of
-   * writing a second audit row saying a moderator locked an already-locked
-   * thread — a log that records acts that did not happen is worse than none.
-   */
   private async flag(
     column: 'is_locked' | 'is_sticky',
     value: boolean,
@@ -123,12 +108,6 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
     readonly at: Date
   }): Promise<boolean> {
     return this.db.transaction(async (tx) => {
-      /*
-       * The tally is taken *before* the flip and reused after it. Its subject is
-       * the posts, whose own `visibility` never changes here — a post in a
-       * deleted thread keeps its state, because restoring the thread must put
-       * back exactly what was there and not approve anything on the way.
-       */
       const tally = await tallyThread(tx, input.threadId)
 
       const moved = resultRows(
@@ -179,25 +158,10 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
       ) as Array<{ id: number }>
       if (moved.length === 0) return false
 
-      /*
-       * `posts.forum_id` is denormalised from the thread (R3.3) so that
-       * permission filtering and the moderation queue can scope by forum
-       * without joining `threads`. A move that updated only the thread would
-       * leave every post claiming to be somewhere it is not — and the queue,
-       * the leak suite's scope and the recount all read that column.
-       */
       await tx.execute(sql`
         update posts set forum_id = ${input.toForumId} where thread_id = ${input.threadId}
       `)
 
-      /*
-       * Both chains, in this order. Where they share an ancestor the two
-       * statements cancel to zero, which is exactly right: a thread moved
-       * between two subforums of one category has not left the category.
-       *
-       * Author counts are deliberately untouched. A move changes where somebody
-       * wrote, never how much.
-       */
       await applyForumChain(tx, input.fromForumId, -1, tally)
       await applyForumChain(tx, input.toForumId, 1, tally)
 
@@ -220,28 +184,6 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
     })
   }
 
-  /**
-   * Duplicate a thread and its visible posts into another forum.
-   *
-   * **The one tool that creates content**, which is why every other operation
-   * in this file could reuse one tally and this one cannot: a copy is not a
-   * redistribution of existing rows, it is new rows, and every counter it
-   * touches goes *up* with nothing going down.
-   *
-   * The author-credit question F50 deferred and F51 could not settle — because
-   * neither merge nor split duplicates a post — is answered here the way MyBB
-   * answers it: **each copied post credits its author again**. One piece of
-   * writing therefore counts twice in `users.post_count`. That is a deliberate
-   * divergence from the definition every other counter on this board holds to
-   * ("post_count means posts written"), taken for parity, and it is recorded in
-   * `mybb-parity.md#copying-a-thread` rather than left as a surprise. The
-   * recount agrees with it, because the recount counts *rows*.
-   *
-   * Only **visible** posts are copied. A held or removed post is not part of
-   * what a moderator is duplicating — copying the queue into a second forum
-   * would double the work waiting for somebody, and copying deleted content
-   * would republish it.
-   */
   async copy(input: {
     readonly threadId: number
     readonly toForumId: number
@@ -281,12 +223,6 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
       ) as Array<{ id: number; slug: string }>
       const newThreadId = Number(created[0]!.id)
 
-      /*
-       * The posts, in one statement and in source order. `is_first_post` is
-       * carried across rather than recomputed: the copy opens with the same
-       * post the original does, and F51's lesson was that this flag is the
-       * thing that silently goes wrong when it is inferred.
-       */
       const copied = resultRows(
         await tx.execute(sql`
           insert into posts
@@ -326,12 +262,6 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
          where id = ${newThreadId}
       `)
 
-      /*
-       * Counters. A tally of the *copy* rather than of the source, because the
-       * source is unchanged and what the destination gains is exactly what was
-       * inserted — one thread and however many posts survived the visibility
-       * filter.
-       */
       const tally = await tallyThread(tx, newThreadId)
       await applyForumChain(tx, input.toForumId, 1, tally)
       await applyAuthorCounts(tx, 1, tally)

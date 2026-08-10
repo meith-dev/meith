@@ -30,7 +30,6 @@ async function seed(count: number): Promise<void> {
       slug: `thread-${index + 1}`,
       authorUsername: 'ada',
       isSticky: index < 2,
-      // Two rows share every non-id sort key; the cursor must still be stable.
       lastPostAt: new Date(
         index < 4
           ? '2026-07-30T08:00:00Z'

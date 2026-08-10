@@ -1,12 +1,3 @@
-/**
- * F55's mention/quote producer at the app layer.
- *
- * The parsing is proven in `@meith/markdown` and the raise path in
- * `@meith/notifications`. What is proven here is the seam between them: that a
- * committed post turns into notifications for the *right* people — resolved by
- * folded username, never the author, quoted winning the overlap — and that no
- * failure in any of it can reach the caller, because the post already exists.
- */
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { quoteBlock } from '@meith/markdown'
@@ -38,7 +29,6 @@ beforeEach(() => {
   container = installTestContainer({ container: { notifications } })
 })
 
-/** Register a member the store can resolve by folded name. */
 async function member(username: string): Promise<number> {
   const store = container['accountStore'] as {
     accounts: {

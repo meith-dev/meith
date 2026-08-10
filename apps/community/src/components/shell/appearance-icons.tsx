@@ -1,16 +1,3 @@
-/**
- * The three colour-scheme marks.
- *
- * Inline SVG on `currentColor`, following `@meith/ui`'s disclosure chevron: an
- * icon that painted itself could not be re-themed, and this board's whole
- * premise is that colour is decided by tokens.
- *
- * `aria-hidden` on all three, always. Each one sits beside a visible word in
- * the control — "Light", "System", "Dark" — and an icon that also announced
- * itself would have a screen reader say the same thing twice. On a narrow
- * screen the word becomes `sr-only` rather than disappearing, so the label is
- * still the accessible name and the icon is still decoration.
- */
 const SHARED = {
   'aria-hidden': true,
   viewBox: '0 0 16 16',

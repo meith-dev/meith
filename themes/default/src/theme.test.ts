@@ -3,26 +3,12 @@ import { describe, expect, it } from 'vitest'
 
 import { defaultTheme } from './theme'
 
-/**
- * The board's own theme, held against the contract it is the reference
- * implementation of (F77).
- *
- * `apps/community/src/server/theme.ts` makes the same assertion at module load, so a
- * hole in the theme already fails a boot. This one fails `pnpm test`, which is
- * the gate somebody actually runs before pushing — and it names the theme rather
- * than the app, which is where the fix goes.
- */
 describe('the default theme', () => {
   it('satisfies the theme-kit contract', () => {
     const report = assertThemeContract(resolveTheme(defaultTheme))
     expect(report.missing).toEqual([])
   })
 
-  /*
-   * Incomplete, deliberately, and pinned so it stays deliberate: the two
-   * unfilled slots are F45's editor islands and no more. A third name appearing
-   * here is a page whose region silently stopped being themed.
-   */
   it('fills every slot except the two provisional islands', () => {
     expect(resolveTheme(defaultTheme).missing).toEqual(['QuickReply', 'EditorToolbar'])
   })

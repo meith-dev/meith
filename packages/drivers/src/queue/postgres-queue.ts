@@ -1,39 +1,16 @@
-/**
- * The default queue: a `jobs` table drained with `FOR UPDATE SKIP LOCKED`.
- *
- * Chosen over Redis as the default because it needs no extra infrastructure and
- * it enqueues inside the same transaction as the state change that caused it —
- * which is what makes the outbox (F07) reliable rather than best-effort.
- */
-
 import { randomUUID } from 'node:crypto'
 
 import { type Job, type EnqueueOptions, type QueueDriver, logger } from '@meith/core'
 import { getDb, jobs, type Database, resultRows } from '@meith/db'
 import { and, eq, isNull, lt, or, sql } from 'drizzle-orm'
 
-/**
- * How long a claimed job stays invisible to other workers.
- *
- * This is a *lease*, not a timeout: the claiming worker may die (serverless
- * function killed mid-execution), and the job must eventually become claimable
- * again. It therefore has to exceed the longest plausible handler runtime, or a
- * slow-but-healthy job gets picked up a second time while still running. 5
- * minutes comfortably exceeds the Vercel function limit.
- */
 const LEASE_SECONDS = 300
 
-/** Exponential backoff, capped. attempt 1 -> 10s, 2 -> 40s, 3 -> 90s ... */
 function backoffSeconds(attempt: number): number {
   return Math.min(10 * attempt * attempt, 3600)
 }
 
 export class PostgresQueue implements QueueDriver {
-  /**
-   * Identifies this worker in `locked_by`. Purely diagnostic — correctness comes
-   * from the row lock, not from this value — but it makes a stuck lease
-   * traceable to a specific process.
-   */
   private readonly workerId = `${process.pid}-${randomUUID().slice(0, 8)}`
 
   constructor(private readonly db: Database = getDb()) {}
@@ -51,13 +28,6 @@ export class PostgresQueue implements QueueDriver {
       idempotencyKey: options.dedupeKey ?? null,
     }
 
-    /*
-     * With a dedupe key, rely on the partial unique index over pending jobs
-     * rather than a SELECT-then-INSERT: the check-then-act version races two
-     * concurrent enqueues straight through the gap and produces duplicates.
-     * ON CONFLICT DO NOTHING returns no row when it collides, which is how we
-     * detect deduplication.
-     */
     if (options.dedupeKey) {
       const inserted = await this.db
         .insert(jobs)
@@ -110,16 +80,6 @@ export class PostgresQueue implements QueueDriver {
     return { processed, failed }
   }
 
-  /**
-   * Atomically claims up to `limit` due jobs.
-   *
-   * The subquery takes `FOR UPDATE SKIP LOCKED`, so two concurrent drains
-   * partition the available rows instead of blocking on each other or — far
-   * worse — both returning the same row. Doing this as a single
-   * `UPDATE ... RETURNING` rather than SELECT-then-UPDATE is what closes the
-   * window: between a separate select and update, another worker can claim the
-   * same job, and F05 requires a concurrent double-drain never double-process.
-   */
   private async claim(limit: number): Promise<Job[]> {
     const now = new Date()
     const leaseUntil = new Date(now.getTime() + LEASE_SECONDS * 1000)
@@ -168,7 +128,6 @@ export class PostgresQueue implements QueueDriver {
     await this.db
       .update(jobs)
       .set({
-        // Dead-lettered jobs are terminal; anything else goes back with backoff.
         status: exhausted ? 'dead' : 'pending',
         lastError: message.slice(0, 2000),
         runAt: new Date(Date.now() + backoffSeconds(job.attempt) * 1000),
@@ -219,7 +178,6 @@ export class PostgresQueue implements QueueDriver {
       .update(jobs)
       .set({
         status: 'pending',
-        // Reset attempts so the operator gets a full retry budget, not one try.
         attempts: 0,
         runAt: new Date(),
         lastError: null,
@@ -229,7 +187,6 @@ export class PostgresQueue implements QueueDriver {
       .where(and(eq(jobs.id, Number(jobId)), eq(jobs.status, 'dead')))
   }
 
-  /** Rows eligible for cleanup by the daily maintenance task. */
   static completedBefore(cutoff: Date) {
     return and(
       eq(jobs.status, 'done'),

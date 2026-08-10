@@ -1,17 +1,7 @@
-/**
- * Process-local cache with tag invalidation.
- *
- * Correct for per-request memoisation and for user-scoped values that must never
- * be shared (F10 keeps those out of the Next data cache deliberately). Not
- * coherent across instances: two serverless instances hold independent maps, so
- * anything requiring board-wide consistency belongs in NextCacheDriver or Redis.
- */
-
 import type { CacheDriver, CacheSetOptions } from '@meith/core'
 
 interface Entry {
   value: unknown
-  /** Epoch ms, or undefined for "until invalidated". */
   expiresAt?: number
   tags: readonly string[]
 }
@@ -19,11 +9,6 @@ interface Entry {
 export class MemoryCache implements CacheDriver {
   private readonly entries = new Map<string, Entry>()
 
-  /**
-   * Bounded to stop a long-lived worker turning the cache into a leak. Eviction
-   * is insertion-order (Map iteration order), which approximates FIFO — good
-   * enough here, and honest about not being LRU.
-   */
   constructor(private readonly maxEntries = 5000) {}
 
   get<T>(key: string): Promise<T | undefined> {
@@ -65,8 +50,6 @@ export class MemoryCache implements CacheDriver {
     }
     return Promise.resolve()
   }
-
-  /* ---- test helpers ---- */
 
   size(): number {
     return this.entries.size

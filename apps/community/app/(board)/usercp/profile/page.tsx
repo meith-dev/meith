@@ -13,14 +13,6 @@ import { customFieldInputs, profileFormValues, userCpNotice } from '@/view/userc
 
 export const metadata: Metadata = { title: 'Your profile' }
 
-/**
- * F57 — the three fields a member writes about themselves.
- *
- * They are public by definition: this is the *public* profile, and a member who
- * fills them in is publishing them. They render as plain text on `/member/[id]`
- * — a signature is F58's Markdown and a genuinely different thing, because that
- * one is markup, group-limited and moderated.
- */
 export default async function ProfileSettingsPage({
   searchParams,
 }: {
@@ -36,12 +28,6 @@ export default async function ProfileSettingsPage({
 
   const values = profileFormValues(settings)
 
-  /*
-   * F59's fields, filtered to the ones this member may edit — which is not the
-   * same set as the ones they may *see*: a board can collect something only
-   * staff read, and a member who cannot see their own answer can still be asked
-   * for it.
-   */
   const fields = profileFieldService()
   const context = await viewerFieldContext()
   const customFields =

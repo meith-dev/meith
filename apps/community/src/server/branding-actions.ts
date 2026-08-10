@@ -1,18 +1,5 @@
 'use server'
 
-/**
- * The board logo's writes.
- *
- * Two actions, both behind `requireAdmin`, both recording what happened without
- * recording what was in the file. The audit entry says which scheme changed and
- * how big the image was — enough to answer "when did the header change and who
- * did it", and nothing that would put a filename somebody chose into a log that
- * outlives the file.
- *
- * The validation lives in `branding.ts` beside the storage it protects, for the
- * reason the theme editor gives about F26's validators: a check that lives with
- * its writer eventually disagrees with the reader it was meant to protect.
- */
 import { ValidationError, isAppError, logger } from '@meith/core'
 
 import { recordAdminAction, requireAdmin } from './admin'
@@ -37,12 +24,6 @@ export async function saveLogoAction(_prev: FormState, form: FormData): Promise<
     const target = scheme(form)
 
     const file = form.get(LOGO_FIELD)
-    /*
-     * A `<input type="file">` that was left empty still posts — as an empty
-     * `File` in every browser this board supports, and as the empty string in
-     * one or two older ones. Both are "nothing was chosen", and neither should
-     * reach the store.
-     */
     if (!(file instanceof File) || file.size === 0) {
       throw new ValidationError('Choose an image first.')
     }
@@ -50,7 +31,6 @@ export async function saveLogoAction(_prev: FormState, form: FormData): Promise<
     await saveLogo(target, file)
     await recordAdminAction({
       action: 'branding.logo_saved',
-      /* The scheme and the size. Never the filename, never the bytes. */
       detail: { scheme: target, bytes: file.size },
     })
 

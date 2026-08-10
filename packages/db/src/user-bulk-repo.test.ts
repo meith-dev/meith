@@ -1,19 +1,3 @@
-/**
- * F67's bulk operations, against real Postgres.
- *
- * The mechanism — bounded batches, a keyset cursor, a dry run — is the same as
- * everywhere else in the panel and is the least interesting part. What is
- * proven here is the two rules that are not about mechanism:
- *
- *  - **a prune cannot reach an account whose loss is unrecoverable.** Anybody
- *    who has posted, any member of a staff group, any forum moderator and any
- *    banned account are excluded unconditionally. Each exclusion has its own
- *    test because each is a different way for a maintenance sweep to do real
- *    damage;
- *  - **mass mail goes only to verified addresses**, and the cursor advances in
- *    the same transaction as the read — a duplicate mass mail is the one
- *    mistake in this panel that cannot be taken back.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -92,11 +76,6 @@ async function deletedIds(): Promise<number[]> {
 
 describe('prunePreview', () => {
   it('counts the matches and shows some of them', async () => {
-    /*
-     * The count alone is not evidence. An operator about to remove four hundred
-     * accounts on a date filter needs to see that the ones it found are the
-     * ones they meant.
-     */
     await seed({ id: 1, username: 'ghost' })
     await seed({ id: 2, username: 'spectre' })
 
@@ -106,11 +85,6 @@ describe('prunePreview', () => {
   })
 
   it('excludes anybody who has posted', async () => {
-    /*
-     * Their account is attached to content, and what happens to that content is
-     * a decision rather than something a sweep guesses at. Kills the mutant
-     * that drops the post-count condition.
-     */
     await seed({ id: 1, username: 'ghost' })
     await seed({ id: 2, username: 'poster', postCount: 1 })
     await seed({ id: 3, username: 'starter', threadCount: 1 })
@@ -119,11 +93,6 @@ describe('prunePreview', () => {
   })
 
   it('excludes staff, however quiet they are', async () => {
-    /*
-     * A quiet administrator who registered years ago and reads more than they
-     * write is the most likely person to match a naive inactivity filter and
-     * the least acceptable to remove.
-     */
     await seed({ id: 1, username: 'ghost' })
     await seed({ id: 2, username: 'boss', groupId: SUPER_MODS })
 
@@ -131,11 +100,6 @@ describe('prunePreview', () => {
   })
 
   it('excludes staff held as a secondary group too', async () => {
-    /*
-     * The primary group is the obvious check and the incomplete one: F67 gave
-     * `user_group_memberships` its first writer, so staff can be staff by way
-     * of an additional group. Kills the mutant that checks only the primary.
-     */
     await seed({ id: 1, username: 'ghost' })
     await seed({ id: 2, username: 'quiet-mod' })
     await db.execute(sql`
@@ -156,25 +120,12 @@ describe('prunePreview', () => {
   })
 
   it('excludes a banned account', async () => {
-    /*
-     * The ban record is the reason they are quiet. Removing the account removes
-     * the evidence of the decision.
-     */
     await seed({ id: 1, username: 'ghost' })
     await seed({ id: 2, username: 'banned-one', state: 'banned' })
 
     expect((await repo.prunePreview(CRITERIA)).sample.map((r) => r.id)).toEqual([1])
   })
 
-  /**
-   * The way a ban is actually recorded, which is not the state column.
-   *
-   * F23 writes a `bans` row and moves the member's group; it never touches
-   * `users.state`, deliberately. So the exclusion above — written as
-   * `state <> 'banned'` — held for a value nothing on this board writes, and the
-   * sweep would have closed exactly the quiet accounts a moderator had banned
-   * while the screen promised in as many words that it would not.
-   */
   it('excludes an account with an unlifted ban, however its state column reads', async () => {
     await seed({ id: 1, username: 'ghost' })
     await seed({ id: 2, username: 'banned-properly' })
@@ -183,7 +134,6 @@ describe('prunePreview', () => {
     expect((await repo.prunePreview(CRITERIA)).sample.map((r) => r.id)).toEqual([1])
   })
 
-  /** And a ban that was lifted is not a reason to keep an account for ever. */
   it('does not exclude an account whose ban was lifted', async () => {
     await seed({ id: 1, username: 'ghost' })
     await seed({ id: 2, username: 'forgiven' })
@@ -202,11 +152,6 @@ describe('prunePreview', () => {
   })
 
   it('treats never-active as inactive when an inactivity date is given', async () => {
-    /*
-     * `last_active_at` is null for somebody who registered and never came back,
-     * and a plain `<` comparison silently excludes exactly that group — who are
-     * most of what a prune is for. Kills the mutant that drops the null branch.
-     */
     await seed({ id: 1, username: 'never-came-back', lastActiveAt: null })
     await seed({ id: 2, username: 'recent', lastActiveAt: new Date('2026-01-01T00:00:00Z') })
 
@@ -240,11 +185,6 @@ describe('pruneChunk', () => {
   })
 
   it('closes rather than deletes, so a wrong date is recoverable', async () => {
-    /*
-     * Ten thousand deleted rows cannot be undone; ten thousand `deleted_at`
-     * values can be cleared. The account also stays resolvable for anything
-     * still pointing at it — "a former member" rather than a crash.
-     */
     await seed({ id: 1, username: 'ghost' })
     await repo.pruneChunk(CRITERIA, 10)
 
@@ -255,11 +195,6 @@ describe('pruneChunk', () => {
   })
 
   it('applies the same exclusions the preview showed', async () => {
-    /*
-     * The preview and the write share one predicate. A prune that removed
-     * something the dry run did not list would make every future dry run
-     * worthless. Kills the mutant that gives the write its own filter.
-     */
     await seed({ id: 1, username: 'ghost' })
     await seed({ id: 2, username: 'poster', postCount: 3 })
     await seed({ id: 3, username: 'boss', groupId: SUPER_MODS })
@@ -285,12 +220,6 @@ describe('pruneChunk', () => {
 
 describe('mass mail', () => {
   it('reaches only verified, active, undeleted accounts', async () => {
-    /*
-     * The rule that is not a preference. An unverified address is as likely to
-     * be a typo — or somebody else's mailbox — as the member's, and a board
-     * that mails thousands of them stops being delivered anywhere. Kills the
-     * mutant that drops the verification condition.
-     */
     await seed({ id: 1, username: 'good' })
     await seed({ id: 2, username: 'unverified', verified: false })
     await seed({ id: 3, username: 'awaiting', state: 'awaiting_activation' })
@@ -322,12 +251,6 @@ describe('mass mail', () => {
   })
 
   it('claims recipients in batches and advances the cursor as it reads', async () => {
-    /*
-     * The cursor moves in the same transaction as the read. Two presses of the
-     * button — or one double-submitted form — would otherwise both start from
-     * the same point and mail those members twice, and a duplicate mass mail
-     * cannot be taken back. Kills the mutant that reads first and saves after.
-     */
     for (let id = 1; id <= 5; id += 1) await seed({ id, username: `u${id}` })
     const mailId = await repo.createMassMail({
       subject: 'Hello',
@@ -352,12 +275,6 @@ describe('mass mail', () => {
   })
 
   it('claims nothing more once it has finished', async () => {
-    /*
-     * A finished campaign is finished. Without this, pressing the button again
-     * on an old one starts it over from a cursor that has already passed
-     * everybody — which is only harmless because the cursor is at the end, and
-     * would not be if anybody registered afterwards.
-     */
     await seed({ id: 1, username: 'u1' })
     const mailId = await repo.createMassMail({
       subject: 'Hello',

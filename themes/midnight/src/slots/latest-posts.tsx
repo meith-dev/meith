@@ -2,18 +2,6 @@ import type { LatestPostsModel } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-/**
- * The newest posts, as a log.
- *
- * The companion to `LatestThreads` and the same line shape, with the excerpt on
- * a second line because it is the only thing here a reader is scanning *for* —
- * "what is being said" is not answerable from a thread title they have already
- * seen five times today.
- *
- * `excerpt` is plain text, flattened out of the post's Markdown source by the
- * app. Nothing in it is markup, which is what makes it safe to render as the
- * text it is.
- */
 export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
   return (
     <section aria-labelledby="latest-posts-heading" className="border border-border">

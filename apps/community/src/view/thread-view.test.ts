@@ -84,7 +84,6 @@ describe('buildThreadView', () => {
   })
 })
 
-/** One post through the view, so the body tests read as one line each. */
 function bodyOf(
   post: Partial<PostListingRow> & Pick<PostListingRow, 'message'>,
 ): string {
@@ -131,12 +130,6 @@ describe('the post body (F36)', () => {
   })
 
   it('converts a body still stored as BBCode, and ignores its render', () => {
-    /*
-     * The board upgraded; the backfill has not reached this row. It renders as
-     * what its author meant rather than as the tags they typed, and the stored
-     * HTML is not trusted whatever version it claims — a BBCode renderer made
-     * it, and there is no longer one of those.
-     */
     expect(
       bodyOf({
         message: 'a [b]bold[/b] claim',
@@ -157,12 +150,6 @@ describe('the post body (F36)', () => {
     ).toBe('<em>stored</em>')
   })
 
-  /*
-   * The property that makes an escaping fix deployable: a render from an older
-   * version of the renderer is not shown, whatever it contains. Without it a
-   * fix would only reach readers after the backfill had rewritten every post on
-   * the board.
-   */
   it('ignores a render an older version of the renderer produced', () => {
     expect(
       bodyOf({
@@ -281,10 +268,6 @@ describe('post affordances (F41)', () => {
     })
   })
 
-  /*
-   * The window is enforced by `PostEditor`; repeating it here only decides
-   * whether to *offer* a link that the next screen would refuse.
-   */
   it('hides Edit once the window has closed, and keeps it for a moderator', () => {
     const stale = { createdAt: new Date('2026-07-30T08:00:00Z') }
     expect(
@@ -304,10 +287,6 @@ describe('post affordances (F41)', () => {
     })
   })
 
-  /*
-   * A deleted post's body is on the page only because a moderator is reading
-   * it. Offering to quote it would put it back in front of everybody.
-   */
   it('does not offer to quote a post nobody else can see', () => {
     expect(
       actionsFor({ visibility: 'deleted' }, { softDelete: true }).actions
@@ -385,10 +364,6 @@ describe('the report link (F49)', () => {
     expect(reportHrefFor({})).toBe('/report?kind=post&id=4')
   })
 
-  /*
-   * A button that files a complaint about yourself helps nobody except someone
-   * flooding the queue.
-   */
   it('does not offer it on your own', () => {
     expect(reportHrefFor({ authorUserId: 7 })).toBeNull()
   })
@@ -397,7 +372,6 @@ describe('the report link (F49)', () => {
     expect(reportHrefFor({}, { canReport: false })).toBeNull()
   })
 
-  /* A deleted post is on the page only because a moderator is reading it. */
   it('does not offer it on a post nobody else can see', () => {
     expect(reportHrefFor({ visibility: 'deleted' })).toBeNull()
   })
@@ -455,11 +429,6 @@ describe('ignored posts (F61)', () => {
   }
 
   it('withholds the body rather than hiding it', () => {
-    /*
-     * The claim that makes this "server-side ignore" rather than a stylesheet:
-     * the text is not in the model at all, so nothing a browser does can reveal
-     * it. Kills the mutant that sets `ignored` but still renders the body.
-     */
     const view = build([row()], { ignoredIds: new Set([9]) })
 
     expect(view.posts[0]?.bodyHtml).toBe('')
@@ -470,11 +439,6 @@ describe('ignored posts (F61)', () => {
   })
 
   it('keeps the post in the page, with its number', () => {
-    /*
-     * F61's "stable pagination and counts". Filtering the post out instead
-     * would give every viewer a different page size and make "#2" mean
-     * different posts to different people.
-     */
     const view = build(
       [row({ id: 4, number: 1 }), row({ id: 5, number: 2, authorUserId: 8 })],
       {
@@ -499,8 +463,6 @@ describe('ignored posts (F61)', () => {
   })
 
   it('withholds the custom fields with the body', () => {
-    /* A postbit field is the author's text too, and leaving it would put
-       somebody's signature line back on a post the reader hid. */
     const view = build([row()], {
       ignoredIds: new Set([9]),
       authorFields: new Map([[9, [{ label: 'Steam', value: 'noisy99' }]]]),
@@ -533,21 +495,11 @@ describe('revealedFrom', () => {
   })
 
   it('drops anything that is not a post id, rather than failing', () => {
-    /* The query string is anybody's to write. */
     expect([...revealedFrom('4,nonsense,-1,0')]).toEqual([4])
     expect([...revealedFrom(undefined)]).toEqual([])
   })
 })
 
-/**
- * The author's standing: their group, its colour, its badge, their reputation.
- *
- * Every one of these has a producer and, until now, no consumer — `title` has
- * been in the theme contract since F27 and was hardcoded `null` right here, so
- * a board's whole hierarchy was invisible on the page that most needs it. What
- * is worth pinning is the *shape* of the deal each field strikes with F61's
- * ignore, because that is the part a later change can quietly get wrong.
- */
 describe('the author\'s group standing', () => {
   const IDENTITY: MemberIdentity = {
     groupId: 3,
@@ -607,11 +559,6 @@ describe('the author\'s group standing', () => {
     return view.posts[0]!.author
   }
 
-  /*
-   * The state every page outside the thread view is still in, and the one a
-   * board on sample data is in permanently. It has to render as "no standing",
-   * not as a crash and not as an empty badge.
-   */
   it('is absent when the page resolved nothing', () => {
     expect(authorOf({})).toMatchObject({
       title: null,
@@ -629,10 +576,6 @@ describe('the author\'s group standing', () => {
     })
   })
 
-  /*
-   * A deleted account keeps its posts and its name (F29) and has no user id to
-   * look a group up by. The read has to fall back rather than assert.
-   */
   it('is absent for a post whose author was deleted', () => {
     const view = buildThreadView({
       thread,
@@ -671,14 +614,6 @@ describe('the author\'s group standing', () => {
     expect(view.posts[0]!.author.title).toBeNull()
   })
 
-  /*
-   * F61 withholds the author's *own* material — the body, the signature, the
-   * avatar they chose. The group's title and badge are the board's labelling,
-   * uploaded by an administrator, and reputation is a number about an account
-   * like `postCount` beside it. Hiding the board's own marking on a post a
-   * reader has chosen to skim is the wrong trade, and this is the line that
-   * says which side each field is on.
-   */
   it('survives an ignore, unlike the avatar and the signature', () => {
     const author = authorOf({
       identities: new Map([[7, IDENTITY]]),

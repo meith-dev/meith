@@ -1,51 +1,14 @@
-/**
- * The example plugin — a starting point to copy.
- *
- * Where `plugins/reference` exists to be exercised in CI and records everything
- * it is called with, this plugin exists to be *read*: it is the smallest plugin
- * that does something visible with each kind of extension point, written the
- * way a real one should be. Copy the directory, rename the key, and delete the
- * parts you do not need.
- *
- * What it does on a board that installs it:
- *
- *  - appends a link to the footer (`view.footer`, a **filter**)
- *  - greets readers at the bottom of the board index (`index.footer`, a
- *    **UI region contribution**)
- *  - declares one **setting**, editable at /admin/plugins/hello
- *  - ships one **migration**, applied by `community upgrade`
- *  - registers one **task** on the scheduler's tick
- *  - mounts one **admin page** at /admin/plugins/hello/status
- *
- * The policy behind every choice here is docs/plugin-api.md; the generated
- * hook reference is docs/plugin-hooks.md.
- */
-
 import { definePlugin } from '@meith/plugin-kit'
 
 export const helloPlugin = definePlugin({
-  /*
-   * The key namespaces everything this plugin registers: its settings are
-   * stored as `plugin.hello.<name>`, its task runs as `plugin.hello.wave`, and
-   * its admin pages mount under /admin/plugins/hello. Changing the key later
-   * orphans all of that, so pick one and keep it.
-   */
   key: 'hello',
   name: 'Hello',
   version: '0.1.0',
   description:
     'The worked example from examples/hello-plugin: a footer link, a greeting ' +
     'on the board index, one setting, one migration, one task and an admin page.',
-  /* The plugin-kit major this plugin was written against. */
   apiVersion: '0',
 
-  /*
-   * Settings the admin panel renders and stores. The *kind* of control an
-   * administrator gets is derived from the default's type — a string is a text
-   * field, a boolean a switch, a number a numeric field. Resolved values are
-   * handed to tasks, admin pages and lifecycle callbacks as
-   * `context.settings.<key>`.
-   */
   settings: [
     {
       key: 'greeting',
@@ -55,12 +18,6 @@ export const helloPlugin = definePlugin({
     },
   ],
 
-  /*
-   * Forward-only SQL, applied by `community upgrade` in ascending id order and
-   * recorded per plugin. A plugin never opens a database connection itself —
-   * these are statements the *host* runs, one transaction per migration.
-   * Prefix your tables with your plugin key: nothing else namespaces them.
-   */
   migrations: [
     {
       id: '0001_create_wave_table',
@@ -73,11 +30,6 @@ export const helloPlugin = definePlugin({
     },
   ],
 
-  /*
-   * Scheduled work, run by the same tick as core's tasks and registered as
-   * `plugin.hello.wave`. Intervals are minute-granular at best; write the task
-   * to be idempotent, because a drifting scheduler may run it late or twice.
-   */
   tasks: [
     {
       id: 'wave',
@@ -90,12 +42,6 @@ export const helloPlugin = definePlugin({
     },
   ],
 
-  /*
-   * Pages mounted under /admin/plugins/hello/<path>, rendered inside the
-   * already-authenticated admin panel. Build the markup in the function — the
-   * host calls it inside a try/catch, so a throw here drops the page body
-   * rather than the panel.
-   */
   adminPages: [
     {
       path: 'status',
@@ -113,11 +59,6 @@ export const helloPlugin = definePlugin({
     },
   ],
 
-  /*
-   * Markup in a named UI region. Regions are not theme slots: the theme decides
-   * where (and whether) a region renders; the plugin only decides what is in
-   * it. `index.footer` sits at the bottom of the board index.
-   */
   contributions: [
     {
       region: 'index.footer',
@@ -132,11 +73,6 @@ export const helloPlugin = definePlugin({
   ],
 
   hooks: {
-    /*
-     * A filter: what it returns replaces the value, and the next plugin's
-     * filter receives the result. Always spread and append — replacing
-     * `links` outright would delete the board's own footer links.
-     */
     'view.footer': (footer) => ({
       ...footer,
       links: [
@@ -148,14 +84,7 @@ export const helloPlugin = definePlugin({
       ],
     }),
 
-    /*
-     * An event: its return value is discarded, so it cannot corrupt the thing
-     * it watches even when it is wrong. This is where a webhook call, a
-     * counter or an external notification belongs. The empty body is the
-     * example — replace it with your side effect.
-     */
     'post.created': () => {
-      /* e.g. await fetch(webhookUrl, { method: 'POST', body: ... }) */
     },
   },
 })

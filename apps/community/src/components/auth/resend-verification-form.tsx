@@ -7,14 +7,6 @@ import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import { Field, FormError, FormNotice, SubmitButton } from "./form-controls"
 
-/**
- * Ask for another confirmation link.
- *
- * The address is prefilled from the query when we know it — somebody arriving
- * straight from registration should not have to retype what they just typed —
- * but the field stays editable, because the commonest reason to be on this
- * screen is having typed it wrong the first time.
- */
 export function ResendVerificationForm({ email }: { email?: string | undefined }) {
   const [state, action] = useActionState(resendVerificationAction, EMPTY_STATE)
 

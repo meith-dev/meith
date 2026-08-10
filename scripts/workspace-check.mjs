@@ -1,38 +1,4 @@
 #!/usr/bin/env node
-/**
- * Workspace integrity.
- *
- * Every gate this project runs — typecheck, lint, dependency-cruiser, the test
- * suite, even `next build` — resolves `@meith/*` through the tsconfig path
- * aliases, which point straight at `src/index.ts`. **None of them needs a
- * package.json.** So a package directory with no manifest passes the entire
- * verify pipeline and then fails on the next clean `pnpm install`, which is CI
- * and every new checkout.
- *
- * That is not hypothetical: it happened. `packages/admin` was created without
- * its manifest (a `cat >` that ran from the wrong directory), and 2,457 tests,
- * two typechecks, dependency-cruiser and a production build all passed while
- * `pnpm install --frozen-lockfile` would have failed.
- *
- * This check closes it, and deliberately does *not* shell out to pnpm: it has
- * to be fast enough to run in `verify` on every change.
- *
- * ## The same failure, one level deeper
- *
- * It happened again, and the second time the manifest was there. A dependency
- * was added to `packages/threads/package.json` and `pnpm-lock.yaml` was never
- * regenerated — so every gate passed locally (they all resolve through the
- * tsconfig aliases and never read a lockfile) and **all five CI jobs failed at
- * the install step**, before a single check ran, because CI installs with
- * `--frozen-lockfile`.
- *
- * So the lockfile's view of each package's dependencies is compared with the
- * manifest's here. It is the same class of bug as the missing manifest and it
- * belongs in the same script: a fact about the workspace that nothing else
- * reads, and that CI reads first.
- *
- * Run: pnpm workspace:check
- */
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -41,9 +7,7 @@ const WORKSPACE_GLOBS = ['apps', 'packages', 'themes', 'plugins', 'examples']
 
 const problems = []
 
-/** Every workspace package, by declared name. */
 const byName = new Map()
-/** Every workspace directory, so a missing manifest is visible as an absence. */
 const directories = []
 
 for (const glob of WORKSPACE_GLOBS) {
@@ -64,16 +28,11 @@ for (const glob of WORKSPACE_GLOBS) {
     try {
       manifest = JSON.parse(await readFile(join(ROOT, dir, 'package.json'), 'utf8'))
     } catch {
-      /*
-       * A directory with sources but no manifest is the failure this exists
-       * for. One with neither is somebody's scratch directory and not our
-       * business — so the check is "has src/, lacks package.json".
-       */
       try {
         await readdir(join(ROOT, dir, 'src'))
         problems.push(`${dir} has src/ but no package.json — pnpm will not see it as a workspace package`)
       } catch {
-        /* No src either. Not a package. */
+        /* ignore */
       }
       continue
     }
@@ -87,7 +46,6 @@ for (const glob of WORKSPACE_GLOBS) {
   }
 }
 
-/* Every `workspace:` dependency must name a package that actually exists. */
 for (const [name, { dir, manifest }] of byName) {
   for (const field of ['dependencies', 'devDependencies']) {
     for (const [dep, range] of Object.entries(manifest[field] ?? {})) {
@@ -102,7 +60,6 @@ for (const [name, { dir, manifest }] of byName) {
   void name
 }
 
-/* Every tsconfig alias must point at a file inside a real workspace package. */
 const base = JSON.parse(await readFile(join(ROOT, 'tsconfig.base.json'), 'utf8'))
 for (const [alias, targets] of Object.entries(base.compilerOptions?.paths ?? {})) {
   if (!alias.startsWith('@meith/') || alias.endsWith('/*')) continue
@@ -119,16 +76,6 @@ for (const [alias, targets] of Object.entries(base.compilerOptions?.paths ?? {})
   }
 }
 
-/*
- * The lockfile's `importers` section, as `dir → field → Set(specifier names)`.
- *
- * Hand-parsed rather than through a YAML dependency, for the reason at the top
- * of this file: this runs on every change and must stay instant, and pnpm's
- * output here is machine-written and rigidly indented — two spaces per level,
- * one key per line. Anything it cannot parse is reported rather than assumed
- * fine, so a lockfile format change fails loudly instead of silently disabling
- * the check.
- */
 function lockfileImporters(text) {
   const lines = text.split('\n')
   const start = lines.indexOf('importers:')
@@ -141,7 +88,6 @@ function lockfileImporters(text) {
   for (let index = start + 1; index < lines.length; index += 1) {
     const line = lines[index]
     if (line.trim() === '') continue
-    /* A column-0 key ends the section. */
     if (!line.startsWith(' ')) break
 
     const twoSpace = /^ {2}([^\s].*?):(?: \{\})?$/.exec(line)
@@ -197,15 +143,6 @@ if (lockfile === null) {
         }
       }
 
-      /*
-       * The other direction, which is a *removed* dependency nobody re-locked.
-       *
-       * pnpm records an auto-installed **peer** under the importer's
-       * `dependencies`, so `@meith/ui` is locked with `react` while its
-       * manifest declares it a peer. Folding peers in here is what makes this
-       * direction usable at all — without it the check reports eight packages
-       * that are perfectly in sync, which is how a check gets switched off.
-       */
       const permitted =
         field === 'dependencies'
           ? new Set([...declared, ...Object.keys(manifest.peerDependencies ?? {})])

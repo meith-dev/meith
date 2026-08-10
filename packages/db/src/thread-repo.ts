@@ -1,4 +1,3 @@
-/** Postgres forum-display listing (F30), scoped by F47. */
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm'
 
 import type { ContentScope } from '@meith/core'
@@ -14,11 +13,6 @@ import type { Database } from './client'
 import { threadPrefixes, threads } from './schema'
 import { visibleIn } from './visibility'
 
-/**
- * The R3.5 partial index begins `(forum_id, is_sticky DESC, last_post_at DESC)`.
- * `id` is the deterministic tie-breaker: timestamps have millisecond precision,
- * so omitting it eventually drops or repeats threads that share an instant.
- */
 function afterActivity(cursor: ThreadCursor) {
   const olderInSameBucket = or(
     lt(threads.lastPostAt, cursor.lastPostAt),
@@ -33,7 +27,6 @@ function afterActivity(cursor: ThreadCursor) {
     : and(eq(threads.isSticky, false), olderInSameBucket)
 }
 
-/** F43: compare averages exactly, avoiding float cursor drift. */
 function afterRating(cursor: ThreadCursor) {
   const sameRating =
     cursor.ratingCount === 0
@@ -134,7 +127,6 @@ function rowToListing(row: {
 export class PostgresThreadRepository implements ThreadRepository {
   constructor(private readonly db: Database) {}
 
-  /** The forum id alone, unscoped — see the port for why this one is. */
   async locateForum(threadId: number): Promise<number | null> {
     const rows = await this.db
       .select({ forumId: threads.forumId })

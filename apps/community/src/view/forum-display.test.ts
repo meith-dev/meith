@@ -41,9 +41,6 @@ describe('buildForumDisplayView', () => {
             isSticky: false,
             isLocked: false,
             isMoved: false,
-            /* F44's rating aggregate. Zero rather than absent: an unrated
-               thread has a real count, and `null` would make every consumer
-               handle a state the column cannot hold. */
             ratingTotal: 0,
             ratingCount: 0,
             lastPost: {

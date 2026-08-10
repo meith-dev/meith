@@ -1,37 +1,4 @@
 #!/usr/bin/env node
-/**
- * F77 — the theme API reference, generated from the code that is the API.
- *
- * `docs/theme-slots.md` is the document a theme author reads instead of the
- * source: every slot, its kind, its stability under the freeze, and the exact
- * fields of the model it is handed. It is generated, and `--check` fails the
- * build when it disagrees with the code.
- *
- * ## Why generated, and why the staleness check is the actual feature
- *
- * Hand-written API documentation is wrong within about two features, and it is
- * wrong in the worst direction: it describes fields that no longer exist, so
- * somebody writes a theme against it, and the failure surfaces as an undefined
- * property in a template. Nothing in review catches that, because the diff that
- * removed the field did not touch the document.
- *
- * So the document is a build artefact and `pnpm theme:docs:check` is a gate.
- * The consequence is deliberate: **you cannot change the theme contract without
- * the documentation change appearing in the same diff**, which is precisely the
- * moment a reviewer should be asked whether the change is allowed at all.
- *
- * ## It refuses to guess
- *
- * Every parse here is a regex over TypeScript, which is brittle — so brittleness
- * is converted into a loud failure rather than a silent omission. An interface
- * member this cannot read fails the run naming the line, and the registry parse
- * refuses to report success if it found implausibly little. A generator that
- * shrugs at what it cannot parse produces a document missing exactly the field
- * somebody needed.
- *
- * Run: pnpm theme:docs   ·   Check: pnpm theme:docs:check
- */
-
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -42,17 +9,6 @@ const API_FILE = 'packages/theme-kit/src/api.ts'
 const MODELS_FILE = 'packages/theme-kit/src/view-models.ts'
 const OUTPUT_FILE = 'docs/theme-slots.md'
 
-/* ------------------------------------------------------------------ *
- * Small parsing helpers
- * ------------------------------------------------------------------ */
-
-/**
- * The balanced `{ … }` starting at the first brace at or after `from`.
- *
- * Brace-counted rather than regex-matched, for the reason `slot-kinds.mjs` gives:
- * a lazy match stops at the first inner `}` and silently drops everything after
- * it, which here means a model documented with half its fields.
- */
 function balancedBlock(source, from) {
   const start = source.indexOf('{', from)
   if (start === -1) return null
@@ -69,7 +25,6 @@ function balancedBlock(source, from) {
   return null
 }
 
-/** The balanced `[ … ]` starting at the first bracket at or after `from`. */
 function balancedList(source, from) {
   const start = source.indexOf('[', from)
   if (start === -1) return null
@@ -86,7 +41,6 @@ function balancedList(source, from) {
   return null
 }
 
-/** How much a line changes nesting depth. */
 function depthDelta(line) {
   let delta = 0
   for (const ch of line) {
@@ -96,13 +50,6 @@ function depthDelta(line) {
   return delta
 }
 
-/**
- * Every single-quoted string literal in a fragment, concatenated.
- *
- * Slot purposes are written as `'…' + '…'` across lines, so the value a reader
- * sees is the join. Escaped quotes are honoured; nothing here needs template
- * literals and one would be dropped, so the caller checks for a non-empty result.
- */
 function joinStringLiterals(fragment) {
   let out = ''
   for (let i = 0; i < fragment.length; i++) {
@@ -116,7 +63,6 @@ function joinStringLiterals(fragment) {
   return out
 }
 
-/** A doc comment's prose, as one line. */
 function flattenDoc(lines) {
   return lines
     .join(' ')
@@ -132,16 +78,10 @@ function stripDocMarkers(line) {
     .trim()
 }
 
-/** Markdown table cells cannot hold a pipe, and every union type is full of them. */
 function cell(text) {
   return text.replace(/\|/g, '\\|').replace(/\n/g, ' ')
 }
 
-/* ------------------------------------------------------------------ *
- * The slot registry
- * ------------------------------------------------------------------ */
-
-/** @returns {Promise<{name: string, kind: string, feature: string, purpose: string}[]>} */
 async function readSlots() {
   const source = await readFile(join(ROOT, SLOTS_FILE), 'utf8')
   const start = source.indexOf('export const SLOTS = {')
@@ -189,10 +129,6 @@ async function readSlots() {
   return slots
 }
 
-/* ------------------------------------------------------------------ *
- * The freeze: version, stability, deprecations
- * ------------------------------------------------------------------ */
-
 async function readFreeze(slotNames) {
   const source = await readFile(join(ROOT, API_FILE), 'utf8')
 
@@ -205,17 +141,11 @@ async function readFreeze(slotNames) {
     throw new Error('theme-api-docs: could not read SLOT_STABILITY from api.ts.')
   }
 
-  /** @type {Map<string, string>} */
   const stability = new Map()
   for (const entry of map.body.matchAll(/(\w+):\s*'(stable|provisional|deprecated)'/g)) {
     stability.set(entry[1], entry[2])
   }
 
-  /*
-   * Both directions, because either gap makes the document lie: an unclassified
-   * slot would be documented with a blank stability column, and a classification
-   * for a slot that no longer exists means the parse drifted from the registry.
-   */
   for (const name of slotNames) {
     if (!stability.has(name)) {
       throw new Error(`theme-api-docs: slot "${name}" has no entry in SLOT_STABILITY.`)
@@ -265,17 +195,6 @@ async function readFreeze(slotNames) {
   return { version: version[1], stability, deprecations }
 }
 
-/* ------------------------------------------------------------------ *
- * View models
- * ------------------------------------------------------------------ */
-
-/**
- * Parse one interface body into `{ name, optional, type, doc }` members.
- *
- * Line-based with a depth counter, because a member's type can span lines
- * (`PaginationModel.pages` is an array of an inline object). A line that reaches
- * depth zero ends the member.
- */
 function parseMembers(interfaceName, body) {
   const members = []
   let doc = []
@@ -303,7 +222,6 @@ function parseMembers(interfaceName, body) {
         continue
       }
       if (line.startsWith('/*')) {
-        /* A plain block comment is reasoning for the maintainer, not for a theme. */
         inComment = !line.endsWith('*/')
         doc = []
         continue
@@ -347,7 +265,6 @@ function parseMembers(interfaceName, body) {
 async function readModels() {
   const source = await readFile(join(ROOT, MODELS_FILE), 'utf8')
 
-  /** @type {Map<string, {name: string, extends: string|null, members: object[], doc: string}>} */
   const models = new Map()
 
   const interfaceRe = /export interface (\w+)(?:\s+extends\s+([\w.]+))?\s*\{/g
@@ -355,7 +272,6 @@ async function readModels() {
     const block = balancedBlock(source, match.index + match[0].length - 1)
     if (block === null) continue
 
-    /* The doc comment immediately above the declaration, if there is one. */
     const before = source.slice(0, match.index).trimEnd()
     let doc = ''
     if (before.endsWith('*/')) {
@@ -373,14 +289,12 @@ async function readModels() {
     })
   }
 
-  /* The slot → model map, so each slot's props can be named. */
   const mapAt = source.indexOf('export interface SlotModels')
   const map = balancedBlock(source, mapAt)
   if (mapAt === -1 || map === null) {
     throw new Error('theme-api-docs: could not read SlotModels from view-models.ts.')
   }
 
-  /** @type {Map<string, string>} */
   const slotModels = new Map()
   for (const entry of map.body.matchAll(/(\w+):\s*(\w+)/g)) {
     slotModels.set(entry[1], entry[2])
@@ -395,7 +309,6 @@ async function readModels() {
   return { models, slotModels }
 }
 
-/** Fields of a model, with an inherited base's fields first and marked. */
 function fieldsOf(models, name) {
   const model = models.get(name)
   if (model === undefined) return []
@@ -406,16 +319,11 @@ function fieldsOf(models, name) {
   return [...inherited, ...model.members.map((member) => ({ ...member, from: null }))]
 }
 
-/** Model names a type expression refers to. Used to pull in shared models. */
 function referencedModels(models, type) {
   return [...type.matchAll(/\b([A-Z]\w*)\b/g)]
     .map((match) => match[1])
     .filter((name) => models.has(name))
 }
-
-/* ------------------------------------------------------------------ *
- * Rendering
- * ------------------------------------------------------------------ */
 
 function renderFieldTable(models, name) {
   const fields = fieldsOf(models, name)
@@ -502,7 +410,6 @@ function render({ slots, freeze, models, slotModels }) {
     }
   }
 
-  /* Close over the referenced set: a shared model may refer to another. */
   const slotModelNames = new Set(slotModels.values())
   for (;;) {
     const before = shared.size
@@ -551,10 +458,6 @@ function render({ slots, freeze, models, slotModels }) {
   return `${out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`
 }
 
-/* ------------------------------------------------------------------ *
- * Entry point
- * ------------------------------------------------------------------ */
-
 const slots = await readSlots()
 const freeze = await readFreeze(slots.map((slot) => slot.name))
 const { models, slotModels } = await readModels()
@@ -569,7 +472,6 @@ const generated = render({ slots, freeze, models, slotModels })
 const target = join(ROOT, OUTPUT_FILE)
 
 if (process.argv.includes('--check')) {
-  /* Absent counts as out of date, not as an error: the fix is the same command. */
   const current = await readFile(target, 'utf8').catch(() => '')
 
   if (current !== generated) {
@@ -582,7 +484,6 @@ if (process.argv.includes('--check')) {
     if (current === '') {
       console.error('(The file does not exist yet.)')
     } else {
-      /* Name the first differing line: a whole-file diff here is unreadable. */
       const a = current.split('\n')
       const b = generated.split('\n')
       const at = a.findIndex((line, i) => line !== b[i])

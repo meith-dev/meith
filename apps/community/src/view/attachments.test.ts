@@ -1,10 +1,3 @@
-/**
- * F42's view model.
- *
- * Pure, and the one place that decides what a reader sees of an attachment. Two
- * rules are proven here because they exist nowhere else: only downloadable rows
- * reach a theme, and a size is formatted once.
- */
 import { describe, expect, it } from 'vitest'
 
 import type { AttachmentRecord } from '@meith/attachments'
@@ -56,18 +49,10 @@ describe('attachmentModel', () => {
   })
 
   it('offers no thumbnail for an image that already fits', () => {
-    /*
-     * `resizeToFit` declined to shrink it, so the processor stored no second
-     * object. A theme writes `thumbnailHref ?? href` and gets the right picture.
-     */
     expect(attachmentModel(record({ thumbnailKey: null }))?.thumbnailHref).toBeNull()
   })
 
   it('marks a PDF as not an image, so no theme shows it inline', () => {
-    /*
-     * The board does not parse PDFs and will not pretend to preview one. Kills
-     * the mutant that reports every attachment as an image.
-     */
     const pdf = attachmentModel(
       record({ contentType: 'application/pdf', filename: 'notes.pdf', thumbnailKey: null }),
     )
@@ -76,10 +61,6 @@ describe('attachmentModel', () => {
   })
 
   it('drops an upload that has not been re-encoded yet', () => {
-    /*
-     * The rule that keeps a link out of the page until the file behind it
-     * exists. Kills the mutant that renders every row.
-     */
     expect(attachmentModel(record({ status: 'pending', storageKey: null }))).toBeNull()
   })
 
@@ -88,8 +69,6 @@ describe('attachmentModel', () => {
   })
 
   it('drops a row whose type this build no longer knows', () => {
-    /* A row written by a deploy that accepted GIFs. Rendered as a link it would
-       claim the board can serve something it cannot describe. */
     expect(attachmentModel(record({ contentType: 'image/gif' }))).toBeNull()
   })
 })
@@ -107,11 +86,6 @@ describe('attachmentsByPost', () => {
   })
 
   it('leaves a post out entirely when none of its files are ready', () => {
-    /*
-     * Not an empty array for that post: a theme renders the heading when the
-     * list is non-empty, and a post whose only image is still processing must
-     * not get an empty "Attachments" block.
-     */
     const grouped = attachmentsByPost([record({ status: 'pending', storageKey: null })])
     expect(grouped.get(7)).toBeUndefined()
   })

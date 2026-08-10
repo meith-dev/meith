@@ -1,21 +1,3 @@
-/**
- * F51 — merge and split over Postgres.
- *
- * Both operations move posts between threads, and both have the same list of
- * things to keep true afterwards:
- *
- *   - **Post order.** Posts page by id (F31), and neither operation renumbers
- *     anything, so order survives by construction. What does *not* survive by
- *     construction is `is_first_post`, which is a flag rather than a
- *     computation — a split has to set it on the new thread's earliest post and
- *     a merge has to clear it on the absorbed thread's.
- *   - **`posts.forum_id`**, denormalised from the thread (R3.3) and rewritten
- *     whenever posts change forum, for the reason D49 records.
- *   - **Every counter**, including the last-post pointer on both threads and
- *     both forum chains.
- *   - **Authors.** No post is created or destroyed by either operation, so
- *     `users.post_count` never moves. Only `thread_count` does, by one.
- */
 import { sql } from 'drizzle-orm'
 
 import type {
@@ -42,7 +24,6 @@ function idList(ids: readonly number[]): ReturnType<typeof sql> {
   )})`
 }
 
-/** Forum and every ancestor, in one statement. See D49. */
 async function applyForumChain(
   tx: Tx,
   forumId: number,
@@ -116,24 +97,11 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
          order by id
       `),
     ) as Array<{ id: number }>
-    /*
-     * An empty result means the id is not a visible post *of this thread* —
-     * which is the same answer for "not there" and "somebody else's thread",
-     * deliberately.
-     */
     return rows.some((row) => Number(row.id) === fromPostId)
       ? rows.map((row) => Number(row.id))
       : []
   }
 
-  /**
-   * The hand-picked counterpart to `postsFrom` (F52's checkboxes).
-   *
-   * Filtered in SQL by the same three conditions: this thread, visible, and in
-   * the submitted set. Anything not in the result was not eligible, and a post
-   * of another thread is indistinguishable from one that does not exist — the
-   * same refusal `postsFrom` makes, for the same reason.
-   */
   async visiblePostIdsIn(
     threadId: number,
     postIds: readonly number[],
@@ -177,11 +145,6 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
       }>
       const opening = author[0]!
 
-      /*
-       * The new thread is credited to the author of the post it now opens with,
-       * not to whoever started the conversation it came out of. A split exists
-       * because that post began something different.
-       */
       const created = resultRows(
         await tx.execute(sql`
           insert into threads
@@ -201,11 +164,6 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
       `)
 
       const moved = plan.postIds.length
-      /*
-       * The forum keeps every post — they did not leave it — and gains one
-       * thread. Only the *threads* trade posts, which is why the reply counts
-       * move and the forum's post count does not.
-       */
       await applyForumChain(tx, forumId, 0, 1)
       await tx.execute(sql`
         update threads
@@ -265,11 +223,6 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
       const targetForum = Number(target.forum_id)
       const moved = Number(source.visible_posts)
 
-      /*
-       * Every post, not just the visible ones. A held or removed post left
-       * behind would belong to a thread that is about to stop existing, and
-       * `posts.thread_id` cascades — the moderation queue would lose it.
-       */
       await tx.execute(sql`
         update posts
            set thread_id = ${plan.targetThreadId},
@@ -284,15 +237,9 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
          where id = ${plan.targetThreadId}
       `)
 
-      /*
-       * The source's row goes. Its posts have already moved, so nothing
-       * cascades with it — and leaving an empty deleted thread behind would put
-       * a row in the moderator's restore list that restores nothing.
-       */
       await tx.execute(sql`delete from threads where id = ${plan.sourceThreadId}`)
 
       if (sourceForum === targetForum) {
-        /* One thread fewer, same posts. */
         await applyForumChain(tx, sourceForum, 0, -1)
       } else {
         await applyForumChain(tx, sourceForum, -moved, -1)
@@ -332,14 +279,6 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
   }
 }
 
-/**
- * The slug for a split-off thread.
- *
- * Deliberately the same shape `@meith/threads` produces for a new thread, but
- * *not* imported from it: this package writes SQL and that one owns posting
- * rules, and a dependency from here to there would put the two in a cycle the
- * next time a posting rule needs a repository.
- */
 function slugFor(title: string): string {
   const slug = title
     .toLowerCase()

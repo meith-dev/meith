@@ -52,7 +52,6 @@ describe('token shape', () => {
 
     expect(issued.token.startsWith('forum_pat_')).toBe(true)
     expect(issued.token).toContain(issued.lookup)
-    /* The plaintext secret must not be recoverable from what is stored. */
     expect(issued.token).not.toContain(issued.secretHash)
     expect(issued.secretHash).toMatch(/^[0-9a-f]{64}$/)
   })
@@ -70,11 +69,6 @@ describe('token shape', () => {
     expect(hashTokenSecret(parsed!.secret)).toBe(issued.secretHash)
   })
 
-  /*
-   * The empty-lookup case is the one that matters. A lenient parser accepting
-   * `forum_pat__` would look up the empty prefix, and a row matching it would be
-   * an authentication bypass rather than a bad request.
-   */
   it.each([
     'nope',
     'forum_pat_short_secretsecretsecretsecret',
@@ -143,11 +137,6 @@ describe('authenticating a token', () => {
     expect((await authenticateToken(issued.token, repositoryOf(live), NOW)).ok).toBe(true)
   })
 
-  /*
-   * Ordering, and it is a real leak rather than a style point. Answering
-   * "revoked" to a *wrong secret* confirms that a lookup prefix names a real
-   * token, which turns the eight-character prefix into an enumerable space.
-   */
   it('answers a wrong secret before it answers revoked', async () => {
     const issued = issueToken()
     const record = tokenRecord({
@@ -181,11 +170,6 @@ describe('scopes', () => {
     expect(hasScope(token, 'posts:write')).toBe(false)
   })
 
-  /*
-   * A token must never be able to reconfigure a board — see `SCOPES`. Asserted
-   * rather than trusted to the review that left it out, because the pressure to
-   * add it arrives with the first person who wants to script their settings.
-   */
   it('offers no administrative write scope', () => {
     expect(SCOPES.filter((scope) => scope.startsWith('admin:'))).toEqual(['admin:read'])
   })
@@ -205,7 +189,6 @@ describe('the route registry', () => {
     expect(new Set(keys).size).toBe(keys.length)
   })
 
-  /* Work, not requests: the search endpoint is the expensive one and says so. */
   it('prices the expensive endpoints higher', () => {
     const search = ROUTES.find((route) => route.path === '/search')
     const me = ROUTES.find((route) => route.path === '/me')
@@ -225,11 +208,6 @@ describe('the route registry', () => {
     expect(matchRoute('POST', '/threads/91/posts')?.route.scope).toBe('posts:write')
   })
 
-  /*
-   * The traversal case. A regex built from `/threads/:id` as `(.+)` matches
-   * `/threads/1/../../admin`; segment matching cannot, because the segment count
-   * differs and `..` is never a literal in the registry.
-   */
   it.each([
     ['GET', '/threads/91/posts/extra'],
     ['GET', '/threads/91/../../admin'],
@@ -276,7 +254,6 @@ describe('the rate limit', () => {
       1,
       new Date('2026-03-12T09:14:37.000Z'),
     )
-    /* 09:10 window, 300s long, 277s elapsed. */
     expect(outcome.resetSeconds).toBe(23)
   })
 
@@ -286,10 +263,6 @@ describe('the rate limit', () => {
     expect(consume).toHaveBeenCalledWith(1, windowStart(NOW, DEFAULT_WINDOW), 10)
   })
 
-  /*
-   * On success as well as on a refusal. A client that only learns its remaining
-   * budget when it runs out cannot slow down before it does.
-   */
   it('reports the budget on every response', async () => {
     const headers = rateLimitHeaders(await consumeRateLimit(storeReturning(100), 1, 1, NOW))
     expect(headers['x-ratelimit-limit']).toBe('600')

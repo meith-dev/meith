@@ -1,13 +1,5 @@
 import 'server-only'
 
-/**
- * F58's avatars at the app layer.
- *
- * The same three jobs `attachments.ts` has, and they are here rather than there
- * because the permission is a different one: `avatar.upload` is global, and
- * seeing somebody's avatar is `profile.view` rather than anything forum-scoped.
- * An avatar appears in a member list and on a profile, not only under a post.
- */
 import { ForbiddenError } from '@meith/core'
 import type { Actor } from '@meith/authorization'
 import {
@@ -23,16 +15,8 @@ import { cache } from 'react'
 
 import { getContainer } from './container'
 
-/** The form field the avatar screen's file input uses. */
 export const AVATAR_FIELD = 'avatar'
 
-/**
- * The board's avatar service, or null when it cannot have one.
- *
- * Null in fixture mode (D38). Answered before a byte is accepted, not after —
- * an upload that validates and stores and then finds there is nowhere to record
- * it is the worst of the three outcomes.
- */
 export function avatarService(): AvatarService | null {
   const { avatars } = getContainer()
   if (avatars === null) return null
@@ -44,20 +28,12 @@ export function avatarService(): AvatarService | null {
   })
 }
 
-/** One member's avatar, or the "never uploaded one" state. */
 export async function avatarFor(userId: number): Promise<StoredAvatar> {
   const { avatars } = getContainer()
   if (avatars === null) return NO_AVATAR
   return (await avatars.find(userId)) ?? NO_AVATAR
 }
 
-/**
- * Every avatar on a page of postbits, in one query, memoised per request.
- *
- * `React.cache` because a thread page resolves the same handful of authors for
- * the postbit and again for anything else that wants them, and the second call
- * should not be a second query.
- */
 export const avatarsFor = cache(
   async (userIds: readonly number[]): Promise<ReadonlyMap<number, string>> => {
     const { avatars } = getContainer()
@@ -73,7 +49,6 @@ export const avatarsFor = cache(
   },
 )
 
-/** Whether the UserCP should offer the control at all. */
 export function canUploadAvatar(actor: Actor): boolean {
   const { authorizer } = getContainer()
   return (
@@ -83,14 +58,6 @@ export function canUploadAvatar(actor: Actor): boolean {
   )
 }
 
-/**
- * Resolve one member's avatar for serving, or say no.
- *
- * Every refusal is null with no reason, for `attachments.ts`'s reason: the id
- * is a small integer anybody can enumerate, and distinguishing "no avatar" from
- * "not for you" would make the route an oracle for who exists on a board whose
- * member list is closed.
- */
 export async function resolveAvatar(
   actor: Actor,
   userId: number,
@@ -98,11 +65,6 @@ export async function resolveAvatar(
   const { avatars, authorizer } = getContainer()
   if (avatars === null) return null
 
-  /*
-   * `profile.view` and not a forum permission. An avatar is shown in a member
-   * list and on a profile as well as under a post, so the forum a thread
-   * happens to be in cannot be the thing that decides it.
-   */
   if (!authorizer.can(actor, 'profile.view')) return null
 
   const avatar = await avatars.find(userId)
@@ -111,7 +73,6 @@ export async function resolveAvatar(
   return { key: avatar.key }
 }
 
-/** The service, or a refusal that says why. Used by both write actions. */
 export function requireAvatarService(actor: Actor): AvatarService {
   const service = avatarService()
   if (service === null) {

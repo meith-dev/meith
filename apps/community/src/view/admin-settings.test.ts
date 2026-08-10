@@ -1,11 +1,3 @@
-/**
- * F64's view model.
- *
- * Pure, and the whole screen is a function of it. What is worth pinning:
- * a search spans every group, browsing shows one, advanced settings are hidden
- * until asked for and *counted* while they are, and a secret's value never
- * reaches the model at all.
- */
 import { describe, expect, it } from 'vitest'
 
 import { SETTING_DEFINITIONS, SettingsSnapshot } from '@meith/settings'
@@ -36,20 +28,9 @@ describe('browsing', () => {
   })
 
   it('ignores a group that does not exist rather than showing nothing', () => {
-    /*
-     * A URL is editable and a bookmark outlives a release. Falling back to the
-     * first group beats an empty screen that looks like a broken panel.
-     */
     expect(model({ group: 'nonsense' }).activeGroup).toBe('board')
   })
 
-  /*
-   * Derived from the registry rather than counted by hand. The literal `8` this
-   * replaces went stale the first time a group was added (F46's), which is a
-   * test failing for a reason that is not a defect — and the fix for that kind
-   * of failure is always to edit the number, which is how the assertion stops
-   * meaning anything.
-   */
   it('offers every group as a tab whatever is being shown', () => {
     const groups = new Set(SETTING_DEFINITIONS.map((definition) => definition.group))
     expect(model({ group: 'security' }).tabs.map((tab) => tab.group).sort()).toEqual(
@@ -60,22 +41,12 @@ describe('browsing', () => {
 
 describe('searching', () => {
   it('spans every group, and selects none', () => {
-    /*
-     * Filtering to a group *and* a term would mean somebody who typed a word
-     * and saw nothing had to work out they were also filtered — which is how a
-     * search box gets called broken. Kills the mutant that keeps the group.
-     */
     const built = model({ query: 'flood' })
     expect(built.activeGroup).toBeNull()
     expect(new Set(built.groups.map((g) => g.group)).size).toBeGreaterThan(1)
   })
 
   it('matches the description, not only the key or label', () => {
-    /*
-     * An operator looking for "how long before somebody is locked out" types
-     * words from the description, because that is the text written for them.
-     */
-    /* "outgoing" appears in `board.name`'s description and in no key or label. */
     const built = model({ query: 'outgoing' })
     expect(keysOf(built)).toContain('board.name')
   })
@@ -98,10 +69,6 @@ describe('searching', () => {
 
 describe('advanced settings', () => {
   it('are hidden by default, and counted while they are', () => {
-    /*
-     * Counted rather than silently dropped: a screen that hides part of itself
-     * without saying so is one an operator will believe is missing a setting.
-     */
     const built = model({ group: 'security' })
     expect(built.hiddenAdvanced).toBeGreaterThan(0)
     expect(keysOf(built)).not.toContain('security.lockout_minutes')
@@ -114,11 +81,6 @@ describe('advanced settings', () => {
   })
 
   it('are counted only within what the current filter would have shown', () => {
-    /*
-     * Kills the mutant that counts every advanced setting on the board: an
-     * operator on the posting group being told "4 advanced settings are hidden"
-     * would go looking for four settings that are not there.
-     */
     const built = model({ group: 'posting' })
     expect(built.hiddenAdvanced).toBe(0)
   })
@@ -140,15 +102,8 @@ describe('values', () => {
   })
 
   it('never puts a secret’s value in the model', () => {
-    /*
-     * The model is rendered into HTML. A secret that reached it would be in the
-     * page source of every administrator's browser — and in their history, and
-     * in any proxy that logged it.
-     */
     const secret = SETTING_DEFINITIONS.find((d) => d.secret === true)
     if (secret === undefined) {
-      /* No stored secrets in this build. The rule still has to hold, and
-         `fields.test.ts` proves the field kind; there is nothing to render. */
       expect(secret).toBeUndefined()
       return
     }
@@ -175,10 +130,6 @@ describe('settingsHref', () => {
   })
 
   it('keeps the advanced flag through every other change', () => {
-    /*
-     * An operator who asked for advanced settings and then changed group should
-     * not have to ask again. Kills the mutant that drops it.
-     */
     expect(settingsHref({ group: 'security', advanced: true })).toBe(
       '/admin/settings?group=security&advanced=1',
     )

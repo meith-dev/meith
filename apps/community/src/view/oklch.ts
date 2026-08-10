@@ -1,40 +1,6 @@
-/**
- * OKLCH, and the sRGB it has to survive contact with.
- *
- * ## Why the board's colours are OKLCH in the first place
- *
- * Because the two things an operator actually does to a palette — "the same
- * colour but lighter" and "the same lightness, different hue" — are one
- * coordinate each in OKLCH and neither is expressible in hex. `#3b5998` lighter
- * is a guess; `oklch(0.49 0.13 264)` at `0.62` lightness is the same colour,
- * lighter, with its chroma and hue untouched. The default theme's tokens are
- * written this way for exactly that reason, and the editor used to hand them to
- * a control that could not represent them.
- *
- * ## Why this is a module and not a dependency
- *
- * The conversions are about forty lines of arithmetic with published
- * coefficients. A colour library is a much larger surface for a board that
- * needs one colour space and one gamut, and this has to run in the browser for
- * the picker as well as on the server for `<meta name="theme-color">` — so it
- * is plain functions with no imports, usable from both.
- *
- * ## Gamut is a real answer, not a rounding detail
- *
- * OKLCH describes colours sRGB cannot show. `oklch(0.7 0.3 150)` is a
- * perfectly well-formed green that no ordinary screen can produce, and the
- * honest thing to tell an operator who has dragged chroma past the edge is that
- * they have — not to silently clamp and leave them wondering why the swatch
- * stopped moving. So conversion reports whether it had to clamp, and the picker
- * says so.
- */
-
 export interface Oklch {
-  /** Perceptual lightness, 0–1. */
   readonly l: number
-  /** Chroma, 0 to about 0.37 in sRGB. Not bounded above by the space itself. */
   readonly c: number
-  /** Hue angle in degrees, 0–360. */
   readonly h: number
 }
 
@@ -44,12 +10,10 @@ export interface Rgb {
   readonly b: number
 }
 
-/** Chroma beyond this is outside sRGB at every hue, so the slider stops here. */
 export const MAX_CHROMA = 0.37
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value))
 
-/** OKLCH → linear sRGB. The published matrices, in one place. */
 function toLinearRgb({ l, c, h }: Oklch): Rgb {
   const radians = (h * Math.PI) / 180
   const a = c * Math.cos(radians)
@@ -72,14 +36,6 @@ const gammaEncode = (channel: number): number =>
 const gammaDecode = (channel: number): number =>
   channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
 
-/**
- * Convert, and say whether sRGB could hold it.
- *
- * `inGamut` is false when any channel left 0–1 *before* clamping. That is the
- * only moment the information exists — afterwards every colour looks perfectly
- * representable, which is why a converter that clamps silently can never tell
- * an operator their chroma slider stopped meaning anything.
- */
 export function oklchToRgb(colour: Oklch): { rgb: Rgb; inGamut: boolean } {
   const linear = toLinearRgb(colour)
   const encoded = {
@@ -89,7 +45,6 @@ export function oklchToRgb(colour: Oklch): { rgb: Rgb; inGamut: boolean } {
   }
 
   const inGamut = [encoded.r, encoded.g, encoded.b].every(
-    /* A hair of tolerance: the round trip is floating point, not arithmetic. */
     (channel) => channel >= -0.0001 && channel <= 1.0001,
   )
 
@@ -99,21 +54,10 @@ export function oklchToRgb(colour: Oklch): { rgb: Rgb; inGamut: boolean } {
   }
 }
 
-/**
- * WCAG relative luminance, from sRGB channels in 0–1.
- *
- * Here rather than in `@/view/contrast`, which is the only caller, because it
- * is the *same transfer function* as the encode two lines up — and a second
- * copy of a gamma curve written from the same specification is the kind of
- * duplicate that stays right until somebody fixes a threshold in one of them.
- * What belongs in the contrast module is which colour sits on which, not how
- * sRGB is linearised.
- */
 export function relativeLuminance({ r, g, b }: Rgb): number {
   return 0.2126 * gammaDecode(r) + 0.7152 * gammaDecode(g) + 0.0722 * gammaDecode(b)
 }
 
-/** sRGB → OKLCH. Needed to seed the picker from a hex value. */
 export function rgbToOklch({ r, g, b }: Rgb): Oklch {
   const lr = gammaDecode(r)
   const lg = gammaDecode(g)
@@ -128,11 +72,6 @@ export function rgbToOklch({ r, g, b }: Rgb): Oklch {
   const bAxis = 0.0259040371 * long + 0.7827717662 * medium - 0.808675766 * short
 
   const c = Math.sqrt(a * a + bAxis * bAxis)
-  /*
-   * Hue is meaningless at zero chroma — every angle is the same grey — so it is
-   * reported as 0 rather than as whatever `atan2` makes of two zeroes. Without
-   * this, dragging chroma up from a grey would start from a random hue.
-   */
   const h = c < 1e-6 ? 0 : ((Math.atan2(bAxis, a) * 180) / Math.PI + 360) % 360
 
   return { l, c, h }
@@ -142,7 +81,6 @@ const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i
 const OKLCH =
   /^oklch\(\s*([+-]?(?:\d+\.?\d*|\.\d+))%?\s+([+-]?(?:\d+\.?\d*|\.\d+))\s+([+-]?(?:\d+\.?\d*|\.\d+))\s*\)$/i
 
-/** Expand `#abc`, or return null. */
 export function parseHex(value: string): Rgb | null {
   const match = HEX.exec(value.trim())
   if (match === null) return null
@@ -158,13 +96,6 @@ export function parseHex(value: string): Rgb | null {
   }
 }
 
-/**
- * Read either notation the board stores.
- *
- * A percentage on lightness is accepted because CSS permits it and an operator
- * pasting from a design tool will hit it; it is divided out here so everything
- * downstream deals in 0–1.
- */
 export function parseColour(value: string): Oklch | null {
   const hex = parseHex(value)
   if (hex !== null) return rgbToOklch(hex)
@@ -184,13 +115,6 @@ export function parseColour(value: string): Oklch | null {
 const round = (value: number, places: number): number =>
   Number(value.toFixed(places))
 
-/**
- * The canonical way this board writes a colour.
- *
- * Three, three and one decimal places: enough that a round trip through the
- * picker does not drift, few enough that the value stays something a person can
- * read and type. Trailing zeroes are dropped by `Number`, so `0.500` is `0.5`.
- */
 export function formatOklch({ l, c, h }: Oklch): string {
   return `oklch(${round(clamp01(l), 3)} ${round(Math.max(0, c), 3)} ${round(
     ((h % 360) + 360) % 360,
@@ -207,14 +131,6 @@ export function rgbToHex({ r, g, b }: Rgb): string {
   return `#${hexByte(r)}${hexByte(g)}${hexByte(b)}`
 }
 
-/**
- * Any colour this board accepts, as sRGB hex, or `null`.
- *
- * The one place a literal colour is legitimate — `<meta name="theme-color">`,
- * which Safari and older Chrome ignore when given `oklch()` — and the value the
- * picker's swatch needs when it wants a colour a `<canvas>` or an `<input>` can
- * hold.
- */
 export function colourToHex(value: string): string | null {
   const parsed = parseColour(value)
   return parsed === null ? null : rgbToHex(oklchToRgb(parsed).rgb)

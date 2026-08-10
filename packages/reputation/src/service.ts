@@ -1,27 +1,3 @@
-/**
- * F62 — the reputation service.
- *
- * Everything below is a guard on one act — "member A says something about
- * member B" — and each guard exists because of a specific way that act gets
- * abused.
- *
- * ## The total is derived, never incremented
- *
- * `users.reputation` is recomputed from the live rows inside the same
- * transaction as anything that changes them (the repository does it). An
- * incremented total cannot survive a rating being revised or withdrawn, and
- * when it drifts nobody notices until somebody counts by hand. Same argument
- * F53 makes for `warning_points`, and there is a test that corrupts the column
- * and watches it repair.
- *
- * ## The two limits are different mechanisms
- *
- * "One rating per pair, one per post" is uniqueness and lives in a partial
- * unique index — two clicks arriving together both pass a prior read. "At most
- * N a day" is a window, which no index expresses, so it is a count inside the
- * writing transaction; its residual race is one extra rating and is stated in
- * the migration rather than hidden.
- */
 import { ForbiddenError, ValidationError } from '@meith/core'
 
 import {
@@ -36,10 +12,8 @@ import {
 export const REPUTATION_PAGE_SIZE = 25
 
 export interface GiveInput {
-  /** Who it is about. */
   readonly userId: number
   readonly givenByUserId: number
-  /** The post it is about, or null for a rating on the profile. */
   readonly postId?: number | null
   readonly points: number
   readonly comment: string
@@ -61,11 +35,6 @@ export class ReputationService {
       throw new ForbiddenError('Reputation is switched off on this board.')
     }
 
-    /*
-     * Rating yourself is refused rather than merely pointless. Left open it is
-     * the first thing anybody tries, and a profile showing self-awarded points
-     * makes the whole number meaningless.
-     */
     if (input.userId === input.givenByUserId) {
       throw new ValidationError('You cannot rate yourself.')
     }
@@ -74,11 +43,6 @@ export class ReputationService {
       throw new ForbiddenError('You cannot rate other members.')
     }
 
-    /*
-     * The post-count floor is what stops a fresh account from being useful for
-     * this. A spammer can register in seconds; posting five times on a board
-     * with moderation is a different proposition.
-     */
     if (input.limits.postCount < input.settings.minPostsToGive) {
       throw new ForbiddenError(
         `You need at least ${input.settings.minPostsToGive} posts before you can rate anybody.`,
@@ -106,10 +70,6 @@ export class ReputationService {
     })
 
     if (!wrote) {
-      /*
-       * The cap, reported by the write rather than checked before it — a prior
-       * read is a different transaction and would let two submits both pass.
-       */
       throw new ForbiddenError(
         `You have given as many ratings as you can today (${input.limits.maxPerDay}). ` +
           'Try again tomorrow.',
@@ -117,7 +77,6 @@ export class ReputationService {
     }
   }
 
-  /** Take a rating back. Only the member who gave it may. */
   async withdraw(ratingId: number, givenByUserId: number): Promise<boolean> {
     return this.repository.withdraw({ ratingId, givenByUserId })
   }
@@ -126,7 +85,6 @@ export class ReputationService {
     readonly userId: number
     readonly before?: number | undefined
   }): Promise<{ rows: readonly ReputationRow[]; nextBefore: number | null }> {
-    /* One extra row rather than a count, like every other pager here (F40). */
     const rows = await this.repository.list({
       userId: input.userId,
       limit: REPUTATION_PAGE_SIZE + 1,
@@ -157,13 +115,6 @@ export class ReputationService {
     })
   }
 
-  /**
-   * What this rater has already said about each of a page of posts.
-   *
-   * One query per page rather than one per post — see the port. Used by the
-   * thread page to decide whether each post's Thanks control reads "Thanks" or
-   * "Thanked", which it cannot know without asking.
-   */
   existingForPosts(input: {
     readonly givenByUserId: number
     readonly postIds: readonly number[]
@@ -171,12 +122,10 @@ export class ReputationService {
     return this.repository.existingForPosts(input)
   }
 
-  /** How many people have thanked each of these posts. See the port. */
   thanksForPosts(postIds: readonly number[]): Promise<ReadonlyMap<number, number>> {
     return this.repository.thanksForPosts(postIds)
   }
 
-  /** How many this member has given today, for showing what is left. */
   givenToday(givenByUserId: number): Promise<number> {
     return this.repository.givenSince(givenByUserId, startOfDay(this.now()))
   }
@@ -186,15 +135,6 @@ export class ReputationService {
   }
 }
 
-/**
- * Clamp a submitted rating to what the board allows.
- *
- * A submitted `-1` on a board with negatives off becomes a **refusal**, not a
- * silent `+1`: quietly turning a criticism into praise is the worst possible
- * reading of somebody's intent. Anything outside the three values is refused
- * too — the form offers three buttons, so a fourth value is somebody posting
- * by hand.
- */
 function normalisePoints(points: number, settings: ReputationSettings): number {
   if (!Number.isInteger(points) || points > 1 || points < -1) {
     throw new ValidationError('That is not a rating.')
@@ -205,13 +145,6 @@ function normalisePoints(points: number, settings: ReputationSettings): number {
   return points
 }
 
-/**
- * Midnight UTC.
- *
- * The board's day, not the member's: F57 gives every member a timezone, and a
- * daily cap that reset at each member's local midnight would let somebody in
- * the right zone get two allowances out of one calendar day by waiting an hour.
- */
 function startOfDay(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
 }

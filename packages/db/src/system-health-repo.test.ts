@@ -1,12 +1,3 @@
-/**
- * F70's read side, against real Postgres.
- *
- * `tasks` and `task_log` have been written since F06 and read by nothing an
- * operator could see. What is proven here is that this reads them faithfully —
- * particularly the fields the health verdict depends on, since a wrong
- * `last_run_at` or a dropped failure count turns a loud warning into a quiet
- * lie.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -36,10 +27,6 @@ beforeEach(async () => {
 
 describe('taskHealth', () => {
   it('reads every field the verdict depends on', async () => {
-    /*
-     * The status is computed elsewhere from exactly these fields, so a dropped
-     * one is a wrong verdict rather than a missing column on a screen.
-     */
     await db.execute(sql`
       insert into tasks (key, interval_seconds, enabled, last_run_at, next_run_at,
                          consecutive_failures)
@@ -59,11 +46,6 @@ describe('taskHealth', () => {
   })
 
   it('keeps a never-run task’s null rather than inventing a date', async () => {
-    /*
-     * `never-run` and `stale` are different verdicts — "it has not started" is
-     * not "it stopped" — and coercing the null to an epoch date would report a
-     * fresh board as catastrophically overdue.
-     */
     await db.execute(sql`
       insert into tasks (key, interval_seconds, next_run_at) values ('fresh', 300, now())
     `)
@@ -78,11 +60,6 @@ describe('taskHealth', () => {
 
 describe('recentRuns', () => {
   it('returns the newest first, failures included', async () => {
-    /*
-     * The log is where an operator looks after the summary says something is
-     * wrong, so filtering failures out would remove the only text on the screen
-     * that says why.
-     */
     await db.execute(sql`
       insert into task_log (task_key, succeeded, duration_ms, detail, error, ran_at)
       values ('a', true, 12, 'moved=3', null, now() - interval '2 minutes'),
@@ -107,11 +84,6 @@ describe('recentRuns', () => {
 
 describe('volumes', () => {
   it('separates jobs still waiting from dead-lettered ones', async () => {
-    /*
-     * The two mean opposite things: a queue with work in it is a queue doing
-     * its job, and a dead-lettered job is work that has given up. Kills the
-     * mutant that counts them together.
-     */
     await db.execute(sql`
       insert into jobs (kind, status) values
         ('a', 'pending'), ('b', 'running'), ('c', 'dead'), ('d', 'done')

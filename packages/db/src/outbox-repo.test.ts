@@ -1,10 +1,3 @@
-/**
- * F07's relay read side, against real Postgres.
- *
- * The claim is a single `UPDATE ... FOR UPDATE SKIP LOCKED`, and the reason it
- * is written that way — two overlapping relays must partition the backlog —
- * cannot be observed anywhere but a real database.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -64,12 +57,6 @@ describe('PostgresOutboxReader', () => {
     await addEvent(1)
     await reader.claimUnrelayed(10)
 
-    /*
-     * The relay marks rows *after* the enqueue returns, so a process that dies
-     * in between must leave the event claimable. At-least-once is the contract:
-     * a duplicate is absorbed by the queue's idempotency key and by the
-     * handler's own ledger, while a lost event is unrecoverable.
-     */
     expect(await reader.claimUnrelayed(10)).toHaveLength(1)
   })
 
@@ -77,8 +64,6 @@ describe('PostgresOutboxReader', () => {
     await addEvent(1)
     for (let i = 0; i < 10; i++) await reader.claimUnrelayed(10)
 
-    // A poison event stops being claimed rather than blocking the backlog
-    // behind it forever — and stays visible to the operator.
     expect(await reader.claimUnrelayed(10)).toEqual([])
     expect(await reader.stuck()).toHaveLength(1)
   })

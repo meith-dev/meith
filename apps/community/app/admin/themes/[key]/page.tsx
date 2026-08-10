@@ -13,29 +13,6 @@ import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Theme' }
 
-/**
- * F68 — one theme's editor.
- *
- * The token list comes from the **theme package**, not from the stored row: the
- * row holds overrides only, so a screen built from it would show an operator
- * the three tokens they have already changed and none of the thirty-five they
- * could. Same rule as F64's settings and F66's permissions — the registry is
- * the list, storage is the exception to it.
- *
- * **`wide`, and it is the one screen that earns it for a reason other than a
- * table.** `PanelPage` offers a reading measure and the full column, and says
- * there should be no third option; this is a form, which is normally
- * prose-shaped. What makes it different is that the form is only half the
- * screen: the sample, the change list and the contrast report sit beside it and
- * have to stay in view while a colour is dragged. Bounded to a reading measure
- * the two columns become one, and the preview goes back to being a thing you
- * scroll away from — which is the failure this version exists to fix.
- *
- * The export is rendered on the page rather than offered as a download,
- * deliberately: it is a small JSON document, an operator wants to paste it into
- * another board's import box, and a download would put a file on disk for them
- * to find and open first.
- */
 export default async function AdminThemePage({
   params,
 }: {
@@ -90,11 +67,6 @@ export default async function AdminThemePage({
         />
       </section>
 
-      {/*
-        Export, import and reset are bounded to a reading measure inside the
-        wide column. They are prose and one control each; stretched across a
-        two-column layout they would be three very long lines saying very little.
-      */}
       <section className="flex max-w-3xl flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-heading text-lg font-semibold">Export</h2>
         <p className="text-sm text-muted-foreground">

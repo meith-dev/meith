@@ -26,24 +26,18 @@ import {
   type ReadyInput,
 } from './index'
 
-/* ------------------------------------------------------------------ *
- * Sample files
- * ------------------------------------------------------------------ */
-
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
 
-/** A PNG header declaring a size, with no pixel data. That is all we parse. */
 function png(width = 10, height = 10): Uint8Array {
   const bytes = new Uint8Array(64)
   bytes.set(PNG_SIGNATURE)
-  bytes.set([0, 0, 0, 13], 8) // IHDR length
-  bytes.set([0x49, 0x48, 0x44, 0x52], 12) // "IHDR"
+  bytes.set([0, 0, 0, 13], 8)
+  bytes.set([0x49, 0x48, 0x44, 0x52], 12)
   new DataView(bytes.buffer).setUint32(16, width)
   new DataView(bytes.buffer).setUint32(20, height)
   return bytes
 }
 
-/** A JPEG with an APP0 segment in front of the frame header, as real ones have. */
 function jpeg(width = 10, height = 10, extraSegments = 1): Uint8Array {
   const parts: number[] = [0xff, 0xd8]
   for (let i = 0; i < extraSegments; i += 1) {
@@ -64,10 +58,6 @@ function zip(): Uint8Array {
 
 const NO_LIMITS = { maxPerPost: 0, maxSizeKb: 0 }
 
-/* ------------------------------------------------------------------ *
- * Sniffing
- * ------------------------------------------------------------------ */
-
 describe('sniff', () => {
   it('identifies each accepted format from its bytes', () => {
     expect(sniff(png())?.contentType).toBe('image/png')
@@ -77,12 +67,8 @@ describe('sniff', () => {
   })
 
   it('checks the whole PNG signature, not the first four bytes', () => {
-    /*
-     * The trailing CR/LF/EOF bytes exist to catch a transfer that mangled line
-     * endings. Kills the mutant that compares a prefix of the signature.
-     */
     const mangled = png()
-    mangled[6] = 0x00 // the EOF byte, last of the eight
+    mangled[6] = 0x00
     expect(sniff(mangled)).toBeUndefined()
   })
 
@@ -97,8 +83,6 @@ describe('sniff', () => {
   })
 
   it('refuses bytes shorter than the signature it would match', () => {
-    /* Kills the mutant that drops the length check and reads past the end,
-       where `undefined === undefined` would make an empty file every format. */
     expect(sniff(new Uint8Array([0x89, 0x50]))).toBeUndefined()
     expect(sniff(new Uint8Array())).toBeUndefined()
   })
@@ -113,10 +97,6 @@ describe('sniff', () => {
   })
 })
 
-/* ------------------------------------------------------------------ *
- * Dimensions
- * ------------------------------------------------------------------ */
-
 describe('declaredDimensions', () => {
   const pngType = attachmentType('image/png')!
   const jpegType = attachmentType('image/jpeg')!
@@ -129,11 +109,6 @@ describe('declaredDimensions', () => {
   })
 
   it('reads a JPEG past the segments in front of the frame header', () => {
-    /*
-     * The whole reason the JPEG side is a walk rather than a fixed offset: EXIF
-     * and colour profiles sit before SOF0, and a parser that assumed an offset
-     * would read a camera's metadata as a size.
-     */
     expect(declaredDimensions(jpeg(800, 600, 3), jpegType)).toEqual({
       width: 800,
       height: 600,
@@ -142,7 +117,7 @@ describe('declaredDimensions', () => {
 
   it('refuses a PNG whose IHDR is not first', () => {
     const odd = png()
-    odd.set([0x74, 0x45, 0x58, 0x74], 12) // "tEXt"
+    odd.set([0x74, 0x45, 0x58, 0x74], 12)
     expect(declaredDimensions(odd, pngType)).toBeUndefined()
   })
 
@@ -152,11 +127,6 @@ describe('declaredDimensions', () => {
   })
 
   it('terminates on a segment whose length does not move forward', () => {
-    /*
-     * A segment declaring length 0 would leave the cursor where it was. Kills
-     * the mutant that drops the `length < 2` check, which turns a crafted file
-     * into an infinite loop in a request handler.
-     */
     const hostile = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x00, 0, 0, 0, 0])
     expect(declaredDimensions(hostile, jpegType)).toBeUndefined()
   })
@@ -165,10 +135,6 @@ describe('declaredDimensions', () => {
     expect(declaredDimensions(pdf(), attachmentType('application/pdf')!)).toBeUndefined()
   })
 })
-
-/* ------------------------------------------------------------------ *
- * Filenames
- * ------------------------------------------------------------------ */
 
 describe('sanitiseFilename', () => {
   const pngType = attachmentType('image/png')!
@@ -179,10 +145,6 @@ describe('sanitiseFilename', () => {
   })
 
   it('gives the file the extension its content implies, not the one claimed', () => {
-    /*
-     * The rule that stops a download's name from disagreeing with its bytes.
-     * `invoice.pdf.exe` full of PNG is stored as a PNG and says so.
-     */
     expect(sanitiseFilename('invoice.pdf.exe', pngType)).toBe('invoice.pdf.png')
     expect(sanitiseFilename('report.png', zipType)).toBe('report.zip')
   })
@@ -193,11 +155,6 @@ describe('sanitiseFilename', () => {
   })
 
   it('removes characters a header or a page would choke on', () => {
-    /*
-     * The name is echoed into `Content-Disposition`. A newline there is
-     * response splitting, and no amount of care at the call site is as reliable
-     * as the character never being in the string.
-     */
     const nasty = sanitiseFilename('a\r\nb<script>"x".png', pngType)
     expect(nasty).not.toMatch(/[\r\n<>"]/)
     expect(nasty.endsWith('.png')).toBe(true)
@@ -205,8 +162,6 @@ describe('sanitiseFilename', () => {
 
   it('never returns something that starts with a dot or is only an extension', () => {
     expect(sanitiseFilename('...', pngType)).toBe('file.png')
-    /* `.htaccess` is *all* extension, so dropping the claimed one leaves
-       nothing — which is the correct reading of a name that is only a suffix. */
     expect(sanitiseFilename('.htaccess', pngType)).toBe('file.png')
     expect(sanitiseFilename('', pngType)).toBe('file.png')
   })
@@ -218,20 +173,12 @@ describe('sanitiseFilename', () => {
 
 describe('storageKeyFor', () => {
   it('is random and unrelated to the filename', () => {
-    /*
-     * Guessability is the point: a key derived from an id or a name would let
-     * somebody read a private forum's attachment straight out of a bucket.
-     */
     let n = 0
     const key = storageKeyFor('source', () => `r${(n += 1)}`)
     expect(key).toBe('attachments/r1/source')
     expect(storageKeyFor('thumb', () => 'r2')).toBe('attachments/r2/thumb')
   })
 })
-
-/* ------------------------------------------------------------------ *
- * Acceptance
- * ------------------------------------------------------------------ */
 
 describe('limits', () => {
   it('treats 0 as unlimited, bounded by the hard ceiling', () => {
@@ -240,11 +187,6 @@ describe('limits', () => {
   })
 
   it('never lets a configured value exceed the ceiling', () => {
-    /*
-     * Same argument as F58's signature limit: an operator with a slipped
-     * keyboard must not be able to configure a way to fill the disk. Kills the
-     * mutant that returns the configured value directly.
-     */
     expect(maxBytesFor({ maxPerPost: 0, maxSizeKb: 10_000_000 })).toBe(HARD_MAX_BYTES)
     expect(maxPerPostFor({ maxPerPost: 500, maxSizeKb: 0 })).toBe(HARD_MAX_PER_POST)
   })
@@ -266,11 +208,6 @@ describe('acceptFile', () => {
   })
 
   it('ignores the extension entirely and trusts only the bytes', () => {
-    /*
-     * The claim can say anything. Kills any mutant that lets the filename
-     * influence the accepted type — which is the bug that makes an upload
-     * filter a suggestion.
-     */
     const accepted = acceptFile({ filename: 'payload.exe', bytes: png() }, NO_LIMITS)
     expect(accepted.type.contentType).toBe('image/png')
     expect(accepted.filename).toBe('payload.png')
@@ -297,11 +234,6 @@ describe('acceptFile', () => {
   })
 
   it('refuses a decompression bomb, which no size limit catches', () => {
-    /*
-     * The whole reason `dimensions.ts` exists. This file is 64 bytes and
-     * declares 30,000 x 30,000 — 3.6 GB once decoded. Kills the mutant that
-     * drops the megapixel check.
-     */
     expect(() => acceptFile({ filename: 'bomb.png', bytes: png(30_000, 30_000) }, NO_LIMITS)).toThrow(
       /megapixel/,
     )
@@ -313,10 +245,6 @@ describe('acceptFile', () => {
   })
 
   it('refuses an image whose header cannot be read', () => {
-    /*
-     * Refused rather than passed to the decoder to find out — the decode is the
-     * thing being protected.
-     */
     const broken = png()
     broken.set([0, 0, 0, 0], 16)
     expect(() => acceptFile({ filename: 'x.png', bytes: broken }, NO_LIMITS)).toThrow(/header/)
@@ -338,34 +266,22 @@ describe('acceptFiles', () => {
   })
 
   it('counts what the post already has', () => {
-    /*
-     * An edit that adds a fifth file to a post with four must meet the same cap
-     * as posting five at once. Kills the mutant that ignores `existing`.
-     */
     expect(() => acceptFiles([four[0]!], { maxPerPost: 4, maxSizeKb: 0 }, 4)).toThrow(
       /at most 4/,
     )
   })
 
   it('refuses the whole submission when one file is bad', () => {
-    /* All-or-nothing: a post with three of its four images is not what anybody
-       asked for, and there is no way to tell them which one went missing. */
     expect(() =>
       acceptFiles([four[0]!, { filename: 'bad.txt', bytes: new TextEncoder().encode('hello') }], NO_LIMITS),
     ).toThrow(ValidationError)
   })
 })
 
-/* ------------------------------------------------------------------ *
- * The service
- * ------------------------------------------------------------------ */
-
 class FakeRepo implements AttachmentRepository {
   rows: AttachmentRecord[] = []
   keys = new Map<string, Date>()
   nextId = 1
-  /* The same clock the service is given: a fake that used the wall clock would
-     make every sweep test depend on what time the suite happened to run. */
   now = new Date()
 
   async create(input: CreateAttachmentInput) {
@@ -506,11 +422,6 @@ const POST = { postId: 7, forumId: 3, userId: 11 }
 
 describe('staging', () => {
   it('remembers the key before the object exists', async () => {
-    /*
-     * The ordering the whole orphan story rests on. A process that dies between
-     * the put and the row must leave something that names the bytes; a ledger
-     * written *after* the put would not.
-     */
     const order: string[] = []
     const watched = new AttachmentService({
       attachments: {
@@ -536,8 +447,6 @@ describe('staging', () => {
   })
 
   it('stores an image under a source key and a PDF under a file key', async () => {
-    /* An opaque file has no transformation to wait for, so it is stored once
-       and is finished. An image's original is quarantined. */
     const staged = await service.stage(
       acceptFiles(
         [
@@ -555,11 +464,6 @@ describe('staging', () => {
   })
 
   it('stores every object privately, even in a public forum', async () => {
-    /*
-     * The permission that governs a download is forum-scoped, and a public
-     * object is one nobody can revoke — moving a thread into a private forum
-     * would otherwise not take its images with it.
-     */
     await service.stage(acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS))
     expect([...files.objects.values()].every((o) => o.visibility === 'private')).toBe(true)
   })
@@ -596,10 +500,6 @@ describe('processing', () => {
   }
 
   it('replaces the stored bytes with re-encoded ones and drops the original', async () => {
-    /*
-     * The claim the whole feature exists for. After processing, the object the
-     * board serves is the encoder's output and the uploaded bytes are gone.
-     */
     const row = await pendingImage()
     expect(await service.process(row.id)).toBe('done')
 
@@ -639,10 +539,6 @@ describe('processing', () => {
   })
 
   it('is idempotent, because the queue is at-least-once', async () => {
-    /*
-     * Kills the mutant that drops the status guard: a second delivery would
-     * re-encode from a source that is gone, and mark a ready row failed.
-     */
     const row = await pendingImage()
     await service.process(row.id)
     expect(await service.process(row.id)).toBe('skipped')
@@ -655,13 +551,6 @@ describe('processing', () => {
   })
 
   it('skips on the status alone, even if a source key is somehow still set', async () => {
-    /*
-     * Same argument as the app-layer download check: `markReady` clears the
-     * source key and sets the status in one statement, so the two always agree.
-     * Asserting the status is sufficient on its own is what makes that a
-     * guarantee — otherwise the guard is shadowed by the key check and deleting
-     * it passes every other test here.
-     */
     const row = await pendingImage()
     await service.process(row.id)
     repo.rows = repo.rows.map((r) => ({ ...r, sourceKey: 'attachments/k1/source' }))
@@ -671,11 +560,6 @@ describe('processing', () => {
   })
 
   it('fails the row and drops the bytes when the decode fails', async () => {
-    /*
-     * A file that passed the header checks and is still not an image is exactly
-     * what the re-encode exists to catch, so this is a normal outcome — the
-     * uploader is told why, and the bytes do not survive.
-     */
     images.fail = true
     const row = await pendingImage()
     expect(await service.process(row.id)).toBe('failed')
@@ -714,12 +598,6 @@ describe('the sweep', () => {
   })
 
   it('leaves an upload that is still in flight alone', async () => {
-    /*
-     * The grace period is what makes the sweep safe at all: a key is remembered
-     * *before* its object is written, so a sweep with no grace would race every
-     * upload and delete the bytes out from under it. Kills the mutant that
-     * sweeps everything in the ledger.
-     */
     await service.stage(acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS))
 
     expect(await service.sweep()).toMatchObject({ deleted: 0 })

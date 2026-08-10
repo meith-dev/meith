@@ -39,11 +39,6 @@ describe('filters', () => {
     expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xAB')
   })
 
-  /*
-   * The determinism claim, and the only way to test it: registration order is
-   * *reversed* relative to the expected result, so a host that ran handlers in
-   * the order they arrived would produce "xBA" and fail.
-   */
   it('orders by priority, then by plugin key — never by registration order', async () => {
     const host = new PluginHost({
       plugins: [
@@ -70,12 +65,6 @@ describe('filters', () => {
     expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x!')
   })
 
-  /*
-   * The isolation claim at its most load-bearing. A filter's result is used, so
-   * a throwing filter is the case that would otherwise blank a post body — and
-   * the chain must carry on, because one broken plugin must not silence a
-   * working one.
-   */
   it('keeps the previous value when a filter throws, and runs the rest', async () => {
     const logger = silentLogger()
     const host = new PluginHost({
@@ -106,11 +95,6 @@ describe('filters', () => {
     expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
   })
 
-  /*
-   * A handler that forgot to return is the commonest plugin mistake after a
-   * misspelled hook name, and the symptom without this is a post body that
-   * becomes `undefined` — a blank page rather than an error.
-   */
   it('keeps the previous value when a filter returns nothing', async () => {
     const host = new PluginHost({
       plugins: [makePlugin('alpha', { 'markdown.render.html': (() => undefined) as never })],
@@ -119,7 +103,6 @@ describe('filters', () => {
     expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
   })
 
-  /* `null` is a legitimate value for the hooks whose payload is nullable. */
   it('lets a filter suppress a nullable value with null', async () => {
     const host = new PluginHost({
       plugins: [makePlugin('alpha', { 'mail.send.before': () => null })],
@@ -197,12 +180,6 @@ describe('failure isolation and auto-disable', () => {
     expect(health?.lastError).toEqual({ hook: 'post.created', message: 'always' })
   })
 
-  /*
-   * Disabling is per plugin, not per hook. A plugin failing in one place is
-   * broken, and the failures are almost always the same bug reached from
-   * different pages — so its *other* hooks stop being called too, which is the
-   * behaviour an operator expects from "the plugin was switched off".
-   */
   it('stops calling the plugin’s other hooks once it is disabled', async () => {
     const host = new PluginHost({ plugins: [throwing('alpha')], failureThreshold: 2 })
 
@@ -221,11 +198,6 @@ describe('failure isolation and auto-disable', () => {
     expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xB')
   })
 
-  /*
-   * It never comes back on its own. A plugin that recovers silently means the
-   * operator never learns their board spent a day without the feature they
-   * installed — and the fault that caused it is still there.
-   */
   it('does not re-enable itself when the next call would have succeeded', async () => {
     let failing = true
     const host = new PluginHost({
@@ -257,11 +229,6 @@ describe('failure isolation and auto-disable', () => {
 })
 
 describe('timing', () => {
-  /*
-   * A clock that advances by a fixed amount per reading, so "how long did that
-   * take" is deterministic. `performance.now()` in a test is a flaky assertion
-   * waiting to happen.
-   */
   const clockAdvancing = (stepMs: number) => {
     let t = 0
     return () => {
@@ -299,10 +266,6 @@ describe('timing', () => {
     expect(logger.warns).toHaveLength(1)
   })
 
-  /*
-   * A plugin that throws after four seconds is a performance problem as well as
-   * a broken one. Only timing the successes would hide exactly that case.
-   */
   it('times a failing call too', async () => {
     const host = new PluginHost({
       plugins: [
@@ -412,7 +375,6 @@ describe('health and introspection', () => {
     expect(host.health()[0]).toMatchObject({ calls: 0, failures: 0, enabled: true })
   })
 
-  /* What the ACP's hook-health screen is built from: who is listening to what. */
   it('lists the plugins listening on each hook', () => {
     const host = new PluginHost({
       plugins: [

@@ -1,12 +1,3 @@
-/**
- * F46's stores, against real Postgres.
- *
- * **The claim that only a database can settle is the concurrent one.** Ten
- * requests arriving together must produce ten distinct totals, exactly one of
- * which is the eleventh — because the whole feature is about traffic that
- * arrives in parallel, and a read-then-write implementation would pass every
- * single-threaded test in `packages/antispam` while letting all ten through.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -53,12 +44,6 @@ describe('the counter', () => {
     expect(await spend()).toBe(3)
   })
 
-  /*
-   * The reason the statement is an upsert rather than a select and an update.
-   * Every caller must get a *distinct* total: if two saw the same number, both
-   * would make the same decision, and under an attack that is the common case
-   * rather than a rare interleaving.
-   */
   it('gives every concurrent caller a distinct total', async () => {
     const totals = await Promise.all(
       Array.from({ length: 10 }, () =>
@@ -69,7 +54,6 @@ describe('the counter', () => {
     expect([...totals].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
   })
 
-  /* The same claim, through the limiter: exactly three of ten get in. */
   it('lets exactly `max` concurrent attempts through', async () => {
     const limiter = new RateLimiter(store, () => new Date('2026-08-04T12:00:30Z'))
 
@@ -130,12 +114,6 @@ describe('pruning', () => {
     expect(left).toHaveLength(1)
   })
 
-  /*
-   * Bounded, per invariant 18. This table grows with *traffic* rather than with
-   * content, so on a busy board it is the fastest-growing thing in the schema
-   * and an unbounded delete is the one statement that cannot finish inside a
-   * serverless invocation.
-   */
   it('never deletes more than its limit in one run', async () => {
     await seed(
       Array.from({ length: 6 }, (_, i) =>
@@ -165,12 +143,6 @@ describe('captcha questions', () => {
     })
   })
 
-  /*
-   * The failure this prevents is silent and total: a question with no answers
-   * is asked of every visitor and refuses all of them, and the symptom is
-   * registration stopping on a board whose operator changed something
-   * unrelated-looking.
-   */
   it('refuses a question nobody could pass', async () => {
     await expect(
       questions.create({ question: 'Colour?', answers: '   \n  ' }),
@@ -180,7 +152,6 @@ describe('captcha questions', () => {
     ).rejects.toThrow(/needs to be asked/)
   })
 
-  /* Dropped by the reader, not by the caller — the `activeWordFilters` rule. */
   it('leaves a disabled question out of the active set', async () => {
     const id = await questions.create({ question: 'Colour?', answers: 'blue' })
     await questions.update(id, { question: 'Colour?', answers: 'blue', enabled: false })
@@ -189,10 +160,6 @@ describe('captcha questions', () => {
     expect(await questions.list()).toHaveLength(1)
   })
 
-  /*
-   * The ACP refuses this, but a hand-edited database does not — and one
-   * unpassable row would refuse every visitor it was shown to.
-   */
   it('degrades around a row whose answers are only whitespace', async () => {
     await db.execute(sql`insert into captcha_questions (question, answers) values ('Q?', '   ')`)
     await questions.create({ question: 'Colour?', answers: 'blue' })

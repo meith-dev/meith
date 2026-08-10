@@ -18,38 +18,15 @@ import {
 
 export const metadata: Metadata = { title: 'Board settings' }
 
-/**
- * F64 — board settings.
- *
- * Generated entirely from F08's registry: this file names no setting, and the
- * navigation, the search and every control come from `SETTING_DEFINITIONS`.
- *
- * The filters are **links, not a scripted filter**. A group tab and the search
- * box are GET forms, so the state is in the URL — which means an operator can
- * bookmark "the posting settings", send somebody a link to the one they are
- * arguing about, and use the back button. A client-side filter would have none
- * of that and would need JavaScript for a screen that otherwise does not.
- */
 export default async function AdminSettingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ group?: string; q?: string; advanced?: string }>
 }) {
-  /* Re-run, because a layout is not a security boundary (see the ACP layout). */
   await requireAdmin()
 
   const query = await searchParams
 
-  /*
-   * A bare `/admin/settings` names the group it is about to show.
-   *
-   * The screen has always defaulted to the first group; the URL simply did not
-   * say so, which was invisible until the groups moved into the rail — an
-   * address with no `group=` lit nothing, so an operator arriving at Board
-   * settings saw the board's fields with no indication of which of the ten
-   * groups that was. Stating the default costs one redirect on the way in and
-   * makes every settings address bookmarkable as what it actually shows.
-   */
   if (query.group === undefined && query.q === undefined) {
     redirect(
       settingsHref({ group: DEFAULT_SETTING_GROUP, advanced: query.advanced === '1' }),
@@ -62,29 +39,11 @@ export default async function AdminSettingsPage({
     advanced: query.advanced === '1',
   })
 
-  /*
-   * The one setting on this screen that can be turned into an unusable board.
-   *
-   * Read on two groups rather than one. The registration group is where the
-   * dropdown that causes it lives, and the mail group is where it is fixed — and
-   * on the mail group it does more than warn: it carries the current transport
-   * and the test button, which are the two things an operator on that screen is
-   * there for. Every other tab skips the query, because the same alert beside
-   * the theme tokens would be noise, and F70's health view states it
-   * unconditionally.
-   */
   const mail =
     model.activeGroup === 'registration' || model.activeGroup === 'mail'
       ? await assessMailReadiness()
       : null
 
-  /*
-   * The board group's equivalent of the mail card's environment notice, and it
-   * exists for the same reason: `APP_URL` overrides `board.url`, so an operator
-   * editing that box while the variable is set would be editing a value the
-   * board never reads. A screen that accepts a change it will ignore is worse
-   * than one that has no box at all.
-   */
   const address = model.activeGroup === 'board' ? await boardUrlResolution() : null
 
   return (
@@ -98,19 +57,8 @@ export default async function AdminSettingsPage({
         </>
       }
     >
-      {/*
-        The two filters, together, in a bar that looks like one.
-
-        They used to be a search form, then a row of group chips, then a line of
-        muted prose carrying the advanced toggle as an underlined word. Only one
-        of those three is navigation — the groups, which are in the rail now —
-        and the other two are filters over the list below. Putting them in one
-        bounded row says that: this is what is narrowing what you are about to
-        read, and here is how to widen it.
-      */}
       <Card>
         <CardContent className="flex flex-wrap items-center gap-3 p-3">
-          {/* A GET form: the search term lands in the URL and is shareable. */}
           <form method="get" className="flex min-w-64 flex-1 items-center gap-2">
             <label className="flex-1">
               <span className="sr-only">Search settings</span>
@@ -127,15 +75,6 @@ export default async function AdminSettingsPage({
             </button>
           </form>
 
-          {/*
-            A link rather than a checkbox, because the state is in the URL and
-            has to survive with scripting off — a checkbox would need a submit
-            of its own, and a second submit button in a filter bar is a thing
-            operators press expecting it to save the form below.
-
-            It carries its own count so the offer is concrete: "Show 2 advanced"
-            rather than a standing invitation to a screen that may have none.
-          */}
           {(model.showAdvanced || model.hiddenAdvanced > 0) && (
             <a
               href={settingsHref({

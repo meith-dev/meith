@@ -1,21 +1,5 @@
 'use client'
 
-/**
- * The mail group's one control that is not a setting.
- *
- * Everything else on `/admin/settings` is generated from F08's registry, and
- * this deliberately is not: it does not store a value, it spends the board's
- * credentials against a third party, and its result is a fact about the world
- * rather than about the database. Generating it would mean the registry growing
- * a concept of "a setting that is a button", which is one setting's convenience
- * paid for by every other setting's definition.
- *
- * It is a separate `<form>` from the settings form below it, and has to be —
- * nested forms are not valid HTML, and a submit inside the settings form would
- * save the fields on its way past. The consequence is stated on the button:
- * **save first, then test**, because the test sends through what is stored.
- */
-
 import { useActionState } from 'react'
 
 import { sendTestMailAction } from '@/server/mail-test-actions'
@@ -26,11 +10,8 @@ export function MailTestCard({
   sends,
   fromEnvironment,
 }: {
-  /** `describeMailConfig` output. Names a host, never a credential. */
   summary: string
-  /** Whether a message sent right now would leave the board. */
   sends: boolean
-  /** `MAIL_DRIVER` is set, so the fields below this card are inert. */
   fromEnvironment: boolean
 }) {
   const [state, submit, pending] = useActionState<FormState, FormData>(

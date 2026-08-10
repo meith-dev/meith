@@ -2,18 +2,6 @@ import type { ThreadRowSlotModel } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-/**
- * One thread, as a table row.
- *
- * The state flags are **words**, not icons and not colours: "pinned", "locked",
- * "moved" are read by everybody, and a board where locked threads are only a
- * shade of red is a board where half the readers click reply on them.
- *
- * The F52 checkbox keeps its `form` attribute. That association by id is what
- * makes bulk moderation work with scripting off — the row cannot be inside the
- * moderation form, because the listing already contains a mark-read form and
- * nested forms are not a thing browsers parse.
- */
 export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
   return (
     <tr className="border-t border-border align-top odd:bg-card even:bg-muted/40">
@@ -63,7 +51,6 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
         ) : (
           <a href={thread.lastPost.href} className="hover:text-primary">
             <time dateTime={thread.lastPost.at.iso}>{thread.lastPost.at.label}</time>
-            {/* Not a link: this cell is already wrapped in one. */}
             <span className="block">
               by <UserRef user={thread.lastPost.author} linked={false} />
             </span>

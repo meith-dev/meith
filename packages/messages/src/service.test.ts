@@ -30,7 +30,6 @@ interface StoredCopy {
   readAt: Date | null
 }
 
-/** An in-memory store, so every rule below is tested without a database. */
 class FakeRepository implements MessageRepository {
   messages: PrivateMessage[] = []
   copies: StoredCopy[] = []
@@ -212,7 +211,6 @@ let repo: FakeRepository
 let service: MessageService
 let raised: Array<{ kind: string; userId: number }>
 let quotas: Map<number, { quota: number; canReceive: boolean }>
-/** F61's ignore list, as the app's policy supplies it: (owner, sender) pairs. */
 let blocked: Set<string>
 
 const NOW = new Date('2026-08-01T12:00:00Z')
@@ -314,8 +312,6 @@ describe('sending', () => {
   })
 
   it('treats one name twice as one recipient', async () => {
-    /* Kills the mutant that drops the dedupe: two copies for one owner is what
-       the unique index forbids, so this would be a failed send in production. */
     const id = await sendTo('bob, Bob, BOB')
     expect(repo.copies.filter((copy) => copy.messageId === id && copy.ownerUserId === BOB)).toHaveLength(1)
   })
@@ -365,10 +361,6 @@ describe('quota', () => {
   })
 
   it('sends nothing to anybody when one of several recipients is full', async () => {
-    /*
-     * All-or-nothing. Partial delivery would leave the sender with a Sent copy
-     * claiming a message went somewhere it did not.
-     */
     quotas.set(CAROL, { quota: 1, canReceive: true })
     repo.copies.push({
       id: 900,
@@ -384,8 +376,6 @@ describe('quota', () => {
   })
 
   it('treats quota 0 as unlimited, not as a store of zero', async () => {
-    /* Kills the mutant that writes `stored >= quota` without the 0 guard —
-       which would make every member on this board unable to send anything. */
     quotas.set(BOB, { quota: 0, canReceive: true })
     await expect(sendTo('bob')).resolves.toBeGreaterThan(0)
   })
@@ -418,11 +408,6 @@ describe('the ignore block (F61)', () => {
   })
 
   it('gives the same wording as a permission refusal, so it is not an oracle', async () => {
-    /*
-     * "bob is ignoring you" would make the send path a way to read somebody's
-     * ignore list, and a list that announces itself is one people stop using.
-     * Both refusals therefore say the same thing.
-     */
     blocked.add(`${BOB}:${IVAN}`)
     const ignoredMessage = await sendTo('bob').catch((err: Error) => err.message)
 
@@ -434,10 +419,6 @@ describe('the ignore block (F61)', () => {
   })
 
   it('is one-directional: the ignorer can still write to the ignored', async () => {
-    /*
-     * `(me, them)` is my opinion of them. Ignoring somebody is not a mutual
-     * silence, and a member who blocks somebody has not blocked themselves.
-     */
     blocked.add(`${BOB}:${IVAN}`)
 
     const id = await service.send({
@@ -504,10 +485,6 @@ describe('opening a message', () => {
   })
 
   it('hides a bcc recipient from the other recipients', async () => {
-    /*
-     * The leak this whole role column exists to prevent, and the one that is
-     * invisible until somebody notices they were named.
-     */
     const id = await sendTo('bob', { bcc: 'carol' })
 
     const asBob = await service.open({ messageId: id, userId: BOB })
@@ -527,10 +504,6 @@ describe('opening a message', () => {
 
 describe('folder actions', () => {
   it("acts only on the acting member's own copies", async () => {
-    /*
-     * The property that makes every bulk action safe: the ids come from a form
-     * anybody can post, and the scoping is in the query rather than in a check.
-     */
     const id = await sendTo('bob')
     const bobsCopy = repo.copies.find((copy) => copy.ownerUserId === BOB) as StoredCopy
 
@@ -553,7 +526,6 @@ describe('folder actions', () => {
     expect(await service.emptyTrash(BOB)).toBe(1)
     expect(repo.copies.some((c) => c.ownerUserId === BOB)).toBe(false)
 
-    /* The message survives, because the sender still holds a copy of it. */
     expect(repo.messages.some((m) => m.id === id)).toBe(true)
   })
 
@@ -590,11 +562,6 @@ describe('paging', () => {
 
 describe('reply and forward', () => {
   it('addresses a reply to the author only, never to the other recipients', async () => {
-    /*
-     * "Reply all" would let somebody who was bcc'd reveal themselves by
-     * accident, and a reply that quietly grows its audience is not what the
-     * button promises.
-     */
     const id = await sendTo('bob, carol')
     const draft = await service.replyDraft({ messageId: id, userId: BOB })
 
@@ -628,8 +595,6 @@ describe('reply and forward', () => {
 
     expect(draft.to).toBe('')
     expect(draft.subject).toBe('Fw: Hello')
-    /* Null: a forward starts a new conversation with people who hold no copy
-       of the parent, so threading it onto the original would dangle. */
     expect(draft.replyToId).toBeNull()
   })
 
@@ -643,11 +608,6 @@ describe('reply and forward', () => {
 
 describe('reporting', () => {
   it('reads a message for a report without any ownership requirement', async () => {
-    /*
-     * The one read on this board that returns a private message to somebody who
-     * holds no copy. It exists so a moderator can act on what was reported, and
-     * it takes an id rather than a query — there is no listing behind it.
-     */
     const id = await sendTo('bob')
     const message = await service.forReport(id)
     expect(message?.subject).toBe('Hello')

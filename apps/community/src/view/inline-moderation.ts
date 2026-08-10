@@ -1,24 +1,8 @@
-/**
- * F52's view layer: which rows get a checkbox, and what it says.
- *
- * Pure, and separate from the page for the reason every view model here is —
- * the decision "should this row be selectable" is worth testing without a
- * database, a request, or a theme.
- */
 import type { InlineTool } from '@meith/moderation'
 import type { SelectionModel } from '@meith/theme-kit'
 
-/**
- * The id the checkboxes point at.
- *
- * One constant rather than a prop threaded through two pages: the value has to
- * match between the `form` attribute on every checkbox and the `id` on the bar,
- * and a mismatch is silent — the boxes simply stop being submitted, and the
- * moderator sees "Select at least one item" while looking at twelve ticks.
- */
 export const INLINE_FORM_ID = 'inline-moderation'
 
-/** Which tools this viewer may offer at all. Empty means no bar and no boxes. */
 export interface InlineToolAvailability {
   readonly approve: boolean
   readonly lock: boolean
@@ -45,13 +29,6 @@ export function anyInlineTool(available: InlineToolAvailability): boolean {
   )
 }
 
-/**
- * The checkbox for one row, or `null`.
- *
- * The label is the row's own title because a screen-reader user tabbing a
- * listing of forty threads gets forty controls announced, and "checkbox" forty
- * times is not a listing they can moderate.
- */
 export function selectionFor(
   kind: 'thread' | 'post',
   id: number,
@@ -67,13 +44,6 @@ export function selectionFor(
   }
 }
 
-/**
- * What the bar reports after a submission, assembled from the query string.
- *
- * Four numbers rather than "done", for F48's reason: a moderator who ticked
- * twelve boxes and moved nine has to be told, or the screen and the board
- * disagree about what just happened and only one of them is right.
- */
 export function inlineOutcomeNotice(query: {
   readonly did?: string | undefined
   readonly n?: string | undefined

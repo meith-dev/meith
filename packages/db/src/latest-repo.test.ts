@@ -1,14 +1,3 @@
-/**
- * The index sidebar's two lists, against real Postgres.
- *
- * Three claims carry the feature, and each of them is a leak if it is wrong:
- *
- *  - **the forum scope is in the query**, and an empty scope means nothing
- *    rather than everything;
- *  - **a post is hidden when its thread is**, not only when the post itself is —
- *    the panel joins two tables and either one can be the removed thing;
- *  - **newest first**, which is the only reason anybody looks at the panel.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -128,11 +117,6 @@ describe('the permission filter', () => {
   })
 
   it('hides a visible post whose thread was removed', async () => {
-    /*
-     * The claim the join exists for. Kills the mutant that checks only
-     * `p.visibility` — under which deleting a thread leaves its replies on the
-     * front page, with a link, an author and an excerpt of what was said.
-     */
     await seedThread({ id: 1, visibility: 'deleted' })
     await seedPost({ id: 1, threadId: 1, visibility: 'visible' })
 
@@ -188,11 +172,6 @@ describe('the rows a panel renders from', () => {
       forumTitle: 'Open',
       authorUsername: 'ann',
     })
-    /*
-     * Asserting the cut happened rather than its exact size: the point is that
-     * a pasted stack trace does not cross the wire to be thrown away, and the
-     * budget is free to change without this test having an opinion.
-     */
     expect(row!.messageSource.length).toBeLessThan(1000)
   })
 })

@@ -1,14 +1,3 @@
-/**
- * F57 — the member's own settings, over in-memory ports.
- *
- * Two groups of test, and they are not equally important.
- *
- * The profile and options ones check validation. The password and e-mail ones
- * check the things that make this feature safe to ship: that neither dangerous
- * change happens without the current password, that a password change revokes
- * every session, and that an e-mail address does not move until somebody proves
- * they can read mail at the new one.
- */
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { hashPassword } from './crypto/password'
@@ -41,7 +30,6 @@ class MemorySettings implements MemberSettingsRepository {
     website: null,
     bio: null,
   }
-  /** Set to refuse an adoption, as a unique-index collision would. */
   emailTaken = false
   readonly adopted: Array<{ userId: number; email: string }> = []
 
@@ -74,11 +62,9 @@ class MemorySettings implements MemberSettingsRepository {
 
 class MemoryAccounts implements AccountRepository {
   account: AccountRecord | null = null
-  /** F61's activity writer. Never exercised here; present to satisfy the port. */
   async touchLastActive(): Promise<boolean> {
     return false
   }
-  /** Another account, for the "address already in use" path. */
   otherEmailLower: string | null = null
   readonly passwords: Array<{ userId: number; hash: string }> = []
 
@@ -100,7 +86,6 @@ class MemoryAccounts implements AccountRepository {
     this.passwords.push({ userId, hash: passwordHash })
   }
   async setState() {}
-  /** F18's activation writer. Never exercised here; present to satisfy the port. */
   async markEmailVerified(): Promise<null> {
     return null
   }
@@ -115,7 +100,6 @@ class MemorySessions {
 
 class MemoryTokens {
   readonly issued: Array<{ userId: number; purpose: string; payload: string | null }> = []
-  /** What `consume` returns; null means spent, expired or never existed. */
   redeemable: { userId: number; payload: string | null } | null = null
 
   async issue(input: {
@@ -133,7 +117,6 @@ class MemoryTokens {
   }
   async consume() {
     const value = this.redeemable
-    /* Single-use is a property of this method (F19). */
     this.redeemable = null
     return value
   }
@@ -184,7 +167,6 @@ describe('the profile', () => {
     })
 
     expect(settings.row.location).toBe('Cambridge')
-    /* Empty means absent, not an empty string a profile would render a row for. */
     expect(settings.row.website).toBeNull()
     expect(settings.row.bio).toBe('Hello.')
   })
@@ -195,11 +177,6 @@ describe('the profile', () => {
   })
 
   it('refuses a javascript: URL', async () => {
-    /*
-     * The oldest stored-XSS vector there is: a profile field rendered as a link
-     * is an attacker-controlled `href`. F36 makes the same argument about
-     * `[url]`.
-     */
     await expect(
       service.saveProfile({ userId: 7, location: '', website: 'javascript:alert(1)', bio: '' }),
     ).rejects.toThrow('http://')
@@ -224,11 +201,6 @@ describe('the options', () => {
   })
 
   it('refuses a timezone the runtime does not know', async () => {
-    /*
-     * A stored zone `Intl` cannot resolve would throw on every page render for
-     * that member, so it is refused on the way in rather than defended against
-     * on every read.
-     */
     await expect(
       service.saveOptions({
         userId: 7,
@@ -258,8 +230,6 @@ describe('the options', () => {
       threadsPerPage: '  ', invisible: false,
     })
 
-    /* Null, not the board's current number — which would freeze this member at
-     * whatever it happened to be today. */
     expect(settings.row.postsPerPage).toBeNull()
     expect(settings.row.threadsPerPage).toBeNull()
   })
@@ -301,11 +271,6 @@ describe('changing the password', () => {
     })
 
     expect(accounts.passwords).toHaveLength(1)
-    /*
-     * The whole point: a password change is what somebody does when they think
-     * an account is compromised, and one that leaves the attacker's session
-     * alive has done nothing.
-     */
     expect(sessions.revoked).toEqual([7])
   }, 20_000)
 
@@ -354,7 +319,6 @@ describe('changing the e-mail address', () => {
     })
 
     expect(pending.email).toBe('new@example.test')
-    /* The address travels in the token's payload, not in `users`. */
     expect(tokens.issued).toEqual([
       { userId: 7, purpose: 'email_change', payload: 'new@example.test' },
     ])
@@ -426,10 +390,6 @@ describe('changing the e-mail address', () => {
     tokens.redeemable = { userId: 7, payload: 'new@example.test' }
     settings.emailTaken = true
 
-    /*
-     * An hour can pass between asking and confirming. The unique index is the
-     * arbiter, and a `false` from it is a legible failure rather than a crash.
-     */
     expect(await service.confirmEmailChange('a-token')).toBeNull()
   })
 })

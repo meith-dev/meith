@@ -1,9 +1,3 @@
-/**
- * The seeder's contract is determinism. If the same seed produced different
- * boards, every budget and performance assertion built on it would be a coin
- * flip — and the first three green runs would teach everyone to re-run a
- * failure rather than read it.
- */
 import { schema } from '@meith/db'
 import { eq } from 'drizzle-orm'
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
@@ -49,10 +43,6 @@ describe('seedBoard', () => {
     expect(firsts).toHaveLength(SMOKE_SCALE.threads)
   })
 
-  /*
-   * A flat board would let a broken ancestor walk pass every test, so the
-   * seeder deliberately nests about a quarter of forums under another forum.
-   */
   it('produces a genuinely nested tree, not a flat one', async () => {
     const forums = await harness.db
       .select({ depth: schema.forums.depth, path: schema.forums.path })
@@ -61,7 +51,6 @@ describe('seedBoard', () => {
     const maxDepth = Math.max(...forums.map((f) => f.depth))
     expect(maxDepth).toBeGreaterThanOrEqual(2)
 
-    // Every path is well formed: dot-separated positive ids, no empty segments.
     for (const forum of forums) {
       expect(forum.path).toMatch(/^\d+(\.\d+)*$/)
     }
@@ -82,7 +71,6 @@ describe('seedBoard', () => {
       .select({ forumId: schema.threads.forumId })
       .from(schema.threads)
 
-    // One forum holding everything would hide any per-forum query cost.
     expect(new Set(threads.map((t) => t.forumId)).size).toBeGreaterThan(1)
   })
 
@@ -102,8 +90,6 @@ describe('seedBoard', () => {
             .orderBy(schema.threads.id)
         ).map((t) => `${t.sticky ? '*' : ''}${t.title}`)
 
-      // Titles *and* stickiness: both come from the PRNG, so this catches a
-      // drift in the sequence that row counts alone would not.
       expect(await titlesOf(second)).toEqual(await titlesOf(harness))
     } finally {
       await second.close()
@@ -125,7 +111,6 @@ describe('seedBoard', () => {
         .orderBy(schema.threads.id)
         .limit(1)
 
-      // Otherwise the seed parameter is decorative and no one would notice.
       expect(a?.title).not.toBe(b?.title)
     } finally {
       await other.close()

@@ -1,18 +1,5 @@
 "use client"
 
-/**
- * F55's three forms.
- *
- * Client components only for `useActionState`, like every other form on the
- * board. All three work with scripting off: native submit buttons posting to a
- * Server Action, and a redirect back to the screen carrying the outcome.
- *
- * The per-row "mark read" is a form rather than a link on purpose. Marking
- * something read is a state change, and a GET that mutates gets fired by every
- * prefetcher, link scanner and mail-client image proxy that touches the page —
- * which would quietly mark a member's notifications read without them ever
- * opening one.
- */
 import { useActionState } from "react"
 
 import {
@@ -47,7 +34,6 @@ export function MarkNotificationReadForm({ notificationId }: { notificationId: n
 export function MarkAllNotificationsReadForm({ unread }: { unread: number }) {
   const [state, action] = useActionState(markAllNotificationsReadAction, EMPTY_STATE)
 
-  /* Nothing to mark: the control is absent rather than disabled. */
   if (unread === 0) return null
 
   return (
@@ -67,14 +53,6 @@ export interface PreferenceRow {
   readonly email: boolean
 }
 
-/**
- * The preferences form.
- *
- * Every checkbox is named `email` and carries its kind as the *value*, so the
- * submission is a list of the kinds that are on. An unchecked box submits
- * nothing at all — which is why the server reconstructs the off half from the
- * registry rather than reading it from here.
- */
 export function NotificationPreferencesForm({ rows }: { rows: readonly PreferenceRow[] }) {
   const [state, action] = useActionState(saveNotificationPreferencesAction, EMPTY_STATE)
 

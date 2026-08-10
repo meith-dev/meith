@@ -40,12 +40,6 @@ describe('signing', () => {
     expect(signPayload(SECRET, AT, `${BODY} `)).not.toBe(base)
   })
 
-  /*
-   * The timestamp is *inside* the signed material, which is the whole replay
-   * story: an attacker replaying a captured delivery cannot move it forward
-   * without invalidating the signature, and cannot leave it where it is without
-   * failing the freshness check.
-   */
   it('signs the timestamp, not merely sends it', () => {
     const forged = signPayload(SECRET, AT, BODY)
     expect(verifySignature(SECRET, AT + 10_000, BODY, forged, AT + 10_000)).toBe(false)
@@ -64,7 +58,6 @@ describe('verifying, as a receiver would', () => {
     expect(verifySignature(SECRET, AT, BODY, signature, AT + 299)).toBe(true)
   })
 
-  /* Clock skew runs both ways; a receiver slightly behind must still accept. */
   it('rejects a delivery too far in the future', () => {
     const signature = signPayload(SECRET, AT, BODY)
     expect(verifySignature(SECRET, AT, BODY, signature, AT - 301)).toBe(false)
@@ -94,11 +87,6 @@ describe('delivery headers', () => {
     expect(headers[SIGNATURE_HEADER]).toBe(signPayload(SECRET, AT, BODY))
   })
 
-  /*
-   * The delivery id is stable across retries, which is what makes a receiver's
-   * idempotency possible at all. A fresh id per attempt turns "we retried" into
-   * "we sent two events", and duplicate suppression becomes impossible to write.
-   */
   it('keeps the delivery id when the same delivery is re-sent', () => {
     const retry = deliveryHeaders(
       subscription,
@@ -107,7 +95,6 @@ describe('delivery headers', () => {
       BODY,
     )
     expect(retry[DELIVERY_HEADER]).toBe(headers[DELIVERY_HEADER])
-    /* …while the signature legitimately changes, because the timestamp did. */
     expect(retry[SIGNATURE_HEADER]).not.toBe(headers[SIGNATURE_HEADER])
   })
 
@@ -117,7 +104,6 @@ describe('delivery headers', () => {
 })
 
 describe('retry schedule', () => {
-  /* Randomness injected, so the bounds are assertable rather than assumed. */
   const noJitter = () => 0.5
 
   it('doubles from thirty seconds', () => {
@@ -135,11 +121,6 @@ describe('retry schedule', () => {
     expect(nextRetryDelaySeconds(MAX_ATTEMPTS + 1, noJitter)).toBeNull()
   })
 
-  /*
-   * The jitter is not decoration. A subscriber going down takes every pending
-   * delivery with it, and a fixed schedule brings all of them back at the same
-   * instant — a thundering herd aimed at a server that is already unwell.
-   */
   it('spreads retries either side of the base delay', () => {
     expect(nextRetryDelaySeconds(2, () => 0)).toBe(45)
     expect(nextRetryDelaySeconds(2, () => 1)).toBe(75)
@@ -155,10 +136,6 @@ describe('what counts as delivered', () => {
     expect(verdictFor(status, 1)).toBe('retry')
   })
 
-  /*
-   * 410 Gone is the receiver saying the endpoint is finished. Hammering it six
-   * times over an hour to hear the same answer helps nobody.
-   */
   it('stops immediately on 410 Gone', () => {
     expect(verdictFor(410, 1)).toBe('dead')
   })
@@ -174,11 +151,6 @@ describe('topics', () => {
     expect(isWebhookTopic('view.post-bit')).toBe(false)
   })
 
-  /*
-   * Deliberately not the plugin hook registry. A hook is an in-process
-   * extension point that moves as the board is built; a webhook topic is a
-   * contract with somebody else's software and moves at a different speed.
-   */
   it('is a short list, not a mirror of the hook registry', () => {
     expect(WEBHOOK_TOPICS.length).toBeLessThan(12)
   })

@@ -1,80 +1,28 @@
-/**
- * F06 — the built-in catch-up tasks.
- *
- * Each takes its dependencies as arguments so the same definition can run
- * against Postgres or the fixture. Note none of them look at the wall clock to
- * decide *what* to do — they read outstanding state, which is what makes a
- * skipped or doubled tick harmless.
- */
-
 import type { TaskDefinition } from './types'
 
-/** Work each task delegates to. Implemented in the app layer over @meith/db. */
 export interface TaskWorkers {
-  /** Moves committed outbox rows onto the queue. Returns rows relayed. */
   relayOutbox(batchSize: number): Promise<number>
-  /**
-   * F81 — sends claimed webhook deliveries to their subscribers.
-   *
-   * The only worker that makes an outbound request to somebody else's server,
-   * which is why its task carries a longer `maxDurationSeconds` than the work
-   * suggests: the bound is a slow receiver, not the database.
-   */
   deliverWebhooks(batchSize: number): Promise<{
     readonly attempted: number
     readonly delivered: number
     readonly retried: number
     readonly dead: number
   }>
-  /** Runs due queue jobs. Returns jobs processed. */
   drainQueue(batchSize: number): Promise<number>
-  /** Deletes sessions idle past the configured timeout. Returns rows removed. */
   pruneSessions(): Promise<number>
-  /** Clears expired activation/reset tokens. Returns rows removed. */
   pruneExpiredTokens(): Promise<number>
-  /**
-   * F46 — drops rate-limit windows nobody will read again. Returns rows removed.
-   *
-   * This table grows with *traffic* rather than with content, so on a busy
-   * board it is the fastest-growing thing in the schema — and it is pure
-   * bookkeeping, so none of it is worth keeping once its window has passed.
-   */
   pruneRateLimits(): Promise<number>
-  /** Recomputes drifted forum/thread counters. Returns rows corrected. */
   reconcileCounters(batchSize: number): Promise<number>
-  /** Folds buffered thread views into `threads.view_count`. Returns threads updated. */
   flushThreadViews(batchSize: number): Promise<number>
-  /** Re-renders posts left on an older renderer, converting any still on BBCode. */
   backfillPostRenders(batchSize: number): Promise<number>
-  /** Builds F72's search document for posts that have none, or an out-of-date one. */
   reindexSearch(batchSize: number): Promise<number>
-  /** Promotes users who now meet a promotion rule. Returns users moved. */
   applyPromotions(batchSize: number): Promise<number>
-  /** Lifts bans whose expiry has passed, restoring each user's prior group. */
   expireBans(batchSize: number): Promise<number>
-  /**
-   * Lapses warnings whose expiry has passed and re-evaluates the members they
-   * belonged to. Returns warnings lapsed.
-   */
   expireWarnings(batchSize: number): Promise<number>
-  /**
-   * Tells members who follow a thread or forum "as it happens" about posts they
-   * have not been told about. Returns members notified.
-   */
   notifySubscribers(batchSize: number): Promise<number>
-  /** Sends the daily and weekly digests that are due. Returns members notified. */
   sendDigests(batchSize: number): Promise<number>
-  /**
-   * Deletes stored objects nothing owns and fails uploads whose processing
-   * never finished. Returns the two counts.
-   */
   sweepAttachments(batchSize: number): Promise<{ deleted: number; failed: number }>
-  /** Fails avatar uploads whose re-encode never finished. Returns the count. */
   sweepAvatars(batchSize: number): Promise<number>
-  /**
-   * Recomputes the board's totals and raises the online record if the current
-   * count has beaten it. Returns both, for the run log.
-   */
   rollUpStatistics(): Promise<{ memberCount: number; online: number; record: boolean }>
 }
 
@@ -101,19 +49,7 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       description:
         'Sends pending webhook deliveries to their subscribers, then records ' +
         'each verdict: delivered, retried with backoff, or dead-lettered.',
-      /*
-       * A minute, matching the queue drain. A webhook is somebody else's
-       * integration reacting to a post, and a slower cadence would make the
-       * board feel broken to the subscriber rather than merely delayed.
-       */
       intervalSeconds: 60,
-      /*
-       * Longer than the work implies, because the bound here is a *subscriber*
-       * and not the database: twenty deliveries to endpoints that each take the
-       * full ten-second request timeout is over three minutes of wall clock,
-       * and a run killed mid-batch leaves rows claimed with their attempt
-       * already counted.
-       */
       maxDurationSeconds: 240,
       async run() {
         const result = await workers.deliverWebhooks(20)
@@ -200,11 +136,6 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         'the write path so a busy thread does not rewrite the row behind the ' +
         'listing index on every page view; this is where they land. Bounded, ' +
         'and a skipped run only delays the numbers.',
-      /*
-       * Five minutes is a view count being wrong by at most five minutes, which
-       * nobody can observe, against one `threads` update per thread per five
-       * minutes instead of one per reader.
-       */
       intervalSeconds: 300,
       maxDurationSeconds: 30,
       async run() {
@@ -222,12 +153,6 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         'is rendered live on read, so this never gates correctness — it stops a renderer ' +
         'change, or an import that wrote none, from making every thread page ' +
         'pay for it. Idempotent, and its own progress marker is the row.',
-      /*
-       * Ten minutes. The work only exists after a deploy that bumps the
-       * renderer version or an import, so on a settled board this is a query
-       * that finds nothing — one index seek, which is why it can afford to ask
-       * often enough that a version bump is caught up within the hour.
-       */
       intervalSeconds: 600,
       maxDurationSeconds: 45,
       async run() {
@@ -244,18 +169,6 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         'indexed under an older definition of it. The write path indexes every post ' +
         'it creates, so this is only ever a catch-up: an import, a seeded board, a ' +
         'board adopting search, or a release that changed what the document holds.',
-      /*
-       * This is the difference between a board whose search works and one whose
-       * search silently answers nothing, which is the failure the CLI's
-       * `search:reindex` was written to make routine — and a fix that an
-       * operator has to know to run is not a fix for the person who reported
-       * that search is broken. So the tick does it.
-       *
-       * Ten minutes, matching `posts.render_backfill`, and for the same reason:
-       * the work only exists after an import or a release that moved the
-       * document, so on a settled board this is one index seek that finds
-       * nothing. `posts_search_version_idx` is what makes that true.
-       */
       intervalSeconds: 600,
       maxDurationSeconds: 45,
       async run() {
@@ -287,12 +200,6 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         'they held when banned. Acts on outstanding state rather than on what ' +
         'expired since the last run, so a skipped day costs a delay and nothing ' +
         'else, and a doubled tick lifts nothing twice.',
-      /*
-       * Every fifteen minutes rather than hourly: a ban is a *punishment with a
-       * stated end*, and a user still locked out an hour after their ban expired
-       * reasonably concludes it did not work. Cheap — the query is an index scan
-       * over unlifted bans with a past expiry, which is almost always empty.
-       */
       intervalSeconds: 900,
       maxDurationSeconds: 30,
       async run() {
@@ -312,13 +219,6 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         'excludes an expired row, so this corrects the cache rather than ' +
         'creating truth: a board whose tick has been down still reports honest ' +
         'totals the moment anything recalculates.',
-      /*
-       * Hourly rather than every fifteen minutes, unlike `bans.expire`. A ban
-       * is a lockout with a stated end and an hour of overrun is a complaint; a
-       * warning expiring is a restriction quietly lifting, and nobody is
-       * sitting watching the clock for it. The query is an index scan over
-       * unrevoked warnings with a past expiry, which is almost always empty.
-       */
       intervalSeconds: 3_600,
       maxDurationSeconds: 60,
       async run() {
@@ -377,12 +277,6 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         'bucket listing anywhere else. Purely subtractive, and bounded by a ' +
         'grace period, so an upload in flight is never collected out from ' +
         'under itself.',
-      /*
-       * Hourly. Every candidate is already older than the grace period by the
-       * time it qualifies, so asking more often finds the same nothing; and the
-       * cost of a delay is storage, which is the cheapest thing to be wrong
-       * about.
-       */
       intervalSeconds: 3_600,
       maxDurationSeconds: 60,
       async run() {
@@ -421,34 +315,16 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         'minutes old is honest rather than wrong. Writes a computed truth, not ' +
         'a delta, so a skipped tick costs freshness and a doubled one costs ' +
         'nothing.',
-      /*
-       * Five minutes, matching `views.flush`: the two numbers most visible to a
-       * member are a thread's view count and the board's post count, and having
-       * them drift by different amounts is more confusing than either being
-       * five minutes old.
-       *
-       * The record is the reason this is not slower. It samples the concurrent
-       * count, so the interval is the resolution of "most ever online" — an
-       * hourly task would miss any peak that did not last an hour, which is
-       * every peak worth recording.
-       */
       intervalSeconds: 300,
       maxDurationSeconds: 30,
       async run() {
         const { memberCount, online, record } = await workers.rollUpStatistics()
-        /* `record` is a boolean and the run log holds strings and numbers; 1
-           and 0 read fine in a detail column and sort. */
         return { detail: { memberCount, online, record: record ? 1 : 0 } }
       },
     },
   ]
 }
 
-/**
- * Which worker each task needs.
- *
- * A task is only registered when its worker is supplied — see `builtinTasks`.
- */
 const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'outbox.relay': 'relayOutbox',
   'webhooks.deliver': 'deliverWebhooks',
@@ -470,24 +346,6 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'stats.rollup': 'rollUpStatistics',
 }
 
-/**
- * The built-in tasks whose workers actually exist.
- *
- * Takes a *partial* worker set and registers only what can run. A worker whose
- * feature does not exist yet is simply absent, and the alternatives are both
- * worse than filtering:
- *
- *  - a stub returning 0 pretends work happened, and the tick would report a
- *    healthy run of a task that does nothing;
- *  - a stub that throws makes every tick log a failure and eventually raises an
- *    admin notification for a task nobody asked for.
- *
- * Not registering it means `tasks` holds no row for it, System Health does not
- * list it, and the day its worker exists it appears on its own — which is how
- * `counters.reconcile` and `outbox.relay` arrived with F38. This is the same
- * rule the operator CLI follows by omitting commands it cannot honour: never
- * advertise a capability that is not there.
- */
 export function builtinTasks(workers: Partial<TaskWorkers>): TaskDefinition[] {
   const supplied = workers as TaskWorkers
   return allDefinitions(supplied).filter(

@@ -26,19 +26,11 @@ describe('matchBanFilter', () => {
     expect(matchBanFilter([filter('username', 'bot?')], { username: 'bot42' })).toBeNull()
   })
 
-  /*
-   * Unanchored, `spam` would match `notspam@example.com` and ban people the
-   * admin never named. Anchoring is what keeps a filter meaning what it says.
-   */
   it('anchors at both ends', () => {
     expect(matchBanFilter([filter('username', 'spam')], { username: 'notspammer' })).toBeNull()
     expect(matchBanFilter([filter('email', 'a@b.example')], { email: 'xa@b.example' })).toBeNull()
   })
 
-  /*
-   * An unescaped `.` is a regex wildcard, so `*@spam.example` would also match
-   * `*@spamXexample` — a silently wider ban than the admin typed.
-   */
   it('treats regex metacharacters literally', () => {
     expect(matchBanFilter([filter('email', '*@spam.example')], { email: 'a@spamXexample' })).toBeNull()
     expect(matchBanFilter([filter('username', 'a+b')], { username: 'a+b' })).not.toBeNull()
@@ -47,7 +39,6 @@ describe('matchBanFilter', () => {
   })
 
   it('does not let a pattern escape into a real regex', () => {
-    // `.*` as a literal must match only the literal characters.
     expect(matchBanFilter([filter('username', '.*')], { username: 'anything' })).toBeNull()
     expect(matchBanFilter([filter('username', '.*')], { username: '.*' })).not.toBeNull()
   })
@@ -58,12 +49,10 @@ describe('matchBanFilter', () => {
   })
 
   it('only tests a filter against its own field', () => {
-    // A username filter must not fire because the email happens to match.
     expect(matchBanFilter([filter('username', '*@spam.example')], { email: 'a@spam.example' })).toBeNull()
   })
 
   it('skips fields the caller did not supply', () => {
-    // No IP available (a CLI registration) must not throw or match.
     expect(matchBanFilter([filter('ip', '192.0.2.*')], { username: 'someone' })).toBeNull()
   })
 
@@ -91,10 +80,6 @@ describe('assertUsableFilter', () => {
     expect(() => assertUsableFilter('username', '   ')).toThrow(ValidationError)
   })
 
-  /*
-   * `*` matches every value of its type, which locks the whole board out of
-   * registration or login — including the administrator who typed it.
-   */
   it('rejects a pattern that would match everyone', () => {
     expect(() => assertUsableFilter('username', '*')).toThrow(/lock everyone out/)
     expect(() => assertUsableFilter('email', '***')).toThrow(/lock everyone out/)

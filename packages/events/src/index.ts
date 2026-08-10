@@ -1,5 +1,3 @@
-/** F07 — domain events, transactional outbox, and the relay. */
-
 export type {
   DomainEvent,
   DomainEventMap,

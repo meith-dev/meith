@@ -1,4 +1,3 @@
-/** F41 — the edit and delete rules, without a database in sight. */
 import { describe, expect, it } from 'vitest'
 import { ValidationError } from '@meith/core'
 
@@ -107,11 +106,6 @@ describe('PostEditor.edit', () => {
     expect(posts.edits[0]!.reason).toBeNull()
   })
 
-  /*
-   * A revision recording no change is noise in the history the next moderator
-   * reads, and an edit notice on a post nobody edited is a false accusation in
-   * public. Both are avoided by writing nothing at all.
-   */
   it('writes nothing when the body is unchanged', async () => {
     const posts = new RecordingPosts()
     const result = await editor(posts).edit(
@@ -145,7 +139,6 @@ describe('PostEditor.edit', () => {
       expect(posts.edits).toHaveLength(1)
     })
 
-    /* R4.2: 0 is unlimited for every numeric, and beats every other value. */
     it('treats zero as unlimited', async () => {
       const posts = new RecordingPosts()
       await editor(posts).edit(
@@ -156,11 +149,6 @@ describe('PostEditor.edit', () => {
       expect(posts.edits).toHaveLength(1)
     })
 
-    /*
-     * A moderator fixing a two-year-old post is not the person the window is
-     * aimed at. Both spellings of "not my post" have to work: the bypass, and
-     * simply not being the author.
-     */
     it('does not apply to someone editing another member"s post', async () => {
       const posts = new RecordingPosts()
       await editor(posts).edit(
@@ -241,11 +229,6 @@ describe('PostEditor.edit', () => {
       expect(posts.edits[0]!.toVisibility).toBe('visible')
     })
 
-    /*
-     * An already-unapproved post is not sent back to a queue it is already in.
-     * Writing `unapproved → unapproved` as a transition would make the counter
-     * path subtract a post that was never counted.
-     */
     it('leaves an already-unapproved post where it is', async () => {
       const posts = new RecordingPosts()
       const result = await editor(posts).edit(
@@ -271,12 +254,6 @@ describe('PostEditor.softDelete', () => {
     expect(posts.moves[0]).toMatchObject({ from: 'visible', to: 'deleted', actedByUserId: 7 })
   })
 
-  /*
-   * The opening post is the thread. Deleting it silently would be a member
-   * clicking "delete my post" and removing everybody else's replies with it;
-   * deleting only the post would leave a thread with a title, a reply count and
-   * nothing to read. Refusing and saying why is the third option.
-   */
   it('refuses the opening post and says what to do instead', async () => {
     const posts = new RecordingPosts()
     await expect(
@@ -308,7 +285,6 @@ describe('PostEditor.softDelete', () => {
     expect(posts.moves).toHaveLength(1)
   })
 
-  /* A double submit is not an error: the row simply was not in `from`. */
   it('reports an unapplied move rather than throwing', async () => {
     const posts = new RecordingPosts(false)
     const result = await editor(posts).softDelete(7, target(), { bypassesLock: false })

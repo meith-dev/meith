@@ -1,19 +1,3 @@
-/**
- * F52 — inline moderation against real Postgres.
- *
- * The transitions are F41's, F48's and F50's, so what is worth proving here is
- * not that deleting a thread decrements a counter — three other files already
- * do that — but the three things that are new when it happens in bulk:
- *
- *   1. **Every affected row still moves.** A set-based flag update and a
- *      per-row counter walk have to reach the same answer as doing them one at
- *      a time, on the forum, on its ancestors and on every author.
- *   2. **The state guard survives the batch.** Re-submitting a chunk that
- *      already ran moves nothing and logs nothing, which is what makes a
- *      part-finished bulk action safe to retry.
- *   3. **The scope on `resolve` is real.** A row outside it must come back
- *      absent, not forbidden.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -80,12 +64,10 @@ beforeEach(async () => {
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
     { id: LEFT, title: 'Left', slug: 'left', path: '1.4', depth: 1, parentId: CATEGORY },
     { id: RIGHT, title: 'Right', slug: 'right', path: '1.5', depth: 1, parentId: CATEGORY },
-    /* Deliberately outside the category, so a scope can exclude a whole subtree. */
     { id: OTHER, type: 'category', title: 'Elsewhere', slug: 'elsewhere', path: '7', depth: 0 },
   ])
 })
 
-/** A thread with an opening post by Ada and one reply by Bob. */
 async function seedThread(
   options: {
     forumId?: number
@@ -189,7 +171,6 @@ describe('resolve', () => {
     )
   })
 
-  /* The security boundary: outside the scope is *absent*, never forbidden. */
   it('omits a row outside the scope entirely', async () => {
     const left = await seedThread({ forumId: LEFT, title: 'Left thread' })
     const right = await seedThread({ forumId: RIGHT, title: 'Right thread' })
@@ -284,11 +265,6 @@ describe('bulk delete and restore', () => {
     expect(await userCounts(BOB)).toEqual(before.bob)
   })
 
-  /*
-   * The property that makes chunking safe: a chunk that already ran does
-   * nothing the second time, so a bulk action killed halfway through can simply
-   * be re-submitted.
-   */
   it('is a no-op the second time, and writes no second audit row', async () => {
     const { threadId } = await seedThread()
 
@@ -372,7 +348,6 @@ describe('bulk approve', () => {
     expect(applied).toBe(1)
     expect(await threadVisibility(threadId)).toBe('visible')
     expect(await postVisibility(postIds[0]!)).toBe('visible')
-    /* The held *reply* is its own decision and is deliberately untouched. */
     expect(await postVisibility(postIds[1]!)).toBe('unapproved')
     expect(await forumCounts(LEFT)).toEqual({ posts: 1, threads: 1 })
     expect(await userCounts(ADA)).toEqual({ posts: 1, threads: 1 })
@@ -423,7 +398,6 @@ describe('bulk lock and pin', () => {
     expect(await auditActions()).toEqual(['inline.lock'])
   })
 
-  /* `<>` in the WHERE: an audit row that records an act that did not happen. */
   it('counts only the threads whose flag actually changed', async () => {
     const first = await seedThread({ title: 'First' })
     const second = await seedThread({ title: 'Second' })
@@ -485,9 +459,7 @@ describe('bulk move', () => {
     expect(applied).toBe(2)
     expect(await forumCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
     expect(await forumCounts(RIGHT)).toEqual({ posts: 4, threads: 2 })
-    /* The category holds both, so a move between its children changes nothing. */
     expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
-    /* And a move never changes how much anybody wrote (F51). */
     expect(await userCounts(ADA)).toEqual({ posts: 2, threads: 2 })
   })
 

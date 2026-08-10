@@ -1,8 +1,6 @@
-/** F32's per-member watermarks. Guests never have read state. */
 export interface ReadState {
   readonly forumReadAt: ReadonlyMap<number, Date>
   readonly threadLastPostId: ReadonlyMap<number, number>
-  /** Forums containing at least one visible unread thread. */
   readonly unreadForumIds: ReadonlySet<number>
 }
 

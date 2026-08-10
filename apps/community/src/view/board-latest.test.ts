@@ -1,16 +1,3 @@
-/**
- * The index sidebar's view models.
- *
- * Four things are worth pinning here, and each of them is a bug somebody would
- * only find on a real board:
- *
- *  - the **post permalink** carries both the query and the fragment, because
- *    the fragment alone lands on page one of a long thread and does nothing;
- *  - a **deleted author** still renders a name, with no link;
- *  - the excerpt is the post's **text**, not its Markdown, and not its HTML;
- *  - `capturedAt` is the render's own clock, which is the only thing on a panel
- *    that refreshes itself saying whether it still is.
- */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -65,11 +52,6 @@ describe('buildLatestThreadsModel', () => {
   })
 
   it('keeps the name of a deleted author, with nowhere to click', () => {
-    /*
-     * `UserRefModel` has carried a null `userId` since F29 and every listing on
-     * the board renders the name anyway. Kills the mutant that builds
-     * `/member/null`, which is a link to a 404 on the front page.
-     */
     const { threads } = buildLatestThreadsModel({
       rows: [threadRow({ authorUserId: null, authorUsername: 'gone' })],
       now: NOW,
@@ -95,11 +77,6 @@ describe('buildLatestThreadsModel', () => {
 
 describe('buildLatestPostsModel', () => {
   it('links to the post rather than to the top of its thread', () => {
-    /*
-     * Both halves. `?post=` is what opens the *page* the post is on and the
-     * fragment is what scrolls to it — a link with only the fragment lands on
-     * page one of a forty-page thread and appears to do nothing.
-     */
     const { posts } = buildLatestPostsModel({ rows: [postRow()], now: NOW })
 
     expect(posts[0]?.href).toBe('/thread/91-bikeshedding?post=4102#post-4102')
@@ -123,11 +100,6 @@ describe('buildLatestPostsModel', () => {
   })
 
   it('renders an empty excerpt rather than "undefined" for a post with no text', () => {
-    /*
-     * An attachment-only post is a real thing on this board. The theme skips
-     * the line when the excerpt is empty, which it can only do if this returns
-     * a string.
-     */
     const { posts } = buildLatestPostsModel({ rows: [postRow({ messageSource: '' })], now: NOW })
 
     expect(posts[0]?.excerpt).toBe('')

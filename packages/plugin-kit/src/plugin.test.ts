@@ -33,12 +33,6 @@ describe('definePlugin', () => {
     expect(() => plugin({ version: '1.0' })).toThrow(/semver/)
   })
 
-  /*
-   * The single most common plugin bug there is, and it is a spelling mistake:
-   * a handler registered against a hook that does not exist never runs, the
-   * plugin installs cleanly, and nothing anywhere says why the feature is
-   * missing. Loud at load, in the file that made the mistake.
-   */
   it('refuses an unknown hook name', () => {
     expect(() => plugin({ hooks: { 'post.create': () => {} } as never })).toThrow(/unknown hook/)
   })
@@ -86,12 +80,6 @@ describe('definePlugin', () => {
       ).not.toThrow()
     })
 
-    /*
-     * Migrations are applied in *sort* order, so a list written out of order runs
-     * differently from how it reads. The consequence is not a crash: a fresh
-     * board applies all of them and an upgraded board skips the one that sorts
-     * before the last applied id. Two boards, two schemas, no error anywhere.
-     */
     it('refuses ids that are not in ascending order', () => {
       expect(() =>
         plugin({ migrations: [migration('0002_second'), migration('0001_first')] }),
@@ -122,12 +110,6 @@ describe('definePlugin', () => {
       expect(() => plugin({ tasks: [task('sweep')] })).not.toThrow()
     })
 
-    /*
-     * The tick is minute-granular at best on a serverless platform. A task
-     * declaring 30s is not "run twice a minute", it is a task whose author will
-     * assume a frequency the scheduler cannot deliver — and idempotency bugs
-     * follow from exactly that assumption.
-     */
     it('refuses an interval the scheduler cannot deliver', () => {
       expect(() => plugin({ tasks: [task('sweep', 30)] })).toThrow(/cannot deliver/)
       expect(() => plugin({ tasks: [task('sweep', 60.5)] })).toThrow(/cannot deliver/)
@@ -145,7 +127,6 @@ describe('definePlugin', () => {
       expect(() => plugin({ adminPages: [page('settings')] })).not.toThrow()
     })
 
-    /* A slash here escapes the /admin/plugins/<key>/ prefix the route is under. */
     it('refuses a path with a slash or a traversal', () => {
       expect(() => plugin({ adminPages: [page('a/b')] })).toThrow(/single lower-case segment/)
       expect(() => plugin({ adminPages: [page('..')] })).toThrow(/single lower-case segment/)
@@ -168,11 +149,6 @@ describe('definePlugin', () => {
 })
 
 describe('namespacing', () => {
-  /*
-   * One place each, so nothing hand-builds them. Two plugins cannot collide and
-   * neither can reach a core setting, a core task id or a route outside its own
-   * prefix — which is only true while every caller goes through these.
-   */
   it('namespaces settings, tasks and admin routes by plugin key', () => {
     expect(pluginSettingKey('akismet', 'api_key')).toBe('plugin.akismet.api_key')
     expect(pluginTaskId('akismet', 'retrain')).toBe('plugin.akismet.retrain')

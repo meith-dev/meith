@@ -1,9 +1,3 @@
-/**
- * Postgres implementation of `PromotionRepository` (F24).
- *
- * The rules and the safety guards live in `@meith/groups`; this only reads
- * candidates and applies decisions that have already been made.
- */
 import { asc, gt, sql } from 'drizzle-orm'
 
 import type {
@@ -16,7 +10,6 @@ import type {
 import type { Database } from './client'
 import { groupPromotions, users } from './schema'
 
-/** `null` in a criterion column means "no constraint", not "zero". */
 function optionalNumber(value: number | null): number | undefined {
   return value === null ? undefined : value
 }
@@ -43,14 +36,6 @@ export class PostgresPromotionRepository implements PromotionRepository {
     }))
   }
 
-  /**
-   * A page of users, keyed on id.
-   *
-   * Keyset paging rather than OFFSET because applying a promotion *changes the
-   * rows being paged*. With OFFSET, moving a user shifts every later row up one
-   * and the next page silently skips somebody — a bug that shows as "some
-   * people never get promoted" and is almost impossible to reproduce by hand.
-   */
   async candidates(afterUserId: number, limit: number): Promise<readonly PromotionCandidate[]> {
     const rows = await this.db
       .select({
@@ -69,24 +54,10 @@ export class PostgresPromotionRepository implements PromotionRepository {
     return rows
   }
 
-  /**
-   * Apply a batch, and retire resolved actors once for the whole batch.
-   *
-   * One transaction: a half-applied batch leaves some users moved with no cache
-   * invalidation, so they hold their old permissions while appearing promoted.
-   * The `permission_version` bump is per batch rather than per user — it is a
-   * global counter, so bumping it 500 times would be 499 wasted writes.
-   */
   async applyPromotions(outcomes: readonly PromotionOutcome[]): Promise<void> {
     if (outcomes.length === 0) return
 
     await this.db.transaction(async (tx) => {
-      /*
-       * One statement for the whole batch via a VALUES join, not one UPDATE per
-       * user: a promotion run on a large board can move thousands of people,
-       * and per-row round trips inside a transaction on a pooled connection is
-       * where that turns from seconds into minutes.
-       */
       const values = sql.join(
         outcomes.map((o) => sql`(${o.userId}::int, ${o.toPrimaryGroupId}::int)`),
         sql`, `,

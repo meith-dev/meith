@@ -1,19 +1,5 @@
 "use client"
 
-/**
- * The edit form and the two visibility buttons (F41).
- *
- * Same shape as the composer: a client component only for `useActionState`, a
- * native `<form>` that works with scripting off, and no validation the server
- * does not repeat.
- *
- * Delete and restore are **separate forms**, not extra submit buttons on this
- * one. Two reasons, and both bite without JavaScript: a submit button inside
- * the edit form would carry the whole draft with it, so "delete" would mean
- * "save my unsaved changes, then delete"; and a form's default submission
- * (pressing Enter in the textarea) picks its *first* submit button, which must
- * never be the destructive one.
- */
 import { useActionState } from "react"
 
 import { deletePostAction, editPostAction, restorePostAction } from "@/server/content-actions"
@@ -39,12 +25,8 @@ export function EditPostForm({
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
       <input type="hidden" name="threadId" value={threadId} />
-      {/* Both ids are re-resolved by the action against the actor's matrix, so
-          tampering with either buys a permission check, not a bypass. */}
       <input type="hidden" name="postId" value={postId} />
 
-      {/* See `markdown-editor.tsx`. The `intent=preview` button below is the
-          no-JavaScript route to the same render. */}
       <MarkdownEditor
         required
         defaultValue={state.values?.message ?? message}
@@ -77,7 +59,6 @@ export function EditPostForm({
   )
 }
 
-/** The destructive half, deliberately its own form and its own action. */
 export function DeletePostForm({ threadId, postId }: { threadId: number; postId: number }) {
   const [state, action] = useActionState(deletePostAction, EMPTY_STATE)
 

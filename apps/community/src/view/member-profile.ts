@@ -1,4 +1,3 @@
-/** F33's public member-profile view and its one canonical route shape. */
 import type { MemberProfileRecord } from '@meith/accounts'
 import type { MemberProfileModel } from '@meith/theme-kit'
 
@@ -12,43 +11,11 @@ export function buildMemberProfileView(
   profile: MemberProfileRecord,
   now: Date,
   options: {
-    /**
-     * Whether the viewer may warn this member (F53).
-     *
-     * A capability the page resolves, not a permission this function knows: the
-     * matrix stays in `@meith/authorization` (R4), and the action behind the
-     * link re-asks anyway.
-     */
     readonly canWarn?: boolean
-    /** The *viewer's* timezone (F57), not the profile owner's. */
     readonly timeZone?: string
-    /**
-     * F59's custom fields, already resolved for this viewer.
-     *
-     * Resolved by the page rather than here, because visibility is a
-     * per-group question and this is a pure function — the same division F53's
-     * `canWarn` follows.
-     */
     readonly customFields?: readonly { readonly label: string; readonly value: string }[]
-    /**
-     * Whether the viewer may write to this member (F60).
-     *
-     * Resolved by the page, like `canWarn`, and for the same reason. It is
-     * `pm.use` on the *viewer* only: whether the recipient can receive is a
-     * question the send path asks with a fresh answer, and a profile that hid
-     * the link for a member whose store is momentarily full would be a worse
-     * lie than a send that explains itself.
-     */
     readonly canMessage?: boolean
-    /** F58. Resolved by the page, and null for the great majority. */
     readonly avatarUrl?: string | null
-    /**
-     * This member's group colour class, or `null`.
-     *
-     * The class rather than the map every listing takes, because a profile
-     * page is one member and handing it a map to look one id up in would be
-     * ceremony. The page has already resolved it.
-     */
     readonly nameClass?: string | null
   } = {},
 ): MemberProfileModel {
@@ -69,7 +36,6 @@ export function buildMemberProfileView(
     },
     avatarUrl,
     title: profile.title,
-    /* A date; see `formatDate`. The clock reading on a join date is noise. */
     joinedAt: formatDate(profile.createdAt, timeZone),
     lastVisitAt:
       profile.lastActiveAt === null
@@ -77,14 +43,6 @@ export function buildMemberProfileView(
         : formatTime(profile.lastActiveAt, now, timeZone),
     postCount: profile.postCount,
     signatureHtml: null,
-    /*
-     * F57's three self-written fields, in the slot F59 will later fill with
-     * configured ones. They travel as `{label, value}` pairs and are **plain
-     * text**: `MemberProfileModel.fields` is rendered as text by the theme, and
-     * a profile that could carry markup is a stored-XSS vector on a page every
-     * member visits. Absent fields are omitted rather than rendered empty —
-     * F33's rule that an invisible field is not in the HTML at all.
-     */
     fields: [
       profile.location === null ? null : { label: 'Location', value: profile.location },
       profile.website === null ? null : { label: 'Website', value: profile.website },
@@ -96,8 +54,6 @@ export function buildMemberProfileView(
         ? [
             {
               label: 'Send a message',
-              /* The username, not the id: the composer resolves names, which is
-                 also what a member typing one by hand supplies. */
               href: `/messages/compose?to=${encodeURIComponent(profile.username)}`,
             },
           ]

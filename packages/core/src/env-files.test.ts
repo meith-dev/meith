@@ -1,13 +1,3 @@
-/**
- * F02 — where the environment comes from.
- *
- * These write real files and mutate the real `process.env`, because that is the
- * whole behaviour: `process.loadEnvFile` is Node's, and a test that stubbed it
- * would be asserting the shape of this module's own calls rather than the
- * precedence an operator actually gets. Every variable is named per test and
- * deleted afterwards — precedence here is "first write wins", so a name leaked
- * from one test would silently decide the next one's answer.
- */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -18,7 +8,6 @@ import { findWorkspaceRoot, loadEnvFiles } from './env-files'
 const created: string[] = []
 const touched: string[] = []
 
-/** A throwaway workspace root: a directory with the marker file in it. */
 function workspace(files: Record<string, string>): string {
   const root = mkdtempSync(join(tmpdir(), 'forum-env-'))
   created.push(root)
@@ -29,14 +18,12 @@ function workspace(files: Record<string, string>): string {
   return root
 }
 
-/** A directory with no workspace above it. */
 function orphanDir(): string {
   const dir = mkdtempSync(join(tmpdir(), 'forum-noworkspace-'))
   created.push(dir)
   return dir
 }
 
-/** Registers a variable for cleanup and returns its name. */
 function owned(name: string): string {
   touched.push(name)
   return name
@@ -54,7 +41,6 @@ describe('findWorkspaceRoot', () => {
     mkdirSync(deep, { recursive: true })
 
     expect(findWorkspaceRoot(deep)).toBe(root)
-    // Inclusive of the starting directory: the CLI is often run from the root.
     expect(findWorkspaceRoot(root)).toBe(root)
   })
 
@@ -70,8 +56,6 @@ describe('loadEnvFiles', () => {
     const deep = join(root, 'apps', 'cli')
     mkdirSync(deep, { recursive: true })
 
-    /* The case that motivated the module: `pnpm --filter @meith/cli start` runs
-       with a cwd two levels below the file it needs. */
     expect(loadEnvFiles(deep)).toEqual({ root, loaded: ['.env'] })
     expect(process.env[name]).toBe('from-dot-env')
   })
@@ -94,12 +78,6 @@ describe('loadEnvFiles', () => {
 
     loadEnvFiles(root)
 
-    /*
-     * The property CI, `docker run -e` and Playwright's `webServer.env` all
-     * depend on. If a file could win, the e2e suite's explicit DATABASE_URL
-     * would be quietly replaced by whatever a developer keeps in `.env`, and
-     * the suite would write to their board.
-     */
     expect(process.env[name]).toBe('from-the-environment')
   })
 
@@ -110,7 +88,6 @@ describe('loadEnvFiles', () => {
 
   it('is a no-op outside a workspace, which is the production case', () => {
     const orphan = orphanDir()
-    // A `.env` here belongs to some other project, and is deliberately ignored.
     writeFileSync(join(orphan, '.env'), 'FORUM_TEST_STRAY=nope\n')
 
     expect(loadEnvFiles(orphan)).toEqual({ root: undefined, loaded: [] })

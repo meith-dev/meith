@@ -1,4 +1,3 @@
-/** F51 — the merge and split rules, without a database. */
 import { describe, expect, it } from 'vitest'
 import { ValidationError } from '@meith/core'
 
@@ -18,7 +17,6 @@ const ALL: SurgeryRights = { merge: true, split: true }
 const NONE: SurgeryRights = { merge: false, split: false }
 
 class FakeThreads implements ThreadSurgeryRepository {
-  /** Keyed by id so a merge can be given two different threads. */
   threads = new Map<number, SurgeryThread>([
     [
       20,
@@ -59,7 +57,6 @@ class FakeThreads implements ThreadSurgeryRepository {
     threadId: number,
     postIds: readonly number[],
   ): Promise<readonly number[]> {
-    /* Whatever the test loaded into `posts`, intersected with the selection. */
     return this.posts.filter((id) => postIds.includes(id))
   }
 
@@ -187,7 +184,6 @@ describe('ThreadSurgery.split', () => {
   it('checks the rights before touching the repository at all', async () => {
     const threads = new FakeThreads()
     threads.threads.delete(20)
-    /* The right, not the missing thread, is what the moderator is told about. */
     await expect(surgeryFor(threads).split(splitInput({ rights: NONE }))).rejects.toThrow(
       /cannot split/,
     )
@@ -242,14 +238,6 @@ describe('ThreadSurgery.merge', () => {
   })
 })
 
-/**
- * F52's checkboxes feeding F51's split — the piece F51 deliberately deferred.
- *
- * The rules are `split`'s, because they are properties of the *result* rather
- * than of how the posts were chosen. What is new is that the selection is
- * filtered rather than derived, so a tick on something ineligible is dropped
- * and counted instead of failing the batch.
- */
 describe('splitPosts', () => {
   it('splits the selected posts and reports nothing dropped', async () => {
     const threads = new FakeThreads()
@@ -271,7 +259,6 @@ describe('splitPosts', () => {
     })
   })
 
-  /* A tick on a post of another thread, or one since deleted, is not a failure. */
   it('drops an ineligible tick and counts it', async () => {
     const threads = new FakeThreads()
     threads.posts = [102]
@@ -317,10 +304,6 @@ describe('splitPosts', () => {
     ).rejects.toBeInstanceOf(ValidationError)
   })
 
-  /*
-   * Refused, not dropped. Dropping it would silently split "everything ticked
-   * except the one that defines the thread", which is not what was asked for.
-   */
   it('refuses a selection containing the opening post rather than dropping it', async () => {
     const threads = new FakeThreads()
     threads.threads.set(20, { ...threads.threads.get(20)!, firstPostId: 101 })
@@ -338,7 +321,6 @@ describe('splitPosts', () => {
     expect(threads.splits).toEqual([])
   })
 
-  /* Taking every visible post is a move, and there is a tool for that (F51). */
   it('refuses a selection that is the whole thread', async () => {
     const threads = new FakeThreads()
     threads.threads.set(20, { ...threads.threads.get(20)!, visiblePosts: 2 })

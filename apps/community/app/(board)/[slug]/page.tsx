@@ -29,18 +29,6 @@ import {
   selectionFor,
 } from '@/view/inline-moderation'
 
-/**
- * F76 — one forum's metadata, resolved in the viewer's scope.
- *
- * Same shape and same reasoning as the thread page's: it repeats the locate →
- * authorise sequence rather than trusting the page to have run it, because a
- * metadata function that assumed would put a private forum's title into an
- * Open Graph card on any request where the two got out of step.
- *
- * The canonical carries the page number, so page 3 of a forum is its own
- * document rather than a duplicate of page 1 — which is the single most common
- * way a board ends up with only its first pages in an index.
- */
 export async function generateMetadata({
   params,
   searchParams,
@@ -62,7 +50,6 @@ export async function generateMetadata({
   if (
     !authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })
   ) {
-    /* The same title an unknown forum gets — see the thread page. */
     return { title: 'Forum' }
   }
 
@@ -109,7 +96,6 @@ export default async function ForumPage({
     page?: string
     sort?: string
     posted?: string
-    /* F52's outcome, written by the inline-moderation action's redirect. */
     did?: string
     n?: string
     refused?: string
@@ -153,19 +139,7 @@ export default async function ForumPage({
   if (!authorizer.can(actor, 'thread.view', { forumId: id, forum: matrix }))
     notFound()
 
-  /*
-   * F47: what this actor may see, decided once by the permission model. The
-   * listing does not know the word "visible" — it is handed the states it may
-   * return, which is what makes "does this page leak the queue" a question with
-   * one answer instead of one per query.
-   */
   const scope = authorizer.contentScope(actor, { forumId: id, forum: matrix })
-  /*
-   * F57. The member's own page size, falling back to the board setting and then
-   * to the module constant — resolved *before* the read, because the page size
-   * is the read's `limit` and a preference applied after the query would be a
-   * setting that does nothing.
-   */
   const preferences = await getViewerPreferences()
   const threadPage = await threads.listForum(id, {
     ...(after === undefined ? {} : { after }),
@@ -176,22 +150,11 @@ export default async function ForumPage({
   const nextHref = threadPage.nextCursor
     ? `/${id}-${forum.slug}?after=${encodeForumCursor(threadPage.nextCursor)}&page=${page + 1}${sort === 'rating' ? '&sort=rating' : ''}`
     : null
-  /*
-   * The composer link appears only when this actor may actually use it, and
-   * only when the board can accept a post at all (fixture mode cannot). A link
-   * to a page that 404s is worse than no link.
-   */
   const canPost =
     threadWrites !== null &&
     forum.type === 'forum' &&
     authorizer.can(actor, 'thread.post', { forumId: id, forum: matrix })
 
-  /*
-   * F52's tools, resolved once for this forum. `moderatorRightsIn` reads the
-   * appointment and `can()` turns it into a decision that also honours the
-   * staff bypasses — the same route F50's bar takes, and the same route the
-   * action takes again for itself. A checkbox is not authorisation.
-   */
   const moderatorRights = await authorizer.moderatorRightsIn(actor, id)
   const inlineTarget = {
     forumId: id,
@@ -217,7 +180,6 @@ export default async function ForumPage({
       authorizer.can(actor, 'thread.delete', inlineTarget),
   }
   const inlineOffered = anyInlineTool(inlineRights)
-  /* Two extra queries for a moderator who may move, none for anybody else. */
   const inlineMoveTargets = !inlineRights.move
     ? []
     : (await authorizer.forumIdsWhere(actor, 'thread.move')).flatMap(
@@ -229,10 +191,6 @@ export default async function ForumPage({
         },
       )
 
-  /*
-   * Two names per row — who started the thread, and who posted in it last — in
-   * one query for the page rather than one per row.
-   */
   const identities = await identitiesFor(
     distinctUserIds(
       threadPage.rows.flatMap((row) => [row.authorUserId, row.lastPost?.userId ?? null]),
@@ -255,7 +213,6 @@ export default async function ForumPage({
     identities,
   })
 
-  /* F56, same shape as the thread page's control. */
   const { subscriptions } = getContainer()
   const followMode =
     subscriptions === null || actor.userId === null
@@ -267,14 +224,6 @@ export default async function ForumPage({
     now: new Date(),
   }).modes
 
-  /*
-   * F71. This forum's announcements *and* the board-wide ones — an announcement
-   * that appeared only on the index would be invisible to everybody who arrives
-   * from a search engine, which is most people.
-   *
-   * `visible` is the same set the page has already used to decide the viewer may
-   * be here at all, so the scoped read costs no extra permission work.
-   */
   const announcements = await liveAnnouncements({
     visibleForumIds: visible,
     scope: id,
@@ -295,10 +244,8 @@ export default async function ForumPage({
       ? 'Your thread was posted and is waiting for a moderator to approve it.'
       : inlineOutcomeNotice(query)
 
-  /* F80. `view.thread-row` runs once per row; see the index page for the cost. */
   const pluginContext = { ...viewerRef(actor), forumId: id }
 
-  /* F80's wiring for F71's slot; see the board index for the shape. */
   const filteredAnnouncements = await Promise.all(
     announcements.map((announcement) =>
       filterView('view.announcement', announcement, viewerRef(actor)),
@@ -334,22 +281,6 @@ export default async function ForumPage({
     viewerRef(actor),
   )
 
-  /*
-   * The two orderings, as a control somebody can see.
-   *
-   * These were bare `<a>`s separated by a middot, and Tailwind's preflight
-   * renders those as plain body text — a navigation nobody could tell was a
-   * navigation, whose current item was marked only by an `aria-current` that
-   * no sighted reader receives. They are anchors and stay anchors (an ordering
-   * is a URL, and paging has to work with scripting off), and they are the
-   * same `ViewTabs` the inbox and the discovery views draw, so "the one you
-   * are looking at" means one thing across the board.
-   *
-   * They are also *under the forum's name* now, through theme API 1.3's
-   * `tools` region. Rendered above `<ForumDisplay>`, as they were, the first
-   * thing on a forum page was a sort control with nothing above it saying what
-   * was being sorted.
-   */
   const orderTabs = (
     <ViewTabs
       label="Thread order"
@@ -374,12 +305,6 @@ export default async function ForumPage({
       ...view.display,
       regions: {
         tools: orderTabs,
-        /*
-         * Following the forum, under the threads (theme API 1.4). It was above
-         * them, which put a subscription panel between a reader and the list
-         * they had come for — and asked whether they wanted to hear about a
-         * forum before showing them what was in it.
-         */
         ...(followOffered
           ? {
               afterContent: (
@@ -411,17 +336,10 @@ export default async function ForumPage({
     pluginContext,
   )
 
-  /*
-   * The trail, from the rows and the visibility set this page already holds —
-   * so it is string work, not a query. Outside `<main>` on purpose: it is
-   * navigation, and "skip to content" should skip it.
-   */
   const trail = buildBreadcrumb({
     forums: rows,
     forumId: id,
     visibleForumIds: new Set(visible),
-    /* The board's own name as the root crumb. `board.name` is globally cached
-       and tagged (F08), so reading it here costs no query. */
     homeLabel: (await getSettings()).get('board.name'),
   })
 
@@ -429,12 +347,6 @@ export default async function ForumPage({
     <>
       <Navigation items={trail} />
       <main id="board-content" tabIndex={-1} className="flex-1">
-      {/*
-        Where a held thread lands, and where F52 reports what a bulk action did.
-        The author cannot be sent to a thread nobody can see, so the forum tells
-        them what happened; dismissal is the same link without the parameter,
-        which needs no JavaScript and no state.
-      */}
       {notice !== null && (
         <div className={`${BOARD_MEASURE} pt-6`}>
           <Notice
@@ -445,11 +357,6 @@ export default async function ForumPage({
         </div>
       )}
       <ForumDisplay {...forumDisplayModel} />
-      {/*
-        Below the listing, not around it: the checkboxes reach this form by id
-        (see `SelectionModel`), so it does not have to contain them — and it
-        could not, because `ForumDisplay` renders a mark-read form of its own.
-      */}
       {inlineOffered && (
         <InlineModerationForm
           formId={INLINE_FORM_ID}

@@ -1,9 +1,3 @@
-/**
- * F16 acceptance: "Reparent a mid-tree forum; every descendant path is correct."
- *
- * The fixture is deliberately four levels deep, which is what the plan asks for
- * — three levels lets a naive "rewrite my children" implementation pass.
- */
 import { ConflictError, ValidationError } from '@meith/core'
 import { describe, expect, it } from 'vitest'
 
@@ -32,13 +26,6 @@ function forum(
   }
 }
 
-/*
- *  1 Category
- *    4 General
- *      9 Off-topic
- *        12 Deep
- *  2 Category two
- */
 const TREE: ForumRow[] = [
   forum(1, null, '1', { type: 'category', slug: 'cat-one', displayOrder: 0 }),
   forum(2, null, '2', { type: 'category', slug: 'cat-two', displayOrder: 1 }),
@@ -49,13 +36,11 @@ const TREE: ForumRow[] = [
 
 describe('planMove — reparenting', () => {
   it('rewrites every descendant path, not just direct children', () => {
-    // Move General (4, mid-tree, two levels of descendants) under Category two.
     const plan = planMove(TREE, 4, { newParentId: 2 })
     const paths = new Map(plan.pathUpdates.map((u) => [u.id, u.path]))
 
     expect(paths.get(4)).toBe('2.4')
     expect(paths.get(9)).toBe('2.4.9')
-    // The grandchild is the one a naive implementation leaves behind.
     expect(paths.get(12)).toBe('2.4.9.12')
     expect(plan.pathUpdates).toHaveLength(3)
   })
@@ -84,7 +69,6 @@ describe('planMove — reparenting', () => {
 
 describe('planMove — rejections', () => {
   it('refuses to move a forum into its own descendant', () => {
-    // 12 is inside 4's subtree; allowing this detaches the whole branch.
     expect(() => planMove(TREE, 4, { newParentId: 12 })).toThrow(ValidationError)
   })
 
@@ -107,18 +91,12 @@ describe('planMove — rejections', () => {
     expect(() => planMove(TREE, 4, { newParentId: 999 })).toThrow(ValidationError)
   })
 
-  /*
-   * '1.4' must not be treated as an ancestor of '1.40'. If the subtree predicate
-   * were a bare string prefix, this move would drag an unrelated sibling along
-   * and reject legitimate destinations as cycles.
-   */
   it('does not confuse a sibling whose id shares a prefix', () => {
     const rows = [...TREE, forum(40, 1, '1.40', { slug: 'forty' })]
 
     const plan = planMove(rows, 4, { newParentId: 2 })
     expect(plan.pathUpdates.map((u) => u.id)).not.toContain(40)
 
-    // And 1.40 is a legal destination for 1.4 — it is not a descendant.
     expect(() => planMove(rows, 4, { newParentId: 40 })).not.toThrow()
   })
 })
@@ -127,7 +105,6 @@ describe('planMove — sibling ordering', () => {
   it('appends when no position is given', () => {
     const plan = planMove(TREE, 4, { newParentId: null })
     const order = plan.orderUpdates.find((o) => o.id === 4)
-    // Roots are 1 and 2, so the appended forum lands third.
     expect(order?.displayOrder).toBe(2)
   })
 
@@ -158,7 +135,6 @@ describe('applying a plan keeps the tree walkable', () => {
     )
 
     const ids = flattenTree(buildTree(moved)).map((n) => n.id)
-    // Every forum still reachable from a root, none orphaned or duplicated.
     expect([...ids].sort((a, b) => a - b)).toEqual([1, 2, 4, 9, 12])
 
     const catTwo = buildTree(moved).find((n) => n.id === 2)

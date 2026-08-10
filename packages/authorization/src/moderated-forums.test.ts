@@ -1,11 +1,3 @@
-/**
- * F48 — "the forums I moderate", which is a different question from "the forums
- * I can see" and had never been asked before.
- *
- * `forum_moderators` has existed since F21 with no reader, so until now the only
- * moderators the software recognised were members of a staff group. These tests
- * are about the other half: one person, one forum, granular rights.
- */
 import { describe, expect, it } from 'vitest'
 
 import { emptyPermissionSet, type PermissionSet } from '@meith/core'
@@ -104,7 +96,6 @@ describe('moderatedForumIds', () => {
     ])
   })
 
-  /* The case that had no code at all before F48. */
   it('gives an appointed moderator exactly their forum', async () => {
     expect(await moderated([APPOINTMENT], actor([GROUP.registered]))).toEqual([FORUM.general])
   })
@@ -131,11 +122,6 @@ describe('moderatedForumIds', () => {
     expect(ids).not.toContain(FORUM.other)
   })
 
-  /*
-   * An appointment's rights are granular. Somebody appointed to read the queue
-   * and fix typos has not been trusted to empty it, and the set this returns is
-   * "may act on", not "may look at".
-   */
   it('ignores an appointment that does not grant approval', async () => {
     expect(
       await moderated(
@@ -158,12 +144,6 @@ describe('moderatedForumIds', () => {
     expect(await moderated([APPOINTMENT], actor([GROUP.registered], 11))).toEqual([])
   })
 
-  /*
-   * An appointment over a forum the moderator's groups can no longer view is a
-   * configuration mistake, and the safe reading of a mistake is the restrictive
-   * one — otherwise an appointment becomes a way to see into a forum that was
-   * deliberately closed.
-   */
   it('drops a forum the actor cannot even view', async () => {
     const hidden: MemoryBoard = {
       ...board([APPOINTMENT]),

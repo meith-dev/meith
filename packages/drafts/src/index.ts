@@ -1,4 +1,3 @@
-/** F44 — durable drafts, with no browser dependency. */
 export interface Draft {
   readonly forumId: number
   readonly threadId: number | null

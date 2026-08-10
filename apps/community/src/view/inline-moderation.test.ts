@@ -1,4 +1,3 @@
-/** F52's view helpers. */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -23,7 +22,6 @@ describe('selectionFor', () => {
     })
   })
 
-  /* The value has to round-trip through `parseSelection`'s `kind:id` shape. */
   it('encodes a post the same way the queue does', () => {
     expect(selectionFor('post', 7, 'post #3', true)?.value).toBe('post:7')
   })
@@ -52,10 +50,6 @@ describe('inlineOutcomeNotice', () => {
     expect(inlineOutcomeNotice({ did: 'delete', n: '1' })).toBe('1 item deleted.')
   })
 
-  /*
-   * The whole reason there are four numbers: a moderator who ticked twelve
-   * boxes and moved nine has to be told which three did not move and why.
-   */
   it('names each cause separately', () => {
     expect(
       inlineOutcomeNotice({ did: 'delete', n: '9', refused: '1', gone: '1', skipped: '1' }),
@@ -70,7 +64,6 @@ describe('inlineOutcomeNotice', () => {
     )
   })
 
-  /* An unknown verb is echoed rather than dropped: the count is still true. */
   it('survives a tool it has no past tense for', () => {
     expect(inlineOutcomeNotice({ did: 'incinerate', n: '2' })).toBe('2 items incinerate.')
   })

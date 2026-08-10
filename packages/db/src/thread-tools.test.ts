@@ -1,12 +1,3 @@
-/**
- * F50 — thread tools against real Postgres, with the counter assertions the
- * roadmap asks for spelled out on every affected row.
- *
- * A move is the interesting one and the reason this file is long: it takes a
- * thread's contribution out of one subtree and puts it into another, has to
- * rewrite the denormalised `posts.forum_id` for every post, and has to leave a
- * shared ancestor exactly where it was.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -26,7 +17,6 @@ let db: Database
 let repo: PostgresThreadToolsRepository
 let writes: PostgresThreadWriteRepository
 
-/* Two subtrees under one category, so a move can be watched from both ends. */
 const CATEGORY = 1
 const LEFT = 4
 const RIGHT = 5
@@ -81,10 +71,6 @@ beforeEach(async () => {
   ])
 })
 
-/**
- * A thread with an opening post by Ada and one reply by Bob, written through
- * the real posting path so the starting counters are the board's own.
- */
 async function seedThread(forumId = LEFT): Promise<{ threadId: number; postIds: number[] }> {
   const thread = await writes.create({
     forumId,
@@ -148,10 +134,6 @@ describe('lock and stick', () => {
     expect(await auditActions()).toEqual(['thread.lock'])
   })
 
-  /*
-   * `<>` in the WHERE. A log that records acts that did not happen is worse
-   * than no log — the second click must write nothing at all.
-   */
   it('is a no-op, and writes no audit row, when the flag is already set', async () => {
     const { threadId } = await seedThread()
     await repo.setLocked({ threadId, locked: true, actorUserId: MOD, at: AT })
@@ -202,11 +184,6 @@ describe('deleting a thread', () => {
     expect(await forumCounts(CATEGORY)).toEqual({ posts: 0, threads: 0 })
   })
 
-  /*
-   * Every author, by their own share. Ada wrote the opening post and Bob the
-   * reply, so a single subtraction applied to "the thread's author" would leave
-   * Bob credited for a post nobody can read.
-   */
   it('subtracts each author"s own share', async () => {
     const { threadId } = await seedThread()
     expect(await userCounts(ADA)).toEqual({ posts: 1, threads: 1 })
@@ -224,10 +201,6 @@ describe('deleting a thread', () => {
     expect(await userCounts(BOB)).toEqual({ posts: 0, threads: 0 })
   })
 
-  /*
-   * The posts keep their own state. Restoring the thread has to put back
-   * exactly what was there and approve nothing on the way.
-   */
   it('leaves the posts" own visibility alone', async () => {
     const { threadId, postIds } = await seedThread()
     await repo.setVisibility({
@@ -276,11 +249,6 @@ describe('deleting a thread', () => {
     expect(await userCounts(BOB)).toEqual(before.bob)
   })
 
-  /*
-   * The ledger means "this post is currently counted in its ancestors". If a
-   * deleted thread left its rows behind, deleting one of its posts afterwards
-   * would decrement ancestors that had already been decremented by the thread.
-   */
   it('keeps the roll-up ledger agreeing with reality', async () => {
     const { threadId } = await seedThread()
     const ledger = async (): Promise<number> =>
@@ -380,11 +348,6 @@ describe('moving a thread', () => {
     expect(await forumCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
   })
 
-  /*
-   * The assertion a naive implementation fails. A thread moved between two
-   * subforums of one category has not left the category, so the two chain
-   * updates must cancel exactly at their shared ancestor.
-   */
   it('leaves a shared ancestor exactly where it was', async () => {
     const { threadId } = await seedThread()
     const before = await forumCounts(CATEGORY)
@@ -400,16 +363,10 @@ describe('moving a thread', () => {
     await move(threadId, NESTED)
 
     expect(await forumCounts(NESTED)).toEqual({ posts: 2, threads: 1 })
-    /* NESTED is a child of LEFT, so LEFT keeps the subtree totals. */
     expect(await forumCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
     expect(await forumCounts(CATEGORY)).toEqual({ posts: 2, threads: 1 })
   })
 
-  /*
-   * `posts.forum_id` is denormalised from the thread. A move that updated only
-   * the thread would leave every post claiming to be somewhere it is not — and
-   * the moderation queue, F47's scope and the recount all read that column.
-   */
   it('rewrites the denormalised forum id on every post', async () => {
     const { threadId } = await seedThread()
 
@@ -470,19 +427,6 @@ describe('moving a thread', () => {
   })
 })
 
-/**
- * F50's copy — the one tool that creates content.
- *
- * Every other operation in this file redistributes rows that already exist, so
- * one tally serves both ends. A copy has no other end: everything it touches
- * goes up, and nothing goes down.
- *
- * The author-credit decision is the thing to read carefully. **Each copied post
- * credits its author again**, matching MyBB, so one piece of writing counts
- * twice in `users.post_count`. That is a deliberate divergence from the
- * definition every other counter here holds to, and these tests pin it so it
- * cannot be "fixed" by accident later.
- */
 describe('copy', () => {
   it('duplicates the thread and its posts into the destination', async () => {
     const { threadId } = await seedThread(LEFT)
@@ -498,21 +442,10 @@ describe('copy', () => {
       ),
     ) as Array<{ message: string; is_first_post: boolean }>
     expect(rows.map((r) => r.message)).toEqual(['the opening post', 'a reply'])
-    /* Carried across rather than inferred — F51's lesson about this flag. */
     expect(rows.map((r) => r.is_first_post)).toEqual([true, false])
   })
 
   it('carries F72’s index across, so the copy is findable at once', async () => {
-    /*
-     * A copy inserted without a vector is a thread nobody can search for until
-     * the backfill happens to reach it — ten minutes on a quiet board and a
-     * good deal longer on a busy one, during which a moderator who has just
-     * copied a thread somewhere useful cannot find it there.
-     *
-     * Copying the vector rather than recomputing it is exact: the copy keeps
-     * the source's title, bodies and opening post, so every input to the
-     * document is the same one.
-     */
     const { threadId } = await seedThread(LEFT)
     const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
@@ -543,11 +476,9 @@ describe('copy', () => {
     await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
     expect(await forumCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
-    /* The category holds both, so it gains the copy on top of the original. */
     expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
   })
 
-  /* The parity decision, pinned. */
   it('credits every author a second time, as MyBB does', async () => {
     const { threadId } = await seedThread(LEFT)
     expect(await userCounts(ADA)).toEqual({ posts: 1, threads: 1 })
@@ -559,10 +490,6 @@ describe('copy', () => {
     expect(await userCounts(BOB)).toEqual({ posts: 2, threads: 0 })
   })
 
-  /*
-   * Copying the queue into a second forum would double the work waiting for
-   * somebody; copying removed content would republish it.
-   */
   it('copies only the visible posts', async () => {
     const { threadId, postIds } = await seedThread(LEFT)
     await db.execute(sql`update posts set visibility = 'deleted' where id = ${postIds[1]!}`)
@@ -607,11 +534,6 @@ describe('copy', () => {
     })
   })
 
-  /*
-   * The ledger means "this post is currently counted in its ancestors". The
-   * copies are, so they need rows — otherwise deleting one afterwards would
-   * decrement ancestors that were never incremented for it.
-   */
   it('puts the copies in the roll-up ledger', async () => {
     const { threadId } = await seedThread(LEFT)
     const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })

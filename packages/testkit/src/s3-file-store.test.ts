@@ -1,23 +1,8 @@
-/**
- * `S3FileStore` against the file-store contract, plus the behaviour singled
- * out as the reason for taking the dependency at all.
- *
- * Driven through a fake S3 client rather than a live bucket. That is a
- * deliberate line: the point is to test *this* code — key handling, error
- * mapping, the byte round-trip, the miss-is-undefined contract — not to re-test
- * the AWS SDK. What a fake cannot prove is that the SDK talks to a real bucket
- * correctly, which is what an integration job against MinIO would be for; it is
- * recorded as a gap rather than pretended away.
- */
 import { S3FileStore, type S3Like } from '@meith/drivers/files/s3-file-store'
 import { describe, expect, it } from 'vitest'
 
 import { fileStoreContract } from './driver-contracts'
 
-/**
- * Minimal in-memory S3. Recognises the commands the store issues by their
- * constructor name, which is how the real client dispatches too.
- */
 function fakeS3(): S3Like & { objects: Map<string, Uint8Array> } {
   const objects = new Map<string, Uint8Array>()
 
@@ -36,8 +21,6 @@ function fakeS3(): S3Like & { objects: Map<string, Uint8Array> } {
       if (name === 'GetObjectCommand') {
         const body = objects.get(key)
         if (!body) {
-          // The shape the SDK actually throws, so the store's error mapping is
-          // exercised rather than bypassed.
           throw Object.assign(new Error('NoSuchKey'), {
             name: 'NoSuchKey',
             $metadata: { httpStatusCode: 404 },
@@ -63,19 +46,11 @@ const CONFIG = {
   secretAccessKey: 'secret-test',
 }
 
-/* The shared F05 contract, exactly as LocalFileStore runs it. */
 fileStoreContract('S3FileStore', () => new S3FileStore(CONFIG, fakeS3()))
 
 describe('S3FileStore specifics', () => {
   const body = new TextEncoder().encode('attachment bytes')
 
-  /*
-   * This was the reason for taking the SDK rather than
-   * hand-rolling SigV4: F42 needs "an attachment in a forum the actor cannot
-   * view is not downloadable by direct URL". The app checks permission, then
-   * mints a short-lived signature — an unsigned URL here would hand out every
-   * attachment on the board to anyone who can guess a key.
-   */
   it('signs a private URL rather than returning a bare one', async () => {
     const store = new S3FileStore(CONFIG, fakeS3())
     const signed = await store.signedUrl('a/private.png', 300)
@@ -95,7 +70,6 @@ describe('S3FileStore specifics', () => {
       { ...CONFIG, publicBaseUrl: 'https://cdn.example/' },
       fakeS3(),
     )
-    // Trailing slash on the base must not produce a double slash.
     expect(store.url('a/b.png')).toBe('https://cdn.example/a/b.png')
   })
 
@@ -106,12 +80,6 @@ describe('S3FileStore specifics', () => {
   })
 
   describe('key validation', () => {
-    /*
-     * Keys are partly user-influenced (attachment filenames). `..` means
-     * nothing to S3, but it becomes a real traversal the moment anything
-     * mirrors these keys onto a disk — which LocalFileStore does today and the
-     * importer will (F85).
-     */
     it.each([
       ['empty', ''],
       ['leading slash', '/a.png'],

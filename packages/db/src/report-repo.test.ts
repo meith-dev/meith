@@ -1,12 +1,3 @@
-/**
- * F49 — reports against real Postgres.
- *
- * Three things only the database settles: that the one-open-report-per-target
- * index is what stops a repeat click rather than a check that could race it,
- * that every write lands with its history row, and that the scope predicate
- * puts a forum moderator's forums and board staff's user reports in one ordered
- * page without either seeing the other's.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -131,11 +122,6 @@ describe('resolveTarget', () => {
     })
   })
 
-  /*
-   * Only public content is reportable. A member cannot report what they could
-   * not have seen, and a moderator has better tools than the report button for
-   * content that is already held or removed.
-   */
   it('refuses a target that is not public', async () => {
     const postId = await seedThread(100, FORUM, 'unapproved')
     expect(await repo.resolveTarget('post', postId, REPORTER)).toBeNull()
@@ -151,11 +137,6 @@ describe('resolveTarget', () => {
     expect(await repo.resolveTarget('post', 4242, REPORTER)).toBeNull()
   })
 
-  /*
-   * F60. A private message is the one target whose existence is relative to
-   * who is asking: holding a copy is what makes it reportable, and somebody who
-   * holds none gets the same answer as for a message that is not there.
-   */
   describe('a private message', () => {
     async function seedMessage(): Promise<number> {
       const rows = resultRows(
@@ -181,8 +162,6 @@ describe('resolveTarget', () => {
       expect(await repo.resolveTarget('private_message', id, REPORTER)).toEqual({
         kind: 'private_message',
         id,
-        /* No forum, so it routes to `modcp.access` rather than to a forum's
-           moderators — a private message belongs to no forum's staff. */
         forumId: null,
         threadId: null,
         label: 'Read this',
@@ -227,11 +206,6 @@ describe('filing a report', () => {
     expect(found!.events.map((e) => e.kind)).toEqual(['opened'])
   })
 
-  /*
-   * The unique index, not a prior read. Two clicks arriving at once would both
-   * pass a check and both insert — and a report button that adds a queue row
-   * every time is the cheapest denial-of-service on the board.
-   */
   it('is a friendly no-op the second time', async () => {
     const postId = await seedThread(100)
     const file = () =>
@@ -258,7 +232,6 @@ describe('filing a report', () => {
     expect(await file(MOD)).toMatchObject({ duplicate: false })
   })
 
-  /* Partial index: once a report is closed, the same person may report again. */
   it('lets the same member report again once the first is closed', async () => {
     const postId = await seedThread(100)
     const file = () =>
@@ -303,11 +276,6 @@ describe('the moderator list', () => {
     expect(await repo.countOpen(IN_FORUM)).toBe(1)
   })
 
-  /*
-   * A report about a *member* belongs to no forum, so it is board staff's or it
-   * is nobody's. A forum moderator must not see it; staff must see it in the
-   * same ordered page as their forums'.
-   */
   it('gives a user report to board staff and to nobody else', async () => {
     await service().file({
       kind: 'user',
@@ -391,12 +359,6 @@ describe('assignment and closing', () => {
     expect(found!.events.map((e) => e.kind)).toEqual(['opened', 'assigned', 'unassigned'])
   })
 
-  /*
-   * The note lives on the event, never on the report: "resolved because X"
-   * belongs to *that* resolution, and on the report it would be overwritten by
-   * the next one — leaving a history that says a decision was made for a reason
-   * nobody gave.
-   */
   it('keeps a private note on the closing event', async () => {
     const id = await open()
     await repo.close({
@@ -417,11 +379,6 @@ describe('assignment and closing', () => {
     })
   })
 
-  /*
-   * `status = 'open'` in the WHERE, not a prior read. Assigning or closing a
-   * report somebody else just closed would otherwise look like it worked and
-   * change nothing — the failure a second moderator notices an hour later.
-   */
   it('refuses to act on a report somebody else already closed', async () => {
     const id = await open()
     await repo.close({
@@ -452,10 +409,6 @@ describe('assignment and closing', () => {
 })
 
 describe('through the service', () => {
-  /*
-   * The same answer for "does not exist" and "not yours": a moderator of one
-   * forum probing ids must not learn that a report exists in another.
-   */
   it('will not open, assign or close a report outside the actor"s scope', async () => {
     const postId = await seedThread(100, OTHER)
     const { reportId } = await service().file({

@@ -1,13 +1,3 @@
-/**
- * The precedence rule, and what "configured" means.
- *
- * Both are decisions that used to be spread across `resolve.ts`, a health view
- * and an installer, each with its own idea of when a board can send. The tests
- * that matter here are the ones asserting they cannot disagree again: the
- * environment's veto, and the fact that a *partially* filled transport is not a
- * working one — which is the state a real board ends up in, because somebody
- * pastes a key and forgets the sender address.
- */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -22,7 +12,6 @@ import {
 } from './mail'
 import { SettingsSnapshot } from './store'
 
-/** A settings snapshot with the given overrides applied over the registry. */
 function board(overrides: Record<string, string> = {}): SettingsSnapshot {
   return SettingsSnapshot.fromOverrides(new Map(Object.entries(overrides)))
 }
@@ -46,13 +35,6 @@ const HTTP_ENV: MailEnvironment = {
 
 describe('mailConfigFromEnvironment', () => {
   it('declines to answer when MAIL_DRIVER is log or absent', () => {
-    /*
-     * `null`, not a log config. "The environment does not configure mail" and
-     * "the environment configures mail to send nothing" are different claims,
-     * and only the first defers to the database — collapse them and a board
-     * whose compose file forwards MAIL_DRIVER=${MAIL_DRIVER:-log} can never be
-     * configured from its own panel.
-     */
     expect(mailConfigFromEnvironment({})).toBeNull()
     expect(mailConfigFromEnvironment({ MAIL_DRIVER: 'log' })).toBeNull()
   })
@@ -121,7 +103,6 @@ describe('resolveMailConfig', () => {
     expect(resolution.source).toBe('board')
     expect(resolution.config).toEqual({ transport: 'log' })
     expect(canSendMail(resolution.config)).toBe(false)
-    /* No problems: "not configured" is a state, not a misconfiguration. */
     expect(resolution.problems).toEqual([])
   })
 })
@@ -139,21 +120,12 @@ describe('mailConfigProblems', () => {
   })
 
   it('names every missing piece rather than the first', () => {
-    /*
-     * A list, because "mail is not configured" is the message that wastes an
-     * afternoon. Somebody who is missing two things should be told about two.
-     */
     expect(
       mailConfigProblems({ transport: 'http', from: '', endpoint: '', token: '' }),
     ).toHaveLength(3)
   })
 
   it('accepts an unauthenticated relay, which is a real deployment', () => {
-    /*
-     * Postfix on the same machine takes no credentials. Requiring them would
-     * refuse the one configuration a self-hoster can set up with no third party
-     * at all.
-     */
     expect(
       mailConfigProblems({
         transport: 'smtp',
@@ -196,11 +168,6 @@ describe('mailConfigProblems', () => {
 })
 
 describe('describeMailConfig', () => {
-  /*
-   * This string is rendered in the panel, written to the audit log and printed
-   * by the CLI. "Never carries the credential" is therefore a property it has to
-   * keep rather than one each caller has to remember.
-   */
   it('never contains the credential', () => {
     expect(describeMailConfig({ ...HTTP_ENV, transport: 'http', from: 'a@b.example', endpoint: 'https://api.resend.com/emails', token: 're_secret_value' })).not.toContain(
       're_secret_value',
@@ -220,7 +187,6 @@ describe('describeMailConfig', () => {
   })
 
   it('survives an endpoint that is not a URL', () => {
-    /* Reached with a hand-edited settings row, and must not throw on a page. */
     expect(
       describeMailConfig({ transport: 'http', from: 'a@b.example', endpoint: 'nonsense', token: 'k' }),
     ).toContain('nonsense')
@@ -229,11 +195,6 @@ describe('describeMailConfig', () => {
 
 describe('the preset list', () => {
   it('gives every SMTP preset a port and a security mode that agree', () => {
-    /*
-     * The pairing is the whole point of presets. A row offering 465 with
-     * STARTTLS would teach the exact mistake `MailSecurity` documents, on the
-     * screen that exists to save somebody from making it.
-     */
     for (const preset of MAIL_PRESETS.filter((p) => p.transport === 'smtp')) {
       if (preset.port === undefined) continue
       expect(preset.security).toBeDefined()
@@ -256,11 +217,6 @@ describe('the preset list', () => {
 
 describe('mailConfigFromSettings', () => {
   it('falls back to sending nothing for a transport it does not know', () => {
-    /*
-     * A hand-edited row, or one written by a future release and read by an older
-     * binary. `SettingsSnapshot` already replaces an unparseable value with the
-     * default; this is the second gate, and it fails closed.
-     */
     expect(mailConfigFromSettings(board({ 'mail.transport': 'carrier-pigeon' }))).toEqual({
       transport: 'log',
     })

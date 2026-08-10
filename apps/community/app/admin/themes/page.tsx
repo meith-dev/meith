@@ -11,26 +11,6 @@ import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Themes' }
 
-/**
- * F68 — the theme list.
- *
- * This screen decides **which themes members may choose**, **which one they
- * start on**, and behind each row **what each one looks like**. All three are
- * runtime facts, stored in the `themes` table and read on every render.
- *
- * It said, until recently, that there could be no theme switcher at all,
- * because "a control that appeared to switch would either not work or would
- * cost every first paint a database read". The second half had quietly stopped
- * being true: 91 of the board's 92 routes were already dynamic, because the
- * shell resolves the viewer from a cookie. There was no static rendering left
- * to protect, and the switcher costs a cookie read.
- *
- * What is still the build's decision is which themes *exist* — a theme is code,
- * `community.config.ts` is the registry the bundler reads (invariant 6), and a
- * serverless bundle contains only what was in it at build time. Installing one
- * is `pnpm add`, a line, redeploy. Choosing among the installed ones is this
- * screen and the control at the foot of every page.
- */
 export default async function AdminThemesPage() {
   await requireAdmin()
 
@@ -49,12 +29,6 @@ export default async function AdminThemesPage() {
         </>
       }
     >
-      {/*
-        Branding above the theme list, because it is the thing an operator came
-        here to change. A board's own mark belongs to the board rather than to
-        any one theme — it does not move when a member picks a different look —
-        so it sits outside the list rather than inside a row of it.
-      */}
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <h2 className="font-heading text-lg font-semibold">Logo</h2>

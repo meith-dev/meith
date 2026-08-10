@@ -1,12 +1,3 @@
-/**
- * F50 at the app layer.
- *
- * The tool rules are unit-tested in `@meith/moderation` and the counters
- * against real Postgres. What is proven here is the seam neither can see: that
- * this actor's rights are resolved *per forum, for this request* — including a
- * second resolution for a move's destination — and that a moderator of one
- * forum cannot learn a thread exists in another by trying to lock it.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -90,7 +81,6 @@ class FakeTools implements ThreadToolsRepository {
 
 let tools: FakeTools
 
-/** An appointment carrying exactly the named rights, over one forum. */
 function appointment(
   forumId: number,
   rights: Partial<MemoryAppointment>,
@@ -171,11 +161,6 @@ describe('threadToolAction', () => {
     expect(tools.calls).toEqual([])
   })
 
-  /*
-   * An appointment carrying exactly one right must reach exactly one tool. This
-   * is the first place in the app where `forum_moderators` decides anything
-   * other than which queue somebody sees.
-   */
   it('honours a partial appointment', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
     installContainer([appointment(SEED_FORUM.general, { canOpenCloseThreads: true })])
@@ -189,10 +174,6 @@ describe('threadToolAction', () => {
     expect(tools.calls).toEqual(['setLocked'])
   })
 
-  /*
-   * The rule that needs two resolutions. Rights in the source forum only must
-   * not be enough to move a thread into a forum this actor has no standing in.
-   */
   it('needs the move right in the destination as well as the source', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
     installContainer([appointment(SEED_FORUM.general, { canMoveThreads: true })])
@@ -226,10 +207,6 @@ describe('threadToolAction', () => {
     ).toBe('/thread/20-hello?tool=move')
   })
 
-  /*
-   * Same answer a missing thread gets. A moderator of another forum must not
-   * learn a thread exists here by trying to lock it.
-   */
   it('does not confirm a thread in a forum it cannot see', async () => {
     const hidden = 555
     tools.forumId = hidden
@@ -265,7 +242,6 @@ describe('threadToolAction', () => {
   })
 })
 
-/** F50's copy at the app layer: two ends, and a redirect that goes elsewhere. */
 describe('copy', () => {
   it('needs the move right in the destination as well as the source', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
@@ -283,7 +259,6 @@ describe('copy', () => {
     expect(tools.calls).toEqual([])
   })
 
-  /* A copy is the only tool that leaves the moderator somewhere else. */
   it('lands on the copy rather than on the source', async () => {
     expect(
       await redirectOf(

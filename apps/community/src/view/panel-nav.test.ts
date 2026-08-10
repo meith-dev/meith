@@ -11,15 +11,6 @@ import {
   visibleChildren,
 } from './panel-nav'
 
-/**
- * The matching itself, away from any one panel's tree.
- *
- * `admin-nav.test.ts`, `usercp-nav.test.ts` and `modcp-nav.test.ts` each check
- * that *their* addresses light *their* items. What is here is the two pieces
- * all three depend on and none of them owns: which sub-pages a rail may draw,
- * and what a count of nothing renders as.
- */
-
 const SECTION: PanelSection = {
   href: '/panel/things',
   title: 'Things',
@@ -37,13 +28,11 @@ const NAV: PanelNav = [
 
 describe('isUnder', () => {
   it('needs a segment boundary', () => {
-    /* The reason it is not `startsWith`: a future `/panel/things-archive`. */
     expect(isUnder('/panel/things-archive', '/panel/things')).toBe(false)
     expect(isUnder('/panel/things/12', '/panel/things')).toBe(true)
   })
 
   it('ignores a query the item does not name', () => {
-    /* A section claims everything under it, however the address is filtered. */
     expect(isUnder('/panel/things?group=b&sort=old', '/panel/things')).toBe(true)
   })
 
@@ -54,10 +43,6 @@ describe('isUnder', () => {
   })
 
   it('leaves the other filters on an address alone', () => {
-    /*
-     * `advanced` is a filter over the group, not a different group — so the
-     * group is still where you are when it is on.
-     */
     expect(isUnder('/panel/things?group=b&advanced=1', '/panel/things?group=b')).toBe(
       true,
     )
@@ -95,10 +80,6 @@ describe('visibleChildren', () => {
   })
 
   it('draws a record only where you are standing on it', () => {
-    /*
-     * A record has no bare address worth linking — it is a row you opened —
-     * so offering one from the section's own screen would be a link to a 404.
-     */
     expect(visibleChildren(SECTION, '/panel/things/edit').map((c) => c.href)).toEqual([
       '/panel/things/new',
       '/panel/things/edit',

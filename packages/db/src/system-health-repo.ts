@@ -1,17 +1,3 @@
-/**
- * F70 — what the System Health screen reads.
- *
- * `tasks` and `task_log` have been written since F06 and read by nothing an
- * operator can see: the scheduler updates them and the CLI prints a summary,
- * but a board owner had no way to find out that the tick stopped. That is the
- * gap this closes, and it is the one that matters most on this list — every
- * catch-up operation the board has runs on that tick, and none of them *fail*
- * when it stops. They simply do not happen.
- *
- * The verdict itself is not here. "How late is too late" is a judgement about
- * the domain and lives in `@meith/tasks` as a pure function, so the screen, the
- * CLI and any future alerting reach the same answer from the same code.
- */
 import { sql } from 'drizzle-orm'
 
 import type { TaskHealthInput } from '@meith/tasks'
@@ -37,7 +23,6 @@ export interface RecountStateRow {
   readonly updatedAt: Date | null
 }
 
-/** Row counts an operator asks about when the board feels slow. */
 export interface BoardVolumes {
   readonly users: number
   readonly threads: number
@@ -54,7 +39,6 @@ function toDate(value: unknown): Date {
 export class PostgresSystemHealthRepository {
   constructor(private readonly db: Database) {}
 
-  /** Every registered task, in the shape `assessScheduler` wants. */
   async taskHealth(): Promise<readonly TaskHealthInput[]> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -74,13 +58,6 @@ export class PostgresSystemHealthRepository {
     }))
   }
 
-  /**
-   * The most recent runs, newest first.
-   *
-   * Failures included rather than filtered out: the log is where an operator
-   * looks *after* the health summary has told them something is wrong, and the
-   * error text is the only thing on this screen that says why.
-   */
   async recentRuns(limit = 20): Promise<readonly TaskRunRow[]> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -99,7 +76,6 @@ export class PostgresSystemHealthRepository {
     }))
   }
 
-  /** F38's resumable recount, and how far it has got. */
   async recountState(): Promise<readonly RecountStateRow[]> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -118,13 +94,6 @@ export class PostgresSystemHealthRepository {
     }))
   }
 
-  /**
-   * Volumes, in one round trip.
-   *
-   * Counted rather than estimated. These are read on a screen an operator opens
-   * occasionally, and an approximate row count that disagrees with the member
-   * list would cost more trust than the query costs milliseconds.
-   */
   async volumes(): Promise<BoardVolumes> {
     const rows = resultRows(
       await this.db.execute(sql`

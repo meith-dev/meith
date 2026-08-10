@@ -13,16 +13,6 @@ import { userCpNotice } from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Your signature' }
 
-/**
- * F58 — the signature screen.
- *
- * Absent entirely for a group without `canUseSignature`, rather than shown and
- * then refused: a form whose Save button always fails is worse than no form.
- *
- * The preview is rendered by the same function the postbit uses, so what a
- * member sees here is what everybody else sees — including the tags that came
- * out as literal text because signatures use a narrower registry.
- */
 export default async function SignaturePage({
   searchParams,
 }: {
@@ -44,12 +34,6 @@ export default async function SignaturePage({
   const notice = userCpNotice(query)
   const preview = signatureHtml(stored)
 
-  /*
-   * A measure, like every other screen under `/usercp`. This `<main>` had none
-   * at all, so its heading and its form ran the full width of the viewport
-   * while the panel's index and its siblings were centred — one link away from
-   * each other and half a screen apart.
-   */
   return (
     <PanelPage
       title="Your signature"
@@ -73,11 +57,6 @@ export default async function SignaturePage({
       {preview !== null && (
         <section className="flex flex-col gap-2">
           <h2 className="text-sm font-medium">How it looks</h2>
-          {/*
-            Trusted HTML from `@meith/markdown`, exactly as a post body is — and
-            produced by the same call the postbit makes, so this preview cannot
-            disagree with what other people see.
-          */}
           <div
             className="rounded-lg border border-border bg-card p-4 text-sm"
             dangerouslySetInnerHTML={{ __html: preview }}

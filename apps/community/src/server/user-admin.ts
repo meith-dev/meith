@@ -1,16 +1,5 @@
 import 'server-only'
 
-/**
- * F67 at the app layer.
- *
- * Assembles the two screens' data and constructs the one service the writes
- * need. The ban path deliberately goes through `BanService` rather than through
- * a state column: F23 captures the group the member held at ban time, which is
- * the whole mechanism behind "an expired ban restores the prior group", and a
- * second place that knew how to ban would be a second place to get that wrong.
- * F54 named the absence of this screen rather than half-building one for
- * exactly that reason.
- */
 import { BanService } from '@meith/accounts'
 import { ForbiddenError } from '@meith/core'
 import type { BanRecord } from '@meith/accounts'
@@ -30,11 +19,9 @@ import {
 
 import { getContainer } from './container'
 
-/** How many members one page of the search shows. */
 export const USER_PAGE = 50
 
 export function userAdminRepository(): PostgresUserAdminRepository | null {
-  /* Gated on the data source, like F65's and F66's repositories. */
   return getContainer().dataSource === 'postgres'
     ? new PostgresUserAdminRepository(getDb())
     : null
@@ -77,18 +64,6 @@ export function banRepository(): PostgresBanRepository | null {
     : null
 }
 
-/**
- * Read a search filter out of a URL's query string.
- *
- * The search form is a **GET form**, so the filter is in the address bar: it
- * survives a reload, it can be pasted to another administrator, and it needs no
- * JavaScript and no Server Action to work at all. A POST search would be none
- * of those things.
- *
- * Anything unparseable is dropped rather than refused. A filter is a question,
- * and answering a slightly wrong question with the members it does match is
- * more use than an error page.
- */
 export function parseUserFilter(
   params: Record<string, string | string[] | undefined>,
 ): UserSearchFilter {
@@ -134,7 +109,6 @@ export function parseUserFilter(
   }
 }
 
-/** The query string for the next page, preserving every other filter. */
 export function nextPageQuery(
   params: Record<string, string | string[] | undefined>,
   cursor: number,
@@ -151,11 +125,9 @@ export function nextPageQuery(
 
 export interface MemberView {
   readonly member: UserDetail
-  /** The groups the member holds *in addition* to their primary one. */
   readonly secondaryGroupIds: readonly number[]
   readonly groups: readonly { readonly id: number; readonly title: string }[]
   readonly activeBan: BanRecord | null
-  /** Other accounts seen on the same network. Empty when no prefix is stored. */
   readonly sharedNetwork: readonly UserSearchRow[]
 }
 
@@ -167,11 +139,6 @@ export async function buildMemberView(userId: number): Promise<MemberView | null
   const member = await repository.readDetail(userId)
   if (member === null) return null
 
-  /*
-   * The last-seen prefix in preference to the registration one: it answers
-   * "where is this account being used from now", which is the question an
-   * operator looking at a suspected second account is actually asking.
-   */
   const prefix = member.lastIpPrefix ?? member.registrationIpPrefix ?? ''
 
   return {
@@ -198,14 +165,6 @@ export function userBulkRepository(): PostgresUserBulkRepository | null {
     : null
 }
 
-/**
- * Read prune criteria out of a query string.
- *
- * Returns `null` when there is no registration boundary, because a prune
- * without one matches the entire membership. That is not a filter an operator
- * could mean, and defaulting it to "today" would be a screen that offers to
- * remove everybody by pressing Search.
- */
 export function parsePruneCriteria(
   params: Record<string, string | string[] | undefined>,
 ): PruneCriteria | null {

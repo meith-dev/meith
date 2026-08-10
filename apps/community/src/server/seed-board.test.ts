@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import { SEED_FORUM_ROWS, SEED_POST_ROWS, SEED_THREAD_ROWS } from './seed-board'
 
-/** Every forum at or beneath `path`, by the same prefix rule the recount uses. */
 function subtree(path: string): readonly (typeof SEED_FORUM_ROWS)[number][] {
   return SEED_FORUM_ROWS.filter(
     (forum) => forum.path === path || forum.path.startsWith(`${path}.`),
@@ -33,21 +32,6 @@ describe('fixture board', () => {
     }
   })
 
-  /**
-   * Counters are subtree-inclusive, categories included.
-   *
-   * The case above skips categories, which is how the `Main` row came to claim
-   * zero threads on a board with three. That is not a cosmetic difference: the
-   * board's own totals are `sum(thread_count) from forums where parent_id is
-   * null` (`PostgresStatsRepository.rollUp`), so a root category understating
-   * itself makes the control panel's Overview report an empty board — which is
-   * exactly what it did.
-   *
-   * Asserted over **every** row rather than over the categories, because the rule
-   * is not "categories are special": `rollUpAncestorCounters` and F38's recount
-   * both define a forum's counters as itself plus everything beneath it, and a
-   * leaf simply has nothing beneath it.
-   */
   it('counts every forum as its whole subtree, which is what a category is for', () => {
     for (const forum of SEED_FORUM_ROWS) {
       const beneath = subtree(forum.path)
@@ -61,7 +45,6 @@ describe('fixture board', () => {
       expect(forum.threadCount, `${forum.title} thread count`).toBe(threads.length)
       expect(forum.postCount, `${forum.title} post count`).toBe(posts.length)
 
-      /* And the newest post in that subtree is the one the row advertises. */
       const newest = [...posts].sort(
         (a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id - a.id,
       )[0]

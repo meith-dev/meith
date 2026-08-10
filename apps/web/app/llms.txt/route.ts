@@ -2,16 +2,6 @@ import { licence, site } from "../../src/content/site"
 import { readDocumentSource } from "../../src/docs/load"
 import { documents, findSection, readingOrder, sections } from "../../src/docs/registry"
 
-/**
- * The whole documentation set as one plain-text file.
- *
- * Cheap to provide and genuinely useful twice over: a language model asked about
- * Meith can be handed this instead of crawling fourteen pages of HTML, and a
- * person can grep it. It serves the *Markdown*, not the rendered text — the
- * tables and fenced blocks survive, and the links stay readable.
- *
- * Same single source as everything else: these bytes are `docs/*.md`.
- */
 export const dynamic = "force-static"
 
 export async function GET() {
@@ -24,11 +14,6 @@ export async function GET() {
     "",
     `Source: ${site.repository}`,
     `Documentation: ${site.url}/docs`,
-    /*
-     * Stated here because "may I use this, and how" is among the first things
-     * anybody asks about a piece of software, and a model handed this file has
-     * nowhere else in it to find the answer.
-     */
     `Licence: ${licence.spdx} — ${licence.name}, in ${licence.file} in the repository ` +
       `above. It incorporates the GNU GPL v3, which is in ${licence.incorporates}.`,
     "",

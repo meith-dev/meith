@@ -1,43 +1,3 @@
-/**
- * Everything the marketing pages say, in one file.
- *
- * The landing page, the metadata, the footer and the docs shell all read from
- * here rather than carrying their own copy of a headline or an install command.
- * The reason is the one that motivated this whole app: the install command
- * previously appeared four times — in `README.md`, twice in `site/index.html`,
- * and in `docs/operating.md` — and there was no way to change it once.
- *
- * Two things are deliberately *not* here.
- *
- * Documentation prose lives in `docs/` at the workspace root and is rendered
- * from those files; see `src/docs/registry.ts`.
- *
- * Figures that the code already counts — slots, hooks, endpoints, measured p95s
- * — live in `facts.ts`, which reads them out of the generated references at
- * build time. A number typed into this file is a number that goes quietly wrong;
- * everything below is a *sentence*, and the sentences that quote a figure take it
- * as an argument.
- *
- * ## What changed, and why
- *
- * This copy used to be built around the meitheal — the Irish practice the
- * project is named for — and the page carried a band explaining it, a proverb in
- * Irish, and a headline ("Many hands, one field") that only made sense once you
- * had read both. It was well written and it was aimed at the wrong reader. The
- * person who lands here is deciding whether to run a piece of server software,
- * and the first screen has to answer what it is, what it needs, and whether it
- * holds up. The name still comes from where it comes from; the page no longer
- * opens with the etymology.
- *
- * The revision after that turned the page outward. It used to make its case in
- * the software's own units — a p95, a field count, a slot count, a hook count —
- * which is the case as the people who built it see it, and not as the person
- * running a community reads it. The figures are still checked and still one
- * click away; what leads now is what a board *gets you* — ownership, privacy,
- * an archive that keeps working — with the mechanism named after the benefit
- * rather than instead of it.
- */
-
 import { compact } from "../format"
 import type { Facts } from "./facts"
 
@@ -54,125 +14,35 @@ export const site = {
     "and their board.",
 } as const
 
-/**
- * The line the hero offers to copy, and the only place it is spelled out.
- *
- * It was `npx create-meith my-board` for as long as this page has existed, and
- * that command does not work: `create-meith` is not published, and the project
- * it scaffolds pins `@meith/web`, `@meith/cli` and `@meith/theme-default`, none
- * of which are on npm either. A copy button is a promise that what it hands you
- * runs, and the first thing anybody does with a landing page is paste the one
- * command on it — so this is the clone, which does.
- *
- * It goes back when the packages are published, and not before.
- */
 export const installCommand = "git clone https://github.com/meith-dev/meith.git"
 
-/**
- * The licence, and where to read it.
- *
- * Every link from this site goes to `LICENSE.md`, which is the LGPLv3 text
- * itself. `COPYING` is named alongside it wherever there is room, because LGPLv3
- * is not a standalone licence — it is a set of additional permissions on top of
- * the GNU GPL, which it incorporates by reference — so a reader who has only the
- * Lesser text has permissions modifying a document they have not got.
- */
 export const licence = {
   spdx: "LGPL-3.0-or-later",
   short: "LGPL-3.0",
   name: "GNU Lesser General Public License v3",
-  /** The licence text, and where every link on this site points. */
   file: "LICENSE.md",
-  /** The GPL text it incorporates, which travels with it. */
   incorporates: "COPYING",
 } as const
 
 export const licenceHref = `${site.repository}/blob/main/${licence.file}`
 
 export const hero = {
-  /*
-   * Three facts in a pill, above the headline. They are the three things a
-   * reader has to know before the headline is worth reading — what the licence
-   * is, whose machine it runs on, and what it will ask them to operate — and
-   * every one of them is a question that otherwise sends somebody hunting
-   * through a README.
-   *
-   * The first slot said "Open source", which the headline below now says in its
-   * first two words: three lines apart, in the two largest treatments on the
-   * page. Naming the licence spends that slot on something the headline cannot
-   * carry, and it comes from `licence` rather than being retyped, so the pill
-   * cannot claim a licence the repository does not ship.
-   */
   badge: `${licence.short} · Self-hosted · Postgres`,
-  /*
-   * The emphasis is the claim, so it has to be worth the accent colour.
-   *
-   * This line used to read "Self-hosted forum software that *holds up*", and two
-   * thirds of it repeated the pill directly above — leaving "holds up" as the
-   * only argument in the headline, which is a hedge rather than a claim. At this
-   * measure it also got a line to itself, so the vaguest words on the page were
-   * set largest and coloured.
-   *
-   * What replaced it says where the software puts people rather than what it is.
-   * "Gather" is `site.description`'s own verb, and is deliberately not
-   * "connect" — the word every social network already uses about its groups, and
-   * therefore the one word here that cannot tell a reader why they are on this
-   * page rather than that one. "Your people" rather than "communities", because
-   * the category two words earlier already says community and the headline
-   * should not say it twice.
-   *
-   * The headline argues against nothing, and does not need to. The lede below it
-   * makes the neighbourhood-against-crowd case in two sentences and makes it
-   * better than five words can; a combative headline above that would be the
-   * same point twice. Naming the category is not this line's job either —
-   * `site.tagline` carries it into the description meta tag, the footer and
-   * `llms.txt`, where the readers who need the plain sentence are.
-   */
   headline: { before: "Open-source community software ", emphasis: "where your people gather." },
-  /*
-   * Kept in full. This paragraph is the one piece of copy on the site that does
-   * the actual arguing, and shortening it in the name of concision took the
-   * argument out — "open-source community software" is a description, and the
-   * neighbourhood is the reason anybody would want one. What it no longer has to
-   * carry is the etymology: the headline above it makes the claim, the badge
-   * above that names the licence and the database, and this is free to say why.
-   */
   lede:
     "The internet used to feel like a neighbourhood. Today it more often feels like a " +
     "fragmented crowd. Meith is community software for putting the neighbourhood back — " +
     "open source, self-hostable, and built for communities that have work to do together.",
   primary: "Start a board",
   secondary: "Read the docs",
-  /*
-   * The one line of small print in the hero, and it is a claim rather than a
-   * disclaimer: no hosted captcha is a decision about your members, and it is the
-   * thing every other board asks you to accept without mentioning.
-   */
   assurance: "No hosted captcha, and no third-party script between your members and your board.",
 } as const
 
-/**
- * The install, as a transcript.
- *
- * The one illustration a piece of self-hosted software owes the reader: the
- * whole claim of the page is that this runs on a machine they already have, and
- * a shell transcript is that claim in the form the audience reads proof in. The
- * first line is `installCommand` rather than a copy of it, so the page cannot
- * show one command and offer another.
- */
 export const terminal: {
   readonly cwd: string
   readonly lines: readonly { readonly text: string; readonly output?: boolean }[]
 } = {
   cwd: "~/boards",
-  /*
-   * Every line is held to the width of the longest command above it. A
-   * transcript that scrolls sideways is a transcript nobody reads the end of,
-   * and the end is the part that says it worked.
-   *
-   * The four services are named rather than counted, because "four containers"
-   * is the claim the paragraph beside this makes and these are what they are.
-   */
   lines: [
     { text: installCommand },
     { text: "cd meith && cp .env.example .env" },
@@ -185,14 +55,6 @@ export const terminal: {
   ],
 }
 
-/**
- * The illustration beside the headline.
- *
- * A drawing of a board rather than a screenshot: it says what the software is in
- * the half-second before anybody reads a word, and being a drawing it cannot go
- * stale against a theme somebody changed. The caption says as much, because a
- * picture of an interface implies a screenshot unless it tells you otherwise.
- */
 export const boardPreview = {
   caption: "A board, in outline — its forums, what is in them, and the last thing said.",
   name: "Workshop",
@@ -214,19 +76,6 @@ export interface Benefit {
   readonly body: string
 }
 
-/**
- * The strip under the hero: what running your community here gets you.
- *
- * This band used to be four figures — a p95, a field count, a slot count, a
- * hook count — and every one asked the reader to already know why its number
- * mattered. The person the hero just spoke to is deciding where their
- * community lives, and the units that decision is made in are ownership,
- * privacy, continuity and cost, not milliseconds and slots. The milliseconds
- * moved to the speed band, still read from the reference; the counts are in
- * the documents the capability cards link to.
- *
- * No figures here on purpose, so nothing in this band can go stale.
- */
 export const benefits: readonly Benefit[] = [
   {
     title: "Own the place",
@@ -254,17 +103,6 @@ export const benefits: readonly Benefit[] = [
   },
 ]
 
-/**
- * What the board does, in six.
- *
- * Each card leads with what a community notices and follows with how it is
- * done, in that order. An earlier draft led with the mechanism — field counts,
- * frozen slots, typed hooks, keyset paging — which reads well to the person
- * who built the board and not at all to the person deciding whether their
- * community should live on one. The mechanism is still named, because a claim
- * with no how is just an adjective; it comes second, and the linked document
- * carries the rest of the argument.
- */
 export interface Capability {
   readonly title: string
   readonly body: string
@@ -336,25 +174,8 @@ export const capabilities: readonly Capability[] = [
   },
 ]
 
-/** The one measurement the page still quotes, named as the reference names it. */
 const HEADLINE_SCENARIO = "Thread, page 1"
 
-/**
- * Speed, as the reader experiences it.
- *
- * This band used to be the measurements themselves: a five-row table of p95s
- * against budgets, with the benchmark board's size beside it. The table was
- * honest and it was aimed at the wrong reader — a page of community software is
- * fast or it is not, and the person deciding whether to run one wants the
- * sentence, not the spreadsheet. The sentence is here; the spreadsheet is one
- * click away, unchanged, in the performance reference.
- *
- * One figure survives, in `evidence`, because "fast" with no number is an
- * adjective. It is read from the generated reference at build time — the same
- * chain as before, code → document → page — and a scenario dropped from the
- * load runner fails the build rather than leaving the sentence quietly
- * claiming a measurement nobody takes.
- */
 export const performance = {
   eyebrow: "Built to stay quick",
   heading: "Reading never drags.",
@@ -367,10 +188,6 @@ export const performance = {
       (scenario) => scenario.page === HEADLINE_SCENARIO,
     )
 
-    /*
-     * A build failure rather than a hedge. A sentence that quietly drops its
-     * number still reads as finished, and the number is what makes it a claim.
-     */
     if (!thread) {
       throw new Error(
         `docs/performance.md no longer measures “${HEADLINE_SCENARIO}”, which the landing page ` +
@@ -387,20 +204,6 @@ export const performance = {
   link: "Every measurement, and how it was taken",
 } as const
 
-/**
- * Where it runs, and the shorter list this became.
- *
- * There were two options here and one of them was serverless. It went, and the
- * reason is worth keeping written down: a board needs a scheduler that goes off
- * every minute, a disk that survives a restart, and a process that outlives a
- * request. A server gives you all three by existing. A function gives you none,
- * and the third cannot be bought — so offering it as a route meant offering a
- * board that half worked, to the readers least equipped to notice which half.
- *
- * What is left is one route in two shapes — a panel on your own server, or the
- * compose file run by you — because "self-hosted" reads as "and you are on your
- * own with the certificate", and for one of these that is simply not true.
- */
 export const deployment = {
   eyebrow: "Where it runs",
   heading: "Your own server. Guided, or by hand.",
@@ -444,19 +247,6 @@ export const migration = {
   link: "The parity decisions",
 } as const
 
-/**
- * The licence, as an argument rather than a footnote.
- *
- * It earns a band of its own because for this audience it is not boilerplate.
- * Anybody who has run a community for long enough has watched the software
- * underneath it get bought, relicensed or shut down, and "which licence" is a
- * question they ask early and are usually made to hunt for.
- *
- * The claim in `emphasis` is stated the careful way on purpose. Copyleft does
- * not stop a copyright holder relicensing what they publish *next*; what it
- * guarantees is that the version already released stays free and stays forkable,
- * which is the assurance actually being offered.
- */
 export const licensing = {
   eyebrow: "The licence",
   heading: "Yours to keep.",
@@ -483,11 +273,6 @@ export const licensing = {
     "Which is the point of choosing it: the version you are running stays free software " +
     "whatever anybody decides later, and anybody can carry it on.",
   link: "Read the licence",
-  /*
-   * Stated rather than left implicit. Somebody who opens the Lesser text alone
-   * finds a document that modifies another one, and it is not obvious from
-   * inside it where that other one is.
-   */
   note:
     "LGPLv3 is additional permissions on top of the GNU GPL, which it incorporates. Both texts " +
     "are in the repository, and both travel with any copy you pass on.",
@@ -507,11 +292,6 @@ export const closing = {
   body:
     "A board of your own, on a machine of your own, in about half an hour. Read the source " +
     "before you run it — all of it is there.",
-  /*
-   * What you actually need, beside the ask. Three rows rather than a paragraph,
-   * because this is the question somebody has at exactly this point on the page
-   * and the answer is short enough to be a list.
-   */
   requirements: [
     { label: "A machine", value: "Your own, with Docker" },
     { label: "A domain", value: "Pointed at it" },
@@ -519,15 +299,6 @@ export const closing = {
   ],
 } as const
 
-/**
- * The colophon describes *this site*, not a board — which is the distinction the
- * line it replaces got wrong.
- *
- * This site has no analytics and sets no cookie at all: the colour scheme goes to
- * `localStorage` (see `theme-storage.ts`), which is why it can say so plainly. A
- * board is a different piece of software with different obligations, which are
- * its operator's to weigh.
- */
 export const footer = {
   colophon:
     "Rendered from the Markdown in the repository. No analytics and no third-party scripts — " +

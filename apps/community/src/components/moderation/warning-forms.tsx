@@ -1,18 +1,5 @@
 "use client"
 
-/**
- * F53's two forms.
- *
- * Client components only for `useActionState`, like every other form here.
- * Both work with scripting off: native `<select>`, `<textarea>` and submit
- * buttons, and a redirect back to this screen carrying the outcome.
- *
- * The free-text fields are always present rather than revealed by choosing
- * "Other" from the type list, because revealing them needs script and the
- * server decides which pair it reads anyway — a submitted `points` on a *typed*
- * warning is ignored, which is what stops a moderator with one-point authority
- * from issuing ten.
- */
 import { useActionState } from "react"
 
 import { issueWarningAction, revokeWarningAction } from "@/server/warning-actions"
@@ -39,7 +26,6 @@ export function IssueWarningForm({
 }: {
   userId: number
   username: string
-  /** The post this warning is about, if the moderator came from one. */
   postId: number | null
   types: readonly WarningTypeOption[]
 }) {

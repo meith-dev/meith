@@ -1,25 +1,3 @@
-/**
- * Markdown → HTML, for documents this repository owns.
- *
- * The whole point of this app is that `docs/*.md` stays the single editable
- * copy of the documentation, so this module's job is to render those files
- * faithfully rather than to be a general-purpose Markdown host. Three
- * consequences follow, and each is a deliberate narrowing:
- *
- * 1. **Raw HTML is escaped, not emitted.** The documents are plain Markdown;
- *    the only HTML in them is the `GENERATED FILE — do not edit` comment at the
- *    top of the four generated references, and two places where a literal
- *    `<form>` / `<title>` is being *talked about*. Passing those through would
- *    render them invisible; escaping shows the reader what the author wrote.
- *    It also means no future edit to a document can inject markup into a page.
- * 2. **Generator comments are dropped.** They are instructions to whoever opens
- *    the file, not to whoever reads the page. The page says a document is
- *    generated in its own header instead, from the manifest.
- * 3. **Links are resolved by the caller.** A relative `./operating.md` has to
- *    become `/docs/operating` here and a GitHub URL when it points at something
- *    the site does not publish — and only the docs layer knows which is which.
- */
-
 import { lexer, parser, Renderer, type Token, type Tokens } from "marked"
 
 import { highlight, type HighlightedCode } from "./highlight"
@@ -28,31 +6,19 @@ import { createSlugger } from "./slug"
 export interface DocHeading {
   readonly id: string
   readonly text: string
-  /** 2 for `##`, 3 for `###`. The `#` title is lifted out before rendering. */
   readonly depth: number
 }
 
-/** Where a link should point, once the docs layer has had a look at it. */
 export interface ResolvedLink {
   readonly href: string
-  /** External links get `rel="noreferrer"` and open in a new tab. */
   readonly external: boolean
 }
 
 export interface RenderOptions {
-  /** Called for every link in the document, including image sources. */
   readonly resolveLink: (href: string) => ResolvedLink
 }
 
-/**
- * One heading and the prose beneath it, markup removed.
- *
- * The unit the search index works in. A whole document is too coarse to be a
- * useful result — `operating.md` is four hundred lines and "which line" is the
- * entire question — and a paragraph is too fine to name in a result list.
- */
 export interface DocSectionText {
-  /** The anchor to link at. Empty for the prose above the first heading. */
   readonly id: string
   readonly heading: string
   readonly depth: number
@@ -60,14 +26,10 @@ export interface DocSectionText {
 }
 
 export interface RenderedMarkdown {
-  /** The document's `# ` title, if it opened with one. */
   readonly title: string | null
   readonly html: string
-  /** `##` and `###` headings, in document order, for the contents rail. */
   readonly headings: readonly DocHeading[]
-  /** The same document split at its headings, for the search index. */
   readonly sections: readonly DocSectionText[]
-  /** Prose with the markup taken off. */
   readonly text: string
 }
 
@@ -83,12 +45,6 @@ export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => HTML_ESCAPES[character] ?? character)
 }
 
-/**
- * The visible text of an inline token run.
- *
- * Used for heading slugs and for the search index, so it must agree with what a
- * reader sees: a `` `Shell` `` heading is the word Shell, not a backtick.
- */
 export function tokensToText(tokens: readonly Token[] | undefined): string {
   if (!tokens) return ""
 
@@ -120,13 +76,11 @@ export function tokensToText(tokens: readonly Token[] | undefined): string {
   return out
 }
 
-/** Prose only: block structure flattened, fenced code left out. */
 function blockText(tokens: readonly Token[] | undefined, out: string[] = []): string[] {
   if (!tokens) return out
 
   for (const token of tokens) {
     switch (token.type) {
-      /* Fenced code is noise in a search index and dwarfs the prose around it. */
       case "code":
       case "space":
       case "hr":
@@ -153,11 +107,6 @@ function blockText(tokens: readonly Token[] | undefined, out: string[] = []): st
   return out
 }
 
-/**
- * A fence's language, as a label a reader recognises. Unknown languages fall
- * through unchanged rather than being hidden — an unfamiliar label is
- * information, and a missing one is not.
- */
 const LANGUAGE_LABELS: Record<string, string> = {
   sh: "shell",
   bash: "shell",
@@ -174,14 +123,6 @@ const LANGUAGE_LABELS: Record<string, string> = {
   "": "",
 }
 
-/**
- * GitHub's alert syntax, which is a blockquote whose first line is a marker.
- *
- * Supported because it is what a documentation author already reaches for, and
- * because it degrades correctly: a file using it renders as a labelled
- * blockquote on GitHub and as a callout here, with no site-specific syntax that
- * only works in one of the two places the documents are read.
- */
 const ALERT_MARKER = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ \t]*\n?/
 
 const ALERT_LABELS: Record<string, string> = {
@@ -220,11 +161,6 @@ class DocRenderer extends Renderer {
     const depth = Math.min(6, token.depth)
     const content = this.parser.parseInline(token.tokens)
 
-    /*
-     * The whole heading is the anchor, not a `¶` bolted onto the end. A reader
-     * copying a link to a section aims at the words, and a one-character target
-     * is a miss on a touchscreen.
-     */
     return (
       `<h${depth} id="${escapeHtml(id)}" class="doc-heading">` +
       `<a class="doc-heading-anchor" href="#${escapeHtml(id)}">${content}</a>` +
@@ -254,14 +190,6 @@ class DocRenderer extends Renderer {
   override code(token: Tokens.Code): string {
     const language = (token.lang ?? "").trim().split(/\s+/)[0] ?? ""
 
-    /*
-     * A mermaid fence is a diagram, not code. The figure ships the source —
-     * which is what GitHub renders natively, what `/llms.txt` serves, and what
-     * a reader without JavaScript gets — and `mermaid-diagrams.tsx` replaces it
-     * with the drawn SVG after mount. The source is legible on its own; that is
-     * a property of the language worth relying on, and it is why the fallback
-     * is the source rather than an apology.
-     */
     if (language.toLowerCase() === "mermaid") {
       return (
         `<figure class="doc-diagram" data-diagram="mermaid">` +
@@ -275,44 +203,22 @@ class DocRenderer extends Renderer {
 
     return (
       `<figure class="doc-code"${label === "" ? "" : ` data-lang="${escapeHtml(label)}"`}>` +
-      /*
-       * The raw source on the element, so the copy button beside it copies what
-       * the author wrote rather than the highlighted markup's textContent —
-       * which differs the moment a line wraps or a token carries a zero-width
-       * space.
-       */
       `<pre data-code="${escapeHtml(token.text)}"><code>` +
       (highlighted ? highlighted.html : escapeHtml(token.text)) +
       `</code></pre></figure>\n`
     )
   }
 
-  /*
-   * A wrapper that can scroll on its own, because several of these tables are
-   * genuinely wide — `theme-slots.md` has a five-column table whose last column
-   * is a TypeScript type. Without it the *page* scrolls sideways on a phone,
-   * which breaks every other line of prose on it.
-   */
   override table(token: Tokens.Table): string {
     return `<div class="doc-table" role="region" tabindex="0">${super.table(token)}</div>\n`
   }
 
-  /** See the module header: comments vanish, everything else is shown as written. */
   override html({ text }: Tokens.HTML | Tokens.Tag): string {
     if (/^\s*<!--/.test(text)) return ""
     return escapeHtml(text)
   }
 }
 
-/**
- * Assign an id to every `##`/`###` heading before rendering, so the contents
- * rail and the rendered anchors cannot disagree.
- *
- * Doing it in one pass over the token tree — rather than slugging again inside
- * the renderer — is what makes duplicate numbering safe: two `### Notes`
- * headings become `notes` and `notes-1` in both places because there is only
- * one slugger and one traversal.
- */
 function collectHeadings(tokens: readonly Token[]): {
   headings: DocHeading[]
   ids: WeakMap<Tokens.Heading, string>
@@ -333,7 +239,6 @@ function collectHeadings(tokens: readonly Token[]): {
   return { headings, ids }
 }
 
-/** Every token in the tree, depth-first, including the ones nested in lists and quotes. */
 function* everyToken(tokens: readonly Token[] | undefined): Generator<Token> {
   if (!tokens) return
 
@@ -351,20 +256,12 @@ function* everyToken(tokens: readonly Token[] | undefined): Generator<Token> {
   }
 }
 
-/**
- * Strip an alert's `[!NOTE]` marker out of the tokens that will be rendered.
- *
- * Done to the token rather than to the output because the marker has to
- * disappear from the *text* as well: it would otherwise be indexed, and a
- * reader searching for "note" would match every callout on the site.
- */
 function stripAlertMarker(tokens: readonly Token[] | undefined): boolean {
   for (const token of tokens ?? []) {
     const generic = token as Tokens.Generic
     if (typeof generic.text === "string" && ALERT_MARKER.test(generic.text)) {
       generic.text = generic.text.replace(ALERT_MARKER, "")
       if (typeof generic.raw === "string") generic.raw = generic.raw.replace(ALERT_MARKER, "")
-      /* A text token may itself hold inline tokens; the marker is in both. */
       stripAlertMarker(generic.tokens)
       return true
     }
@@ -373,11 +270,6 @@ function stripAlertMarker(tokens: readonly Token[] | undefined): boolean {
   return false
 }
 
-/**
- * One pass over the token tree for the two things that cannot be done inside a
- * synchronous renderer: highlighting (which is async) and rewriting alert
- * markers out of the tokens (which has to happen before anything reads them).
- */
 async function prepare(tokens: readonly Token[]): Promise<{
   codeBlocks: WeakMap<Tokens.Code, HighlightedCode>
   alerts: WeakMap<Tokens.Blockquote, string>
@@ -416,12 +308,6 @@ export async function renderMarkdown(
 ): Promise<RenderedMarkdown> {
   const tokens = lexer(markdown, { gfm: true })
 
-  /*
-   * The `# ` title is lifted out and rendered by the page, beside the audience
-   * and the "generated" mark. Leaving it in the body would put two competing
-   * titles on the page, and the manifest's title is the one the navigation,
-   * the search results and the `<title>` element already agree on.
-   */
   let title: string | null = null
   const body = [...tokens]
   const first = body.find((token) => token.type !== "space")
@@ -444,14 +330,6 @@ export async function renderMarkdown(
   }
 }
 
-/**
- * The document again, cut at every heading.
- *
- * Shares the `ids` map with the renderer rather than slugging a second time, so
- * a search result can never link at an anchor the page does not have — which is
- * exactly what a second, independently-numbered slugger would eventually do to a
- * document with two headings of the same name.
- */
 function splitAtHeadings(
   tokens: readonly Token[],
   ids: WeakMap<Tokens.Heading, string>,

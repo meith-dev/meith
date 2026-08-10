@@ -8,18 +8,6 @@ import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'API tokens' }
 
-/**
- * F81 — the token screen.
- *
- * The gap this closes is small and embarrassing: the board shipped a documented
- * REST API whose tokens could only be created by hand-writing SQL, so the
- * published quick-start began with a database prompt.
- *
- * **Revoked tokens stay on the list.** A revoked row still carries its name and
- * its last-used time, and those are the first two questions asked after a token
- * leaks — deleting the row would answer neither. It is also why revoking is a
- * status change rather than a delete.
- */
 export default async function AdminApiTokensPage() {
   await requireAdmin()
 
@@ -91,8 +79,6 @@ export default async function AdminApiTokensPage() {
                   <tr key={token.id} className="border-b border-border align-top">
                     <td className="py-2 pr-3">{token.name}</td>
                     <td className="py-2 pr-3">{token.username}</td>
-                    {/* The clear half only. It is how somebody matches a token
-                        they hold against this list; the secret half is a hash. */}
                     <td className="py-2 pr-3 font-mono text-xs">{token.lookup}</td>
                     <td className="py-2 pr-3 font-mono text-xs">
                       {token.scopes.join(' ')}

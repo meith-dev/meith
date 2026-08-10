@@ -28,11 +28,6 @@ describe('the restricted construct set', () => {
   })
 
   it('drops the image and keeps its words, rather than refusing the save', () => {
-    /*
-     * The reason this is a narrower parse rather than a validator: it cannot be
-     * bypassed by a construct this build does not know, and a member pasting an
-     * old signature gets most of it instead of an error.
-     */
     const { rendered } = prepareSignature('**hi** ![a photo](https://x.test/a.png)', ALLOWED)
 
     expect(rendered.html).toContain('<strong>hi</strong>')
@@ -41,11 +36,6 @@ describe('the restricted construct set', () => {
   })
 
   it('leaves the block constructs as the characters they are', () => {
-    /*
-     * Each omission is the same argument: a signature appears under every post
-     * its author has ever made, so nothing in one may change the height of a
-     * thread page.
-     */
     const { rendered } = prepareSignature('# Shouting\n> quoted\n- listed', ALLOWED)
 
     expect(rendered.html).not.toContain('<h2')
@@ -67,10 +57,6 @@ describe('signatureLimit', () => {
   })
 
   it('treats 0 as unlimited, which means the hard ceiling', () => {
-    /*
-     * 0 means unlimited on every numeric permission (R4.2) — but "unlimited"
-     * for a string that renders under every post is still bounded.
-     */
     expect(signatureLimit({ canUse: true, maxLength: 0 })).toBe(SIGNATURE_HARD_MAX)
   })
 
@@ -87,11 +73,6 @@ describe('prepareSignature', () => {
   })
 
   it('measures the raw source, not the rendered HTML', () => {
-    /*
-     * A member types Markdown, and a limit they cannot count against is one
-     * they cannot work with. It also means a renderer change can never
-     * retroactively push somebody over.
-     */
     const source = `**${'x'.repeat(90)}**`
     expect(source.length).toBeLessThanOrEqual(100)
 
@@ -120,11 +101,6 @@ describe('signatureHtml', () => {
   })
 
   it('renders live when the stored one is from an older renderer', () => {
-    /*
-     * F36's rule, for the third table: a stale render is a live render, so a
-     * renderer security fix takes effect on the next page load rather than
-     * waiting for a backfill.
-     */
     const html = signatureHtml(
       stored({ signature: '**fresh**', signatureHtml: '<p>stale</p>', signatureRenderVersion: 0 }),
     )
@@ -136,10 +112,6 @@ describe('signatureHtml', () => {
   })
 
   it('shows nothing for a locked signature, without deleting it', () => {
-    /*
-     * The point of a lock rather than a delete: the text is kept so an appeal
-     * can see what was there, and it does not render.
-     */
     const locked = stored({ locked: true, lockedReason: 'Advertising.' })
     expect(signatureHtml(locked)).toBeNull()
     expect(locked.signature).toBe('Hello')
@@ -150,12 +122,6 @@ describe('signatureHtml', () => {
   })
 
   it('converts a signature still stored as BBCode, and does not trust its render', () => {
-    /*
-     * A board that upgraded has signatures full of `[b]`. The stored render is
-     * ignored whatever version it claims — it was produced by a renderer that
-     * no longer exists — and the source is converted on the way through until
-     * the member next saves.
-     */
     const html = signatureHtml(
       stored({
         signature: '[b]old[/b]',

@@ -1,4 +1,3 @@
-/** F40 — the reply rules, and the quote prefill. */
 import { describe, expect, it } from 'vitest'
 import { RateLimitedError, ValidationError } from '@meith/core'
 
@@ -60,7 +59,6 @@ const INPUT = {
   seenLastPostId: 31,
   bypassesModeration: false,
   bypassesFlood: false,
-  /* F46. Off in the shared fixture; the tests that care set it. */
   heldAsNewMember: false,
   requiresApproval: false,
   bypassesLock: false,
@@ -145,18 +143,9 @@ describe('ReplyComposer', () => {
       forum: { ...TARGET.forum, moderateNewPosts: true },
     })
 
-    // `moderate_new_posts`, not `moderate_new_threads`: a forum can hold replies
-    // while letting threads through, and vice versa.
     expect(result.visibility).toBe('unapproved')
   })
 
-  /*
-   * The `requiresPostApproval` permission, which until the 7 August 2026 audit
-   * was written to the database by the group screen and read by nothing. The
-   * forum's own switch above and this one are different axes: a board holds one
-   * group's replies everywhere with this, and everybody's replies in one forum
-   * with that.
-   */
   it('holds the reply when the permission requires approval', async () => {
     const posts = new RecordingReplies()
     const result = await composer(posts).create(
@@ -211,9 +200,6 @@ describe('ReplyComposer', () => {
         TARGET,
       )
 
-      // Reported, never enforced: the reply is written either way, because
-      // refusing it would cost the author their post to protect them from an
-      // overlap that is usually harmless.
       expect(result.raced).toBe(true)
       expect(posts.written).toHaveLength(1)
     })
@@ -233,8 +219,6 @@ describe('ReplyComposer', () => {
         TARGET,
       )
 
-      // A submit with no marker — an old form, or a hand-made POST — must not
-      // produce a warning about a race nobody can describe.
       expect(result.raced).toBe(false)
     })
   })
@@ -251,19 +235,12 @@ describe('quotePrefill', () => {
   })
 
   it('marks every line, so a two-paragraph quote stays one quote', () => {
-    /*
-     * A blockquote ends at the first line without a `>`. Without the marker on
-     * the blank line, quoting a two-paragraph post would quote the first
-     * paragraph and put the second one in the replier's own voice.
-     */
     const quoted = quotePrefill({ authorUsername: 'ada', message: 'one\n\ntwo' })
 
     expect(quoted).toContain('> one\n>\n> two')
   })
 
   it('keeps the quoted body verbatim, markup and all', () => {
-    // Escaping here would corrupt a quote of a post that itself contains
-    // markup. Rendering is where escaping belongs (F36).
     const quoted = quotePrefill({
       authorUsername: 'ada',
       message: '**bold** & <em>',
@@ -273,23 +250,15 @@ describe('quotePrefill', () => {
   })
 
   it('does not let a username reformat the attribution line', () => {
-    /*
-     * The renderer escapes what it produces, but the *source* is what the
-     * replier then edits — a name carrying `**` would close the bold early and
-     * stay broken in whatever they post.
-     */
     const quoted = quotePrefill({
       authorUsername: '**ada**_[x]`',
       message: 'x',
     })
 
-    /* `_` survives: it is a legal username character, and quote notifications
-       resolve the attribution back to an account — see `plainAuthorName`. */
     expect(quoted).toBe('> **ada_x wrote:**\n>\n> x\n\n')
   })
 })
 
-/** F53's restrictions, on the reply path. Same rules as the composer's. */
 describe('warning restrictions (F53)', () => {
   it('refuses a suspended author', async () => {
     const posts = new RecordingReplies()

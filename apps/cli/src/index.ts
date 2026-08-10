@@ -1,15 +1,4 @@
 #!/usr/bin/env node
-/**
- * F13 — operator CLI.
- *
- * Everything an operator must do without a browser: inspect configuration, run
- * migrations, drain the queue, force a tick, seed sample data.
- *
- * Deliberately a *thin* layer. Each subcommand delegates to the same code the
- * app uses, so a CLI path cannot drift from the request path — the class of bug
- * where `community settings:set` writes a value the app then rejects.
- */
-
 import process from 'node:process'
 
 import { loadEnvFiles, type LoadedEnvFiles } from '@meith/core/env-files'
@@ -38,7 +27,6 @@ interface Command {
   run(args: readonly string[]): Promise<number>
 }
 
-/** Printed for `--help` and on unknown input. */
 function usage(commands: readonly Command[]): string {
   const width = Math.max(...commands.map((c) => c.name.length))
   const lines = commands.map(
@@ -60,12 +48,6 @@ const commands: Command[] = [
     name: 'env:check',
     summary: 'Validate environment variables and print the resolved config.',
     async run() {
-      /*
-       * Imported lazily inside run() rather than at module top level. A failed
-       * validation must be reported by *this* command with a readable message;
-       * a top-level import would throw during module evaluation, before the
-       * command dispatcher could attach any context.
-       */
       const { assertEnv } = await import('@meith/core')
 
       let env
@@ -77,16 +59,6 @@ const commands: Command[] = [
         return 1
       }
 
-      /*
-       * Secrets are reported as present/absent only. An operator running this
-       * over a shared terminal or pasting output into an issue must not leak
-       * AUTH_SECRET.
-       *
-       * The list lives in `redaction.ts` with the reason it moved there: it is a
-       * deny-list, so a credential added to the schema and not to it gets
-       * printed, silently, by the one command whose output people paste into bug
-       * reports. `redaction.test.ts` holds it against the schema.
-       */
       const rows = Object.entries(env)
         .filter(([, v]) => v !== undefined)
         .map(([k, v]) => [k, SECRET_ENV_KEYS.has(k) ? '<set>' : String(v)] as const)
@@ -171,21 +143,6 @@ const commands: Command[] = [
       }
 
       const { upgrade } = await import('./upgrade')
-      /*
-       * The board's own plugin registry, imported statically so esbuild bundles
-       * it into `cli.cjs`.
-       *
-       * This used to be `plugins: []` with a comment explaining that an operator
-       * CLI installed from npm cannot see `community.config.ts`. True of a published
-       * CLI, and this one is not published — `@meith/cli` is `private: true` and
-       * ships inside the image, built from the same tree as the config. Passing
-       * nothing meant the panel could tell an operator to run this command to
-       * apply a plugin's migrations and the command would report success without
-       * applying them, which the 7 August 2026 audit found and this closes.
-       *
-       * `community.plugins.ts` rather than `community.config.ts`: the latter imports
-       * every theme, and a CLI has no use for a slot map of React components.
-       */
       const { installedPluginDefinitions } = await import('../../community/community.plugins')
       return upgrade({
         dryRun: args.includes('--dry-run'),
@@ -199,13 +156,6 @@ const commands: Command[] = [
     name: 'settings:list',
     summary: 'Print the setting registry with default values.',
     async run() {
-      /*
-       * Reads the *registry*, not resolved values. Resolved values need a
-       * SettingsRepository, which belongs to the composition root (still
-       * pending — see `tick` and `queue:drain` below). Listing defaults is
-       * genuinely useful on its own: it is how an operator discovers what keys
-       * exist and what they may be set to.
-       */
       const { SETTING_DEFINITIONS } = await import('@meith/settings')
 
       const width = Math.max(...SETTING_DEFINITIONS.map((d) => d.key.length))
@@ -304,39 +254,9 @@ const commands: Command[] = [
   },
 ]
 
-
-/*
- * `task:run` and `task:list` arrived once F06 gave the scheduler a real
- * `TaskRepository`; `queue:drain` is not separate from them, because draining
- * the queue *is* one of the registered tasks and running it twice by two routes
- * would mean two claims on the same work.
- *
- * Still deliberately absent: `cache:clear`. It needs a cache an operator could
- * meaningfully clear, and there is not one — MemoryCache dies with the process
- * it lives in, and NextCache's `revalidateTag` only works inside a Next
- * request. The honest implementation bumps `cache_versions`, and that belongs
- * with F70's Recount & Rebuild.
- *
- * Registering it now as a command that throws would be worse than omitting it:
- * `community --help` would advertise a capability the binary does not have.
- */
-
-/**
- * What `loadEnvFiles()` found, so `env:check` can report it.
- *
- * Assigned by `main()` before any command runs. `env:check` exists to answer
- * "what configuration am I actually running with", and the file that supplied it
- * is half that answer — an operator staring at `DATA_SOURCE fixture` needs to
- * know whether the CLI read their `.env` and it said fixture, or never found it.
- */
 let envFiles: LoadedEnvFiles = { root: undefined, loaded: [] }
 
 async function main(): Promise<number> {
-  /*
-   * First, before a command can import anything that reads `env`. The CLI is a
-   * plain Node process: unlike `next dev`, nothing has populated `process.env`
-   * from the workspace's `.env` by the time it starts.
-   */
   envFiles = loadEnvFiles()
 
   const [name, ...rest] = process.argv.slice(2)
@@ -364,14 +284,6 @@ async function main(): Promise<number> {
 main()
   .then((code) => process.exit(code))
   .catch(async (error: unknown) => {
-    /*
-     * Expected failures print their message and nothing else. A missing --title
-     * or an unset DATABASE_URL is an operator mistake, not a defect, and a stack
-     * trace buries the one line that says how to fix it — it also trains people
-     * to ignore stack traces, so the real ones stop being read.
-     *
-     * Anything unrecognised still prints in full, because that IS a defect.
-     */
     const { isAppError } = await import('@meith/core')
 
     if (isAppError(error)) {

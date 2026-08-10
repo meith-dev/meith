@@ -50,12 +50,6 @@ describe('banning', () => {
 })
 
 describe('expiry restores the prior group', () => {
-  /*
-   * F23's stated acceptance criterion, and the one thing most likely to be got
-   * wrong: a moderator banned for a week must come back a *moderator*.
-   * Restoring the default group instead is a silent demotion nobody notices
-   * until that person tries to do their job.
-   */
   it('restores the group the user actually held, not the default', async () => {
     await service.ban({ userId: USER, expiresAt: new Date('2026-08-06T12:00:00Z') })
     expect(bans.primaryGroupOf(USER)).toBe(BANNED_GROUP)
@@ -83,10 +77,6 @@ describe('expiry restores the prior group', () => {
     expect(bans.primaryGroupOf(USER)).toBe(BANNED_GROUP)
   })
 
-  /*
-   * Every scheduled task must be idempotent and catch-up capable (R9): cron on
-   * a hobby plan skips, and a retry fires the same tick twice.
-   */
   it('is idempotent — running twice changes nothing the second time', async () => {
     await service.ban({ userId: USER, expiresAt: new Date('2026-08-06T12:00:00Z') })
     now = new Date('2026-08-06T12:00:01Z')
@@ -99,8 +89,6 @@ describe('expiry restores the prior group', () => {
   it('catches up after missing several days of ticks', async () => {
     await service.ban({ userId: USER, expiresAt: new Date('2026-08-06T12:00:00Z') })
 
-    // Three days late; the ban still lifts, because the task acts on
-    // outstanding state rather than on "what expired since I last ran".
     now = new Date('2026-08-09T12:00:00Z')
     expect(await service.expireDue()).toBe(1)
     expect(bans.primaryGroupOf(USER)).toBe(MODERATOR_GROUP)
@@ -146,10 +134,6 @@ describe('assertNotBanned', () => {
     await expect(service.assertNotBanned(USER)).rejects.toThrow(ForbiddenError)
   })
 
-  /*
-   * `reason` is staff-facing and routinely holds notes ("same IP as the account
-   * we banned last week") that must not be handed to the person it is about.
-   */
   it('surfaces the public reason and never the internal one', async () => {
     await service.ban({
       userId: USER,

@@ -1,33 +1,16 @@
-/**
- * Validation for creating a forum (F16).
- *
- * Pure, like `planMove`, and for the same reason: every rule that decides
- * whether a board's structure stays coherent should be testable without a
- * database. The repository derives `path` from the parent it just validated.
- */
 import { ConflictError, ValidationError } from '@meith/core'
-
 
 import type { ForumRow, NewForum } from './types'
 
-/** Slugs appear in URLs, so the accepted shape is deliberately narrow. */
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export interface CreatePlan {
   readonly parentId: number | null
-  /** Path of the parent, or null for a root — the repo appends the new id. */
   readonly parentPath: string | null
   readonly depth: number
   readonly displayOrder: number
 }
 
-/**
- * Check a new forum against the existing tree.
- *
- * The final `path` cannot be produced here: it needs the id the database is
- * about to assign. What is returned is everything the repository needs to build
- * it in one insert — `childPath(parentPath, newId)`.
- */
 export function planCreate(rows: readonly ForumRow[], input: NewForum): CreatePlan {
   const title = input.title.trim()
   if (title === '') throw new ValidationError('A forum needs a title.')
@@ -47,7 +30,6 @@ export function planCreate(rows: readonly ForumRow[], input: NewForum): CreatePl
     throw new ValidationError(`No such parent forum: ${input.parentId}`)
   }
 
-  // Same rule as planMove: a link is a navigation stub, not a container.
   if (parent?.type === 'link') {
     throw new ValidationError(`"${parent.title}" is a link and cannot contain forums.`)
   }
@@ -64,9 +46,6 @@ export function planCreate(rows: readonly ForumRow[], input: NewForum): CreatePl
   return {
     parentId: input.parentId,
     parentPath,
-    // One below the parent. Derived from the parent's own depth rather than by
-    // parsing a synthesised path — a placeholder id in a path is not a valid
-    // path, and `parsePath` rightly rejects it.
     depth: parent === null || parent === undefined ? 0 : parent.depth + 1,
     displayOrder:
       input.displayOrder ??

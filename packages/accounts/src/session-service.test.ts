@@ -22,11 +22,9 @@ describe('SessionService remember-me', () => {
     expect(login.userId).toBe(42)
     expect(login.sessionToken).toBeTypeOf('string')
     expect(login.rememberToken).toBeTypeOf('string')
-    // The session is keyed by hash, resolvable by the hash of the plaintext.
     expect(
       await store.sessions.findByTokenHash(await hashToken(login.sessionToken)),
     ).not.toBeNull()
-    // The remember token is stored hashed, not in plaintext.
     expect(await store.remember.findByTokenHash(login.rememberToken)).toBeNull()
     expect(
       await store.remember.findByTokenHash(await hashToken(login.rememberToken)),
@@ -40,12 +38,9 @@ describe('SessionService remember-me', () => {
     const r1 = await svc.resume(first.rememberToken)
     expect(r1.status).toBe('ok')
     if (r1.status !== 'ok') return
-    // Rotation issued a DIFFERENT token (single-use chain).
     expect(r1.login.rememberToken).not.toBe(first.rememberToken)
-    // ...and a fresh session token (fixation defence: never reuse the session id).
     expect(r1.login.sessionToken).not.toBe(first.sessionToken)
 
-    // The freshly-rotated token continues the chain.
     const r2 = await svc.resume(r1.login.rememberToken)
     expect(r2.status).toBe('ok')
   })
@@ -54,21 +49,15 @@ describe('SessionService remember-me', () => {
     const svc = makeService(store)
     const first = await svc.startRemembered(99)
 
-    // Honest client rotates once.
     const good = await svc.resume(first.rememberToken)
     expect(good.status).toBe('ok')
     if (good.status !== 'ok') return
 
-    // Attacker replays the ORIGINAL (now-spent) token.
     const replay = await svc.resume(first.rememberToken)
     expect(replay.status).toBe('reuse')
     if (replay.status !== 'reuse') return
     expect(replay.userId).toBe(99)
 
-    // Fallout: the token the honest client just obtained is now dead too (whole
-    // family revoked). Presenting a *revoked* token is still a reuse signal, not
-    // an unknown-token 'invalid' — so the honest client also cannot rotate, and
-    // re-presenting keeps tripping the breach response idempotently.
     const afterReuse = await svc.resume(good.login.rememberToken)
     expect(afterReuse.status).not.toBe('ok')
     expect(afterReuse.status).toBe('reuse')

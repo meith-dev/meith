@@ -1,21 +1,7 @@
-/**
- * The image codecs, run for real.
- *
- * No mocking: these tests compile the same WebAssembly the board ships and put
- * real pixels through it. A faked codec would prove nothing — the risk this
- * accepts is entirely about whether these modules load and behave, and a test
- * double is the one thing that cannot answer that.
- *
- * The security claim is the important one. **Re-encoding is what makes an
- * upload safe**, not validation: the output is written by the encoder from a
- * decoded bitmap, so anything appended to, prefixed to, or hidden in the
- * original file is simply absent from the result.
- */
 import { describe, expect, it } from 'vitest'
 
 import { decodeImage, encodeImage, resizeToFit, type DecodedImage } from './codec'
 
-/** A gradient, so a resize has something to average and JPEG has detail. */
 function gradient(width: number, height: number): DecodedImage {
   const data = new Uint8ClampedArray(width * height * 4)
   for (let y = 0; y < height; y += 1) {
@@ -60,7 +46,6 @@ describe('round trip', () => {
 
     expect(decoded.width).toBe(24)
     expect(decoded.height).toBe(16)
-    /* Lossy: near, not equal. The corner pixel of a gradient is red 0. */
     expect(decoded.data[0]).toBeLessThan(40)
   }, 30_000)
 
@@ -85,14 +70,6 @@ describe('round trip', () => {
 
 describe('re-encoding is what makes an upload safe', () => {
   it('drops anything appended to the original file', async () => {
-    /*
-     * The polyglot: a valid PNG with a ZIP — or a script, or a shell — stuck on
-     * the end. Every decoder stops at the image's own end marker, so the file
-     * *is* a valid image and validation passes it. Only re-encoding removes the
-     * payload, because the output is written from pixels and has never seen it.
-     */
-    /* A ZIP local file header, written as bytes: the two after `PK` are
-       control characters and belong in source as numbers, not literals. */
     const payload = new Uint8Array([
       0x50, 0x4b, 0x03, 0x04, ...new TextEncoder().encode('MALICIOUS-PAYLOAD'),
     ])
@@ -119,7 +96,6 @@ describe('re-encoding is what makes an upload safe', () => {
   }, 30_000)
 
   it('refuses a PNG decoded as a JPEG', async () => {
-    /* The type must be established before decode, not guessed by the codec. */
     const png = await encodeImage(gradient(8, 8), 'png')
     await expect(decodeImage(png, 'jpeg')).rejects.toBeDefined()
   }, 30_000)
@@ -134,11 +110,6 @@ describe('resizeToFit', () => {
   }, 30_000)
 
   it('is bound by the tighter dimension, not the looser one', async () => {
-    /*
-     * Kills the mutant that takes the *max* of the two ratios: a 200x400 image
-     * into a 100x100 box would come out 100x200 and overflow the box in the
-     * dimension nobody checked.
-     */
     const small = await resizeToFit(gradient(200, 400), { width: 100, height: 100 })
 
     expect(small.width).toBeLessThanOrEqual(100)
@@ -147,11 +118,6 @@ describe('resizeToFit', () => {
   }, 30_000)
 
   it('never scales up, and returns the original untouched', async () => {
-    /*
-     * A thumbnail of a 40x40 avatar must not be a blurry 200x200 one. Returning
-     * the same object also means no encode happens for an image already inside
-     * the box — the common case for avatars.
-     */
     const source = gradient(40, 40)
     expect(await resizeToFit(source, { width: 200, height: 200 })).toBe(source)
   }, 30_000)
@@ -162,11 +128,6 @@ describe('resizeToFit', () => {
   }, 30_000)
 
   it('never rounds a dimension to zero', async () => {
-    /*
-     * A 1000x1 banner into a 50x50 box scales by 0.05, and 1 * 0.05 rounds to
-     * 0. An encoder handed a zero-height image throws, so the thumbnail of a
-     * legitimate upload would fail — the clamp is what stops that.
-     */
     const thin = await resizeToFit(gradient(1000, 1), { width: 50, height: 50 })
 
     expect(thin.width).toBe(50)

@@ -1,19 +1,3 @@
-/**
- * F67's search and account writes, against real Postgres.
- *
- * The claims that carry this file:
- *
- *  - **a search term is escaped before it reaches `like`** — `%` and `_` are
- *    wildcards, and a member called `100%` must not match everybody on the
- *    screen that bans people;
- *  - **paging is keyset, and a short page says so** — the pages mutate the set
- *    they are paging, so OFFSET would skip exactly the rows just acted on;
- *  - **a rename writes both columns** — the folded ones are what every lookup
- *    and both unique indexes use;
- *  - **`banned` is not a state this file can write** — F23 captures the group
- *    at ban time, and a member set banned without a ban row is one nothing can
- *    un-ban correctly.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -85,11 +69,6 @@ async function permissionVersion(): Promise<number> {
 
 describe('likeFragment', () => {
   it('escapes every character `like` treats as special', () => {
-    /*
-     * Kills the mutant that escapes only `%`. `_` matches any single character,
-     * so `a_c` would still match `abc` — quieter than the `%` case and just as
-     * wrong.
-     */
     expect(likeFragment('100%')).toBe('100\\%')
     expect(likeFragment('a_c')).toBe('a\\_c')
     expect(likeFragment('back\\slash')).toBe('back\\\\slash')
@@ -116,20 +95,11 @@ describe('search', () => {
   })
 
   it('treats a wildcard in the term as a literal', async () => {
-    /*
-     * The claim. An operator searching for `100%` on the screen that bans
-     * people must not be handed the entire membership. Kills the mutant that
-     * interpolates the term without escaping it.
-     */
     await seed({ id: 1, username: '100%' })
     await seed({ id: 2, username: 'bob' })
     await seed({ id: 3, username: 'carol' })
 
     expect((await repo.search({ ...ALL, username: '100%' })).rows.map((r) => r.id)).toEqual([1])
-    /*
-     * And a bare `%` is a search for the character, which only one member has —
-     * not the wildcard, which would return all three.
-     */
     expect((await repo.search({ ...ALL, username: '%' })).rows.map((r) => r.id)).toEqual([1])
   })
 
@@ -148,11 +118,6 @@ describe('search', () => {
   })
 
   it('matches an IP prefix against either column, as a starts-with', async () => {
-    /*
-     * Only a prefix is stored, so a contains would match the middle of an
-     * address and mean nothing. Registration and last-seen are both searched,
-     * because a second account is usually made from one and used from the other.
-     */
     await seed({ id: 1, username: 'ann', registrationIp: '203.0.113.0', lastIp: null })
     await seed({ id: 2, username: 'bob', registrationIp: null, lastIp: '203.0.113.0' })
     await seed({ id: 3, username: 'carol', registrationIp: '198.51.100.0', lastIp: null })
@@ -162,11 +127,6 @@ describe('search', () => {
   })
 
   it('anchors the IP search at the start, so a fragment cannot match mid-address', async () => {
-    /*
-     * Kills the mutant that searches the prefix as a contains. `10.198.51.0`
-     * shares no network with `198.51.100.0`; matching it would put two
-     * unrelated members on the list an operator reads as "same person".
-     */
     await seed({ id: 1, username: 'ann', lastIp: '198.51.100.0' })
     await seed({ id: 2, username: 'elsewhere', lastIp: '10.198.51.0' })
 
@@ -188,15 +148,6 @@ describe('search', () => {
       .toEqual([2, 3])
   })
 
-  /**
-   * "Banned" is a `bans` row, not a value in the state column.
-   *
-   * F23 bans by writing that row and moving the member's group, and never
-   * touches `users.state` — so a filter reading the column alone offered the
-   * operator a **Banned** option that matched nobody on any board, on the screen
-   * whose job is finding the people it matched. Reported on the row too, because
-   * the list marks them and it was marking nobody.
-   */
   it('finds a member banned the way the board bans them, and marks the row', async () => {
     await seed({ id: 1, username: 'ann' })
     await seed({ id: 2, username: 'bob' })
@@ -206,13 +157,11 @@ describe('search', () => {
     expect(banned.rows.map((r) => r.id)).toEqual([2])
     expect(banned.rows[0]?.isBanned).toBe(true)
 
-    /* And they are no longer answered as active, whatever the column says. */
     expect((await repo.search({ ...ALL, state: 'active' })).rows.map((r) => r.id)).toEqual([1])
     expect((await repo.readDetail(2))?.isBanned).toBe(true)
     expect((await repo.readDetail(1))?.isBanned).toBe(false)
   })
 
-  /** A lifted ban is over: they are active again, and the list stops marking them. */
   it('stops reporting a ban once it has been lifted', async () => {
     await seed({ id: 1, username: 'ann' })
     await db.execute(
@@ -225,11 +174,6 @@ describe('search', () => {
   })
 
   it('filters by registration date, with the window half-open', async () => {
-    /*
-     * `before` is exclusive and `after` inclusive, so two adjacent windows
-     * cover every member exactly once — which is what a prune built on the
-     * same filter needs in order not to skip or double-count.
-     */
     await seed({ id: 1, username: 'ann', createdAt: new Date('2026-01-01T00:00:00Z') })
     await seed({ id: 2, username: 'bob', createdAt: new Date('2026-06-01T00:00:00Z') })
 
@@ -285,12 +229,6 @@ describe('readDetail', () => {
 
 describe('updateAccount', () => {
   it('writes the folded columns from the same values', async () => {
-    /*
-     * The claim. `username_lower` and `email_lower` are what every lookup and
-     * both unique indexes use, so a rename touching only the display column
-     * produces an account that cannot log in and a name that can be registered
-     * a second time. Kills the mutant that drops either folded assignment.
-     */
     await seed({ id: 1, username: 'ann' })
 
     await repo.updateAccount(1, {
@@ -381,12 +319,6 @@ describe('setState', () => {
   })
 
   it('refuses to write `banned`', async () => {
-    /*
-     * F23 owns that transition: banning captures the group the member was in,
-     * which is the whole mechanism behind "an expired ban restores the prior
-     * group". A member set banned with no ban row is one nothing can un-ban
-     * correctly. Kills the mutant that drops the check.
-     */
     await seed({ id: 1, username: 'ann' })
 
     await expect(repo.setState(1, 'banned')).rejects.toThrow(/ban screen/)
@@ -394,11 +326,6 @@ describe('setState', () => {
   })
 
   it('refuses to move a banned member out of the banned state', async () => {
-    /*
-     * The other direction, and the same reason: lifting a ban is F23's, and it
-     * restores the captured group. Flipping the column here would leave the ban
-     * row active and the member walking around.
-     */
     await seed({ id: 1, username: 'ann', state: 'banned' })
 
     await expect(repo.setState(1, 'active')).rejects.toThrow(/banned/)
@@ -425,7 +352,6 @@ describe('sharingIpPrefix', () => {
   })
 
   it('anchors at the start here too', async () => {
-    /* Same mutant as the search's, and the same reason it matters. */
     await seed({ id: 1, username: 'ann', lastIp: '198.51.100.0' })
     await seed({ id: 2, username: 'alt', lastIp: '198.51.100.0' })
     await seed({ id: 3, username: 'elsewhere', lastIp: '10.198.51.0' })
@@ -434,11 +360,6 @@ describe('sharingIpPrefix', () => {
   })
 
   it('is empty for a member with no recorded prefix, rather than matching everybody', async () => {
-    /*
-     * The dangerous default. An empty pattern is `like '%'`, which matches
-     * every row — and this list is the one an operator reads as "these accounts
-     * are the same person". Kills the mutant that drops the empty check.
-     */
     await seed({ id: 1, username: 'ann' })
     await seed({ id: 2, username: 'bob', lastIp: '203.0.113.0' })
 
@@ -455,11 +376,6 @@ describe('sharingIpPrefix', () => {
 
 describe('secondary groups', () => {
   it('round-trips a set', async () => {
-    /*
-     * `user_group_memberships` has had a reader since F20 — `actor-builder`
-     * folds it into `Actor.groupIds`, so these combine into what the member may
-     * do under R4.2 — and had no writer at all until this.
-     */
     await seed({ id: 1, username: 'ann' })
     await seed({ id: 9, username: 'granter' })
 
@@ -468,12 +384,6 @@ describe('secondary groups', () => {
   })
 
   it('replaces rather than adds, so unticking a box removes the group', async () => {
-    /*
-     * The screen shows every group with a checkbox, so what it submits is the
-     * intended *set*. Kills the mutant that inserts without clearing — under
-     * which unticking would silently do nothing, which is the direction that
-     * leaves somebody holding a permission they were meant to lose.
-     */
     await seed({ id: 1, username: 'ann' })
 
     await repo.setSecondaryGroups(1, [ADMINS, 4], null)
@@ -483,10 +393,6 @@ describe('secondary groups', () => {
   })
 
   it('never stores the primary group as a secondary one', async () => {
-    /*
-     * It is already on `users`. A row here would be a second place saying the
-     * same thing, and the two would disagree the moment the primary changed.
-     */
     await seed({ id: 1, username: 'ann', groupId: REGISTERED })
 
     await repo.setSecondaryGroups(1, [REGISTERED, ADMINS], null)

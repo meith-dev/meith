@@ -1,15 +1,5 @@
 'use server'
 
-/**
- * A usergroup badge's writes.
- *
- * Both behind `requireAdmin`, both recording the scheme and the size and never
- * the filename — the board logo's rule, for the same reason: a log outlives the
- * file, and a name somebody chose is not something it should carry.
- *
- * The validation is `image-upload.ts`'s, shared with the logo. This file is the
- * gate and the audit entry; what a file *is* is decided in one place.
- */
 import { ValidationError, isAppError, logger } from '@meith/core'
 
 import { recordAdminAction, requireAdmin } from './admin'
@@ -42,11 +32,6 @@ export async function saveBadgeAction(_prev: FormState, form: FormData): Promise
     const { groupId, scheme } = target(form)
 
     const file = form.get(BADGE_FIELD)
-    /*
-     * An empty `<input type="file">` still posts — as a zero-byte `File` in
-     * every browser this board supports. Both that and a missing field mean
-     * "nothing was chosen", and neither should reach the store.
-     */
     if (!(file instanceof File) || file.size === 0) {
       throw new ValidationError('Choose an image first.')
     }

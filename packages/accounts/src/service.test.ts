@@ -1,8 +1,3 @@
-/**
- * Identity service behaviour (F18/F19). Runs entirely against the in-memory
- * store with an injected clock, so lockout windows and token expiry are tested
- * deterministically without sleeping or a database.
- */
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { argon2id } from 'hash-wasm'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -27,7 +22,6 @@ const BASE_CONFIG: AuthConfig = {
   usernameMax: 20,
   activationMethod: 'none',
   maxLoginAttempts: 3,
-  /* Off by default here: the tests that mean to exercise it set their own. */
   maxAccountLoginAttempts: 0,
   lockoutMinutes: 15,
   sessionIdleDays: 30,
@@ -36,7 +30,6 @@ const BASE_CONFIG: AuthConfig = {
   defaultMemberGroupId: 2,
 }
 
-/** A mutable clock the tests advance by hand. */
 function fixedClock(start = new Date('2026-01-01T00:00:00Z')) {
   let now = start
   const clock = () => now
@@ -53,7 +46,6 @@ function makeService(
   store: AccountStore,
   overrides: Partial<AuthConfig> = {},
   clock = fixedClock(),
-  /** F23's ban records, for the tests about the login refusal. */
   bans?: BanLookup,
 ) {
   const service = new IdentityService({
@@ -81,7 +73,6 @@ describe('register', () => {
     expect(account.state).toBe('active')
     expect(account.usernameLower).toBe('alice')
     expect(verificationToken).toBeUndefined()
-    // The stored hash is a real argon2id PHC string, never the plaintext.
     expect(account.passwordHash).toMatch(/^\$argon2id\$/)
     expect(account.passwordHash).not.toContain('correct horse')
   })
@@ -119,16 +110,6 @@ describe('register', () => {
     ).rejects.toThrow(/at least 8/i)
   })
 
-  /*
-   * Every refusal names the box it is about.
-   *
-   * Without this a caller has a sentence and no idea where to put it, so the
-   * message becomes a banner — survivable on `/register`, and not survivable in
-   * the installer, where a rejected administrator name arrived as "the 'admin'
-   * step failed" and pointed at nothing. The uniqueness refusals are
-   * `ConflictError` rather than `ValidationError`, which is exactly why the
-   * field travels in `meta` instead of in `fieldErrors`.
-   */
   describe('names the field it refused', () => {
     const cases: readonly [string, RegisterInput, RegisterField][] = [
       ['a reserved name', { username: 'admin', email: 'a@example.com', password: 'correct horse battery' }, 'username'],
@@ -161,10 +142,6 @@ describe('register', () => {
       expect(rejectedField(takenEmail)).toBe('email')
     })
 
-    /*
-     * A fault is not an answer. A caller that treated one as a field error would
-     * send somebody editing a value that was never the problem.
-     */
     it('blames no field for anything that is not a refusal', () => {
       expect(rejectedField(new Error('the database went away'))).toBeNull()
       expect(rejectedField(new ValidationError('something else entirely'))).toBeNull()
@@ -190,9 +167,7 @@ describe('login', () => {
     const result = await service.login('alice', 'correct horse battery', 'alice')
     expect(result.sessionToken).toBeTypeOf('string')
     expect(result.sessionToken.length).toBeGreaterThan(20)
-    // Storage is keyed by the HASH: the plaintext must NOT find a session...
     expect(await store.sessions.findByTokenHash(result.sessionToken)).toBeNull()
-    // ...but the hash of it must.
     expect(await store.sessions.findByTokenHash(await hashToken(result.sessionToken))).not.toBeNull()
   })
 
@@ -224,27 +199,16 @@ describe('login', () => {
     for (let i = 0; i < 3; i++) {
       await expect(service.login('alice', 'wrong', 'alice')).rejects.toThrow(/incorrect/i)
     }
-    // 4th attempt is locked out — even with the CORRECT password.
     await expect(
       service.login('alice', 'correct horse battery', 'alice'),
     ).rejects.toThrow(/too many/i)
 
-    // After the lockout window passes, the correct password works again.
     clock.advance(16 * 60_000)
     await expect(
       service.login('alice', 'correct horse battery', 'alice'),
     ).resolves.toBeTruthy()
   })
 
-  /*
-   * The regression the 7 August 2026 audit found, stated as a test.
-   *
-   * Before the fix the caller passed *one* bucket keyed on the username, so
-   * these two contexts shared a counter and a stranger's three wrong guesses
-   * refused the owner with the right password. The buckets below are what
-   * `loginBuckets` now composes: the narrow one carries the address, so filling
-   * the attacker's costs the owner nothing.
-   */
   it('a stranger filling their own bucket cannot lock the account owner out', async () => {
     const { service } = makeService(store)
     const attacker = [{ key: 'login:alice@203.0.113.9' }, { key: 'login:alice', max: 50 }]
@@ -253,12 +217,10 @@ describe('login', () => {
     for (let i = 0; i < 3; i++) {
       await expect(service.login('alice', 'wrong', attacker)).rejects.toThrow(/incorrect/i)
     }
-    /* The attacker is locked; they filled their own counter. */
     await expect(
       service.login('alice', 'correct horse battery', attacker),
     ).rejects.toThrow(/too many/i)
 
-    /* The owner, from their own address, is unaffected. */
     await expect(
       service.login('alice', 'correct horse battery', owner),
     ).resolves.toBeTruthy()
@@ -266,7 +228,6 @@ describe('login', () => {
 
   it('the account-wide backstop still stops a guess spread across addresses', async () => {
     const { service } = makeService(store)
-    /* A low ceiling so the test does not have to run fifty hashes. */
     const from = (ip: string) => [{ key: `login:alice@${ip}` }, { key: 'login:alice', max: 4 }]
 
     for (let i = 0; i < 4; i++) {
@@ -275,7 +236,6 @@ describe('login', () => {
       )
     }
 
-    /* A fifth address is refused by the wide counter, not the narrow one. */
     await expect(
       service.login('alice', 'correct horse battery', from('203.0.113.99')),
     ).rejects.toThrow(/too many/i)
@@ -290,7 +250,6 @@ describe('login', () => {
     }
     await expect(service.login('alice', 'correct horse battery', buckets)).resolves.toBeTruthy()
 
-    /* Both counters are empty: three more failures do not reach either ceiling. */
     for (let i = 0; i < 2; i++) {
       await expect(service.login('alice', 'wrong', buckets)).rejects.toThrow(/incorrect/i)
     }
@@ -305,7 +264,6 @@ describe('login', () => {
     for (let i = 0; i < 3; i++) {
       await service.login('alice', 'wrong', 'alice').catch(() => {})
     }
-    // Bob's bucket is independent.
     await expect(
       service.login('bob', 'correct horse battery', 'bob'),
     ).resolves.toBeTruthy()
@@ -320,17 +278,6 @@ describe('login', () => {
     ).rejects.toThrow(/banned/i)
   })
 
-  /**
-   * The way a ban is actually recorded, and the reason this check moved.
-   *
-   * F23 bans by writing a `bans` row and moving the member's group; it never
-   * touches `users.state`, deliberately, because a column saying `banned` with
-   * no row behind it is an account nothing can un-ban correctly. So the check
-   * above — the only one there used to be — could not fire on this board, and a
-   * banned member signed straight back in. It looked like a ban to everybody
-   * except the person it was for: their sessions were gone and their group was
-   * the banned one, so the board they arrived on was nearly empty.
-   */
   it('refuses an account with an unlifted ban, and tells them the public reason', async () => {
     const acc = await store.accounts.findByUsernameLower('alice')
     const { service } = makeService(store, {}, fixedClock(), {
@@ -353,11 +300,9 @@ describe('login', () => {
       .then(() => '', (error: Error) => error.message)
 
     expect(message).toContain('Posting nonsense in every thread.')
-    /* Never the staff note: it is written for staff, about them. */
     expect(message).not.toContain('banned last week')
   })
 
-  /** A lifted ban is over, and the repository answers null for one. */
   it('lets a member back in once their ban is lifted', async () => {
     const { service } = makeService(store, {}, fixedClock(), {
       findActive: async () => null,
@@ -369,15 +314,12 @@ describe('login', () => {
   })
 
   it('upgrades a stale-cost hash on successful login, and leaves a current one alone', async () => {
-    // Plant a REAL but under-policy argon2id hash of the known password, as if
-    // migrated from a board that used weaker parameters. It must genuinely
-    // verify, so we mint it with hash-wasm directly at a lower memory cost.
     const weak = await argon2id({
       password: 'correct horse battery',
       salt: new Uint8Array(16).fill(7),
       parallelism: 1,
       iterations: 2,
-      memorySize: 4096, // below policy's 19456 -> needsRehash() must be true
+      memorySize: 4096,
       hashLength: 32,
       outputType: 'encoded',
     })
@@ -388,10 +330,9 @@ describe('login', () => {
     await service.login('alice', 'correct horse battery', 'alice')
 
     const after = (await store.accounts.findByUsernameLower('alice'))!.passwordHash!
-    expect(after).not.toBe(weak) // upgraded
-    expect(after).toContain('m=19456') // to current policy
+    expect(after).not.toBe(weak)
+    expect(after).toContain('m=19456')
 
-    // A second login now finds a current-policy hash and must NOT churn it.
     const before2 = after
     await service.login('alice', 'correct horse battery', 'alice')
     const after2 = (await store.accounts.findByUsernameLower('alice'))!.passwordHash!
@@ -424,11 +365,9 @@ describe('password reset', () => {
 
     await service.redeemPasswordReset(token!, 'a brand new password')
 
-    // Old password no longer works; new one does.
     await expect(service.login('alice', 'correct horse battery', 'a')).rejects.toThrow()
     await expect(service.login('alice', 'a brand new password', 'a2')).resolves.toBeTruthy()
 
-    // Second redemption of the same token fails (single-use).
     await expect(
       service.redeemPasswordReset(token!, 'yet another password'),
     ).rejects.toThrow(/invalid or has expired/i)
@@ -454,7 +393,6 @@ describe('password reset', () => {
     const { token } = await service.requestPasswordReset('alice@example.com')
     await service.redeemPasswordReset(token!, 'a brand new password')
 
-    // The session that existed before the reset is now revoked.
     expect((await store.sessions.findByTokenHash(sessionHash))!.revokedAt).not.toBeNull()
   })
 
@@ -463,7 +401,6 @@ describe('password reset', () => {
     const first = await service.requestPasswordReset('alice@example.com')
     const second = await service.requestPasswordReset('alice@example.com')
 
-    // Only the newest email works.
     await expect(
       service.redeemPasswordReset(first.token!, 'a brand new password'),
     ).rejects.toThrow(/invalid or has expired/i)
@@ -476,7 +413,6 @@ describe('password reset', () => {
 describe('activation (F18)', () => {
   let store: AccountStore
 
-  /** Register under a policy that mints a verification token. */
   async function registerAwaiting(
     method: 'email' | 'both' = 'email',
     clock = fixedClock(),
@@ -497,7 +433,6 @@ describe('activation (F18)', () => {
   it('activates a waiting account and lets it sign in', async () => {
     const { service, token, account } = await registerAwaiting()
 
-    // Before: login is refused for the reason F19 gives.
     await expect(
       service.login('alice', 'correct horse battery', 'alice'),
     ).rejects.toThrow(/not yet activated/i)
@@ -516,17 +451,12 @@ describe('activation (F18)', () => {
     const { service, token } = await registerAwaiting()
 
     expect(await service.activateAccount(token)).toBe('activated')
-    // Single-use is a property of `consume`, and this is the assertion that
-    // holds it: a replayed link must not re-activate anything.
     expect(await service.activateAccount(token)).toBe('invalid')
   })
 
   it('never moves a banned account to active', async () => {
     const { service, token, account } = await registerAwaiting()
 
-    // The ban lands after the link was sent — the case the conditional write
-    // exists for. A prior read would have decided "awaiting_activation" and
-    // handed the account back.
     await store.accounts.setState(account.id, 'banned')
 
     expect(await service.activateAccount(token)).toBe('banned')
@@ -559,7 +489,6 @@ describe('activation (F18)', () => {
     const after = (await store.accounts.findById(account.id))!
     expect(after.state).toBe('awaiting_activation')
     expect(after.emailVerifiedAt).not.toBeNull()
-    // Still not a usable account: the administrator's gate is the second one.
     await expect(
       service.login('alice', 'correct horse battery', 'alice'),
     ).rejects.toThrow(/not yet activated/i)
@@ -601,7 +530,6 @@ describe('resending a verification link (F18)', () => {
     expect(resent.token).toBeTypeOf('string')
     expect(resent.account?.username).toBe('Alice')
 
-    // Only the newest link works — the same rule password reset applies.
     expect(await service.activateAccount(registered.verificationToken!)).toBe('invalid')
     expect(await service.activateAccount(resent.token!)).toBe('activated')
   })
@@ -609,8 +537,6 @@ describe('resending a verification link (F18)', () => {
   it('sends nothing for an account that is already active', async () => {
     const { service } = await register('none')
 
-    // The account is usable; a "confirm your address" mail would be a message
-    // about nothing, and re-issuing a credential for it is worse than useless.
     const resent = await service.resendVerification('alice@example.com')
     expect(resent.token).toBeNull()
     expect(resent.account).toBeNull()
@@ -633,8 +559,6 @@ describe('resending a verification link (F18)', () => {
     const { service, account } = await register('both')
     await store.accounts.markEmailVerified(account.id, new Date(), false)
 
-    // Still `awaiting_activation`, but waiting on a person rather than on a
-    // link — another link would confirm what is already confirmed.
     expect((await store.accounts.findById(account.id))!.state).toBe('awaiting_activation')
     expect((await service.resendVerification('alice@example.com')).token).toBeNull()
   })
@@ -643,9 +567,6 @@ describe('resending a verification link (F18)', () => {
     const { account } = await register('email')
     await store.accounts.setState(account.id, 'awaiting_activation')
 
-    // An `admin` board holds accounts for a person to approve, and there is no
-    // link to resend — a verification token issued here would redeem into
-    // nothing.
     const noVerification = makeService(store, { activationMethod: 'admin' }).service
     expect((await noVerification.resendVerification('alice@example.com')).token).toBeNull()
   })
@@ -688,7 +609,6 @@ describe('resolveSession', () => {
     const login = await service.login('alice', 'correct horse battery', 'alice')
     expect(await service.resolveSession(login.sessionToken)).not.toBeNull()
 
-    // Step past the idle horizon: the same token no longer resolves.
     clock.advance(2 * 86_400_000)
     expect(await service.resolveSession(login.sessionToken)).toBeNull()
   })
@@ -743,11 +663,6 @@ describe('ban filters block registration and login (F23)', () => {
     await expect(serviceWith(filters).register(CREDS)).resolves.toBeDefined()
   })
 
-  /*
-   * The half that is easy to forget. A filter added *after* someone registered
-   * has to stop them coming back — otherwise it only keeps out people who were
-   * never here, which is not what an administrator adding it expects.
-   */
   it('blocks an existing account at login once a filter matches it', async () => {
     const filters = new MemoryBanFilters()
     const service = serviceWith(filters)
@@ -774,11 +689,6 @@ describe('ban filters block registration and login (F23)', () => {
     ).rejects.toThrow(ForbiddenError)
   })
 
-  /*
-   * Checking username/email filters before the password verifies would answer
-   * "is this account filtered?" to anyone who can type a username — an
-   * enumeration oracle, which login goes to some length elsewhere to avoid.
-   */
   it('does not reveal a filter to someone with the wrong password', async () => {
     const filters = new MemoryBanFilters()
     const service = serviceWith(filters)
@@ -787,9 +697,6 @@ describe('ban filters block registration and login (F23)', () => {
 
     const attempt = () => service.login(CREDS.username, 'wrong-password', 'bucket3')
 
-    // The generic credential error, not the filter message — otherwise the
-    // response distinguishes "filtered" from "wrong password" and becomes the
-    // enumeration oracle this ordering exists to prevent.
     await expect(attempt()).rejects.toThrow(ValidationError)
     expect(await rejectionMessage(attempt())).toMatch(/Incorrect username or password/)
   })

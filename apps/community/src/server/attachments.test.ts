@@ -1,16 +1,3 @@
-/**
- * F42 at the app layer.
- *
- * The domain rules are unit-tested in `@meith/attachments` and the SQL against
- * real Postgres. What is proven here is the part only the app can get wrong:
- * **the permission questions, and the order they are asked in.**
- *
- * A download route is the one place on this board where an attacker supplies a
- * small integer and gets bytes back, so every one of these is about refusing:
- * the wrong forum, the wrong status, content nobody may see, and the difference
- * between "no such attachment" and "not for you" — which must not be visible
- * from outside.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
@@ -20,7 +7,6 @@ import type { AttachmentForDownload, AttachmentRecord } from '@meith/attachments
 const actorRef: { current: Actor | null } = { current: null }
 vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
-/** The file store and queue the app module reaches for through `drivers()`. */
 const objects = new Map<string, Uint8Array>()
 const enqueued: Array<{ kind: string; payload: unknown }> = []
 vi.mock('@meith/drivers', () => ({
@@ -50,8 +36,6 @@ vi.mock('@meith/drivers', () => ({
   }),
 }))
 
-/* The codecs are never exercised here — this file is about permissions, and
-   loading 630 KB of WebAssembly to prove a refusal would be absurd. */
 vi.mock('@meith/drivers/images', () => ({
   imageProcessor: {
     async process() {
@@ -157,7 +141,6 @@ async function actorFor(groupId: number, userId: number | null): Promise<Actor> 
   }
 }
 
-/** The installed container's Authorizer, so a scope is resolved for real. */
 async function scope(actor: Actor, forumId = PUBLIC_FORUM) {
   const installed = (
     globalThis as Record<
@@ -187,10 +170,6 @@ describe('the composer control', () => {
   })
 
   it('is absent when the board has no attachment store', async () => {
-    /*
-     * Fixture mode (D38). Absent rather than disabled: a control that produces
-     * an error every time it is used is worse than no control.
-     */
     installTestContainer({ container: { attachments: null } })
     const actor = actorRef.current!
     expect(canAttach(actor, await scope(actor))).toBe(false)
@@ -204,11 +183,6 @@ describe('the composer control', () => {
 
 describe('the limits shown on the form', () => {
   it('are the resolved forum matrix, with 0 left as 0 for the domain to read', async () => {
-    /*
-     * 0 means unlimited (R4.2) and this is deliberately *not* the place that
-     * interprets it — `maxBytesFor` and `maxPerPostFor` are, and there is
-     * exactly one of each.
-     */
     const actor = actorRef.current!
     expect(attachmentLimits(await scope(actor))).toEqual({
       maxPerPost: 0,
@@ -219,11 +193,6 @@ describe('the limits shown on the form', () => {
 
 describe('submittedFiles', () => {
   it('ignores an untouched file input', async () => {
-    /*
-     * A `<input type="file">` nobody chose a file for still submits — as an
-     * entry with an empty name and no bytes. Treating that as an upload would
-     * make every post from a browser that renders the control fail.
-     */
     const form = new FormData()
     form.append('attachments', new File([], ''))
     expect(await submittedFiles(form)).toEqual([])
@@ -242,10 +211,6 @@ describe('submittedFiles', () => {
 
 describe('staging', () => {
   it('stores nothing and asks nothing when no file was attached', async () => {
-    /*
-     * A member with no upload right may still post. Kills the mutant that
-     * checks the permission before checking whether anything was submitted.
-     */
     const guest = await actorFor(SEED_GROUP.guest, null)
     expect(await stageAttachments(guest, await scope(guest), [])).toEqual([])
     expect(objects.size).toBe(0)
@@ -309,11 +274,6 @@ describe('resolving a download', () => {
   })
 
   it('refuses an upload that has not been re-encoded yet', async () => {
-    /*
-     * The claim the whole feature rests on: what a member uploaded is never
-     * served. Kills the mutant that drops the status check, which would hand
-     * out the quarantined original.
-     */
     attachments.found = {
       record: record({ status: 'pending', storageKey: null, sourceKey: 'attachments/a/source' }),
       postVisibility: 'visible',
@@ -332,14 +292,6 @@ describe('resolving a download', () => {
   })
 
   it('refuses on the status alone, even if a key is somehow set', async () => {
-    /*
-     * `pending` and `ready` differ by *two* things — the status and which key
-     * is populated — and the database keeps them in step: `markReady` swaps
-     * both in one statement. This asserts the status is sufficient on its own,
-     * which is what makes that a guarantee rather than a coincidence. Without
-     * it the status check is shadowed by the key check and can be deleted with
-     * every other test still passing, which is exactly what happened.
-     */
     attachments.found = {
       record: record({ status: 'pending', storageKey: 'attachments/a/file' }),
       postVisibility: 'visible',
@@ -349,12 +301,6 @@ describe('resolving a download', () => {
   })
 
   it('refuses a viewer who cannot see the forum it is in', async () => {
-    /*
-     * The attachment id is a small integer anybody can enumerate, so this is
-     * the check that stops a private forum's images being readable by URL.
-     * Kills the mutant that drops `thread.view` and keeps only the download
-     * permission — which every ordinary member holds.
-     */
     installTestContainer({
       container: { attachments },
       overrides: [
@@ -374,11 +320,6 @@ describe('resolving a download', () => {
   })
 
   it('refuses a viewer without `attachment.download`', async () => {
-    /*
-     * A distinct permission from viewing the thread: a board may let everybody
-     * read and only members fetch the files. Kills the mutant that treats
-     * `thread.view` as sufficient.
-     */
     installTestContainer({
       container: { attachments },
       overrides: [
@@ -393,10 +334,6 @@ describe('resolving a download', () => {
   })
 
   it('refuses an attachment on content nobody may see', async () => {
-    /*
-     * A direct URL never goes through the postbit, which is exactly how this
-     * check gets missed. Kills the mutant that drops the visibility test.
-     */
     attachments.found = {
       record: record(),
       postVisibility: 'deleted',
@@ -424,10 +361,6 @@ describe('resolving a download', () => {
   })
 
   it('refuses an unknown attachment the same way it refuses a forbidden one', async () => {
-    /*
-     * Both null, with no reason. Distinguishing them would turn this into an
-     * oracle for what exists in forums the caller cannot see.
-     */
     attachments.found = null
     expect(await get()).toBeNull()
   })

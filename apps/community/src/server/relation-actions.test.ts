@@ -1,16 +1,3 @@
-/**
- * F61 at the app layer.
- *
- * The rules are unit-tested in `@meith/relations` and the SQL against real
- * Postgres. What is proven here is the seam neither can see:
- *
- *  - the list being changed is the *session's*, never the form's;
- *  - "is this person staff" is asked through the Authorizer, and only for an
- *    ignore, so a buddy costs no actor build;
- *  - `returnTo` cannot be turned into an open redirect;
- *  - and F60's send path actually refuses somebody the recipient ignores,
- *    with a message that does not disclose the ignore.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
@@ -121,7 +108,6 @@ async function run(
   }
 }
 
-/** A container with a real memory account store, so `isStaff` resolves an actor. */
 async function install(group: number = SEED_GROUP.registered): Promise<void> {
   const container = installTestContainer({ container: { relations } })
   const store = container['accountStore'] as {
@@ -176,7 +162,6 @@ describe('adding somebody to a list', () => {
         ['userId', String(BOB)],
         ['username', 'bob'],
         ['kind', 'ignore'],
-        /* A submitted owner is simply not read. */
         ['ownerUserId', '999'],
       ]),
     )
@@ -216,11 +201,6 @@ describe('adding somebody to a list', () => {
   })
 
   it('refuses to ignore a moderator, resolved through the Authorizer', async () => {
-    /*
-     * `isStaff` builds the target's actor and asks `modcp.access`. Kills the
-     * mutant that stops passing `targetIsStaff`, which would let a member hide
-     * the post explaining why their thread was locked.
-     */
     await install(SEED_GROUP.administrators)
 
     const result = await run(
@@ -266,11 +246,6 @@ describe('adding somebody to a list', () => {
   })
 
   it('will not be turned into an open redirect', async () => {
-    /*
-     * `returnTo` is a form value anybody can post. Kills the mutant that trusts
-     * it — a board that will bounce you to an attacker's login page is a
-     * phishing kit with a forum attached.
-     */
     for (const bad of ['https://evil.test', '//evil.test', 'javascript:alert(1)']) {
       const result = await run(
         setRelationAction,

@@ -3,70 +3,8 @@ import { cn } from '@meith/ui'
 
 import { rateThreadAction } from '@/server/thread-rating-actions'
 
-/**
- * F62's thread rating.
- *
- * ## What was wrong with it
- *
- * It rendered `Rating: 4.3 / 5 (4)` in a bare `<p>`, followed by five
- * unstyled `<button>`s reading `1★ 2★ 3★ 4★ 5★`. Tailwind's preflight strips a
- * button back to plain text, so the control did not look like a control — it
- * looked like a line of debug output above the thread title. It also sat in
- * `px-6`, which is full-bleed, while every other region on the page is centred
- * in the board's measure, so the one line on the page that was not aligned
- * with anything was this one.
- *
- * ## It carries no chrome of its own — no measure, and no card
- *
- * It had both, and needed them, while it was a sibling of `<ThreadView>`
- * rendered above it. Theme API 1.3 gave the thread page a region and 1.4 moved
- * it to the foot, so it renders inside the slot now and the theme supplies the
- * frame.
- *
- * The card went for a plainer reason: rating a thread and following it are two
- * one-line controls, and drawn as a bordered panel each they stacked into two
- * more objects the same visual weight as a post — under a page that already
- * ends with a bordered composer. Three panels for one row of controls. They
- * are a row of controls, so they are laid out as one: this renders bare, and
- * the theme puts both in a single ruled strip.
- *
- * And it dropped `rating.mine`, which the repository goes out of its way to
- * fetch: a member who had already rated the thread was shown five identical
- * buttons with no indication of which one they had pressed, so the only way to
- * find out was to press one and see what the average did.
- *
- * ## What it is now
- *
- * Stars, because a five-point scale drawn as five shapes is read at a glance
- * and `4.3 / 5` is read as arithmetic. The average is a row of five, filled
- * proportionally — a `4.3` shows four full and one 30% full, which is the
- * difference between "about four" and "exactly four" without printing a
- * decimal twice.
- *
- * **Colour is never the only carrier.** The figure is written out beside the
- * stars ("4.3 out of 5, from 4 ratings"), every button has a real accessible
- * name, and the member's own rating is marked with a word as well as a fill.
- *
- * ## Still five submit buttons in a native form
- *
- * The value travels on the button, so there is nothing to get out of step with
- * it, and with scripting off the pressed button is still the one whose
- * name/value is submitted. This is not a client component and must not become
- * one: rating a thread is a POST that reloads a page, which is the cheapest
- * correct implementation of exactly this feature.
- */
-
 const STAR_PATH = 'M10 1.6l2.47 5.01 5.53.8-4 3.9.94 5.5L10 14.21l-4.94 2.6.94-5.5-4-3.9 5.53-.8z'
 
-/**
- * A single star. `fill` is 0–1; anything strictly between draws a partial.
- *
- * `gradientId` is required for a partial and unused otherwise, which is the
- * whole reason the full and empty cases take the cheap path: a `<linearGradient>`
- * needs a document-unique id, this is a Server Component so there is no `useId`,
- * and five stars sharing one id would be invalid markup on every thread page.
- * At most one star in a row is ever partial, so at most one id is ever needed.
- */
 function Star({
   fill,
   gradientId,
@@ -81,12 +19,6 @@ function Star({
 
   return (
     <svg viewBox="0 0 20 20" aria-hidden="true" className={cn('size-4', className)}>
-      {/*
-       * A gradient rather than a clip path: a clip would cut the outline too, so
-       * a half-filled star would lose half its border and read as a different
-       * shape. Filling through a gradient keeps one outline and varies only what
-       * is inside it.
-       */}
       {partial && (
         <defs>
           <linearGradient id={gradientId}>
@@ -106,7 +38,6 @@ function Star({
   )
 }
 
-/** The average, as five proportionally filled stars. */
 function Average({ value, threadId }: { value: number; threadId: number }) {
   return (
     <span className="flex items-center gap-0.5 text-thread-pinned">
@@ -126,7 +57,6 @@ export function ThreadRatingForm({
   rating: ThreadRating
   canRate: boolean
 }) {
-  /* Nothing to show and nothing to do: render nothing rather than an empty box. */
   if (rating.count === 0 && !canRate) return null
 
   return (
@@ -176,13 +106,6 @@ export function ThreadRatingForm({
                   type="submit"
                   name="rating"
                   value={value}
-                  /*
-                   * The full sentence, because "3" on its own is what a screen
-                   * reader would otherwise announce for a control that changes
-                   * a public number. `aria-pressed` is deliberately absent:
-                   * these are submits, not toggles, and the state they carry
-                   * is reported in the name instead.
-                   */
                   aria-label={
                     rating.mine === value
                       ? `${value} out of 5 — your current rating`

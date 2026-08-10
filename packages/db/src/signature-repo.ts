@@ -1,12 +1,3 @@
-/**
- * F58 — signatures over Postgres.
- *
- * Five columns on `users` and four small statements. The only decision worth
- * reading is that **locking keeps the text**: a moderator who empties a
- * signature has left nothing to stop it being retyped and nothing that says it
- * was a decision, so `lock` sets a flag and a reason and leaves the source
- * alone. An appeal can then look at what was actually there.
- */
 import { sql } from 'drizzle-orm'
 
 import { BodyFormat } from '@meith/markdown'
@@ -53,14 +44,6 @@ export class PostgresSignatureRepository {
     return rows[0] === undefined ? null : toSignature(rows[0])
   }
 
-  /**
-   * Every signature needed by one page, in one query.
-   *
-   * A thread page shows a signature per distinct author, and a query per author
-   * is an N+1 on the board's heaviest page. Locked and empty ones come back
-   * too — the caller decides what to show, and `signatureHtml` already answers
-   * that in one place.
-   */
   async readMany(userIds: readonly number[]): Promise<ReadonlyMap<number, StoredSignature>> {
     if (userIds.length === 0) return new Map()
 
@@ -78,14 +61,6 @@ export class PostgresSignatureRepository {
     return new Map(rows.map((row) => [Number(row.id), toSignature(row)]))
   }
 
-  /**
-   * Save a member's own signature.
-   *
-   * Refuses to write a **locked** one in the `where` clause rather than by
-   * checking first: a moderator locking a signature while the member has the
-   * form open is exactly the race this closes, and a prior read would lose it.
-   * Returns false when nothing was written.
-   */
   async save(input: {
     readonly userId: number
     readonly signature: string
@@ -112,7 +87,6 @@ export class PostgresSignatureRepository {
     return rows.length > 0
   }
 
-  /** Lock or unlock somebody's signature. Unlocking clears the reason. */
   async setLocked(input: {
     readonly userId: number
     readonly locked: boolean

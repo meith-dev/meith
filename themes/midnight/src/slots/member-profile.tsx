@@ -1,14 +1,5 @@
 import type { MemberProfileModel } from '@meith/theme-kit'
 
-/**
- * A profile, as a data sheet.
- *
- * Every field the model carries is rendered — including `fields`,
- * `signatureHtml` and `actions`, whose absence from the *default* theme was what
- * F77's rendering-contract suite found on its first run. A theme that ignores a
- * prop looks exactly like one that never received it, which is why the suite
- * asks rather than assumes.
- */
 export function MemberProfile({
   user,
   avatarUrl,
@@ -34,7 +25,6 @@ export function MemberProfile({
           />
         )}
         <div>
-          {/* The group's colour, as on every other page the name appears on. */}
           <h1
             className={['font-mono text-2xl font-semibold', user.nameClass]
               .filter(Boolean)
@@ -67,7 +57,6 @@ export function MemberProfile({
           <dt className="text-muted-foreground">posts</dt>
           <dd>{postCount}</dd>
         </div>
-        {/* F59's custom fields. Text, never markup. */}
         {fields.map((field) => (
           <div key={field.label}>
             <dt className="text-muted-foreground">{field.label}</dt>
@@ -78,12 +67,10 @@ export function MemberProfile({
 
       {signatureHtml !== null && (
         <section aria-label="Signature" className="border border-border p-3 text-sm">
-          {/* Pre-rendered by the sanitising renderer (F36), like a post body. */}
           <div className="prose-md" dangerouslySetInnerHTML={{ __html: signatureHtml }} />
         </section>
       )}
 
-      {/* F80's `profile.panel` region. */}
       {regions?.plugins}
 
       {actions.length > 0 && (

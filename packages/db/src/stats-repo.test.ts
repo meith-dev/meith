@@ -1,16 +1,3 @@
-/**
- * F75's statistics, against real Postgres.
- *
- * The rollup's tests are all about where the numbers come from. Summing the
- * root forums rather than counting `threads` and `posts` is the whole point —
- * F38 already maintains those counters and rolls them up the ancestor chain, so
- * a second opinion here would drift from the number every forum row shows, and
- * the drift would appear after a deletion, which is when somebody looks.
- *
- * The leaderboards' tests are all about the permission filter, for F72's
- * reason: ranking a fetched page returns ten threads as four, and the four are
- * not the top four.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -52,10 +39,6 @@ beforeEach(async () => {
            newest_user_id = null, newest_username = null, computed_at = null
   `)
 
-  /*
-   * A category with a forum under it, plus a second root forum. The rollup sums
-   * roots, so this shape is what proves it does not double-count the child.
-   */
   await db.execute(sql`
     insert into forums (id, type, title, slug, path, parent_id, thread_count, post_count) values
       (${CATEGORY}, 'category', 'Main', 'main', '1', null, 6, 20),
@@ -63,15 +46,9 @@ beforeEach(async () => {
       (${SECRET}, 'forum', 'Staff room', 'staff', '3', null, 2, 5)
   `)
 
-  /* Threads need an author; the rollup and member tests seed their own. */
   await seedUser(ANN)
 })
 
-/**
- * An upsert, because `beforeEach` seeds Ann so threads have an author and
- * several tests then want her with a different post count or state. Insert-only
- * would make each of those start by deleting a row it did not create.
- */
 async function seedUser(
   id: number,
   options: { postCount?: number; state?: string; createdAt?: string } = {},
@@ -113,12 +90,6 @@ const scope = (overrides: Partial<StatsScope> = {}): StatsScope => ({
 
 describe('the rollup', () => {
   it('sums the root forums rather than double-counting the tree', async () => {
-    /*
-     * F38 rolls a post up its whole ancestor chain, so the category already
-     * holds its child's counters. Summing every forum would count the same
-     * content twice — 12 threads on a board that has 8. Kills the mutant that
-     * drops the `parent_id is null` filter.
-     */
     const totals = await repo.rollUp(NOW)
 
     expect(totals.threadCount).toBe(8)
@@ -126,11 +97,6 @@ describe('the rollup', () => {
   })
 
   it('counts active members, not every row in the table', async () => {
-    /*
-     * A deleted account is not a member, and neither is one awaiting
-     * confirmation. A member count that includes them is the number an operator
-     * quotes when explaining why the board looks quieter than it says it is.
-     */
     await seedUser(ANN)
     await seedUser(BOB, { state: 'deleted' })
 
@@ -146,11 +112,6 @@ describe('the rollup', () => {
   })
 
   it('does not announce an account that has not been activated', async () => {
-    /*
-     * Putting a pending registration on the front page announces something that
-     * may never happen — and on a board with e-mail confirmation, a name
-     * anybody can claim without owning the address.
-     */
     await seedUser(ANN, { createdAt: '2026-01-01T00:00:00Z' })
     await seedUser(BOB, { createdAt: '2026-04-01T00:00:00Z', state: 'awaiting_activation' })
 
@@ -158,10 +119,6 @@ describe('the rollup', () => {
   })
 
   it('stamps when it ran, and reads back null before it ever has', async () => {
-    /*
-     * The page shows `computed_at` rather than implying "now". Null is what
-     * distinguishes "not computed yet" from three convincing zeroes.
-     */
     expect((await repo.readTotals()).computedAt).toBeNull()
 
     await repo.rollUp(NOW)
@@ -205,10 +162,6 @@ describe('the thread leaderboards', () => {
   })
 
   it('leave out a thread in a forum the reader cannot see', async () => {
-    /*
-     * A "most viewed threads" table that includes the staff forum is a leak
-     * with a ranking on it. Kills the mutant that drops the forum filter.
-     */
     await seedThread(1, { forumId: OPEN, views: 5 })
     await seedThread(2, { forumId: SECRET, views: 500 })
 

@@ -1,11 +1,3 @@
-/**
- * @meith/accounts — identity: credential hashing, opaque tokens, and (later)
- * the account/session repositories and register/login/reset services.
- *
- * The crypto primitives are pure and runtime-agnostic (Web Crypto + hash-wasm),
- * so they are unit-tested directly with no database.
- */
-
 export {
   CURRENT_PASSWORD_POLICY,
   hashPassword,
@@ -113,7 +105,6 @@ export type {
   NewAccount,
 } from './ports'
 
-/* F86 — MyBB's password scheme, for verify-and-upgrade on the first sign-in. */
 export {
   MYBB_PREFIX,
   isLegacyHash,

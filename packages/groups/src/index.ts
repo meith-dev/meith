@@ -1,10 +1,3 @@
-/**
- * @meith/groups — group promotions (F24).
- *
- * Rule evaluation is pure and lives here; the safety guards (never lift a ban,
- * never demote, never re-apply) are part of the domain rather than the SQL.
- */
-
 export {
   evaluatePromotions,
   type PromotionCandidate,

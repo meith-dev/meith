@@ -1,11 +1,3 @@
-/**
- * F49 — reports over Postgres.
- *
- * Every write that changes a report also writes its history row, in the same
- * transaction. That is the whole reason `report_events` exists: a status that
- * changed with no record of who changed it is the state a moderation log is
- * supposed to prevent, and two separate writes eventually produce it.
- */
 import { sql } from 'drizzle-orm'
 
 import { PUBLIC_CONTENT } from '@meith/core'
@@ -25,7 +17,6 @@ import { resultRows } from './result-rows'
 import { visibleIn } from './visibility'
 import { threads } from './schema'
 
-/** See `moderation-queue.ts`: drizzle expands an array into a placeholder list. */
 function idList(ids: readonly number[]): ReturnType<typeof sql> {
   if (ids.length === 0) return sql`(null)`
   return sql`(${sql.join(
@@ -101,31 +92,12 @@ const SELECT_REPORT = sql`
 export class PostgresReportRepository implements ReportRepository {
   constructor(private readonly db: Database) {}
 
-  /**
-   * What a report points at, read now rather than taken from the form.
-   *
-   * Only *public* content can be reported. A member cannot report something
-   * they could not have seen, and a moderator has better tools than the report
-   * button for content that is already held or removed — so this uses
-   * `PUBLIC_CONTENT` for every actor rather than the reader's scope (F47).
-   *
-   * A private message is the exception that proves the rule (F60). It is not
-   * public and never will be, so "may this member report it" cannot be answered
-   * by a visibility scope — it is answered by the copy row: you may report a
-   * message you were sent. That is why `reporterUserId` is a parameter, and it
-   * is used by exactly this one branch.
-   */
   async resolveTarget(
     kind: ReportTargetKind,
     id: number,
     reporterUserId: number,
   ): Promise<ReportTarget | null> {
     if (kind === 'private_message') {
-      /*
-       * The join to `private_message_copies` is the authorisation. Reporting a
-       * message you do not hold is indistinguishable here from reporting one
-       * that does not exist, which is the answer the id space should give.
-       */
       const rows = resultRows(
         await this.db.execute(sql`
           select m.id, m.subject
@@ -141,11 +113,6 @@ export class PostgresReportRepository implements ReportRepository {
         : {
             kind,
             id: Number(row.id),
-            /*
-             * No forum, like a user report — so it routes to `modcp.access`
-             * rather than to a forum's moderators, which is right: a private
-             * message belongs to no forum's staff.
-             */
             forumId: null,
             threadId: null,
             label: row.subject,
@@ -205,14 +172,6 @@ export class PostgresReportRepository implements ReportRepository {
         }
   }
 
-  /**
-   * File a report and its `opened` event together.
-   *
-   * The duplicate check is the unique index, not a prior `select`: two clicks
-   * arriving at once would both pass a check and both insert. `on conflict do
-   * nothing` makes the database the arbiter, and an empty `returning` is the
-   * friendly answer rather than an error.
-   */
   async open(report: NewReport): Promise<number | null> {
     return this.db.transaction(async (tx) => {
       const inserted = resultRows(
@@ -241,13 +200,6 @@ export class PostgresReportRepository implements ReportRepository {
     })
   }
 
-  /**
-   * Outstanding reports in scope, oldest first.
-   *
-   * The two halves of the scope are one predicate rather than two queries: a
-   * moderator who also holds board staff sees their forums *and* the user
-   * reports in one page, ordered together.
-   */
   private scopePredicate(scope: ReportScope): ReturnType<typeof sql> {
     const byForum = sql`r.forum_id in ${idList(scope.forumIds)}`
     return scope.global ? sql`(${byForum} or r.forum_id is null)` : byForum
@@ -335,11 +287,6 @@ export class PostgresReportRepository implements ReportRepository {
     readonly at: Date
   }): Promise<boolean> {
     return this.db.transaction(async (tx) => {
-      /*
-       * `status = 'open'` in the WHERE, not a prior read: assigning a report
-       * somebody closed a moment ago would look like it worked and change
-       * nothing, which is the failure a second moderator notices an hour later.
-       */
       const moved = resultRows(
         await tx.execute(sql`
           update reports
@@ -382,12 +329,6 @@ export class PostgresReportRepository implements ReportRepository {
       ) as Array<{ id: number }>
       if (moved.length === 0) return false
 
-      /*
-       * The note goes on the event, never on the report. "Resolved because X"
-       * belongs to *that* resolution — on the report it would be overwritten by
-       * the next one, and the history would say a decision was made for a reason
-       * nobody gave.
-       */
       await tx.execute(sql`
         insert into report_events (report_id, actor_user_id, kind, note, created_at)
         values (${input.reportId}, ${input.actorUserId}, ${input.status},

@@ -1,14 +1,5 @@
 "use client"
 
-/**
- * The install line, and a button that copies it.
- *
- * The label says what happened, not that we are sorry. When the clipboard is
- * refused — an insecure origin, a browser that wants a user gesture it did not
- * see — it says which keys to press instead, because "copy failed" leaves the
- * reader with nothing to do.
- */
-
 import { useEffect, useRef, useState } from "react"
 
 interface CopyCommandProps {
@@ -42,12 +33,6 @@ export function CopyCommand({ command }: CopyCommandProps) {
       <span aria-hidden className="text-accent">
         $
       </span>
-      {/*
-        `break-all`, because the one thing this must not do is push the page
-        sideways. At 390px the clone URL is wider than the viewport, and a
-        command that wraps onto a second line is a great deal better than a
-        landing page with a horizontal scrollbar.
-      */}
       <span className="min-w-0 break-all text-left">{command}</span>
       <span
         aria-live="polite"

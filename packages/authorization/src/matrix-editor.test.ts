@@ -1,12 +1,3 @@
-/**
- * F65's matrix model.
- *
- * The claims that matter are about *what an operator is shown*, because the
- * failure mode of a permission editor is never a crash — it is somebody
- * confidently setting the wrong thing. So: inherit is distinguishable from
- * deny, an inherited cell says where the value came from, a row resolves for
- * its own group and not for the combination, and a copy is previewed exactly.
- */
 import { describe, expect, it } from 'vitest'
 
 import { emptyPermissionSet, type PermissionSet } from '@meith/core'
@@ -36,7 +27,6 @@ function cell(rows: ReturnType<typeof buildPermissionMatrix>, groupId: number, k
   return found
 }
 
-/** `[child, parent, root]` — nearest first, as the resolver expects. */
 const CHAIN = [CHILD, PARENT, ROOT]
 
 describe('a cell with nothing set anywhere', () => {
@@ -53,12 +43,6 @@ describe('a cell with nothing set anywhere', () => {
   })
 
   it('reports no ancestor, because there was none', () => {
-    /*
-     * `inheritedFrom: null` with `stored: null` is a *different* explanation
-     * from "inherited from the parent" — it means the group's own default — and
-     * the screen has to word it differently. Kills the mutant that reports the
-     * forum itself as the source.
-     */
     expect(cell(rows, REGISTERED, 'canPostThreads').inheritedFrom).toBeNull()
   })
 })
@@ -74,12 +58,6 @@ describe('a cell inherited from an ancestor', () => {
   })
 
   it('stays stored-as-inherit while resolving to the ancestor’s value', () => {
-    /*
-     * The whole point of three states. A two-state checkbox would have to show
-     * this as "off", and saving the form would write an explicit `false` here —
-     * pinning the child forever and making a later change at the parent do
-     * nothing.
-     */
     const found = cell(rows, REGISTERED, 'canPostThreads')
     expect(found.stored).toBeNull()
     expect(found.effective).toBe(false)
@@ -113,10 +91,6 @@ describe('a cell set on this forum', () => {
   })
 
   it('shows its own value and reports no inheritance', () => {
-    /*
-     * Kills the mutant that reports the *forum itself* as an ancestor, which
-     * would render "inherited from this forum" on every explicit cell.
-     */
     const found = cell(rows, REGISTERED, 'canPostThreads')
     expect(found.stored).toBe(false)
     expect(found.effective).toBe(false)
@@ -126,13 +100,6 @@ describe('a cell set on this forum', () => {
 
 describe('a row resolves for its own group only', () => {
   it('does not show one group the value another group would win', () => {
-    /*
-     * `Authorizer.forumMatrix` combines across an actor's groups — booleans OR.
-     * A matrix editor must not: the operator is editing the Registered row, and
-     * showing them `true` because Staff has it would make the cell a lie about
-     * the thing they are about to change. Kills the mutant that passes every
-     * group to the resolver at once.
-     */
     const rows = buildPermissionMatrix({
       chain: CHAIN,
       groups: [
@@ -183,11 +150,6 @@ describe('readMatrixCell', () => {
   })
 
   it('reads an unparseable number as inherit, never as zero', () => {
-    /*
-     * 0 is meaningful — it is *unlimited* (R4.2) — so a typo coerced to 0 would
-     * silently grant the opposite of what was typed. Kills the mutant that
-     * uses `Number(raw) || 0`.
-     */
     expect(readMatrixCell(numeric, 'abc')).toBeNull()
     expect(readMatrixCell(numeric, '-1')).toBeNull()
     expect(readMatrixCell(numeric, '1.5')).toBeNull()
@@ -222,12 +184,6 @@ describe('planCopyToDescendants', () => {
   })
 
   it('copies nulls too, so "copy" means identical', () => {
-    /*
-     * The cautious-sounding alternative — copy only the non-nulls — is wrong: a
-     * child that explicitly denies something the parent inherits would keep
-     * denying it, and the operator who pressed "copy" would be looking at two
-     * forums that are not the same. Kills the mutant that skips null sources.
-     */
     const plan = planCopyToDescendants({
       ...base,
       overrides: [
@@ -254,11 +210,6 @@ describe('planCopyToDescendants', () => {
   })
 
   it('covers every group it was given, not only those with a source row', () => {
-    /*
-     * A group the source forum does not override still has to be copied — the
-     * copy is "make them the same", and the descendant may well have a value
-     * that the source does not.
-     */
     const plan = planCopyToDescendants({
       sourceForumId: PARENT,
       descendantIds: [CHILD],

@@ -9,23 +9,6 @@ import { renderPluginAdminPage } from '@/server/plugin-pages'
 
 export const metadata: Metadata = { title: 'Plugin' }
 
-/**
- * F69 — one plugin's screen, and the mount point for the pages it contributes.
- *
- * **Two screens in one route, and it is one route on purpose.** `[key]` with an
- * optional catch-all matches both `/admin/plugins/<key>` and
- * `/admin/plugins/<key>/<page>`, which is what makes a contributed page a
- * *child* of the plugin it belongs to rather than a sibling of it. The
- * alternative — a fixed segment like `/admin/plugins/hooks` for the detail view
- * — has a collision built into it: `hooks` is a legal plugin key, so the day
- * somebody installs a plugin called `hooks` their pages disappear behind a
- * panel screen. A route that a plugin key can shadow is a route that will be.
- *
- * A page is rendered by calling the plugin, which means it is the one place in
- * the panel where markup comes from installed code. What that does and does not
- * get is in `plugin-pages.ts`; the short version is that it gets settings and a
- * logger, and does not get the actor, the database or the request.
- */
 export default async function AdminPluginPage({
   params,
 }: {
@@ -39,11 +22,6 @@ export default async function AdminPluginPage({
 
   const segments = path ?? []
 
-  /*
-   * Deeper than one segment is a 404 rather than a match on the first: page
-   * paths are validated as a single segment by `definePlugin`, so
-   * `/admin/plugins/x/page/anything` is a URL no plugin can have declared.
-   */
   if (segments.length > 1) notFound()
 
   if (segments.length === 1) {
@@ -98,10 +76,6 @@ export default async function AdminPluginPage({
           }
         : {})}
     >
-      {/*
-        The three states, spelled out rather than folded into a badge. Each has
-        a different remedy and the row says which one applies.
-      */}
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-heading text-lg font-semibold">Status</h2>
         <dl className="flex flex-col gap-2 text-sm">

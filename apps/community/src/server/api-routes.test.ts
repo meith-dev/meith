@@ -1,12 +1,3 @@
-/**
- * F81 — the registry against the implementation.
- *
- * `ROUTES` is the *documented* set and the handler's switch is the *implemented*
- * one. They are allowed to differ — a route can be declared before it is
- * written — but the difference has to be visible in a test rather than
- * discovered by somebody's client, which is why both lists are exported and
- * compared here.
- */
 import { ROUTES } from '@meith/api'
 import { describe, expect, it } from 'vitest'
 
@@ -19,12 +10,6 @@ describe('the API surface', () => {
     )
   })
 
-  /*
-   * Every implemented route must be declared. The reverse is not required: a
-   * declared route with no handler answers 501, which is honest. An
-   * *undeclared* route with a handler would be an endpoint with no scope check,
-   * because the scope comes from the registry.
-   */
   it('implements nothing that is not declared', () => {
     for (const implemented of IMPLEMENTED_ROUTES) {
       expect(DECLARED_ROUTES).toContain(implemented)
@@ -35,13 +20,6 @@ describe('the API surface', () => {
     expect(IMPLEMENTED_ROUTES.length).toBeGreaterThan(0)
   })
 
-  /*
-   * Named, so the gap is a number somebody can see shrinking — and it has
-   * shrunk to nothing: every declared route now has a handler. Kept as an
-   * assertion rather than deleted, because the next route added to `ROUTES`
-   * before it is written should fail here rather than answer 501 to somebody's
-   * client in production.
-   */
   it('reports the unimplemented remainder', () => {
     const pending = DECLARED_ROUTES.filter((route) => !IMPLEMENTED_ROUTES.includes(route))
     expect(pending).toEqual([])

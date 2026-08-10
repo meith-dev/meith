@@ -11,19 +11,6 @@ import { buildForumMatrixView, previewCopy } from '@/server/forum-admin'
 
 export const metadata: Metadata = { title: 'Forum permissions' }
 
-/**
- * F65 — the permission matrix.
- *
- * Every cell is three states, because `forum_permissions` columns are nullable
- * and **null means inherit** (R4.1 layer 2). A checkbox cannot express that,
- * and a screen built from checkboxes writes an explicit value into every cell
- * on the first save — pinning the forum forever and making a later change at
- * the parent do nothing. That is the single most common way a forum's
- * permissions end up wrong, and the reason this screen looks the way it does.
- *
- * Beside every cell is what it currently *resolves* to and where that came
- * from, because "inherit" on its own tells nobody anything.
- */
 export default async function ForumPermissionsPage({
   params,
 }: {
@@ -80,11 +67,6 @@ export default async function ForumPermissionsPage({
           </p>
         ) : (
           <>
-            {/*
-              The preview, in full. This is the only button in the panel that
-              rewrites forums the operator is not looking at, and there is no
-              undo — so what it would do is shown before it does it.
-            */}
             <p className="text-sm text-muted-foreground">
               This would change {plan.changes.length} setting
               {plan.changes.length === 1 ? '' : 's'} across{' '}
@@ -120,7 +102,6 @@ export default async function ForumPermissionsPage({
   )
 }
 
-/** `null` is inherit, and has to read as a value rather than as a blank. */
 function describe(value: boolean | number | null): string {
   if (value === null) return 'inherit'
   if (value === true) return 'grant'

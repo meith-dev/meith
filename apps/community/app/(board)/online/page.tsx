@@ -9,19 +9,6 @@ import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: "Who's online" }
 
-/**
- * F75 — the full online list.
- *
- * The index panel names members; this page says **where each of them is**, and
- * every location on it has already been resolved against the reader in the
- * repository. A forum somebody may not see arrives here as "Viewing a forum" —
- * there is no title in the data to print by mistake.
- *
- * One query for the list and one for the record. No paging: the list is bounded
- * by the fifteen-minute window rather than by the size of the board, and a
- * board with more concurrent visitors than fit on a page has a different
- * problem than pagination.
- */
 export default async function OnlinePage() {
   const actor = await getActor()
   const now = new Date()
@@ -42,10 +29,6 @@ export default async function OnlinePage() {
     )
   }
 
-  /*
-   * The group colours for everyone on the list, in one query. Read after the
-   * empty-snapshot return above, so a board that tracks nobody asks nothing.
-   */
   const identities = await identitiesFor(snapshot.members.map((member) => member.userId))
 
   return (

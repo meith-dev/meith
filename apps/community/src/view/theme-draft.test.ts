@@ -1,15 +1,3 @@
-/**
- * The theme editor's document model.
- *
- * These are the rules that decide what an operator is *told* and what actually
- * reaches the database, which is why they were moved out of the form component:
- * a `.tsx` file in this repository has no test, and "the screen says this colour
- * is live when the board is painting another one" is a bug no type catches.
- *
- * The four values per token — shipped, saved, draft, effective — are the shape
- * every test here is circling. Collapsing any two of them is how the previous
- * version of this screen managed to be wrong about which changes were saved.
- */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -55,11 +43,6 @@ describe('fields', () => {
     expect(schemesFor(radius)).toEqual(['both'])
   })
 
-  /*
-   * The form's field names are a contract with `submittedTokens` in the action,
-   * which parses them with a regular expression. Stated here so a rename breaks
-   * a test rather than a save.
-   */
   it('posts a token under token.<scheme>.<name>', () => {
     expect(fieldName('primary', 'light')).toBe('token.light.primary')
     expect(fieldName('radius', 'both')).toBe('token.both.radius')
@@ -75,11 +58,6 @@ describe('initialDraft', () => {
     expect(draft['token.both.radius']).toBe('')
   })
 
-  /*
-   * The no-JavaScript preview posts the form and re-renders it. Seeding from
-   * what came back is what stops a preview emptying the form it was launched
-   * from — the values win over the stored row precisely because they are newer.
-   */
   it('prefers a post-back’s values, so previewing keeps what was typed', () => {
     const draft = initialDraft([token({ overrideLight: '#abcdef' })], {
       'token.light.primary': '#123456',
@@ -98,7 +76,6 @@ describe('the three palettes', () => {
 
   it('saved is what the board is painting right now', () => {
     expect(savedValues(tokens, 'light').primary).toBe('#abcdef')
-    /* Not overridden in dark, so dark is still the theme's own. */
     expect(savedValues(tokens, 'dark').primary).toBe('#eeeeee')
   })
 
@@ -108,12 +85,6 @@ describe('the three palettes', () => {
     expect(effectiveValues(tokens, draft, 'dark').primary).toBe('#eeeeee')
   })
 
-  /*
-   * The whole palette and not only the overrides. The sample sits inside the
-   * control panel, which `:root` paints — so an alternate theme previewed with
-   * only its overrides would show the *board's* colours everywhere it had not
-   * overridden one, which is the exact mistake this screen exists to prevent.
-   */
   it('effective carries every token, not only the changed ones', () => {
     expect(Object.keys(effectiveValues(tokens, {}, 'light')).sort()).toEqual([
       'primary',
@@ -121,11 +92,6 @@ describe('the three palettes', () => {
     ])
   })
 
-  /*
-   * A `both` field is one value that has to reach both schemes. Read from the
-   * wrong field name it would silently fall back to the theme's own value in
-   * every sample, which looks like the editor ignoring what was typed.
-   */
   it('reads a scheme-independent token’s single field in both schemes', () => {
     const draft = { 'token.both.radius': '0px' }
 
@@ -176,12 +142,6 @@ describe('tokenChanges', () => {
     expect(change?.next).toBe('#00ff00')
   })
 
-  /*
-   * The case the old screen could not show at all. Emptying a stored override
-   * read as "using the theme's value" the instant it was typed, while the board
-   * carried on painting the old one until a save — so the screen and the board
-   * disagreed and neither said so.
-   */
   it('marks an emptied override as cleared, and says what it would go back to', () => {
     const [change] = tokenChanges([token({ overrideLight: '#abcdef' })], {
       'token.light.primary': '',
@@ -207,7 +167,6 @@ describe('changeCounts', () => {
     const tokens = [token({ overrideLight: '#abcdef', overrideDark: '#123456' }), radius]
     const counts = changeCounts(
       tokenChanges(tokens, {
-        /* light edited, dark left as stored, radius newly overridden. */
         'token.light.primary': '#00ff00',
         'token.dark.primary': '#123456',
         'token.both.radius': '0px',
@@ -217,11 +176,6 @@ describe('changeCounts', () => {
     expect(counts).toEqual({ overridden: 3, unsaved: 2, tokens: 2 })
   })
 
-  /*
-   * A cleared override is unsaved work and not an override, so it counts in one
-   * total and not the other. Getting this wrong makes the Save button offer to
-   * save nothing, or claim an override the save is about to delete.
-   */
   it('counts a cleared override as unsaved but not as an override', () => {
     const tokens = [token({ overrideLight: '#abcdef' })]
     const counts = changeCounts(tokenChanges(tokens, { 'token.light.primary': '' }))

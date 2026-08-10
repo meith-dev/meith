@@ -1,11 +1,3 @@
-/**
- * F71's content vocabularies, against real Postgres.
- *
- * The claim worth the file: **`activeWordFilters` drops disabled rows itself**.
- * The alternative is every render site remembering to check `enabled`, and a
- * filter an operator switched off that still applies on one page is worse than
- * having no switch at all.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -49,11 +41,6 @@ describe('word filters', () => {
   })
 
   it('keeps a disabled filter out of what the renderer applies', async () => {
-    /*
-     * The claim. Kills the mutant that returns every row and leaves `enabled`
-     * to the caller — under which a filter an operator switched off keeps
-     * applying wherever somebody forgot the check.
-     */
     const on = await repo.createWordFilter({ pattern: 'a', replacement: 'x', wholeWord: true })
     const off = await repo.createWordFilter({ pattern: 'b', replacement: 'y', wholeWord: true })
     await repo.updateWordFilter(off, {
@@ -69,12 +56,6 @@ describe('word filters', () => {
   })
 
   it('never hands the renderer an empty pattern', async () => {
-    /*
-     * An empty pattern compiles to a matcher that hits at every position, which
-     * would insert the replacement between every character of every post. The
-     * create path refuses one; this is the second line of defence for a row
-     * that arrived any other way.
-     */
     await db.execute(sql`insert into word_filters (pattern, replacement) values ('', 'X')`)
     expect(await repo.activeWordFilters()).toEqual([])
   })
@@ -91,10 +72,6 @@ describe('word filters', () => {
   })
 
   it('keeps a replacement that is only spaces', async () => {
-    /*
-     * Blanking a word with a space is a legitimate thing to want, and trimming
-     * the replacement would silently turn it into deletion.
-     */
     const id = await repo.createWordFilter({ pattern: 'a', replacement: ' ', wholeWord: true })
     expect((await repo.listWordFilters()).find((row) => row.id === id)?.replacement).toBe(' ')
   })
@@ -120,15 +97,6 @@ describe('word filters', () => {
 
 describe('thread prefixes', () => {
   it('round-trips a prefix and orders by display order', async () => {
-    /*
-     * `thread_prefixes` has been read by the composer since F33 and had no
-     * writer — it could only be populated with SQL.
-     */
-    /*
-     * Three rows, inserted so that neither id order matches display order —
-     * with two, the creation order happens to sort the same way both ways and
-     * the assertion proves nothing about the ORDER BY.
-     */
     await repo.createPrefix({
       label: 'Last',
       token: 'thread-pinned',
@@ -160,11 +128,6 @@ describe('thread prefixes', () => {
   })
 
   it('deleting one leaves the threads that used it, minus the prefix', async () => {
-    /*
-     * `threads.prefix_id` is nullable with `on delete set null`. Refusing to
-     * delete a prefix in use would make a mistyped one permanent; deleting the
-     * threads would be absurd.
-     */
     await db.execute(sql`
       insert into forums (id, type, title, slug, path)
       values (1, 'forum', 'General', 'general', '1')
@@ -193,11 +156,6 @@ describe('thread prefixes', () => {
   })
 })
 
-/**
- * The board's vocabulary, and the fact that makes it different from a word
- * filter: it is baked into a stored render, so every write has to invalidate
- * them all.
- */
 describe('the markup vocabulary', () => {
   beforeEach(async () => {
     await db.execute(sql`delete from smilies`)
@@ -209,12 +167,6 @@ describe('the markup vocabulary', () => {
     expect(await repo.vocabularyRevision()).toBe(0)
   })
 
-  /*
-   * Each write bumps, rather than one wrapper bumping around them. A write that
-   * forgot would not fail — it would leave the board rendering the old
-   * vocabulary from cache, a bug that reproduces only on a board nobody has
-   * edited since.
-   */
   it('bumps the revision on every write, including a delete', async () => {
     const smileyId = await repo.createSmiley({ code: ':)', src: '/smile.png', alt: null })
     expect(await repo.vocabularyRevision()).toBe(1)
@@ -286,11 +238,6 @@ describe('the compiled vocabulary the renderer reads', () => {
     await db.execute(sql`delete from cache_versions where key = 'markdown_vocabulary'`)
   })
 
-  /*
-   * The common case, and the one that must cost nothing: a board that has never
-   * configured anything answers without reading either table, because revision
-   * 0 is what every row is already stamped with.
-   */
   it('is empty, and asks neither table, on a board with no vocabulary', async () => {
     harness.queries.reset()
     const vocabulary = await readBoardVocabulary(db)
@@ -313,10 +260,6 @@ describe('the compiled vocabulary the renderer reads', () => {
     expect(directiveNames(vocabulary.directives)).toEqual(['spoiler'])
   })
 
-  /*
-   * A row that got in some other way — a hand-edited database, an import —
-   * must not take the render path down with it.
-   */
   it('drops a row that will not compile rather than throwing on the render path', async () => {
     await repo.createSmiley({ code: ':)', src: '/smile.png', alt: null })
     await db.execute(sql`insert into smilies (code, src) values (':evil:', 'javascript:alert(1)')`)

@@ -1,16 +1,3 @@
-/**
- * F39 at the app layer — the Server Action.
- *
- * The posting rules are unit-tested in `@meith/threads` and the SQL against
- * real Postgres. What is proven here is the adapter tier neither can see: that
- * the action re-authorises for itself, that it reads a native `FormData` submit
- * (which is exactly what a no-JS form sends), and that it redirects where it
- * claims to.
- *
- * The container is replaced wholesale rather than mocked piecemeal — it is a
- * value on `globalThis`, and installing one is the same seam the auth action
- * tests use when they drop it.
- */
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -69,7 +56,6 @@ const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
 class FakeWrites implements ThreadWriteRepository, ReplyWriteRepository {
   readonly written: NewThreadRecord[] = []
   readonly replies: NewReplyRecord[] = []
-  /** The thread `replyTarget` describes; overridden per test. */
   thread: Partial<ReplyTarget> = {}
   constructor(private readonly rules: Partial<ForumPostingTarget> = {}) {}
 
@@ -140,14 +126,6 @@ class FakeDrafts {
   async find(): Promise<null> { return null }
 }
 
-/**
- * Install a container for this test.
- *
- * It has to satisfy `getContainer`'s shape guard — the check that replaces a
- * container left behind by a dev-server reload — or the real fixture container
- * is rebuilt over the top of this one and the test silently exercises that
- * instead. Hence the read repositories nothing here calls.
- */
 function installContainer(
   overrides: Record<string, unknown> = {},
   board = SEED_BOARD,
@@ -165,7 +143,6 @@ function installContainer(
   })
 }
 
-/** A native form submit: strings only, and no field for an unchecked box. */
 function form(entries: Record<string, string>): FormData {
   const f = new FormData()
   for (const [k, v] of Object.entries(entries)) f.set(k, v)
@@ -191,7 +168,6 @@ async function actorFor(groupId: number, userId: number | null): Promise<Actor> 
   }
 }
 
-/** Run an action expected to redirect, and return where it went. */
 async function redirectOf(run: Promise<unknown>): Promise<string> {
   try {
     await run
@@ -241,8 +217,6 @@ describe('createThreadAction', () => {
     await redirectOf(createThreadAction(EMPTY_STATE, form({ ...VALID, subscribe: '1' })))
     expect(writes.written[0]!.subscribe).toBe(true)
 
-    // An unticked checkbox sends no field at all — the reason this reads
-    // presence rather than a value.
     await redirectOf(createThreadAction(EMPTY_STATE, form(VALID)))
     expect(writes.written[1]!.subscribe).toBe(false)
   })
@@ -252,16 +226,11 @@ describe('createThreadAction', () => {
 
     const state = await createThreadAction(EMPTY_STATE, form(VALID))
 
-    // The action is a public endpoint: never rendering the form to a guest is
-    // not the same as refusing one who posts to it directly.
     expect(state.error).toBeTruthy()
     expect(writes.written).toEqual([])
   })
 
   it('refuses a member who may read a forum but not post in it', async () => {
-    // Announcements is readable by everyone and postable by staff only. This is
-    // the case the guest test cannot cover: a real, logged-in author with a
-    // valid draft, refused by the matrix alone.
     const state = await createThreadAction(
       EMPTY_STATE,
       form({ ...VALID, forumId: String(SEED_FORUM.announcements) }),
@@ -272,10 +241,6 @@ describe('createThreadAction', () => {
   })
 
   it('does not confirm that a forum it cannot see exists', async () => {
-    // A forum that is real and invisible to this actor. The writer would
-    // happily describe it; the visibility check comes first, and it answers
-    // exactly as it would for a forum that is not there — the existence of a
-    // hidden forum is not something to confirm.
     const hidden = 555
     installContainer(
       {},
@@ -320,7 +285,6 @@ describe('createThreadAction', () => {
     )
 
     expect(state.error).toMatch(/at least 3 characters/)
-    // A rejected submit must not cost someone their draft.
     expect(state.values?.message).toBe('With a message in it.')
     expect(writes.written).toEqual([])
   })
@@ -387,7 +351,6 @@ describe('createReplyAction', () => {
       createReplyAction(EMPTY_STATE, form({ ...REPLY, seenLastPostId: '30' })),
     )
 
-    // The reply is written either way; the notice is a courtesy, not a lock.
     expect(to).toBe('/thread/20-hello?replied=race#post-99')
     expect(writes.replies).toHaveLength(1)
   })
@@ -397,8 +360,6 @@ describe('createReplyAction', () => {
 
     const to = await redirectOf(createReplyAction(EMPTY_STATE, form(REPLY)))
 
-    // Posts page forward by id, so there is no cheap "which page is post N on".
-    // A cursor one below the reply opens a page that begins with it.
     expect(to).toBe('/thread/20-hello?after=98#post-99')
   })
 
@@ -445,20 +406,13 @@ describe('createReplyAction', () => {
   })
 })
 
-/* ------------------------------------------------------------------ *
- * F41 — edit, delete, restore
- * ------------------------------------------------------------------ */
-
 class FakePostWrites implements PostWriteRepository {
   readonly edits: PostEditRecord[] = []
   readonly moves: PostVisibilityRecord[] = []
-  /** The stored post. Overridden per test. */
   post: Partial<PostEditTarget['post']> = {}
-  /** Which forum the post is in, for the visibility test. */
   forumId: number = SEED_FORUM.general
 
   async findEditTarget(threadId: number, postId: number): Promise<PostEditTarget | null> {
-    // The thread-scoped lookup, faithfully: a post id alone addresses nothing.
     if (threadId !== 20 || postId !== 50) return null
     return {
       post: {
@@ -512,12 +466,6 @@ describe('F41 post actions', () => {
       })
     })
 
-    /*
-     * The re-check that matters. Rendering the edit page authorised the page;
-     * this is a public endpoint and nothing stops a direct POST to it, so the
-     * matrix is resolved again against the post the form claims — and a member
-     * is not offered `post.editOthers` at all.
-     */
     it('refuses to edit somebody else"s post', async () => {
       postWrites.post = { authorUserId: 99 }
       const state = await editPostAction(EMPTY_STATE, form(EDIT))
@@ -534,11 +482,6 @@ describe('F41 post actions', () => {
       expect(postWrites.edits).toHaveLength(0)
     })
 
-    /*
-     * Thread-scoped, like F40's quote. Without the thread in the lookup, a post
-     * id from a form addresses any post on the board — including one in a forum
-     * this actor was never authorised against.
-     */
     it('does not find a post that is not in the given thread', async () => {
       const state = await editPostAction(
         EMPTY_STATE,
@@ -548,13 +491,6 @@ describe('F41 post actions', () => {
       expect(postWrites.edits).toHaveLength(0)
     })
 
-    /*
-     * The post is real, the actor owns it, and the forum it lives in is one
-     * they cannot see. The answer must be the same as for a post that is not
-     * there: the existence of content in a hidden forum is not something to
-     * confirm — and a permission model that only guards the *rendering* of the
-     * edit page would let a direct POST straight through.
-     */
     it('does not confirm that a post in a forum it cannot see exists', async () => {
       const hidden = 555
       postWrites.forumId = hidden
@@ -643,11 +579,6 @@ describe('F41 post actions', () => {
       postWrites.post = { visibility: 'deleted' }
     })
 
-    /*
-     * Restoring is a moderation act, not an authorship one: the author of a
-     * post they deleted cannot un-delete it, because the reason it is gone may
-     * not have been their decision.
-     */
     it('refuses the post"s own author', async () => {
       const state = await restorePostAction(EMPTY_STATE, form({ threadId: '20', postId: '50' }))
 

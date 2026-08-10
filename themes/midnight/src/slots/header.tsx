@@ -1,20 +1,5 @@
 import type { HeaderModel } from '@meith/theme-kit'
 
-/**
- * A masthead with the navigation as a tab strip.
- *
- * The default theme puts the board title and the user panel on one line and the
- * sections beneath as plain links. Midnight separates them: the title is a
- * banner, and the sections are bordered tabs — different markup, different
- * shape, same `HeaderModel`.
- *
- * The logo is handled the same way the default theme handles it, because there
- * is only one correct way: the app has already chosen which image this reader
- * gets, so a `<picture>` appears only for the one case it cannot — a reader on
- * "system" with two images to choose between. Midnight is a mono-type theme and
- * still renders somebody's logo unaltered; a theme that restyled a board's own
- * mark would be a theme overruling its operator.
- */
 function BoardMark({ boardTitle, logo }: Pick<HeaderModel, 'boardTitle' | 'logo'>) {
   if (logo === undefined) return <>{boardTitle}</>
 

@@ -1,17 +1,3 @@
-/**
- * F29 — the board index's read, against a real Postgres (PGlite).
- *
- * Two things need a database rather than a unit test:
- *
- *  - **the query count.** An N+1 does not fail a test; it passes, slowly, and
- *    only on a board large enough to notice. F11's budget helper counts
- *    statements at the driver, and the assertion compares two board *sizes* —
- *    a single fixture cannot tell "one query" from "one query per forum" when
- *    the fixture has one forum.
- *  - **the null shapes.** A forum with no posts has every last-post column null,
- *    and a forum whose author was deleted has `last_post_user_id` null with the
- *    username intact. Both are database states a mock would simply agree with.
- */
 import { sql } from 'drizzle-orm'
 import { expectQueryBudget } from '@meith/testkit'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -25,7 +11,6 @@ let harness: TestDb
 let db: Database
 let repo: PostgresForumRepository
 
-/** `count` sibling forums under one category, each with a last post. */
 async function seedBoard(count: number): Promise<void> {
   await db.insert(forums).values({
     id: 1,
@@ -109,11 +94,6 @@ describe('listListing', () => {
     expect(rows[0]!.threadCount).toBe(0)
   })
 
-  /*
-   * `posts.author_user_id` is ON DELETE SET NULL and the denormalised username
-   * is kept, so this is the state a board reaches the first time an account is
-   * removed. The row must still carry a last post.
-   */
   it('keeps the last post when its author was deleted', async () => {
     await seedBoard(1)
     await db.execute(sql`update forums set last_post_user_id = null where id = 100`)
@@ -125,11 +105,6 @@ describe('listListing', () => {
     expect(row.lastPost!.username).toBe('ada')
   })
 
-  /*
-   * A half-written triplet — a counter bug, an interrupted import — must render
-   * as "no posts yet" rather than as a link to post `null`, which is a 404 the
-   * reader cannot explain.
-   */
   it('treats a partially-written last post as absent', async () => {
     await seedBoard(1)
     await db.execute(sql`update forums set last_post_id = null where id = 100`)
@@ -144,11 +119,6 @@ describe('listListing', () => {
     expect((await repo.listListing()).map((r) => r.id)).toEqual([1, 101, 102, 100])
   })
 
-  /*
-   * The budget assertion, and why it compares two sizes: with one board, "one
-   * query" and "one query per forum" are the same number. Twenty forums against
-   * three must still be one statement.
-   */
   it('costs one query regardless of how many forums exist', async () => {
     await seedBoard(2)
     await expectQueryBudget(harness, 1, () => repo.listListing())

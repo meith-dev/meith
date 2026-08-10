@@ -16,14 +16,6 @@ import {
 } from './api'
 import { SLOT_NAMES, type SlotName } from './slots'
 
-/**
- * Fixtures, not the shipped list.
- *
- * `DEPRECATIONS` is empty today and will be for some time. A policy engine whose
- * only input is `[]` has never run, so every rule below is exercised against a
- * deliberately wrong schedule — which is also the only way the rule's mutant can
- * be killed (D10).
- */
 function deprecation(overrides: Partial<Deprecation> = {}): Deprecation {
   return {
     kind: 'slot',
@@ -36,7 +28,6 @@ function deprecation(overrides: Partial<Deprecation> = {}): Deprecation {
   }
 }
 
-/** A stability map with one slot overridden, so the exhaustive record stays honest. */
 function stabilityWith(overrides: Partial<Record<SlotName, Stability>>): Record<string, Stability> {
   return { ...SLOT_STABILITY, ...overrides }
 }
@@ -52,24 +43,11 @@ describe('the slot contract', () => {
     expect(Object.keys(SLOT_STABILITY).sort()).toEqual([...SLOT_NAMES].sort())
   })
 
-  /*
-   * The freeze itself. If a slot is stable, a theme in the wild may be rendering
-   * it, and F78's midnight theme and F79's plugins are written against exactly
-   * this list. Changing an entry from stable to anything else is a breaking
-   * change and has to be an edit to a test that says so.
-   */
   it('freezes everything except the two F45 islands', () => {
     const provisional = SLOT_NAMES.filter((name) => SLOT_STABILITY[name] === 'provisional')
     expect([...provisional].sort()).toEqual(['EditorToolbar', 'QuickReply'])
   })
 
-  /*
-   * No *slot* is deprecated, which is the load-bearing half: a slot going away
-   * is work for every theme, and a field a theme was told never to render is
-   * not. The schedule itself is checked by `assertDeprecationPolicy` below —
-   * this asserts what is on it, so adding an entry is a deliberate edit to a
-   * test rather than a line nobody reviewed.
-   */
   it('deprecates one field and no slot', () => {
     expect(DEPRECATIONS.map((entry) => entry.name)).toEqual(['PostBitModel.quoteSource'])
     expect(DEPRECATIONS.every((entry) => entry.kind === 'field')).toBe(true)
@@ -82,7 +60,6 @@ describe('the slot contract', () => {
     expect(requiredSlots().length).toBe(SLOT_NAMES.length - 2)
   })
 
-  /* A deprecated slot is still rendered by a page, so a theme still needs it. */
   it('still requires a deprecated slot', () => {
     const stability = stabilityWith({ WhoIsOnline: 'deprecated' })
     expect(requiredSlots(stability)).toContain('WhoIsOnline')
@@ -95,10 +72,6 @@ describe('version parsing', () => {
     expect(parseApiVersion('12.34')).toEqual({ major: 12, minor: 34 })
   })
 
-  /*
-   * The lenient parser is the dangerous one: it yields NaN, every comparison
-   * against NaN is false, and the fallen-due check silently stops firing.
-   */
   it.each(['1', 'v1.0', '1.0.0', '1.x', '', ' 1.0'])('refuses %o', (value) => {
     expect(() => parseApiVersion(value)).toThrow(/not an API version/)
   })
@@ -144,7 +117,6 @@ describe('the deprecation policy', () => {
     ).toThrow(/Model\.field/)
   })
 
-  /* Removing in a minor is the promise "minors are additive" broken. */
   it('refuses a removal scheduled for a minor release', () => {
     expect(() =>
       assertDeprecationPolicy(
@@ -165,11 +137,6 @@ describe('the deprecation policy', () => {
     ).toThrow(/at least one major/)
   })
 
-  /*
-   * The check that makes the schedule mean something. Reaching 2.0 with the slot
-   * still in the registry fails the build of 2.0 — which is the release that
-   * promised to remove it.
-   */
   it('refuses a removal that has fallen due', () => {
     expect(() =>
       assertDeprecationPolicy(
@@ -231,7 +198,6 @@ describe('measuring a theme against the contract', () => {
     expect(report.missing).toEqual(['PostBit', 'MemberProfile'])
   })
 
-  /* Not filling a provisional slot is the normal case, not a shortfall. */
   it('does not ask for the provisional slots', () => {
     const report = checkThemeContract(themeFilling(requiredSlots()))
     expect(report.satisfies).toBe(true)

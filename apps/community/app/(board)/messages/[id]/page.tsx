@@ -13,20 +13,6 @@ import { buildMessageView, folderHref } from '@/view/messages'
 
 export const metadata: Metadata = { title: 'Private message' }
 
-/**
- * F60 — one private message.
- *
- * **Opening it is what marks it read**, unlike F55's notification centre where
- * opening the list deliberately does not. A message is opened one at a time and
- * by choice, so there is nothing to lose track of — and the read time is what
- * the sender's tracking list shows.
- *
- * The body goes through F36's `postBodyHtml`, exactly as a post body does: the
- * same renderer, the same version, the same lazy invalidation. A renderer
- * security fix therefore reaches private messages on the next page load like it
- * reaches everything else, without a migration and without a second code path
- * anybody has to remember to fix.
- */
 export default async function MessagePage({
   params,
 }: {
@@ -43,19 +29,12 @@ export default async function MessagePage({
   if (actor.userId === null || service === null) notFound()
   if (!authorizer.can(actor, 'pm.use')) notFound()
 
-  /*
-   * `open` throws NotFoundError for a message this member holds no copy of —
-   * the same answer as for one that does not exist, so the id space cannot be
-   * used to discover whether somebody was written to.
-   */
   const detail = await service.open({ messageId, userId: actor.userId }).catch(() => null)
   if (detail === null) notFound()
 
   const preferences = await getViewerPreferences()
   const view = buildMessageView({
     detail,
-    /* F71's vocabulary reaches private messages; the word filter deliberately
-       does not. See `private_messages.vocabVersion`. */
     bodyHtml: postBodyHtml(detail.message, await activeVocabulary()),
     viewerUserId: actor.userId,
     now: new Date(),
@@ -85,12 +64,6 @@ export default async function MessagePage({
           }
         : {})}
     >
-      {/*
-          Trusted HTML from `@meith/markdown` — the one place on this board where
-          `dangerouslySetInnerHTML` is correct, for the same reason a post body
-          uses it: the string is this codebase's own construction, escaped at
-          the point it was built.
-        */}
       <article
         className="prose prose-sm max-w-none break-words"
         dangerouslySetInnerHTML={{ __html: view.bodyHtml }}

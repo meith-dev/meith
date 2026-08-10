@@ -1,4 +1,3 @@
-/** @meith/threads — the thread read ports (F30) and the posting command (F39). */
 export type { ThreadRepository } from "./ports";
 export type {
   ThreadCursor,

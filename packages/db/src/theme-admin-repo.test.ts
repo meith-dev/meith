@@ -1,21 +1,3 @@
-/**
- * F68's writer, against real Postgres.
- *
- * `themes` has been read on every page render since F26 and had no writer at
- * all — the fifth reader-with-no-writer this project has found. What is proven
- * here is the decisions that are not CRUD:
- *
- *  - **a reset deletes the row when there is nothing left in it**, because "no
- *    overrides" and "no row" are indistinguishable to every reader and only one
- *    of them leaves the board in the state a fresh install is in — and **keeps
- *    it when there is**, because putting the colours back must not turn a
- *    disabled theme back on;
- *  - **an export round-trips exactly.** The roadmap's word is "exact", and the
- *    thing that makes an export worth having is that importing it produces the
- *    board it was taken from;
- *  - **the default moves atomically**, because the partial unique index makes
- *    two claimants a constraint violation rather than a race with a winner.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -51,12 +33,6 @@ async function rowCount(): Promise<number> {
 
 describe('save', () => {
   it('creates the row on the first save rather than expecting a seeded one', async () => {
-    /*
-     * An absent row means "no overrides", which is exactly what a freshly
-     * installed theme has — and `findRuntimeByKey` already returns null for it.
-     * Seeding an empty row on install would make "has this board been
-     * customised?" unanswerable.
-     */
     expect(await rowCount()).toBe(0)
 
     await repo.save({
@@ -70,11 +46,6 @@ describe('save', () => {
   })
 
   it('replaces the whole set, so a cleared token is cleared', async () => {
-    /*
-     * The editor shows every token the theme declares, so what it submits *is*
-     * the intended set. Kills the mutant that merges into what was there —
-     * under which clearing a token would silently keep the old value.
-     */
     await repo.save({
       key: 'default',
       title: 'Default',
@@ -120,12 +91,6 @@ describe('save', () => {
 
 describe('reset', () => {
   it('deletes the row rather than writing empty values', async () => {
-    /*
-     * Kills the mutant that writes `{}`. Both look identical to every reader,
-     * but only the delete puts the board back in the state a fresh install is
-     * in — which is what "reset" means and what keeps "has this board been
-     * customised?" answerable.
-     */
     await repo.save({
       key: 'default',
       title: 'Default',
@@ -144,12 +109,6 @@ describe('reset', () => {
     expect(await rowCount()).toBe(0)
   })
 
-  /*
-   * The delete is conditional now, and this is why. `enabled` and `is_default`
-   * are decisions about *which* themes a member may pick; "put the colours
-   * back" must not turn a disabled theme back on. Kills the mutant that deletes
-   * unconditionally, which every test above survives.
-   */
   it('keeps a row whose state is not what a fresh install has', async () => {
     await repo.setEnabled('midnight', false, 'Midnight')
     await repo.save({
@@ -176,20 +135,11 @@ describe('enablement', () => {
   })
 
   it('reads an absent row as enabled', async () => {
-    /*
-     * The rule the rest of this table follows: an absent row means the theme is
-     * exactly as it ships, and a theme named in `community.config.ts` is one
-     * somebody installed on purpose.
-     */
     expect(await repo.read('midnight')).toBeNull()
     expect((await repo.list()).some((row) => row.key === 'midnight')).toBe(false)
   })
 
   it('leaves the enabled state alone when the colours are saved', async () => {
-    /*
-     * Saving colours must not re-enable a theme an administrator turned off.
-     * Kills the mutant that adds `enabled` to the upsert's update list.
-     */
     await repo.setEnabled('midnight', false, 'Midnight')
     await repo.save({
       key: 'midnight',
@@ -209,13 +159,6 @@ describe('enablement', () => {
 
 describe('the default theme', () => {
   it('moves, leaving exactly one', async () => {
-    /*
-     * `themes_single_default_key` is a partial unique index, so two rows
-     * claiming the default is a constraint violation rather than a
-     * last-writer-wins race. The clear and the set are one transaction in that
-     * order; the opposite order fails outright, which is what this proves is
-     * not what the code does.
-     */
     await repo.setDefault('default', 'Default')
     await repo.setDefault('midnight', 'Midnight')
 
@@ -224,11 +167,6 @@ describe('the default theme', () => {
   })
 
   it('enables the theme it makes default', async () => {
-    /*
-     * A default nobody may pick is a board whose members all see a theme that is
-     * not in their own switcher — a state with no honest way to describe it on
-     * screen.
-     */
     await repo.setEnabled('midnight', false, 'Midnight')
     await repo.setDefault('midnight', 'Midnight')
 
@@ -238,11 +176,6 @@ describe('the default theme', () => {
 
 describe('export and import', () => {
   it('round-trips exactly', async () => {
-    /*
-     * The roadmap's word is "exact". What makes an export worth having is that
-     * importing it produces the board it was taken from — so this asserts the
-     * whole document survives the trip, not that a couple of fields do.
-     */
     const tokenOverrides = { primary: '#123456', radius: '0.5rem' }
     const customCss = '.forum-row { font-weight: 600; }'
     await repo.save({ key: 'default', title: 'Default', tokenOverrides, customCss })
@@ -262,10 +195,6 @@ describe('export and import', () => {
   })
 
   it('exports an empty document for a theme with no overrides', async () => {
-    /*
-     * Rather than failing. An untouched theme is a legitimate thing to export —
-     * it is how somebody takes a blank starting point to another board.
-     */
     expect(await repo.exportTheme('default')).toEqual({
       version: 2,
       key: 'default',
@@ -296,12 +225,6 @@ describe('parseThemeExport', () => {
   })
 
   it('refuses a version it does not know', () => {
-    /*
-     * An import is a file somebody has been emailed. The failure worth catching
-     * is a document from a later shape being applied as if it were this one —
-     * which would silently drop whatever that version added. Kills the mutant
-     * that ignores the envelope.
-     */
     expect(() =>
       parseThemeExport(JSON.stringify({ version: 3, tokenOverrides: {}, customCss: null })),
     ).toThrow(/different version/)
@@ -324,11 +247,6 @@ describe('parseThemeExport', () => {
   })
 
   it('ignores the key in the file, so a look can be copied between themes', () => {
-    /*
-     * Copying a look from one board to another is the case this feature exists
-     * for, and refusing a document whose key differs would make it useless for
-     * exactly that. The key being edited wins.
-     */
     const parsed = parseThemeExport(
       JSON.stringify({ version: 1, key: 'somebody-elses', tokenOverrides: { primary: '#fff' }, customCss: null }),
     )
@@ -340,12 +258,6 @@ describe('parseThemeExport', () => {
       .toBeNull()
   })
 
-  /*
-   * Version 1 is the flat map every export taken before members could switch
-   * themes holds; version 2 keys it by colour scheme. Both are read, because
-   * refusing the older one would break the one thing export exists for — and
-   * the validator that runs next tells the two apart from the payload itself.
-   */
   it('reads both document versions', () => {
     expect(
       parseThemeExport(JSON.stringify({ version: 1, tokenOverrides: { primary: '#fff' } }))

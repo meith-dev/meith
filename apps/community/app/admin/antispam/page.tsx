@@ -11,21 +11,6 @@ import { getSettings } from '@/server/settings'
 
 export const metadata: Metadata = { title: 'Anti-spam' }
 
-/**
- * F46 — the anti-spam screen.
- *
- * The numbers live in `/admin/settings` under **Anti-spam**, because they are
- * registry-driven like every other setting and duplicating them here would be
- * two editors for one value. What is here is the part the registry cannot
- * hold: the list of questions, and — the reason this screen exists at all —
- * **an honest account of what each control does and does not stop.**
- *
- * That last part is not padding. Every anti-spam control on every forum is
- * oversold, operators switch all of them on at once, and the ones that cost
- * legitimate visitors something are indistinguishable from the ones that do not
- * until somebody complains they cannot register. Saying which is which is the
- * most useful thing this page can do.
- */
 export default async function AdminAntispamPage() {
   await requireAdmin()
 
@@ -55,12 +40,6 @@ export default async function AdminAntispamPage() {
       }
       gap="loose"
     >
-      {/*
-        The loud one. An operator who switched the mode on and wrote no question
-        has a board where the challenge silently does nothing — it fails open on
-        purpose, because failing closed would lock registration behind a form
-        that refuses every answer including the right one.
-      */}
       {mode === 'question' && usable.length === 0 && (
         <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
           <strong>The challenge is switched on and there is nothing to ask.</strong>{' '}

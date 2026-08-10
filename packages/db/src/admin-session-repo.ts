@@ -1,17 +1,3 @@
-/**
- * F63 — the ACP's session and log, over Postgres.
- *
- * Two things are worth reading.
- *
- * **`findLive` puts the liveness in the query.** Expired, revoked and unknown
- * all return no row, so no caller can fetch a session and then forget to check
- * one of the three. The alternative — read the row, then test it — is the shape
- * that eventually tests two of them.
- *
- * **`touch` is the same conditional UPDATE F61 and F17 use.** The throttle is
- * the `where` clause, so a burst of ACP page views is one write and no caller
- * can forget to throttle.
- */
 import { sql } from 'drizzle-orm'
 
 import type {
@@ -24,7 +10,6 @@ import type {
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 
-/** PGlite hands raw templates timestamps as strings; postgres.js hands Dates. */
 function toDate(value: string | Date): Date {
   return value instanceof Date ? value : new Date(value)
 }
@@ -83,18 +68,10 @@ export class PostgresAdminSessionRepository implements AdminSessionRepository {
       `),
     ) as RawSession[]
 
-    /* Unreachable: the insert returns a row or throws on the token index. */
     if (rows[0] === undefined) throw new Error('Admin session insert returned no row')
     return toSession(rows[0])
   }
 
-  /**
-   * The live session behind a token hash.
-   *
-   * Not-live is not-found: expired, revoked and unknown all return null,
-   * because every one of them means "sign in again" and distinguishing them
-   * would only give an attacker a way to tell a real token from a made-up one.
-   */
   async findLive(tokenHash: string, now: Date): Promise<AdminSessionRecord | null> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -115,11 +92,6 @@ export class PostgresAdminSessionRepository implements AdminSessionRepository {
     expiresAt: Date,
     windowSeconds: number,
   ): Promise<void> {
-    /*
-     * The throttle IS the `where` clause, exactly as `touchLocation` and
-     * `touchLastActive` do it: a burst of ACP page views collapses to one
-     * write, and no caller can forget.
-     */
     const cutoff = new Date(now.getTime() - windowSeconds * 1000)
     await this.db.execute(sql`
       update admin_sessions
@@ -130,13 +102,6 @@ export class PostgresAdminSessionRepository implements AdminSessionRepository {
     `)
   }
 
-  /**
-   * Move the *proof* clock.
-   *
-   * Deliberately the only statement in this file that writes
-   * `authenticated_at`. Activity must never move it — that separation is what
-   * makes "re-authenticate before this destructive operation" mean anything.
-   */
   async markReauthenticated(sessionId: number, at: Date): Promise<void> {
     await this.db.execute(sql`
       update admin_sessions
@@ -160,14 +125,6 @@ export class PostgresAdminSessionRepository implements AdminSessionRepository {
   }
 }
 
-/**
- * The audit log.
- *
- * `admin_log` has existed since `0000` and has had *writers* since F48 — every
- * moderation action records a row. What it has never had is a **reader outside
- * the ModCP's forum-scoped view**, or a writer for the ACP's own actions. F63
- * supplies both.
- */
 export class PostgresAdminLogRepository implements AdminLogRepository {
   constructor(private readonly db: Database) {}
 
@@ -185,14 +142,6 @@ export class PostgresAdminLogRepository implements AdminLogRepository {
     `)
   }
 
-  /**
-   * The whole log, newest first, optionally filtered to one action.
-   *
-   * Unscoped, unlike the ModCP's view — an administrator reading the audit log
-   * is reading *everything*, which is the point of there being one. The forum
-   * filtering in `modcp-repo.ts` exists because a moderator may only see their
-   * own forums; that constraint has no analogue here.
-   */
   async list(input: {
     readonly limit: number
     readonly before?: number | undefined
@@ -229,12 +178,6 @@ export class PostgresAdminLogRepository implements AdminLogRepository {
       userId: row.user_id === null ? null : Number(row.user_id),
       username: row.username,
       action: row.action,
-      /*
-       * Whatever is in the column, narrowed to an object. A row written by a
-       * previous deploy may hold anything, and the screen renders it as text —
-       * an audit log that fails to open because one row is odd is an audit log
-       * that is absent exactly when it is needed.
-       */
       detail:
         typeof row.detail === 'object' && row.detail !== null && !Array.isArray(row.detail)
           ? (row.detail as Record<string, unknown>)
@@ -244,7 +187,6 @@ export class PostgresAdminLogRepository implements AdminLogRepository {
     }))
   }
 
-  /** The distinct action names present, for the filter control. */
   async actions(limit = 50): Promise<readonly string[]> {
     const rows = resultRows(
       await this.db.execute(sql`

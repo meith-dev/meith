@@ -2,32 +2,6 @@ import type { PostBitSlotModel } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-/**
- * One post, in the **classic two-column layout**: author on the left, body on
- * the right.
- *
- * This is the largest single difference from the default theme, which runs the
- * author along a header strip above the body. Both are handed the same
- * `PostBitSlotModel`; the layout is entirely the theme's, which is the claim
- * F78 exists to demonstrate.
- *
- * It stays a **server** slot. `PostBit` renders once per post, so a client
- * implementation serialises every body and every author block into the browser
- * payload — the one number this product is built around. The registry declares
- * the kind and `scripts/slot-kinds.mjs` enforces it; this comment is here
- * because a theme author copying this file is exactly who needs to read it.
- */
-/**
- * The board's mark for this member's group.
- *
- * `alt=""` and `aria-hidden`: the group's title is rendered as text on the very
- * next line, and a badge that announced it too would make a screen reader say
- * the word twice.
- *
- * A `<picture>` only where the server could not decide — a reader on "system"
- * with two images uploaded. Everywhere else `darkSrc` is `null` and this is one
- * element and one request.
- */
 function GroupBadge({ badge }: { badge: NonNullable<PostBitSlotModel['post']['author']['badge']> }) {
   const image = (
     <img
@@ -100,10 +74,6 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             <p className="font-mono text-xs text-muted-foreground">{post.author.title}</p>
           )}
           {post.author.avatarUrl !== null && (
-            /*
-              Absent rather than a placeholder, and sized in the markup as well
-              as in CSS so the column does not reflow as images arrive.
-            */
             <img
               src={post.author.avatarUrl}
               alt=""
@@ -125,11 +95,6 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
                 </dd>
               </div>
             )}
-            {/*
-              F62's reputation. `null` means the board has reputation switched
-              off; `0` means nobody has rated this member yet. The two are
-              different answers and must not render the same way.
-            */}
             {post.author.reputation != null && (
               <div className="flex gap-1">
                 <dt>rep</dt>
@@ -139,7 +104,6 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             {post.author.isOnline && <div className="text-forum-unread">online</div>}
           </dl>
 
-          {/* F59's fields: text, never markup — a member-supplied value is not HTML. */}
           {post.author.fields.length > 0 && (
             <dl className="mt-2 font-mono text-xs text-muted-foreground">
               {post.author.fields.map((field) => (
@@ -161,12 +125,6 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           </div>
 
           {post.ignored !== null ? (
-            /*
-              The body is withheld server-side, not hidden with CSS — an
-              "ignored" post whose text is in the HTML is a preference rather
-              than a feature. The reveal link is required: a hidden post with no
-              way to see it is a hole in a conversation.
-            */
             <p className="px-3 py-3 text-sm text-muted-foreground">
               Post from {post.ignored.authorUsername}, who you are ignoring.{' '}
               <a href={post.ignored.revealHref} className="text-primary hover:underline">
@@ -175,7 +133,6 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             </p>
           ) : (
             <>
-              {/* Pre-rendered by the board's own Markdown renderer (F36). */}
               <div
                 className="prose-md px-3 py-3 text-sm"
                 dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
@@ -209,7 +166,6 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             </p>
           )}
 
-          {/* F80's `postbit.footer` region. */}
           {regions.pluginFooter !== undefined && regions.pluginFooter !== null && (
             <div className="border-t border-border px-3 py-1 font-mono text-xs">
               {regions.pluginFooter}

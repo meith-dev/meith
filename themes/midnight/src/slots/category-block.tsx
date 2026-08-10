@@ -1,15 +1,5 @@
 import type { CategoryBlockModel } from '@meith/theme-kit'
 
-/**
- * A category as a **table**, which is the whole shape difference from the
- * default theme's card of list items.
- *
- * The rows arrive as `children` — already rendered `ForumRow` slots — so this
- * works only because midnight's `ForumRow` returns a `<tr>`. That pairing is
- * exactly what a theme owns: the page composes regions and never sees either
- * element. A theme that overrode one and inherited the other would produce
- * invalid markup, which is why midnight overrides both.
- */
 export function CategoryBlock({ category, children }: CategoryBlockModel) {
   return (
     <section className="border border-border">

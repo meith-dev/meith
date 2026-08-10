@@ -10,19 +10,6 @@ export const metadata: Metadata = { title: 'Prune members' }
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-/**
- * F67 — pruning dormant accounts.
- *
- * **The dry run is not optional and it is not a count.** The criteria live in a
- * GET form, the page always shows what they would reach, and the button only
- * appears once there is something to show. An operator about to close four
- * hundred accounts on a date filter needs to see that the ones it found are the
- * ones they meant — a number alone is not evidence of that.
- *
- * There is no button at all until a registration boundary is given, because a
- * prune without one matches the entire membership. Defaulting it to today would
- * be a screen that offers to close every account by pressing Search.
- */
 export default async function AdminPrunePage({
   searchParams,
 }: {

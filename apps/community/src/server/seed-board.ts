@@ -1,15 +1,3 @@
-/**
- * The default in-memory board used when `DATA_SOURCE=fixture`.
- *
- * This is the app's *own* demo/dev data, intentionally separate from the F22
- * test fixture in `@meith/authorization`. The F22 board is tuned to exercise
- * every matrix cell; this one is tuned to be a believable little forum you can
- * click around in with no database attached. Coupling the two would mean a tweak
- * to a permission test could silently change what a demo visitor sees.
- *
- * Group IDs mirror the seed migration's canonical groups so that switching
- * `DATA_SOURCE` from `fixture` to `postgres` does not renumber anything.
- */
 import { BodyFormat } from '@meith/markdown'
 import {
   emptyPermissionSet,
@@ -22,18 +10,6 @@ import type { PostListingRow } from '@meith/posts'
 import type { ThreadListingRow } from '@meith/threads'
 import type { MemberProfileRecord } from '@meith/accounts'
 
-/** Canonical seed groups (must match the seed migration). */
-/**
- * Ids must match migration `0001_seed_usergroups`, which is asserted by
- * `seed-usergroups.test.ts`. If they drift, a fixture actor and a Postgres
- * actor stop resolving to the same permissions and every parity assumption in
- * the suite quietly stops meaning anything.
- *
- * `moderators`, `awaitingActivation` and `banned` have no entry in `SEED_BOARD`
- * below — the fixture board only models the permission sets the in-memory
- * authorization tests need. They are named here because code outside the
- * fixture (the ban service, the promotion guards) has to refer to them by id.
- */
 export const SEED_GROUP = {
   guest: 1,
   registered: 2,
@@ -44,25 +20,13 @@ export const SEED_GROUP = {
   banned: 7,
 } as const
 
-/** Bump when the read-only fixture rows change so a live dev container refreshes. */
 export const FIXTURE_DATA_VERSION = 4
 
-/** Canonical seed forums. */
 export const SEED_FORUM = {
-  /**
-   * The category the two top-level forums sit under (F29).
-   *
-   * A category is a forum row of `type: 'category'`: it holds no threads and
-   * renders as the heading of a block on the index. It carries no permission
-   * overrides, so it changes no resolution — every ancestor walk through it
-   * finds no row and inherits, which is the nullable-column inheritance F21
-   * already tests. It exists so the fixture board has the shape a real board
-   * has, rather than two orphan forums the index has to invent a heading for.
-   */
   main: 10,
   announcements: 100,
   general: 200,
-  generalOffTopic: 201, // child of general
+  generalOffTopic: 201,
 } as const
 
 function group(over: Partial<PermissionSet>): PermissionSet {
@@ -75,11 +39,6 @@ const READ = {
   canViewOthersThreads: true,
   canSearch: true,
   canViewProfiles: true,
-  /*
-   * F42. Seeded true for *guests* in migration `0001`, which is the level this
-   * has to sit at: an image in a public thread that only members can see would
-   * make every guest's view of that thread a page of broken links.
-   */
   canDownloadAttachments: true,
 } as const
 
@@ -88,51 +47,14 @@ const POST = {
   canPostThreads: true,
   canPostReplies: true,
   canSubscribe: true,
-  /*
-   * F41. A member who cannot correct their own typo is not a forum, so this is
-   * the baseline every real board ships with — and the fixture has to have it
-   * for the edit affordances to appear at all. The *window* is the permission
-   * that limits it (`editTimeLimitMinutes`), and it is 0 here: unlimited.
-   */
   canEditOwnPosts: true,
   canDeleteOwnPosts: true,
-  /* F49. Seeded true for Registered in migration `0001`, like the rest. */
   canReportContent: true,
-  /*
-   * F58's other half. Seeded true for Registered in `0001` since day one, with
-   * nothing reading it until now — the same drift `canUsePrivateMessages` and
-   * `canDownloadAttachments` had, and the same fix: the fixture claims to
-   * mirror the seeded ladder, so it has to.
-   */
   canUploadAvatar: true,
-  /*
-   * F60. Also seeded true for Registered in `0001` — the fixture simply never
-   * carried it, because nothing read it until now. Same class of drift as the
-   * three negative fields below, and the same fix: the fixture claims to mirror
-   * the seeded ladder, so it has to.
-   */
   canUsePrivateMessages: true,
-  /* The storage quota migration `0011` gives Registered. */
   privateMessageQuota: 100,
-  /*
-   * F62, seeded true for Registered in migration `0013` with a daily cap. Same
-   * class of drift as the two above: the fixture claims to mirror the seeded
-   * ladder, so a permission the migration grants has to appear here too or the
-   * fixture board silently refuses a feature the real one allows.
-   */
   canGiveReputation: true,
   maxReputationPerDay: 10,
-  /*
-   * The three negative fields, matching migration `0001_seed_usergroups`.
-   *
-   * They were missing here, and the fixture inherited `emptyPermissionSet()`'s
-   * fallback — which for a negative field is the *restrictive* value (R4.2), so
-   * the fixture's Registered group required approval for everything while the
-   * seeded Postgres group required approval for nothing. Nothing read them
-   * until F41, at which point every edit on the fixture board silently went to
-   * a queue that has no screen. The fixture claims to mirror the seeded ladder;
-   * now it does.
-   */
   requiresThreadApproval: false,
   requiresPostApproval: false,
   requiresApprovalOnEdit: false,
@@ -165,7 +87,6 @@ const GROUPS: GroupDefaults[] = [
   },
 ]
 
-/** Announcements: everyone reads, only staff post (guests/registered read-only). */
 const ANNOUNCEMENT_READONLY: Partial<ForumPermissions> = {
   canPostThreads: false,
   canPostReplies: false,
@@ -173,11 +94,6 @@ const ANNOUNCEMENT_READONLY: Partial<ForumPermissions> = {
 
 export const SEED_BOARD: MemoryBoard = {
   groups: GROUPS,
-  /*
-   * Nearest-first and inclusive, per the port contract. Every chain now ends at
-   * the category, which is what makes the ancestor walk in the fixture match the
-   * one Postgres derives from `path`.
-   */
   chains: {
     [SEED_FORUM.main]: [SEED_FORUM.main],
     [SEED_FORUM.announcements]: [
@@ -205,24 +121,6 @@ export const SEED_BOARD: MemoryBoard = {
   ],
 }
 
-/* ------------------------------------------------------------------ *
- * Forum rows (F29)
- * ------------------------------------------------------------------ */
-
-/**
- * The demo board's forum rows, with the counters and last-post triplet the
- * index renders.
- *
- * Fixed timestamps rather than `Date.now()` offsets: a fixture whose dates move
- * with the clock makes "2 hours ago" render differently on every run, so a
- * snapshot or a screenshot diff is never stable, and a test that happens to pass
- * at 09:00 fails at midnight. The board index formats these in UTC (see
- * `src/view/time.ts`), so what is rendered is a function of this file alone.
- *
- * `path` and `depth` are spelled out to match what Postgres would derive, so
- * switching `DATA_SOURCE` changes the data source and nothing else — the same
- * reason the group ids mirror the seed migration.
- */
 export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
   {
     id: SEED_FORUM.main,
@@ -235,23 +133,6 @@ export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
     depth: 0,
     displayOrder: 1,
     linkUrl: null,
-    /*
-     * A category holds no threads **of its own**, and its counters are not zero.
-     *
-     * Forum counters on this board are subtree-inclusive — `rollUpAncestorCounters`
-     * adds every post to its forum's ancestors, and F38's recount rebuilds each
-     * row as "itself plus every descendant" — so a category carries the totals of
-     * everything beneath it. That is what makes a category row on the index mean
-     * anything, and it is what `PostgresStatsRepository.rollUp` relies on: the
-     * board's totals are the sum of the *root* forums, so a root category
-     * claiming zero makes the whole board claim zero.
-     *
-     * This row said zero, and `seed-board.test.ts` skipped categories, so nothing
-     * caught it: the control panel's Overview reported **0 threads and 0 posts**
-     * on a board with three and six. The numbers below are the subtree's, and the
-     * last post is the newest in it — exactly what one press of the recount on
-     * `/admin/system` writes.
-     */
     threadCount: 3,
     postCount: 6,
     lastPost: {
@@ -302,11 +183,6 @@ export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
       postId: 143,
       threadId: 22,
       threadTitle: 'What are you reading this week?',
-      /*
-       * A deleted account: the id is gone, the name survives. The row must still
-       * render — this is the case that turns a listing into a crash if the view
-       * model assumes an author is always linkable.
-       */
       userId: null,
       username: 'departed',
       at: new Date('2026-07-30T08:41:00Z'),
@@ -323,14 +199,12 @@ export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
     depth: 2,
     displayOrder: 1,
     linkUrl: null,
-    // No posts yet: the empty-state path through the row, deliberately present.
     threadCount: 0,
     postCount: 0,
     lastPost: null,
   },
 ]
 
-/** Threads for the fixture forum display (F30). */
 export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
   {
     id: 4,
@@ -366,16 +240,6 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
     authorUsername: 'departed',
     replyCount: 1,
     viewCount: 241,
-    /*
-     * The one rated thread on the sample board — 17 points over four raters, so
-     * the average is 4.25 rather than a whole number.
-     *
-     * Every seeded thread carried 0/0, which meant the rating strip on the
-     * thread page rendered "none yet" on a board that exists to show what a
-     * board looks like, and `?sort=rating` ordered a list where every row tied.
-     * A fraction rather than a round 4 is deliberate: it is what catches a
-     * renderer that prints `average` raw, or rounds it to five full stars.
-     */
     ratingTotal: 17,
     ratingCount: 4,
     visibility: 'visible',
@@ -416,7 +280,6 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
   },
 ]
 
-/** Visible posts for the fixture thread view (F31). */
 export const SEED_POST_ROWS: readonly PostListingRow[] = [
   {
     id: 10,
@@ -544,7 +407,6 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
   },
 ]
 
-/** Public fixture profiles. Deleted post authors deliberately have no row here. */
 export const SEED_MEMBER_PROFILES: readonly MemberProfileRecord[] = [
   {
     id: 1,
@@ -553,7 +415,6 @@ export const SEED_MEMBER_PROFILES: readonly MemberProfileRecord[] = [
     postCount: 5,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     lastActiveAt: new Date('2026-07-30T08:41:00Z'),
-    /* F57's self-written fields, filled in so the fixture profile shows them. */
     location: 'The server room',
     website: 'https://example.test/',
     bio: 'Runs this board. Fixture data — nothing here is durable.',

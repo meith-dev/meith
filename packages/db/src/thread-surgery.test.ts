@@ -1,11 +1,3 @@
-/**
- * F51 — merge and split against real Postgres.
- *
- * The roadmap asks for post order, pointers, counters and authors preserved. So
- * every test here asserts one of those four on both threads, and the two that
- * would go silently wrong — the opening-post flag and the author credit — have
- * their own.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -74,7 +66,6 @@ beforeEach(async () => {
   ])
 })
 
-/** A thread by Ada with `replies` replies by Bob, written through the real path. */
 async function seedThread(
   forumId: number,
   title: string,
@@ -175,11 +166,6 @@ describe('splitting', () => {
     ])
   })
 
-  /*
-   * `is_first_post` is a flag, not a computation, so it is the thing a split
-   * silently gets wrong: a new thread whose earliest post is not marked has no
-   * opening post, and every read that trusts the flag stops working.
-   */
   it('marks the new thread"s earliest post as its opening one, and only that one', async () => {
     const { threadId, postIds } = await seedThread(LEFT, 'Original', 3)
 
@@ -195,7 +181,6 @@ describe('splitting', () => {
       { id: postIds[2], first: true },
       { id: postIds[3], first: false },
     ])
-    /* And the source keeps its own. */
     expect((await postsOf(threadId))[0]).toEqual({ id: postIds[0], first: true })
   })
 
@@ -215,11 +200,6 @@ describe('splitting', () => {
     expect(await threadRow(outcome.threadId)).toMatchObject({ reply_count: 1 })
   })
 
-  /*
-   * The forum keeps every post — they never left it — and gains one thread.
-   * Moving the post count too is the mistake that makes a forum's total drop
-   * every time somebody tidies a thread.
-   */
   it('adds a thread to the forum and moves no posts', async () => {
     const { threadId, postIds } = await seedThread(LEFT, 'Original', 3)
     expect(await forumCounts(LEFT)).toEqual({ posts: 4, threads: 1 })
@@ -236,11 +216,6 @@ describe('splitting', () => {
     expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
   })
 
-  /*
-   * The author question F50 deferred with copy. Nothing is duplicated, so post
-   * counts do not move at all; the new thread is credited to whoever wrote the
-   * post it now opens with, which here is Bob rather than the original starter.
-   */
   it('credits the new thread to its own opening author and moves no post counts', async () => {
     const { threadId, postIds } = await seedThread(LEFT, 'Original', 3)
     expect(await userCounts(ADA)).toEqual({ posts: 1, threads: 1 })
@@ -294,27 +269,14 @@ describe('splitting', () => {
     })
   })
 
-  /*
-   * The cut point has to be a post *of this thread*, and "everything from here"
-   * is not the same question as "everything with a bigger id". A stranger's post
-   * with a lower id would otherwise select the whole of this thread and split it
-   * from a post that is not in it — which is why both directions are here.
-   */
   it('will not take a post from another thread as the cut point', async () => {
     const a = await seedThread(LEFT, 'A', 1)
     const b = await seedThread(LEFT, 'B', 1)
 
-    /* Later thread, higher ids: nothing at or after it here. */
     expect(await repo.postsFrom(a.threadId, b.postIds[1]!)).toEqual([])
-    /* Earlier thread, lower ids: every post of B is at or after it. */
     expect(await repo.postsFrom(b.threadId, a.postIds[1]!)).toEqual([])
   })
 
-  /*
-   * A held or removed post is not a cut point either. It is on the screen for a
-   * moderator, so it is the near miss: taking "everything after it" would split
-   * from a post the new thread would not open with.
-   */
   it('will not take a hidden post as the cut point', async () => {
     const { threadId, postIds } = await seedThread(LEFT, 'Original', 3)
     await db.execute(
@@ -322,7 +284,6 @@ describe('splitting', () => {
     )
 
     expect(await repo.postsFrom(threadId, postIds[2]!)).toEqual([])
-    /* The visible one after it still works, and does not drag the hidden one. */
     expect(await repo.postsFrom(threadId, postIds[3]!)).toEqual([postIds[3]])
   })
 })
@@ -347,11 +308,6 @@ describe('merging', () => {
     ])
   })
 
-  /*
-   * The absorbed thread's opening post becomes an ordinary reply. Two posts
-   * flagged `is_first_post` in one thread is a state every read that trusts the
-   * flag resolves differently.
-   */
   it('leaves exactly one opening post', async () => {
     const target = await seedThread(LEFT, 'Keep', 1)
     const source = await seedThread(LEFT, 'Absorb', 1)
@@ -378,7 +334,6 @@ describe('merging', () => {
       at: AT,
     })
 
-    /* One reply of its own, plus the three posts it absorbed. */
     expect(await threadRow(target.threadId)).toMatchObject({ reply_count: 4 })
   })
 
@@ -398,11 +353,6 @@ describe('merging', () => {
     expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 1 })
   })
 
-  /*
-   * Across forums the posts really do change home, so both chains move — and
-   * the shared category must end up exactly one thread down and no posts down,
-   * because nothing left it.
-   */
   it('moves the posts between chains when the forums differ', async () => {
     const target = await seedThread(RIGHT, 'Keep', 1)
     const source = await seedThread(LEFT, 'Absorb', 1)
@@ -422,7 +372,6 @@ describe('merging', () => {
     expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 1 })
   })
 
-  /* `posts.forum_id` is denormalised, so it follows them (D49). */
   it('rewrites the denormalised forum id on the absorbed posts', async () => {
     const target = await seedThread(RIGHT, 'Keep', 1)
     const source = await seedThread(LEFT, 'Absorb', 1)
@@ -483,11 +432,6 @@ describe('merging', () => {
     expect(await pointer(RIGHT)).toBe(newest)
   })
 
-  /*
-   * A held post in the absorbed thread has to come too. `posts.thread_id`
-   * cascades, so one left behind would be destroyed with the source row — and
-   * the moderation queue would lose an item nobody decided.
-   */
   it('carries a held post across rather than losing it to the cascade', async () => {
     const target = await seedThread(LEFT, 'Keep', 1)
     const source = await seedThread(LEFT, 'Absorb', 1)
@@ -530,7 +474,6 @@ describe('merging', () => {
   })
 })
 
-/** F52's checkboxes: the hand-picked counterpart to `postsFrom`. */
 describe('visiblePostIdsIn', () => {
   it('returns the selected posts of this thread, in id order', async () => {
     const { threadId, postIds } = await seedThread(LEFT, 'Mine', 2)
@@ -553,7 +496,6 @@ describe('visiblePostIdsIn', () => {
     ])
   })
 
-  /* Only *visible* posts: a held or removed post is not eligible to be split. */
   it('drops a post that is not visible', async () => {
     const { threadId, postIds } = await seedThread(LEFT, 'Mine', 1)
     await db.execute(

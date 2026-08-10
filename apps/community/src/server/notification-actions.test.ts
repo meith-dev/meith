@@ -1,16 +1,3 @@
-/**
- * F55 at the app layer.
- *
- * The service's judgements are unit-tested in `@meith/notifications` and the SQL
- * against real Postgres. What is proven here is the seam neither can see: that
- * every action is scoped to the signed-in member, and that the *audience* of a
- * preferences save comes from the actor rather than from the submitted form.
- *
- * That last one is the only thing on this screen anybody would try to abuse.
- * The preferences form is a list of checkbox values, and a member who posts
- * `email=system.task_failed` is asking to configure a staff kind — which must
- * write nothing at all rather than a row that quietly does nothing.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
@@ -148,7 +135,6 @@ describe('marking read', () => {
       markNotificationReadAction,
       form([
         ['notificationId', '4'],
-        /* A submitted user id is simply not read. */
         ['userId', '1'],
       ]),
     )
@@ -194,7 +180,6 @@ describe('saving preferences', () => {
 
     const written = notifications.saved[0]?.entries
     expect(written?.get('report.actioned')).toBe(true)
-    /* An unchecked box submits nothing, so "off" is reconstructed. */
     expect(written?.get('warning.received')).toBe(false)
   })
 
@@ -220,7 +205,6 @@ describe('saving preferences', () => {
       form([['email', 'system.task_failed']]),
     )
 
-    /* Two saves: one per audience, each scoped to its own kind list. */
     const kinds = notifications.saved.flatMap((s) => [...s.entries.keys()])
     expect(kinds).toContain('system.task_failed')
     expect(kinds).toContain('warning.received')

@@ -1,30 +1,3 @@
-/**
- * F41 — what a post's visibility change does to every counter that mentions it.
- *
- * F38 wrote the counters a *created* post moves and left this half explicitly
- * to the gate. It is not the same code with a minus sign, for one reason: some
- * of what F38 writes is not a counter at all. `post_count` is a delta and
- * reverses arithmetically; `last_post_id` is a *pointer*, and the reverse of
- * "this post is now the newest" is not "subtract one" — it is "find what the
- * newest is now". So counts are adjusted and pointers are recomputed, and the
- * two need different guarantees.
- *
- * The split between synchronous and asynchronous follows F38's:
- *
- *   - The **direct forum, thread and author counters** and **every last-post
- *     pointer on the path** are written in the caller's transaction, because
- *     the page the actor lands on has to be right and because a board index
- *     linking to a post that no longer exists is worse than a count being late.
- *   - **Ancestor counts** ride the `post.visibility_changed` event, because a
- *     post four levels deep would otherwise make every deletion update four
- *     rows inside the request.
- *
- * Idempotency comes free from a ledger that already exists.
- * `content_counter_rollups` was F38's replay guard; read as **"this post is
- * currently counted in its ancestors"** it answers the delete and restore cases
- * too, with no new table and no sequence number: a redelivered delete finds no
- * ledger row and does nothing, a redelivered restore finds one and does nothing.
- */
 import type { SQLWrapper } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 
@@ -41,19 +14,9 @@ export interface VisibilityChange {
   readonly forumId: number
   readonly authorId: number | null
   readonly isFirstPost: boolean
-  /** `+1` when the post became visible, `-1` when it stopped being. */
   readonly delta: 1 | -1
 }
 
-/**
- * Recompute a thread's last-post pointer from its visible posts.
- *
- * Posts are ordered by id within a thread everywhere else (F31's keyset), so
- * they are here too — a "newest by timestamp" answer could disagree with the
- * page the reader is looking at. An empty result nulls the pointer rather than
- * leaving the deleted post behind, which is the state a thread reaches when its
- * opening post is sent back for approval.
- */
 export async function repairThreadLastPost(
   tx: CounterTransaction,
   threadId: number,
@@ -76,28 +39,10 @@ export async function repairThreadLastPost(
   `)
 }
 
-/**
- * Recompute the last-post pointer of a forum and every ancestor, bottom-up.
- *
- * Forum pointers are subtree-inclusive, so each level is the newest of (its own
- * visible threads) and (its children's already-correct pointers). Walking
- * deepest-first is what makes that induction hold in one pass.
- *
- * Two indexed reads and one update per level, and the tree is at most a handful
- * deep — which is why this runs on *every* visibility change rather than only
- * when the changed post happened to be a pointer. Deciding whether the repair
- * is needed costs about as much as doing it, and getting that decision subtly
- * wrong leaves the board index advertising a deleted post.
- */
 export async function repairForumLastPostChain(
   tx: CounterTransaction,
   forumId: number,
 ): Promise<void> {
-  /*
-   * Self plus ancestors, deepest first. The `child.path like f.path || '.%'`
-   * form with the separator is D22's prefix trap again: without the dot, forum
-   * `1.4` would be treated as an ancestor of `1.40`.
-   */
   const chain = resultRows(
     await tx.execute(sql`
       select f.id
@@ -148,13 +93,6 @@ export async function repairForumLastPostChain(
   }
 }
 
-/**
- * Apply a visibility change's counters inside the caller's transaction.
- *
- * The post row has already been updated — that update's `where visibility = …`
- * is what decides whether this runs at all, so a double submit reaches neither
- * the counters nor the event.
- */
 export async function applyVisibilityChangeCounters(
   tx: CounterTransaction,
   change: VisibilityChange,
@@ -187,7 +125,6 @@ export async function applyVisibilityChangeCounters(
     `)
   }
 
-  // Pointers before ancestors: the forum chain reads the thread rows below.
   await repairThreadLastPost(tx, change.threadId)
   await repairForumLastPostChain(tx, change.forumId)
 
@@ -205,18 +142,6 @@ export async function applyVisibilityChangeCounters(
   `)
 }
 
-/**
- * Bring a post's **ancestor** counts into line with its current visibility.
- *
- * Reads the post's visibility now rather than trusting the event's `visible`
- * flag: events are at-least-once and can arrive out of order, and a
- * delete-then-restore pair delivered backwards would otherwise leave the
- * ancestors permanently one out. Combined with the ledger this makes the
- * handler *convergent* — whatever order events arrive in, the last one to run
- * leaves the ledger agreeing with the row.
- *
- * Returns whether this call changed anything.
- */
 export async function applyAncestorVisibilityChange(
   db: Database,
   postId: number,
@@ -229,8 +154,6 @@ export async function applyAncestorVisibilityChange(
     ) as Array<{ visibility: string; forum_id: number; is_first_post: boolean }>
 
     const post = found[0]
-    // Hard-deleted since the event was written. `content_counter_rollups`
-    // cascades from `posts`, so the ledger row went with it.
     if (!post) return false
 
     const shouldCount = post.visibility === 'visible'

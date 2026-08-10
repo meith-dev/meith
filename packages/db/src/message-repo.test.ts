@@ -1,18 +1,3 @@
-/**
- * F60 — private messages against real Postgres.
- *
- * The service tests every rule without a database. What can only be proved here
- * is the SQL, and five claims of it:
- *
- *  - every read and write is **scoped by owner in the query**, so a copy id
- *    from somebody else's mailbox matches nothing;
- *  - a send writes the message and every copy in **one transaction**;
- *  - the unique index makes one member holding two copies of one message
- *    impossible, which is what the service's dedupe relies on;
- *  - a folder line's other participants come back in **one query**, with bcc
- *    hidden from everyone but the author;
- *  - deleting your copy leaves the message and everybody else's copy standing.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -108,17 +93,11 @@ describe('send', () => {
       [BOB, 'inbox', 'to'],
       [CAROL, 'inbox', 'to'],
     ])
-    /* The author's copy is read on arrival; a recipient's is not. */
     expect(copies[0]?.read_at).not.toBeNull()
     expect(copies[1]?.read_at).toBeNull()
   })
 
   it('rolls the whole send back when one copy cannot be written', async () => {
-    /*
-     * The transaction is what makes "all-or-nothing" true rather than intended.
-     * A duplicate recipient violates the unique index mid-insert; the message
-     * row must not survive it.
-     */
     await expect(
       send([{ userId: BOB, bcc: false }, { userId: BOB, bcc: true }]),
     ).rejects.toThrow()
@@ -185,11 +164,6 @@ describe('the counterparty column', () => {
   })
 
   it('hides a bcc recipient from another recipient, and shows them to the author', async () => {
-    /*
-     * The leak the role column exists to prevent, proved in the SQL that a
-     * listing path cannot forget — the alternative was filtering in the caller,
-     * which is one refactor away from not happening.
-     */
     await send([{ userId: BOB, bcc: false }, { userId: CAROL, bcc: true }])
 
     const [asBob] = await repo.list({ userId: BOB, folder: 'inbox', limit: 10 })
@@ -248,10 +222,6 @@ describe('counts', () => {
 
 describe('writes are scoped by owner', () => {
   it('will not move, mark or delete a copy belonging to somebody else', async () => {
-    /*
-     * The ids arrive from a form anybody can post. This is the property that
-     * makes that safe, and it is in the `where` clause rather than in a check.
-     */
     const id = await send([{ userId: BOB, bcc: false }])
     const bobs = await copyIdFor(id, BOB)
 
@@ -290,11 +260,6 @@ describe('writes are scoped by owner', () => {
 
 describe('detail', () => {
   it('returns every participant with their read state, unfiltered', async () => {
-    /*
-     * Unfiltered on purpose: who the *viewer* may see is the service's
-     * decision, and answering it here as well would be two answers to one
-     * question.
-     */
     const id = await send([{ userId: BOB, bcc: false }, { userId: CAROL, bcc: true }])
     await repo.setRead({ userId: BOB, copyIds: [await copyIdFor(id, BOB)], at: AT })
 
