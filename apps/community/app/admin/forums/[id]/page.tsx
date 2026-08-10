@@ -54,6 +54,7 @@ export default async function AdminForumPage({
       <ForumOptionsForm
         forum={{
           id: forum.id,
+          type: forum.type,
           title: options.title,
           slug: options.slug,
           description: options.description ?? '',

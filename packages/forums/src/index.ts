@@ -12,6 +12,8 @@ export {
 
 export { buildTree, flattenTree, keepVisibleSubtrees } from './tree'
 
+export { acceptsThreads, canHoldThreads } from './placement'
+
 export { planMove } from './move'
 export { planCreate, type CreatePlan } from './create'
 

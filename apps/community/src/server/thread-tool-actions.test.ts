@@ -50,7 +50,7 @@ class FakeTools implements ThreadToolsRepository {
   }
 
   async findDestination(): Promise<MoveDestination | null> {
-    return { id: SEED_FORUM.announcements, type: 'forum' }
+    return { id: SEED_FORUM.announcements, type: 'forum', allowThreads: true }
   }
 
   async setLocked(): Promise<boolean> {

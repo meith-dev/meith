@@ -19,6 +19,7 @@ import { apiActor, apiToken } from '@/server/api-auth'
 import { getContainer } from '@/server/container'
 import { resolveReplyTarget, submitReply } from '@/server/reply-core'
 import { requireSearch, searchScopeFor } from '@/server/search'
+import { canHoldThreads } from '@meith/forums'
 
 export const dynamic = 'force-dynamic'
 
@@ -134,7 +135,7 @@ async function threadScope(
   if (forumId === null) return null
 
   const forum = await forums.findById(forumId)
-  if (!forum || forum.type !== 'forum') return null
+  if (!forum || !canHoldThreads(forum.type)) return null
 
   const matrix = await authorizer.forumMatrix(actor, forum.id)
   if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) return null
@@ -219,7 +220,7 @@ async function dispatch(
       if (forumId === null) return notFound
 
       const forum = await forums.findById(forumId)
-      if (!forum || forum.type !== 'forum') return notFound
+      if (!forum || !canHoldThreads(forum.type)) return notFound
 
       const matrix = await authorizer.forumMatrix(actor, forum.id)
       if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) {

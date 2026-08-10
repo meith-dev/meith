@@ -214,7 +214,7 @@ export class PostgresImportSink {
       await this.db.execute(sql`
       insert into forums (
         type, title, description, slug, parent_id, path, depth,
-        display_order, link_url, legacy_mybb_fid
+        display_order, link_url, allow_threads, legacy_mybb_fid
       )
       values ${sql.join(
         writable.map(
@@ -222,7 +222,7 @@ export class PostgresImportSink {
             ${row.type}, ${row.title}, ${row.description},
             ${slugFor(row.title, row.legacyId, 'forum')},
             ${parentId}, '', 0,
-            ${row.displayOrder}, ${row.linkUrl}, ${row.legacyId}
+            ${row.displayOrder}, ${row.linkUrl}, ${row.type === 'forum'}, ${row.legacyId}
           )`,
         ),
         sql`, `,

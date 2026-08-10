@@ -2,6 +2,7 @@ import { feedFor } from '@/server/feed-builder'
 import { feedResponse, noFeed } from '@/server/feed-routes'
 import { getContainer } from '@/server/container'
 import { FEED_LIMIT, feedRepository, origin, publicScope } from '@/server/syndication'
+import { canHoldThreads } from '@meith/forums'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +28,7 @@ export async function GET(
   if (!scope.forumIds.includes(id)) return noFeed()
 
   const forum = await getContainer().forums.findById(id)
-  if (!forum || forum.type !== 'forum') return noFeed()
+  if (!forum || !canHoldThreads(forum.type)) return noFeed()
 
   const threads = await repo.recentThreads(FEED_LIMIT, scope, id)
 

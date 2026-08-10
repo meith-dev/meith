@@ -342,6 +342,23 @@ forums, listed the way the index lists them, under the trail that got you there.
 Nothing to run, and nothing to configure. A board with no categories is
 unaffected.
 
+## A category can be opened to threads
+
+**Allow new threads** on a category now means what it says: the category takes
+threads of its own, and its page lists them under its forums. It is off on every
+category, and the migration that ships with this version is what makes that
+true — `allow_threads` defaulted to on for rows that could not use it, so every
+existing category is set to off as the migration runs. **A board that wants
+nothing to change does nothing.**
+
+Turn it on from **Admin → Forums → Options** on the category. Turning it off
+again stops new threads and returns the page to its forums; threads already
+posted there keep their addresses and stay in search, but the category stops
+listing them until it is turned back on.
+
+An import behaves the same way: a category coming from MyBB arrives closed to
+threads, which is what it was there.
+
 ## Two notice parameters were renamed
 
 Deleting a post returned to `/thread/12-slug?post=deleted`, and restoring one

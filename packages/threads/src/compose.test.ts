@@ -111,7 +111,7 @@ describe('ThreadComposer', () => {
   })
 
   it.each([
-    ['a category', { type: 'category' as const }],
+    ['a category that was not opened to threads', { type: 'category' as const, allowThreads: false }],
     ['a link', { type: 'link' as const }],
     ['a closed forum', { isOpen: false }],
     ['a forum that takes no threads', { allowThreads: false }],
@@ -122,6 +122,17 @@ describe('ThreadComposer', () => {
       composer(writes).create(INPUT, AUTHOR, { ...FORUM, ...overrides }),
     ).rejects.toThrow(ValidationError)
     expect(writes.written).toEqual([])
+  })
+
+  it('takes a thread in a category an admin opened to them', async () => {
+    const writes = new RecordingWrites()
+
+    await composer(writes).create(INPUT, AUTHOR, {
+      ...FORUM,
+      type: 'category',
+      allowThreads: true,
+    })
+    expect(writes.written).toHaveLength(1)
   })
 
   it('refuses a title that is too short and one that is too long', async () => {

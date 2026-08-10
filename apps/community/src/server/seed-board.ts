@@ -125,6 +125,7 @@ export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
   {
     id: SEED_FORUM.main,
     type: 'category',
+    allowThreads: false,
     title: 'Main',
     slug: 'main',
     description: null,
@@ -147,6 +148,7 @@ export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
   {
     id: SEED_FORUM.announcements,
     type: 'forum',
+    allowThreads: true,
     title: 'Announcements',
     slug: 'announcements',
     description: 'Board news and release notes. Staff post, everyone reads.',
@@ -169,6 +171,7 @@ export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
   {
     id: SEED_FORUM.general,
     type: 'forum',
+    allowThreads: true,
     title: 'General Discussion',
     slug: 'general',
     description: 'Anything and everything.',
@@ -191,6 +194,7 @@ export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
   {
     id: SEED_FORUM.generalOffTopic,
     type: 'forum',
+    allowThreads: true,
     title: 'Off Topic',
     slug: 'off-topic',
     description: 'Everything else.',

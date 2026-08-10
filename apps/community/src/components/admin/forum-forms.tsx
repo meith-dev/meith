@@ -33,6 +33,7 @@ const TOGGLES = [
 
 export interface ForumOptionsValues {
   readonly id: number
+  readonly type: "category" | "forum" | "link"
   readonly title: string
   readonly slug: string
   readonly description: string
@@ -99,16 +100,26 @@ export function ForumOptionsForm({ forum }: { forum: ForumOptionsValues }) {
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-medium">Options</legend>
         {TOGGLES.map((toggle) => (
-          <label key={toggle.name} className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name={toggle.name}
-              value="1"
-              defaultChecked={forum.flags[toggle.name] === true}
-              className="size-4"
-            />
-            <span>{toggle.label}</span>
-          </label>
+          <div key={toggle.name} className="flex flex-col gap-0.5">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name={toggle.name}
+                value="1"
+                defaultChecked={forum.flags[toggle.name] === true}
+                className="size-4"
+              />
+              <span>{toggle.label}</span>
+            </label>
+            {toggle.name === "allowThreads" && forum.type === "category" && (
+              <span className="ml-6 text-xs text-muted-foreground">
+                A category holds forums. Turn this on and it holds threads of its own as
+                well, and its page lists them under those forums. Turning it off again
+                stops new ones and returns the page to the forums; threads already there
+                keep their addresses.
+              </span>
+            )}
+          </div>
         ))}
       </fieldset>
 

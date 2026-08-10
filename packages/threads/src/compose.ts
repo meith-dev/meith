@@ -127,7 +127,7 @@ export class ThreadComposer {
     const title = input.title.trim()
     const message = input.message.trim()
 
-    if (forum.type !== 'forum') {
+    if (forum.type === 'link') {
       throw new ValidationError('Threads cannot be posted here.')
     }
     if (!forum.isOpen || !forum.allowThreads) {

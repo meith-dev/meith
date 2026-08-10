@@ -8,6 +8,7 @@ const NOW = new Date('2026-07-30T12:00:00Z')
 function forum(over: Partial<ForumListingRow> & { id: number }): ForumListingRow {
   return {
     type: 'forum',
+    allowThreads: true,
     title: `Forum ${over.id}`,
     slug: `forum-${over.id}`,
     description: null,

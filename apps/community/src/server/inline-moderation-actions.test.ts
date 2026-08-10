@@ -40,7 +40,7 @@ const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
 
 class FakeInline implements InlineModerationRepository {
   rows: InlineTarget[] = []
-  destination: MoveDestination | null = { id: SEED_FORUM.announcements, type: 'forum' }
+  destination: MoveDestination | null = { id: SEED_FORUM.announcements, type: 'forum', allowThreads: true }
   readonly applied: Array<{ tool: InlineTool; threadIds: number[]; postIds: number[] }> = []
   scopes: number[][] = []
 

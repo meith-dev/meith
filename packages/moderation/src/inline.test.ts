@@ -42,7 +42,7 @@ function target(over: Partial<InlineTarget> & Pick<InlineTarget, 'kind' | 'id'>)
 
 class FakeInline implements InlineModerationRepository {
   rows: InlineTarget[] = []
-  destination: MoveDestination | null = { id: 5, type: 'forum' }
+  destination: MoveDestination | null = { id: 5, type: 'forum', allowThreads: true }
   readonly chunks: Array<{ tool: InlineTool; threadIds: number[]; postIds: number[] }> = []
   raced = new Set<number>()
 
@@ -355,7 +355,7 @@ describe('InlineModeration', () => {
     it('refuses a destination that is not a forum threads can live in', async () => {
       const inline = new FakeInline()
       inline.rows = [target({ kind: 'thread', id: 1 })]
-      inline.destination = { id: 5, type: 'category' }
+      inline.destination = { id: 5, type: 'category', allowThreads: false }
 
       await expect(
         commandFor(inline).apply({

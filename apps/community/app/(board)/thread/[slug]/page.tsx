@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 
+import { acceptsThreads, canHoldThreads } from '@meith/forums'
 import { requireSlot } from '@meith/theme-kit'
 
 import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
@@ -68,7 +69,7 @@ export async function generateMetadata({
   if (forumId === null) return { title: 'Thread' }
 
   const forum = await forums.findById(forumId)
-  if (!forum || forum.type !== 'forum') return { title: 'Thread' }
+  if (!forum || !canHoldThreads(forum.type)) return { title: 'Thread' }
 
   const matrix = await authorizer.forumMatrix(actor, forum.id)
   if (
@@ -192,7 +193,7 @@ export default async function ThreadPage({
   if (forumId === null) notFound()
 
   const forum = await forums.findById(forumId)
-  if (!forum || forum.type !== 'forum') notFound()
+  if (!forum || !canHoldThreads(forum.type)) notFound()
   const matrix = await authorizer.forumMatrix(actor, forum.id)
   if (
     !authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })
@@ -309,7 +310,7 @@ export default async function ThreadPage({
     : (await forums.listListing())
         .filter(
           (row) =>
-            row.type === 'forum' &&
+            acceptsThreads(row) &&
             row.id !== forum.id &&
             movableInto.includes(row.id),
         )

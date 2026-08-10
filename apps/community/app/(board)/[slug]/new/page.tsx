@@ -9,6 +9,7 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
 import { buildNewThreadView } from '@/view/post-form'
+import { canHoldThreads } from '@meith/forums'
 
 export const metadata: Metadata = { title: 'New thread' }
 
@@ -34,7 +35,7 @@ export default async function NewThreadPage({
   if (threadWrites === null) notFound()
 
   const forum = await forums.findById(id)
-  if (!forum || forum.type !== 'forum') notFound()
+  if (!forum || !canHoldThreads(forum.type)) notFound()
 
   const matrix = await authorizer.forumMatrix(actor, id)
   const target = { forumId: id, forum: matrix }

@@ -1495,6 +1495,33 @@ is where a category's own description belongs. Neither needs a new slot: it is
 **Cost:** one more page per category to keep working. It shares the index's view
 model, so the cost is a route rather than a feature.
 
+### A category can hold threads of its own, if an admin says so
+
+**MyBB:** a category holds forums and nothing else. A board that wants one
+general area with no sub-structure makes a forum and hides the category, or
+lives with a category holding a single forum called the same thing.
+
+**Here:** **Allow new threads** on a category — off on every category until an
+admin turns it on — makes it take threads as well as forums. Its page then lists
+them the way a forum's does, with its forums above them, and it is a destination
+a thread can be moved into.
+
+**Why:** the difference between a category and a forum was never about what a
+member wanted to do there; it was about where the software would let them post.
+A small board is one heading with a handful of threads under it, and asking it
+to invent a forum inside a category to hold them is the software's filing system
+leaking into somebody's front page.
+
+**Off by default, and that is the whole feature.** A category that takes threads
+without being asked is a category that has quietly become a forum. The column
+that carries this is the same `allow_threads` every forum has, so a board that
+never opens the option is a board where nothing has changed.
+
+**Cost:** turning it back off stops new threads and returns the page to its
+forums. Threads already posted there keep their addresses and stay in search and
+the latest-posts panel, but the category no longer lists them — turn it back on,
+or move them, to have them shown again.
+
 ### Every page of a thread is its own canonical URL
 
 **MyBB:** emits no canonical link. Duplicate URLs for one page — `showthread.php`

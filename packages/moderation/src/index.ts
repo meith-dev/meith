@@ -36,6 +36,7 @@ export {
 export {
   ThreadTools,
   parseThreadTool,
+  keepsThreads,
   type MoveDestination,
   type ThreadTool,
   type ThreadToolOutcome,

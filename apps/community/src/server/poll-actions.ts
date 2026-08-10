@@ -7,6 +7,7 @@ import { PollService } from '@meith/polls'
 
 import { getContainer } from './container'
 import { getActor } from './context'
+import { canHoldThreads } from '@meith/forums'
 
 function id(form: FormData, name: string): number {
   const value = Number(form.get(name))
@@ -25,7 +26,7 @@ export async function votePollAction(form: FormData): Promise<void> {
     throw new ForbiddenError('You must be logged in to vote.')
   const forumId = await threads.locateForum(threadId)
   const forum = forumId === null ? null : await forums.findById(forumId)
-  if (forumId === null || forum === null || forum.type !== 'forum')
+  if (forumId === null || forum === null || !canHoldThreads(forum.type))
     throw new ValidationError('That poll does not exist.')
   const target = {
     forumId,

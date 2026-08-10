@@ -32,6 +32,7 @@ const FORUM_COLUMNS = {
 
 const FORUM_LISTING_COLUMNS = {
   ...FORUM_COLUMNS,
+  allowThreads: forums.allowThreads,
   threadCount: forums.threadCount,
   postCount: forums.postCount,
   lastPostId: forums.lastPostId,
@@ -101,6 +102,7 @@ export class PostgresForumRepository implements ForumRepository {
 
     return rows.map((row) => ({
       ...toForumRow(row),
+      allowThreads: row.allowThreads as boolean,
       threadCount: row.threadCount as number,
       postCount: row.postCount as number,
       lastPost: toLastPost(row),
@@ -133,6 +135,7 @@ export class PostgresForumRepository implements ForumRepository {
           description: input.description ?? null,
           parentId: plan.parentId,
           linkUrl: input.linkUrl ?? null,
+          allowThreads: input.type === 'forum',
           displayOrder: plan.displayOrder,
           depth: plan.depth,
           path: '',
