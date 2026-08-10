@@ -274,9 +274,14 @@ sequenceDiagram
 
 **`proxy.ts` is not a boundary.** The Edge middleware does cookie-shaped
 triage — bounce a cookie-less request to `/login`, send a remember-me cookie
-through single-use rotation at `/auth/resume` — and nothing else. Every page
-and every Server Action re-checks authorization itself, because an action is a
-public HTTP endpoint whatever rendered the form.
+through single-use rotation at `/auth/resume`, mint the opaque cookie that
+lets a guest be counted as online — and nothing else. Every page and every
+Server Action re-checks authorization itself, because an action is a public
+HTTP endpoint whatever rendered the form. The guest cookie is the one thing
+the Edge *writes*, and it is minted there because only the middleware can set
+a cookie on an ordinary page response; it carries nothing but randomness, no
+code path turns it into an actor, and the presence row it stands for is
+written by the render, which has the database the Edge does not.
 
 **Authorization is one implementation with no way around it.** The
 `Authorizer` answers `can(actor, action, target)` synchronously over resolved
