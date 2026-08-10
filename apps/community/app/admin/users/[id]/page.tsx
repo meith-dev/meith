@@ -71,7 +71,7 @@ export default async function AdminMemberPage({
             id: member.id,
             username: member.username,
             email: member.email,
-            // eslint-disable-next-line no-restricted-properties -- F20: transporting the column into a form
+            // eslint-disable-next-line no-restricted-properties -- transporting the column into a form
             primaryGroupId: member.primaryGroupId,
             displayGroupId: member.displayGroupId,
           }}
@@ -90,7 +90,7 @@ export default async function AdminMemberPage({
           userId={member.id}
           groups={view.groups}
           selected={view.secondaryGroupIds}
-          // eslint-disable-next-line no-restricted-properties -- F20: transporting the column into a form
+          // eslint-disable-next-line no-restricted-properties -- transporting the column into a form
           primaryGroupId={member.primaryGroupId}
         />
       </section>

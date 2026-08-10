@@ -404,7 +404,7 @@ if (process.argv.includes('--probe')) {
   }
 
   if (failures.length > 0) {
-    console.error('\n✖ F25 slot server/client boundary')
+    console.error('\n✖ slot server/client boundary')
     for (const f of failures) console.error(`  ${f}`)
     console.error(`\n${failures.length} slot-kind violation(s).\n`)
     process.exit(1)
@@ -412,7 +412,7 @@ if (process.argv.includes('--probe')) {
 
   if (manifests === 0) {
     console.error(
-      '\n✖ F25 slot server/client boundary: no theme manifest found.\n' +
+      '\n✖ slot server/client boundary: no theme manifest found.\n' +
         '  A theme calls defineTheme() in themes/<name>/src. If one exists and this ' +
         'did not\n  find it, the walk or the detection is broken — do not read this as a ' +
         'pass.\n',

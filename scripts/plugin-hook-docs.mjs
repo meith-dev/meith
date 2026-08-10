@@ -70,12 +70,11 @@ async function readHooks() {
     if (block === null) continue
 
     const kind = /kind:\s*'(filter|event)'/.exec(block.body)
-    const feature = /feature:\s*'([^']+)'/.exec(block.body)
     const purposeAt = block.body.indexOf('purpose:')
 
-    if (kind === null || feature === null || purposeAt === -1) {
+    if (kind === null || purposeAt === -1) {
       throw new Error(
-        `plugin-hook-docs: hook "${match[2]}" is missing kind, feature or purpose — ` +
+        `plugin-hook-docs: hook "${match[2]}" is missing kind or purpose — ` +
           'or this parser can no longer read them.',
       )
     }
@@ -85,7 +84,7 @@ async function readHooks() {
       throw new Error(`plugin-hook-docs: hook "${match[2]}" has an unreadable purpose.`)
     }
 
-    hooks.push({ name: match[2], kind: kind[1], feature: feature[1], purpose, group })
+    hooks.push({ name: match[2], kind: kind[1], purpose, group })
   }
 
   if (hooks.length < 60) {

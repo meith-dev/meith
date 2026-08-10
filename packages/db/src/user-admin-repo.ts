@@ -131,9 +131,9 @@ export class PostgresUserAdminRepository {
              or u.last_ip_prefix like ${pattern} escape '\\')`,
       )
     }
-    // eslint-disable-next-line no-restricted-properties -- F20: filtering on a column, not deciding access
+    // eslint-disable-next-line no-restricted-properties -- filtering on a column, not deciding access
     if (filter.primaryGroupId !== undefined) {
-      // eslint-disable-next-line no-restricted-properties -- F20: filtering on a column, not deciding access
+      // eslint-disable-next-line no-restricted-properties -- filtering on a column, not deciding access
       conditions.push(sql`u.primary_group_id = ${filter.primaryGroupId}`)
     }
     if (filter.state !== undefined) {
@@ -214,7 +214,7 @@ export class PostgresUserAdminRepository {
     if (username === '') throw new ValidationError('A member needs a username.')
     if (email === '') throw new ValidationError('A member needs an email address.')
 
-    // eslint-disable-next-line no-restricted-properties -- F20: writing the persisted column, not deciding access
+    // eslint-disable-next-line no-restricted-properties -- writing the persisted column, not deciding access
     const primaryGroupId = input.primaryGroupId
 
     await withPermissionVersionBump(this.db, async (tx) => {

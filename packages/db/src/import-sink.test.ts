@@ -209,7 +209,7 @@ describe('users', () => {
     expect(rows[0]!.key).toBe('registered')
   })
 
-  it('carries the MyBB hash across so F86 can upgrade it on next sign-in', async () => {
+  it('carries the MyBB hash across so it can be upgraded on next sign-in', async () => {
     await sink.putUsers([user(1)])
 
     const rows = await rowsOf<{ password_hash: string; password_algo: string }>(sql`select password_hash, password_algo from users where legacy_mybb_uid = 1`)

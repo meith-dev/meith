@@ -47,7 +47,7 @@ class MemoryAccounts implements AccountRepository {
       passwordAlgo: input.passwordAlgo,
       state: input.state,
       emailVerifiedAt: null,
-      // eslint-disable-next-line no-restricted-properties -- F20: group-id transport, not a decision
+      // eslint-disable-next-line no-restricted-properties -- group-id transport, not a decision
       primaryGroupId: input.primaryGroupId,
     }
     this.byId.set(record.id, record)

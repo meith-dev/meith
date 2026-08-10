@@ -1,5 +1,5 @@
 /**
- * F79 — what each hook is handed.
+ * What each hook is handed.
  *
  * One entry per hook in `HOOKS`, both directions asserted at the bottom, so a
  * hook without a payload (or a payload without a hook) fails `pnpm typecheck`
@@ -86,7 +86,7 @@ export interface ViewerRef {
 
 /** The request a hook is running inside, when there is one. */
 export interface RequestRef {
-  /** F09's correlation id, so a plugin's own logging joins up with the board's. */
+  /** The request's correlation id, so a plugin's own logging joins up with the board's. */
   readonly requestId: string | null
 }
 

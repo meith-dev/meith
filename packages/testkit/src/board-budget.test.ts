@@ -19,7 +19,7 @@ afterAll(async () => {
   await harness.close()
 })
 
-describe('forum tree reads (F16)', () => {
+describe('forum tree reads', () => {
   it('reads the whole tree in exactly one query', async () => {
     const { value, count } = await measureQueries(harness, () => repo.listAll())
 

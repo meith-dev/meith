@@ -231,7 +231,7 @@ describe('stalled', () => {
 })
 
 describe('the object ledger', () => {
-  it('is the one F42 uses, and tolerates the same key twice', async () => {
+  it('is the one attachment uploads use, and tolerates the same key twice', async () => {
     await repo.rememberKey('attachments/x/file')
     await expect(repo.rememberKey('attachments/x/file')).resolves.toBeUndefined()
 

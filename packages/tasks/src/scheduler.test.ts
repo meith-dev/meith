@@ -204,7 +204,7 @@ describe('tick', () => {
   })
 })
 
-describe('bans.expire is registered (F23)', () => {
+describe('bans.expire is registered', () => {
   function workers(overrides: Partial<TaskWorkers> = {}): TaskWorkers {
     const zero = async () => 0
     return {
@@ -297,7 +297,7 @@ function fullWorkerSet(): TaskWorkers {
   }
 }
 
-describe('search.reindex is registered (F72)', () => {
+describe('search.reindex is registered', () => {
   it('appears in the builtin registry', () => {
     expect(builtinTasks(fullWorkerSet()).map((t) => t.id)).toContain('search.reindex')
   })

@@ -101,7 +101,7 @@ describe('buildUserPanelModel', () => {
     expect(panel.unreadMessages).toBe(0)
   })
 
-  it('carries the unread notification count the shell resolved (F55)', () => {
+  it('carries the unread notification count the shell resolved', () => {
     const panel = buildUserPanelModel(buildViewerModel(member), {
       unreadNotifications: 3,
     })
@@ -131,7 +131,7 @@ describe('buildFooterModel', () => {
   })
 })
 
-describe('the board title (F08)', () => {
+describe('the board title', () => {
   it('falls back to the constant when nothing resolves one', () => {
     expect(buildHeaderModel(buildViewerModel(guest)).boardTitle).toBe(BOARD_TITLE)
     expect(buildFooterModel().boardTitle).toBe(BOARD_TITLE)
@@ -154,7 +154,7 @@ describe('ViewerModel.username', () => {
   })
 })
 
-describe('buildBoardNavigation (F74)', () => {
+describe('buildBoardNavigation', () => {
   it('points only at routes that exist', () => {
     const hrefs = buildBoardNavigation(buildViewerModel(member)).map((link) => link.href)
 

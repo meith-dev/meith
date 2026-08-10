@@ -231,13 +231,13 @@ describe('uploading', () => {
     expect(files.objects.size).toBe(0)
   })
 
-  it('refuses a format that is not an image, even though F42 would take it', async () => {
+  it('refuses a format that is not an image, even though attachments would take it', async () => {
     await expect(
       service.upload({ userId: ADA, file: { filename: 'cv.pdf', bytes: pdf() }, mayUpload: true }),
     ).rejects.toThrow(/PNG or a JPEG/)
   })
 
-  it('refuses one over the avatar ceiling, well below F42’s', async () => {
+  it('refuses one over the avatar ceiling, well below the attachment ceiling', async () => {
     const big = new Uint8Array(AVATAR_MAX_BYTES + 1024)
     big.set(png())
 

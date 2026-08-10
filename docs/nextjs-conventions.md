@@ -5,12 +5,10 @@ this from your PR description.
 
 > [!NOTE]
 > Everything here is drawn from code that exists. The file paths are real, and
-> the failure each rule prevents has either happened in this repository or is one
-> the plan calls out explicitly.
+> the failure each rule prevents has actually happened in this repository.
 >
-> If you need to depart from a rule, say so in the PR and add a
-> [`deviations.md`](./deviations.md) entry rather than quietly doing something
-> else.
+> If you need to depart from a rule, say so in the PR description rather than
+> quietly doing something else.
 
 ## The rules, in one table
 
@@ -363,6 +361,3 @@ lint, dependency-cruiser, all three typechecks, tests. `pnpm build` if you touch
 anything under `app/` — and if you touched a theme, check the class you used is
 actually in the built CSS: Tailwind scans `themes/` only because `globals.css`
 says so, and a missing `@source` is a green build that renders unstyled.
-
-If the change closes something the repository tracks in `docs/plan-status.md`,
-update that row in the same pull request. "Mostly done" is not a state.

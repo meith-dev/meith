@@ -108,7 +108,7 @@ describe('send', () => {
     expect(messages[0]?.n).toBe(0)
   })
 
-  it('stores the render with its version, so F36 can invalidate it', async () => {
+  it('stores the render with its version, so a version bump can invalidate it', async () => {
     const id = await send([{ userId: BOB, bcc: false }])
     const message = await repo.forReport(id)
     expect(message?.messageHtml).toBe('<p>A message.</p>')

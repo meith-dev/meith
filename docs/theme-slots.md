@@ -351,7 +351,7 @@ Props: `PostActionsSlotModel`
 |---|---|---|
 | `actions` | `PostActionsModel` |  |
 | `postId` | `number` |  |
-| `children` | `ReactNode` | optional — App-rendered controls that belong beside the post's own actions — today, F45's multi-quote island. It is `children` for the reason logging out is: the button is a client island holding browser state, and neither a component nor a handler can cross this contract as data. Before this field the page had nowhere to put it but `PostBitModel.regions.pluginFooter`, so every post on the board carried a second bordered row containing one control — the plugin region used as a parking space, and a visible band of furniture per post as the price. Additive under the versioning policy, and `children` is already exempt from the plain-data rule. |
+| `children` | `ReactNode` | optional — App-rendered controls that belong beside the post's own actions — today, the multi-quote island. It is `children` for the reason logging out is: the button is a client island holding browser state, and neither a component nor a handler can cross this contract as data. Before this field the page had nowhere to put it but `PostBitModel.regions.pluginFooter`, so every post on the board carried a second bordered row containing one control — the plugin region used as a parking space, and a visible band of furniture per post as the price. Additive under the versioning policy, and `children` is already exempt from the plain-data rule. |
 
 ### QuickReply
 

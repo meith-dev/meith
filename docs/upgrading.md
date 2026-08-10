@@ -232,7 +232,7 @@ switches on your board were, until now, decorative.
 
 ### `registration.method` now decides what a new account has to do
 
-`registration.method` had been a setting since F13 with no reader: the dropdown
+`registration.method` had been a setting with no reader: the dropdown
 moved, the value was stored, and every account was created as though it said
 `none`. It is now honoured everywhere the board creates an account.
 
@@ -295,7 +295,7 @@ accounts the board itself would have rejected.
 The registry defaults are 10, 3 and 30. A board that never touched them gets a
 **minimum password length of 10 rather than 8** — the one change here that can
 surprise somebody, and it applies to new passwords only. Existing passwords are
-untouched and no one is locked out; F17 rehashes on next login regardless.
+untouched and no one is locked out; they rehash on next login regardless.
 
 > [!NOTE]
 > A minimum username length above the maximum is impossible to satisfy, so it is

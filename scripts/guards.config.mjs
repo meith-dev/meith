@@ -56,7 +56,7 @@ export const GUARDS = [
     id: 'no-hardcoded-colour',
     why:
       'Components must consume design tokens so a board can be re-themed from the ' +
-      'database (F26). A literal hex/rgb/hsl in a component is a colour that no ' +
+      'database. A literal hex/rgb/hsl in a component is a colour that no ' +
       'theme override can ever reach.',
     files: /\.(tsx)$/,
     pattern: /(#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\()/,
@@ -87,7 +87,7 @@ export const GUARDS = [
       'Identifier case-folding must be locale-independent: use foldIdentifier() ' +
       '(packages/accounts/src/case-fold.ts), never toLocaleLowerCase(). With no ' +
       'locale argument the fold depends on the *host*, so under tr_TR "IVAN" ' +
-      'becomes "ıvan" — F18\'s duplicate-username-by-case check stops holding, ' +
+      'becomes "ıvan" — the duplicate-username-by-case check stops holding, ' +
       'and a username_lower written on one host stops matching on another. A ' +
       'unit test cannot catch this because it passes in every other locale, ' +
       'which is exactly why the rule is enforced textually here.',
@@ -152,13 +152,13 @@ export const GUARDS = [
   {
     id: 'no-adhoc-content-visibility',
     why:
-      'F47: no query may name a visibility state. Every viewer-facing read takes a ' +
+      'No query may name a visibility state. Every viewer-facing read takes a ' +
       'ContentScope from Authorizer.contentScope and turns it into SQL with ' +
       "visibleIn() in packages/db/src/visibility.ts. A hand-written " +
       "`visibility = 'visible'` is how the twentieth read path ships without one — " +
       'or ships with `<> \'deleted\'`, which lets the moderation queue out to the ' +
       'public while looking like a filter. The exempt files are the counter and ' +
-      'write paths, where naming a state is the definition of the work (D41) rather ' +
+      'write paths, where naming a state is the definition of the work rather ' +
       'than a decision about a reader.',
     files: /^(packages\/db\/src\/[^/]+\.tsx?|apps\/forum\/(app|src)\/.*\.tsx?)$/,
     pattern:

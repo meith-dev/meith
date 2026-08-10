@@ -165,7 +165,7 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       id: 'search.reindex',
       title: 'Build the search index for posts that have none',
       description:
-        'Writes F72’s search document for posts that were never indexed, or were ' +
+        'Writes the search document for posts that were never indexed, or were ' +
         'indexed under an older definition of it. The write path indexes every post ' +
         'it creates, so this is only ever a catch-up: an import, a seeded board, a ' +
         'board adopting search, or a release that changed what the document holds.',

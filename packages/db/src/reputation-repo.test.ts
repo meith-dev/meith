@@ -99,7 +99,7 @@ describe('the cached total', () => {
     expect(await cachedTotal()).toBe(2)
   })
 
-  it('is repaired by an explicit recount, for F70', async () => {
+  it('is repaired by an explicit recount', async () => {
     await give({ points: 1 })
     await db.execute(sql`update users set reputation = -50 where id = ${TARGET}`)
 

@@ -122,7 +122,7 @@ function bodyOf(
   return view.posts[0]!.bodyHtml
 }
 
-describe('the post body (F36)', () => {
+describe('the post body', () => {
   it('renders the Markdown source when the post carries no stored render', () => {
     expect(bodyOf({ message: 'a **bold** claim' })).toBe(
       '<p>a <strong>bold</strong> claim</p>',
@@ -161,7 +161,7 @@ describe('the post body (F36)', () => {
   })
 })
 
-describe('post affordances (F41)', () => {
+describe('post affordances', () => {
   const MEMBER = {
     viewerUserId: 7,
     editOwn: true,
@@ -307,7 +307,7 @@ describe('post affordances (F41)', () => {
   })
 })
 
-describe('the report link (F49)', () => {
+describe('the report link', () => {
   const REPORTER = {
     viewerUserId: 7,
     editOwn: false,
@@ -377,7 +377,7 @@ describe('the report link (F49)', () => {
   })
 })
 
-describe('ignored posts (F61)', () => {
+describe('ignored posts', () => {
   function row(overrides: Partial<PostListingRow> = {}): PostListingRow {
     return {
       id: 4,

@@ -55,7 +55,7 @@ services:
       DATA_SOURCE: postgres
       # The migration signs nothing, and still needs these.
       #
-      # F02 is one environment contract for every process the board runs, with
+      # `env` is one environment contract for every process the board runs, with
       # no per-role exemptions — so the production rules apply to the migrator
       # too, and it exits naming both secrets before it opens a connection. That
       # is the trade the single schema buys: no role can quietly boot with less

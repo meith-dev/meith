@@ -56,7 +56,7 @@ describe('subjects', () => {
     expect(subjectFor({ userId: 7 })).toBe('u:7')
   })
 
-  it('counts a guest by the truncated address F09 already stores', () => {
+  it('counts a guest by the already-truncated address', () => {
     expect(subjectFor({ userId: null, ipPrefix: '198.51.100' })).toBe('ip:198.51.100')
   })
 

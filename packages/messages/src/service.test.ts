@@ -296,7 +296,7 @@ describe('sending', () => {
     ])
   })
 
-  it('renders the body once and stores it with its version (F36)', async () => {
+  it('renders the body once and stores it with its version', async () => {
     await sendTo('bob', { message: '**loud**' })
     const message = repo.messages[0]
     expect(message?.message).toBe('**loud**')
@@ -400,7 +400,7 @@ describe('quota', () => {
   })
 })
 
-describe('the ignore block (F61)', () => {
+describe('the ignore block', () => {
   it('refuses a message to somebody who is ignoring the sender', async () => {
     blocked.add(`${BOB}:${IVAN}`)
     await expect(sendTo('bob')).rejects.toThrow(/cannot receive/)

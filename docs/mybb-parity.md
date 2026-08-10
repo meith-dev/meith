@@ -183,8 +183,8 @@ typed into a text box.
 would need a sanitiser, and a sanitiser is a blocklist; this renderer constructs
 its output instead, which is why it has never had one. `<script>` in a post is
 seven escaped characters and a word. Two smaller deviations from CommonMark are
-recorded in `deviations.md`: a single newline is a line break, and there are no
-indented code blocks.
+worth naming: a single newline is a line break, and there are no indented code
+blocks.
 
 **Cost.** An operator promising a like-for-like move should promise it about the
 *text*, not about the colours. Members who knew BBCode have to learn a different
@@ -930,7 +930,7 @@ administrator has not looked yet" — the state does not change until they do.
 
 **Why:** a group is how permissions are decided (R4.1), and lifecycle is not a
 permission. Modelling it as one means every permission question on the board
-silently depends on account state, and it means a ban — which F23 implements by
+silently depends on account state, and it means a ban — implemented by
 capturing and restoring the group — cannot be reasoned about independently. It
 also means the two facts stay separable: an account can be proven and unapproved,
 which the `both` method needs and a single group membership cannot express.

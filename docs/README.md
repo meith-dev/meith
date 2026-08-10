@@ -70,18 +70,13 @@ described in [`operating.md`](./operating.md).
 
 ## Development
 
-Working on Meith itself. The first three are published on the site; the rest are
-working records kept in the repository.
+Working on Meith itself.
 
 | Document | What it answers |
 |---|---|
 | [`development.md`](./development.md) | **Start here.** Running it on your machine, the workspace, the commands, the gates, and what to do before opening a pull request. |
 | [`architecture.md`](./architecture.md) | How it fits together: the processes, the layers, the path a request takes, and the seams — data, themes, plugins — everything else hangs off. |
 | [`nextjs-conventions.md`](./nextjs-conventions.md) | The decisions that would otherwise be re-litigated in every pull request. |
-| [`roadmap.md`](./roadmap.md) | The delivery plan, with acceptance criteria. The source of truth for *what* is being built. |
-| [`plan-status.md`](./plan-status.md) | One row per plan feature: done, partial, or not started. The source of truth for *where* it is. |
-| [`progress.md`](./progress.md) | The running log and the next action. Read this to pick up work. |
-| [`deviations.md`](./deviations.md) | Every departure from the plan text, numbered, with the reasoning. Read before "fixing" something that looks wrong. |
 
 ## About the generated references
 

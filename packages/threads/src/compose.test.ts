@@ -176,7 +176,7 @@ describe('ThreadComposer', () => {
     })
   })
 
-  describe('polls (F43)', () => {
+  describe('polls', () => {
     it('carries a validated poll to the transactional writer and refuses an unauthorised one', async () => {
       const writes = new RecordingWrites()
       const poll = {
@@ -309,7 +309,7 @@ describe('threadSlug', () => {
   })
 })
 
-describe('warning restrictions (F53)', () => {
+describe('warning restrictions', () => {
   it('refuses a suspended author before it looks at anything they typed', async () => {
     const writes = new RecordingWrites()
 

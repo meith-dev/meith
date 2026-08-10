@@ -409,7 +409,7 @@ describe('restrictsPosting', () => {
   })
 })
 
-describe('telling the member (F55)', () => {
+describe('telling the member', () => {
   function recordingNotifier() {
     const told: unknown[] = []
     return {

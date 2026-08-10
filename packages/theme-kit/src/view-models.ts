@@ -1,9 +1,9 @@
 /**
- * F25 — the view models slots are handed, and the rule they all obey.
+ * The view models slots are handed, and the rule they all obey.
  *
  * These types are the **public API for themes**. Per docs/nextjs-conventions.md
  * adding a field is a minor change; renaming or removing one needs a deprecation
- * cycle. F77 freezes them as the theme-kit slot contract.
+ * cycle. The theme-kit slot contract freezes them.
  *
  * ## The rule: view models are plain JSON-shaped data
  *
@@ -98,7 +98,7 @@ export type Serialisable<T> = T extends string | number | boolean | null | undef
  * `regions`, and the page fills them. The cost, stated: a theme can restyle
  * within a region and re-order the regions it is given, but cannot invent a new
  * relationship between two slots — for that it overrides the container and the
- * page composition stays as it is. F77 revisits this if a real theme needs more.
+ * page composition stays as it is. This is revisited if a real theme needs more.
  */
 type ModelData<T> = Omit<T, 'children' | 'regions'>
 
@@ -894,7 +894,7 @@ export interface MemberProfileModel {
  * The search form, reshaped at the slot-contract freeze.
  *
  * It was originally declared as `{ action, query, forums: LinkModel[], errorMessage }`
- * and never rendered — F73 shipped its own form inside the page, so the slot was
+ * and never rendered — the search page grew its own form instead, so the slot was
  * a contract nothing had ever tested. Wiring it up is what found the shape wrong:
  * a filter is a `<select>`, and an option is a value and a label, not an href.
  * A theme handed `LinkModel[]` would have had to invent the value, most likely by
@@ -1044,7 +1044,7 @@ export interface PostActionsSlotModel {
   readonly postId: number
   /**
    * App-rendered controls that belong beside the post's own actions — today,
-   * F45's multi-quote island.
+   * the multi-quote island.
    *
    * It is `children` for the reason logging out is: the button is a client
    * island holding browser state, and neither a component nor a handler can

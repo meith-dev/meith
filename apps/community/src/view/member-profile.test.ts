@@ -30,14 +30,14 @@ describe('buildMemberProfileView', () => {
     })
   })
 
-  it('formats in the viewer’s timezone, not the board’s (F57)', () => {
+  it('formats in the viewer’s timezone, not the board’s', () => {
     const view = buildMemberProfileView(PROFILE, NOW, { timeZone: 'Australia/Sydney' })
 
     expect(view.lastVisitAt?.label).toBe('Today, 18:41')
     expect(view.lastVisitAt?.iso).toBe('2026-07-30T08:41:00.000Z')
   })
 
-  it('shows the self-written fields, and omits the ones left empty (F57)', () => {
+  it('shows the self-written fields, and omits the ones left empty', () => {
     const view = buildMemberProfileView(
       { ...PROFILE, location: 'Cambridge', website: 'https://example.test/' },
       NOW,

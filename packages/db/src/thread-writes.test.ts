@@ -128,7 +128,7 @@ describe('PostgresThreadWriteRepository.create', () => {
   })
 })
 
-describe('PostgresThreadWriteRepository replies (F40)', () => {
+describe('PostgresThreadWriteRepository replies', () => {
   it('raises the reply and post counts without inventing a thread', async () => {
     const thread = await repo.create(RECORD)
     const at = new Date(AT.getTime() + 60_000)

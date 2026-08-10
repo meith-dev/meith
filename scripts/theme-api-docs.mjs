@@ -102,12 +102,11 @@ async function readSlots() {
     if (block === null) continue
 
     const kind = /kind:\s*'(server|client)'/.exec(block.body)
-    const feature = /feature:\s*'([^']+)'/.exec(block.body)
     const purposeAt = block.body.indexOf('purpose:')
 
-    if (kind === null || feature === null || purposeAt === -1) {
+    if (kind === null || purposeAt === -1) {
       throw new Error(
-        `theme-api-docs: slot "${match[1]}" is missing kind, feature or purpose — ` +
+        `theme-api-docs: slot "${match[1]}" is missing kind or purpose — ` +
           'or this parser can no longer read them.',
       )
     }
@@ -117,7 +116,7 @@ async function readSlots() {
       throw new Error(`theme-api-docs: slot "${match[1]}" has an unreadable purpose.`)
     }
 
-    slots.push({ name: match[1], kind: kind[1], feature: feature[1], purpose })
+    slots.push({ name: match[1], kind: kind[1], purpose })
   }
 
   if (slots.length < 5) {

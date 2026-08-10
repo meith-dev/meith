@@ -39,7 +39,7 @@ export class FixtureActorSource implements ActorSource {
     const account = await this.store.accounts.findById(userId)
     if (!account) return null
 
-    // eslint-disable-next-line no-restricted-properties -- F20: reading the user's own primary group to assemble the actor's group ladder, exactly as ActorBuilder does in @meith/db
+    // eslint-disable-next-line no-restricted-properties -- reading the user's own primary group to assemble the actor's group ladder, exactly as ActorBuilder does in @meith/db
     const primaryGroupId = account.primaryGroupId ?? SEED_GROUP.registered
     const groupIds = [primaryGroupId]
 

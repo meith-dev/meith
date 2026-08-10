@@ -1,4 +1,4 @@
-# F12 — the gate every change passes.
+# The gate every change passes.
 #
 # Ordering is deliberate: the cheap, fast-failing checks run first so a trivial
 # mistake does not wait behind a Postgres container. The Postgres-backed job runs
@@ -51,7 +51,7 @@ jobs:
       - name: Textual invariants — probe
         run: pnpm guards:probe
 
-      # F25: a server-kind slot implemented by a "use client" module compiles,
+      # A server-kind slot implemented by a "use client" module compiles,
       # renders identically and ships the whole subtree to the browser. Only a
       # static check catches it, and only a probe proves the check still works.
       - name: Slot server/client boundary
@@ -60,36 +60,36 @@ jobs:
       - name: Slot server/client boundary — probe
         run: pnpm slots:probe
 
-      # F77: docs/theme-slots.md is generated from the theme contract. Failing
+      # docs/theme-slots.md is generated from the theme contract. Failing
       # here means the contract changed and its published reference did not —
       # which is how a theme author ends up writing against a field that was
       # removed two releases ago.
       - name: Theme API reference is current
         run: pnpm theme:docs:check
 
-      # F79: same arrangement for the hook registry. A hook renamed without its
+      # The same arrangement applies to the hook registry. A hook renamed without its
       # reference updated is a plugin author writing against a hook that no
       # longer fires — and nothing at runtime says so, because an unknown hook
       # name is just a handler nobody calls.
       - name: Plugin hook reference is current
         run: pnpm plugin:docs:check
 
-      # F80: fails on a hook literal that is not in the registry — the typo that
+      # This fails on a hook literal that is not in the registry — the typo that
       # would otherwise be a call nothing listens to, with no error anywhere.
       - name: Hook call sites resolve
         run: pnpm hooks:wired
 
-      # F81: the REST reference is read by people who cannot see the source, on
+      # The REST reference is read by people who cannot see the source, on
       # a board they do not run. A stale endpoint list is a client that 404s.
       - name: REST API reference is current
         run: pnpm api:docs:check
 
-      # F89: the p95 reference is generated from the budget registry and the
+      # The p95 reference is generated from the budget registry and the
       # recorded run. A published number no run produced is worse than none.
       - name: Performance reference is current
         run: pnpm perf:docs:check
 
-      # F88: not a generated file — the index is prose. What is checked is that
+      # Not a generated file — the index is prose. What is checked is that
       # every document in docs/ is reachable from it and every link resolves.
       # The new document is the one likeliest to matter and likeliest to be
       # missing from the list.
@@ -162,7 +162,7 @@ jobs:
       - name: Build the site
         run: pnpm site:build
 
-  # F04's acceptance criterion, and the half that was missing for its whole
+  # The deploy acceptance criterion, and the half that was missing for its whole
   # life: CI *builds* the standalone image and then **boots** it, in every role.
   #
   # Building only proves the Dockerfile parses. A boot proves the standalone
@@ -237,7 +237,7 @@ jobs:
           curl -fsS http://127.0.0.1:3000/ | grep -q '<main' \
             || { echo "::error::the board did not render"; docker logs forum-web; exit 1; }
 
-      # The worker role — F04's "the same image runs the worker with a flag".
+      # The worker role — proving "the same image runs the worker with a flag".
       # A worker that starts, registers its tasks and survives a tick is the
       # claim; anything less is a container that exits zero and does nothing.
       #
@@ -519,8 +519,7 @@ jobs:
       # No service container and no `DATA_SOURCE` here on purpose. The suite
       # brings its own Postgres — `e2e/support/database.ts`, started as the
       # first `webServer` — so CI runs exactly what a developer runs, which is
-      # the whole reason the write path is testable in a browser at all. See
-      # D66.
+      # the whole reason the write path is testable in a browser at all.
       - run: pnpm test:e2e
         env:
           NEXT_TELEMETRY_DISABLED: '1'
@@ -585,7 +584,7 @@ jobs:
       # *real* server rather than PGlite. Everything else here runs on PGlite,
       # which is the right trade — but it is a different driver, and the first
       # thing this suite found was a write path that PGlite accepted and every
-      # real Postgres rejected (D54). Without this variable the file skips, so a
+      # real Postgres rejected. Without this variable the file skips, so a
       # developer's `pnpm test` still needs no service.
       - name: Postgres-backed tests
         run: pnpm test
