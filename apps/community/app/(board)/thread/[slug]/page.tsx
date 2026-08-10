@@ -226,10 +226,6 @@ export default async function ThreadPage({
   const thread = await threads.findById(id, scope)
   if (!thread) notFound()
 
-  if (threadViews && after === undefined) {
-    await threadViews.record(thread.id).catch(() => undefined)
-  }
-
   const preferences = await getViewerPreferences()
 
   const requested = requestedPostId(query.post)
@@ -241,6 +237,10 @@ export default async function ThreadPage({
     if (location !== null) {
       redirect(locatedHref(`/thread/${thread.id}-${thread.slug}`, query, location))
     }
+  }
+
+  if (threadViews && after === undefined) {
+    await threadViews.record(thread.id).catch(() => undefined)
   }
 
   const postPage = await posts.listThread(thread.id, {
