@@ -1,0 +1,178 @@
+import { createHmac } from 'node:crypto'
+
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+
+import { E2E_DUES_WEBHOOK_SECRET } from './support/config'
+import { enterAdminPanel, signUp } from './support/session'
+
+test.describe.configure({ mode: 'serial' })
+
+function signedWebhook(body: string): { body: string; headers: Record<string, string> } {
+  const timestamp = Math.floor(Date.now() / 1000)
+  const mac = createHmac('sha256', E2E_DUES_WEBHOOK_SECRET)
+  mac.update(`${timestamp}.${body}`, 'utf8')
+  return {
+    body,
+    headers: {
+      'content-type': 'application/json',
+      'stripe-signature': `t=${timestamp},v1=${mac.digest('hex')}`,
+    },
+  }
+}
+
+let eventCounter = 0
+
+async function sendPaidWebhook(
+  request: APIRequestContext,
+  session: { id: string; amount: number },
+): Promise<void> {
+  eventCounter += 1
+  const payload = JSON.stringify({
+    id: `evt_e2e_${Date.now()}_${eventCounter}`,
+    type: 'checkout.session.completed',
+    data: {
+      object: {
+        id: session.id,
+        object: 'checkout.session',
+        payment_status: 'paid',
+        amount_total: session.amount,
+        currency: 'gbp',
+        subscription: null,
+        payment_intent: `pi_${session.id}`,
+        customer: 'cus_e2e',
+      },
+    },
+  })
+  const signed = signedWebhook(payload)
+  const response = await request.post('/api/plugins/dues/hook/stripe', {
+    data: signed.body,
+    headers: signed.headers,
+  })
+  expect(response.status()).toBe(200)
+  expect((await response.json()) as { outcome?: string }).toMatchObject({ received: true })
+}
+
+async function payOnFakeStripe(page: Page): Promise<string> {
+  await expect(page).toHaveURL(/127\.0\.0\.1:12111\/checkout\//)
+  const sessionId = page.url().split('/checkout/')[1] as string
+  await page.locator('#pay').click()
+  return sessionId
+}
+
+test('a guest sees the shop window but cannot buy', async ({ page }) => {
+  await page.goto('/plugins/dues')
+
+  await expect(page.getByRole('heading', { name: 'Membership', exact: true })).toBeVisible()
+  await expect(page.getByText('£12.00 · 90 days')).toBeVisible()
+  await expect(page.getByText('£5.00 every month')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Sign in to join' }).first()).toBeVisible()
+
+  await page.goto('/')
+  await expect(
+    page.getByRole('banner').getByRole('link', { name: 'Membership' }),
+  ).toBeVisible()
+})
+
+test('a member buys a 90-day pass and belongs before the receipt page reloads', async ({
+  page,
+  request,
+}) => {
+  await signUp(page, 'buyer')
+
+  await page.goto('/plugins/dues')
+  await page
+    .locator('section', { has: page.getByRole('heading', { name: '90-day pass' }) })
+    .getByRole('button', { name: 'Buy this pass' })
+    .click()
+
+  const sessionId = await payOnFakeStripe(page)
+
+  await expect(page).toHaveURL(/\/plugins\/dues\/return\?order=\d+$/)
+  await expect(
+    page.getByRole('heading', { name: 'Confirming your payment…' }),
+  ).toBeVisible()
+
+  await sendPaidWebhook(request, { id: sessionId, amount: 1200 })
+
+  await page.getByRole('link', { name: 'Check again' }).click()
+  await expect(page.getByRole('heading', { name: 'Paid, and done' })).toBeVisible()
+
+  await page.goto('/plugins/dues')
+  await expect(page.getByRole('heading', { name: 'What you hold' })).toBeVisible()
+  await expect(page.getByText('yours until')).toBeVisible()
+
+  await page.goto('/plugins/dues/manage')
+  await expect(page.getByText('pass-90')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Open the billing portal' })).toBeVisible()
+})
+
+test('a member gifts a pass to another member by name', async ({ page, request }) => {
+  const giver = await signUp(page, 'giver')
+  void giver
+
+  const recipientPage = await page.context().browser()!.newPage()
+  const recipient = await signUp(recipientPage, 'gifted')
+
+  await page.goto('/plugins/dues')
+  const passCard = page.locator('section', {
+    has: page.getByRole('heading', { name: '90-day pass' }),
+  })
+
+  await passCard.getByRole('textbox').fill('nobody_of_that_name')
+  await passCard.getByRole('button', { name: 'Buy this pass' }).click()
+  await expect(page.getByText('No member goes by that name')).toBeVisible()
+
+  const retryCard = page.locator('section', {
+    has: page.getByRole('heading', { name: '90-day pass' }),
+  })
+  await expect(retryCard.getByRole('textbox')).toHaveValue('nobody_of_that_name')
+  await retryCard.getByRole('textbox').fill(recipient)
+  await retryCard.getByRole('button', { name: 'Buy this pass' }).click()
+
+  const sessionId = await payOnFakeStripe(page)
+  await sendPaidWebhook(request, { id: sessionId, amount: 1200 })
+
+  await page.goto('/plugins/dues/manage')
+  await expect(page.getByRole('heading', { name: 'Gifts you bought' })).toBeVisible()
+  await expect(page.getByText('delivered')).toBeVisible()
+
+  await recipientPage.goto('/plugins/dues')
+  await expect(recipientPage.getByRole('heading', { name: 'What you hold' })).toBeVisible()
+  await recipientPage.close()
+})
+
+test('the webhook endpoint refuses an unsigned and a tampered event', async ({ request }) => {
+  const unsigned = await request.post('/api/plugins/dues/hook/stripe', {
+    data: JSON.stringify({ id: 'evt_x', type: 'invoice.paid', data: { object: {} } }),
+    headers: { 'content-type': 'application/json' },
+  })
+  expect(unsigned.status()).toBe(400)
+
+  const signed = signedWebhook('{"id":"evt_y","type":"invoice.paid","data":{"object":{}}}')
+  const tampered = await request.post('/api/plugins/dues/hook/stripe', {
+    data: '{"id":"evt_z","type":"invoice.paid","data":{"object":{}}}',
+    headers: signed.headers,
+  })
+  expect(tampered.status()).toBe(400)
+})
+
+test('the admin panel shows the machinery: status, events, memberships, ledger', async ({
+  page,
+}) => {
+  await enterAdminPanel(page)
+
+  await page.goto('/admin/plugins/dues/status')
+  await expect(page.getByRole('heading', { name: 'Is it working?' })).toBeVisible()
+  await expect(page.getByText('set', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('checkout.session.completed').first()).toBeVisible()
+
+  await page.goto('/admin/plugins/dues/members')
+  await expect(page.getByText('pass-90').first()).toBeVisible()
+
+  await page.goto('/admin/plugins/dues/ledger')
+  await expect(page.getByText('£12.00').first()).toBeVisible()
+
+  await page.goto('/admin/plugins/dues')
+  await expect(page.getByText('DUES_STRIPE_SECRET_KEY')).toBeVisible()
+  await expect(page.getByText('this box is inert').first()).toBeVisible()
+})

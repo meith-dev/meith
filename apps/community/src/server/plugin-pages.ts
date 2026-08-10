@@ -17,7 +17,6 @@ import type { ReactNode } from 'react'
 import forumConfig from '../../community.config'
 import { getSettingOverrides } from './settings'
 
-/** Short: this runs inside a page render or a request-path route handler. */
 const REQUEST_STATEMENT_TIMEOUT_MS = 3_000
 
 export function grantsFor(pluginKey: string): PluginGrants {
@@ -54,18 +53,12 @@ export type BoardPageResult =
   | { readonly outcome: 'missing' }
   | { readonly outcome: 'sign-in-first'; readonly title: string }
 
-/** The declared title of a plugin's board page, for metadata. Enablement is not checked. */
 export function pluginBoardPageTitle(pluginKey: string, path: string): string | null {
   const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === pluginKey)
   const definition = entry?.plugin as PluginDefinition | undefined
   return (definition?.pages ?? []).find((page) => page.path === path)?.title ?? null
 }
 
-/**
- * Resolves and renders a plugin's member-facing page. `missing` covers every
- * shape of "not here" — unknown plugin, unknown path, disabled either way —
- * because a page that is off should 404 exactly like one that never existed.
- */
 export async function renderPluginBoardPage(
   pluginKey: string,
   path: string,

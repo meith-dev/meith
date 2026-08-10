@@ -2,7 +2,6 @@ import type { PluginDefinition, PluginSetting, PluginSettingType } from './plugi
 
 export type PluginSettingValue = string | number | boolean
 
-/** Where a plugin can read its environment from. The host passes core's reader. */
 export type PluginEnvReader = (name: string) => string | undefined
 
 export type PluginSettingSource = 'environment' | 'board' | 'default'
@@ -11,7 +10,6 @@ export interface ResolvedPluginSetting {
   readonly setting: PluginSetting
   readonly value: PluginSettingValue
   readonly source: PluginSettingSource
-  /** `null` when the setting is fine; otherwise a sentence for the panel. */
   readonly problem: string | null
 }
 
@@ -79,9 +77,6 @@ function resolveOne(
     source = 'default'
   }
 
-  // A select that resolved to something outside its options is a stored
-  // value from an older version of the plugin; fall back rather than hand
-  // the plugin a value it never declared.
   if (type === 'select' && !(setting.options ?? []).some((option) => option.value === value)) {
     value = setting.default
     source = 'default'
@@ -111,12 +106,6 @@ export function resolvePluginSettings(
   return resolved
 }
 
-/**
- * The panel's view of the same resolution: each setting with the value the
- * plugin will actually see, where it came from, and what is wrong with it.
- * Environment beats board beats default — the same rule as `APP_URL` and the
- * mail settings, reported the same way.
- */
 export function resolvePluginSettingDetails(
   plugin: PluginDefinition,
   overrides: ReadonlyMap<string, string>,

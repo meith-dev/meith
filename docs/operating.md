@@ -447,6 +447,16 @@ set one: it keeps credentials out of the database and out of backups.
 > A plugin with unapplied migrations is running against a schema that does not
 > have what it expects. Treat that line as urgent, not informational.
 
+### Paid membership, in the tree
+
+The repository carries one full-size plugin beside the CI-only reference:
+[`plugins/dues`](../plugins/dues) sells time-limited membership of a group
+through Stripe — subscriptions, fixed-term passes, and passes bought as a
+gift for another member. Its [README](../plugins/dues/README.md) is the
+runbook: Stripe keys, the webhook to create, and what the operator still
+owns (tax, refund policy). It is registered like any other plugin and
+installed on no board by default.
+
 ### Removing one
 
 `npm uninstall`, a line out of `community.config.ts`, a redeploy — the three install

@@ -18,11 +18,6 @@ import { dataFor, grantsFor, usersFor } from './plugin-pages'
 import { getSettingOverrides } from './settings'
 import { viewerRef } from './plugin-view'
 
-/**
- * The headers a handler never sees. The session cookie is the board's — a
- * handler that could read it could replay it — and the same goes for anything
- * the middleware uses to talk to the render.
- */
 const STRIPPED_HEADERS = new Set(['cookie', 'authorization'])
 
 function json(body: unknown, status: number): Response {
@@ -36,12 +31,6 @@ function fail(status: number, code: string, message: string): Response {
   return json({ error: { code, message, requestId: currentRequestId() ?? null } }, status)
 }
 
-/**
- * A member POST must come from the board's own page. Origin is checked when
- * the browser sends one; a request without an Origin header is not a
- * cross-site form post, so it passes — CSRF rides cookies, and the modern
- * browsers that send those cookies send Origin on every POST.
- */
 function crossOrigin(request: Request): boolean {
   const origin = request.headers.get('origin')
   if (origin === null) return false
@@ -133,10 +122,11 @@ function redirectAllowed(to: string, definition: PluginDefinition): boolean {
     return false
   }
 
-  return (
-    url.protocol === 'https:' &&
-    (definition.allowedRedirectHosts ?? []).includes(url.host.toLowerCase())
-  )
+  const hostname = url.hostname.toLowerCase()
+  const loopback = hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '[::1]'
+  const scheme = url.protocol === 'https:' || (url.protocol === 'http:' && loopback)
+
+  return scheme && (definition.allowedRedirectHosts ?? []).includes(hostname)
 }
 
 function toResponse(
@@ -167,7 +157,6 @@ function toResponse(
         return fail(502, 'redirect_refused', 'The plugin answered with a redirect it may not make.')
       }
       return new Response(null, {
-        // 303 turns a form POST into a GET at the target; 307 keeps a GET a GET.
         status: method === 'POST' ? 303 : 307,
         headers: { location: answer.to, 'cache-control': 'no-store' },
       })
@@ -175,12 +164,6 @@ function toResponse(
   }
 }
 
-/**
- * The one dispatcher behind /api/plugins/[key]/[...path]. The host owns every
- * decision a plugin must not: whether the plugin is on, who may reach the
- * route, that a member POST came from the board's own origin, how big a body
- * may be, and where a redirect may point.
- */
 export async function dispatchPluginRoute(
   request: Request,
   pluginKey: string,
@@ -193,7 +176,6 @@ export async function dispatchPluginRoute(
 
   await syncOperatorDisables()
   if (!pluginHost.isEnabled(pluginKey)) {
-    // Off means gone, not broken: a disabled plugin has no endpoints.
     return fail(404, 'no_such_route', 'No such endpoint.')
   }
 

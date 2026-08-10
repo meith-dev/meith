@@ -194,20 +194,10 @@ export class PluginHost {
     }
   }
 
-  /**
-   * Whether the plugin is currently allowed to run here: registered, not
-   * switched off by the operator, and not auto-disabled by its own failures.
-   */
   isEnabled(pluginKey: string): boolean {
     return this.#isEnabled(pluginKey)
   }
 
-  /**
-   * Runs plugin code from a surface that is not a hook — a route handler, a
-   * page render — under the same accounting: timed, counted, failures logged
-   * against the plugin, auto-disable applied. `disabled` is the caller's cue
-   * to answer 404 rather than 500: an off plugin has no surfaces.
-   */
   async run<T>(
     pluginKey: string,
     surface: string,

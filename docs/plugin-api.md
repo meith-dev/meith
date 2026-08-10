@@ -316,8 +316,9 @@ bytes, which is what webhook signature verification needs.
   envelope has no header or cookie field at all. That single restriction is
   what stops a plugin route becoming a second authentication system.
 - **Redirects are allow-listed.** A relative path always passes; an absolute
-  URL must be https and its host declared in `allowedRedirectHosts`, so a
-  compromised setting cannot turn a board route into an open redirect.
+  URL must be https — plain http only to a loopback address, for a test
+  double — and its host declared in `allowedRedirectHosts`, so a compromised
+  setting cannot turn a board route into an open redirect.
 - **Bodies are capped** — 64 KiB by default, `maxBodyBytes` up to 1 MiB.
 - **Every response is `cache-control: no-store`.**
 - **A disabled plugin's routes 404** — operator-disabled and auto-disabled
@@ -329,6 +330,17 @@ bytes, which is what webhook signature verification needs.
 Two honest limits: route paths are exact matches (put ids in the query
 string, not the path), and there is no per-route rate limit yet — a route
 that does expensive work should do its own bookkeeping until there is.
+
+> [!NOTE]
+> **A form POST cannot 303 off the board.** The board's CSP pins
+> `form-action` to `'self'`, and browsers hold a form submission's whole
+> redirect chain to it — so a member-form route answering a redirect to a
+> payment provider is blocked by the browser, not by the host. The pattern
+> that works, without weakening the policy: 303 to one of your own pages
+> with the target in the query, validate it there against your
+> `allowedRedirectHosts`, and render a meta refresh plus a fallback link.
+> An ordinary navigation is outside `form-action`'s remit. `plugins/dues`
+> ships this as its `go` page.
 
 ## Board pages
 

@@ -3,6 +3,8 @@ import { defineConfig } from '@playwright/test'
 import {
   E2E_DATABASE_URL,
   E2E_DB_PORT,
+  E2E_DUES_WEBHOOK_SECRET,
+  E2E_FAKE_STRIPE_PORT,
   E2E_INSTALL_BASE_URL,
   E2E_INSTALL_DATABASE_URL,
   E2E_INSTALL_DB_PORT,
@@ -44,6 +46,13 @@ export default defineConfig({
       stdout: 'pipe',
     },
     {
+      command: 'pnpm exec tsx e2e/support/fake-stripe.ts',
+      port: E2E_FAKE_STRIPE_PORT,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+      stdout: 'pipe',
+    },
+    {
       command: 'pnpm --filter @meith/web run dev --hostname 127.0.0.1 --port 3001',
       url: 'http://127.0.0.1:3001',
       reuseExistingServer: !process.env.CI,
@@ -60,6 +69,10 @@ export default defineConfig({
         TICK_SECRET: 'e2e-only-tick-secret-000000000000',
         FORUM_DIST_DIR: '.next-e2e',
         NEXT_TELEMETRY_DISABLED: '1',
+        DUES_TEST_BOARD: '1',
+        DUES_STRIPE_SECRET_KEY: 'sk_test_e2e_0000000000000000',
+        DUES_STRIPE_WEBHOOK_SECRET: E2E_DUES_WEBHOOK_SECRET,
+        DUES_STRIPE_API_BASE: `http://127.0.0.1:${E2E_FAKE_STRIPE_PORT}`,
       },
     },
     {

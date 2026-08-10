@@ -28,7 +28,7 @@ const alpha = definePlugin({
   key: 'alpha',
   name: 'Alpha',
   version: '1.0.0',
-  allowedRedirectHosts: ['pay.example'],
+  allowedRedirectHosts: ['pay.example', '127.0.0.1'],
   routes: [
     {
       path: 'ping',
@@ -70,6 +70,18 @@ const alpha = definePlugin({
       method: 'GET',
       access: 'anonymous',
       handler: () => ({ kind: 'redirect', to: 'https://evil.example/' }),
+    },
+    {
+      path: 'local',
+      method: 'GET',
+      access: 'anonymous',
+      handler: () => ({ kind: 'redirect', to: 'http://127.0.0.1:12111/checkout/1' }),
+    },
+    {
+      path: 'insecure',
+      method: 'GET',
+      access: 'anonymous',
+      handler: () => ({ kind: 'redirect', to: 'http://pay.example/checkout/1' }),
     },
   ],
 })
@@ -293,6 +305,21 @@ describe('what a handler may answer', () => {
     expect(response.status).toBe(502)
     const body = (await response.json()) as { error: { code: string } }
     expect(body.error.code).toBe('redirect_refused')
+  })
+
+  it('allows plain http only to a declared loopback host — the test-double shape', async () => {
+    const local = await dispatchPluginRoute(request('/api/plugins/alpha/local'), 'alpha', [
+      'local',
+    ])
+    expect(local.status).toBe(307)
+    expect(local.headers.get('location')).toBe('http://127.0.0.1:12111/checkout/1')
+
+    const insecure = await dispatchPluginRoute(
+      request('/api/plugins/alpha/insecure'),
+      'alpha',
+      ['insecure'],
+    )
+    expect(insecure.status).toBe(502)
   })
 })
 

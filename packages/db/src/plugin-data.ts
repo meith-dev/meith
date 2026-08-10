@@ -8,23 +8,11 @@ import type { Tx } from './permission-version'
 import { resultRows } from './result-rows'
 
 export interface PluginDataOptions {
-  /**
-   * Applied as `set local statement_timeout` inside the transaction every
-   * call runs in — a limit the database enforces, which is the only kind that
-   * can actually stop a runaway query. Requests get a short one, tasks a
-   * longer one; the wiring decides.
-   */
   readonly statementTimeoutMs?: number
 }
 
 const DEFAULT_TIMEOUT_MS = 3_000
 
-/**
- * Interleaves `$1`-style placeholders with bound parameters, producing a
- * drizzle SQL fragment so the same text runs against postgres.js in
- * production and PGlite in tests, with the driver doing the binding — the
- * text is never string-interpolated.
- */
 export function bindPluginSql(
   text: string,
   params: readonly unknown[],
@@ -64,8 +52,6 @@ function onExecutor(executor: Tx, where: string): PluginData {
       const rows = await run(text, params ?? [])
       return (rows[0] ?? null) as never
     },
-    // Already inside the transaction: a nested tx joins it, so "everything in
-    // work commits together" stays true at every depth.
     async tx(work) {
       return work(data)
     },
@@ -73,11 +59,6 @@ function onExecutor(executor: Tx, where: string): PluginData {
   return data
 }
 
-/**
- * The host's implementation of the kit's `PluginData`. Every call — single
- * queries included — runs in a transaction so `set local statement_timeout`
- * has something to be local to.
- */
 export function pluginData(
   db: Database,
   pluginKey: string,
