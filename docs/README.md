@@ -15,6 +15,7 @@ server, on a domain, in about half an hour.
 | Running one | [Running a board](./operating.md) |
 | Upgrading one | [Upgrading a board](./upgrading.md) |
 | Deploying without a panel | [Deploying by hand](./self-hosting.md) |
+| Running a public demo of it | [Demo mode](./demo-mode.md) |
 | Writing a theme | [The theme API](./theme-api.md) |
 | Writing a plugin | [The plugin API](./plugin-api.md) |
 | Calling the API | [REST API v1](./rest-api.md) |
@@ -32,6 +33,7 @@ The path from nothing to a board people are posting on, and everything after.
 | [`operating.md`](./operating.md) | **The operator handbook.** Configuration, the operator CLI, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
 | [`upgrading.md`](./upgrading.md) | Taking a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
 | [`performance.md`](./performance.md) | The p95 budgets for hot pages, and what the last recorded run measured on a full-scale board. *Generated — do not edit.* |
+| [`demo-mode.md`](./demo-mode.md) | A public board with its password printed on it, seeded with content, that deletes everything and rebuilds itself on a timer. What runs at demo.meith.dev, and what it changes. |
 
 ## Advanced deployment
 

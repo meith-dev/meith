@@ -5,6 +5,7 @@ import { drivers } from '@meith/drivers'
 import { revalidatePath } from 'next/cache'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
+import { assertDemoIdentityUnchanged } from './demo'
 import { banService, requireUserAdmin, requireUserBulk, requireUserMerge } from './user-admin'
 import type { FormState } from './auth-form-state'
 
@@ -56,9 +57,13 @@ export async function saveMemberAccountAction(
       throw new ValidationError('No such display group.')
     }
 
+    const username = text(form, 'username')
+    const email = text(form, 'email')
+    await assertDemoIdentityUnchanged(id, { username, email })
+
     await requireUserAdmin().updateAccount(id, {
-      username: text(form, 'username'),
-      email: text(form, 'email'),
+      username,
+      email,
       primaryGroupId,
       displayGroupId,
     })

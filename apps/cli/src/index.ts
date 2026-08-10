@@ -3,6 +3,7 @@ import process from 'node:process'
 
 import { loadEnvFiles, type LoadedEnvFiles } from '@meith/core/env-files'
 
+import { demoReset, demoSeed } from './demo'
 import { importCommand } from './import'
 import { SECRET_ENV_KEYS } from './redaction'
 import { searchReindex } from './search'
@@ -251,6 +252,19 @@ const commands: Command[] = [
     name: 'search:reindex',
     summary: 'Build the full-text index for posts that have none. Resumable.',
     run: searchReindex,
+  },
+
+  {
+    name: 'demo:seed',
+    summary: 'Write the demo board into an empty database. Needs DEMO_MODE.',
+    run: demoSeed,
+  },
+
+  {
+    name: 'demo:reset',
+    summary: 'Drop everything and rebuild the demo board. Needs DEMO_MODE.',
+    usage: 'community demo:reset --yes',
+    run: demoReset,
   },
 ]
 
