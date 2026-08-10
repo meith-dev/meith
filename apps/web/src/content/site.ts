@@ -3,8 +3,11 @@ import type { Facts } from "./facts"
 
 export const site = {
   name: "Meith",
+  // What the header shows. `url` is what canonical links, the sitemap and
+  // robots.txt are built from, and it has to be the host that answers rather
+  // than the one that redirects to it.
   domain: "meith.dev",
-  url: "https://meith.dev",
+  url: "https://www.meith.dev",
   repository: "https://github.com/meith-dev/meith",
   tagline: "Open-source community software you run on your own server.",
   description:
