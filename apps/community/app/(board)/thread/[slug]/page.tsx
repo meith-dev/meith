@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 
-import type { PostLocation } from '@meith/posts'
 import { requireSlot } from '@meith/theme-kit'
 
 import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
@@ -40,7 +39,7 @@ import { identitiesFor } from '@/server/group-identity'
 import { activeVocabulary, activeWordFilter } from '@/server/content-admin'
 import { getSettings } from '@/server/settings'
 import { buildBreadcrumb } from '@/view/breadcrumb'
-import { postAnchor } from '@/view/post-link'
+import { locatedHref } from '@/view/post-link'
 import { buildThreadView, revealedFrom } from '@/view/thread-view'
 import {
   cardDescription,
@@ -143,25 +142,6 @@ function requestedPostId(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d*$/.test(value)) return null
   const id = Number(value)
   return Number.isSafeInteger(id) ? id : null
-}
-
-function locatedHref(
-  path: string,
-  query: Record<string, string | string[] | undefined>,
-  location: PostLocation,
-): string {
-  const params = new URLSearchParams()
-  for (const [key, value] of Object.entries(query)) {
-    if (value === undefined || key === 'post' || key === 'after' || key === 'page') continue
-    for (const one of typeof value === 'string' ? [value] : value) params.append(key, one)
-  }
-  if (location.afterId !== null) {
-    params.set('after', String(location.afterId))
-    params.set('page', String(location.page))
-  }
-
-  const search = params.toString()
-  return `${path}${search === '' ? '' : `?${search}`}#${postAnchor(location.number)}`
 }
 
 export default async function ThreadPage({
