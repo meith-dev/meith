@@ -28,10 +28,27 @@ export type PluginHooks = {
   readonly [K in HookName]?: HookHandler<K> | HookRegistration<K>
 }
 
+export type PluginSettingType = 'string' | 'secret' | 'number' | 'boolean' | 'select'
+
 export interface PluginSetting {
   readonly key: string
   readonly label: string
   readonly description?: string | undefined
+  /**
+   * Defaults to what `default` implies. `'secret'` is a string the panel
+   * renders write-only and never returns; `'select'` is a string constrained
+   * to `options`.
+   */
+  readonly type?: PluginSettingType | undefined
+  readonly options?: readonly { readonly value: string; readonly label: string }[] | undefined
+  /**
+   * An environment variable that overrides the stored value — the same rule
+   * as `APP_URL` and the mail settings: environment beats board, and the
+   * panel's box goes inert while it does.
+   */
+  readonly env?: string | undefined
+  /** Reported as a problem while unset; never blocks saving the others. */
+  readonly required?: boolean | undefined
   readonly default: string | number | boolean
   readonly advanced?: boolean | undefined
 }
@@ -194,6 +211,7 @@ const MIGRATION_ID_PATTERN = /^\d{4}_[a-z0-9_]{1,60}$/
 const TASK_ID_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
 const PAGE_PATH_PATTERN = /^[a-z][a-z0-9-]{0,39}$/
 const ROUTE_PATH_PATTERN = /^[a-z][a-z0-9-]{0,39}(\/[a-z0-9-]{1,40}){0,3}$/
+const ENV_NAME_PATTERN = /^[A-Z][A-Z0-9_]{2,63}$/
 const REDIRECT_HOST_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/
 
 export const MAX_ROUTE_BODY_BYTES = 1_048_576
@@ -326,6 +344,50 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
       throw new Error(
         `${where}: setting key "${setting.key}" must be lower-case letters, digits and ` +
           'underscores. It becomes plugin.<plugin>.<key> in the settings registry.',
+      )
+    }
+
+    const declared = setting.type
+    if (declared !== undefined) {
+      const expected: PluginSettingType[] =
+        typeof setting.default === 'boolean'
+          ? ['boolean']
+          : typeof setting.default === 'number'
+            ? ['number']
+            : ['string', 'secret', 'select']
+      if (!expected.includes(declared)) {
+        throw new Error(
+          `${where}: setting "${setting.key}" declares type "${declared}" but its default is ` +
+            `a ${typeof setting.default}. The default is what an unset board runs on; the two ` +
+            'cannot disagree.',
+        )
+      }
+    }
+
+    if (declared === 'secret' && setting.default !== '') {
+      throw new Error(
+        `${where}: secret setting "${setting.key}" must default to "". A shipped secret is ` +
+          'not a secret, and a working fallback credential is a credential in the repository.',
+      )
+    }
+
+    if (declared === 'select') {
+      const options = setting.options ?? []
+      if (options.length === 0) {
+        throw new Error(`${where}: select setting "${setting.key}" needs options.`)
+      }
+      if (!options.some((option) => option.value === setting.default)) {
+        throw new Error(
+          `${where}: select setting "${setting.key}" defaults to "${String(setting.default)}", ` +
+            'which is not one of its options.',
+        )
+      }
+    }
+
+    if (setting.env !== undefined && !ENV_NAME_PATTERN.test(setting.env)) {
+      throw new Error(
+        `${where}: setting "${setting.key}" names the environment variable "${setting.env}". ` +
+          'Use upper-case letters, digits and underscores, like DUES_STRIPE_SECRET_KEY.',
       )
     }
   }

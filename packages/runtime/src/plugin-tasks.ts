@@ -1,4 +1,4 @@
-import { logger } from '@meith/core'
+import { logger, readPluginEnv } from '@meith/core'
 import {
   PostgresSettingsRepository,
   pluginData,
@@ -34,7 +34,7 @@ export function pluginTasks(options: {
           const log = logger({ component: 'plugin-task', plugin: plugin.key })
 
           await task.run({
-            settings: resolvePluginSettings(plugin, overrides),
+            settings: resolvePluginSettings(plugin, overrides, readPluginEnv),
             logger: {
               info: (message, detail) => log.info(detail ?? {}, message),
               warn: (message, detail) => log.warn(detail ?? {}, message),

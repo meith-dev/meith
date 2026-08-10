@@ -355,6 +355,41 @@ that does work — the host's try/catch is around the call, and a component
 that throws later, inside React's own render, cannot be contained from the
 server.
 
+## Settings
+
+A setting declares a `type` when its default cannot say enough: `'secret'`
+and `'select'` are strings with extra rules, and `env` names an environment
+variable that overrides whatever the panel stores.
+
+```ts
+settings: [
+  { key: 'secret_key', label: 'API secret', type: 'secret',
+    env: 'MYPLUGIN_SECRET_KEY', required: true, default: '' },
+  { key: 'mode', label: 'Mode', type: 'select', default: 'off',
+    options: [{ value: 'off', label: 'Off' }, { value: 'live', label: 'Live' }] },
+]
+```
+
+**Resolution is environment, then board, then default** — the same rule as
+`APP_URL` and the mail settings. When the variable is set, the panel's box
+goes inert and says which variable owns it, so nobody edits a field that
+cannot take effect.
+
+**A secret is write-only.** `definePlugin` refuses one with a shipped default
+(a working fallback credential is a credential in the repository). The panel
+shows *that* a value is set, never the value; a blank submit keeps what is
+stored, because the form can never show the current value to re-submit. A
+secret's value reaches the plugin's runtime context and nowhere else.
+
+**`required` reports, it does not block.** An unset required setting is a
+named problem on the plugin's screen — set it here or with `THE_VARIABLE` —
+rather than a save that refuses everything else. A board mid-setup can still
+be configured a field at a time.
+
+A `select` whose stored value is no longer among its options — an older
+version of the plugin declared more — resolves to the default instead of
+handing the plugin a value it never declared.
+
 ## Migrations
 
 Forward-only, like core's, and for the same reason: a down migration that drops a

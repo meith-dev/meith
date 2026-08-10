@@ -3,6 +3,7 @@ export {
   assertEnv,
   assertRuntimeEnv,
   parseEnv,
+  readPluginEnv,
   resetEnvForTests,
   isProduction,
   isTest,

@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { logger } from '@meith/core'
+import { logger, readPluginEnv } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 import {
   DEFAULT_ROUTE_BODY_BYTES,
@@ -248,7 +248,7 @@ export async function dispatchPluginRoute(
 
   const outcome = await pluginHost.run(pluginKey, `route ${method} ${path}`, () =>
     route.handler(pluginRequest, {
-      settings: resolvePluginSettings(definition, overrides),
+      settings: resolvePluginSettings(definition, overrides, readPluginEnv),
       logger: {
         info: (message, detail) => log.info(detail ?? {}, message),
         warn: (message, detail) => log.warn(detail ?? {}, message),

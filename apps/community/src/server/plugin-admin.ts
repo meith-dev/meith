@@ -1,13 +1,16 @@
 import 'server-only'
 
-import { env, logger } from '@meith/core'
+import { env, logger, readPluginEnv } from '@meith/core'
 import { appliedPluginMigrations, getDb } from '@meith/db'
 import {
   pluginAdminPath,
+  pluginSettingType,
   pluginTaskId,
-  resolvePluginSettings,
+  resolvePluginSettingDetails,
   type PluginDefinition,
   type PluginHealth,
+  type PluginSettingSource,
+  type PluginSettingType,
   type PluginSettingValue,
 } from '@meith/plugin-kit'
 
@@ -15,7 +18,7 @@ import forumConfig from '../../community.config'
 import { configuredPlugins, pluginHost } from './plugin-host'
 import { getSettingOverrides } from './settings'
 
-export type PluginSettingKind = 'string' | 'number' | 'boolean'
+export type PluginSettingKind = PluginSettingType
 
 export interface PluginSettingRow {
   readonly key: string
@@ -23,9 +26,16 @@ export interface PluginSettingRow {
   readonly description: string | null
   readonly advanced: boolean
   readonly kind: PluginSettingKind
+  /** '' for a secret, whatever is stored or not: the value never leaves the server. */
   readonly default: PluginSettingValue
   readonly value: PluginSettingValue
   readonly overridden: boolean
+  readonly source: PluginSettingSource
+  /** For secrets: whether a non-empty value is in force, without saying what it is. */
+  readonly set: boolean
+  readonly options: readonly { readonly value: string; readonly label: string }[]
+  readonly envName: string | null
+  readonly problem: string | null
 }
 
 export interface PluginMigrationRow {
@@ -77,11 +87,6 @@ function definitionsByKey(): ReadonlyMap<string, PluginDefinition | undefined> {
   )
 }
 
-function settingKind(value: PluginSettingValue): PluginSettingKind {
-  if (typeof value === 'boolean') return 'boolean'
-  if (typeof value === 'number') return 'number'
-  return 'string'
-}
 
 async function appliedByPlugin(
   keys: readonly string[],
@@ -117,7 +122,10 @@ export async function pluginInventory(): Promise<PluginInventory> {
     const configuredEnabled = entry.enabled
     const operatorEnabled = overrides.get(`plugin.${entry.key}._enabled`) !== '0'
     const entryHealth = health.get(entry.key) ?? null
-    const resolved = definition === undefined ? {} : resolvePluginSettings(definition, overrides)
+    const details =
+      definition === undefined
+        ? []
+        : resolvePluginSettingDetails(definition, overrides, readPluginEnv)
 
     return {
       key: entry.key,
@@ -135,16 +143,27 @@ export async function pluginInventory(): Promise<PluginInventory> {
       hooks: Object.keys(definition?.hooks ?? {}).sort(),
       regions: [...new Set((definition?.contributions ?? []).map((c) => c.region))].sort(),
 
-      settings: (definition?.settings ?? []).map((setting): PluginSettingRow => ({
-        key: setting.key,
-        label: setting.label,
-        description: setting.description ?? null,
-        advanced: setting.advanced === true,
-        kind: settingKind(setting.default),
-        default: setting.default,
-        value: resolved[setting.key] ?? setting.default,
-        overridden: overrides.has(`plugin.${entry.key}.${setting.key}`),
-      })),
+      settings: details.map(({ setting, value, source, problem }): PluginSettingRow => {
+        const kind = pluginSettingType(setting)
+        const secret = kind === 'secret'
+        return {
+          key: setting.key,
+          label: setting.label,
+          description: setting.description ?? null,
+          advanced: setting.advanced === true,
+          kind,
+          // A secret's value never reaches a row: the panel learns that one
+          // is set, not what it is.
+          default: secret ? '' : setting.default,
+          value: secret ? '' : value,
+          overridden: overrides.has(`plugin.${entry.key}.${setting.key}`),
+          source,
+          set: typeof value === 'string' ? value !== '' : true,
+          options: setting.options ?? [],
+          envName: setting.env ?? null,
+          problem,
+        }
+      }),
 
       migrations: (definition?.migrations ?? []).map((migration): PluginMigrationRow => ({
         id: migration.id,

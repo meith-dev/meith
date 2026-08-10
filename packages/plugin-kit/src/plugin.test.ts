@@ -170,6 +170,42 @@ describe('definePlugin', () => {
     })
   })
 
+  describe('typed settings', () => {
+    const setting = (overrides: Record<string, unknown> = {}) => ({
+      settings: [{ key: 'api_key', label: 'Key', default: '', ...overrides }],
+    })
+
+    it('refuses a type that disagrees with the default', () => {
+      expect(() => plugin(setting({ type: 'number' }))).toThrow(/cannot disagree/)
+      expect(() => plugin(setting({ type: 'boolean', default: 'x' }))).toThrow(/cannot disagree/)
+    })
+
+    it('refuses a secret with a shipped default', () => {
+      expect(() => plugin(setting({ type: 'secret', default: 'sk_live_oops' }))).toThrow(
+        /shipped secret/i,
+      )
+      expect(() => plugin(setting({ type: 'secret' }))).not.toThrow()
+    })
+
+    it('refuses a select without options, or defaulting off the list', () => {
+      expect(() => plugin(setting({ type: 'select' }))).toThrow(/options/)
+      expect(() =>
+        plugin(
+          setting({
+            type: 'select',
+            default: 'x',
+            options: [{ value: 'a', label: 'A' }],
+          }),
+        ),
+      ).toThrow(/not one of its options/)
+    })
+
+    it('refuses a malformed environment variable name', () => {
+      expect(() => plugin(setting({ env: 'lower_case' }))).toThrow(/environment variable/)
+      expect(() => plugin(setting({ env: 'MY_PLUGIN_KEY' }))).not.toThrow()
+    })
+  })
+
   describe('routes and pages', () => {
     const route = (overrides: Record<string, unknown> = {}) => ({
       path: 'ping',

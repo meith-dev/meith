@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 import {
   parsePluginSetting,
   pluginEnabledKey,
+  pluginSettingType,
   serialisePluginSetting,
   type PluginDefinition,
 } from '@meith/plugin-kit'
@@ -89,13 +90,36 @@ export async function savePluginSettingsAction(
     const updates = new Map<string, string>()
     for (const setting of declared) {
       const field = `setting.${setting.key}`
+      const type = pluginSettingType(setting)
+      const raw = form.get(field)
 
-      if (typeof setting.default === 'boolean') {
-        updates.set(`plugin.${key}.${setting.key}`, form.get(field) === '1' ? '1' : '0')
+      // A field the environment owns arrives disabled and absent; writing a
+      // stored value under it would be a value nobody sees until the
+      // variable is unset, which is a surprise saved up for later.
+      if (raw === null && type !== 'boolean') continue
+
+      if (type === 'boolean') {
+        updates.set(`plugin.${key}.${setting.key}`, raw === '1' ? '1' : '0')
         continue
       }
 
-      const raw = form.get(field)
+      if (type === 'secret') {
+        // Write-only: blank means "keep what is stored", because the form
+        // can never show the current value to re-submit.
+        if (typeof raw !== 'string' || raw === '') continue
+        updates.set(`plugin.${key}.${setting.key}`, raw)
+        continue
+      }
+
+      if (type === 'select') {
+        const value = typeof raw === 'string' ? raw : ''
+        if (!(setting.options ?? []).some((option) => option.value === value)) {
+          throw new ValidationError(`“${setting.label}” must be one of its listed options.`)
+        }
+        updates.set(`plugin.${key}.${setting.key}`, value)
+        continue
+      }
+
       const parsed = parsePluginSetting(setting, typeof raw === 'string' ? raw : '')
       if (parsed === null) {
         throw new ValidationError(

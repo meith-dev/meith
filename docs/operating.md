@@ -436,6 +436,13 @@ a plugin is misbehaving — you do not need to deploy to stop one.
 obey the disable switch: a plugin that is off answers 404 everywhere, the
 same as one that was never installed.
 
+**Plugin credentials go in either of two places, and the screen says which
+one is winning.** A secret-type setting can be filled in the panel — the
+field is write-only; the board will tell you a value is set but never show
+it — or supplied as the environment variable named beside the field, which
+overrides the panel and greys its box. Prefer the environment where you can
+set one: it keeps credentials out of the database and out of backups.
+
 > [!WARNING]
 > A plugin with unapplied migrations is running against a schema that does not
 > have what it expects. Treat that line as urgent, not informational.

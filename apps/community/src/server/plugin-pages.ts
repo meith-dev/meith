@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { env, logger } from '@meith/core'
+import { env, logger, readPluginEnv } from '@meith/core'
 import { getDb, pluginData, pluginGrants, pluginUsers } from '@meith/db'
 import {
   resolvePluginSettings,
@@ -94,7 +94,7 @@ export async function renderPluginBoardPage(
       outcome: 'rendered',
       title: page.title,
       node: await page.render({
-        settings: resolvePluginSettings(definition, overrides),
+        settings: resolvePluginSettings(definition, overrides, readPluginEnv),
         logger: {
           info: (message, detail) => log.info(detail ?? {}, message),
           warn: (message, detail) => log.warn(detail ?? {}, message),
@@ -137,7 +137,7 @@ export async function renderPluginAdminPage(
     return {
       title: page.title,
       node: await page.render({
-        settings: resolvePluginSettings(definition, overrides),
+        settings: resolvePluginSettings(definition, overrides, readPluginEnv),
         logger: {
           info: (message, detail) => log.info(detail ?? {}, message),
           warn: (message, detail) => log.warn(detail ?? {}, message),

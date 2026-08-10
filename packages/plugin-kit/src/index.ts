@@ -50,6 +50,7 @@ export {
   type PluginRouteAccess,
   type PluginRuntimeContext,
   type PluginSetting,
+  type PluginSettingType,
   type PluginTask,
   type PluginViewer,
 } from './plugin'
@@ -58,9 +59,14 @@ export {
   operatorDisabledPlugins,
   parsePluginSetting,
   pluginEnabledKey,
+  pluginSettingType,
+  resolvePluginSettingDetails,
   resolvePluginSettings,
   serialisePluginSetting,
+  type PluginEnvReader,
+  type PluginSettingSource,
   type PluginSettingValue,
+  type ResolvedPluginSetting,
 } from './settings'
 
 export {

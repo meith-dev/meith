@@ -6,6 +6,8 @@ import {
   operatorDisabledPlugins,
   parsePluginSetting,
   pluginEnabledKey,
+  pluginSettingType,
+  resolvePluginSettingDetails,
   resolvePluginSettings,
   serialisePluginSetting,
 } from './settings'
@@ -184,5 +186,88 @@ describe('the host’s operator switch', () => {
       operatorDisabled: false,
       disabledReason: 'failed 5 times',
     })
+  })
+})
+
+describe('typed settings and the environment override', () => {
+  const plugin = definePlugin({
+    key: 'billing',
+    name: 'Billing',
+    version: '1.0.0',
+    settings: [
+      {
+        key: 'secret_key',
+        label: 'API secret',
+        type: 'secret',
+        env: 'BILLING_SECRET_KEY',
+        required: true,
+        default: '',
+      },
+      {
+        key: 'mode',
+        label: 'Mode',
+        type: 'select',
+        options: [
+          { value: 'off', label: 'Off' },
+          { value: 'live', label: 'Live' },
+        ],
+        default: 'off',
+      },
+      { key: 'label', label: 'Label', default: 'Membership' },
+    ],
+  })
+
+  const none = new Map<string, string>()
+
+  it('environment beats board beats default, and says so', () => {
+    const stored = new Map([['plugin.billing.secret_key', 'sk_stored']])
+    const env = (name: string) => (name === 'BILLING_SECRET_KEY' ? 'sk_env' : undefined)
+
+    const fromBoth = resolvePluginSettings(plugin, stored, env)
+    expect(fromBoth.secret_key).toBe('sk_env')
+
+    const fromBoard = resolvePluginSettings(plugin, stored)
+    expect(fromBoard.secret_key).toBe('sk_stored')
+
+    const details = resolvePluginSettingDetails(plugin, stored, env)
+    expect(details.map((d) => [d.setting.key, d.source])).toEqual([
+      ['secret_key', 'environment'],
+      ['mode', 'default'],
+      ['label', 'default'],
+    ])
+  })
+
+  it('an empty environment value does not override', () => {
+    const stored = new Map([['plugin.billing.secret_key', 'sk_stored']])
+    const resolved = resolvePluginSettings(plugin, stored, () => '  ')
+    expect(resolved.secret_key).toBe('sk_stored')
+  })
+
+  it('a select outside its options falls back to the default', () => {
+    const stored = new Map([['plugin.billing.mode', 'test']])
+    expect(resolvePluginSettings(plugin, stored).mode).toBe('off')
+
+    const detail = resolvePluginSettingDetails(plugin, stored).find(
+      (d) => d.setting.key === 'mode',
+    )
+    expect(detail?.source).toBe('default')
+  })
+
+  it('reports a required, unset setting as a problem — naming the variable that could set it', () => {
+    const [detail] = resolvePluginSettingDetails(plugin, none)
+    expect(detail?.problem).toMatch(/required/)
+    expect(detail?.problem).toContain('BILLING_SECRET_KEY')
+
+    const satisfied = resolvePluginSettingDetails(plugin, none, () => 'sk_env')
+    expect(satisfied[0]?.problem).toBeNull()
+  })
+
+  it('pluginSettingType infers from the default and honours a declaration', () => {
+    expect(pluginSettingType({ key: 'a', label: 'a', default: true })).toBe('boolean')
+    expect(pluginSettingType({ key: 'a', label: 'a', default: 3 })).toBe('number')
+    expect(pluginSettingType({ key: 'a', label: 'a', default: 'x' })).toBe('string')
+    expect(pluginSettingType({ key: 'a', label: 'a', type: 'secret', default: '' })).toBe(
+      'secret',
+    )
   })
 })

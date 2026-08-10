@@ -6,6 +6,7 @@ const stored = { current: new Map<string, string>() }
 
 vi.mock('@meith/core', () => ({
   logger: () => ({ info: () => {}, warn: () => {}, error: () => {} }),
+  readPluginEnv: () => undefined,
 }))
 
 vi.mock('@meith/db', () => ({

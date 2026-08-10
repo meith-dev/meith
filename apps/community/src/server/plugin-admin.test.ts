@@ -50,6 +50,7 @@ vi.mock('@meith/core', () => ({
     return { DATA_SOURCE: dataSource.current }
   },
   logger: () => ({ warn: () => {}, info: () => {}, error: () => {} }),
+  readPluginEnv: () => undefined,
 }))
 
 vi.mock('@meith/db', () => ({
@@ -162,6 +163,11 @@ describe('settings', () => {
         default: 'https://example.test',
         value: 'https://example.test',
         overridden: false,
+        source: 'default',
+        set: true,
+        options: [],
+        envName: null,
+        problem: null,
       },
       {
         key: 'verbose',
@@ -172,8 +178,47 @@ describe('settings', () => {
         default: false,
         value: false,
         overridden: false,
+        source: 'default',
+        set: true,
+        options: [],
+        envName: null,
+        problem: null,
       },
     ])
+  })
+
+  it('never returns a secret value — only that one is set, and where from', async () => {
+    config.current.plugins = [
+      {
+        key: 'alpha',
+        plugin: {
+          key: 'alpha',
+          name: 'Alpha',
+          version: '1.0.0',
+          settings: [
+            {
+              key: 'secret_key',
+              label: 'Secret',
+              type: 'secret',
+              env: 'ALPHA_SECRET',
+              default: '',
+            },
+          ],
+        },
+      },
+    ]
+    overrides.current = new Map([['plugin.alpha.secret_key', 'sk_live_do_not_show']])
+
+    const [row] = (await pluginInventory()).plugins
+    expect(row?.settings[0]).toMatchObject({
+      kind: 'secret',
+      value: '',
+      default: '',
+      set: true,
+      source: 'board',
+      envName: 'ALPHA_SECRET',
+    })
+    expect(JSON.stringify(row?.settings)).not.toContain('sk_live_do_not_show')
   })
 
   it('marks a stored value as overridden, so the screen can say so', async () => {
