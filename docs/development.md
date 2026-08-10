@@ -214,7 +214,7 @@ who cannot see the source is worse than no reference when it is wrong.
 ## The documentation itself
 
 `docs/*.md` is the one editable copy. The site at
-[meith.dev/docs](https://meith.dev/docs) renders those same files at build time
+[www.meith.dev/docs](https://www.meith.dev/docs) renders those same files at build time
 and holds no copy of any of them, so a correction is one edit in one place.
 
 Adding a document means putting it in `docs/`, naming it in

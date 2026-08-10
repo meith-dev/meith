@@ -48,6 +48,14 @@ healthy, `web` and `worker` wait for `migrate` to exit successfully. The
 attachments and the board logo go through one file store; CI proves the sharing
 by writing a file from one container and reading it from the other.
 
+One deployment deliberately breaks this shape:
+[demo mode](./demo-mode.md). Its compose file
+([`docker-compose.demo.coolify.yml`](../docker-compose.demo.coolify.yml)) runs
+no worker — a `ticker` service drives `POST /api/system/tick` against the web
+container instead, because the demo's reset task must clear a cache that lives
+in the web server's own process — carries no volumes, and replaces the
+`migrate` one-shot with a `seed` that builds the demo board outright.
+
 This shape is why the README calls serverless a non-starter: a board needs a
 scheduler that fires every minute (the worker — or a cron hitting
 `POST /api/system/tick`), a disk that survives restarts (the volume, or S3),
@@ -57,7 +65,12 @@ assumes all three.
 The fourth app, `apps/web`, is **meith.dev itself** — the landing page and
 these documents. It shares no code with the board: its only coupling to the
 rest of the workspace is reading `docs/*.md` and the generated references off
-disk at build time. Every page of it is prerendered.
+disk at build time. Every page of it is prerendered. It ships as its own image
+([`Dockerfile.site`](../Dockerfile.site), a standalone Next.js build) deployed
+as a separate resource beside the board
+([`docker-compose.site.coolify.yml`](../docker-compose.site.coolify.yml)) — it
+holds no data and reads nothing the board writes, and nobody self-hosting a
+board needs it.
 
 ## The layers
 
@@ -98,8 +111,9 @@ The load-bearing rules, each a named `error` in
 | `plugins-use-the-kit-only` | A plugin importing anything but `@meith/plugin-kit`. The host isolates failures, not privilege; a plugin with database access can read anything. |
 | `ui-is-presentation-only` | `@meith/ui` fetching data. |
 
-`runtime`, `db` and `drivers` are deliberately *outside* the protected domain
-list — "does this module choose an implementation?" is the question that
+`runtime`, `db`, `drivers` — and `demo`, whose seed and reset speak SQL and
+run migrations by nature — are deliberately *outside* the protected domain
+list; "does this module choose an implementation?" is the question that
 decides which side of the line a package sits on.
 
 ### The floor: `@meith/core`
@@ -189,7 +203,9 @@ Implementations of the four core ports, selected by environment:
 
 Mail is the deliberate exception to env-only selection: it is board
 configuration an admin edits at runtime, so `ConfiguredMailDriver` resolves
-its transport per send — environment first, then the settings table.
+its transport per send — environment first, then the settings table. Demo mode
+pins mail to nowhere *before* both, because on a demo the settings table is
+written by whoever visited last.
 `DATA_SOURCE` does not pick drivers directly; it derives their defaults
 (`postgres` implies the Postgres queue and the Next cache, `fixture` implies
 memory) and the composition roots pick the repository set.
@@ -314,12 +330,18 @@ outstanding"), never "run at 03:00", so a missed day is caught up rather than
 lost. Eighteen built-in tasks ride this: the outbox relay, queue drain and
 instant subscriptions at 60 s, down through digest and sweep work to counter
 reconciliation every six hours. Plugin tasks join the same schedule under a
-namespaced id.
+namespaced id. [Demo mode](./demo-mode.md) adjusts the list at both ends:
+webhook delivery is never registered — the task does not exist rather than
+existing and refusing — and `demo.reset` joins, added in the web container's
+composition root rather than `buildSchedulerBundle()`, because that is the
+only root whose in-process cache the reset can invalidate.
 
 The tick has two drivers — the worker process (in-process, every 60 s, keeps
 running when the web container is down) and the `TICK_SECRET`-guarded HTTP
 route for deployments where a cron must do it. Same `tick()`, same claim
-semantics, no coordination needed between them.
+semantics, no coordination needed between them. The demo deployment is the
+shape that runs on the HTTP driver alone, for the cache-locality reason
+above.
 
 ## The extension surfaces
 
@@ -382,8 +404,10 @@ checks it mechanically: dependency-cruiser for every arrow in the layer
 diagram, textual guards (each with a probe proving it still fires) for the
 invariants a type cannot express, the slot-boundary check, a check that every
 declared hook has a call site, and staleness checks for every generated
-reference — including the manifest that publishes these documents. The full
-list, with what each gate catches, is in
+reference — including the manifest that publishes these documents. The browser
+suite holds the same line at runtime: a reporter reads the dev server's output
+and fails the run on any unhandled server error, however many tests passed.
+The full list, with what each gate catches, is in
 [Development](./development.md#the-scripts-that-fail-on-purpose).
 
 ## Where to read next
@@ -395,3 +419,4 @@ list, with what each gate catches, is in
 | To write a theme | [The theme API](./theme-api.md) |
 | To write a plugin | [The plugin API](./plugin-api.md) |
 | The deployment shapes in detail | [Deploying by hand](./self-hosting.md) |
+| The board that resets itself | [Demo mode](./demo-mode.md) |
