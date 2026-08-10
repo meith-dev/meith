@@ -1,5 +1,5 @@
 #!/bin/sh
-# F04 — one image, three roles.
+# One image, three roles.
 #
 # The web server, the worker and the migrator run the same code from the same
 # build; the only difference is which process starts. A flag rather than three

@@ -109,9 +109,8 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 
 <!-- docs:table end -->
 
-[`docs/README.md`](./docs/README.md) is the same set again, with the roadmap, the
-progress log and the other working records the site deliberately does not
-publish.
+[`docs/README.md`](./docs/README.md) is the same set, read from the repository
+rather than the site.
 
 ## Development
 

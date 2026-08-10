@@ -47,8 +47,8 @@ describe("linkResolver", () => {
   })
 
   it("sends an unpublished document to the repository rather than to a 404", () => {
-    expect(fromDocs("./roadmap.md")).toEqual({
-      href: `${site.repository}/blob/main/docs/roadmap.md`,
+    expect(fromDocs("./internal-notes.md")).toEqual({
+      href: `${site.repository}/blob/main/docs/internal-notes.md`,
       external: true,
     })
     expect(fromDocs("./notes")).toEqual({
@@ -85,11 +85,10 @@ describe("the published set", () => {
     expect(new Set(readingOrder.map((doc) => doc.slug)).size).toBe(documents.length)
   })
 
-  it("keeps the progress records off the site", () => {
-    const hidden = internalDocuments.map((doc) => doc.file)
-    for (const file of ["roadmap.md", "plan-status.md", "progress.md", "deviations.md"]) {
-      expect(hidden).toContain(file)
-      expect(documents.map((doc) => doc.file)).not.toContain(file)
+  it("never publishes a document marked internal", () => {
+    const hiddenFiles = new Set(internalDocuments.map((doc) => doc.file))
+    for (const document of documents) {
+      expect(hiddenFiles.has(document.file)).toBe(false)
     }
   })
 })

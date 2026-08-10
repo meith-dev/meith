@@ -27,7 +27,7 @@ export default tseslint.config(
     },
     rules: {
       /*
-       * F02: the AST-precise half of the "one env reader" invariant.
+       * The AST-precise half of the "one env reader" invariant.
        *
        * scripts/guards.mjs already greps for this, but a regex cannot tell a
        * real read from the word appearing in a comment or string, and cannot be
@@ -45,20 +45,20 @@ export default tseslint.config(
           property: 'env',
           message:
             'Read configuration from `env` in @meith/core instead. It validates ' +
-            'every variable once at boot (F02) so a typo fails fast with a ' +
+            'every variable once at boot so a typo fails fast with a ' +
             'readable message rather than surfacing as `undefined` at runtime.',
         },
         {
           property: 'groupIds',
           message:
-            'Group IDs must not leak outside @meith/authorization (F20). Ask ' +
+            'Group IDs must not leak outside @meith/authorization. Ask ' +
             'the Authorizer `can(actor, action, target)` instead of branching ' +
             'on group membership.',
         },
         {
           property: 'primaryGroupId',
           message:
-            'Group IDs must not leak outside @meith/authorization (F20). Ask ' +
+            'Group IDs must not leak outside @meith/authorization. Ask ' +
             'the Authorizer instead of branching on the primary group.',
         },
       ],
@@ -140,7 +140,7 @@ export default tseslint.config(
         {
           object: 'process',
           property: 'env',
-          message: 'Read configuration from `env` in @meith/core instead (F02).',
+          message: 'Read configuration from `env` in @meith/core instead.',
         },
       ],
     },
@@ -154,7 +154,7 @@ export default tseslint.config(
         {
           object: 'process',
           property: 'env',
-          message: 'Read configuration from `env` in @meith/core instead (F02).',
+          message: 'Read configuration from `env` in @meith/core instead.',
         },
       ],
     },
@@ -168,7 +168,7 @@ export default tseslint.config(
         {
           object: 'process',
           property: 'env',
-          message: 'Read configuration from `env` in @meith/core instead (F02).',
+          message: 'Read configuration from `env` in @meith/core instead.',
         },
       ],
     },

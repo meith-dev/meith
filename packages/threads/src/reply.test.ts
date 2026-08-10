@@ -259,7 +259,7 @@ describe('quotePrefill', () => {
   })
 })
 
-describe('warning restrictions (F53)', () => {
+describe('warning restrictions', () => {
   it('refuses a suspended author', async () => {
     const posts = new RecordingReplies()
 

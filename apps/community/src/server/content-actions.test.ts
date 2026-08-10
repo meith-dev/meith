@@ -443,7 +443,7 @@ class FakePostWrites implements PostWriteRepository {
   }
 }
 
-describe('F41 post actions', () => {
+describe('post actions', () => {
   let postWrites: FakePostWrites
 
   beforeEach(() => {

@@ -1,10 +1,10 @@
 /**
- * F25 — proof that the plain-data constraint is not inert.
+ * Proof that the plain-data constraint is not inert.
  *
  * `view-models.ts` asserts at compile time that every slot model is JSON-shaped.
  * That assertion passing tells you nothing on its own: a `Serialisable<T>` that
- * had been broadened to `unknown` would pass just as quietly (D10 — prove every
- * gate with a deliberate violation).
+ * had been broadened to `unknown` would pass just as quietly (the reason every
+ * gate here is proven with a deliberate violation).
  *
  * This file is that deliberate violation, made permanent. It runs under
  * `pnpm typecheck` and `pnpm typecheck:app`, and **fails in both directions**:

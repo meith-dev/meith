@@ -318,8 +318,8 @@ export const PERMISSION_FIELDS = [
     scope: 'global',
     fallback: false,
     description:
-      'Rate other members (F62). Global like canReportContent: reputation is ' +
-      'a board-wide capability, so it is not in the F22 forum matrix.',
+      'Rate other members. Global like canReportContent: reputation is ' +
+      'a board-wide capability, so it is not in the per-forum permission matrix.',
   },
   {
     key: 'maxReputationPerDay',
@@ -336,7 +336,7 @@ export const PERMISSION_FIELDS = [
     description:
       'How many private messages a member may keep. 0 = unlimited. Distinct ' +
       'from maxPrivateMessagesPerDay, which is a send rate: this one is ' +
-      'storage, and it is what a full inbox means (F60).',
+      'storage, and it is what a full inbox means.',
   },
   {
     key: 'maxSignatureLength',

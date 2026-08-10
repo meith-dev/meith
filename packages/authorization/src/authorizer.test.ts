@@ -91,7 +91,7 @@ describe('forum-scoped action without a resolved matrix', () => {
   })
 })
 
-describe('flood.bypass (F39/F40)', () => {
+describe('flood.bypass', () => {
   it('is granted by the permission, without any forum context', () => {
     const actor = actorWith({ canBypassFloodCheck: true })
 
@@ -113,7 +113,7 @@ describe('flood.bypass (F39/F40)', () => {
   })
 })
 
-describe('applicableGroupRows (F59)', () => {
+describe('applicableGroupRows', () => {
   const rows = [
     { fieldId: 1, groupId: 2, canView: true },
     { fieldId: 1, groupId: 4, canView: false },

@@ -184,22 +184,6 @@
     {
       "file": "README.md",
       "reason": "The index for people reading the repository. On the site, /docs is the index."
-    },
-    {
-      "file": "roadmap.md",
-      "reason": "The delivery plan — what is still to be built. Kept in the repository, deliberately not published."
-    },
-    {
-      "file": "plan-status.md",
-      "reason": "Where each planned feature has got to. A progress record, not documentation."
-    },
-    {
-      "file": "progress.md",
-      "reason": "The running work log and the next action. A progress record, not documentation."
-    },
-    {
-      "file": "deviations.md",
-      "reason": "The numbered log of departures from the plan text. Written against the plan, and only meaningful beside it."
     }
   ]
 }

@@ -30,7 +30,7 @@ async function byKey(key: string) {
 }
 
 describe('seeded usergroups', () => {
-  it('creates the seven groups F15 names', async () => {
+  it('creates the seven groups SEED_GROUP_KEY names', async () => {
     const rows = await db.select({ key: usergroups.key }).from(usergroups).orderBy(asc(usergroups.id))
     expect(rows.map((r) => r.key)).toEqual([
       'guests',

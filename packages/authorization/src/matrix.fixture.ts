@@ -1,4 +1,4 @@
-export const F22_ACTIONS = [
+export const PERMISSION_ACTIONS = [
   'view',
   'postThread',
   'postReply',
@@ -21,11 +21,11 @@ export const F22_ACTIONS = [
   'subscribe',
 ] as const
 
-export type F22Action = (typeof F22_ACTIONS)[number]
+export type PermissionAction = (typeof PERMISSION_ACTIONS)[number]
 
-const ALL: readonly F22Action[] = F22_ACTIONS
+const ALL: readonly PermissionAction[] = PERMISSION_ACTIONS
 
-const MEMBER_PUBLIC: readonly F22Action[] = [
+const MEMBER_PUBLIC: readonly PermissionAction[] = [
   'view',
   'postThread',
   'postReply',
@@ -37,7 +37,7 @@ const MEMBER_PUBLIC: readonly F22Action[] = [
   'subscribe',
 ]
 
-const MEMBER_READONLY: readonly F22Action[] = [
+const MEMBER_READONLY: readonly PermissionAction[] = [
   'view',
   'editOwn',
   'deleteOwn',
@@ -47,9 +47,9 @@ const MEMBER_READONLY: readonly F22Action[] = [
   'subscribe',
 ]
 
-const MOD_PUBLIC: readonly F22Action[] = ALL
+const MOD_PUBLIC: readonly PermissionAction[] = ALL
 
-const MOD_READONLY: readonly F22Action[] = [
+const MOD_READONLY: readonly PermissionAction[] = [
   'view',
   'editOwn',
   'editOthers',
@@ -72,7 +72,7 @@ const MOD_READONLY: readonly F22Action[] = [
 
 export type ExpectedMatrix = Record<
   string,
-  Record<string, readonly F22Action[]>
+  Record<string, readonly PermissionAction[]>
 >
 
 export const EXPECTED: ExpectedMatrix = {

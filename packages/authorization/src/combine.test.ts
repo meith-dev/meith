@@ -33,7 +33,7 @@ describe('combineGroupValue', () => {
   })
 })
 
-describe('combinePermissionSets — a user in three groups (F20 acceptance)', () => {
+describe('combinePermissionSets — a user in three groups', () => {
   it('resolves each field by its own rule simultaneously', () => {
     const base = emptyPermissionSet()
 

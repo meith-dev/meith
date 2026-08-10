@@ -129,7 +129,7 @@ describe('visibility', () => {
 describe('users', () => {
   const mapped = mapUser(user(7))
 
-  it('keeps the legacy hash in a form F86 can verify', () => {
+  it('keeps the legacy hash in a form that can be verified', () => {
     expect(mapped.legacyPasswordHash).toBe(`mybb$saltsalt$${'a'.repeat(32)}`)
   })
 

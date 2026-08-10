@@ -48,7 +48,7 @@ function toAccountRecord(row: {
     passwordAlgo: row.passwordAlgo,
     state: row.state as AccountState,
     emailVerifiedAt: row.emailVerifiedAt,
-    // eslint-disable-next-line no-restricted-properties -- F20: reading a column to transport into the record, not a decision
+    // eslint-disable-next-line no-restricted-properties -- reading a column to transport into the record, not a decision
     primaryGroupId: row.primaryGroupId,
   }
 }
@@ -63,7 +63,7 @@ const ACCOUNT_COLUMNS = {
   passwordAlgo: users.passwordAlgo,
   state: users.state,
   emailVerifiedAt: users.emailVerifiedAt,
-  // eslint-disable-next-line no-restricted-properties -- F20: selecting a column to transport, not a decision
+  // eslint-disable-next-line no-restricted-properties -- selecting a column to transport, not a decision
   primaryGroupId: users.primaryGroupId,
 } as const
 
@@ -108,7 +108,7 @@ export class PostgresAccountRepository implements AccountRepository {
         passwordHash: input.passwordHash,
         passwordAlgo: input.passwordAlgo,
         state: input.state,
-        // eslint-disable-next-line no-restricted-properties -- F20: writing the persisted column, not a decision
+        // eslint-disable-next-line no-restricted-properties -- writing the persisted column, not a decision
         primaryGroupId: input.primaryGroupId,
       })
       .returning(ACCOUNT_COLUMNS)

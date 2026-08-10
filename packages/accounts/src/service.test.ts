@@ -410,7 +410,7 @@ describe('password reset', () => {
   })
 })
 
-describe('activation (F18)', () => {
+describe('activation', () => {
   let store: AccountStore
 
   async function registerAwaiting(
@@ -501,7 +501,7 @@ describe('activation (F18)', () => {
   })
 })
 
-describe('resending a verification link (F18)', () => {
+describe('resending a verification link', () => {
   let store: AccountStore
 
   beforeEach(() => {
@@ -622,7 +622,7 @@ describe('resolveSession', () => {
   })
 })
 
-describe('ban filters block registration and login (F23)', () => {
+describe('ban filters block registration and login', () => {
   const CREDS = { username: 'newcomer', email: 'newcomer@spam.example', password: 'long-enough-pw' }
 
   function serviceWith(filters: MemoryBanFilters) {

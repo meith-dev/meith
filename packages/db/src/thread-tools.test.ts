@@ -445,7 +445,7 @@ describe('copy', () => {
     expect(rows.map((r) => r.is_first_post)).toEqual([true, false])
   })
 
-  it('carries F72’s index across, so the copy is findable at once', async () => {
+  it('carries the search index across, so the copy is findable at once', async () => {
     const { threadId } = await seedThread(LEFT)
     const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 

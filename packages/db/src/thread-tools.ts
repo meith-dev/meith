@@ -239,7 +239,7 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
                  p.vocab_version, p.body_format,
                  'visible', p.is_first_post, p.created_at,
                  /*
-                  * F72's document travels too, for the third time in this list
+                  * The search document travels too, for the third time in this list
                   * and the same reason: a copy left with no vector would be a
                   * thread nobody could find until the backfill happened to
                   * reach it. Copying rather than recomputing is exact here —

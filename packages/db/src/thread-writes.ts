@@ -93,7 +93,7 @@ export class PostgresThreadWriteRepository
              ${record.visibility}, true,
              ${record.createdAt},
              /*
-              * F72: the **title** is the weight-A field, because this is the
+              * The **title** is the weight-A field, because this is the
               * thread's opening post and a thread's subject is its title. The
               * row cannot be read while it is being inserted, so the value is
               * passed rather than derived — and it is the same value

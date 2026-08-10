@@ -7,13 +7,13 @@ import {
   MemoryAuthorizationSource,
   type ActorName,
 } from './fixture'
-import { EXPECTED, F22_ACTIONS, type F22Action } from './matrix.fixture'
+import { EXPECTED, PERMISSION_ACTIONS, type PermissionAction } from './matrix.fixture'
 import { NO_MODERATOR_RIGHTS } from './types'
 import type { Action, Actor, Target } from './types'
 
 const source = new MemoryAuthorizationSource()
 
-const ACTION_OF: Record<F22Action, Action> = {
+const ACTION_OF: Record<PermissionAction, Action> = {
   view: 'thread.view',
   postThread: 'thread.post',
   postReply: 'reply.post',
@@ -58,12 +58,12 @@ async function buildTarget(
   actor: Actor,
   actorName: ActorName,
   forumName: string,
-  f22: F22Action,
+  action: PermissionAction,
 ): Promise<Target> {
   const forumId = FORUM_ID[forumName]!
   const forum = await authorizer.forumMatrix(actor, forumId)
 
-  const ownsThisAction = f22 === 'editOwn' || f22 === 'deleteOwn'
+  const ownsThisAction = action === 'editOwn' || action === 'deleteOwn'
   const ownerId = ownsThisAction ? actor.userId : OTHER_USER_ID
 
   return {
@@ -90,17 +90,17 @@ async function buildTarget(
   }
 }
 
-describe('F22 permission matrix', () => {
+describe('permission matrix', () => {
   const actorNames = Object.keys(EXPECTED) as ActorName[]
 
   for (const actorName of actorNames) {
     for (const forumName of Object.keys(EXPECTED[actorName]!)) {
-      const allowed = new Set<F22Action>(EXPECTED[actorName]![forumName]!)
+      const allowed = new Set<PermissionAction>(EXPECTED[actorName]![forumName]!)
 
       describe(`${actorName} @ ${forumName}`, () => {
-        for (const f22 of F22_ACTIONS) {
-          const shouldAllow = allowed.has(f22)
-          it(`${shouldAllow ? 'allows' : 'denies'} ${f22}`, async () => {
+        for (const action of PERMISSION_ACTIONS) {
+          const shouldAllow = allowed.has(action)
+          it(`${shouldAllow ? 'allows' : 'denies'} ${action}`, async () => {
             const authorizer = new Authorizer(source)
             const actor = ACTORS[actorName]
             const target = await buildTarget(
@@ -108,9 +108,9 @@ describe('F22 permission matrix', () => {
               actor,
               actorName,
               forumName,
-              f22,
+              action,
             )
-            expect(authorizer.can(actor, ACTION_OF[f22], target)).toBe(
+            expect(authorizer.can(actor, ACTION_OF[action], target)).toBe(
               shouldAllow,
             )
           })
@@ -127,20 +127,20 @@ describe('F22 permission matrix', () => {
     const cells =
       Object.keys(EXPECTED).length *
       4 *
-      F22_ACTIONS.length
+      PERMISSION_ACTIONS.length
     expect(cells).toBe(640)
   })
 
-  it('every F22 action maps to a real Authorizer action', () => {
-    for (const f22 of F22_ACTIONS) {
-      expect(ACTION_OF[f22]).toBeDefined()
+  it('every action maps to a real Authorizer action', () => {
+    for (const action of PERMISSION_ACTIONS) {
+      expect(ACTION_OF[action]).toBeDefined()
     }
     expect(Object.keys(ACTION_OF)).toHaveLength(20)
     void SELF_OWNED
   })
 })
 
-describe('F22 bypasses are logged (R4.2)', () => {
+describe('bypasses are logged (R4.2)', () => {
   it('emits a bypass event when an administrator overrides a denial', async () => {
     const events: string[] = []
     const authorizer = new Authorizer(source, {

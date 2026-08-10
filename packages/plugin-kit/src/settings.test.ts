@@ -34,7 +34,7 @@ describe('the reserved key cannot collide with a declared setting', () => {
 })
 
 describe('parsing a stored value against the declared default', () => {
-  it('reads F08’s boolean encoding, and "true"/"false" beside it', () => {
+  it('reads the settings registry’s boolean encoding, and "true"/"false" beside it', () => {
     const declared = setting({ default: false })
     expect(parsePluginSetting(declared, '1')).toBe(true)
     expect(parsePluginSetting(declared, '0')).toBe(false)

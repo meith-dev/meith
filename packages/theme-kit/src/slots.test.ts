@@ -8,11 +8,10 @@ describe('the slot registry', () => {
     expect(SLOT_NAMES.length).toBe(Object.keys(SLOTS).length)
   })
 
-  it('gives every slot a kind, a feature and a purpose', () => {
+  it('gives every slot a kind and a purpose', () => {
     for (const name of SLOT_NAMES) {
       const spec = SLOTS[name]
       expect(['server', 'client']).toContain(spec.kind)
-      expect(spec.feature).toMatch(/^F\d\d$/)
       expect(spec.purpose.length).toBeGreaterThan(20)
     }
   })

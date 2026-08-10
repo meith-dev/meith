@@ -395,4 +395,3 @@ list, with what each gate catches, is in
 | To write a theme | [The theme API](./theme-api.md) |
 | To write a plugin | [The plugin API](./plugin-api.md) |
 | The deployment shapes in detail | [Deploying by hand](./self-hosting.md) |
-| Why something departs from the plan | [`deviations.md`](./deviations.md) |

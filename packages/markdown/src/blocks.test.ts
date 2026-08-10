@@ -154,7 +154,7 @@ describe('limits', () => {
   })
 })
 
-describe('the feature switches (F58)', () => {
+describe('the feature switches', () => {
   const signature = (source: string): string =>
     renderMarkdown(source, { features: SIGNATURE_FEATURES }).html
 

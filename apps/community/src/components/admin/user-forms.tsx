@@ -81,7 +81,7 @@ export function MemberAccountForm({
           <span className="font-medium">Primary group</span>
           <select
             name="primaryGroupId"
-            // eslint-disable-next-line no-restricted-properties -- F20: rendering the stored value, not deciding access
+            // eslint-disable-next-line no-restricted-properties -- rendering the stored value, not deciding access
             defaultValue={String(member.primaryGroupId)}
             className={INPUT}
           >
@@ -204,7 +204,7 @@ export function BanMemberForm({ userId }: { userId: number }) {
   )
 }
 
-// eslint-disable-next-line no-restricted-properties -- F20: the id whose checkbox is suppressed, not a decision about it
+// eslint-disable-next-line no-restricted-properties -- the id whose checkbox is suppressed, not a decision about it
 export function SecondaryGroupsForm({
   userId,
   groups,

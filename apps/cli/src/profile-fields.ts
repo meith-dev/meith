@@ -85,7 +85,7 @@ export async function profileFieldAdd(args: readonly string[]): Promise<number> 
 
   console.log(`Created profile field "${field.key}" (id ${field.id}, ${field.type}).`)
   console.log(
-    'Every group can see and edit it. Per-group overrides arrive with the ACP screen (F71).',
+    'Every group can see and edit it. Per-group overrides arrive with the ACP screen.',
   )
   return 0
 }

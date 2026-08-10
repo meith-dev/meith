@@ -65,7 +65,7 @@ describe('formatTime', () => {
   })
 })
 
-describe('the viewer’s timezone (F57)', () => {
+describe('the viewer’s timezone', () => {
   const NOW = new Date('2026-07-31T12:00:00Z')
 
   it('formats in the zone it is given', () => {
@@ -89,7 +89,7 @@ describe('the viewer’s timezone (F57)', () => {
     expect(formatTime(at, now, 'Australia/Sydney').label).toBe('Today, 09:30')
   })
 
-  it('defaults to UTC, which is what every timestamp used before F57', () => {
+  it('defaults to UTC, which is what every timestamp used before per-member timezones existed', () => {
     const at = new Date('2026-07-31T08:41:00Z')
     expect(formatTime(at, NOW).label).toBe(formatTime(at, NOW, 'UTC').label)
   })

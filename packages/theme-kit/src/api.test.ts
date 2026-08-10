@@ -43,7 +43,7 @@ describe('the slot contract', () => {
     expect(Object.keys(SLOT_STABILITY).sort()).toEqual([...SLOT_NAMES].sort())
   })
 
-  it('freezes everything except the two F45 islands', () => {
+  it('freezes everything except the two client islands', () => {
     const provisional = SLOT_NAMES.filter((name) => SLOT_STABILITY[name] === 'provisional')
     expect([...provisional].sort()).toEqual(['EditorToolbar', 'QuickReply'])
   })

@@ -140,7 +140,7 @@ export const SETTING_DEFINITIONS = [
     label: 'Minimum password length',
     description:
       'Applied to new passwords only. Raising it does not invalidate existing ' +
-      'ones — those are rehashed on next login (see F17).',
+      'ones — those are rehashed on next login.',
     schema: z.number().int().min(8).max(128),
     default: 10,
     ui: { min: 8, max: 128 },
@@ -209,7 +209,7 @@ export const SETTING_DEFINITIONS = [
     key: 'display.threads_per_page',
     group: 'display',
     label: 'Threads per page',
-    description: 'Capped to protect the forum-display query budget (F30).',
+    description: 'Capped to protect the forum-display query budget.',
     schema: z.number().int().min(5).max(100),
     default: 25,
     invalidates: ['settings'],
@@ -219,7 +219,7 @@ export const SETTING_DEFINITIONS = [
     key: 'display.posts_per_page',
     group: 'display',
     label: 'Posts per page',
-    description: 'Capped to protect the thread-view query budget (F31).',
+    description: 'Capped to protect the thread-view query budget.',
     schema: z.number().int().min(5).max(100),
     default: 20,
     invalidates: ['settings'],

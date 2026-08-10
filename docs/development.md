@@ -162,7 +162,7 @@ with "Incorrect username or password".
 exception that the rule needs. With scripting off a form post is a full
 navigation, so the page is re-rendered whatever the action did about caching —
 which makes the whole suite blind to a panel screen that does not refresh its own
-list. That blindness was hiding four of them (D121).
+list. That blindness was hiding four of them.
 
 The suite **shares one database across every spec**, in file order. A spec that
 changes something every page shows — a board-wide announcement, a board setting,
@@ -220,9 +220,7 @@ cannot quietly go unlinked.
 
 1. `pnpm verify` passes.
 2. New behaviour has a test that fails without it.
-3. A departure from the plan text is recorded in
-   [`deviations.md`](./deviations.md), numbered, with the reasoning.
-4. [Next.js conventions](./nextjs-conventions.md) — the decisions that would
+3. [Next.js conventions](./nextjs-conventions.md) — the decisions that would
    otherwise be re-litigated in every review.
 
 ## Where to read next
@@ -233,5 +231,3 @@ cannot quietly go unlinked.
 | The conventions this codebase holds to | [Next.js conventions](./nextjs-conventions.md) |
 | To write a theme | [The theme API](./theme-api.md) |
 | To write a plugin | [The plugin API](./plugin-api.md) |
-| To know why something is the way it is | [`deviations.md`](./deviations.md) |
-| To know what is still to be built | [`roadmap.md`](./roadmap.md), [`plan-status.md`](./plan-status.md) |

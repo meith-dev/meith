@@ -54,7 +54,7 @@ export class PostgresBanRepository implements BanRepository {
     return this.db.transaction(async (tx) => {
       const [target] = await tx
         .select({
-          // eslint-disable-next-line no-restricted-properties -- F20: capturing the group being left, not deciding access
+          // eslint-disable-next-line no-restricted-properties -- capturing the group being left, not deciding access
           primaryGroupId: users.primaryGroupId,
         })
         .from(users)
@@ -70,7 +70,7 @@ export class PostgresBanRepository implements BanRepository {
           bannedByUserId: input.bannedByUserId,
           reason: input.reason,
           publicReason: input.publicReason,
-          // eslint-disable-next-line no-restricted-properties -- F20: remembering the group, not deciding access
+          // eslint-disable-next-line no-restricted-properties -- remembering the group, not deciding access
           previousPrimaryGroupId: target.primaryGroupId,
           expiresAt: input.expiresAt,
           createdAt: input.now,

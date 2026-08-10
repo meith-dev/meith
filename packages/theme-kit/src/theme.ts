@@ -91,7 +91,7 @@ function assertAcyclic(theme: ThemeDefinition): void {
     if (seenKeys.has(current.key)) {
       throw new Error(
         `defineTheme: key "${current.key}" appears twice in the extends chain of ` +
-          `"${theme.key}". Keys identify a theme for token overrides (F26); two ` +
+          `"${theme.key}". Keys identify a theme for token overrides; two ` +
           'themes sharing one make that lookup ambiguous.',
       )
     }

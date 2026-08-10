@@ -129,7 +129,7 @@ beforeEach(() => {
   limiter.refuse = false
 })
 
-describe('registerAction (F18)', () => {
+describe('registerAction', () => {
   it('creates the account and sends the user to login', async () => {
     expect(await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))).toBe(
       '/login?registered=1',
@@ -156,7 +156,7 @@ describe('registerAction (F18)', () => {
   })
 })
 
-describe('loginAction (F17/F19)', () => {
+describe('loginAction', () => {
   it('sets a session cookie and follows ?next', async () => {
     await registerUser()
 
@@ -243,7 +243,7 @@ describe('loginAction (F17/F19)', () => {
   })
 })
 
-describe('password reset (F19)', () => {
+describe('password reset', () => {
   it('gives the same answer for a known and an unknown address', async () => {
     await registerUser()
 
@@ -336,7 +336,7 @@ describe('password reset (F19)', () => {
   })
 })
 
-describe('registration with e-mail activation (F18)', () => {
+describe('registration with e-mail activation', () => {
   beforeEach(() => {
     policy.activationMethod = 'email'
   })
@@ -385,7 +385,7 @@ describe('registration with e-mail activation (F18)', () => {
   })
 })
 
-describe('resending a verification link (F18)', () => {
+describe('resending a verification link', () => {
   beforeEach(() => {
     policy.activationMethod = 'email'
   })

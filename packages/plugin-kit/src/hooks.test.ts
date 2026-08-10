@@ -13,11 +13,10 @@ describe('the hook registry', () => {
     expect(HOOK_NAMES.length).toBeGreaterThanOrEqual(60)
   })
 
-  it('gives every hook a kind, a feature and a purpose', () => {
+  it('gives every hook a kind and a purpose', () => {
     for (const name of HOOK_NAMES) {
       const spec = HOOKS[name]
       expect(['filter', 'event']).toContain(spec.kind)
-      expect(spec.feature).toMatch(/^F\d\d$/)
       expect(spec.purpose.length).toBeGreaterThan(20)
     }
   })

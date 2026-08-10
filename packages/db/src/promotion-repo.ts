@@ -43,7 +43,7 @@ export class PostgresPromotionRepository implements PromotionRepository {
         postCount: users.postCount,
         reputation: users.reputation,
         registeredAt: users.createdAt,
-        // eslint-disable-next-line no-restricted-properties -- F20: reading the group to decide whether a rule applies to it, not granting anything
+        // eslint-disable-next-line no-restricted-properties -- reading the group to decide whether a rule applies to it, not granting anything
         primaryGroupId: users.primaryGroupId,
       })
       .from(users)

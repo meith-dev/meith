@@ -1,5 +1,5 @@
 /**
- * F08 — proof that the settings registry's types are not inert.
+ * Proof that the settings registry's types are not inert.
  *
  * `SettingKey` and `SettingValue<K>` exist so that `settings.get('board.nmae')`
  * is a compile error and `settings.get('board.name')` is a `string`. Neither
@@ -17,7 +17,7 @@
  * time somebody called a *method* on the result — `.trim()` — which is not a
  * thing you can do to `never`.
  *
- * That is D10's rule again, in the type system rather than in a guard: an
+ * That is the same rule again, in the type system rather than in a guard: an
  * assertion that has quietly stopped asserting is worse than no assertion, so
  * this file is the deliberate violation, made permanent. It runs under
  * `pnpm typecheck` and fails in **both** directions:

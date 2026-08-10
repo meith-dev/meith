@@ -55,7 +55,7 @@ export class ActorBuilder implements ActorSource {
       .select({
         id: users.id,
         state: users.state,
-        // eslint-disable-next-line no-restricted-properties -- F20: group-id transport, not a decision
+        // eslint-disable-next-line no-restricted-properties -- group-id transport, not a decision
         primaryGroupId: users.primaryGroupId,
       })
       .from(users)
@@ -73,7 +73,7 @@ export class ActorBuilder implements ActorSource {
       .from(userGroupMemberships)
       .where(eq(userGroupMemberships.userId, userId))
 
-    // eslint-disable-next-line no-restricted-properties -- F20: reading the user's own primary group to assemble the actor's group ladder, not an authz decision
+    // eslint-disable-next-line no-restricted-properties -- reading the user's own primary group to assemble the actor's group ladder, not an authz decision
     const primaryGroupId = user.primaryGroupId
     const groupIds = dedupe([
       primaryGroupId,

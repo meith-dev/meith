@@ -1,6 +1,6 @@
 # A Postgres for local development. Nothing else.
 #
-# Separate from `docker-compose.yml`, which is F04's *self-hosted deployment* —
+# Separate from `docker-compose.yml`, which is the *self-hosted deployment* —
 # web, worker, migrations and a database, configured the way a real board runs.
 # This file is the other thing entirely: a database to point `pnpm dev` at while
 # working on the code, with the app running on the host.
