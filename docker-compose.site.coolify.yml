@@ -1,14 +1,20 @@
 # meith.dev — the landing page and the documentation, deployed by Coolify.
 #
 # A second Coolify resource beside the board, from the same repository and the
-# same instance: this one at meith.dev, `docker-compose.coolify.yml` at
+# same instance: this one at www.meith.dev, `docker-compose.coolify.yml` at
 # community.meith.dev.
 #
 # Nobody self-hosting a board needs this file. It holds no data and reads
 # nothing the board writes.
 #
 # No published ports — Coolify's proxy routes to the container and issues the
-# certificate. `SERVICE_FQDN_SITE_3100` asks it for a domain on port 3100.
+# certificate. `SERVICE_FQDN_SITE_3100` asks it for a domain on port 3100; set
+# it to both hosts, www first, and let Coolify redirect the apex to it:
+#
+#   SERVICE_FQDN_SITE_3100=https://www.meith.dev,https://meith.dev
+#
+# www is canonical, so it is also what `site.url` is built from — see
+# apps/web/src/content/site.ts.
 
 services:
   site:
