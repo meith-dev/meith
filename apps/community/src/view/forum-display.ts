@@ -12,7 +12,7 @@ import type { ReadState, ThreadListingRow, ThreadPage } from "@meith/threads";
 import { forumHref } from "./board-index";
 import { nameClassOf, type MemberIdentity } from "./member-identity";
 import { memberHref } from "./member-profile";
-import { postAnchor } from "./post-anchor";
+import { postLink } from "./post-link";
 import { formatTime } from "./time";
 
 export function threadHref(row: ThreadListingRow): string {
@@ -34,7 +34,7 @@ function lastPost(
   if (!post) return null;
   return {
     threadTitle: thread.title,
-    href: `${threadHref(thread)}#${postAnchor(post.postId)}`,
+    href: postLink(threadHref(thread), post.postId),
     author: {
       userId: post.userId,
       username: post.username,

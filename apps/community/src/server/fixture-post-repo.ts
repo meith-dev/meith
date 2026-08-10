@@ -3,6 +3,7 @@ import 'server-only'
 import { PUBLIC_CONTENT, type ContentScope } from '@meith/core'
 import type {
   PostListingRow,
+  PostLocation,
   PostPage,
   PostRepository,
   QuotablePost,
@@ -34,6 +35,29 @@ export class FixturePostRepository implements PostRepository {
     return row === undefined
       ? null
       : { id: row.id, authorUsername: row.authorUsername, message: row.message }
+  }
+
+  async locate(
+    threadId: number,
+    postId: number,
+    options: { readonly scope: ContentScope; readonly pageSize: number },
+  ): Promise<PostLocation | null> {
+    const size = Math.max(1, Math.trunc(options.pageSize))
+    const thread = this.rows
+      .filter(
+        (row) => row.threadId === threadId && options.scope.states.includes(row.visibility),
+      )
+      .sort((a, b) => a.id - b.id)
+
+    const index = thread.findIndex((row) => row.id === postId)
+    if (index === -1) return null
+
+    const page = Math.floor(index / size) + 1
+    return {
+      number: index + 1,
+      page,
+      afterId: page === 1 ? null : (thread[(page - 1) * size - 1]?.id ?? null),
+    }
   }
 
   async listThread(

@@ -60,7 +60,7 @@ test('a member posts a thread and a reply, and both land in the database', async
   await page.getByLabel('Message').fill('And a reply, also without scripting.')
   await page.getByRole('button', { name: 'Post reply' }).click()
 
-  await expect(page).toHaveURL(/#pid-\d+$/)
+  await expect(page).toHaveURL(/#post-\d+$/)
   await expect(page.getByText('And a reply, also without scripting.')).toBeVisible()
 
   await page.goto('/200-general')

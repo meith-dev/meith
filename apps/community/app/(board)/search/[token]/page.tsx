@@ -6,7 +6,7 @@ import { isAppError } from '@meith/core'
 import { getActor } from '@/server/context'
 import { openSearch, SEARCH_PAGE } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
-import { postAnchor } from '@/view/post-anchor'
+import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Search results' }
@@ -86,7 +86,7 @@ export default async function SearchResultsPage({
           {results.hits.map((hit) => (
             <li key={hit.postId} className="flex flex-col gap-1 px-4 py-3">
               <a
-                href={`/thread/${hit.threadId}-${hit.threadSlug}?post=${hit.postId}#${postAnchor(hit.postId)}`}
+                href={postLink(`/thread/${hit.threadId}-${hit.threadSlug}`, hit.postId)}
                 className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
                 {hit.threadTitle}

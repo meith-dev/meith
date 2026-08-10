@@ -9,7 +9,7 @@ import type {
 import { forumHref } from './board-index'
 import { nameClassOf, type MemberIdentity } from './member-identity'
 import { memberHref } from './member-profile'
-import { postAnchor } from './post-anchor'
+import { postLink } from './post-link'
 import { formatTime } from './time'
 
 export interface LatestThreadRow {
@@ -49,7 +49,7 @@ export interface LatestInput<Row> {
 const EXCERPT_CHARS = 140
 
 function postHref(row: LatestPostRow): string {
-  return `/thread/${row.threadId}-${row.threadSlug}?post=${row.postId}#${postAnchor(row.postId)}`
+  return postLink(`/thread/${row.threadId}-${row.threadSlug}`, row.postId)
 }
 
 function authorOf(

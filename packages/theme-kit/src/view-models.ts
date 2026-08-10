@@ -686,7 +686,7 @@ export interface LatestThreadsModel {
 export interface LatestPostModel {
   /** The thread it is in. A post has no title of its own. */
   readonly threadTitle: string
-  /** `/thread/12-slug#pid-34` — the post, not the top of its thread. */
+  /** `/thread/12-slug?post=34` — the post, not the top of its thread. */
   readonly href: string
   readonly forum: LinkModel
   readonly author: UserRefModel

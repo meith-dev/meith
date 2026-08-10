@@ -95,3 +95,52 @@ describe('PostgresPostRepository.listThread', () => {
     expect(page.nextAfterId).toBe(20)
   })
 })
+
+describe('PostgresPostRepository.locate', () => {
+  it('gives the number a reader sees and the cursor for its page', async () => {
+    await seed(50)
+
+    expect(await repo.locate(1, 1, { scope: PUBLIC_CONTENT, pageSize: 20 })).toEqual({
+      number: 1,
+      page: 1,
+      afterId: null,
+    })
+    expect(await repo.locate(1, 20, { scope: PUBLIC_CONTENT, pageSize: 20 })).toEqual({
+      number: 20,
+      page: 1,
+      afterId: null,
+    })
+    expect(await repo.locate(1, 21, { scope: PUBLIC_CONTENT, pageSize: 20 })).toEqual({
+      number: 21,
+      page: 2,
+      afterId: 20,
+    })
+    expect(await repo.locate(1, 41, { scope: PUBLIC_CONTENT, pageSize: 20 })).toEqual({
+      number: 41,
+      page: 3,
+      afterId: 40,
+    })
+  })
+
+  it('counts in the reader’s own scope, so a held post shifts nobody', async () => {
+    await seed(5)
+    await db.insert(posts).values({
+      id: 99,
+      threadId: 1,
+      forumId: 1,
+      authorUsername: 'mod',
+      message: 'not public',
+      visibility: 'unapproved',
+    })
+
+    expect(await repo.locate(1, 5, { scope: PUBLIC_CONTENT, pageSize: 20 })).toMatchObject({
+      number: 5,
+    })
+    expect(await repo.locate(1, 99, { scope: PUBLIC_CONTENT, pageSize: 20 })).toBeNull()
+  })
+
+  it('answers nothing for a post in another thread', async () => {
+    await seed(3)
+    expect(await repo.locate(2, 1, { scope: PUBLIC_CONTENT, pageSize: 20 })).toBeNull()
+  })
+})

@@ -5,6 +5,7 @@ import { PUBLIC_CONTENT, type ContentScope } from '@meith/core'
 import { sourceAsMarkdown } from '@meith/markdown'
 import type {
   PostListingRow,
+  PostLocation,
   PostPage,
   PostRepository,
   QuotablePost,
@@ -86,6 +87,40 @@ export class PostgresPostRepository implements PostRepository {
       authorUsername: row.authorUsername,
       message: sourceAsMarkdown(row.message, Number(row.bodyFormat)),
     }
+  }
+
+  async locate(
+    threadId: number,
+    postId: number,
+    options: { readonly scope: ContentScope; readonly pageSize: number },
+  ): Promise<PostLocation | null> {
+    const visible: SQL = visibleIn(posts.visibility, options.scope)
+    const size = Math.max(1, Math.trunc(options.pageSize))
+
+    const counted = await this.db
+      .select({
+        number: sql<number>`count(*) filter (where ${posts.id} <= ${postId})::int`,
+        found: sql<number>`count(*) filter (where ${posts.id} = ${postId})::int`,
+      })
+      .from(posts)
+      .where(and(eq(posts.threadId, threadId), visible))
+
+    const row = counted[0]
+    if (row === undefined || Number(row.found) === 0) return null
+
+    const number = Number(row.number)
+    const page = Math.floor((number - 1) / size) + 1
+    if (page === 1) return { number, page, afterId: null }
+
+    const cursor = await this.db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(and(eq(posts.threadId, threadId), visible))
+      .orderBy(asc(posts.id))
+      .limit(1)
+      .offset((page - 1) * size - 1)
+
+    return { number, page, afterId: cursor[0]?.id ?? null }
   }
 
   async findVisibleById(threadId: number, postId: number): Promise<number | null> {

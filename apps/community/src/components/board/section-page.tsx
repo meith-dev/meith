@@ -1,0 +1,92 @@
+import 'server-only'
+
+import type { ForumListingRow } from '@meith/forums'
+import { requireSlot } from '@meith/theme-kit'
+
+import { filterView, viewerRef } from '@/server/plugin-view'
+import { getActor } from '@/server/context'
+import { identitiesFor } from '@/server/group-identity'
+import { currentTheme } from '@/server/theme'
+import { getViewerPreferences } from '@/server/viewer-preferences'
+import { buildBreadcrumb } from '@/view/breadcrumb'
+import { buildSectionView } from '@/view/board-index'
+import { distinctUserIds } from '@/view/member-identity'
+
+export async function SectionPage({
+  category,
+  rows,
+  visibleForumIds,
+  unreadForumIds,
+  homeLabel,
+}: {
+  category: ForumListingRow
+  rows: readonly ForumListingRow[]
+  visibleForumIds: ReadonlySet<number>
+  unreadForumIds?: ReadonlySet<number>
+  homeLabel?: string
+}) {
+  const actor = await getActor()
+  const preferences = await getViewerPreferences()
+  const identities = await identitiesFor(
+    distinctUserIds(rows.map((row) => row.lastPost?.userId ?? null)),
+  )
+
+  const section = buildSectionView({
+    rows,
+    visibleForumIds,
+    ...(unreadForumIds === undefined ? {} : { unreadForumIds }),
+    categoryId: category.id,
+    now: new Date(),
+    timeZone: preferences.timezone,
+    identities,
+  })
+
+  const pluginContext = viewerRef(actor)
+  const forums = await Promise.all(
+    (section?.forums ?? []).map((forum) =>
+      filterView('view.forum-row', { forum }, pluginContext),
+    ),
+  )
+
+  const theme = await currentTheme()
+  const Navigation = requireSlot(theme, 'Navigation')
+  const BoardIndex = requireSlot(theme, 'BoardIndex')
+  const CategoryBlock = requireSlot(theme, 'CategoryBlock')
+  const ForumRow = requireSlot(theme, 'ForumRow')
+
+  const trail = buildBreadcrumb({
+    forums: rows,
+    forumId: category.id,
+    visibleForumIds,
+    ...(homeLabel === undefined ? {} : { homeLabel }),
+  })
+
+  const index = await filterView(
+    'view.board-index',
+    {
+      markAllReadAction: null,
+      regions: {
+        categories:
+          section === null ? null : (
+            <CategoryBlock category={section.block.category}>
+              {forums.map((row) => (
+                <ForumRow key={row.forum.id} {...row} />
+              ))}
+            </CategoryBlock>
+          ),
+        stats: null,
+        online: null,
+      },
+    },
+    pluginContext,
+  )
+
+  return (
+    <>
+      <Navigation items={trail} />
+      <main id="board-content" tabIndex={-1} className="flex-1">
+        <BoardIndex {...index} />
+      </main>
+    </>
+  )
+}

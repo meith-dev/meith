@@ -25,7 +25,7 @@ async function threadWith(
     await page.goto(`${url}/reply`)
     await page.getByLabel('Message').fill(body)
     await page.getByRole('button', { name: 'Post reply' }).click()
-    await expect(page).toHaveURL(/#pid-\d+$/)
+    await expect(page).toHaveURL(/#post-\d+$/)
   }
   return url
 }
@@ -55,7 +55,7 @@ test('an author deletes their own post, and a moderator puts it back', async ({ 
     ).toBeVisible()
     await member.getByRole('button', { name: 'Delete this post' }).click()
 
-    await expect(member).toHaveURL(/\?post=deleted$/)
+    await expect(member).toHaveURL(/\?removed=post$/)
     await expect(member.getByText('That post has been deleted.')).toBeVisible()
     await expect(member.getByText('A reply I will regret.')).toHaveCount(0)
 

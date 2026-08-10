@@ -39,16 +39,16 @@ describe('quoteBlock', () => {
   it('carries a link back to what was quoted', () => {
     const source = quoteBlock({
       author: 'ada',
-      sourceHref: '/thread/15-release#pid-90',
+      sourceHref: '/thread/15-release?post=90',
       markdown: 'x',
     })
 
     expect(source).toBe(
-      '> **[ada](/member/by-name/ada) wrote:** [View post](/thread/15-release#pid-90)\n>\n> x',
+      '> **[ada](/member/by-name/ada) wrote:** [View post](/thread/15-release?post=90)\n>\n> x',
     )
 
     const html = renderMarkdown(source).html
-    expect(html).toContain('<a class="md-quote-source" href="/thread/15-release#pid-90"')
+    expect(html).toContain('<a class="md-quote-source" href="/thread/15-release?post=90"')
     expect(html).toContain('>View post</a></p>')
   })
 

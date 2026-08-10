@@ -22,10 +22,10 @@ describe('quote attributions', () => {
   })
 
   it('marks the link back to the quoted post so a theme can place it', () => {
-    const out = html('> **ada wrote:** [View post](/thread/15-release#pid-90)\n>\n> hello')
+    const out = html('> **ada wrote:** [View post](/thread/15-release?post=90)\n>\n> hello')
 
     expect(out).toContain(
-      '<a class="md-quote-source" href="/thread/15-release#pid-90" ' +
+      '<a class="md-quote-source" href="/thread/15-release?post=90" ' +
         'rel="nofollow ugc noopener noreferrer">View post</a>',
     )
   })

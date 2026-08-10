@@ -244,10 +244,10 @@ describe('quotePrefill', () => {
     const quoted = quotePrefill({
       authorUsername: 'ada',
       message: 'x',
-      sourceHref: '/thread/3-hello#pid-90',
+      sourceHref: '/thread/3-hello?post=90',
     })
 
-    expect(quoted).toContain('wrote:** [View post](/thread/3-hello#pid-90)')
+    expect(quoted).toContain('wrote:** [View post](/thread/3-hello?post=90)')
   })
 
   it('keeps the quoted body verbatim, markup and all', () => {

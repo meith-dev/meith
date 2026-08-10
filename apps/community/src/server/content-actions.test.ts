@@ -335,7 +335,7 @@ describe('createReplyAction', () => {
   it('posts the reply and returns to the thread, anchored to it', async () => {
     const to = await redirectOf(createReplyAction(EMPTY_STATE, form(REPLY)))
 
-    expect(to).toBe('/thread/20-hello#pid-99')
+    expect(to).toBe('/thread/20-hello?post=99')
     expect(writes.replies[0]).toMatchObject({
       threadId: 20,
       forumId: SEED_FORUM.general,
@@ -351,7 +351,7 @@ describe('createReplyAction', () => {
       createReplyAction(EMPTY_STATE, form({ ...REPLY, seenLastPostId: '30' })),
     )
 
-    expect(to).toBe('/thread/20-hello?replied=race#pid-99')
+    expect(to).toBe('/thread/20-hello?post=99&replied=race')
     expect(writes.replies).toHaveLength(1)
   })
 
@@ -360,7 +360,7 @@ describe('createReplyAction', () => {
 
     const to = await redirectOf(createReplyAction(EMPTY_STATE, form(REPLY)))
 
-    expect(to).toBe('/thread/20-hello?after=98#pid-99')
+    expect(to).toBe('/thread/20-hello?post=99')
   })
 
   it('refuses a member who may read a thread but not reply to it', async () => {
@@ -456,7 +456,7 @@ describe('post actions', () => {
   describe('editPostAction', () => {
     it('saves and returns to the post', async () => {
       expect(await redirectOf(editPostAction(EMPTY_STATE, form(EDIT)))).toBe(
-        '/thread/20-hello#pid-50',
+        '/thread/20-hello?post=50',
       )
       expect(postWrites.edits[0]).toMatchObject({
         message: 'a better body',
@@ -535,7 +535,7 @@ describe('post actions', () => {
         await redirectOf(
           editPostAction(EMPTY_STATE, form({ ...EDIT, message: 'the original body' })),
         ),
-      ).toBe('/thread/20-hello#pid-50')
+      ).toBe('/thread/20-hello?post=50')
       expect(postWrites.edits).toHaveLength(0)
     })
   })
@@ -544,7 +544,7 @@ describe('post actions', () => {
     it('deletes and says so at the top of the thread', async () => {
       expect(
         await redirectOf(deletePostAction(EMPTY_STATE, form({ threadId: '20', postId: '50' }))),
-      ).toBe('/thread/20-hello?post=deleted')
+      ).toBe('/thread/20-hello?removed=post')
       expect(postWrites.moves[0]).toMatchObject({ from: 'visible', to: 'deleted' })
     })
 
@@ -562,7 +562,7 @@ describe('post actions', () => {
 
       expect(
         await redirectOf(deletePostAction(EMPTY_STATE, form({ threadId: '20', postId: '50' }))),
-      ).toBe('/thread/20-hello?post=deleted')
+      ).toBe('/thread/20-hello?removed=post')
     })
 
     it('refuses the opening post and says what to do instead', async () => {
@@ -591,7 +591,7 @@ describe('post actions', () => {
 
       expect(
         await redirectOf(restorePostAction(EMPTY_STATE, form({ threadId: '20', postId: '50' }))),
-      ).toBe('/thread/20-hello#pid-50')
+      ).toBe('/thread/20-hello?post=50')
       expect(postWrites.moves[0]).toMatchObject({ from: 'deleted', to: 'visible' })
     })
   })

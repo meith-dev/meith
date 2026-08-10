@@ -37,9 +37,7 @@ function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['vi
 
 export function PostBit({ post, select, regions }: PostBitSlotModel) {
   return (
-    <article id={`pid-${post.id}`} className="border border-border">
-      <span id={`post-${post.number}`} aria-hidden="true" />
-
+    <article id={`post-${post.number}`} data-post-id={post.id} className="border border-border">
       <StatusBanner visibility={post.visibility} />
 
       <div className="grid grid-cols-1 sm:grid-cols-[11rem_1fr]">

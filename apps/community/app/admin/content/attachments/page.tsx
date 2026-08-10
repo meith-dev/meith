@@ -5,7 +5,7 @@ import { DeleteAttachmentForm } from '@/components/admin/content-forms'
 import { adminPageContext } from '@/server/admin'
 import { attachmentAdminRepository } from '@/server/content-admin'
 import { formatBytes } from '@/view/attachments'
-import { postAnchor } from '@/view/post-anchor'
+import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Attachments' }
@@ -158,7 +158,7 @@ export default async function AdminAttachmentsPage({
                     <>
                       {' · '}
                       <a
-                        href={`/thread/${row.threadSlug}#${postAnchor(row.postId)}`}
+                        href={postLink(`/thread/${row.threadSlug}`, row.postId)}
                         className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                       >
                         the post
