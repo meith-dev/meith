@@ -1,5 +1,5 @@
 import { logger } from '@meith/core'
-import { PostgresSettingsRepository, type Database } from '@meith/db'
+import { PostgresSettingsRepository, pluginGrants, type Database } from '@meith/db'
 import { pluginTaskId, resolvePluginSettings, type PluginDefinition } from '@meith/plugin-kit'
 import type { TaskDefinition } from '@meith/tasks'
 
@@ -32,6 +32,7 @@ export function pluginTasks(options: {
               warn: (message, detail) => log.warn(detail ?? {}, message),
               error: (message, detail) => log.error(detail ?? {}, message),
             },
+            grants: pluginGrants(options.db, plugin.key),
           })
 
           return {}

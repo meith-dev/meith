@@ -107,6 +107,7 @@ describe('updateIdentity', () => {
       description: 'Renamed',
       displayOrder: 5,
       isStaffGroup: false,
+      pluginGrantable: false,
       badgeToken: 'badge-member',
       nameColorLight: 'oklch(0.49 0.13 250)',
       nameColorDark: 'oklch(0.69 0.12 250)',

@@ -17,7 +17,8 @@ const overrides = { current: new Map<string, string>() }
 vi.mock('./settings', () => ({ getSettingOverrides: async () => overrides.current }))
 
 const logged: unknown[] = []
-vi.mock('@meith/core', () => ({
+vi.mock(import('@meith/core'), async (importOriginal) => ({
+  ...(await importOriginal()),
   logger: () => ({
     info: () => {},
     warn: () => {},
@@ -91,12 +92,18 @@ describe('a plugin that is switched off has no pages either', () => {
 })
 
 describe('what crosses the boundary', () => {
-  it('hands the page its resolved settings and a logger, and nothing else', async () => {
+  it('hands the page its resolved settings, a logger and the grant capability, and nothing else', async () => {
     overrides.current = new Map([['plugin.alpha.batch', '42']])
     await renderPluginAdminPage('alpha', 'report')
 
-    expect(Object.keys(handed as object).sort()).toEqual(['logger', 'settings'])
+    expect(Object.keys(handed as object).sort()).toEqual(['grants', 'logger', 'settings'])
     expect((handed as { settings: unknown }).settings).toEqual({ batch: 42 })
+  })
+
+  it('hands out grants that refuse cleanly when the board runs on sample data', async () => {
+    await renderPluginAdminPage('alpha', 'report')
+    const grants = (handed as { grants: { list(userId: number): Promise<unknown> } }).grants
+    await expect(grants.list(1)).rejects.toThrow(/sample data/)
   })
 })
 

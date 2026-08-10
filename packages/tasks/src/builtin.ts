@@ -18,6 +18,7 @@ export interface TaskWorkers {
   reindexSearch(batchSize: number): Promise<number>
   applyPromotions(batchSize: number): Promise<number>
   expireBans(batchSize: number): Promise<number>
+  expireGroupMemberships(batchSize: number): Promise<number>
   expireWarnings(batchSize: number): Promise<number>
   notifySubscribers(batchSize: number): Promise<number>
   sendDigests(batchSize: number): Promise<number>
@@ -209,6 +210,23 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
     },
 
     {
+      id: 'groups.expire',
+      title: 'Expire timed group memberships',
+      description:
+        'Deletes secondary group memberships whose expiry has passed and bumps ' +
+        'the permission version so derived caches follow. Actor assembly already ' +
+        'excludes a lapsed row, so access ended on time regardless — this tidies ' +
+        'the table rather than enforcing the boundary, and a doubled tick ' +
+        'deletes nothing twice.',
+      intervalSeconds: 900,
+      maxDurationSeconds: 30,
+      async run() {
+        const removed = await workers.expireGroupMemberships(200)
+        return { detail: { removed } }
+      },
+    },
+
+    {
       id: 'warnings.expire',
       title: 'Expire warnings',
       description:
@@ -338,6 +356,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'search.reindex': 'reindexSearch',
   'promotions.apply': 'applyPromotions',
   'bans.expire': 'expireBans',
+  'groups.expire': 'expireGroupMemberships',
   'warnings.expire': 'expireWarnings',
   'subscriptions.instant': 'notifySubscribers',
   'subscriptions.digest': 'sendDigests',

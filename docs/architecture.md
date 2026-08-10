@@ -332,7 +332,7 @@ the `tasks` table — so any number of instances can tick concurrently and a
 task runs once, with a stale-claim timeout for workers that die mid-run. Every
 task is written as an idempotent *catch-up* operation ("flush what is
 outstanding"), never "run at 03:00", so a missed day is caught up rather than
-lost. Eighteen built-in tasks ride this: the outbox relay, queue drain and
+lost. Nineteen built-in tasks ride this: the outbox relay, queue drain and
 instant subscriptions at 60 s, down through digest and sweep work to counter
 reconciliation every six hours. Plugin tasks join the same schedule under a
 namespaced id. [Demo mode](./demo-mode.md) adjusts the list at both ends:

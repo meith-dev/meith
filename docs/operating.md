@@ -206,6 +206,27 @@ A member's group is their **display group** where they have chosen one, and
 their primary group otherwise — so a moderator who prefers to post as an
 ordinary member is shown as one.
 
+### Groups a plugin may grant
+
+The same screen carries one more switch: **may be granted by plugins**. It is
+off by default, and it is the opt-in behind any plugin that hands out
+membership — a paid pass, a trial, time-boxed access. A plugin can only put a
+member in a group you have marked this way, only as an *additional* group
+(never the primary one, never the badge they chose to wear), and only **until
+a date**: every plugin-granted membership expires, and the expiry holds even
+if the plugin is removed or the tick stops, because the permission model
+simply stops reading a lapsed row.
+
+The switch refuses some groups, with the reason spelled out when you try:
+system groups, staff groups, and any group whose permissions carry
+administrative or moderation power. If what you want a plugin to sell is
+"members plus one private forum and a badge", make a group that says exactly
+that and mark *it* grantable — never a group that also moderates.
+
+A `groups.expire` task tidies lapsed memberships every fifteen minutes; it is
+on the system health screen with everything else. It is housekeeping, not
+enforcement — access ended at the expiry regardless.
+
 The colour reaches **every** username: the postbit, who started a thread, who
 posted last, the profile heading, who is online. It is delivered as a stylesheet
 rule rather than a colour on each name, which is why it works for a reader whose
@@ -377,7 +398,9 @@ The worked example to copy is
 
 It cannot decide authorization, reach the visibility filter, open its own
 database connection, or patch core. Everything it *can* do is in a typed
-registry.
+registry. The one write it gets against the board's own data is a timed
+group membership, and only in a group you have explicitly marked
+[grantable](#groups-a-plugin-may-grant).
 
 Failures are contained: a plugin that throws leaves the page intact, and the
 error is counted, logged, and — after repeated failures — the plugin is switched

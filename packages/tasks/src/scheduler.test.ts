@@ -226,6 +226,7 @@ describe('bans.expire is registered', () => {
       expireWarnings: zero,
       applyPromotions: zero,
       expireBans: zero,
+      expireGroupMemberships: zero,
       ...overrides,
     }
   }
@@ -294,6 +295,7 @@ function fullWorkerSet(): TaskWorkers {
     expireWarnings: async () => 0,
     applyPromotions: async () => 0,
     expireBans: async () => 0,
+    expireGroupMemberships: async () => 0,
   }
 }
 

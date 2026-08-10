@@ -65,6 +65,7 @@ export interface GroupIdentityValues {
   readonly description: string
   readonly displayOrder: number
   readonly isStaffGroup: boolean
+  readonly pluginGrantable: boolean
   readonly badgeToken: string
   readonly nameColorLight: string
   readonly nameColorDark: string
@@ -165,6 +166,25 @@ export function GroupIdentityForm({
           className="size-4"
         />
         <span>Staff group — listed on the staff page</span>
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            name="pluginGrantable"
+            value="1"
+            defaultChecked={group.pluginGrantable}
+            className="size-4"
+          />
+          <span>May be granted by plugins</span>
+        </span>
+        <span className="text-xs text-muted-foreground">
+          Lets an installed plugin put members in this group for a limited time — a paid
+          pass, a trial. Refused for system and staff groups, and for any group whose
+          permissions carry administrative or moderation power. Membership a plugin
+          grants always expires and never changes anyone&rsquo;s primary group.
+        </span>
       </label>
 
       <div>

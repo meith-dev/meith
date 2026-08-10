@@ -14,6 +14,12 @@ vi.mock('@meith/db', () => ({
       return stored.current
     }
   },
+  pluginGrants: () => ({
+    grant: async () => {},
+    extend: async () => {},
+    revoke: async () => {},
+    list: async () => [],
+  }),
 }))
 
 const { pluginTasks } = await import('./plugin-tasks')

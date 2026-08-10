@@ -254,6 +254,13 @@ export {
 } from './upgrade-repo'
 
 export {
+  PLUGIN_UNGRANTABLE_PERMISSIONS,
+  expireTimedGroupMemberships,
+  permissionsCarryPower,
+  pluginGrants,
+} from './plugin-grants'
+
+export {
   currentImportRun,
   finishImportRun,
   mapLegacyId,

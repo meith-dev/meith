@@ -68,7 +68,7 @@ These are not discouraged. There is no API for them.
 
 | It cannot | Why |
 |---|---|
-| Decide authorization | No hook filters `authorization.can()`, and none ever will. A plugin able to change that answer is a plugin able to grant itself anything |
+| Decide authorization | No hook filters `authorization.can()`, and none ever will. A plugin able to change that answer is a plugin able to grant itself anything. The one, narrow exception — putting a member in a group the operator pre-approved, for a limited time — is below, and the design of its refusals is what keeps it from being this row |
 | Reach inside the visibility filter | No hook sits in the query path. A plugin that could rewrite a `where` clause could publish a private forum, and no amount of isolation makes that recoverable |
 | See an `Actor` | Payloads carry `{ userId, isGuest }`. An `Actor` carries resolved group membership, which invites a plugin to make its own permission decision from group ids |
 | Open a database connection | Migrations are SQL text the host runs. A plugin does not import `@meith/db` |
@@ -174,6 +174,51 @@ unlikely.
 `definePlugin` refuses a key, setting name, task id or page path that would not
 namespace cleanly — a dot in a plugin key produces an ambiguous setting key, and
 a slash in a page path escapes the admin prefix.
+
+## Timed group grants
+
+`context.grants` — on every runtime context — is the only write a plugin gets
+against the board's own data: it can put a member in a usergroup **until a
+date**. That is the whole API, and it is enough to build paid membership,
+trials, and time-boxed access, because a usergroup already carries forum
+permissions, a badge and a name colour.
+
+```ts
+await context.grants.grant({ userId, groupKey: 'supporters', until, reason: 'order 42 paid' })
+await context.grants.extend({ userId, groupKey: 'supporters', until })
+await context.grants.revoke({ userId, groupKey: 'supporters', reason: 'refunded' })
+const held = await context.grants.list(userId)
+```
+
+What keeps this from being a plugin deciding authorization is the list of
+things the host refuses, checked on every call:
+
+- A group the operator has not marked **“may be granted by plugins”** on its
+  admin screen. The opt-in is per group and off by default.
+- A **system** or **staff** group, or any group whose permission set carries
+  administrative or moderation power. The checkbox refuses these too, so the
+  refusal is heard when the operator sets it up, not when the first grant fails.
+- A grant with no expiry, an expiry in the past, or one more than two years
+  out. Every grant lapses on its own.
+- A membership **someone else** granted — an administrator's, another
+  plugin's. `grant` refuses it, `revoke` leaves it alone.
+- An empty `reason`. The reason is stored on the row; it is the audit trail.
+
+A grant is always an additive secondary membership: `primary_group_id` and
+`display_group_id` are never touched, so nothing a plugin does changes how a
+member is displayed or what happens when the grant ends — they fall back to
+exactly what they were.
+
+**Expiry is true at the read, not enforced by a sweep.** Actor assembly skips
+a lapsed row, so access ends at the boundary even if no task ever runs again —
+uninstalling the plugin, stopping the tick, or the plugin's own bugs cannot
+leave anyone holding access they no longer have. A `groups.expire` tick
+deletes lapsed rows afterwards and bumps the permission version so derived
+caches follow. Re-granting and extending only ever move an expiry **forward**:
+a stale or replayed call cannot shorten what a member already holds.
+
+Where the board runs on fixture data there is no membership table; every call
+rejects with a clear error rather than pretending.
 
 ## Migrations
 

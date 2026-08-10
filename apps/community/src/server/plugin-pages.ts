@@ -1,11 +1,23 @@
 import 'server-only'
 
-import { logger } from '@meith/core'
-import { resolvePluginSettings, type PluginDefinition } from '@meith/plugin-kit'
+import { env, logger } from '@meith/core'
+import { getDb, pluginGrants } from '@meith/db'
+import {
+  resolvePluginSettings,
+  unavailablePluginGrants,
+  type PluginDefinition,
+  type PluginGrants,
+} from '@meith/plugin-kit'
 import type { ReactNode } from 'react'
 
 import forumConfig from '../../community.config'
 import { getSettingOverrides } from './settings'
+
+export function grantsFor(pluginKey: string): PluginGrants {
+  return env.DATA_SOURCE === 'postgres'
+    ? pluginGrants(getDb(), pluginKey)
+    : unavailablePluginGrants('this board is running on in-memory sample data')
+}
 
 export interface RenderedPluginPage {
   readonly title: string
@@ -40,6 +52,7 @@ export async function renderPluginAdminPage(
           warn: (message, detail) => log.warn(detail ?? {}, message),
           error: (message, detail) => log.error(detail ?? {}, message),
         },
+        grants: grantsFor(pluginKey),
       }),
     }
   } catch (error) {

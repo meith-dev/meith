@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { isHookName, type HOOKS, type HookName } from './hooks'
 import type { HookContext, HookValue } from './payloads'
 import { isPluginRegion, type PluginRegion, type PluginRegionContext } from './regions'
+import type { PluginGrants } from './runtime'
 
 export type FilterHandler<K extends HookName> = (
   value: HookValue<K>,
@@ -65,6 +66,7 @@ export interface PluginRuntimeContext {
     readonly warn: (message: string, detail?: Record<string, unknown>) => void
     readonly error: (message: string, detail?: Record<string, unknown>) => void
   }
+  readonly grants: PluginGrants
 }
 
 export interface PluginDefinition {

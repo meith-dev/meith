@@ -458,6 +458,9 @@ importers:
       '@meith/notifications':
         specifier: workspace:*
         version: link:../notifications
+      '@meith/plugin-kit':
+        specifier: workspace:*
+        version: link:../plugin-kit
       '@meith/polls':
         specifier: workspace:*
         version: link:../polls

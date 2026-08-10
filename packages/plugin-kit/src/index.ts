@@ -68,3 +68,9 @@ export {
   type PluginHealth,
   type PluginHostOptions,
 } from './host'
+
+export {
+  unavailablePluginGrants,
+  type PluginGrantRow,
+  type PluginGrants,
+} from './runtime'
