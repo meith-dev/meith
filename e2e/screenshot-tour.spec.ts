@@ -6,7 +6,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 import { E2E_DUES_WEBHOOK_SECRET } from './support/config'
 import { enterAdminPanel, signUp } from './support/session'
 
-const SHOTS = process.env.DUES_SHOTS_DIR ?? '/tmp/dues-shots'
+const SHOTS = '/tmp/dues-shots'
 mkdirSync(SHOTS, { recursive: true })
 
 let shot = 0
