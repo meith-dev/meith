@@ -11,7 +11,7 @@ import "../src/styles/globals.css"
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: `${site.name} — community software for people who build together`,
+    default: `${site.name} — self-hosted community software for clubs, projects and groups`,
     template: `%s — ${site.name}`,
   },
   description: site.description,

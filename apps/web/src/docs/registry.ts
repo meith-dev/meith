@@ -65,3 +65,14 @@ export function findSection(id: string): DocSection | undefined {
 export function docHref(slug: string, anchor?: string): string {
   return anchor ? `/docs/${slug}#${anchor}` : `/docs/${slug}`
 }
+
+/*
+ * Where "set one up" points. Every marketing page and the header need it, and
+ * working it out from the manifest in five places is five places to be wrong
+ * if the running section is ever renamed.
+ */
+export function quickstartHref(): string {
+  const running = findSection("running")
+  const quickstart = running ? documentsInSection(running.id).find((doc) => doc.primary) : undefined
+  return quickstart ? docHref(quickstart.slug) : "/docs"
+}

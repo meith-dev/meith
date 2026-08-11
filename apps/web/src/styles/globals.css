@@ -483,6 +483,33 @@ body {
   color: var(--fg-subtle);
 }
 
+/*
+ * The two lists in the "chat is for now" band: what stays in the group chat,
+ * and what belongs somewhere it will survive. They have to read as unequal —
+ * the whole section is an argument about where a thing belongs — and the
+ * palette has one accent already spent, so the distinction is made on the
+ * greyscale ramp instead. The recessive list sits in the band; the other is
+ * raised off it with a stronger rule and full-strength text.
+ */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.24rem 0.7rem;
+  font-size: var(--step--1);
+  line-height: 1.4;
+  color: var(--fg-subtle);
+  background: var(--surface);
+}
+
+.tag-strong {
+  border-color: var(--border-strong);
+  background: var(--raised);
+  color: var(--fg);
+  box-shadow: var(--lift);
+}
+
 .kbd {
   border: 1px solid var(--border);
   border-radius: 4px;

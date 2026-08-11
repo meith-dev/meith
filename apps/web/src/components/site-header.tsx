@@ -1,15 +1,12 @@
 import Link from "next/link"
 
 import { site } from "../content/site"
-import { docHref, documentsInSection, sections } from "../docs/registry"
+import { quickstartHref } from "../docs/registry"
 import { DocsSearch } from "./docs-search"
 import { Logomark } from "./logomark"
 import { ThemeToggle } from "./theme-toggle"
 
 export function SiteHeader() {
-  const running = sections.find((section) => section.id === "running")
-  const quickstart = running ? documentsInSection(running.id).find((doc) => doc.primary) : undefined
-
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-canvas/85 backdrop-blur-lg">
       <div aria-hidden className="top-beam" />
@@ -23,6 +20,12 @@ export function SiteHeader() {
         </Link>
 
         <nav aria-label="Site" className="flex items-center gap-3 sm:gap-4">
+          <Link
+            href="/for"
+            className="text-micro font-medium text-fg-muted transition-colors hover:text-fg"
+          >
+            Who it&rsquo;s for
+          </Link>
           <Link
             href="/docs"
             className="text-micro font-medium text-fg-muted transition-colors hover:text-fg"
@@ -38,7 +41,7 @@ export function SiteHeader() {
           <DocsSearch />
           <ThemeToggle />
           <Link
-            href={quickstart ? docHref(quickstart.slug) : "/docs"}
+            href={quickstartHref()}
             className="hidden rounded-[var(--radius-control)] bg-accent px-3 py-1.5 text-micro font-medium text-accent-contrast transition-colors hover:bg-accent-hover lg:inline-block"
           >
             Start a board

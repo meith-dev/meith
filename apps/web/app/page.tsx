@@ -2,30 +2,41 @@ import Link from "next/link"
 
 import { BoardPreview } from "../src/components/board-preview"
 import { CopyCommand } from "../src/components/copy-command"
-import { Terminal } from "../src/components/terminal"
+import { SegmentCards } from "../src/components/segment-cards"
+import {
+  ClosingBand,
+  DocsBand,
+  LicenceBand,
+  ProofBand,
+  RunningBand,
+} from "../src/components/site-bands"
 import { readFacts } from "../src/content/facts"
 import {
-  benefits,
+  alongside,
   capabilities,
+  chooser,
   closing,
-  deployment,
-  documentation,
+  genericBoard,
   hero,
   installCommand,
-  licence,
-  licenceHref,
-  licensing,
-  migration,
-  performance,
+  losses,
   site,
 } from "../src/content/site"
-import { docHref, documentsInSection, sections } from "../src/docs/registry"
+import { docHref, quickstartHref } from "../src/docs/registry"
 
+/*
+ * The general page. It makes the case that is true of every community and
+ * then gets out of the way — the version with fixtures in it, or a raid
+ * roster, or a bin collection, is one click away in `app/for/[segment]`.
+ *
+ * Two bands that used to be here have gone to where they belong: Dues is now
+ * the feature section on the clubs page, because it is the most persuasive
+ * thing on offer to a club and close to irrelevant to a gaming clan. Nothing
+ * on this page is specific to anybody any more, which is the whole idea.
+ */
 export default async function LandingPage() {
   const facts = await readFacts()
-  const running = sections.find((section) => section.id === "running")
-  const quickstart = running ? documentsInSection(running.id).find((doc) => doc.primary) : undefined
-  const startHref = quickstart ? docHref(quickstart.slug) : "/docs"
+  const startHref = quickstartHref()
 
   return (
     <>
@@ -33,30 +44,37 @@ export default async function LandingPage() {
         <div aria-hidden className="hero-grid" />
         <div aria-hidden className="hero-glow" />
 
-        <div className="shell grid gap-x-14 gap-y-14 pt-16 pb-20 sm:pt-24 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-center">
+        <div className="shell grid gap-x-14 gap-y-14 pt-16 pb-20 sm:pt-24 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-center">
           <div className="flex flex-col items-start gap-6">
             <p className="badge">
               <span aria-hidden className="badge-dot" />
               {hero.badge}
             </p>
 
-            <h1 className="display-hero max-w-[20ch] text-hero leading-[1.02]">
-              {hero.headline.before}
-              <span className="text-accent">{hero.headline.emphasis}</span>
+            {/*
+              A sentence to a block. Left as one run of text, `text-wrap:
+              balance` optimises for even line lengths and does not know a full
+              stop from a comma, so it set "forgets. Your" as a line and buried
+              the turn the whole headline is built on. Given a box each, the
+              sentences break where they should and balance within themselves.
+            */}
+            <h1 className="display-hero max-w-[15ch] text-hero leading-[1.02]">
+              <span className="block">{hero.headline.before}</span>
+              <span className="block text-accent">{hero.headline.emphasis}</span>
             </h1>
 
             <p className="lede max-w-[36rem]">{hero.lede}</p>
 
             <div className="mt-1 flex flex-wrap items-center gap-3">
-              <Link className="btn btn-primary" href={startHref}>
+              <a className="btn btn-primary" href={site.demo}>
                 {hero.primary}
                 <span aria-hidden className="btn-arrow">
                   →
                 </span>
-              </Link>
-              <a className="btn btn-quiet" href={site.demo}>
-                {hero.secondary}
               </a>
+              <Link className="btn btn-quiet" href={startHref}>
+                {hero.secondary}
+              </Link>
             </div>
 
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -66,27 +84,71 @@ export default async function LandingPage() {
               </a>
             </div>
 
-            <p className="max-w-[32rem] text-micro leading-[1.5] text-fg-subtle text-pretty">
+            <p className="max-w-[34rem] text-micro leading-[1.5] text-fg-subtle text-pretty">
               {hero.assurance}
             </p>
           </div>
 
-          <BoardPreview />
+          <figure className="flex flex-col gap-3">
+            <BoardPreview board={genericBoard} />
+            <figcaption className="text-micro leading-[1.5] text-fg-subtle text-pretty">
+              A board, in outline — its forums, what is in them, and the last thing said.
+            </figcaption>
+          </figure>
         </div>
       </section>
 
-      <section aria-label="Why a board of your own" className="border-b border-border bg-surface">
-        <div className="shell grid gap-x-10 gap-y-8 py-10 sm:grid-cols-2 sm:py-12 lg:grid-cols-4">
-          {benefits.map((benefit) => (
-            <div key={benefit.title} className="flex flex-col gap-2">
-              <h2 className="text-mid leading-[1.25] font-semibold tracking-[-0.02em] text-fg">
-                {benefit.title}
-              </h2>
-              <p className="max-w-[18rem] text-micro leading-[1.6] text-fg-muted text-pretty">
-                {benefit.body}
-              </p>
-            </div>
-          ))}
+      <section className="border-b border-border bg-surface">
+        <div className="shell py-16 sm:py-20">
+          <header className="max-w-[46rem]">
+            <p className="eyebrow">{chooser.eyebrow}</p>
+            <h2 className="display mt-3 text-large leading-[1.15]">{chooser.heading}</h2>
+            <p className="mt-4 text-fg-muted text-pretty">{chooser.lede}</p>
+          </header>
+
+          <div className="mt-10">
+            <SegmentCards />
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="What keeps happening" className="border-b border-border">
+        <div className="shell py-14 sm:py-18">
+          <div className="card-grid sm:grid-cols-2">
+            {losses.map((loss) => (
+              <div key={loss.complaint}>
+                <h2 className="text-mid leading-[1.25] font-semibold tracking-[-0.02em] text-fg text-balance">
+                  “{loss.complaint}”
+                </h2>
+                <p className="text-micro leading-[1.65] text-fg-muted text-pretty">{loss.answer}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-border bg-surface">
+        <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+          <header className="flex flex-col gap-3">
+            <p className="eyebrow">{alongside.eyebrow}</p>
+            <h2 className="display text-large leading-[1.15]">{alongside.heading}</h2>
+            <p className="text-fg-muted text-pretty">{alongside.lede}</p>
+          </header>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:pt-1">
+            {alongside.columns.map((column, index) => (
+              <div key={column.title} className="flex flex-col gap-3">
+                <p className="eyebrow">{column.title}</p>
+                <ul className="flex flex-wrap gap-1.5">
+                  {column.items.map((item) => (
+                    <li key={item} className={index === 0 ? "tag" : "tag tag-strong"}>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -106,7 +168,7 @@ export default async function LandingPage() {
           <div className="card-grid mt-10 sm:grid-cols-2 lg:grid-cols-3">
             {capabilities.map((capability, index) => (
               <Link
-                key={capability.title}
+                key={capability.id}
                 href={docHref(capability.doc, capability.anchor ?? undefined)}
               >
                 <p className="font-mono text-micro tracking-[0.12em] text-fg-subtle">
@@ -127,197 +189,11 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <section className="border-b border-border bg-surface">
-        <div className="shell py-16 sm:py-24">
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_27rem] lg:items-center">
-            <header className="max-w-[44rem]">
-              <p className="eyebrow">{deployment.eyebrow}</p>
-              <h2 className="display mt-3 text-large leading-[1.15]">{deployment.heading}</h2>
-              <p className="mt-4 text-fg-muted text-pretty">{deployment.lede}</p>
-            </header>
-
-            <div className="flex flex-col gap-3">
-              <Terminal />
-              <p className="text-micro leading-[1.5] text-fg-subtle text-pretty">
-                The hand route, in full. The guided one is the same four containers, with the panel
-                typing the secrets for you.
-              </p>
-            </div>
-          </div>
-
-          <div className="card-grid mt-12 sm:grid-cols-2">
-            {deployment.options.map((option) => (
-              <div key={option.title}>
-                <h3 className="text-mid font-semibold tracking-[-0.02em] text-fg">{option.title}</h3>
-                <p className="text-micro leading-[1.65] text-fg-muted text-pretty">{option.body}</p>
-                <p className="mt-auto pt-3 font-mono text-micro leading-[1.5] text-fg-subtle">
-                  {option.note}
-                </p>
-                <p className="pt-3">
-                  <Link className="textlink text-micro" href={docHref(option.action.doc)}>
-                    {option.action.label}
-                  </Link>
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <p className="mt-6">
-            <Link className="textlink text-micro" href={docHref("operating")}>
-              {deployment.link}
-            </Link>
-          </p>
-        </div>
-      </section>
-
-      <section className="border-b border-border">
-        <div className="shell grid gap-x-14 gap-y-6 py-14 sm:py-18 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
-          <div>
-            <p className="eyebrow">{performance.eyebrow}</p>
-            <h2 className="display mt-3 text-large leading-[1.15]">{performance.heading}</h2>
-          </div>
-          <div className="flex max-w-[36rem] flex-col gap-4 lg:pt-1">
-            <p className="text-fg-muted text-pretty">{performance.lede}</p>
-            <p className="text-micro leading-[1.65] text-fg-subtle text-pretty">
-              {performance.evidence(facts)}
-            </p>
-            <p>
-              <Link className="textlink text-micro" href={docHref("performance")}>
-                {performance.link}
-              </Link>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-border">
-        <div className="shell grid gap-x-14 gap-y-6 py-14 sm:py-18 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
-          <div>
-            <p className="eyebrow">{migration.eyebrow}</p>
-            <h2 className="display mt-3 text-large leading-[1.15]">{migration.heading}</h2>
-          </div>
-          <div className="flex max-w-[36rem] flex-col gap-4 lg:pt-1">
-            <p className="text-fg-muted text-pretty">{migration.body}</p>
-            <p className="text-fg text-pretty">{migration.emphasis}</p>
-            <p>
-              <Link className="textlink text-micro" href={docHref("mybb-parity")}>
-                {migration.link}
-              </Link>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-border bg-surface">
-        <div className="shell py-16 sm:py-20">
-          <div className="grid gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
-            <div>
-              <p className="eyebrow">{licensing.eyebrow}</p>
-              <h2 className="display mt-3 text-large leading-[1.15]">{licensing.heading}</h2>
-            </div>
-
-            <div className="flex max-w-[36rem] flex-col gap-6 lg:pt-1">
-              <p className="text-fg-muted text-pretty">{licensing.body}</p>
-
-              <dl className="grid gap-x-10 gap-y-5 sm:grid-cols-2">
-                {licensing.points.map((point) => (
-                  <div key={point.title}>
-                    <dt className="font-medium text-fg">{point.title}</dt>
-                    <dd className="mt-1 text-micro leading-[1.65] text-fg-muted text-pretty">
-                      {point.body}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-
-              <p className="border-l-2 border-accent pl-4 text-fg text-pretty">
-                {licensing.emphasis}
-              </p>
-
-              <div className="flex flex-col gap-2">
-                <p>
-                  <a className="textlink text-micro" href={licenceHref}>
-                    {licensing.link} — {licence.name}
-                  </a>
-                </p>
-                <p className="text-micro leading-[1.6] text-fg-subtle text-pretty">
-                  {licensing.note}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-border">
-        <div className="shell py-16 sm:py-24">
-          <header className="max-w-[46rem]">
-            <p className="eyebrow">{documentation.eyebrow}</p>
-            <h2 className="display mt-3 text-large leading-[1.15]">{documentation.heading}</h2>
-            <p className="mt-4 text-fg-muted text-pretty">{documentation.lede}</p>
-          </header>
-
-          <div className="card-grid mt-10 sm:grid-cols-2 lg:grid-cols-3">
-            {sections.map((section) => {
-              const primary = documentsInSection(section.id).find((doc) => doc.primary)
-              if (!primary) return null
-              return (
-                <Link key={section.id} href={docHref(primary.slug)}>
-                  <h3 className="text-mid font-semibold tracking-[-0.02em] text-fg">
-                    {section.title}
-                  </h3>
-                  <p className="text-micro leading-[1.65] text-fg-muted text-pretty">
-                    {section.blurb}
-                  </p>
-                  <p className="mt-auto pt-4 font-mono text-micro text-fg-subtle">
-                    <span className="card-arrow">Start with {primary.title} →</span>
-                  </p>
-                </Link>
-              )
-            })}
-          </div>
-
-          <p className="mt-8">
-            <Link className="btn" href="/docs">
-              All documents
-              <span aria-hidden className="btn-arrow">
-                →
-              </span>
-            </Link>
-          </p>
-        </div>
-      </section>
-
-      <section className="relative isolate overflow-hidden">
-        <div aria-hidden className="hero-glow" />
-        <div className="shell grid gap-x-14 gap-y-10 py-20 sm:py-24 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">
-          <div className="flex flex-col items-start gap-6">
-            <h2 className="display max-w-[24ch] text-large leading-[1.12]">{closing.heading}</h2>
-            <p className="max-w-[36rem] text-fg-muted text-pretty">{closing.body}</p>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-              <Link className="btn btn-primary" href={startHref}>
-                {hero.primary}
-                <span aria-hidden className="btn-arrow">
-                  →
-                </span>
-              </Link>
-              <CopyCommand command={installCommand} />
-              <a className="btn btn-quiet" href={site.repository}>
-                Source
-              </a>
-            </div>
-          </div>
-
-          <dl className="flex flex-col gap-3 border-t border-border pt-5 lg:mt-1 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-            {closing.requirements.map((requirement) => (
-              <div key={requirement.label}>
-                <dt className="eyebrow">{requirement.label}</dt>
-                <dd className="mt-0.5 text-micro text-fg">{requirement.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
+      <RunningBand />
+      <ProofBand facts={facts} />
+      <LicenceBand />
+      <DocsBand />
+      <ClosingBand heading={closing.heading} body={closing.body} startHref={startHref} />
     </>
   )
 }
