@@ -56,7 +56,7 @@ export interface PluginTask {
 export interface PluginAdminPage {
   readonly path: string
   readonly title: string
-  readonly render: (context: PluginRuntimeContext) => ReactNode | Promise<ReactNode>
+  readonly render: (context: PluginAdminPageContext) => ReactNode | Promise<ReactNode>
 }
 
 export interface PluginContribution {
@@ -92,7 +92,8 @@ export type PluginResponse =
     }
   | { readonly kind: 'redirect'; readonly to: string }
 
-export type PluginRouteAccess = 'anonymous' | 'member'
+export type PluginRouteAccess = 'anonymous' | 'member' | 'admin'
+export type PluginPageAccess = 'anonymous' | 'member'
 
 export interface PluginRoute {
   readonly path: string
@@ -113,10 +114,14 @@ export interface PluginPageContext extends PluginRuntimeContext {
   readonly boardUrl: string
 }
 
+export interface PluginAdminPageContext extends PluginRuntimeContext {
+  readonly query: Readonly<Record<string, string>>
+}
+
 export interface PluginBoardPage {
   readonly path: string
   readonly title: string
-  readonly access: PluginRouteAccess
+  readonly access: PluginPageAccess
   readonly render: (context: PluginPageContext) => ReactNode | Promise<ReactNode>
 }
 
@@ -413,8 +418,10 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
     if (route.method !== 'GET' && route.method !== 'POST') {
       throw new Error(`${where}: route "${route.path}" method must be GET or POST.`)
     }
-    if (route.access !== 'anonymous' && route.access !== 'member') {
-      throw new Error(`${where}: route "${route.path}" access must be "anonymous" or "member".`)
+    if (route.access !== 'anonymous' && route.access !== 'member' && route.access !== 'admin') {
+      throw new Error(
+        `${where}: route "${route.path}" access must be "anonymous", "member" or "admin".`,
+      )
     }
     if (typeof route.handler !== 'function') {
       throw new Error(`${where}: route "${route.path}" needs a handler function.`)

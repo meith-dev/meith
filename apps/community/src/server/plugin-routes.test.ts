@@ -21,6 +21,17 @@ vi.mock('./context', () => ({ getActor: async () => actor.current }))
 
 vi.mock('./board-url', () => ({ boardUrl: async () => 'https://board.example' }))
 
+const admin = { isAdmin: false }
+const adminLog: Array<{ action: string; detail?: Record<string, unknown> }> = []
+vi.mock('./admin', () => ({
+  requireAdmin: async () => {
+    if (!admin.isAdmin) throw new Error('forbidden')
+  },
+  recordAdminAction: async (entry: { action: string; detail?: Record<string, unknown> }) => {
+    adminLog.push(entry)
+  },
+}))
+
 const { definePlugin } = await import('@meith/plugin-kit')
 const handled: unknown[] = []
 
@@ -64,6 +75,21 @@ const alpha = definePlugin({
         handled.push(request)
         return { kind: 'text', body: 'received', status: 200 }
       },
+    },
+    {
+      path: 'admin/comp',
+      method: 'POST',
+      access: 'admin',
+      handler: (request) => {
+        handled.push(request)
+        return { kind: 'redirect', to: '/admin/plugins/alpha/status' }
+      },
+    },
+    {
+      path: 'admin/report',
+      method: 'GET',
+      access: 'admin',
+      handler: () => ({ kind: 'json', body: { rows: [] } }),
     },
     {
       path: 'escape',
@@ -122,6 +148,8 @@ function request(
 beforeEach(() => {
   overrides.current = new Map()
   actor.current = { userId: null }
+  admin.isAdmin = false
+  adminLog.length = 0
   handled.length = 0
 })
 
@@ -212,6 +240,64 @@ describe('access', () => {
       ['checkout'],
     )
     expect(noOrigin.status).toBe(303)
+  })
+
+  it('403s everyone but the panel on an admin route — a member is not enough', async () => {
+    actor.current = { userId: 7 }
+    const asMember = await dispatchPluginRoute(
+      request('/api/plugins/alpha/admin/comp', { method: 'POST' }),
+      'alpha',
+      ['admin', 'comp'],
+    )
+    expect(asMember.status).toBe(403)
+    expect(handled).toHaveLength(0)
+
+    admin.isAdmin = true
+    const asAdmin = await dispatchPluginRoute(
+      request('/api/plugins/alpha/admin/comp', { method: 'POST' }),
+      'alpha',
+      ['admin', 'comp'],
+    )
+    expect(asAdmin.status).toBe(303)
+    expect(asAdmin.headers.get('location')).toBe('/admin/plugins/alpha/status')
+  })
+
+  it('records an admin POST in the panel’s action log; an admin GET stays quiet', async () => {
+    admin.isAdmin = true
+    actor.current = { userId: 1 }
+
+    await dispatchPluginRoute(
+      request('/api/plugins/alpha/admin/report'),
+      'alpha',
+      ['admin', 'report'],
+    )
+    expect(adminLog).toHaveLength(0)
+
+    await dispatchPluginRoute(
+      request('/api/plugins/alpha/admin/comp', { method: 'POST' }),
+      'alpha',
+      ['admin', 'comp'],
+    )
+    expect(adminLog).toEqual([
+      { action: 'plugin.route', detail: { plugin: 'alpha', path: 'admin/comp' } },
+    ])
+  })
+
+  it('refuses an admin POST from another origin before the handler runs', async () => {
+    admin.isAdmin = true
+    actor.current = { userId: 1 }
+
+    const crossSite = await dispatchPluginRoute(
+      request('/api/plugins/alpha/admin/comp', {
+        method: 'POST',
+        headers: { origin: 'https://elsewhere.example' },
+      }),
+      'alpha',
+      ['admin', 'comp'],
+    )
+    expect(crossSite.status).toBe(403)
+    expect(handled).toHaveLength(0)
+    expect(adminLog).toHaveLength(0)
   })
 })
 

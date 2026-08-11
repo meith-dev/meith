@@ -11,6 +11,7 @@ import {
   type PluginRoute,
 } from '@meith/plugin-kit'
 
+import { recordAdminAction, requireAdmin } from './admin'
 import { boardUrl } from './board-url'
 import { getActor } from './context'
 import { activeDefinitions, pluginHost, syncOperatorDisables } from './plugin-host'
@@ -200,7 +201,15 @@ export async function dispatchPluginRoute(
     return fail(401, 'unauthenticated', 'Sign in to use this.')
   }
 
-  if (route.access === 'member' && method === 'POST' && crossOrigin(request)) {
+  if (route.access === 'admin') {
+    try {
+      await requireAdmin()
+    } catch {
+      return fail(403, 'administrators_only', 'Enter the control panel and try again.')
+    }
+  }
+
+  if (route.access !== 'anonymous' && method === 'POST' && crossOrigin(request)) {
     return fail(403, 'cross_origin', 'This form was posted from somewhere that is not the board.')
   }
 
@@ -247,6 +256,10 @@ export async function dispatchPluginRoute(
   }
   if (outcome.status === 'failed' || outcome.value === undefined || outcome.value === null) {
     return fail(500, 'plugin_failed', 'The plugin could not answer. The error is in the log.')
+  }
+
+  if (route.access === 'admin' && method === 'POST') {
+    await recordAdminAction({ action: 'plugin.route', detail: { plugin: pluginKey, path } })
   }
 
   return toResponse(outcome.value, method, definition, pluginKey)

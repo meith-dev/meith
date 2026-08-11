@@ -129,6 +129,16 @@ export const referencePlugin = definePlugin({
       access: 'member',
       handler: () => ({ kind: 'redirect', to: 'https://example.com/away' }),
     },
+    {
+      path: 'admin/reset',
+      method: 'POST',
+      access: 'admin',
+      handler: (request) => {
+        resetRecorder()
+        RECORDED.routes.push({ path: request.path, method: request.method })
+        return { kind: 'redirect', to: '/admin/plugins/reference/status' }
+      },
+    },
   ],
 
   pages: [

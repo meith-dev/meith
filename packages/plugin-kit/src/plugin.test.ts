@@ -234,9 +234,13 @@ describe('definePlugin', () => {
     })
 
     it('refuses a bad access value, a bad method, and a missing handler', () => {
-      expect(() => plugin({ routes: [route({ access: 'admin' })] })).toThrow(/access/)
+      expect(() => plugin({ routes: [route({ access: 'staff' })] })).toThrow(/access/)
       expect(() => plugin({ routes: [route({ method: 'DELETE' })] })).toThrow(/method/)
       expect(() => plugin({ routes: [route({ handler: undefined })] })).toThrow(/handler/)
+    })
+
+    it('accepts an admin route — the panel is a caller, not a special case', () => {
+      expect(() => plugin({ routes: [route({ access: 'admin' })] })).not.toThrow()
     })
 
     it('bounds the body cap', () => {
@@ -263,6 +267,10 @@ describe('definePlugin', () => {
       expect(() => plugin({ pages: [page({ path: 'a/b' })] })).toThrow(/page path/)
       expect(() => plugin({ pages: [page({ title: '  ' })] })).toThrow(/title/)
       expect(() => plugin({ pages: [page(), page()] })).toThrow(/declared twice/)
+    })
+
+    it('refuses an admin board page — the panel renders adminPages, not pages', () => {
+      expect(() => plugin({ pages: [page({ access: 'admin' })] })).toThrow(/access/)
     })
 
     it('accepts bare redirect hosts and refuses anything with more than a host in it', () => {

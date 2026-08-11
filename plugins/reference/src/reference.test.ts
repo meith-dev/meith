@@ -147,6 +147,7 @@ describe('routes and pages', () => {
     expect(routes.some((route) => route.rawBody === true)).toBe(true)
     expect(routes.some((route) => route.access === 'member')).toBe(true)
     expect(routes.some((route) => route.access === 'anonymous')).toBe(true)
+    expect(routes.some((route) => route.access === 'admin')).toBe(true)
     expect((referencePlugin.pages ?? []).length).toBeGreaterThan(0)
   })
 

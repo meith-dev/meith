@@ -309,9 +309,15 @@ bytes, which is what webhook signature verification needs.
 **The host owns every decision a plugin must not:**
 
 - **`access` is enforced before the handler runs.** `'member'` answers 401 to
-  a guest; the handler never sees the request.
-- **A member POST must come from the board's own origin.** The Origin header
-  is checked against the request's host; a cross-site form post is a 403.
+  a guest; `'admin'` answers 403 to anyone without a live control-panel
+  session — the same check the panel's own screens make, including its
+  re-authentication window. The handler never sees a refused request.
+- **A member or admin POST must come from the board's own origin.** The
+  Origin header is checked against the request's host; a cross-site form
+  post is a 403.
+- **An admin POST lands in the panel's action log** as `plugin.route` with
+  the plugin key and path, next to every other administrative act. Admin
+  GETs are reads and stay out of the log.
 - **`cookie` and `authorization` never reach the handler**, and the response
   envelope has no header or cookie field at all. That single restriction is
   what stops a plugin route becoming a second authentication system.
@@ -467,11 +473,16 @@ pretending.
 
 What that leaves, stated plainly:
 
-- **A page cannot reach anything a task cannot.** Both are handed a
-  `PluginRuntimeContext` — resolved settings and a logger — and neither gets the
-  `Actor`, the request, or a database handle. A page renders under an
-  already-authenticated panel route; there is no per-page permission to declare,
-  because a plugin does not get to make that decision.
+- **A page cannot reach anything a task cannot.** Both are handed the runtime
+  context — resolved settings and a logger — and neither gets the `Actor`,
+  the request, or a database handle. An admin page additionally sees the
+  panel URL's query string (`PluginAdminPageContext.query`), which is what a
+  post-redirect-get notice needs and nothing more. A page renders under an
+  already-authenticated panel route; there is no per-page permission to
+  declare, because a plugin does not get to make that decision. The acting
+  half lives on routes: a route with `access: 'admin'` is the form target
+  for an admin page's buttons, checked and logged by the host as described
+  under [HTTP routes](#http-routes).
 - **A task's failure is not swallowed.** Hooks are isolated because the
   alternative is a plugin taking down a page render. A task has no page to take
   down, and the scheduler already records failures and notifies administrators —

@@ -111,6 +111,7 @@ export async function renderPluginBoardPage(
 export async function renderPluginAdminPage(
   pluginKey: string,
   path: string,
+  query: Readonly<Record<string, string>> = {},
 ): Promise<RenderedPluginPage | null> {
   const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === pluginKey)
   const definition = entry?.plugin as PluginDefinition | undefined
@@ -139,6 +140,7 @@ export async function renderPluginAdminPage(
         grants: grantsFor(pluginKey),
         data: dataFor(pluginKey),
         users: usersFor(),
+        query,
       }),
     }
   } catch (error) {
