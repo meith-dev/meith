@@ -667,15 +667,31 @@ test('a theme turned off leaves the switcher, and a token override reaches the b
   await page.goto('/admin/themes')
   await expect(page.getByRole('button', { name: 'Turn Default off' })).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Turn Midnight off' }).click()
-  await expect(page.getByRole('button', { name: 'Turn Midnight on' })).toBeVisible()
+  const switchable = (
+    await page
+      .getByRole('button', { name: /^Turn .+ off$/ })
+      .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label') ?? ''))
+  )
+    .map((label) => /^Turn (.+) off$/.exec(label.trim())?.[1] ?? null)
+    .filter((name): name is string => name !== null)
+
+  expect(switchable.length).toBeGreaterThan(0)
+  expect(switchable).toContain('Midnight')
+
+  for (const name of switchable) {
+    await page.goto('/admin/themes')
+    await page.getByRole('button', { name: `Turn ${name} off` }).click()
+    await expect(page.getByRole('button', { name: `Turn ${name} on` })).toBeVisible()
+  }
 
   await page.goto('/')
   await expect(page.getByRole('combobox', { name: 'Theme' })).toHaveCount(0)
 
-  await page.goto('/admin/themes')
-  await page.getByRole('button', { name: 'Turn Midnight on' }).click()
-  await expect(page.getByRole('button', { name: 'Turn Midnight off' })).toBeVisible()
+  for (const name of switchable) {
+    await page.goto('/admin/themes')
+    await page.getByRole('button', { name: `Turn ${name} on` }).click()
+    await expect(page.getByRole('button', { name: `Turn ${name} off` })).toBeVisible()
+  }
 
   await page.goto('/')
   await expect(
