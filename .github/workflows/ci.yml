@@ -341,6 +341,12 @@ jobs:
   compose:
     name: Both self-hosting shapes come up
     runs-on: ubuntu-latest
+    # The guide says `cd meith/docker` and run compose from there — the compose
+    # files live in docker/ and read the `.env` beside them. This job runs in
+    # the same directory so it stays the guide, verbatim.
+    defaults:
+      run:
+        working-directory: docker
     steps:
       - uses: actions/checkout@v4
 
@@ -359,10 +365,10 @@ jobs:
           AUTH_SECRET: stub-auth-secret-stub-auth-secret
           TICK_SECRET: stub-tick-secret-stub-tick-secret
         run: |
-          docker compose -f docker-compose.yml config >/dev/null
-          docker compose -f docker-compose.coolify.yml config >/dev/null
-          docker compose -f docker-compose.dev.yml config >/dev/null
-          docker compose -f docker-compose.site.coolify.yml config >/dev/null
+          docker compose -f compose.yml config >/dev/null
+          docker compose -f compose.coolify.yml config >/dev/null
+          docker compose -f compose.dev.yml config >/dev/null
+          docker compose -f compose.site.coolify.yml config >/dev/null
 
       # docs/self-hosting.md tells an operator to write a `.env` and run one
       # command. This job is that, verbatim, because three separate bugs got
@@ -496,33 +502,33 @@ jobs:
           MEITH_IMAGE: meith:ci
         run: |
           set -euo pipefail
-          docker build -f docker/Dockerfile -t meith:ci .
-          docker compose -f docker-compose.coolify.yml up -d \
+          docker build -f Dockerfile -t meith:ci ..
+          docker compose -f compose.coolify.yml up -d \
             --wait --wait-timeout 600 web worker
 
           # Read exit codes through `docker inspect` rather than
           # `compose ps --format`, whose JSON shape differs between versions.
           migrate_exit=$(docker inspect --format '{{.State.ExitCode}}' \
-            "$(docker compose -f docker-compose.coolify.yml ps -aq migrate)")
+            "$(docker compose -f compose.coolify.yml ps -aq migrate)")
           test "$migrate_exit" = "0" \
             || { echo "::error::migrate exited $migrate_exit"
-                 docker compose -f docker-compose.coolify.yml logs migrate; exit 1; }
+                 docker compose -f compose.coolify.yml logs migrate; exit 1; }
 
-          starts=$(docker compose -f docker-compose.coolify.yml logs worker 2>&1 \
+          starts=$(docker compose -f compose.coolify.yml logs worker 2>&1 \
             | grep -c 'worker started' || true)
           test "$starts" = "1" \
             || { echo "::error::expected one 'worker started', saw $starts"
-                 docker compose -f docker-compose.coolify.yml logs worker; exit 1; }
+                 docker compose -f compose.coolify.yml logs worker; exit 1; }
 
           # `restart: unless-stopped` hides a process that exits by bringing it
           # straight back, so a restart count is the only thing that tells a
           # working stack from one quietly cycling.
           for service in web worker; do
             restarts=$(docker inspect --format '{{.RestartCount}}' \
-              "$(docker compose -f docker-compose.coolify.yml ps -q $service)")
+              "$(docker compose -f compose.coolify.yml ps -q $service)")
             test "$restarts" = "0" \
               || { echo "::error::$service restarted $restarts times"
-                   docker compose -f docker-compose.coolify.yml logs "$service"; exit 1; }
+                   docker compose -f compose.coolify.yml logs "$service"; exit 1; }
           done
 
       # Coolify's proxy terminates TLS and routes to the container. A published
@@ -530,7 +536,7 @@ jobs:
       # without the certificate — and it is a two-line edit to add one.
       - name: The Coolify stack publishes no ports
         run: |
-          for container in $(docker compose -f docker-compose.coolify.yml ps -aq); do
+          for container in $(docker compose -f compose.coolify.yml ps -aq); do
             bindings=$(docker inspect --format '{{len .HostConfig.PortBindings}}' "$container")
             test "$bindings" = "0" || {
               name=$(docker inspect --format '{{.Name}}' "$container")
@@ -545,19 +551,19 @@ jobs:
       - name: The Coolify stack shares one uploads volume
         run: |
           set -euo pipefail
-          docker compose -f docker-compose.coolify.yml exec -T worker \
+          docker compose -f compose.coolify.yml exec -T worker \
             sh -c 'echo shared > /app/.uploads/ci-probe'
-          docker compose -f docker-compose.coolify.yml exec -T web \
+          docker compose -f compose.coolify.yml exec -T web \
             grep -q shared /app/.uploads/ci-probe \
             || { echo "::error::web cannot read what the worker wrote"; exit 1; }
 
       - name: Coolify logs on failure
         if: failure()
-        run: docker compose -f docker-compose.coolify.yml logs --no-color
+        run: docker compose -f compose.coolify.yml logs --no-color
 
       - name: Coolify stack down
         if: always()
-        run: docker compose -f docker-compose.coolify.yml down -v
+        run: docker compose -f compose.coolify.yml down -v
 
   # Sharded across four runners. Serially this suite took eighteen minutes and
   # the dev server — which compiles each route on first request and holds the

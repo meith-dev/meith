@@ -41,7 +41,7 @@ services:
 
   migrate:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
     # Runs to completion then exits; `web` waits for it so the schema is always
     # applied before the first request rather than racing it.
@@ -70,7 +70,7 @@ services:
 
   web:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
     restart: unless-stopped
     ports:
@@ -123,7 +123,7 @@ services:
   # it instead; that is the trade, and it is the operator's to make.
   worker:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
     restart: unless-stopped
     environment:

@@ -30,7 +30,7 @@ curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
 ```
 
 Then point it at this repository — the `release` branch — and
-[`docker-compose.coolify.yml`](./docker-compose.coolify.yml). It pulls the
+[`docker/compose.coolify.yml`](./docker/compose.coolify.yml). It pulls the
 released image rather than building anything, generates both secrets and the
 database password, issues the certificate, tells the board its own URL, and
 follows releases — never bare pushes — on redeploy. Nothing is typed in.
@@ -38,16 +38,16 @@ follows releases — never bare pushes — on redeploy. Nothing is typed in.
 **Or the compose file directly**, if you already run a proxy:
 
 ```sh
-git clone https://github.com/meith-dev/meith.git && cd meith
+git clone https://github.com/meith-dev/meith.git && cd meith/docker
 git checkout "$(git describe --tags --abbrev=0)"   # the newest release
-cp .env.example .env          # three secrets, generated not typed — the file says how
+cp ../.env.example .env       # three secrets, generated not typed — the file says how
 docker compose up -d --build
 ```
 
 The same four containers either way — Postgres, a one-shot migration that the
 other two wait on, the web server, and the worker that runs the background
 tick. Coolify pulls them as the released image;
-[`docker-compose.yml`](./docker-compose.yml) builds the same image from the
+[`docker/compose.yml`](./docker/compose.yml) builds the same image from the
 checkout. Certificate in front, open `/install`, and that is a board.
 
 That route is the advanced one — [Deploying by hand](./docs/self-hosting.md)

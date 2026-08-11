@@ -1,7 +1,7 @@
 # meith.dev — the landing page and the documentation, deployed by Coolify.
 #
 # A second Coolify resource beside the board, from the same repository and the
-# same instance: this one at www.meith.dev, `docker-compose.coolify.yml` at
+# same instance: this one at www.meith.dev, `compose.coolify.yml` at
 # community.meith.dev.
 #
 # Nobody self-hosting a board needs this file. It holds no data and reads
@@ -19,7 +19,7 @@
 services:
   site:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile.site
     restart: unless-stopped
     environment:

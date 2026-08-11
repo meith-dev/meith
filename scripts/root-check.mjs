@@ -15,7 +15,7 @@ const ALLOWED = new Map([
   ['.git', 'the repository itself'],
   ['.github', 'GitHub reads workflows and community files from this path only'],
   ['apps', 'workspace'],
-  ['docker', 'the image: Dockerfiles, entrypoint and healthcheck'],
+  ['docker', 'the deployment interface: the compose files, Dockerfiles, entrypoint and healthcheck'],
   ['docs', 'the documentation set — docs/README.md is its index'],
   ['e2e', 'the browser suite, rooted by playwright.config.ts'],
   ['examples', 'workspace — reference code to copy'],
@@ -25,16 +25,8 @@ const ALLOWED = new Map([
   ['tests', 'cross-package tests, rooted by vitest.config.ts'],
   ['themes', 'workspace'],
 
-  // The deploy interface. Compose files stay at the root: Coolify resources
-  // point at these exact paths, and `docker compose up` finds the default one
-  // by convention. Moving any of them breaks running deployments.
-  ['docker-compose.yml', 'the by-hand stack; docs and deployments name this path'],
-  ['docker-compose.coolify.yml', 'the Quickstart stack; Coolify resources point here'],
-  ['docker-compose.demo.coolify.yml', 'demo.meith.dev; its Coolify resource points here'],
-  ['docker-compose.site.coolify.yml', 'meith.dev; its Coolify resource points here'],
-  ['docker-compose.dev.yml', 'the development database; docs name this path'],
-  ['.dockerignore', 'must sit at the build context root to apply'],
-  ['.env.example', 'docs say `cp .env.example .env`, beside the compose file'],
+  ['.dockerignore', 'must sit at the build context root to apply, and the context is the workspace'],
+  ['.env.example', 'the development .env it documents is read from the root (apps/community/next.config.mjs)'],
 
   // Tooling contracts: each is read from the root by the tool it configures.
   ['package.json', 'the workspace root manifest'],

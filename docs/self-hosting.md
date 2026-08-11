@@ -72,17 +72,19 @@ git checkout "$(git describe --tags --abbrev=0)"   # the newest release
 
 A clone rather than a release tarball, because upgrading is a fetch and a
 checkout of the next tag, and because
-[`docker-compose.yml`](../docker-compose.yml) is a file you are meant to read
+[`docker/compose.yml`](../docker/compose.yml) is a file you are meant to read
 and edit. The checkout matters: `main` is development and makes no promises
 between releases, and a release tag is what the published images are built
 from and what [the release process](./release.md) stands behind.
 
 ## 3. Write the environment
 
-The compose file reads `.env` from beside it. Nothing in it belongs in git —
+Everything from here on happens in `docker/` — the compose file lives there
+and reads `.env` from beside it. Nothing in that file belongs in git —
 `.gitignore` already covers it.
 
 ```sh
+cd docker
 cat > .env <<EOF
 POSTGRES_PASSWORD=$(openssl rand -hex 32)
 AUTH_SECRET=$(openssl rand -base64 32)
@@ -250,7 +252,7 @@ sealing that cannot be undone — is the same on both routes and written once:
 ## Upgrading
 
 ```sh
-cd ~/meith
+cd ~/meith/docker
 git fetch --tags
 git checkout v0.1.1        # the release you are moving to
 docker compose up -d --build

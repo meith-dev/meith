@@ -1,6 +1,6 @@
 # A board on your own machine, deployed by Coolify.
 #
-# The same four services as `docker-compose.yml`, with four differences. Three
+# The same four services as `compose.yml`, with four differences. Three
 # are Coolify's doing:
 #
 #  - **No published ports.** Coolify's proxy routes to the container and issues

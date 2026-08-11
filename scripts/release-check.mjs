@@ -99,15 +99,15 @@ for (const { file, pattern } of CONSTANTS) {
 // The Coolify compose file pins the exact release version, once per service,
 // and every pin must agree — deploys are deterministic, and only a release
 // commit moves what a board runs.
-const compose = await readFile(join(ROOT, 'docker-compose.coolify.yml'), 'utf8')
+const compose = await readFile(join(ROOT, 'docker/compose.coolify.yml'), 'utf8')
 const pins = [...compose.matchAll(/\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:([^}]+)\}/g)]
 
 if (pins.length === 0) {
-  problems.push('docker-compose.coolify.yml no longer defaults MEITH_IMAGE to a ghcr.io/meith-dev/meith tag')
+  problems.push('docker/compose.coolify.yml no longer defaults MEITH_IMAGE to a ghcr.io/meith-dev/meith tag')
 }
 for (const pin of pins) {
   if (pin[1] !== version) {
-    problems.push(`docker-compose.coolify.yml pins ghcr.io/meith-dev/meith:${pin[1]}; the release is ${version}`)
+    problems.push(`docker/compose.coolify.yml pins ghcr.io/meith-dev/meith:${pin[1]}; the release is ${version}`)
   }
 }
 

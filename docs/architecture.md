@@ -41,7 +41,7 @@ flowchart LR
     worker --- uploads
 ```
 
-The compose files ([`docker-compose.yml`](../docker-compose.yml) and the
+The compose files ([`docker/compose.yml`](../docker/compose.yml) and the
 Coolify variant) wire the dependency order: `migrate` waits for Postgres to be
 healthy, `web` and `worker` wait for `migrate` to exit successfully. The
 `uploads` volume is shared read-write between web and worker because avatars,
@@ -50,7 +50,7 @@ by writing a file from one container and reading it from the other.
 
 One deployment deliberately breaks this shape:
 [demo mode](./demo-mode.md). Its compose file
-([`docker-compose.demo.coolify.yml`](../docker-compose.demo.coolify.yml)) runs
+([`docker/compose.demo.coolify.yml`](../docker/compose.demo.coolify.yml)) runs
 no worker — a `ticker` service drives `POST /api/system/tick` against the web
 container instead, because the demo's reset task must clear a cache that lives
 in the web server's own process — carries no volumes, and replaces the
@@ -68,7 +68,7 @@ rest of the workspace is reading `docs/*.md` and the generated references off
 disk at build time. Every page of it is prerendered. It ships as its own image
 ([`Dockerfile.site`](../docker/Dockerfile.site), a standalone Next.js build) deployed
 as a separate resource beside the board
-([`docker-compose.site.coolify.yml`](../docker-compose.site.coolify.yml)) — it
+([`docker/compose.site.coolify.yml`](../docker/compose.site.coolify.yml)) — it
 holds no data and reads nothing the board writes, and nobody self-hosting a
 board needs it.
 
