@@ -68,9 +68,6 @@ export class ActorBuilder implements ActorSource {
     const state = mapState(user.state)
     if (state === 'deleted') return null
 
-    // The expiry predicate is what makes a timed membership end on time: a
-    // lapsed row is invisible here, so access stops at the boundary without
-    // waiting for the sweep that later deletes the row.
     const membershipRows = await this.db
       .select({ groupId: userGroupMemberships.groupId })
       .from(userGroupMemberships)

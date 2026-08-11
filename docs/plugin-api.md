@@ -52,6 +52,7 @@ Installing it is `pnpm add`, a line in `community.plugins.ts`, and a redeploy.
 | `adminPages` | Pages mounted under `/admin/plugins/<key>/`. |
 | `routes` | HTTP endpoints mounted under `/api/plugins/<key>/`, dispatched by the host. |
 | `pages` | Member-facing pages mounted under `/plugins/<key>/`, rendered inside the board's shell. |
+| `notifications` | Notification kinds this plugin may send, each a line on the member's preferences screen. |
 | `allowedRedirectHosts` | The only hosts an absolute redirect from this plugin's routes may point at. |
 | `contributions` | Markup in named UI regions. |
 | `onInstall` / `onEnable` / `onDisable` / `onUninstall` | Lifecycle callbacks — declared and typed, not yet dispatched by the host. See the inventory below. |
@@ -309,15 +310,29 @@ bytes, which is what webhook signature verification needs.
 **The host owns every decision a plugin must not:**
 
 - **`access` is enforced before the handler runs.** `'member'` answers 401 to
-  a guest; the handler never sees the request.
-- **A member POST must come from the board's own origin.** The Origin header
-  is checked against the request's host; a cross-site form post is a 403.
+  a guest; `'admin'` answers 403 to anyone without a live control-panel
+  session — the same check the panel's own screens make, including its
+  re-authentication window. The handler never sees a refused request.
+- **Admin routes mount under the panel, not the board.** An `access: 'admin'`
+  route answers at `/admin/api/plugins/<key>/<path>` and is a 404 on the
+  board mount — and the reverse. The panel's session token is a cookie
+  scoped to the `/admin` path precisely so it never rides an ordinary board
+  request, which means an admin endpoint must live where that cookie
+  travels. An admin page's form posts there; `pluginAdminRoutePath` builds
+  the URL.
+- **A member or admin POST must come from the board's own origin.** The
+  Origin header is checked against the request's host; a cross-site form
+  post is a 403.
+- **An admin POST lands in the panel's action log** as `plugin.route` with
+  the plugin key and path, next to every other administrative act. Admin
+  GETs are reads and stay out of the log.
 - **`cookie` and `authorization` never reach the handler**, and the response
   envelope has no header or cookie field at all. That single restriction is
   what stops a plugin route becoming a second authentication system.
 - **Redirects are allow-listed.** A relative path always passes; an absolute
-  URL must be https and its host declared in `allowedRedirectHosts`, so a
-  compromised setting cannot turn a board route into an open redirect.
+  URL must be https — plain http only to a loopback address, for a test
+  double — and its host declared in `allowedRedirectHosts`, so a compromised
+  setting cannot turn a board route into an open redirect.
 - **Bodies are capped** — 64 KiB by default, `maxBodyBytes` up to 1 MiB.
 - **Every response is `cache-control: no-store`.**
 - **A disabled plugin's routes 404** — operator-disabled and auto-disabled
@@ -326,9 +341,26 @@ bytes, which is what webhook signature verification needs.
   timed, logged against the plugin, and auto-disabling after repeated
   failures — visible on the plugin's health screen.
 
-Two honest limits: route paths are exact matches (put ids in the query
-string, not the path), and there is no per-route rate limit yet — a route
-that does expensive work should do its own bookkeeping until there is.
+- **A route can declare its own rate limit** — `rateLimit: { limit, windowSeconds }`
+  — and the host enforces it before the handler runs: a spent window answers
+  429 with a `retry-after` header. The count is per caller (signed-in user id,
+  else the client address) and per instance, in process memory — abuse
+  pressure relief, not accounting. A board that scales out multiplies the
+  budget by its instance count; declare limits with that honesty in mind.
+
+One honest limit: route paths are exact matches — put ids in the query
+string, not the path.
+
+> [!NOTE]
+> **A form POST cannot 303 off the board.** The board's CSP pins
+> `form-action` to `'self'`, and browsers hold a form submission's whole
+> redirect chain to it — so a member-form route answering a redirect to a
+> payment provider is blocked by the browser, not by the host. The pattern
+> that works, without weakening the policy: 303 to one of your own pages
+> with the target in the query, validate it there against your
+> `allowedRedirectHosts`, and render a meta refresh plus a fallback link.
+> An ordinary navigation is outside `form-action`'s remit. `plugins/dues`
+> ships this as its `go` page.
 
 ## Board pages
 
@@ -354,6 +386,54 @@ Build your markup in the render function rather than returning a component
 that does work — the host's try/catch is around the call, and a component
 that throws later, inside React's own render, cannot be contained from the
 server.
+
+## Notifications
+
+`context.notify` — on every runtime context — sends a member a notification
+through the board's own system: the bell, and an e-mail if the member wants
+one. A plugin first declares its kinds as data:
+
+```ts
+notifications: [
+  { key: 'gift_received', title: 'Somebody gifts you a membership',
+    description: 'A member bought a membership in your name.' },
+  { key: 'renewal_trouble', title: 'A membership payment fails',
+    description: 'Your renewal did not go through; access holds while Stripe retries.',
+    emailByDefault: false },
+],
+```
+
+and then sends against a declared kind:
+
+```ts
+await context.notify.send({
+  userId: recipient,
+  kind: 'gift_received',
+  subject: 'alice bought you a 90-day pass',
+  body: 'It starts the moment the payment confirmed.',
+  href: '/plugins/dues/manage',
+  dedupeKey: `order:${order.id}`,
+})
+```
+
+**The host owns the decisions a plugin must not:**
+
+- **Every kind is namespaced** — `plugin.<plugin>.<kind>` — and lands as its
+  own line on the member's notification preferences screen, where the member
+  decides whether it e-mails them. `emailByDefault` sets the starting
+  position; the member's choice wins from then on.
+- **An undeclared kind refuses at send.** Declaring kinds is what makes them
+  legible to members; a plugin cannot invent one on the fly.
+- **The words travel as data.** The subject (up to 200 characters) and body
+  (up to 2,000) are rendered by the board on the bell and in the e-mail — the
+  same template, the same unsubscribe machinery as every core notification.
+- **`href` stays on the board.** A notification links to a board path, never
+  off-site — the plugin's own pages are the place for anything external.
+- **`dedupeKey` coalesces repeats** exactly as core kinds do: raising the
+  same key again bumps a counter instead of stacking rows.
+- Sending is member-to-member scale, not broadcast: there is deliberately no
+  fan-out primitive. A plugin that wants to tell everyone something has the
+  announcement system's front door like anybody else.
 
 ## Settings
 
@@ -448,18 +528,24 @@ each. Settings are stored at `plugin.<key>.<name>` and edited in the control
 panel, with environment overrides resolved as described above. Tasks are
 registered as `plugin.<key>.<id>` and run by the same tick as everything
 else. Admin pages are mounted at `/admin/plugins/<key>/<path>`, routes at
-`/api/plugins/<key>/<path>`, board pages at `/plugins/<key>/<path>`. The
+`/api/plugins/<key>/<path>` (admin routes at `/admin/api/plugins/<key>/<path>`),
+board pages at `/plugins/<key>/<path>`. The
 runtime capabilities — `grants`, `data`, `users` — are live on every context;
 on a fixture-mode board they reject with a clear error instead of
 pretending.
 
 What that leaves, stated plainly:
 
-- **A page cannot reach anything a task cannot.** Both are handed a
-  `PluginRuntimeContext` — resolved settings and a logger — and neither gets the
-  `Actor`, the request, or a database handle. A page renders under an
-  already-authenticated panel route; there is no per-page permission to declare,
-  because a plugin does not get to make that decision.
+- **A page cannot reach anything a task cannot.** Both are handed the runtime
+  context — resolved settings and a logger — and neither gets the `Actor`,
+  the request, or a database handle. An admin page additionally sees the
+  panel URL's query string (`PluginAdminPageContext.query`), which is what a
+  post-redirect-get notice needs and nothing more. A page renders under an
+  already-authenticated panel route; there is no per-page permission to
+  declare, because a plugin does not get to make that decision. The acting
+  half lives on routes: a route with `access: 'admin'` is the form target
+  for an admin page's buttons, checked and logged by the host as described
+  under [HTTP routes](#http-routes).
 - **A task's failure is not swallowed.** Hooks are isolated because the
   alternative is a plugin taking down a page render. A task has no page to take
   down, and the scheduler already records failures and notifies administrators —

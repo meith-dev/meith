@@ -21,6 +21,27 @@ vi.mock('./context', () => ({ getActor: async () => actor.current }))
 
 vi.mock('./board-url', () => ({ boardUrl: async () => 'https://board.example' }))
 
+const raised: Array<Record<string, unknown>> = []
+vi.mock('./notifications', () => ({
+  notificationService: () => ({
+    raise: async (input: Record<string, unknown>) => {
+      raised.push(input)
+      return { notificationId: 1, coalesced: false, emailQueued: false }
+    },
+  }),
+}))
+
+const admin = { isAdmin: false }
+const adminLog: Array<{ action: string; detail?: Record<string, unknown> }> = []
+vi.mock('./admin', () => ({
+  requireAdmin: async () => {
+    if (!admin.isAdmin) throw new Error('forbidden')
+  },
+  recordAdminAction: async (entry: { action: string; detail?: Record<string, unknown> }) => {
+    adminLog.push(entry)
+  },
+}))
+
 const { definePlugin } = await import('@meith/plugin-kit')
 const handled: unknown[] = []
 
@@ -28,8 +49,32 @@ const alpha = definePlugin({
   key: 'alpha',
   name: 'Alpha',
   version: '1.0.0',
-  allowedRedirectHosts: ['pay.example'],
+  allowedRedirectHosts: ['pay.example', '127.0.0.1'],
+  notifications: [
+    { key: 'ding', title: 'Ding', description: 'A test bell.', emailByDefault: false },
+  ],
   routes: [
+    {
+      path: 'limited',
+      method: 'GET',
+      access: 'anonymous',
+      rateLimit: { limit: 2, windowSeconds: 60 },
+      handler: () => ({ kind: 'json', body: { ok: true } }),
+    },
+    {
+      path: 'notify-me',
+      method: 'POST',
+      access: 'member',
+      handler: async (request, context) => {
+        await context.notify.send({
+          userId: request.viewer.userId ?? 0,
+          kind: 'ding',
+          subject: 'Ding',
+          href: '/plugins/alpha',
+        })
+        return { kind: 'json', body: { sent: true } }
+      },
+    },
     {
       path: 'ping',
       method: 'GET',
@@ -66,10 +111,37 @@ const alpha = definePlugin({
       },
     },
     {
+      path: 'admin/comp',
+      method: 'POST',
+      access: 'admin',
+      handler: (request) => {
+        handled.push(request)
+        return { kind: 'redirect', to: '/admin/plugins/alpha/status' }
+      },
+    },
+    {
+      path: 'admin/report',
+      method: 'GET',
+      access: 'admin',
+      handler: () => ({ kind: 'json', body: { rows: [] } }),
+    },
+    {
       path: 'escape',
       method: 'GET',
       access: 'anonymous',
       handler: () => ({ kind: 'redirect', to: 'https://evil.example/' }),
+    },
+    {
+      path: 'local',
+      method: 'GET',
+      access: 'anonymous',
+      handler: () => ({ kind: 'redirect', to: 'http://127.0.0.1:12111/checkout/1' }),
+    },
+    {
+      path: 'insecure',
+      method: 'GET',
+      access: 'anonymous',
+      handler: () => ({ kind: 'redirect', to: 'http://pay.example/checkout/1' }),
     },
   ],
 })
@@ -110,7 +182,10 @@ function request(
 beforeEach(() => {
   overrides.current = new Map()
   actor.current = { userId: null }
+  admin.isAdmin = false
+  adminLog.length = 0
   handled.length = 0
+  raised.length = 0
 })
 
 describe('resolution', () => {
@@ -200,6 +275,128 @@ describe('access', () => {
       ['checkout'],
     )
     expect(noOrigin.status).toBe(303)
+  })
+
+  it('403s everyone but the panel on an admin route — a member is not enough', async () => {
+    actor.current = { userId: 7 }
+    const asMember = await dispatchPluginRoute(
+      request('/admin/api/plugins/alpha/admin/comp', { method: 'POST' }),
+      'alpha',
+      ['admin', 'comp'],
+      'admin',
+    )
+    expect(asMember.status).toBe(403)
+    expect(handled).toHaveLength(0)
+
+    admin.isAdmin = true
+    const asAdmin = await dispatchPluginRoute(
+      request('/admin/api/plugins/alpha/admin/comp', { method: 'POST' }),
+      'alpha',
+      ['admin', 'comp'],
+      'admin',
+    )
+    expect(asAdmin.status).toBe(303)
+    expect(asAdmin.headers.get('location')).toBe('/admin/plugins/alpha/status')
+  })
+
+  it('an admin route does not exist on the board mount, nor the reverse', async () => {
+    admin.isAdmin = true
+    actor.current = { userId: 1 }
+
+    const boardMount = await dispatchPluginRoute(
+      request('/api/plugins/alpha/admin/comp', { method: 'POST' }),
+      'alpha',
+      ['admin', 'comp'],
+    )
+    expect(boardMount.status).toBe(404)
+
+    const adminMount = await dispatchPluginRoute(
+      request('/admin/api/plugins/alpha/checkout', { method: 'POST' }),
+      'alpha',
+      ['checkout'],
+      'admin',
+    )
+    expect(adminMount.status).toBe(404)
+    expect(handled).toHaveLength(0)
+  })
+
+  it('records an admin POST in the panel’s action log; an admin GET stays quiet', async () => {
+    admin.isAdmin = true
+    actor.current = { userId: 1 }
+
+    await dispatchPluginRoute(
+      request('/admin/api/plugins/alpha/admin/report'),
+      'alpha',
+      ['admin', 'report'],
+      'admin',
+    )
+    expect(adminLog).toHaveLength(0)
+
+    await dispatchPluginRoute(
+      request('/admin/api/plugins/alpha/admin/comp', { method: 'POST' }),
+      'alpha',
+      ['admin', 'comp'],
+      'admin',
+    )
+    expect(adminLog).toEqual([
+      { action: 'plugin.route', detail: { plugin: 'alpha', path: 'admin/comp' } },
+    ])
+  })
+
+  it('refuses an admin POST from another origin before the handler runs', async () => {
+    admin.isAdmin = true
+    actor.current = { userId: 1 }
+
+    const crossSite = await dispatchPluginRoute(
+      request('/admin/api/plugins/alpha/admin/comp', {
+        method: 'POST',
+        headers: { origin: 'https://elsewhere.example' },
+      }),
+      'alpha',
+      ['admin', 'comp'],
+      'admin',
+    )
+    expect(crossSite.status).toBe(403)
+    expect(handled).toHaveLength(0)
+    expect(adminLog).toHaveLength(0)
+  })
+})
+
+describe('the host doorstep', () => {
+  it('a rate-limited route spends its window, 429s with retry-after, and counts callers apart', async () => {
+    const call = (headers: Record<string, string> = {}) =>
+      dispatchPluginRoute(request('/api/plugins/alpha/limited', { headers }), 'alpha', ['limited'])
+
+    expect((await call()).status).toBe(200)
+    expect((await call()).status).toBe(200)
+
+    const refused = await call()
+    expect(refused.status).toBe(429)
+    expect(Number(refused.headers.get('retry-after'))).toBeGreaterThanOrEqual(1)
+    const body = (await refused.json()) as { error: { code: string } }
+    expect(body.error.code).toBe('rate_limited')
+
+    const other = await call({ 'x-forwarded-for': '203.0.113.9' })
+    expect(other.status).toBe(200)
+  })
+
+  it('a route notifies through the board’s registry, namespaced to the plugin', async () => {
+    actor.current = { userId: 7 }
+    const response = await dispatchPluginRoute(
+      request('/api/plugins/alpha/notify-me', { method: 'POST' }),
+      'alpha',
+      ['notify-me'],
+    )
+    expect(response.status).toBe(200)
+    expect(raised).toEqual([
+      {
+        userId: 7,
+        kind: 'plugin.alpha.ding',
+        data: { subject: 'Ding' },
+        href: '/plugins/alpha',
+        dedupeKey: null,
+      },
+    ])
   })
 })
 
@@ -293,6 +490,21 @@ describe('what a handler may answer', () => {
     expect(response.status).toBe(502)
     const body = (await response.json()) as { error: { code: string } }
     expect(body.error.code).toBe('redirect_refused')
+  })
+
+  it('allows plain http only to a declared loopback host — the test-double shape', async () => {
+    const local = await dispatchPluginRoute(request('/api/plugins/alpha/local'), 'alpha', [
+      'local',
+    ])
+    expect(local.status).toBe(307)
+    expect(local.headers.get('location')).toBe('http://127.0.0.1:12111/checkout/1')
+
+    const insecure = await dispatchPluginRoute(
+      request('/api/plugins/alpha/insecure'),
+      'alpha',
+      ['insecure'],
+    )
+    expect(insecure.status).toBe(502)
   })
 })
 

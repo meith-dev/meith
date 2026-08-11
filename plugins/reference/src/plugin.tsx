@@ -129,6 +129,42 @@ export const referencePlugin = definePlugin({
       access: 'member',
       handler: () => ({ kind: 'redirect', to: 'https://example.com/away' }),
     },
+    {
+      path: 'poke',
+      method: 'POST',
+      access: 'member',
+      rateLimit: { limit: 2, windowSeconds: 60 },
+      handler: async (request, context) => {
+        RECORDED.routes.push({ path: request.path, method: request.method })
+        await context.notify.send({
+          userId: request.viewer.userId ?? 0,
+          kind: 'poked',
+          subject: 'You were poked',
+          body: 'The reference plugin exercised the notification seam.',
+          href: '/reference',
+        })
+        return { kind: 'json', body: { poked: true } }
+      },
+    },
+    {
+      path: 'reset',
+      method: 'POST',
+      access: 'admin',
+      handler: (request) => {
+        resetRecorder()
+        RECORDED.routes.push({ path: request.path, method: request.method })
+        return { kind: 'redirect', to: '/admin/plugins/reference/status' }
+      },
+    },
+  ],
+
+  notifications: [
+    {
+      key: 'poked',
+      title: 'The reference plugin pokes you',
+      description: 'Exists to exercise the notification seam end to end.',
+      emailByDefault: false,
+    },
   ],
 
   pages: [

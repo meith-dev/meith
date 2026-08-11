@@ -7,6 +7,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket'
 
 import { hashPassword } from '@meith/accounts'
+import { DUES_MIGRATIONS } from '@meith/plugin-dues/schema'
 
 import {
   E2E_DATABASE_URL,
@@ -232,11 +233,27 @@ function seedSql(staffHash: string): string {
     insert('user_group_memberships', [{ user_id: MODERATOR_ID, group_id: 4 }]),
   ]
 
+  const supporters = [
+    insert('usergroups', [
+      {
+        id: 5001,
+        key: 'supporters',
+        title: 'Supporters',
+        description: 'Paid supporters of the board.',
+        plugin_grantable: true,
+        display_order: 20,
+        name_color_light: 'oklch(0.5 0.11 165)',
+        name_color_dark: 'oklch(0.79 0.14 163)',
+      },
+    ]),
+  ]
+
   return [
     insert('users', users),
     insert('user_group_memberships', memberships),
     insert('settings', settings),
     ...styledGroup,
+    ...supporters,
     ...staff,
     insert('forums', forums),
     insert('threads', threads),
@@ -264,6 +281,7 @@ export async function startDatabase(
   const db = await PGlite.create()
   if (seeded) {
     await db.exec(migrationSql())
+    await db.exec(DUES_MIGRATIONS.flatMap((migration) => migration.statements).join(';\n'))
     await db.exec(seedSql(await hashPassword(STAFF_PASSWORD)))
     await seedBadgeFiles()
   }

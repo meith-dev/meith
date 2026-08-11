@@ -184,12 +184,17 @@ export function renderNotification(record: NotificationRecord): NotificationView
   const spec = notificationKind(record.kind)
 
   const rendered =
-    template === undefined
-      ? {
-          subject: spec?.title ?? `Notification: ${record.kind}`,
-          body: '',
-        }
-      : template(record.data)
+    template !== undefined
+      ? template(record.data)
+      : record.kind.startsWith('plugin.')
+        ? {
+            subject: str(record.data, 'subject', 'A plugin has news for you'),
+            body: str(record.data, 'body'),
+          }
+        : {
+            subject: spec?.title ?? `Notification: ${record.kind}`,
+            body: '',
+          }
 
   const subject =
     record.occurrences > 1

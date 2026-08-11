@@ -173,9 +173,6 @@ export const userGroupMemberships = pgTable(
       .notNull()
       .defaultNow(),
 
-    // A membership with an expiry ends by being read, not by being swept:
-    // actor assembly excludes a lapsed row, so access ends on time even when
-    // no task runs. The sweep only tidies rows afterwards.
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     grantedByPlugin: text('granted_by_plugin'),
     grantReason: text('grant_reason'),

@@ -234,9 +234,31 @@ describe('definePlugin', () => {
     })
 
     it('refuses a bad access value, a bad method, and a missing handler', () => {
-      expect(() => plugin({ routes: [route({ access: 'admin' })] })).toThrow(/access/)
+      expect(() => plugin({ routes: [route({ access: 'staff' })] })).toThrow(/access/)
       expect(() => plugin({ routes: [route({ method: 'DELETE' })] })).toThrow(/method/)
       expect(() => plugin({ routes: [route({ handler: undefined })] })).toThrow(/handler/)
+    })
+
+    it('accepts an admin route — the panel is a caller, not a special case', () => {
+      expect(() => plugin({ routes: [route({ access: 'admin' })] })).not.toThrow()
+    })
+
+    it('bounds a route rate limit', () => {
+      expect(() =>
+        plugin({ routes: [route({ rateLimit: { limit: 10, windowSeconds: 60 } })] }),
+      ).not.toThrow()
+      expect(() =>
+        plugin({ routes: [route({ rateLimit: { limit: 0, windowSeconds: 60 } })] }),
+      ).toThrow(/rateLimit.limit/)
+      expect(() =>
+        plugin({ routes: [route({ rateLimit: { limit: 1.5, windowSeconds: 60 } })] }),
+      ).toThrow(/rateLimit.limit/)
+      expect(() =>
+        plugin({ routes: [route({ rateLimit: { limit: 10, windowSeconds: 0 } })] }),
+      ).toThrow(/windowSeconds/)
+      expect(() =>
+        plugin({ routes: [route({ rateLimit: { limit: 10, windowSeconds: 4_000 } })] }),
+      ).toThrow(/windowSeconds/)
     })
 
     it('bounds the body cap', () => {
@@ -265,6 +287,10 @@ describe('definePlugin', () => {
       expect(() => plugin({ pages: [page(), page()] })).toThrow(/declared twice/)
     })
 
+    it('refuses an admin board page — the panel renders adminPages, not pages', () => {
+      expect(() => plugin({ pages: [page({ access: 'admin' })] })).toThrow(/access/)
+    })
+
     it('accepts bare redirect hosts and refuses anything with more than a host in it', () => {
       expect(() => plugin({ allowedRedirectHosts: ['checkout.stripe.com'] })).not.toThrow()
       for (const host of ['https://x.com', 'x.com/path', 'x.com:8443', 'localhost', '']) {
@@ -287,6 +313,25 @@ describe('definePlugin', () => {
 
     it('refuses a duplicate id', () => {
       expect(() => plugin({ tasks: [task('sweep'), task('sweep')] })).toThrow(/declared twice/)
+    })
+  })
+
+  describe('notification kinds', () => {
+    const kind = (overrides: Record<string, unknown> = {}) => ({
+      key: 'gift_received',
+      title: 'A gift arrives',
+      description: 'Somebody bought you in.',
+      ...overrides,
+    })
+
+    it('accepts a sound kind', () => {
+      expect(() => plugin({ notifications: [kind()] })).not.toThrow()
+    })
+
+    it('refuses a bad key, an untitled kind, and a duplicate', () => {
+      expect(() => plugin({ notifications: [kind({ key: 'Bad-Key' })] })).toThrow(/kind/)
+      expect(() => plugin({ notifications: [kind({ title: ' ' })] })).toThrow(/title/)
+      expect(() => plugin({ notifications: [kind(), kind()] })).toThrow(/declared twice/)
     })
   })
 

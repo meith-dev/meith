@@ -15,6 +15,7 @@ vi.mock('@meith/db', () => ({
       return stored.current
     }
   },
+  PostgresNotificationRepository: class {},
   pluginGrants: () => ({
     grant: async () => {},
     extend: async () => {},

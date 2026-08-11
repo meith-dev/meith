@@ -10,14 +10,6 @@ import { groupRowToPermissionSet } from './permissions-map'
 import { resultRows } from './result-rows'
 import { usergroups, userGroupMemberships, users } from './schema'
 
-/**
- * The permission fields that make a group ungrantable by a plugin. A plugin
- * that could put someone in a group carrying any of these would be a plugin
- * deciding authorization, which is the one thing the plugin API refuses on
- * principle. The list errs on the side of refusing: every field here is a
- * write over other people's content or accounts, or a door into a control
- * panel.
- */
 export const PLUGIN_UNGRANTABLE_PERMISSIONS = [
   'isAdministrator',
   'canAccessAdminCp',
@@ -109,14 +101,6 @@ function checkedUntil(pluginKey: string, until: Date, now: Date): Date {
   return until
 }
 
-/**
- * The host's implementation of the kit's `PluginGrants`.
- *
- * Everything here is an additive secondary membership: `primary_group_id` and
- * `display_group_id` are never touched, and a row someone else wrote — an
- * administrator, another plugin — is never updated or deleted. Writes bump the
- * permission version in the same transaction, so derived caches follow.
- */
 export function pluginGrants(
   db: Database,
   pluginKey: string,
@@ -177,8 +161,6 @@ export function pluginGrants(
           )
         }
 
-        // Re-granting only ever moves the expiry forward: a stale or repeated
-        // call cannot shorten what an earlier payment bought.
         if (current.expiresAt === null || current.expiresAt.getTime() < expiry.getTime()) {
           await tx
             .update(userGroupMemberships)
@@ -264,12 +246,6 @@ export function pluginGrants(
   }
 }
 
-/**
- * Deletes memberships whose expiry has passed, a batch at a time, and bumps
- * the permission version when anything went. The live predicate in actor
- * assembly already excludes these rows, so this tidies rather than enforces —
- * a board whose tick has been down is still correct, just untidy.
- */
 export async function expireTimedGroupMemberships(
   db: Database,
   limit: number,

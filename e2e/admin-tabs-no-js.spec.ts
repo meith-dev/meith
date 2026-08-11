@@ -716,7 +716,7 @@ test('the plugins screen names what is installed and how installing works', asyn
   await enterAdminPanel(page)
   await page.goto('/admin/plugins')
 
-  await expect(page.getByText('No plugins are configured on this board.')).toBeVisible()
+  await expect(page.locator('a[href="/admin/plugins/dues"]').first()).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Installing a plugin' })).toBeVisible()
   await expect(page.getByText(/community\.config\.ts/).first()).toBeVisible()
 })

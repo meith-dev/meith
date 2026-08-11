@@ -74,6 +74,8 @@
       "@meith/posts/*": ["packages/posts/src/*"],
       "@meith/markdown": ["packages/markdown/src/index.ts"],
       "@meith/markdown/*": ["packages/markdown/src/*"],
+      "@meith/plugin-dues": ["plugins/dues/src/index.ts"],
+      "@meith/plugin-dues/*": ["plugins/dues/src/*"],
       "@meith/plugin-reference": ["plugins/reference/src/index.ts"],
       "create-meith": ["packages/create-meith/src/index.ts"],
       "@meith/import": ["packages/import/src/index.ts"],

@@ -137,7 +137,10 @@ test('marking a forum that is not there is a redirect, not an error', async ({ b
 
     const category = await page.request.post('/api/read/forum/10', { maxRedirects: 0 })
     expect(category.status()).toBe(303)
-    expect(new URL(category.headers()['location'] ?? '', 'http://127.0.0.1:3001').pathname).toBe('/')
+    expect(
+      new URL(category.headers()['location'] ?? '', 'http://127.0.0.1:3001').pathname,
+      'a category can hold threads now, so marking it read lands on its page',
+    ).toBe('/10-main')
   } finally {
     await context.close()
   }

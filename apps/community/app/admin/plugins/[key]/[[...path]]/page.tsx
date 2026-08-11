@@ -11,8 +11,10 @@ export const metadata: Metadata = { title: 'Plugin' }
 
 export default async function AdminPluginPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ key: string; path?: string[] }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   if ((await adminPageContext()) === null) return null
 
@@ -25,7 +27,13 @@ export default async function AdminPluginPage({
   if (segments.length > 1) notFound()
 
   if (segments.length === 1) {
-    const rendered = await renderPluginAdminPage(key, segments[0] as string)
+    const query: Record<string, string> = {}
+    for (const [name, value] of Object.entries(await searchParams)) {
+      if (typeof value === 'string') query[name] = value
+      else if (Array.isArray(value) && typeof value[0] === 'string') query[name] = value[0]
+    }
+
+    const rendered = await renderPluginAdminPage(key, segments[0] as string, query)
     if (rendered === null) notFound()
 
     return (

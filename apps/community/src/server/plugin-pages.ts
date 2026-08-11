@@ -3,21 +3,24 @@ import 'server-only'
 import { env, logger, readPluginEnv } from '@meith/core'
 import { getDb, pluginData, pluginGrants, pluginUsers } from '@meith/db'
 import {
+  pluginNotify,
   resolvePluginSettings,
   unavailablePluginData,
   unavailablePluginGrants,
+  unavailablePluginNotify,
   unavailablePluginUsers,
   type PluginData,
   type PluginDefinition,
   type PluginGrants,
+  type PluginNotify,
   type PluginUsers,
 } from '@meith/plugin-kit'
 import type { ReactNode } from 'react'
 
 import forumConfig from '../../community.config'
+import { notificationService } from './notifications'
 import { getSettingOverrides } from './settings'
 
-/** Short: this runs inside a page render or a request-path route handler. */
 const REQUEST_STATEMENT_TIMEOUT_MS = 3_000
 
 export function grantsFor(pluginKey: string): PluginGrants {
@@ -38,6 +41,17 @@ export function usersFor(): PluginUsers {
     : unavailablePluginUsers('this board is running on in-memory sample data')
 }
 
+export function notifyFor(pluginKey: string): PluginNotify {
+  const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === pluginKey)
+  const definition = entry?.plugin as PluginDefinition | undefined
+  const service = notificationService()
+
+  if (definition === undefined || service === null) {
+    return unavailablePluginNotify('this board is running on in-memory sample data')
+  }
+  return pluginNotify(pluginKey, definition.notifications ?? [], service)
+}
+
 export interface RenderedPluginPage {
   readonly title: string
   readonly node: ReactNode | null
@@ -54,18 +68,12 @@ export type BoardPageResult =
   | { readonly outcome: 'missing' }
   | { readonly outcome: 'sign-in-first'; readonly title: string }
 
-/** The declared title of a plugin's board page, for metadata. Enablement is not checked. */
 export function pluginBoardPageTitle(pluginKey: string, path: string): string | null {
   const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === pluginKey)
   const definition = entry?.plugin as PluginDefinition | undefined
   return (definition?.pages ?? []).find((page) => page.path === path)?.title ?? null
 }
 
-/**
- * Resolves and renders a plugin's member-facing page. `missing` covers every
- * shape of "not here" — unknown plugin, unknown path, disabled either way —
- * because a page that is off should 404 exactly like one that never existed.
- */
 export async function renderPluginBoardPage(
   pluginKey: string,
   path: string,
@@ -103,6 +111,7 @@ export async function renderPluginBoardPage(
         grants: grantsFor(pluginKey),
         data: dataFor(pluginKey),
         users: usersFor(),
+        notify: notifyFor(pluginKey),
         viewer: request.viewer,
         path,
         query: request.query,
@@ -118,6 +127,7 @@ export async function renderPluginBoardPage(
 export async function renderPluginAdminPage(
   pluginKey: string,
   path: string,
+  query: Readonly<Record<string, string>> = {},
 ): Promise<RenderedPluginPage | null> {
   const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === pluginKey)
   const definition = entry?.plugin as PluginDefinition | undefined
@@ -146,6 +156,8 @@ export async function renderPluginAdminPage(
         grants: grantsFor(pluginKey),
         data: dataFor(pluginKey),
         users: usersFor(),
+        notify: notifyFor(pluginKey),
+        query,
       }),
     }
   } catch (error) {

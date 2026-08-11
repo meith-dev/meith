@@ -6,6 +6,7 @@ export {
   type NotificationAudience,
   type NotificationKind,
   type NotificationKindSpec,
+  type RegisteredNotificationKind,
 } from './kinds'
 
 export {

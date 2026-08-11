@@ -106,6 +106,10 @@ export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]['id']
 
 export type NotificationKindSpec = NotificationKindBase & { readonly id: NotificationKind }
 
+export interface RegisteredNotificationKind extends NotificationKindBase {
+  readonly id: string
+}
+
 const BY_ID = new Map<string, NotificationKindSpec>(
   NOTIFICATION_KINDS.map((kind) => [kind.id, kind as NotificationKindSpec]),
 )

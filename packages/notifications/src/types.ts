@@ -1,4 +1,3 @@
-import type { NotificationKind } from './kinds'
 
 export type NotificationValue =
   | string
@@ -40,7 +39,7 @@ export interface DeliverableNotification {
 
 export interface RaiseInput {
   readonly userId: number
-  readonly kind: NotificationKind
+  readonly kind: string
   readonly data: NotificationData
   readonly href?: string | null
   readonly dedupeKey?: string | null

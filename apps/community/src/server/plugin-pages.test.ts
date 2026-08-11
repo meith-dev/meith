@@ -16,6 +16,8 @@ vi.mock('../../community.config', () => ({
 const overrides = { current: new Map<string, string>() }
 vi.mock('./settings', () => ({ getSettingOverrides: async () => overrides.current }))
 
+vi.mock('./notifications', () => ({ notificationService: () => null }))
+
 const logged: unknown[] = []
 vi.mock(import('@meith/core'), async (importOriginal) => ({
   ...(await importOriginal()),
@@ -103,10 +105,20 @@ describe('what crosses the boundary', () => {
       'data',
       'grants',
       'logger',
+      'notify',
+      'query',
       'settings',
       'users',
     ])
     expect((handed as { settings: unknown }).settings).toEqual({ batch: 42 })
+  })
+
+  it('hands the page the query string, empty when the caller has none', async () => {
+    await renderPluginAdminPage('alpha', 'report', { notice: 'code-created' })
+    expect((handed as { query: unknown }).query).toEqual({ notice: 'code-created' })
+
+    await renderPluginAdminPage('alpha', 'report')
+    expect((handed as { query: unknown }).query).toEqual({})
   })
 
   it('hands out grants and data that refuse cleanly when the board runs on sample data', async () => {
@@ -187,6 +199,7 @@ describe('board pages', () => {
       'data',
       'grants',
       'logger',
+      'notify',
       'path',
       'query',
       'settings',

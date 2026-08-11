@@ -180,6 +180,76 @@ describe('raising', () => {
   })
 })
 
+describe('kinds registered at runtime', () => {
+  const PLUGIN_KIND = {
+    id: 'plugin.dues.gift_received',
+    title: 'A gift arrives',
+    description: 'Somebody bought a membership for you.',
+    audience: 'member' as const,
+    emailByDefault: true,
+    emailConfigurable: true as const,
+  }
+
+  it('raises a registered kind, honouring its email default and the member override', async () => {
+    const repo = new MemoryNotifications()
+    const service = new NotificationService({ notifications: repo, extraKinds: [PLUGIN_KIND] })
+
+    await service.raise({
+      userId: 7,
+      kind: 'plugin.dues.gift_received',
+      data: { subject: 'A gift for you' },
+    })
+    expect(repo.raised[0]).toMatchObject({ kind: 'plugin.dues.gift_received', email: true })
+
+    repo.preferences.set(7, new Map([['plugin.dues.gift_received', false]]))
+    await service.raise({
+      userId: 7,
+      kind: 'plugin.dues.gift_received',
+      data: { subject: 'Another' },
+    })
+    expect(repo.raised[1]).toMatchObject({ email: false })
+  })
+
+  it('still refuses a kind nobody registered', async () => {
+    const service = new NotificationService({
+      notifications: new MemoryNotifications(),
+      extraKinds: [PLUGIN_KIND],
+    })
+    await expect(
+      service.raise({ userId: 7, kind: 'plugin.dues.other', data: {} }),
+    ).rejects.toThrow(/Unknown notification kind/)
+  })
+
+  it('lists the registered kind on the member preferences screen and saves its toggle', async () => {
+    const repo = new MemoryNotifications()
+    const service = new NotificationService({ notifications: repo, extraKinds: [PLUGIN_KIND] })
+
+    const prefs = await service.preferences(7, 'member')
+    expect(prefs.some((row) => row.kind === 'plugin.dues.gift_received')).toBe(true)
+
+    await service.savePreferences(7, 'member', [])
+    expect(repo.preferences.get(7)?.get('plugin.dues.gift_received')).toBe(false)
+  })
+
+  it('refuses an unnamespaced registration and a collision with a built-in', () => {
+    const repo = new MemoryNotifications()
+    expect(
+      () =>
+        new NotificationService({
+          notifications: repo,
+          extraKinds: [{ ...PLUGIN_KIND, id: 'sneaky.kind' }],
+        }),
+    ).toThrow(/namespaced/)
+    expect(
+      () =>
+        new NotificationService({
+          notifications: repo,
+          extraKinds: [PLUGIN_KIND, PLUGIN_KIND],
+        }),
+    ).toThrow(/twice/)
+  })
+})
+
 describe('the administrator fan-out', () => {
   it('raises one notification per administrator', async () => {
     repo.administrators = [1, 2, 3]

@@ -4,6 +4,7 @@ import { logger, readPluginEnv } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 import {
   DEFAULT_ROUTE_BODY_BYTES,
+  createRouteRateLimiter,
   resolvePluginSettings,
   type PluginDefinition,
   type PluginRequest,
@@ -11,18 +12,14 @@ import {
   type PluginRoute,
 } from '@meith/plugin-kit'
 
+import { recordAdminAction, requireAdmin } from './admin'
 import { boardUrl } from './board-url'
 import { getActor } from './context'
 import { activeDefinitions, pluginHost, syncOperatorDisables } from './plugin-host'
-import { dataFor, grantsFor, usersFor } from './plugin-pages'
+import { dataFor, grantsFor, notifyFor, usersFor } from './plugin-pages'
 import { getSettingOverrides } from './settings'
 import { viewerRef } from './plugin-view'
 
-/**
- * The headers a handler never sees. The session cookie is the board's — a
- * handler that could read it could replay it — and the same goes for anything
- * the middleware uses to talk to the render.
- */
 const STRIPPED_HEADERS = new Set(['cookie', 'authorization'])
 
 function json(body: unknown, status: number): Response {
@@ -36,12 +33,6 @@ function fail(status: number, code: string, message: string): Response {
   return json({ error: { code, message, requestId: currentRequestId() ?? null } }, status)
 }
 
-/**
- * A member POST must come from the board's own page. Origin is checked when
- * the browser sends one; a request without an Origin header is not a
- * cross-site form post, so it passes — CSRF rides cookies, and the modern
- * browsers that send those cookies send Origin on every POST.
- */
 function crossOrigin(request: Request): boolean {
   const origin = request.headers.get('origin')
   if (origin === null) return false
@@ -133,10 +124,11 @@ function redirectAllowed(to: string, definition: PluginDefinition): boolean {
     return false
   }
 
-  return (
-    url.protocol === 'https:' &&
-    (definition.allowedRedirectHosts ?? []).includes(url.host.toLowerCase())
-  )
+  const hostname = url.hostname.toLowerCase()
+  const loopback = hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '[::1]'
+  const scheme = url.protocol === 'https:' || (url.protocol === 'http:' && loopback)
+
+  return scheme && (definition.allowedRedirectHosts ?? []).includes(hostname)
 }
 
 function toResponse(
@@ -167,7 +159,6 @@ function toResponse(
         return fail(502, 'redirect_refused', 'The plugin answered with a redirect it may not make.')
       }
       return new Response(null, {
-        // 303 turns a form POST into a GET at the target; 307 keeps a GET a GET.
         status: method === 'POST' ? 303 : 307,
         headers: { location: answer.to, 'cache-control': 'no-store' },
       })
@@ -175,16 +166,25 @@ function toResponse(
   }
 }
 
-/**
- * The one dispatcher behind /api/plugins/[key]/[...path]. The host owns every
- * decision a plugin must not: whether the plugin is on, who may reach the
- * route, that a member POST came from the board's own origin, how big a body
- * may be, and where a redirect may point.
- */
+const routeLimiter = createRouteRateLimiter()
+
+function callerKey(request: Request, userId: number | null): string {
+  if (userId !== null) return `u:${userId}`
+  const forwarded = request.headers.get('x-forwarded-for')
+  const address =
+    forwarded !== null && forwarded.trim() !== ''
+      ? (forwarded.split(',')[0] ?? '').trim()
+      : (request.headers.get('x-real-ip') ?? 'unknown')
+  return `a:${address}`
+}
+
+export type PluginRouteSurface = 'board' | 'admin'
+
 export async function dispatchPluginRoute(
   request: Request,
   pluginKey: string,
   segments: readonly string[],
+  surface: PluginRouteSurface = 'board',
 ): Promise<Response> {
   const definition = activeDefinitions().find((candidate) => candidate.key === pluginKey)
   if (definition === undefined) {
@@ -193,7 +193,6 @@ export async function dispatchPluginRoute(
 
   await syncOperatorDisables()
   if (!pluginHost.isEnabled(pluginKey)) {
-    // Off means gone, not broken: a disabled plugin has no endpoints.
     return fail(404, 'no_such_route', 'No such endpoint.')
   }
 
@@ -203,7 +202,10 @@ export async function dispatchPluginRoute(
     return fail(405, 'method_not_allowed', 'Plugin routes answer GET and POST.')
   }
 
-  const declared = (definition.routes ?? []).filter((candidate) => candidate.path === path)
+  const declared = (definition.routes ?? []).filter(
+    (candidate) =>
+      candidate.path === path && (candidate.access === 'admin') === (surface === 'admin'),
+  )
   if (declared.length === 0) {
     return fail(404, 'no_such_route', 'No such endpoint.')
   }
@@ -218,8 +220,44 @@ export async function dispatchPluginRoute(
     return fail(401, 'unauthenticated', 'Sign in to use this.')
   }
 
-  if (route.access === 'member' && method === 'POST' && crossOrigin(request)) {
+  if (route.access === 'admin') {
+    try {
+      await requireAdmin()
+    } catch {
+      return fail(403, 'administrators_only', 'Enter the control panel and try again.')
+    }
+  }
+
+  if (route.access !== 'anonymous' && method === 'POST' && crossOrigin(request)) {
     return fail(403, 'cross_origin', 'This form was posted from somewhere that is not the board.')
+  }
+
+  if (route.rateLimit !== undefined) {
+    const verdict = routeLimiter.consume(
+      `${pluginKey}:${path}:${callerKey(request, actor.userId)}`,
+      route.rateLimit.limit,
+      route.rateLimit.windowSeconds,
+      Date.now(),
+    )
+    if (!verdict.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            code: 'rate_limited',
+            message: 'Too many calls to this endpoint. Give it a moment.',
+            requestId: currentRequestId() ?? null,
+          },
+        }),
+        {
+          status: 429,
+          headers: {
+            'content-type': 'application/json; charset=utf-8',
+            'cache-control': 'no-store',
+            'retry-after': String(verdict.retryAfterSeconds),
+          },
+        },
+      )
+    }
   }
 
   const body = await readBody(request, route)
@@ -257,6 +295,7 @@ export async function dispatchPluginRoute(
       grants: grantsFor(pluginKey),
       data: dataFor(pluginKey),
       users: usersFor(),
+      notify: notifyFor(pluginKey),
     }),
   )
 
@@ -265,6 +304,10 @@ export async function dispatchPluginRoute(
   }
   if (outcome.status === 'failed' || outcome.value === undefined || outcome.value === null) {
     return fail(500, 'plugin_failed', 'The plugin could not answer. The error is in the log.')
+  }
+
+  if (route.access === 'admin' && method === 'POST') {
+    await recordAdminAction({ action: 'plugin.route', detail: { plugin: pluginKey, path } })
   }
 
   return toResponse(outcome.value, method, definition, pluginKey)

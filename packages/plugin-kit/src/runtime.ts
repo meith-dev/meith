@@ -1,31 +1,10 @@
-/**
- * The capabilities a running plugin is handed, beyond its resolved settings.
- *
- * These are types only. The implementations live with the host — a plugin
- * receives them on its runtime context and cannot construct its own, which is
- * what keeps every write inside the host's checks.
- */
 
-/** A group membership this plugin granted, and when it lapses. */
 export interface PluginGrantRow {
   readonly groupKey: string
   readonly expiresAt: Date
 }
 
-/**
- * Time-limited membership of a usergroup — the only write a plugin gets
- * against the board's own data.
- *
- * Every method goes through the host, which refuses: a group that does not
- * exist, a group the operator has not marked grantable, a system or staff
- * group, a group whose permissions carry administrative or moderation power,
- * and an expiry that is absent, in the past, or more than two years out. A
- * grant is always an *additive secondary* membership — never the primary or
- * display group — and always expires: access ends at `until` even if nothing
- * ever runs again.
- */
 export interface PluginGrants {
-  /** Put a user in a group until a date. Extends an earlier grant of its own. */
   grant(input: {
     readonly userId: number
     readonly groupKey: string
@@ -33,25 +12,21 @@ export interface PluginGrants {
     readonly reason: string
   }): Promise<void>
 
-  /** Move an existing grant's expiry forward. Never shortens it. */
   extend(input: {
     readonly userId: number
     readonly groupKey: string
     readonly until: Date
   }): Promise<void>
 
-  /** Remove a grant this plugin made. A membership someone else granted is not touchable. */
   revoke(input: {
     readonly userId: number
     readonly groupKey: string
     readonly reason: string
   }): Promise<void>
 
-  /** The grants this plugin currently holds for a user. */
   list(userId: number): Promise<readonly PluginGrantRow[]>
 }
 
-/** The shape handed out where no database exists (fixture mode). Every call rejects. */
 export function unavailablePluginGrants(reason: string): PluginGrants {
   const refuse = async (): Promise<never> => {
     throw new Error(`Plugin grants are unavailable: ${reason}`)
@@ -59,40 +34,20 @@ export function unavailablePluginGrants(reason: string): PluginGrants {
   return { grant: refuse, extend: refuse, revoke: refuse, list: refuse }
 }
 
-/**
- * A plugin's window onto its own tables — the ones its migrations created
- * under the `plugin_<key>_` prefix.
- *
- * Parameterised only: values travel as `$1`, `$2`, … and there is no
- * string-building helper on purpose, so the ordinary path is the safe one.
- * Every statement runs under a database-side `statement_timeout`, which is a
- * limit that actually holds — unlike a JavaScript "timeout", which cannot
- * abort anything.
- *
- * This is a contract, not a sandbox: plugin code runs in the host's process
- * and its queries are not rewritten. The prefix rule is enforced where it can
- * be — on what migrations may create — and stated honestly here for the rest.
- */
 export interface PluginData {
   query<T extends Record<string, unknown> = Record<string, unknown>>(
     text: string,
     params?: readonly unknown[],
   ): Promise<readonly T[]>
 
-  /** The first row, or null. For the `limit 1` shape every lookup takes. */
   one<T extends Record<string, unknown> = Record<string, unknown>>(
     text: string,
     params?: readonly unknown[],
   ): Promise<T | null>
 
-  /**
-   * Everything inside `work` commits together or not at all. A nested `tx`
-   * joins the outer transaction rather than opening a second one.
-   */
   tx<T>(work: (data: PluginData) => Promise<T>): Promise<T>
 }
 
-/** The shape handed out where no database exists (fixture mode). Every call rejects. */
 export function unavailablePluginData(reason: string): PluginData {
   const refuse = async (): Promise<never> => {
     throw new Error(`Plugin data access is unavailable: ${reason}`)
@@ -100,31 +55,133 @@ export function unavailablePluginData(reason: string): PluginData {
   return { query: refuse, one: refuse, tx: refuse }
 }
 
-/**
- * A member, as a plugin is allowed to see one: an id and a public name.
- * Deliberately nothing else — no email, no state, no groups. The same
- * philosophy as hook payloads carrying a `ViewerRef` rather than an `Actor`.
- */
 export interface PluginUserRef {
   readonly userId: number
   readonly username: string
 }
 
-/**
- * Resolving members a plugin's own records point at, or that its UI asks for
- * by name — "award this to @name" needs an id before anything can be stored
- * against it. Lookups exclude deleted accounts; anything richer than
- * existence is not a plugin's to know.
- */
 export interface PluginUsers {
   byUsername(username: string): Promise<PluginUserRef | null>
   byId(userId: number): Promise<PluginUserRef | null>
 }
 
-/** The shape handed out where no database exists (fixture mode). Every call rejects. */
 export function unavailablePluginUsers(reason: string): PluginUsers {
   const refuse = async (): Promise<never> => {
     throw new Error(`Plugin user lookup is unavailable: ${reason}`)
   }
   return { byUsername: refuse, byId: refuse }
+}
+
+export interface PluginNotify {
+  send(input: {
+    readonly userId: number
+    readonly kind: string
+    readonly subject: string
+    readonly body?: string | undefined
+    readonly href?: string | undefined
+    readonly dedupeKey?: string | undefined
+  }): Promise<void>
+}
+
+export function unavailablePluginNotify(reason: string): PluginNotify {
+  const refuse = async (): Promise<never> => {
+    throw new Error(`Plugin notifications are unavailable: ${reason}`)
+  }
+  return { send: refuse }
+}
+
+const MAX_NOTIFY_SUBJECT = 200
+const MAX_NOTIFY_BODY = 2_000
+
+export interface PluginNotifyKindInput {
+  readonly key: string
+  readonly title: string
+  readonly description: string
+  readonly emailByDefault?: boolean | undefined
+}
+
+export interface PluginNotificationKindSpec {
+  readonly id: string
+  readonly title: string
+  readonly description: string
+  readonly audience: 'member'
+  readonly emailByDefault: boolean
+  readonly emailConfigurable: true
+}
+
+export interface PluginNotifyBackend {
+  raise(input: {
+    readonly userId: number
+    readonly kind: string
+    readonly data: Readonly<Record<string, string>>
+    readonly href?: string | null
+    readonly dedupeKey?: string | null
+  }): Promise<unknown>
+}
+
+export function pluginNotificationKindSpecs(
+  pluginKey: string,
+  kinds: readonly PluginNotifyKindInput[],
+): readonly PluginNotificationKindSpec[] {
+  return kinds.map((kind) => ({
+    id: `plugin.${pluginKey}.${kind.key}`,
+    title: kind.title,
+    description: kind.description,
+    audience: 'member',
+    emailByDefault: kind.emailByDefault ?? true,
+    emailConfigurable: true,
+  }))
+}
+
+export function pluginNotify(
+  pluginKey: string,
+  kinds: readonly PluginNotifyKindInput[],
+  backend: PluginNotifyBackend,
+): PluginNotify {
+  const declared = new Set(kinds.map((kind) => kind.key))
+
+  return {
+    async send(input) {
+      if (!declared.has(input.kind)) {
+        throw new Error(
+          `plugin "${pluginKey}": notification kind "${input.kind}" is not declared. ` +
+            'A kind must be in the plugin definition — that is what puts it on the ' +
+            'member’s preferences screen.',
+        )
+      }
+      if (!Number.isSafeInteger(input.userId) || input.userId <= 0) {
+        throw new Error(`plugin "${pluginKey}": a notification needs a real user id.`)
+      }
+
+      const subject = input.subject.trim()
+      if (subject === '' || subject.length > MAX_NOTIFY_SUBJECT) {
+        throw new Error(
+          `plugin "${pluginKey}": a notification subject is 1 to ${MAX_NOTIFY_SUBJECT} characters.`,
+        )
+      }
+
+      const body = (input.body ?? '').trim()
+      if (body.length > MAX_NOTIFY_BODY) {
+        throw new Error(
+          `plugin "${pluginKey}": a notification body caps at ${MAX_NOTIFY_BODY} characters — ` +
+            'link to a page for anything longer.',
+        )
+      }
+
+      if (input.href !== undefined && (!input.href.startsWith('/') || input.href.startsWith('//'))) {
+        throw new Error(
+          `plugin "${pluginKey}": a notification links within the board — the href must ` +
+            'start with a single "/".',
+        )
+      }
+
+      await backend.raise({
+        userId: input.userId,
+        kind: `plugin.${pluginKey}.${input.kind}`,
+        data: body === '' ? { subject } : { subject, body },
+        href: input.href ?? null,
+        dedupeKey: input.dedupeKey ?? null,
+      })
+    },
+  }
 }

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { isHookName, type HOOKS, type HookName } from './hooks'
 import type { HookContext, HookValue } from './payloads'
 import { isPluginRegion, type PluginRegion, type PluginRegionContext } from './regions'
-import type { PluginData, PluginGrants, PluginUsers } from './runtime'
+import type { PluginData, PluginGrants, PluginNotify, PluginUsers } from './runtime'
 
 export type FilterHandler<K extends HookName> = (
   value: HookValue<K>,
@@ -34,20 +34,9 @@ export interface PluginSetting {
   readonly key: string
   readonly label: string
   readonly description?: string | undefined
-  /**
-   * Defaults to what `default` implies. `'secret'` is a string the panel
-   * renders write-only and never returns; `'select'` is a string constrained
-   * to `options`.
-   */
   readonly type?: PluginSettingType | undefined
   readonly options?: readonly { readonly value: string; readonly label: string }[] | undefined
-  /**
-   * An environment variable that overrides the stored value — the same rule
-   * as `APP_URL` and the mail settings: environment beats board, and the
-   * panel's box goes inert while it does.
-   */
   readonly env?: string | undefined
-  /** Reported as a problem while unset; never blocks saving the others. */
   readonly required?: boolean | undefined
   readonly default: string | number | boolean
   readonly advanced?: boolean | undefined
@@ -67,7 +56,7 @@ export interface PluginTask {
 export interface PluginAdminPage {
   readonly path: string
   readonly title: string
-  readonly render: (context: PluginRuntimeContext) => ReactNode | Promise<ReactNode>
+  readonly render: (context: PluginAdminPageContext) => ReactNode | Promise<ReactNode>
 }
 
 export interface PluginContribution {
@@ -76,39 +65,23 @@ export interface PluginContribution {
   readonly render: (context: PluginRegionContext) => ReactNode
 }
 
-/** Who is making the request. An id and a guest flag — never an `Actor`. */
 export interface PluginViewer {
   readonly userId: number | null
   readonly isGuest: boolean
 }
 
-/**
- * What a route handler is handed. Built by the host from the real request:
- * `cookie` and `authorization` never appear in `headers` — the session is the
- * board's, and a handler that could read it could replay it.
- */
 export interface PluginRequest {
   readonly viewer: PluginViewer
   readonly method: 'GET' | 'POST'
-  /** The declared route path that matched, e.g. `"hook/stripe"`. */
   readonly path: string
   readonly query: Readonly<Record<string, string>>
   readonly headers: Readonly<Record<string, string>>
-  /** The exact request bytes, present only on a route declaring `rawBody`. */
   readonly rawBody: Uint8Array | null
-  /** Parsed form fields, when the body was a form and `rawBody` is off. */
   readonly form: Readonly<Record<string, string>> | null
-  /** Parsed JSON, when the body was `application/json` and `rawBody` is off. */
   readonly json: unknown
-  /** The board's public origin, or '' when the board does not know it. */
   readonly boardUrl: string
 }
 
-/**
- * What a route handler may answer. There is deliberately no header field and
- * no cookie field: a plugin route cannot set a cookie, which is the single
- * restriction that stops it becoming a second authentication system.
- */
 export type PluginResponse =
   | { readonly kind: 'json'; readonly status?: number | undefined; readonly body: unknown }
   | {
@@ -117,31 +90,23 @@ export type PluginResponse =
       readonly body: string
       readonly contentType?: string | undefined
     }
-  /**
-   * `to` is a same-origin path, or an absolute https URL whose host the
-   * plugin listed in `allowedRedirectHosts`. Anything else is refused by the
-   * host — an open redirect is not something a setting should be able to
-   * create.
-   */
   | { readonly kind: 'redirect'; readonly to: string }
 
-export type PluginRouteAccess = 'anonymous' | 'member'
+export type PluginRouteAccess = 'anonymous' | 'member' | 'admin'
+export type PluginPageAccess = 'anonymous' | 'member'
 
-/**
- * An HTTP endpoint, mounted by the host under `/api/plugins/<key>/<path>`.
- * The host decides who reaches it: `access` is enforced before the handler
- * runs, a member POST must come from the board's own origin, and the body is
- * capped. A disabled plugin's routes 404 — an off plugin has no endpoints,
- * not broken ones.
- */
+export interface PluginRouteRateLimit {
+  readonly limit: number
+  readonly windowSeconds: number
+}
+
 export interface PluginRoute {
   readonly path: string
   readonly method: 'GET' | 'POST'
   readonly access: PluginRouteAccess
-  /** Hand the handler the exact request bytes — what signature verification needs. */
   readonly rawBody?: boolean | undefined
-  /** Cap on the request body, default 64 KiB, at most 1 MiB. */
   readonly maxBodyBytes?: number | undefined
+  readonly rateLimit?: PluginRouteRateLimit | undefined
   readonly handler: (
     request: PluginRequest,
     context: PluginRuntimeContext,
@@ -155,15 +120,14 @@ export interface PluginPageContext extends PluginRuntimeContext {
   readonly boardUrl: string
 }
 
-/**
- * A member-facing page, mounted at `/plugins/<key>/<path>` and rendered
- * inside the board's own shell, so it looks like the board. `access:
- * 'member'` sends a guest to the sign-in page and back.
- */
+export interface PluginAdminPageContext extends PluginRuntimeContext {
+  readonly query: Readonly<Record<string, string>>
+}
+
 export interface PluginBoardPage {
   readonly path: string
   readonly title: string
-  readonly access: PluginRouteAccess
+  readonly access: PluginPageAccess
   readonly render: (context: PluginPageContext) => ReactNode | Promise<ReactNode>
 }
 
@@ -177,6 +141,14 @@ export interface PluginRuntimeContext {
   readonly grants: PluginGrants
   readonly data: PluginData
   readonly users: PluginUsers
+  readonly notify: PluginNotify
+}
+
+export interface PluginNotificationKind {
+  readonly key: string
+  readonly title: string
+  readonly description: string
+  readonly emailByDefault?: boolean | undefined
 }
 
 export interface PluginDefinition {
@@ -196,7 +168,7 @@ export interface PluginDefinition {
   readonly contributions?: readonly PluginContribution[] | undefined
   readonly routes?: readonly PluginRoute[] | undefined
   readonly pages?: readonly PluginBoardPage[] | undefined
-  /** Hosts an absolute redirect from this plugin's routes may point at. */
+  readonly notifications?: readonly PluginNotificationKind[] | undefined
   readonly allowedRedirectHosts?: readonly string[] | undefined
 
   readonly onInstall?: ((context: PluginRuntimeContext) => Promise<void> | void) | undefined
@@ -217,19 +189,10 @@ const REDIRECT_HOST_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9
 export const MAX_ROUTE_BODY_BYTES = 1_048_576
 export const DEFAULT_ROUTE_BODY_BYTES = 65_536
 
-/** Every object a plugin's migrations create lives under this prefix. */
 export function pluginTablePrefix(pluginKey: string): string {
   return `plugin_${pluginKey.replace(/-/g, '_')}_`
 }
 
-/**
- * The statement forms a plugin migration may use, each with the identifiers
- * that must carry the plugin's prefix. This is a rail, not a SQL parser: it
- * recognises the shapes migrations are actually written in, and refuses what
- * it does not recognise — the failure mode of a too-strict rule is a clear
- * error at definition time, where the failure mode of a too-loose one is a
- * plugin quietly altering somebody else's table.
- */
 const MIGRATION_FORMS: readonly {
   readonly pattern: RegExp
   readonly describe: string
@@ -255,7 +218,6 @@ const MIGRATION_FORMS: readonly {
 function bareIdentifier(raw: string): string {
   let name = raw.replace(/[(;,].*$/s, '').replace(/"/g, '').toLowerCase()
   if (name.startsWith('public.')) name = name.slice('public.'.length)
-  // A column comment names the table part: comment on column t.c is checked as t.
   const dot = name.indexOf('.')
   return dot === -1 ? name : name.slice(0, dot)
 }
@@ -287,8 +249,6 @@ function assertMigrationStatement(where: string, prefix: string, statement: stri
     }
   }
 
-  // A foreign key to a core table couples this plugin's schema to the board's
-  // and outlives the plugin. Ids are copied, not referenced.
   for (const match of trimmed.matchAll(/references\s+(\S+)/gi)) {
     const target = bareIdentifier(match[1] as string)
     if (!target.startsWith(prefix)) {
@@ -473,8 +433,10 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
     if (route.method !== 'GET' && route.method !== 'POST') {
       throw new Error(`${where}: route "${route.path}" method must be GET or POST.`)
     }
-    if (route.access !== 'anonymous' && route.access !== 'member') {
-      throw new Error(`${where}: route "${route.path}" access must be "anonymous" or "member".`)
+    if (route.access !== 'anonymous' && route.access !== 'member' && route.access !== 'admin') {
+      throw new Error(
+        `${where}: route "${route.path}" access must be "anonymous", "member" or "admin".`,
+      )
     }
     if (typeof route.handler !== 'function') {
       throw new Error(`${where}: route "${route.path}" needs a handler function.`)
@@ -488,6 +450,21 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
         throw new Error(
           `${where}: route "${route.path}" maxBodyBytes must be between 1 and ` +
             `${MAX_ROUTE_BODY_BYTES}. A bigger payload belongs in an attachment, not a route body.`,
+        )
+      }
+    }
+    if (route.rateLimit !== undefined) {
+      const { limit, windowSeconds } = route.rateLimit
+      if (!Number.isInteger(limit) || limit < 1 || limit > 10_000) {
+        throw new Error(
+          `${where}: route "${route.path}" rateLimit.limit must be a whole number ` +
+            'between 1 and 10000.',
+        )
+      }
+      if (!Number.isInteger(windowSeconds) || windowSeconds < 1 || windowSeconds > 3_600) {
+        throw new Error(
+          `${where}: route "${route.path}" rateLimit.windowSeconds must be a whole ` +
+            'number of seconds, up to an hour.',
         )
       }
     }
@@ -509,6 +486,27 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
     }
     if (typeof page.render !== 'function') {
       throw new Error(`${where}: page "${page.path}" needs a render function.`)
+    }
+  }
+
+  assertUnique(
+    where,
+    'notification kind',
+    (plugin.notifications ?? []).map((kind) => kind.key),
+  )
+  for (const kind of plugin.notifications ?? []) {
+    if (!SETTING_KEY_PATTERN.test(kind.key)) {
+      throw new Error(
+        `${where}: notification kind "${kind.key}" must be lower-case letters, digits ` +
+          'and underscores. It becomes plugin.<plugin>.<kind> in the registry, and a ' +
+          'line on every member’s notification preferences screen.',
+      )
+    }
+    if (kind.title.trim() === '' || kind.description.trim() === '') {
+      throw new Error(
+        `${where}: notification kind "${kind.key}" needs a title and a description — ` +
+          'they are what the member reads when deciding whether to get emails for it.',
+      )
     }
   }
 
@@ -536,6 +534,10 @@ export function pluginSettingKey(pluginKey: string, settingKey: string): string 
   return `plugin.${pluginKey}.${settingKey}`
 }
 
+export function pluginNotificationKindId(pluginKey: string, kindKey: string): string {
+  return `plugin.${pluginKey}.${kindKey}`
+}
+
 export function pluginTaskId(pluginKey: string, taskId: string): string {
   return `plugin.${pluginKey}.${taskId}`
 }
@@ -546,6 +548,10 @@ export function pluginAdminPath(pluginKey: string, path: string): string {
 
 export function pluginRoutePath(pluginKey: string, path: string): string {
   return `/api/plugins/${pluginKey}/${path}`
+}
+
+export function pluginAdminRoutePath(pluginKey: string, path: string): string {
+  return `/admin/api/plugins/${pluginKey}/${path}`
 }
 
 export function pluginPagePath(pluginKey: string, path: string): string {

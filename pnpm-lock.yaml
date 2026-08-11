@@ -160,6 +160,9 @@ importers:
       '@meith/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
+      '@meith/plugin-dues':
+        specifier: workspace:*
+        version: link:../../plugins/dues
       '@meith/plugin-kit':
         specifier: workspace:*
         version: link:../../packages/plugin-kit
@@ -844,6 +847,19 @@ importers:
         version: 19.2.3(@types/react@19.2.14)
 
   packages/upgrade: {}
+
+  plugins/dues:
+    dependencies:
+      '@meith/plugin-kit':
+        specifier: workspace:*
+        version: link:../../packages/plugin-kit
+      react:
+        specifier: ^19.2.0
+        version: 19.2.0
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.14
 
   plugins/reference:
     dependencies:

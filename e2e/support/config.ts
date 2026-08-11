@@ -21,3 +21,7 @@ export const E2E_INSTALL_PORT = 3002
 export const E2E_INSTALL_BASE_URL = `http://127.0.0.1:${E2E_INSTALL_PORT}`
 
 export const E2E_UPLOADS_DIR = join(tmpdir(), 'forum-e2e-uploads')
+
+export const E2E_FAKE_STRIPE_PORT = 12_111
+
+export const E2E_DUES_WEBHOOK_SECRET = 'whsec_e2e_dues_signing_secret'

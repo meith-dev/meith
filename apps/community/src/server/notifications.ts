@@ -4,12 +4,29 @@ import { cache } from 'react'
 
 import { NotificationService } from '@meith/notifications'
 import type { ReportNotifierPort, WarningNotifierPort } from '@meith/moderation'
+import {
+  pluginNotificationKindSpecs,
+  type PluginDefinition,
+  type PluginNotificationKindSpec,
+} from '@meith/plugin-kit'
 
+import forumConfig from '../../community.config'
 import { getContainer } from './container'
+
+const PLUGIN_KINDS: readonly PluginNotificationKindSpec[] = (forumConfig.plugins ?? []).flatMap(
+  (entry) => {
+    if (entry.enabled === false) return []
+    const definition = entry.plugin as PluginDefinition | undefined
+    if (definition === undefined) return []
+    return pluginNotificationKindSpecs(definition.key, definition.notifications ?? [])
+  },
+)
 
 export function notificationService(): NotificationService | null {
   const { notifications } = getContainer()
-  return notifications === null ? null : new NotificationService({ notifications })
+  return notifications === null
+    ? null
+    : new NotificationService({ notifications, extraKinds: PLUGIN_KINDS })
 }
 
 export function warningNotifier(): WarningNotifierPort | null {

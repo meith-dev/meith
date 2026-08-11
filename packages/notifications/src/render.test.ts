@@ -111,3 +111,37 @@ describe('read state', () => {
     expect(render({ readAt: new Date() }).isRead).toBe(true)
   })
 })
+
+describe('a plugin kind', () => {
+  it('renders the subject and body the plugin raised, and keeps the href', () => {
+    const view = renderNotification({
+      id: 9,
+      userId: 7,
+      kind: 'plugin.dues.gift_received',
+      data: { subject: 'You were gifted a pass', body: 'From alice.' },
+      href: '/plugins/dues/manage',
+      occurrences: 1,
+      createdAt: new Date('2026-08-11T00:00:00Z'),
+      updatedAt: new Date('2026-08-11T00:00:00Z'),
+      readAt: null,
+    })
+    expect(view.subject).toBe('You were gifted a pass')
+    expect(view.body).toBe('From alice.')
+    expect(view.href).toBe('/plugins/dues/manage')
+  })
+
+  it('falls back to a plain subject when the data is empty', () => {
+    const view = renderNotification({
+      id: 10,
+      userId: 7,
+      kind: 'plugin.dues.gift_received',
+      data: {},
+      href: null,
+      occurrences: 1,
+      createdAt: new Date('2026-08-11T00:00:00Z'),
+      updatedAt: new Date('2026-08-11T00:00:00Z'),
+      readAt: null,
+    })
+    expect(view.subject).toBe('A plugin has news for you')
+  })
+})

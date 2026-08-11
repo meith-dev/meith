@@ -542,9 +542,22 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.coolify.yml down -v
 
+  # Sharded across four runners. Serially this suite took eighteen minutes and
+  # the dev server — which compiles each route on first request and holds the
+  # compiler for the whole run — hit its memory ceiling around the fourteenth
+  # and restarted, failing whichever test was mid-flight. A quarter of the
+  # suite finishes long before that, and the four run at once.
+  #
+  # Each shard is a whole runner with its own PGlite database and servers, so
+  # nothing is shared between them. Playwright splits by file, and every spec
+  # seeds what it needs, so the split is safe in any order.
   e2e:
     name: No-JS and accessibility browser checks
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       # No `version:` — action-setup reads `packageManager` from package.json,
@@ -562,7 +575,7 @@ jobs:
       # brings its own Postgres — `e2e/support/database.ts`, started as the
       # first `webServer` — so CI runs exactly what a developer runs, which is
       # the whole reason the write path is testable in a browser at all.
-      - run: pnpm test:e2e
+      - run: pnpm test:e2e --shard=${{ matrix.shard }}/4
         env:
           NEXT_TELEMETRY_DISABLED: '1'
 
