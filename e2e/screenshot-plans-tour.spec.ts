@@ -175,7 +175,7 @@ test('plans, purchases and refusals, photographed end to end', async ({ page, re
   })
   await dayAgain.getByRole('button', { name: 'Buy this pass' }).click()
   await expect(
-    buyerPage.getByText(/already an active subscription for that membership/),
+    buyerPage.getByText(/hold this membership for good already/),
   ).toBeVisible()
   await snap(buyerPage, 'member-already-covered')
 

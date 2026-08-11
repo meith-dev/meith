@@ -1058,7 +1058,7 @@ describe('the plan manager', () => {
     expect(renewed).toBeGreaterThan(GRANT_WINDOW_DAYS - 2)
 
     const again = await handleCheckout(services(), request(alice, { plan: 'forever' }))
-    expect((again as { to: string }).to).toContain('error=already-member')
+    expect((again as { to: string }).to).toContain('error=already-forever')
   })
 
   it('a subscription plan minted from the form gets a real Stripe price; pasting skips the mint', async () => {

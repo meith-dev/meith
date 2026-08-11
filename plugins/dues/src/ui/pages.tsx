@@ -62,6 +62,8 @@ const NOTICES: Record<string, string> = {
   'code-expired': 'That discount code has expired.',
   'code-exhausted': 'That discount code has been used as many times as it allows.',
   'code-wrong-plan': 'That discount code is for a different plan.',
+  'already-forever':
+    'You hold this membership for good already — there is nothing left to buy for it.',
   'plan-not-ready':
     'That plan is not finished being set up — its Stripe price is missing. An ' +
     'administrator needs to complete it.',

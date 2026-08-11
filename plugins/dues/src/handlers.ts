@@ -130,7 +130,7 @@ export async function handleCheckout(
   const held = await liveMembership(services.context.data, recipientId, plan.groupKey)
   if (held !== null) {
     if (isLifetime(held.currentPeriodEnd)) {
-      return back({ error: 'already-member', plan: plan.key })
+      return back({ error: 'already-forever', plan: plan.key })
     }
     if (plan.mode === 'auto') return back({ error: 'already-member', plan: plan.key })
     if (plan.mode === 'lifetime' && held.renewalMode === 'auto') {
