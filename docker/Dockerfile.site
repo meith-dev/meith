@@ -2,7 +2,7 @@
 # meith.dev itself — the landing page and the documentation (`@meith/site`).
 # Nothing in the self-hosting path uses this; Dockerfile builds the board.
 
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /repo
 
 RUN corepack enable
@@ -24,7 +24,7 @@ ENV SITE_STANDALONE=1
 
 RUN pnpm --filter @meith/site build
 
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
