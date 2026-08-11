@@ -245,21 +245,44 @@ describe('access', () => {
   it('403s everyone but the panel on an admin route — a member is not enough', async () => {
     actor.current = { userId: 7 }
     const asMember = await dispatchPluginRoute(
-      request('/api/plugins/alpha/admin/comp', { method: 'POST' }),
+      request('/admin/api/plugins/alpha/admin/comp', { method: 'POST' }),
       'alpha',
       ['admin', 'comp'],
+      'admin',
     )
     expect(asMember.status).toBe(403)
     expect(handled).toHaveLength(0)
 
     admin.isAdmin = true
     const asAdmin = await dispatchPluginRoute(
+      request('/admin/api/plugins/alpha/admin/comp', { method: 'POST' }),
+      'alpha',
+      ['admin', 'comp'],
+      'admin',
+    )
+    expect(asAdmin.status).toBe(303)
+    expect(asAdmin.headers.get('location')).toBe('/admin/plugins/alpha/status')
+  })
+
+  it('an admin route does not exist on the board mount, nor the reverse', async () => {
+    admin.isAdmin = true
+    actor.current = { userId: 1 }
+
+    const boardMount = await dispatchPluginRoute(
       request('/api/plugins/alpha/admin/comp', { method: 'POST' }),
       'alpha',
       ['admin', 'comp'],
     )
-    expect(asAdmin.status).toBe(303)
-    expect(asAdmin.headers.get('location')).toBe('/admin/plugins/alpha/status')
+    expect(boardMount.status).toBe(404)
+
+    const adminMount = await dispatchPluginRoute(
+      request('/admin/api/plugins/alpha/checkout', { method: 'POST' }),
+      'alpha',
+      ['checkout'],
+      'admin',
+    )
+    expect(adminMount.status).toBe(404)
+    expect(handled).toHaveLength(0)
   })
 
   it('records an admin POST in the panel’s action log; an admin GET stays quiet', async () => {
@@ -267,16 +290,18 @@ describe('access', () => {
     actor.current = { userId: 1 }
 
     await dispatchPluginRoute(
-      request('/api/plugins/alpha/admin/report'),
+      request('/admin/api/plugins/alpha/admin/report'),
       'alpha',
       ['admin', 'report'],
+      'admin',
     )
     expect(adminLog).toHaveLength(0)
 
     await dispatchPluginRoute(
-      request('/api/plugins/alpha/admin/comp', { method: 'POST' }),
+      request('/admin/api/plugins/alpha/admin/comp', { method: 'POST' }),
       'alpha',
       ['admin', 'comp'],
+      'admin',
     )
     expect(adminLog).toEqual([
       { action: 'plugin.route', detail: { plugin: 'alpha', path: 'admin/comp' } },
@@ -288,12 +313,13 @@ describe('access', () => {
     actor.current = { userId: 1 }
 
     const crossSite = await dispatchPluginRoute(
-      request('/api/plugins/alpha/admin/comp', {
+      request('/admin/api/plugins/alpha/admin/comp', {
         method: 'POST',
         headers: { origin: 'https://elsewhere.example' },
       }),
       'alpha',
       ['admin', 'comp'],
+      'admin',
     )
     expect(crossSite.status).toBe(403)
     expect(handled).toHaveLength(0)

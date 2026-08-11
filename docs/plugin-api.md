@@ -312,6 +312,13 @@ bytes, which is what webhook signature verification needs.
   a guest; `'admin'` answers 403 to anyone without a live control-panel
   session — the same check the panel's own screens make, including its
   re-authentication window. The handler never sees a refused request.
+- **Admin routes mount under the panel, not the board.** An `access: 'admin'`
+  route answers at `/admin/api/plugins/<key>/<path>` and is a 404 on the
+  board mount — and the reverse. The panel's session token is a cookie
+  scoped to the `/admin` path precisely so it never rides an ordinary board
+  request, which means an admin endpoint must live where that cookie
+  travels. An admin page's form posts there; `pluginAdminRoutePath` builds
+  the URL.
 - **A member or admin POST must come from the board's own origin.** The
   Origin header is checked against the request's host; a cross-site form
   post is a 403.
@@ -466,7 +473,8 @@ each. Settings are stored at `plugin.<key>.<name>` and edited in the control
 panel, with environment overrides resolved as described above. Tasks are
 registered as `plugin.<key>.<id>` and run by the same tick as everything
 else. Admin pages are mounted at `/admin/plugins/<key>/<path>`, routes at
-`/api/plugins/<key>/<path>`, board pages at `/plugins/<key>/<path>`. The
+`/api/plugins/<key>/<path>` (admin routes at `/admin/api/plugins/<key>/<path>`),
+board pages at `/plugins/<key>/<path>`. The
 runtime capabilities — `grants`, `data`, `users` — are live on every context;
 on a fixture-mode board they reject with a clear error instead of
 pretending.

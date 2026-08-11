@@ -28,6 +28,7 @@ export {
   MAX_ROUTE_BODY_BYTES,
   definePlugin,
   pluginAdminPath,
+  pluginAdminRoutePath,
   pluginPagePath,
   pluginRoutePath,
   pluginSettingKey,

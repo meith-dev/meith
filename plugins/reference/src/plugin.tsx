@@ -130,7 +130,7 @@ export const referencePlugin = definePlugin({
       handler: () => ({ kind: 'redirect', to: 'https://example.com/away' }),
     },
     {
-      path: 'admin/reset',
+      path: 'reset',
       method: 'POST',
       access: 'admin',
       handler: (request) => {

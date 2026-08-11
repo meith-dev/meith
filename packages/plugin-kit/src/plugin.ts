@@ -495,6 +495,10 @@ export function pluginRoutePath(pluginKey: string, path: string): string {
   return `/api/plugins/${pluginKey}/${path}`
 }
 
+export function pluginAdminRoutePath(pluginKey: string, path: string): string {
+  return `/admin/api/plugins/${pluginKey}/${path}`
+}
+
 export function pluginPagePath(pluginKey: string, path: string): string {
   return `/plugins/${pluginKey}${path === '' ? '' : `/${path}`}`
 }
