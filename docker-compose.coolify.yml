@@ -77,7 +77,7 @@ services:
     restart: 'no'
 
   # No healthcheck here: the image carries a role-aware one (see
-  # docker-healthcheck.sh), which asks the web server for `/api/health` and the
+  # docker/healthcheck.sh), which asks the web server for `/api/health` and the
   # worker whether its process is alive. A single web-shaped check declared per
   # service is how every worker container ended up permanently unhealthy.
   web:

@@ -40,7 +40,9 @@ services:
       retries: 5
 
   migrate:
-    build: .
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     # Runs to completion then exits; `web` waits for it so the schema is always
     # applied before the first request rather than racing it.
     environment:
@@ -67,7 +69,9 @@ services:
     restart: 'no'
 
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     restart: unless-stopped
     ports:
       - '${PORT:-3000}:3000'
@@ -118,7 +122,9 @@ services:
   # that would rather not give a second container database credentials can use
   # it instead; that is the trade, and it is the operator's to make.
   worker:
-    build: .
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     restart: unless-stopped
     environment:
       COMMUNITY_ROLE: worker

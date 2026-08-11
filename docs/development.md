@@ -86,6 +86,14 @@ Every `@meith/*` import resolves through tsconfig path aliases straight to
 typecheck is fast and why `pnpm workspace:check` exists — see
 [the invariant scripts](#the-scripts-that-fail-on-purpose).
 
+Outside the workspace: `docker/` holds the image — the Dockerfiles, the
+entrypoint and the healthcheck — while the compose files stay at the root,
+because deployed Coolify resources and `docker compose up` both name those
+exact paths. The root itself is a registry, not a landing zone: every entry
+in it is listed in `scripts/root-check.mjs` with the reason it must live
+there, and `pnpm root:check` fails on a new root file until it is either
+moved into a folder or registered with its reason.
+
 How those packages relate — the layers, what may import what, and why — is
 [Architecture](./architecture.md).
 
@@ -190,6 +198,8 @@ nothing else reads:
 | Script | What it catches |
 |---|---|
 | `workspace:check` | A package directory with sources and no `package.json`, or a manifest the lockfile has not seen. Both pass every other gate and fail `pnpm install --frozen-lockfile`, which is CI's first step. |
+| `root:check` | A new file at the repository root. The root is an interface — every entry is registered with the reason it must live there, and anything new belongs in a folder. |
+| `release:check` | A version written anywhere that disagrees with the release version, or a published package depending on a private one. See [Releasing](./release.md). |
 | `guards` | Textual invariants — the things a grep can prove and a type cannot. |
 | `slots:check` | The server/client boundary in theme slots. |
 | `hooks:wired` | A hook fired by name that the registry does not declare — the typo that would otherwise be a call nothing listens to. It also derives the wired/unwired list that `pnpm plugin:docs` publishes. |

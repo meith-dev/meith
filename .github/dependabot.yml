@@ -1,0 +1,27 @@
+# Dependency updates, batched so they inform rather than flood.
+#
+# Minor and patch updates arrive as one weekly PR per ecosystem — CI's gate
+# (which boots the image and drives a browser) is what makes merging a batch
+# safe. Majors arrive alone, because a major deserves its own diff and its
+# own reading of the changelog.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: ['minor', 'patch']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # The board and site images. Dockerfiles live in docker/, not the root.
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly

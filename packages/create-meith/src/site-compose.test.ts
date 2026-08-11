@@ -5,13 +5,13 @@ import { describe, expect, it } from 'vitest'
 const ROOT = new URL('../../../', import.meta.url)
 
 const compose = await readFile(new URL('docker-compose.site.coolify.yml', ROOT), 'utf8')
-const dockerfile = await readFile(new URL('Dockerfile.site', ROOT), 'utf8')
+const dockerfile = await readFile(new URL('docker/Dockerfile.site', ROOT), 'utf8')
 const nextConfig = await readFile(new URL('apps/web/next.config.mjs', ROOT), 'utf8')
 
 describe('the site Coolify compose file', () => {
   it('deploys meith.dev and nothing the board owns', () => {
     expect(compose).toMatch(/^\s{2}site:/m)
-    expect(compose).toContain('dockerfile: Dockerfile.site')
+    expect(compose).toContain('dockerfile: docker/Dockerfile.site')
     expect(compose).not.toMatch(/^\s*postgres:/m)
     expect(compose).not.toMatch(/^\s*volumes:/m)
     expect(compose).not.toContain('DATABASE_URL')

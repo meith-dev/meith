@@ -118,8 +118,8 @@ COPY --from=build --chown=nextjs:nodejs /repo/apps/cli/dist/ ./apps/cli/
 # The generated SQL. Not part of the traced standalone output — it is data, not
 # a module — so the migrate role would find an empty folder without this.
 COPY --from=build --chown=nextjs:nodejs /repo/packages/db/migrations ./migrations
-COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
-COPY --chown=nextjs:nodejs docker-healthcheck.sh ./docker-healthcheck.sh
+COPY --chown=nextjs:nodejs docker/entrypoint.sh ./entrypoint.sh
+COPY --chown=nextjs:nodejs docker/healthcheck.sh ./healthcheck.sh
 
 # FILESTORE_DRIVER=local writes here. Declared as a volume so uploads survive a
 # container replacement — without this, every redeploy silently loses avatars.
@@ -133,14 +133,14 @@ EXPOSE 3000
 # Hits a real route rather than just checking the port is bound, so a server that
 # booted but cannot render is reported unhealthy — and asks a different question
 # of a worker, which serves no HTTP and reported unhealthy for its whole life
-# under the single check this replaced. See docker-healthcheck.sh.
+# under the single check this replaced. See docker/healthcheck.sh.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD ["/app/docker-healthcheck.sh"]
+  CMD ["/app/healthcheck.sh"]
 
 # COMMUNITY_ROLE picks which of the three programs in this image starts: `worker`
 # runs the scheduler loop, `migrate` applies the schema and exits, and unset —
 # the default — runs the web server, so existing deployments keep working
 # without setting anything. An unrecognised value exits rather than quietly
 # serving the board, because a typo that started a *fourth* web server beside
-# the real one is the failure that mode would hide. See docker-entrypoint.sh.
-ENTRYPOINT ["./docker-entrypoint.sh"]
+# the real one is the failure that mode would hide. See docker/entrypoint.sh.
+ENTRYPOINT ["./entrypoint.sh"]

@@ -45,7 +45,7 @@ services:
   seed:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile
     command: ['node', 'apps/cli/cli.cjs', 'demo:reset', '--yes']
     environment:
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
@@ -61,7 +61,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile
     restart: unless-stopped
     environment:
       - SERVICE_FQDN_WEB_3000

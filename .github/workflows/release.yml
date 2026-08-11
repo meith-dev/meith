@@ -58,7 +58,7 @@ jobs:
       - name: Build the image, stamped
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          docker build \
+          docker build -f docker/Dockerfile \
             --build-arg MEITH_VERSION="$VERSION" \
             --build-arg MEITH_COMMIT="$GITHUB_SHA" \
             -t meith:release .

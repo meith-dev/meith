@@ -48,6 +48,12 @@ jobs:
       - name: One version everywhere
         run: pnpm release:check
 
+      # The root is an interface: every entry in it is registered with the
+      # reason it must live there, and a new file fails until it is either
+      # foldered or registered. scripts/root-check.mjs is the registry.
+      - name: The repository root is accounted for
+        run: pnpm root:check
+
       - name: Textual invariants
         run: pnpm guards
 
@@ -192,7 +198,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build the image
-        run: docker build -t forum:ci .
+        run: docker build -f docker/Dockerfile -t forum:ci .
 
       # COMMUNITY_ROLE=migrate, not `node node_modules/.bin/drizzle-kit` — drizzle-kit
       # is a development tool and is not in the pruned standalone node_modules,
@@ -301,7 +307,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build the site image
-        run: docker build -f Dockerfile.site -t meith-site:ci .
+        run: docker build -f docker/Dockerfile.site -t meith-site:ci .
 
       - name: Boot it
         run: |
@@ -490,7 +496,7 @@ jobs:
           MEITH_IMAGE: meith:ci
         run: |
           set -euo pipefail
-          docker build -t meith:ci .
+          docker build -f docker/Dockerfile -t meith:ci .
           docker compose -f docker-compose.coolify.yml up -d \
             --wait --wait-timeout 600 web worker
 

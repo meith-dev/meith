@@ -21,7 +21,7 @@ largely their consequences:
 ## The processes
 
 A running board is one Docker image started three ways — `COMMUNITY_ROLE` picks the
-entry in [`docker-entrypoint.sh`](../docker-entrypoint.sh) — plus Postgres:
+entry in [`docker/entrypoint.sh`](../docker/entrypoint.sh) — plus Postgres:
 
 ```mermaid
 flowchart LR
@@ -66,7 +66,7 @@ The fourth app, `apps/web`, is **meith.dev itself** — the landing page and
 these documents. It shares no code with the board: its only coupling to the
 rest of the workspace is reading `docs/*.md` and the generated references off
 disk at build time. Every page of it is prerendered. It ships as its own image
-([`Dockerfile.site`](../Dockerfile.site), a standalone Next.js build) deployed
+([`Dockerfile.site`](../docker/Dockerfile.site), a standalone Next.js build) deployed
 as a separate resource beside the board
 ([`docker-compose.site.coolify.yml`](../docker-compose.site.coolify.yml)) — it
 holds no data and reads nothing the board writes, and nobody self-hosting a

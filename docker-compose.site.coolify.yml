@@ -20,7 +20,7 @@ services:
   site:
     build:
       context: .
-      dockerfile: Dockerfile.site
+      dockerfile: docker/Dockerfile.site
     restart: unless-stopped
     environment:
       - SERVICE_FQDN_SITE_3100

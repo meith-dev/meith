@@ -269,7 +269,7 @@ what to do when a migration fails halfway.
 
 On a 1 GB server the Next build can run out of memory. The shortest fix is to
 not build at all: every release publishes the image the Quickstart deploys —
-multi-arch, boot-tested in every role — so replace `build: .` with
+multi-arch, boot-tested in every role — so replace each `build:` block with
 `image: ghcr.io/meith-dev/meith:0.1.0` in the compose file and everything
 else is unchanged. Pin the exact version, as that is: a floating tag turns
 the next incidental `docker compose pull` into an unplanned upgrade.
