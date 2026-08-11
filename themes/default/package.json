@@ -1,13 +1,27 @@
 {
   "name": "@meith/theme-default",
   "version": "0.1.0",
-  "private": true,
+  "description": "Meith's default theme — every slot and every token, and the reference for what a complete theme fills.",
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "themes/default"
+  },
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.type-test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@meith/theme-kit": "workspace:*",
-    "@meith/ui": "workspace:*"
+    "@meith/theme-kit": "workspace:^",
+    "@meith/ui": "workspace:^"
   },
   "peerDependencies": {
     "react": "^19.2.0"

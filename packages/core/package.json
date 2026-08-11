@@ -1,7 +1,13 @@
 {
   "name": "@meith/core",
   "version": "0.1.0",
-  "private": true,
+  "description": "Environment, logging, caching and errors — the base layer every Meith package stands on.",
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "packages/core"
+  },
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -12,6 +18,14 @@
     "./env": "./src/env.ts",
     "./env-files": "./src/env-files.ts",
     "./logger": "./src/logger.ts"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.type-test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "typecheck": "tsc -p ../../tsconfig.json --noEmit"

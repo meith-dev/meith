@@ -110,7 +110,7 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 | Development | [`development.md`](./docs/development.md) | Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request. |
 | Development | [`architecture.md`](./docs/architecture.md) | How it fits together: the processes, the layers, the path a request takes, and the seams everything else hangs off. |
 | Development | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |
-| Development | [`release.md`](./docs/release.md) | How a version is cut: the lockstep version rule, what each release publishes, the migration policy behind the numbers, and why the npm packages wait. |
+| Development | [`release.md`](./docs/release.md) | How a version is cut: the lockstep version rule, what each release publishes — the image, the branch, the npm packages — and the migration policy behind the numbers. |
 
 <!-- docs:table end -->
 

@@ -132,9 +132,34 @@ jobs:
           docker tag meith:release "$IMAGE:$VERSION-${{ matrix.arch }}"
           docker push "$IMAGE:$VERSION-${{ matrix.arch }}"
 
+  # The npm half of the release: every non-private workspace package, in
+  # dependency order, at the tag's version. Gated on the boot-tested build so
+  # nothing reaches the registry from a release whose image did not boot, and
+  # re-runnable — a version already on the registry is skipped, not an error.
+  npm:
+    name: Publish the packages
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/npm-publish.mjs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+
   publish:
     name: Tags, the release branch, and the draft notes
-    needs: build
+    needs: [build, npm]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -170,6 +195,7 @@ jobs:
           cat > /tmp/notes-header.md <<EOF
           \`\`\`
           docker pull $IMAGE:$VERSION
+          npm install @meith/plugin-kit@$VERSION @meith/theme-kit@$VERSION
           \`\`\`
 
           **Migrations:** _fill in before publishing — none / adds only / removes or renames._

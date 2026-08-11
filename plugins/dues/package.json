@@ -1,12 +1,26 @@
 {
   "name": "@meith/plugin-dues",
   "version": "0.1.0",
-  "private": true,
+  "description": "Membership dues for a Meith board: Stripe-backed subscriptions as a contained plugin.",
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "plugins/dues"
+  },
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.type-test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@meith/plugin-kit": "workspace:*"
+    "@meith/plugin-kit": "workspace:^"
   },
   "peerDependencies": {
     "react": "^19.2.0"

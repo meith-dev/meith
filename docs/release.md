@@ -15,6 +15,7 @@ publishes comes out of that one act:
 | `ghcr.io/meith-dev/meith:X.Y.Z` | The board image — web, worker, migrator and operator CLI in one, `linux/amd64` and `linux/arm64`. This tag never moves again. |
 | `ghcr.io/meith-dev/meith:X.Y` | The **release line**: re-published by every patch of the line. This is the tag the Coolify compose file pins. |
 | `ghcr.io/meith-dev/meith:latest` | The newest release, whatever line it is on. For trying the image, never for deploying it. |
+| The `@meith` packages on npm | The theme and plugin kits, the first-party themes and plugins, and their dependency closure — nine packages at the release version, published with provenance. See [what publishes to npm](#what-publishes-to-npm). |
 | The `release` branch | Fast-forwarded to the tag. The Quickstart points Coolify at this branch, so a board deployed by the guide follows releases and never sees `main` mid-cycle. |
 | A GitHub Release | Drafted by the workflow with generated notes and a header the maintainer must finish — see [the notes](#the-notes-say-which-kind-of-upgrade-this-is). |
 
@@ -110,6 +111,9 @@ the workflow drafts rather than publishes.
      and registers its tasks — on both architectures;
    - only then are the two pushed and merged under `X.Y.Z`, `X.Y` and
      `latest`;
+   - the npm packages are published, dependencies first — a re-run skips
+     whatever already reached the registry, so a half-failed publish resumes
+     rather than starts over;
    - the `release` branch is fast-forwarded to the tag — refused if the tag
      is not descended from it, which is the guard against tagging a side
      branch;
@@ -135,40 +139,104 @@ One-time steps around `v0.1.0`, in order:
    `ghcr.io/meith-dev/meith` private, and a private package is a quickstart
    that fails at `docker pull` with an authentication error no operator can
    act on. Package settings → change visibility → public.
-3. **Register the npm names** — the `@meith` scope and the `create-meith`
-   name — even though nothing publishes yet. The names appear throughout this
-   repository and its documentation; unregistered, they are anybody's to take.
+3. **Create the npm organisation and the token.** The `meith` organisation
+   owns the `@meith` scope; a granular automation token allowed to publish it
+   goes into the repository's `NPM_TOKEN` secret, and registering
+   `create-meith` early keeps that name ours too. After the first release,
+   configure npm **trusted publishing** for each package and drop the token —
+   the workflow already requests the OIDC permission that provenance uses.
 4. Protect the `release` branch from manual pushes, so the workflow's
    fast-forward is the only thing that moves it.
 
-## The npm packages are a later milestone, on purpose
+## What publishes to npm
 
-`create-meith` scaffolds a project that installs `@meith/web`, `@meith/cli`
-and `@meith/theme-default` from npm, and plugin and theme authors would
-eventually add `@meith/plugin-kit` and `@meith/theme-kit` the same way. None
-of that is published at 0.1.0, and every package stays `private: true`.
+Every workspace package that is **not** `private: true` publishes on every
+release, at the release version. Nine at 0.1.0:
 
-This is sequencing rather than reluctance. Today every package's entry point
-is its TypeScript source, which only a workspace build can consume; the kits
-pull `@meith/core` and its neighbours behind them; and there is no `forum-web`
-binary for a scaffolded project's scripts to run. Publishing now would ship
-packages that `npm install` accepts and nothing can build — a worse first
-impression than their absence, and plugin and theme development already works
-in a checkout ([Development](./development.md)), versioned by the same tag as
-everything else.
+| | Packages |
+|---|---|
+| The kits | `@meith/plugin-kit`, `@meith/theme-kit` — what a plugin or theme author writes against |
+| Their closure | `@meith/core`, `@meith/ui` |
+| The themes | `@meith/theme-default`, `@meith/theme-midnight`, `@meith/theme-phasebook` |
+| The plugins | `@meith/plugin-dues`, `@meith/plugin-reference` |
 
-Publishing becomes part of the release act when all four exist:
+`scripts/npm-publish.mjs` is the mechanism: dependencies before dependents, a
+version already on the registry skipped rather than failed, and `--dry-run`
+packs everything locally so the tarballs can be read before a release ever
+runs.
 
-1. **Built output** for the publish set — compiled JS, declaration files and
-   `exports` maps, not source entry points.
-2. **The `forum-web` bin**, so a scaffolded project's `dev`, `build` and
-   `start` scripts run.
-3. **An end-to-end gate in CI**: scaffold with `create-meith` against the
-   packed tarballs, install, build, boot. The same standard the image meets —
-   nothing is published that CI has not consumed the way a user would.
-4. **Trusted publishing** from the release workflow (OIDC, provenance on), so
-   no long-lived npm token exists to leak.
+### They carry the release version, not their own
 
-Until then, a release is the image, the tag, the branch and the notes — and
-`release-check` keeps the unpublished versions honest so that flipping the
-switch is one release's work, not an archaeology project.
+Every package publishes at the release version, including ones the release
+did not touch. That is a choice against independent per-package versioning,
+and the reason is what these packages *are*: none of them is independent
+software. The kits re-export the board's own contracts, the themes and
+plugins are compiled into the board's build, and CI only ever tests one
+combination — the tree at the tag. Lockstep makes the npm version state
+exactly what was tested: `@meith/theme-phasebook@0.1.4` is the theme as board
+0.1.4 shipped it, and "board 0.1.4 with theme 0.1.2" is a mismatch anyone can
+see without a lookup table. Independent versions would replace that with a
+compatibility matrix nobody tests — a permanent documentation debt bought to
+avoid republishing a few small tarballs.
+
+The cost is that a version bump does not mean the package changed; the
+release notes carry that information, as they do for every lockstep monorepo
+on npm (Angular, Jest, the AWS SDK). A plugin's *schema* has its own version
+besides — the one in its `definePlugin` manifest, which migrations are
+recorded against — so "did this plugin's data model change" is already
+answered by a number that only moves when it did.
+
+The decision is revisited the day something genuinely standalone joins the
+set — a package with its own audience and lifecycle earns its own version
+line then. Going from lockstep to independent later is versions diverging
+from a shared point; the reverse is a renumbering nobody downstream enjoys,
+which is why lockstep is the right place to start.
+
+### They ship TypeScript source, deliberately
+
+A theme or plugin is only ever consumed inside a board's Next build, and that
+build compiles these packages **from source** wherever they come from — the
+workspace today (`transpilePackages` in the board's Next config, Tailwind's
+`@source` scan for class names), npm tomorrow. So the published tarball is the
+`src/` directory the monorepo tests, byte for byte, minus the test files.
+There is no dist step, which means there is no way for the published artifact
+to drift from what CI exercised — the failure mode a compiled copy would
+invent.
+
+Two consequences bind whoever wires an npm-installed package into a board
+build, and they are the same two the monorepo already handles for the
+first-party set:
+
+- the package's name must be in the board's `transpilePackages` — a workspace
+  package is compiled because it lives outside `node_modules`, an npm one is
+  not;
+- a theme or plugin needs a Tailwind `@source` entry for its `node_modules`
+  path, or its class names are silently dropped from the stylesheet and the
+  pages render unstyled with no error anywhere.
+
+### The set is closed, and closing it is the cost of publishing
+
+A published package may not depend on a private one — that is an
+`npm install` that resolves for nobody. `release-check` enforces the closure:
+publishing a package is deleting its `private: true`, and the check then names
+everything that decision drags with it. That is how `@meith/core` and
+`@meith/ui` entered the set — the kits and themes stand on them — and it is
+the friction that keeps the set deliberate.
+
+Dependency ranges between published packages are `workspace:^`, so a
+published manifest says `^X.Y.Z` — the release line again. A plugin published
+at 0.1.0 accepts every 0.1 patch of the kits and refuses 0.2, which is the
+same compatibility promise the image tags make.
+
+### What stays private, still
+
+- **The board itself** — `@meith/web`, `@meith/cli`, `create-meith`. The
+  scaffolded board-as-a-dependency flow needs a `forum-web` bin and an
+  end-to-end CI gate (scaffold against packed tarballs, install, build, boot)
+  before publishing it is honest. The kits going out first is what lets
+  plugin and theme authors start now, in a checkout or against npm types,
+  while that lands.
+- **`@meith/testkit`** — it drags `@meith/db` and `@meith/drivers` behind it,
+  and that closure is most of the board.
+- **The examples** — `hello-plugin` and `iris-theme` are documentation. They
+  are copied, not installed.

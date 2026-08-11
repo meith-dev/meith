@@ -193,7 +193,7 @@
       "file": "release.md",
       "section": "development",
       "title": "Releasing",
-      "blurb": "How a version is cut: the lockstep version rule, what each release publishes, the migration policy behind the numbers, and why the npm packages wait.",
+      "blurb": "How a version is cut: the lockstep version rule, what each release publishes — the image, the branch, the npm packages — and the migration policy behind the numbers.",
       "generated": false,
       "primary": false
     }

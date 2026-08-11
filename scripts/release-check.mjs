@@ -18,7 +18,7 @@ if (typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version)) {
   process.exit(1)
 }
 
-let manifests = 0
+const byName = new Map()
 for (const glob of WORKSPACE_GLOBS) {
   let entries
   try {
@@ -38,10 +38,43 @@ for (const glob of WORKSPACE_GLOBS) {
       continue // workspace-check owns "directory with no manifest"
     }
 
-    manifests += 1
+    byName.set(manifest.name, { dir, manifest })
     if (manifest.version !== version) {
       problems.push(`${dir}/package.json is at ${manifest.version}; the release is ${version}`)
     }
+  }
+}
+
+// The npm publish set is every workspace package without `private: true`, and
+// it must be closed: a published package depending on a private one is an
+// `npm install` that succeeds and a resolution that fails, for everyone,
+// forever — see docs/release.md.
+const published = [...byName.values()].filter(({ manifest }) => manifest.private !== true)
+
+for (const { dir, manifest } of published) {
+  for (const field of ['dependencies', 'peerDependencies']) {
+    for (const dep of Object.keys(manifest[field] ?? {})) {
+      const target = byName.get(dep)
+      if (target !== undefined && target.manifest.private === true) {
+        problems.push(`${dir} is published and depends on ${dep}, which is private — publish it or drop the dependency`)
+      }
+    }
+  }
+
+  // What npm needs from a manifest it is going to serve: a licence, a
+  // provenance-matching repository entry, a files whitelist, and public
+  // access for a scoped name.
+  if (manifest.license !== 'LGPL-3.0-or-later') {
+    problems.push(`${dir} is published without the repository licence`)
+  }
+  if (manifest.repository?.directory !== dir) {
+    problems.push(`${dir} is published and its repository.directory says "${manifest.repository?.directory}"`)
+  }
+  if (!Array.isArray(manifest.files) || manifest.files.length === 0) {
+    problems.push(`${dir} is published without a files whitelist`)
+  }
+  if (manifest.publishConfig?.access !== 'public') {
+    problems.push(`${dir} is published without publishConfig.access "public"`)
   }
 }
 
@@ -95,6 +128,7 @@ if (problems.length > 0) {
 }
 
 console.log(
-  `✓ release coherence: ${version} in the root manifest, ${manifests} workspace manifests, ` +
-    `${CONSTANTS.length} source constants, and the compose pin on the ${line} line`,
+  `✓ release coherence: ${version} in the root manifest, ${byName.size} workspace manifests, ` +
+    `${CONSTANTS.length} source constants, and the compose pin on the ${line} line; ` +
+    `${published.length} packages publish to npm and the set is closed`,
 )
