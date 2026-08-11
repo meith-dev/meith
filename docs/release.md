@@ -12,9 +12,9 @@ publishes comes out of that one act:
 
 | Artifact | What it is |
 |---|---|
-| `ghcr.io/meith-dev/meith:X.Y.Z` | The board image — web, worker, migrator and operator CLI in one, `linux/amd64` and `linux/arm64`. This tag never moves again. |
-| `ghcr.io/meith-dev/meith:X.Y` | The **release line**: re-published by every patch of the line. This is the tag the Coolify compose file pins. |
-| `ghcr.io/meith-dev/meith:latest` | The newest release, whatever line it is on. For trying the image, never for deploying it. |
+| `ghcr.io/meith-dev/meith:X.Y.Z` | The board image — web, worker, migrator and operator CLI in one, `linux/amd64` and `linux/arm64`. This tag never moves again, and it is the only tag anything deploys: the Coolify compose file pins it exactly. |
+| `ghcr.io/meith-dev/meith:X.Y` | The release line, floating over its patches. A convenience for trying the image; nothing this repository ships deploys a floating tag. |
+| `ghcr.io/meith-dev/meith:latest` | The newest release, whatever line it is on. Same status: for trying, never for deploying. |
 | The `@meith` packages on npm | The theme and plugin kits, the first-party themes and plugins, and their dependency closure — nine packages at the release version, published with provenance. See [what publishes to npm](#what-publishes-to-npm). |
 | The `release` branch | Fast-forwarded to the tag. The Quickstart points Coolify at this branch, so a board deployed by the guide follows releases and never sees `main` mid-cycle. |
 | A GitHub Release | Drafted by the workflow with generated notes and a header the maintainer must finish — see [the notes](#the-notes-say-which-kind-of-upgrade-this-is). |
@@ -38,7 +38,7 @@ The version is also written down in places npm never reads:
 - `CODE_VERSION` in `apps/community/src/server/upgrade-notice.ts` — what the
   admin panel compares the recorded version against.
 - The dependency version `create-meith` writes into a scaffolded project.
-- The image line the Coolify compose file pins.
+- The exact image tag the Coolify compose file pins.
 
 Nothing fails at runtime if these drift; a board would simply record one
 version while the release notes named another. So the agreement is enforced
@@ -64,11 +64,10 @@ shrug off:
 | **Minor** | Features, new settings, new migrations | Yes — additive by strong preference. |
 | **Major** | Removals, renames, destructive backfills | Yes, including the kind that needs the two-step deploy. |
 
-The patch rule is a promise, not a habit. The Coolify compose file pins the
-release line and re-pulls it on every deploy, so **Redeploy** on a quickstart
-board silently picks up the newest patch — that button is only safe because a
-patch never carries a migration. A fix that needs a migration is a minor
-release, whatever its size.
+The patch rule is a promise, not a habit: it is what makes "take the patch
+now, without ceremony" always the right advice, however many patches a board
+is behind. A fix that needs a migration is a minor release, whatever its
+size.
 
 Two other rules already live in the code and bind releases:
 
@@ -90,8 +89,8 @@ the workflow drafts rather than publishes.
 ## How a release happens
 
 1. **Land the release commit on `main`.** Bump every version together (the
-   manifests, the two constants, `create-meith`), move the compose pin if the
-   line is changing, and let `pnpm verify` — which includes `release:check` —
+   manifests, the two constants, `create-meith`, the compose pin — the pin
+   moves on every release), and let `pnpm verify` — which includes `release:check` —
    prove nothing was missed.
 2. **Wait for CI on that commit.** The release workflow re-runs the boot
    tests, not the whole gate; the gate is `main`'s job.
@@ -125,9 +124,27 @@ the workflow drafts rather than publishes.
 
 | Route | What it tracks | How an upgrade arrives |
 |---|---|---|
-| [Quickstart](./quickstart.md) (Coolify) | The `release` branch; the compose pin on the `X.Y` line | **Redeploy** pulls the newest patch of the line. A new minor arrives when a release moves the pin on the `release` branch — never from a push to `main`. |
+| [Quickstart](./quickstart.md) (Coolify) | The `release` branch; the compose pin on the exact version | Every release moves the pin, so an upgrade is a **Redeploy** after the branch moves — or automatic, with the webhook on. Never from a push to `main`, and never from a restart. |
 | [By hand](./self-hosting.md) (Compose) | A release tag in a clone | `git fetch --tags && git checkout vX.Y.Z`, rebuild. Building from source is the point of this route; the published image is the alternative for small machines. |
 | meith.dev and demo.meith.dev | `main` | The project's own resources, deliberately ahead of any release: the demo shows what is coming, and both redeploy on push. Nobody self-hosting should copy this arrangement. |
+
+### Deploys are deterministic, and that is load-bearing
+
+The compose file names an exact, immutable version, so every path that
+creates a container — the first deploy, a **Redeploy**, a server reboot, a
+crash restart, an environment edit — produces the same board. No deploy path
+resolves "the newest anything": a version change always has a commit on the
+`release` branch behind it, which is what makes "what is this board running,
+and since when" answerable from git history rather than from whatever the
+registry held at the moment somebody pressed a button. It is also what keeps
+a bad release contained — a board that has not deployed the new pin is not
+running it, and holding back is simply not redeploying yet.
+
+An operator who wants a stronger pin than a tag — a digest, immune even to a
+re-pushed tag — or who needs to hold a version while the branch moves on, can
+set `MEITH_IMAGE` on the resource's environment in Coolify; it overrides the
+file's default. The exact tags are never re-pushed, so this is belt and
+braces rather than a need.
 
 ## The first release
 

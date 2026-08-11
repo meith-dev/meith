@@ -124,13 +124,17 @@ corrupts something a week later.
 
 ## On your own server
 
-Under [Coolify](./quickstart.md), the upgrade is the **Redeploy** button. The
-compose file pins the release *line* — `ghcr.io/meith-dev/meith:0.1` — so a
-redeploy pulls the newest patch of that line, and a patch never carries a
-migration; [Releasing](./release.md) is the other half of that promise. A new
-minor or major arrives when a release moves the pin on the `release` branch:
-take the backup, then redeploy — or enable the webhook, and releases (never
-pushes to `main`) deploy themselves.
+Under [Coolify](./quickstart.md), the upgrade is the **Redeploy** button,
+pressed after a release. The compose file pins the **exact version** —
+`ghcr.io/meith-dev/meith:0.1.1` — and every release moves that pin on the
+`release` branch, so a redeploy deploys whatever release the branch holds and
+nothing else ever changes the board: a restart, a crash or a server reboot
+re-creates the version already pinned, never something newer. Enable the
+webhook and releases — never pushes to `main` — deploy themselves; leave it
+off and upgrades wait for the button. Take the backup first either way. The
+one ceremony you may skip is for a patch: a patch never carries a migration
+([Releasing](./release.md) is that promise), which is what makes taking one
+immediately always safe.
 
 Under Compose it is three commands — check out the release, not `main`:
 

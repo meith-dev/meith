@@ -96,10 +96,9 @@ for (const { file, pattern } of CONSTANTS) {
   }
 }
 
-// The Coolify compose file pins the release line — major.minor — once per
-// service, and every pin must agree.
-const [major, minor] = version.split('.')
-const line = `${major}.${minor}`
+// The Coolify compose file pins the exact release version, once per service,
+// and every pin must agree — deploys are deterministic, and only a release
+// commit moves what a board runs.
 const compose = await readFile(join(ROOT, 'docker-compose.coolify.yml'), 'utf8')
 const pins = [...compose.matchAll(/\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:([^}]+)\}/g)]
 
@@ -107,8 +106,8 @@ if (pins.length === 0) {
   problems.push('docker-compose.coolify.yml no longer defaults MEITH_IMAGE to a ghcr.io/meith-dev/meith tag')
 }
 for (const pin of pins) {
-  if (pin[1] !== line) {
-    problems.push(`docker-compose.coolify.yml pins ghcr.io/meith-dev/meith:${pin[1]}; the release line is ${line}`)
+  if (pin[1] !== version) {
+    problems.push(`docker-compose.coolify.yml pins ghcr.io/meith-dev/meith:${pin[1]}; the release is ${version}`)
   }
 }
 
@@ -129,6 +128,6 @@ if (problems.length > 0) {
 
 console.log(
   `✓ release coherence: ${version} in the root manifest, ${byName.size} workspace manifests, ` +
-    `${CONSTANTS.length} source constants, and the compose pin on the ${line} line; ` +
+    `${CONSTANTS.length} source constants, and the compose pin; ` +
     `${published.length} packages publish to npm and the set is closed`,
 )

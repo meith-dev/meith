@@ -170,8 +170,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # X.Y.Z never moves again; X.Y moves on every patch of the line; latest
-      # moves on every release. The compose files pin X.Y — see docs/release.md.
+      # X.Y.Z never moves again and is what the compose file pins; X.Y and
+      # latest are floating conveniences for trying the image, and nothing
+      # this repository ships deploys either — see docs/release.md.
       - name: Merge the architectures under the release tags
         run: |
           VERSION="${GITHUB_REF_NAME#v}"

@@ -477,10 +477,9 @@ jobs:
       # four containers co-operating is not exercised by booting roles one at a
       # time, which is all the `image` job does.
       #
-      # The file pulls a released image in production; here it runs against the
-      # image built from this very commit (MEITH_IMAGE, with the pull that
-      # would fetch the registry's copy turned off), so the compose shape is
-      # proven before any release exists to pull.
+      # The file pulls a pinned released image in production; here it runs
+      # against the image built from this very commit (MEITH_IMAGE), so the
+      # compose shape is proven before any release exists to pull.
       - name: The Coolify stack comes up as documented
         env:
           SERVICE_PASSWORD_POSTGRES: ci-postgres-password
@@ -489,7 +488,6 @@ jobs:
           SERVICE_URL_WEB: http://127.0.0.1:3000
           SERVICE_FQDN_WEB_3000: 127.0.0.1
           MEITH_IMAGE: meith:ci
-          MEITH_PULL_POLICY: never
         run: |
           set -euo pipefail
           docker build -t meith:ci .
