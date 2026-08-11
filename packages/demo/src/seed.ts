@@ -11,15 +11,19 @@ import {
   PostgresThreadToolsRepository,
   PostgresThreadWriteRepository,
   SEED_GROUP_KEY,
+  applyPluginMigration,
   markInstalled,
+  recordVersion,
   resultRows,
   type Database,
 } from '@meith/db'
 import { quoteBlock, renderMarkdown, vocabularyOptions } from '@meith/markdown'
+import type { PluginDefinition } from '@meith/plugin-kit'
 import { threadSlug } from '@meith/threads'
 import { sql } from 'drizzle-orm'
 
 import { DEMO_ACCOUNTS, type DemoAccount, type DemoGroupKey } from './accounts'
+import { DUES_PLUGIN_KEY, seedDuesDemoBoard } from './dues'
 import {
   DEMO_FORUMS,
   DEMO_MESSAGES,
@@ -54,6 +58,11 @@ export interface SeedSummary {
   readonly threads: number
   readonly posts: number
   readonly members: number
+  readonly plugins: readonly string[]
+}
+
+export interface SeedOptions {
+  readonly plugins?: readonly PluginDefinition[] | undefined
 }
 
 interface Placed {
@@ -72,7 +81,11 @@ interface Placed {
  * `insert` would produce a board that looks right and cannot be searched, with
  * member post counts of zero — the three bugs every hand-written seed has.
  */
-export async function seedDemoBoard(db: Database, now: Date = new Date()): Promise<SeedSummary> {
+export async function seedDemoBoard(
+  db: Database,
+  now: Date = new Date(),
+  options: SeedOptions = {},
+): Promise<SeedSummary> {
   const log = logger({ module: 'demo' })
 
   const userIds = await seedAccounts(db, now)
@@ -85,6 +98,8 @@ export async function seedDemoBoard(db: Database, now: Date = new Date()): Promi
   await seedReports(db, placed, userIds, now)
   await seedSettings(db)
 
+  const plugins = await seedPlugins(db, options.plugins ?? [], userIds, now)
+
   await markInstalled(db, DEMO_VERSION)
 
   const summary: SeedSummary = {
@@ -92,6 +107,7 @@ export async function seedDemoBoard(db: Database, now: Date = new Date()): Promi
     forums: forumIds.size,
     threads: placed.length,
     posts: placed.reduce((total, entry) => total + entry.postIds.length, 0),
+    plugins,
   }
 
   log.info(summary, 'demo board seeded')
@@ -453,6 +469,29 @@ async function seedReports(
       at: hoursAfter(now, -report.hoursAgo),
     })
   }
+}
+
+async function seedPlugins(
+  db: Database,
+  definitions: readonly PluginDefinition[],
+  userIds: ReadonlyMap<string, number>,
+  now: Date,
+): Promise<readonly string[]> {
+  const furnished: string[] = []
+
+  for (const definition of definitions) {
+    for (const migration of definition.migrations ?? []) {
+      await applyPluginMigration(db, definition.key, migration.id, migration.statements)
+    }
+    await recordVersion(db, `plugin:${definition.key}`, definition.version)
+
+    if (definition.key === DUES_PLUGIN_KEY) {
+      await seedDuesDemoBoard(db, userIds, now)
+      furnished.push(definition.key)
+    }
+  }
+
+  return furnished
 }
 
 async function seedSettings(db: Database): Promise<void> {
