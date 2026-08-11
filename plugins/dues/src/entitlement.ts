@@ -1,4 +1,4 @@
-import type { PluginGrants, PluginData } from '@meith/plugin-kit'
+import type { PluginGrants, PluginData, PluginNotify } from '@meith/plugin-kit'
 
 import type { DuesConfig } from './config'
 import { moneyMatches } from './money'
@@ -27,8 +27,25 @@ export interface EntitlementDeps {
   readonly config: DuesConfig
   readonly data: PluginData
   readonly grants: PluginGrants
+  readonly notify: PluginNotify
   readonly log: (message: string, detail?: Record<string, unknown>) => void
   readonly now: () => Date
+}
+
+// A notification is a courtesy, never a dependency: money already moved, so a
+// failure to say so must not fail the settlement that records it.
+async function tryNotify(
+  deps: EntitlementDeps,
+  input: Parameters<PluginNotify['send']>[0],
+): Promise<void> {
+  try {
+    await deps.notify.send(input)
+  } catch (error) {
+    deps.log('dues: notification not sent', {
+      kind: input.kind,
+      reason: error instanceof Error ? error.message : String(error),
+    })
+  }
 }
 
 function grantReason(order: OrderRow): string {
@@ -139,6 +156,17 @@ export async function settlePaidOrder(
   })
 
   if (order.codeId !== null) await countCodeRedemption(deps.data, order.codeId)
+
+  if (order.buyerUserId !== order.recipientUserId && outcome === 'granted') {
+    await tryNotify(deps, {
+      userId: order.recipientUserId,
+      kind: 'gift_received',
+      subject: `Somebody bought you ${order.planName}`,
+      body: 'It starts this moment — nothing to claim, nothing to do.',
+      href: '/plugins/dues/manage',
+      dedupeKey: `gift:${order.id}`,
+    })
+  }
 
   return outcome
 }
@@ -256,6 +284,16 @@ export async function applyInternalEvent(
       if (membership === null) return 'no-membership'
       if (membership.status === 'active') {
         await setMembershipStatus(deps.data, membership.id, 'grace')
+        await tryNotify(deps, {
+          userId: membership.userId,
+          kind: 'renewal_trouble',
+          subject: 'A membership payment did not go through',
+          body:
+            'Stripe retries on its own. Your access holds during the grace window, ' +
+            'and updating your card from the manage page usually settles it.',
+          href: '/plugins/dues/manage',
+          dedupeKey: `grace:${membership.id}`,
+        })
       }
       return 'grace'
     }

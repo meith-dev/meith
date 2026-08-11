@@ -196,6 +196,7 @@ let alice: number
 let bob: number
 let membersGroup: number
 let logged: Array<{ message: string; detail: unknown }>
+let notified: Array<Record<string, unknown>>
 
 const NOW = () => new Date()
 
@@ -299,6 +300,7 @@ beforeEach(async () => {
 
   stripe = fakeStripe()
   logged = []
+  notified = []
   context = {
     settings: {
       stripe_secret_key: 'sk_test_suite',
@@ -314,6 +316,11 @@ beforeEach(async () => {
     grants: pluginGrants(h.db, 'dues'),
     data: pluginData(h.db, 'dues'),
     users: pluginUsers(h.db),
+    notify: {
+      send: async (input) => {
+        notified.push(input as unknown as Record<string, unknown>)
+      },
+    },
   }
   eventCounter += 100
 })
@@ -463,6 +470,14 @@ describe('gifts', () => {
 
     const grants = await pluginGrants(h.db, 'dues').list(bob)
     expect(grants[0]?.groupKey).toBe('supporters')
+
+    expect(notified).toEqual([
+      expect.objectContaining({
+        userId: bob,
+        kind: 'gift_received',
+        href: '/plugins/dues/manage',
+      }),
+    ])
   })
 
   it('an unknown recipient bounces before any money moves', async () => {
@@ -487,6 +502,7 @@ describe('gifts', () => {
     await handleWebhook(services(), paidSessionEvent(sessionId))
     expect((await actorGroups(alice)).has(supportersGroup)).toBe(true)
     expect((await recentLedger(context.data))[0]?.note).toBeNull()
+    expect(notified).toHaveLength(0)
   })
 })
 
@@ -558,6 +574,10 @@ describe('subscriptions', () => {
     const live = await liveMembership(context.data, alice, 'supporters')
     expect(live?.status).toBe('grace')
     expect((await actorGroups(alice)).has(supportersGroup)).toBe(true)
+
+    expect(notified).toEqual([
+      expect.objectContaining({ userId: alice, kind: 'renewal_trouble' }),
+    ])
   })
 
   it('cancel keeps the paid period: closing, not gone', async () => {

@@ -113,10 +113,41 @@ export function dues(input: DuesConfigInput): PluginDefinition {
       },
     ],
 
+    notifications: [
+      {
+        key: 'gift_received',
+        title: 'Somebody gifts you a membership',
+        description: 'A member bought a membership in your name. It starts the moment the payment confirms.',
+      },
+      {
+        key: 'renewal_trouble',
+        title: 'A membership payment fails',
+        description: 'A renewal did not go through. Access holds during the grace window while Stripe retries.',
+      },
+    ],
+
     routes: [
-      { path: 'checkout', method: 'POST', access: 'member', handler: route(handleCheckout) },
-      { path: 'portal', method: 'POST', access: 'member', handler: route(handlePortal) },
-      { path: 'cancel', method: 'POST', access: 'member', handler: route(handleCancel) },
+      {
+        path: 'checkout',
+        method: 'POST',
+        access: 'member',
+        rateLimit: { limit: 10, windowSeconds: 60 },
+        handler: route(handleCheckout),
+      },
+      {
+        path: 'portal',
+        method: 'POST',
+        access: 'member',
+        rateLimit: { limit: 10, windowSeconds: 60 },
+        handler: route(handlePortal),
+      },
+      {
+        path: 'cancel',
+        method: 'POST',
+        access: 'member',
+        rateLimit: { limit: 10, windowSeconds: 60 },
+        handler: route(handleCancel),
+      },
       {
         path: 'hook/stripe',
         method: 'POST',

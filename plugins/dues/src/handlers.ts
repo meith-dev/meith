@@ -68,6 +68,7 @@ export function entitlementDeps(services: DuesServices): EntitlementDeps {
     config: services.config,
     data: services.context.data,
     grants: services.context.grants,
+    notify: services.context.notify,
     log: (message, detail) => services.context.logger.warn(message, detail),
     now: services.now,
   }

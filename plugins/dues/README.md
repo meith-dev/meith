@@ -88,14 +88,20 @@ it is how orders, memberships and the ledger refer to the plan forever.
 - **Gifts are one-off purchases only** — passes and lifetime. An
   auto-renewing gift would charge the buyer's card forever for someone
   else's membership; that is a support disaster by design, so it is refused
-  when the plan is made.
+  when the plan is made. The recipient is notified the moment their gift is
+  paid for — the board's own bell and e-mail, honouring their notification
+  preferences.
+- **Checkout is rate-limited** — ten starts a minute per member, enforced by
+  the host before the handler runs — so a stuck retry loop or a hostile
+  script cannot mint orders and Stripe sessions at wire speed.
 - **Nothing is granted from a redirect.** The return page waits; only the
   signature-verified webhook (or the reconcile task reading Stripe's own
   record) turns money into membership. Amounts must match the order exactly —
   a mismatch grants nothing and flags the order for an administrator.
 - **A failed renewal means grace, not the door.** Access holds for
   `graceDays` past the period; Stripe retries on its own schedule; the member
-  sees what happened on their manage page.
+  is told through the board's own notifications — bell and e-mail, per their
+  preferences — and sees what happened on their manage page.
 - **A refund or chargeback revokes immediately** — the only path that takes
   access away early — and lands in the ledger as a negative amount.
 - **Cancelling keeps what was paid for.** Cancel-at-period-end, always.
