@@ -38,6 +38,31 @@ function MessageIcon() {
   )
 }
 
+function IconButton({
+  href,
+  title,
+  children,
+}: {
+  href: string | null
+  title: string
+  children: React.ReactNode
+}) {
+  if (href === null) {
+    return (
+      <span className={`relative ${ICON_BUTTON}`} aria-hidden="true">
+        {children}
+      </span>
+    )
+  }
+
+  return (
+    <a href={href} title={title} className={`relative ${ICON_BUTTON}`}>
+      <span className="sr-only">{title}</span>
+      {children}
+    </a>
+  )
+}
+
 function CountBadge({ value, label }: { value: number; label: string }) {
   return (
     <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-semibold text-destructive-foreground ring-2 ring-card">
@@ -69,6 +94,8 @@ export function UserPanel({
   }
 
   const name = viewer.username ?? 'Signed in'
+  const hrefFor = (label: string): string | null =>
+    links.find((link) => link.label === label)?.href ?? null
 
   return (
     <div className="flex items-center gap-2">
@@ -80,17 +107,17 @@ export function UserPanel({
       />
 
       {unreadNotifications > 0 && (
-        <span className={`relative ${ICON_BUTTON}`}>
+        <IconButton href={hrefFor('Notifications')} title="Notifications">
           <BellIcon />
           <CountBadge value={unreadNotifications} label="unread notifications" />
-        </span>
+        </IconButton>
       )}
 
       {unreadMessages > 0 && (
-        <span className={`relative ${ICON_BUTTON}`}>
+        <IconButton href={hrefFor('Messages')} title="Messages">
           <MessageIcon />
           <CountBadge value={unreadMessages} label="unread messages" />
-        </span>
+        </IconButton>
       )}
 
       <div data-account="menu" className="flex min-w-0 items-center">

@@ -17,10 +17,10 @@ import {
 } from '@/view/panel-nav'
 
 const ITEM =
-  'flex items-baseline gap-2 rounded-md px-3 py-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'flex items-baseline gap-2 rounded-lg px-3 py-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-const HERE = 'bg-muted font-medium text-foreground'
-const ELSEWHERE = 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+const HERE = 'bg-secondary font-semibold text-foreground'
+const ELSEWHERE = 'text-muted-foreground hover:bg-accent hover:text-foreground'
 
 export interface PanelNavProps {
   readonly nav: PanelNav
@@ -34,7 +34,7 @@ function Count({ count }: { count: number }) {
     <>
       <span
         aria-hidden="true"
-        className="ml-auto rounded bg-surface px-1.5 py-0.5 text-xs font-medium tabular-nums text-foreground"
+        className="ml-auto rounded-full bg-surface px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground"
       >
         {count > 99 ? '99+' : count}
       </span>
@@ -75,7 +75,7 @@ function SectionList({
                   isHere(location, section.href) && deepest === section.href
                     ? HERE
                     : active === section.href
-                      ? 'font-medium text-foreground hover:bg-muted/60'
+                      ? 'font-semibold text-foreground hover:bg-accent'
                       : ELSEWHERE,
                 )}
                 {...currentProps(location, section.href, deepest)}
@@ -144,7 +144,7 @@ export function PanelNav(props: PanelNavProps) {
         <SectionList {...props} location={location} />
       </Disclosure>
 
-      <div className="hidden lg:block">
+      <div className="hidden rounded-lg border border-border bg-card p-2 shadow-elevation lg:block">
         <SectionList {...props} location={location} />
       </div>
     </>

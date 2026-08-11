@@ -128,34 +128,38 @@ export default async function DiscoverPage({
             : 'You have reached the end of this list.'}
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+        <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border bg-card shadow-elevation">
           {page.rows.map((row) => (
             <li
               key={row.threadId}
-              className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
+              className="flex flex-col gap-1.5 px-4 py-3.5 transition-colors hover:bg-accent sm:flex-row sm:items-center sm:justify-between sm:gap-6"
             >
-              <div className="flex min-w-0 flex-col gap-0.5">
+              <div className="flex min-w-0 flex-col gap-1">
                 <a
                   href={`/thread/${row.threadId}-${row.slug}`}
-                  className="truncate text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                  className="truncate text-[0.9375rem] font-semibold text-foreground hover:underline"
                 >
                   {row.title}
                 </a>
-                <p className="text-xs text-muted-foreground">
+                <p className="truncate text-xs text-muted-foreground">
                   in{' '}
-                  <a href={`/${row.forumId}-${row.forumSlug}`} className="hover:underline">
+                  <a href={`/${row.forumId}-${row.forumSlug}`} className="font-medium hover:underline">
                     {row.forumTitle}
                   </a>{' '}
                   · started by {row.authorUsername}
                 </p>
               </div>
 
-              <p className="shrink-0 text-xs text-muted-foreground">
-                {row.replyCount} {row.replyCount === 1 ? 'reply' : 'replies'} · last post{' '}
-                <time dateTime={row.lastPostAt.toISOString()}>
-                  {formatTime(row.lastPostAt, now, preferences.timezone).label}
-                </time>
-                {row.lastPostUsername === null ? null : ` by ${row.lastPostUsername}`}
+              <p className="shrink-0 text-xs text-muted-foreground sm:text-right">
+                <span className="font-semibold text-foreground tabular-nums">{row.replyCount}</span>{' '}
+                {row.replyCount === 1 ? 'reply' : 'replies'}
+                <span className="block">
+                  last post{' '}
+                  <time dateTime={row.lastPostAt.toISOString()}>
+                    {formatTime(row.lastPostAt, now, preferences.timezone).label}
+                  </time>
+                  {row.lastPostUsername === null ? null : ` by ${row.lastPostUsername}`}
+                </span>
               </p>
             </li>
           ))}
@@ -163,7 +167,10 @@ export default async function DiscoverPage({
       )}
 
       {nextHref !== null && (
-        <a href={nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+        <a
+          href={nextHref}
+          className="inline-flex h-9 w-fit items-center rounded-full bg-secondary px-4 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-accent"
+        >
           Next {DISCOVER_PAGE} threads →
         </a>
       )}

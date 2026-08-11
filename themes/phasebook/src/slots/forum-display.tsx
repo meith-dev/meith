@@ -17,39 +17,39 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
     <div className={`${PAGE} py-4 sm:py-6`}>
       <div className={`${FEED} flex flex-col gap-4`}>
         <section className="overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-elevation">
-          <div className="h-20 bg-primary/12" />
+          <div className="h-24 bg-primary/12" />
 
-          <div className="flex flex-wrap items-end justify-between gap-3 px-4 pb-4">
-            <div className="-mt-8 flex min-w-0 items-end gap-3">
-              <Circle name={forum.title} size={64} className="ring-4 ring-card" />
+          <div className="px-4 pb-4">
+            <div className="-mt-10 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+              <div className="flex min-w-0 items-end gap-3">
+                <Circle name={forum.title} size={72} className="ring-4 ring-card" />
 
-              <div className="min-w-0 pb-1">
-                <h1 className="text-xl leading-tight font-bold tracking-tight text-balance">
-                  {forum.title}
-                </h1>
-                {forum.type !== 'link' && (
-                  <p className={`text-xs text-muted-foreground ${NUMERIC}`}>
-                    {count(forum.threadCount)} {plural(forum.threadCount, 'thread', 'threads')} ·{' '}
-                    {count(forum.postCount)} {plural(forum.postCount, 'post', 'posts')}
-                  </p>
-                )}
+                <div className="min-w-0">
+                  <h1 className="text-xl leading-tight font-bold tracking-tight text-balance">
+                    {forum.title}
+                  </h1>
+                  {forum.type !== 'link' && (
+                    <p className={`mt-0.5 text-xs text-muted-foreground ${NUMERIC}`}>
+                      {count(forum.threadCount)} {plural(forum.threadCount, 'thread', 'threads')} ·{' '}
+                      {count(forum.postCount)} {plural(forum.postCount, 'post', 'posts')}
+                    </p>
+                  )}
+                </div>
               </div>
+
+              {markReadAction !== null && (
+                <form action={markReadAction} method="post" className="shrink-0">
+                  <button type="submit" className={PILL}>
+                    Mark read
+                  </button>
+                </form>
+              )}
             </div>
 
-            {markReadAction !== null && (
-              <form action={markReadAction} method="post">
-                <button type="submit" className={PILL}>
-                  Mark read
-                </button>
-              </form>
+            {forum.description !== null && (
+              <p className="mt-3 text-sm text-muted-foreground">{forum.description}</p>
             )}
           </div>
-
-          {forum.description !== null && (
-            <p className="border-t border-border px-4 py-3 text-sm text-muted-foreground">
-              {forum.description}
-            </p>
-          )}
         </section>
 
         {newThreadHref !== null && (

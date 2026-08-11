@@ -3,7 +3,7 @@ import type { PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
 
 export const PAGE = 'mx-auto w-full max-w-6xl px-3 sm:px-4'
 
-export const FEED = 'mx-auto w-full max-w-[42rem]'
+export const FEED = 'mx-auto w-full max-w-4xl'
 
 export const PAGE_BODY = `${PAGE} flex w-full flex-col gap-4 py-4 sm:py-6`
 
