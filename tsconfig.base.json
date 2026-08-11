@@ -97,6 +97,8 @@
       "@meith/theme-default/*": ["themes/default/src/*"],
       "@meith/theme-midnight": ["themes/midnight/src/index.ts"],
       "@meith/theme-midnight/*": ["themes/midnight/src/*"],
+      "@meith/theme-phasebook": ["themes/phasebook/src/index.ts"],
+      "@meith/theme-phasebook/*": ["themes/phasebook/src/*"],
       "@meith/example-plugin-hello": ["examples/hello-plugin/src/index.ts"],
       "@meith/example-plugin-hello/*": ["examples/hello-plugin/src/*"],
       "@meith/example-theme-iris": ["examples/iris-theme/src/index.ts"],

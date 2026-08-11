@@ -1,0 +1,19 @@
+{
+  "name": "@meith/theme-phasebook",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@meith/theme-default": "workspace:*",
+    "@meith/theme-kit": "workspace:*",
+    "@meith/ui": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.3"
+  }
+}
