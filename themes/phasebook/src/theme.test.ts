@@ -3,7 +3,7 @@ import {
   LIGHT_TOKENS as DEFAULT_LIGHT,
   defaultTheme,
 } from '@meith/theme-default'
-import { assertThemeContract, resolveTheme, SLOT_NAMES } from '@meith/theme-kit'
+import { assertThemeContract, resolveTheme, SLOT_NAMES, SLOT_STABILITY } from '@meith/theme-kit'
 import { describe, expect, it } from 'vitest'
 
 import { phasebookTheme } from './theme'
@@ -55,14 +55,23 @@ describe('the phasebook theme', () => {
     expect(resolveTheme(phasebookTheme).chain).toEqual(['phasebook', 'default'])
   })
 
-  it('fills the surfaces that carry the look and inherits the rest', () => {
-    const own = Object.keys(phasebookTheme.slots)
-    expect(own).toContain('PostBit')
-    expect(own).not.toContain('ErrorNotice')
+  it('fills every stable slot itself, so no page falls back to another theme’s markup', () => {
+    const own = new Set(Object.keys(phasebookTheme.slots))
+    const stable = SLOT_NAMES.filter((name) => SLOT_STABILITY[name] !== 'provisional')
 
+    expect(stable.filter((name) => !own.has(name))).toEqual([])
+  })
+
+  it('shares no slot implementation with the theme it extends', () => {
     const resolved = resolveTheme(phasebookTheme)
-    expect(resolved.slots.ErrorNotice).toBe(defaultTheme.slots.ErrorNotice)
-    expect(resolved.slots.PostBit).not.toBe(defaultTheme.slots.PostBit)
+
+    const shared = Object.keys(phasebookTheme.slots).filter(
+      (name) =>
+        resolved.slots[name as keyof typeof resolved.slots] ===
+        defaultTheme.slots[name as keyof typeof defaultTheme.slots],
+    )
+
+    expect(shared).toEqual([])
   })
 
   it.each([
