@@ -1,24 +1,24 @@
-import type { Audience } from "../content/site"
+import type { Board } from "../content/site"
 import { group } from "../format"
 
 /*
  * A board in outline. It used to hold its own content and show a single
- * developer's board; it now takes whichever community the picker beside it has
- * selected, so the same twenty lines render five of them.
+ * developer's board; it now takes whichever board it is given, so the same
+ * twenty lines render the general page's and all five segment pages'.
  *
- * The lock is the only thing here doing an argument's work. Every audience
- * carries exactly one private forum, and a reader who sees one understands the
- * permission model without the page having to claim anything about it.
+ * The lock is the only thing here doing an argument's work. Every board
+ * carries exactly one private forum, and a reader who sees one understands
+ * the permission model without the page having to claim anything about it.
  */
-export function BoardPreview({ audience }: { audience: Audience }) {
-  const { board, forums, latest } = audience
+export function BoardPreview({ board }: { board: Board }) {
+  const { name, kind, forums, latest } = board
 
   return (
     <div aria-hidden className="card overflow-hidden shadow-[var(--lift-lg)]">
       <div className="preview-bar">
-        <span className="text-base font-semibold tracking-[-0.015em] text-fg">{board.name}</span>
+        <span className="text-base font-semibold tracking-[-0.015em] text-fg">{name}</span>
         <span className="ml-auto font-mono text-[0.66rem] tracking-[0.1em] text-fg-subtle uppercase">
-          {board.kind}
+          {kind}
         </span>
       </div>
 
