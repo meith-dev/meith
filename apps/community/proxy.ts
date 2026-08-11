@@ -12,6 +12,12 @@ import {
   guestCookieName,
 } from './src/server/cookies'
 import { FRESH_GUEST_HEADER, PATH_HEADER } from './src/server/location-header'
+import {
+  PREFERENCE_COOKIE_MAX_AGE,
+  THEME_COOKIE,
+  THEME_QUERY,
+  themeFromQuery,
+} from './src/view/theme-preference'
 
 export const PROTECTED_PREFIXES = [
   '/usercp',
@@ -67,7 +73,29 @@ function isProtected(pathname: string): boolean {
   )
 }
 
+function themeRedirect(req: NextRequest): NextResponse | null {
+  if (req.method !== 'GET') return null
+
+  const requested = themeFromQuery(req.nextUrl.searchParams.get(THEME_QUERY))
+  if (requested === null) return null
+
+  const url = req.nextUrl.clone()
+  url.searchParams.delete(THEME_QUERY)
+
+  const res = NextResponse.redirect(url)
+  res.cookies.set(THEME_COOKIE, requested, {
+    path: '/',
+    maxAge: PREFERENCE_COOKIE_MAX_AGE,
+    sameSite: 'lax',
+    httpOnly: false,
+  })
+  return res
+}
+
 export function proxy(req: NextRequest): NextResponse {
+  const themed = themeRedirect(req)
+  if (themed !== null) return themed
+
   const { pathname, search } = req.nextUrl
   const hasSession = req.cookies.has(SESSION_COOKIE) || req.cookies.has(DEV_SESSION_COOKIE)
   const hasRemember = req.cookies.has(REMEMBER_COOKIE) || req.cookies.has(DEV_REMEMBER_COOKIE)

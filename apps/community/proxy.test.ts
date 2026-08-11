@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { PROTECTED_PREFIXES, proxy } from './proxy'
 import { GUEST_COOKIE } from './src/server/cookies'
 import { FRESH_GUEST_HEADER, PATH_HEADER } from './src/server/location-header'
+import { THEME_COOKIE } from './src/view/theme-preference'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 
@@ -95,5 +96,64 @@ describe('the guest cookie', () => {
 
   it('still passes the path through, which the rest of presence needs', () => {
     expect(requestHeader(proxy(request()), PATH_HEADER)).toBe('/2-announcements')
+  })
+})
+
+describe('the ?theme= demo link', () => {
+  function get(url: string, method = 'GET'): NextResponse {
+    return proxy(new NextRequest(new Request(url, { method })))
+  }
+
+  it('sets the theme cookie and redirects to the same page without the parameter', () => {
+    const res = get('https://board.example/f/3-general?theme=phasebook')
+
+    expect(res.status).toBe(307)
+    expect(res.headers.get('location')).toBe('https://board.example/f/3-general')
+    expect(res.cookies.get(THEME_COOKIE)?.value).toBe('phasebook')
+  })
+
+  it('keeps every other parameter', () => {
+    const res = get('https://board.example/search?q=teak&theme=midnight&page=2')
+    const location = new URL(res.headers.get('location')!)
+
+    expect(location.searchParams.get('q')).toBe('teak')
+    expect(location.searchParams.get('page')).toBe('2')
+    expect(location.searchParams.has('theme')).toBe(false)
+  })
+
+  it('outlives the redirect, so the rest of the visit stays in that theme', () => {
+    const cookie = get('https://board.example/?theme=phasebook').cookies.get(THEME_COOKIE)
+
+    expect(cookie?.path).toBe('/')
+    expect(cookie?.maxAge).toBeGreaterThan(0)
+    expect(cookie?.httpOnly).toBe(false)
+  })
+
+  it('runs before the sign-in redirect, so a themed link to a panel is not swallowed', () => {
+    const res = get('https://board.example/usercp?theme=phasebook')
+
+    expect(res.headers.get('location')).toBe('https://board.example/usercp')
+    expect(res.cookies.get(THEME_COOKIE)?.value).toBe('phasebook')
+  })
+
+  it('leaves a request with no theme parameter to the rest of the proxy', () => {
+    const res = get('https://board.example/f/3-general')
+
+    expect(res.headers.get('location')).toBeNull()
+    expect(res.cookies.get(THEME_COOKIE)).toBeUndefined()
+  })
+
+  it('ignores a malformed key rather than storing it', () => {
+    const res = get('https://board.example/?theme=../etc/passwd')
+
+    expect(res.headers.get('location')).toBeNull()
+    expect(res.cookies.get(THEME_COOKIE)).toBeUndefined()
+  })
+
+  it('leaves a POST alone, so a form submission is never redirected away', () => {
+    const res = get('https://board.example/f/3-general?theme=phasebook', 'POST')
+
+    expect(res.headers.get('location')).toBeNull()
+    expect(res.cookies.get(THEME_COOKIE)).toBeUndefined()
   })
 })
