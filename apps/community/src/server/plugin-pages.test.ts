@@ -16,6 +16,8 @@ vi.mock('../../community.config', () => ({
 const overrides = { current: new Map<string, string>() }
 vi.mock('./settings', () => ({ getSettingOverrides: async () => overrides.current }))
 
+vi.mock('./notifications', () => ({ notificationService: () => null }))
+
 const logged: unknown[] = []
 vi.mock(import('@meith/core'), async (importOriginal) => ({
   ...(await importOriginal()),
@@ -103,6 +105,7 @@ describe('what crosses the boundary', () => {
       'data',
       'grants',
       'logger',
+      'notify',
       'query',
       'settings',
       'users',
@@ -196,6 +199,7 @@ describe('board pages', () => {
       'data',
       'grants',
       'logger',
+      'notify',
       'path',
       'query',
       'settings',

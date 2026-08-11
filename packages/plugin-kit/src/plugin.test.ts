@@ -243,6 +243,24 @@ describe('definePlugin', () => {
       expect(() => plugin({ routes: [route({ access: 'admin' })] })).not.toThrow()
     })
 
+    it('bounds a route rate limit', () => {
+      expect(() =>
+        plugin({ routes: [route({ rateLimit: { limit: 10, windowSeconds: 60 } })] }),
+      ).not.toThrow()
+      expect(() =>
+        plugin({ routes: [route({ rateLimit: { limit: 0, windowSeconds: 60 } })] }),
+      ).toThrow(/rateLimit.limit/)
+      expect(() =>
+        plugin({ routes: [route({ rateLimit: { limit: 1.5, windowSeconds: 60 } })] }),
+      ).toThrow(/rateLimit.limit/)
+      expect(() =>
+        plugin({ routes: [route({ rateLimit: { limit: 10, windowSeconds: 0 } })] }),
+      ).toThrow(/windowSeconds/)
+      expect(() =>
+        plugin({ routes: [route({ rateLimit: { limit: 10, windowSeconds: 4_000 } })] }),
+      ).toThrow(/windowSeconds/)
+    })
+
     it('bounds the body cap', () => {
       expect(() => plugin({ routes: [route({ maxBodyBytes: 0 })] })).toThrow(/maxBodyBytes/)
       expect(() => plugin({ routes: [route({ maxBodyBytes: 10_000_000 })] })).toThrow(
@@ -295,6 +313,25 @@ describe('definePlugin', () => {
 
     it('refuses a duplicate id', () => {
       expect(() => plugin({ tasks: [task('sweep'), task('sweep')] })).toThrow(/declared twice/)
+    })
+  })
+
+  describe('notification kinds', () => {
+    const kind = (overrides: Record<string, unknown> = {}) => ({
+      key: 'gift_received',
+      title: 'A gift arrives',
+      description: 'Somebody bought you in.',
+      ...overrides,
+    })
+
+    it('accepts a sound kind', () => {
+      expect(() => plugin({ notifications: [kind()] })).not.toThrow()
+    })
+
+    it('refuses a bad key, an untitled kind, and a duplicate', () => {
+      expect(() => plugin({ notifications: [kind({ key: 'Bad-Key' })] })).toThrow(/kind/)
+      expect(() => plugin({ notifications: [kind({ title: ' ' })] })).toThrow(/title/)
+      expect(() => plugin({ notifications: [kind(), kind()] })).toThrow(/declared twice/)
     })
   })
 

@@ -1,12 +1,20 @@
 import { logger, readPluginEnv } from '@meith/core'
 import {
+  PostgresNotificationRepository,
   PostgresSettingsRepository,
   pluginData,
   pluginGrants,
   pluginUsers,
   type Database,
 } from '@meith/db'
-import { pluginTaskId, resolvePluginSettings, type PluginDefinition } from '@meith/plugin-kit'
+import { NotificationService } from '@meith/notifications'
+import {
+  pluginNotificationKindSpecs,
+  pluginNotify,
+  pluginTaskId,
+  resolvePluginSettings,
+  type PluginDefinition,
+} from '@meith/plugin-kit'
 import type { TaskDefinition } from '@meith/tasks'
 
 const MAX_DURATION_SECONDS = 60
@@ -18,6 +26,13 @@ export function pluginTasks(options: {
   readonly plugins: readonly PluginDefinition[]
 }): TaskDefinition[] {
   const definitions: TaskDefinition[] = []
+
+  const notifications = new NotificationService({
+    notifications: new PostgresNotificationRepository(options.db),
+    extraKinds: options.plugins.flatMap((plugin) =>
+      pluginNotificationKindSpecs(plugin.key, plugin.notifications ?? []),
+    ),
+  })
 
   for (const plugin of options.plugins) {
     for (const task of plugin.tasks ?? []) {
@@ -45,6 +60,7 @@ export function pluginTasks(options: {
               statementTimeoutMs: TASK_STATEMENT_TIMEOUT_MS,
             }),
             users: pluginUsers(options.db),
+            notify: pluginNotify(plugin.key, plugin.notifications ?? [], notifications),
           })
 
           return {}

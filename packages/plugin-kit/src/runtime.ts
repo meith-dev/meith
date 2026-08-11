@@ -71,3 +71,118 @@ export function unavailablePluginUsers(reason: string): PluginUsers {
   }
   return { byUsername: refuse, byId: refuse }
 }
+
+export interface PluginNotify {
+  send(input: {
+    readonly userId: number
+    readonly kind: string
+    readonly subject: string
+    readonly body?: string | undefined
+    readonly href?: string | undefined
+    readonly dedupeKey?: string | undefined
+  }): Promise<void>
+}
+
+export function unavailablePluginNotify(reason: string): PluginNotify {
+  const refuse = async (): Promise<never> => {
+    throw new Error(`Plugin notifications are unavailable: ${reason}`)
+  }
+  return { send: refuse }
+}
+
+const MAX_NOTIFY_SUBJECT = 200
+const MAX_NOTIFY_BODY = 2_000
+
+export interface PluginNotifyKindInput {
+  readonly key: string
+  readonly title: string
+  readonly description: string
+  readonly emailByDefault?: boolean | undefined
+}
+
+/** The shape a board's notification registry accepts — matched structurally. */
+export interface PluginNotificationKindSpec {
+  readonly id: string
+  readonly title: string
+  readonly description: string
+  readonly audience: 'member'
+  readonly emailByDefault: boolean
+  readonly emailConfigurable: true
+}
+
+export interface PluginNotifyBackend {
+  raise(input: {
+    readonly userId: number
+    readonly kind: string
+    readonly data: Readonly<Record<string, string>>
+    readonly href?: string | null
+    readonly dedupeKey?: string | null
+  }): Promise<unknown>
+}
+
+export function pluginNotificationKindSpecs(
+  pluginKey: string,
+  kinds: readonly PluginNotifyKindInput[],
+): readonly PluginNotificationKindSpec[] {
+  return kinds.map((kind) => ({
+    id: `plugin.${pluginKey}.${kind.key}`,
+    title: kind.title,
+    description: kind.description,
+    audience: 'member',
+    emailByDefault: kind.emailByDefault ?? true,
+    emailConfigurable: true,
+  }))
+}
+
+export function pluginNotify(
+  pluginKey: string,
+  kinds: readonly PluginNotifyKindInput[],
+  backend: PluginNotifyBackend,
+): PluginNotify {
+  const declared = new Set(kinds.map((kind) => kind.key))
+
+  return {
+    async send(input) {
+      if (!declared.has(input.kind)) {
+        throw new Error(
+          `plugin "${pluginKey}": notification kind "${input.kind}" is not declared. ` +
+            'A kind must be in the plugin definition — that is what puts it on the ' +
+            'member’s preferences screen.',
+        )
+      }
+      if (!Number.isSafeInteger(input.userId) || input.userId <= 0) {
+        throw new Error(`plugin "${pluginKey}": a notification needs a real user id.`)
+      }
+
+      const subject = input.subject.trim()
+      if (subject === '' || subject.length > MAX_NOTIFY_SUBJECT) {
+        throw new Error(
+          `plugin "${pluginKey}": a notification subject is 1 to ${MAX_NOTIFY_SUBJECT} characters.`,
+        )
+      }
+
+      const body = (input.body ?? '').trim()
+      if (body.length > MAX_NOTIFY_BODY) {
+        throw new Error(
+          `plugin "${pluginKey}": a notification body caps at ${MAX_NOTIFY_BODY} characters — ` +
+            'link to a page for anything longer.',
+        )
+      }
+
+      if (input.href !== undefined && (!input.href.startsWith('/') || input.href.startsWith('//'))) {
+        throw new Error(
+          `plugin "${pluginKey}": a notification links within the board — the href must ` +
+            'start with a single "/".',
+        )
+      }
+
+      await backend.raise({
+        userId: input.userId,
+        kind: `plugin.${pluginKey}.${input.kind}`,
+        data: body === '' ? { subject } : { subject, body },
+        href: input.href ?? null,
+        dedupeKey: input.dedupeKey ?? null,
+      })
+    },
+  }
+}

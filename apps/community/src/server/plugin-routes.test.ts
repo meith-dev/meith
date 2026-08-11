@@ -21,6 +21,16 @@ vi.mock('./context', () => ({ getActor: async () => actor.current }))
 
 vi.mock('./board-url', () => ({ boardUrl: async () => 'https://board.example' }))
 
+const raised: Array<Record<string, unknown>> = []
+vi.mock('./notifications', () => ({
+  notificationService: () => ({
+    raise: async (input: Record<string, unknown>) => {
+      raised.push(input)
+      return { notificationId: 1, coalesced: false, emailQueued: false }
+    },
+  }),
+}))
+
 const admin = { isAdmin: false }
 const adminLog: Array<{ action: string; detail?: Record<string, unknown> }> = []
 vi.mock('./admin', () => ({
@@ -40,7 +50,31 @@ const alpha = definePlugin({
   name: 'Alpha',
   version: '1.0.0',
   allowedRedirectHosts: ['pay.example', '127.0.0.1'],
+  notifications: [
+    { key: 'ding', title: 'Ding', description: 'A test bell.', emailByDefault: false },
+  ],
   routes: [
+    {
+      path: 'limited',
+      method: 'GET',
+      access: 'anonymous',
+      rateLimit: { limit: 2, windowSeconds: 60 },
+      handler: () => ({ kind: 'json', body: { ok: true } }),
+    },
+    {
+      path: 'notify-me',
+      method: 'POST',
+      access: 'member',
+      handler: async (request, context) => {
+        await context.notify.send({
+          userId: request.viewer.userId ?? 0,
+          kind: 'ding',
+          subject: 'Ding',
+          href: '/plugins/alpha',
+        })
+        return { kind: 'json', body: { sent: true } }
+      },
+    },
     {
       path: 'ping',
       method: 'GET',
@@ -151,6 +185,7 @@ beforeEach(() => {
   admin.isAdmin = false
   adminLog.length = 0
   handled.length = 0
+  raised.length = 0
 })
 
 describe('resolution', () => {
@@ -324,6 +359,44 @@ describe('access', () => {
     expect(crossSite.status).toBe(403)
     expect(handled).toHaveLength(0)
     expect(adminLog).toHaveLength(0)
+  })
+})
+
+describe('the host doorstep', () => {
+  it('a rate-limited route spends its window, 429s with retry-after, and counts callers apart', async () => {
+    const call = (headers: Record<string, string> = {}) =>
+      dispatchPluginRoute(request('/api/plugins/alpha/limited', { headers }), 'alpha', ['limited'])
+
+    expect((await call()).status).toBe(200)
+    expect((await call()).status).toBe(200)
+
+    const refused = await call()
+    expect(refused.status).toBe(429)
+    expect(Number(refused.headers.get('retry-after'))).toBeGreaterThanOrEqual(1)
+    const body = (await refused.json()) as { error: { code: string } }
+    expect(body.error.code).toBe('rate_limited')
+
+    const other = await call({ 'x-forwarded-for': '203.0.113.9' })
+    expect(other.status).toBe(200)
+  })
+
+  it('a route notifies through the board’s registry, namespaced to the plugin', async () => {
+    actor.current = { userId: 7 }
+    const response = await dispatchPluginRoute(
+      request('/api/plugins/alpha/notify-me', { method: 'POST' }),
+      'alpha',
+      ['notify-me'],
+    )
+    expect(response.status).toBe(200)
+    expect(raised).toEqual([
+      {
+        userId: 7,
+        kind: 'plugin.alpha.ding',
+        data: { subject: 'Ding' },
+        href: '/plugins/alpha',
+        dedupeKey: null,
+      },
+    ])
   })
 })
 

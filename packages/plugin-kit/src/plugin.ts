@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { isHookName, type HOOKS, type HookName } from './hooks'
 import type { HookContext, HookValue } from './payloads'
 import { isPluginRegion, type PluginRegion, type PluginRegionContext } from './regions'
-import type { PluginData, PluginGrants, PluginUsers } from './runtime'
+import type { PluginData, PluginGrants, PluginNotify, PluginUsers } from './runtime'
 
 export type FilterHandler<K extends HookName> = (
   value: HookValue<K>,
@@ -95,12 +95,18 @@ export type PluginResponse =
 export type PluginRouteAccess = 'anonymous' | 'member' | 'admin'
 export type PluginPageAccess = 'anonymous' | 'member'
 
+export interface PluginRouteRateLimit {
+  readonly limit: number
+  readonly windowSeconds: number
+}
+
 export interface PluginRoute {
   readonly path: string
   readonly method: 'GET' | 'POST'
   readonly access: PluginRouteAccess
   readonly rawBody?: boolean | undefined
   readonly maxBodyBytes?: number | undefined
+  readonly rateLimit?: PluginRouteRateLimit | undefined
   readonly handler: (
     request: PluginRequest,
     context: PluginRuntimeContext,
@@ -135,6 +141,14 @@ export interface PluginRuntimeContext {
   readonly grants: PluginGrants
   readonly data: PluginData
   readonly users: PluginUsers
+  readonly notify: PluginNotify
+}
+
+export interface PluginNotificationKind {
+  readonly key: string
+  readonly title: string
+  readonly description: string
+  readonly emailByDefault?: boolean | undefined
 }
 
 export interface PluginDefinition {
@@ -154,6 +168,7 @@ export interface PluginDefinition {
   readonly contributions?: readonly PluginContribution[] | undefined
   readonly routes?: readonly PluginRoute[] | undefined
   readonly pages?: readonly PluginBoardPage[] | undefined
+  readonly notifications?: readonly PluginNotificationKind[] | undefined
   readonly allowedRedirectHosts?: readonly string[] | undefined
 
   readonly onInstall?: ((context: PluginRuntimeContext) => Promise<void> | void) | undefined
@@ -438,6 +453,21 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
         )
       }
     }
+    if (route.rateLimit !== undefined) {
+      const { limit, windowSeconds } = route.rateLimit
+      if (!Number.isInteger(limit) || limit < 1 || limit > 10_000) {
+        throw new Error(
+          `${where}: route "${route.path}" rateLimit.limit must be a whole number ` +
+            'between 1 and 10000.',
+        )
+      }
+      if (!Number.isInteger(windowSeconds) || windowSeconds < 1 || windowSeconds > 3_600) {
+        throw new Error(
+          `${where}: route "${route.path}" rateLimit.windowSeconds must be a whole ` +
+            'number of seconds, up to an hour.',
+        )
+      }
+    }
   }
 
   assertUnique(where, 'page', (plugin.pages ?? []).map((page) => page.path))
@@ -456,6 +486,27 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
     }
     if (typeof page.render !== 'function') {
       throw new Error(`${where}: page "${page.path}" needs a render function.`)
+    }
+  }
+
+  assertUnique(
+    where,
+    'notification kind',
+    (plugin.notifications ?? []).map((kind) => kind.key),
+  )
+  for (const kind of plugin.notifications ?? []) {
+    if (!SETTING_KEY_PATTERN.test(kind.key)) {
+      throw new Error(
+        `${where}: notification kind "${kind.key}" must be lower-case letters, digits ` +
+          'and underscores. It becomes plugin.<plugin>.<kind> in the registry, and a ' +
+          'line on every member’s notification preferences screen.',
+      )
+    }
+    if (kind.title.trim() === '' || kind.description.trim() === '') {
+      throw new Error(
+        `${where}: notification kind "${kind.key}" needs a title and a description — ` +
+          'they are what the member reads when deciding whether to get emails for it.',
+      )
     }
   }
 
@@ -481,6 +532,10 @@ function assertUnique(where: string, kind: string, values: readonly string[]): v
 
 export function pluginSettingKey(pluginKey: string, settingKey: string): string {
   return `plugin.${pluginKey}.${settingKey}`
+}
+
+export function pluginNotificationKindId(pluginKey: string, kindKey: string): string {
+  return `plugin.${pluginKey}.${kindKey}`
 }
 
 export function pluginTaskId(pluginKey: string, taskId: string): string {

@@ -4,6 +4,7 @@ import { logger, readPluginEnv } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 import {
   DEFAULT_ROUTE_BODY_BYTES,
+  createRouteRateLimiter,
   resolvePluginSettings,
   type PluginDefinition,
   type PluginRequest,
@@ -15,7 +16,7 @@ import { recordAdminAction, requireAdmin } from './admin'
 import { boardUrl } from './board-url'
 import { getActor } from './context'
 import { activeDefinitions, pluginHost, syncOperatorDisables } from './plugin-host'
-import { dataFor, grantsFor, usersFor } from './plugin-pages'
+import { dataFor, grantsFor, notifyFor, usersFor } from './plugin-pages'
 import { getSettingOverrides } from './settings'
 import { viewerRef } from './plugin-view'
 
@@ -165,6 +166,18 @@ function toResponse(
   }
 }
 
+const routeLimiter = createRouteRateLimiter()
+
+function callerKey(request: Request, userId: number | null): string {
+  if (userId !== null) return `u:${userId}`
+  const forwarded = request.headers.get('x-forwarded-for')
+  const address =
+    forwarded !== null && forwarded.trim() !== ''
+      ? (forwarded.split(',')[0] ?? '').trim()
+      : (request.headers.get('x-real-ip') ?? 'unknown')
+  return `a:${address}`
+}
+
 export type PluginRouteSurface = 'board' | 'admin'
 
 export async function dispatchPluginRoute(
@@ -222,6 +235,34 @@ export async function dispatchPluginRoute(
     return fail(403, 'cross_origin', 'This form was posted from somewhere that is not the board.')
   }
 
+  if (route.rateLimit !== undefined) {
+    const verdict = routeLimiter.consume(
+      `${pluginKey}:${path}:${callerKey(request, actor.userId)}`,
+      route.rateLimit.limit,
+      route.rateLimit.windowSeconds,
+      Date.now(),
+    )
+    if (!verdict.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            code: 'rate_limited',
+            message: 'Too many calls to this endpoint. Give it a moment.',
+            requestId: currentRequestId() ?? null,
+          },
+        }),
+        {
+          status: 429,
+          headers: {
+            'content-type': 'application/json; charset=utf-8',
+            'cache-control': 'no-store',
+            'retry-after': String(verdict.retryAfterSeconds),
+          },
+        },
+      )
+    }
+  }
+
   const body = await readBody(request, route)
   if (body === 'too-large') {
     return fail(413, 'body_too_large', 'The request body is over this endpoint’s limit.')
@@ -257,6 +298,7 @@ export async function dispatchPluginRoute(
       grants: grantsFor(pluginKey),
       data: dataFor(pluginKey),
       users: usersFor(),
+      notify: notifyFor(pluginKey),
     }),
   )
 

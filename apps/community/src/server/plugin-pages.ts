@@ -3,18 +3,22 @@ import 'server-only'
 import { env, logger, readPluginEnv } from '@meith/core'
 import { getDb, pluginData, pluginGrants, pluginUsers } from '@meith/db'
 import {
+  pluginNotify,
   resolvePluginSettings,
   unavailablePluginData,
   unavailablePluginGrants,
+  unavailablePluginNotify,
   unavailablePluginUsers,
   type PluginData,
   type PluginDefinition,
   type PluginGrants,
+  type PluginNotify,
   type PluginUsers,
 } from '@meith/plugin-kit'
 import type { ReactNode } from 'react'
 
 import forumConfig from '../../community.config'
+import { notificationService } from './notifications'
 import { getSettingOverrides } from './settings'
 
 const REQUEST_STATEMENT_TIMEOUT_MS = 3_000
@@ -35,6 +39,17 @@ export function usersFor(): PluginUsers {
   return env.DATA_SOURCE === 'postgres'
     ? pluginUsers(getDb())
     : unavailablePluginUsers('this board is running on in-memory sample data')
+}
+
+export function notifyFor(pluginKey: string): PluginNotify {
+  const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === pluginKey)
+  const definition = entry?.plugin as PluginDefinition | undefined
+  const service = notificationService()
+
+  if (definition === undefined || service === null) {
+    return unavailablePluginNotify('this board is running on in-memory sample data')
+  }
+  return pluginNotify(pluginKey, definition.notifications ?? [], service)
 }
 
 export interface RenderedPluginPage {
@@ -96,6 +111,7 @@ export async function renderPluginBoardPage(
         grants: grantsFor(pluginKey),
         data: dataFor(pluginKey),
         users: usersFor(),
+        notify: notifyFor(pluginKey),
         viewer: request.viewer,
         path,
         query: request.query,
@@ -140,6 +156,7 @@ export async function renderPluginAdminPage(
         grants: grantsFor(pluginKey),
         data: dataFor(pluginKey),
         users: usersFor(),
+        notify: notifyFor(pluginKey),
         query,
       }),
     }

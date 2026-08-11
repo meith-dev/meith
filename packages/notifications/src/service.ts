@@ -1,10 +1,9 @@
 import { ValidationError } from '@meith/core'
 
 import {
-  configurableKindsFor,
-  notificationKind,
+  NOTIFICATION_KINDS,
   type NotificationAudience,
-  type NotificationKind,
+  type RegisteredNotificationKind,
 } from './kinds'
 import { renderNotification, type NotificationView } from './render'
 import type {
@@ -28,20 +27,46 @@ export interface NotificationPreferenceView {
 export class NotificationService {
   private readonly repository: NotificationRepository
   private readonly now: () => Date
+  private readonly kinds: ReadonlyMap<string, RegisteredNotificationKind>
 
-  constructor(deps: { notifications: NotificationRepository; now?: () => Date }) {
+  constructor(deps: {
+    notifications: NotificationRepository
+    now?: () => Date
+    /**
+     * Kinds registered at runtime — a plugin's, namespaced `plugin.…`. Any
+     * entry whose id does not carry that prefix is refused: the built-in list
+     * is compiled in and not the constructor's to change.
+     */
+    extraKinds?: readonly RegisteredNotificationKind[]
+  }) {
     this.repository = deps.notifications
     this.now = deps.now ?? (() => new Date())
+
+    const kinds = new Map<string, RegisteredNotificationKind>(
+      NOTIFICATION_KINDS.map((kind) => [kind.id, kind as RegisteredNotificationKind]),
+    )
+    for (const extra of deps.extraKinds ?? []) {
+      if (!extra.id.startsWith('plugin.')) {
+        throw new ValidationError(
+          `Registered notification kind "${extra.id}" must be namespaced plugin.…`,
+        )
+      }
+      if (kinds.has(extra.id)) {
+        throw new ValidationError(`Notification kind "${extra.id}" is declared twice.`)
+      }
+      kinds.set(extra.id, extra)
+    }
+    this.kinds = kinds
   }
 
   async raise(input: {
     readonly userId: number
-    readonly kind: NotificationKind
+    readonly kind: string
     readonly data: NotificationData
     readonly href?: string | null
     readonly dedupeKey?: string | null
   }): Promise<RaiseResult> {
-    const spec = notificationKind(input.kind)
+    const spec = this.kinds.get(input.kind)
     if (spec === undefined) throw new ValidationError(`Unknown notification kind: ${input.kind}`)
 
     const email = await this.wantsEmail(input.userId, input.kind)
@@ -58,7 +83,7 @@ export class NotificationService {
   }
 
   async raiseForAdministrators(input: {
-    readonly kind: NotificationKind
+    readonly kind: string
     readonly data: NotificationData
     readonly href?: string | null
     readonly dedupeKey?: string | null
@@ -104,13 +129,19 @@ export class NotificationService {
     return this.repository.markAllRead(userId)
   }
 
+  configurableKinds(audience: NotificationAudience): readonly RegisteredNotificationKind[] {
+    return [...this.kinds.values()].filter(
+      (kind) => kind.audience === audience && kind.emailConfigurable,
+    )
+  }
+
   async preferences(
     userId: number,
     audience: NotificationAudience,
   ): Promise<readonly NotificationPreferenceView[]> {
     const stored = await this.repository.emailPreferencesFor(userId)
 
-    return configurableKindsFor(audience).map((spec) => {
+    return this.configurableKinds(audience).map((spec) => {
       const override = stored.get(spec.id)
       return {
         kind: spec.id,
@@ -130,7 +161,7 @@ export class NotificationService {
     const checked = new Set(enabled)
     const entries = new Map<string, boolean>()
 
-    for (const spec of configurableKindsFor(audience)) {
+    for (const spec of this.configurableKinds(audience)) {
       entries.set(spec.id, checked.has(spec.id))
     }
 
@@ -138,7 +169,7 @@ export class NotificationService {
   }
 
   private async wantsEmail(userId: number, kind: string): Promise<boolean> {
-    const spec = notificationKind(kind)
+    const spec = this.kinds.get(kind)
     if (spec === undefined) return false
 
     const stored = await this.repository.emailPreferencesFor(userId)

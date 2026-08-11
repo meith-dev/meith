@@ -52,6 +52,7 @@ Installing it is `pnpm add`, a line in `community.plugins.ts`, and a redeploy.
 | `adminPages` | Pages mounted under `/admin/plugins/<key>/`. |
 | `routes` | HTTP endpoints mounted under `/api/plugins/<key>/`, dispatched by the host. |
 | `pages` | Member-facing pages mounted under `/plugins/<key>/`, rendered inside the board's shell. |
+| `notifications` | Notification kinds this plugin may send, each a line on the member's preferences screen. |
 | `allowedRedirectHosts` | The only hosts an absolute redirect from this plugin's routes may point at. |
 | `contributions` | Markup in named UI regions. |
 | `onInstall` / `onEnable` / `onDisable` / `onUninstall` | Lifecycle callbacks — declared and typed, not yet dispatched by the host. See the inventory below. |
@@ -340,9 +341,15 @@ bytes, which is what webhook signature verification needs.
   timed, logged against the plugin, and auto-disabling after repeated
   failures — visible on the plugin's health screen.
 
-Two honest limits: route paths are exact matches (put ids in the query
-string, not the path), and there is no per-route rate limit yet — a route
-that does expensive work should do its own bookkeeping until there is.
+- **A route can declare its own rate limit** — `rateLimit: { limit, windowSeconds }`
+  — and the host enforces it before the handler runs: a spent window answers
+  429 with a `retry-after` header. The count is per caller (signed-in user id,
+  else the client address) and per instance, in process memory — abuse
+  pressure relief, not accounting. A board that scales out multiplies the
+  budget by its instance count; declare limits with that honesty in mind.
+
+One honest limit: route paths are exact matches — put ids in the query
+string, not the path.
 
 > [!NOTE]
 > **A form POST cannot 303 off the board.** The board's CSP pins
@@ -379,6 +386,54 @@ Build your markup in the render function rather than returning a component
 that does work — the host's try/catch is around the call, and a component
 that throws later, inside React's own render, cannot be contained from the
 server.
+
+## Notifications
+
+`context.notify` — on every runtime context — sends a member a notification
+through the board's own system: the bell, and an e-mail if the member wants
+one. A plugin first declares its kinds as data:
+
+```ts
+notifications: [
+  { key: 'gift_received', title: 'Somebody gifts you a membership',
+    description: 'A member bought a membership in your name.' },
+  { key: 'renewal_trouble', title: 'A membership payment fails',
+    description: 'Your renewal did not go through; access holds while Stripe retries.',
+    emailByDefault: false },
+],
+```
+
+and then sends against a declared kind:
+
+```ts
+await context.notify.send({
+  userId: recipient,
+  kind: 'gift_received',
+  subject: 'alice bought you a 90-day pass',
+  body: 'It starts the moment the payment confirmed.',
+  href: '/plugins/dues/manage',
+  dedupeKey: `order:${order.id}`,
+})
+```
+
+**The host owns the decisions a plugin must not:**
+
+- **Every kind is namespaced** — `plugin.<plugin>.<kind>` — and lands as its
+  own line on the member's notification preferences screen, where the member
+  decides whether it e-mails them. `emailByDefault` sets the starting
+  position; the member's choice wins from then on.
+- **An undeclared kind refuses at send.** Declaring kinds is what makes them
+  legible to members; a plugin cannot invent one on the fly.
+- **The words travel as data.** The subject (up to 200 characters) and body
+  (up to 2,000) are rendered by the board on the bell and in the e-mail — the
+  same template, the same unsubscribe machinery as every core notification.
+- **`href` stays on the board.** A notification links to a board path, never
+  off-site — the plugin's own pages are the place for anything external.
+- **`dedupeKey` coalesces repeats** exactly as core kinds do: raising the
+  same key again bumps a counter instead of stacking rows.
+- Sending is member-to-member scale, not broadcast: there is deliberately no
+  fan-out primitive. A plugin that wants to tell everyone something has the
+  announcement system's front door like anybody else.
 
 ## Settings
 

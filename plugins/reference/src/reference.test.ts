@@ -28,6 +28,7 @@ describe('every kind of extension point', () => {
     ['tasks', () => (referencePlugin.tasks ?? []).length],
     ['admin pages', () => (referencePlugin.adminPages ?? []).length],
     ['contributions', () => (referencePlugin.contributions ?? []).length],
+    ['notification kinds', () => (referencePlugin.notifications ?? []).length],
   ])('declares at least one %s', (_kind, count) => {
     expect(count()).toBeGreaterThan(0)
   })
@@ -148,6 +149,7 @@ describe('routes and pages', () => {
     expect(routes.some((route) => route.access === 'member')).toBe(true)
     expect(routes.some((route) => route.access === 'anonymous')).toBe(true)
     expect(routes.some((route) => route.access === 'admin')).toBe(true)
+    expect(routes.some((route) => route.rateLimit !== undefined)).toBe(true)
     expect((referencePlugin.pages ?? []).length).toBeGreaterThan(0)
   })
 

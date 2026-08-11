@@ -29,6 +29,7 @@ export {
   definePlugin,
   pluginAdminPath,
   pluginAdminRoutePath,
+  pluginNotificationKindId,
   pluginPagePath,
   pluginRoutePath,
   pluginSettingKey,
@@ -45,12 +46,14 @@ export {
   type PluginDefinition,
   type PluginHooks,
   type PluginMigration,
+  type PluginNotificationKind,
   type PluginPageAccess,
   type PluginPageContext,
   type PluginRequest,
   type PluginResponse,
   type PluginRoute,
   type PluginRouteAccess,
+  type PluginRouteRateLimit,
   type PluginRuntimeContext,
   type PluginSetting,
   type PluginSettingType,
@@ -91,12 +94,25 @@ export {
 } from './host'
 
 export {
+  pluginNotificationKindSpecs,
+  pluginNotify,
   unavailablePluginData,
   unavailablePluginGrants,
+  unavailablePluginNotify,
   unavailablePluginUsers,
   type PluginData,
   type PluginGrantRow,
   type PluginGrants,
+  type PluginNotificationKindSpec,
+  type PluginNotify,
+  type PluginNotifyBackend,
+  type PluginNotifyKindInput,
   type PluginUserRef,
   type PluginUsers,
 } from './runtime'
+
+export {
+  createRouteRateLimiter,
+  type RateLimitVerdict,
+  type RouteRateLimiter,
+} from './rate-limit'
