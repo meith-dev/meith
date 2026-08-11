@@ -22,7 +22,7 @@ export function ViewTabs({
 
   return (
     <nav aria-label={label} className={cn('flex items-center gap-x-3', className)}>
-      <ul className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-0.5">
+      <ul className="-my-1.5 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1.5">
         {tabs.map((tab) => (
           <li key={tab.href} className="shrink-0">
             <a
