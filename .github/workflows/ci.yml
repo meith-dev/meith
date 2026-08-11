@@ -43,6 +43,11 @@ jobs:
       # silently resolving different versions than a developer has locally.
       - run: pnpm install --frozen-lockfile
 
+      # The workspace releases in lockstep — see docs/release.md. This fails on
+      # a manifest, constant or compose pin that names any other version.
+      - name: One version everywhere
+        run: pnpm release:check
+
       - name: Textual invariants
         run: pnpm guards
 
@@ -471,6 +476,11 @@ jobs:
       # of that promise CI can stand in for — but it is the part that breaks:
       # four containers co-operating is not exercised by booting roles one at a
       # time, which is all the `image` job does.
+      #
+      # The file pulls a released image in production; here it runs against the
+      # image built from this very commit (MEITH_IMAGE, with the pull that
+      # would fetch the registry's copy turned off), so the compose shape is
+      # proven before any release exists to pull.
       - name: The Coolify stack comes up as documented
         env:
           SERVICE_PASSWORD_POSTGRES: ci-postgres-password
@@ -478,9 +488,12 @@ jobs:
           SERVICE_BASE64_64_TICK: ci-tick-secret-ci-tick-secret-32b
           SERVICE_URL_WEB: http://127.0.0.1:3000
           SERVICE_FQDN_WEB_3000: 127.0.0.1
+          MEITH_IMAGE: meith:ci
+          MEITH_PULL_POLICY: never
         run: |
           set -euo pipefail
-          docker compose -f docker-compose.coolify.yml up -d --build \
+          docker build -t meith:ci .
+          docker compose -f docker-compose.coolify.yml up -d \
             --wait --wait-timeout 600 web worker
 
           # Read exit codes through `docker inspect` rather than

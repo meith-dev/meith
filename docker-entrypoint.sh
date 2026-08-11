@@ -17,6 +17,10 @@ if [ "$#" -gt 0 ]; then
   exec "$@"
 fi
 
+# Which build this container is, to stderr, before the role starts. Not
+# printed for an explicit command above — CLI output is sometimes piped.
+echo "meith ${MEITH_VERSION:-unknown} (${MEITH_COMMIT:-unknown}), role: ${COMMUNITY_ROLE:-web}" >&2
+
 case "${COMMUNITY_ROLE:-web}" in
   worker)
     exec node apps/worker/worker.cjs

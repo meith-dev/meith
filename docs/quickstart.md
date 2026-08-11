@@ -1,7 +1,8 @@
 # Quickstart
 
-From nothing to a board people can reach, on a domain, over HTTPS. About half an
-hour, most of it waiting for a build.
+From nothing to a board people can reach, on a domain, over HTTPS. About twenty
+minutes, and nothing is built on your server — the deploy pulls the released
+image.
 
 This is the guided route: [Coolify](https://coolify.io) on your own server. It
 is the shortest path to a real board, and a real board is the only kind worth
@@ -62,8 +63,14 @@ In the panel: **New Resource → Docker Compose → Public Repository**.
 | Field | Value |
 |---|---|
 | Repository | `https://github.com/meith-dev/meith` |
-| Branch | `main` |
+| Branch | `release` |
 | Compose file | `/docker-compose.coolify.yml` |
+
+`release`, not `main`. The `release` branch moves when a version is released
+and at no other time, so what you deploy is a release that has been built,
+booted in every role and published — never whatever `main` held that afternoon.
+The compose file pulls that release's image from the registry; your server
+builds nothing.
 
 > [!IMPORTANT]
 > The compose file path is the one field worth checking twice. Coolify defaults
@@ -77,8 +84,8 @@ In the panel: **New Resource → Docker Compose → Public Repository**.
 Coolify offers a generated domain and accepts your own. Put yours in — the one
 whose `A` record you pointed at this server — and press deploy.
 
-The first build takes five to ten minutes. Watch the log. Four containers come
-up, in order:
+The first deploy pulls the image and takes a minute or two. Watch the log. Four
+containers come up, in order:
 
 | Container | What it does |
 |---|---|

@@ -98,13 +98,13 @@ every migration must remain correct against every schema that ever existed — a
 promise nobody can test, and therefore one that should not be made. Two majors is
 what the migration set is exercised against, so two majors is what is claimed.
 
-A board further behind is not stuck. Upgrade in stages — check out each major
-in turn, deploy it, and run the upgrade before moving on:
+A board further behind is not stuck. Upgrade in stages — check out the last
+release of each major in turn, deploy it, and run the upgrade before moving on:
 
 ```sh
-git checkout v2 && docker compose up -d --build && community upgrade
-git checkout v3 && docker compose up -d --build && community upgrade
-git checkout main && docker compose up -d --build && community upgrade
+git checkout v2.9.1 && docker compose up -d --build && community upgrade
+git checkout v3.6.0 && docker compose up -d --build && community upgrade
+git checkout v4.2.0 && docker compose up -d --build && community upgrade
 ```
 
 Each stage is an ordinary upgrade with an ordinary backup in front of it.
@@ -124,14 +124,19 @@ corrupts something a week later.
 
 ## On your own server
 
-Under [Coolify](./quickstart.md), the upgrade is the **Redeploy**
-button — or nothing at all, if you have enabled the webhook and a push to `main`
-deploys itself.
+Under [Coolify](./quickstart.md), the upgrade is the **Redeploy** button. The
+compose file pins the release *line* — `ghcr.io/meith-dev/meith:0.1` — so a
+redeploy pulls the newest patch of that line, and a patch never carries a
+migration; [Releasing](./release.md) is the other half of that promise. A new
+minor or major arrives when a release moves the pin on the `release` branch:
+take the backup, then redeploy — or enable the webhook, and releases (never
+pushes to `main`) deploy themselves.
 
-Under Compose it is two commands:
+Under Compose it is three commands — check out the release, not `main`:
 
 ```sh
-git pull
+git fetch --tags
+git checkout v0.1.1        # the release you are moving to
 docker compose up -d --build
 ```
 

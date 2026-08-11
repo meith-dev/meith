@@ -75,6 +75,20 @@ RUN pnpm --filter @meith/cli build
 FROM node:22-alpine AS runtime
 WORKDIR /app
 
+# Stamped by the release workflow (see docs/release.md); a local build leaves
+# both at defaults, so 0.0.0-dev in a log means "built from a checkout".
+ARG MEITH_VERSION=0.0.0-dev
+ARG MEITH_COMMIT=unknown
+ENV MEITH_VERSION=$MEITH_VERSION
+ENV MEITH_COMMIT=$MEITH_COMMIT
+LABEL org.opencontainers.image.title="Meith" \
+      org.opencontainers.image.description="Community software for people who want to build something together." \
+      org.opencontainers.image.url="https://meith.dev" \
+      org.opencontainers.image.source="https://github.com/meith-dev/meith" \
+      org.opencontainers.image.version=$MEITH_VERSION \
+      org.opencontainers.image.revision=$MEITH_COMMIT \
+      org.opencontainers.image.licenses="LGPL-3.0-or-later"
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000

@@ -1,7 +1,7 @@
 # A board on your own machine, deployed by Coolify.
 #
-# The same four services as `docker-compose.yml`, with three differences that
-# are all Coolify's doing:
+# The same four services as `docker-compose.yml`, with four differences. Three
+# are Coolify's doing:
 #
 #  - **No published ports.** Coolify's proxy routes to the container and issues
 #    the certificate. A `ports:` mapping here would put the board on the host's
@@ -14,6 +14,12 @@
 #  - **The board is told its own URL.** `SERVICE_FQDN_WEB_3000` asks Coolify for
 #    a domain pointed at port 3000, and `SERVICE_URL_WEB` is that domain with a
 #    scheme, which is what `APP_URL` wants.
+#
+# And one is the release pipeline's: the image is pulled from the registry, not
+# built here. The pin is the release line, and pull_policy re-resolves it on
+# every deploy — docs/release.md explains the tags and what a Redeploy picks
+# up. MEITH_IMAGE and MEITH_PULL_POLICY are for CI, which runs this file
+# against the image it just built; an operator never sets either.
 #
 # Requires Coolify v4.0.0-beta.411 or newer — magic variables in a compose file
 # from a Git source arrived in that release. See docs/quickstart.md.
@@ -46,9 +52,8 @@ services:
   # applied before the first request rather than racing it — and an upgrade that
   # fails to migrate never serves the new code at all.
   migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${MEITH_IMAGE:-ghcr.io/meith-dev/meith:0.1}
+    pull_policy: ${MEITH_PULL_POLICY:-always}
     environment:
       COMMUNITY_ROLE: migrate
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
@@ -73,9 +78,8 @@ services:
   # worker whether its process is alive. A single web-shaped check declared per
   # service is how every worker container ended up permanently unhealthy.
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${MEITH_IMAGE:-ghcr.io/meith-dev/meith:0.1}
+    pull_policy: ${MEITH_PULL_POLICY:-always}
     restart: unless-stopped
     environment:
       # Ask Coolify for a domain on port 3000, then hand the board the same
@@ -121,9 +125,8 @@ services:
   # here — queued mail leaves, bans expire, digests send — so a board without
   # this service is one where nothing fails and nothing happens.
   worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${MEITH_IMAGE:-ghcr.io/meith-dev/meith:0.1}
+    pull_policy: ${MEITH_PULL_POLICY:-always}
     restart: unless-stopped
     environment:
       - COMMUNITY_ROLE=worker
