@@ -118,15 +118,15 @@ test('a member gifts a pass to another member by name', async ({ page, request }
     has: page.getByRole('heading', { name: '90-day pass' }),
   })
 
-  await passCard.getByRole('textbox').fill('nobody_of_that_name')
+  await passCard.getByLabel(/another member/).fill('nobody_of_that_name')
   await passCard.getByRole('button', { name: 'Buy this pass' }).click()
   await expect(page.getByText('No member goes by that name')).toBeVisible()
 
   const retryCard = page.locator('section', {
     has: page.getByRole('heading', { name: '90-day pass' }),
   })
-  await expect(retryCard.getByRole('textbox')).toHaveValue('nobody_of_that_name')
-  await retryCard.getByRole('textbox').fill(recipient)
+  await expect(retryCard.getByLabel(/another member/)).toHaveValue('nobody_of_that_name')
+  await retryCard.getByLabel(/another member/).fill(recipient)
   await retryCard.getByRole('button', { name: 'Buy this pass' }).click()
 
   const sessionId = await payOnFakeStripe(page)
@@ -175,4 +175,50 @@ test('the admin panel shows the machinery: status, events, memberships, ledger',
   await page.goto('/admin/plugins/dues')
   await expect(page.getByText('DUES_STRIPE_SECRET_KEY')).toBeVisible()
   await expect(page.getByText('this box is inert').first()).toBeVisible()
+})
+
+test('an admin mints a code, a member redeems it at half price, the desk revokes', async ({
+  page,
+  request,
+}) => {
+  await enterAdminPanel(page)
+
+  await page.goto('/admin/plugins/dues/codes')
+  await expect(page.getByRole('heading', { name: 'Mint a code' })).toBeVisible()
+  await page.getByLabel(/Percent off/).fill('50')
+  await page.getByRole('button', { name: 'Mint the code' }).click()
+  await expect(page.getByText('The code is live:')).toBeVisible()
+  const code = (await page.getByRole('status').locator('code').first().textContent())!.trim()
+  expect(code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/)
+
+  const buyerPage = await page.context().browser()!.newPage()
+  const buyer = await signUp(buyerPage, 'redeemer')
+  await buyerPage.goto('/plugins/dues')
+  const passCard = buyerPage.locator('section', {
+    has: buyerPage.getByRole('heading', { name: '90-day pass' }),
+  })
+  await passCard.getByLabel(/Discount code/).fill(code)
+  await passCard.getByRole('button', { name: 'Buy this pass' }).click()
+
+  await expect(buyerPage).toHaveURL(/127\.0\.0\.1:12111\/checkout\//)
+  await expect(buyerPage.getByText('600 gbp')).toBeVisible()
+  const sessionId = buyerPage.url().split('/checkout/')[1] as string
+  await buyerPage.locator('#pay').click()
+  await sendPaidWebhook(request, { id: sessionId, amount: 600 })
+
+  await buyerPage.goto('/plugins/dues')
+  await expect(buyerPage.getByRole('heading', { name: 'What you hold' })).toBeVisible()
+
+  await page.goto('/admin/plugins/dues/codes')
+  const codeRow = page.getByRole('row').filter({ hasText: code })
+  await expect(codeRow.getByRole('cell', { name: '1', exact: true })).toBeVisible()
+
+  await page.goto('/admin/plugins/dues/members')
+  const memberRow = page.getByRole('row').filter({ hasText: buyer })
+  await memberRow.getByRole('button', { name: 'Revoke now' }).click()
+  await expect(page.getByText('Membership revoked')).toBeVisible()
+
+  await buyerPage.goto('/plugins/dues')
+  await expect(buyerPage.getByRole('heading', { name: 'What you hold' })).toHaveCount(0)
+  await buyerPage.close()
 })

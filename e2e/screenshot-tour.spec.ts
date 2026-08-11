@@ -94,7 +94,7 @@ test('the whole journey, photographed', async ({ page, request }) => {
   const giftCard = page.locator('section', {
     has: page.getByRole('heading', { name: '90-day pass' }),
   })
-  await giftCard.getByRole('textbox').fill(recipient)
+  await giftCard.getByLabel(/another member/).fill(recipient)
   await snap(page, 'gift-form-filled')
   await giftCard.getByRole('button', { name: 'Buy this pass' }).click()
   await expect(page).toHaveURL(/127\.0\.0\.1:12111\/checkout\//)

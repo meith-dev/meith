@@ -4,6 +4,7 @@ import type { DuesConfig, DuesPlan } from './config'
 import { moneyMatches } from './money'
 import { addBillingInterval, addDays, addPeriod } from './period'
 import {
+  countCodeRedemption,
   extendMembership,
   flagMembership,
   insertLedger,
@@ -109,6 +110,13 @@ export async function settlePaidOrder(
     outcome = 'paid-but-grant-refused'
   }
 
+  const notes = [
+    ...(order.buyerUserId === order.recipientUserId
+      ? []
+      : [`gift for user ${order.recipientUserId}`]),
+    ...(order.discountMinor > 0 ? [`code took ${order.discountMinor} off`] : []),
+  ]
+
   await insertLedger(deps.data, {
     kind: 'charge',
     userId: order.buyerUserId,
@@ -117,10 +125,7 @@ export async function settlePaidOrder(
     amountMinor: order.amountMinor,
     currency: order.currency,
     stripeRef: info.paymentIntentId ?? info.subscriptionId,
-    note:
-      order.buyerUserId === order.recipientUserId
-        ? null
-        : `gift for user ${order.recipientUserId}`,
+    note: notes.length === 0 ? null : notes.join('; '),
   })
 
   await settleOrder(deps.data, order.id, {
@@ -128,6 +133,8 @@ export async function settlePaidOrder(
     stripeSubscriptionId: info.subscriptionId,
     stripePaymentIntentId: info.paymentIntentId,
   })
+
+  if (order.codeId !== null) await countCodeRedemption(deps.data, order.codeId)
 
   return outcome
 }

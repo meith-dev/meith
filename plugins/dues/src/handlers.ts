@@ -4,11 +4,13 @@ import type {
   PluginRuntimeContext,
 } from '@meith/plugin-kit'
 
+import { codeProblem, discountedPrice, normalizeCode } from './codes'
 import type { DuesConfig } from './config'
 import { planByKey } from './config'
-import { applyInternalEvent, type EntitlementDeps } from './entitlement'
+import { applyInternalEvent, settlePaidOrder, type EntitlementDeps } from './entitlement'
 import {
   attachCheckoutSession,
+  codeByCode,
   findStripeCustomer,
   insertOrder,
   liveMembership,
@@ -16,8 +18,10 @@ import {
   recordEvent,
   markEventFailed,
   markEventProcessed,
+  saveCodeCoupon,
   saveStripeCustomer,
   setMembershipStatus,
+  type CodeRow,
 } from './store'
 import { createStripeClient, StripeError, type StripeClient } from './stripe/client'
 import { parseEventEnvelope, toInternalEvent } from './stripe/events'
@@ -127,6 +131,19 @@ export async function handleCheckout(
   }
 
   const now = services.now()
+
+  const codeInput = normalizeCode(request.form?.code ?? '')
+  let code: CodeRow | null = null
+  if (codeInput !== '') {
+    const bounce = { plan: plan.key, code: codeInput, recipient: recipientInput }
+    code = await codeByCode(services.context.data, codeInput)
+    if (code === null) return back({ error: 'unknown-code', ...bounce })
+    const problem = codeProblem(code, plan.key, now)
+    if (problem !== null) return back({ error: `code-${problem}`, ...bounce })
+  }
+
+  const charge = code === null ? plan.price : discountedPrice(plan.price, code.percentOff)
+
   const minuteBucket = Math.floor(now.getTime() / 60_000)
   const newOrder = (idempotencyKey: string) =>
     insertOrder(services.context.data, {
@@ -135,14 +152,16 @@ export async function handleCheckout(
       planKey: plan.key,
       planName: plan.name,
       groupKey: plan.group,
-      amountMinor: plan.price,
+      amountMinor: charge,
       currency: services.config.currency,
       billingMode: plan.billing.mode,
       periodSpec: plan.billing.mode === 'fixed' ? plan.billing.period : null,
       idempotencyKey,
+      codeId: code?.id ?? null,
+      discountMinor: plan.price - charge,
     })
 
-  const baseKey = `co:${buyerId}:${plan.key}:${recipientId}:${minuteBucket}`
+  const baseKey = `co:${buyerId}:${plan.key}:${recipientId}:${code?.id ?? 0}:${minuteBucket}`
   let { order, created } = await newOrder(baseKey)
 
   if (!created && order.status !== 'created' && order.status !== 'pending') {
@@ -159,6 +178,18 @@ export async function handleCheckout(
     return back({ error: 'try-again', plan: plan.key })
   }
 
+  // A pass a code makes free never reaches Stripe: there is nothing to charge,
+  // so the order settles here and the recipient belongs at once.
+  if (charge === 0 && plan.billing.mode === 'fixed') {
+    await settlePaidOrder(entitlementDeps(services), order, {
+      amountTotal: 0,
+      currency: services.config.currency,
+      subscriptionId: null,
+      paymentIntentId: null,
+    })
+    return { kind: 'redirect', to: `/plugins/dues/return?order=${order.id}` }
+  }
+
   try {
     let customerId = await findStripeCustomer(services.context.data, buyerId)
     if (customerId === null) {
@@ -173,6 +204,23 @@ export async function handleCheckout(
     const productName =
       recipientName === null ? plan.name : `${plan.name} — a gift for ${recipientName}`
 
+    // A code on a subscription rides a real Stripe coupon (made once, on first
+    // use) so the discounted first invoice and the full renewals both come from
+    // Stripe's own arithmetic. A pass just charges the discounted amount.
+    let couponId: string | null = null
+    if (code !== null && plan.billing.mode === 'auto') {
+      couponId = code.stripeCouponId
+      if (couponId === null) {
+        const coupon = await services.stripe.createCoupon({
+          percentOff: code.percentOff,
+          name: `Dues code ${code.code}`,
+          reference: String(code.id),
+        })
+        await saveCodeCoupon(services.context.data, code.id, coupon.id)
+        couponId = coupon.id
+      }
+    }
+
     const session = await services.stripe.createCheckoutSession({
       mode: plan.billing.mode === 'auto' ? 'subscription' : 'payment',
       customer: customerId,
@@ -184,7 +232,7 @@ export async function handleCheckout(
               quantity: 1,
               price_data: {
                 currency: services.config.currency,
-                unit_amount: plan.price,
+                unit_amount: charge,
                 product_data: { name: productName },
               },
             },
@@ -193,6 +241,7 @@ export async function handleCheckout(
       ...(plan.billing.mode === 'auto'
         ? { subscription_data: { metadata: { dues_order_id: String(order.id) } } }
         : {}),
+      ...(couponId === null ? {} : { discounts: [{ coupon: couponId }] }),
       success_url: `${origin}/plugins/dues/return?order=${order.id}`,
       cancel_url: `${origin}/plugins/dues?cancelled=1`,
     })

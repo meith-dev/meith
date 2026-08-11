@@ -58,6 +58,11 @@ const NOTICES: Record<string, string> = {
   'stripe-error':
     'Stripe could not be reached, so nothing was charged. Try again shortly.',
   'sign-in': 'Sign in first, so the membership has an account to attach to.',
+  'unknown-code': 'That discount code does not exist. Check the spelling.',
+  'code-disabled': 'That discount code has been switched off.',
+  'code-expired': 'That discount code has expired.',
+  'code-exhausted': 'That discount code has been used as many times as it allows.',
+  'code-wrong-plan': 'That discount code is for a different plan.',
 }
 
 function Notice({ query }: { query: Readonly<Record<string, string>> }) {
@@ -139,11 +144,13 @@ function PlanCard({
   plan,
   viewerSignedIn,
   defaultRecipient,
+  defaultCode,
 }: {
   config: DuesConfig
   plan: DuesPlan
   viewerSignedIn: boolean
   defaultRecipient: string
+  defaultCode: string
 }) {
   return (
     <section className={CARD} aria-label={plan.name}>
@@ -181,6 +188,17 @@ function PlanCard({
               />
             </label>
           )}
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-xs text-muted-foreground">
+              Discount code, if you have one.
+            </span>
+            <input
+              name="code"
+              defaultValue={defaultCode}
+              autoComplete="off"
+              className={INPUT}
+            />
+          </label>
           <div>
             <button type="submit" className={BUY_BUTTON}>
               {plan.billing.mode === 'auto' ? 'Subscribe' : 'Buy this pass'}
@@ -212,8 +230,7 @@ export async function PlansPage({
   const viewerId = context.viewer.userId
   const signedIn = viewerId !== null
   const memberships = viewerId === null ? [] : await membershipsFor(context.data, viewerId)
-  const failedRecipient =
-    context.query.error === 'unknown-recipient' ? (context.query.recipient ?? '') : ''
+  const bounced = context.query.plan ?? ''
 
   return (
     <div className="flex flex-col gap-6">
@@ -226,7 +243,8 @@ export async function PlansPage({
             config={config}
             plan={plan}
             viewerSignedIn={signedIn}
-            defaultRecipient={context.query.plan === plan.key ? failedRecipient : ''}
+            defaultRecipient={bounced === plan.key ? (context.query.recipient ?? '') : ''}
+            defaultCode={bounced === plan.key ? (context.query.code ?? '') : ''}
           />
         ))}
       </div>

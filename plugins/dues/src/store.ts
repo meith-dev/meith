@@ -17,6 +17,8 @@ export interface OrderRow {
   readonly periodSpec: string | null
   readonly status: OrderStatus
   readonly needsAttention: string | null
+  readonly codeId: number | null
+  readonly discountMinor: number
   readonly stripeSessionId: string | null
   readonly stripeSubscriptionId: string | null
   readonly stripePaymentIntentId: string | null
@@ -88,6 +90,8 @@ function orderRow(row: Record<string, unknown>): OrderRow {
     periodSpec: asNullableString(row.period_spec),
     status: String(row.status) as OrderStatus,
     needsAttention: asNullableString(row.needs_attention),
+    codeId: row.code_id === null || row.code_id === undefined ? null : Number(row.code_id),
+    discountMinor: Number(row.discount_minor ?? 0),
     stripeSessionId: asNullableString(row.stripe_session_id),
     stripeSubscriptionId: asNullableString(row.stripe_subscription_id),
     stripePaymentIntentId: asNullableString(row.stripe_payment_intent_id),
@@ -173,6 +177,8 @@ export interface NewOrder {
   readonly billingMode: RenewalMode
   readonly periodSpec: string | null
   readonly idempotencyKey: string
+  readonly codeId?: number | null
+  readonly discountMinor?: number
 }
 
 export async function insertOrder(
@@ -182,8 +188,9 @@ export async function insertOrder(
   const inserted = await data.one(
     `insert into plugin_dues_order
        (buyer_user_id, recipient_user_id, plan_key, plan_name, group_key,
-        amount_minor, currency, billing_mode, period_spec, idempotency_key)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        amount_minor, currency, billing_mode, period_spec, idempotency_key,
+        code_id, discount_minor)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      on conflict (idempotency_key) do nothing
      returning *`,
     [
@@ -197,6 +204,8 @@ export async function insertOrder(
       order.billingMode,
       order.periodSpec,
       order.idempotencyKey,
+      order.codeId ?? null,
+      order.discountMinor ?? 0,
     ],
   )
   if (inserted !== null) return { order: orderRow(inserted), created: true }
@@ -630,4 +639,140 @@ export async function attentionCount(data: PluginData): Promise<number> {
        as total`,
   )
   return row === null ? 0 : Number(row.total)
+}
+
+export async function ordersNeedingAttention(
+  data: PluginData,
+  limit = 50,
+): Promise<readonly OrderRow[]> {
+  const rows = await data.query(
+    `select * from plugin_dues_order
+      where needs_attention is not null
+      order by created_at desc
+      limit $1`,
+    [limit],
+  )
+  return rows.map(orderRow)
+}
+
+export async function clearMembershipAttention(data: PluginData, id: number): Promise<void> {
+  await data.query(
+    `update plugin_dues_membership set needs_attention = null, updated_at = now() where id = $1`,
+    [id],
+  )
+}
+
+export async function clearOrderAttention(data: PluginData, id: number): Promise<void> {
+  await data.query(`update plugin_dues_order set needs_attention = null where id = $1`, [id])
+}
+
+export interface CodeRow {
+  readonly id: number
+  readonly code: string
+  readonly percentOff: number
+  readonly planKey: string | null
+  readonly maxRedemptions: number | null
+  readonly redeemedCount: number
+  readonly expiresAt: Date | null
+  readonly disabled: boolean
+  readonly createdByUserId: number
+  readonly stripeCouponId: string | null
+  readonly createdAt: Date
+}
+
+function codeRow(row: Record<string, unknown>): CodeRow {
+  return {
+    id: Number(row.id),
+    code: String(row.code),
+    percentOff: Number(row.percent_off),
+    planKey: asNullableString(row.plan_key),
+    maxRedemptions:
+      row.max_redemptions === null || row.max_redemptions === undefined
+        ? null
+        : Number(row.max_redemptions),
+    redeemedCount: Number(row.redeemed_count),
+    expiresAt: asNullableDate(row.expires_at),
+    disabled: row.disabled === true,
+    createdByUserId: Number(row.created_by_user_id),
+    stripeCouponId: asNullableString(row.stripe_coupon_id),
+    createdAt: asDate(row.created_at),
+  }
+}
+
+export interface NewCode {
+  readonly code: string
+  readonly percentOff: number
+  readonly planKey: string | null
+  readonly maxRedemptions: number | null
+  readonly expiresAt: Date | null
+  readonly createdByUserId: number
+}
+
+export async function insertCode(
+  data: PluginData,
+  code: NewCode,
+): Promise<CodeRow | null> {
+  const row = await data.one(
+    `insert into plugin_dues_code
+       (code, percent_off, plan_key, max_redemptions, expires_at, created_by_user_id)
+     values ($1, $2, $3, $4, $5, $6)
+     on conflict ((lower(code))) do nothing
+     returning *`,
+    [
+      code.code,
+      code.percentOff,
+      code.planKey,
+      code.maxRedemptions,
+      code.expiresAt,
+      code.createdByUserId,
+    ],
+  )
+  return row === null ? null : codeRow(row)
+}
+
+export async function codeByCode(data: PluginData, code: string): Promise<CodeRow | null> {
+  const row = await data.one(
+    'select * from plugin_dues_code where lower(code) = lower($1)',
+    [code],
+  )
+  return row === null ? null : codeRow(row)
+}
+
+export async function codeById(data: PluginData, id: number): Promise<CodeRow | null> {
+  const row = await data.one('select * from plugin_dues_code where id = $1', [id])
+  return row === null ? null : codeRow(row)
+}
+
+export async function listCodes(data: PluginData, limit = 100): Promise<readonly CodeRow[]> {
+  const rows = await data.query(
+    `select * from plugin_dues_code order by created_at desc limit $1`,
+    [limit],
+  )
+  return rows.map(codeRow)
+}
+
+export async function setCodeDisabled(
+  data: PluginData,
+  id: number,
+  disabled: boolean,
+): Promise<void> {
+  await data.query(`update plugin_dues_code set disabled = $2 where id = $1`, [id, disabled])
+}
+
+export async function saveCodeCoupon(
+  data: PluginData,
+  id: number,
+  stripeCouponId: string,
+): Promise<void> {
+  await data.query(
+    `update plugin_dues_code set stripe_coupon_id = $2 where id = $1 and stripe_coupon_id is null`,
+    [id, stripeCouponId],
+  )
+}
+
+export async function countCodeRedemption(data: PluginData, id: number): Promise<void> {
+  await data.query(
+    `update plugin_dues_code set redeemed_count = redeemed_count + 1 where id = $1`,
+    [id],
+  )
 }

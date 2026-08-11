@@ -10,9 +10,17 @@ import {
   handleWebhook,
   type DuesServices,
 } from './handlers'
+import {
+  handleAdminCancel,
+  handleAdminClear,
+  handleAdminCodeCreate,
+  handleAdminCodeDisable,
+  handleAdminExtend,
+  handleAdminRevoke,
+} from './handlers-admin'
 import { DUES_MIGRATIONS } from './schema'
 import { runReconcile, runSweep } from './tasks'
-import { LedgerPage, MembersPage, StatusPage } from './ui/admin'
+import { CodesPage, LedgerPage, MembersPage, StatusPage } from './ui/admin'
 import { GoPage, ManagePage, PlansPage, ReturnPage } from './ui/pages'
 
 export function dues(input: DuesConfigInput): PluginDefinition {
@@ -114,6 +122,42 @@ export function dues(input: DuesConfigInput): PluginDefinition {
         maxBodyBytes: 262_144,
         handler: route(handleWebhook),
       },
+      {
+        path: 'codes/create',
+        method: 'POST',
+        access: 'admin',
+        handler: route(handleAdminCodeCreate),
+      },
+      {
+        path: 'codes/disable',
+        method: 'POST',
+        access: 'admin',
+        handler: route(handleAdminCodeDisable),
+      },
+      {
+        path: 'members/extend',
+        method: 'POST',
+        access: 'admin',
+        handler: route(handleAdminExtend),
+      },
+      {
+        path: 'members/cancel',
+        method: 'POST',
+        access: 'admin',
+        handler: route(handleAdminCancel),
+      },
+      {
+        path: 'members/revoke',
+        method: 'POST',
+        access: 'admin',
+        handler: route(handleAdminRevoke),
+      },
+      {
+        path: 'attention/clear',
+        method: 'POST',
+        access: 'admin',
+        handler: route(handleAdminClear),
+      },
     ],
 
     pages: [
@@ -162,6 +206,11 @@ export function dues(input: DuesConfigInput): PluginDefinition {
         path: 'members',
         title: 'Dues — memberships',
         render: (context) => MembersPage({ context }),
+      },
+      {
+        path: 'codes',
+        title: 'Dues — discount codes',
+        render: (context) => CodesPage({ config, context }),
       },
       {
         path: 'ledger',

@@ -22,13 +22,24 @@ import {
   handleCheckout,
   handleWebhook,
 } from '../plugins/dues/src/handlers'
+import {
+  handleAdminCancel,
+  handleAdminClear,
+  handleAdminCodeCreate,
+  handleAdminCodeDisable,
+  handleAdminExtend,
+  handleAdminRevoke,
+} from '../plugins/dues/src/handlers-admin'
 import { runReconcile, runSweep } from '../plugins/dues/src/tasks'
 import {
   allMemberships,
+  codeByCode,
+  insertCode,
   liveMembership,
   membershipsFor,
   orderById,
   orderBySessionId,
+  ordersNeedingAttention,
   recentLedger,
   recordEvent,
   unprocessedEvents,
@@ -75,6 +86,8 @@ interface FakeStripe extends StripeClient {
   readonly sessions: Map<string, CheckoutSessionState>
   readonly subscriptions: Map<string, SubscriptionState>
   readonly cancelCalls: string[]
+  readonly coupons: Array<{ percentOff: number; name: string; reference: string }>
+  readonly checkoutInputs: Array<Record<string, unknown>>
   nextSessionUrl: string
 }
 
@@ -83,11 +96,15 @@ function fakeStripe(): FakeStripe {
   const sessions = new Map<string, CheckoutSessionState>()
   const subscriptions = new Map<string, SubscriptionState>()
   const cancelCalls: string[] = []
+  const coupons: Array<{ percentOff: number; name: string; reference: string }> = []
+  const checkoutInputs: Array<Record<string, unknown>> = []
 
   return {
     sessions,
     subscriptions,
     cancelCalls,
+    coupons,
+    checkoutInputs,
     nextSessionUrl: 'https://checkout.stripe.com/pay/test',
 
     async createCustomer() {
@@ -95,7 +112,13 @@ function fakeStripe(): FakeStripe {
       return { id: `cus_${counter}` }
     },
 
+    async createCoupon(input) {
+      coupons.push({ ...input })
+      return { id: `coupon_${input.reference}` }
+    },
+
     async createCheckoutSession(input) {
+      checkoutInputs.push(input)
       counter += 1
       const session: CheckoutSessionState = {
         id: `cs_${counter}`,
@@ -230,7 +253,7 @@ beforeEach(async () => {
   await exec(`
     delete from plugin_dues_ledger; delete from plugin_dues_event;
     delete from plugin_dues_membership; delete from plugin_dues_order;
-    delete from plugin_dues_customer;
+    delete from plugin_dues_customer; delete from plugin_dues_code;
     delete from user_group_memberships; delete from users; delete from usergroups;
     delete from cache_versions;
   `)
@@ -639,5 +662,268 @@ describe('the safety net', () => {
     expect(response).toMatchObject({ kind: 'json', status: 400 })
     expect(await unprocessedEvents(context.data, 10)).toHaveLength(0)
     expect(await membershipsFor(context.data, alice)).toHaveLength(0)
+  })
+})
+
+function adminRequest(userId: number, path: string, form: Record<string, string>) {
+  return request(userId, form, { path })
+}
+
+describe('discount codes', () => {
+  async function mint(form: Record<string, string>): Promise<string> {
+    const response = await handleAdminCodeCreate(
+      services(),
+      adminRequest(alice, 'codes/create', form),
+    )
+    return (response as { to: string }).to
+  }
+
+  it('an admin mints a code and a member buys the pass at half price', async () => {
+    expect(await mint({ code: 'HALF', percent: '50' })).toContain('created=HALF')
+
+    const response = await handleCheckout(
+      services(),
+      request(bob, { plan: 'pass-90', code: 'half' }),
+    )
+    expect(response).toMatchObject({ kind: 'redirect' })
+
+    const sessionId = [...stripe.sessions.keys()].at(-1)!
+    const order = await orderBySessionId(context.data, sessionId)
+    expect(order).toMatchObject({ amountMinor: 600, discountMinor: 600 })
+
+    await handleWebhook(services(), paidSessionEvent(sessionId, { amount_total: 600 }))
+
+    expect((await actorGroups(bob)).has(supportersGroup)).toBe(true)
+    expect((await codeByCode(context.data, 'HALF'))?.redeemedCount).toBe(1)
+    expect((await recentLedger(context.data))[0]).toMatchObject({ amountMinor: 600 })
+    expect((await recentLedger(context.data))[0]?.note).toContain('600 off')
+  })
+
+  it('a 100% code comps the pass on the spot, and Stripe never hears about it', async () => {
+    await mint({ code: 'FREEBIE', percent: '100', plan: 'pass-90' })
+
+    const response = await handleCheckout(
+      services(),
+      request(bob, { plan: 'pass-90', code: 'FREEBIE' }),
+    )
+    expect((response as { to: string }).to).toMatch(/^\/plugins\/dues\/return\?order=\d+$/)
+
+    expect(stripe.sessions.size).toBe(0)
+    expect((await actorGroups(bob)).has(supportersGroup)).toBe(true)
+    expect((await recentLedger(context.data))[0]).toMatchObject({
+      kind: 'charge',
+      amountMinor: 0,
+    })
+    expect((await codeByCode(context.data, 'FREEBIE'))?.redeemedCount).toBe(1)
+  })
+
+  it('a code on a subscription becomes a Stripe coupon, made once and reused', async () => {
+    await mint({ code: 'SUBHALF', percent: '50' })
+    const code = await codeByCode(context.data, 'SUBHALF')
+
+    await handleCheckout(services(), request(alice, { plan: 'supporter-month', code: 'SUBHALF' }))
+    expect(stripe.coupons).toEqual([
+      { percentOff: 50, name: 'Dues code SUBHALF', reference: String(code!.id) },
+    ])
+    expect(stripe.checkoutInputs.at(-1)!.discounts).toEqual([
+      { coupon: `coupon_${code!.id}` },
+    ])
+
+    const order = await orderBySessionId(context.data, [...stripe.sessions.keys()].at(-1)!)
+    expect(order).toMatchObject({ amountMinor: 250, discountMinor: 250 })
+
+    await handleCheckout(services(), request(bob, { plan: 'supporter-month', code: 'SUBHALF' }))
+    expect(stripe.coupons).toHaveLength(1)
+  })
+
+  it('every way a code refuses, before any money moves', async () => {
+    await insertCode(context.data, {
+      code: 'GONE', percentOff: 10, planKey: null,
+      maxRedemptions: 1, expiresAt: null, createdByUserId: alice,
+    })
+    await exec(`update plugin_dues_code set redeemed_count = 1 where code = 'GONE'`)
+    await insertCode(context.data, {
+      code: 'PAST', percentOff: 10, planKey: null,
+      maxRedemptions: null, expiresAt: new Date(Date.now() - 1000), createdByUserId: alice,
+    })
+    await insertCode(context.data, {
+      code: 'MONTHLY', percentOff: 10, planKey: 'supporter-month',
+      maxRedemptions: null, expiresAt: null, createdByUserId: alice,
+    })
+
+    const attempt = async (code: string) =>
+      (
+        (await handleCheckout(services(), request(bob, { plan: 'pass-90', code }))) as {
+          to: string
+        }
+      ).to
+
+    expect(await attempt('NOPE')).toContain('error=unknown-code')
+    expect(await attempt('GONE')).toContain('error=code-exhausted')
+    expect(await attempt('PAST')).toContain('error=code-expired')
+    expect(await attempt('MONTHLY')).toContain('error=code-wrong-plan')
+    expect(await attempt('MONTHLY')).toContain('code=MONTHLY')
+    expect(stripe.sessions.size).toBe(0)
+  })
+
+  it('switching a code off refuses it; switching it back on honours it again', async () => {
+    await mint({ code: 'TOGGLE', percent: '25' })
+    const code = await codeByCode(context.data, 'TOGGLE')
+
+    await handleAdminCodeDisable(
+      services(),
+      adminRequest(alice, 'codes/disable', { code: String(code!.id), disabled: '1' }),
+    )
+    const refused = await handleCheckout(
+      services(),
+      request(bob, { plan: 'pass-90', code: 'TOGGLE' }),
+    )
+    expect((refused as { to: string }).to).toContain('error=code-disabled')
+
+    await handleAdminCodeDisable(
+      services(),
+      adminRequest(alice, 'codes/disable', { code: String(code!.id), disabled: '0' }),
+    )
+    const allowed = await handleCheckout(
+      services(),
+      request(bob, { plan: 'pass-90', code: 'TOGGLE' }),
+    )
+    expect((allowed as { to: string }).to).toContain('/plugins/dues/go')
+  })
+
+  it('minting refuses nonsense and duplicates without touching the table', async () => {
+    expect(await mint({ code: 'OKAY', percent: '0' })).toContain('error=bad-percent')
+    expect(await mint({ code: '!!', percent: '10' })).toContain('error=bad-code')
+    expect(await mint({ code: 'OKAY', percent: '10', plan: 'no-such' })).toContain(
+      'error=bad-plan',
+    )
+    expect(await mint({ code: 'OKAY', percent: '10', max: '0' })).toContain('error=bad-max')
+    expect(await mint({ code: 'OKAY', percent: '10', expires: '2001-01-01' })).toContain(
+      'error=bad-expiry',
+    )
+
+    expect(await mint({ code: 'OKAY', percent: '10' })).toContain('created=OKAY')
+    expect(await mint({ code: 'okay', percent: '20' })).toContain('error=duplicate-code')
+    expect((await codeByCode(context.data, 'OKAY'))?.percentOff).toBe(10)
+  })
+})
+
+describe('the admin desk', () => {
+  async function buyPass(userId: number): Promise<number> {
+    const { sessionId } = await checkout(userId, 'pass-90')
+    await handleWebhook(services(), paidSessionEvent(sessionId))
+    const live = await liveMembership(context.data, userId, 'supporters')
+    return live!.id
+  }
+
+  it('extending a membership moves the period end and the grant together', async () => {
+    const membershipId = await buyPass(bob)
+    const [before] = await membershipsFor(context.data, bob)
+
+    const response = await handleAdminExtend(
+      services(),
+      adminRequest(alice, 'members/extend', {
+        membership: String(membershipId),
+        days: '30',
+      }),
+    )
+    expect((response as { to: string }).to).toContain(`extended=${membershipId}`)
+
+    const [after] = await membershipsFor(context.data, bob)
+    const gained =
+      (after!.currentPeriodEnd.getTime() - before!.currentPeriodEnd.getTime()) / 86_400_000
+    expect(gained).toBeCloseTo(30, 1)
+
+    const grants = await pluginGrants(h.db, 'dues').list(bob)
+    expect(grants[0]?.expiresAt.getTime()).toBe(after!.graceUntil.getTime())
+  })
+
+  it('extend refuses silly day counts and dead memberships', async () => {
+    const membershipId = await buyPass(bob)
+
+    const silly = await handleAdminExtend(
+      services(),
+      adminRequest(alice, 'members/extend', {
+        membership: String(membershipId),
+        days: '9000',
+      }),
+    )
+    expect((silly as { to: string }).to).toContain('error=bad-days')
+
+    await exec(`update plugin_dues_membership set status = 'expired' where id = ${membershipId}`)
+    const dead = await handleAdminExtend(
+      services(),
+      adminRequest(alice, 'members/extend', {
+        membership: String(membershipId),
+        days: '30',
+      }),
+    )
+    expect((dead as { to: string }).to).toContain('error=not-live')
+  })
+
+  it('the admin cancels a renewal: Stripe told, membership closing, access kept', async () => {
+    const bought = await checkout(bob, 'supporter-month')
+    await handleWebhook(
+      services(),
+      paidSessionEvent(bought.sessionId, { amount_total: 500, subscription: 'sub_9' }),
+    )
+    const live = await liveMembership(context.data, bob, 'supporters')
+
+    const response = await handleAdminCancel(
+      services(),
+      adminRequest(alice, 'members/cancel', { membership: String(live!.id) }),
+    )
+    expect((response as { to: string }).to).toContain(`cancelled=${live!.id}`)
+    expect(stripe.cancelCalls).toEqual(['sub_9:true'])
+    expect((await liveMembership(context.data, bob, 'supporters'))?.status).toBe('closing')
+    expect((await actorGroups(bob)).has(supportersGroup)).toBe(true)
+  })
+
+  it('revoking removes the group on the spot and stops a subscription billing', async () => {
+    const bought = await checkout(bob, 'supporter-month')
+    await handleWebhook(
+      services(),
+      paidSessionEvent(bought.sessionId, { amount_total: 500, subscription: 'sub_10' }),
+    )
+    expect((await actorGroups(bob)).has(supportersGroup)).toBe(true)
+    const live = await liveMembership(context.data, bob, 'supporters')
+
+    const response = await handleAdminRevoke(
+      services(),
+      adminRequest(alice, 'members/revoke', { membership: String(live!.id) }),
+    )
+    expect((response as { to: string }).to).toContain(`revoked=${live!.id}`)
+    expect((await actorGroups(bob)).has(supportersGroup)).toBe(false)
+    expect(stripe.cancelCalls).toEqual(['sub_10:true'])
+
+    const memberships = await membershipsFor(context.data, bob)
+    expect(memberships[0]?.status).toBe('revoked')
+  })
+
+  it('clearing flags: a membership on the members screen, an order on the status screen', async () => {
+    const membershipId = await buyPass(bob)
+    await exec(
+      `update plugin_dues_membership set needs_attention = 'checked by hand' where id = ${membershipId}`,
+    )
+    const { orderId } = await checkout(alice, 'pass-90')
+    await exec(
+      `update plugin_dues_order set needs_attention = 'amount mismatch' where id = ${orderId}`,
+    )
+    expect(await ordersNeedingAttention(context.data)).toHaveLength(1)
+
+    const first = await handleAdminClear(
+      services(),
+      adminRequest(alice, 'attention/clear', { membership: String(membershipId) }),
+    )
+    expect((first as { to: string }).to).toContain('members?cleared=')
+
+    const second = await handleAdminClear(
+      services(),
+      adminRequest(alice, 'attention/clear', { order: String(orderId) }),
+    )
+    expect((second as { to: string }).to).toContain('status?cleared=')
+
+    expect(await ordersNeedingAttention(context.data)).toHaveLength(0)
+    expect((await membershipsFor(context.data, bob))[0]?.needsAttention).toBeNull()
   })
 })

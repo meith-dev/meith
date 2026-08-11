@@ -114,6 +114,12 @@ export interface StripeClient {
     readonly metadata: Readonly<Record<string, string>>
   }): Promise<{ readonly id: string }>
 
+  createCoupon(input: {
+    readonly percentOff: number
+    readonly name: string
+    readonly reference: string
+  }): Promise<{ readonly id: string }>
+
   createCheckoutSession(input: Record<string, unknown>): Promise<CheckoutSessionState>
   getCheckoutSession(id: string): Promise<CheckoutSessionState>
 
@@ -206,6 +212,16 @@ export function createStripeClient(options: StripeClientOptions): StripeClient {
   return {
     async createCustomer(input) {
       const body = await request('POST', '/v1/customers', { metadata: input.metadata })
+      return { id: String(body.id) }
+    },
+
+    async createCoupon(input) {
+      const body = await request(
+        'POST',
+        '/v1/coupons',
+        { percent_off: input.percentOff, duration: 'once', name: input.name },
+        `dues-coupon-${input.reference}`,
+      )
       return { id: String(body.id) }
     },
 
