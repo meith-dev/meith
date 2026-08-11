@@ -10,12 +10,6 @@ import {
   LIGHT_TOKENS as PHASEBOOK_LIGHT_TOKENS,
   phasebookTheme,
 } from '@meith/theme-phasebook'
-import {
-  BROWSER_THEME_COLOR as THISCORD_BROWSER_THEME_COLOR,
-  DARK_TOKENS as THISCORD_DARK_TOKENS,
-  LIGHT_TOKENS as THISCORD_LIGHT_TOKENS,
-  thiscordTheme,
-} from '@meith/theme-thiscord'
 
 export const SHOWCASE_THEMES = {
   midnight: {
@@ -31,13 +25,6 @@ export const SHOWCASE_THEMES = {
     tokens: { light: PHASEBOOK_LIGHT_TOKENS, dark: PHASEBOOK_DARK_TOKENS },
     browserThemeColor: PHASEBOOK_BROWSER_THEME_COLOR,
     theme: phasebookTheme,
-  },
-  thiscord: {
-    key: 'thiscord',
-    title: 'Thiscord',
-    tokens: { light: THISCORD_LIGHT_TOKENS, dark: THISCORD_DARK_TOKENS },
-    browserThemeColor: THISCORD_BROWSER_THEME_COLOR,
-    theme: thiscordTheme,
   },
 } as const
 

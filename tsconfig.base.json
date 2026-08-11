@@ -99,8 +99,6 @@
       "@meith/theme-midnight/*": ["themes/midnight/src/*"],
       "@meith/theme-phasebook": ["themes/phasebook/src/index.ts"],
       "@meith/theme-phasebook/*": ["themes/phasebook/src/*"],
-      "@meith/theme-thiscord": ["themes/thiscord/src/index.ts"],
-      "@meith/theme-thiscord/*": ["themes/thiscord/src/*"],
       "@meith/example-plugin-hello": ["examples/hello-plugin/src/index.ts"],
       "@meith/example-plugin-hello/*": ["examples/hello-plugin/src/*"],
       "@meith/example-theme-iris": ["examples/iris-theme/src/index.ts"],
