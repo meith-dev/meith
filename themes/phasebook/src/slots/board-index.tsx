@@ -1,13 +1,21 @@
 import type { BoardIndexModel } from '@meith/theme-kit'
 
-import { PAGE, PILL_QUIET } from '../shared'
+import { FEED, PAGE, PILL_QUIET, isEmptyRegion } from '../shared'
 
 export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
-  const rail = regions.latest ?? null
+  const hasRail = [regions.latest, regions.online, regions.stats].some(
+    (region) => !isEmptyRegion(region),
+  )
 
   return (
     <div className={`${PAGE} py-4 sm:py-6`}>
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div
+        className={
+          hasRail
+            ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]'
+            : `${FEED} flex flex-col`
+        }
+      >
         <div className="flex min-w-0 flex-col gap-4">
           {regions.announcements !== undefined && (
             <div className="flex flex-col gap-4 empty:hidden">{regions.announcements}</div>
@@ -26,14 +34,16 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
           {regions.plugins}
         </div>
 
-        <aside
-          aria-label="Board activity"
-          className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-[4.5rem]"
-        >
-          {rail}
-          {regions.online}
-          {regions.stats}
-        </aside>
+        {hasRail && (
+          <aside
+            aria-label="Board activity"
+            className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-[4.5rem]"
+          >
+            {regions.latest}
+            {regions.online}
+            {regions.stats}
+          </aside>
+        )}
       </div>
     </div>
   )

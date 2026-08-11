@@ -1,7 +1,18 @@
 import { cn } from '@meith/ui'
 import type { PostBitSlotModel } from '@meith/theme-kit'
 
-import { Circle, LINK, MUTED_LINK, NUMERIC, OnlineDot, Stamp, Tag, UserRef, count } from '../shared'
+import {
+  Circle,
+  LINK,
+  MUTED_LINK,
+  NUMERIC,
+  OnlineDot,
+  Stamp,
+  Tag,
+  UserRef,
+  count,
+  plural,
+} from '../shared'
 
 type Post = PostBitSlotModel['post']
 
@@ -118,9 +129,9 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
     >
       <StatusBanner visibility={post.visibility} />
 
-      <header className="flex items-start gap-2.5 px-4 pt-3">
+      <header className="flex items-start gap-3.5 px-5 pt-4">
         {select !== null && (
-          <label className="mt-2 flex shrink-0 items-start">
+          <label className="mt-3 flex shrink-0 items-start">
             <span className="sr-only">{select.label}</span>
             <input
               type="checkbox"
@@ -133,18 +144,18 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
         )}
 
         <span className="relative shrink-0">
-          <Circle src={author.avatarUrl} name={author.username} size={40} />
+          <Circle src={author.avatarUrl} name={author.username} size={48} />
           {author.isOnline && <OnlineDot />}
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="flex flex-wrap items-center gap-x-1.5 text-[0.9375rem] leading-tight">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[0.9375rem] leading-snug">
             <UserRef user={author} className="text-[0.9375rem]" />
             {author.badge != null && <GroupBadge badge={author.badge} />}
             {author.title !== null && <Tag>{author.title}</Tag>}
           </p>
 
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             <a href={post.permalink} className={MUTED_LINK}>
               <Stamp at={post.postedAt} />
             </a>
@@ -159,20 +170,25 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           </p>
 
           {regions.pluginBadges !== undefined && (
-            <p className="mt-1 flex flex-wrap items-center gap-1.5 empty:hidden">
+            <p className="mt-2 flex flex-wrap items-center gap-1.5 empty:hidden">
               {regions.pluginBadges}
             </p>
           )}
         </div>
 
-        <p className={`shrink-0 text-xs text-muted-foreground ${NUMERIC}`}>
-          {count(author.postCount)} posts
-          {author.reputation != null && <> · {count(author.reputation)} rep</>}
+        <p className={`shrink-0 text-right text-xs leading-relaxed text-muted-foreground ${NUMERIC}`}>
+          {count(author.postCount)} {plural(author.postCount, 'post', 'posts')}
+          {author.reputation != null && (
+            <>
+              <br />
+              {count(author.reputation)} rep
+            </>
+          )}
         </p>
       </header>
 
       {post.ignored !== null ? (
-        <p className="px-4 py-5 text-sm text-muted-foreground">
+        <p className="px-5 py-5 text-sm text-muted-foreground">
           You are ignoring{' '}
           <span className="font-semibold text-foreground">{post.ignored.authorUsername}</span>. This
           post is hidden.{' '}
@@ -181,7 +197,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           </a>
         </p>
       ) : (
-        <div className="px-4 pt-2.5 pb-3">
+        <div className="px-5 pt-3 pb-4">
           <div
             className="prose-md text-[0.9375rem]"
             dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
