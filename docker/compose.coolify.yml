@@ -1,7 +1,7 @@
 # A board on your own machine, deployed by Coolify.
 #
-# The same four services as `docker-compose.yml`, with three differences that
-# are all Coolify's doing:
+# The same four services as `compose.yml`, with four differences. Three
+# are Coolify's doing:
 #
 #  - **No published ports.** Coolify's proxy routes to the container and issues
 #    the certificate. A `ports:` mapping here would put the board on the host's
@@ -14,6 +14,16 @@
 #  - **The board is told its own URL.** `SERVICE_FQDN_WEB_3000` asks Coolify for
 #    a domain pointed at port 3000, and `SERVICE_URL_WEB` is that domain with a
 #    scheme, which is what `APP_URL` wants.
+#
+# And one is the release pipeline's: the image is pulled from the registry,
+# not built here, and the pin is an **exact version** that only a release
+# commit moves. A restart or a Redeploy re-creates precisely what is pinned —
+# no deploy path resolves "the newest anything", so the board never changes
+# version without a commit on the branch saying so. See docs/release.md.
+#
+# MEITH_IMAGE exists for CI, which runs this file against the image it just
+# built — and for the operator who wants to pin by digest or hold a version:
+# set it on the resource's environment in Coolify and it wins over the file.
 #
 # Requires Coolify v4.0.0-beta.411 or newer — magic variables in a compose file
 # from a Git source arrived in that release. See docs/quickstart.md.
@@ -46,9 +56,7 @@ services:
   # applied before the first request rather than racing it — and an upgrade that
   # fails to migrate never serves the new code at all.
   migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${MEITH_IMAGE:-ghcr.io/meith-dev/meith:0.1.0}
     environment:
       COMMUNITY_ROLE: migrate
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
@@ -69,13 +77,11 @@ services:
     restart: 'no'
 
   # No healthcheck here: the image carries a role-aware one (see
-  # docker-healthcheck.sh), which asks the web server for `/api/health` and the
+  # docker/healthcheck.sh), which asks the web server for `/api/health` and the
   # worker whether its process is alive. A single web-shaped check declared per
   # service is how every worker container ended up permanently unhealthy.
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${MEITH_IMAGE:-ghcr.io/meith-dev/meith:0.1.0}
     restart: unless-stopped
     environment:
       # Ask Coolify for a domain on port 3000, then hand the board the same
@@ -121,9 +127,7 @@ services:
   # here — queued mail leaves, bans expire, digests send — so a board without
   # this service is one where nothing fails and nothing happens.
   worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${MEITH_IMAGE:-ghcr.io/meith-dev/meith:0.1.0}
     restart: unless-stopped
     environment:
       - COMMUNITY_ROLE=worker

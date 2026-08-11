@@ -36,8 +36,8 @@ describe("linkResolver", () => {
   })
 
   it("sends a link that climbs out of docs/ to the repository root", () => {
-    expect(fromDocs("../docker-compose.yml")).toEqual({
-      href: `${site.repository}/blob/main/docker-compose.yml`,
+    expect(fromDocs("../docker/compose.yml")).toEqual({
+      href: `${site.repository}/blob/main/docker/compose.yml`,
       external: true,
     })
     expect(fromDocs("../.env.example")).toEqual({

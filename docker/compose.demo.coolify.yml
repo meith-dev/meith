@@ -4,7 +4,7 @@
 # the same instance: the board at community.meith.dev, the site at meith.dev,
 # and this. Nobody self-hosting a board needs this file.
 #
-# It is **not** `docker-compose.coolify.yml` with a flag added. Three things are
+# It is **not** `compose.coolify.yml` with a flag added. Three things are
 # deliberately different, and each is the flag's doing:
 #
 #  - **No worker.** The reset has to clear the web server's cache, and the
@@ -44,8 +44,8 @@ services:
   # special case that only gets exercised on deploy day.
   seed:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     command: ['node', 'apps/cli/cli.cjs', 'demo:reset', '--yes']
     environment:
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
@@ -60,8 +60,8 @@ services:
 
   web:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     restart: unless-stopped
     environment:
       - SERVICE_FQDN_WEB_3000
@@ -96,7 +96,7 @@ services:
 
   # The tick, as a curl loop rather than a process.
   #
-  # A board normally runs `docker-compose.coolify.yml`'s worker for this. A demo
+  # A board normally runs `compose.coolify.yml`'s worker for this. A demo
   # cannot: see the note at the top of this file.
   ticker:
     image: curlimages/curl:8.11.1

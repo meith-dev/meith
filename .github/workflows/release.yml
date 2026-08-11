@@ -1,0 +1,211 @@
+# The release act. Pushing a vX.Y.Z tag runs this; docs/release.md is the
+# narrative — what a release is, the version policy, and every step below in
+# prose. CI (ci.yml) remains the gate every change passes; this workflow only
+# ever runs on a commit that has already been through it.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  IMAGE: ghcr.io/meith-dev/meith
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  versions:
+    name: The tag and the tree agree
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/release-check.mjs --tag "$GITHUB_REF_NAME"
+
+  # One job per architecture, on that architecture's own runner — no QEMU, so
+  # the boot tests below run the same binaries an operator will. Each job
+  # pushes an arch-suffixed tag; `publish` merges them into the real tags only
+  # after both architectures have booted in every role.
+  build:
+    name: Build and boot (${{ matrix.arch }})
+    needs: versions
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: forum_release
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image, stamped
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          docker build -f docker/Dockerfile \
+            --build-arg MEITH_VERSION="$VERSION" \
+            --build-arg MEITH_COMMIT="$GITHUB_SHA" \
+            -t meith:release .
+
+      # The same boot checks as ci.yml's `image` job, compact. That job's
+      # comments carry the history of why each assertion exists.
+      - name: Apply migrations (migrate role)
+        run: |
+          docker run --rm --network host \
+            -e COMMUNITY_ROLE=migrate \
+            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_release \
+            -e DATA_SOURCE=postgres \
+            -e AUTH_SECRET=release-auth-secret-release-32b \
+            -e TICK_SECRET=release-tick-secret-release-32b \
+            meith:release
+
+      - name: Boot the web role, and it renders
+        run: |
+          docker run -d --name meith-web --network host \
+            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_release \
+            -e DATA_SOURCE=postgres \
+            -e AUTH_SECRET=release-auth-secret-release-32b \
+            -e TICK_SECRET=release-tick-secret-release-32b \
+            -e APP_URL=http://127.0.0.1:3000 \
+            meith:release
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1 && break
+            test "$i" != 40 || { echo "::error::the web role never became healthy"; docker logs meith-web; exit 1; }
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:3000/ | grep -q '<main' \
+            || { echo "::error::the board did not render"; docker logs meith-web; exit 1; }
+
+      - name: Boot the worker role, and it survives a tick
+        run: |
+          docker run -d --name meith-worker --network host --restart=no \
+            -e COMMUNITY_ROLE=worker \
+            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_release \
+            -e DATA_SOURCE=postgres \
+            -e AUTH_SECRET=release-auth-secret-release-32b \
+            -e TICK_SECRET=release-tick-secret-release-32b \
+            -e QUEUE_DRIVER=postgres -e CACHE_DRIVER=memory \
+            meith:release
+          sleep 90
+          docker ps --filter name=meith-worker --filter status=running | grep -q meith-worker \
+            || { echo "::error::the worker exited instead of looping"; docker logs meith-worker; exit 1; }
+          starts=$(docker logs meith-worker 2>&1 | grep -c 'worker started' || true)
+          test "$starts" = "1" \
+            || { echo "::error::expected one 'worker started', saw $starts"; docker logs meith-worker; exit 1; }
+          state=$(docker inspect -f '{{.State.Health.Status}}' meith-worker)
+          test "$state" = "healthy" \
+            || { echo "::error::worker health is $state"; exit 1; }
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+            psql -h 127.0.0.1 -U postgres -d forum_release -tAc 'select count(*) from tasks' \
+            | grep -qE '^[1-9]' \
+            || { echo "::error::no tasks were registered"; docker logs meith-worker; exit 1; }
+
+      - name: Stop
+        if: always()
+        run: docker rm -f meith-web meith-worker 2>/dev/null || true
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push the architecture tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          docker tag meith:release "$IMAGE:$VERSION-${{ matrix.arch }}"
+          docker push "$IMAGE:$VERSION-${{ matrix.arch }}"
+
+  # The npm half of the release: every non-private workspace package, in
+  # dependency order, at the tag's version. Gated on the boot-tested build so
+  # nothing reaches the registry from a release whose image did not boot, and
+  # re-runnable — a version already on the registry is skipped, not an error.
+  npm:
+    name: Publish the packages
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/npm-publish.mjs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+
+  publish:
+    name: Tags, the release branch, and the draft notes
+    needs: [build, npm]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # X.Y.Z never moves again and is what the compose file pins; X.Y and
+      # latest are floating conveniences for trying the image, and nothing
+      # this repository ships deploys either — see docs/release.md.
+      - name: Merge the architectures under the release tags
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          LINE="${VERSION%.*}"
+          docker buildx imagetools create \
+            -t "$IMAGE:$VERSION" \
+            -t "$IMAGE:$LINE" \
+            -t "$IMAGE:latest" \
+            "$IMAGE:$VERSION-amd64" "$IMAGE:$VERSION-arm64"
+
+      # Fast-forward only: a tag not descended from `release` is a mistake this
+      # push refuses rather than rewrites.
+      - name: Move the release branch to the tag
+        run: git push origin "HEAD:refs/heads/release"
+
+      - name: Draft the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cat > /tmp/notes-header.md <<EOF
+          \`\`\`
+          docker pull $IMAGE:$VERSION
+          npm install @meith/plugin-kit@$VERSION @meith/theme-kit@$VERSION
+          \`\`\`
+
+          **Migrations:** _fill in before publishing — none / adds only / removes or renames._
+          Patch releases carry no migrations; docs/upgrading.md is the operator's side of that promise.
+
+          ---
+          EOF
+          gh release create "$GITHUB_REF_NAME" \
+            --draft \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file /tmp/notes-header.md \
+            --generate-notes

@@ -116,7 +116,7 @@ The rest of this page writes **`community <command>`**, which is worth making tr
 on a Compose board:
 
 ```sh
-alias forum='docker compose -f ~/meith/docker-compose.yml run --rm --no-deps web node apps/cli/cli.cjs'
+alias forum='docker compose -f ~/meith/docker/compose.yml run --rm --no-deps web node apps/cli/cli.cjs'
 ```
 
 ```sh

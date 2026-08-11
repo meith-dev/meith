@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
 const compose = await readFile(
-  new URL('../../../docker-compose.coolify.yml', import.meta.url),
+  new URL('../../../docker/compose.coolify.yml', import.meta.url),
   'utf8',
 )
 

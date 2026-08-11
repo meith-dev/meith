@@ -19,7 +19,7 @@ niche hobby, Meith gives them the space to gather and grow.
 
 **On your own server**, with nothing between you and the board. The
 [Quickstart](./docs/quickstart.md) goes from a fresh Ubuntu box to a board on
-your own domain, over HTTPS, in about half an hour.
+your own domain, over HTTPS, in about twenty minutes.
 
 **[Coolify](https://coolify.io) is the short way**, and it is still entirely
 your own server — a panel you install on the same machine, not a service you
@@ -29,23 +29,26 @@ sign up to:
 curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
 ```
 
-Then point it at this repository and
-[`docker-compose.coolify.yml`](./docker-compose.coolify.yml). It generates both
-secrets and the database password, issues the certificate, tells the board its
-own URL, and redeploys on push. Nothing is typed in.
+Then point it at this repository — the `release` branch — and
+[`docker/compose.coolify.yml`](./docker/compose.coolify.yml). It pulls the
+released image rather than building anything, generates both secrets and the
+database password, issues the certificate, tells the board its own URL, and
+follows releases — never bare pushes — on redeploy. Nothing is typed in.
 
 **Or the compose file directly**, if you already run a proxy:
 
 ```sh
-git clone https://github.com/meith-dev/meith.git && cd meith
-cp .env.example .env          # three secrets, generated not typed — the file says how
+git clone https://github.com/meith-dev/meith.git && cd meith/docker
+git checkout "$(git describe --tags --abbrev=0)"   # the newest release
+cp ../.env.example .env       # three secrets, generated not typed — the file says how
 docker compose up -d --build
 ```
 
-The same four containers either way, from
-[`docker-compose.yml`](./docker-compose.yml): Postgres, a one-shot migration
-that the other two wait on, the web server, and the worker that runs the
-background tick. Certificate in front, open `/install`, and that is a board.
+The same four containers either way — Postgres, a one-shot migration that the
+other two wait on, the web server, and the worker that runs the background
+tick. Coolify pulls them as the released image;
+[`docker/compose.yml`](./docker/compose.yml) builds the same image from the
+checkout. Certificate in front, open `/install`, and that is a board.
 
 That route is the advanced one — [Deploying by hand](./docs/self-hosting.md)
 covers the `.env`, the proxy and what you take on for it. Day two, either way,
@@ -92,7 +95,7 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 
 | Section | Document | What it answers |
 |---|---|---|
-| Running a board | [`quickstart.md`](./docs/quickstart.md) | From nothing to a board people can reach, on your own server with Coolify. About half an hour, most of it waiting for a build. |
+| Running a board | [`quickstart.md`](./docs/quickstart.md) | From nothing to a board people can reach, on your own server with Coolify. About twenty minutes, and the deploy pulls the released image rather than building anything. |
 | Running a board | [`operating.md`](./docs/operating.md) | The operator handbook. Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
 | Running a board | [`upgrading.md`](./docs/upgrading.md) | How to take a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
 | Running a board | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
@@ -107,6 +110,7 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 | Development | [`development.md`](./docs/development.md) | Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request. |
 | Development | [`architecture.md`](./docs/architecture.md) | How it fits together: the processes, the layers, the path a request takes, and the seams everything else hangs off. |
 | Development | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |
+| Development | [`release.md`](./docs/release.md) | How a version is cut: the lockstep version rule, what each release publishes — the image, the branch, the npm packages — and the migration policy behind the numbers. |
 
 <!-- docs:table end -->
 

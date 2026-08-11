@@ -67,18 +67,24 @@ almost always that.
 ```sh
 git clone https://github.com/meith-dev/meith.git
 cd meith
+git checkout "$(git describe --tags --abbrev=0)"   # the newest release
 ```
 
-A clone rather than a release tarball, because upgrading is `git pull` and a
-rebuild, and because [`docker-compose.yml`](../docker-compose.yml) is a file you
-are meant to read and edit.
+A clone rather than a release tarball, because upgrading is a fetch and a
+checkout of the next tag, and because
+[`docker/compose.yml`](../docker/compose.yml) is a file you are meant to read
+and edit. The checkout matters: `main` is development and makes no promises
+between releases, and a release tag is what the published images are built
+from and what [the release process](./release.md) stands behind.
 
 ## 3. Write the environment
 
-The compose file reads `.env` from beside it. Nothing in it belongs in git —
+Everything from here on happens in `docker/` — the compose file lives there
+and reads `.env` from beside it. Nothing in that file belongs in git —
 `.gitignore` already covers it.
 
 ```sh
+cd docker
 cat > .env <<EOF
 POSTGRES_PASSWORD=$(openssl rand -hex 32)
 AUTH_SECRET=$(openssl rand -base64 32)
@@ -246,8 +252,9 @@ sealing that cannot be undone — is the same on both routes and written once:
 ## Upgrading
 
 ```sh
-cd ~/meith
-git pull
+cd ~/meith/docker
+git fetch --tags
+git checkout v0.1.1        # the release you are moving to
 docker compose up -d --build
 ```
 
@@ -262,10 +269,16 @@ what to do when a migration fails halfway.
 
 ## Building somewhere else
 
-On a 1 GB server the Next build can run out of memory. Build the image on your
-laptop or in CI, push it to a registry, and replace `build: .` with
-`image: your-registry/meith:latest` in the compose file. Everything else is
-unchanged.
+On a 1 GB server the Next build can run out of memory. The shortest fix is to
+not build at all: every release publishes the image the Quickstart deploys —
+multi-arch, boot-tested in every role — so replace each `build:` block with
+`image: ghcr.io/meith-dev/meith:0.1.0` in the compose file and everything
+else is unchanged. Pin the exact version, as that is: a floating tag turns
+the next incidental `docker compose pull` into an unplanned upgrade.
+Upgrading is then editing the pin, which is the same deliberate act as
+checking out the next tag. Build on your laptop or in CI and push to your own
+registry only when you have patched the source — that is what this route is
+for.
 
 The image takes `COMMUNITY_ROLE` — `web`, `worker` or `migrate` — so one image is
 all three services. That is what makes the roles impossible to drift apart, and
@@ -313,7 +326,7 @@ Worth being plain about, because this is the route with no panel behind it:
 - **Certificates are yours.** Caddy makes this a solved problem, but it is a
   problem you now own.
 - **Security updates are yours.** `unattended-upgrades` for the host, and a
-  `git pull` and rebuild for the board.
+  checkout of the next release and a rebuild for the board.
 - **Uptime is yours.** `restart: unless-stopped` covers a crash and a reboot; it
   does not cover a disk filling up.
 

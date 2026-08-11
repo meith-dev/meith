@@ -1,7 +1,8 @@
 # Quickstart
 
-From nothing to a board people can reach, on a domain, over HTTPS. About half an
-hour, most of it waiting for a build.
+From nothing to a board people can reach, on a domain, over HTTPS. About twenty
+minutes, and nothing is built on your server — the deploy pulls the released
+image.
 
 This is the guided route: [Coolify](https://coolify.io) on your own server. It
 is the shortest path to a real board, and a real board is the only kind worth
@@ -62,23 +63,31 @@ In the panel: **New Resource → Docker Compose → Public Repository**.
 | Field | Value |
 |---|---|
 | Repository | `https://github.com/meith-dev/meith` |
-| Branch | `main` |
-| Compose file | `/docker-compose.coolify.yml` |
+| Branch | `release` |
+| Compose file | `/docker/compose.coolify.yml` |
+
+`release`, not `main`. The `release` branch moves when a version is released
+and at no other time, so what you deploy is a release that has been built,
+booted in every role and published — never whatever `main` held that afternoon.
+The compose file pulls that release's image from the registry; your server
+builds nothing.
 
 > [!IMPORTANT]
 > The compose file path is the one field worth checking twice. Coolify defaults
-> to `/docker-compose.yml`, which is the *other* shape — it publishes a port and
-> expects a `.env` you have not written, so the deploy stops at once with
-> `required variable AUTH_SECRET is missing a value`. A clear failure, but the
-> fix is the file path, not the variable it names.
+> to `/docker-compose.yml`, which does not exist in this repository — every
+> compose file lives under `/docker/` — so leaving the default fails fast with
+> a file-not-found. The neighbouring `/docker/compose.yml` is the *other*
+> shape: it publishes a port and expects a `.env` you have not written, so
+> picking it stops the deploy with `required variable AUTH_SECRET is missing a
+> value`. Either way the fix is the file path, not the error it names.
 
 ## 3. Set your domain and deploy
 
 Coolify offers a generated domain and accepts your own. Put yours in — the one
 whose `A` record you pointed at this server — and press deploy.
 
-The first build takes five to ten minutes. Watch the log. Four containers come
-up, in order:
+The first deploy pulls the image and takes a minute or two. Watch the log. Four
+containers come up, in order:
 
 | Container | What it does |
 |---|---|
@@ -312,7 +321,7 @@ and retry. What to do depends on how far it got:
 
 | What you see | What it is |
 |---|---|
-| The deploy fails before any container starts, naming `AUTH_SECRET` or `TICK_SECRET` | Almost always the wrong compose file. It has to be `/docker-compose.coolify.yml` — the other one expects a `.env` that does not exist here, and Compose refuses to start without it. |
+| The deploy fails before any container starts, naming `AUTH_SECRET` or `TICK_SECRET` | Almost always the wrong compose file. It has to be `/docker/compose.coolify.yml` — `/docker/compose.yml` expects a `.env` that does not exist here, and Compose refuses to start without it. |
 | `migrate` exits non-zero | Read its log. A failed migration stops the stack on purpose rather than serving against a half-applied schema. |
 | The worker logs `worker started` every few seconds | It is crash-looping; the throw is in the log above each restart. |
 | 413 on an upload | The proxy's body limit, not the board's. Raise it on the resource. |

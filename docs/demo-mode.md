@@ -146,18 +146,18 @@ serving the forum tree of a board that no longer exists, for up to the tree's
 
 So the demo drives the tick against the web server instead — a `ticker` service
 calling `/api/system/tick` every minute — and every task runs in the process
-that can see the consequences. That is why `docker-compose.demo.coolify.yml` has
+that can see the consequences. That is why `docker/compose.demo.coolify.yml` has
 no `worker` service, and why it is not the ordinary compose file with a flag
 added.
 
 ## Deploying one
 
-[`docker-compose.demo.coolify.yml`](../docker-compose.demo.coolify.yml) is a
+[`docker/compose.demo.coolify.yml`](../docker/compose.demo.coolify.yml) is a
 third Coolify resource beside the board and the site, from the same repository.
 Point Coolify at it, give it a domain, and it generates the secrets and the
 database password itself.
 
-It differs from `docker-compose.coolify.yml` in three ways, all of them the
+It differs from `docker/compose.coolify.yml` in three ways, all of them the
 flag's doing: no worker (above), no volumes (a redeploy should be as clean as a
 reset), and a `seed` one-shot in place of `migrate` — running the same
 `demo:reset` the hourly task runs, so the board a visitor finds one minute after

@@ -17,6 +17,10 @@ if [ "$#" -gt 0 ]; then
   exec "$@"
 fi
 
+# Which build this container is, to stderr, before the role starts. Not
+# printed for an explicit command above — CLI output is sometimes piped.
+echo "meith ${MEITH_VERSION:-unknown} (${MEITH_COMMIT:-unknown}), role: ${COMMUNITY_ROLE:-web}" >&2
+
 case "${COMMUNITY_ROLE:-web}" in
   worker)
     exec node apps/worker/worker.cjs
@@ -30,7 +34,7 @@ case "${COMMUNITY_ROLE:-web}" in
     ;;
   *)
     # Every role this file handles, not two of the three. `migrate` is the one
-    # `docker-compose.coolify.yml` sets, so a typo in it was answered by a list
+    # `compose.coolify.yml` sets, so a typo in it was answered by a list
     # that did not contain the value the operator was trying to spell.
     echo "Unknown COMMUNITY_ROLE: ${COMMUNITY_ROLE}. Expected 'web', 'worker' or 'migrate'." >&2
     exit 1

@@ -1,13 +1,27 @@
 {
   "name": "@meith/theme-midnight",
   "version": "0.1.0",
-  "private": true,
+  "description": "A dark theme for Meith, built on the default theme's slots.",
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "themes/midnight"
+  },
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.type-test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@meith/theme-default": "workspace:*",
-    "@meith/theme-kit": "workspace:*"
+    "@meith/theme-default": "workspace:^",
+    "@meith/theme-kit": "workspace:^"
   },
   "peerDependencies": {
     "react": "^19.2.0"

@@ -5,7 +5,7 @@ docs directory whose entry point is a directory listing makes every reader guess
 and most of them guess the roadmap.
 
 **New here?** Start with the [Quickstart](./quickstart.md) — a board on your own
-server, on a domain, in about half an hour.
+server, on a domain, in about twenty minutes.
 
 ## Find your document
 
@@ -22,6 +22,7 @@ server, on a domain, in about half an hour.
 | Moving a forum off MyBB | [MyBB parity](./mybb-parity.md) |
 | Working on Meith itself | [Development](./development.md) |
 | Understanding how it fits together | [Architecture](./architecture.md) |
+| Cutting a release | [Releasing](./release.md) |
 
 ## Running a board
 
@@ -79,6 +80,7 @@ Working on Meith itself.
 | [`development.md`](./development.md) | **Start here.** Running it on your machine, the workspace, the commands, the gates, and what to do before opening a pull request. |
 | [`architecture.md`](./architecture.md) | How it fits together: the processes, the layers, the path a request takes, and the seams — data, themes, plugins — everything else hangs off. |
 | [`nextjs-conventions.md`](./nextjs-conventions.md) | The decisions that would otherwise be re-litigated in every pull request. |
+| [`release.md`](./release.md) | How a version is cut: the lockstep version rule, what each release publishes, and the migration policy behind the version numbers. |
 
 ## About the generated references
 

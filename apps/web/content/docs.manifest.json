@@ -58,7 +58,7 @@
       "file": "quickstart.md",
       "section": "running",
       "title": "Quickstart",
-      "blurb": "From nothing to a board people can reach, on your own server with Coolify. About half an hour, most of it waiting for a build.",
+      "blurb": "From nothing to a board people can reach, on your own server with Coolify. About twenty minutes, and the deploy pulls the released image rather than building anything.",
       "generated": false,
       "primary": true
     },
@@ -185,6 +185,15 @@
       "section": "development",
       "title": "Next.js conventions",
       "blurb": "Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request.",
+      "generated": false,
+      "primary": false
+    },
+    {
+      "slug": "release",
+      "file": "release.md",
+      "section": "development",
+      "title": "Releasing",
+      "blurb": "How a version is cut: the lockstep version rule, what each release publishes — the image, the branch, the npm packages — and the migration policy behind the numbers.",
       "generated": false,
       "primary": false
     }
