@@ -43,7 +43,12 @@ export default defineConfig({
       'tests/**/*.test.ts',
     ],
     exclude: ['**/node_modules/**', '**/.next/**'],
-    env: { NODE_ENV: 'test', DATA_SOURCE: 'fixture', LOG_LEVEL: 'fatal' },
+    env: {
+      NODE_ENV: 'test',
+      DATA_SOURCE: 'fixture',
+      LOG_LEVEL: 'fatal',
+      SHOWCASE_THEMES: '1',
+    },
     hookTimeout: 30_000,
     testTimeout: 20_000,
     maxWorkers: 4,
