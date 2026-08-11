@@ -77,6 +77,15 @@ Worth knowing before they fire.
 > genuinely cannot change between requests — but *which* resolved map a request
 > renders is a per-request choice, made by `currentTheme()` from a cookie.
 >
+> **`?theme=<key>` on any page sets that cookie**, so a theme can be linked
+> rather than described — `https://board.example/f/3-general?theme=phasebook`
+> opens that forum in Phasebook and keeps it for the rest of the visit. The
+> middleware writes the cookie and redirects to the same URL without the
+> parameter, so what a reader ends up sharing is the page and not the paint. The
+> key is validated where the cookie already was, in `currentThemeKey()` — a
+> theme that is not registered, or that the board has disabled, falls back to the
+> board default rather than erroring.
+>
 > This document used to say the opposite, on the argument that a switcher "would
 > cost every first paint a database read". That had quietly expired: 91 of the
 > board's 92 routes were already `ƒ (Dynamic)`, because the shell resolves the

@@ -82,6 +82,7 @@ services:
       - MAIL_DRIVER=log
       - DEMO_MODE=1
       - DEMO_RESET_MINUTES=${DEMO_RESET_MINUTES:-60}
+      - SHOWCASE_THEMES=1
     depends_on:
       postgres:
         condition: service_healthy

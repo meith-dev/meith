@@ -72,6 +72,7 @@ export default defineConfig({
         TICK_SECRET: 'e2e-only-tick-secret-000000000000',
         FORUM_DIST_DIR: '.next-e2e',
         NEXT_TELEMETRY_DISABLED: '1',
+        SHOWCASE_THEMES: '1',
         DUES_TEST_BOARD: '1',
         DUES_STRIPE_SECRET_KEY: 'sk_test_e2e_0000000000000000',
         DUES_STRIPE_WEBHOOK_SECRET: E2E_DUES_WEBHOOK_SECRET,
