@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseDuesConfig, planByKey, visiblePlans, type DuesConfigInput } from './config'
+import { parseDuesConfig, type DuesConfigInput } from './config'
 
 const FIXED = {
   key: 'pass-90',
@@ -28,13 +28,14 @@ describe('parseDuesConfig', () => {
     expect(parsed.currency).toBe('gbp')
     expect(parsed.graceDays).toBe(7)
     expect(parsed.label).toBe('Membership')
-    expect(parsed.plans).toHaveLength(2)
+    expect(parsed.seedPlans).toHaveLength(2)
   })
 
   it('a fixed plan is giftable by default; an auto plan never is', () => {
     const parsed = parseDuesConfig(config())
-    expect(planByKey(parsed, 'pass-90')?.giftable).toBe(true)
-    expect(planByKey(parsed, 'supporter-month')?.giftable).toBe(false)
+    const seed = (key: string) => parsed.seedPlans.find((plan) => plan.key === key)
+    expect(seed('pass-90')?.giftable).toBe(true)
+    expect(seed('supporter-month')?.giftable).toBe(false)
   })
 
   it('refuses a giftable auto plan outright', () => {
@@ -48,7 +49,6 @@ describe('parseDuesConfig', () => {
     [{ graceDays: 45 }, /0 to 30/],
     [{ graceDays: -1 }, /0 to 30/],
     [{ label: '  ' }, /label/],
-    [{ plans: [] }, /at least one plan/],
   ])('refuses %o', (override, message) => {
     expect(() => parseDuesConfig(config(override as Partial<DuesConfigInput>))).toThrow(message)
   })
@@ -81,10 +81,14 @@ describe('parseDuesConfig', () => {
     ).toThrow(/two years/)
   })
 
-  it('hidden plans stay resolvable but out of the shop window', () => {
+  it('seeds are optional — a board may open its shop from the panel alone', () => {
+    const parsed = parseDuesConfig({ currency: 'gbp' })
+    expect(parsed.seedPlans).toEqual([])
+  })
+
+  it('a hidden seed keeps its flag for the plan table to honour', () => {
     const parsed = parseDuesConfig(config({ plans: [FIXED, { ...AUTO, hidden: true }] }))
-    expect(visiblePlans(parsed).map((plan) => plan.key)).toEqual(['pass-90'])
-    expect(planByKey(parsed, 'supporter-month')).not.toBeNull()
+    expect(parsed.seedPlans.find((plan) => plan.key === 'supporter-month')?.hidden).toBe(true)
   })
 
   it('validates extra redirect hosts as bare hosts', () => {

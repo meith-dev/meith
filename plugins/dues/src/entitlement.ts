@@ -1,8 +1,9 @@
 import type { PluginGrants, PluginData } from '@meith/plugin-kit'
 
-import type { DuesConfig, DuesPlan } from './config'
+import type { DuesConfig } from './config'
 import { moneyMatches } from './money'
-import { addBillingInterval, addDays, addPeriod } from './period'
+import { addBillingInterval, addDays, addPeriod, parsePeriod } from './period'
+import { clampGrantUntil, isLifetime, LIFETIME_END } from './plans'
 import {
   countCodeRedemption,
   extendMembership,
@@ -13,10 +14,12 @@ import {
   membershipBySubscription,
   orderByPaymentIntent,
   orderBySessionId,
+  planRowByKey,
   setMembershipStatus,
   settleOrder,
   type MembershipRow,
   type OrderRow,
+  type PlanRow,
 } from './store'
 import type { InternalEvent } from './stripe/events'
 
@@ -65,12 +68,12 @@ export async function settlePaidOrder(
     return 'amount-mismatch'
   }
 
-  const plan = deps.config.plans.find((candidate) => candidate.key === order.planKey)
+  const plan = await planRowByKey(deps.data, order.planKey)
   const now = deps.now()
   const existing = await liveMembership(deps.data, order.recipientUserId, order.groupKey)
 
-  const periodEnd = settledPeriodEnd(order, plan ?? null, existing, now)
-  const graceUntil = addDays(periodEnd, deps.config.graceDays)
+  const periodEnd = settledPeriodEnd(order, plan, existing, now)
+  const graceUntil = isLifetime(periodEnd) ? periodEnd : addDays(periodEnd, deps.config.graceDays)
 
   let membership: MembershipRow
   if (existing === null) {
@@ -89,6 +92,7 @@ export async function settlePaidOrder(
       currentPeriodEnd: periodEnd,
       graceUntil,
       planKey: order.planKey,
+      ...(order.billingMode === 'lifetime' ? { renewalMode: 'lifetime' as const } : {}),
       lastOrderId: order.id,
       stripeSubscriptionId: info.subscriptionId,
     })
@@ -100,7 +104,7 @@ export async function settlePaidOrder(
     await deps.grants.grant({
       userId: order.recipientUserId,
       groupKey: order.groupKey,
-      until: graceUntil,
+      until: clampGrantUntil(graceUntil, now),
       reason: grantReason(order),
     })
   } catch (error) {
@@ -141,22 +145,23 @@ export async function settlePaidOrder(
 
 function settledPeriodEnd(
   order: OrderRow,
-  plan: DuesPlan | null,
+  plan: PlanRow | null,
   existing: MembershipRow | null,
   now: Date,
 ): Date {
+  if (order.billingMode === 'lifetime') return LIFETIME_END
+
   if (order.billingMode === 'fixed') {
     const base = existing !== null && existing.currentPeriodEnd > now ? existing.currentPeriodEnd : now
+    if (isLifetime(base)) return LIFETIME_END
     const parsed =
-      plan !== null && plan.billing.mode === 'fixed'
-        ? plan.billing.parsed
-        : parseStoredPeriod(order)
+      (plan?.periodSpec !== null && plan?.periodSpec !== undefined
+        ? parsePeriod(plan.periodSpec)
+        : null) ?? parseStoredPeriod(order)
     return addPeriod(base, parsed)
   }
 
-  const interval =
-    plan !== null && plan.billing.mode === 'auto' ? plan.billing.interval : 'month'
-  return addBillingInterval(now, interval)
+  return addBillingInterval(now, plan?.billingInterval ?? 'month')
 }
 
 function parseStoredPeriod(order: OrderRow) {
@@ -222,7 +227,7 @@ export async function applyInternalEvent(
         await deps.grants.grant({
           userId: membership.userId,
           groupKey: membership.groupKey,
-          until: graceUntil,
+          until: clampGrantUntil(graceUntil, deps.now()),
           reason: `dues renewal of subscription ${event.subscriptionId}`,
         })
       } catch (error) {

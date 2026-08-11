@@ -177,6 +177,87 @@ test('the admin panel shows the machinery: status, events, memberships, ledger',
   await expect(page.getByText('this box is inert').first()).toBeVisible()
 })
 
+test('an admin invents plans in the panel: a day pass, a price change, lifetime, off sale', async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(120_000)
+  await enterAdminPanel(page)
+
+  await page.goto('/admin/plugins/dues/plans')
+  const createForm = page.locator('form[action="/admin/api/plugins/dues/plans/create"]')
+  await expect(createForm).toBeVisible()
+
+  await createForm.getByLabel(/Key/).fill('day-pass')
+  await createForm.getByLabel('Name', { exact: true }).fill('Day pass')
+  await createForm.getByLabel(/Group it grants/).fill('supporters')
+  await createForm.getByLabel(/Price in minor units/).fill('100')
+  await createForm.getByLabel('Currency').fill('gbp')
+  await createForm.getByLabel('Pass length').fill('1')
+  await createForm.getByRole('button', { name: 'Put it on sale' }).click()
+  await expect(page.getByText('The plan day-pass is on sale from this moment.')).toBeVisible()
+
+  const buyerPage = await page.context().browser()!.newPage()
+  await signUp(buyerPage, 'planbuyer')
+  await buyerPage.goto('/plugins/dues')
+  await expect(buyerPage.getByText('£1.00 · 1 day')).toBeVisible()
+
+  const dayCard = buyerPage.locator('section', {
+    has: buyerPage.getByRole('heading', { name: 'Day pass', exact: true }),
+  })
+  await dayCard.getByRole('button', { name: 'Buy this pass' }).click()
+  const sessionId = await payOnFakeStripe(buyerPage)
+  await sendPaidWebhook(request, { id: sessionId, amount: 100 })
+
+  await buyerPage.goto('/plugins/dues')
+  await expect(buyerPage.getByRole('heading', { name: 'What you hold' })).toBeVisible()
+
+  await page.goto('/admin/plugins/dues/plans')
+  const dayRow = page.locator('li', { hasText: 'day-pass' })
+  await dayRow.getByText('Edit this plan').click()
+  await dayRow.getByLabel(/Price in minor units/).fill('200')
+  await dayRow.getByRole('button', { name: 'Save the plan' }).click()
+  await expect(page.getByText('day-pass is updated.')).toBeVisible()
+
+  await buyerPage.goto('/plugins/dues')
+  await expect(buyerPage.getByText('£2.00 · 1 day')).toBeVisible()
+
+  await page.goto('/admin/plugins/dues/plans')
+  const create2 = page.locator('form[action="/admin/api/plugins/dues/plans/create"]')
+  await create2.getByLabel(/Key/).fill('forever')
+  await create2.getByLabel(/How it bills/).selectOption('lifetime')
+  await create2.getByLabel('Name', { exact: true }).fill('Forever')
+  await create2.getByLabel(/Group it grants/).fill('supporters')
+  await create2.getByLabel(/Price in minor units/).fill('9900')
+  await create2.getByLabel('Currency').fill('gbp')
+  await create2.getByRole('button', { name: 'Put it on sale' }).click()
+  await expect(page.getByText('The plan forever is on sale from this moment.')).toBeVisible()
+
+  await buyerPage.goto('/plugins/dues')
+  await expect(buyerPage.getByText('£99.00 · once, for good')).toBeVisible()
+  const foreverCard = buyerPage.locator('section', {
+    has: buyerPage.getByRole('heading', { name: 'Forever' }),
+  })
+  await foreverCard.getByRole('button', { name: 'Buy lifetime membership' }).click()
+  const lifetimeSession = await payOnFakeStripe(buyerPage)
+  await sendPaidWebhook(request, { id: lifetimeSession, amount: 9900 })
+
+  await buyerPage.goto('/plugins/dues')
+  await expect(buyerPage.getByText('yours for good')).toBeVisible()
+
+  await page.goto('/admin/plugins/dues/plans')
+  await page
+    .locator('li', { hasText: 'day-pass' })
+    .getByRole('button', { name: 'Take it off sale' })
+    .click()
+  await expect(page.getByText('day-pass is off sale.')).toBeVisible()
+
+  await buyerPage.goto('/plugins/dues')
+  await expect(buyerPage.getByRole('heading', { name: 'Day pass', exact: true })).toHaveCount(0)
+  await expect(buyerPage.getByRole('heading', { name: '90-day pass' })).toBeVisible()
+  await buyerPage.close()
+})
+
 test('an admin mints a code, a member redeems it at half price, the desk revokes', async ({
   page,
   request,

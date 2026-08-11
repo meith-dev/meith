@@ -1,8 +1,11 @@
 # Dues
 
-Sells **time-limited membership of a usergroup** on a Meith board, through
-Stripe — a monthly or yearly subscription, or a fixed-term pass a member can
-buy for themselves **or gift to another member by name**.
+Sells **membership of a usergroup** on a Meith board, through Stripe — a
+monthly or yearly subscription, a fixed-term pass from a day to two years, or
+a lifetime membership — each a plan an administrator shapes in the panel:
+name, price, currency, and length are the operator's call. A pass or a
+lifetime plan can be bought for yourself **or gifted to another member by
+name**.
 
 What a paying member gets is whatever the group carries: forum access, a
 badge, a name colour. Dues never makes a permission decision — it decides who
@@ -15,14 +18,7 @@ own boundary and the board is left correct.
 
 ## Setting up a board
 
-1. **In Stripe**: for auto-renewing plans, create a product and its recurring
-   price(s); copy each `price_…` id. Fixed-term passes need nothing created —
-   they price themselves per checkout.
-2. **On the board**: create the group the plan grants (its permissions, badge
-   and colour are the product), then tick **may be granted by plugins** on its
-   screen under Admin → Groups. Staff, system and power-carrying groups refuse
-   the tick, on purpose.
-3. **Declare the plans** where the plugin is registered:
+1. **Register the plugin** where plugins are registered:
 
    ```ts
    // apps/community/community.plugins.ts (this repository's board uses
@@ -30,46 +26,69 @@ own boundary and the board is left correct.
    import { dues } from '@meith/plugin-dues'
 
    export const INSTALLED_PLUGINS = [
-     {
-       key: 'dues',
-       plugin: dues({
-         currency: 'gbp',
-         graceDays: 7,
-         plans: [
-           { key: 'supporter-month', name: 'Supporter', group: 'supporters',
-             price: 500,   // integer minor units: £5.00
-             billing: { mode: 'auto', interval: 'month', stripePriceId: 'price_…' } },
-           { key: 'pass-90', name: '90-day pass', group: 'supporters',
-             price: 1200,
-             billing: { mode: 'fixed', period: 'P90D' } },
-         ],
-       }),
-     },
+     { key: 'dues', plugin: dues({ currency: 'gbp', graceDays: 7 }) },
    ]
    ```
 
-   Plans are configuration in code deliberately: reviewed in git, deployed
-   with the build, refused at import when wrong. A bad price or an unparseable
-   period fails the deploy, not the first member who clicks buy.
+   `plans` may also be declared here as **seeds** — they populate the plan
+   table on the board's first run and are ignored once it has rows. After
+   that, the panel owns the plans.
 
-4. **Keys**: set `DUES_STRIPE_SECRET_KEY` and `DUES_STRIPE_WEBHOOK_SECRET` in
+2. **On the board**: create the group a plan will grant (its permissions,
+   badge and colour are the product), then tick **may be granted by plugins**
+   on its screen under Admin → Groups. Staff, system and power-carrying
+   groups refuse the tick, on purpose.
+3. **Keys**: set `DUES_STRIPE_SECRET_KEY` and `DUES_STRIPE_WEBHOOK_SECRET` in
    the environment, or fill them under Admin → Plugins → Dues. Environment
    wins, and the settings screen says which source is in force.
-5. **Migrations**: run `community upgrade`.
+4. **Migrations**: run `community upgrade`.
+5. **Make the plans** under Admin → Plugins → Dues → plans — see
+   [Plans](#plans) below.
 6. **The webhook**: in Stripe, add an endpoint at
    `https://your.board/api/plugins/dues/hook/stripe` subscribed to the events
    the status page lists, and put its `whsec_…` in the settings.
 7. **Prove it**: the status page (Admin → Plugins → Dues → status) should read
    green; buy a pass yourself in test mode before turning the live key on.
 
+## Plans
+
+A plan is made and edited in the panel. It has a permanent key, a name, a
+description, the group it grants, a price in minor units, its own three-letter
+currency, and one of three billing shapes:
+
+- **A pass** — one payment for a fixed stretch, one day to two years
+  (including the grace window; the board caps a plugin grant at two years,
+  and a pass respects the cap rather than pretending otherwise).
+- **A subscription** — renews monthly or yearly until cancelled. It bills
+  against a real Stripe price: leave the box empty and the plugin mints a
+  product and price to match the form, or paste a `price_…` id made in the
+  Stripe dashboard. Subscriptions are never giftable.
+- **Lifetime** — one payment, no renewal, no end date. Under the hood the
+  board still only ever grants a bounded window (about 23 months), and the
+  hourly sweep re-issues it long before it drains — so if the plugin is ever
+  removed, access ends at the window's edge instead of leaving unaccountable
+  permanent rows. Holding lifetime makes further purchases for that group
+  refuse; holding a subscription blocks buying lifetime until the renewal is
+  cancelled.
+
+Editing is safe by construction: **every order snapshots its plan** — name,
+price, currency, length — so a change never rewrites what anyone already
+bought. A subscription price change mints a new Stripe price; running
+subscriptions keep billing what they signed up for, and only the next buyer
+sees the new number. Plans are never deleted — **archiving** takes one off
+sale while everyone who holds it keeps it. The plan key is permanent because
+it is how orders, memberships and the ledger refer to the plan forever.
+
 ## How it decides things
 
 - **A pass stacks.** Buying a fixed pass while holding one adds to the end —
-  paying early never wastes time. Auto plans refuse a second subscription for
-  the same group.
-- **Gifts are fixed-term only.** An auto-renewing gift would charge the
-  buyer's card forever for someone else's membership; that is a support
-  disaster by design, so it is refused at configuration time.
+  paying early never wastes time. Subscriptions refuse a second subscription
+  for the same group, lifetime refuses everything after it — there is nothing
+  left to sell that member.
+- **Gifts are one-off purchases only** — passes and lifetime. An
+  auto-renewing gift would charge the buyer's card forever for someone
+  else's membership; that is a support disaster by design, so it is refused
+  when the plan is made.
 - **Nothing is granted from a redirect.** The return page waits; only the
   signature-verified webhook (or the reconcile task reading Stripe's own
   record) turns money into membership. Amounts must match the order exactly —
@@ -93,13 +112,15 @@ expiry date. Members type the code in the box on any plan card.
 - **A code discounts what Stripe charges, not what the order records** — the
   order snapshots the discounted amount, so the exact-match rule between
   payment and order still holds.
-- **On a pass** the whole price drops. **On a subscription** the discount
+- **On a pass or lifetime plan** the whole price drops. **On a
+  subscription** the discount
   becomes a real Stripe coupon (created on the code's first use, `duration:
   once`), so the first invoice is discounted and renewals bill in full — both
   numbers come from Stripe's own arithmetic.
-- **A 100% code on a pass is a comp.** Stripe is never contacted: the order
-  settles on the spot for zero and the recipient belongs immediately. This is
-  the intended way to comp a member.
+- **A 100% code on a pass or lifetime plan is a comp.** Stripe is never
+  contacted: the order settles on the spot for zero and the recipient belongs
+  immediately. This is the intended way to comp a member — including a
+  lifetime comp.
 - **Redemptions count at settlement**, not at checkout, so an abandoned
   checkout never burns a use. Two people racing the last redemption of a
   capped code can both succeed — the count is honest about money that

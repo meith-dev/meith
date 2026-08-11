@@ -1,7 +1,7 @@
 import type { PluginRequest, PluginResponse } from '@meith/plugin-kit'
 
 import { generateCode, normalizeCode, validCodeShape } from './codes'
-import { planByKey } from './config'
+import { anyPlanByKey, clampGrantUntil, isLifetime, parsePlanForm } from './plans'
 import { addDays } from './period'
 import type { DuesServices } from './handlers'
 import {
@@ -11,14 +11,22 @@ import {
   extendMembership,
   flagMembership,
   insertCode,
+  insertPlan,
   membershipById,
   orderById,
+  planRowById,
   setCodeDisabled,
   setMembershipStatus,
+  setPlanArchived,
+  setPlanStripePrice,
+  updatePlan,
   type MembershipRow,
 } from './store'
 
-function toAdmin(page: 'codes' | 'members' | 'status', query: Record<string, string>): PluginResponse {
+function toAdmin(
+  page: 'codes' | 'members' | 'status' | 'plans',
+  query: Record<string, string>,
+): PluginResponse {
   const params = new URLSearchParams(query).toString()
   return {
     kind: 'redirect',
@@ -53,7 +61,10 @@ export async function handleAdminCodeCreate(
   }
 
   const planInput = (request.form?.plan ?? '').trim()
-  if (planInput !== '' && planByKey(services.config, planInput) === null) {
+  if (
+    planInput !== '' &&
+    (await anyPlanByKey(services.context.data, services.config, planInput)) === null
+  ) {
     return toAdmin('codes', { error: 'bad-plan', code: typed })
   }
 
@@ -112,7 +123,7 @@ export async function handleAdminExtend(
 
   const id = asId(request.form?.membership)
   const membership = id === null ? null : await membershipById(services.context.data, id)
-  if (membership === null || !isLive(membership)) {
+  if (membership === null || !isLive(membership) || isLifetime(membership.currentPeriodEnd)) {
     return toAdmin('members', { error: 'not-live' })
   }
 
@@ -130,7 +141,7 @@ export async function handleAdminExtend(
     await services.context.grants.grant({
       userId: membership.userId,
       groupKey: membership.groupKey,
-      until: graceUntil,
+      until: clampGrantUntil(graceUntil, now),
       reason: `dues: an administrator extended membership ${membership.id} by ${days} days`,
     })
   } catch (error) {
@@ -214,6 +225,165 @@ export async function handleAdminRevoke(
   }
 
   return toAdmin('members', { revoked: String(membership.id) })
+}
+
+type PriceResolution =
+  | { readonly ok: true; readonly priceId: string; readonly productId: string | null }
+  | { readonly ok: false; readonly error: string }
+
+// A subscription plan bills against a real Stripe price. The admin can paste
+// one made in the dashboard, or leave the box empty and have the plugin mint a
+// product and price to match the form. Stripe prices are immutable, so a price
+// change mints a new one — running subscriptions keep billing what they signed
+// up for, only new checkouts see the new price.
+async function resolveAutoPrice(
+  services: DuesServices,
+  plan: {
+    readonly name: string
+    readonly priceMinor: number
+    readonly currency: string
+    readonly interval: 'month' | 'year'
+    readonly key: string
+  },
+  pasted: string,
+  existingProductId: string | null,
+): Promise<PriceResolution> {
+  if (pasted !== '') {
+    if (!pasted.startsWith('price_')) return { ok: false, error: 'bad-stripe-price' }
+    return { ok: true, priceId: pasted, productId: existingProductId }
+  }
+
+  if (services.stripe === null) return { ok: false, error: 'unconfigured' }
+
+  try {
+    const productId =
+      existingProductId ??
+      (await services.stripe.createProduct({ name: plan.name, reference: plan.key })).id
+    const price = await services.stripe.createPrice({
+      productId,
+      unitAmount: plan.priceMinor,
+      currency: plan.currency,
+      interval: plan.interval,
+      reference: `${plan.key}-${plan.priceMinor}-${plan.currency}-${plan.interval}`,
+    })
+    return { ok: true, priceId: price.id, productId }
+  } catch (error) {
+    services.context.logger.error('dues: could not mint the Stripe price', {
+      plan: plan.key,
+      message: error instanceof Error ? error.message : String(error),
+    })
+    return { ok: false, error: 'stripe-error' }
+  }
+}
+
+export async function handleAdminPlanCreate(
+  services: DuesServices,
+  request: PluginRequest,
+): Promise<PluginResponse> {
+  const parsed = parsePlanForm(request.form ?? {}, services.config.graceDays)
+  if (!parsed.ok) return toAdmin('plans', { error: parsed.error })
+  const plan = parsed.plan
+
+  if ((await anyPlanByKey(services.context.data, services.config, plan.planKey)) !== null) {
+    return toAdmin('plans', { error: 'duplicate-plan' })
+  }
+
+  let stripePriceId: string | null = null
+  let stripeProductId: string | null = null
+  if (plan.mode === 'auto') {
+    const price = await resolveAutoPrice(
+      services,
+      {
+        name: plan.name,
+        priceMinor: plan.priceMinor,
+        currency: plan.currency,
+        interval: plan.billingInterval ?? 'month',
+        key: plan.planKey,
+      },
+      (request.form?.stripe_price ?? '').trim(),
+      null,
+    )
+    if (!price.ok) return toAdmin('plans', { error: price.error })
+    stripePriceId = price.priceId
+    stripeProductId = price.productId
+  }
+
+  const inserted = await insertPlan(services.context.data, {
+    ...plan,
+    stripePriceId,
+    stripeProductId,
+  })
+  if (inserted === null) return toAdmin('plans', { error: 'duplicate-plan' })
+
+  return toAdmin('plans', { created: inserted.key })
+}
+
+export async function handleAdminPlanUpdate(
+  services: DuesServices,
+  request: PluginRequest,
+): Promise<PluginResponse> {
+  const id = asId(request.form?.id)
+  const existing = id === null ? null : await planRowById(services.context.data, id)
+  if (existing === null) return toAdmin('plans', { error: 'no-such-plan' })
+
+  const parsed = parsePlanForm(
+    { ...request.form, key: existing.key, mode: existing.mode },
+    services.config.graceDays,
+  )
+  if (!parsed.ok) return toAdmin('plans', { error: parsed.error })
+  const plan = parsed.plan
+
+  if (existing.mode === 'auto') {
+    const pasted = (request.form?.stripe_price ?? '').trim()
+    const changed =
+      plan.priceMinor !== existing.priceMinor ||
+      plan.currency !== existing.currency ||
+      plan.billingInterval !== existing.billingInterval
+
+    if (pasted !== '' || changed || existing.stripePriceId === null) {
+      const price = await resolveAutoPrice(
+        services,
+        {
+          name: plan.name,
+          priceMinor: plan.priceMinor,
+          currency: plan.currency,
+          interval: plan.billingInterval ?? 'month',
+          key: existing.key,
+        },
+        pasted,
+        existing.stripeProductId,
+      )
+      if (!price.ok) return toAdmin('plans', { error: price.error })
+      await setPlanStripePrice(services.context.data, existing.id, price.priceId, price.productId)
+    }
+  }
+
+  await updatePlan(services.context.data, existing.id, {
+    name: plan.name,
+    description: plan.description,
+    groupKey: plan.groupKey,
+    priceMinor: plan.priceMinor,
+    currency: plan.currency,
+    periodSpec: existing.mode === 'fixed' ? plan.periodSpec : existing.periodSpec,
+    billingInterval: existing.mode === 'auto' ? plan.billingInterval : existing.billingInterval,
+    giftable: plan.giftable,
+    hidden: plan.hidden,
+  })
+
+  return toAdmin('plans', { updated: existing.key })
+}
+
+export async function handleAdminPlanArchive(
+  services: DuesServices,
+  request: PluginRequest,
+): Promise<PluginResponse> {
+  const id = asId(request.form?.id)
+  const plan = id === null ? null : await planRowById(services.context.data, id)
+  if (plan === null) return toAdmin('plans', { error: 'no-such-plan' })
+
+  const archive = request.form?.archived === '1'
+  await setPlanArchived(services.context.data, plan.id, archive)
+  return toAdmin('plans', { [archive ? 'archived' : 'restored']: plan.key })
 }
 
 export async function handleAdminClear(

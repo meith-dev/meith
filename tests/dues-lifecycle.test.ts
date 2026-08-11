@@ -28,8 +28,12 @@ import {
   handleAdminCodeCreate,
   handleAdminCodeDisable,
   handleAdminExtend,
+  handleAdminPlanArchive,
+  handleAdminPlanCreate,
+  handleAdminPlanUpdate,
   handleAdminRevoke,
 } from '../plugins/dues/src/handlers-admin'
+import { GRANT_WINDOW_DAYS } from '../plugins/dues/src/plans'
 import { runReconcile, runSweep } from '../plugins/dues/src/tasks'
 import {
   allMemberships,
@@ -40,6 +44,7 @@ import {
   orderById,
   orderBySessionId,
   ordersNeedingAttention,
+  planRowByKey,
   recentLedger,
   recordEvent,
   unprocessedEvents,
@@ -87,6 +92,8 @@ interface FakeStripe extends StripeClient {
   readonly subscriptions: Map<string, SubscriptionState>
   readonly cancelCalls: string[]
   readonly coupons: Array<{ percentOff: number; name: string; reference: string }>
+  readonly products: Array<{ name: string; reference: string }>
+  readonly prices: Array<Record<string, unknown>>
   readonly checkoutInputs: Array<Record<string, unknown>>
   nextSessionUrl: string
 }
@@ -97,6 +104,8 @@ function fakeStripe(): FakeStripe {
   const subscriptions = new Map<string, SubscriptionState>()
   const cancelCalls: string[] = []
   const coupons: Array<{ percentOff: number; name: string; reference: string }> = []
+  const products: Array<{ name: string; reference: string }> = []
+  const prices: Array<Record<string, unknown>> = []
   const checkoutInputs: Array<Record<string, unknown>> = []
 
   return {
@@ -104,6 +113,8 @@ function fakeStripe(): FakeStripe {
     subscriptions,
     cancelCalls,
     coupons,
+    products,
+    prices,
     checkoutInputs,
     nextSessionUrl: 'https://checkout.stripe.com/pay/test',
 
@@ -115,6 +126,18 @@ function fakeStripe(): FakeStripe {
     async createCoupon(input) {
       coupons.push({ ...input })
       return { id: `coupon_${input.reference}` }
+    },
+
+    async createProduct(input) {
+      products.push({ ...input })
+      counter += 1
+      return { id: `prod_${counter}` }
+    },
+
+    async createPrice(input) {
+      prices.push({ ...input })
+      counter += 1
+      return { id: `price_minted_${counter}` }
     },
 
     async createCheckoutSession(input) {
@@ -254,6 +277,7 @@ beforeEach(async () => {
     delete from plugin_dues_ledger; delete from plugin_dues_event;
     delete from plugin_dues_membership; delete from plugin_dues_order;
     delete from plugin_dues_customer; delete from plugin_dues_code;
+    delete from plugin_dues_plan;
     delete from user_group_memberships; delete from users; delete from usergroups;
     delete from cache_versions;
   `)
@@ -925,5 +949,175 @@ describe('the admin desk', () => {
 
     expect(await ordersNeedingAttention(context.data)).toHaveLength(0)
     expect((await membershipsFor(context.data, bob))[0]?.needsAttention).toBeNull()
+  })
+})
+
+describe('the plan manager', () => {
+  async function plan(form: Record<string, string>): Promise<string> {
+    const response = await handleAdminPlanCreate(
+      services(),
+      adminRequest(alice, 'plans/create', form),
+    )
+    return (response as { to: string }).to
+  }
+
+  it('the shop seeds from code once; archiving takes a plan off sale, not away', async () => {
+    const { sessionId } = await checkout(alice, 'pass-90')
+    await handleWebhook(services(), paidSessionEvent(sessionId))
+    expect((await actorGroups(alice)).has(supportersGroup)).toBe(true)
+
+    const seeded = await planRowByKey(context.data, 'pass-90')
+    const archived = await handleAdminPlanArchive(
+      services(),
+      adminRequest(alice, 'plans/archive', { id: String(seeded!.id), archived: '1' }),
+    )
+    expect((archived as { to: string }).to).toContain('archived=pass-90')
+
+    const refused = await handleCheckout(services(), request(bob, { plan: 'pass-90' }))
+    expect((refused as { to: string }).to).toContain('error=unknown-plan')
+
+    expect((await actorGroups(alice)).has(supportersGroup)).toBe(true)
+  })
+
+  it('an admin invents a day pass and a member holds it for exactly a day', async () => {
+    expect(
+      await plan({
+        key: 'day-pass', name: 'Day pass', group: 'supporters',
+        price: '100', currency: 'gbp', mode: 'fixed', length: '1', unit: 'days',
+        giftable: 'on',
+      }),
+    ).toContain('created=day-pass')
+
+    const { sessionId } = await checkout(bob, 'day-pass')
+    await handleWebhook(
+      services(),
+      paidSessionEvent(sessionId, { amount_total: 100 }),
+    )
+
+    expect((await actorGroups(bob)).has(supportersGroup)).toBe(true)
+    const [membership] = await membershipsFor(context.data, bob)
+    const days = (membership!.currentPeriodEnd.getTime() - Date.now()) / 86_400_000
+    expect(days).toBeGreaterThan(0.9)
+    expect(days).toBeLessThan(1.1)
+  })
+
+  it('price and currency are the admin’s to change; the next buyer sees them', async () => {
+    const seeded = await planRowByKey(
+      context.data,
+      ((await checkout(alice, 'pass-90')) && 'pass-90'),
+    )
+
+    const updated = await handleAdminPlanUpdate(
+      services(),
+      adminRequest(alice, 'plans/update', {
+        id: String(seeded!.id), name: '90-day pass', group: 'supporters',
+        price: '1500', currency: 'usd', length: '90', unit: 'days', giftable: 'on',
+      }),
+    )
+    expect((updated as { to: string }).to).toContain('updated=pass-90')
+
+    const { sessionId } = await checkout(bob, 'pass-90')
+    const order = await orderBySessionId(context.data, sessionId)
+    expect(order).toMatchObject({ amountMinor: 1500, currency: 'usd' })
+
+    await handleWebhook(
+      services(),
+      paidSessionEvent(sessionId, { amount_total: 1500, currency: 'usd' }),
+    )
+    expect((await actorGroups(bob)).has(supportersGroup)).toBe(true)
+    expect((await recentLedger(context.data))[0]).toMatchObject({
+      amountMinor: 1500,
+      currency: 'usd',
+    })
+  })
+
+  it('lifetime is one payment forever, carried by a grant window the sweep renews', async () => {
+    await plan({
+      key: 'forever', name: 'Forever', group: 'supporters',
+      price: '9900', currency: 'gbp', mode: 'lifetime', giftable: 'on',
+    })
+
+    const { sessionId } = await checkout(alice, 'forever')
+    await handleWebhook(services(), paidSessionEvent(sessionId, { amount_total: 9900 }))
+
+    const [membership] = await membershipsFor(context.data, alice)
+    expect(membership!.renewalMode).toBe('lifetime')
+    expect(membership!.currentPeriodEnd.getUTCFullYear()).toBe(9999)
+    expect((await actorGroups(alice)).has(supportersGroup)).toBe(true)
+
+    const grants = await pluginGrants(h.db, 'dues').list(alice)
+    const window = (grants[0]!.expiresAt.getTime() - Date.now()) / 86_400_000
+    expect(window).toBeGreaterThan(GRANT_WINDOW_DAYS - 2)
+    expect(window).toBeLessThan(GRANT_WINDOW_DAYS + 1)
+
+    await exec(`update user_group_memberships set expires_at = now() + interval '10 days'`)
+    await runSweep(entitlementDeps(services()))
+
+    const topped = await pluginGrants(h.db, 'dues').list(alice)
+    const renewed = (topped[0]!.expiresAt.getTime() - Date.now()) / 86_400_000
+    expect(renewed).toBeGreaterThan(GRANT_WINDOW_DAYS - 2)
+
+    const again = await handleCheckout(services(), request(alice, { plan: 'forever' }))
+    expect((again as { to: string }).to).toContain('error=already-member')
+  })
+
+  it('a subscription plan minted from the form gets a real Stripe price; pasting skips the mint', async () => {
+    expect(
+      await plan({
+        key: 'gold-month', name: 'Gold', group: 'supporters',
+        price: '900', currency: 'gbp', mode: 'auto', interval: 'month',
+      }),
+    ).toContain('created=gold-month')
+
+    expect(stripe.products).toEqual([{ name: 'Gold', reference: 'gold-month' }])
+    expect(stripe.prices).toHaveLength(1)
+    const minted = await planRowByKey(context.data, 'gold-month')
+    expect(minted!.stripePriceId).toMatch(/^price_minted_/)
+
+    await checkout(alice, 'gold-month')
+    const input = stripe.checkoutInputs.at(-1) as {
+      line_items: Array<{ price?: string }>
+    }
+    expect(input.line_items[0]!.price).toBe(minted!.stripePriceId)
+
+    await plan({
+      key: 'pasted', name: 'Pasted', group: 'supporters',
+      price: '900', currency: 'gbp', mode: 'auto', interval: 'year',
+      stripe_price: 'price_dashboard_1',
+    })
+    expect(stripe.products).toHaveLength(1)
+    expect((await planRowByKey(context.data, 'pasted'))!.stripePriceId).toBe(
+      'price_dashboard_1',
+    )
+  })
+
+  it('the form refuses what cannot work, before anything is saved', async () => {
+    const base = {
+      key: 'p1', name: 'P', group: 'supporters',
+      price: '100', currency: 'gbp', mode: 'fixed', length: '30', unit: 'days',
+    }
+    expect(await plan({ ...base, length: '3', unit: 'years' })).toContain('error=too-long')
+    expect(await plan({ ...base, price: '0' })).toContain('error=bad-price')
+    expect(await plan({ ...base, currency: 'pounds' })).toContain('error=bad-currency')
+    expect(await plan({ ...base, mode: 'auto', interval: 'month', giftable: 'on' })).toContain(
+      'error=auto-gift',
+    )
+    expect(await plan({ ...base, key: 'pass-90' })).toContain('error=duplicate-plan')
+    expect(await planRowByKey(context.data, 'p1')).toBeNull()
+  })
+
+  it('holding a subscription blocks a lifetime buy until it is cancelled', async () => {
+    const bought = await checkout(alice, 'supporter-month')
+    await handleWebhook(
+      services(),
+      paidSessionEvent(bought.sessionId, { amount_total: 500, subscription: 'sub_lt' }),
+    )
+
+    await plan({
+      key: 'forever2', name: 'Forever', group: 'supporters',
+      price: '9900', currency: 'gbp', mode: 'lifetime',
+    })
+    const refused = await handleCheckout(services(), request(alice, { plan: 'forever2' }))
+    expect((refused as { to: string }).to).toContain('error=cancel-first')
   })
 })

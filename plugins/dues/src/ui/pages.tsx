@@ -2,16 +2,16 @@ import type { ReactNode } from 'react'
 
 import type { PluginPageContext } from '@meith/plugin-kit'
 
-import type { DuesConfig, DuesPlan } from '../config'
-import { visiblePlans } from '../config'
+import type { DuesConfig } from '../config'
 import { formatMinor } from '../money'
-import { describePeriod } from '../period'
+import { describeBilling, shopPlans } from '../plans'
 import {
   membershipsFor,
   orderById,
   ordersBoughtBy,
   type MembershipRow,
   type OrderRow,
+  type PlanRow,
 } from '../store'
 
 const CARD = 'flex flex-col gap-3 rounded-lg border border-border p-4'
@@ -34,12 +34,11 @@ function fmtDate(date: Date): ReactNode {
   return <time dateTime={date.toISOString()}>{label}</time>
 }
 
-function priceLine(config: DuesConfig, plan: DuesPlan): string {
-  const price = formatMinor(plan.price, config.currency)
-  if (plan.billing.mode === 'auto') {
-    return `${price} every ${plan.billing.interval}`
-  }
-  return `${price} · ${describePeriod(plan.billing.parsed)}`
+function priceLine(plan: PlanRow): string {
+  const price = formatMinor(plan.priceMinor, plan.currency)
+  if (plan.mode === 'auto') return `${price} every ${plan.billingInterval ?? 'month'}`
+  if (plan.mode === 'lifetime') return `${price} · once, for good`
+  return `${price} · ${describeBilling(plan)}`
 }
 
 const NOTICES: Record<string, string> = {
@@ -63,6 +62,12 @@ const NOTICES: Record<string, string> = {
   'code-expired': 'That discount code has expired.',
   'code-exhausted': 'That discount code has been used as many times as it allows.',
   'code-wrong-plan': 'That discount code is for a different plan.',
+  'plan-not-ready':
+    'That plan is not finished being set up — its Stripe price is missing. An ' +
+    'administrator needs to complete it.',
+  'cancel-first':
+    'There is an active subscription for that membership. Cancel its renewal first, ' +
+    'then buy the lifetime plan — you keep everything already paid for.',
 }
 
 function Notice({ query }: { query: Readonly<Record<string, string>> }) {
@@ -104,6 +109,17 @@ function membershipDate(membership: MembershipRow): Date {
   return membership.status === 'grace' ? membership.graceUntil : membership.currentPeriodEnd
 }
 
+function membershipWhen(membership: MembershipRow): ReactNode {
+  if (membership.renewalMode === 'lifetime' && membership.status === 'active') {
+    return 'yours for good'
+  }
+  return (
+    <>
+      {membershipLine(membership)} {fmtDate(membershipDate(membership))}
+    </>
+  )
+}
+
 function HeldCard({ memberships }: { memberships: readonly MembershipRow[] }) {
   const live = memberships.filter(
     (row) => row.status === 'active' || row.status === 'grace' || row.status === 'closing',
@@ -122,7 +138,7 @@ function HeldCard({ memberships }: { memberships: readonly MembershipRow[] }) {
             <span
               className={row.status === 'grace' ? '' : 'text-muted-foreground'}
             >
-              {membershipLine(row)} {fmtDate(membershipDate(row))}
+              {membershipWhen(row)}
             </span>
           </li>
         ))}
@@ -140,14 +156,12 @@ function HeldCard({ memberships }: { memberships: readonly MembershipRow[] }) {
 }
 
 function PlanCard({
-  config,
   plan,
   viewerSignedIn,
   defaultRecipient,
   defaultCode,
 }: {
-  config: DuesConfig
-  plan: DuesPlan
+  plan: PlanRow
   viewerSignedIn: boolean
   defaultRecipient: string
   defaultCode: string
@@ -156,14 +170,19 @@ function PlanCard({
     <section className={CARD} aria-label={plan.name}>
       <div className="flex flex-col gap-1">
         <h3 className="font-heading text-lg font-semibold">{plan.name}</h3>
-        <p className="text-sm font-medium">{priceLine(config, plan)}</p>
+        <p className="text-sm font-medium">{priceLine(plan)}</p>
         {plan.description !== null && (
           <p className="text-sm text-muted-foreground">{plan.description}</p>
         )}
-        {plan.billing.mode === 'auto' && (
+        {plan.mode === 'auto' && (
           <p className="text-xs text-muted-foreground">
             Renews automatically. Cancel any time and keep what you paid for until the
             period ends.
+          </p>
+        )}
+        {plan.mode === 'lifetime' && (
+          <p className="text-xs text-muted-foreground">
+            One payment, no renewal, no end date.
           </p>
         )}
       </div>
@@ -201,7 +220,11 @@ function PlanCard({
           </label>
           <div>
             <button type="submit" className={BUY_BUTTON}>
-              {plan.billing.mode === 'auto' ? 'Subscribe' : 'Buy this pass'}
+              {plan.mode === 'auto'
+                ? 'Subscribe'
+                : plan.mode === 'lifetime'
+                  ? 'Buy lifetime membership'
+                  : 'Buy this pass'}
             </button>
           </div>
         </form>
@@ -230,17 +253,22 @@ export async function PlansPage({
   const viewerId = context.viewer.userId
   const signedIn = viewerId !== null
   const memberships = viewerId === null ? [] : await membershipsFor(context.data, viewerId)
+  const plans = await shopPlans(context.data, config)
   const bounced = context.query.plan ?? ''
 
   return (
     <div className="flex flex-col gap-6">
       <Notice query={context.query} />
       <HeldCard memberships={memberships} />
+      {plans.length === 0 && (
+        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+          Nothing is on sale just now.
+        </p>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
-        {visiblePlans(config).map((plan) => (
+        {plans.map((plan) => (
           <PlanCard
             key={plan.key}
-            config={config}
             plan={plan}
             viewerSignedIn={signedIn}
             defaultRecipient={bounced === plan.key ? (context.query.recipient ?? '') : ''}
@@ -480,7 +508,7 @@ export async function ManagePage({
                       membership.status === 'grace' ? '' : 'text-muted-foreground'
                     }
                   >
-                    {membershipLine(membership)} {fmtDate(membershipDate(membership))}
+                    {membershipWhen(membership)}
                   </span>
                 </div>
                 {membership.status === 'grace' && (

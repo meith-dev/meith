@@ -120,6 +120,19 @@ export interface StripeClient {
     readonly reference: string
   }): Promise<{ readonly id: string }>
 
+  createProduct(input: {
+    readonly name: string
+    readonly reference: string
+  }): Promise<{ readonly id: string }>
+
+  createPrice(input: {
+    readonly productId: string
+    readonly unitAmount: number
+    readonly currency: string
+    readonly interval: 'month' | 'year'
+    readonly reference: string
+  }): Promise<{ readonly id: string }>
+
   createCheckoutSession(input: Record<string, unknown>): Promise<CheckoutSessionState>
   getCheckoutSession(id: string): Promise<CheckoutSessionState>
 
@@ -221,6 +234,31 @@ export function createStripeClient(options: StripeClientOptions): StripeClient {
         '/v1/coupons',
         { percent_off: input.percentOff, duration: 'once', name: input.name },
         `dues-coupon-${input.reference}`,
+      )
+      return { id: String(body.id) }
+    },
+
+    async createProduct(input) {
+      const body = await request(
+        'POST',
+        '/v1/products',
+        { name: input.name },
+        `dues-product-${input.reference}`,
+      )
+      return { id: String(body.id) }
+    },
+
+    async createPrice(input) {
+      const body = await request(
+        'POST',
+        '/v1/prices',
+        {
+          product: input.productId,
+          unit_amount: input.unitAmount,
+          currency: input.currency,
+          recurring: { interval: input.interval },
+        },
+        `dues-price-${input.reference}`,
       )
       return { id: String(body.id) }
     },

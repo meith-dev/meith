@@ -18,7 +18,8 @@ export interface DuesConfigInput {
   readonly currency: string
   readonly graceDays?: number
   readonly label?: string
-  readonly plans: readonly DuesPlanInput[]
+  /** Seeds for a board's first run. Once the plan table has rows, the panel owns plans. */
+  readonly plans?: readonly DuesPlanInput[]
   readonly extraRedirectHosts?: readonly string[]
 }
 
@@ -39,7 +40,7 @@ export interface DuesConfig {
   readonly currency: string
   readonly graceDays: number
   readonly label: string
-  readonly plans: readonly DuesPlan[]
+  readonly seedPlans: readonly DuesPlan[]
   readonly extraRedirectHosts: readonly string[]
 }
 
@@ -66,12 +67,8 @@ export function parseDuesConfig(input: DuesConfigInput): DuesConfig {
   const label = (input.label ?? 'Membership').trim()
   if (label === '') refuse('label must not be empty.')
 
-  if (input.plans.length === 0) {
-    refuse('declare at least one plan — a membership shop with nothing in it is a typo.')
-  }
-
   const seen = new Set<string>()
-  const plans = input.plans.map((plan): DuesPlan => {
+  const plans = (input.plans ?? []).map((plan): DuesPlan => {
     const where = `plan "${plan.key}"`
 
     if (!PLAN_KEY.test(plan.key)) {
@@ -151,15 +148,7 @@ export function parseDuesConfig(input: DuesConfigInput): DuesConfig {
     currency: input.currency.toLowerCase(),
     graceDays,
     label,
-    plans,
+    seedPlans: plans,
     extraRedirectHosts: input.extraRedirectHosts ?? [],
   }
-}
-
-export function visiblePlans(config: DuesConfig): readonly DuesPlan[] {
-  return config.plans.filter((plan) => !plan.hidden)
-}
-
-export function planByKey(config: DuesConfig, key: string): DuesPlan | null {
-  return config.plans.find((plan) => plan.key === key) ?? null
 }

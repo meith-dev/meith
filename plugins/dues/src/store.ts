@@ -2,7 +2,8 @@ import type { PluginData } from '@meith/plugin-kit'
 
 export type OrderStatus = 'created' | 'pending' | 'paid' | 'failed' | 'cancelled'
 export type MembershipStatus = 'active' | 'grace' | 'closing' | 'expired' | 'revoked'
-export type RenewalMode = 'auto' | 'fixed'
+export type RenewalMode = 'auto' | 'fixed' | 'lifetime'
+export type PlanMode = RenewalMode
 
 export interface OrderRow {
   readonly id: number
@@ -407,6 +408,7 @@ export async function extendMembership(
     readonly currentPeriodEnd: Date
     readonly graceUntil: Date
     readonly planKey?: string
+    readonly renewalMode?: RenewalMode
     readonly lastOrderId?: number | null
     readonly stripeSubscriptionId?: string | null
   },
@@ -417,8 +419,9 @@ export async function extendMembership(
             current_period_end = greatest(current_period_end, $2),
             grace_until = greatest(grace_until, $3),
             plan_key = coalesce($4, plan_key),
-            last_order_id = coalesce($5, last_order_id),
-            stripe_subscription_id = coalesce($6, stripe_subscription_id),
+            renewal_mode = coalesce($5, renewal_mode),
+            last_order_id = coalesce($6, last_order_id),
+            stripe_subscription_id = coalesce($7, stripe_subscription_id),
             needs_attention = null,
             updated_at = now()
       where id = $1`,
@@ -427,6 +430,7 @@ export async function extendMembership(
       update.currentPeriodEnd,
       update.graceUntil,
       update.planKey ?? null,
+      update.renewalMode ?? null,
       update.lastOrderId ?? null,
       update.stripeSubscriptionId ?? null,
     ],
@@ -775,4 +779,188 @@ export async function countCodeRedemption(data: PluginData, id: number): Promise
     `update plugin_dues_code set redeemed_count = redeemed_count + 1 where id = $1`,
     [id],
   )
+}
+
+export interface PlanRow {
+  readonly id: number
+  readonly key: string
+  readonly name: string
+  readonly description: string | null
+  readonly groupKey: string
+  readonly priceMinor: number
+  readonly currency: string
+  readonly mode: PlanMode
+  readonly periodSpec: string | null
+  readonly billingInterval: 'month' | 'year' | null
+  readonly stripePriceId: string | null
+  readonly stripeProductId: string | null
+  readonly giftable: boolean
+  readonly hidden: boolean
+  readonly archived: boolean
+  readonly createdAt: Date
+}
+
+function planRow(row: Record<string, unknown>): PlanRow {
+  return {
+    id: Number(row.id),
+    key: String(row.plan_key),
+    name: String(row.name),
+    description: asNullableString(row.description),
+    groupKey: String(row.group_key),
+    priceMinor: Number(row.price_minor),
+    currency: String(row.currency),
+    mode: String(row.mode) as PlanMode,
+    periodSpec: asNullableString(row.period_spec),
+    billingInterval: asNullableString(row.billing_interval) as 'month' | 'year' | null,
+    stripePriceId: asNullableString(row.stripe_price_id),
+    stripeProductId: asNullableString(row.stripe_product_id),
+    giftable: row.giftable === true,
+    hidden: row.hidden === true,
+    archived: row.archived === true,
+    createdAt: asDate(row.created_at),
+  }
+}
+
+export interface NewPlan {
+  readonly planKey: string
+  readonly name: string
+  readonly description: string | null
+  readonly groupKey: string
+  readonly priceMinor: number
+  readonly currency: string
+  readonly mode: PlanMode
+  readonly periodSpec: string | null
+  readonly billingInterval: 'month' | 'year' | null
+  readonly stripePriceId?: string | null
+  readonly stripeProductId?: string | null
+  readonly giftable: boolean
+  readonly hidden: boolean
+}
+
+export async function insertPlan(data: PluginData, plan: NewPlan): Promise<PlanRow | null> {
+  const row = await data.one(
+    `insert into plugin_dues_plan
+       (plan_key, name, description, group_key, price_minor, currency, mode,
+        period_spec, billing_interval, stripe_price_id, stripe_product_id,
+        giftable, hidden)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+     on conflict (plan_key) do nothing
+     returning *`,
+    [
+      plan.planKey,
+      plan.name,
+      plan.description,
+      plan.groupKey,
+      plan.priceMinor,
+      plan.currency,
+      plan.mode,
+      plan.periodSpec,
+      plan.billingInterval,
+      plan.stripePriceId ?? null,
+      plan.stripeProductId ?? null,
+      plan.giftable,
+      plan.hidden,
+    ],
+  )
+  return row === null ? null : planRow(row)
+}
+
+export async function updatePlan(
+  data: PluginData,
+  id: number,
+  update: {
+    readonly name: string
+    readonly description: string | null
+    readonly groupKey: string
+    readonly priceMinor: number
+    readonly currency: string
+    readonly periodSpec: string | null
+    readonly billingInterval: 'month' | 'year' | null
+    readonly giftable: boolean
+    readonly hidden: boolean
+  },
+): Promise<void> {
+  await data.query(
+    `update plugin_dues_plan
+        set name = $2, description = $3, group_key = $4, price_minor = $5,
+            currency = $6, period_spec = $7, billing_interval = $8,
+            giftable = $9, hidden = $10, updated_at = now()
+      where id = $1`,
+    [
+      id,
+      update.name,
+      update.description,
+      update.groupKey,
+      update.priceMinor,
+      update.currency,
+      update.periodSpec,
+      update.billingInterval,
+      update.giftable,
+      update.hidden,
+    ],
+  )
+}
+
+export async function setPlanStripePrice(
+  data: PluginData,
+  id: number,
+  stripePriceId: string,
+  stripeProductId: string | null,
+): Promise<void> {
+  await data.query(
+    `update plugin_dues_plan
+        set stripe_price_id = $2,
+            stripe_product_id = coalesce($3, stripe_product_id),
+            updated_at = now()
+      where id = $1`,
+    [id, stripePriceId, stripeProductId],
+  )
+}
+
+export async function setPlanArchived(
+  data: PluginData,
+  id: number,
+  archived: boolean,
+): Promise<void> {
+  await data.query(
+    `update plugin_dues_plan set archived = $2, updated_at = now() where id = $1`,
+    [id, archived],
+  )
+}
+
+export async function listPlans(data: PluginData): Promise<readonly PlanRow[]> {
+  const rows = await data.query(
+    `select * from plugin_dues_plan order by archived, created_at, id`,
+  )
+  return rows.map(planRow)
+}
+
+export async function countPlans(data: PluginData): Promise<number> {
+  const row = await data.one('select count(*)::int as total from plugin_dues_plan')
+  return row === null ? 0 : Number(row.total)
+}
+
+export async function planRowByKey(data: PluginData, key: string): Promise<PlanRow | null> {
+  const row = await data.one('select * from plugin_dues_plan where plan_key = $1', [key])
+  return row === null ? null : planRow(row)
+}
+
+export async function planRowById(data: PluginData, id: number): Promise<PlanRow | null> {
+  const row = await data.one('select * from plugin_dues_plan where id = $1', [id])
+  return row === null ? null : planRow(row)
+}
+
+export async function longLiveMemberships(
+  data: PluginData,
+  horizon: Date,
+  limit = 200,
+): Promise<readonly MembershipRow[]> {
+  const rows = await data.query(
+    `select * from plugin_dues_membership
+      where status in ('active', 'grace', 'closing')
+        and grace_until > $1
+      limit $2`,
+    [horizon, limit],
+  )
+  return rows.map(membershipRow)
 }

@@ -1,8 +1,10 @@
 import { addDays } from './period'
+import { clampGrantUntil, TOP_UP_WHEN_WITHIN_DAYS } from './plans'
 import { applyInternalEvent, settlePaidOrder, type EntitlementDeps } from './entitlement'
 import {
   expireDueMemberships,
   extendMembership,
+  longLiveMemberships,
   markEventProcessed,
   markEventFailed,
   membershipsPastPeriod,
@@ -119,5 +121,40 @@ export async function runReconcile(
 }
 
 export async function runSweep(deps: EntitlementDeps): Promise<number> {
-  return expireDueMemberships(deps.data, 200)
+  const expired = await expireDueMemberships(deps.data, 200)
+  await topUpLongGrants(deps)
+  return expired
+}
+
+// Entitlement can outrun the board's two-year grant cap — a lifetime plan, or
+// passes stacked far ahead. Those rows hold a clamped grant window; this keeps
+// re-issuing the window before it drains, and stops the moment the membership
+// itself is no longer live.
+async function topUpLongGrants(deps: EntitlementDeps): Promise<void> {
+  const now = deps.now()
+  const horizon = addDays(now, TOP_UP_WHEN_WITHIN_DAYS)
+
+  for (const membership of await longLiveMemberships(deps.data, horizon, 200)) {
+    const target = clampGrantUntil(membership.graceUntil, now)
+
+    const grants = await deps.grants.list(membership.userId)
+    const current = grants.find((grant) => grant.groupKey === membership.groupKey)
+    if (current !== undefined && (current.expiresAt >= target || current.expiresAt > horizon)) {
+      continue
+    }
+
+    try {
+      await deps.grants.grant({
+        userId: membership.userId,
+        groupKey: membership.groupKey,
+        until: target,
+        reason: `dues grant window top-up for membership ${membership.id}`,
+      })
+    } catch (error) {
+      deps.log('dues: grant top-up refused', {
+        membershipId: membership.id,
+        reason: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
 }

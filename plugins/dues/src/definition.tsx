@@ -16,11 +16,14 @@ import {
   handleAdminCodeCreate,
   handleAdminCodeDisable,
   handleAdminExtend,
+  handleAdminPlanArchive,
+  handleAdminPlanCreate,
+  handleAdminPlanUpdate,
   handleAdminRevoke,
 } from './handlers-admin'
 import { DUES_MIGRATIONS } from './schema'
 import { runReconcile, runSweep } from './tasks'
-import { CodesPage, LedgerPage, MembersPage, StatusPage } from './ui/admin'
+import { CodesPage, LedgerPage, MembersPage, PlansAdminPage, StatusPage } from './ui/admin'
 import { GoPage, ManagePage, PlansPage, ReturnPage } from './ui/pages'
 
 export function dues(input: DuesConfigInput): PluginDefinition {
@@ -158,6 +161,24 @@ export function dues(input: DuesConfigInput): PluginDefinition {
         access: 'admin',
         handler: route(handleAdminClear),
       },
+      {
+        path: 'plans/create',
+        method: 'POST',
+        access: 'admin',
+        handler: route(handleAdminPlanCreate),
+      },
+      {
+        path: 'plans/update',
+        method: 'POST',
+        access: 'admin',
+        handler: route(handleAdminPlanUpdate),
+      },
+      {
+        path: 'plans/archive',
+        method: 'POST',
+        access: 'admin',
+        handler: route(handleAdminPlanArchive),
+      },
     ],
 
     pages: [
@@ -201,6 +222,11 @@ export function dues(input: DuesConfigInput): PluginDefinition {
         path: 'status',
         title: 'Dues — status',
         render: (context) => StatusPage({ config, context }),
+      },
+      {
+        path: 'plans',
+        title: 'Dues — plans',
+        render: (context) => PlansAdminPage({ config, context }),
       },
       {
         path: 'members',

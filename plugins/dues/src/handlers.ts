@@ -6,7 +6,7 @@ import type {
 
 import { codeProblem, discountedPrice, normalizeCode } from './codes'
 import type { DuesConfig } from './config'
-import { planByKey } from './config'
+import { isLifetime, sellablePlanByKey } from './plans'
 import { applyInternalEvent, settlePaidOrder, type EntitlementDeps } from './entitlement'
 import {
   attachCheckoutSession,
@@ -105,10 +105,12 @@ export async function handleCheckout(
   if (buyerId === null) return back({ error: 'sign-in' })
 
   const planKey = request.form?.plan ?? ''
-  const plan = planByKey(services.config, planKey)
+  const plan = await sellablePlanByKey(services.context.data, services.config, planKey)
   if (plan === null || plan.hidden) return back({ error: 'unknown-plan' })
 
-  if (services.stripe === null) return back({ error: 'unconfigured' })
+  if (plan.mode === 'auto' && plan.stripePriceId === null) {
+    return back({ error: 'plan-not-ready', plan: plan.key })
+  }
 
   const recipientInput = (request.form?.recipient ?? '').trim()
   let recipientId = buyerId
@@ -125,9 +127,15 @@ export async function handleCheckout(
 
   if (isGift && !plan.giftable) return back({ error: 'gift-not-allowed', plan: plan.key })
 
-  if (plan.billing.mode === 'auto') {
-    const held = await liveMembership(services.context.data, recipientId, plan.group)
-    if (held !== null) return back({ error: 'already-member', plan: plan.key })
+  const held = await liveMembership(services.context.data, recipientId, plan.groupKey)
+  if (held !== null) {
+    if (isLifetime(held.currentPeriodEnd)) {
+      return back({ error: 'already-member', plan: plan.key })
+    }
+    if (plan.mode === 'auto') return back({ error: 'already-member', plan: plan.key })
+    if (plan.mode === 'lifetime' && held.renewalMode === 'auto') {
+      return back({ error: 'cancel-first', plan: plan.key })
+    }
   }
 
   const now = services.now()
@@ -142,7 +150,12 @@ export async function handleCheckout(
     if (problem !== null) return back({ error: `code-${problem}`, ...bounce })
   }
 
-  const charge = code === null ? plan.price : discountedPrice(plan.price, code.percentOff)
+  const charge =
+    code === null ? plan.priceMinor : discountedPrice(plan.priceMinor, code.percentOff)
+
+  if (services.stripe === null && (plan.mode === 'auto' || charge > 0)) {
+    return back({ error: 'unconfigured' })
+  }
 
   const minuteBucket = Math.floor(now.getTime() / 60_000)
   const newOrder = (idempotencyKey: string) =>
@@ -151,14 +164,14 @@ export async function handleCheckout(
       recipientUserId: recipientId,
       planKey: plan.key,
       planName: plan.name,
-      groupKey: plan.group,
+      groupKey: plan.groupKey,
       amountMinor: charge,
-      currency: services.config.currency,
-      billingMode: plan.billing.mode,
-      periodSpec: plan.billing.mode === 'fixed' ? plan.billing.period : null,
+      currency: plan.currency,
+      billingMode: plan.mode,
+      periodSpec: plan.mode === 'fixed' ? plan.periodSpec : null,
       idempotencyKey,
       codeId: code?.id ?? null,
-      discountMinor: plan.price - charge,
+      discountMinor: plan.priceMinor - charge,
     })
 
   const baseKey = `co:${buyerId}:${plan.key}:${recipientId}:${code?.id ?? 0}:${minuteBucket}`
@@ -178,22 +191,26 @@ export async function handleCheckout(
     return back({ error: 'try-again', plan: plan.key })
   }
 
-  // A pass a code makes free never reaches Stripe: there is nothing to charge,
-  // so the order settles here and the recipient belongs at once.
-  if (charge === 0 && plan.billing.mode === 'fixed') {
+  // A one-off purchase a code makes free never reaches Stripe: there is
+  // nothing to charge, so the order settles here and the recipient belongs at
+  // once.
+  if (charge === 0 && plan.mode !== 'auto') {
     await settlePaidOrder(entitlementDeps(services), order, {
       amountTotal: 0,
-      currency: services.config.currency,
+      currency: plan.currency,
       subscriptionId: null,
       paymentIntentId: null,
     })
     return { kind: 'redirect', to: `/plugins/dues/return?order=${order.id}` }
   }
 
+  if (services.stripe === null) return back({ error: 'unconfigured' })
+  const stripe = services.stripe
+
   try {
     let customerId = await findStripeCustomer(services.context.data, buyerId)
     if (customerId === null) {
-      const customer = await services.stripe.createCustomer({
+      const customer = await stripe.createCustomer({
         metadata: { meith_user_id: String(buyerId) },
       })
       await saveStripeCustomer(services.context.data, buyerId, customer.id)
@@ -206,12 +223,13 @@ export async function handleCheckout(
 
     // A code on a subscription rides a real Stripe coupon (made once, on first
     // use) so the discounted first invoice and the full renewals both come from
-    // Stripe's own arithmetic. A pass just charges the discounted amount.
+    // Stripe's own arithmetic. A one-off purchase just charges the discounted
+    // amount.
     let couponId: string | null = null
-    if (code !== null && plan.billing.mode === 'auto') {
+    if (code !== null && plan.mode === 'auto') {
       couponId = code.stripeCouponId
       if (couponId === null) {
-        const coupon = await services.stripe.createCoupon({
+        const coupon = await stripe.createCoupon({
           percentOff: code.percentOff,
           name: `Dues code ${code.code}`,
           reference: String(code.id),
@@ -221,24 +239,24 @@ export async function handleCheckout(
       }
     }
 
-    const session = await services.stripe.createCheckoutSession({
-      mode: plan.billing.mode === 'auto' ? 'subscription' : 'payment',
+    const session = await stripe.createCheckoutSession({
+      mode: plan.mode === 'auto' ? 'subscription' : 'payment',
       customer: customerId,
       client_reference_id: String(order.id),
       line_items: [
-        plan.billing.mode === 'auto'
-          ? { price: plan.billing.stripePriceId, quantity: 1 }
+        plan.mode === 'auto'
+          ? { price: plan.stripePriceId, quantity: 1 }
           : {
               quantity: 1,
               price_data: {
-                currency: services.config.currency,
+                currency: plan.currency,
                 unit_amount: charge,
                 product_data: { name: productName },
               },
             },
       ],
       metadata: { dues_order_id: String(order.id) },
-      ...(plan.billing.mode === 'auto'
+      ...(plan.mode === 'auto'
         ? { subscription_data: { metadata: { dues_order_id: String(order.id) } } }
         : {}),
       ...(couponId === null ? {} : { discounts: [{ coupon: couponId }] }),
