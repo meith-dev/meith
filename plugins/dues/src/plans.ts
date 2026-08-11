@@ -12,10 +12,6 @@ import {
   type PlanRow,
 } from './store'
 
-// The board caps a plugin grant at two years, so entitlement that runs longer —
-// a lifetime plan, or stacked passes — is held plugin-side and granted in
-// windows the sweep task keeps topped up. If this plugin dies, access drains at
-// the window's edge, which is exactly the guarantee the grant capability makes.
 export const GRANT_WINDOW_DAYS = 700
 export const TOP_UP_WHEN_WITHIN_DAYS = 90
 export const LIFETIME_END = new Date('9999-12-31T00:00:00Z')

@@ -63,7 +63,6 @@ async function payOnFakeStripe(page: Page): Promise<string> {
 test('plans, purchases and refusals, photographed end to end', async ({ page, request }) => {
   test.setTimeout(300_000)
 
-  // ————— The admin makes the shop —————
   await enterAdminPanel(page)
 
   await page.goto('/admin/plugins/dues/plans')
@@ -95,7 +94,6 @@ test('plans, purchases and refusals, photographed end to end', async ({ page, re
   await expect(page.getByText('The plan forever is on sale')).toBeVisible()
   await snap(page, 'admin-lifetime-created')
 
-  // What the admin cannot do: a pass past the two-year grant cap.
   const create3 = page.locator('form[action="/admin/api/plugins/dues/plans/create"]')
   await create3.getByLabel(/Key/).fill('three-year')
   await create3.getByLabel('Name', { exact: true }).fill('Three years')
@@ -108,7 +106,6 @@ test('plans, purchases and refusals, photographed end to end', async ({ page, re
   await expect(page.getByText(/cannot reach past two years/)).toBeVisible()
   await snap(page, 'admin-too-long-refused')
 
-  // A price change: the next buyer sees it, nobody's history moves.
   const dayRow = page.locator('li', { hasText: 'day-pass' })
   await dayRow.getByText('Edit this plan').click()
   await dayRow.getByLabel(/Price in minor units/).fill('300')
@@ -117,7 +114,6 @@ test('plans, purchases and refusals, photographed end to end', async ({ page, re
   await expect(page.getByText('day-pass is updated.')).toBeVisible()
   await snap(page, 'admin-price-updated')
 
-  // A half-price code, capped to five uses.
   await page.goto('/admin/plugins/dues/codes')
   await page.getByLabel(/leave empty to have one invented/).fill('HALFOFF')
   await page.getByLabel(/Percent off/).fill('50')
@@ -126,7 +122,6 @@ test('plans, purchases and refusals, photographed end to end', async ({ page, re
   await expect(page.getByText('The code is live:')).toBeVisible()
   await snap(page, 'admin-code-minted')
 
-  // ————— A member goes shopping —————
   const buyerPage = await page.context().browser()!.newPage()
 
   await buyerPage.goto('/plugins/dues')
@@ -156,7 +151,6 @@ test('plans, purchases and refusals, photographed end to end', async ({ page, re
   await expect(buyerPage.getByRole('heading', { name: 'What you hold' })).toBeVisible()
   await snap(buyerPage, 'member-holds-day-pass')
 
-  // Upgrade to lifetime: allowed from a pass, one payment, forever.
   const foreverCard = buyerPage.locator('section', {
     has: buyerPage.getByRole('heading', { name: 'Forever' }),
   })
@@ -169,7 +163,6 @@ test('plans, purchases and refusals, photographed end to end', async ({ page, re
   await expect(buyerPage.getByText('yours for good')).toBeVisible()
   await snap(buyerPage, 'member-holds-forever')
 
-  // What the member cannot do: buy more of a group they hold for good.
   const dayAgain = buyerPage.locator('section', {
     has: buyerPage.getByRole('heading', { name: 'Day pass', exact: true }),
   })
@@ -182,7 +175,6 @@ test('plans, purchases and refusals, photographed end to end', async ({ page, re
   await buyerPage.goto('/plugins/dues/manage')
   await snap(buyerPage, 'member-manage')
 
-  // A second member subscribes, then finds lifetime politely blocked.
   const subPage = await page.context().browser()!.newPage()
   await signUp(subPage, 'subscriber')
   await subPage.goto('/plugins/dues')
@@ -202,7 +194,6 @@ test('plans, purchases and refusals, photographed end to end', async ({ page, re
   await snap(subPage, 'member-cancel-first')
   await subPage.close()
 
-  // ————— The paper trail, and taking a plan off sale —————
   await page.goto('/admin/plugins/dues/members')
   await snap(page, 'admin-members-desk')
 

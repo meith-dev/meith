@@ -192,9 +192,6 @@ export async function handleCheckout(
     return back({ error: 'try-again', plan: plan.key })
   }
 
-  // A one-off purchase a code makes free never reaches Stripe: there is
-  // nothing to charge, so the order settles here and the recipient belongs at
-  // once.
   if (charge === 0 && plan.mode !== 'auto') {
     await settlePaidOrder(entitlementDeps(services), order, {
       amountTotal: 0,
@@ -222,10 +219,6 @@ export async function handleCheckout(
     const productName =
       recipientName === null ? plan.name : `${plan.name} — a gift for ${recipientName}`
 
-    // A code on a subscription rides a real Stripe coupon (made once, on first
-    // use) so the discounted first invoice and the full renewals both come from
-    // Stripe's own arithmetic. A one-off purchase just charges the discounted
-    // amount.
     let couponId: string | null = null
     if (code !== null && plan.mode === 'auto') {
       couponId = code.stripeCouponId

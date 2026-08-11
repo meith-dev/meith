@@ -126,10 +126,6 @@ export async function runSweep(deps: EntitlementDeps): Promise<number> {
   return expired
 }
 
-// Entitlement can outrun the board's two-year grant cap — a lifetime plan, or
-// passes stacked far ahead. Those rows hold a clamped grant window; this keeps
-// re-issuing the window before it drains, and stops the moment the membership
-// itself is no longer live.
 async function topUpLongGrants(deps: EntitlementDeps): Promise<void> {
   const now = deps.now()
   const horizon = addDays(now, TOP_UP_WHEN_WITHIN_DAYS)

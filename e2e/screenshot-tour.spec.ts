@@ -83,7 +83,6 @@ test('the whole journey, photographed', async ({ page, request }) => {
   await page.goto('/plugins/dues/manage')
   await snap(page, 'manage')
 
-  // The gift: a second member exists, the shopper buys for them by name.
   const recipientPage = await page.context().browser()!.newPage()
   const recipient = await signUp(recipientPage, 'gifted')
 
@@ -126,9 +125,6 @@ test('the whole journey, photographed', async ({ page, request }) => {
   await page.goto('/admin/plugins/dues/ledger')
   await snap(page, 'admin-ledger')
 
-  // Proof through core's own eyes: the recipient now holds Supporters as an
-  // additional group on the board's user screen, and the group's screen
-  // carries the operator opt-in that allowed it.
   await page.goto('/admin/users')
   await page.getByRole('link', { name: recipient }).first().click()
   await expect(page.getByRole('heading', { name: 'Additional groups' })).toBeVisible()

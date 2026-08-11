@@ -106,12 +106,6 @@ export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]['id']
 
 export type NotificationKindSpec = NotificationKindBase & { readonly id: NotificationKind }
 
-/**
- * A kind registered at runtime rather than compiled in — a plugin's. Its id is
- * namespaced (`plugin.<plugin>.<kind>`) so it can never collide with a
- * built-in, and it behaves identically everywhere else: a line on the
- * preferences screen, a bell notification, an e-mail the member can turn off.
- */
 export interface RegisteredNotificationKind extends NotificationKindBase {
   readonly id: string
 }

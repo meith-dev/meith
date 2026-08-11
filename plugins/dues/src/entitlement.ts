@@ -32,8 +32,6 @@ export interface EntitlementDeps {
   readonly now: () => Date
 }
 
-// A notification is a courtesy, never a dependency: money already moved, so a
-// failure to say so must not fail the settlement that records it.
 async function tryNotify(
   deps: EntitlementDeps,
   input: Parameters<PluginNotify['send']>[0],

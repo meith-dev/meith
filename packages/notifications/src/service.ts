@@ -32,11 +32,6 @@ export class NotificationService {
   constructor(deps: {
     notifications: NotificationRepository
     now?: () => Date
-    /**
-     * Kinds registered at runtime — a plugin's, namespaced `plugin.…`. Any
-     * entry whose id does not carry that prefix is refused: the built-in list
-     * is compiled in and not the constructor's to change.
-     */
     extraKinds?: readonly RegisteredNotificationKind[]
   }) {
     this.repository = deps.notifications

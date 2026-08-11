@@ -202,9 +202,6 @@ export async function dispatchPluginRoute(
     return fail(405, 'method_not_allowed', 'Plugin routes answer GET and POST.')
   }
 
-  // Admin routes live only under /admin/api/plugins, where the panel's own
-  // path-scoped session cookie travels; everything else lives only on the
-  // board mount. Off the right surface, a route does not exist.
   const declared = (definition.routes ?? []).filter(
     (candidate) =>
       candidate.path === path && (candidate.access === 'admin') === (surface === 'admin'),

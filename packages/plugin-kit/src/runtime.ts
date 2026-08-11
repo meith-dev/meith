@@ -100,7 +100,6 @@ export interface PluginNotifyKindInput {
   readonly emailByDefault?: boolean | undefined
 }
 
-/** The shape a board's notification registry accepts — matched structurally. */
 export interface PluginNotificationKindSpec {
   readonly id: string
   readonly title: string

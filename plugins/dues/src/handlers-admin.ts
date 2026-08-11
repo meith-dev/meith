@@ -231,11 +231,6 @@ type PriceResolution =
   | { readonly ok: true; readonly priceId: string; readonly productId: string | null }
   | { readonly ok: false; readonly error: string }
 
-// A subscription plan bills against a real Stripe price. The admin can paste
-// one made in the dashboard, or leave the box empty and have the plugin mint a
-// product and price to match the form. Stripe prices are immutable, so a price
-// change mints a new one — running subscriptions keep billing what they signed
-// up for, only new checkouts see the new price.
 async function resolveAutoPrice(
   services: DuesServices,
   plan: {

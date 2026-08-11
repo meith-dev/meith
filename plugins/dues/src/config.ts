@@ -18,7 +18,6 @@ export interface DuesConfigInput {
   readonly currency: string
   readonly graceDays?: number
   readonly label?: string
-  /** Seeds for a board's first run. Once the plan table has rows, the panel owns plans. */
   readonly plans?: readonly DuesPlanInput[]
   readonly extraRedirectHosts?: readonly string[]
 }

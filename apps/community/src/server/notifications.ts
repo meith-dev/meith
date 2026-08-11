@@ -13,9 +13,6 @@ import {
 import forumConfig from '../../community.config'
 import { getContainer } from './container'
 
-// Registered once, from the build's own plugin list: a plugin's notification
-// kinds are as static as its settings, and belong on the preferences screen
-// even while the operator has the plugin switched off.
 const PLUGIN_KINDS: readonly PluginNotificationKindSpec[] = (forumConfig.plugins ?? []).flatMap(
   (entry) => {
     if (entry.enabled === false) return []
