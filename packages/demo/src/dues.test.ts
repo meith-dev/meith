@@ -13,7 +13,7 @@ let summary: SeedSummary
 
 const NOW = new Date('2026-08-10T09:00:00Z')
 
-const PLUGIN = dues({ currency: 'gbp', graceDays: 7 })
+const PLUGIN = dues({ currency: 'eur', graceDays: 7 })
 
 beforeAll(async () => {
   harness = await createTestDb()
@@ -107,6 +107,12 @@ describe('the dues shop on the demo board', () => {
         `granted_by_plugin = '${DUES_PLUGIN_KEY}' and (expires_at is null or expires_at <= now())`,
       ),
     ).toBe(0)
+  })
+
+  it('prices everything in euro, plans and ledger alike', async () => {
+    expect(await count('plugin_dues_plan', `currency <> 'eur'`)).toBe(0)
+    expect(await count('plugin_dues_order', `currency <> 'eur'`)).toBe(0)
+    expect(await count('plugin_dues_ledger', `currency <> 'eur'`)).toBe(0)
   })
 
   it('writes a ledger that spans months, and one negative line for the refund', async () => {

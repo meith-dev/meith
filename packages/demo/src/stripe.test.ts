@@ -31,7 +31,7 @@ function json(response: FakeStripeResponse): Record<string, unknown> {
 const PASS = {
   mode: 'payment',
   'line_items[0][price_data][unit_amount]': '1200',
-  'line_items[0][price_data][currency]': 'gbp',
+  'line_items[0][price_data][currency]': 'eur',
   'line_items[0][price_data][product_data][name]': '90-day pass',
   success_url: 'https://demo.example/plugins/dues/return?order=7',
   cancel_url: 'https://demo.example/plugins/dues?cancelled=1',
@@ -77,7 +77,7 @@ describe('the fake Stripe', () => {
     expect(page.kind).toBe('html')
     if (page.kind !== 'html') return
     expect(page.body).toContain('Not Stripe')
-    expect(page.body).toContain('£12.00')
+    expect(page.body).toContain('€12.00')
     expect(page.body).not.toMatch(/card number/i)
   })
 
@@ -182,7 +182,7 @@ describe('the fake Stripe', () => {
         call('POST', '/v1/prices', {
           product: String(product.id),
           unit_amount: '2500',
-          currency: 'gbp',
+          currency: 'eur',
           'recurring[interval]': 'month',
         }),
       ).response,

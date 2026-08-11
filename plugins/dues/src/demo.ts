@@ -24,7 +24,7 @@ import { toInternalEvent, type StripeEventEnvelope } from './stripe/events'
 
 export const DUES_DEMO_GROUP = 'supporters'
 
-export const DUES_DEMO_CURRENCY = 'gbp'
+export const DUES_DEMO_CURRENCY = 'eur'
 export const DUES_DEMO_GRACE_DAYS = 7
 
 export const DUES_DEMO_PLANS = {

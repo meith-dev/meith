@@ -57,7 +57,7 @@ const demoPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
   {
     key: 'dues',
     plugin: dues({
-      currency: 'gbp',
+      currency: 'eur',
       graceDays: 7,
       extraRedirectHosts: boardHosts(),
     }),

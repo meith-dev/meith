@@ -62,8 +62,8 @@ rather than a demonstration. It is registered by the flag, in
 `apps/community/community.plugins.ts`, the same file a board of your own would
 list its plugins in.
 
-The seed writes the shop and a year of its history. Four plans (a £5 monthly
-subscription, a £12 90-day pass, a £99 lifetime, and a founding pass taken off
+The seed writes the shop and a year of its history. Four plans (a €5 monthly
+subscription, a €12 90-day pass, a €99 lifetime, and a founding pass taken off
 sale whose holder still holds it), three discount codes, and eight memberships
 covering every state the administrator's desk can act on: renewed and healthy, a
 failed renewal inside its grace window, one cancelled and running to the end of
