@@ -335,6 +335,7 @@ function withDemoReset(bundle: SchedulerBundle, db: ReturnType<typeof getDb>): S
         db,
         cache: drivers().cache,
         clearUploads: () => clearUploadedFiles(),
+        plugins: activeDefinitions(),
       }),
     ],
   }

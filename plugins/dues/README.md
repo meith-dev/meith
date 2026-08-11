@@ -16,6 +16,11 @@ every guarantee that capability makes applies here. The load-bearing one:
 stop, or Stripe closes the account, every sold membership drains away at its
 own boundary and the board is left correct.
 
+**Try it before you read any of this**: [demo.meith.dev](https://demo.meith.dev)
+runs this plugin against a Stripe that is not Stripe — a shop with a year of
+history behind it, and a checkout a visitor can actually go through. See
+[demo mode](../../docs/demo-mode.md#the-shop-and-a-stripe-that-is-not-stripe).
+
 ## Setting up a board
 
 1. **Register the plugin** where plugins are registered:

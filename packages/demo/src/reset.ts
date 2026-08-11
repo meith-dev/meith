@@ -1,5 +1,6 @@
 import { GLOBAL_TAGS, env, logger, type CacheDriver } from '@meith/core'
 import { runMigrations, type Database } from '@meith/db'
+import type { PluginDefinition } from '@meith/plugin-kit'
 import { sql } from 'drizzle-orm'
 
 import { seedDemoBoard, type SeedSummary } from './seed'
@@ -16,6 +17,7 @@ export interface ResetDeps {
   readonly now?: Date | undefined
   /** Injectable so the recovery path below can be tested without a broken database. */
   readonly migrate?: (() => Promise<number>) | undefined
+  readonly plugins?: readonly PluginDefinition[] | undefined
 }
 
 export interface ResetResult extends SeedSummary {
@@ -62,7 +64,7 @@ export async function resetDemoBoard(deps: ResetDeps): Promise<ResetResult> {
   let summary: SeedSummary
   try {
     migrationsApplied = await migrate()
-    summary = await seedDemoBoard(deps.db, deps.now ?? new Date())
+    summary = await seedDemoBoard(deps.db, deps.now ?? new Date(), { plugins: deps.plugins })
   } catch (error) {
     await recoverSchema(deps, migrate)
     throw error

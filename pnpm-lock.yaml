@@ -525,6 +525,12 @@ importers:
       '@meith/markdown':
         specifier: workspace:*
         version: link:../markdown
+      '@meith/plugin-dues':
+        specifier: workspace:*
+        version: link:../../plugins/dues
+      '@meith/plugin-kit':
+        specifier: workspace:*
+        version: link:../plugin-kit
       '@meith/settings':
         specifier: workspace:*
         version: link:../settings

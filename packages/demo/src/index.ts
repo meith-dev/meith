@@ -22,7 +22,17 @@ export {
   type DemoThread,
 } from './content'
 
-export { seedDemoBoard, type SeedSummary } from './seed'
+export { seedDemoBoard, type SeedOptions, type SeedSummary } from './seed'
+
+export { DUES_PLUGIN_KEY, seedDuesDemoBoard } from './dues'
+
+export {
+  fakeStripe,
+  FAKE_STRIPE_MOUNT,
+  type FakeStripeOutcome,
+  type FakeStripeRequest,
+  type FakeStripeResponse,
+} from './stripe'
 
 export { resetDemoBoard, type ResetDeps, type ResetResult } from './reset'
 

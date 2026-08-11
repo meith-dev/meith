@@ -54,6 +54,47 @@ Every timestamp is an **offset from the reset**, not a date. The newest post is
 always minutes old and the board is always six hundred days into its life,
 whenever you happen to visit.
 
+## The shop, and a Stripe that is not Stripe
+
+Demo mode installs one plugin — [Dues](../plugins/dues/README.md), which sells
+membership of a usergroup — because a plugin nobody can click is a paragraph
+rather than a demonstration. It is registered by the flag, in
+`apps/community/community.plugins.ts`, the same file a board of your own would
+list its plugins in.
+
+The seed writes the shop and a year of its history. Four plans (a £5 monthly
+subscription, a £12 90-day pass, a £99 lifetime, and a founding pass taken off
+sale whose holder still holds it), three discount codes, and eight memberships
+covering every state the administrator's desk can act on: renewed and healthy, a
+failed renewal inside its grace window, one cancelled and running to the end of
+its period, one revoked by a refund, a gift, and a lifetime comped with a
+100%-off code. The ledger spans eight months because the renewals were replayed
+month by month rather than written as rows: **every one of them went through the
+same settlement path a Stripe webhook drives**, with the clock wound back for
+each step, so the desk shows what a year of selling looks like rather than what
+a fixture looks like.
+
+The `supporters` group those plans grant is made by the seed and ticked **may be
+granted by plugins**, which is the tick an administrator gives by hand on any
+other board.
+
+A visitor can buy. The board serves its own Stripe at `/demo/stripe` — the API
+the plugin calls (`DUES_STRIPE_API_BASE` points back at the board) and the
+checkout page a buyer lands on, which says **NOT STRIPE** at the top, asks for no
+card, and takes no money. Pressing *Pay* does what Stripe does: it sends the
+board a signed `checkout.session.completed` event, and the webhook — signature
+verified like any other — is what turns the payment into membership. Nothing is
+granted by the redirect, here or anywhere.
+
+> [!WARNING]
+> The fake exists only under `DEMO_MODE`; the route 404s without it. Never point
+> a board with real members at `DUES_STRIPE_API_BASE` on its own host.
+
+What that costs the demo is one honest gap: its Stripe forgets everything on a
+restart, and answers for a checkout it no longer remembers by calling the session
+expired — which is what Stripe does with an abandoned one, and what the plugin's
+reconcile task is written to handle.
+
 ## What demo mode changes
 
 Each of these closes a hole that only exists because the administrator password
@@ -75,10 +116,11 @@ demonstration than a disabled button.
 ## The reset
 
 `demo.reset` is a scheduled task, registered only when `DEMO_MODE` is set, and
-only in the web server's task list. It drops the schema, replays the migrations,
-writes the board back, clears the uploads directory and invalidates the cache.
-Ten seconds or so, during which the board is genuinely unavailable — the tables
-are not there.
+only in the web server's task list. It drops the schema, replays the migrations —
+the core ones and then every installed plugin's, because the drop took the
+plugin's tables too — writes the board back, clears the uploads directory and
+invalidates the cache. Ten seconds or so, during which the board is genuinely
+unavailable — the tables are not there.
 
 **The schema is dropped rather than truncated**, and that is the whole design.
 Truncating leaves behind everything the migrations seeded — the usergroup
@@ -120,6 +162,11 @@ flag's doing: no worker (above), no volumes (a redeploy should be as clean as a
 reset), and a `seed` one-shot in place of `migrate` — running the same
 `demo:reset` the hourly task runs, so the board a visitor finds one minute after
 a deploy is the board they would find one minute after any reset.
+
+It also carries the Dues plugin's three variables, and all three are the fake's:
+a secret key that no Stripe account answers to, a webhook signing secret Coolify
+generates, and `DUES_STRIPE_API_BASE=http://127.0.0.1:3000/demo/stripe`, which is
+the board talking to itself.
 
 ## What it costs you
 

@@ -1,6 +1,7 @@
 import { ConfigurationError, env } from '@meith/core'
 import { getDb } from '@meith/db'
 import { resetDemoBoard, seedDemoBoard } from '@meith/demo'
+import type { PluginDefinition } from '@meith/plugin-kit'
 
 import { requirePostgres } from './context'
 
@@ -14,16 +15,24 @@ function requireDemoMode(): void {
   }
 }
 
+async function plugins(): Promise<readonly PluginDefinition[]> {
+  const { installedPluginDefinitions } = await import('../../community/community.plugins')
+  return installedPluginDefinitions()
+}
+
 export async function demoSeed(): Promise<number> {
   requirePostgres()
   requireDemoMode()
 
-  const summary = await seedDemoBoard(getDb())
+  const summary = await seedDemoBoard(getDb(), new Date(), { plugins: await plugins() })
 
   console.log(
     `Seeded ${summary.members} member(s), ${summary.forums} forum(s), ` +
       `${summary.threads} thread(s) and ${summary.posts} post(s).`,
   )
+  if (summary.plugins.length > 0) {
+    console.log(`Furnished plugin(s): ${summary.plugins.join(', ')}.`)
+  }
   return 0
 }
 
@@ -39,12 +48,13 @@ export async function demoReset(args: readonly string[]): Promise<number> {
     return 1
   }
 
-  const result = await resetDemoBoard({ db: getDb() })
+  const result = await resetDemoBoard({ db: getDb(), plugins: await plugins() })
 
   console.log(
     `Reset in ${Math.round(result.elapsedMs / 1000)}s: ` +
       `${result.migrationsApplied} migration(s), ${result.members} member(s), ` +
-      `${result.forums} forum(s), ${result.threads} thread(s), ${result.posts} post(s).`,
+      `${result.forums} forum(s), ${result.threads} thread(s), ${result.posts} post(s)` +
+      `${result.plugins.length === 0 ? '' : `, plugin(s) ${result.plugins.join(', ')}`}.`,
   )
   console.log('Uploaded files are untouched — the web container clears those on its own reset.')
   return 0
