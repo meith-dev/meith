@@ -161,7 +161,7 @@ The middle of the graph is nearly flat: almost every domain package depends on
 | Rendering | `markdown` | The one place member text becomes markup: parse → render, word filter, BBCode migration, URL safety. |
 | Delivery | `notifications`, `subscriptions`, `events` | The single "somebody needs to be told" path, thread/forum following, and the transactional outbox. |
 | Platform | `settings`, `tasks`, `search`, `api` | The typed settings registry, the scheduled-task contract, the search provider seam, and the REST route registry as data. |
-| Lifecycle | `install`, `upgrade`, `import`, `create-meith` | The installer's decisions, the upgrade planner, the resumable MyBB import, the project scaffolder. |
+| Lifecycle | `install`, `upgrade`, `import` | The installer's decisions, the upgrade planner, the resumable MyBB import. |
 
 Each package exports services and **ports**; none of them can see how the
 ports are implemented.
