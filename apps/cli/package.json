@@ -23,7 +23,7 @@
     "@meith/tasks": "workspace:*"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0",
-    "tsx": "^4.20.6"
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.11"
   }
 }
