@@ -71,8 +71,8 @@ jobs:
             -e COMMUNITY_ROLE=migrate \
             -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_release \
             -e DATA_SOURCE=postgres \
-            -e AUTH_SECRET=release-auth-secret-release-32b \
-            -e TICK_SECRET=release-tick-secret-release-32b \
+            -e AUTH_SECRET=release-boot-test-auth-secret-long-enough \
+            -e TICK_SECRET=release-boot-test-tick-secret-long-enough \
             meith:release
 
       - name: Boot the web role, and it renders
@@ -80,8 +80,8 @@ jobs:
           docker run -d --name meith-web --network host \
             -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_release \
             -e DATA_SOURCE=postgres \
-            -e AUTH_SECRET=release-auth-secret-release-32b \
-            -e TICK_SECRET=release-tick-secret-release-32b \
+            -e AUTH_SECRET=release-boot-test-auth-secret-long-enough \
+            -e TICK_SECRET=release-boot-test-tick-secret-long-enough \
             -e APP_URL=http://127.0.0.1:3000 \
             meith:release
           for i in $(seq 1 40); do
@@ -98,8 +98,8 @@ jobs:
             -e COMMUNITY_ROLE=worker \
             -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_release \
             -e DATA_SOURCE=postgres \
-            -e AUTH_SECRET=release-auth-secret-release-32b \
-            -e TICK_SECRET=release-tick-secret-release-32b \
+            -e AUTH_SECRET=release-boot-test-auth-secret-long-enough \
+            -e TICK_SECRET=release-boot-test-tick-secret-long-enough \
             -e QUEUE_DRIVER=postgres -e CACHE_DRIVER=memory \
             meith:release
           sleep 90

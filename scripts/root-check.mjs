@@ -45,6 +45,7 @@ const ALLOWED = new Map([
 
   // Community and legal conventions: GitHub and readers expect these here.
   ['README.md', 'the front page'],
+  ['AGENTS.md', 'coding agents read it from the root by convention'],
   ['LICENSE.md', 'LGPL-3.0-or-later'],
   ['COPYING', 'the GPL text the LGPL incorporates by reference'],
 ])
