@@ -37,7 +37,6 @@ The version is also written down in places npm never reads:
   records in the database.
 - `CODE_VERSION` in `apps/community/src/server/upgrade-notice.ts` — what the
   admin panel compares the recorded version against.
-- The dependency version `create-meith` writes into a scaffolded project.
 - The exact image tag the Coolify compose file pins.
 
 Nothing fails at runtime if these drift; a board would simply record one
@@ -89,8 +88,8 @@ the workflow drafts rather than publishes.
 ## How a release happens
 
 1. **Land the release commit on `main`.** Bump every version together (the
-   manifests, the two constants, `create-meith`, the compose pin — the pin
-   moves on every release), and let `pnpm verify` — which includes `release:check` —
+   manifests, the two constants, the compose pin — the pin moves on every
+   release), and let `pnpm verify` — which includes `release:check` —
    prove nothing was missed.
 2. **Wait for CI on that commit.** The release workflow re-runs the boot
    tests, not the whole gate; the gate is `main`'s job.
@@ -158,8 +157,7 @@ One-time steps around `v0.1.0`, in order:
    act on. Package settings → change visibility → public.
 3. **Create the npm organisation and the token.** The `meith` organisation
    owns the `@meith` scope; a granular automation token allowed to publish it
-   goes into the repository's `NPM_TOKEN` secret, and registering
-   `create-meith` early keeps that name ours too. After the first release,
+   goes into the repository's `NPM_TOKEN` secret. After the first release,
    configure npm **trusted publishing** for each package and drop the token —
    the workflow already requests the OIDC permission that provenance uses.
 4. Protect the `release` branch from manual pushes, so the workflow's
@@ -247,12 +245,12 @@ same compatibility promise the image tags make.
 
 ### What stays private, still
 
-- **The board itself** — `@meith/web`, `@meith/cli`, `create-meith`. The
-  scaffolded board-as-a-dependency flow needs a `forum-web` bin and an
-  end-to-end CI gate (scaffold against packed tarballs, install, build, boot)
-  before publishing it is honest. The kits going out first is what lets
-  plugin and theme authors start now, in a checkout or against npm types,
-  while that lands.
+- **The board itself** — `@meith/web` and `@meith/cli`. A
+  board-as-a-dependency flow would need a real bin for a consuming project's
+  scripts to run and an end-to-end CI gate (install from packed tarballs,
+  build, boot) before publishing it is honest. The kits going out first is
+  what lets plugin and theme authors start now, in a checkout or against npm
+  types, while that question waits.
 - **`@meith/testkit`** — it drags `@meith/db` and `@meith/drivers` behind it,
   and that closure is most of the board.
 - **The examples** — `hello-plugin` and `iris-theme` are documentation. They

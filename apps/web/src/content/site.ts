@@ -18,8 +18,6 @@ export const site = {
     "No ads, no algorithm, and no per-member pricing.",
 } as const
 
-export const installCommand = "git clone https://github.com/meith-dev/meith.git"
-
 export const licence = {
   spdx: "LGPL-3.0-or-later",
   short: "LGPL-3.0",
@@ -70,12 +68,9 @@ export const terminal: {
   readonly cwd: string
   readonly lines: readonly { readonly text: string; readonly output?: boolean }[]
 } = {
-  cwd: "~/boards",
+  cwd: "first deploy",
   lines: [
-    { text: installCommand },
-    { text: "cd meith && cp .env.example .env" },
-    { text: "docker compose up -d --build" },
-    { text: "✔ db        started", output: true },
+    { text: "✔ postgres  started", output: true },
     { text: "✔ migrate   exited (0)", output: true },
     { text: "✔ web       started", output: true },
     { text: "✔ worker    started", output: true },
@@ -425,7 +420,7 @@ export const deployment = {
       body:
         "A panel installed on the same server — still your machine, not a service you sign up " +
         "to. Point it at the repository and it generates the secrets and the database password, " +
-        "issues the certificate, tells the board its own address, and redeploys on push.",
+        "issues the certificate, tells the board its own address, and follows releases.",
       note: "Nothing is typed in. About twenty minutes.",
       action: { label: "The quickstart", doc: "quickstart" },
     },
