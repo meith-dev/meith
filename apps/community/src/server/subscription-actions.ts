@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, env, isAppError, logger } from '@meith/core'
+import { ForbiddenError, env } from '@meith/core'
 import {
   SubscriptionService,
   parseSubscriptionTarget,
@@ -12,24 +12,10 @@ import {
 import { getActor } from './context'
 import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
+import { formStateReporter } from './form-state-reporter'
+import { positiveInt, text } from './form-values'
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'subscription-actions' }).error({ err }, 'unexpected error in subscriptions')
-  return { error: 'Something went wrong. Please try again.' }
-}
-
-function positiveInt(form: FormData, name: string): number | null {
-  const value = form.get(name)
-  if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)) return null
-  const n = Number(value)
-  return Number.isSafeInteger(n) ? n : null
-}
-
-function text(form: FormData, name: string): string {
-  const value = form.get(name)
-  return typeof value === 'string' ? value : ''
-}
+const toFormState = formStateReporter('subscription-actions', 'unexpected error in subscriptions')
 
 async function mayView(target: 'thread' | 'forum', targetId: number): Promise<boolean> {
   const actor = await getActor()

@@ -13,6 +13,7 @@ import {
   type PluginDefinition,
   type PluginGrants,
   type PluginNotify,
+  type PluginRuntimeContext,
   type PluginUsers,
 } from '@meith/plugin-kit'
 import type { ReactNode } from 'react'
@@ -50,6 +51,26 @@ export function notifyFor(pluginKey: string): PluginNotify {
     return unavailablePluginNotify('this board is running on in-memory sample data')
   }
   return pluginNotify(pluginKey, definition.notifications ?? [], service)
+}
+
+export function runtimeContextFor(
+  pluginKey: string,
+  definition: PluginDefinition,
+  overrides: ReadonlyMap<string, string>,
+  log: ReturnType<typeof logger>,
+): PluginRuntimeContext {
+  return {
+    settings: resolvePluginSettings(definition, overrides, readPluginEnv),
+    logger: {
+      info: (message, detail) => log.info(detail ?? {}, message),
+      warn: (message, detail) => log.warn(detail ?? {}, message),
+      error: (message, detail) => log.error(detail ?? {}, message),
+    },
+    grants: grantsFor(pluginKey),
+    data: dataFor(pluginKey),
+    users: usersFor(),
+    notify: notifyFor(pluginKey),
+  }
 }
 
 export interface RenderedPluginPage {
@@ -102,16 +123,7 @@ export async function renderPluginBoardPage(
       outcome: 'rendered',
       title: page.title,
       node: await page.render({
-        settings: resolvePluginSettings(definition, overrides, readPluginEnv),
-        logger: {
-          info: (message, detail) => log.info(detail ?? {}, message),
-          warn: (message, detail) => log.warn(detail ?? {}, message),
-          error: (message, detail) => log.error(detail ?? {}, message),
-        },
-        grants: grantsFor(pluginKey),
-        data: dataFor(pluginKey),
-        users: usersFor(),
-        notify: notifyFor(pluginKey),
+        ...runtimeContextFor(pluginKey, definition, overrides, log),
         viewer: request.viewer,
         path,
         query: request.query,
@@ -147,16 +159,7 @@ export async function renderPluginAdminPage(
     return {
       title: page.title,
       node: await page.render({
-        settings: resolvePluginSettings(definition, overrides, readPluginEnv),
-        logger: {
-          info: (message, detail) => log.info(detail ?? {}, message),
-          warn: (message, detail) => log.warn(detail ?? {}, message),
-          error: (message, detail) => log.error(detail ?? {}, message),
-        },
-        grants: grantsFor(pluginKey),
-        data: dataFor(pluginKey),
-        users: usersFor(),
-        notify: notifyFor(pluginKey),
+        ...runtimeContextFor(pluginKey, definition, overrides, log),
         query,
       }),
     }

@@ -2,14 +2,7 @@
 
 import { redirect } from 'next/navigation'
 
-import {
-  ConflictError,
-  ForbiddenError,
-  ValidationError,
-  env,
-  isAppError,
-  logger,
-} from '@meith/core'
+import { env, logger } from '@meith/core'
 
 import { DEFAULT_AUTH_POLICY, foldIdentifier, type LoginBucket } from '@meith/accounts'
 
@@ -17,6 +10,7 @@ import { remoteAddress } from './admin'
 import { spendResendLimit, verifyChallenge } from './antispam'
 import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
 import { configuredIdentity, getContainer } from './container'
+import { formStateReporter } from './form-state-reporter'
 import {
   profileFieldService,
   registrationFieldContext,
@@ -35,18 +29,7 @@ function field(form: FormData, name: string): string {
   return typeof v === 'string' ? v.trim() : ''
 }
 
-function toFormState(err: unknown, values?: Record<string, string>): FormState {
-  if (
-    err instanceof ValidationError ||
-    err instanceof ConflictError ||
-    err instanceof ForbiddenError
-  ) {
-    return { error: err.message, values }
-  }
-  if (isAppError(err)) return { error: err.message, values }
-  logger({ module: 'auth-actions' }).error({ err }, 'unexpected error in auth action')
-  return { error: 'Something went wrong. Please try again.', values }
-}
+const toFormState = formStateReporter('auth-actions', 'unexpected error in auth action')
 
 async function loginBuckets(identifier: string): Promise<readonly LoginBucket[]> {
   const account = foldIdentifier(identifier)

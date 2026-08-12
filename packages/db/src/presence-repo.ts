@@ -4,6 +4,7 @@ import type { ContentScope } from '@meith/core'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { toDate } from './row-values'
 import { visibleIn } from './visibility'
 
 export const ONLINE_WINDOW_MINUTES = 15
@@ -209,8 +210,4 @@ export class PostgresPresenceRepository {
       at: row.most_online_at === null ? null : toDate(row.most_online_at),
     }
   }
-}
-
-function toDate(value: unknown): Date {
-  return value instanceof Date ? value : new Date(String(value))
 }

@@ -1,41 +1,8 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+
+import { drainUntil, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
-
-const PASSWORD = 'long-enough-password'
-
-async function signUp(page: Page, label: string): Promise<string> {
-  const username = `e2e_${label}_${Date.now()}_${Math.floor(Math.random() * 1000)}`
-
-  await page.goto('/register')
-  await page.getByLabel('Username').fill(username)
-  await page.getByLabel('Email').fill(`${username}@example.test`)
-  await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page).toHaveURL(/\/login\?registered=1$/)
-
-  await page.getByLabel('Username or email').fill(username)
-  await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page).toHaveURL('/')
-
-  return username
-}
-
-async function drainUntil(
-  request: APIRequestContext,
-  page: Page,
-  url: string,
-  check: () => Promise<void>,
-): Promise<void> {
-  test.setTimeout(150_000)
-
-  await expect(async () => {
-    await request.get('/api/system/tick?secret=e2e-only-tick-secret-000000000000')
-    await page.goto(url)
-    await check()
-  }).toPass({ timeout: 90_000, intervals: [1_000, 2_000, 5_000, 10_000] })
-}
 
 test('the composer’s subscribe box lands the thread on the subscriptions screen', async ({
   page,
@@ -60,6 +27,8 @@ test('the composer’s subscribe box lands the thread on the subscriptions scree
 })
 
 test('a follower is notified of a reply once the queue has run', async ({ browser, request }) => {
+  test.setTimeout(150_000)
+
   const authorContext = await browser.newContext()
   const followerContext = await browser.newContext()
   const authorPage = await authorContext.newPage()

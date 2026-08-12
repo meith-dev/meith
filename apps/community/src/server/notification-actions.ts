@@ -2,26 +2,17 @@
 
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, isAppError, logger } from '@meith/core'
+import { ForbiddenError } from '@meith/core'
 import type { NotificationService } from '@meith/notifications'
 
 import { getActor } from './context'
+import { formStateReporter } from './form-state-reporter'
+import { positiveInt } from './form-values'
 import { audiencesForActor } from './notification-audience'
 import { notificationService } from './notifications'
 import type { FormState } from './auth-form-state'
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'notification-actions' }).error({ err }, 'unexpected error in notifications')
-  return { error: 'Something went wrong. Please try again.' }
-}
-
-function positiveInt(form: FormData, name: string): number | null {
-  const value = form.get(name)
-  if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)) return null
-  const n = Number(value)
-  return Number.isSafeInteger(n) ? n : null
-}
+const toFormState = formStateReporter('notification-actions', 'unexpected error in notifications')
 
 async function requireOwnCentre(): Promise<{
   service: NotificationService

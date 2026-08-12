@@ -12,7 +12,6 @@
     "@meith/markdown": "workspace:*",
     "@meith/plugin-dues": "workspace:*",
     "@meith/plugin-kit": "workspace:*",
-    "@meith/settings": "workspace:*",
     "@meith/tasks": "workspace:*",
     "@meith/threads": "workspace:*",
     "drizzle-orm": "^0.44.7"

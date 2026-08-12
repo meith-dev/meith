@@ -3,12 +3,9 @@ import { sql } from 'drizzle-orm'
 import type { AvatarRepository, AvatarStatus, StoredAvatar } from '@meith/avatars'
 
 import type { Database } from './client'
+import { forgetOrphanKeys, rememberOrphanKey } from './orphan-keys'
 import { resultRows } from './result-rows'
-
-function toDate(value: string | Date | null): Date | null {
-  if (value === null) return null
-  return value instanceof Date ? value : new Date(value)
-}
+import { toNullableDate } from './row-values'
 
 interface RawAvatar {
   id?: number
@@ -35,7 +32,7 @@ function toAvatar(row: RawAvatar): StoredAvatar {
     width: row.avatar_width === null ? null : Number(row.avatar_width),
     height: row.avatar_height === null ? null : Number(row.avatar_height),
     failureReason: row.avatar_failure_reason,
-    updatedAt: toDate(row.avatar_updated_at),
+    updatedAt: toNullableDate(row.avatar_updated_at),
     locked: row.avatar_locked === true,
     lockedReason: row.avatar_locked_reason,
   }
@@ -181,20 +178,10 @@ export class PostgresAvatarRepository implements AvatarRepository {
   }
 
   async rememberKey(key: string): Promise<void> {
-    await this.db.execute(sql`
-      insert into attachment_orphans (storage_key) values (${key})
-      on conflict (storage_key) do nothing
-    `)
+    await rememberOrphanKey(this.db, key)
   }
 
   async forgetKeys(keys: readonly string[]): Promise<void> {
-    if (keys.length === 0) return
-    await this.db.execute(sql`
-      delete from attachment_orphans
-       where storage_key in ${sql`(${sql.join(
-         keys.map((key) => sql`${key}`),
-         sql`, `,
-       )})`}
-    `)
+    await forgetOrphanKeys(this.db, keys)
   }
 }

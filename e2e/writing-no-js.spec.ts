@@ -1,43 +1,10 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+
+import { drainUntil, signUp } from './support/session'
 
 import { samplePng } from './support/png'
 
 test.use({ javaScriptEnabled: false })
-
-const PASSWORD = 'long-enough-password'
-
-async function signUp(page: Page, label: string): Promise<string> {
-  const username = `e2e_${label}_${Date.now()}_${Math.floor(Math.random() * 1000)}`
-
-  await page.goto('/register')
-  await page.getByLabel('Username').fill(username)
-  await page.getByLabel('Email').fill(`${username}@example.test`)
-  await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page).toHaveURL(/\/login\?registered=1$/)
-
-  await page.getByLabel('Username or email').fill(username)
-  await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page).toHaveURL('/')
-
-  return username
-}
-
-async function drainUntil(
-  request: APIRequestContext,
-  page: Page,
-  url: string,
-  check: () => Promise<void>,
-): Promise<void> {
-  test.setTimeout(150_000)
-
-  await expect(async () => {
-    await request.get('/api/system/tick?secret=e2e-only-tick-secret-000000000000')
-    await page.goto(url)
-    await check()
-  }).toPass({ timeout: 90_000, intervals: [1_000, 2_000, 5_000, 10_000] })
-}
 
 test('a member posts a thread and a reply, and both land in the database', async ({ page }) => {
   await signUp(page, 'poster')
@@ -68,6 +35,8 @@ test('a member posts a thread and a reply, and both land in the database', async
 })
 
 test('an image attachment is not served until it has been re-encoded', async ({ page, request }) => {
+  test.setTimeout(150_000)
+
   await signUp(page, 'uploader')
 
   await page.goto('/200-general')
@@ -141,6 +110,8 @@ test('an attachment in a thread a guest may not read is refused by URL', async (
 })
 
 test('an avatar is re-encoded before it appears anywhere', async ({ page, request }) => {
+  test.setTimeout(150_000)
+
   await signUp(page, 'face')
 
   await page.goto('/usercp/avatar')

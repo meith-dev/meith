@@ -2,33 +2,26 @@
 
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import { parseRating } from '@meith/reputation'
 
 import { postLink } from '@/view/post-link'
 
 import { getActor } from './context'
+import { formStateReporter } from './form-state-reporter'
+import { trimmedText } from './form-values'
 import { reputationService, reputationSettings, viewerRaterLimits } from './reputation'
 import type { FormState } from './auth-form-state'
 
-function toFormState(err: unknown, values?: Record<string, string>): FormState {
-  if (isAppError(err)) return { error: err.message, values }
-  logger({ module: 'reputation-actions' }).error({ err }, 'unexpected error rating somebody')
-  return { error: 'Something went wrong. Please try again.', values }
-}
-
-function text(form: FormData, name: string): string {
-  const value = form.get(name)
-  return typeof value === 'string' ? value.trim() : ''
-}
+const toFormState = formStateReporter('reputation-actions', 'unexpected error rating somebody')
 
 function positiveInt(form: FormData, name: string): number | null {
-  const value = Number(text(form, name))
+  const value = Number(trimmedText(form, name))
   return Number.isInteger(value) && value > 0 ? value : null
 }
 
 function safeReturn(form: FormData, fallback: string): string {
-  const raw = text(form, 'returnTo')
+  const raw = trimmedText(form, 'returnTo')
   return raw.startsWith('/') && !raw.startsWith('//') ? raw : fallback
 }
 
@@ -50,7 +43,7 @@ async function requireReputation(): Promise<{
 }
 
 export async function rateMemberAction(_prev: FormState, form: FormData): Promise<FormState> {
-  const values = { comment: text(form, 'comment') }
+  const values = { comment: trimmedText(form, 'comment') }
   const userId = positiveInt(form, 'userId')
   const returnTo = safeReturn(form, userId === null ? '/' : `/member/${userId}`)
 
@@ -58,7 +51,7 @@ export async function rateMemberAction(_prev: FormState, form: FormData): Promis
     const { service, userId: raterId } = await requireReputation()
     if (userId === null) throw new ValidationError('No such member.')
 
-    const points = parseRating(text(form, 'points'))
+    const points = parseRating(trimmedText(form, 'points'))
     if (points === null) throw new ValidationError('That is not a rating.')
 
     const [settings, limits] = await Promise.all([reputationSettings(), viewerRaterLimits()])

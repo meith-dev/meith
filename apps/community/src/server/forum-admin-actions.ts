@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
+import { CacheTags, ValidationError } from '@meith/core'
 import { FORUM_PERMISSION_FIELDS } from '@meith/core'
 import { readMatrixCell } from '@meith/authorization'
 import { drivers } from '@meith/drivers'
@@ -11,29 +11,18 @@ import { MODERATOR_RIGHTS } from '@meith/db'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { getContainer } from './container'
+import { formStateReporter } from './form-state-reporter'
+import { checkbox, trimmedText } from './form-values'
 import { requireForumAdmin } from './forum-admin'
 import type { FormState } from './auth-form-state'
 
-function text(form: FormData, name: string): string {
-  const value = form.get(name)
-  return typeof value === 'string' ? value.trim() : ''
-}
-
-function checkbox(form: FormData, name: string): boolean {
-  return form.get(name) !== null
-}
-
 function forumId(form: FormData): number {
-  const id = Number(text(form, 'forumId'))
+  const id = Number(trimmedText(form, 'forumId'))
   if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError('No such forum.')
   return id
 }
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'forum-admin' }).error({ err }, 'forum administration write failed')
-  return { error: 'Something went wrong. Please try again.' }
-}
+const toFormState = formStateReporter('forum-admin', 'forum administration write failed')
 
 async function invalidateTree(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.forumTree()])
@@ -56,8 +45,8 @@ export async function saveForumOptionsAction(
     const id = forumId(form)
     const repository = requireForumAdmin()
 
-    const title = text(form, 'title')
-    const slug = text(form, 'slug')
+    const title = trimmedText(form, 'title')
+    const slug = trimmedText(form, 'slug')
     if (title === '') throw new ValidationError('A forum needs a title.')
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
       throw new ValidationError(
@@ -65,7 +54,7 @@ export async function saveForumOptionsAction(
       )
     }
 
-    const order = Number(text(form, 'displayOrder'))
+    const order = Number(trimmedText(form, 'displayOrder'))
     if (!Number.isSafeInteger(order) || order < 0) {
       throw new ValidationError('Display order must be a whole number.')
     }
@@ -73,8 +62,8 @@ export async function saveForumOptionsAction(
     await repository.updateOptions(id, {
       title,
       slug,
-      description: text(form, 'description') === '' ? null : text(form, 'description'),
-      linkUrl: text(form, 'linkUrl') === '' ? null : text(form, 'linkUrl'),
+      description: trimmedText(form, 'description') || null,
+      linkUrl: trimmedText(form, 'linkUrl') === '' ? null : trimmedText(form, 'linkUrl'),
       displayOrder: order,
       isOpen: checkbox(form, 'isOpen'),
       allowThreads: checkbox(form, 'allowThreads'),
@@ -102,7 +91,7 @@ export async function saveForumPermissionsAction(
   try {
     await requireAdmin()
     const id = forumId(form)
-    const groupId = Number(text(form, 'groupId'))
+    const groupId = Number(trimmedText(form, 'groupId'))
     if (!Number.isSafeInteger(groupId) || groupId <= 0) {
       throw new ValidationError('No such group.')
     }
@@ -164,13 +153,13 @@ export async function createForumAction(
     await requireAdmin()
     const { forums } = getContainer()
 
-    const type = text(form, 'type')
+    const type = trimmedText(form, 'type')
     if (type !== 'category' && type !== 'forum' && type !== 'link') {
       throw new ValidationError('Choose a category, a forum or a link.')
     }
 
-    const title = text(form, 'title')
-    const slug = text(form, 'slug')
+    const title = trimmedText(form, 'title')
+    const slug = trimmedText(form, 'slug')
     if (title === '') throw new ValidationError('A forum needs a title.')
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
       throw new ValidationError(
@@ -178,7 +167,7 @@ export async function createForumAction(
       )
     }
 
-    const parent = text(form, 'parentId')
+    const parent = trimmedText(form, 'parentId')
     const parentId = parent === '' ? null : Number(parent)
     if (parentId !== null && (!Number.isSafeInteger(parentId) || parentId <= 0)) {
       throw new ValidationError('No such parent forum.')
@@ -188,11 +177,11 @@ export async function createForumAction(
       type,
       title,
       slug,
-      ...(text(form, 'description') === ''
+      ...(trimmedText(form, 'description') === ''
         ? {}
-        : { description: text(form, 'description') }),
+        : { description: trimmedText(form, 'description') }),
       parentId,
-      ...(text(form, 'linkUrl') === '' ? {} : { linkUrl: text(form, 'linkUrl') }),
+      ...(trimmedText(form, 'linkUrl') === '' ? {} : { linkUrl: trimmedText(form, 'linkUrl') }),
     })
 
     await invalidateTree()
@@ -212,7 +201,7 @@ export async function moveForumAction(
     await requireFreshAdmin()
     const id = forumId(form)
 
-    const parent = text(form, 'newParentId')
+    const parent = trimmedText(form, 'newParentId')
     const newParentId = parent === '' ? null : Number(parent)
     if (newParentId !== null && (!Number.isSafeInteger(newParentId) || newParentId <= 0)) {
       throw new ValidationError('No such parent forum.')
@@ -245,8 +234,8 @@ export async function appointModeratorAction(
     const id = forumId(form)
     const repository = requireForumAdmin()
 
-    const username = text(form, 'username')
-    const groupRaw = text(form, 'groupId')
+    const username = trimmedText(form, 'username')
+    const groupRaw = trimmedText(form, 'groupId')
 
     if ((username === '') === (groupRaw === '')) {
       throw new ValidationError('Name a member or choose a group, not both.')
@@ -297,7 +286,7 @@ export async function removeModeratorAction(
   try {
     await requireAdmin()
     const id = forumId(form)
-    const appointmentId = Number(text(form, 'appointmentId'))
+    const appointmentId = Number(trimmedText(form, 'appointmentId'))
     if (!Number.isSafeInteger(appointmentId) || appointmentId <= 0) {
       throw new ValidationError('No such appointment.')
     }

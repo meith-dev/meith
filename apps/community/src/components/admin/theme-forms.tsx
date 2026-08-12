@@ -35,6 +35,7 @@ import { PaletteGrid, type CellState } from "./theme-palette"
 import { ThemePreview, ValidatedSample } from "./theme-preview"
 
 import { FormError, SubmitButton } from "../auth/form-controls"
+import { Saved } from "./form-bits"
 
 const INPUT =
   "w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -51,15 +52,6 @@ function useHydrated(): boolean {
   const [hydrated, setHydrated] = useState(false)
   useEffect(() => setHydrated(true), [])
   return hydrated
-}
-
-function Saved({ when, children }: { when: boolean; children: React.ReactNode }) {
-  if (!when) return null
-  return (
-    <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-      {children}
-    </p>
-  )
 }
 
 function schemeLabel(scheme: FieldScheme): string {

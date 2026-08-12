@@ -9,16 +9,10 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
 import { buildNewThreadView } from '@/view/post-form'
+import { leadingId } from '@/view/slug-id'
 import { canHoldThreads } from '@meith/forums'
 
 export const metadata: Metadata = { title: 'New thread' }
-
-function forumId(value: string): number | null {
-  const match = /^(\d+)(?:-|$)/.exec(value)
-  if (!match) return null
-  const id = Number(match[1])
-  return Number.isSafeInteger(id) && id > 0 ? id : null
-}
 
 export default async function NewThreadPage({
   params,
@@ -26,7 +20,7 @@ export default async function NewThreadPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const id = forumId(slug)
+  const id = leadingId(slug)
   if (id === null) notFound()
 
   const actor = await getActor()

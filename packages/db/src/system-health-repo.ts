@@ -4,6 +4,7 @@ import type { TaskHealthInput } from '@meith/tasks'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { toDate } from './row-values'
 
 export interface TaskRunRow {
   readonly taskKey: string
@@ -30,10 +31,6 @@ export interface BoardVolumes {
   readonly attachments: number
   readonly queuedJobs: number
   readonly deadLetteredJobs: number
-}
-
-function toDate(value: unknown): Date {
-  return value instanceof Date ? value : new Date(String(value))
 }
 
 export class PostgresSystemHealthRepository {

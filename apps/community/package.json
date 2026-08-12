@@ -10,7 +10,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@base-ui/react": "^1.5.0",
     "@meith/accounts": "workspace:*",
     "@meith/admin": "workspace:*",
     "@meith/antispam": "workspace:*",
@@ -21,7 +20,6 @@
     "@meith/demo": "workspace:*",
     "@meith/drafts": "workspace:*",
     "@meith/drivers": "workspace:*",
-    "@meith/events": "workspace:*",
     "@meith/forums": "workspace:*",
     "@meith/groups": "workspace:*",
     "@meith/install": "workspace:*",
@@ -38,7 +36,6 @@
     "@meith/reputation": "workspace:*",
     "@meith/runtime": "workspace:*",
     "@meith/settings": "workspace:*",
-    "@meith/shared": "workspace:*",
     "@meith/signatures": "workspace:*",
     "@meith/tasks": "workspace:*",
     "@meith/theme-default": "workspace:*",
@@ -48,15 +45,9 @@
     "@meith/threads": "workspace:*",
     "@meith/ui": "workspace:*",
     "@vercel/analytics": "1.6.1",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "^1.16.0",
     "next": "16.2.6",
     "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "tailwind-merge": "^3.3.1",
-    "tw-animate-css": "^1.4.0",
-    "zod": "^4.4.3"
+    "react-dom": "19.2.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

@@ -1,26 +1,8 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+
+import { signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
-
-const PASSWORD = 'long-enough-password'
-
-async function signUp(page: Page, label: string): Promise<string> {
-  const username = `e2e_${label}_${Date.now()}_${Math.floor(Math.random() * 1000)}`
-
-  await page.goto('/register')
-  await page.getByLabel('Username').fill(username)
-  await page.getByLabel('Email').fill(`${username}@example.test`)
-  await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page).toHaveURL(/\/login\?registered=1$/)
-
-  await page.getByLabel('Username or email').fill(username)
-  await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page).toHaveURL('/')
-
-  return username
-}
 
 test('a reply that quotes one member and mentions another notifies both', async ({ browser }) => {
   const quotedContext = await browser.newContext()

@@ -1,4 +1,4 @@
-import { sql, type SQL } from 'drizzle-orm'
+import { sql } from 'drizzle-orm'
 
 import type {
   ModerationQueueRepository,
@@ -11,18 +11,11 @@ import type {
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { idList } from './sql-lists'
 import { PENDING_APPROVAL } from './visibility'
 import { applyVisibilityChangeCounters } from './visibility-counters'
 
 const EXCERPT = 300
-
-function idList(ids: readonly number[]): SQL {
-  if (ids.length === 0) return sql`(null)`
-  return sql`(${sql.join(
-    ids.map((id) => sql`${id}`),
-    sql`, `,
-  )})`
-}
 
 interface QueueRow {
   kind: 'thread' | 'post'

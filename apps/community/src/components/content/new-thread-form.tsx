@@ -8,9 +8,10 @@ import { EMPTY_STATE } from "@/server/auth-form-state"
 import type { UploadLimits } from "@meith/attachments/limits"
 import type { Draft } from "@meith/drafts"
 
-import { Disclosure, buttonVariants } from "@meith/ui"
+import { Disclosure } from "@meith/ui"
 
 import { AttachmentField } from "./attachment-field"
+import { ComposerIntents } from "./composer-intents"
 import { MarkdownEditor } from "./markdown-editor"
 import { Field, FormError, SubmitButton } from "../auth/form-controls"
 
@@ -111,22 +112,7 @@ export function NewThreadForm({
 
       <div className="flex flex-wrap items-center gap-2">
         <SubmitButton className="w-auto">Post thread</SubmitButton>
-        <button
-          type="submit"
-          name="intent"
-          value="preview"
-          className={buttonVariants({ variant: "outline" })}
-        >
-          Preview
-        </button>
-        <button
-          type="submit"
-          name="intent"
-          value="save_draft"
-          className={buttonVariants({ variant: "ghost" })}
-        >
-          Save draft
-        </button>
+        <ComposerIntents />
       </div>
     </form>
   )

@@ -25,17 +25,12 @@ import { currentTheme } from '@/server/theme'
 import { avatarFor, avatarsFor } from '@/server/avatars'
 import { buildMemberProfileView } from '@/view/member-profile'
 import { identitiesFor } from '@/server/group-identity'
+import { numericId } from '@/view/slug-id'
 
 export const metadata: Metadata = { title: 'Member profile' }
 
-function memberId(value: string): number | null {
-  if (!/^[1-9]\d*$/.test(value)) return null
-  const id = Number(value)
-  return Number.isSafeInteger(id) ? id : null
-}
-
 export default async function MemberProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  const id = memberId((await params).id)
+  const id = numericId((await params).id)
   if (id === null) notFound()
 
   const actor = await getActor()

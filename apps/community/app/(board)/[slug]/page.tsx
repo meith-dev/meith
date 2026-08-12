@@ -23,6 +23,7 @@ import { buildForumDisplayView } from '@/view/forum-display'
 import { identitiesFor } from '@/server/group-identity'
 import { distinctUserIds } from '@/view/member-identity'
 import { canonicalPath } from '@/view/metadata'
+import { leadingId } from '@/view/slug-id'
 import { buildSubscriptionsView } from '@/view/subscriptions'
 import {
   INLINE_FORM_ID,
@@ -39,7 +40,7 @@ export async function generateMetadata({
   searchParams: Promise<{ page?: string }>
 }): Promise<Metadata> {
   const [{ slug }, query] = await Promise.all([params, searchParams])
-  const id = forumId(slug)
+  const id = leadingId(slug)
   if (id === null) return { title: 'Forum' }
 
   const actor = await getActor()
@@ -91,13 +92,6 @@ export async function generateMetadata({
   }
 }
 
-function forumId(value: string): number | null {
-  const match = /^(\d+)(?:-|$)/.exec(value)
-  if (!match) return null
-  const id = Number(match[1])
-  return Number.isSafeInteger(id) && id > 0 ? id : null
-}
-
 export default async function ForumPage({
   params,
   searchParams,
@@ -116,7 +110,7 @@ export default async function ForumPage({
   }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
-  const id = forumId(slug)
+  const id = leadingId(slug)
   const after = decodeForumCursor(query.after)
   const sort = query.sort === 'rating' ? 'rating' : 'activity'
   const page = query.page === undefined ? 1 : Number(query.page)

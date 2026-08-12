@@ -13,12 +13,10 @@
   },
   "dependencies": {
     "@meith/accounts": "workspace:*",
-    "@meith/authorization": "workspace:*",
     "@meith/core": "workspace:*",
     "@meith/db": "workspace:*",
     "@meith/demo": "workspace:*",
     "@meith/drivers": "workspace:*",
-    "@meith/events": "workspace:*",
     "@meith/forums": "workspace:*",
     "@meith/profile-fields": "workspace:*",
     "@meith/settings": "workspace:*",

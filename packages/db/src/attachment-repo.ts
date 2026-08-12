@@ -10,11 +10,9 @@ import type {
 } from '@meith/attachments'
 
 import type { Database } from './client'
+import { forgetOrphanKeys, rememberOrphanKey } from './orphan-keys'
 import { resultRows } from './result-rows'
-
-function toDate(value: string | Date): Date {
-  return value instanceof Date ? value : new Date(value)
-}
+import { toDate } from './row-values'
 
 interface RawAttachment {
   id: number
@@ -186,21 +184,11 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
   }
 
   async rememberKey(key: string): Promise<void> {
-    await this.db.execute(sql`
-      insert into attachment_orphans (storage_key) values (${key})
-      on conflict (storage_key) do nothing
-    `)
+    await rememberOrphanKey(this.db, key)
   }
 
   async forgetKeys(keys: readonly string[]): Promise<void> {
-    if (keys.length === 0) return
-    await this.db.execute(sql`
-      delete from attachment_orphans
-       where storage_key in ${sql`(${sql.join(
-         keys.map((key) => sql`${key}`),
-         sql`, `,
-       )})`}
-    `)
+    await forgetOrphanKeys(this.db, keys)
   }
 
   async staleKeys(before: Date, limit: number): Promise<readonly string[]> {

@@ -1,11 +1,10 @@
 import 'server-only'
 
-import { logger, readPluginEnv } from '@meith/core'
+import { logger } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 import {
   DEFAULT_ROUTE_BODY_BYTES,
   createRouteRateLimiter,
-  resolvePluginSettings,
   type PluginDefinition,
   type PluginRequest,
   type PluginResponse,
@@ -16,7 +15,7 @@ import { recordAdminAction, requireAdmin } from './admin'
 import { boardUrl } from './board-url'
 import { getActor } from './context'
 import { activeDefinitions, pluginHost, syncOperatorDisables } from './plugin-host'
-import { dataFor, grantsFor, notifyFor, usersFor } from './plugin-pages'
+import { runtimeContextFor } from './plugin-pages'
 import { getSettingOverrides } from './settings'
 import { viewerRef } from './plugin-view'
 
@@ -286,16 +285,7 @@ export async function dispatchPluginRoute(
 
   const outcome = await pluginHost.run(pluginKey, `route ${method} ${path}`, () =>
     route.handler(pluginRequest, {
-      settings: resolvePluginSettings(definition, overrides, readPluginEnv),
-      logger: {
-        info: (message, detail) => log.info(detail ?? {}, message),
-        warn: (message, detail) => log.warn(detail ?? {}, message),
-        error: (message, detail) => log.error(detail ?? {}, message),
-      },
-      grants: grantsFor(pluginKey),
-      data: dataFor(pluginKey),
-      users: usersFor(),
-      notify: notifyFor(pluginKey),
+      ...runtimeContextFor(pluginKey, definition, overrides, log),
     }),
   )
 

@@ -1,15 +1,9 @@
 import { feedFor } from '@/server/feed-builder'
 import { feedResponse, noFeed } from '@/server/feed-routes'
 import { FEED_LIMIT, feedRepository, origin, publicScope } from '@/server/syndication'
+import { leadingId } from '@/view/slug-id'
 
 export const dynamic = 'force-dynamic'
-
-function threadId(value: string): number | null {
-  const match = /^(\d+)(?:-|$)/.exec(value)
-  if (!match) return null
-  const id = Number(match[1])
-  return Number.isSafeInteger(id) && id > 0 ? id : null
-}
 
 export async function GET(
   _request: Request,
@@ -19,7 +13,7 @@ export async function GET(
   if (repo === null) return noFeed()
 
   const { slug } = await params
-  const id = threadId(slug)
+  const id = leadingId(slug)
   if (id === null) return noFeed()
 
   const posts = await repo.recentPosts(id, FEED_LIMIT, await publicScope())

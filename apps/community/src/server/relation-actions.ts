@@ -2,26 +2,19 @@
 
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import { parseRelationKind } from '@meith/relations'
 
 import { getActor } from './context'
+import { formStateReporter } from './form-state-reporter'
+import { trimmedText } from './form-values'
 import { isStaff, relationService } from './relations'
 import type { FormState } from './auth-form-state'
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'relation-actions' }).error({ err }, 'unexpected error in a relation action')
-  return { error: 'Something went wrong. Please try again.' }
-}
-
-function text(form: FormData, name: string): string {
-  const value = form.get(name)
-  return typeof value === 'string' ? value.trim() : ''
-}
+const toFormState = formStateReporter('relation-actions', 'unexpected error in a relation action')
 
 function positiveInt(form: FormData, name: string): number | null {
-  const value = Number(text(form, name))
+  const value = Number(trimmedText(form, name))
   return Number.isInteger(value) && value > 0 ? value : null
 }
 
@@ -43,7 +36,7 @@ async function requireLists(): Promise<{
 }
 
 function safeReturn(form: FormData): string {
-  const raw = text(form, 'returnTo')
+  const raw = trimmedText(form, 'returnTo')
   return raw.startsWith('/') && !raw.startsWith('//') ? raw : '/usercp/contacts'
 }
 
@@ -55,8 +48,8 @@ export async function setRelationAction(_prev: FormState, form: FormData): Promi
     const { service, userId } = await requireLists()
 
     const otherUserId = positiveInt(form, 'userId')
-    const username = text(form, 'username')
-    const kind = parseRelationKind(text(form, 'kind'))
+    const username = trimmedText(form, 'username')
+    const kind = parseRelationKind(trimmedText(form, 'kind'))
 
     if (otherUserId === null) throw new ValidationError('No such member.')
     if (kind === null) throw new ValidationError('That is not a list.')
@@ -87,7 +80,7 @@ export async function removeRelationAction(_prev: FormState, form: FormData): Pr
     if (otherUserId === null) throw new ValidationError('No such member.')
 
     await service.remove(userId, otherUserId)
-    query = `removed=${encodeURIComponent(text(form, 'username'))}`
+    query = `removed=${encodeURIComponent(trimmedText(form, 'username'))}`
   } catch (err) {
     return toFormState(err)
   }

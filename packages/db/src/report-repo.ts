@@ -13,36 +13,11 @@ import type {
 } from '@meith/moderation'
 
 import type { Database } from './client'
+import { decodeCursor, encodeCursor } from './cursor'
 import { resultRows } from './result-rows'
+import { idList } from './sql-lists'
 import { visibleIn } from './visibility'
 import { threads } from './schema'
-
-function idList(ids: readonly number[]): ReturnType<typeof sql> {
-  if (ids.length === 0) return sql`(null)`
-  return sql`(${sql.join(
-    ids.map((id) => sql`${id}`),
-    sql`, `,
-  )})`
-}
-
-function encodeCursor(row: ReportRow): string {
-  return Buffer.from(`${row.createdAt.toISOString()}|${row.id}`, 'utf8').toString(
-    'base64url',
-  )
-}
-
-function decodeCursor(value: string): { at: Date; id: number } | null {
-  try {
-    const [at, id] = Buffer.from(value, 'base64url').toString('utf8').split('|')
-    if (at === undefined || id === undefined) return null
-    const when = new Date(at)
-    const numeric = Number(id)
-    if (Number.isNaN(when.getTime()) || !Number.isSafeInteger(numeric)) return null
-    return { at: when, id: numeric }
-  } catch {
-    return null
-  }
-}
 
 interface RawReport {
   id: number
@@ -226,7 +201,7 @@ export class PostgresReportRepository implements ReportRepository {
     const page = rows.slice(0, options.limit).map(toReport)
     const last = page.at(-1)
     return rows.length > options.limit && last
-      ? { rows: page, nextCursor: encodeCursor(last) }
+      ? { rows: page, nextCursor: encodeCursor(last.createdAt, last.id) }
       : { rows: page }
   }
 

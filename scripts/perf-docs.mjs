@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+
+import { emitGeneratedDoc } from './generated-doc.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 const BUDGETS_FILE = 'packages/testkit/src/load/budgets.ts'
@@ -269,29 +271,13 @@ const results = await readJson(RESULTS_FILE)
 const indexes = await readJson(INDEX_FILE)
 const plans = await readPlans()
 const generated = render({ budgets, results, indexes, plans })
-const target = join(ROOT, OUTPUT_FILE)
-
-if (process.argv.includes('--check')) {
-  const current = await readFile(target, 'utf8').catch(() => '')
-  if (current !== generated) {
-    console.error(
-      `${OUTPUT_FILE} is out of date.\n\nA budget or a recorded run changed and the ` +
-        'reference did not. Run `pnpm perf:docs` and commit the result — a published p95 ' +
-        'that no run produced is worse than no published p95.\n',
-    )
-    const a = current.split('\n')
-    const b = generated.split('\n')
-    const at = a.findIndex((line, i) => line !== b[i])
-    console.error(`First difference at line ${at + 1}:`)
-    console.error(`  on disk:   ${a[at] ?? '(end of file)'}`)
-    console.error(`  generated: ${b[at] ?? '(end of file)'}`)
-    process.exit(1)
-  }
-  console.log(`${OUTPUT_FILE} is up to date (${budgets.length} budgets).`)
-} else {
-  await writeFile(target, generated, 'utf8')
-  console.log(
-    `Wrote ${OUTPUT_FILE} — ${budgets.length} budgets, ` +
-      `${results === null ? 'no' : results.results.length} measurements.`,
-  )
-}
+await emitGeneratedDoc({
+  outputFile: OUTPUT_FILE,
+  generated,
+  staleReason:
+    'A budget or a recorded run changed and the reference did not. Run `pnpm perf:docs` ' +
+    'and commit the result — a published p95 that no run produced is worse than no ' +
+    'published p95.',
+  upToDate: `${budgets.length} budgets`,
+  wrote: `${budgets.length} budgets, ${results === null ? 'no' : results.results.length} measurements`,
+})

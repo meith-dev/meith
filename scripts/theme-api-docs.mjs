@@ -1,6 +1,9 @@
 #!/usr/bin/env node
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+
+import { emitGeneratedDoc } from './generated-doc.mjs'
+import { balancedBlock, balancedList, joinStringLiterals } from './source-parse.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 
@@ -9,38 +12,6 @@ const API_FILE = 'packages/theme-kit/src/api.ts'
 const MODELS_FILE = 'packages/theme-kit/src/view-models.ts'
 const OUTPUT_FILE = 'docs/theme-slots.md'
 
-function balancedBlock(source, from) {
-  const start = source.indexOf('{', from)
-  if (start === -1) return null
-
-  let depth = 0
-  for (let i = start; i < source.length; i++) {
-    const ch = source[i]
-    if (ch === '{') depth++
-    else if (ch === '}') {
-      depth--
-      if (depth === 0) return { body: source.slice(start + 1, i), end: i }
-    }
-  }
-  return null
-}
-
-function balancedList(source, from) {
-  const start = source.indexOf('[', from)
-  if (start === -1) return null
-
-  let depth = 0
-  for (let i = start; i < source.length; i++) {
-    const ch = source[i]
-    if (ch === '[') depth++
-    else if (ch === ']') {
-      depth--
-      if (depth === 0) return source.slice(start + 1, i)
-    }
-  }
-  return null
-}
-
 function depthDelta(line) {
   let delta = 0
   for (const ch of line) {
@@ -48,19 +19,6 @@ function depthDelta(line) {
     else if ('}])'.includes(ch)) delta--
   }
   return delta
-}
-
-function joinStringLiterals(fragment) {
-  let out = ''
-  for (let i = 0; i < fragment.length; i++) {
-    if (fragment[i] !== "'") continue
-    i++
-    for (; i < fragment.length && fragment[i] !== "'"; i++) {
-      if (fragment[i] === '\\') i++
-      out += fragment[i]
-    }
-  }
-  return out
 }
 
 function flattenDoc(lines) {
@@ -468,33 +426,13 @@ for (const slot of slots) {
 }
 
 const generated = render({ slots, freeze, models, slotModels })
-const target = join(ROOT, OUTPUT_FILE)
-
-if (process.argv.includes('--check')) {
-  const current = await readFile(target, 'utf8').catch(() => '')
-
-  if (current !== generated) {
-    console.error(
-      `${OUTPUT_FILE} is out of date.\n\n` +
-        'The theme contract changed and its reference did not. Run `pnpm theme:docs` and ' +
-        'commit the result — a theme author reads that file instead of the source, and a ' +
-        'stale one describes fields that no longer exist.\n',
-    )
-    if (current === '') {
-      console.error('(The file does not exist yet.)')
-    } else {
-      const a = current.split('\n')
-      const b = generated.split('\n')
-      const at = a.findIndex((line, i) => line !== b[i])
-      console.error(`First difference at line ${at + 1}:`)
-      console.error(`  on disk:   ${a[at] ?? '(end of file)'}`)
-      console.error(`  generated: ${b[at] ?? '(end of file)'}`)
-    }
-    process.exit(1)
-  }
-
-  console.log(`${OUTPUT_FILE} is up to date (${slots.length} slots, ${models.size} models).`)
-} else {
-  await writeFile(target, generated, 'utf8')
-  console.log(`Wrote ${OUTPUT_FILE} — ${slots.length} slots, ${models.size} models.`)
-}
+await emitGeneratedDoc({
+  outputFile: OUTPUT_FILE,
+  generated,
+  staleReason:
+    'The theme contract changed and its reference did not. Run `pnpm theme:docs` and ' +
+    'commit the result — a theme author reads that file instead of the source, and a ' +
+    'stale one describes fields that no longer exist.',
+  upToDate: `${slots.length} slots, ${models.size} models`,
+  wrote: `${slots.length} slots, ${models.size} models`,
+})

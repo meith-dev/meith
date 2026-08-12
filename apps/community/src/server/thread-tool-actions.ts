@@ -2,26 +2,17 @@
 
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import type { Action } from '@meith/authorization'
 import { ThreadTools, parseThreadTool, type ThreadToolRights } from '@meith/moderation'
 
 import { getActor } from './context'
 import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
+import { formStateReporter } from './form-state-reporter'
+import { positiveInt } from './form-values'
 
-function positiveInt(form: FormData, name: string): number | null {
-  const value = form.get(name)
-  if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)) return null
-  const n = Number(value)
-  return Number.isSafeInteger(n) ? n : null
-}
-
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'thread-tool-actions' }).error({ err }, 'unexpected error in thread tools')
-  return { error: 'Something went wrong. Please try again.' }
-}
+const toFormState = formStateReporter('thread-tool-actions', 'unexpected error in thread tools')
 
 const TOOL_ACTIONS: Readonly<Record<keyof ThreadToolRights, Action>> = {
   lock: 'thread.lock',

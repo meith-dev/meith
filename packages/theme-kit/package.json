@@ -19,9 +19,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "@meith/core": "workspace:^"
-  },
   "peerDependencies": {
     "react": "^19.2.0"
   },

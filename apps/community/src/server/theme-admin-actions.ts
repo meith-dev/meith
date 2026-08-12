@@ -1,27 +1,24 @@
 'use server'
 
-import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
+import { CacheTags, ValidationError, isAppError } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import { parseThemeExport } from '@meith/db'
 import { revalidatePath } from 'next/cache'
 
 import { recordAdminAction, requireAdmin } from './admin'
+import { formStateReporter } from './form-state-reporter'
+import { trimmedText } from './form-values'
 import { isBuildTheme, requireThemeAdmin, themeListing, themeTitle, themeTokens } from './theme-admin'
 import { validateCustomCss, validateTokenOverrides } from './theme-style'
 import type { FormState } from './auth-form-state'
 
-function text(form: FormData, name: string): string {
-  const value = form.get(name)
-  return typeof value === 'string' ? value.trim() : ''
-}
+const reportFailure = formStateReporter('theme-admin', 'theme write failed')
 
 function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  if (err instanceof Error && err.message.startsWith('Theme ')) {
+  if (!isAppError(err) && err instanceof Error && err.message.startsWith('Theme ')) {
     return { error: err.message }
   }
-  logger({ module: 'theme-admin' }).error({ err }, 'theme write failed')
-  return { error: 'Something went wrong. Please try again.' }
+  return reportFailure(err)
 }
 
 function submittedTokens(form: FormData): {
@@ -48,7 +45,7 @@ function submittedTokens(form: FormData): {
 }
 
 function themeKey(form: FormData): string {
-  const key = text(form, 'key')
+  const key = trimmedText(form, 'key')
   if (themeTitle(key) === null) throw new ValidationError('No such theme.')
   return key
 }
@@ -68,7 +65,8 @@ export async function saveThemeAction(_prev: FormState, form: FormData): Promise
     if (tokens === null) throw new ValidationError('No such theme.')
 
     const validated = validateTokenOverrides(tokens, submittedTokens(form))
-    const css = validateCustomCss(text(form, 'customCss') === '' ? null : text(form, 'customCss'))
+    const customCss = trimmedText(form, 'customCss')
+    const css = validateCustomCss(customCss === '' ? null : customCss)
 
     await requireThemeAdmin().save({
       key,
@@ -107,11 +105,12 @@ export async function previewThemeAction(_prev: FormState, form: FormData): Prom
     }
 
     const validated = validateTokenOverrides(tokens, submittedTokens(form))
-    const css = validateCustomCss(text(form, 'customCss') === '' ? null : text(form, 'customCss'))
+    const customCss = trimmedText(form, 'customCss')
+    const css = validateCustomCss(customCss === '' ? null : customCss)
 
     return {
       notice: 'previewed',
-      values: { ...submitted, customCss: text(form, 'customCss') },
+      values: { ...submitted, customCss },
       preview: declarationBlock(validated, css),
     }
   } catch (err) {
@@ -120,7 +119,7 @@ export async function previewThemeAction(_prev: FormState, form: FormData): Prom
 }
 
 export async function themeEditorAction(prev: FormState, form: FormData): Promise<FormState> {
-  return text(form, 'intent') === 'preview'
+  return trimmedText(form, 'intent') === 'preview'
     ? previewThemeAction(prev, form)
     : saveThemeAction(prev, form)
 }
@@ -165,7 +164,7 @@ export async function importThemeAction(_prev: FormState, form: FormData): Promi
     const tokens = themeTokens(key)
     if (tokens === null) throw new ValidationError('No such theme.')
 
-    const document = parseThemeExport(text(form, 'document'))
+    const document = parseThemeExport(trimmedText(form, 'document'))
     const validated = validateTokenOverrides(tokens, document.tokenOverrides)
     const css = validateCustomCss(document.customCss)
 
@@ -198,7 +197,7 @@ export async function setThemeEnabledAction(
   try {
     await requireAdmin()
     const key = themeKey(form)
-    const enabled = text(form, 'enabled') === 'true'
+    const enabled = trimmedText(form, 'enabled') === 'true'
 
     if (!enabled) {
       if (isBuildTheme(key)) {

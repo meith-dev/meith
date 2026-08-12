@@ -1,56 +1,9 @@
-import { createHmac } from 'node:crypto'
-import { mkdirSync } from 'node:fs'
+import { expect, test } from '@playwright/test'
 
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-
-import { E2E_DUES_WEBHOOK_SECRET } from './support/config'
 import { enterAdminPanel, signUp } from './support/session'
+import { screenshotter, sendPaidWebhook } from './support/tour'
 
-const SHOTS = '/tmp/dues-admin-shots'
-mkdirSync(SHOTS, { recursive: true })
-
-let shot = 0
-async function snap(page: Page, name: string): Promise<void> {
-  shot += 1
-  await page.screenshot({
-    path: `${SHOTS}/${String(shot).padStart(2, '0')}-${name}.png`,
-    fullPage: true,
-  })
-}
-
-async function sendPaidWebhook(
-  request: APIRequestContext,
-  sessionId: string,
-  amount: number,
-): Promise<void> {
-  const body = JSON.stringify({
-    id: `evt_codes_shot_${Date.now()}_${shot}`,
-    type: 'checkout.session.completed',
-    data: {
-      object: {
-        id: sessionId,
-        object: 'checkout.session',
-        payment_status: 'paid',
-        amount_total: amount,
-        currency: 'gbp',
-        subscription: null,
-        payment_intent: `pi_${sessionId}`,
-        customer: 'cus_e2e',
-      },
-    },
-  })
-  const timestamp = Math.floor(Date.now() / 1000)
-  const mac = createHmac('sha256', E2E_DUES_WEBHOOK_SECRET)
-  mac.update(`${timestamp}.${body}`, 'utf8')
-  const response = await request.post('/api/plugins/dues/hook/stripe', {
-    data: body,
-    headers: {
-      'content-type': 'application/json',
-      'stripe-signature': `t=${timestamp},v1=${mac.digest('hex')}`,
-    },
-  })
-  expect(response.status()).toBe(200)
-}
+const snap = screenshotter('/tmp/dues-admin-shots')
 
 test('discount codes and the admin desk, photographed', async ({ page, request }) => {
   test.setTimeout(180_000)

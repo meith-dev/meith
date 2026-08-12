@@ -2,11 +2,10 @@
 // One version, everywhere it is written down — the lockstep rule docs/release.md
 // describes. With --tag vX.Y.Z (the release workflow passes it), also asserts
 // the tag being released matches the version the tree carries.
-import { readdir, readFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
-const WORKSPACE_GLOBS = ['apps', 'packages', 'themes', 'plugins', 'examples']
+import { ROOT, workspacePackages } from './workspace-packages.mjs'
 
 const problems = []
 
@@ -19,29 +18,10 @@ if (typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version)) {
 }
 
 const byName = new Map()
-for (const glob of WORKSPACE_GLOBS) {
-  let entries
-  try {
-    entries = await readdir(join(ROOT, glob), { withFileTypes: true })
-  } catch {
-    continue
-  }
-
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name.startsWith('.')) continue
-
-    const dir = `${glob}/${entry.name}`
-    let manifest
-    try {
-      manifest = JSON.parse(await readFile(join(ROOT, dir, 'package.json'), 'utf8'))
-    } catch {
-      continue // workspace-check owns "directory with no manifest"
-    }
-
-    byName.set(manifest.name, { dir, manifest })
-    if (manifest.version !== version) {
-      problems.push(`${dir}/package.json is at ${manifest.version}; the release is ${version}`)
-    }
+for (const { dir, manifest } of await workspacePackages()) {
+  byName.set(manifest.name, { dir, manifest })
+  if (manifest.version !== version) {
+    problems.push(`${dir}/package.json is at ${manifest.version}; the release is ${version}`)
   }
 }
 
