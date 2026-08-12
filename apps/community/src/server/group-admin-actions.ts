@@ -2,37 +2,26 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { CacheTags, PERMISSION_FIELDS, ValidationError, isAppError, logger } from '@meith/core'
+import { CacheTags, PERMISSION_FIELDS, ValidationError } from '@meith/core'
 import { permissionsCarryPower } from '@meith/db'
 import { drivers } from '@meith/drivers'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
+import { formStateReporter } from './form-state-reporter'
+import { checkbox, trimmedText } from './form-values'
 import { promotionService, requireGroupAdmin } from './group-admin'
 import { assertSafeCssValue } from './theme-style'
 import type { FormState } from './auth-form-state'
 
 const CHUNK = 500
 
-function text(form: FormData, name: string): string {
-  const value = form.get(name)
-  return typeof value === 'string' ? value.trim() : ''
-}
-
-function checkbox(form: FormData, name: string): boolean {
-  return form.get(name) !== null
-}
-
 function groupId(form: FormData, name = 'groupId'): number {
-  const id = Number(text(form, name))
+  const id = Number(trimmedText(form, name))
   if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError('No such group.')
   return id
 }
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'group-admin' }).error({ err }, 'group administration write failed')
-  return { error: 'Something went wrong. Please try again.' }
-}
+const toFormState = formStateReporter('group-admin', 'group administration write failed')
 
 async function invalidatePermissions(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.permissions()])
@@ -41,7 +30,7 @@ async function invalidatePermissions(): Promise<void> {
 }
 
 function groupColour(form: FormData, field: string): string | null {
-  const value = text(form, field)
+  const value = trimmedText(form, field)
   if (value === '') return null
   assertSafeCssValue(`group colour "${field}"`, value)
   return value
@@ -55,10 +44,10 @@ export async function saveGroupIdentityAction(
     await requireAdmin()
     const id = groupId(form)
 
-    const title = text(form, 'title')
+    const title = trimmedText(form, 'title')
     if (title === '') throw new ValidationError('A group needs a title.')
 
-    const order = Number(text(form, 'displayOrder'))
+    const order = Number(trimmedText(form, 'displayOrder'))
     if (!Number.isSafeInteger(order) || order < 0) {
       throw new ValidationError('Display order must be a whole number.')
     }
@@ -93,11 +82,11 @@ export async function saveGroupIdentityAction(
 
     await requireGroupAdmin().updateIdentity(id, {
       title,
-      description: text(form, 'description') === '' ? null : text(form, 'description'),
+      description: trimmedText(form, 'description') || null,
       displayOrder: order,
       isStaffGroup,
       pluginGrantable,
-      badgeToken: text(form, 'badgeToken') === '' ? null : text(form, 'badgeToken'),
+      badgeToken: trimmedText(form, 'badgeToken') === '' ? null : trimmedText(form, 'badgeToken'),
       nameColorLight: groupColour(form, 'nameColorLight'),
       nameColorDark: groupColour(form, 'nameColorDark'),
     })
@@ -122,7 +111,7 @@ export async function saveGroupPermissionsAction(
     const values: Record<string, boolean | number> = {}
     for (const field of PERMISSION_FIELDS) {
       if (field.kind === 'numeric') {
-        const raw = text(form, field.key)
+        const raw = trimmedText(form, field.key)
         const parsed = Number(raw)
         if (raw !== '' && (!Number.isSafeInteger(parsed) || parsed < 0)) {
           throw new ValidationError(`“${field.key}” must be a whole number, or blank for none.`)
@@ -151,17 +140,17 @@ export async function createGroupAction(
   try {
     await requireAdmin()
 
-    const key = text(form, 'key')
+    const key = trimmedText(form, 'key')
     if (!/^[a-z][a-z0-9_]*$/.test(key)) {
       throw new ValidationError(
         'A key may contain lower-case letters, numbers and underscores, and must start with a letter.',
       )
     }
 
-    const title = text(form, 'title')
+    const title = trimmedText(form, 'title')
     if (title === '') throw new ValidationError('A group needs a title.')
 
-    if (text(form, 'copyFromGroupId') === '') {
+    if (trimmedText(form, 'copyFromGroupId') === '') {
       throw new ValidationError(
         'Choose a group to copy permissions from. Starting from the defaults ' +
           'would deny everything, which makes a group whose members cannot see ' +
@@ -216,7 +205,7 @@ export async function moveMembersAction(
     const from = groupId(form, 'fromGroupId')
     const to = groupId(form, 'toGroupId')
 
-    const after = Number(text(form, 'afterUserId') || '0')
+    const after = Number(trimmedText(form, 'afterUserId') || '0')
     if (!Number.isSafeInteger(after) || after < 0) {
       throw new ValidationError('Lost track of where the run had got to. Start again.')
     }
@@ -234,7 +223,7 @@ export async function moveMembersAction(
       detail: { fromGroupId: from, toGroupId: to, moved: chunk.moved },
     })
 
-    const total = Number(text(form, 'movedSoFar') || '0') + chunk.moved
+    const total = Number(trimmedText(form, 'movedSoFar') || '0') + chunk.moved
 
     return {
       notice: chunk.nextCursor === null ? 'finished' : 'more',

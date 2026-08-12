@@ -2,6 +2,10 @@ import 'server-only'
 
 import { renderAtom, renderRss, type FeedChannel } from '@/view/feed'
 
+import { feedFor } from './feed-builder'
+import { getSettings } from './settings'
+import { FEED_LIMIT, feedRepository, origin, publicScope } from './syndication'
+
 const CACHE = 'public, max-age=300, stale-while-revalidate=3600'
 
 export type FeedFormat = 'rss' | 'atom'
@@ -23,6 +27,29 @@ export function xmlResponse(body: string): Response {
   return new Response(body, {
     headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': CACHE },
   })
+}
+
+export async function boardFeed(format: FeedFormat, selfPath: string): Promise<Response> {
+  const repo = feedRepository()
+  if (repo === null) return noFeed()
+
+  const scope = await publicScope()
+  const threads = await repo.recentThreads(FEED_LIMIT, scope)
+  const settings = await getSettings()
+
+  const feed = feedFor(await origin())
+
+  return feedResponse(
+    feed.channel({
+      title: settings.get('board.name'),
+      description: settings.get('board.description'),
+      path: '/',
+      selfPath,
+      entries: threads.map(feed.threadEntry),
+      now: new Date(),
+    }),
+    format,
+  )
 }
 
 export function noFeed(): Response {

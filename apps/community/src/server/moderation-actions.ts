@@ -2,19 +2,16 @@
 
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import { ModerationQueue, parseSelection } from '@meith/moderation'
 
 import { avatarService } from './avatars'
 import { getActor } from './context'
 import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
+import { formStateReporter } from './form-state-reporter'
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'moderation-actions' }).error({ err }, 'unexpected error in the queue')
-  return { error: 'Something went wrong. Please try again.' }
-}
+const toFormState = formStateReporter('moderation-actions', 'unexpected error in the queue')
 
 function outcomeQuery(outcome: {
   decision: string

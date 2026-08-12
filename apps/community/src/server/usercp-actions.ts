@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { MemberSettingsService } from '@meith/accounts'
-import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import { prepareSignature } from '@meith/signatures'
 
@@ -13,22 +13,15 @@ import { AVATAR_FIELD, canUploadAvatar, requireAvatarService } from './avatars'
 import { getActor } from './context'
 import { getContainer } from './container'
 import { assertDemoAccountChangeable } from './demo'
+import { formStateReporter } from './form-state-reporter'
+import { text } from './form-values'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
 import { signatureStore, viewerSignatureLimits } from './signatures'
 import { sendEmailChangeConfirmation } from './usercp-mail'
 import { setSessionCookie } from './session-cookies'
 import type { FormState } from './auth-form-state'
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'usercp-actions' }).error({ err }, 'unexpected error in the UserCP')
-  return { error: 'Something went wrong. Please try again.' }
-}
-
-function text(form: FormData, name: string): string {
-  const value = form.get(name)
-  return typeof value === 'string' ? value : ''
-}
+const toFormState = formStateReporter('usercp-actions', 'unexpected error in the UserCP')
 
 async function requireOwnSettings(): Promise<{
   service: MemberSettingsService

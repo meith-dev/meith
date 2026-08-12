@@ -11,15 +11,9 @@ import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
 import { postLink } from '@/view/post-link'
 import { buildReplyView } from '@/view/post-form'
+import { leadingId } from '@/view/slug-id'
 
 export const metadata: Metadata = { title: 'Reply' }
-
-function threadId(value: string): number | null {
-  const match = /^(\d+)(?:-|$)/.exec(value)
-  if (!match) return null
-  const id = Number(match[1])
-  return Number.isSafeInteger(id) && id > 0 ? id : null
-}
 
 function quotedPostId(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d*$/.test(value)) return null
@@ -35,7 +29,7 @@ export default async function ReplyPage({
   searchParams: Promise<{ quote?: string }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
-  const id = threadId(slug)
+  const id = leadingId(slug)
   if (id === null) notFound()
 
   const actor = await getActor()

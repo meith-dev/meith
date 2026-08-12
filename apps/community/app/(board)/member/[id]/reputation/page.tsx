@@ -17,14 +17,9 @@ import {
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildReputationView, reputationLabel, reputationNotice } from '@/view/reputation'
+import { numericId } from '@/view/slug-id'
 
 export const metadata: Metadata = { title: 'Reputation' }
-
-function memberId(value: string): number | null {
-  if (!/^[1-9]\d*$/.test(value)) return null
-  const id = Number(value)
-  return Number.isSafeInteger(id) ? id : null
-}
 
 export default async function ReputationPage({
   params,
@@ -38,7 +33,7 @@ export default async function ReputationPage({
     withdrawn?: string
   }>
 }) {
-  const id = memberId((await params).id)
+  const id = numericId((await params).id)
   if (id === null) notFound()
 
   const query = await searchParams

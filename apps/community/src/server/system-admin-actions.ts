@@ -1,10 +1,11 @@
 'use server'
 
-import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
+import { CacheTags, ValidationError } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import { revalidatePath } from 'next/cache'
 
 import { recordAdminAction, requireAdmin } from './admin'
+import { formStateReporter } from './form-state-reporter'
 import { requireSearch } from './search'
 import { requireMaintenance, requireRecount } from './system-admin'
 import type { FormState } from './auth-form-state'
@@ -15,11 +16,7 @@ const RECOUNT_BATCH = 500
 
 const REINDEX_BATCH = 2_000
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'system-admin' }).error({ err }, 'maintenance action failed')
-  return { error: 'Something went wrong. Please try again.' }
-}
+const toFormState = formStateReporter('system-admin', 'maintenance action failed')
 
 function refreshSystemScreen(): void {
   revalidatePath('/admin/system')

@@ -99,6 +99,7 @@ import { FixturePostRepository } from './fixture-post-repo'
 import { FixtureThreadRepository } from './fixture-thread-repo'
 import { clearUploadedFiles } from './demo-uploads'
 import { activeDefinitions } from './plugin-host'
+import { ABSENT_SERVICES } from './absent-services'
 import { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_GROUP } from './seed-board'
 
 export interface Container {
@@ -189,38 +190,12 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     actorSource: new FixtureActorSource(store),
     forums: cached(new FixtureForumRepository()),
     threads: new FixtureThreadRepository(),
-    threadWrites: null,
-    postWrites: null,
-    moderationQueue: null,
-    reports: null,
-    threadTools: null,
-    threadSurgery: null,
-    inlineModeration: null,
-    warnings: null,
-    warningBans: null,
-    modcp: null,
-    notifications: null,
-    subscriptions: null,
-    memberSettings: null,
-    profileFields: null,
-    messages: null,
-    relations: null,
-    reputation: null,
-    polls: null,
-    drafts: null,
-    signatures: null,
-    adminSessions: null,
-    adminLog: null,
-    attachments: null,
-    avatars: null,
+    ...ABSENT_SERVICES,
     posts: new FixturePostRepository(),
-    readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
-    threadViews: null,
     fixtureDataVersion: FIXTURE_DATA_VERSION,
     ...identityServices(store),
     accountStore: store,
-    scheduler: null,
     dataSource: 'fixture',
   }
 }

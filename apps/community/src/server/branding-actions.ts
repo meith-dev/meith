@@ -1,16 +1,13 @@
 'use server'
 
-import { ValidationError, isAppError, logger } from '@meith/core'
+import { ValidationError } from '@meith/core'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import { LOGO_FIELD, isLogoScheme, removeLogo, saveLogo } from './branding'
 import type { FormState } from './auth-form-state'
+import { formStateReporter } from './form-state-reporter'
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'branding' }).error({ err }, 'logo write failed')
-  return { error: 'Something went wrong. Please try again.' }
-}
+const toFormState = formStateReporter('branding', 'logo write failed')
 
 function scheme(form: FormData): 'light' | 'dark' {
   const value = form.get('scheme')

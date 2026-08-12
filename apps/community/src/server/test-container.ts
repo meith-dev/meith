@@ -6,6 +6,7 @@ import {
 import type { MemoryAppointment, MemoryBoard } from '@meith/authorization'
 import { Authorizer, InMemoryAuthorizationSource } from '@meith/authorization'
 
+import { ABSENT_SERVICES } from './absent-services'
 import { FixtureActorSource } from './fixture-actor-source'
 
 import { FIXTURE_DATA_VERSION, SEED_BOARD } from './seed-board'
@@ -34,34 +35,8 @@ export function installTestContainer(
   const container = {
     authorizer: new Authorizer(new InMemoryAuthorizationSource(board), {}),
 
-    threadWrites: null,
-    postWrites: null,
-    moderationQueue: null,
-    reports: null,
-    threadTools: null,
-    threadSurgery: null,
-    inlineModeration: null,
-    warnings: null,
-    warningBans: null,
-    modcp: null,
-    notifications: null,
-    subscriptions: null,
-    memberSettings: null,
-    profileFields: null,
-    messages: null,
-    relations: null,
-    reputation: null,
-    polls: null,
-    drafts: null,
-    signatures: null,
-    adminSessions: null,
-    adminLog: null,
-    attachments: null,
-    avatars: null,
+    ...ABSENT_SERVICES,
     ...identityOver(store),
-    readState: null,
-    threadViews: null,
-    scheduler: null,
 
     threads: {
       locateForum: async () => null,

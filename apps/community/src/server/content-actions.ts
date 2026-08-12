@@ -3,18 +3,15 @@
 import { redirect } from 'next/navigation'
 
 import { SIGNATURE_FEATURES, quoteBlock, renderMarkdown, vocabularyOptions } from '@meith/markdown'
-import {
-  ForbiddenError,
-  ValidationError,
-  isAppError,
-  logger,
-} from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import { PostEditor, type PostWriteRepository } from '@meith/posts'
 import { ThreadComposer, type AuthorRestriction } from '@meith/threads'
 import { restrictsPosting } from '@meith/moderation'
 
 import { postLink } from '../view/post-link'
 
+import { formStateReporter } from './form-state-reporter'
+import { checkbox, positiveIntIn } from './form-values'
 import { emitEvent, viewerRef } from './plugin-view'
 
 import { activeVocabulary } from './content-admin'
@@ -80,34 +77,17 @@ function field(form: FormData, name: string): string {
   return typeof v === 'string' ? v.trim() : ''
 }
 
-function checkbox(form: FormData, name: string): boolean {
-  return form.get(name) !== null
-}
-
-function positiveInt(value: string): number | null {
-  if (!/^[1-9]\d*$/.test(value)) return null
-  const n = Number(value)
-  return Number.isSafeInteger(n) ? n : null
-}
-
-function toFormState(err: unknown, values: Record<string, string>): FormState {
-  if (isAppError(err)) return { error: err.message, values }
-  logger({ module: 'content-actions' }).error(
-    { err },
-    'unexpected error writing content',
-  )
-  return { error: 'Something went wrong. Please try again.', values }
-}
+const toFormState = formStateReporter('content-actions', 'unexpected error writing content')
 
 export async function createThreadAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
-  const forumId = positiveInt(field(form, 'forumId'))
+  const forumId = positiveIntIn(field(form, 'forumId'))
   const title = field(form, 'title')
   const message = field(form, 'message')
   const prefixId =
-    field(form, 'prefixId') === '' ? null : positiveInt(field(form, 'prefixId'))
+    field(form, 'prefixId') === '' ? null : positiveIntIn(field(form, 'prefixId'))
   const subscribe = checkbox(form, 'subscribe')
   const pollQuestion = field(form, 'pollQuestion')
   const pollOptions = form
@@ -246,10 +226,10 @@ export async function createReplyAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
-  const threadId = positiveInt(field(form, 'threadId'))
+  const threadId = positiveIntIn(field(form, 'threadId'))
   const message = field(form, 'message')
   const subscribe = checkbox(form, 'subscribe')
-  const seenLastPostId = positiveInt(field(form, 'seenLastPostId'))
+  const seenLastPostId = positiveIntIn(field(form, 'seenLastPostId'))
   const values = { message, seenLastPostId: field(form, 'seenLastPostId') }
 
   if (threadId === null) return { error: 'That thread does not exist.', values }
@@ -316,8 +296,8 @@ export async function editPostAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
-  const threadId = positiveInt(field(form, 'threadId'))
-  const postId = positiveInt(field(form, 'postId'))
+  const threadId = positiveIntIn(field(form, 'threadId'))
+  const postId = positiveIntIn(field(form, 'postId'))
   const message = field(form, 'message')
   const reason = field(form, 'reason')
   const values = { message, reason }
@@ -401,8 +381,8 @@ async function moveVisibility(
   form: FormData,
   to: 'deleted' | 'visible',
 ): Promise<FormState> {
-  const threadId = positiveInt(field(form, 'threadId'))
-  const postId = positiveInt(field(form, 'postId'))
+  const threadId = positiveIntIn(field(form, 'threadId'))
+  const postId = positiveIntIn(field(form, 'postId'))
   if (threadId === null || postId === null) {
     return { error: 'That post does not exist.' }
   }

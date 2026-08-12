@@ -1,11 +1,13 @@
 'use server'
 
-import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
+import { CacheTags, ValidationError } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import { revalidatePath } from 'next/cache'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { assertDemoIdentityUnchanged } from './demo'
+import { formStateReporter } from './form-state-reporter'
+import { trimmedText } from './form-values'
 import { banService, requireUserAdmin, requireUserBulk, requireUserMerge } from './user-admin'
 import type { FormState } from './auth-form-state'
 
@@ -15,22 +17,13 @@ const PRUNE_CHUNK = 500
 
 const MASS_MAIL_CHUNK = 500
 
-function text(form: FormData, name: string): string {
-  const value = form.get(name)
-  return typeof value === 'string' ? value.trim() : ''
-}
-
 function userId(form: FormData): number {
-  const id = Number(text(form, 'userId'))
+  const id = Number(trimmedText(form, 'userId'))
   if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError('No such member.')
   return id
 }
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'user-admin' }).error({ err }, 'user administration write failed')
-  return { error: 'Something went wrong. Please try again.' }
-}
+const toFormState = formStateReporter('user-admin', 'user administration write failed')
 
 async function invalidatePermissions(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.permissions()])
@@ -46,19 +39,19 @@ export async function saveMemberAccountAction(
     await requireAdmin()
     const id = userId(form)
 
-    const primaryGroupId = Number(text(form, 'primaryGroupId'))
+    const primaryGroupId = Number(trimmedText(form, 'primaryGroupId'))
     if (!Number.isSafeInteger(primaryGroupId) || primaryGroupId <= 0) {
       throw new ValidationError('No such group.')
     }
 
-    const displayRaw = text(form, 'displayGroupId')
+    const displayRaw = trimmedText(form, 'displayGroupId')
     const displayGroupId = displayRaw === '' ? null : Number(displayRaw)
     if (displayGroupId !== null && (!Number.isSafeInteger(displayGroupId) || displayGroupId <= 0)) {
       throw new ValidationError('No such display group.')
     }
 
-    const username = text(form, 'username')
-    const email = text(form, 'email')
+    const username = trimmedText(form, 'username')
+    const email = trimmedText(form, 'email')
     await assertDemoIdentityUnchanged(id, { username, email })
 
     await requireUserAdmin().updateAccount(id, {
@@ -85,7 +78,7 @@ export async function setMemberStateAction(
     await requireAdmin()
     const id = userId(form)
 
-    const state = text(form, 'state')
+    const state = trimmedText(form, 'state')
     if (state !== 'active' && state !== 'awaiting_activation') {
       throw new ValidationError('Choose active or awaiting activation.')
     }
@@ -109,7 +102,7 @@ export async function banMemberAction(
     const context = await requireFreshAdmin()
     const id = userId(form)
 
-    const days = text(form, 'days')
+    const days = trimmedText(form, 'days')
     let expiresAt: Date | undefined
     if (days !== '') {
       const parsed = Number(days)
@@ -122,10 +115,10 @@ export async function banMemberAction(
     await banService().ban({
       userId: id,
       bannedByUserId: context.session.userId,
-      ...(text(form, 'reason') === '' ? {} : { reason: text(form, 'reason') }),
-      ...(text(form, 'publicReason') === ''
+      ...(trimmedText(form, 'reason') === '' ? {} : { reason: trimmedText(form, 'reason') }),
+      ...(trimmedText(form, 'publicReason') === ''
         ? {}
-        : { publicReason: text(form, 'publicReason') }),
+        : { publicReason: trimmedText(form, 'publicReason') }),
       ...(expiresAt === undefined ? {} : { expiresAt }),
     })
 
@@ -177,7 +170,7 @@ export async function mergeStepAction(_prev: FormState, form: FormData): Promise
     await requireFreshAdmin()
 
     const fromUserId = userId(form)
-    const toUserId = Number(text(form, 'toUserId'))
+    const toUserId = Number(trimmedText(form, 'toUserId'))
     if (!Number.isSafeInteger(toUserId) || toUserId <= 0) {
       throw new ValidationError('Choose an account to merge into.')
     }
@@ -220,12 +213,12 @@ export async function pruneMembersAction(
   try {
     await requireFreshAdmin()
 
-    const before = new Date(text(form, 'before'))
+    const before = new Date(trimmedText(form, 'before'))
     if (Number.isNaN(before.getTime())) {
       throw new ValidationError('Choose the date members must have registered before.')
     }
 
-    const inactiveRaw = text(form, 'inactive')
+    const inactiveRaw = trimmedText(form, 'inactive')
     const inactive = inactiveRaw === '' ? undefined : new Date(inactiveRaw)
     if (inactive !== undefined && Number.isNaN(inactive.getTime())) {
       throw new ValidationError('That inactivity date is not a date.')
@@ -262,7 +255,7 @@ export async function startMassMailAction(
   try {
     const context = await requireFreshAdmin()
 
-    const groupRaw = text(form, 'targetGroupId')
+    const groupRaw = trimmedText(form, 'targetGroupId')
     const targetGroupId = groupRaw === '' ? null : Number(groupRaw)
     if (targetGroupId !== null && (!Number.isSafeInteger(targetGroupId) || targetGroupId <= 0)) {
       throw new ValidationError('No such group.')
@@ -270,8 +263,8 @@ export async function startMassMailAction(
 
     const bulk = requireUserBulk()
     const massMailId = await bulk.createMassMail({
-      subject: text(form, 'subject'),
-      body: text(form, 'body'),
+      subject: trimmedText(form, 'subject'),
+      body: trimmedText(form, 'body'),
       targetGroupId,
       createdByUserId: context.session.userId,
     })
@@ -294,7 +287,7 @@ export async function continueMassMailAction(
   try {
     await requireFreshAdmin()
 
-    const massMailId = Number(text(form, 'massMailId'))
+    const massMailId = Number(trimmedText(form, 'massMailId'))
     if (!Number.isSafeInteger(massMailId) || massMailId <= 0) {
       throw new ValidationError('No such message.')
     }

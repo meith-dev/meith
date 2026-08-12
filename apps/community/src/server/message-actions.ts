@@ -2,26 +2,19 @@
 
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import { parseFolder } from '@meith/messages'
 
 import { limitMessage, spendLimit } from './antispam'
 import { getActor } from './context'
 import { getContainer } from './container'
+import { formStateReporter } from './form-state-reporter'
+import { text } from './form-values'
 import { messageService } from './messages'
 import { folderHref } from '../view/messages'
 import type { FormState } from './auth-form-state'
 
-function toFormState(err: unknown, values?: Record<string, string>): FormState {
-  if (isAppError(err)) return { error: err.message, values }
-  logger({ module: 'message-actions' }).error({ err }, 'unexpected error in a message action')
-  return { error: 'Something went wrong. Please try again.', values }
-}
-
-function text(form: FormData, name: string): string {
-  const value = form.get(name)
-  return typeof value === 'string' ? value : ''
-}
+const toFormState = formStateReporter('message-actions', 'unexpected error in a message action')
 
 async function requireMessaging(): Promise<{
   service: NonNullable<ReturnType<typeof messageService>>

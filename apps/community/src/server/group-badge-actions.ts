@@ -1,17 +1,14 @@
 'use server'
 
-import { ValidationError, isAppError, logger } from '@meith/core'
+import { ValidationError } from '@meith/core'
 
 import { recordAdminAction, requireAdmin } from './admin'
+import { formStateReporter } from './form-state-reporter'
 import { BADGE_FIELD, removeBadge, saveBadge } from './group-badge'
 import { isImageScheme, type ImageScheme } from './image-upload'
 import type { FormState } from './auth-form-state'
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'group-badge' }).error({ err }, 'badge write failed')
-  return { error: 'Something went wrong. Please try again.' }
-}
+const toFormState = formStateReporter('group-badge', 'badge write failed')
 
 function target(form: FormData): { groupId: number; scheme: ImageScheme } {
   const raw = form.get('groupId')

@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect } from "react"
 
-import { Alert, AlertDescription, Disclosure, buttonVariants, cn } from "@meith/ui"
+import { Alert, AlertDescription, Disclosure, cn } from "@meith/ui"
 
 import { createReplyAction, quotePostAction } from "@/server/content-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
@@ -11,6 +11,7 @@ import type { UploadLimits } from "@meith/attachments/limits"
 import type { Draft } from "@meith/drafts"
 
 import { AttachmentField } from "./attachment-field"
+import { ComposerIntents } from "./composer-intents"
 import { MarkdownEditor } from "./markdown-editor"
 import { FormError, SubmitButton } from "../auth/form-controls"
 
@@ -92,22 +93,7 @@ export function ReplyForm({
         <SubmitButton className={collapsible ? "w-auto" : "w-full sm:w-auto"}>
           Post reply
         </SubmitButton>
-        <button
-          type="submit"
-          name="intent"
-          value="preview"
-          className={buttonVariants({ variant: "outline" })}
-        >
-          Preview
-        </button>
-        <button
-          type="submit"
-          name="intent"
-          value="save_draft"
-          className={buttonVariants({ variant: "ghost" })}
-        >
-          Save draft
-        </button>
+        <ComposerIntents />
       </div>
     </form>
   )

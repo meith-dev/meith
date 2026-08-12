@@ -2,12 +2,13 @@
 
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import { ThreadSurgery, parseSelection, type SurgeryRights } from '@meith/moderation'
 
 import { getActor } from './context'
 import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
+import { formStateReporter } from './form-state-reporter'
 
 function positiveInt(form: FormData, name: string): number | null {
   const value = form.get(name)
@@ -16,11 +17,7 @@ function positiveInt(form: FormData, name: string): number | null {
   return Number.isSafeInteger(n) ? n : null
 }
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'surgery-actions' }).error({ err }, 'unexpected error in thread surgery')
-  return { error: 'Something went wrong. Please try again.' }
-}
+const toFormState = formStateReporter('surgery-actions', 'unexpected error in thread surgery')
 
 const NO_STORE =
   'This board is running on in-memory sample data, so it has no thread tools.'

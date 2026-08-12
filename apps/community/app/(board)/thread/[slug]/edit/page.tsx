@@ -11,15 +11,9 @@ import {
 import { resolvePostScope } from '@/server/post-scope'
 import { currentTheme } from '@/server/theme'
 import { buildEditView } from '@/view/post-form'
+import { leadingId } from '@/view/slug-id'
 
 export const metadata: Metadata = { title: 'Edit post' }
-
-function threadId(value: string): number | null {
-  const match = /^(\d+)(?:-|$)/.exec(value)
-  if (!match) return null
-  const id = Number(match[1])
-  return Number.isSafeInteger(id) && id > 0 ? id : null
-}
 
 function postId(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d*$/.test(value)) return null
@@ -35,7 +29,7 @@ export default async function EditPostPage({
   searchParams: Promise<{ post?: string }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
-  const thread = threadId(slug)
+  const thread = leadingId(slug)
   const post = postId(query.post)
   if (thread === null || post === null) notFound()
 

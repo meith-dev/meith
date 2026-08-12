@@ -41,6 +41,7 @@ import { activeVocabulary, activeWordFilter } from '@/server/content-admin'
 import { getSettings } from '@/server/settings'
 import { buildBreadcrumb } from '@/view/breadcrumb'
 import { locatedHref } from '@/view/post-link'
+import { leadingId } from '@/view/slug-id'
 import { buildThreadView, revealedFrom } from '@/view/thread-view'
 import {
   cardDescription,
@@ -59,7 +60,7 @@ export async function generateMetadata({
   searchParams: Promise<{ page?: string }>
 }): Promise<Metadata> {
   const [{ slug }, query] = await Promise.all([params, searchParams])
-  const id = threadId(slug)
+  const id = leadingId(slug)
   if (id === null) return { title: 'Thread' }
 
   const actor = await getActor()
@@ -125,13 +126,6 @@ const TOOL_NOTICE: Readonly<Record<string, string>> = {
   merge: 'Threads merged. You are looking at the one that survived.',
 }
 
-function threadId(value: string): number | null {
-  const match = /^(\d+)(?:-|$)/.exec(value)
-  if (!match) return null
-  const id = Number(match[1])
-  return Number.isSafeInteger(id) && id > 0 ? id : null
-}
-
 function afterId(value: string | undefined): number | null | undefined {
   if (value === undefined) return undefined
   if (!/^[1-9]\d*$/.test(value)) return null
@@ -168,7 +162,7 @@ export default async function ThreadPage({
   }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
-  const id = threadId(slug)
+  const id = leadingId(slug)
   const after = afterId(query.after)
   const page = query.page === undefined ? 1 : Number(query.page)
   if (id === null || after === null || !Number.isSafeInteger(page) || page < 1)

@@ -2,12 +2,14 @@
 
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import { ReportService, parseTargetKind } from '@meith/moderation'
 
 import { limitMessage, spendLimit } from './antispam'
 import { getActor } from './context'
 import { getContainer } from './container'
+import { formStateReporter } from './form-state-reporter'
+import { positiveIntIn } from './form-values'
 import { reportNotifier } from './notifications'
 import { resolveReportScope } from './report-scope'
 import type { FormState } from './auth-form-state'
@@ -17,24 +19,14 @@ function field(form: FormData, name: string): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function positiveInt(value: string): number | null {
-  if (!/^[1-9]\d*$/.test(value)) return null
-  const n = Number(value)
-  return Number.isSafeInteger(n) ? n : null
-}
-
-function toFormState(err: unknown, values: Record<string, string> = {}): FormState {
-  if (isAppError(err)) return { error: err.message, values }
-  logger({ module: 'report-actions' }).error({ err }, 'unexpected error in reports')
-  return { error: 'Something went wrong. Please try again.', values }
-}
+const toFormState = formStateReporter('report-actions', 'unexpected error in reports')
 
 export async function fileReportAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
   const kind = parseTargetKind(field(form, 'kind'))
-  const targetId = positiveInt(field(form, 'targetId'))
+  const targetId = positiveIntIn(field(form, 'targetId'))
   const reason = field(form, 'reason')
   const values = { reason }
 
@@ -98,7 +90,7 @@ export async function assignReportAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
-  const reportId = positiveInt(field(form, 'reportId'))
+  const reportId = positiveIntIn(field(form, 'reportId'))
   const take = field(form, 'take') === '1'
   if (reportId === null) return { error: 'That report does not exist.' }
 
@@ -116,7 +108,7 @@ export async function assignReportAction(
       scope: await resolveReportScope(),
     })
   } catch (err) {
-    return toFormState(err)
+    return toFormState(err, {})
   }
 
   redirect('/moderation/reports')
@@ -126,7 +118,7 @@ export async function closeReportAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
-  const reportId = positiveInt(field(form, 'reportId'))
+  const reportId = positiveIntIn(field(form, 'reportId'))
   const status = form.get('status')
   const note = field(form, 'note')
 

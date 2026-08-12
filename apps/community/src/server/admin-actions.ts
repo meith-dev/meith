@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { generateToken, hashToken, verifyPassword } from '@meith/accounts'
-import { ForbiddenError, ValidationError, isAppError, logger, truncateIp } from '@meith/core'
+import { ForbiddenError, ValidationError, logger, truncateIp } from '@meith/core'
 
 import { ipAllowed } from '@meith/admin'
 
@@ -16,19 +16,12 @@ import {
 } from './admin'
 import { getActor } from './context'
 import { getContainer } from './container'
+import { formStateReporter } from './form-state-reporter'
+import { text } from './form-values'
 import { clearAdminCookie, readAdminToken, setAdminCookie } from './session-cookies'
 import type { FormState } from './auth-form-state'
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'admin-actions' }).error({ err }, 'unexpected error in an admin action')
-  return { error: 'Something went wrong. Please try again.' }
-}
-
-function text(form: FormData, name: string): string {
-  const value = form.get(name)
-  return typeof value === 'string' ? value : ''
-}
+const toFormState = formStateReporter('admin-actions', 'unexpected error in an admin action')
 
 export async function adminSignInAction(_prev: FormState, form: FormData): Promise<FormState> {
   let target: string

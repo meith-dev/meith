@@ -15,18 +15,7 @@ import { EMPTY_STATE } from "@/server/auth-form-state"
 import { OklchPicker } from "./oklch-picker"
 
 import { FormError, SubmitButton } from "../auth/form-controls"
-
-const INPUT =
-  "w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-
-function Saved({ when, children }: { when: boolean; children: React.ReactNode }) {
-  if (!when) return null
-  return (
-    <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-      {children}
-    </p>
-  )
-}
+import { INPUT, Saved } from "./form-bits"
 
 export interface GroupOption {
   readonly id: number

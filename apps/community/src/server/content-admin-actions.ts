@@ -1,7 +1,7 @@
 'use server'
 
 import { compileSmilies, createDirectiveRegistry } from '@meith/markdown'
-import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
+import { CacheTags, ValidationError } from '@meith/core'
 import type {
   AnnouncementInput,
   PostgresAnnouncementRepository,
@@ -16,23 +16,16 @@ import { announcementRepository } from './announcements'
 import { captchaQuestionRepository } from './antispam'
 import { requireAttachmentAdmin, requireContentAdmin } from './content-admin'
 import type { FormState } from './auth-form-state'
-
-function text(form: FormData, name: string): string {
-  const value = form.get(name)
-  return typeof value === 'string' ? value.trim() : ''
-}
+import { formStateReporter } from './form-state-reporter'
+import { trimmedText } from './form-values'
 
 function id(form: FormData, name = 'id'): number {
-  const value = Number(text(form, name))
+  const value = Number(trimmedText(form, name))
   if (!Number.isSafeInteger(value) || value <= 0) throw new ValidationError('No such row.')
   return value
 }
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'content-admin' }).error({ err }, 'content administration write failed')
-  return { error: 'Something went wrong. Please try again.' }
-}
+const toFormState = formStateReporter('content-admin', 'content administration write failed')
 
 function refreshPanel(path: string): void {
   revalidatePath(path)
@@ -51,7 +44,7 @@ export async function createWordFilterAction(
     await requireAdmin()
 
     const filterId = await requireContentAdmin().createWordFilter({
-      pattern: text(form, 'pattern'),
+      pattern: trimmedText(form, 'pattern'),
       replacement: typeof form.get('replacement') === 'string'
         ? (form.get('replacement') as string)
         : '',
@@ -76,7 +69,7 @@ export async function updateWordFilterAction(
     const filterId = id(form)
 
     await requireContentAdmin().updateWordFilter(filterId, {
-      pattern: text(form, 'pattern'),
+      pattern: trimmedText(form, 'pattern'),
       replacement: typeof form.get('replacement') === 'string'
         ? (form.get('replacement') as string)
         : '',
@@ -119,17 +112,17 @@ export async function createPrefixAction(
   try {
     await requireAdmin()
 
-    const order = Number(text(form, 'displayOrder') || '0')
+    const order = Number(trimmedText(form, 'displayOrder') || '0')
     if (!Number.isSafeInteger(order) || order < 0) {
       throw new ValidationError('Display order must be a whole number.')
     }
 
     const prefixId = await requireContentAdmin().createPrefix({
-      label: text(form, 'label'),
-      token: text(form, 'token') === '' ? null : text(form, 'token'),
+      label: trimmedText(form, 'label'),
+      token: trimmedText(form, 'token') === '' ? null : trimmedText(form, 'token'),
       displayOrder: order,
       forumPathPrefix:
-        text(form, 'forumPathPrefix') === '' ? null : text(form, 'forumPathPrefix'),
+        trimmedText(form, 'forumPathPrefix') === '' ? null : trimmedText(form, 'forumPathPrefix'),
     })
 
     await drivers().cache.invalidateTags([CacheTags.prefixes()])
@@ -192,9 +185,9 @@ export async function createSmileyAction(_prev: FormState, form: FormData): Prom
 
     const repository = requireContentAdmin()
     const candidate = {
-      code: text(form, 'code'),
-      src: text(form, 'src'),
-      alt: text(form, 'alt') === '' ? null : text(form, 'alt'),
+      code: trimmedText(form, 'code'),
+      src: trimmedText(form, 'src'),
+      alt: trimmedText(form, 'alt') === '' ? null : trimmedText(form, 'alt'),
     }
     assertSmileyCompiles(await repository.listSmilies(), candidate, null)
 
@@ -216,9 +209,9 @@ export async function updateSmileyAction(_prev: FormState, form: FormData): Prom
     const repository = requireContentAdmin()
     const smileyId = id(form)
     const candidate = {
-      code: text(form, 'code'),
-      src: text(form, 'src'),
-      alt: text(form, 'alt') === '' ? null : text(form, 'alt'),
+      code: trimmedText(form, 'code'),
+      src: trimmedText(form, 'src'),
+      alt: trimmedText(form, 'alt') === '' ? null : trimmedText(form, 'alt'),
     }
     assertSmileyCompiles(await repository.listSmilies(), candidate, smileyId)
 
@@ -263,11 +256,11 @@ export async function createDirectiveAction(_prev: FormState, form: FormData): P
   try {
     await requireAdmin()
 
-    const name = text(form, 'name').toLowerCase()
+    const name = trimmedText(form, 'name').toLowerCase()
     const block = form.get('block') !== null
     assertDirectiveCompiles(name, block)
 
-    const description = text(form, 'description')
+    const description = trimmedText(form, 'description')
     const tagId = await requireContentAdmin().createDirective({
       name,
       block,
@@ -288,11 +281,11 @@ export async function updateDirectiveAction(_prev: FormState, form: FormData): P
     await requireAdmin()
 
     const tagId = id(form)
-    const name = text(form, 'name').toLowerCase()
+    const name = trimmedText(form, 'name').toLowerCase()
     const block = form.get('block') !== null
     assertDirectiveCompiles(name, block)
 
-    const description = text(form, 'description')
+    const description = trimmedText(form, 'description')
     await requireContentAdmin().updateDirective(tagId, {
       name,
       block,
@@ -355,7 +348,7 @@ function requireAnnouncements(): PostgresAnnouncementRepository {
 }
 
 function moment(form: FormData, name: string): Date | null {
-  const value = text(form, name)
+  const value = trimmedText(form, name)
   if (value === '') return null
 
   const parsed = new Date(`${value}Z`)
@@ -364,10 +357,10 @@ function moment(form: FormData, name: string): Date | null {
 }
 
 function announcementInput(form: FormData): AnnouncementInput {
-  const forumText = text(form, 'forumId')
+  const forumText = trimmedText(form, 'forumId')
   return {
     forumId: forumText === '' ? null : id(form, 'forumId'),
-    title: text(form, 'title'),
+    title: trimmedText(form, 'title'),
     message: typeof form.get('message') === 'string' ? (form.get('message') as string) : '',
     startsAt: moment(form, 'startsAt') ?? new Date(),
     endsAt: moment(form, 'endsAt'),
@@ -457,7 +450,7 @@ export async function createCaptchaQuestionAction(
     await requireAdmin()
 
     const questionId = await requireCaptcha().create({
-      question: text(form, 'question'),
+      question: trimmedText(form, 'question'),
       answers: answersField(form),
     })
 
@@ -479,7 +472,7 @@ export async function updateCaptchaQuestionAction(
 
     const questionId = id(form)
     await requireCaptcha().update(questionId, {
-      question: text(form, 'question'),
+      question: trimmedText(form, 'question'),
       answers: answersField(form),
       enabled: form.get('enabled') !== null,
     })

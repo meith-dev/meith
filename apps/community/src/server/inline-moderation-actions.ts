@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { hasAnyModeratorRight, type Action, type Actor } from '@meith/authorization'
-import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import {
   INLINE_TOOL_ACTIONS,
   InlineModeration,
@@ -17,19 +17,10 @@ import {
 import { getActor } from './context'
 import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
+import { formStateReporter } from './form-state-reporter'
+import { positiveInt } from './form-values'
 
-function toFormState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
-  logger({ module: 'inline-moderation' }).error({ err }, 'unexpected error in inline moderation')
-  return { error: 'Something went wrong. Please try again.' }
-}
-
-function positiveInt(form: FormData, name: string): number | null {
-  const value = form.get(name)
-  if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)) return null
-  const n = Number(value)
-  return Number.isSafeInteger(n) ? n : null
-}
+const toFormState = formStateReporter('inline-moderation', 'unexpected error in inline moderation')
 
 function safeReturn(form: FormData): string {
   const raw = form.get('returnTo')
