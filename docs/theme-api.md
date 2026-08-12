@@ -40,6 +40,12 @@ Two worked examples bracket the range a theme can occupy:
 - `themes/midnight` is the maximal one: twenty-two slots overridden, five
   inherited, tables where the default theme has lists, and no change to any
   package to make it possible.
+- `themes/raidframe` goes to the other end of that range: every stable slot
+  filled and only the two provisional ones inherited, so a theme that wants no
+  markup from `themes/default` at all is a supported shape rather than a
+  standing fork. It is also the worked example of a theme whose look is
+  something other than "a forum" — a game-board HUD, in its own palette — built
+  from the same tokens every other theme has.
 
 ### Four rules the tooling enforces
 

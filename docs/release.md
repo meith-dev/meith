@@ -15,7 +15,7 @@ publishes comes out of that one act:
 | `ghcr.io/meith-dev/meith:X.Y.Z` | The board image — web, worker, migrator and operator CLI in one, `linux/amd64` and `linux/arm64`. This tag never moves again, and it is the only tag anything deploys: the Coolify compose file pins it exactly. |
 | `ghcr.io/meith-dev/meith:X.Y` | The release line, floating over its patches. A convenience for trying the image; nothing this repository ships deploys a floating tag. |
 | `ghcr.io/meith-dev/meith:latest` | The newest release, whatever line it is on. Same status: for trying, never for deploying. |
-| The `@meith` packages on npm | The theme and plugin kits, the first-party themes and plugins, and their dependency closure — nine packages at the release version, published with provenance. See [what publishes to npm](#what-publishes-to-npm). |
+| The `@meith` packages on npm | The theme and plugin kits, the first-party themes and plugins, and their dependency closure — ten packages at the release version, published with provenance. See [what publishes to npm](#what-publishes-to-npm). |
 | The `release` branch | Fast-forwarded to the tag. The Quickstart points Coolify at this branch, so a board deployed by the guide follows releases and never sees `main` mid-cycle. |
 | A GitHub Release | Drafted by the workflow with generated notes and a header the maintainer must finish — see [the notes](#the-notes-say-which-kind-of-upgrade-this-is). |
 
@@ -167,13 +167,13 @@ One-time steps around `v0.1.0`, in order:
 ## What publishes to npm
 
 Every workspace package that is **not** `private: true` publishes on every
-release, at the release version. Nine at 0.1.0:
+release, at the release version. Ten at 0.1.0:
 
 | | Packages |
 |---|---|
 | The kits | `@meith/plugin-kit`, `@meith/theme-kit` — what a plugin or theme author writes against |
 | Their closure | `@meith/core`, `@meith/ui` |
-| The themes | `@meith/theme-default`, `@meith/theme-midnight`, `@meith/theme-phasebook` |
+| The themes | `@meith/theme-default`, `@meith/theme-midnight`, `@meith/theme-phasebook`, `@meith/theme-raidframe` |
 | The plugins | `@meith/plugin-dues`, `@meith/plugin-reference` |
 
 `scripts/npm-publish.mjs` is the mechanism: dependencies before dependents, a
@@ -198,7 +198,7 @@ Two consequences worth knowing:
 - **Configuration lives on npmjs.com, per package**: package → Settings →
   Trusted Publisher → GitHub Actions, with the organisation (`meith-dev`),
   repository (`meith`) and workflow filename (`release.yml`). Renaming the
-  workflow file breaks publishing until the nine configurations are updated
+  workflow file breaks publishing until the ten configurations are updated
   to match — the failure is a clear authentication error at the `npm` job.
 - **A brand-new package cannot first-publish this way.** Trusted publishing
   attaches to a package that exists, so a package joining the publish set is

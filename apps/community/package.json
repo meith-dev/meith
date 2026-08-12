@@ -42,6 +42,7 @@
     "@meith/theme-kit": "workspace:*",
     "@meith/theme-midnight": "workspace:*",
     "@meith/theme-phasebook": "workspace:*",
+    "@meith/theme-raidframe": "workspace:*",
     "@meith/threads": "workspace:*",
     "@meith/ui": "workspace:*",
     "@vercel/analytics": "1.6.1",
