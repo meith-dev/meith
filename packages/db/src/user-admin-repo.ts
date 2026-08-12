@@ -5,6 +5,7 @@ import { ValidationError } from '@meith/core'
 import type { Database } from './client'
 import { withPermissionVersionBump } from './permission-version'
 import { resultRows } from './result-rows'
+import { toDate, toNullableDate } from './row-values'
 
 export type AccountState = 'active' | 'awaiting_activation' | 'banned'
 
@@ -82,11 +83,6 @@ function assertState(state: string): AccountState {
   return state as AccountState
 }
 
-function toDate(value: unknown): Date | null {
-  if (value === null || value === undefined) return null
-  return value instanceof Date ? value : new Date(String(value))
-}
-
 function toSearchRow(row: Record<string, unknown>): UserSearchRow {
   return {
     id: Number(row.id),
@@ -102,9 +98,9 @@ function toSearchRow(row: Record<string, unknown>): UserSearchRow {
     registrationIpPrefix:
       row.registration_ip_prefix === null ? null : String(row.registration_ip_prefix),
     lastIpPrefix: row.last_ip_prefix === null ? null : String(row.last_ip_prefix),
-    lastActiveAt: toDate(row.last_active_at),
-    createdAt: toDate(row.created_at) as Date,
-    deletedAt: toDate(row.deleted_at),
+    lastActiveAt: toNullableDate(row.last_active_at),
+    createdAt: toDate(row.created_at),
+    deletedAt: toNullableDate(row.deleted_at),
   }
 }
 
@@ -201,8 +197,8 @@ export class PostgresUserAdminRepository {
     return {
       ...toSearchRow(row),
       displayGroupId: row.display_group_id === null ? null : Number(row.display_group_id),
-      emailVerifiedAt: toDate(row.email_verified_at),
-      passwordChangedAt: toDate(row.password_changed_at),
+      emailVerifiedAt: toNullableDate(row.email_verified_at),
+      passwordChangedAt: toNullableDate(row.password_changed_at),
       threadCount: Number(row.thread_count),
       legacyMybbUid: row.legacy_mybb_uid === null ? null : Number(row.legacy_mybb_uid),
     }

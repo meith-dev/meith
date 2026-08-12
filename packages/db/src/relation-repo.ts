@@ -4,14 +4,7 @@ import type { RelationKind, RelationRepository, RelationRow } from '@meith/relat
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
-
-function toDate(value: string | Date): Date {
-  return value instanceof Date ? value : new Date(value)
-}
-
-function toNullableDate(value: string | Date | null): Date | null {
-  return value === null ? null : toDate(value)
-}
+import { toDate, toNullableDate } from './row-values'
 
 export class PostgresRelationRepository implements RelationRepository {
   constructor(private readonly db: Database) {}

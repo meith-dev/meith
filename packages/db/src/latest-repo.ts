@@ -4,6 +4,7 @@ import type { ContentScope } from '@meith/core'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { toDate } from './row-values'
 import { visibleIn } from './visibility'
 
 export interface LatestScope {
@@ -114,8 +115,4 @@ export class PostgresLatestRepository {
       messageSource: String(row.message),
     }))
   }
-}
-
-function toDate(value: unknown): Date {
-  return value instanceof Date ? value : new Date(String(value))
 }

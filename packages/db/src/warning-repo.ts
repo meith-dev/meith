@@ -11,6 +11,7 @@ import type {
 import { parseWarningAction } from '@meith/moderation'
 
 import type { Database } from './client'
+import { decodeCursor, encodeCursor } from './cursor'
 import { resultRows } from './result-rows'
 
 interface Tx {
@@ -64,23 +65,6 @@ function toRow(row: {
     revokedAt: row.revoked_at === null ? null : new Date(row.revoked_at),
     revokedByUsername: row.revoked_by_username,
     revokeReason: row.revoke_reason,
-  }
-}
-
-function encodeCursor(row: WarningRow): string {
-  return Buffer.from(`${row.createdAt.toISOString()}|${row.id}`, 'utf8').toString('base64url')
-}
-
-function decodeCursor(value: string): { at: Date; id: number } | null {
-  try {
-    const [at, id] = Buffer.from(value, 'base64url').toString('utf8').split('|')
-    if (at === undefined || id === undefined) return null
-    const when = new Date(at)
-    const numeric = Number(id)
-    if (Number.isNaN(when.getTime()) || !Number.isSafeInteger(numeric)) return null
-    return { at: when, id: numeric }
-  } catch {
-    return null
   }
 }
 
@@ -308,7 +292,7 @@ export class PostgresWarningRepository implements WarningRepository {
     const mapped = rows.slice(0, options.limit).map(toRow)
     const last = mapped.at(-1)
     return rows.length > options.limit && last
-      ? { rows: mapped, nextCursor: encodeCursor(last) }
+      ? { rows: mapped, nextCursor: encodeCursor(last.createdAt, last.id) }
       : { rows: mapped }
   }
 

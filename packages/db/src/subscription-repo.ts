@@ -13,15 +13,9 @@ import { parseSubscriptionMode } from '@meith/subscriptions'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { idList } from './sql-lists'
+import { toDate } from './row-values'
 import { visibleIn } from './visibility'
-
-function idList(ids: readonly number[]): ReturnType<typeof sql> {
-  if (ids.length === 0) return sql`(null)`
-  return sql`(${sql.join(
-    ids.map((id) => sql`${id}`),
-    sql`, `,
-  )})`
-}
 
 interface TableShape {
   readonly table: ReturnType<typeof sql>
@@ -84,10 +78,6 @@ interface RawPending {
   created_at: string | Date
   target: SubscriptionTarget
   target_id: number
-}
-
-function toDate(value: string | Date): Date {
-  return value instanceof Date ? value : new Date(value)
 }
 
 export class PostgresSubscriptionRepository implements SubscriptionRepository {

@@ -12,7 +12,9 @@ import type {
 } from '@meith/notifications'
 
 import type { Database } from './client'
+import { decodeCursor, encodeCursor } from './cursor'
 import { resultRows } from './result-rows'
+import { toDate, toNullableDate } from './row-values'
 
 interface RawNotification {
   id: number
@@ -24,14 +26,6 @@ interface RawNotification {
   created_at: string | Date
   updated_at: string | Date
   read_at: string | Date | null
-}
-
-function toDate(value: string | Date): Date {
-  return value instanceof Date ? value : new Date(value)
-}
-
-function toNullableDate(value: string | Date | null): Date | null {
-  return value === null ? null : toDate(value)
 }
 
 function toData(value: unknown): NotificationData {
@@ -51,25 +45,6 @@ function toRecord(row: RawNotification): NotificationRecord {
     createdAt: toDate(row.created_at),
     updatedAt: toDate(row.updated_at),
     readAt: toNullableDate(row.read_at),
-  }
-}
-
-function encodeCursor(record: NotificationRecord): string {
-  return Buffer.from(`${record.createdAt.toISOString()}|${record.id}`, 'utf8').toString(
-    'base64url',
-  )
-}
-
-function decodeCursor(value: string): { at: Date; id: number } | null {
-  try {
-    const [at, id] = Buffer.from(value, 'base64url').toString('utf8').split('|')
-    if (at === undefined || id === undefined) return null
-    const when = new Date(at)
-    const numeric = Number(id)
-    if (Number.isNaN(when.getTime()) || !Number.isSafeInteger(numeric)) return null
-    return { at: when, id: numeric }
-  } catch {
-    return null
   }
 }
 
@@ -163,7 +138,7 @@ export class PostgresNotificationRepository implements NotificationRepository {
     const page = rows.slice(0, options.limit).map(toRecord)
     const last = page.at(-1)
     return rows.length > options.limit && last
-      ? { rows: page, nextCursor: encodeCursor(last) }
+      ? { rows: page, nextCursor: encodeCursor(last.createdAt, last.id) }
       : { rows: page }
   }
 

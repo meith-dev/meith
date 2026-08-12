@@ -1,4 +1,4 @@
-import { sql, type SQL } from 'drizzle-orm'
+import { sql } from 'drizzle-orm'
 
 import type {
   IpMatch,
@@ -9,24 +9,10 @@ import type {
 import { MOD_LOG_ACTIONS } from '@meith/moderation'
 
 import type { Database } from './client'
+import { decodeCursor, encodeCursor } from './cursor'
 import { resultRows } from './result-rows'
+import { idList, textList } from './sql-lists'
 import { PENDING_APPROVAL } from './visibility'
-
-function idList(ids: readonly number[]): SQL {
-  if (ids.length === 0) return sql`(null)`
-  return sql`(${sql.join(
-    ids.map((id) => sql`${id}`),
-    sql`, `,
-  )})`
-}
-
-function textList(values: readonly string[]): SQL {
-  if (values.length === 0) return sql`(null)`
-  return sql`(${sql.join(
-    values.map((v) => sql`${v}`),
-    sql`, `,
-  )})`
-}
 
 interface LogRow {
   id: number
@@ -37,23 +23,6 @@ interface LogRow {
   forum_title: string | null
   detail: Record<string, unknown> | null
   created_at: Date
-}
-
-function encodeCursor(entry: ModLogEntry): string {
-  return Buffer.from(`${entry.at.toISOString()}|${entry.id}`, 'utf8').toString('base64url')
-}
-
-function decodeCursor(value: string): { at: Date; id: number } | null {
-  try {
-    const [at, id] = Buffer.from(value, 'base64url').toString('utf8').split('|')
-    if (at === undefined || id === undefined) return null
-    const when = new Date(at)
-    const numeric = Number(id)
-    if (Number.isNaN(when.getTime()) || !Number.isSafeInteger(numeric)) return null
-    return { at: when, id: numeric }
-  } catch {
-    return null
-  }
 }
 
 const DETAIL_LABELS: Readonly<Record<string, string>> = {
@@ -158,7 +127,7 @@ export class PostgresModCpRepository implements ModCpRepository {
     )
     const last = entries.at(-1)
     return rows.length > input.limit && last
-      ? { entries, nextCursor: encodeCursor(last) }
+      ? { entries, nextCursor: encodeCursor(last.at, last.id) }
       : { entries }
   }
 

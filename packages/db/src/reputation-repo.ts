@@ -8,10 +8,7 @@ import type {
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
-
-function toDate(value: string | Date): Date {
-  return value instanceof Date ? value : new Date(value)
-}
+import { toDate } from './row-values'
 
 interface RawRow {
   id: number

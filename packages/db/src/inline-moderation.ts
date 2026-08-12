@@ -1,4 +1,4 @@
-import { sql, type SQL } from 'drizzle-orm'
+import { sql } from 'drizzle-orm'
 
 import type {
   InlineModerationRepository,
@@ -10,6 +10,7 @@ import type {
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { idList } from './sql-lists'
 import {
   applyAuthorCounts,
   applyForumChain,
@@ -23,14 +24,6 @@ import {
   applyVisibilityChangeCounters,
   repairForumLastPostChain,
 } from './visibility-counters'
-
-function idList(ids: readonly number[]): SQL {
-  if (ids.length === 0) return sql`(null)`
-  return sql`(${sql.join(
-    ids.map((id) => sql`${id}`),
-    sql`, `,
-  )})`
-}
 
 interface TargetRow {
   kind: 'thread' | 'post'
