@@ -89,8 +89,6 @@
       "@meith/theme-kit/*": ["packages/theme-kit/src/*"],
       "@meith/ui": ["packages/ui/src/index.ts"],
       "@meith/ui/*": ["packages/ui/src/*"],
-      "@meith/shared": ["packages/shared/src/index.ts"],
-      "@meith/shared/*": ["packages/shared/src/*"],
       "@meith/testkit": ["packages/testkit/src/index.ts"],
       "@meith/testkit/*": ["packages/testkit/src/*"],
       "@meith/theme-default": ["themes/default/src/index.ts"],

@@ -66,7 +66,7 @@ Worth knowing before they fire.
 
 | It cannot | Because |
 |---|---|
-| Read the database, the request, cookies or the session | `@meith/theme-kit` depends on `@meith/core` alone — no database, no request, no domain package — and dependency-cruiser makes a theme's import of `@meith/db`, a driver or a domain package an error rather than a review comment |
+| Read the database, the request, cookies or the session | `@meith/theme-kit` depends on no workspace package at all — no database, no request, no domain package — and dependency-cruiser makes a theme's import of `@meith/db`, a driver or a domain package an error rather than a review comment |
 | Decide anything about permissions | `ViewerModel.canAccessAdminCp` and its siblings are *rendering hints* the Authorizer has already resolved. CSS is not authorization — anything a viewer must not see is not in the model at all |
 | Build a URL | Every href arrives resolved, so the board can change its URL shape without breaking installed themes |
 | Render another slot | Slots are flat. The page composes them and passes rendered output in `regions` — rendering a slot needs the resolved theme, and there is no way to reach one from inside a slot |
