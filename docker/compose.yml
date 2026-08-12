@@ -41,6 +41,12 @@ services:
 
   migrate:
     build:
+      # `..` because this file is run from inside docker/ (the guide's
+      # `cd meith/docker`), and compose resolves relative paths against the
+      # project directory — which defaults to this file's folder. The two
+      # Coolify build files say `.` instead, because Coolify overrides the
+      # project directory to the repository root. Do not "fix" either to
+      # match the other.
       context: ..
       dockerfile: docker/Dockerfile
     # Runs to completion then exits; `web` waits for it so the schema is always

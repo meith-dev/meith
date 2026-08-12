@@ -44,7 +44,11 @@ services:
   # special case that only gets exercised on deploy day.
   seed:
     build:
-      context: ..
+      # `.`, not `..`: Coolify runs compose with --project-directory at the
+      # repository root, and compose resolves relative paths against the
+      # project directory rather than this file's folder. `compose.yml` says
+      # `..` for the same reason — it is run from inside docker/.
+      context: .
       dockerfile: docker/Dockerfile
     command: ['node', 'apps/cli/cli.cjs', 'demo:reset', '--yes']
     environment:
@@ -60,7 +64,11 @@ services:
 
   web:
     build:
-      context: ..
+      # `.`, not `..`: Coolify runs compose with --project-directory at the
+      # repository root, and compose resolves relative paths against the
+      # project directory rather than this file's folder. `compose.yml` says
+      # `..` for the same reason — it is run from inside docker/.
+      context: .
       dockerfile: docker/Dockerfile
     restart: unless-stopped
     environment:
