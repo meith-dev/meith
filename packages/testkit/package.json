@@ -11,6 +11,6 @@
     "@meith/db": "workspace:*",
     "@meith/drivers": "workspace:*",
     "@meith/forums": "workspace:*",
-    "drizzle-orm": "^0.44.7"
+    "drizzle-orm": "^0.45.2"
   }
 }
