@@ -136,6 +136,11 @@ jobs:
   # dependency order, at the tag's version. Gated on the boot-tested build so
   # nothing reaches the registry from a release whose image did not boot, and
   # re-runnable — a version already on the registry is skipped, not an error.
+  #
+  # No token: npm trusted publishing exchanges this job's OIDC identity for a
+  # short-lived credential, and provenance comes with it. Each package names
+  # this repository and workflow as its trusted publisher on npmjs.com — see
+  # docs/release.md § What publishes to npm.
   npm:
     name: Publish the packages
     needs: build
@@ -150,12 +155,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          registry-url: https://registry.npmjs.org
+      # Trusted publishing lives in the npm CLI from 11.5.1; Node 22 bundles 10.x.
+      - run: npm install -g npm@latest
       - run: pnpm install --frozen-lockfile
       - run: node scripts/npm-publish.mjs
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: 'true'
 
   publish:
     name: Tags, the release branch, and the draft notes

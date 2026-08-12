@@ -5,7 +5,8 @@
 // skipped rather than an error (so a partly-failed release run can be
 // re-run), and --dry-run packs everything without talking to the registry.
 import { spawnSync } from 'node:child_process'
-import { readdir, readFile } from 'node:fs/promises'
+import { readdir, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
@@ -81,11 +82,25 @@ for (const { dir, name, version } of ordered) {
   }
 
   console.log(`- publishing ${name}@${version}${dryRun ? ' (dry run)' : ''}`)
+
+  // pnpm packs (rewriting workspace: ranges); npm publishes (it implements
+  // trusted publishing) — docs/release.md § What publishes to npm.
+  const tarball = join(tmpdir(), `${name.replace('/', '-').replace('@', '')}-${version}.tgz`)
+  const pack = spawnSync('pnpm', ['pack', '--out', tarball], {
+    cwd: join(ROOT, dir),
+    stdio: 'inherit',
+  })
+  if (pack.status !== 0) {
+    console.error(`✗ npm publish: packing ${name}@${version} failed`)
+    process.exit(1)
+  }
+
   const publish = spawnSync(
-    'pnpm',
-    ['publish', '--access', 'public', '--no-git-checks', ...(dryRun ? ['--dry-run'] : [])],
+    'npm',
+    ['publish', tarball, '--access', 'public', ...(dryRun ? ['--dry-run'] : [])],
     { cwd: join(ROOT, dir), stdio: 'inherit' },
   )
+  await rm(tarball, { force: true })
   if (publish.status !== 0) {
     console.error(`✗ npm publish: ${name}@${version} failed; re-running this script resumes after what succeeded`)
     process.exit(1)

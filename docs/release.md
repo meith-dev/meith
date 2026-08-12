@@ -155,11 +155,12 @@ One-time steps around `v0.1.0`, in order:
    `ghcr.io/meith-dev/meith` private, and a private package is a quickstart
    that fails at `docker pull` with an authentication error no operator can
    act on. Package settings → change visibility → public.
-3. **Create the npm organisation and the token.** The `meith` organisation
-   owns the `@meith` scope; a granular automation token allowed to publish it
-   goes into the repository's `NPM_TOKEN` secret. After the first release,
-   configure npm **trusted publishing** for each package and drop the token —
-   the workflow already requests the OIDC permission that provenance uses.
+3. **Create the npm organisation, and bootstrap the packages with a token.**
+   The `meith` organisation owns the `@meith` scope. A package's very first
+   publish needs a granular automation token (in the repository's `NPM_TOKEN`
+   secret, deleted afterwards); from then on the workflow authenticates with
+   **trusted publishing** and no token exists to leak — see
+   [how the workflow authenticates](#how-the-workflow-authenticates).
 4. Protect the `release` branch from manual pushes, so the workflow's
    fast-forward is the only thing that moves it.
 
@@ -178,7 +179,31 @@ release, at the release version. Nine at 0.1.0:
 `scripts/npm-publish.mjs` is the mechanism: dependencies before dependents, a
 version already on the registry skipped rather than failed, and `--dry-run`
 packs everything locally so the tarballs can be read before a release ever
-runs.
+runs. Each package is packed by `pnpm` — which rewrites the `workspace:`
+ranges into real ones — and published by the `npm` CLI, which is what
+implements trusted publishing.
+
+### How the workflow authenticates
+
+**Trusted publishing, not a token.** Each package on npmjs.com names this
+repository and the `release.yml` workflow as its trusted publisher; when the
+release workflow runs, npm exchanges the job's OIDC identity for a
+short-lived credential scoped to that publish, and provenance is generated
+with it automatically. There is no long-lived secret to leak, rotate, or
+scope too widely — a package can only be published by this repository's
+release workflow, and npmjs.com shows exactly that on the package page.
+
+Two consequences worth knowing:
+
+- **Configuration lives on npmjs.com, per package**: package → Settings →
+  Trusted Publisher → GitHub Actions, with the organisation (`meith-dev`),
+  repository (`meith`) and workflow filename (`release.yml`). Renaming the
+  workflow file breaks publishing until the nine configurations are updated
+  to match — the failure is a clear authentication error at the `npm` job.
+- **A brand-new package cannot first-publish this way.** Trusted publishing
+  attaches to a package that exists, so a package joining the publish set is
+  published once with a temporary token (or by hand from a maintainer
+  machine), given its trusted publisher, and never touched by a token again.
 
 ### They carry the release version, not their own
 
