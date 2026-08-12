@@ -3,7 +3,6 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import { BoardPreview } from "../../../src/components/board-preview"
-import { CopyCommand } from "../../../src/components/copy-command"
 import { SegmentCards } from "../../../src/components/segment-cards"
 import {
   ClosingBand,
@@ -13,7 +12,7 @@ import {
 } from "../../../src/components/site-bands"
 import { readFacts } from "../../../src/content/facts"
 import { findSegment, segmentHref, segments } from "../../../src/content/segments"
-import { capabilitiesByIds, installCommand, site } from "../../../src/content/site"
+import { capabilitiesByIds, site } from "../../../src/content/site"
 import { docHref, quickstartHref } from "../../../src/docs/registry"
 
 /*
@@ -136,7 +135,6 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
             </div>
 
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <CopyCommand command={installCommand} />
               <a className="textlink text-micro" href={site.repository}>
                 Read the source
               </a>

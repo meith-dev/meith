@@ -5,7 +5,6 @@ import {
   closing as generalClosing,
   deployment,
   documentation,
-  installCommand,
   licence,
   licenceHref,
   licensing,
@@ -14,7 +13,6 @@ import {
   site,
 } from "../content/site"
 import { docHref, documentsInSection, sections } from "../docs/registry"
-import { CopyCommand } from "./copy-command"
 import { Terminal } from "./terminal"
 
 /*
@@ -41,8 +39,8 @@ export function RunningBand() {
           <div className="flex flex-col gap-3">
             <Terminal />
             <p className="text-micro leading-[1.5] text-fg-subtle text-pretty">
-              The whole job, by hand. The guided route is the same four containers, with the panel
-              typing the secrets in for you.
+              A first deploy: the same four containers on either route. On the guided one, the
+              panel generates the secrets and issues the certificate for you.
             </p>
           </div>
         </div>
@@ -228,7 +226,6 @@ export function ClosingBand({
                 →
               </span>
             </Link>
-            <CopyCommand command={installCommand} />
             <a className="btn btn-quiet" href={site.repository}>
               Source
             </a>

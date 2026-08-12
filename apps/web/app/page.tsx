@@ -1,7 +1,6 @@
 import Link from "next/link"
 
 import { BoardPreview } from "../src/components/board-preview"
-import { CopyCommand } from "../src/components/copy-command"
 import { SegmentCards } from "../src/components/segment-cards"
 import {
   ClosingBand,
@@ -18,7 +17,6 @@ import {
   closing,
   genericBoard,
   hero,
-  installCommand,
   losses,
   site,
 } from "../src/content/site"
@@ -78,7 +76,6 @@ export default async function LandingPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <CopyCommand command={installCommand} />
               <a className="textlink text-micro" href={site.repository}>
                 Read the source
               </a>
