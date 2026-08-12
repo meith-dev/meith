@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { scanCallSites } from './hook-callsites.mjs'
+
+import { emitGeneratedDoc } from './generated-doc.mjs'
+import { balancedBlock, joinStringLiterals } from './source-parse.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 
@@ -10,35 +13,6 @@ const HOOKS_FILE = 'packages/plugin-kit/src/hooks.ts'
 const PAYLOADS_FILE = 'packages/plugin-kit/src/payloads.ts'
 const REGIONS_FILE = 'packages/plugin-kit/src/regions.ts'
 const OUTPUT_FILE = 'docs/plugin-hooks.md'
-
-function balancedBlock(source, from) {
-  const start = source.indexOf('{', from)
-  if (start === -1) return null
-
-  let depth = 0
-  for (let i = start; i < source.length; i++) {
-    const ch = source[i]
-    if (ch === '{') depth++
-    else if (ch === '}') {
-      depth--
-      if (depth === 0) return { body: source.slice(start + 1, i), end: i }
-    }
-  }
-  return null
-}
-
-function joinStringLiterals(fragment) {
-  let out = ''
-  for (let i = 0; i < fragment.length; i++) {
-    if (fragment[i] !== "'") continue
-    i++
-    for (; i < fragment.length && fragment[i] !== "'"; i++) {
-      if (fragment[i] === '\\') i++
-      out += fragment[i]
-    }
-  }
-  return out
-}
 
 function cell(text) {
   return text.replace(/\|/g, '\\|').replace(/\s+/g, ' ').trim()
@@ -270,34 +244,13 @@ for (const name of signatures.keys()) {
 }
 
 const generated = render({ hooks, signatures, regions, wired })
-const target = join(ROOT, OUTPUT_FILE)
-
-if (process.argv.includes('--check')) {
-  const current = await readFile(target, 'utf8').catch(() => '')
-
-  if (current !== generated) {
-    console.error(
-      `${OUTPUT_FILE} is out of date.\n\n` +
-        'The hook registry changed and its reference did not. Run `pnpm plugin:docs` and ' +
-        'commit the result — a plugin author reads that file instead of the source, and a ' +
-        'stale one names hooks that no longer fire.\n',
-    )
-    const a = current.split('\n')
-    const b = generated.split('\n')
-    const at = a.findIndex((line, i) => line !== b[i])
-    console.error(`First difference at line ${at + 1}:`)
-    console.error(`  on disk:   ${a[at] ?? '(end of file)'}`)
-    console.error(`  generated: ${b[at] ?? '(end of file)'}`)
-    process.exit(1)
-  }
-
-  console.log(
-    `${OUTPUT_FILE} is up to date (${hooks.length} hooks, ${wired.size} wired, ` +
-      `${regions.length} regions).`,
-  )
-} else {
-  await writeFile(target, generated, 'utf8')
-  console.log(
-    `Wrote ${OUTPUT_FILE} — ${hooks.length} hooks, ${wired.size} wired, ${regions.length} regions.`,
-  )
-}
+await emitGeneratedDoc({
+  outputFile: OUTPUT_FILE,
+  generated,
+  staleReason:
+    'The hook registry changed and its reference did not. Run `pnpm plugin:docs` and ' +
+    'commit the result — a plugin author reads that file instead of the source, and a ' +
+    'stale one names hooks that no longer fire.',
+  upToDate: `${hooks.length} hooks, ${wired.size} wired, ${regions.length} regions`,
+  wrote: `${hooks.length} hooks, ${wired.size} wired, ${regions.length} regions`,
+})

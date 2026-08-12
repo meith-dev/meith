@@ -2,48 +2,32 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
-const WORKSPACE_GLOBS = ['apps', 'packages', 'themes', 'plugins', 'examples']
+import { ROOT, workspaceEntries } from './workspace-packages.mjs'
 
 const problems = []
 
 const byName = new Map()
 const directories = []
 
-for (const glob of WORKSPACE_GLOBS) {
-  let entries
-  try {
-    entries = await readdir(join(ROOT, glob), { withFileTypes: true })
-  } catch {
+for (const { dir, manifest } of await workspaceEntries()) {
+  directories.push(dir)
+
+  if (manifest === null) {
+    try {
+      await readdir(join(ROOT, dir, 'src'))
+      problems.push(`${dir} has src/ but no package.json — pnpm will not see it as a workspace package`)
+    } catch {
+      /* ignore */
+    }
     continue
   }
 
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name.startsWith('.')) continue
-
-    const dir = `${glob}/${entry.name}`
-    directories.push(dir)
-
-    let manifest
-    try {
-      manifest = JSON.parse(await readFile(join(ROOT, dir, 'package.json'), 'utf8'))
-    } catch {
-      try {
-        await readdir(join(ROOT, dir, 'src'))
-        problems.push(`${dir} has src/ but no package.json — pnpm will not see it as a workspace package`)
-      } catch {
-        /* ignore */
-      }
-      continue
-    }
-
-    if (typeof manifest.name !== 'string' || manifest.name === '') {
-      problems.push(`${dir}/package.json has no name`)
-      continue
-    }
-
-    byName.set(manifest.name, { dir, manifest })
+  if (typeof manifest.name !== 'string' || manifest.name === '') {
+    problems.push(`${dir}/package.json has no name`)
+    continue
   }
+
+  byName.set(manifest.name, { dir, manifest })
 }
 
 for (const [name, { dir, manifest }] of byName) {

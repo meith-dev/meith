@@ -1,38 +1,14 @@
 #!/usr/bin/env node
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+
+import { emitGeneratedDoc } from './generated-doc.mjs'
+import { balancedBlock, joinStringLiterals } from './source-parse.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 const ROUTES_FILE = 'packages/api/src/routes.ts'
 const TOKENS_FILE = 'packages/api/src/tokens.ts'
 const OUTPUT_FILE = 'docs/rest-api.md'
-
-function balancedBlock(source, from) {
-  const start = source.indexOf('{', from)
-  if (start === -1) return null
-  let depth = 0
-  for (let i = start; i < source.length; i++) {
-    if (source[i] === '{') depth++
-    else if (source[i] === '}') {
-      depth--
-      if (depth === 0) return { body: source.slice(start + 1, i), end: i }
-    }
-  }
-  return null
-}
-
-function joinStringLiterals(fragment) {
-  let out = ''
-  for (let i = 0; i < fragment.length; i++) {
-    if (fragment[i] !== "'") continue
-    i++
-    for (; i < fragment.length && fragment[i] !== "'"; i++) {
-      if (fragment[i] === '\\') i++
-      out += fragment[i]
-    }
-  }
-  return out
-}
 
 async function readRoutes() {
   const source = await readFile(join(ROOT, ROUTES_FILE), 'utf8')
@@ -205,26 +181,13 @@ function render({ routes, scopes }) {
 const routes = await readRoutes()
 const scopes = await readScopes()
 const generated = render({ routes, scopes })
-const target = join(ROOT, OUTPUT_FILE)
-
-if (process.argv.includes('--check')) {
-  const current = await readFile(target, 'utf8').catch(() => '')
-  if (current !== generated) {
-    console.error(
-      `${OUTPUT_FILE} is out of date.\n\nThe API registry changed and its reference did not. ` +
-        'Run `pnpm api:docs` and commit the result — this document is read by people who ' +
-        'cannot see the source, and a stale endpoint list is a client that 404s.\n',
-    )
-    const a = current.split('\n')
-    const b = generated.split('\n')
-    const at = a.findIndex((line, i) => line !== b[i])
-    console.error(`First difference at line ${at + 1}:`)
-    console.error(`  on disk:   ${a[at] ?? '(end of file)'}`)
-    console.error(`  generated: ${b[at] ?? '(end of file)'}`)
-    process.exit(1)
-  }
-  console.log(`${OUTPUT_FILE} is up to date (${routes.length} endpoints).`)
-} else {
-  await writeFile(target, generated, 'utf8')
-  console.log(`Wrote ${OUTPUT_FILE} — ${routes.length} endpoints, ${scopes.length} scopes.`)
-}
+await emitGeneratedDoc({
+  outputFile: OUTPUT_FILE,
+  generated,
+  staleReason:
+    'The API registry changed and its reference did not. Run `pnpm api:docs` and commit ' +
+    'the result — this document is read by people who cannot see the source, and a stale ' +
+    'endpoint list is a client that 404s.',
+  upToDate: `${routes.length} endpoints`,
+  wrote: `${routes.length} endpoints, ${scopes.length} scopes`,
+})

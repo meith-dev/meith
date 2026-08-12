@@ -5,35 +5,17 @@
 // skipped rather than an error (so a partly-failed release run can be
 // re-run), and --dry-run packs everything without talking to the registry.
 import { spawnSync } from 'node:child_process'
-import { readdir, readFile, rm } from 'node:fs/promises'
+import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
-const WORKSPACE_GLOBS = ['apps', 'packages', 'themes', 'plugins', 'examples']
+import { ROOT, workspacePackages } from './workspace-packages.mjs'
+
 const dryRun = process.argv.includes('--dry-run')
 
-const packages = []
-for (const glob of WORKSPACE_GLOBS) {
-  let entries
-  try {
-    entries = await readdir(join(ROOT, glob), { withFileTypes: true })
-  } catch {
-    continue
-  }
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name.startsWith('.')) continue
-    const dir = `${glob}/${entry.name}`
-    let manifest
-    try {
-      manifest = JSON.parse(await readFile(join(ROOT, dir, 'package.json'), 'utf8'))
-    } catch {
-      continue
-    }
-    if (manifest.private === true) continue
-    packages.push({ dir, name: manifest.name, version: manifest.version, manifest })
-  }
-}
+const packages = (await workspacePackages())
+  .filter(({ manifest }) => manifest.private !== true)
+  .map(({ dir, manifest }) => ({ dir, name: manifest.name, version: manifest.version, manifest }))
 
 if (packages.length === 0) {
   console.error('✗ npm publish: no publishable package found — every manifest is private')

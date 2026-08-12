@@ -1,8 +1,8 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
-test.use({ javaScriptEnabled: false })
+import { signUp } from './support/session'
 
-const PASSWORD = 'long-enough-password'
+test.use({ javaScriptEnabled: false })
 
 async function indexed(request: APIRequestContext, page: Page): Promise<void> {
   await expect(async () => {
@@ -10,24 +10,6 @@ async function indexed(request: APIRequestContext, page: Page): Promise<void> {
     await page.goto('/search?q=version')
     await expect(page.getByRole('link', { name: 'Version 0.1 is live' })).toBeVisible()
   }).toPass({ timeout: 20_000, intervals: [500, 1_000, 2_000, 5_000] })
-}
-
-async function signUp(page: Page, label: string): Promise<string> {
-  const username = `e2e_${label}_${Date.now()}_${Math.floor(Math.random() * 1000)}`
-
-  await page.goto('/register')
-  await page.getByLabel('Username').fill(username)
-  await page.getByLabel('Email').fill(`${username}@example.test`)
-  await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page).toHaveURL(/\/login\?registered=1$/)
-
-  await page.getByLabel('Username or email').fill(username)
-  await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page).toHaveURL('/')
-
-  return username
 }
 
 test('a guest reaches their own results page', async ({ page }) => {
