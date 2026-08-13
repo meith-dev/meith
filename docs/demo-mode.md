@@ -54,6 +54,20 @@ Every timestamp is an **offset from the reset**, not a date. The newest post is
 always minutes old and the board is always six hundred days into its life,
 whenever you happen to visit.
 
+## The themes
+
+`SHOWCASE_THEMES=1` is set in the demo's compose file, so the demo registers
+every theme this repository ships rather than the default alone: **Midnight**,
+the terminal; **Phasebook**, the familiar social shape; and **Raidframe**, the
+game-board HUD. All four are in the appearance control at the foot of every
+page, and a visitor picks one without signing in — the choice is a cookie the
+server reads, so the page arrives already painted rather than repainting after
+it loads.
+
+That flag is the demo being a shop window and decides nothing for a board of
+your own: yours starts with the default theme and adds what it wants in
+`community.config.ts`, a file you own and the flag never touches.
+
 ## The shop, and a Stripe that is not Stripe
 
 Demo mode installs one plugin — [Dues](../plugins/dues/README.md), which sells
