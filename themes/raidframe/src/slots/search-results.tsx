@@ -70,9 +70,7 @@ export function SearchResults({
         )}
       </Frame>
 
-      <Frame aria-labelledby="search-within-heading">
-        <PanelHead id="search-within-heading" title={within.label} />
-
+      <Frame>
         <form method="get" action={within.action} className="flex flex-col gap-3 px-4 py-4">
           <div>
             <label htmlFor="search-within" className={`${MICRO} mb-1 block`}>
