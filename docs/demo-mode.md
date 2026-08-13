@@ -47,21 +47,21 @@ It is one club: a committee, a juvenile section, a Saturday team, a Tuesday
 night gaming crew, and the people who come for the quiz and never the sport.
 That is deliberate. A demo split into a *Sports* wing, a *Gaming* wing and a
 *Community* wing shows every visitor two-thirds of a board that is not for them;
-one club with fourteen ordinary forums shows a fixture, a raid roster, a lost
-gear bag and an AGM sitting in the same lists without any of them being a
-special case.
+one club with twenty ordinary forums shows a fixture, a raid roster, a lost gear
+bag and an AGM sitting in the same lists without any of them being a special
+case.
 
 Written out rather than generated, because forty threads called "Test thread 12"
 demonstrate nothing about whether the software can hold a conversation:
 
-- **14 forums in three categories**, carrying **115 threads and 658 posts**.
+- **20 forums in five categories**, carrying **157 threads and 896 posts**.
 - **51 members**, with join dates spread over the board's 636 days and post
   counts they earned by writing the posts.
-- **Four polls** with 75 votes cast by named accounts, seven stickies, three
-  locked threads, and 53 replies that quote the post they answer — so the
+- **Six polls** with 94 votes cast by named accounts, eleven stickies, four
+  locked threads, and 74 replies that quote the post they answer — so the
   attribution, the member's name linked and the link back to what was quoted, is
   on the board rather than only in these documents.
-- **183 thanks** on posts, eight private messages, a post held in the moderation
+- **257 thanks** on posts, ten private messages, a post held in the moderation
   queue and two open reports. An empty ModCP demonstrates nothing, so it is not
   empty.
 - **Eight thread prefixes** — Fixture, Sign-up, Result, For sale, Wanted, Sold,
@@ -69,30 +69,56 @@ demonstrate nothing about whether the software can hold a conversation:
   everywhere, which is the setting that keeps a prefix list usable as a board
   grows.
 
-### Two forums not everybody can see
+### The two sections not everybody can see
 
-Most of the board is public. Two forums are not, because "can this software do a
-private forum" is a question nobody should have to take on trust:
+Most of the board is public. Two whole sections are not, because "can this
+software do a private forum" is a question nobody should have to take on trust —
+and one forum with a padlock on it would not answer it:
 
-| Forum | Who sees it | How |
+| Section | Forums | Who sees it |
 |---|---|---|
-| **Committee room** | The three staff groups | `canView` denied to guests, registered, awaiting-activation, banned and supporters |
-| **Supporters' room** | Anyone on a Supporters plan, and the staff | The same, minus the supporters group — whose membership the Dues plugin grants and revokes on its own |
+| **Committee room** | Committee business · Moderation desk · Welfare and safeguarding · Staff room | The three staff groups |
+| **Supporters' club** | Supporters' lounge · Where the money goes · First look · The supporters' draw | Anyone on a Supporters plan, and the staff |
+
+**They are the first two sections on the board**, above *Start here*. A section a
+member cannot read is not shown to them at all, so putting the restricted ones
+at the bottom would hide the demonstration from exactly the people who logged in
+to see it. An ordinary member lands on *Start here* and a board of twelve
+forums; `admin` lands on the committee room.
 
 **A forum you cannot read is not shown to you at all** — no padlock, no greyed
 row, no "you do not have permission" page. The forum tree is built from the
 forums the reader can see, so as far as `member` is concerned the board has
-twelve forums and always did. Log in as `admin` and there are fourteen,
-including a committee thread about a member asking to have their posts removed,
-which is the kind of conversation a private forum is actually for.
+twelve forums and always did.
 
-Neither is a special kind of forum. Both are ordinary forums with per-group
-permission overrides on them, the same rows an administrator writes on the
-permissions screen, and the admin panel shows exactly who can read what.
+Neither section is a special kind of forum. Both are ordinary categories with
+per-group permission overrides written on the category *and* on every forum
+under it — the same rows an administrator writes on the permissions screen, so
+the screen answers "who can read this?" on whichever one you open:
+
+- **Denied `canView`**: guests, registered, awaiting activation, banned — and,
+  for the committee room, supporters too.
+- **Allowed `canView`**: administrators, super moderators and moderators on
+  both; the supporters group on its own section.
+
+The staff rows are written in rather than left to be known. An administrator
+would see everything regardless — they bypass the matrix — but *"the
+administrators can read the supporters' club"* should be a row an administrator
+can read on the screen, not a rule they have to be told. It also survives the
+demo being used the way a demo invites: rewrite the registered group's defaults
+and the two sections stay shut.
 
 The supporters one is the more interesting of the two: **nobody grants or
 revokes it by hand.** The plan expires, the group membership goes with it, and
-the forum disappears for that member on their next page load.
+the section disappears for that member on their next page load.
+
+What is in them is written to be worth finding rather than to prove a point: a
+€6,000 sponsorship offer from a betting company and the committee saying no in
+writing, a member asking to have every post they wrote removed, a safeguarding
+date running out, three drainage quotes with the cheap one ruled out and why. On
+the supporters side, a quarter's accounts itemised to the euro a week before the
+club sees them, next season's jersey before it is public, and a draw pulled out
+of the groundsman's hat.
 
 ### The staff are visible at a glance
 
@@ -156,11 +182,11 @@ a fixture looks like.
 The `supporters` group those plans grant is made by the board seed rather than by
 the plugin, and ticked **may be granted by plugins** — the tick an administrator
 gives by hand on any other board. It is made early because the
-[Supporters' room](#two-forums-not-everybody-can-see) is a permission override
-against that group's id: a forum closed to everybody, with nobody left able to
-read it, would demonstrate the wrong thing. Seeding the board without the plugin
-leaves the group and the forum in place and nobody in it, which is exactly what
-an unsold plan looks like.
+[Supporters' club](#the-two-sections-not-everybody-can-see) opens on that group's
+id: a section closed to everybody, with nobody left able to read it, would
+demonstrate the wrong thing. Seeding the board without the plugin leaves the
+group and the four forums in place and nobody but the staff in them, which is
+exactly what an unsold plan looks like.
 
 A visitor can buy. The board serves its own Stripe at `/demo/stripe` — the API
 the plugin calls (`DUES_STRIPE_API_BASE` points back at the board) and the

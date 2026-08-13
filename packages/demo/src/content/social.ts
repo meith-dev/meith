@@ -47,6 +47,23 @@ export const DEMO_THANKS: readonly DemoThanks[] = [
   { threadTitle: 'Ranked block results, week 6', postIndex: 0, from: ['glitch', 'pixel', 'cormac', 'bram'] },
   { threadTitle: 'Can we do a family rate?', postIndex: 0, from: ['ellie', 'mairead', 'nia', 'zoe', 'noelle'] },
   { threadTitle: 'What was your community before it was this?', postIndex: 5, from: ['mira', 'rosa', 'vex', 'ken'] },
+
+  // The two restricted sections, so a visitor who logs in as `admin` finds
+  // reputation in there rather than a room where nobody ever thanked anybody.
+  { threadTitle: 'A sponsorship approach from a betting company', postIndex: 0, from: ['mairead', 'admin', 'dara', 'vex', 'kev', 'moderator'] },
+  { threadTitle: 'Drainage: three quotes, and the one I do not trust', postIndex: 0, from: ['admin', 'dara', 'kev', 'mairead'] },
+  { threadTitle: 'The rule on photographs, the rule on messages, and who to ring', postIndex: 0, from: ['siobhan', 'admin', 'dara', 'vex', 'kev', 'moderator', 'tinker'] },
+  { threadTitle: 'How we work the queue', postIndex: 0, from: ['kev', 'tinker', 'dara', 'vex', 'mairead'] },
+  { threadTitle: 'Under-16s on the gaming side: what we agreed, and what we actually wrote down', postIndex: 0, from: ['mairead', 'siobhan', 'admin', 'moderator'] },
+  { threadTitle: 'The thank you thread, which is allowed once a year', postIndex: 0, from: ['moderator', 'kev', 'tinker', 'mairead', 'dara', 'vex'] },
+  { threadTitle: 'The mower: repair or replace, with the numbers', postIndex: 0, from: ['olu', 'ken', 'mira', 'dev', 'rosa'] },
+  { threadTitle: 'The quarter we spent nothing, and why that was a mistake', postIndex: 0, from: ['ken', 'olu', 'mira', 'rosa', 'dev', 'sam'] },
+  { threadTitle: 'Where your money went this quarter', postIndex: 0, from: ['olu', 'dev', 'ken', 'sam', 'rosa', 'mira'] },
+  { threadTitle: 'Somebody bought me a membership and I want to do the same for somebody else', postIndex: 0, from: ['rosa', 'tomas', 'olu', 'mira', 'admin'] },
+  { threadTitle: 'The draw: it was Gerry, and he has handed it straight back', postIndex: 0, from: ['mira', 'tomas', 'admin', 'sam', 'ken', 'olu', 'dev'] },
+  { threadTitle: 'A word for the treasurer, since she is not in this room', postIndex: 0, from: ['rosa', 'mira', 'siobhan', 'ken', 'dev'] },
+  { threadTitle: 'A designer sent us a new crest. Absolutely not, but look at it.', postIndex: 3, from: ['tomas', 'rosa', 'ken'] },
+  { threadTitle: 'The fiftieth anniversary plans, in draft', postIndex: 4, from: ['siobhan', 'rosa', 'ken', 'mira', 'tomas'] },
 ]
 
 /**
@@ -110,6 +127,22 @@ export const DEMO_MESSAGES: readonly DemoMessage[] = [
     daysAgo: 2,
     message:
       'Thanks for the straight answer in my introduction thread — "the first month is work" is exactly what I needed to hear rather than a sales pitch.\n\nTwo of us are coming to the quiz. Would you mind if I brought a list of questions?',
+  },
+  {
+    from: 'siobhan',
+    to: ['admin'],
+    subject: 'Do not put the betting thread on the open board yet',
+    daysAgo: 3,
+    message:
+      'The policy sentence can go out, the offer cannot — they asked us not to say who approached us and I would rather keep that even though we said no.\n\nSo: policy in the open moderation forum, the €6,000 stays in the committee room. If somebody asks how much it was, we tell them the truth.',
+  },
+  {
+    from: 'ken',
+    to: ['admin'],
+    subject: 'The gift membership list',
+    daysAgo: 7,
+    message:
+      'Put me down for one a year, starting now. My winnings from the March draw should cover two.\n\nOne condition and I mean it: nobody is ever told it came from me, including the person who gets it.',
   },
   {
     from: 'jt',

@@ -567,7 +567,7 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     email: 'sam@demo.invalid',
     password: null,
     group: 'registered',
-    joinedDaysAgo: 128,
+    joinedDaysAgo: 214,
     location: 'Carrigmore',
     website: null,
     bio: null,

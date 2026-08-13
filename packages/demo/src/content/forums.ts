@@ -1,7 +1,7 @@
 import type { DemoForum, DemoPrefix } from './types'
 
 /**
- * Fourteen forums in three categories, and none of them named after one kind of
+ * Twenty forums in five categories, and none of them named after one kind of
  * club.
  *
  * A board that splits *Sports*, *Gaming* and *Community* into three wings looks
@@ -10,12 +10,105 @@ import type { DemoForum, DemoPrefix } from './types'
  * thing, selling a thing, asking for help — and the same forums carry a fixture,
  * a raid night and a table quiz without noticing the difference.
  *
- * Two of them are closed: one to everybody outside the staff groups, one to
- * everybody not paying for the Supporters plan. Neither is visible to a member
- * who cannot read it — the tree is built from what the reader can see, so a
- * closed forum is absent rather than padlocked.
+ * The first two sections are the exception, and they are deliberately first.
+ * **Committee room** is closed to everybody outside the staff groups;
+ * **Supporters' club** is closed to everybody not paying for the plan. A
+ * section a member cannot read is not shown to them at all, so an ordinary
+ * member lands on *Start here* and a visiting administrator lands on the two
+ * sections that are worth logging in to see. Putting them at the bottom would
+ * hide the demonstration from the people the demonstration is for.
  */
 export const DEMO_FORUMS: readonly DemoForum[] = [
+  {
+    key: 'cat-committee',
+    type: 'category',
+    title: 'Committee room',
+    slug: 'committee-room',
+    parent: null,
+    access: 'staff',
+  },
+  {
+    key: 'committee',
+    type: 'forum',
+    title: 'Committee business',
+    slug: 'committee-business',
+    description: 'Agendas, minutes, money before it is decided, and the things that need a decision before they need a thread.',
+    parent: 'cat-committee',
+    access: 'staff',
+  },
+  {
+    key: 'staffdesk',
+    type: 'forum',
+    title: 'Moderation desk',
+    slug: 'moderation-desk',
+    description: 'The queue, the reports, and the members who need a conversation rather than a warning.',
+    parent: 'cat-committee',
+    access: 'staff',
+  },
+  {
+    key: 'welfare',
+    type: 'forum',
+    title: 'Welfare and safeguarding',
+    slug: 'welfare-and-safeguarding',
+    description: 'Vetting, training, and anything involving a child. Nothing in here leaves the room without the welfare officer.',
+    parent: 'cat-committee',
+    access: 'staff',
+  },
+  {
+    key: 'staffroom',
+    type: 'forum',
+    title: 'Staff room',
+    slug: 'staff-room',
+    description: 'Rotas, handovers, cover, and complaining about the rotas.',
+    parent: 'cat-committee',
+    access: 'staff',
+  },
+
+  {
+    key: 'cat-supporters',
+    type: 'category',
+    title: "Supporters' club",
+    slug: 'supporters-club',
+    parent: null,
+    access: 'supporters',
+  },
+  {
+    key: 'supporters',
+    type: 'forum',
+    title: "Supporters' lounge",
+    slug: 'supporters-lounge',
+    description: 'The main room for members on the plan. No agenda, no committee, and no vote the rest of the club does not have.',
+    parent: 'cat-supporters',
+    access: 'supporters',
+  },
+  {
+    key: 'accounts',
+    type: 'forum',
+    title: 'Where the money goes',
+    slug: 'where-the-money-goes',
+    description: 'Every euro the plan brings in, itemised, a week before the rest of the club sees it.',
+    parent: 'cat-supporters',
+    access: 'supporters',
+  },
+  {
+    key: 'firstlook',
+    type: 'forum',
+    title: 'First look',
+    slug: 'first-look',
+    description: 'Kit designs, fixtures, plans and AGM papers, early enough that saying something about them still changes them.',
+    parent: 'cat-supporters',
+    access: 'supporters',
+  },
+  {
+    key: 'draw',
+    type: 'forum',
+    title: "The supporters' draw",
+    slug: 'supporters-draw',
+    description: 'Drawn on the first of the month. One number, one winner, and a photograph of the hat.',
+    parent: 'cat-supporters',
+    access: 'supporters',
+  },
+
   { key: 'cat-start', type: 'category', title: 'Start here', slug: 'start-here', parent: null },
   {
     key: 'announcements',
@@ -89,15 +182,6 @@ export const DEMO_FORUMS: readonly DemoForum[] = [
     description: 'The other forum.',
     parent: 'cat-community',
   },
-  {
-    key: 'supporters',
-    type: 'forum',
-    title: "Supporters' room",
-    slug: 'supporters-room',
-    description: 'For members on the Supporters plan. Early word, the papers before the meeting, and where the money went.',
-    parent: 'cat-community',
-    access: 'supporters',
-  },
 
   {
     key: 'cat-running',
@@ -137,15 +221,6 @@ export const DEMO_FORUMS: readonly DemoForum[] = [
     slug: 'moderation-and-rules',
     description: 'How this place is run, in the open.',
     parent: 'cat-running',
-  },
-  {
-    key: 'committee',
-    type: 'forum',
-    title: 'Committee room',
-    slug: 'committee-room',
-    description: 'Staff only. Agendas, the awkward ones, and anything that needs deciding before it needs a thread.',
-    parent: 'cat-running',
-    access: 'staff',
   },
 ]
 

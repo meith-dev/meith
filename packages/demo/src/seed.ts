@@ -65,10 +65,10 @@ const GROUP_COLOUR: Readonly<
 }
 
 /**
- * A closed forum is a permission override per group, which is what an
+ * A closed section is a permission override per group, which is what an
  * administrator writes on the permissions screen — there is no separate private
- * flag to find. Everything not listed keeps what its group already had, so the
- * staff see the staff forum by being staff rather than by being named.
+ * flag to find. The rows go on the category and on every forum under it, so the
+ * screen answers "who can read this?" on whichever one you happen to open.
  */
 const CLOSED_TO: Readonly<Record<DemoForumAccess, readonly string[]>> = {
   staff: [
@@ -86,6 +86,30 @@ const CLOSED_TO: Readonly<Record<DemoForumAccess, readonly string[]>> = {
   ],
 }
 
+/**
+ * Who is written in as allowed, rather than left to inherit it.
+ *
+ * The staff would see both sections anyway — an administrator bypasses the
+ * matrix entirely and the other two groups are not denied — but "an
+ * administrator can see the supporters' club" should be a row an administrator
+ * can read on the permissions screen and not a rule they have to know. It also
+ * survives somebody using the demo the way a demo invites: rewrite the
+ * registered group's defaults, and the staff sections stay staff sections.
+ */
+const OPEN_TO: Readonly<Record<DemoForumAccess, readonly string[]>> = {
+  staff: [
+    SEED_GROUP_KEY.administrators,
+    SEED_GROUP_KEY.superModerators,
+    SEED_GROUP_KEY.moderators,
+  ],
+  supporters: [
+    SEED_GROUP_KEY.administrators,
+    SEED_GROUP_KEY.superModerators,
+    SEED_GROUP_KEY.moderators,
+    SUPPORTERS_GROUP_KEY,
+  ],
+}
+
 const CLOSED = {
   canView: false,
   canViewThreads: false,
@@ -93,6 +117,15 @@ const CLOSED = {
   canSearch: false,
   canPostThreads: false,
   canPostReplies: false,
+} as const
+
+const OPEN = {
+  canView: true,
+  canViewThreads: true,
+  canViewOthersThreads: true,
+  canSearch: true,
+  canPostThreads: true,
+  canPostReplies: true,
 } as const
 
 /**
@@ -294,7 +327,7 @@ async function seedForums(db: Database): Promise<ReadonlyMap<string, SeededForum
   return created
 }
 
-/** Closes the two forums that are not for everybody, one group row at a time. */
+/** Closes the two sections that are not for everybody, one group row at a time. */
 async function seedForumAccess(
   db: Database,
   forums: ReadonlyMap<string, SeededForum>,
@@ -302,18 +335,23 @@ async function seedForumAccess(
 ): Promise<void> {
   const admin = new PostgresForumAdminRepository(db)
 
+  const idOf = (groupKey: string, forumKey: string): number => {
+    const id = groupIds.get(groupKey)
+    if (id === undefined) {
+      throw new Error(`"${forumKey}" names the "${groupKey}" group, which does not exist.`)
+    }
+    return id
+  }
+
   for (const forum of DEMO_FORUMS) {
     if (forum.access === undefined) continue
     const seeded = forums.get(forum.key)!
 
     for (const groupKey of CLOSED_TO[forum.access]) {
-      const groupId = groupIds.get(groupKey)
-      if (groupId === undefined) {
-        throw new Error(
-          `The "${forum.key}" forum is closed to the "${groupKey}" group, which does not exist.`,
-        )
-      }
-      await admin.saveOverrides(seeded.id, groupId, { ...CLOSED })
+      await admin.saveOverrides(seeded.id, idOf(groupKey, forum.key), { ...CLOSED })
+    }
+    for (const groupKey of OPEN_TO[forum.access]) {
+      await admin.saveOverrides(seeded.id, idOf(groupKey, forum.key), { ...OPEN })
     }
   }
 }
