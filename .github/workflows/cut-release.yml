@@ -32,22 +32,33 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
+      # A re-run converges rather than refuses: a tree already at the version
+      # skips the bump, a commit already on main skips the push, an existing
+      # tag is reused — so a run that failed halfway is fixed by pressing Run
+      # again, not by cleaning up.
       - name: Bump every version together
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          node scripts/release-bump.mjs "$VERSION"
-          pnpm install --lockfile-only
+          if [ "$(node -p "require('./package.json').version")" = "$VERSION" ]; then
+            echo "the tree is already at $VERSION"
+          else
+            node scripts/release-bump.mjs "$VERSION"
+            pnpm install --lockfile-only
+          fi
           node scripts/release-check.mjs --tag "v$VERSION"
 
+      # The push to main needs the Actions app on the bypass list of any
+      # ruleset requiring pull requests — docs/release.md § How a release
+      # happens.
       - name: Commit and tag
         env:
           VERSION: ${{ inputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "chore(release): v$VERSION"
-          git tag "v$VERSION"
+          git diff --quiet || git commit -am "chore(release): v$VERSION"
+          git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null || git tag "v$VERSION"
           git push origin HEAD:main
           git push origin "v$VERSION"
 

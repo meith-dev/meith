@@ -129,9 +129,15 @@ the workflow drafts rather than publishes.
 4. **Finish the draft.** Fill in the migration line, trim the generated notes
    to what an operator needs, publish.
 
-The cut workflow pushes straight to `main`, so if `main` is ever protected
-to require pull requests, GitHub Actions needs a bypass on that rule — or
-releases fall back to the by-hand path above.
+The cut workflow pushes straight to `main`, so a ruleset requiring pull
+requests on `main` blocks it (`GH013`, at the push step, with nothing yet
+tagged). The fix is one setting: **Settings → Rules → Rulesets → the rule on
+`main` → Bypass list → add "GitHub Actions"**. The protection keeps applying
+to people and to every other app; the release automation — auditable, and
+runnable only by someone with write access — is the one thing allowed
+through. The workflow is safe to re-run after a failure at any step: a tree
+already bumped, a commit already pushed, or a tag already made is skipped
+rather than refused.
 
 ## How each route consumes a release
 
