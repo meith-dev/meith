@@ -1,0 +1,33 @@
+{
+  "name": "@meith/theme-raidframe",
+  "version": "0.1.0",
+  "description": "A gaming theme for Meith — guild, raid and match boards — built on the default theme's slots.",
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "themes/raidframe"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.type-test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@meith/theme-default": "workspace:^",
+    "@meith/theme-kit": "workspace:^",
+    "@meith/ui": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18"
+  }
+}
