@@ -31,6 +31,9 @@ export const greeter = definePlugin({
 ```
 
 Installing it is `pnpm add`, a line in `community.plugins.ts`, and a redeploy.
+That file holds your board's list and nothing else — this repository's own demo
+and test boards keep their plugins in `community.demo.plugins.ts`, spread into
+the list behind their flags, so what you read there is what your board runs.
 
 > [!TIP]
 > **[`examples/hello-plugin`](https://github.com/meith-dev/meith/tree/main/examples/hello-plugin)
@@ -210,10 +213,42 @@ things the host refuses, checked on every call:
   plugin's. `grant` refuses it, `revoke` leaves it alone.
 - An empty `reason`. The reason is stored on the row; it is the audit trail.
 
-A grant is always an additive secondary membership: `primary_group_id` and
-`display_group_id` are never touched, so nothing a plugin does changes how a
+A grant is an additive secondary membership by default: `primary_group_id` and
+`display_group_id` are left alone, so nothing the plugin does changes how a
 member is displayed or what happens when the grant ends — they fall back to
 exactly what they were.
+
+### Selling the group a member wears
+
+`primary: true` on a grant asks for more than access — it asks for the group to
+become the member's **primary** one, which is what a paid membership usually
+means to the member buying it:
+
+```ts
+await context.grants.grant({ userId, groupKey: 'supporters', until, reason, primary: true })
+```
+
+The board does the swap, not the plugin, and it is reversible by construction:
+
+- The group the member was primary in becomes an ordinary **secondary**
+  membership, with no expiry, and the granted row remembers it in
+  `previous_primary_group_id`.
+- Promote a second time and the row still remembers the group behind *both*
+  promotions, never a group that is itself only held until a date. A member who
+  buys a second membership on top of a first cannot end up primary in a group
+  they have stopped paying for.
+- On `revoke`, and when the `groups.expire` tick collects the lapsed row, the
+  remembered group is made primary again and the secondary row it left behind
+  is removed. A `display_group_id` pointing at the group being taken away is
+  cleared with it.
+- **Actor assembly does the same fallback at the read.** A promoted primary
+  whose grant has lapsed confers nothing, and the member's permissions are
+  assembled from the remembered group instead — the same guarantee an ordinary
+  grant makes, held to on the field that outlives the row.
+
+Everything the host refuses above still applies: `primary: true` on a group an
+operator has not opted in, on a staff group, or on one carrying power, is
+refused as the grant itself is.
 
 `grant` takes a plain `userId`, and nothing ties it to whoever is acting: who
 may cause a grant for whom — a member for themselves, one member for another,

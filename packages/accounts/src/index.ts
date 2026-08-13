@@ -78,6 +78,7 @@ export {
   PAGE_SIZE_MAX,
   PAGE_SIZE_MIN,
   WEBSITE_MAX,
+  type MemberGroupChoice,
   type MemberSettings,
   type MemberSettingsRepository,
 } from './member-settings'

@@ -10,6 +10,7 @@ export interface PluginGrants {
     readonly groupKey: string
     readonly until: Date
     readonly reason: string
+    readonly primary?: boolean | undefined
   }): Promise<void>
 
   extend(input: {

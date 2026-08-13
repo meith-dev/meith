@@ -73,8 +73,11 @@ your own: yours starts with the default theme and adds what it wants in
 Demo mode installs one plugin — [Dues](../plugins/dues/README.md), which sells
 membership of a usergroup — because a plugin nobody can click is a paragraph
 rather than a demonstration. It is registered by the flag, in
-`apps/community/community.plugins.ts`, the same file a board of your own would
-list its plugins in.
+`apps/community/community.demo.plugins.ts` — the demo's own file, so that
+`community.plugins.ts`, the file a board of your own lists its plugins in,
+stays a list you can read at a glance. The same split
+`community.demo.config.ts` makes for the showcase themes, and for the same
+reason: what the shop window needs is not what your board starts with.
 
 The seed writes the shop and a year of its history. Four plans (a €5 monthly
 subscription, a €12 90-day pass, a €99 lifetime, and a founding pass taken off

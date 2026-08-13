@@ -49,6 +49,7 @@ describe('reading', () => {
       location: null,
       website: null,
       bio: null,
+      displayGroupId: null,
     })
   })
 
@@ -175,5 +176,46 @@ describe('adopting a confirmed address', () => {
         emailLower: 'new@example.test',
       }),
     ).toBe(false)
+  })
+})
+
+describe('the display group', () => {
+  const SUPPORTERS = 90
+  const ALUMNI = 91
+
+  beforeEach(async () => {
+    await db.execute(sql`delete from user_group_memberships`)
+    await db.execute(sql`delete from usergroups where id in (${SUPPORTERS}, ${ALUMNI})`)
+    await db.execute(sql`
+      insert into usergroups (id, key, title, display_order)
+      values (${SUPPORTERS}, 'supporters', 'Supporters', 20),
+             (${ALUMNI}, 'alumni', 'Alumni', 30)
+    `)
+  })
+
+  it('offers the primary group first, then every live membership', async () => {
+    await db.execute(sql`
+      insert into user_group_memberships (user_id, group_id, expires_at)
+      values (${IVAN}, ${SUPPORTERS}, now() + interval '1 day'),
+             (${IVAN}, ${ALUMNI}, now() - interval '1 day')
+    `)
+
+    expect(await repo.groupsHeldBy(IVAN)).toEqual([
+      { groupId: 2, title: 'Registered', isPrimary: true },
+      { groupId: SUPPORTERS, title: 'Supporters', isPrimary: false },
+    ])
+  })
+
+  it('saves and clears the chosen group', async () => {
+    await repo.saveDisplayGroup({ userId: IVAN, displayGroupId: SUPPORTERS })
+    expect((await repo.read(IVAN))?.displayGroupId).toBe(SUPPORTERS)
+
+    await repo.saveDisplayGroup({ userId: IVAN, displayGroupId: null })
+    expect((await repo.read(IVAN))?.displayGroupId).toBeNull()
+  })
+
+  it('offers nothing for an account that is gone', async () => {
+    await db.execute(sql`update users set state = 'deleted' where id = ${IVAN}`)
+    expect(await repo.groupsHeldBy(IVAN)).toEqual([])
   })
 })

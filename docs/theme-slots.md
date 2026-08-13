@@ -419,7 +419,7 @@ Props: `MemberProfileModel`
 |---|---|---|
 | `user` | `UserRefModel` |  |
 | `avatarUrl` | `string \| null` |  |
-| `title` | `string \| null` |  |
+| `title` | `string \| null` | The member's group, shown under their name. The same rule the postbit follows: `users.display_group_id` where the member has chosen one, and their primary group otherwise. `null` only where the group behind it has gone. |
 | `joinedAt` | `TimeModel` |  |
 | `lastVisitAt` | `TimeModel \| null` |  |
 | `postCount` | `number` |  |

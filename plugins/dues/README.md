@@ -16,6 +16,14 @@ every guarantee that capability makes applies here. The load-bearing one:
 stop, or Stripe closes the account, every sold membership drains away at its
 own boundary and the board is left correct.
 
+**A purchase makes the plan's group the member's primary group**, and the group
+they were in — Registered, on most boards — becomes a secondary membership
+alongside it. So a member who buys shows as what they bought: its title, its
+colour, its badge. When the membership lapses or is revoked, the board hands
+the old primary group straight back. A member who would rather be shown as
+something else can pick any group they are in under UserCP → Profile; the
+choice is theirs, and it drops away with the membership it names.
+
 **Try it before you read any of this**: [demo.meith.dev](https://demo.meith.dev)
 runs this plugin against a Stripe that is not Stripe — a shop with a year of
 history behind it, and a checkout a visitor can actually go through. See
@@ -26,8 +34,9 @@ history behind it, and a checkout a visitor can actually go through. See
 1. **Register the plugin** where plugins are registered:
 
    ```ts
-   // apps/community/community.plugins.ts (this repository's board uses
-   // DUES_TEST_BOARD=1 to switch a test-shaped version of this on)
+   // apps/community/community.plugins.ts (this repository's own demo and
+   // test boards register their versions in community.demo.plugins.ts,
+   // behind DEMO_MODE and DUES_TEST_BOARD)
    import { dues } from '@meith/plugin-dues'
 
    export const INSTALLED_PLUGINS = [

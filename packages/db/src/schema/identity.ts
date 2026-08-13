@@ -176,6 +176,10 @@ export const userGroupMemberships = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     grantedByPlugin: text('granted_by_plugin'),
     grantReason: text('grant_reason'),
+    previousPrimaryGroupId: integer('previous_primary_group_id').references(
+      () => usergroups.id,
+      { onDelete: 'set null' },
+    ),
   },
   (t) => [
     uniqueIndex('user_group_memberships_pkey').on(t.userId, t.groupId),
@@ -184,6 +188,9 @@ export const userGroupMemberships = pgTable(
     index('user_group_memberships_expiry_idx')
       .on(t.expiresAt)
       .where(sql`${t.expiresAt} is not null`),
+    index('user_group_memberships_previous_primary_idx')
+      .on(t.userId)
+      .where(sql`${t.previousPrimaryGroupId} is not null`),
   ],
 )
 

@@ -106,6 +106,37 @@ test('a member buys a 90-day pass and belongs before the receipt page reloads', 
   await expect(page.getByRole('button', { name: 'Open the billing portal' })).toBeVisible()
 })
 
+test('the pass becomes the buyer’s group, on their profile and in the UserCP', async ({
+  page,
+  request,
+}) => {
+  const username = await signUp(page, 'wearer')
+
+  await page.goto(`/member/by-name/${username}`)
+  await expect(page.getByText('Registered', { exact: true })).toBeVisible()
+
+  await page.goto('/plugins/dues')
+  await page
+    .locator('section', { has: page.getByRole('heading', { name: '90-day pass' }) })
+    .getByRole('button', { name: 'Buy this pass' })
+    .click()
+
+  const sessionId = await payOnFakeStripe(page)
+  await sendPaidWebhook(request, { id: sessionId, amount: 1200 })
+
+  await page.goto(`/member/by-name/${username}`)
+  await expect(page.getByText('Supporters', { exact: true })).toBeVisible()
+
+  await page.goto('/usercp/profile')
+  const picker = page.getByLabel('Shown under your name')
+  await expect(picker).toBeVisible()
+  await picker.selectOption({ label: 'Registered' })
+  await page.getByRole('button', { name: 'Save display group' }).click()
+
+  await page.goto(`/member/by-name/${username}`)
+  await expect(page.getByText('Registered', { exact: true })).toBeVisible()
+})
+
 test('a member gifts a pass to another member by name', async ({ page, request }) => {
   const giver = await signUp(page, 'giver')
   void giver

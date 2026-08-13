@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 
 import { combinePermissionSets } from '@meith/authorization'
 import type { Actor, ActorSource, ActorState } from '@meith/authorization'
@@ -68,25 +68,32 @@ export class ActorBuilder implements ActorSource {
     const state = mapState(user.state)
     if (state === 'deleted') return null
 
+    const now = new Date()
     const membershipRows = await this.db
-      .select({ groupId: userGroupMemberships.groupId })
+      .select({
+        groupId: userGroupMemberships.groupId,
+        expiresAt: userGroupMemberships.expiresAt,
+        previousPrimaryGroupId: userGroupMemberships.previousPrimaryGroupId,
+      })
       .from(userGroupMemberships)
-      .where(
-        and(
-          eq(userGroupMemberships.userId, userId),
-          or(
-            isNull(userGroupMemberships.expiresAt),
-            gt(userGroupMemberships.expiresAt, new Date()),
-          ),
-        ),
-      )
+      .where(eq(userGroupMemberships.userId, userId))
+
+    const live = membershipRows.filter(
+      (r) => r.expiresAt === null || r.expiresAt.getTime() > now.getTime(),
+    )
 
     // eslint-disable-next-line no-restricted-properties -- reading the user's own primary group to assemble the actor's group ladder, not an authz decision
-    const primaryGroupId = user.primaryGroupId
-    const groupIds = dedupe([
-      primaryGroupId,
-      ...membershipRows.map((r) => r.groupId),
-    ])
+    const held = user.primaryGroupId
+    const lapsed = membershipRows.find(
+      (r) =>
+        r.groupId === held &&
+        r.previousPrimaryGroupId !== null &&
+        r.expiresAt !== null &&
+        r.expiresAt.getTime() <= now.getTime(),
+    )
+
+    const primaryGroupId = lapsed?.previousPrimaryGroupId ?? held
+    const groupIds = dedupe([primaryGroupId, ...live.map((r) => r.groupId)])
 
     const global = await this.combineGroups(groupIds)
 

@@ -4,12 +4,17 @@ import { notFound } from 'next/navigation'
 import { requireSlot } from '@meith/theme-kit'
 
 import { PanelPage } from '@/components/shell/panel-page'
-import { ProfileForm } from '@/components/account/usercp-forms'
+import { DisplayGroupForm, ProfileForm } from '@/components/account/usercp-forms'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
 import { profileFieldService, viewerFieldContext } from '@/server/profile-fields'
 import { currentTheme } from '@/server/theme'
-import { customFieldInputs, profileFormValues, userCpNotice } from '@/view/usercp'
+import {
+  customFieldInputs,
+  displayGroupChoices,
+  profileFormValues,
+  userCpNotice,
+} from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Your profile' }
 
@@ -27,6 +32,10 @@ export default async function ProfileSettingsPage({
   if (settings === null) notFound()
 
   const values = profileFormValues(settings)
+  const groups = displayGroupChoices(
+    await memberSettings.groupsHeldBy(actor.userId),
+    settings.displayGroupId,
+  )
 
   const fields = profileFieldService()
   const context = await viewerFieldContext()
@@ -62,6 +71,8 @@ export default async function ProfileSettingsPage({
       )}
 
       <ProfileForm {...values} customFields={customFields} />
+
+      {groups.choices.length > 1 && <DisplayGroupForm {...groups} />}
     </PanelPage>
   )
 }

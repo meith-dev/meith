@@ -70,6 +70,20 @@ export async function saveProfileAction(_prev: FormState, form: FormData): Promi
   redirect('/usercp/profile?saved=1')
 }
 
+export async function saveDisplayGroupAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    const { service, userId } = await requireOwnSettings()
+    await service.saveDisplayGroup({ userId, displayGroupId: text(form, 'displayGroupId') })
+  } catch (err) {
+    return toFormState(err)
+  }
+
+  redirect('/usercp/profile?saved=1')
+}
+
 export async function saveOptionsAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const { service, userId } = await requireOwnSettings()

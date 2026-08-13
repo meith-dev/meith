@@ -206,16 +206,31 @@ A member's group is their **display group** where they have chosen one, and
 their primary group otherwise — so a moderator who prefers to post as an
 ordinary member is shown as one.
 
+Members choose it themselves, under **UserCP → Profile**, from the groups they
+are actually in: their primary group and every current secondary membership.
+Picking their primary group stores nothing, so the choice keeps following that
+group if it later changes. A group held only until a date leaves the list when
+it lapses, and a member wearing it goes back to their primary group — they
+cannot pin a badge to a membership they no longer hold. The picker is not shown
+at all to a member who is only in one group.
+
 ### Groups a plugin may grant
 
 The same screen carries one more switch: **may be granted by plugins**. It is
 off by default, and it is the opt-in behind any plugin that hands out
 membership — a paid pass, a trial, time-boxed access. A plugin can only put a
-member in a group you have marked this way, only as an *additional* group
-(never the primary one, never the badge they chose to wear), and only **until
-a date**: every plugin-granted membership expires, and the expiry holds even
-if the plugin is removed or the tick stops, because the permission model
-simply stops reading a lapsed row.
+member in a group you have marked this way, and only **until a date**: every
+plugin-granted membership expires, and the expiry holds even if the plugin is
+removed or the tick stops, because the permission model simply stops reading a
+lapsed row.
+
+A plugin may ask for the group it grants to become the member's **primary**
+one — which is what a plugin selling membership normally wants, and what Dues
+does on a purchase. The group they were primary in becomes a secondary
+membership, and the board hands it straight back when the grant is revoked or
+lapses. The swap is the board's, not the plugin's: the same refusals apply, and
+a lapsed membership stops being anybody's primary group at the moment it
+expires, sweep or no sweep.
 
 The switch refuses some groups, with the reason spelled out when you try:
 system groups, staff groups, and any group whose permissions carry

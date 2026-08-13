@@ -1,4 +1,8 @@
-import { AUTOMATIC_TIMEZONE, type MemberSettings } from '@meith/accounts'
+import {
+  AUTOMATIC_TIMEZONE,
+  type MemberGroupChoice,
+  type MemberSettings,
+} from '@meith/accounts'
 import { maxLengthFor, type ResolvedProfileField } from '@meith/profile-fields'
 
 export interface TimezoneChoice {
@@ -62,6 +66,31 @@ export function profileFormValues(settings: MemberSettings): {
     location: settings.location ?? '',
     website: settings.website ?? '',
     bio: settings.bio ?? '',
+  }
+}
+
+export interface DisplayGroupChoices {
+  readonly choices: readonly { value: string; label: string }[]
+  readonly selected: string
+}
+
+export function displayGroupChoices(
+  held: readonly MemberGroupChoice[],
+  displayGroupId: number | null,
+): DisplayGroupChoices {
+  const choices = held.map((group) => ({
+    value: String(group.groupId),
+    label: group.isPrimary ? `${group.title} — your main group` : group.title,
+  }))
+
+  const primary = held.find((group) => group.isPrimary)
+  const fallback = primary === undefined ? '' : String(primary.groupId)
+  const chosen = displayGroupId === null ? null : String(displayGroupId)
+
+  return {
+    choices,
+    selected:
+      chosen !== null && choices.some((choice) => choice.value === chosen) ? chosen : fallback,
   }
 }
 

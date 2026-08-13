@@ -107,10 +107,15 @@ class FakeSettings implements MemberSettingsRepository {
     location: null,
     website: null,
     bio: null,
+    displayGroupId: null,
   }
   async read() {
     return this.row
   }
+  async groupsHeldBy() {
+    return []
+  }
+  async saveDisplayGroup() {}
   async saveProfile() {}
   async saveOptions() {}
   async adoptEmail() {

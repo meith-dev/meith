@@ -121,6 +121,7 @@ export async function settlePaidOrder(
       groupKey: order.groupKey,
       until: clampGrantUntil(graceUntil, now),
       reason: grantReason(order),
+      primary: true,
     })
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error)
@@ -255,6 +256,7 @@ export async function applyInternalEvent(
           groupKey: membership.groupKey,
           until: clampGrantUntil(graceUntil, deps.now()),
           reason: `dues renewal of subscription ${event.subscriptionId}`,
+          primary: true,
         })
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error)
