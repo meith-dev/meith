@@ -39,7 +39,7 @@ export function dues(input: DuesConfigInput): PluginDefinition {
   return definePlugin({
     key: 'dues',
     name: 'Dues',
-    version: '0.3.0',
+    version: '0.3.1',
     description:
       `Sells ${config.label.toLowerCase()} — time-limited membership of a group — ` +
       'through Stripe, for yourself or as a gift.',
