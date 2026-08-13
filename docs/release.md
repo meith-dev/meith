@@ -87,21 +87,31 @@ the workflow drafts rather than publishes.
 
 ## How a release happens
 
-1. **Land the release commit on `main`.** Bump every version together (the
-   manifests, the two constants, the compose pin — the pin moves on every
-   release), and let `pnpm verify` — which includes `release:check` —
-   prove nothing was missed.
-2. **Wait for CI on that commit.** The release workflow re-runs the boot
+1. **Make sure `main` is green.** The release pipeline re-runs the boot
    tests, not the whole gate; the gate is `main`'s job.
-3. **Tag it:**
+2. **Run the Cut a release workflow** — Actions → *Cut a release* → the
+   version, `major.minor.patch` with no leading `v`. It bumps every place
+   the version is written (`pnpm release:bump` — the manifests, the two
+   constants, the compose pin), proves coherence with
+   `release-check --tag`, commits `chore(release): vX.Y.Z` to `main`, pushes
+   the tag, and starts the Release workflow against it. A version that would
+   not move the tree forward is refused before anything is written.
+
+   The same thing by hand, when the Actions tab is not an option:
 
    ```sh
-   git tag v0.1.0
-   git push origin v0.1.0
+   pnpm release:bump 0.2.0
+   pnpm install --lockfile-only && pnpm release:check
+   git commit -am "chore(release): v0.2.0" && git push
+   git tag v0.2.0 && git push origin v0.2.0
    ```
 
-4. **The workflow does the rest**, in this order, stopping at the first
-   failure:
+   Either way, the bump lands on `main` *before* the tag — tagging a tree
+   that still says the old version is exactly what `release-check --tag`
+   exists to refuse.
+
+3. **The Release workflow does the rest**, in this order, stopping at the
+   first failure:
    - `release-check --tag` — the tag and the tree agree;
    - the image is built **on each architecture's own runner** (no emulation)
      and booted in every role against a real Postgres — the migrator runs to
@@ -116,8 +126,12 @@ the workflow drafts rather than publishes.
      is not descended from it, which is the guard against tagging a side
      branch;
    - the GitHub Release is drafted.
-5. **Finish the draft.** Fill in the migration line, trim the generated notes
+4. **Finish the draft.** Fill in the migration line, trim the generated notes
    to what an operator needs, publish.
+
+The cut workflow pushes straight to `main`, so if `main` is ever protected
+to require pull requests, GitHub Actions needs a bypass on that rule — or
+releases fall back to the by-hand path above.
 
 ## How each route consumes a release
 

@@ -5,9 +5,13 @@
 
 name: Release
 
+# Runs on a tag pushed by hand, or dispatched against a tag by cut-release.yml
+# (a tag pushed with GITHUB_TOKEN triggers no workflows). Dispatched against
+# anything that is not a release tag, the first job refuses.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: write
