@@ -239,10 +239,17 @@ Two consequences worth knowing:
   repository (`meith`) and workflow filename (`release.yml`). Renaming the
   workflow file breaks publishing until the ten configurations are updated
   to match — the failure is a clear authentication error at the `npm` job.
-- **A brand-new package cannot first-publish this way.** Trusted publishing
-  attaches to a package that exists, so a package joining the publish set is
-  published once with a temporary token (or by hand from a maintainer
-  machine), given its trusted publisher, and never touched by a token again.
+- **A brand-new package cannot first-publish this way**, because trusted
+  publishing attaches to a package that exists. The publish script handles
+  the birth itself: a name the registry has never seen is published with the
+  `NPM_BOOTSTRAP_TOKEN` secret — a granular token allowed to create packages
+  in the scope — confined to that single publish, while everything
+  already-known keeps authenticating by OIDC in the same run. The job then
+  says, loudly, to give the newborn its trusted publisher on npmjs.com;
+  until that is done, the *next* release of that package fails at
+  authentication, because only its first publish takes the token path.
+  Without the secret set, the script stops and names the package and both
+  ways forward — set the token, or publish it once by hand.
 
 ### They carry the release version, not their own
 

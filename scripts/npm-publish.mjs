@@ -5,7 +5,7 @@
 // skipped rather than an error (so a partly-failed release run can be
 // re-run), and --dry-run packs everything without talking to the registry.
 import { spawnSync } from 'node:child_process'
-import { rm } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -46,7 +46,12 @@ while (remaining.size > 0) {
 
 let publishedCount = 0
 let skipped = 0
+let bootstrapped = 0
 for (const { dir, name, version } of ordered) {
+  // A package the registry has never seen cannot be created by trusted
+  // publishing, so its first publish uses the bootstrap token instead —
+  // docs/release.md § How the workflow authenticates.
+  let isNew = false
   if (!dryRun) {
     const view = spawnSync('npm', ['view', `${name}@${version}`, 'version'], {
       cwd: join(ROOT, dir),
@@ -59,6 +64,18 @@ for (const { dir, name, version } of ordered) {
     }
     if (view.status !== 0 && !`${view.stderr}`.includes('E404')) {
       console.error(`✗ npm publish: could not ask the registry about ${name}@${version}:\n${view.stderr}`)
+      process.exit(1)
+    }
+
+    const pkg = spawnSync('npm', ['view', name, 'name'], { encoding: 'utf8' })
+    isNew = pkg.status !== 0 && `${pkg.stderr}`.includes('E404')
+    if (isNew && (process.env.NPM_BOOTSTRAP_TOKEN ?? '') === '') {
+      console.error(
+        `✗ npm publish: ${name} is new to the registry, and trusted publishing cannot create it.\n` +
+          `  Either set the NPM_BOOTSTRAP_TOKEN secret — a granular token allowed to create\n` +
+          `  packages in the scope — and re-run, or publish ${name}@${version} once by hand\n` +
+          `  and re-run. Afterwards, give the package its trusted publisher on npmjs.com.`,
+      )
       process.exit(1)
     }
   }
@@ -77,20 +94,39 @@ for (const { dir, name, version } of ordered) {
     process.exit(1)
   }
 
+  // The token is confined to a scratch project directory that only the
+  // bootstrap publish runs from; every other publish sees no credentials
+  // and authenticates by OIDC.
+  let cwd = join(ROOT, dir)
+  if (isNew) {
+    cwd = await mkdtemp(join(tmpdir(), 'meith-bootstrap-'))
+    await writeFile(join(cwd, '.npmrc'), '//registry.npmjs.org/:_authToken=${NPM_BOOTSTRAP_TOKEN}\n')
+    console.log(`- ${name} is new to the registry; bootstrapping with the token`)
+  }
+
   const publish = spawnSync(
     'npm',
     ['publish', tarball, '--access', 'public', ...(dryRun ? ['--dry-run'] : [])],
-    { cwd: join(ROOT, dir), stdio: 'inherit' },
+    { cwd, stdio: 'inherit' },
   )
   await rm(tarball, { force: true })
+  if (isNew) await rm(cwd, { recursive: true, force: true })
   if (publish.status !== 0) {
     console.error(`✗ npm publish: ${name}@${version} failed; re-running this script resumes after what succeeded`)
     process.exit(1)
   }
   publishedCount += 1
+  if (isNew) bootstrapped += 1
 }
 
 console.log(
   `✓ npm publish: ${publishedCount} package${publishedCount === 1 ? '' : 's'} ` +
     `${dryRun ? 'packed (dry run)' : 'published'}${skipped > 0 ? `, ${skipped} already on the registry` : ''}`,
 )
+if (bootstrapped > 0) {
+  console.log(
+    `! ${bootstrapped} package${bootstrapped === 1 ? ' was' : 's were'} created with the bootstrap token. ` +
+      'Give each its trusted publisher on npmjs.com before the next release — ' +
+      'docs/release.md § How the workflow authenticates.',
+  )
+}
