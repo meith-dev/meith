@@ -10,6 +10,7 @@ import { QueueForm } from '@/components/moderation/queue-form'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildQueueView } from '@/view/moderation-queue'
 
 export const metadata: Metadata = { title: 'Moderation queue' }
@@ -37,12 +38,15 @@ export default async function ModerationPage({
     queue.countPending(moderated),
   ])
 
+  const { timezone } = await getViewerPreferences()
+
   const view = buildQueueView({
     items: page.items,
     pending,
     nextCursor: page.nextCursor,
     moderatesAnything: moderated.length > 0,
     now: new Date(),
+    timeZone: timezone,
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')

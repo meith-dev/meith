@@ -2,17 +2,30 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { isAppError } from '@meith/core'
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardRows,
+  Empty,
+  EmptyDescription,
+  EmptyTitle,
+  Field,
+  Input,
+  buttonVariants,
+} from '@meith/ui'
 
 import { getActor } from '@/server/context'
 import { openSearch, SEARCH_PAGE } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Search results' }
 
-const INPUT =
-  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const QUIET_LINK =
+  'text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground'
 
 export default async function SearchResultsPage({
   params,
@@ -54,6 +67,7 @@ export default async function SearchResultsPage({
   }
 
   const { search, results } = view
+  const { timezone } = await getViewerPreferences()
 
   const nextHref =
     results.nextCursor === null
@@ -69,68 +83,84 @@ export default async function SearchResultsPage({
         <p className="text-sm text-muted-foreground">
           Searched{' '}
           <time dateTime={search.createdAt.toISOString()}>
-            {formatTime(search.createdAt, now).label}
+            {formatTime(search.createdAt, now, timezone).label}
           </time>
           . Results are checked against your access every time this page is
           opened, so they can change.
         </p>
       </div>
 
-      {results.hits.length === 0 ? (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-          Nothing matched — or nothing you can see does. Try fewer words, or a
-          different spelling.
-        </p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-          {results.hits.map((hit) => (
-            <li key={hit.postId} className="flex flex-col gap-1 px-4 py-3">
-              <a
-                href={postLink(`/thread/${hit.threadId}-${hit.threadSlug}`, hit.postId)}
-                className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-              >
-                {hit.threadTitle}
-              </a>
-              <p
-                className="text-sm text-muted-foreground [&_b]:font-semibold [&_b]:text-foreground"
-                dangerouslySetInnerHTML={{ __html: hit.excerpt }}
-              />
-              <p className="text-xs text-muted-foreground">
-                {hit.authorUsername} ·{' '}
-                <time dateTime={hit.postedAt.toISOString()}>
-                  {formatTime(hit.postedAt, now).label}
-                </time>
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
+      <Card>
+        {results.hits.length === 0 ? (
+          <Empty>
+            <EmptyTitle>Nothing matched.</EmptyTitle>
+            <EmptyDescription>
+              Or nothing you can see does. Try fewer words, or a different
+              spelling.
+            </EmptyDescription>
+          </Empty>
+        ) : (
+          <CardRows>
+            {results.hits.map((hit) => (
+              <li key={hit.postId} className="flex flex-col gap-1 px-4 py-3">
+                <a
+                  href={postLink(`/thread/${hit.threadId}-${hit.threadSlug}`, hit.postId)}
+                  className={QUIET_LINK}
+                >
+                  {hit.threadTitle}
+                </a>
+                <p
+                  className="text-sm text-muted-foreground [&_b]:font-semibold [&_b]:text-foreground"
+                  dangerouslySetInnerHTML={{ __html: hit.excerpt }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {hit.authorUsername} ·{' '}
+                  <time dateTime={hit.postedAt.toISOString()}>
+                    {formatTime(hit.postedAt, now, timezone).label}
+                  </time>
+                </p>
+              </li>
+            ))}
+          </CardRows>
+        )}
 
-      {nextHref !== null && (
-        <a href={nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          Next {SEARCH_PAGE} results →
-        </a>
-      )}
+        {nextHref !== null && (
+          <CardFooter>
+            <a href={nextHref} className={QUIET_LINK}>
+              Next {SEARCH_PAGE} results →
+            </a>
+          </CardFooter>
+        )}
+      </Card>
 
-      <form method="get" action="/search" className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Search within these results</span>
-          <input name="q" defaultValue={`${search.terms} `} className={INPUT} />
-          <span className="text-xs text-muted-foreground">
-            Adds your words to the ones above. Everything already typed stays.
-          </span>
-        </label>
-        <div>
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
-          >
-            Search within
-          </button>
-        </div>
-      </form>
+      <Card>
+        <CardContent className="p-4 sm:p-5">
+          <form method="get" action="/search" className="flex flex-col gap-4">
+            <Field
+              name="q"
+              label="Search within these results"
+              description="Adds your words to the ones above. Everything already typed stays."
+            >
+              {(control) => (
+                <Input
+                  {...control}
+                  defaultValue={`${search.terms} `}
+                  type="search"
+                  autoComplete="off"
+                />
+              )}
+            </Field>
 
-      <a href="/search" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+            <div>
+              <button type="submit" className={buttonVariants({ variant: 'primary' })}>
+                Search within
+              </button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <a href="/search" className={QUIET_LINK}>
         Start a new search
       </a>
     </main>

@@ -813,6 +813,28 @@ answer.
 certain. The importer will have to pick a representative zone per offset and
 say so, rather than pretending the data was there.
 
+### The default timezone is the reader's, not the board's
+
+**MyBB** has one board timezone that every guest and every member who has not
+changed it reads the board in.
+
+**Here:** there is no board timezone. A reader's own zone is detected in the
+browser and reported to the server in a cookie, so a guest in Auckland and a
+guest in Chicago see the same thread at their own two clocks. A member may
+still pin a zone, and a pinned zone wins on every device; the default is
+"follow this device".
+
+**Why:** a board timezone is right for whoever set it up and wrong for
+everybody else, and the two readers it is most wrong for are the guest who
+cannot change it and the member who does not know the setting exists. "Posted
+today at 09:14" has to mean the reader's today, or it is worse than a bare
+date.
+
+**Cost:** a reader with JavaScript off reports nothing, so they get UTC — the
+footer names the zone precisely because that case exists. And the first page a
+new reader opens reloads once, after the cookie is written, which is one extra
+request per visitor per browser.
+
 ### A password change signs out every other device
 
 **MyBB:** changing a password keeps other sessions alive.

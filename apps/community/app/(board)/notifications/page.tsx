@@ -10,6 +10,7 @@ import {
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { notificationService } from '@/server/notifications'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { currentTheme } from '@/server/theme'
 import { buildNotificationCentreView, notificationNotice } from '@/view/notifications'
 
@@ -31,11 +32,14 @@ export default async function NotificationsPage({
     service.unreadCount(actor.userId),
   ])
 
+  const { timezone } = await getViewerPreferences()
+
   const view = buildNotificationCentreView({
     rows: page.rows,
     unread,
     ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
     now: new Date(),
+    timeZone: timezone,
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')

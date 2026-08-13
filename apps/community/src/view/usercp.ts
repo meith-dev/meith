@@ -1,5 +1,22 @@
-import type { MemberSettings } from '@meith/accounts'
+import { AUTOMATIC_TIMEZONE, type MemberSettings } from '@meith/accounts'
 import { maxLengthFor, type ResolvedProfileField } from '@meith/profile-fields'
+
+export interface TimezoneChoice {
+  readonly value: string
+  readonly label: string
+}
+
+export const AUTOMATIC_TIMEZONE_LABEL = 'Automatic — whatever this device is set to'
+
+export function timezoneChoices(): readonly TimezoneChoice[] {
+  return [
+    { value: AUTOMATIC_TIMEZONE, label: AUTOMATIC_TIMEZONE_LABEL },
+    ...availableTimezones().map((zone) => ({
+      value: zone,
+      label: zone.replace(/_/g, ' '),
+    })),
+  ]
+}
 
 export function availableTimezones(): readonly string[] {
   const supported = (

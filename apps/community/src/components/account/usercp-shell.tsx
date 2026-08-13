@@ -3,6 +3,7 @@ import { unreadMessageCount } from '@/server/messages'
 import { unreadNotificationCount } from '@/server/notifications'
 import type { PanelLink } from '@/components/shell/panel-links'
 import { PanelShell } from '@/components/shell/panel-shell'
+import { buildPanelLinks } from '@/view/shell'
 
 import { UserCpNav } from './usercp-nav'
 
@@ -14,10 +15,11 @@ export async function UserCpShell({ children }: { children: React.ReactNode }) {
     unreadNotificationCount(actor.userId),
   ])
 
-  const links: readonly PanelLink[] =
-    actor.global.canAccessModCp === true
-      ? [{ href: '/modcp', label: 'Moderator CP' }]
-      : []
+  const links: readonly PanelLink[] = buildPanelLinks({
+    current: 'usercp',
+    canAccessModCp: actor.global.canAccessModCp === true,
+    canAccessAdminCp: actor.global.canAccessAdminCp === true,
+  })
 
   return (
     <PanelShell

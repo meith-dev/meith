@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { hashPassword } from './crypto/password'
 import {
+  AUTOMATIC_TIMEZONE,
   MemberSettingsService,
   isKnownTimezone,
+  isTimezonePreference,
   type MemberSettings,
   type MemberSettingsRepository,
 } from './member-settings'
@@ -198,6 +200,16 @@ describe('the options', () => {
       threadsPerPage: '', invisible: false,
     })
     expect(settings.row.timezone).toBe('Europe/London')
+  })
+
+  it('saves the automatic preference, which names no zone at all', async () => {
+    await service.saveOptions({
+      userId: 7,
+      timezone: AUTOMATIC_TIMEZONE,
+      postsPerPage: '',
+      threadsPerPage: '', invisible: false,
+    })
+    expect(settings.row.timezone).toBe(AUTOMATIC_TIMEZONE)
   })
 
   it('refuses a timezone the runtime does not know', async () => {
@@ -405,5 +417,20 @@ describe('isKnownTimezone', () => {
     expect(isKnownTimezone('+01:00')).toBe(false)
     expect(isKnownTimezone('Middle/Earth')).toBe(false)
     expect(isKnownTimezone('')).toBe(false)
+  })
+
+  it('is not the place the automatic preference is accepted', () => {
+    expect(isKnownTimezone(AUTOMATIC_TIMEZONE)).toBe(false)
+  })
+})
+
+describe('isTimezonePreference', () => {
+  it('accepts the automatic preference as well as a stored zone', () => {
+    expect(isTimezonePreference(AUTOMATIC_TIMEZONE)).toBe(true)
+    expect(isTimezonePreference('Europe/London')).toBe(true)
+  })
+
+  it('still refuses an offset', () => {
+    expect(isTimezonePreference('+01:00')).toBe(false)
   })
 })

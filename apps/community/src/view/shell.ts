@@ -80,6 +80,7 @@ export function buildUserPanelModel(
           { label: 'Notifications', href: '/notifications' },
           { label: 'Messages', href: '/messages' },
           { label: 'Subscriptions', href: '/subscriptions' },
+          ...(viewer.canAccessAdminCp ? [{ label: 'Admin CP', href: '/admin' }] : []),
           ...(viewer.canAccessModCp
             ? [
                 { label: 'Moderator CP', href: '/modcp' },
@@ -95,6 +96,30 @@ export function buildUserPanelModel(
     unreadNotifications: options.unreadNotifications ?? 0,
     unreadMessages: options.unreadMessages ?? 0,
   }
+}
+
+export type PanelKey = 'usercp' | 'modcp' | 'admincp'
+
+const PANELS: readonly { readonly key: PanelKey; readonly link: LinkModel }[] = [
+  { key: 'usercp', link: { label: 'Your control panel', href: '/usercp' } },
+  { key: 'modcp', link: { label: 'Moderator CP', href: '/modcp' } },
+  { key: 'admincp', link: { label: 'Admin CP', href: '/admin' } },
+]
+
+export function buildPanelLinks(input: {
+  readonly current: PanelKey
+  readonly canAccessModCp?: boolean
+  readonly canAccessAdminCp?: boolean
+}): readonly LinkModel[] {
+  const reachable: Record<PanelKey, boolean> = {
+    usercp: true,
+    modcp: input.canAccessModCp === true,
+    admincp: input.canAccessAdminCp === true,
+  }
+
+  return PANELS.filter(
+    (panel) => panel.key !== input.current && reachable[panel.key],
+  ).map((panel) => panel.link)
 }
 
 const POWERED_BY: LinkModel = { label: 'Powered by Meith', href: 'https://meith.dev' }

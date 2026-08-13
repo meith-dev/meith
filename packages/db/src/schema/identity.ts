@@ -117,7 +117,7 @@ export const users = pgTable(
     suspendedPostingUntil: timestamp('suspended_posting_until', { withTimezone: true }),
     moderatedPostingUntil: timestamp('moderated_posting_until', { withTimezone: true }),
 
-    timezone: text('timezone').notNull().default('UTC'),
+    timezone: text('timezone').notNull().default('auto'),
     postsPerPage: smallint('posts_per_page'),
     threadsPerPage: smallint('threads_per_page'),
     invisible: boolean('invisible').notNull().default(false),

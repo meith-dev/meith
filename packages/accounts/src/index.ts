@@ -70,6 +70,8 @@ export { MemoryBanFilters, MemoryBans } from './memory-bans'
 export {
   MemberSettingsService,
   isKnownTimezone,
+  isTimezonePreference,
+  AUTOMATIC_TIMEZONE,
   BIO_MAX,
   EMAIL_CHANGE_TTL_MINUTES,
   LOCATION_MAX,

@@ -363,20 +363,52 @@ everybody's switcher.
 Writing a theme: [The theme API](./theme-api.md). Every slot and view model:
 [Theme slots](./theme-slots.md).
 
+## Times
+
+**Every date and time on the board is shown in the reader's own zone**, signed
+in or not. Timestamps are formatted on the server, so the zone has to reach it:
+a small script reports what the browser is set to into a `meith_tz` cookie, and
+the first page a new reader opens reloads once so it arrives in their zone
+rather than someone else's. Every page after that is already right, and the
+footer names the zone it used.
+
+A reader with JavaScript turned off never reports one, so they get **UTC** —
+and the footer says UTC, rather than showing an unlabelled time that is wrong
+by a working day for half the world.
+
+A member can override the detection under **Your control panel → Options**.
+The choice is one of:
+
+- **Automatic** — follow whatever device they are reading on. This is the
+  default, and it is what makes a member's laptop and their phone each show
+  their own local time.
+- **A named zone** — an IANA name (`America/New_York`), which wins everywhere,
+  on every device, forever. Picking `UTC` here is a choice like any other and
+  is kept.
+
+Upgrading a board converts existing members to **Automatic**. Before this
+existed the column held `UTC` for everybody who had never opened the options
+screen, so "UTC" could not be told apart from "never chose" — treating the
+whole set as a non-choice is what stops a board's existing members from being
+the only readers still on UTC. A member who wants UTC picks it, once.
+
 ## Cookies
 
-The board sets five cookies of its own and no third-party ones:
+The board sets six cookies of its own and no third-party ones:
 
 | Cookie | What it is for |
 |---|---|
 | session, remember-me | signing in. The session row also carries the CSRF secret that protects that session's forms — a column, not a cookie of its own |
 | admin session | the control panel's separate sign-in |
 | `meith_theme`, `meith_scheme` | the appearance controls, written only when a member presses one |
+| `meith_tz` | the reader's own timezone, so the server can format times in it. Carries an IANA zone name and nothing else |
 
 Every one of them is either strictly necessary or set in direct response to
 something the reader explicitly asked for, and none exists before somebody asks
-for it. There is no cookie banner, because there is nothing on the board that
-needs one.
+for it. `meith_tz` is the one nobody presses a button for: it is written by the
+page itself, it holds a zone name rather than anything that identifies a
+reader, and without it the board would show every reader somebody else's clock.
+There is no cookie banner, because there is nothing on the board that needs one.
 
 > What a particular board must disclose or record depends on what it does with
 > its data, which is the operator's to decide — a board that adds its own

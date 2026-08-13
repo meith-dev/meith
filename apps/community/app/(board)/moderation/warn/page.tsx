@@ -13,6 +13,7 @@ import {
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildWarningView, warningNotice } from '@/view/warnings'
 
 export const metadata: Metadata = { title: 'Warn a member' }
@@ -61,6 +62,8 @@ export default async function WarnPage({
       ? citedPost
       : null
 
+  const { timezone } = await getViewerPreferences()
+
   const view = buildWarningView({
     member: { userId: member.id, username: member.username },
     standing,
@@ -68,6 +71,7 @@ export default async function WarnPage({
     history: history.rows,
     ...(history.nextCursor === undefined ? {} : { nextCursor: history.nextCursor }),
     now: new Date(),
+    timeZone: timezone,
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
