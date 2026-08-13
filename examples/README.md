@@ -44,7 +44,9 @@ off durably without a redeploy.
 - `themes/default` is the reference implementation of every slot;
   `themes/midnight` and `themes/raidframe` are the maximal ones (twenty-two and
   twenty-seven slots overridden, each with its own palette written out by hand).
-  `iris` is deliberately the *minimal* one.
+  `themes/clubhouse` sits between them — twenty-two of its own, the writing,
+  signing-in and control-panel slots inherited unchanged. `iris` is deliberately
+  the *minimal* one.
 - `plugins/reference` exercises every wired hook and records what it was
   called with — it is a test double for the host, installed in CI and not on
   boards. `hello` is the one to copy.

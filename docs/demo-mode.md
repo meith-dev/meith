@@ -58,11 +58,11 @@ whenever you happen to visit.
 
 `SHOWCASE_THEMES=1` is set in the demo's compose file, so the demo registers
 every theme this repository ships rather than the default alone: **Midnight**,
-the terminal; **Phasebook**, the familiar social shape; and **Raidframe**, the
-game-board HUD. All four are in the appearance control at the foot of every
-page, and a visitor picks one without signing in — the choice is a cookie the
-server reads, so the page arrives already painted rather than repainting after
-it loads.
+the terminal; **Phasebook**, the familiar social shape; **Raidframe**, the
+game-board HUD; and **Clubhouse**, the sports club. All five are in the
+appearance control at the foot of every page, and a visitor picks one without
+signing in — the choice is a cookie the server reads, so the page arrives
+already painted rather than repainting after it loads.
 
 That flag is the demo being a shop window and decides nothing for a board of
 your own: yours starts with the default theme and adds what it wants in

@@ -181,6 +181,9 @@ importers:
       '@meith/tasks':
         specifier: workspace:*
         version: link:../../packages/tasks
+      '@meith/theme-clubhouse':
+        specifier: workspace:*
+        version: link:../../themes/clubhouse
       '@meith/theme-default':
         specifier: workspace:*
         version: link:../../themes/default
@@ -813,6 +816,25 @@ importers:
       react:
         specifier: ^19.2.0
         version: 19.2.0
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
+
+  themes/clubhouse:
+    dependencies:
+      '@meith/theme-default':
+        specifier: workspace:^
+        version: link:../default
+      '@meith/theme-kit':
+        specifier: workspace:^
+        version: link:../../packages/theme-kit
+      '@meith/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
+      react:
+        specifier: ^19.2.0
+        version: 19.2.8
     devDependencies:
       '@types/react':
         specifier: ^19.2.18

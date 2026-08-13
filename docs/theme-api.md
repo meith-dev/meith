@@ -43,6 +43,15 @@ Two worked examples bracket the range a theme can occupy:
   slots after it was written, and it renders all of them without a line
   changing.
 
+Between them, `themes/clubhouse` is the one to read for **a theme built to be
+recoloured**. It is the default board's shape — cards and lists, not tables —
+with the frame, the listings and the postbit dressed as a sports club's site,
+and it spends `primary` on the crest, the bar down every panel heading and the
+postbit's card panel rather than on one button. Nothing in it names a colour:
+the club's own two are `primary` and `secondary`, so an operator who presses a
+brand preset or types two hex values on the theme screen repaints the whole
+board, and a board that never opens that screen still gets a coherent one.
+
 ### Four rules the tooling enforces
 
 Worth knowing before they fire.
@@ -297,7 +306,12 @@ Two consequences worth knowing before you write a theme or a plugin:
   yellow underline, not a page nobody can read.
 
 Neither is a rule the contract enforces. A theme is free to disagree; it should
-disagree deliberately.
+disagree deliberately. `themes/clubhouse` is the shipped disagreement: a club's
+colours are the point of a club's site, so `primary` marks a dozen things there
+rather than four — every panel heading's bar, the crest, the postbit's panel —
+and each place it is filled reads its text back as `primary-foreground`, the
+pair the contrast gate already measures. The ground stays neutral behind all of
+it, which is what keeps the two club colours the only hues on the page.
 
 ## Components: `@meith/ui`
 

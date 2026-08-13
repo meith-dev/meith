@@ -91,6 +91,8 @@
       "@meith/ui/*": ["packages/ui/src/*"],
       "@meith/testkit": ["packages/testkit/src/index.ts"],
       "@meith/testkit/*": ["packages/testkit/src/*"],
+      "@meith/theme-clubhouse": ["themes/clubhouse/src/index.ts"],
+      "@meith/theme-clubhouse/*": ["themes/clubhouse/src/*"],
       "@meith/theme-default": ["themes/default/src/index.ts"],
       "@meith/theme-default/*": ["themes/default/src/*"],
       "@meith/theme-midnight": ["themes/midnight/src/index.ts"],
