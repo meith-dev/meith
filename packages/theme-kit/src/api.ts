@@ -1,6 +1,6 @@
 import { SLOT_NAMES, isSlotName, type SlotName } from './slots'
 
-export const THEME_API_VERSION = '0.9'
+export const THEME_API_VERSION = '0.10'
 
 export type Stability = 'stable' | 'provisional' | 'deprecated'
 
@@ -37,6 +37,17 @@ export const SLOT_STABILITY: Readonly<Record<SlotName, Stability>> = {
   MemberProfile: 'stable',
 
   SearchForm: 'stable',
+  SearchResults: 'stable',
+
+  DiscoveryView: 'stable',
+
+  PanelShell: 'stable',
+  PanelNav: 'stable',
+  PanelPage: 'stable',
+  PanelSection: 'stable',
+
+  AuthPage: 'stable',
+
   ForumJump: 'stable',
 
   RedirectNotice: 'stable',

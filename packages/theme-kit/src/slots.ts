@@ -148,6 +148,60 @@ export const SLOTS = {
       'The search form. A GET form with named inputs, so a search is a URL ' +
       'that can be linked and cached.',
   },
+  SearchResults: {
+    kind: 'server',
+    purpose:
+      'The results page for one search: what matched, an excerpt of each hit, ' +
+      'and the form that narrows the set. Separate from SearchForm because a ' +
+      'result list is a listing and shares nothing with a filter panel but the ' +
+      'word "search".',
+  },
+
+  DiscoveryView: {
+    kind: 'server',
+    purpose:
+      'The body of a discovery listing — new posts, today, unanswered, and a ' +
+      'member’s own threads and replies. One slot for all of them: they differ ' +
+      'in what the query selected, never in what a reader is looking at.',
+  },
+
+  PanelShell: {
+    kind: 'server',
+    purpose:
+      'The frame around a control panel: the navigation rail, the links to the ' +
+      'other panels a viewer may reach, and the page beside them. Rendered for ' +
+      'the member, moderator and admin panels alike — `panel` says which.',
+  },
+  PanelNav: {
+    kind: 'server',
+    purpose:
+      'A control panel’s section navigation. Server, not client: which section ' +
+      'is open is resolved from the request path before rendering, so the rail ' +
+      'arrives correct rather than after hydration, and a panel needs no ' +
+      'JavaScript to know where it is.',
+  },
+  PanelPage: {
+    kind: 'server',
+    purpose:
+      'One control-panel page: its heading, the line under it, the controls ' +
+      'beside it, and the body. Also the frame for the account, moderation and ' +
+      'messaging pages that are panel-shaped without being in a panel.',
+  },
+  PanelSection: {
+    kind: 'server',
+    purpose:
+      'A labelled section inside a panel page. Rendered by the page among its ' +
+      'content rather than around it, which is why it is not part of PanelPage.',
+  },
+
+  AuthPage: {
+    kind: 'server',
+    purpose:
+      'Signing in, registering, resetting a password, asking for a new ' +
+      'confirmation link. One slot for all of them: the same card with a ' +
+      'different form in it, and the form itself is an app-rendered region ' +
+      'because every one of them posts to a Server Action.',
+  },
 
   ForumJump: {
     kind: 'server',

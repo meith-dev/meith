@@ -1,6 +1,18 @@
 export const PATH_HEADER = 'x-forum-path'
 
 /**
+ * The query string that came with `PATH_HEADER`, leading `?` included, or
+ * absent when there was none.
+ *
+ * Separate from the path because the path has readers that must not see a
+ * query: a presence row records where somebody is, and `/admin/settings` is one
+ * place however many groups it can be filtered by. The panel rail is the reader
+ * that needs both — its settings sections differ only by `?group=`, so a rail
+ * given the path alone cannot say which one is open.
+ */
+export const QUERY_HEADER = 'x-forum-query'
+
+/**
  * Set by the middleware when it has just minted the guest cookie, meaning the
  * client has not sent one back yet.
  *

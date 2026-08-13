@@ -106,20 +106,16 @@ export default async function IpLookupPage({
       {subject !== null && result !== null && (
         <PanelSection
           id="matches-heading"
-          title={
+          title={`Accounts sharing a range with ${subject.username}`}
+          description={
             <>
-              Accounts sharing a range with{' '}
               <a
                 href={memberHref(subject.id)}
                 className="underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
                 {subject.username}
               </a>
-            </>
-          }
-          description={
-            <>
-              Ranges on record: registration{' '}
+              . Ranges on record: registration{' '}
               <code className="font-mono">{result.prefixes.registration ?? 'none'}</code>,
               last visit{' '}
               <code className="font-mono">{result.prefixes.lastVisit ?? 'none'}</code>.

@@ -362,6 +362,21 @@ override applies everywhere.
 slot. A map built by spreading cannot be statically checked, and `slots:check`
 fails rather than skipping it.
 
+**A component in `src/components/` may resolve a slot; a slot may not.** The
+guard is about slot modules, not about the app — `PanelPage`, `PanelShell` and
+`AuthPage` in `src/components/shell/` are app components that resolve one slot
+each and hand it their props, which is what lets forty admin screens render
+through a themed frame without forty `requireSlot` calls. What they must not do
+is resolve a *second* slot to nest inside the first: that is the page's job,
+through `regions`.
+
+**Where the reader is comes from the request, not from the router.** The panel
+rail needs the current path to say which section is open, and reading it with
+`usePathname` would make the whole rail a client component. `proxy.ts` sets
+`x-forum-path` and `x-forum-query` on every request, `currentLocation()` puts
+them back together, and `buildPanelNavModel` resolves the flags before anything
+renders. The rail is correct in the first response and costs no JavaScript.
+
 ---
 
 ## View models

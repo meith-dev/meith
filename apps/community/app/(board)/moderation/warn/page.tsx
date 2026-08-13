@@ -79,17 +79,8 @@ export default async function WarnPage({
 
   return (
     <PanelPage
-      title={
-        <>
-          Warnings for{' '}
-          <a
-            href={view.member.href}
-            className="underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
-            {view.member.username}
-          </a>
-        </>
-      }
+      title={`Warnings for ${view.member.username}`}
+      back={{ href: view.member.href, label: view.member.username }}
       lede={
         <>
           {view.standing.points} {view.standing.points === 1 ? 'point' : 'points'}

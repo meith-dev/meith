@@ -11,7 +11,11 @@ import {
   guestCookie,
   guestCookieName,
 } from './src/server/cookies'
-import { FRESH_GUEST_HEADER, PATH_HEADER } from './src/server/location-header'
+import {
+  FRESH_GUEST_HEADER,
+  PATH_HEADER,
+  QUERY_HEADER,
+} from './src/server/location-header'
 import {
   PREFERENCE_COOKIE_MAX_AGE,
   THEME_COOKIE,
@@ -52,6 +56,8 @@ function withPath(req: NextRequest): NextResponse {
 
   const headers = new Headers(req.headers)
   headers.set(PATH_HEADER, req.nextUrl.pathname)
+  if (req.nextUrl.search === '') headers.delete(QUERY_HEADER)
+  else headers.set(QUERY_HEADER, req.nextUrl.search)
   if (fresh) headers.set(FRESH_GUEST_HEADER, '1')
   else headers.delete(FRESH_GUEST_HEADER)
 

@@ -1,7 +1,6 @@
 import { getActor } from '@/server/context'
 import { unreadMessageCount } from '@/server/messages'
 import { unreadNotificationCount } from '@/server/notifications'
-import type { PanelLink } from '@/components/shell/panel-links'
 import { PanelShell } from '@/components/shell/panel-shell'
 import { buildPanelLinks } from '@/view/shell'
 
@@ -15,7 +14,7 @@ export async function UserCpShell({ children }: { children: React.ReactNode }) {
     unreadNotificationCount(actor.userId),
   ])
 
-  const links: readonly PanelLink[] = buildPanelLinks({
+  const links = buildPanelLinks({
     current: 'usercp',
     canAccessModCp: actor.global.canAccessModCp === true,
     canAccessAdminCp: actor.global.canAccessAdminCp === true,
@@ -23,6 +22,7 @@ export async function UserCpShell({ children }: { children: React.ReactNode }) {
 
   return (
     <PanelShell
+      panel="usercp"
       nav={
         <UserCpNav counts={{ '/messages': messages, '/notifications': notifications }} />
       }

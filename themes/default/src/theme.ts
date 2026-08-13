@@ -25,6 +25,12 @@ import { PostActions } from './slots/post-actions'
 import { MemberProfile } from './slots/member-profile'
 import { ForumJump } from './slots/forum-jump'
 import { SearchForm } from './slots/search-form'
+import { AuthPage } from './slots/auth-page'
+import { SearchResults } from './slots/search-results'
+import { DiscoveryView } from './slots/discovery-view'
+import { PanelShell } from './slots/panel-shell'
+import { PanelNav } from './slots/panel-nav'
+import { PanelPage, PanelSection } from './slots/panel-page'
 import { RedirectNotice } from './slots/redirect-notice'
 import { ErrorNotice } from './slots/error-notice'
 
@@ -61,7 +67,18 @@ export const defaultTheme = defineTheme({
 
     MemberProfile,
 
+    AuthPage,
+
     SearchForm,
+    SearchResults,
+
+    DiscoveryView,
+
+    PanelShell,
+    PanelNav,
+    PanelPage,
+    PanelSection,
+
     ForumJump,
 
     RedirectNotice,

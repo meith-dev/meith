@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { readOnline, presenceRepository } from '@/server/presence'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -20,22 +21,21 @@ export default async function OnlinePage() {
 
   if (snapshot === null) {
     return (
-      <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-6 py-8 flex-1">
-        <h1 className="font-heading text-2xl font-semibold">Who&rsquo;s online</h1>
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+      <PanelPage title="Who’s online">
+        <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           This board is not tracking who is online.
         </p>
-      </main>
+      </PanelPage>
     )
   }
 
   const identities = await identitiesFor(snapshot.members.map((member) => member.userId))
 
   return (
-    <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 flex-1">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">Who&rsquo;s online</h1>
-        <p className="text-sm text-muted-foreground">
+    <PanelPage
+      title="Who’s online"
+      lede={
+        <>
           {snapshot.total.toLocaleString()} here in the last 15 minutes —{' '}
           {snapshot.members.length.toLocaleString()}{' '}
           {snapshot.members.length === 1 ? 'member' : 'members'} and{' '}
@@ -43,15 +43,16 @@ export default async function OnlinePage() {
           {snapshot.guestCount === 1 ? 'guest' : 'guests'}.
           {snapshot.invisibleCount > 0 &&
             ` ${snapshot.invisibleCount.toLocaleString()} browsing invisibly.`}
-        </p>
-      </div>
+        </>
+      }
+    >
 
       {snapshot.members.length === 0 ? (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           No members are online right now.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+        <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border bg-card shadow-elevation">
           {snapshot.members.map((member) => {
             const where = locationOf(member)
             return (
@@ -101,6 +102,6 @@ export default async function OnlinePage() {
           .
         </p>
       )}
-    </main>
+    </PanelPage>
   )
 }

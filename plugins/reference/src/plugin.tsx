@@ -281,6 +281,36 @@ export const referencePlugin = definePlugin({
       record('view.search-form', value)
       return value
     },
+    'view.search-results': (value) => {
+      record('view.search-results', value)
+      return value
+    },
+    'view.discovery-view': (value) => {
+      record('view.discovery-view', value)
+      return value
+    },
+
+    'view.auth-page': (value) => {
+      record('view.auth-page', value)
+      return value
+    },
+
+    'view.panel-shell': (value) => {
+      record('view.panel-shell', value)
+      return value
+    },
+    'view.panel-nav': (value) => {
+      record('view.panel-nav', value)
+      return value
+    },
+    'view.panel-page': (value) => {
+      record('view.panel-page', value)
+      return value
+    },
+    'view.panel-section': (value) => {
+      record('view.panel-section', value)
+      return value
+    },
 
     'view.error-notice': (value) => {
       record('view.error-notice', value)

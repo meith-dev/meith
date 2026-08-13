@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 
 import { PanelShell } from "@/components/shell/panel-shell";
-import type { PanelLink } from "@/components/shell/panel-links";
 import { ModCpNav } from "@/components/moderation/modcp-nav";
 import { getActor } from "@/server/context";
 import { modCpCounts, resolveModCpAccess } from "@/server/modcp";
@@ -15,13 +14,14 @@ export async function ModCpShell({ children }: { children: React.ReactNode }) {
   const counts = await modCpCounts();
 
   const actor = await getActor();
-  const links: readonly PanelLink[] = buildPanelLinks({
+  const links = buildPanelLinks({
     current: "modcp",
     canAccessAdminCp: actor.global.canAccessAdminCp === true,
   });
 
   return (
     <PanelShell
+      panel="modcp"
       nav={
         <ModCpNav
           nav={modCpNav(access)}
