@@ -1,4 +1,10 @@
 import {
+  BROWSER_THEME_COLOR as CLUBHOUSE_BROWSER_THEME_COLOR,
+  DARK_TOKENS as CLUBHOUSE_DARK_TOKENS,
+  LIGHT_TOKENS as CLUBHOUSE_LIGHT_TOKENS,
+  clubhouseTheme,
+} from '@meith/theme-clubhouse'
+import {
   BROWSER_THEME_COLOR as MIDNIGHT_BROWSER_THEME_COLOR,
   DARK_TOKENS as MIDNIGHT_DARK_TOKENS,
   LIGHT_TOKENS as MIDNIGHT_LIGHT_TOKENS,
@@ -38,6 +44,13 @@ export const SHOWCASE_THEMES = {
     tokens: { light: RAIDFRAME_LIGHT_TOKENS, dark: RAIDFRAME_DARK_TOKENS },
     browserThemeColor: RAIDFRAME_BROWSER_THEME_COLOR,
     theme: raidframeTheme,
+  },
+  clubhouse: {
+    key: 'clubhouse',
+    title: 'Clubhouse',
+    tokens: { light: CLUBHOUSE_LIGHT_TOKENS, dark: CLUBHOUSE_DARK_TOKENS },
+    browserThemeColor: CLUBHOUSE_BROWSER_THEME_COLOR,
+    theme: clubhouseTheme,
   },
 } as const
 

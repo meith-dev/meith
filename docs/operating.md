@@ -375,6 +375,40 @@ leaves the board as a fresh install. It keeps the row when the board has turned
 the theme off, because putting colours back must not put a theme back in
 everybody's switcher.
 
+### A board in a club's colours
+
+`clubhouse` is the theme shipped for a sports club — GAA, soccer, basketball,
+anything with a crest and two colours. It is the default board's shape, dressed
+the way a club site is: a crest tile beside the board's name, a club-colour rule
+under the masthead and above the footer, a colour bar down the left of every
+panel heading, condensed uppercase headings, a score line of counts on every
+listing row, and a postbit built like a squad card — a colour panel with the
+post's number in it, the avatar overlapping, and the member's totals ruled off
+beneath.
+
+It is painted entirely from tokens you already have, so making it *your* club's
+is the theme screen and no deploy:
+
+- **The club colour** is the brand group — `primary`, `primary-hover`,
+  `primary-foreground` and `ring`. One press of a brand preset writes all four,
+  or type your own; the crest, the bar on every panel heading, the postbit's
+  card panel, the current page in a list and the primary buttons all follow.
+- **The second colour** — the trim on the jersey — is `secondary`, with
+  `secondary-foreground` for text on it. It is the hairline under the club
+  colour, the ring around the crest, and the fill of second-choice controls like
+  "Mark read".
+- Everything else stays neutral on purpose, so those two are the only hues on
+  the page — which is also why the theme spends the club colour on bars and
+  panels rather than on whole bands: a page that is mostly club colour in
+  daylight is a wall of it at night.
+- The screen takes a **light and a dark value** for each token, and this theme
+  ships the same two club colours in both, because a club does not have a night
+  kit. Change them in both places unless you mean them to differ.
+
+With no logo uploaded the masthead draws a crest from the board's name — the
+first letters of its first two words — so a club with a name and no artwork
+still gets a mark rather than a gap.
+
 Writing a theme: [The theme API](./theme-api.md). Every slot and view model:
 [Theme slots](./theme-slots.md).
 

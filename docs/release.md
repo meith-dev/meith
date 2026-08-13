@@ -219,7 +219,7 @@ release, at the release version. Ten at 0.1.0:
 |---|---|
 | The kits | `@meith/plugin-kit`, `@meith/theme-kit` — what a plugin or theme author writes against |
 | Their closure | `@meith/core`, `@meith/ui` |
-| The themes | `@meith/theme-default`, `@meith/theme-midnight`, `@meith/theme-phasebook`, `@meith/theme-raidframe` |
+| The themes | `@meith/theme-default`, `@meith/theme-midnight`, `@meith/theme-phasebook`, `@meith/theme-raidframe`, `@meith/theme-clubhouse` |
 | The plugins | `@meith/plugin-dues`, `@meith/plugin-reference` |
 
 `scripts/npm-publish.mjs` is the mechanism: dependencies before dependents, a

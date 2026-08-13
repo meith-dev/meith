@@ -38,6 +38,7 @@
     "@meith/settings": "workspace:*",
     "@meith/signatures": "workspace:*",
     "@meith/tasks": "workspace:*",
+    "@meith/theme-clubhouse": "workspace:*",
     "@meith/theme-default": "workspace:*",
     "@meith/theme-kit": "workspace:*",
     "@meith/theme-midnight": "workspace:*",
