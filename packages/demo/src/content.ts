@@ -19,9 +19,10 @@
 
 import { COMMUNITY_THREADS } from './content/community'
 import { NOTICEBOARD_THREADS } from './content/noticeboard'
-import { PRIVATE_THREADS } from './content/private'
+import { STAFF_THREADS } from './content/staff'
 import { RUNNING_THREADS } from './content/running'
 import { START_THREADS } from './content/start'
+import { SUPPORTERS_THREADS } from './content/supporters'
 import type { DemoThread } from './content/types'
 
 export { DEMO_FORUMS, DEMO_PREFIXES } from './content/forums'
@@ -39,9 +40,10 @@ export type {
 } from './content/types'
 
 export const DEMO_THREADS: readonly DemoThread[] = [
+  ...STAFF_THREADS,
+  ...SUPPORTERS_THREADS,
   ...START_THREADS,
   ...COMMUNITY_THREADS,
   ...NOTICEBOARD_THREADS,
   ...RUNNING_THREADS,
-  ...PRIVATE_THREADS,
 ]

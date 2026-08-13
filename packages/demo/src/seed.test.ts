@@ -45,6 +45,15 @@ async function count(table: string, where = sql`true`): Promise<number> {
   return rows[0]?.n ?? 0
 }
 
+/** Every forum id in a restricted section, category included. */
+async function sectionIds(access: 'staff' | 'supporters'): Promise<ReadonlySet<number>> {
+  const slugs = DEMO_FORUMS.filter((forum) => forum.access === access).map((forum) => forum.slug)
+  expect(slugs.length).toBeGreaterThan(1)
+
+  const ids = await Promise.all(slugs.map((slug) => forumIdBySlug(slug)))
+  return new Set(ids)
+}
+
 async function forumIdBySlug(slug: string): Promise<number> {
   const rows = resultRows(
     await db.execute(sql`select id from forums where slug = ${slug}`),
@@ -241,34 +250,85 @@ describe('the seeded board', () => {
     }
   })
 
-  it('hides the staff forum and the supporters forum rather than locking them', async () => {
-    // Not "shows a padlock": a member who cannot read a forum is never told it
+  it('hides the two restricted sections rather than locking them', async () => {
+    // Not "shows a padlock": a member who cannot read a section is never told it
     // exists, because the forum tree is built from the forums they can see.
-    const committee = await forumIdBySlug('committee-room')
-    const supporters = await forumIdBySlug('supporters-room')
+    const staffSection = await sectionIds('staff')
+    const supportersSection = await sectionIds('supporters')
+    const open = DEMO_FORUMS.length - staffSection.size - supportersSection.size
 
     const seen = async (...groups: string[]): Promise<ReadonlySet<number>> =>
       new Set(await visibleTo(await groupIds(...groups)))
 
+    const holds = (
+      what: ReadonlySet<number>,
+      section: ReadonlySet<number>,
+    ): 'all' | 'none' | 'some' => {
+      const inside = [...section].filter((id) => what.has(id)).length
+      if (inside === 0) return 'none'
+      return inside === section.size ? 'all' : 'some'
+    }
+
     const guest = await seen('guests')
-    expect(guest.has(committee), 'a guest is offered the committee room').toBe(false)
-    expect(guest.has(supporters), 'a guest is offered the supporters room').toBe(false)
+    expect(holds(guest, staffSection), 'a guest is offered the committee room').toBe('none')
+    expect(holds(guest, supportersSection), "a guest is offered the supporters' club").toBe('none')
 
     const ordinary = await seen('registered')
-    expect(ordinary.has(committee), 'a member is offered the committee room').toBe(false)
-    expect(ordinary.has(supporters), 'a member is offered the supporters room').toBe(false)
-    expect(ordinary.size, 'a member sees the rest of the board').toBe(DEMO_FORUMS.length - 2)
+    expect(holds(ordinary, staffSection), 'a member is offered the committee room').toBe('none')
+    expect(holds(ordinary, supportersSection), "a member is offered the supporters' club").toBe(
+      'none',
+    )
+    expect(ordinary.size, 'a member sees the rest of the board').toBe(open)
 
     // The plan grants a second group, and a second group is all it takes: the
-    // room appears for as long as the grant lasts and goes when it expires,
+    // section appears for as long as the grant lasts and goes when it expires,
     // with nobody letting anybody in by hand.
     const supporter = await seen('registered', DUES_DEMO_GROUP)
-    expect(supporter.has(supporters), 'a supporter is shut out of the room they pay for').toBe(true)
-    expect(supporter.has(committee), 'paying gets a member into the committee room').toBe(false)
+    expect(holds(supporter, supportersSection), 'a supporter is shut out of what they pay for').toBe(
+      'all',
+    )
+    expect(holds(supporter, staffSection), 'paying gets a member into the committee room').toBe(
+      'none',
+    )
 
     const staff = await seen('moderators')
-    expect(staff.has(committee), 'a moderator cannot see the committee room').toBe(true)
-    expect(staff.has(supporters), 'a moderator cannot see the supporters room').toBe(true)
+    expect(holds(staff, staffSection), 'a moderator cannot see the committee room').toBe('all')
+    expect(holds(staff, supportersSection), "a moderator cannot see the supporters' club").toBe(
+      'all',
+    )
+  })
+
+  it('writes the staff in as allowed rather than leaving it to be known', async () => {
+    // An administrator would see both sections anyway — they bypass the matrix.
+    // The rows exist so that the permissions screen answers the question, and so
+    // that a visitor rewriting the registered group's defaults cannot open them.
+    for (const forum of DEMO_FORUMS) {
+      if (forum.access === undefined) continue
+
+      const allowed = await count(
+        'forum_permissions p join forums f on f.id = p.forum_id ' +
+          'join usergroups g on g.id = p.group_id',
+        sql`f.slug = ${forum.slug} and g.key = 'administrators' and p.can_view = true`,
+      )
+      expect(allowed, `${forum.title} does not name the administrators`).toBe(1)
+
+      const denied = await count(
+        'forum_permissions p join forums f on f.id = p.forum_id ' +
+          'join usergroups g on g.id = p.group_id',
+        sql`f.slug = ${forum.slug} and g.key = 'registered' and p.can_view = false`,
+      )
+      expect(denied, `${forum.title} is open to ordinary members`).toBe(1)
+    }
+  })
+
+  it('puts the two restricted sections at the top of the board', async () => {
+    const rows = resultRows(
+      await db.execute(sql`
+        select slug from forums where parent_id is null order by display_order, id
+      `),
+    ) as Array<{ slug: string }>
+
+    expect(rows.map((row) => row.slug).slice(0, 2)).toEqual(['committee-room', 'supporters-club'])
   })
 
   it('scopes every prefix to the branch it belongs to, and uses them', async () => {

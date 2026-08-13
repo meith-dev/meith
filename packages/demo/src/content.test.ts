@@ -70,6 +70,31 @@ describe('the written content', () => {
     }
   })
 
+  it('opens with the two restricted sections, staff first', () => {
+    const sections = DEMO_FORUMS.filter((forum) => forum.type === 'category')
+    expect(sections[0]?.access, 'the first section is not the staff one').toBe('staff')
+    expect(sections[1]?.access, 'the second section is not the supporters one').toBe('supporters')
+    expect(
+      sections.slice(2).every((section) => section.access === undefined),
+      'a restricted section is buried under the open ones',
+    ).toBe(true)
+  })
+
+  it('marks every forum in a restricted section, rather than relying on the category', () => {
+    for (const forum of DEMO_FORUMS) {
+      if (forum.parent === null) continue
+      const parent = FORUM.get(forum.parent)!
+      expect(forum.access, `${forum.title} does not match ${parent.title}`).toBe(parent.access)
+    }
+
+    for (const access of ['staff', 'supporters'] as const) {
+      const forums = DEMO_FORUMS.filter(
+        (forum) => forum.access === access && forum.type === 'forum',
+      )
+      expect(forums.length, `the ${access} section is one forum`).toBeGreaterThan(1)
+    }
+  })
+
   it('gives every forum something to show and every category a forum', () => {
     for (const forum of DEMO_FORUMS) {
       const count =
