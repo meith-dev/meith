@@ -34,7 +34,7 @@ jobs:
       # visible by failing.
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -149,7 +149,7 @@ jobs:
       # ran three (9, 11.x-latest and 10.6) until the image job made that
       # visible by failing.
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -588,7 +588,7 @@ jobs:
       # ran three (9, 11.x-latest and 10.6) until the image job made that
       # visible by failing.
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -625,7 +625,7 @@ jobs:
       # ran three (9, 11.x-latest and 10.6) until the image job made that
       # visible by failing.
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
