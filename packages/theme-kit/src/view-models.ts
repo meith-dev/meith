@@ -928,6 +928,322 @@ export interface SearchFormModel {
 }
 
 /**
+ * One search result: where it goes, and enough of it to decide whether to go.
+ *
+ * `excerptHtml` is the only HTML in this model, and it is the app's own: the
+ * search engine returns the matching fragment with the matched words wrapped in
+ * `<b>`, and nothing else survives — the post's own markup is stripped before
+ * the excerpt is cut, so a theme is styling emphasis, not rendering a post.
+ */
+export interface SearchHitModel {
+  readonly postId: number
+  readonly threadTitle: string
+  /** Resolved to the post inside its thread, page and anchor included. */
+  readonly href: string
+  readonly excerptHtml: string
+  readonly authorUsername: string
+  readonly postedAt: TimeModel
+}
+
+/**
+ * The results of one search.
+ *
+ * ## Why the results are a slot of their own
+ *
+ * `SearchForm` is a filter panel and this is a listing; they share a page and
+ * nothing else. Rendering the results *inside* `SearchForm` would mean a theme
+ * that wants a different result row has to reimplement the form to get at it.
+ *
+ * ## `searchedAt`, and why results are not simply cached
+ *
+ * A search is stored and its results page is re-checked against the viewer's
+ * access every time it is opened, so what a link to a result set shows depends
+ * on who opens it. The timestamp is in the model because a theme should be able
+ * to say when the search was run — a result page that looks live and is a week
+ * old is the failure this field exists to prevent.
+ */
+export interface SearchResultsModel {
+  /** What was searched for, as the reader typed it. */
+  readonly terms: string
+  readonly searchedAt: TimeModel
+  readonly hits: readonly SearchHitModel[]
+  /** The next page of this same search, or `null` at the end. */
+  readonly nextHref: string | null
+  readonly nextLabel: string
+  /** Back to an empty form. Always offered: a search that found nothing needs it most. */
+  readonly newSearchHref: string
+  /**
+   * The narrow-this-search form. A GET form, like `SearchForm` and for the same
+   * reason — the narrowed search is a URL of its own, not a state this page
+   * holds.
+   */
+  readonly within: {
+    readonly action: string
+    readonly field: string
+    readonly value: string
+    readonly label: string
+    readonly hint: string
+    readonly submitLabel: string
+  }
+}
+
+/** One row in a discovery listing. */
+export interface DiscoveryRowModel {
+  readonly threadId: number
+  readonly title: string
+  readonly href: string
+  readonly forum: LinkModel
+  readonly authorUsername: string
+  readonly replyCount: number
+  readonly lastPostAt: TimeModel
+  /** `null` when the thread has no reply yet, so the last post is the first. */
+  readonly lastPostUsername: string | null
+}
+
+/**
+ * A discovery listing: "new posts", "today", "unanswered", and the two
+ * personal views.
+ *
+ * One slot rather than five. The views differ in which threads the query
+ * returned and in the sentence under the heading; the reader is looking at the
+ * same thing in every one of them, and a theme that had to fill five slots to
+ * restyle one row would fill four of them by copy and paste.
+ *
+ * ## `tabs` are given, not built
+ *
+ * Which views exist depends on whether the viewer is signed in — "my posts" is
+ * not offered to a guest — and that is a decision the app has already made.
+ * A theme renders the tabs it is handed and marks the current one; it never
+ * enumerates the views itself.
+ */
+export interface DiscoveryViewModel {
+  readonly title: string
+  /** One line saying what this view selected, e.g. "Threads nobody has replied to yet". */
+  readonly blurb: string
+  readonly tabsLabel: string
+  readonly tabs: readonly TabModel[]
+  readonly rows: readonly DiscoveryRowModel[]
+  readonly nextHref: string | null
+  readonly nextLabel: string
+  /**
+   * What to say when `rows` is empty — different at the end of a paged list
+   * ("you have reached the end") from at the start of one ("nothing here yet").
+   */
+  readonly emptyMessage: string
+  /**
+   * Set when the view refused rather than failed: a guest asking for their own
+   * threads. The listing is empty and this says why, with `signInHref` to fix
+   * it. Not an error — a themed page, not the error page.
+   */
+  readonly refusal: {
+    readonly message: string
+    readonly signInHref: string
+    readonly signInLabel: string
+  } | null
+}
+
+/** One tab in a strip of view tabs. */
+export interface TabModel {
+  readonly href: string
+  readonly label: string
+  readonly isCurrent: boolean
+}
+
+/** Which control panel a shell or a page belongs to. */
+export type PanelKind = 'usercp' | 'modcp' | 'admincp'
+
+/**
+ * The frame around a control panel.
+ *
+ * `panel` is in the model because the three panels are the same shape and not
+ * the same place: a theme can give the admin panel its own accent without
+ * needing three slots, and the default theme uses it to decide how far down the
+ * rail starts — the admin panel carries a header of its own above this.
+ */
+export interface PanelShellModel {
+  readonly panel: PanelKind
+  /**
+   * The other panels this viewer may reach, resolved and already filtered by
+   * permission. Never contains the panel being rendered.
+   */
+  readonly links: readonly LinkModel[]
+  readonly linksLabel: string
+  readonly regions: {
+    /** The `PanelNav` for this panel. */
+    readonly nav: ReactNode
+  }
+  readonly children?: ReactNode
+}
+
+/**
+ * Where the reader is, relative to one navigation item.
+ *
+ * `here` is the page being rendered; `under` is an item the reader is inside
+ * but not on — a forum's permission screen under "Forums". The distinction is
+ * `aria-current="page"` against `aria-current="true"`, and both are the answer
+ * to "where am I", which is the only question a rail exists to answer.
+ */
+export type PanelNavCurrent = 'here' | 'under'
+
+/**
+ * One item in a panel's navigation.
+ *
+ * `current` is resolved by the app from the request path — the theme is told
+ * where the reader is, it does not work it out. That is what lets this slot
+ * render on the server: the alternative is `usePathname`, which makes the whole
+ * rail a client component and ships a router hook to a board that needs none.
+ */
+export interface PanelNavItemModel {
+  readonly href: string
+  readonly title: string
+  /** A waiting count — the approval queue, unread messages — or `null`. */
+  readonly count: number | null
+  /** `null` when the reader is somewhere else entirely. */
+  readonly current: PanelNavCurrent | null
+  /**
+   * A page reached from elsewhere rather than from the rail — warning a member,
+   * editing one forum. It is shown as where you are and it is not a link,
+   * because a link to the page you are on that also needs an argument you no
+   * longer have is a dead end. Only ever present while the reader is on it.
+   */
+  readonly isRecord: boolean
+}
+
+export interface PanelNavSectionModel extends PanelNavItemModel {
+  /**
+   * Already filtered to what belongs on screen: a section's children are
+   * listed while it `isOpen`, and a record child only while it is the page.
+   */
+  readonly children: readonly PanelNavItemModel[]
+  /** The reader is on this section or inside it. */
+  readonly isOpen: boolean
+  /**
+   * The panel's front page, which sits above the sections rather than among
+   * them. Exactly one section carries this.
+   */
+  readonly isOverview: boolean
+}
+
+export interface PanelNavModel {
+  readonly panel: PanelKind
+  /** Accessible name for the navigation landmark. */
+  readonly label: string
+  readonly sections: readonly PanelNavSectionModel[]
+  /**
+   * The title of the deepest item the reader is under, for a collapsed
+   * rail's summary — "Sections · Attachments" says where a tap would leave
+   * from. `null` when nothing matched the path.
+   */
+  readonly currentTitle: string | null
+}
+
+/**
+ * One control-panel page: heading, the line under it, its controls, its body.
+ *
+ * ## Why the heading is data and everything around it is a region
+ *
+ * `title` is a string because a page title is a string — it is also the
+ * document title, and a model that allowed markup here would let a theme's
+ * `<h1>` and the browser tab disagree. The lede and the controls are regions
+ * because the app fills them with forms carrying Server Actions and links it
+ * has resolved, neither of which crosses this contract as data.
+ */
+export interface PanelPageModel {
+  readonly panel: PanelKind | null
+  readonly title: string
+  /** Where this page was reached from, when it is a page under another. */
+  readonly back: LinkModel | null
+  /**
+   * `reading` for prose and forms, `wide` for a table nobody can read at
+   * reading width. The theme decides what each measures.
+   */
+  readonly width: 'reading' | 'wide'
+  /**
+   * `loose` for a page built of `PanelSection`s, `normal` for a page that is
+   * one thing. The theme decides what each measures; the distinction is
+   * whether the body has internal headings that need air around them.
+   */
+  readonly gap: 'normal' | 'loose'
+  readonly regions: {
+    /** A sentence under the heading saying what this page is for. */
+    readonly lede?: ReactNode
+    /** Smaller detail under the lede — counts, timestamps, scope. */
+    readonly meta?: ReactNode
+    /** Controls that act on the whole page, beside the heading. */
+    readonly actions?: ReactNode
+  }
+  readonly children?: ReactNode
+}
+
+/**
+ * One labelled section within a control-panel page.
+ *
+ * A separate slot from `PanelPage` because it is rendered *by the page*, in
+ * among the page's own content, rather than around it — a page is a heading and
+ * a body, and the body may be three of these or none. A theme that restyled the
+ * page frame and not the headings inside it would have one visual language
+ * outside the content and the default theme's inside.
+ */
+export interface PanelSectionModel {
+  readonly title: string
+  /**
+   * The id the heading takes, so the section's landmark can point at it. Given
+   * by the page because the page is where the section is named twice — once as
+   * a heading and once as the region's accessible name.
+   */
+  readonly headingId: string
+  readonly regions: {
+    readonly description?: ReactNode
+    readonly actions?: ReactNode
+  }
+  readonly children?: ReactNode
+}
+
+/**
+ * A link out of an authentication page, with the sentence that introduces it.
+ *
+ * "New here? **Create an account**" is one thought and two pieces of markup.
+ * `lead` carries the first half so the copy stays the app's and the layout
+ * stays the theme's — a theme that renders links as a plain list can drop it,
+ * and one that renders them as sentences has the sentence.
+ */
+export interface AuthLinkModel extends LinkModel {
+  readonly lead: string | null
+}
+
+/**
+ * The sign-in, register, reset and confirm pages.
+ *
+ * ## Why one slot and not five
+ *
+ * They are the same page: a card, a heading, a form, and the ways out of it.
+ * What differs is the form, and a form carrying a Server Action never crosses
+ * this contract as data — so it arrives as a region and the four pages become
+ * one slot with four things in the hole.
+ *
+ * ## `alert` is not `Notice`
+ *
+ * `Notice` is a flash message on a page that has a shell around it; this is the
+ * page telling you the link that brought you here is no longer any good, and it
+ * has to be readable above the form it concerns. It is a string rather than a
+ * model because there is exactly one kind of it.
+ */
+export interface AuthPageModel {
+  readonly title: string
+  /** `null` unless something about the way in went wrong. */
+  readonly alert: string | null
+  readonly links: readonly AuthLinkModel[]
+  readonly regions: {
+    /** A sentence under the heading. */
+    readonly lede?: ReactNode
+    /** The form itself, or nothing on a page that only explains something. */
+    readonly form?: ReactNode
+    /** Standing advice beside the form — where to look before asking again. */
+    readonly note?: ReactNode
+  }
+}
+
+/**
  * The forum jump box — MyBB's `<select>` at the foot of every page.
  *
  * ## Why a form and a button rather than a `<select>` that navigates
@@ -1104,7 +1420,18 @@ export interface SlotModels {
 
   MemberProfile: MemberProfileModel
 
+  AuthPage: AuthPageModel
+
   SearchForm: SearchFormModel
+  SearchResults: SearchResultsModel
+
+  DiscoveryView: DiscoveryViewModel
+
+  PanelShell: PanelShellModel
+  PanelNav: PanelNavModel
+  PanelPage: PanelPageModel
+  PanelSection: PanelSectionModel
+
   ForumJump: ForumJumpModel
 
   RedirectNotice: RedirectNoticeModel

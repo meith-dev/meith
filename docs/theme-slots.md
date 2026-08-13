@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.9.** 29 slots: 27 stable, 2 provisional, 0 deprecated.
+**theme-kit v0.10.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -46,6 +46,13 @@ works and has a removal scheduled below.
 | [`EditorToolbar`](#editortoolbar) | `client` | provisional | `EditorToolbarModel` |
 | [`MemberProfile`](#memberprofile) | `server` | stable | `MemberProfileModel` |
 | [`SearchForm`](#searchform) | `server` | stable | `SearchFormModel` |
+| [`SearchResults`](#searchresults) | `server` | stable | `SearchResultsModel` |
+| [`DiscoveryView`](#discoveryview) | `server` | stable | `DiscoveryViewModel` |
+| [`PanelShell`](#panelshell) | `server` | stable | `PanelShellModel` |
+| [`PanelNav`](#panelnav) | `server` | stable | `PanelNavModel` |
+| [`PanelPage`](#panelpage) | `server` | stable | `PanelPageModel` |
+| [`PanelSection`](#panelsection) | `server` | stable | `PanelSectionModel` |
+| [`AuthPage`](#authpage) | `server` | stable | `AuthPageModel` |
 | [`ForumJump`](#forumjump) | `server` | stable | `ForumJumpModel` |
 | [`RedirectNotice`](#redirectnotice) | `server` | stable | `RedirectNoticeModel` |
 | [`ErrorNotice`](#errornotice) | `server` | stable | `ErrorNoticeModel` |
@@ -440,6 +447,123 @@ Props: `SearchFormModel`
 | `hint` | `string \| null` | Guidance for an empty form: quoting, exclusion. `null` once submitted. |
 | `errorMessage` | `string \| null` |  |
 
+### SearchResults
+
+`server` · stable
+
+The results page for one search: what matched, an excerpt of each hit, and the form that narrows the set. Separate from SearchForm because a result list is a listing and shares nothing with a filter panel but the word "search".
+
+Props: `SearchResultsModel`
+
+| Field | Type | Notes |
+|---|---|---|
+| `terms` | `string` | What was searched for, as the reader typed it. |
+| `searchedAt` | `TimeModel` |  |
+| `hits` | `readonly SearchHitModel[]` |  |
+| `nextHref` | `string \| null` | The next page of this same search, or `null` at the end. |
+| `nextLabel` | `string` |  |
+| `newSearchHref` | `string` | Back to an empty form. Always offered: a search that found nothing needs it most. |
+| `within` | `{ readonly action: string readonly field: string readonly value: string readonly label: string readonly hint: string readonly submitLabel: string }` | The narrow-this-search form. A GET form, like `SearchForm` and for the same reason — the narrowed search is a URL of its own, not a state this page holds. |
+
+### DiscoveryView
+
+`server` · stable
+
+The body of a discovery listing — new posts, today, unanswered, and a member’s own threads and replies. One slot for all of them: they differ in what the query selected, never in what a reader is looking at.
+
+Props: `DiscoveryViewModel`
+
+| Field | Type | Notes |
+|---|---|---|
+| `title` | `string` |  |
+| `blurb` | `string` | One line saying what this view selected, e.g. "Threads nobody has replied to yet". |
+| `tabsLabel` | `string` |  |
+| `tabs` | `readonly TabModel[]` |  |
+| `rows` | `readonly DiscoveryRowModel[]` |  |
+| `nextHref` | `string \| null` |  |
+| `nextLabel` | `string` |  |
+| `emptyMessage` | `string` | What to say when `rows` is empty — different at the end of a paged list ("you have reached the end") from at the start of one ("nothing here yet"). |
+| `refusal` | `{ readonly message: string readonly signInHref: string readonly signInLabel: string } \| null` | Set when the view refused rather than failed: a guest asking for their own threads. The listing is empty and this says why, with `signInHref` to fix it. Not an error — a themed page, not the error page. |
+
+### PanelShell
+
+`server` · stable
+
+The frame around a control panel: the navigation rail, the links to the other panels a viewer may reach, and the page beside them. Rendered for the member, moderator and admin panels alike — `panel` says which.
+
+Props: `PanelShellModel`
+
+| Field | Type | Notes |
+|---|---|---|
+| `panel` | `PanelKind` |  |
+| `links` | `readonly LinkModel[]` | The other panels this viewer may reach, resolved and already filtered by permission. Never contains the panel being rendered. |
+| `linksLabel` | `string` |  |
+| `regions` | `{ /** The `PanelNav` for this panel. */ readonly nav: ReactNode }` |  |
+| `children` | `ReactNode` | optional |
+
+### PanelNav
+
+`server` · stable
+
+A control panel’s section navigation. Server, not client: which section is open is resolved from the request path before rendering, so the rail arrives correct rather than after hydration, and a panel needs no JavaScript to know where it is.
+
+Props: `PanelNavModel`
+
+| Field | Type | Notes |
+|---|---|---|
+| `panel` | `PanelKind` |  |
+| `label` | `string` | Accessible name for the navigation landmark. |
+| `sections` | `readonly PanelNavSectionModel[]` |  |
+| `currentTitle` | `string \| null` | The title of the deepest item the reader is under, for a collapsed rail's summary — "Sections · Attachments" says where a tap would leave from. `null` when nothing matched the path. |
+
+### PanelPage
+
+`server` · stable
+
+One control-panel page: its heading, the line under it, the controls beside it, and the body. Also the frame for the account, moderation and messaging pages that are panel-shaped without being in a panel.
+
+Props: `PanelPageModel`
+
+| Field | Type | Notes |
+|---|---|---|
+| `panel` | `PanelKind \| null` |  |
+| `title` | `string` |  |
+| `back` | `LinkModel \| null` | Where this page was reached from, when it is a page under another. |
+| `width` | `'reading' \| 'wide'` | `reading` for prose and forms, `wide` for a table nobody can read at reading width. The theme decides what each measures. |
+| `gap` | `'normal' \| 'loose'` | `loose` for a page built of `PanelSection`s, `normal` for a page that is one thing. The theme decides what each measures; the distinction is whether the body has internal headings that need air around them. |
+| `regions` | `{ /** A sentence under the heading saying what this page is for. */ readonly lede?: ReactNode /** Smaller detail under the lede — counts, timestamps, scope. */ readonly meta?: ReactNode /** Controls that act on the whole page, beside the heading. */ readonly actions?: ReactNode }` |  |
+| `children` | `ReactNode` | optional |
+
+### PanelSection
+
+`server` · stable
+
+A labelled section inside a panel page. Rendered by the page among its content rather than around it, which is why it is not part of PanelPage.
+
+Props: `PanelSectionModel`
+
+| Field | Type | Notes |
+|---|---|---|
+| `title` | `string` |  |
+| `headingId` | `string` | The id the heading takes, so the section's landmark can point at it. Given by the page because the page is where the section is named twice — once as a heading and once as the region's accessible name. |
+| `regions` | `{ readonly description?: ReactNode readonly actions?: ReactNode }` |  |
+| `children` | `ReactNode` | optional |
+
+### AuthPage
+
+`server` · stable
+
+Signing in, registering, resetting a password, asking for a new confirmation link. One slot for all of them: the same card with a different form in it, and the form itself is an app-rendered region because every one of them posts to a Server Action.
+
+Props: `AuthPageModel`
+
+| Field | Type | Notes |
+|---|---|---|
+| `title` | `string` |  |
+| `alert` | `string \| null` | `null` unless something about the way in went wrong. |
+| `links` | `readonly AuthLinkModel[]` |  |
+| `regions` | `{ /** A sentence under the heading. */ readonly lede?: ReactNode /** The form itself, or nothing on a page that only explains something. */ readonly form?: ReactNode /** Standing advice beside the form — where to look before asking again. */ readonly note?: ReactNode }` |  |
+
 ### ForumJump
 
 `server` · stable
@@ -490,6 +614,31 @@ Props: `ErrorNoticeModel`
 
 Referenced by the models above. Same promise: a field of a shared model reached
 from a stable slot is stable.
+
+### AuthLinkModel
+
+A link out of an authentication page, with the sentence that introduces it. "New here? **Create an account**" is one thought and two pieces of markup. `lead` carries the first half so the copy stays the app's and the layout stays the theme's — a theme that renders links as a plain list can drop it, and one that renders them as sentences has the sentence.
+
+| Field | Type | Notes |
+|---|---|---|
+| `label` | `string` | from `LinkModel` |
+| `href` | `string` | from `LinkModel` |
+| `lead` | `string \| null` |  |
+
+### DiscoveryRowModel
+
+One row in a discovery listing.
+
+| Field | Type | Notes |
+|---|---|---|
+| `threadId` | `number` |  |
+| `title` | `string` |  |
+| `href` | `string` |  |
+| `forum` | `LinkModel` |  |
+| `authorUsername` | `string` |  |
+| `replyCount` | `number` |  |
+| `lastPostAt` | `TimeModel` |  |
+| `lastPostUsername` | `string \| null` | `null` when the thread has no reply yet, so the last post is the first. |
 
 ### ForumJumpOption
 
@@ -598,6 +747,31 @@ One choice in a `<select>` or a radio group, with the current one marked. `isSel
 | `label` | `string` |  |
 | `isSelected` | `boolean` |  |
 
+### PanelNavItemModel
+
+One item in a panel's navigation. `current` is resolved by the app from the request path — the theme is told where the reader is, it does not work it out. That is what lets this slot render on the server: the alternative is `usePathname`, which makes the whole rail a client component and ships a router hook to a board that needs none.
+
+| Field | Type | Notes |
+|---|---|---|
+| `href` | `string` |  |
+| `title` | `string` |  |
+| `count` | `number \| null` | A waiting count — the approval queue, unread messages — or `null`. |
+| `current` | `PanelNavCurrent \| null` | `null` when the reader is somewhere else entirely. |
+| `isRecord` | `boolean` | A page reached from elsewhere rather than from the rail — warning a member, editing one forum. It is shown as where you are and it is not a link, because a link to the page you are on that also needs an argument you no longer have is a dead end. Only ever present while the reader is on it. |
+
+### PanelNavSectionModel
+
+| Field | Type | Notes |
+|---|---|---|
+| `href` | `string` | from `PanelNavItemModel` |
+| `title` | `string` | from `PanelNavItemModel` |
+| `count` | `number \| null` | from `PanelNavItemModel` — A waiting count — the approval queue, unread messages — or `null`. |
+| `current` | `PanelNavCurrent \| null` | from `PanelNavItemModel` — `null` when the reader is somewhere else entirely. |
+| `isRecord` | `boolean` | from `PanelNavItemModel` — A page reached from elsewhere rather than from the rail — warning a member, editing one forum. It is shown as where you are and it is not a link, because a link to the page you are on that also needs an argument you no longer have is a dead end. Only ever present while the reader is on it. |
+| `children` | `readonly PanelNavItemModel[]` | Already filtered to what belongs on screen: a section's children are listed while it `isOpen`, and a record child only while it is the page. |
+| `isOpen` | `boolean` | The reader is on this section or inside it. |
+| `isOverview` | `boolean` | The panel's front page, which sits above the sections rather than among them. Exactly one section carries this. |
+
 ### PostActionsModel
 
 | Field | Type | Notes |
@@ -672,6 +846,19 @@ A thread prefix; `token` supplies its styling.
 | `label` | `string` |  |
 | `token` | `string \| null` |  |
 
+### SearchHitModel
+
+One search result: where it goes, and enough of it to decide whether to go. `excerptHtml` is the only HTML in this model, and it is the app's own: the search engine returns the matching fragment with the matched words wrapped in `<b>`, and nothing else survives — the post's own markup is stripped before the excerpt is cut, so a theme is styling emphasis, not rendering a post.
+
+| Field | Type | Notes |
+|---|---|---|
+| `postId` | `number` |  |
+| `threadTitle` | `string` |  |
+| `href` | `string` | Resolved to the post inside its thread, page and anchor included. |
+| `excerptHtml` | `string` |  |
+| `authorUsername` | `string` |  |
+| `postedAt` | `TimeModel` |  |
+
 ### SelectionModel
 
 One inline-moderation checkbox, or `null` when this viewer has no business selecting rows. Plain data, and it has to be: the *form* it belongs to carries a Server Action reference, and such references never cross the theme contract. So the app renders the form — below the listing, where a bar of buttons belongs — and the theme renders a checkbox that says which form it belongs to. `formId` is the whole trick, and it is why this works with scripting off. HTML's `form` attribute associates a control with a form **by id, anywhere in the document**, so the checkboxes can live inside table rows, list items or article elements without the listing having to be wrapped in a `<form>` — which it cannot be, because `ForumDisplay` already renders a mark-read form and nested forms are not a thing browsers will parse.
@@ -682,6 +869,16 @@ One inline-moderation checkbox, or `null` when this viewer has no business selec
 | `value` | `string` | This row's value, opaque to the theme. |
 | `formId` | `string` | The `id` of the app-rendered form these checkboxes submit with. |
 | `label` | `string` | For a visually-hidden label: "Select 'How do I …' for moderation". |
+
+### TabModel
+
+One tab in a strip of view tabs.
+
+| Field | Type | Notes |
+|---|---|---|
+| `href` | `string` |  |
+| `label` | `string` |  |
+| `isCurrent` | `boolean` |  |
 
 ### ThreadRowModel
 
@@ -736,5 +933,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.9. Nothing can be: this is the first
+Nothing is deprecated in v0.10. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

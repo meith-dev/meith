@@ -9,7 +9,7 @@ import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
 import { getSettings } from '@/server/settings'
 import { currentTheme } from '@/server/theme'
-import { availableTimezones, optionsFormValues, userCpNotice } from '@/view/usercp'
+import { optionsFormValues, timezoneChoices, userCpNotice } from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Your options' }
 
@@ -46,7 +46,7 @@ export default async function OptionsPage({
 
       <OptionsForm
         {...values}
-        timezones={availableTimezones()}
+        timezones={timezoneChoices()}
         boardPostsPerPage={board.get('display.posts_per_page')}
         boardThreadsPerPage={board.get('display.threads_per_page')}
       />

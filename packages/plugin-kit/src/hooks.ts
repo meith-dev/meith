@@ -175,6 +175,44 @@ export const HOOKS = {
     kind: 'filter',
     purpose: 'The search form model, including its filter options.',
   },
+  'view.search-results': {
+    kind: 'filter',
+    purpose:
+      'One page of search results. Already checked against the reader — a hit ' +
+      'a plugin adds here has not been, and will be shown to whoever asked.',
+  },
+  'view.discovery-view': {
+    kind: 'filter',
+    purpose:
+      'A discovery listing — new posts, today, unanswered — with its tabs. ' +
+      'Same warning as the search results: the rows arrive authorised.',
+  },
+  'view.auth-page': {
+    kind: 'filter',
+    purpose:
+      'The sign-in, register and password-reset page around its form. The form ' +
+      'itself is a region, not a value: nothing here can change what it posts to.',
+  },
+  'view.panel-shell': {
+    kind: 'filter',
+    purpose:
+      'The frame around a control panel, including the links to the other ' +
+      'panels this viewer may reach. Adding a link grants nothing.',
+  },
+  'view.panel-nav': {
+    kind: 'filter',
+    purpose:
+      'A control panel’s section rail, with the current section already ' +
+      'resolved. Runs on every panel page.',
+  },
+  'view.panel-page': {
+    kind: 'filter',
+    purpose: 'One control-panel page’s heading block. Runs on every panel page.',
+  },
+  'view.panel-section': {
+    kind: 'filter',
+    purpose: 'One labelled section inside a panel page. Runs once per section.',
+  },
   'view.error-notice': {
     kind: 'filter',
     purpose: 'The error page model. Runs on the page that renders when things are broken.',

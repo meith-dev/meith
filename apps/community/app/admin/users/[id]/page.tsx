@@ -11,6 +11,7 @@ import {
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildMemberView } from '@/server/user-admin'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Member' }
@@ -30,6 +31,7 @@ export default async function AdminMemberPage({
 
   const { member, activeBan } = view
   const now = new Date()
+  const { timezone } = await getViewerPreferences()
 
   return (
     <PanelPage
@@ -40,14 +42,14 @@ export default async function AdminMemberPage({
         <>
           #{member.id} · registered{' '}
           <time dateTime={member.createdAt.toISOString()}>
-            {formatTime(member.createdAt, now).label}
+            {formatTime(member.createdAt, now, timezone).label}
           </time>
           {member.lastActiveAt !== null && (
             <>
               {' '}
               · last seen{' '}
               <time dateTime={member.lastActiveAt.toISOString()}>
-                {formatTime(member.lastActiveAt, now).label}
+                {formatTime(member.lastActiveAt, now, timezone).label}
               </time>
             </>
           )}
@@ -121,7 +123,7 @@ export default async function AdminMemberPage({
                 <>
                   until{' '}
                   <time dateTime={activeBan.expiresAt.toISOString()}>
-                    {formatTime(activeBan.expiresAt, now).label}
+                    {formatTime(activeBan.expiresAt, now, timezone).label}
                   </time>
                 </>
               )}

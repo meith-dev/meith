@@ -9,6 +9,7 @@ import {
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildThemeAdminView, themeAdminRepository } from '@/server/theme-admin'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Theme' }
@@ -27,6 +28,7 @@ export default async function AdminThemePage({
   const repository = themeAdminRepository()
   const exported = repository === null ? null : await repository.exportTheme(key)
   const now = new Date()
+  const { timezone } = await getViewerPreferences()
 
   return (
     <PanelPage
@@ -47,7 +49,7 @@ export default async function AdminThemePage({
               {' '}
               · last changed{' '}
               <time dateTime={view.updatedAt.toISOString()}>
-                {formatTime(view.updatedAt, now).label}
+                {formatTime(view.updatedAt, now, timezone).label}
               </time>
             </>
           )}

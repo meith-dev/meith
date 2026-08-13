@@ -1,6 +1,6 @@
-import Link from "next/link"
 import type { Metadata } from "next"
 
+import { AuthPage } from "@/components/auth/auth-page"
 import { ResetConfirmForm } from "@/components/auth/reset-confirm-form"
 import { boardAuthConfig } from "@/server/auth-config"
 
@@ -15,25 +15,20 @@ export default async function ResetConfirmPage({
 
   if (!token) {
     return (
-      <div className="flex flex-col gap-4">
-        <h1 className="font-heading text-2xl font-semibold text-foreground">Invalid reset link</h1>
-        <p className="text-sm text-muted-foreground">
-          This link is missing its token. Request a new one to continue.
-        </p>
-        <Link href="/reset" className="text-sm font-medium text-foreground hover:underline">
-          Request a new link
-        </Link>
-      </div>
+      <AuthPage
+        title="Invalid reset link"
+        lede="This link is missing its token. Request a new one to continue."
+        links={[{ label: "Request a new link", href: "/reset", lead: null }]}
+      />
     )
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold text-foreground">Choose a new password</h1>
-        <p className="text-sm text-muted-foreground">Enter a new password for your account.</p>
-      </div>
+    <AuthPage
+      title="Choose a new password"
+      lede="Enter a new password for your account."
+    >
       <ResetConfirmForm token={token} minLength={(await boardAuthConfig()).minPasswordLength} />
-    </div>
+    </AuthPage>
   )
 }

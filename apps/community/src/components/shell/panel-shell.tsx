@@ -1,32 +1,25 @@
-import { PanelLinks, type PanelLink } from "./panel-links";
+import { requireSlot } from '@meith/theme-kit'
+import type { LinkModel, PanelKind } from '@meith/theme-kit'
+
+import { getActor } from '@/server/context'
+import { filterView, viewerRef } from '@/server/plugin-view'
+import { currentTheme } from '@/server/theme'
 
 export interface PanelShellProps {
-  readonly nav: React.ReactNode;
-  readonly links?: readonly PanelLink[];
-  readonly railOffset?: "board" | "panel";
-  readonly children: React.ReactNode;
+  readonly panel: PanelKind
+  readonly nav: React.ReactNode
+  readonly links?: readonly LinkModel[]
+  readonly children: React.ReactNode
 }
 
-export function PanelShell({
-  nav,
-  links = [],
-  railOffset = "board",
-  children,
-}: PanelShellProps) {
-  return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col lg:flex-row">
-      <aside
-        className={
-          railOffset === "panel"
-            ? "flex flex-col gap-4 px-6 pt-6 lg:sticky lg:top-14 lg:w-56 lg:shrink-0 lg:self-start lg:py-8 lg:pr-0"
-            : "flex flex-col gap-4 px-6 pt-6 lg:sticky lg:top-6 lg:w-56 lg:shrink-0 lg:self-start lg:py-8 lg:pr-0"
-        }
-      >
-        {nav}
-        {links.length > 0 && <PanelLinks links={links} />}
-      </aside>
+export async function PanelShell({ panel, nav, links = [], children }: PanelShellProps) {
+  const Shell = requireSlot(await currentTheme(), 'PanelShell')
 
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
-  );
+  const model = await filterView(
+    'view.panel-shell',
+    { panel, links, linksLabel: 'Other panels', regions: { nav } },
+    viewerRef(await getActor()),
+  )
+
+  return <Shell {...model}>{children}</Shell>
 }

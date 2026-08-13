@@ -368,6 +368,24 @@ listing them until it is turned back on.
 An import behaves the same way: a category coming from MyBB arrives closed to
 threads, which is what it was there.
 
+## Times are shown in the reader's own zone
+
+The board formats every timestamp in the zone the reader is actually in,
+detected from the browser and remembered in a `meith_tz` cookie. Guests get it
+too; a reader with JavaScript off still gets UTC, and the footer says so.
+
+The migration that ships with this version **moves every member whose timezone
+is `UTC` onto the new `auto` setting**, and makes `auto` the default for
+accounts created afterwards. Until now the column defaulted to `UTC`, so a
+member who had never opened the options screen was indistinguishable from one
+who had chosen UTC on purpose — leaving them all alone would have meant the
+change reached nobody who already had an account. Members who had picked any
+other zone keep it, unchanged and still authoritative on every device.
+
+**A member who genuinely wants UTC picks it once**, under Your control panel →
+Options, and it is kept from then on. There is nothing to run and nothing to
+configure: `community upgrade` carries it.
+
 ## Two notice parameters were renamed
 
 Deleting a post returned to `/thread/12-slug?post=deleted`, and restoring one

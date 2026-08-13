@@ -14,6 +14,7 @@ import {
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { resolveModCpAccess } from '@/server/modcp'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Moderator log' }
@@ -36,6 +37,7 @@ export default async function ModLogPage({
     ...(query.after === undefined ? {} : { after: query.after }),
   })
   const now = new Date()
+  const { timezone } = await getViewerPreferences()
 
   return (
     <PanelPage
@@ -54,7 +56,7 @@ export default async function ModLogPage({
         ) : (
           <CardRows>
             {page.entries.map((entry) => {
-              const at = formatTime(entry.at, now)
+              const at = formatTime(entry.at, now, timezone)
               return (
                 <li key={entry.id} className="px-4 py-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">

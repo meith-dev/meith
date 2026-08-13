@@ -1,6 +1,6 @@
-import Link from "next/link"
 import type { Metadata } from "next"
 
+import { AuthPage } from "@/components/auth/auth-page"
 import { RegisterForm } from "@/components/auth/register-form"
 import { issueChallenge } from "@/server/antispam"
 import { boardAuthConfig } from "@/server/auth-config"
@@ -20,11 +20,11 @@ export default async function RegisterPage() {
   }))
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold text-foreground">Create your account</h1>
-        <p className="text-sm text-muted-foreground">Join the discussion.</p>
-      </div>
+    <AuthPage
+      title="Create your account"
+      lede="Join the discussion."
+      links={[{ label: "Sign in", href: "/login", lead: "Already have an account?" }]}
+    >
       <RegisterForm
         customFields={customFields}
         limits={{ minPasswordLength, usernameMin, usernameMax }}
@@ -35,12 +35,6 @@ export default async function RegisterPage() {
           issuedAt: issued.issuedAt,
         }}
       />
-      <p className="text-sm text-muted-foreground">
-        {"Already have an account? "}
-        <Link href="/login" className="font-medium text-foreground hover:underline">
-          Sign in
-        </Link>
-      </p>
-    </div>
+    </AuthPage>
   )
 }

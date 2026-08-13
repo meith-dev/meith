@@ -12,6 +12,7 @@ import { getActor } from '@/server/context'
 import { messageService } from '@/server/messages'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { currentTheme } from '@/server/theme'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
 
@@ -39,6 +40,7 @@ export default async function ReportsPage({
   const reportedMessages = await reportedPrivateMessages(page.rows)
 
   const now = new Date()
+  const { timezone } = await getViewerPreferences()
   const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice =
     query.closed === 'resolved'
@@ -70,7 +72,7 @@ export default async function ReportsPage({
       {page.rows.length > 0 && (
         <ul className="flex flex-col gap-3">
           {page.rows.map((report) => {
-            const posted = formatTime(report.createdAt, now)
+            const posted = formatTime(report.createdAt, now, timezone)
             const message = reportedMessages.get(report.targetId)
             const href =
               report.kind === 'user'

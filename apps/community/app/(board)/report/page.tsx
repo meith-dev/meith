@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { parseTargetKind } from '@meith/moderation'
 
 import { ReportForm } from '@/components/moderation/report-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 
@@ -47,14 +48,11 @@ export default async function ReportPage({
         : `“${target.label}”`
 
   return (
-    <main id="board-content" tabIndex={-1} className="flex-1">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 py-8">
-        <h1 className="font-heading text-2xl font-semibold">Report {what}</h1>
-        <p className="text-sm text-muted-foreground">
-          A moderator will look at this. Your report is private.
-        </p>
-        <ReportForm kind={kind} targetId={targetId} />
-      </div>
-    </main>
+    <PanelPage
+      title={`Report ${what}`}
+      lede="A moderator will look at this. Your report is private."
+    >
+      <ReportForm kind={kind} targetId={targetId} />
+    </PanelPage>
   )
 }

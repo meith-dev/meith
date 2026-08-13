@@ -2,17 +2,17 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { isAppError } from '@meith/core'
+import { requireSlot } from '@meith/theme-kit'
 
 import { getActor } from '@/server/context'
 import { openSearch, SEARCH_PAGE } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
-import { postLink } from '@/view/post-link'
-import { formatTime } from '@/view/time'
+import { currentTheme } from '@/server/theme'
+import { filterView, viewerRef } from '@/server/plugin-view'
+import { getViewerPreferences } from '@/server/viewer-preferences'
+import { buildSearchResultsView } from '@/view/search-results'
 
 export const metadata: Metadata = { title: 'Search results' }
-
-const INPUT =
-  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export default async function SearchResultsPage({
   params,
@@ -54,85 +54,22 @@ export default async function SearchResultsPage({
   }
 
   const { search, results } = view
+  const { timezone } = await getViewerPreferences()
 
-  const nextHref =
-    results.nextCursor === null
-      ? null
-      : `/search/${token}?rank=${results.nextCursor.rank}&after=${results.nextCursor.postId}`
+  const model = buildSearchResultsView({
+    terms: search.terms,
+    createdAt: search.createdAt,
+    hits: results.hits,
+    nextHref:
+      results.nextCursor === null
+        ? null
+        : `/search/${token}?rank=${results.nextCursor.rank}&after=${results.nextCursor.postId}`,
+    pageSize: SEARCH_PAGE,
+    now,
+    timeZone: timezone,
+  })
 
-  return (
-    <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 flex-1">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">
-          Results for &ldquo;{search.terms}&rdquo;
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Searched{' '}
-          <time dateTime={search.createdAt.toISOString()}>
-            {formatTime(search.createdAt, now).label}
-          </time>
-          . Results are checked against your access every time this page is
-          opened, so they can change.
-        </p>
-      </div>
+  const SearchResults = requireSlot(await currentTheme(), 'SearchResults')
 
-      {results.hits.length === 0 ? (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-          Nothing matched — or nothing you can see does. Try fewer words, or a
-          different spelling.
-        </p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-          {results.hits.map((hit) => (
-            <li key={hit.postId} className="flex flex-col gap-1 px-4 py-3">
-              <a
-                href={postLink(`/thread/${hit.threadId}-${hit.threadSlug}`, hit.postId)}
-                className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-              >
-                {hit.threadTitle}
-              </a>
-              <p
-                className="text-sm text-muted-foreground [&_b]:font-semibold [&_b]:text-foreground"
-                dangerouslySetInnerHTML={{ __html: hit.excerpt }}
-              />
-              <p className="text-xs text-muted-foreground">
-                {hit.authorUsername} ·{' '}
-                <time dateTime={hit.postedAt.toISOString()}>
-                  {formatTime(hit.postedAt, now).label}
-                </time>
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {nextHref !== null && (
-        <a href={nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          Next {SEARCH_PAGE} results →
-        </a>
-      )}
-
-      <form method="get" action="/search" className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Search within these results</span>
-          <input name="q" defaultValue={`${search.terms} `} className={INPUT} />
-          <span className="text-xs text-muted-foreground">
-            Adds your words to the ones above. Everything already typed stays.
-          </span>
-        </label>
-        <div>
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
-          >
-            Search within
-          </button>
-        </div>
-      </form>
-
-      <a href="/search" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-        Start a new search
-      </a>
-    </main>
-  )
+  return <SearchResults {...await filterView('view.search-results', model, viewerRef(actor))} />
 }

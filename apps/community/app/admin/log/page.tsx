@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildAdminLogView } from '@/view/admin-log'
 
 export const metadata: Metadata = { title: 'Admin log' }
@@ -19,6 +20,7 @@ export default async function AdminLogPage({
   if (adminLog === null) return null
 
   const before = Number(query.before)
+  const { timezone } = await getViewerPreferences()
   const view = buildAdminLogView({
     rows: await adminLog.list({
       limit: 51,
@@ -28,6 +30,7 @@ export default async function AdminLogPage({
     actions: await adminLog.actions(),
     currentAction: query.action ?? '',
     now: new Date(),
+    timeZone: timezone,
   })
 
   return (

@@ -1,103 +1,82 @@
-import { cn } from "@meith/ui";
+import { requireSlot } from '@meith/theme-kit'
+import type { PanelKind } from '@meith/theme-kit'
+
+import { getActor } from '@/server/context'
+import { filterView, viewerRef } from '@/server/plugin-view'
+import { currentTheme } from '@/server/theme'
 
 export interface PanelPageProps {
-  readonly title: React.ReactNode;
-  readonly back?: { readonly href: string; readonly label: string };
-  readonly lede?: React.ReactNode;
-  readonly meta?: React.ReactNode;
-  readonly actions?: React.ReactNode;
-  readonly width?: "reading" | "wide";
-  readonly gap?: "normal" | "loose";
-  readonly children: React.ReactNode;
+  readonly title: string
+  readonly panel?: PanelKind
+  readonly back?: { readonly href: string; readonly label: string }
+  readonly lede?: React.ReactNode
+  readonly meta?: React.ReactNode
+  readonly actions?: React.ReactNode
+  readonly width?: 'reading' | 'wide'
+  readonly gap?: 'normal' | 'loose'
+  readonly children: React.ReactNode
 }
 
-export function PanelPage({
+export async function PanelPage({
   title,
+  panel,
   back,
   lede,
   meta,
   actions,
-  width = "reading",
-  gap = "normal",
+  width = 'reading',
+  gap = 'normal',
   children,
 }: PanelPageProps) {
-  return (
-    <main
-      id="board-content"
-      tabIndex={-1}
-      className={cn(
-        "flex w-full flex-col px-6 py-8",
-        width === "wide" ? "max-w-none" : "max-w-4xl",
-        gap === "loose" ? "gap-8" : "gap-6",
-      )}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
-        <div className="flex min-w-0 flex-col gap-1">
-          {back !== undefined && (
-            <a
-              href={back.href}
-              className="text-sm font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            >
-              ← {back.label}
-            </a>
-          )}
-          <h1 className="font-heading text-2xl font-semibold text-foreground">
-            {title}
-          </h1>
-          {lede !== undefined && (
-            <p className="text-sm text-muted-foreground">{lede}</p>
-          )}
-          {meta !== undefined && (
-            <p className="text-xs text-muted-foreground">{meta}</p>
-          )}
-        </div>
-        {actions !== undefined && (
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {actions}
-          </div>
-        )}
-      </div>
+  const Page = requireSlot(await currentTheme(), 'PanelPage')
 
-      {children}
-    </main>
-  );
+  const model = await filterView(
+    'view.panel-page',
+    {
+      title,
+      panel: panel ?? null,
+      back: back ?? null,
+      width,
+      gap,
+      regions: {
+        ...(lede === undefined ? {} : { lede }),
+        ...(meta === undefined ? {} : { meta }),
+        ...(actions === undefined ? {} : { actions }),
+      },
+    },
+    viewerRef(await getActor()),
+  )
+
+  return <Page {...model}>{children}</Page>
 }
 
-export function PanelSection({
+export async function PanelSection({
   title,
   description,
   actions,
   id,
   children,
 }: {
-  readonly title: React.ReactNode;
-  readonly description?: React.ReactNode;
-  readonly actions?: React.ReactNode;
-  readonly id: string;
-  readonly children: React.ReactNode;
+  readonly title: string
+  readonly description?: React.ReactNode
+  readonly actions?: React.ReactNode
+  readonly id: string
+  readonly children: React.ReactNode
 }) {
-  return (
-    <section aria-labelledby={id} className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2
-            id={id}
-            className="font-heading text-lg font-semibold text-foreground"
-          >
-            {title}
-          </h2>
-          {description !== undefined && (
-            <p className="text-sm text-muted-foreground">{description}</p>
-          )}
-        </div>
-        {actions !== undefined && (
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {actions}
-          </div>
-        )}
-      </div>
+  const Section = requireSlot(await currentTheme(), 'PanelSection')
 
-      {children}
-    </section>
-  );
+  const model = await filterView(
+    'view.panel-section',
+    {
+      title,
+      headingId: id,
+      regions: {
+        ...(description === undefined ? {} : { description }),
+        ...(actions === undefined ? {} : { actions }),
+      },
+    },
+    viewerRef(await getActor()),
+  )
+
+  return <Section {...model}>{children}</Section>
 }

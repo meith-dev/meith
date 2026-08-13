@@ -5,10 +5,10 @@ import { ADMIN_IDLE_MINUTES } from '@meith/admin'
 
 import { AdminNav } from '@/components/admin/admin-nav'
 import { AdminSignInForm, AdminSignOutForm } from '@/components/admin/admin-forms'
-import type { PanelLink } from '@/components/shell/panel-links'
 import { PanelShell } from '@/components/shell/panel-shell'
 import { askForPassword, resolveAdmin } from '@/server/admin'
 import { getActor } from '@/server/context'
+import { buildPanelLinks } from '@/view/shell'
 
 export const metadata: Metadata = { title: 'Control panel' }
 
@@ -34,12 +34,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   const actor = await getActor()
-  const links: readonly PanelLink[] = [
-    { href: '/usercp', label: 'Your control panel' },
-    ...(actor.global.canAccessModCp === true
-      ? [{ href: '/modcp', label: 'Moderator CP' }]
-      : []),
-  ]
+  const links = buildPanelLinks({
+    current: 'admincp',
+    canAccessModCp: actor.global.canAccessModCp === true,
+  })
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -74,7 +72,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </p>
       )}
 
-      <PanelShell nav={<AdminNav />} links={links} railOffset="panel">
+      <PanelShell panel="admincp" nav={<AdminNav />} links={links}>
         {children}
       </PanelShell>
     </div>

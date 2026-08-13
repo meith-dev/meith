@@ -7,7 +7,11 @@ import { describe, expect, it } from 'vitest'
 
 import { PROTECTED_PREFIXES, proxy } from './proxy'
 import { GUEST_COOKIE } from './src/server/cookies'
-import { FRESH_GUEST_HEADER, PATH_HEADER } from './src/server/location-header'
+import {
+  FRESH_GUEST_HEADER,
+  PATH_HEADER,
+  QUERY_HEADER,
+} from './src/server/location-header'
 import { THEME_COOKIE } from './src/view/theme-preference'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -96,6 +100,25 @@ describe('the guest cookie', () => {
 
   it('still passes the path through, which the rest of presence needs', () => {
     expect(requestHeader(proxy(request()), PATH_HEADER)).toBe('/2-announcements')
+  })
+
+  it('passes the query separately, so the path stays a place', () => {
+    const withQuery = new NextRequest('https://board.example/2-announcements?page=3')
+
+    expect(requestHeader(proxy(withQuery), PATH_HEADER)).toBe('/2-announcements')
+    expect(requestHeader(proxy(withQuery), QUERY_HEADER)).toBe('?page=3')
+  })
+
+  it('carries no query header when there was no query', () => {
+    expect(requestHeader(proxy(request()), QUERY_HEADER)).toBeNull()
+  })
+
+  it('strips a query header the client supplied itself', () => {
+    const req = new NextRequest('https://board.example/2-announcements', {
+      headers: { [QUERY_HEADER]: '?page=3' },
+    })
+
+    expect(requestHeader(proxy(req), QUERY_HEADER)).toBeNull()
   })
 })
 

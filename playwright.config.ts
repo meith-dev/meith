@@ -26,6 +26,7 @@ export default defineConfig({
   reporter: [['list'], ['./e2e/support/server-errors.ts']],
   use: {
     baseURL: 'http://127.0.0.1:3001',
+    timezoneId: 'UTC',
     ...(executablePath === undefined ? {} : { launchOptions: { executablePath } }),
   },
   projects: [
