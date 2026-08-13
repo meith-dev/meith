@@ -71,39 +71,39 @@ function AuthorBlock({
 }) {
   return (
     <>
-      <div className="flex items-start gap-3">
+      <div aria-hidden="true" className="h-12 border-b-2 border-b-secondary bg-primary" />
+
+      <div className="relative z-10 -mt-7 px-4">
         <Avatar
           src={author.avatarUrl}
           name={author.username}
-          size={40}
-          className="rounded-sm border-border"
+          size={52}
+          className="rounded-sm border-2 border-card"
         />
 
-        <div className="min-w-0">
-          <p className="truncate">
-            <UserRef user={author} className={`${HEADING} text-sm`} />
+        <p className="mt-1.5 truncate">
+          <UserRef user={author} className={`${HEADING} text-sm`} />
+        </p>
+
+        {author.title !== null && <p className={`${MICRO} mt-0.5 truncate`}>{author.title}</p>}
+
+        {author.isOnline && (
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-moderation-approved">
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-moderation-approved" />
+            Online
           </p>
+        )}
 
-          {author.title !== null && <p className={`${MICRO} mt-0.5 truncate`}>{author.title}</p>}
+        {author.badge != null && (
+          <p className="mt-2">
+            <GroupBadge badge={author.badge} />
+          </p>
+        )}
 
-          {author.isOnline && (
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-moderation-approved">
-              <span aria-hidden="true" className="size-1.5 rounded-full bg-moderation-approved" />
-              Online
-            </p>
-          )}
-        </div>
+        {badges}
       </div>
 
-      {author.badge != null && (
-        <p className="mt-2">
-          <GroupBadge badge={author.badge} />
-        </p>
-      )}
-
-      {badges}
-
-      <dl className="mt-2.5 space-y-1 border-t-2 border-t-secondary pt-2">
+      <dl className="mt-2.5 space-y-1 border-t border-border px-4 py-2.5">
         <StatLine label="Posts">{author.postCount.toLocaleString('en')}</StatLine>
         {author.reputation != null && (
           <StatLine label="Rep">{author.reputation.toLocaleString('en')}</StatLine>
@@ -135,7 +135,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
       <StatusBanner visibility={post.visibility} />
 
       <div className="grid grid-cols-1 sm:grid-cols-[11rem_minmax(0,1fr)]">
-        <div className="border-b border-border bg-surface px-4 py-3 sm:border-r sm:border-b-0">
+        <div className="border-b border-border bg-surface pb-1 sm:border-r sm:border-b-0">
           <AuthorBlock author={post.author} badges={regions.pluginBadges} />
         </div>
 
