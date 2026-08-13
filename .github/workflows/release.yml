@@ -174,7 +174,13 @@ jobs:
     needs: [build, npm]
     runs-on: ubuntu-24.04
     steps:
+      # Full history, not the default shallow clone: pushing over an existing
+      # release branch needs that branch's current commit present locally, or
+      # the git client refuses with "fetch first" before the server can even
+      # check the fast-forward.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: docker/login-action@v3
         with:
@@ -200,10 +206,16 @@ jobs:
       - name: Move the release branch to the tag
         run: git push origin "HEAD:refs/heads/release"
 
+      # Skipped when the release already exists — this job has proven it gets
+      # re-run, and a re-run must not clobber a draft a maintainer has edited.
       - name: Draft the release notes
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "the release for $GITHUB_REF_NAME already exists, leaving it alone"
+            exit 0
+          fi
           VERSION="${GITHUB_REF_NAME#v}"
           cat > /tmp/notes-header.md <<EOF
           \`\`\`
