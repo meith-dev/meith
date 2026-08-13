@@ -1,16 +1,19 @@
 import { verifyPassword } from '@meith/accounts'
+import { Authorizer, combinePermissionSets } from '@meith/authorization'
 import { PUBLIC_CONTENT } from '@meith/core'
 import {
+  PostgresAuthorizationSource,
   PostgresSearchRepository,
   resultRows,
   type Database,
 } from '@meith/db'
+import { DUES_DEMO_GROUP } from '@meith/plugin-dues'
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { DEMO_ACCOUNTS, DEMO_LOGINS } from './accounts'
-import { DEMO_FORUMS, DEMO_THREADS } from './content'
+import { DEMO_FORUMS, DEMO_PREFIXES, DEMO_THREADS } from './content'
 import { seedDemoBoard, type SeedSummary } from './seed'
 
 let harness: TestDb
@@ -40,6 +43,42 @@ async function count(table: string, where = sql`true`): Promise<number> {
     await db.execute(sql`select count(*)::int as n from ${sql.raw(table)} where ${where}`),
   ) as Array<{ n: number }>
   return rows[0]?.n ?? 0
+}
+
+async function forumIdBySlug(slug: string): Promise<number> {
+  const rows = resultRows(
+    await db.execute(sql`select id from forums where slug = ${slug}`),
+  ) as Array<{ id: number }>
+  return Number(rows[0]!.id)
+}
+
+async function groupIds(...keys: readonly string[]): Promise<readonly number[]> {
+  const rows = resultRows(
+    await db.execute(sql`
+      select id, key from usergroups where key in ${sql`(${sql.join(
+        keys.map((key) => sql`${key}`),
+        sql`, `,
+      )})`}
+    `),
+  ) as Array<{ id: number; key: string }>
+
+  expect(rows).toHaveLength(keys.length)
+  return rows.map((row) => Number(row.id))
+}
+
+/** The forums a member of exactly these groups is offered, through the real authorizer. */
+async function visibleTo(ids: readonly number[]): Promise<readonly number[]> {
+  const source = new PostgresAuthorizationSource(db)
+  const groups = await source.groupDefaults(ids)
+
+  return new Authorizer(source).visibleForumIds({
+    userId: ids.includes(1) ? null : 1,
+    groupIds: [...ids],
+    primaryGroupId: ids[0] ?? null,
+    state: ids.includes(1) ? 'guest' : 'active',
+    global: combinePermissionSets(groups.map((group) => group.permissions)),
+    permissionVersion: 1,
+  })
 }
 
 describe('the seeded board', () => {
@@ -96,7 +135,7 @@ describe('the seeded board', () => {
 
     const results = await new PostgresSearchRepository(db).search(
       {
-        terms: 'reindex connections',
+        terms: 'reindex findable background',
         grouping: 'posts',
         sort: 'relevance',
         limit: 5,
@@ -178,6 +217,71 @@ describe('the seeded board', () => {
       expect(row.html).toContain('class="md-quote-source"')
       expect(row.html).toContain('class="md-quote-author"')
     }
+  })
+
+  it('colours the three staff groups differently in both schemes', async () => {
+    const rows = resultRows(
+      await db.execute(sql`
+        select key, name_color_light as light, name_color_dark as dark
+          from usergroups
+         where key in ('administrators', 'super_moderators', 'moderators')
+         order by key
+      `),
+    ) as Array<{ key: string; light: string | null; dark: string | null }>
+
+    expect(rows).toHaveLength(3)
+    for (const row of rows) {
+      expect(row.light, `${row.key} in light`).toMatch(/^#[0-9a-f]{6}$/)
+      expect(row.dark, `${row.key} in dark`).toMatch(/^#[0-9a-f]{6}$/)
+    }
+
+    for (const scheme of ['light', 'dark'] as const) {
+      const used = rows.map((row) => row[scheme])
+      expect(new Set(used).size, `${scheme} colours`).toBe(rows.length)
+    }
+  })
+
+  it('hides the staff forum and the supporters forum rather than locking them', async () => {
+    // Not "shows a padlock": a member who cannot read a forum is never told it
+    // exists, because the forum tree is built from the forums they can see.
+    const committee = await forumIdBySlug('committee-room')
+    const supporters = await forumIdBySlug('supporters-room')
+
+    const seen = async (...groups: string[]): Promise<ReadonlySet<number>> =>
+      new Set(await visibleTo(await groupIds(...groups)))
+
+    const guest = await seen('guests')
+    expect(guest.has(committee), 'a guest is offered the committee room').toBe(false)
+    expect(guest.has(supporters), 'a guest is offered the supporters room').toBe(false)
+
+    const ordinary = await seen('registered')
+    expect(ordinary.has(committee), 'a member is offered the committee room').toBe(false)
+    expect(ordinary.has(supporters), 'a member is offered the supporters room').toBe(false)
+    expect(ordinary.size, 'a member sees the rest of the board').toBe(DEMO_FORUMS.length - 2)
+
+    // The plan grants a second group, and a second group is all it takes: the
+    // room appears for as long as the grant lasts and goes when it expires,
+    // with nobody letting anybody in by hand.
+    const supporter = await seen('registered', DUES_DEMO_GROUP)
+    expect(supporter.has(supporters), 'a supporter is shut out of the room they pay for').toBe(true)
+    expect(supporter.has(committee), 'paying gets a member into the committee room').toBe(false)
+
+    const staff = await seen('moderators')
+    expect(staff.has(committee), 'a moderator cannot see the committee room').toBe(true)
+    expect(staff.has(supporters), 'a moderator cannot see the supporters room').toBe(true)
+  })
+
+  it('scopes every prefix to the branch it belongs to, and uses them', async () => {
+    const rows = resultRows(
+      await db.execute(sql`select label, forum_path_prefix as path from thread_prefixes`),
+    ) as Array<{ label: string; path: string | null }>
+
+    expect(rows.length).toBe(DEMO_PREFIXES.length)
+    for (const row of rows) expect(row.path, `${row.label} is offered everywhere`).not.toBeNull()
+
+    expect(await count('threads', sql`prefix_id is not null`)).toBe(
+      DEMO_THREADS.filter((thread) => thread.prefix !== undefined).length,
+    )
   })
 
   it('seals the installer, so /install is not a way back into a live demo', async () => {

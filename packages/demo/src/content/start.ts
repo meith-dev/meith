@@ -1,0 +1,391 @@
+import type { DemoThread } from './types'
+
+/** Announcements and introductions: the two forums a first visit lands in. */
+export const START_THREADS: readonly DemoThread[] = [
+  // ── Announcements ──────────────────────────────────────────────────────────
+  {
+    forum: 'announcements',
+    author: 'admin',
+    title: 'Start here: what this board is for',
+    daysAgo: 636,
+    sticky: true,
+    message: [
+      'Everything that used to live in four group chats, a spreadsheet and a Facebook page nobody could search is here now.',
+      '',
+      'What that means in practice:',
+      '',
+      '- **Fixtures, raid nights, socials and sign-ups go in Events.** If you are running something, post it there and people can find it a week later.',
+      '- **Anything the whole club needs to have read goes in Announcements**, and only the committee posts there. Everything else is a normal forum and everyone can start a thread.',
+      '- **Nothing here is compulsory.** If your team wants to keep a chat going for the ten minutes before kick-off, keep it. This is for the things worth still having in March.',
+      '',
+      'The rules are in the next thread and they fit on a beer mat.',
+    ].join('\n'),
+    replies: [
+      {
+        author: 'siobhan',
+        hoursAfter: 4,
+        message:
+          'Adding the one thing I get asked every week: you do not need to be a playing member to have an account here. Parents, the social side, the Tuesday night crowd, people who just come to the quiz — all welcome, all the same account.',
+      },
+      {
+        author: 'paudie',
+        hoursAfter: 26,
+        message: 'Is the chat going away? Genuinely asking, half of us live in it.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 30,
+        quotes: 2,
+        message:
+          'No. Nothing is being switched off. The chat is grand for "on my way, five minutes". It is useless for "what did we decide about the pitch fund", and that is the half this is for.',
+      },
+      {
+        author: 'gerry',
+        hoursAfter: 51,
+        message: 'Well I can find last year\'s AGM minutes in about four seconds now, which is four seconds faster than ever before.',
+      },
+    ],
+  },
+  {
+    forum: 'announcements',
+    author: 'admin',
+    title: 'The rules, in five lines',
+    daysAgo: 636,
+    sticky: true,
+    locked: true,
+    message: [
+      '1. Be civil to the person, however wrong the post. That includes referees, opposition, and whoever put you on the bench.',
+      '2. Nothing about a child goes up without their parent being happy with it. Photos included.',
+      '3. No advertising. Selling your own gear in Buy, sell and swap is not advertising.',
+      '4. One thread per thing. Do not staple a new problem onto a finished thread.',
+      '5. If you disagree with a moderator, say so in a report or a message, not in the thread.',
+      '',
+      'That is the whole thing. Locked because there is nothing to discuss — if you think a rule is wrong, open a thread in Feedback and make the case.',
+    ].join('\n'),
+  },
+  {
+    forum: 'announcements',
+    author: 'admin',
+    title: 'We come off the group chats on Friday',
+    daysAgo: 604,
+    prefix: 'notice',
+    message: [
+      'From Friday the committee stops answering club questions in the chats. Anything that needs an answer from us goes here.',
+      '',
+      'This is not us being awkward. There were four chats, two of them had 190 people in them, and the third one had the fixture change that eleven players never saw.',
+      '',
+      'If you cannot get an account working, ring me and I will do it for you at the clubhouse on Thursday.',
+    ].join('\n'),
+    replies: [
+      { author: 'bernie', hoursAfter: 3, message: 'Thank you. The double-fixture weekend nearly finished me.' },
+      {
+        author: 'marty',
+        hoursAfter: 9,
+        message:
+          'For the seconds: team sheet goes in Events from now on, Thursday evening, same as always. If you are not on it you are not dropped, you are one of the fourteen people who did not tick available.',
+      },
+      { author: 'frank', hoursAfter: 20, message: 'Sad day for the chat. Great day for anyone who ever tried to scroll it.' },
+      {
+        author: 'admin',
+        hoursAfter: 33,
+        message: 'Eleven people set up accounts at the clubhouse last night, including two who told me first that they would not be able to. Keep sending them my way.',
+      },
+    ],
+  },
+  {
+    forum: 'announcements',
+    author: 'noelle',
+    title: 'Subs are open, and they go through the site this year',
+    daysAgo: 34,
+    prefix: 'notice',
+    message: [
+      'Membership for the new season is open. You can pay it on the site now — card, takes a minute, and the receipt lands in your email rather than in my handbag.',
+      '',
+      'Rates are unchanged: adult playing, adult social, juvenile, and the family rate we argued about for two years and finally have.',
+      '',
+      'If you would rather hand me cash on a Thursday, that still works and always will. But I would love not to be counting notes in the kitchen in February again.',
+    ].join('\n'),
+    replies: [
+      { author: 'frank', hoursAfter: 1, message: 'Paid. Took about ninety seconds, most of which was me finding my card.' },
+      { author: 'bernie', hoursAfter: 3, message: 'Family rate is a great shout for anyone with more than one playing. Three of mine came to less than two would have last year.' },
+      {
+        author: 'paudie',
+        hoursAfter: 7,
+        message: 'Does the social membership still get you into the AGM with a vote? Asking for a man who intends to vote.',
+      },
+      { author: 'noelle', hoursAfter: 8, quotes: 3, message: 'It does. Same as it always did.' },
+      { author: 'una', hoursAfter: 26, message: 'Paid for me and dragged two of the ladies firsts into paying while I had them in the car. Consider that a fundraising technique.' },
+      { author: 'luca', hoursAfter: 44, message: 'Paid. First time I have ever renewed anything without having to ask someone what the number was.' },
+    ],
+  },
+  {
+    forum: 'announcements',
+    author: 'gerry',
+    title: 'Pitch is closed this weekend — everything is off',
+    daysAgo: 12,
+    prefix: 'notice',
+    message: [
+      'Both pitches are closed for the weekend. Forty millimetres since Wednesday and the far corner is standing water.',
+      '',
+      'Everything is off: seniors, ladies, the U14 blitz, and the Sunday five-a-side. The clubhouse is open as normal and the quiz is going ahead.',
+      '',
+      'I know. I hate it too. Playing on it now costs us three weeks in March.',
+    ].join('\n'),
+    replies: [
+      { author: 'marty', hoursAfter: 1, message: 'Right, seconds — nothing to do, no travel, I will post the rearranged date once the league office answer.' },
+      { author: 'mairead', hoursAfter: 2, message: 'U14 parents: no blitz, no lifts needed, I have messaged the other clubs. Enjoy the lie-in.' },
+      { author: 'olu', hoursAfter: 4, message: 'Five-a-side lads, I have got us the sports hall for Thursday instead. Sign-up thread is up in Events.' },
+      { author: 'deco', hoursAfter: 6, message: 'Third weekend off in six. My gloves are dry for the first time since October and I do not like it.' },
+      {
+        author: 'gerry',
+        hoursAfter: 9,
+        quotes: 4,
+        message: 'Dry gloves are how you get to April with a pitch. I will take the abuse.',
+      },
+      { author: 'siobhan', hoursAfter: 28, message: 'For what it is worth, the drainage quote is on the AGM agenda. This is the third closure this season and it is costing us more than the work would.' },
+    ],
+  },
+  {
+    forum: 'announcements',
+    author: 'siobhan',
+    title: 'AGM: date, agenda, and the two jobs we need somebody to take',
+    daysAgo: 6,
+    prefix: 'notice',
+    poll: {
+      question: 'Which night suits you for the AGM?',
+      options: [
+        { label: 'Tuesday the 14th', voters: ['paudie', 'gerry', 'noelle', 'marty', 'una'] },
+        { label: 'Thursday the 16th', voters: ['bernie', 'mairead', 'frank', 'tomas', 'zoe', 'donal', 'hana', 'jt'] },
+        { label: 'Sunday the 19th, after the game', voters: ['deco', 'oisin', 'shay', 'luca', 'cormac'] },
+        { label: 'I will read the minutes', voters: ['ken', 'sam', 'petra', 'dev', 'member'] },
+      ],
+      closesInDays: 4,
+    },
+    message: [
+      'AGM is in three weeks. Vote on the night above and I will book whichever wins — the room is available all three.',
+      '',
+      'On the agenda:',
+      '',
+      '- The pitch drainage quote, which is the big one.',
+      '- Subs, and whether the family rate stays as it is.',
+      '- The gaming side, which now has more members than the juvenile section and no line in the constitution.',
+      '- Two committee positions: **treasurer** and **child welfare officer**.',
+      '',
+      'Noelle has done treasurer for six years and has told me, kindly and repeatedly, that this is the last one. The welfare role is a vetted position with training provided, and it is not optional for a club our size.',
+      '',
+      'If either of those is a thing you might do, talk to me before the night rather than on it.',
+    ].join('\n'),
+    replies: [
+      { author: 'noelle', hoursAfter: 2, message: 'To be clear: I am not going anywhere, I am handing over the books. I will sit with whoever takes it for as long as they want me to.' },
+      {
+        author: 'vex',
+        hoursAfter: 5,
+        message:
+          'On the gaming side — happy to come and answer anything. Fifty-odd of us now, about a dozen who have never been to the clubhouse because they live three timezones away, and we pay the same subs. Whatever shape the constitution wants us in, we will fit it.',
+      },
+      { author: 'frank', hoursAfter: 8, message: 'Motion to hold it on the Thursday so I can go straight to the quiz afterwards.' },
+      { author: 'mairead', hoursAfter: 11, message: 'I will do welfare if nobody else steps up, but I am already juvenile secretary and I would be doing both badly. Somebody please.' },
+      {
+        author: 'bernie',
+        hoursAfter: 30,
+        message: 'Ring me about the welfare one. I have the vetting from the school already and it would not be a big lift.',
+      },
+      { author: 'siobhan', hoursAfter: 31, quotes: 5, message: 'Ringing you tonight before you change your mind.' },
+    ],
+  },
+  {
+    forum: 'announcements',
+    author: 'dara',
+    title: 'Clubhouse hours over the holidays',
+    daysAgo: 47,
+    prefix: 'notice',
+    message: [
+      'Short one. Clubhouse is closed the 24th, 25th and 26th, open every other day from 11.',
+      '',
+      'The gym is open the whole way through on the fob. If yours has stopped working it is the battery on the reader, not you — ring the clubhouse and somebody will let you in.',
+    ].join('\n'),
+    replies: [
+      { author: 'shay', hoursAfter: 14, message: 'Fob has been dead for a fortnight and I assumed I had been thrown out for something.' },
+      { author: 'gerry', hoursAfter: 20, message: 'Battery is changed. Try it tonight.' },
+    ],
+  },
+  {
+    forum: 'announcements',
+    author: 'siobhan',
+    title: 'New kit supplier, and why the jerseys were late',
+    daysAgo: 133,
+    prefix: 'notice',
+    message: [
+      'The juvenile jerseys were eleven weeks late this year. That is not acceptable and it is not going to happen again, so we have moved supplier.',
+      '',
+      'What it means for you: sizes are the same, the crest is the same, and the price is €4 higher per set. What it means for us: they are made in a place that answers the phone.',
+      '',
+      'Tomás has the size chart and the order form. Anything already paid for is honoured at the old price.',
+    ].join('\n'),
+    replies: [
+      { author: 'tomas', hoursAfter: 5, message: 'Order form is up in Membership and subs. Deadline is the end of the month, and I mean it this year.' },
+      { author: 'zoe', hoursAfter: 9, message: 'Eleven weeks. The U10s played half a season in bibs and thought it was brilliant, to be fair to them.' },
+      { author: 'bernie', hoursAfter: 27, message: '€4 to have a jersey before Christmas is the cheapest thing on the agenda.' },
+    ],
+  },
+
+  // ── Introductions ──────────────────────────────────────────────────────────
+  {
+    forum: 'introductions',
+    author: 'rosa',
+    title: 'Hello — I brought ten years of notices with me',
+    daysAgo: 587,
+    message: [
+      'I am on the community centre committee, which shares this board with the club since the two of us gave up pretending we had different members.',
+      '',
+      'I have spent the last month moving about a decade of notices, minutes and event listings onto here from a website that only I could edit. It took three sittings and most of it was me deciding what was worth keeping.',
+      '',
+      'The answer, if it helps anyone: minutes, yes. Photos, yes. Every "hall booked Tuesday" from 2016, no.',
+    ].join('\n'),
+    replies: [
+      { author: 'admin', hoursAfter: 6, message: 'Welcome, and thank you — the AGM minutes going back that far have already settled two arguments.' },
+      { author: 'ken', hoursAfter: 11, message: 'Did the old links keep working? Half the parish has the hall page bookmarked.' },
+      {
+        author: 'rosa',
+        hoursAfter: 15,
+        quotes: 2,
+        message: 'They do. The old addresses redirect here, which mattered more than I expected — the school newsletter has linked the hall page every September since 2014.',
+      },
+      { author: 'mira', hoursAfter: 40, message: 'She is underselling this. It was three weekends and she did it on her own.' },
+    ],
+  },
+  {
+    forum: 'introductions',
+    author: 'luca',
+    title: 'Moved here for work, joined the seconds for something to do',
+    daysAgo: 322,
+    message: [
+      'Hello. I moved over in August, knew nobody, and turned up to a Tuesday training session because the sign outside said everyone welcome and I decided to believe it.',
+      '',
+      'Four months later I have played eleven games, been to two quizzes and I am on the lifts rota. Highly recommend believing signs.',
+    ].join('\n'),
+    replies: [
+      { author: 'marty', hoursAfter: 2, message: 'Best signing of the season and he found us himself.' },
+      { author: 'frank', hoursAfter: 5, message: 'Welcome. Fair warning: being on the lifts rota is a life sentence.' },
+      { author: 'hana', hoursAfter: 9, message: 'If you know anyone else new to the area, send them. That is genuinely how half this club works.' },
+      { author: 'luca', hoursAfter: 31, message: 'Two of the lads from my job are coming Tuesday. One of them says he is a goalkeeper, which I think means he is not.' },
+      { author: 'deco', hoursAfter: 34, quotes: 4, message: 'Tell him the job is taken.' },
+    ],
+  },
+  {
+    forum: 'introductions',
+    author: 'bernie',
+    title: 'Two in the U12s, one in the U16s, saying hello',
+    daysAgo: 590,
+    message: [
+      'Hi all. Three children, three teams, and a car that has not been clean since 2019.',
+      '',
+      'I am mostly here to know what time things start, which I appreciate is not a glamorous reason to join a forum.',
+    ].join('\n'),
+    replies: [
+      { author: 'mairead', hoursAfter: 4, message: 'That is exactly the reason to join it. Subscribe to the juvenile threads and it will email you when a time changes.' },
+      { author: 'bernie', hoursAfter: 30, message: 'Done, and it has already saved me a wasted trip to a pitch in Ballyquin. Sold.' },
+      { author: 'siobhan', hoursAfter: 52, message: 'Bernie has since driven roughly a third of the juvenile section to a match at some point. Give her a badge.' },
+    ],
+  },
+  {
+    forum: 'introductions',
+    author: 'rook',
+    title: 'Turned up for the tournament, stayed for the Tuesday nonsense',
+    daysAgo: 71,
+    message: [
+      'Signed up for the winter tournament as a filler for a team that was one short, we went out in the second round, and I have been on every Tuesday run since.',
+      '',
+      'Have not been to the clubhouse. Have strong opinions about the clubhouse based on photographs.',
+    ].join('\n'),
+    replies: [
+      { author: 'vex', hoursAfter: 3, message: 'Welcome. Roster is in Events, sign up by Monday night and Tinker will shout at you if you no-show twice.' },
+      { author: 'tinker', hoursAfter: 4, message: 'I will shout at you once. The second time I just take you off the roster, which is worse.' },
+      { author: 'pixel', hoursAfter: 7, message: 'The clubhouse is exactly as good as it looks and the tea is worse. You would love it.' },
+      { author: 'rook', hoursAfter: 29, message: 'This is the friendliest place I have joined in years and I say that having joined a lot of them.' },
+    ],
+  },
+  {
+    forum: 'introductions',
+    author: 'una',
+    title: 'Ladies firsts, back after five years away',
+    daysAgo: 401,
+    message: [
+      'Played here from fifteen to twenty-two, went away for college and work, came back last month and walked into training on a Thursday expecting to know nobody.',
+      '',
+      'Knew four people. One of them is now the manager, which is very strange.',
+    ].join('\n'),
+    replies: [
+      { author: 'hana', hoursAfter: 1, message: 'Welcome home. You are centre half, I have decided.' },
+      { author: 'una', hoursAfter: 2, quotes: 1, message: 'I was a winger.' },
+      { author: 'hana', hoursAfter: 3, message: 'You were.' },
+      { author: 'siobhan', hoursAfter: 22, message: 'This happens more than people expect. If you played here as a teenager, come back. Nobody will make you run the line.' },
+    ],
+  },
+  {
+    forum: 'introductions',
+    author: 'bram',
+    title: 'Hello from the person making the Tuesday runs look worse than they are',
+    daysAgo: 96,
+    message: [
+      'I stream the Tuesday nights. Small audience, mostly my sister and two people who I think are bots.',
+      '',
+      'Rule I follow: nobody is on the stream who has not said they are fine with it, and I cut anything that gets said in the heat of a wipe. If you would rather not be in it at all, say so and you never will be.',
+    ].join('\n'),
+    replies: [
+      { author: 'tinker', hoursAfter: 5, message: 'Appreciated, and that rule is now in the guild post. Anyone can opt out any week without giving a reason.' },
+      { author: 'sunny', hoursAfter: 8, message: 'I am fine with being on it and would like it noted that the wipe on Tuesday was not my fault.' },
+      { author: 'wraith', hoursAfter: 14, message: 'It was.' },
+      { author: 'mango', hoursAfter: 20, message: 'It was.' },
+    ],
+  },
+  {
+    forum: 'introductions',
+    author: 'aoife',
+    title: 'Found this looking for the five-a-side',
+    daysAgo: 44,
+    message: [
+      'Searched for the Thursday five-a-side, ended up here, made an account. Have not actually played yet.',
+      '',
+      'Is it competitive? I have not kicked a ball since school and I do not want to ruin anyone\'s evening.',
+    ].join('\n'),
+    replies: [
+      {
+        author: 'olu',
+        hoursAfter: 2,
+        message:
+          'It is not. Two of the regulars are over sixty, one plays in goal because of a knee, and we have a rule that nobody keeps score after twenty minutes because we all lose track anyway. Come Thursday, €3, bring water.',
+      },
+      { author: 'aoife', hoursAfter: 27, message: 'Played. Was terrible. Going back next week.' },
+      { author: 'olu', hoursAfter: 30, message: 'That is the whole review of the Thursday five-a-side and I could not have put it better.' },
+      { author: 'frank', hoursAfter: 51, message: 'Welcome. I am one of the over-sixties and I would like it on the record that I scored.' },
+    ],
+  },
+  {
+    forum: 'introductions',
+    author: 'newcomer',
+    title: 'Just found this, working out if it fits us',
+    daysAgo: 3,
+    message: [
+      'Hi. I help run a running club two towns over — about ninety members, currently a chat group and a spreadsheet of race entries.',
+      '',
+      'Somebody in our group sent me your fixtures forum as an example of what we should be doing. Is this a lot of work to keep going, honestly?',
+    ].join('\n'),
+    replies: [
+      {
+        author: 'admin',
+        hoursAfter: 4,
+        message:
+          'Honestly: the first month is work and after that it is less than the chat was. The thing that decides it is not the software, it is whether two or three of you will post without being asked. If you have those people it runs itself. If you do not, it will be quiet and you will blame the tool.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 9,
+        message:
+          'Second that, and one practical thing: do not migrate the chat. Leave it running and start the board for the things worth keeping — race entries, results, minutes. The chat gets quieter on its own.',
+      },
+      { author: 'siobhan', hoursAfter: 14, message: 'Come to the quiz on the 14th and I will talk your ear off about it. We made every mistake available.' },
+      { author: 'newcomer', hoursAfter: 22, message: 'That is more useful than what I asked. Thank you — I will take you up on the quiz.' },
+    ],
+  },
+]

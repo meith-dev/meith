@@ -41,14 +41,76 @@ writes the hash directly rather than going through registration, so the policy
 stays honest for every account created *after* the seed — including the one a
 visitor makes themselves.
 
-The board they land on has eight forums in three categories, twenty-two threads
-carrying eighty-nine posts, and sixteen members with join dates spread over two
-years. There is a poll with votes in it, a sticky, a locked thread, private
-messages in the administrator's inbox, a post held in the moderation queue and
-an open report against another that got through. An empty ModCP demonstrates
-nothing, so it is not empty. Two replies quote the post they answer, so the
-attribution — the member's name, linked, and the link back to what was quoted —
-is on the board rather than only in these documents.
+### The board they land on
+
+It is one club: a committee, a juvenile section, a Saturday team, a Tuesday
+night gaming crew, and the people who come for the quiz and never the sport.
+That is deliberate. A demo split into a *Sports* wing, a *Gaming* wing and a
+*Community* wing shows every visitor two-thirds of a board that is not for them;
+one club with fourteen ordinary forums shows a fixture, a raid roster, a lost
+gear bag and an AGM sitting in the same lists without any of them being a
+special case.
+
+Written out rather than generated, because forty threads called "Test thread 12"
+demonstrate nothing about whether the software can hold a conversation:
+
+- **14 forums in three categories**, carrying **115 threads and 658 posts**.
+- **51 members**, with join dates spread over the board's 636 days and post
+  counts they earned by writing the posts.
+- **Four polls** with 75 votes cast by named accounts, seven stickies, three
+  locked threads, and 53 replies that quote the post they answer — so the
+  attribution, the member's name linked and the link back to what was quoted, is
+  on the board rather than only in these documents.
+- **183 thanks** on posts, eight private messages, a post held in the moderation
+  queue and two open reports. An empty ModCP demonstrates nothing, so it is not
+  empty.
+- **Eight thread prefixes** — Fixture, Sign-up, Result, For sale, Wanted, Sold,
+  Notice, Solved — each *scoped to a branch* of the tree rather than offered
+  everywhere, which is the setting that keeps a prefix list usable as a board
+  grows.
+
+### Two forums not everybody can see
+
+Most of the board is public. Two forums are not, because "can this software do a
+private forum" is a question nobody should have to take on trust:
+
+| Forum | Who sees it | How |
+|---|---|---|
+| **Committee room** | The three staff groups | `canView` denied to guests, registered, awaiting-activation, banned and supporters |
+| **Supporters' room** | Anyone on a Supporters plan, and the staff | The same, minus the supporters group — whose membership the Dues plugin grants and revokes on its own |
+
+**A forum you cannot read is not shown to you at all** — no padlock, no greyed
+row, no "you do not have permission" page. The forum tree is built from the
+forums the reader can see, so as far as `member` is concerned the board has
+twelve forums and always did. Log in as `admin` and there are fourteen,
+including a committee thread about a member asking to have their posts removed,
+which is the kind of conversation a private forum is actually for.
+
+Neither is a special kind of forum. Both are ordinary forums with per-group
+permission overrides on them, the same rows an administrator writes on the
+permissions screen, and the admin panel shows exactly who can read what.
+
+The supporters one is the more interesting of the two: **nobody grants or
+revokes it by hand.** The plan expires, the group membership goes with it, and
+the forum disappears for that member on their next page load.
+
+### The staff are visible at a glance
+
+The three staff groups carry a name colour, set on the groups screen and applied
+everywhere a name appears — thread lists, posts, the member list, the online
+strip:
+
+| Group | Light | Dark |
+|---|---|---|
+| Administrators | `#b91c1c` | `#f87171` |
+| Super Moderators | `#1e3a8a` | `#60a5fa` |
+| Moderators | `#0284c7` | `#7dd3fc` |
+
+Two values per group rather than one, because a colour that reads on paper-white
+disappears at midnight. The board emits them as a class into the stylesheet
+rather than as an inline `style`, which is the only place both answers can live
+for a reader whose theme is "system". Supporters get a fourth colour from the
+plugin, which is how a plugin-granted group looks when it is doing its job.
 
 Every timestamp is an **offset from the reset**, not a date. The newest post is
 always minutes old and the board is always six hundred days into its life,
@@ -91,9 +153,14 @@ same settlement path a Stripe webhook drives**, with the clock wound back for
 each step, so the desk shows what a year of selling looks like rather than what
 a fixture looks like.
 
-The `supporters` group those plans grant is made by the seed and ticked **may be
-granted by plugins**, which is the tick an administrator gives by hand on any
-other board.
+The `supporters` group those plans grant is made by the board seed rather than by
+the plugin, and ticked **may be granted by plugins** — the tick an administrator
+gives by hand on any other board. It is made early because the
+[Supporters' room](#two-forums-not-everybody-can-see) is a permission override
+against that group's id: a forum closed to everybody, with nobody left able to
+read it, would demonstrate the wrong thing. Seeding the board without the plugin
+leaves the group and the forum in place and nobody in it, which is exactly what
+an unsold plan looks like.
 
 A visitor can buy. The board serves its own Stripe at `/demo/stripe` — the API
 the plugin calls (`DUES_STRIPE_API_BASE` points back at the board) and the

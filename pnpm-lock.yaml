@@ -481,6 +481,9 @@ importers:
       '@meith/accounts':
         specifier: workspace:*
         version: link:../accounts
+      '@meith/authorization':
+        specifier: workspace:*
+        version: link:../authorization
       '@meith/core':
         specifier: workspace:*
         version: link:../core

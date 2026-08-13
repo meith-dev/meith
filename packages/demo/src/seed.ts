@@ -2,7 +2,10 @@ import { hashPassword } from '@meith/accounts'
 import { logger } from '@meith/core'
 import {
   PostgresAdminRepository,
+  PostgresContentAdminRepository,
+  PostgresForumAdminRepository,
   PostgresForumRepository,
+  PostgresGroupAdminRepository,
   PostgresMessageRepository,
   PostgresPollRepository,
   PostgresReportRepository,
@@ -23,13 +26,15 @@ import { threadSlug } from '@meith/threads'
 import { sql } from 'drizzle-orm'
 
 import { DEMO_ACCOUNTS, type DemoAccount, type DemoGroupKey } from './accounts'
-import { DUES_PLUGIN_KEY, seedDuesDemoBoard } from './dues'
+import { DUES_PLUGIN_KEY, SUPPORTERS_GROUP_KEY, ensureSupportersGroup, seedDuesDemoBoard } from './dues'
 import {
   DEMO_FORUMS,
   DEMO_MESSAGES,
+  DEMO_PREFIXES,
   DEMO_REPORTS,
   DEMO_THANKS,
   DEMO_THREADS,
+  type DemoForumAccess,
   type DemoReply,
   type DemoThread,
 } from './content'
@@ -43,6 +48,52 @@ const GROUP_KEY: Record<DemoGroupKey, string> = {
   registered: SEED_GROUP_KEY.registered,
   awaitingActivation: SEED_GROUP_KEY.awaitingActivation,
 }
+
+/**
+ * The staff colours, which a board of your own picks for itself on the groups
+ * screen. Every value is set twice because a name has to be readable on both
+ * schemes: the light ones are dark enough to read on paper-white, the dark ones
+ * bright enough to read at midnight, and the pair keeps the same hue so the
+ * hierarchy is the same hierarchy in both.
+ */
+const GROUP_COLOUR: Readonly<
+  Record<string, { readonly light: string; readonly dark: string }>
+> = {
+  [SEED_GROUP_KEY.administrators]: { light: '#b91c1c', dark: '#f87171' },
+  [SEED_GROUP_KEY.superModerators]: { light: '#1e3a8a', dark: '#60a5fa' },
+  [SEED_GROUP_KEY.moderators]: { light: '#0284c7', dark: '#7dd3fc' },
+}
+
+/**
+ * A closed forum is a permission override per group, which is what an
+ * administrator writes on the permissions screen — there is no separate private
+ * flag to find. Everything not listed keeps what its group already had, so the
+ * staff see the staff forum by being staff rather than by being named.
+ */
+const CLOSED_TO: Readonly<Record<DemoForumAccess, readonly string[]>> = {
+  staff: [
+    SEED_GROUP_KEY.guests,
+    SEED_GROUP_KEY.registered,
+    SEED_GROUP_KEY.awaitingActivation,
+    SEED_GROUP_KEY.banned,
+    SUPPORTERS_GROUP_KEY,
+  ],
+  supporters: [
+    SEED_GROUP_KEY.guests,
+    SEED_GROUP_KEY.registered,
+    SEED_GROUP_KEY.awaitingActivation,
+    SEED_GROUP_KEY.banned,
+  ],
+}
+
+const CLOSED = {
+  canView: false,
+  canViewThreads: false,
+  canViewOthersThreads: false,
+  canSearch: false,
+  canPostThreads: false,
+  canPostReplies: false,
+} as const
 
 /**
  * Argon2id at the shipped policy costs ~50ms per hash, and only three accounts
@@ -89,8 +140,14 @@ export async function seedDemoBoard(
   const log = logger({ module: 'demo' })
 
   const userIds = await seedAccounts(db, now)
-  const forumIds = await seedForums(db)
-  const placed = await seedThreads(db, { userIds, forumIds, now })
+  const groupIds = await seedGroupIdentity(db)
+  const forums = await seedForums(db)
+  const forumIds = new Map([...forums].map(([key, forum]) => [key, forum.id]))
+
+  await seedForumAccess(db, forums, groupIds)
+  const prefixIds = await seedPrefixes(db, forums)
+
+  const placed = await seedThreads(db, { userIds, forumIds, prefixIds, now })
 
   await seedPolls(db, placed, userIds)
   await seedThanks(db, placed, userIds, now)
@@ -170,17 +227,60 @@ function lastActive(now: Date, account: DemoAccount): Date {
   return daysBefore(now, days)
 }
 
-async function seedForums(db: Database): Promise<ReadonlyMap<string, number>> {
-  const forums = new PostgresForumRepository(db)
+/**
+ * Paints the staff groups and makes the group the supporters-only forum is
+ * opened to, whether or not the Dues plugin is going to be installed after it.
+ *
+ * The colours are written through the same repository the groups screen writes
+ * through, so a visitor can change them and see the change everywhere a name
+ * appears — the value is a class the app emits into the stylesheet rather than
+ * an inline colour, because a name needs one answer for light and another for
+ * dark and a `style` attribute only holds one.
+ */
+async function seedGroupIdentity(db: Database): Promise<ReadonlyMap<string, number>> {
+  const groups = new PostgresGroupAdminRepository(db)
+  await ensureSupportersGroup(db)
+
   const ids = new Map<string, number>()
 
+  for (const group of await groups.list()) {
+    ids.set(group.key, group.id)
+
+    const colour = GROUP_COLOUR[group.key]
+    if (colour === undefined) continue
+
+    await groups.updateIdentity(group.id, {
+      title: group.title,
+      description: group.description,
+      displayOrder: group.displayOrder,
+      isStaffGroup: group.isStaffGroup,
+      pluginGrantable: group.pluginGrantable,
+      badgeToken: group.badgeToken,
+      nameColorLight: colour.light,
+      nameColorDark: colour.dark,
+    })
+  }
+
+  return ids
+}
+
+interface SeededForum {
+  readonly id: number
+  /** The materialised path, which is how a prefix is scoped to a branch. */
+  readonly path: string
+}
+
+async function seedForums(db: Database): Promise<ReadonlyMap<string, SeededForum>> {
+  const forums = new PostgresForumRepository(db)
+  const created = new Map<string, SeededForum>()
+
   for (const [index, forum] of DEMO_FORUMS.entries()) {
-    const parentId = forum.parent === null ? null : (ids.get(forum.parent) ?? null)
+    const parentId = forum.parent === null ? null : (created.get(forum.parent)?.id ?? null)
     if (forum.parent !== null && parentId === null) {
       throw new Error(`Demo forum "${forum.key}" names a parent "${forum.parent}" declared after it.`)
     }
 
-    const created = await forums.create({
+    const row = await forums.create({
       type: forum.type,
       title: forum.title,
       slug: forum.slug,
@@ -188,7 +288,58 @@ async function seedForums(db: Database): Promise<ReadonlyMap<string, number>> {
       displayOrder: index,
       ...(forum.description === undefined ? {} : { description: forum.description }),
     })
-    ids.set(forum.key, created.id)
+    created.set(forum.key, { id: row.id, path: row.path })
+  }
+
+  return created
+}
+
+/** Closes the two forums that are not for everybody, one group row at a time. */
+async function seedForumAccess(
+  db: Database,
+  forums: ReadonlyMap<string, SeededForum>,
+  groupIds: ReadonlyMap<string, number>,
+): Promise<void> {
+  const admin = new PostgresForumAdminRepository(db)
+
+  for (const forum of DEMO_FORUMS) {
+    if (forum.access === undefined) continue
+    const seeded = forums.get(forum.key)!
+
+    for (const groupKey of CLOSED_TO[forum.access]) {
+      const groupId = groupIds.get(groupKey)
+      if (groupId === undefined) {
+        throw new Error(
+          `The "${forum.key}" forum is closed to the "${groupKey}" group, which does not exist.`,
+        )
+      }
+      await admin.saveOverrides(seeded.id, groupId, { ...CLOSED })
+    }
+  }
+}
+
+async function seedPrefixes(
+  db: Database,
+  forums: ReadonlyMap<string, SeededForum>,
+): Promise<ReadonlyMap<string, number>> {
+  const content = new PostgresContentAdminRepository(db)
+  const ids = new Map<string, number>()
+
+  for (const [index, prefix] of DEMO_PREFIXES.entries()) {
+    const scope = prefix.scope === null ? null : forums.get(prefix.scope)
+    if (prefix.scope !== null && scope === undefined) {
+      throw new Error(`Demo prefix "${prefix.key}" is scoped to "${prefix.scope}", which is not a forum.`)
+    }
+
+    ids.set(
+      prefix.key,
+      await content.createPrefix({
+        label: prefix.label,
+        token: prefix.token,
+        displayOrder: index,
+        forumPathPrefix: scope?.path ?? null,
+      }),
+    )
   }
 
   return ids
@@ -199,6 +350,7 @@ async function seedThreads(
   input: {
     readonly userIds: ReadonlyMap<string, number>
     readonly forumIds: ReadonlyMap<string, number>
+    readonly prefixIds: ReadonlyMap<string, number>
     readonly now: Date
   },
 ): Promise<readonly Placed[]> {
@@ -219,12 +371,17 @@ async function seedThreads(
 
     const openedAt = daysBefore(input.now, thread.daysAgo)
     const slug = threadSlug(thread.title)
+    const prefixId = thread.prefix === undefined ? null : (input.prefixIds.get(thread.prefix) ?? null)
+    if (thread.prefix !== undefined && prefixId === null) {
+      throw new Error(`Demo thread "${thread.title}" carries a prefix "${thread.prefix}" that is not declared.`)
+    }
+
     const created = await writes.create({
       forumId,
       title: thread.title,
       slug,
       message: thread.message,
-      prefixId: null,
+      prefixId,
       authorUserId: author.id,
       authorUsername: author.username,
       visibility: thread.visibility ?? 'visible',
@@ -500,7 +657,8 @@ async function seedSettings(db: Database): Promise<void> {
       ['board.name', 'The Meitheal'],
       [
         'board.description',
-        'A demo board for people who run boards. Everything here resets on a timer.',
+        'A club, its committee, its juvenile section and its Tuesday night crew, on one board. ' +
+          'Everything here resets on a timer.',
       ],
     ]),
   )

@@ -15,6 +15,9 @@ import {
 
 export const DUES_PLUGIN_KEY = 'dues'
 
+/** The group the Supporters plans grant, and the one the supporters-only forum is opened to. */
+export const SUPPORTERS_GROUP_KEY: string = DUES_DEMO_GROUP
+
 const SUPPORTERS = {
   key: DUES_DEMO_GROUP,
   title: 'Supporters',
@@ -25,7 +28,7 @@ const SUPPORTERS = {
 
 const CAST: Readonly<Record<keyof DuesDemoCast, string>> = {
   comped: 'admin',
-  founder: 'niamh',
+  founder: 'siobhan',
   subscriber: 'mira',
   passHolder: 'rosa',
   lapsing: 'dev',
@@ -41,7 +44,7 @@ export async function seedDuesDemoBoard(
   userIds: ReadonlyMap<string, number>,
   now: Date,
 ): Promise<DuesDemoSummary> {
-  await createSupportersGroup(db)
+  await ensureSupportersGroup(db)
 
   return seedDuesDemo({
     data: pluginData(db, DUES_PLUGIN_KEY, { statementTimeoutMs: 30_000 }),
@@ -74,7 +77,15 @@ function cast(userIds: ReadonlyMap<string, number>): DuesDemoCast {
   }
 }
 
-async function createSupportersGroup(db: Database): Promise<void> {
+/**
+ * The group the plans grant, made whether or not the plugin is installed.
+ *
+ * The board seed needs it before the plugin runs, because the supporters-only
+ * forum is a permission override *against a group id* — a forum closed to
+ * everyone with nobody left able to read it is not the demonstration. The
+ * plugin's own seed calls this too and finds it already there.
+ */
+export async function ensureSupportersGroup(db: Database): Promise<number> {
   const groups = new PostgresGroupAdminRepository(db)
   const registered = await new PostgresAdminRepository(db).findGroup(SEED_GROUP_KEY.registered)
   if (registered === null) {
@@ -100,4 +111,6 @@ async function createSupportersGroup(db: Database): Promise<void> {
     nameColorLight: SUPPORTERS.nameColorLight,
     nameColorDark: SUPPORTERS.nameColorDark,
   })
+
+  return id
 }
