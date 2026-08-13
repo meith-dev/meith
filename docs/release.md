@@ -129,15 +129,34 @@ the workflow drafts rather than publishes.
 4. **Finish the draft.** Fill in the migration line, trim the generated notes
    to what an operator needs, publish.
 
-The cut workflow pushes straight to `main`, so a ruleset requiring pull
-requests on `main` blocks it (`GH013`, at the push step, with nothing yet
-tagged). The fix is one setting: **Settings → Rules → Rulesets → the rule on
-`main` → Bypass list → add "GitHub Actions"**. The protection keeps applying
-to people and to every other app; the release automation — auditable, and
-runnable only by someone with write access — is the one thing allowed
-through. The workflow is safe to re-run after a failure at any step: a tree
-already bumped, a commit already pushed, or a tag already made is skipped
-rather than refused.
+### The deploy key the cut workflow pushes with
+
+The cut workflow pushes straight to `main`, and a ruleset requiring pull
+requests blocks that (`GH013`, at the push step, with nothing yet tagged).
+Rulesets can never grant bypass to the built-in Actions app — it does not
+appear in the bypass list — so the workflow pushes over SSH with a
+**deploy key** instead, which rulesets *can* bypass. It also solves a second
+problem at the same time: a tag pushed with `GITHUB_TOKEN` triggers no
+workflows (GitHub's recursion guard), while a deploy-key push starts the
+Release workflow the ordinary way.
+
+One-time setup:
+
+1. `ssh-keygen -t ed25519 -f meith-release -N ""` — anywhere, then delete
+   both files once the two halves are stored.
+2. **Settings → Deploy keys → Add deploy key**: the public half
+   (`meith-release.pub`), with **Allow write access** ticked.
+3. **Settings → Secrets and variables → Actions → New repository secret**:
+   `RELEASE_DEPLOY_KEY`, the private half (the whole file, header and
+   footer included).
+4. **Settings → Rules → Rulesets → the rule on `main` → Bypass list → add
+   "Deploy keys"**.
+
+The protection keeps applying to people and to every app; the one thing
+allowed through is a key that exists only as this repository's secret, used
+only by this workflow, and revocable in one click. The workflow itself is
+safe to re-run after a failure at any step: a tree already bumped, a commit
+already pushed, or a tag already made is skipped rather than refused.
 
 ## How each route consumes a release
 
