@@ -36,8 +36,8 @@ class MemorySettings implements MemberSettingsRepository {
   }
   emailTaken = false
   held: MemberGroupChoice[] = [
-    { groupId: 2, title: 'Registered', isPrimary: true },
-    { groupId: 5, title: 'Supporters', isPrimary: false },
+    { groupId: 2, title: 'Registered', isPrimary: true, isStaff: false },
+    { groupId: 5, title: 'Supporters', isPrimary: false, isStaff: false },
   ]
   readonly adopted: Array<{ userId: number; email: string }> = []
 

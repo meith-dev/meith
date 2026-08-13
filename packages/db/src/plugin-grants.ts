@@ -9,26 +9,13 @@ import { bumpPermissionVersion } from './permission-version'
 import { groupRowToPermissionSet } from './permissions-map'
 import { resultRows } from './result-rows'
 import { usergroups, userGroupMemberships, users } from './schema'
+import { permissionsCarryPower } from './staff-groups'
 
-export const PLUGIN_UNGRANTABLE_PERMISSIONS = [
-  'isAdministrator',
-  'canAccessAdminCp',
-  'isSuperModerator',
-  'canAccessModCp',
-  'canWarnUsers',
-  'canApproveContent',
-  'canEditOthersPosts',
-  'canDeleteOthersPosts',
-  'canSoftDeletePosts',
-] as const
-
-export type UngrantablePermission = (typeof PLUGIN_UNGRANTABLE_PERMISSIONS)[number]
-
-export function permissionsCarryPower(
-  permissions: Readonly<Partial<Record<UngrantablePermission, boolean | number>>>,
-): boolean {
-  return PLUGIN_UNGRANTABLE_PERMISSIONS.some((key) => permissions[key] === true)
-}
+export {
+  PLUGIN_UNGRANTABLE_PERMISSIONS,
+  permissionsCarryPower,
+  type UngrantablePermission,
+} from './staff-groups'
 
 const MAX_GRANT_MS = 2 * 366 * 24 * 60 * 60 * 1000
 
@@ -42,6 +29,20 @@ interface GrantableGroup {
 
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]
 
+export async function isStaffGroup(tx: Tx, groupId: number): Promise<boolean> {
+  const rows = resultRows(
+    await tx.execute(sql`select * from usergroups where id = ${groupId}`),
+  ) as Array<Record<string, unknown>>
+
+  const row = rows[0]
+  if (row === undefined) return false
+
+  return (
+    row.is_staff_group === true ||
+    permissionsCarryPower(groupRowToPermissionSet(camelise(row)))
+  )
+}
+
 async function promotePrimary(tx: Tx, userId: number, groupId: number): Promise<void> {
   const userRows = resultRows(
     await tx.execute(
@@ -54,6 +55,7 @@ async function promotePrimary(tx: Tx, userId: number, groupId: number): Promise<
 
   const held = Number(current.primary_group_id)
   if (held === groupId) return
+  if (await isStaffGroup(tx, held)) return
 
   const displacedRows = resultRows(
     await tx.execute(sql`

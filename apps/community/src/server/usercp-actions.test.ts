@@ -65,15 +65,16 @@ class FakeSettings implements MemberSettingsRepository {
   readonly profiles: Array<{ userId: number; location: string | null }> = []
   readonly options: Array<{ userId: number; timezone: string }> = []
   readonly displayGroups: Array<number | null> = []
+  held = [
+    { groupId: 2, title: 'Registered', isPrimary: true, isStaff: false },
+    { groupId: 5, title: 'Supporters', isPrimary: false, isStaff: false },
+  ]
 
   async read(): Promise<MemberSettings | null> {
     return this.row
   }
   async groupsHeldBy() {
-    return [
-      { groupId: 2, title: 'Registered', isPrimary: true },
-      { groupId: 5, title: 'Supporters', isPrimary: false },
-    ]
+    return this.held
   }
   async saveDisplayGroup(input: { userId: number; displayGroupId: number | null }) {
     this.displayGroups.push(input.displayGroupId)
@@ -260,6 +261,18 @@ describe('saving the display group', () => {
     const result = await run(saveDisplayGroupAction, form([['displayGroupId', '99']]))
 
     expect(result.error).toContain('a group you are in')
+    expect(settings.displayGroups).toEqual([])
+  })
+
+  it('refuses staff, whose group is the one they were appointed to', async () => {
+    settings.held = [
+      { groupId: 4, title: 'Moderators', isPrimary: true, isStaff: true },
+      { groupId: 5, title: 'Supporters', isPrimary: false, isStaff: false },
+    ]
+
+    const result = await run(saveDisplayGroupAction, form([['displayGroupId', '5']]))
+
+    expect(result.error).toContain('appointed')
     expect(settings.displayGroups).toEqual([])
   })
 })

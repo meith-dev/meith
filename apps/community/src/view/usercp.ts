@@ -78,6 +78,10 @@ export function displayGroupChoices(
   held: readonly MemberGroupChoice[],
   displayGroupId: number | null,
 ): DisplayGroupChoices {
+  if (held.find((group) => group.isPrimary)?.isStaff === true) {
+    return { choices: [], selected: '' }
+  }
+
   const choices = held.map((group) => ({
     value: String(group.groupId),
     label: group.isPrimary ? `${group.title} — your main group` : group.title,

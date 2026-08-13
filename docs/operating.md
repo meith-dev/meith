@@ -203,8 +203,7 @@ exactly as it did before they existed.
 - **The title**, which is what shows under a member's name on every post.
 
 A member's group is their **display group** where they have chosen one, and
-their primary group otherwise — so a moderator who prefers to post as an
-ordinary member is shown as one.
+their primary group otherwise.
 
 Members choose it themselves, under **UserCP → Profile**, from the groups they
 are actually in: their primary group and every current secondary membership.
@@ -213,6 +212,20 @@ group if it later changes. A group held only until a date leaves the list when
 it lapses, and a member wearing it goes back to their primary group — they
 cannot pin a badge to a membership they no longer hold. The picker is not shown
 at all to a member who is only in one group.
+
+**Staff are shown as staff, and have no choice about it.** A member whose
+primary group is a staff group — or any group carrying administrative or
+moderation power — is displayed as that group everywhere: the postbit, the
+profile, the online list, every coloured username. They get no picker, and a
+display group set before they were appointed stops applying the moment they
+are. The reason is that the badge is a claim about who is answerable for the
+board, and a moderator posting as an ordinary member is that claim withdrawn
+at exactly the moment it matters. A staff member who wants to post without the
+badge has the invisible option and a second account; what they do not have is
+their staff name on an ordinary member's colours.
+
+This is a rule about display, not about membership. Staff can hold any other
+group — including one they paid for — and get everything it carries.
 
 ### Groups a plugin may grant
 
@@ -231,6 +244,11 @@ membership, and the board hands it straight back when the grant is revoked or
 lapses. The swap is the board's, not the plugin's: the same refusals apply, and
 a lapsed membership stops being anybody's primary group at the moment it
 expires, sweep or no sweep.
+
+**A staff member's primary group is never displaced.** Buy a membership as a
+moderator and you get the group and everything it carries, as a secondary
+membership — but you stay a moderator, and you are still shown as one. Staff is
+appointed, and an appointment is not something a purchase can move.
 
 The switch refuses some groups, with the reason spelled out when you try:
 system groups, staff groups, and any group whose permissions carry
