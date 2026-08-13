@@ -420,6 +420,216 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
     requires: ['name="q"', 'method="get"', 'That search is too short.', 'General discussion'],
   },
 
+  AuthPage: {
+    model: {
+      title: 'Welcome back',
+      alert: 'That confirmation link is no longer valid.',
+      links: [
+        { label: 'Forgot your password?', href: '/reset', lead: null },
+        { label: 'Create an account', href: '/register', lead: 'New here?' },
+      ],
+      regions: {
+        lede: region('auth-lede'),
+        form: region('auth-form'),
+        note: region('auth-note'),
+      },
+    },
+    requires: [
+      'Welcome back',
+      'That confirmation link is no longer valid.',
+      '/reset',
+      'New here?',
+      'Create an account',
+      region('auth-lede'),
+      region('auth-form'),
+      region('auth-note'),
+    ],
+  },
+
+  SearchResults: {
+    model: {
+      terms: 'teak veneer',
+      searchedAt: TIME,
+      hits: [
+        {
+          postId: 4102,
+          threadTitle: 'Bikeshedding the bike shed',
+          href: '/thread/91-bikeshedding?post=4102',
+          excerptHtml: 'the <b>teak</b> one, before anybody repaints it',
+          authorUsername: 'Marlow',
+          postedAt: TIME,
+        },
+      ],
+      nextHref: '/search/abc?rank=0.4&after=4102',
+      nextLabel: 'Next 20 results',
+      newSearchHref: '/search',
+      within: {
+        action: '/search',
+        field: 'q',
+        value: 'teak veneer ',
+        label: 'Search within these results',
+        hint: 'Adds your words to the ones above.',
+        submitLabel: 'Search within',
+      },
+    },
+    requires: [
+      'teak veneer',
+      'Bikeshedding the bike shed',
+      '/thread/91-bikeshedding?post=4102',
+      'method="get"',
+      'name="q"',
+      'Search within',
+      '/search/abc?rank=0.4&amp;after=4102',
+    ],
+  },
+
+  DiscoveryView: {
+    model: {
+      title: 'Unanswered',
+      blurb: 'Threads nobody has replied to yet.',
+      tabsLabel: 'Discovery views',
+      tabs: [
+        { href: '/discover/new', label: 'New posts', isCurrent: false },
+        { href: '/discover/unanswered', label: 'Unanswered', isCurrent: true },
+      ],
+      rows: [
+        {
+          threadId: 91,
+          title: 'Bikeshedding the bike shed',
+          href: '/thread/91-bikeshedding',
+          forum: { label: 'General discussion', href: '/3-general' },
+          authorUsername: 'Marlow',
+          replyCount: 0,
+          lastPostAt: TIME,
+          lastPostUsername: null,
+        },
+      ],
+      nextHref: '/discover/unanswered?at=2026-03-12T09%3A14%3A00.000Z&after=91',
+      nextLabel: 'Next 20 threads',
+      emptyMessage: 'Nothing here right now.',
+      refusal: null,
+    },
+    requires: [
+      'Unanswered',
+      'Bikeshedding the bike shed',
+      '/thread/91-bikeshedding',
+      'General discussion',
+      'aria-current="page"',
+      'Next 20 threads',
+    ],
+  },
+
+  PanelShell: {
+    model: {
+      panel: 'usercp',
+      links: [{ label: 'Moderator CP', href: '/modcp' }],
+      linksLabel: 'Other panels',
+      regions: { nav: region('panel-nav') },
+      children: region('panel-body'),
+    },
+    requires: [region('panel-nav'), region('panel-body'), '/modcp', 'Other panels'],
+  },
+
+  PanelNav: {
+    model: {
+      panel: 'usercp',
+      label: 'Sections',
+      currentTitle: 'Options',
+      sections: [
+        {
+          href: '/usercp',
+          title: 'Overview',
+          count: null,
+          current: null,
+          isRecord: false,
+          isOpen: false,
+          isOverview: true,
+          children: [],
+        },
+        {
+          href: '/messages',
+          title: 'Private messages',
+          count: 3,
+          current: null,
+          isRecord: false,
+          isOpen: false,
+          isOverview: false,
+          children: [],
+        },
+        {
+          href: '/usercp/options',
+          title: 'Options',
+          count: null,
+          current: 'here',
+          isRecord: false,
+          isOpen: true,
+          isOverview: false,
+          children: [
+            {
+              href: '/usercp/options/advanced',
+              title: 'Advanced',
+              count: null,
+              current: null,
+              isRecord: false,
+            },
+          ],
+        },
+      ],
+    },
+    requires: [
+      'Sections',
+      'Overview',
+      'Private messages',
+      '3',
+      'Options',
+      'aria-current="page"',
+      '/usercp/options/advanced',
+    ],
+  },
+
+  PanelPage: {
+    model: {
+      panel: 'admincp',
+      title: 'Attachments',
+      back: { label: 'Content', href: '/admin/content' },
+      width: 'wide',
+      gap: 'loose',
+      regions: {
+        lede: region('page-lede'),
+        meta: region('page-meta'),
+        actions: region('page-actions'),
+      },
+      children: region('page-body'),
+    },
+    requires: [
+      'Attachments',
+      '/admin/content',
+      region('page-lede'),
+      region('page-meta'),
+      region('page-actions'),
+      region('page-body'),
+    ],
+  },
+
+  PanelSection: {
+    model: {
+      title: 'Waiting for you',
+      headingId: 'waiting-heading',
+      regions: {
+        description: region('section-description'),
+        actions: region('section-actions'),
+      },
+      children: region('section-body'),
+    },
+    requires: [
+      'Waiting for you',
+      'waiting-heading',
+      region('section-description'),
+      region('section-actions'),
+      region('section-body'),
+    ],
+  },
+
   ForumJump: {
     model: {
       action: '/jump',

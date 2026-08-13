@@ -5,15 +5,6 @@ const APP_REGIONS = `
   text-transform: uppercase;
   letter-spacing: 0.09em;
 }
-[data-theme-raidframe] a.rounded-full,
-[data-theme-raidframe] button.rounded-full,
-[data-theme-raidframe] input.rounded-full,
-[data-theme-raidframe] select.rounded-full {
-  border-radius: var(--radius);
-}
-[data-theme-raidframe] :is(caption, legend, th):not([class*="tracking-"]) {
-  letter-spacing: 0.06em;
-}
 `
 
 export function Shell({ viewer, children }: ShellModel) {

@@ -1,25 +1,18 @@
-import Link from "next/link"
 import type { Metadata } from "next"
 
+import { AuthPage } from "@/components/auth/auth-page"
 import { ResetRequestForm } from "@/components/auth/reset-request-form"
 
 export const metadata: Metadata = { title: "Reset password" }
 
 export default function ResetPage() {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold text-foreground">Reset your password</h1>
-        <p className="text-sm text-muted-foreground">
-          Enter your email and we&apos;ll send a reset link.
-        </p>
-      </div>
+    <AuthPage
+      title="Reset your password"
+      lede="Enter your email and we’ll send a reset link."
+      links={[{ label: "Back to sign in", href: "/login", lead: null }]}
+    >
       <ResetRequestForm />
-      <p className="text-sm text-muted-foreground">
-        <Link href="/login" className="hover:text-foreground">
-          Back to sign in
-        </Link>
-      </p>
-    </div>
+    </AuthPage>
   )
 }

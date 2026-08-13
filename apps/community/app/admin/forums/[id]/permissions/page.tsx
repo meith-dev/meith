@@ -32,7 +32,7 @@ export default async function ForumPermissionsPage({
   return (
     <PanelPage
       back={{ href: '/admin/forums', label: 'All forums' }}
-      title={<>Permissions: {view.forum.title}</>}
+      title={`Permissions: ${view.forum.title}`}
       lede={
         <>
           <strong>Inherit</strong> is not the same as <strong>Deny</strong>. A cell left

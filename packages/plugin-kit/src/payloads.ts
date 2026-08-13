@@ -42,7 +42,9 @@ import type {
   AnnouncementModel,
   BoardIndexModel,
   BoardStatsModel,
+  AuthPageModel,
   CategoryBlockModel,
+  DiscoveryViewModel,
   ErrorNoticeModel,
   FooterModel,
   ForumJumpModel,
@@ -55,11 +57,16 @@ import type {
   NavigationModel,
   NoticeModel,
   PaginationModel,
+  PanelNavModel,
+  PanelPageModel,
+  PanelSectionModel,
+  PanelShellModel,
   PostActionsSlotModel,
   PostBitSlotModel,
   PostFormModel,
   RedirectNoticeModel,
   SearchFormModel,
+  SearchResultsModel,
   ShellModel,
   SubforumListModel,
   ThreadRowSlotModel,
@@ -172,6 +179,13 @@ export interface HookSignatures {
   'view.latest-posts': { value: LatestPostsModel; context: ViewerRef }
   'view.pagination': { value: PaginationModel; context: ViewerRef }
   'view.search-form': { value: SearchFormModel; context: ViewerRef }
+  'view.search-results': { value: SearchResultsModel; context: ViewerRef }
+  'view.discovery-view': { value: DiscoveryViewModel; context: ViewerRef }
+  'view.auth-page': { value: AuthPageModel; context: ViewerRef }
+  'view.panel-shell': { value: PanelShellModel; context: ViewerRef }
+  'view.panel-nav': { value: PanelNavModel; context: ViewerRef }
+  'view.panel-page': { value: PanelPageModel; context: ViewerRef }
+  'view.panel-section': { value: PanelSectionModel; context: ViewerRef }
   'view.error-notice': { value: ErrorNoticeModel; context: ViewerRef & RequestRef }
   'view.shell': { value: ShellModel; context: ViewerRef & RequestRef }
   'view.notice': { value: NoticeModel; context: ViewerRef }

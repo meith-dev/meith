@@ -6,6 +6,7 @@ import { adminPageContext } from '@/server/admin'
 import { attachmentAdminRepository } from '@/server/content-admin'
 import { formatBytes } from '@/view/attachments'
 import { postLink } from '@/view/post-link'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Attachments' }
@@ -54,6 +55,7 @@ export default async function AdminAttachmentsPage({
   ])
 
   const now = new Date()
+  const { timezone } = await getViewerPreferences()
   const nextHref = (): string => {
     const next = new URLSearchParams()
     if (filename !== undefined) next.set('filename', filename)
@@ -149,7 +151,7 @@ export default async function AdminAttachmentsPage({
                   download
                   {row.downloadCount === 1 ? '' : 's'} ·{' '}
                   <time dateTime={row.createdAt.toISOString()}>
-                    {formatTime(row.createdAt, now).label}
+                    {formatTime(row.createdAt, now, timezone).label}
                   </time>
                 </span>
                 <span className="truncate text-xs text-muted-foreground">

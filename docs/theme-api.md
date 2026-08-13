@@ -1,7 +1,7 @@
 # The theme API
 
 `@meith/theme-kit` is the contract between the board and a theme, frozen since
-**0.1** and currently at **0.9**.
+**0.1** and currently at **0.10**.
 
 This document is the policy — what the freeze covers, what it does not, and how
 something is removed from it. The reference (every slot, every field) is
@@ -37,22 +37,12 @@ Two worked examples bracket the range a theme can occupy:
   its markup genuinely disagrees. It ships as reference code rather than
   registered; [`examples/README.md`](https://github.com/meith-dev/meith/tree/main/examples)
   walks through installing it or your copy of it.
-- `themes/midnight` is the maximal one: twenty-two slots overridden, five
+- `themes/midnight` is the maximal one: twenty-two slots overridden, the rest
   inherited, tables where the default theme has lists, and no change to any
-  package to make it possible.
-- `themes/raidframe` goes to the other end of that range: every stable slot
-  filled and only the two provisional ones inherited, so a theme that wants no
-  markup from `themes/default` at all is a supported shape rather than a
-  standing fork. It is also the worked example of a theme whose look is
-  something other than "a forum" — a game-board HUD, in its own palette — built
-  from the same tokens every other theme has. Its `Shell` also carries a short
-  scoped stylesheet, which is how a theme reaches the regions no slot covers:
-  the control panels and the search, discovery and notification pages are the
-  app's own components, and a theme that wants its voice on them has tokens,
-  and this. Everything it sets is typographic and written in tokens. The
-  administration control panel is outside even that — it renders in its own
-  layout rather than in `Shell`, so a theme reaches it through the palette and
-  nothing else.
+  package to make it possible. What it inherits is the point as much as what it
+  overrides — the control panels and the search and discovery pages arrived as
+  slots after it was written, and it renders all of them without a line
+  changing.
 
 ### Four rules the tooling enforces
 
@@ -64,6 +54,33 @@ Worth knowing before they fire.
 | **A server slot must not be a `"use client"` module.** | For `PostBit` that ships the whole post list to the browser. Checked statically, and again at `defineTheme` for anything the bundler marked. |
 | **Colours come from tokens.** | A board's operator restyles by overriding tokens; a hardcoded colour is a region they cannot reach. Guard `no-hardcoded-colour` rejects hex literals in a theme. |
 | **View models are plain JSON data.** | No `Date`, no functions, no class instances — the same models cross to client slots and out through the REST API. `Serialisable<T>` proves it at compile time. |
+
+## What a theme reaches
+
+Every page a member or a moderator or an administrator can open is rendered
+through slots. The registry covers four groups of them:
+
+| Group | Slots | What it is |
+|---|---|---|
+| The frame | `Shell`, `Header`, `UserPanel`, `Navigation`, `Footer`, `Notice`, `ForumJump`, `ErrorNotice`, `RedirectNotice` | Wraps every page, including the error pages |
+| Reading | `BoardIndex`, `CategoryBlock`, `ForumRow`, `ForumDisplay`, `ThreadRow`, `ThreadView`, `PostBit`, `PostActions`, `Pagination`, `SubforumList`, `Announcement`, `BoardStats`, `WhoIsOnline`, `LatestThreads`, `LatestPosts`, `MemberProfile` | The board itself |
+| Finding | `SearchForm`, `SearchResults`, `DiscoveryView` | Searching, and the "new posts" listings |
+| Doing | `PostForm`, `AuthPage`, `PanelShell`, `PanelNav`, `PanelPage`, `PanelSection` | Writing, signing in, and all three control panels |
+
+**The three control panels are one set of slots, not three.** The member,
+moderator and administrator panels are the same shape — a rail of sections
+beside a page with a heading — so they are `PanelShell` + `PanelNav` +
+`PanelPage` + `PanelSection` between them, and `PanelKind` says which panel is
+being rendered for a theme that wants to tell them apart. That is what makes
+the admin panel themeable at all: its forty-odd screens fill `PanelPage`'s body
+with app-rendered forms, and a theme restyles every one of them by overriding
+the frame around them once.
+
+**What a theme still does not own** is the body of an individual settings
+screen. A form posting to a Server Action never crosses this contract as data —
+so an admin screen's controls arrive as `children`, and a theme restyles them
+through the tokens the `@meith/ui` primitives read rather than by replacing
+their markup.
 
 ## What a theme can and cannot do
 
@@ -178,7 +195,9 @@ behaviour of its own; a bug fixed in `resolveTheme` is a package version.
 > freeze — but the major those rules count toward is `1.0`, which ships with the
 > product rather than ahead of it. Practically: write a theme against `0.9` and a
 > later `0.10` will not break it, because a minor is additive whatever the major
-> says.
+> says — `0.10` is that promise being kept: it adds five slots and removes
+> nothing, so a theme written against `0.9` inherits them from whatever it
+> extends and keeps compiling.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

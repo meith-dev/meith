@@ -2,9 +2,11 @@ import { defaultTheme } from '@meith/theme-default'
 import { defineTheme } from '@meith/theme-kit'
 
 import { Announcement } from './slots/announcement'
+import { AuthPage } from './slots/auth-page'
 import { BoardIndex } from './slots/board-index'
 import { BoardStats } from './slots/board-stats'
 import { CategoryBlock } from './slots/category-block'
+import { DiscoveryView } from './slots/discovery-view'
 import { ErrorNotice } from './slots/error-notice'
 import { Footer } from './slots/footer'
 import { ForumJump } from './slots/forum-jump'
@@ -17,11 +19,15 @@ import { MemberProfile } from './slots/member-profile'
 import { Navigation } from './slots/navigation'
 import { Notice } from './slots/notice'
 import { Pagination } from './slots/pagination'
+import { PanelNav } from './slots/panel-nav'
+import { PanelPage, PanelSection } from './slots/panel-page'
+import { PanelShell } from './slots/panel-shell'
 import { PostActions } from './slots/post-actions'
 import { PostBit } from './slots/post-bit'
 import { PostForm } from './slots/post-form'
 import { RedirectNotice } from './slots/redirect-notice'
 import { SearchForm } from './slots/search-form'
+import { SearchResults } from './slots/search-results'
 import { Shell } from './slots/shell'
 import { SubforumList } from './slots/subforum-list'
 import { ThreadRow } from './slots/thread-row'
@@ -63,7 +69,18 @@ export const phasebookTheme = defineTheme({
 
     MemberProfile,
 
+    AuthPage,
+
     SearchForm,
+    SearchResults,
+
+    DiscoveryView,
+
+    PanelShell,
+    PanelNav,
+    PanelPage,
+    PanelSection,
+
     ForumJump,
 
     RedirectNotice,

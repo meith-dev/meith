@@ -65,6 +65,7 @@ export async function PageShell({
 
   const viewer = buildViewerModel(actor, {
     displayName,
+    canAccessAdminCp: actor.global.canAccessAdminCp === true,
     canAccessModCp: actor.global.canAccessModCp === true,
     avatarUrl: ownAvatar,
   })

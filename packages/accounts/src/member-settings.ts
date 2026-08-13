@@ -55,6 +55,8 @@ export interface MemberSettingsRepository {
   }): Promise<boolean>
 }
 
+export const AUTOMATIC_TIMEZONE = 'auto'
+
 export function isKnownTimezone(value: string): boolean {
   if (value === 'UTC') return true
 
@@ -66,6 +68,10 @@ export function isKnownTimezone(value: string): boolean {
   } catch {
     return false
   }
+}
+
+export function isTimezonePreference(value: string): boolean {
+  return value === AUTOMATIC_TIMEZONE || isKnownTimezone(value)
 }
 
 export class MemberSettingsService {
@@ -129,7 +135,7 @@ export class MemberSettingsService {
     readonly invisible: boolean
   }): Promise<void> {
     const timezone = input.timezone.trim()
-    if (!isKnownTimezone(timezone)) {
+    if (!isTimezonePreference(timezone)) {
       throw new ValidationError('That is not a timezone this board recognises.')
     }
 

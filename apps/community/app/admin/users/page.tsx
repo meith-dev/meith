@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 import { nextPageQuery, parseUserFilter, userAdminRepository } from '@/server/user-admin'
 
@@ -36,6 +37,7 @@ export default async function AdminUsersPage({
     repository.listGroups(),
   ])
   const now = new Date()
+  const { timezone } = await getViewerPreferences()
 
   const value = (key: string): string => {
     const raw = params[key]
@@ -222,7 +224,7 @@ export default async function AdminUsersPage({
                   {row.postCount === 1 ? '' : 's'}
                   {row.lastActiveAt === null
                     ? ' · never seen'
-                    : ` · last seen ${formatTime(row.lastActiveAt, now).label}`}
+                    : ` · last seen ${formatTime(row.lastActiveAt, now, timezone).label}`}
                 </span>
               </span>
               <a

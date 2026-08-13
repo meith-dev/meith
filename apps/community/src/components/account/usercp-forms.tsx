@@ -90,7 +90,7 @@ export function OptionsForm({
   invisible,
 }: {
   timezone: string
-  timezones: readonly string[]
+  timezones: readonly { value: string; label: string }[]
   postsPerPage: string
   threadsPerPage: string
   boardPostsPerPage: number
@@ -107,14 +107,15 @@ export function OptionsForm({
         <span className="font-medium">Timezone</span>
         <select name="timezone" defaultValue={timezone} className={FIELD}>
           {timezones.map((zone) => (
-            <option key={zone} value={zone}>
-              {zone.replace(/_/g, " ")}
+            <option key={zone.value} value={zone.value}>
+              {zone.label}
             </option>
           ))}
         </select>
         <span className="text-xs text-muted-foreground">
           Every date and time on the board is shown in this zone, and the footer
-          says which one it is.
+          says which one it is. Left automatic, it follows the device you are
+          reading on.
         </span>
       </label>
 

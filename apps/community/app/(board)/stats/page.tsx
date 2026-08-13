@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { LEADERBOARD_SIZE, buildStatsView } from '@/server/stats'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -15,22 +16,22 @@ export default async function StatsPage() {
 
   if (view === null) {
     return (
-      <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-6 py-8 flex-1">
-        <h1 className="font-heading text-2xl font-semibold">Board statistics</h1>
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+      <PanelPage title="Board statistics">
+        <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           This board keeps no statistics.
         </p>
-      </main>
+      </PanelPage>
     )
   }
 
   const { totals, topPosters, mostViewed, mostReplied } = view
 
   return (
-    <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8 flex-1">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">Board statistics</h1>
-        <p className="text-sm text-muted-foreground">
+    <PanelPage
+      gap="loose"
+      title="Board statistics"
+      lede={
+        <>
           {totals.computedAt === null ? (
             'The totals below have not been counted yet — they are rolled up on a schedule.'
           ) : (
@@ -42,10 +43,11 @@ export default async function StatsPage() {
               . The tables below are live.
             </>
           )}
-        </p>
-      </div>
+        </>
+      }
+    >
 
-      <section aria-labelledby="totals-heading" className="rounded-lg border border-border p-4">
+      <section aria-labelledby="totals-heading" className="rounded-lg border border-border bg-card p-4 shadow-elevation">
         <h2 id="totals-heading" className="font-heading text-lg font-semibold">
           Totals
         </h2>
@@ -73,7 +75,7 @@ export default async function StatsPage() {
         </dl>
       </section>
 
-      <section aria-labelledby="posters-heading" className="rounded-lg border border-border p-4">
+      <section aria-labelledby="posters-heading" className="rounded-lg border border-border bg-card p-4 shadow-elevation">
         <h2 id="posters-heading" className="font-heading text-lg font-semibold">
           Top {LEADERBOARD_SIZE} posters
         </h2>
@@ -111,7 +113,7 @@ export default async function StatsPage() {
         rows={mostReplied}
         figure={(row) => `${row.replyCount.toLocaleString()} replies`}
       />
-    </main>
+    </PanelPage>
   )
 }
 
@@ -144,7 +146,7 @@ function ThreadTable({
   figure: (row: { viewCount: number; replyCount: number }) => string
 }) {
   return (
-    <section aria-labelledby={`${id}-heading`} className="rounded-lg border border-border p-4">
+    <section aria-labelledby={`${id}-heading`} className="rounded-lg border border-border bg-card p-4 shadow-elevation">
       <h2 id={`${id}-heading`} className="font-heading text-lg font-semibold">
         {heading}
       </h2>

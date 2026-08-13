@@ -43,7 +43,7 @@ describe('reading', () => {
       userId: IVAN,
       email: 'ivan@example.test',
       invisible: false,
-      timezone: 'UTC',
+      timezone: 'auto',
       postsPerPage: null,
       threadsPerPage: null,
       location: null,
@@ -108,7 +108,7 @@ describe('saving', () => {
       threadsPerPage: 50, invisible: false,
     })
 
-    expect(await repo.read(MOD)).toMatchObject({ timezone: 'UTC', postsPerPage: null })
+    expect(await repo.read(MOD)).toMatchObject({ timezone: 'auto', postsPerPage: null })
   })
 })
 

@@ -7,6 +7,7 @@ import { resolveBoardUrl } from "@meith/settings"
 import { DemoBanner } from "@/components/shell/demo-banner"
 import { GroupNameStyle } from "@/components/shell/group-name-style"
 import { ThemeRuntimeStyle } from "@/components/shell/theme-runtime-style"
+import { TimezoneProbe } from "@/components/shell/timezone-probe"
 import { getSettings } from "@/server/settings"
 import { currentColourScheme, currentThemeKey } from "@/server/theme"
 import { getThemeRuntimeStyle } from "@/server/theme-runtime"
@@ -92,6 +93,7 @@ export default async function RootLayout({
       <head>
         <ThemeRuntimeStyle />
         <GroupNameStyle />
+        <TimezoneProbe />
       </head>
       <body className="font-sans antialiased">
         <DemoBanner />

@@ -19,6 +19,7 @@ import {
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { resolveModCpAccess } from '@/server/modcp'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { memberHref } from '@/view/member-profile'
 import { formatTime } from '@/view/time'
 
@@ -63,6 +64,7 @@ export default async function IpLookupPage({
         })
 
   const now = new Date()
+  const { timezone } = await getViewerPreferences()
 
   return (
     <PanelPage
@@ -104,20 +106,16 @@ export default async function IpLookupPage({
       {subject !== null && result !== null && (
         <PanelSection
           id="matches-heading"
-          title={
+          title={`Accounts sharing a range with ${subject.username}`}
+          description={
             <>
-              Accounts sharing a range with{' '}
               <a
                 href={memberHref(subject.id)}
                 className="underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
                 {subject.username}
               </a>
-            </>
-          }
-          description={
-            <>
-              Ranges on record: registration{' '}
+              . Ranges on record: registration{' '}
               <code className="font-mono">{result.prefixes.registration ?? 'none'}</code>,
               last visit{' '}
               <code className="font-mono">{result.prefixes.lastVisit ?? 'none'}</code>.
@@ -151,8 +149,8 @@ export default async function IpLookupPage({
                         <>
                           {' '}
                           · last seen{' '}
-                          <time dateTime={formatTime(match.lastActiveAt, now).iso}>
-                            {formatTime(match.lastActiveAt, now).label}
+                          <time dateTime={formatTime(match.lastActiveAt, now, timezone).iso}>
+                            {formatTime(match.lastActiveAt, now, timezone).label}
                           </time>
                         </>
                       )}

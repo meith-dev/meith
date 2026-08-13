@@ -11,6 +11,7 @@ import {
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildSystemHealthView } from '@/server/system-admin'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'System health' }
@@ -19,6 +20,7 @@ export default async function AdminSystemPage() {
   if ((await adminPageContext()) === null) return null
 
   const now = new Date()
+  const { timezone } = await getViewerPreferences()
   const view = await buildSystemHealthView(now)
 
   if (view === null) {
@@ -170,7 +172,7 @@ export default async function AdminSystemPage() {
                     every {task.intervalSeconds}s ·{' '}
                     {task.lastRunAt === null
                       ? 'never run'
-                      : `last ran ${formatTime(task.lastRunAt, now).label}`}
+                      : `last ran ${formatTime(task.lastRunAt, now, timezone).label}`}
                     {task.consecutiveFailures > 0 &&
                       ` · ${task.consecutiveFailures} failure${
                         task.consecutiveFailures === 1 ? '' : 's'
@@ -205,7 +207,7 @@ export default async function AdminSystemPage() {
                   {run.succeeded ? 'ok' : 'failed'}
                   {run.durationMs !== null && ` · ${run.durationMs}ms`} ·{' '}
                   <time dateTime={run.ranAt.toISOString()}>
-                    {formatTime(run.ranAt, now).label}
+                    {formatTime(run.ranAt, now, timezone).label}
                   </time>
                   {run.detail !== null && ` · ${run.detail}`}
                 </span>

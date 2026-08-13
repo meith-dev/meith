@@ -1,3 +1,10 @@
+import type {
+  PanelKind,
+  PanelNavCurrent,
+  PanelNavModel,
+  PanelNavSectionModel,
+} from '@meith/theme-kit'
+
 export interface PanelSubsection {
   readonly href: string
   readonly title: string
@@ -92,4 +99,59 @@ export function currentProps(
 ): { readonly 'aria-current'?: 'page' | 'true' } {
   if (href !== deepest) return {}
   return { 'aria-current': isHere(location, href) ? 'page' : 'true' }
+}
+
+function currentFor(
+  location: string,
+  href: string,
+  deepest: string | null,
+): PanelNavCurrent | null {
+  if (href !== deepest) return null
+  return isHere(location, href) ? 'here' : 'under'
+}
+
+export function buildPanelNavModel(input: {
+  readonly panel: PanelKind
+  readonly nav: PanelNav
+  readonly overviewHref: string
+  readonly location: string
+  readonly fallbackHref?: string | undefined
+  readonly counts?: PanelCounts | undefined
+  readonly label?: string
+}): PanelNavModel {
+  const fallback = input.fallbackHref ?? null
+  const open = sectionHrefIn(input.nav, input.location) ?? fallback
+  const deepest = deepestHrefIn(input.nav, input.location) ?? fallback
+
+  const sections: PanelNavSectionModel[] = input.nav.map((section) => {
+    const isOpen = open === section.href
+
+    return {
+      href: section.href,
+      title: section.title,
+      count: countFor(input.counts, section.href),
+      current: currentFor(input.location, section.href, deepest),
+      isRecord: false,
+      isOpen,
+      isOverview: section.href === input.overviewHref,
+      children: isOpen
+        ? visibleChildren(section, deepest).map((child) => ({
+            href: child.href,
+            title: child.title,
+            count: countFor(input.counts, child.href),
+            current: currentFor(input.location, child.href, deepest),
+            isRecord: child.record === true,
+          }))
+        : [],
+    }
+  })
+
+  const here = flattenNav(input.nav).find((item) => item.href === deepest)
+
+  return {
+    panel: input.panel,
+    label: input.label ?? 'Sections',
+    sections,
+    currentTitle: here?.title ?? null,
+  }
 }

@@ -23,6 +23,7 @@ import { getActor } from '@/server/context'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { readTotals } from '@/server/stats'
 import { ADMIN_SECTIONS } from '@/view/admin-nav'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
 export default async function AdminHomePage() {
@@ -33,6 +34,7 @@ export default async function AdminHomePage() {
   const { adminLog, authorizer, moderationQueue, reports } = getContainer()
 
   const now = new Date()
+  const { timezone } = await getViewerPreferences()
 
   const [recent, upgradeNotice, totals, pending, openReports] = await Promise.all([
     adminLog === null ? Promise.resolve([]) : adminLog.list({ limit: 6 }),
@@ -61,7 +63,7 @@ export default async function AdminHomePage() {
         <>
           Signed in to the control panel since{' '}
           <time dateTime={context.session.createdAt.toISOString()}>
-            {formatTime(context.session.createdAt, now).label}
+            {formatTime(context.session.createdAt, now, timezone).label}
           </time>
           {context.session.ipPrefix === null ? null : ` from ${context.session.ipPrefix}`}
           .
@@ -148,7 +150,7 @@ export default async function AdminHomePage() {
                   <span>
                     Counted{' '}
                     <time dateTime={totals.computedAt.toISOString()}>
-                      {formatTime(totals.computedAt, now).label}
+                      {formatTime(totals.computedAt, now, timezone).label}
                     </time>
                   </span>
                 </CardFooter>
@@ -182,7 +184,7 @@ export default async function AdminHomePage() {
                       {row.username ?? 'the system'}
                       {' · '}
                       <time dateTime={row.createdAt.toISOString()}>
-                        {formatTime(row.createdAt, now).label}
+                        {formatTime(row.createdAt, now, timezone).label}
                       </time>
                     </span>
                   </li>

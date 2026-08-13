@@ -9,6 +9,7 @@ import { SubscriptionRowForm } from '@/components/account/subscription-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import {
   buildSubscriptionsView,
   subscriptionNotice,
@@ -34,7 +35,9 @@ export default async function SubscriptionsPage({
     visibleForumIds,
   )
 
-  const view = buildSubscriptionsView({ rows, now: new Date() })
+  const { timezone } = await getViewerPreferences()
+
+  const view = buildSubscriptionsView({ rows, now: new Date(), timeZone: timezone })
   const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = subscriptionNotice(query)
 

@@ -4,7 +4,12 @@ import {
   SCHEME_INDEPENDENT_TOKENS,
   defaultTheme,
 } from '@meith/theme-default'
-import { assertThemeContract, resolveTheme, SLOT_NAMES } from '@meith/theme-kit'
+import {
+  assertThemeContract,
+  resolveTheme,
+  SLOT_NAMES,
+  SLOT_STABILITY,
+} from '@meith/theme-kit'
 import { describe, expect, it } from 'vitest'
 
 import { raidframeTheme } from './theme'
@@ -20,13 +25,32 @@ describe('the raidframe theme', () => {
   })
 
   it('fills every stable slot itself, leaving only the provisional ones inherited', () => {
-    const own = Object.keys(raidframeTheme.slots)
-    expect(own).toContain('PostBit')
-    expect(own).not.toContain('QuickReply')
-    expect(own).not.toContain('EditorToolbar')
+    const own = new Set(Object.keys(raidframeTheme.slots))
+    const stable = SLOT_NAMES.filter((name) => SLOT_STABILITY[name] === 'stable')
+
+    expect(stable.filter((name) => !own.has(name))).toEqual([])
+    expect(SLOT_NAMES.filter((name) => SLOT_STABILITY[name] === 'provisional')).not.toEqual([])
+    for (const name of SLOT_NAMES) {
+      if (SLOT_STABILITY[name] === 'provisional') expect(own.has(name)).toBe(false)
+    }
 
     const resolved = resolveTheme(raidframeTheme)
     expect(resolved.slots.PostBit).not.toBe(defaultTheme.slots.PostBit)
+  })
+
+  it('carries the control panels, search results and discovery it was given later', () => {
+    const own = Object.keys(raidframeTheme.slots)
+    for (const name of [
+      'PanelShell',
+      'PanelNav',
+      'PanelPage',
+      'PanelSection',
+      'AuthPage',
+      'SearchResults',
+      'DiscoveryView',
+    ]) {
+      expect(own).toContain(name)
+    }
   })
 
   it.each([

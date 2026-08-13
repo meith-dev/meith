@@ -6,6 +6,7 @@ import {
   buildBoardNavigation,
   buildFooterModel,
   buildHeaderModel,
+  buildPanelLinks,
   buildUserPanelModel,
   buildViewerModel,
   BOARD_TITLE,
@@ -75,6 +76,34 @@ describe('buildUserPanelModel', () => {
     ])
   })
 
+  it('offers the admin panel only to a viewer who may reach it', () => {
+    const plain = buildUserPanelModel(buildViewerModel(member))
+    expect(plain.links.map((l) => l.href)).not.toContain('/admin')
+
+    const admin = buildUserPanelModel(
+      buildViewerModel(member, { canAccessAdminCp: true }),
+    )
+    expect(admin.links.map((l) => l.href)).toContain('/admin')
+  })
+
+  it('puts the admin panel beside the moderator panel, not among the account routes', () => {
+    const staff = buildUserPanelModel(
+      buildViewerModel(member, { canAccessAdminCp: true, canAccessModCp: true }),
+    )
+    const hrefs = staff.links.map((l) => l.href)
+
+    expect(hrefs.indexOf('/admin')).toBe(hrefs.indexOf('/subscriptions') + 1)
+    expect(hrefs.indexOf('/modcp')).toBe(hrefs.indexOf('/admin') + 1)
+  })
+
+  it('offers a guest no admin panel, whatever the flag says', () => {
+    const panel = buildUserPanelModel(
+      buildViewerModel(guest, { canAccessAdminCp: true }),
+    )
+
+    expect(panel.links.map((l) => l.href)).not.toContain('/admin')
+  })
+
   it('carries both unread counts, defaulting each to zero', () => {
     const none = buildUserPanelModel(buildViewerModel(member))
     expect(none.unreadNotifications).toBe(0)
@@ -107,6 +136,49 @@ describe('buildUserPanelModel', () => {
     })
 
     expect(panel.unreadNotifications).toBe(3)
+  })
+})
+
+describe('buildPanelLinks', () => {
+  it('never links a panel back to itself', () => {
+    expect(
+      buildPanelLinks({ current: 'usercp' }).map((link) => link.href),
+    ).not.toContain('/usercp')
+  })
+
+  it('offers a plain member nothing but the panel they are in', () => {
+    expect(buildPanelLinks({ current: 'usercp' })).toEqual([])
+  })
+
+  it('offers the moderator and admin panels to staff who may reach them', () => {
+    expect(
+      buildPanelLinks({
+        current: 'usercp',
+        canAccessModCp: true,
+        canAccessAdminCp: true,
+      }),
+    ).toEqual([
+      { label: 'Moderator CP', href: '/modcp' },
+      { label: 'Admin CP', href: '/admin' },
+    ])
+  })
+
+  it('offers the admin panel from the moderator panel', () => {
+    expect(
+      buildPanelLinks({ current: 'modcp', canAccessAdminCp: true }).map((l) => l.href),
+    ).toEqual(['/usercp', '/admin'])
+  })
+
+  it('withholds the admin panel from a moderator who may not reach it', () => {
+    expect(
+      buildPanelLinks({ current: 'modcp', canAccessModCp: true }).map((l) => l.href),
+    ).toEqual(['/usercp'])
+  })
+
+  it('offers the other two panels from the admin panel', () => {
+    expect(
+      buildPanelLinks({ current: 'admincp', canAccessModCp: true }).map((l) => l.href),
+    ).toEqual(['/usercp', '/modcp'])
   })
 })
 

@@ -9,7 +9,7 @@
   disagree.
 -->
 
-**95 hooks** — 50 filters, 45 events — and 6 UI regions. **25 are wired**: something in the board fires
+**102 hooks** — 57 filters, 45 events — and 6 UI regions. **32 are wired**: something in the board fires
 them today, and the rest are declared but not yet reached by a call site.
 
 The wired column is derived from the tree by `scripts/hook-callsites.mjs`, not
@@ -75,6 +75,13 @@ the limits.
 | `view.latest-posts` | filter | yes | `LatestPostsModel` | `ViewerRef` |
 | `view.pagination` | filter | yes | `PaginationModel` | `ViewerRef` |
 | `view.search-form` | filter | yes | `SearchFormModel` | `ViewerRef` |
+| `view.search-results` | filter | yes | `SearchResultsModel` | `ViewerRef` |
+| `view.discovery-view` | filter | yes | `DiscoveryViewModel` | `ViewerRef` |
+| `view.auth-page` | filter | yes | `AuthPageModel` | `ViewerRef` |
+| `view.panel-shell` | filter | yes | `PanelShellModel` | `ViewerRef` |
+| `view.panel-nav` | filter | yes | `PanelNavModel` | `ViewerRef` |
+| `view.panel-page` | filter | yes | `PanelPageModel` | `ViewerRef` |
+| `view.panel-section` | filter | yes | `PanelSectionModel` | `ViewerRef` |
 | `view.error-notice` | filter | yes | `ErrorNoticeModel` | `ViewerRef & RequestRef` |
 | `view.shell` | filter | yes | `ShellModel` | `ViewerRef & RequestRef` |
 | `view.notice` | filter | — | `NoticeModel` | `ViewerRef` |
@@ -103,6 +110,13 @@ the limits.
 - **`view.latest-posts`** — The index sidebar’s newest-posts panel. Same refresh cost as view.latest-threads.
 - **`view.pagination`** — A resolved page-link window.
 - **`view.search-form`** — The search form model, including its filter options.
+- **`view.search-results`** — One page of search results. Already checked against the reader — a hit a plugin adds here has not been, and will be shown to whoever asked.
+- **`view.discovery-view`** — A discovery listing — new posts, today, unanswered — with its tabs. Same warning as the search results: the rows arrive authorised.
+- **`view.auth-page`** — The sign-in, register and password-reset page around its form. The form itself is a region, not a value: nothing here can change what it posts to.
+- **`view.panel-shell`** — The frame around a control panel, including the links to the other panels this viewer may reach. Adding a link grants nothing.
+- **`view.panel-nav`** — A control panel’s section rail, with the current section already resolved. Runs on every panel page.
+- **`view.panel-page`** — One control-panel page’s heading block. Runs on every panel page.
+- **`view.panel-section`** — One labelled section inside a panel page. Runs once per section.
 - **`view.error-notice`** — The error page model. Runs on the page that renders when things are broken.
 - **`view.shell`** — The page frame’s model. Runs on every page including the error pages.
 - **`view.notice`** — A board notice or flash message, before the theme renders it.
