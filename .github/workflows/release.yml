@@ -26,7 +26,7 @@ jobs:
     name: The tag and the tree agree
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: node scripts/release-check.mjs --tag "$GITHUB_REF_NAME"
 
   # One job per architecture, on that architecture's own runner — no QEMU, so
@@ -57,7 +57,7 @@ jobs:
           --health-cmd pg_isready --health-interval 10s
           --health-timeout 5s --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build the image, stamped
         run: |
@@ -153,7 +153,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v7
         with:
@@ -178,7 +178,7 @@ jobs:
       # release branch needs that branch's current commit present locally, or
       # the git client refuses with "fetch first" before the server can even
       # check the fast-forward.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

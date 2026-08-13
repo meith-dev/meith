@@ -25,7 +25,7 @@ jobs:
       # to the built-in Actions app, and a deploy-key push triggers the
       # Release workflow where a GITHUB_TOKEN push would be swallowed by
       # GitHub's recursion guard.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
