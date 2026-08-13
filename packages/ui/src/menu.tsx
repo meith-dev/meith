@@ -1,12 +1,14 @@
 'use client'
 
 import { Menu as MenuPrimitive } from '@base-ui/react/menu'
+import { Fragment } from 'react'
 
 import { cn } from './utils'
 
 export interface MenuLink {
   readonly label: string
   readonly href: string
+  readonly group?: string
 }
 
 export interface MenuProps {
@@ -47,18 +49,22 @@ function Menu({ label, trigger, triggerClassName, items, children, align = 'end'
               'data-[ending-style]:scale-95 data-[ending-style]:opacity-0',
             )}
           >
-            {items.map((item) => (
-              <MenuPrimitive.LinkItem
-                key={item.href}
-                href={item.href}
-                closeOnClick
-                className={cn(
-                  'flex cursor-default items-center rounded-md px-2.5 py-1.5 text-sm text-foreground outline-none select-none',
-                  'data-[highlighted]:bg-muted',
+            {items.map((item, index) => (
+              <Fragment key={item.href}>
+                {index > 0 && item.group !== items[index - 1]?.group && (
+                  <MenuPrimitive.Separator className="-mx-1 my-1 h-px bg-border" />
                 )}
-              >
-                {item.label}
-              </MenuPrimitive.LinkItem>
+                <MenuPrimitive.LinkItem
+                  href={item.href}
+                  closeOnClick
+                  className={cn(
+                    'flex cursor-default items-center rounded-md px-2.5 py-1.5 text-sm text-foreground outline-none select-none',
+                    'data-[highlighted]:bg-muted',
+                  )}
+                >
+                  {item.label}
+                </MenuPrimitive.LinkItem>
+              </Fragment>
             ))}
 
             {children !== undefined && children !== null && (

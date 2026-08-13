@@ -79,6 +79,8 @@ export function UserPanel({
   links,
   unreadNotifications,
   unreadMessages,
+  notificationsHref,
+  messagesHref,
   children,
 }: UserPanelModel) {
   if (viewer.isGuest) {
@@ -94,8 +96,6 @@ export function UserPanel({
   }
 
   const name = viewer.username ?? 'Signed in'
-  const hrefFor = (label: string): string | null =>
-    links.find((link) => link.label === label)?.href ?? null
 
   return (
     <div className="flex items-center gap-2">
@@ -107,14 +107,14 @@ export function UserPanel({
       />
 
       {unreadNotifications > 0 && (
-        <IconButton href={hrefFor('Notifications')} title="Notifications">
+        <IconButton href={notificationsHref ?? null} title="Notifications">
           <BellIcon />
           <CountBadge value={unreadNotifications} label="unread notifications" />
         </IconButton>
       )}
 
       {unreadMessages > 0 && (
-        <IconButton href={hrefFor('Messages')} title="Messages">
+        <IconButton href={messagesHref ?? null} title="Messages">
           <MessageIcon />
           <CountBadge value={unreadMessages} label="unread messages" />
         </IconButton>

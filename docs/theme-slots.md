@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.10.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
+**theme-kit v0.11.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -104,6 +104,8 @@ Props: `UserPanelModel`
 | `links` | `readonly LinkModel[]` | Sign-in / register, or account links. Resolved by the app. |
 | `unreadNotifications` | `number` | `0` when there is nothing to show. |
 | `unreadMessages` | `number` |  |
+| `notificationsHref` | `string` | optional — Where the two counts above lead, so a theme can make them clickable. A count that cannot be acted on is a notification the reader has to go hunting for. Both are absent for a guest, who has neither. Themes read these rather than searching `links` for the one labelled "Notifications", which two of them were doing and which breaks the moment that label is reworded or translated. |
+| `messagesHref` | `string` | optional |
 | `children` | `ReactNode` | optional — Account controls the app supplies — today, the log-out form. Log out cannot be a `LinkModel`: it is a POST to a Server Action, because a GET that ends a session is fired by every prefetcher and link scanner that touches the page. A Server Action reference is also not plain data and could never cross this contract, so the app renders the form and the theme decides where in the panel it sits. |
 
 ### Navigation
@@ -623,6 +625,7 @@ A link out of an authentication page, with the sentence that introduces it. "New
 |---|---|---|
 | `label` | `string` | from `LinkModel` |
 | `href` | `string` | from `LinkModel` |
+| `group` | `string` | from `LinkModel` — optional — Which run of links this one belongs to, for themes that separate them. Compare it for *change*, never for value: a theme draws a rule wherever consecutive links disagree, and the strings themselves stay the app's business. Absent everywhere is the normal case and renders as one run. |
 | `lead` | `string \| null` |  |
 
 ### DiscoveryRowModel
@@ -712,6 +715,7 @@ A resolved link. Themes never build hrefs; the app owns URL shape.
 |---|---|---|
 | `label` | `string` |  |
 | `href` | `string` |  |
+| `group` | `string` | optional — Which run of links this one belongs to, for themes that separate them. Compare it for *change*, never for value: a theme draws a rule wherever consecutive links disagree, and the strings themselves stay the app's business. Absent everywhere is the normal case and renders as one run. |
 
 ### LogoModel
 
@@ -933,5 +937,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.10. Nothing can be: this is the first
+Nothing is deprecated in v0.11. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

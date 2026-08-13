@@ -1,7 +1,6 @@
 # The theme API
 
-`@meith/theme-kit` is the contract between the board and a theme, frozen since
-**0.1** and currently at **0.10**.
+`@meith/theme-kit` is the frozen contract between the board and a theme.
 
 This document is the policy — what the freeze covers, what it does not, and how
 something is removed from it. The reference (every slot, every field) is
@@ -197,7 +196,10 @@ behaviour of its own; a bug fixed in `resolveTheme` is a package version.
 > later `0.10` will not break it, because a minor is additive whatever the major
 > says — `0.10` is that promise being kept: it adds five slots and removes
 > nothing, so a theme written against `0.9` inherits them from whatever it
-> extends and keeps compiling.
+> extends and keeps compiling. `0.11` keeps it again, with optional fields only:
+> `LinkModel.group`, and `notificationsHref` / `messagesHref` on
+> `UserPanelModel`. A theme that never reads them renders exactly what it
+> rendered before.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

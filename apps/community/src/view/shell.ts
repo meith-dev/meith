@@ -63,6 +63,14 @@ export function buildBoardNavigation(viewer: ViewerModel): readonly LinkModel[] 
   ]
 }
 
+const ACCOUNT_GROUP = 'account'
+
+const STAFF_GROUP = 'staff'
+
+const NOTIFICATIONS_HREF = '/notifications'
+
+const MESSAGES_HREF = '/messages'
+
 export function buildUserPanelModel(
   viewer: ViewerModel,
   options: { unreadNotifications?: number; unreadMessages?: number } = {},
@@ -75,17 +83,19 @@ export function buildUserPanelModel(
     : viewer.profileHref === null
       ? []
       : [
-          { label: 'Profile', href: viewer.profileHref },
-          { label: 'Your control panel', href: '/usercp' },
-          { label: 'Notifications', href: '/notifications' },
-          { label: 'Messages', href: '/messages' },
-          { label: 'Subscriptions', href: '/subscriptions' },
-          ...(viewer.canAccessAdminCp ? [{ label: 'Admin CP', href: '/admin' }] : []),
+          { label: 'Profile', href: viewer.profileHref, group: ACCOUNT_GROUP },
+          { label: 'Your control panel', href: '/usercp', group: ACCOUNT_GROUP },
+          { label: 'Notifications', href: NOTIFICATIONS_HREF, group: ACCOUNT_GROUP },
+          { label: 'Messages', href: MESSAGES_HREF, group: ACCOUNT_GROUP },
+          { label: 'Subscriptions', href: '/subscriptions', group: ACCOUNT_GROUP },
+          ...(viewer.canAccessAdminCp
+            ? [{ label: 'Admin CP', href: '/admin', group: STAFF_GROUP }]
+            : []),
           ...(viewer.canAccessModCp
             ? [
-                { label: 'Moderator CP', href: '/modcp' },
-                { label: 'Moderation queue', href: '/moderation' },
-                { label: 'Reports', href: '/moderation/reports' },
+                { label: 'Moderator CP', href: '/modcp', group: STAFF_GROUP },
+                { label: 'Moderation queue', href: '/moderation', group: STAFF_GROUP },
+                { label: 'Reports', href: '/moderation/reports', group: STAFF_GROUP },
               ]
             : []),
         ]
@@ -95,6 +105,9 @@ export function buildUserPanelModel(
     links,
     unreadNotifications: options.unreadNotifications ?? 0,
     unreadMessages: options.unreadMessages ?? 0,
+    ...(viewer.isGuest
+      ? {}
+      : { notificationsHref: NOTIFICATIONS_HREF, messagesHref: MESSAGES_HREF }),
   }
 }
 

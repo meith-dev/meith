@@ -36,7 +36,7 @@ for (const { dir, manifest } of await workspacePackages()) {
 }
 
 // The same places release-check reads, moved rather than checked.
-const REWRITES = [
+const SOURCE_CONSTANTS = [
   {
     file: 'apps/cli/src/upgrade.ts',
     pattern: /(export const CODE_VERSION = ')[^']+(')/,
@@ -49,11 +49,25 @@ const REWRITES = [
     file: 'packages/create-meith/src/bin.ts',
     pattern: /(run\(process\.argv\.slice\(2\), ')[^']+('\))/,
   },
+]
+
+const PLUGIN_MANIFESTS = [
   {
-    file: 'docker/compose.coolify.yml',
-    pattern: /(\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:)[^}]+(\})/g,
+    file: 'plugins/dues/src/definition.tsx',
+    pattern: /(\n\s*version: ')[^']+(')/,
+  },
+  {
+    file: 'plugins/reference/src/plugin.tsx',
+    pattern: /(\n\s*version: ')[^']+(')/,
   },
 ]
+
+const COMPOSE_PIN = {
+  file: 'docker/compose.coolify.yml',
+  pattern: /(\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:)[^}]+(\})/g,
+}
+
+const REWRITES = [...SOURCE_CONSTANTS, ...PLUGIN_MANIFESTS, COMPOSE_PIN]
 
 for (const { file, pattern } of REWRITES) {
   const path = join(ROOT, file)
@@ -68,5 +82,6 @@ for (const { file, pattern } of REWRITES) {
 
 console.log(
   `✓ release bump: ${current} → ${version} in the root manifest, ${manifests} workspace manifests, ` +
-    `${REWRITES.length - 1} source constants, and the compose pin. Run release-check, then commit.`,
+    `${SOURCE_CONSTANTS.length} source constants, ${PLUGIN_MANIFESTS.length} plugin manifests, ` +
+    'and the compose pin. Run release-check, then commit.',
 )

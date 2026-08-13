@@ -13,7 +13,13 @@ export function CategoryBlock({ category, children }: CategoryBlockModel) {
           {category.description}
         </p>
       )}
-      <table className="w-full border-collapse text-sm">
+      <table className="w-full table-fixed border-collapse text-sm">
+        <colgroup>
+          <col />
+          <col className="w-16" />
+          <col className="w-16" />
+          <col className="w-64" />
+        </colgroup>
         <thead className="sr-only">
           <tr>
             <th scope="col">Forum</th>

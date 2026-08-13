@@ -68,11 +68,11 @@ describe('buildUserPanelModel', () => {
 
   it('offers the member profile and every account route', () => {
     expect(buildUserPanelModel(buildViewerModel(member)).links).toEqual([
-      { label: 'Profile', href: '/member/42' },
-      { label: 'Your control panel', href: '/usercp' },
-      { label: 'Notifications', href: '/notifications' },
-      { label: 'Messages', href: '/messages' },
-      { label: 'Subscriptions', href: '/subscriptions' },
+      { label: 'Profile', href: '/member/42', group: 'account' },
+      { label: 'Your control panel', href: '/usercp', group: 'account' },
+      { label: 'Notifications', href: '/notifications', group: 'account' },
+      { label: 'Messages', href: '/messages', group: 'account' },
+      { label: 'Subscriptions', href: '/subscriptions', group: 'account' },
     ])
   })
 
@@ -94,6 +94,41 @@ describe('buildUserPanelModel', () => {
 
     expect(hrefs.indexOf('/admin')).toBe(hrefs.indexOf('/subscriptions') + 1)
     expect(hrefs.indexOf('/modcp')).toBe(hrefs.indexOf('/admin') + 1)
+  })
+
+  it('marks the staff run as its own group, so a theme can rule it off', () => {
+    const staff = buildUserPanelModel(
+      buildViewerModel(member, { canAccessAdminCp: true, canAccessModCp: true }),
+    )
+
+    const groups = staff.links.map((link) => link.group)
+    const changes = groups.filter((group, index) => index > 0 && group !== groups[index - 1])
+
+    expect(changes).toEqual(['staff'])
+    expect(groups[0]).toBe('account')
+  })
+
+  it('leaves a guest ungrouped, because two buttons are not a menu', () => {
+    const panel = buildUserPanelModel(buildViewerModel(guest))
+
+    expect(panel.links.every((link) => link.group === undefined)).toBe(true)
+  })
+
+  it('points the unread counts somewhere, so a badge can be clicked', () => {
+    const panel = buildUserPanelModel(buildViewerModel(member), {
+      unreadNotifications: 3,
+      unreadMessages: 1,
+    })
+
+    expect(panel.notificationsHref).toBe('/notifications')
+    expect(panel.messagesHref).toBe('/messages')
+  })
+
+  it('gives a guest nowhere to click, having nothing unread to click to', () => {
+    const panel = buildUserPanelModel(buildViewerModel(guest))
+
+    expect(panel.notificationsHref).toBeUndefined()
+    expect(panel.messagesHref).toBeUndefined()
   })
 
   it('offers a guest no admin panel, whatever the flag says', () => {
