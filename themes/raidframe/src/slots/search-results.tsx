@@ -1,6 +1,6 @@
 import type { SearchResultsModel } from '@meith/theme-kit'
 
-import { BUTTON_PRIMARY, Frame, HEADING, MICRO, PanelHead, RULE, Stamp } from '../shared'
+import { BUTTON_PRIMARY, Frame, HEADING, MICRO, RULE, Stamp } from '../shared'
 
 export function SearchResults({
   terms,
