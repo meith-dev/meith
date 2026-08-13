@@ -113,5 +113,6 @@ export async function locateAsset(specifier: string, from = process.cwd()): Prom
 }
 
 export async function compileAsset(specifier: string): Promise<WebAssembly.Module> {
-  return WebAssembly.compile(await readFile(await locateAsset(specifier)))
+  const path = await locateAsset(specifier)
+  return WebAssembly.compile(await readFile(/* turbopackIgnore: true */ path))
 }

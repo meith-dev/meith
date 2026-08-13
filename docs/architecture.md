@@ -213,6 +213,27 @@ memory) and the composition roots pick the repository set.
 Every implementation of a port runs the same contract suite from
 `@meith/testkit`, under its own name.
 
+The image codecs are the one thing in this package that no environment variable
+selects. Attachments and avatars are re-encoded through WebAssembly
+(`@jsquash/png`, `@jsquash/jpeg`, `@jsquash/resize`), and those `.wasm` binaries
+are *data* sitting in `node_modules` rather than modules, so nothing imports
+them. `locateAsset` (`packages/drivers/src/images/locate-wasm.ts`) finds them at
+run time by walking up from where the process started, through both the plain
+and the pnpm store layout, because the three programs that need them start from
+three different roots.
+
+That read carries `/* turbopackIgnore: true */`, which is not decoration.
+Turbopack cannot see where a computed path points, so it assumes the worst and
+traces the **whole workspace** into `.next/standalone` — the board's TypeScript
+sources and `public/` shipped as server code, which is how a 95 MB output was
+carrying 448 files it never executes. Opting the read out of tracing does not
+lose the codecs: `@jsquash/*` are `serverExternalPackages`, and each codec's
+JavaScript names its own `.wasm` with `new URL(…, import.meta.url)`, which the
+tracer does follow. If that ever stops being true the symptom is loud and
+immediate — the first upload after a deploy fails with `Could not find
+"@jsquash/…" in any node_modules above …`, and nothing under `node_modules` in
+the output is the thing to check.
+
 ### Fixture mode
 
 With no `DATABASE_URL`, `DATA_SOURCE` falls back to `fixture`: in-memory
