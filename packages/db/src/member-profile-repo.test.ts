@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
@@ -56,5 +57,11 @@ describe('PostgresMemberProfileRepository', () => {
       lastActiveAt: new Date('2026-07-30T08:41:00Z'),
     })
     expect(await repo.findPublicById(51)).toBeNull()
+  })
+
+  it('falls back to the primary group for a member who has chosen no display group', async () => {
+    await db.update(users).set({ displayGroupId: null }).where(eq(users.id, 50))
+
+    expect(await repo.findPublicById(50)).toMatchObject({ title: 'Registered' })
   })
 })

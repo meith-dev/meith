@@ -1,4 +1,4 @@
-import { and, eq, ne } from 'drizzle-orm'
+import { and, eq, ne, sql } from 'drizzle-orm'
 
 import type { MemberProfileRecord, MemberProfileRepository } from '@meith/accounts'
 
@@ -22,7 +22,11 @@ export class PostgresMemberProfileRepository implements MemberProfileRepository 
         bio: users.bio,
       })
       .from(users)
-      .leftJoin(usergroups, eq(users.displayGroupId, usergroups.id))
+      .leftJoin(
+        usergroups,
+        // eslint-disable-next-line no-restricted-properties -- naming the column the board displays by, not deciding access
+        eq(usergroups.id, sql`coalesce(${users.displayGroupId}, ${users.primaryGroupId})`),
+      )
       .where(and(eq(users.id, id), ne(users.state, 'deleted')))
       .limit(1)
 
