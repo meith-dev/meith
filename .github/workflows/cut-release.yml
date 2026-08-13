@@ -1,7 +1,7 @@
 # Cutting a release, from the Actions tab: give it a version and it bumps
-# every place the version is written, commits that to main, tags it, and
-# starts the Release workflow against the tag. docs/release.md § How a
-# release happens is the narrative.
+# every place the version is written, commits that to main, and tags it —
+# which starts the Release workflow. docs/release.md § How a release happens
+# is the narrative, including the one-time deploy-key setup this depends on.
 
 name: Cut a release
 
@@ -13,17 +13,22 @@ on:
         required: true
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
 
 jobs:
   cut:
     name: Bump, commit, tag
     runs-on: ubuntu-24.04
     steps:
+      # The pushes go over SSH with a deploy key rather than GITHUB_TOKEN,
+      # for two reasons: rulesets can grant bypass to deploy keys but never
+      # to the built-in Actions app, and a deploy-key push triggers the
+      # Release workflow where a GITHUB_TOKEN push would be swallowed by
+      # GitHub's recursion guard.
       - uses: actions/checkout@v4
         with:
           ref: main
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
 
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -32,12 +37,20 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
+      # A re-run converges rather than refuses: a tree already at the version
+      # skips the bump, a commit already on main skips the push, an existing
+      # tag is reused — so a run that failed halfway is fixed by pressing Run
+      # again, not by cleaning up.
       - name: Bump every version together
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          node scripts/release-bump.mjs "$VERSION"
-          pnpm install --lockfile-only
+          if [ "$(node -p "require('./package.json').version")" = "$VERSION" ]; then
+            echo "the tree is already at $VERSION"
+          else
+            node scripts/release-bump.mjs "$VERSION"
+            pnpm install --lockfile-only
+          fi
           node scripts/release-check.mjs --tag "v$VERSION"
 
       - name: Commit and tag
@@ -46,16 +59,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "chore(release): v$VERSION"
-          git tag "v$VERSION"
+          git diff --quiet || git commit -am "chore(release): v$VERSION"
+          git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null || git tag "v$VERSION"
           git push origin HEAD:main
           git push origin "v$VERSION"
-
-      # A tag pushed with GITHUB_TOKEN triggers no workflows — GitHub's
-      # recursion guard — so the release is dispatched explicitly, against
-      # the tag this job just pushed.
-      - name: Start the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version }}
-        run: gh workflow run release.yml --ref "v$VERSION"
