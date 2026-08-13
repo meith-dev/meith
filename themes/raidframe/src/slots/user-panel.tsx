@@ -27,6 +27,8 @@ export function UserPanel({
   links,
   unreadNotifications,
   unreadMessages,
+  notificationsHref,
+  messagesHref,
   children,
 }: UserPanelModel) {
   if (viewer.isGuest) {
@@ -42,10 +44,6 @@ export function UserPanel({
   }
 
   const name = viewer.username ?? 'signed in'
-  const hrefFor = (label: string): string | null =>
-    links.find((link) => link.label === label)?.href ?? null
-  const notificationsHref = hrefFor('Notifications')
-  const messagesHref = hrefFor('Messages')
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -58,7 +56,7 @@ export function UserPanel({
 
       {unreadNotifications > 0 && (
         <a
-          href={notificationsHref ?? undefined}
+          href={notificationsHref}
           className={`${COUNT} border-primary/60 bg-primary/15 text-primary hover:border-primary`}
         >
           {unreadNotifications} new
@@ -66,7 +64,7 @@ export function UserPanel({
       )}
       {unreadMessages > 0 && (
         <a
-          href={messagesHref ?? undefined}
+          href={messagesHref}
           className={`${COUNT} border-forum-unread/60 bg-forum-unread/15 text-forum-unread hover:border-forum-unread`}
         >
           {unreadMessages} pm

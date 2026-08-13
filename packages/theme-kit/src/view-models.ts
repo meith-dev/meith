@@ -120,6 +120,14 @@ export interface TimeModel {
 export interface LinkModel {
   readonly label: string
   readonly href: string
+  /**
+   * Which run of links this one belongs to, for themes that separate them.
+   *
+   * Compare it for *change*, never for value: a theme draws a rule wherever
+   * consecutive links disagree, and the strings themselves stay the app's
+   * business. Absent everywhere is the normal case and renders as one run.
+   */
+  readonly group?: string
 }
 
 /** Who is looking. The only actor data a theme is given. */
@@ -494,6 +502,17 @@ export interface UserPanelModel {
   /** `0` when there is nothing to show. */
   readonly unreadNotifications: number
   readonly unreadMessages: number
+  /**
+   * Where the two counts above lead, so a theme can make them clickable.
+   *
+   * A count that cannot be acted on is a notification the reader has to go
+   * hunting for. Both are absent for a guest, who has neither. Themes read
+   * these rather than searching `links` for the one labelled "Notifications",
+   * which two of them were doing and which breaks the moment that label is
+   * reworded or translated.
+   */
+  readonly notificationsHref?: string
+  readonly messagesHref?: string
   /**
    * Account controls the app supplies — today, the log-out form.
    *

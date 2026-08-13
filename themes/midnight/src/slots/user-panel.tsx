@@ -5,6 +5,8 @@ export function UserPanel({
   links,
   unreadNotifications,
   unreadMessages,
+  notificationsHref,
+  messagesHref,
   children,
 }: UserPanelModel) {
   return (
@@ -14,10 +16,16 @@ export function UserPanel({
       </span>
 
       {unreadNotifications > 0 && (
-        <span className="text-accent">[{unreadNotifications} new]</span>
+        <a href={notificationsHref} className="text-accent hover:underline">
+          [{unreadNotifications} new]
+          <span className="sr-only"> notifications</span>
+        </a>
       )}
       {unreadMessages > 0 && (
-        <span className="text-accent">[{unreadMessages} pm]</span>
+        <a href={messagesHref} className="text-accent hover:underline">
+          [{unreadMessages} pm]
+          <span className="sr-only"> unread messages</span>
+        </a>
       )}
 
       {links.map((link) => (

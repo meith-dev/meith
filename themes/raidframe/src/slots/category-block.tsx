@@ -13,7 +13,7 @@ export function CategoryBlock({ category, children }: CategoryBlockModel) {
         </p>
       )}
 
-      <table className="w-full border-collapse text-sm">
+      <table className="w-full table-fixed border-collapse text-sm">
         <thead>
           <tr className={`${MICRO} text-left`}>
             <th scope="col" className="px-3 py-1.5 font-semibold">
