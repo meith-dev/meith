@@ -67,6 +67,19 @@ test('a guest sees the shop window but cannot buy', async ({ page }) => {
   await expect(page.getByText('£5.00 every month')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Sign in to join' }).first()).toBeVisible()
 
+  const shades = await page.evaluate(() => {
+    const card = [...document.querySelectorAll('section')].find((section) =>
+      section.className.includes('bg-card'),
+    )
+    return {
+      card: card === undefined ? null : getComputedStyle(card).backgroundColor,
+      page: getComputedStyle(document.body).backgroundColor,
+    }
+  })
+
+  expect(shades.card).not.toBeNull()
+  expect(shades.card).not.toBe(shades.page)
+
   await page.goto('/')
   await expect(
     page.getByRole('banner').getByRole('link', { name: 'Membership' }),

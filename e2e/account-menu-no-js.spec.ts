@@ -25,8 +25,6 @@ test('an unread count is a link to the thing that is unread', async ({ browser }
 
     await namedPage.goto('/')
 
-    // The count itself is the link. A badge with no href announces work and
-    // then leaves the reader to go and find it, which is what this used to do.
     const unread = namedPage.getByRole('link', { name: /unread notifications/ })
     await expect(unread).toBeVisible()
     await expect(unread).toHaveAttribute('href', '/notifications')

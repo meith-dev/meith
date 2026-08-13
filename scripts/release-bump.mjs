@@ -51,11 +51,6 @@ const SOURCE_CONSTANTS = [
   },
 ]
 
-// What a first-party plugin declares about itself, which is the string
-// /admin/plugins renders — not the package.json beside it. These two sat at
-// 0.1.0 while the bump moved every manifest around them, so the panel showed a
-// board that had just been upgraded to 0.3.0 a plugin version two releases old
-// and read as a deploy that had not landed.
 const PLUGIN_MANIFESTS = [
   {
     file: 'plugins/dues/src/definition.tsx',

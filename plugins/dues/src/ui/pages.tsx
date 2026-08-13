@@ -14,7 +14,12 @@ import {
   type PlanRow,
 } from '../store'
 
-const CARD = 'flex flex-col gap-3 rounded-lg border border-border p-4'
+const QUIET_PANEL =
+  'rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground'
+
+const CARD =
+  'flex flex-col gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground ' +
+  'shadow-elevation'
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm ' +
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -263,7 +268,7 @@ export async function PlansPage({
       <Notice query={context.query} />
       <HeldCard memberships={memberships} />
       {plans.length === 0 && (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        <p className={QUIET_PANEL}>
           Nothing is on sale just now.
         </p>
       )}
@@ -311,7 +316,7 @@ export function GoPage({
 
   if (!allowed) {
     return (
-      <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+      <p className={QUIET_PANEL}>
         That is not somewhere this board sends people.{' '}
         <a href="/plugins/dues" className="font-medium underline underline-offset-2">
           Back to safety.
@@ -356,7 +361,7 @@ export async function ReturnPage({
     (order.buyerUserId !== viewerId && order.recipientUserId !== viewerId)
   ) {
     return (
-      <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+      <p className={QUIET_PANEL}>
         There is no order of yours here.{' '}
         <a href="/plugins/dues" className="font-medium underline underline-offset-2">
           Back to {config.label.toLowerCase()}
@@ -489,7 +494,7 @@ export async function ManagePage({
       )}
 
       {memberships.length === 0 ? (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        <p className={QUIET_PANEL}>
           You hold no {config.label.toLowerCase()} yet.{' '}
           <a href="/plugins/dues" className="font-medium underline underline-offset-2">
             The plans are here.
