@@ -44,7 +44,7 @@ export function MemberProfile({
           )}
 
           <div className="min-w-0">
-            <p className={MICRO}>player profile</p>
+            <p className={MICRO}>profile</p>
             <h1
               className={[`${HEADING} text-2xl text-foreground`, user.nameClass]
                 .filter(Boolean)
@@ -59,13 +59,13 @@ export function MemberProfile({
       </div>
 
       <Frame aria-labelledby="member-stats-heading">
-        <PanelHead id="member-stats-heading" title="Career stats" />
+        <PanelHead id="member-stats-heading" title="Statistics" />
         <dl className="grid grid-cols-2 gap-1.5 p-3 sm:grid-cols-3">
           <Field label="posts">{postCount}</Field>
           <Field label="joined">
             <Stamp at={joinedAt} />
           </Field>
-          <Field label="last seen">
+          <Field label="last visit">
             {lastVisitAt === null ? 'never' : <Stamp at={lastVisitAt} />}
           </Field>
           {fields.map((field) => (

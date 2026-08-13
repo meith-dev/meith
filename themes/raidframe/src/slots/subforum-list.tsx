@@ -10,7 +10,7 @@ export function SubforumList({ forums }: SubforumListModel) {
       aria-label="Subforums"
       className="flex flex-wrap items-center gap-2 border border-border bg-card px-3 py-2"
     >
-      <span className={MICRO}>sub-channels</span>
+      <span className={MICRO}>subforums</span>
       {forums.map((forum) => (
         <a
           key={forum.href}

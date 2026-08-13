@@ -21,7 +21,7 @@ export function Footer({ boardTitle, links, timezoneLabel, poweredBy }: FooterMo
         </nav>
 
         <span className="flex flex-wrap gap-x-4 gap-y-1">
-          <span>server clock {timezoneLabel}</span>
+          <span>all times {timezoneLabel}</span>
           {poweredBy && (
             <a href={poweredBy.href} className="hover:text-primary">
               {poweredBy.label}

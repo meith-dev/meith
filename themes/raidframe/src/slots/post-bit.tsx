@@ -36,8 +36,8 @@ function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['vi
       }`}
     >
       {visibility === 'deleted'
-        ? 'purged — moderators only'
-        : 'held for review — moderators only'}
+        ? 'deleted — visible to moderators only'
+        : 'awaiting approval — visible to moderators only'}
     </p>
   )
 }
@@ -164,7 +164,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
 
           {post.ignored !== null ? (
             <p className="px-3 py-3 text-sm text-muted-foreground">
-              Post from {post.ignored.authorUsername}, who you have muted.{' '}
+              Post from {post.ignored.authorUsername}, who you are ignoring.{' '}
               <a href={post.ignored.revealHref} className="text-primary hover:underline">
                 Show it
               </a>

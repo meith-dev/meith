@@ -17,7 +17,7 @@ export function PostForm({
           role="alert"
           className="border border-l-[3px] border-border border-l-destructive bg-card px-3 py-2 text-sm"
         >
-          <span className={`${MICRO} mr-2 text-destructive`}>rejected</span>
+          <span className={`${MICRO} mr-2 text-destructive`}>cannot post</span>
           {errorMessage}
         </p>
       )}
@@ -25,7 +25,7 @@ export function PostForm({
       <section className="border border-border bg-card shadow-elevation">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div>
-            <p className={MICRO}>{mode === 'edit' ? 'edit transmission' : 'new transmission'}</p>
+            <p className={MICRO}>{mode === 'edit' ? 'edit' : mode === 'reply' ? 'reply' : 'new thread'}</p>
             <h1 className={`${HEADING} text-lg text-foreground`}>{heading}</h1>
           </div>
           <a href={cancelHref} className={BUTTON}>

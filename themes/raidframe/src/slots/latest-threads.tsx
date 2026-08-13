@@ -5,7 +5,7 @@ import { Frame, MICRO, NUMERIC, PanelHead, Stamp, UserRef } from '../shared'
 export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
   return (
     <Frame aria-labelledby="latest-threads-heading">
-      <PanelHead id="latest-threads-heading" title="New queues" />
+      <PanelHead id="latest-threads-heading" title="Latest threads" />
 
       {threads.length === 0 ? (
         <p className={`${MICRO} px-3 py-2.5`}>nothing started yet</p>
@@ -35,7 +35,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
       )}
 
       <p className={`${MICRO} border-t border-border px-3 py-1.5 normal-case`}>
-        <span className="uppercase">feed</span> <Stamp at={capturedAt} />
+        <span className="uppercase">as of</span> <Stamp at={capturedAt} />
       </p>
     </Frame>
   )

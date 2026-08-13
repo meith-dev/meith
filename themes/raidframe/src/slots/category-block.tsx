@@ -17,16 +17,16 @@ export function CategoryBlock({ category, children }: CategoryBlockModel) {
         <thead>
           <tr className={`${MICRO} text-left`}>
             <th scope="col" className="px-3 py-1.5 font-semibold">
-              Channel
+              Forum
             </th>
             <th scope="col" className="w-16 px-2 py-1.5 text-right font-semibold">
-              Thr
+              Threads
             </th>
             <th scope="col" className="w-16 px-2 py-1.5 text-right font-semibold">
-              Msg
+              Posts
             </th>
             <th scope="col" className="hidden w-60 px-3 py-1.5 font-semibold sm:table-cell">
-              Last activity
+              Last post
             </th>
           </tr>
         </thead>

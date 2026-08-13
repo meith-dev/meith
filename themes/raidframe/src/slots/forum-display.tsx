@@ -8,7 +8,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
       <div className="border border-border bg-card shadow-elevation">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
-            <p className={MICRO}>channel</p>
+            <p className={MICRO}>forum</p>
             <h1 className={`${HEADING} text-xl text-foreground`}>{forum.title}</h1>
             {forum.description !== null && (
               <p className="mt-1 text-xs text-muted-foreground">{forum.description}</p>
@@ -49,7 +49,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
                 Thread
               </th>
               <th scope="col" className="w-16 px-2 py-2 text-right font-semibold">
-                Rep
+                Replies
               </th>
               <th scope="col" className="w-16 px-2 py-2 text-right font-semibold">
                 Views
@@ -72,7 +72,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
       {markReadAction !== null && (
         <form action={markReadAction} method="post">
           <button type="submit" className={BUTTON}>
-            mark channel read
+            mark this forum read
           </button>
         </form>
       )}

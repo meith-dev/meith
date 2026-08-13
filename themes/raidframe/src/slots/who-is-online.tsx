@@ -14,7 +14,7 @@ export function WhoIsOnline({
     <Frame aria-labelledby="who-is-online-heading">
       <PanelHead
         id="who-is-online-heading"
-        title="Roster"
+        title="Online now"
         aside={
           <span className="inline-flex items-center gap-1.5 border border-moderation-approved/50 bg-moderation-approved/10 px-1.5 py-0.5">
             <span
@@ -32,13 +32,13 @@ export function WhoIsOnline({
 
       <p className="px-3 py-2.5 text-xs">
         {members.length === 0 ? (
-          <span className={MICRO}>no players in the lobby</span>
+          <span className={MICRO}>no members</span>
         ) : (
           members.map((member, index) => (
             <span key={member.username}>
               {index > 0 && <span className="text-border">{' | '}</span>}
               <UserRef user={member} className="text-foreground hover:text-primary" />
-              {member.isInvisible && <span className={`${MICRO} ml-1`}>stealth</span>}
+              {member.isInvisible && <span className={`${MICRO} ml-1`}>hidden</span>}
             </span>
           ))
         )}
@@ -46,12 +46,12 @@ export function WhoIsOnline({
 
       <p className={`${MICRO} border-t border-border px-3 py-1.5 normal-case`}>
         <a href={fullListHref} className="uppercase hover:text-primary">
-          full roster
+          full list
         </a>
         <span className="text-border">{' | '}</span>
-        <span className="uppercase">{guestCount} spectators</span>
+        <span className="uppercase">{guestCount} guests</span>
         <span className="text-border">{' | '}</span>
-        <span className="uppercase">peak {recordCount}</span>
+        <span className="uppercase">record {recordCount}</span>
         {recordAt !== null && (
           <>
             {' '}

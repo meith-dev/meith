@@ -15,7 +15,7 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
               {forum.title}
             </a>
             {forum.isUnread && <span className="sr-only">(new posts)</span>}
-            {isLink && <span className={`${MICRO} ml-2`}>portal</span>}
+            {isLink && <span className={`${MICRO} ml-2`}>link</span>}
 
             {forum.description !== null && (
               <p className="mt-0.5 text-xs text-muted-foreground">{forum.description}</p>
@@ -47,7 +47,7 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
 
       <td className="hidden w-60 px-3 py-2.5 text-xs text-muted-foreground sm:table-cell">
         {isLink || forum.lastPost === null ? (
-          <span className={MICRO}>{isLink ? '' : 'no traffic'}</span>
+          <span className={MICRO}>{isLink ? '' : 'no posts yet'}</span>
         ) : (
           <>
             <a href={forum.lastPost.href} className="block truncate text-foreground hover:text-primary">

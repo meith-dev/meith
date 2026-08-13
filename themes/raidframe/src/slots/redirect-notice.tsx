@@ -6,8 +6,8 @@ export function RedirectNotice({ message, targetHref, delaySeconds }: RedirectNo
   return (
     <Frame className="w-full max-w-lg">
       <div className="px-5 py-5">
-        <p className={`${MICRO} text-primary`}>loading</p>
-        <h1 className={`${HEADING} mt-1 text-2xl text-foreground`}>Standing by</h1>
+        <p className={`${MICRO} text-primary`}>redirecting</p>
+        <h1 className={`${HEADING} mt-1 text-2xl text-foreground`}>Please wait</h1>
         <p className="mt-2 text-sm text-muted-foreground">{message}</p>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -15,8 +15,9 @@ export function RedirectNotice({ message, targetHref, delaySeconds }: RedirectNo
             continue now
           </a>
           <span className={`${MICRO} normal-case`}>
-            <span className="uppercase">auto in</span>{' '}
-            <span className={NUMERIC}>{delaySeconds}</span>s
+            <span className="uppercase">continuing in</span>{' '}
+            <span className={NUMERIC}>{delaySeconds}</span>
+            {delaySeconds === 1 ? ' second' : ' seconds'}
           </span>
         </div>
       </div>

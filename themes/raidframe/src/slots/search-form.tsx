@@ -53,12 +53,12 @@ export function SearchForm({
 
   return (
     <Frame aria-labelledby="search-heading">
-      <PanelHead id="search-heading" title="Scan the archives" />
+      <PanelHead id="search-heading" title="Search" />
 
       <form method="get" action={action} className="flex flex-col gap-4 px-4 py-4">
         <div>
           <label htmlFor="search-query" className={`${MICRO} mb-1 block`}>
-            Query
+            Search for
           </label>
           <input
             id="search-query"
@@ -93,7 +93,7 @@ export function SearchForm({
 
         <div>
           <button type="submit" className={BUTTON_PRIMARY}>
-            run scan
+            search
           </button>
         </div>
       </form>

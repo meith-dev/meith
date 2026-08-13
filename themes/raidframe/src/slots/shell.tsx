@@ -1,11 +1,30 @@
 import type { ShellModel } from '@meith/theme-kit'
 
+const APP_REGIONS = `
+[data-theme-raidframe] .font-heading:not([class*="tracking-"]) {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+[data-theme-raidframe] a.rounded-full,
+[data-theme-raidframe] button.rounded-full,
+[data-theme-raidframe] input.rounded-full,
+[data-theme-raidframe] select.rounded-full {
+  border-radius: var(--radius);
+}
+[data-theme-raidframe] :is(caption, legend, th):not([class*="tracking-"]) {
+  letter-spacing: 0.06em;
+}
+`
+
 export function Shell({ viewer, children }: ShellModel) {
   return (
     <div
       className="relative min-h-dvh bg-background text-foreground"
+      data-theme-raidframe=""
       data-viewer={viewer.isGuest ? 'guest' : 'member'}
     >
+      <style>{APP_REGIONS}</style>
+
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-x-0 top-0 h-80 bg-[radial-gradient(70%_100%_at_50%_0%,var(--color-primary),transparent_72%)] opacity-10"

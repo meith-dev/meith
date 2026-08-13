@@ -6,7 +6,7 @@ export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: Ann
   return (
     <Frame as="article">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-surface px-3 py-2">
-        <span className={`${MICRO} text-primary`}>broadcast</span>
+        <span className={`${MICRO} text-primary`}>announcement</span>
         {forum !== null && (
           <a href={forum.href} className={`${MICRO} hover:text-primary`}>
             {forum.label}
@@ -27,7 +27,7 @@ export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: Ann
             'posted'
           ) : (
             <>
-              {'issued by '}
+              {'posted by '}
               <UserRef user={postedBy} className="text-primary hover:underline" />
             </>
           )}

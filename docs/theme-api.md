@@ -45,7 +45,14 @@ Two worked examples bracket the range a theme can occupy:
   markup from `themes/default` at all is a supported shape rather than a
   standing fork. It is also the worked example of a theme whose look is
   something other than "a forum" — a game-board HUD, in its own palette — built
-  from the same tokens every other theme has.
+  from the same tokens every other theme has. Its `Shell` also carries a short
+  scoped stylesheet, which is how a theme reaches the regions no slot covers:
+  the control panels and the search, discovery and notification pages are the
+  app's own components, and a theme that wants its voice on them has tokens,
+  and this. Everything it sets is typographic and written in tokens. The
+  administration control panel is outside even that — it renders in its own
+  layout rather than in `Shell`, so a theme reaches it through the palette and
+  nothing else.
 
 ### Four rules the tooling enforces
 

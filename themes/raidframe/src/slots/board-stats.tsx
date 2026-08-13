@@ -20,16 +20,16 @@ export function BoardStats({
 }: BoardStatsModel) {
   return (
     <Frame aria-labelledby="board-stats-heading">
-      <PanelHead id="board-stats-heading" title="Server status" />
+      <PanelHead id="board-stats-heading" title="Board statistics" />
 
       <dl className="grid grid-cols-3 gap-1.5 px-3 py-3">
         <Stat label="threads" value={threadCount} />
         <Stat label="posts" value={postCount} />
-        <Stat label="players" value={memberCount} />
+        <Stat label="members" value={memberCount} />
       </dl>
 
       <p className={`${MICRO} border-t border-border px-3 py-2 normal-case`}>
-        <span className="uppercase">newest recruit</span>
+        <span className="uppercase">newest member</span>
         {': '}
         {newestMember === null ? (
           '—'
@@ -43,7 +43,7 @@ export function BoardStats({
           <span className="uppercase">not counted yet</span>
         ) : (
           <>
-            <span className="uppercase">synced</span> <Stamp at={computedAt} />
+            <span className="uppercase">counted</span> <Stamp at={computedAt} />
           </>
         )}
       </p>

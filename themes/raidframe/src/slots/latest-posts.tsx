@@ -5,7 +5,7 @@ import { Frame, MICRO, PanelHead, Stamp, UserRef } from '../shared'
 export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
   return (
     <Frame aria-labelledby="latest-posts-heading">
-      <PanelHead id="latest-posts-heading" title="Comms feed" />
+      <PanelHead id="latest-posts-heading" title="Latest posts" />
 
       {posts.length === 0 ? (
         <p className={`${MICRO} px-3 py-2.5`}>nothing said yet</p>
@@ -35,7 +35,7 @@ export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
       )}
 
       <p className={`${MICRO} border-t border-border px-3 py-1.5 normal-case`}>
-        <span className="uppercase">feed</span> <Stamp at={capturedAt} />
+        <span className="uppercase">as of</span> <Stamp at={capturedAt} />
       </p>
     </Frame>
   )
