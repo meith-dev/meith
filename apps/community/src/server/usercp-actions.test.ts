@@ -39,6 +39,7 @@ vi.mock('./usercp-mail', () => ({
 const {
   changePasswordAction,
   requestEmailChangeAction,
+  saveDisplayGroupAction,
   saveOptionsAction,
   saveProfileAction,
 } = await import('./usercp-actions')
@@ -59,12 +60,23 @@ class FakeSettings implements MemberSettingsRepository {
     location: null,
     website: null,
     bio: null,
+    displayGroupId: null,
   }
   readonly profiles: Array<{ userId: number; location: string | null }> = []
   readonly options: Array<{ userId: number; timezone: string }> = []
+  readonly displayGroups: Array<number | null> = []
 
   async read(): Promise<MemberSettings | null> {
     return this.row
+  }
+  async groupsHeldBy() {
+    return [
+      { groupId: 2, title: 'Registered', isPrimary: true },
+      { groupId: 5, title: 'Supporters', isPrimary: false },
+    ]
+  }
+  async saveDisplayGroup(input: { userId: number; displayGroupId: number | null }) {
+    this.displayGroups.push(input.displayGroupId)
   }
   async saveProfile(input: { userId: number; location: string | null }) {
     this.profiles.push(input)
@@ -228,6 +240,27 @@ describe('saving the options', () => {
 
     expect(result.error).toContain('not a timezone')
     expect(settings.options).toEqual([])
+  })
+})
+
+describe('saving the display group', () => {
+  it('saves a group the member is in', async () => {
+    const result = await run(saveDisplayGroupAction, form([['displayGroupId', '5']]))
+
+    expect(result.redirectedTo).toBe('/usercp/profile?saved=1')
+    expect(settings.displayGroups).toEqual([5])
+  })
+
+  it('stores nothing for the member’s own primary group', async () => {
+    await run(saveDisplayGroupAction, form([['displayGroupId', '2']]))
+    expect(settings.displayGroups).toEqual([null])
+  })
+
+  it('refuses a group the member does not hold', async () => {
+    const result = await run(saveDisplayGroupAction, form([['displayGroupId', '99']]))
+
+    expect(result.error).toContain('a group you are in')
+    expect(settings.displayGroups).toEqual([])
   })
 })
 

@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { ActorBuilder } from './actor-builder'
@@ -237,6 +238,177 @@ describe('pluginGrants — the grant lifecycle', () => {
     })
     expect(await pluginGrants(h.db, 'other').list(uid)).toHaveLength(0)
     expect(await permissionVersion()).toBeGreaterThan(before)
+  })
+})
+
+describe('pluginGrants — the primary group', () => {
+  async function primaryOf(userId: number): Promise<number> {
+    const [row] = await h.db
+      .select({ primaryGroupId: users.primaryGroupId })
+      .from(users)
+      .where(eq(users.id, userId))
+    return row!.primaryGroupId
+  }
+
+  async function secondaries(userId: number): Promise<number[]> {
+    const rows = await h.db
+      .select({ groupId: userGroupMemberships.groupId })
+      .from(userGroupMemberships)
+      .where(eq(userGroupMemberships.userId, userId))
+    return rows.map((row) => row.groupId).sort((a, b) => a - b)
+  }
+
+  it('makes the granted group primary and keeps the displaced one as a secondary', async () => {
+    const members = await group('members')
+    const paid = await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', members)
+
+    await pluginGrants(h.db, 'dues').grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(24),
+      reason: 'order 42 paid',
+      primary: true,
+    })
+
+    expect(await primaryOf(uid)).toBe(paid)
+    expect(await secondaries(uid)).toEqual([members, paid].sort((a, b) => a - b))
+  })
+
+  it('leaves the primary group alone when the grant does not ask for it', async () => {
+    const members = await group('members')
+    await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', members)
+
+    await pluginGrants(h.db, 'dues').grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(24),
+      reason: 'order 42 paid',
+    })
+
+    expect(await primaryOf(uid)).toBe(members)
+  })
+
+  it('hands the primary group back on revoke', async () => {
+    const members = await group('members')
+    await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', members)
+    const grants = pluginGrants(h.db, 'dues')
+
+    await grants.grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(24),
+      reason: 'order 42 paid',
+      primary: true,
+    })
+    await grants.revoke({ userId: uid, groupKey: 'supporters', reason: 'refunded' })
+
+    expect(await primaryOf(uid)).toBe(members)
+    expect(await secondaries(uid)).toEqual([])
+  })
+
+  it('hands the primary group back when the sweep collects a lapsed grant', async () => {
+    const members = await group('members')
+    const paid = await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', members)
+
+    await pluginGrants(h.db, 'dues').grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(1),
+      reason: 'order 42 paid',
+      primary: true,
+    })
+    await h.db
+      .update(userGroupMemberships)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(userGroupMemberships.groupId, paid))
+
+    expect(await expireTimedGroupMemberships(h.db, 100)).toBe(1)
+    expect(await primaryOf(uid)).toBe(members)
+    expect(await secondaries(uid)).toEqual([])
+  })
+
+  it('stops conferring the promoted group at the expiry, before any sweep runs', async () => {
+    const members = await group('members', { canView: true })
+    const paid = await group('supporters', {
+      pluginGrantable: true,
+      canUploadAttachments: true,
+    })
+    const uid = await user('Alice', members)
+
+    await pluginGrants(h.db, 'dues').grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(1),
+      reason: 'order 42 paid',
+      primary: true,
+    })
+    await h.db
+      .update(userGroupMemberships)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(userGroupMemberships.groupId, paid))
+
+    const actor = await new ActorBuilder(h.db, { guestGroupId: members }).buildForUser(uid)
+    expect(actor!.global.canUploadAttachments).toBe(false)
+    expect(actor!.primaryGroupId).toBe(members)
+  })
+
+  it('remembers the group behind every promotion, not the one it displaced', async () => {
+    const members = await group('members')
+    await group('supporters', { pluginGrantable: true })
+    const gold = await group('gold', { pluginGrantable: true })
+    const uid = await user('Alice', members)
+    const grants = pluginGrants(h.db, 'dues')
+
+    await grants.grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(24),
+      reason: 'a pass',
+      primary: true,
+    })
+    await grants.grant({
+      userId: uid,
+      groupKey: 'gold',
+      until: inHours(48),
+      reason: 'a better pass',
+      primary: true,
+    })
+    expect(await primaryOf(uid)).toBe(gold)
+
+    await grants.revoke({ userId: uid, groupKey: 'supporters', reason: 'refunded' })
+    expect(await primaryOf(uid)).toBe(gold)
+
+    await grants.revoke({ userId: uid, groupKey: 'gold', reason: 'refunded' })
+    expect(await primaryOf(uid)).toBe(members)
+    expect(await secondaries(uid)).toEqual([])
+  })
+
+  it('drops a display group the member can no longer claim', async () => {
+    const members = await group('members')
+    const paid = await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', members)
+    const grants = pluginGrants(h.db, 'dues')
+
+    await grants.grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(24),
+      reason: 'order 42 paid',
+      primary: true,
+    })
+    await h.db.update(users).set({ displayGroupId: paid }).where(eq(users.id, uid))
+
+    await grants.revoke({ userId: uid, groupKey: 'supporters', reason: 'refunded' })
+
+    const [row] = await h.db
+      .select({ displayGroupId: users.displayGroupId })
+      .from(users)
+      .where(eq(users.id, uid))
+    expect(row!.displayGroupId).toBeNull()
   })
 })
 

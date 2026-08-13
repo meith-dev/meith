@@ -28,10 +28,24 @@ export interface MemberSettings {
   readonly location: string | null
   readonly website: string | null
   readonly bio: string | null
+  readonly displayGroupId: number | null
+}
+
+export interface MemberGroupChoice {
+  readonly groupId: number
+  readonly title: string
+  readonly isPrimary: boolean
 }
 
 export interface MemberSettingsRepository {
   read(userId: number): Promise<MemberSettings | null>
+
+  groupsHeldBy(userId: number): Promise<readonly MemberGroupChoice[]>
+
+  saveDisplayGroup(input: {
+    readonly userId: number
+    readonly displayGroupId: number | null
+  }): Promise<void>
 
   saveProfile(input: {
     readonly userId: number
@@ -97,6 +111,41 @@ export class MemberSettingsService {
 
   async read(userId: number): Promise<MemberSettings | null> {
     return this.settings.read(userId)
+  }
+
+  async groupsHeldBy(userId: number): Promise<readonly MemberGroupChoice[]> {
+    return this.settings.groupsHeldBy(userId)
+  }
+
+  async saveDisplayGroup(input: {
+    readonly userId: number
+    readonly displayGroupId: string
+  }): Promise<void> {
+    const held = await this.settings.groupsHeldBy(input.userId)
+    const primary = held.find((choice) => choice.isPrimary)
+
+    const raw = input.displayGroupId.trim()
+    if (raw === '' || (primary !== undefined && raw === String(primary.groupId))) {
+      await this.settings.saveDisplayGroup({ userId: input.userId, displayGroupId: null })
+      return
+    }
+
+    if (!/^[1-9]\d*$/.test(raw)) {
+      throw new ValidationError('That is not a group this board has.')
+    }
+
+    const chosen = Number(raw)
+    if (!held.some((choice) => choice.groupId === chosen)) {
+      throw new ValidationError(
+        'You can only be shown as a group you are in. If a membership has ' +
+          'lapsed, so has your claim on its badge.',
+      )
+    }
+
+    await this.settings.saveDisplayGroup({
+      userId: input.userId,
+      displayGroupId: chosen,
+    })
   }
 
   async saveProfile(input: {

@@ -32,9 +32,84 @@ export function permissionsCarryPower(
 
 const MAX_GRANT_MS = 2 * 366 * 24 * 60 * 60 * 1000
 
+export const DISPLACED_PRIMARY_REASON =
+  'the group this member is primary in whenever no plugin grant stands in front of it'
+
 interface GrantableGroup {
   readonly id: number
   readonly key: string
+}
+
+type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]
+
+async function promotePrimary(tx: Tx, userId: number, groupId: number): Promise<void> {
+  const userRows = resultRows(
+    await tx.execute(
+      sql`select primary_group_id from users where id = ${userId} for update`,
+    ),
+  ) as Array<{ primary_group_id: number }>
+
+  const current = userRows[0]
+  if (current === undefined) return
+
+  const held = Number(current.primary_group_id)
+  if (held === groupId) return
+
+  const displacedRows = resultRows(
+    await tx.execute(sql`
+      select previous_primary_group_id
+        from user_group_memberships
+       where user_id = ${userId} and group_id = ${held}
+    `),
+  ) as Array<{ previous_primary_group_id: number | null }>
+
+  const rooted = displacedRows[0]?.previous_primary_group_id
+  const displaced = rooted === null || rooted === undefined ? held : Number(rooted)
+
+  await tx.execute(sql`
+    insert into user_group_memberships (user_id, group_id, grant_reason)
+    values (${userId}, ${displaced}, ${DISPLACED_PRIMARY_REASON})
+    on conflict (user_id, group_id) do nothing
+  `)
+
+  await tx.execute(sql`
+    update user_group_memberships
+       set previous_primary_group_id = ${displaced}
+     where user_id = ${userId} and group_id = ${groupId}
+  `)
+
+  await tx.execute(sql`
+    update users set primary_group_id = ${groupId}, updated_at = now() where id = ${userId}
+  `)
+}
+
+async function restorePrimary(
+  tx: Tx,
+  userId: number,
+  groupId: number,
+  displaced: number,
+): Promise<void> {
+  const changed = resultRows(
+    await tx.execute(sql`
+      update users
+         set primary_group_id = ${displaced},
+             display_group_id = case when display_group_id = ${groupId} then null else display_group_id end,
+             updated_at = now()
+       where id = ${userId} and primary_group_id = ${groupId}
+      returning id
+    `),
+  )
+
+  if (changed.length === 0) return
+
+  await tx.execute(sql`
+    delete from user_group_memberships
+     where user_id = ${userId}
+       and group_id = ${displaced}
+       and granted_by_plugin is null
+       and expires_at is null
+       and grant_reason = ${DISPLACED_PRIMARY_REASON}
+  `)
 }
 
 function camelise(row: Record<string, unknown>): Record<string, unknown> {
@@ -107,7 +182,7 @@ export function pluginGrants(
   clock: () => Date = () => new Date(),
 ): PluginGrants {
   return {
-    async grant({ userId, groupKey, until, reason }) {
+    async grant({ userId, groupKey, until, reason, primary }) {
       const now = clock()
       const expiry = checkedUntil(pluginKey, until, now)
       if (reason.trim() === '') {
@@ -151,6 +226,7 @@ export function pluginGrants(
             grantedByPlugin: pluginKey,
             grantReason: reason,
           })
+          if (primary === true) await promotePrimary(tx, userId, group.id)
           await bumpPermissionVersion(tx)
           return
         }
@@ -161,6 +237,7 @@ export function pluginGrants(
           )
         }
 
+        let touched = false
         if (current.expiresAt === null || current.expiresAt.getTime() < expiry.getTime()) {
           await tx
             .update(userGroupMemberships)
@@ -171,8 +248,15 @@ export function pluginGrants(
                 eq(userGroupMemberships.groupId, group.id),
               ),
             )
-          await bumpPermissionVersion(tx)
+          touched = true
         }
+
+        if (primary === true) {
+          await promotePrimary(tx, userId, group.id)
+          touched = true
+        }
+
+        if (touched) await bumpPermissionVersion(tx)
       })
     },
 
@@ -216,11 +300,16 @@ export function pluginGrants(
            where user_id = ${userId}
              and group_id = ${group.id}
              and granted_by_plugin = ${pluginKey}
-          returning user_id
+          returning previous_primary_group_id
         `)
-        if (resultRows(result).length > 0) {
-          await bumpPermissionVersion(tx)
+        const gone = resultRows(result) as Array<{ previous_primary_group_id: number | null }>
+        if (gone.length === 0) return
+
+        const displaced = gone[0]?.previous_primary_group_id
+        if (displaced !== null && displaced !== undefined) {
+          await restorePrimary(tx, userId, group.id, Number(displaced))
         }
+        await bumpPermissionVersion(tx)
       })
     },
 
@@ -260,11 +349,26 @@ export async function expireTimedGroupMemberships(
             and expires_at <= now()
           limit ${limit}
        )
-      returning user_id
+      returning user_id, group_id, previous_primary_group_id
     `)
 
-    const removed = resultRows(result).length
-    if (removed > 0) await bumpPermissionVersion(tx)
-    return removed
+    const gone = resultRows(result) as Array<{
+      user_id: number
+      group_id: number
+      previous_primary_group_id: number | null
+    }>
+
+    for (const row of gone) {
+      if (row.previous_primary_group_id === null) continue
+      await restorePrimary(
+        tx,
+        Number(row.user_id),
+        Number(row.group_id),
+        Number(row.previous_primary_group_id),
+      )
+    }
+
+    if (gone.length > 0) await bumpPermissionVersion(tx)
+    return gone.length
   })
 }

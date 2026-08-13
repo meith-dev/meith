@@ -5,6 +5,7 @@ import { useActionState } from "react"
 import {
   changePasswordAction,
   requestEmailChangeAction,
+  saveDisplayGroupAction,
   saveOptionsAction,
   saveProfileAction,
   saveSignatureAction,
@@ -74,6 +75,46 @@ export function ProfileForm({
       <div>
         <button type="submit" className={BUTTON}>
           Save profile
+        </button>
+      </div>
+    </form>
+  )
+}
+
+export function DisplayGroupForm({
+  choices,
+  selected,
+}: {
+  choices: readonly { value: string; label: string }[]
+  selected: string
+}) {
+  const [state, action] = useActionState(saveDisplayGroupAction, EMPTY_STATE)
+
+  return (
+    <form action={action} className={CARD}>
+      <h2 className="text-lg font-semibold tracking-tight">Display group</h2>
+      <FormError message={state.error} />
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Shown under your name</span>
+        <select name="displayGroupId" defaultValue={selected} className={FIELD}>
+          {choices.map((choice) => (
+            <option key={choice.value} value={choice.value}>
+              {choice.label}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-muted-foreground">
+          Every group you are in is here, and the one you pick decides the title,
+          colour and badge beside your posts. A group you hold only until a date
+          drops off this list when it lapses, and your name goes back to your
+          main group.
+        </span>
+      </label>
+
+      <div>
+        <button type="submit" className={BUTTON}>
+          Save display group
         </button>
       </div>
     </form>

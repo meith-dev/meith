@@ -1,6 +1,10 @@
 import { sql } from 'drizzle-orm'
 
-import type { MemberSettings, MemberSettingsRepository } from '@meith/accounts'
+import type {
+  MemberGroupChoice,
+  MemberSettings,
+  MemberSettingsRepository,
+} from '@meith/accounts'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -15,6 +19,13 @@ interface RawSettings {
   location: string | null
   website: string | null
   bio: string | null
+  display_group_id: number | null
+}
+
+interface RawGroupChoice {
+  id: number
+  title: string
+  is_primary: boolean
 }
 
 export class PostgresMemberSettingsRepository implements MemberSettingsRepository {
@@ -24,7 +35,7 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
     const rows = resultRows(
       await this.db.execute(sql`
         select id, email, timezone, posts_per_page, threads_per_page,
-               invisible, location, website, bio
+               invisible, location, website, bio, display_group_id
           from users
          where id = ${userId} and state <> 'deleted'
       `),
@@ -43,7 +54,45 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
       location: row.location,
       website: row.website,
       bio: row.bio,
+      displayGroupId: row.display_group_id === null ? null : Number(row.display_group_id),
     }
+  }
+
+  async groupsHeldBy(userId: number): Promise<readonly MemberGroupChoice[]> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select g.id, g.title, (g.id = u.primary_group_id) as is_primary
+          from users u
+          join usergroups g
+            on g.id = u.primary_group_id
+            or g.id in (
+              select m.group_id
+                from user_group_memberships m
+               where m.user_id = u.id
+                 and (m.expires_at is null or m.expires_at > now())
+            )
+         where u.id = ${userId} and u.state <> 'deleted'
+         order by is_primary desc, g.display_order, g.title
+      `),
+    ) as RawGroupChoice[]
+
+    return rows.map((row) => ({
+      groupId: Number(row.id),
+      title: row.title,
+      isPrimary: row.is_primary === true,
+    }))
+  }
+
+  async saveDisplayGroup(input: {
+    readonly userId: number
+    readonly displayGroupId: number | null
+  }): Promise<void> {
+    await this.db.execute(sql`
+      update users
+         set display_group_id = ${input.displayGroupId},
+             updated_at = now()
+       where id = ${input.userId}
+    `)
   }
 
   async saveProfile(input: {

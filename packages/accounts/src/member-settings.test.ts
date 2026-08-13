@@ -6,6 +6,7 @@ import {
   MemberSettingsService,
   isKnownTimezone,
   isTimezonePreference,
+  type MemberGroupChoice,
   type MemberSettings,
   type MemberSettingsRepository,
 } from './member-settings'
@@ -31,12 +32,23 @@ class MemorySettings implements MemberSettingsRepository {
     location: null,
     website: null,
     bio: null,
+    displayGroupId: null,
   }
   emailTaken = false
+  held: MemberGroupChoice[] = [
+    { groupId: 2, title: 'Registered', isPrimary: true },
+    { groupId: 5, title: 'Supporters', isPrimary: false },
+  ]
   readonly adopted: Array<{ userId: number; email: string }> = []
 
   async read(): Promise<MemberSettings | null> {
     return this.row
+  }
+  async groupsHeldBy(): Promise<readonly MemberGroupChoice[]> {
+    return this.held
+  }
+  async saveDisplayGroup(input: { userId: number; displayGroupId: number | null }) {
+    this.row = { ...this.row, displayGroupId: input.displayGroupId }
   }
   async saveProfile(input: {
     userId: number
@@ -188,6 +200,41 @@ describe('the profile', () => {
     await expect(
       service.saveProfile({ userId: 7, location: 'x'.repeat(101), website: '', bio: '' }),
     ).rejects.toThrow('at most 100')
+  })
+})
+
+describe('the display group', () => {
+  it('saves a group the member is in', async () => {
+    await service.saveDisplayGroup({ userId: 7, displayGroupId: '5' })
+    expect(settings.row.displayGroupId).toBe(5)
+  })
+
+  it('stores nothing for the primary group, so the choice follows it', async () => {
+    settings.row = { ...settings.row, displayGroupId: 5 }
+    await service.saveDisplayGroup({ userId: 7, displayGroupId: '2' })
+    expect(settings.row.displayGroupId).toBeNull()
+  })
+
+  it('reads an empty choice as the primary group too', async () => {
+    settings.row = { ...settings.row, displayGroupId: 5 }
+    await service.saveDisplayGroup({ userId: 7, displayGroupId: '' })
+    expect(settings.row.displayGroupId).toBeNull()
+  })
+
+  it('refuses a group the member is not in', async () => {
+    await expect(
+      service.saveDisplayGroup({ userId: 7, displayGroupId: '9' }),
+    ).rejects.toThrow('a group you are in')
+  })
+
+  it('refuses anything that is not a group id', async () => {
+    await expect(
+      service.saveDisplayGroup({ userId: 7, displayGroupId: 'gold' }),
+    ).rejects.toThrow('not a group')
+  })
+
+  it('lists the groups a member holds', async () => {
+    expect(await service.groupsHeldBy(7)).toHaveLength(2)
   })
 })
 

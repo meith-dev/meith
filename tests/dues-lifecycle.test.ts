@@ -260,6 +260,14 @@ async function actorGroups(userId: number): Promise<Set<number>> {
   return new Set(actor?.groupIds ?? [])
 }
 
+async function primaryGroup(userId: number): Promise<number> {
+  const result = await h.client.query(
+    'select primary_group_id from users where id = $1',
+    [userId],
+  )
+  return Number((result.rows as Array<{ primary_group_id: number }>)[0]!.primary_group_id)
+}
+
 let supportersGroup: number
 
 beforeAll(async () => {
@@ -389,6 +397,31 @@ describe('buying a pass for yourself', () => {
     const ledger = await recentLedger(context.data)
     expect(ledger).toHaveLength(1)
     expect(ledger[0]).toMatchObject({ kind: 'charge', amountMinor: 1200, userId: alice })
+  })
+
+  it('makes the membership group primary and keeps the old one alongside it', async () => {
+    const { sessionId } = await checkout(alice, 'pass-90')
+    expect(await primaryGroup(alice)).toBe(membersGroup)
+
+    await handleWebhook(services(), paidSessionEvent(sessionId))
+
+    expect(await primaryGroup(alice)).toBe(supportersGroup)
+    expect(await actorGroups(alice)).toEqual(new Set([membersGroup, supportersGroup]))
+  })
+
+  it('hands the old primary group back when the membership is revoked', async () => {
+    const { sessionId } = await checkout(alice, 'pass-90')
+    await handleWebhook(services(), paidSessionEvent(sessionId))
+    expect(await primaryGroup(alice)).toBe(supportersGroup)
+
+    await context.grants.revoke({
+      userId: alice,
+      groupKey: 'supporters',
+      reason: 'refunded',
+    })
+
+    expect(await primaryGroup(alice)).toBe(membersGroup)
+    expect(await actorGroups(alice)).toEqual(new Set([membersGroup]))
   })
 
   it('a replayed webhook changes nothing', async () => {
@@ -687,7 +720,10 @@ describe('the safety net', () => {
               grace_until = now() - interval '3 days'
         where user_id = ${bob}`,
     )
-    await exec(`update user_group_memberships set expires_at = now() - interval '3 days'`)
+    await exec(
+      `update user_group_memberships set expires_at = now() - interval '3 days'
+        where group_id = ${supportersGroup}`,
+    )
 
     expect((await actorGroups(bob)).has(supportersGroup)).toBe(false)
     expect(await runSweep(entitlementDeps(services()))).toBe(1)
