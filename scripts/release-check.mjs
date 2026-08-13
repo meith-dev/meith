@@ -66,7 +66,17 @@ const CONSTANTS = [
   { file: 'packages/create-meith/src/bin.ts', pattern: /run\(process\.argv\.slice\(2\), '([^']+)'\)/ },
 ]
 
-for (const { file, pattern } of CONSTANTS) {
+// What a first-party plugin declares about itself. /admin/plugins renders this
+// string and not the package.json beside it, so a plugin left behind here is an
+// operator reading a version two releases old on a board that upgraded cleanly
+// — the one drift on this page with a symptom, and it looks like a failed
+// deploy rather than a stale literal.
+const PLUGIN_MANIFESTS = [
+  { file: 'plugins/dues/src/definition.tsx', pattern: /\n\s*version: '([^']+)'/ },
+  { file: 'plugins/reference/src/plugin.tsx', pattern: /\n\s*version: '([^']+)'/ },
+]
+
+for (const { file, pattern } of [...CONSTANTS, ...PLUGIN_MANIFESTS]) {
   const source = await readFile(join(ROOT, file), 'utf8')
   const match = pattern.exec(source)
   if (match === null) {
@@ -108,6 +118,7 @@ if (problems.length > 0) {
 
 console.log(
   `✓ release coherence: ${version} in the root manifest, ${byName.size} workspace manifests, ` +
-    `${CONSTANTS.length} source constants, and the compose pin; ` +
+    `${CONSTANTS.length} source constants, ${PLUGIN_MANIFESTS.length} plugin manifests, ` +
+    'and the compose pin; ' +
     `${published.length} packages publish to npm and the set is closed`,
 )

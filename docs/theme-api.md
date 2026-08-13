@@ -1,7 +1,6 @@
 # The theme API
 
-`@meith/theme-kit` is the contract between the board and a theme, frozen since
-**0.1** and currently at **0.10**.
+`@meith/theme-kit` is the frozen contract between the board and a theme.
 
 This document is the policy — what the freeze covers, what it does not, and how
 something is removed from it. The reference (every slot, every field) is

@@ -37,10 +37,17 @@ The version is also written down in places npm never reads:
   records in the database.
 - `CODE_VERSION` in `apps/community/src/server/upgrade-notice.ts` — what the
   admin panel compares the recorded version against.
+- The version `packages/create-meith/src/bin.ts` writes into the dependencies
+  of a scaffolded project.
+- The `version` each first-party plugin declares to `definePlugin`
+  (`plugins/dues`, `plugins/reference`) — what `/admin/plugins` renders, and
+  the only one of these an operator ever sees.
 - The exact image tag the Coolify compose file pins.
 
-Nothing fails at runtime if these drift; a board would simply record one
-version while the release notes named another. So the agreement is enforced
+Nothing fails at runtime if these drift, but the plugin one is not silent: it
+sat at `0.1.0` through two releases while the manifest beside it moved, so a
+board that had just upgraded cleanly displayed a plugin version two releases
+old and read as a deploy that had not landed. So the agreement is enforced
 textually: `pnpm release:check` fails on any of them naming a different
 version, it runs in `pnpm verify` and CI, and the release workflow runs it
 with `--tag` so a tag that disagrees with its tree is refused before anything
@@ -91,8 +98,8 @@ the workflow drafts rather than publishes.
    tests, not the whole gate; the gate is `main`'s job.
 2. **Run the Cut a release workflow** — Actions → *Cut a release* → the
    version, `major.minor.patch` with no leading `v`. It bumps every place
-   the version is written (`pnpm release:bump` — the manifests, the two
-   constants, the compose pin), proves coherence with
+   the version is written (`pnpm release:bump` — the manifests, the source
+   constants, the plugin manifests, the compose pin), proves coherence with
    `release-check --tag`, commits `chore(release): vX.Y.Z` to `main`, pushes
    the tag, and starts the Release workflow against it. A version that would
    not move the tree forward is refused before anything is written.
