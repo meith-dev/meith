@@ -34,8 +34,9 @@ history behind it, and a checkout a visitor can actually go through. See
 1. **Register the plugin** where plugins are registered:
 
    ```ts
-   // apps/community/community.plugins.ts (this repository's board uses
-   // DUES_TEST_BOARD=1 to switch a test-shaped version of this on)
+   // apps/community/community.plugins.ts (this repository's own demo and
+   // test boards register their versions in community.demo.plugins.ts,
+   // behind DEMO_MODE and DUES_TEST_BOARD)
    import { dues } from '@meith/plugin-dues'
 
    export const INSTALLED_PLUGINS = [

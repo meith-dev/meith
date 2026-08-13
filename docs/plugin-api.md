@@ -31,6 +31,9 @@ export const greeter = definePlugin({
 ```
 
 Installing it is `pnpm add`, a line in `community.plugins.ts`, and a redeploy.
+That file holds your board's list and nothing else — this repository's own demo
+and test boards keep their plugins in `community.demo.plugins.ts`, spread into
+the list behind their flags, so what you read there is what your board runs.
 
 > [!TIP]
 > **[`examples/hello-plugin`](https://github.com/meith-dev/meith/tree/main/examples/hello-plugin)
