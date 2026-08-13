@@ -26,7 +26,7 @@ jobs:
     name: Static checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # No `version:` — action-setup reads `packageManager` from package.json,
       # so CI, the Docker image and a developer machine all run one pnpm. They
@@ -143,7 +143,7 @@ jobs:
     name: Production build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # No `version:` — action-setup reads `packageManager` from package.json,
       # so CI, the Docker image and a developer machine all run one pnpm. They
       # ran three (9, 11.x-latest and 10.6) until the image job made that
@@ -195,7 +195,7 @@ jobs:
           --health-cmd pg_isready --health-interval 10s
           --health-timeout 5s --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build the image
         run: docker build -f docker/Dockerfile -t forum:ci .
@@ -304,7 +304,7 @@ jobs:
     name: The site image serves meith.dev
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build the site image
         run: docker build -f docker/Dockerfile.site -t meith-site:ci .
@@ -348,7 +348,7 @@ jobs:
       run:
         working-directory: docker
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Both compose files parse before either is run, so a syntax error is one
       # clear failure rather than a confusing one 500 seconds into a build. The
@@ -582,7 +582,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # No `version:` — action-setup reads `packageManager` from package.json,
       # so CI, the Docker image and a developer machine all run one pnpm. They
       # ran three (9, 11.x-latest and 10.6) until the image job made that
@@ -619,7 +619,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # No `version:` — action-setup reads `packageManager` from package.json,
       # so CI, the Docker image and a developer machine all run one pnpm. They
       # ran three (9, 11.x-latest and 10.6) until the image job made that
