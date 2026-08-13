@@ -35,6 +35,7 @@ export interface MemberGroupChoice {
   readonly groupId: number
   readonly title: string
   readonly isPrimary: boolean
+  readonly isStaff: boolean
 }
 
 export interface MemberSettingsRepository {
@@ -123,6 +124,13 @@ export class MemberSettingsService {
   }): Promise<void> {
     const held = await this.settings.groupsHeldBy(input.userId)
     const primary = held.find((choice) => choice.isPrimary)
+
+    if (primary?.isStaff === true) {
+      throw new ValidationError(
+        'Your group is the one you were appointed to, and it is shown as itself. ' +
+          'Staff cannot post under another group.',
+      )
+    }
 
     const raw = input.displayGroupId.trim()
     if (raw === '' || (primary !== undefined && raw === String(primary.groupId))) {

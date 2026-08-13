@@ -387,6 +387,87 @@ describe('pluginGrants — the primary group', () => {
     expect(await secondaries(uid)).toEqual([])
   })
 
+  it('displaces a plain system group, which is what Registered is on every board', async () => {
+    const members = await group('members', { isSystem: true })
+    const paid = await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', members)
+
+    await pluginGrants(h.db, 'dues').grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(24),
+      reason: 'order 42 paid',
+      primary: true,
+    })
+
+    expect(await primaryOf(uid)).toBe(paid)
+  })
+
+  it.each([
+    ['a staff group', { isStaffGroup: true }],
+    ['an administrator group', { isAdministrator: true }],
+    ['a moderation group', { canAccessModCp: true }],
+    ['a warner group', { canWarnUsers: true }],
+  ])('never displaces %s', async (_kind, extra) => {
+    const staff = await group('staff', extra)
+    await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', staff)
+
+    await pluginGrants(h.db, 'dues').grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(24),
+      reason: 'order 42 paid',
+      primary: true,
+    })
+
+    expect(await primaryOf(uid)).toBe(staff)
+  })
+
+  it('still grants the group to staff, as an ordinary secondary membership', async () => {
+    const staff = await group('staff', { isStaffGroup: true })
+    const paid = await group('supporters', {
+      pluginGrantable: true,
+      canUploadAttachments: true,
+    })
+    const uid = await user('Alice', staff)
+
+    await pluginGrants(h.db, 'dues').grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(24),
+      reason: 'order 42 paid',
+      primary: true,
+    })
+
+    expect(await secondaries(uid)).toEqual([paid])
+    const actor = await new ActorBuilder(h.db, { guestGroupId: staff }).buildForUser(uid)
+    expect(actor!.global.canUploadAttachments).toBe(true)
+    expect(actor!.primaryGroupId).toBe(staff)
+  })
+
+  it('leaves a staff member’s standing alone when the grant lapses', async () => {
+    const staff = await group('staff', { isStaffGroup: true })
+    const paid = await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', staff)
+
+    await pluginGrants(h.db, 'dues').grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(1),
+      reason: 'order 42 paid',
+      primary: true,
+    })
+    await h.db
+      .update(userGroupMemberships)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(userGroupMemberships.groupId, paid))
+
+    expect(await expireTimedGroupMemberships(h.db, 100)).toBe(1)
+    expect(await primaryOf(uid)).toBe(staff)
+    expect(await secondaries(uid)).toEqual([])
+  })
+
   it('drops a display group the member can no longer claim', async () => {
     const members = await group('members')
     const paid = await group('supporters', { pluginGrantable: true })

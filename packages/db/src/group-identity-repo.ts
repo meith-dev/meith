@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { displayGroupIdSql } from './staff-groups'
 
 export interface GroupIdentity {
   readonly groupId: number
@@ -33,8 +34,10 @@ export class PostgresGroupIdentityRepository {
                g.badge_image_light,
                g.badge_image_dark
           from users u
+          join usergroups p
+            on p.id = u.primary_group_id
           join usergroups g
-            on g.id = coalesce(u.display_group_id, u.primary_group_id)
+            on g.id = ${displayGroupIdSql('u', 'p')}
          where u.id in ${sql`(${sql.join(
            userIds.map((id) => sql`${id}`),
            sql`, `,

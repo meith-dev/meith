@@ -8,6 +8,7 @@ import type {
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { isStaffGroupSql } from './staff-groups'
 
 interface RawSettings {
   id: number
@@ -26,6 +27,7 @@ interface RawGroupChoice {
   id: number
   title: string
   is_primary: boolean
+  is_staff: boolean
 }
 
 export class PostgresMemberSettingsRepository implements MemberSettingsRepository {
@@ -61,7 +63,8 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
   async groupsHeldBy(userId: number): Promise<readonly MemberGroupChoice[]> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select g.id, g.title, (g.id = u.primary_group_id) as is_primary
+        select g.id, g.title, (g.id = u.primary_group_id) as is_primary,
+               (${isStaffGroupSql('g')}) as is_staff
           from users u
           join usergroups g
             on g.id = u.primary_group_id
@@ -80,6 +83,7 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
       groupId: Number(row.id),
       title: row.title,
       isPrimary: row.is_primary === true,
+      isStaff: row.is_staff === true,
     }))
   }
 

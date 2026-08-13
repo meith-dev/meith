@@ -65,3 +65,23 @@ describe('PostgresMemberProfileRepository', () => {
     expect(await repo.findPublicById(50)).toMatchObject({ title: 'Registered' })
   })
 })
+
+describe('staff standing', () => {
+  it('shows a staff member as their staff group, whatever they chose', async () => {
+    await db
+      .update(users)
+      .set({ primaryGroupId: 3, displayGroupId: 2 })
+      .where(eq(users.id, 50))
+
+    expect(await repo.findPublicById(50)).toMatchObject({ title: 'Administrators' })
+  })
+
+  it('still honours an ordinary member’s choice', async () => {
+    await db
+      .update(users)
+      .set({ primaryGroupId: 2, displayGroupId: 5 })
+      .where(eq(users.id, 50))
+
+    expect(await repo.findPublicById(50)).toMatchObject({ title: 'Moderators' })
+  })
+})

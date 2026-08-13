@@ -201,8 +201,8 @@ describe('the display group', () => {
     `)
 
     expect(await repo.groupsHeldBy(IVAN)).toEqual([
-      { groupId: 2, title: 'Registered', isPrimary: true },
-      { groupId: SUPPORTERS, title: 'Supporters', isPrimary: false },
+      { groupId: 2, title: 'Registered', isPrimary: true, isStaff: false },
+      { groupId: SUPPORTERS, title: 'Supporters', isPrimary: false, isStaff: false },
     ])
   })
 
@@ -217,5 +217,30 @@ describe('the display group', () => {
   it('offers nothing for an account that is gone', async () => {
     await db.execute(sql`update users set state = 'deleted' where id = ${IVAN}`)
     expect(await repo.groupsHeldBy(IVAN)).toEqual([])
+  })
+})
+
+describe('a staff member’s groups', () => {
+  const SUPPORTERS = 90
+
+  beforeEach(async () => {
+    await db.execute(sql`delete from user_group_memberships`)
+    await db.execute(sql`delete from usergroups where id = ${SUPPORTERS}`)
+    await db.execute(sql`
+      insert into usergroups (id, key, title, display_order)
+      values (${SUPPORTERS}, 'supporters', 'Supporters', 20)
+    `)
+    await db.execute(sql`
+      insert into user_group_memberships (user_id, group_id) values (${IVAN}, ${SUPPORTERS})
+    `)
+  })
+
+  it('marks the staff group they are primary in', async () => {
+    await db.execute(sql`update users set primary_group_id = 5 where id = ${IVAN}`)
+
+    expect(await repo.groupsHeldBy(IVAN)).toEqual([
+      { groupId: 5, title: 'Moderators', isPrimary: true, isStaff: true },
+      { groupId: SUPPORTERS, title: 'Supporters', isPrimary: false, isStaff: false },
+    ])
   })
 })

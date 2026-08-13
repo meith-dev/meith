@@ -250,6 +250,15 @@ Everything the host refuses above still applies: `primary: true` on a group an
 operator has not opted in, on a staff group, or on one carrying power, is
 refused as the grant itself is.
 
+**And it never displaces a staff primary group.** Where the member is already
+primary in a staff group, or one carrying administrative or moderation power,
+the promotion is silently skipped: the grant still lands as an ordinary
+secondary membership, so the member gets everything the group carries, but
+their standing is left alone. Staff is appointed, and a plugin that could
+demote an appointment by selling something is a plugin deciding who runs the
+board. This is not an error and nothing is reported — the grant succeeded, and
+a plugin has no business branching on whether the buyer is a moderator.
+
 `grant` takes a plain `userId`, and nothing ties it to whoever is acting: who
 may cause a grant for whom — a member for themselves, one member for another,
 an automated rule for anyone — is the plugin's own policy, decided in its own

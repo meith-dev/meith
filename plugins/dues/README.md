@@ -24,6 +24,12 @@ the old primary group straight back. A member who would rather be shown as
 something else can pick any group they are in under UserCP → Profile; the
 choice is theirs, and it drops away with the membership it names.
 
+**Staff are the exception, and they are meant to be.** A moderator or
+administrator who buys gets the group and everything it carries, as a secondary
+membership — but their standing does not move, and they are still shown as
+staff. Selling a badge is fine; selling somebody out of the one that says who
+answers for the board is not.
+
 **Try it before you read any of this**: [demo.meith.dev](https://demo.meith.dev)
 runs this plugin against a Stripe that is not Stripe — a shop with a year of
 history behind it, and a checkout a visitor can actually go through. See

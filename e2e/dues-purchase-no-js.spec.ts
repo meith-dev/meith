@@ -3,7 +3,7 @@ import { createHmac } from 'node:crypto'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
 import { E2E_DUES_WEBHOOK_SECRET } from './support/config'
-import { enterAdminPanel, signUp } from './support/session'
+import { enterAdminPanel, signInAsModerator, signUp } from './support/session'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -148,6 +148,32 @@ test('the pass becomes the buyer’s group, on their profile and in the UserCP',
 
   await page.goto(`/member/by-name/${username}`)
   await expect(page.getByText('Registered', { exact: true })).toBeVisible()
+})
+
+test('a moderator who buys keeps their standing, and gets no display picker', async ({
+  page,
+  request,
+}) => {
+  const username = await signInAsModerator(page)
+
+  await page.goto('/plugins/dues')
+  await page
+    .locator('section', { has: page.getByRole('heading', { name: '90-day pass' }) })
+    .getByRole('button', { name: 'Buy this pass' })
+    .click()
+
+  const sessionId = await payOnFakeStripe(page)
+  await sendPaidWebhook(request, { id: sessionId, amount: 1200 })
+
+  await page.goto('/plugins/dues')
+  await expect(page.getByRole('heading', { name: 'What you hold' })).toBeVisible()
+
+  await page.goto(`/member/by-name/${username}`)
+  await expect(page.getByText('Super Moderators', { exact: true })).toBeVisible()
+  await expect(page.getByText('Supporters', { exact: true })).toHaveCount(0)
+
+  await page.goto('/usercp/profile')
+  await expect(page.getByText('Shown under your name')).toHaveCount(0)
 })
 
 test('a member gifts a pass to another member by name', async ({ page, request }) => {
