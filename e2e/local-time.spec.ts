@@ -11,7 +11,10 @@ test.describe('a reader in Tokyo', () => {
     await expect(page.getByText('Times are shown in Asia/Tokyo')).toBeVisible()
 
     const jar = await page.context().cookies()
-    expect(jar.find((cookie) => cookie.name === 'meith_tz')?.value).toBe('Asia/Tokyo')
+    const stored = jar.find((cookie) => cookie.name === 'meith_tz')?.value
+
+    expect(stored).toBeDefined()
+    expect(decodeURIComponent(stored ?? '')).toBe('Asia/Tokyo')
   })
 
   test('keeps the zone they chose for themselves', async ({ page }) => {
