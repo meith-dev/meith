@@ -24,6 +24,36 @@ import {
  */
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH
 
+/*
+ * The board both processes below are talking about, declared once.
+ *
+ * The seeder and the web server have to agree on all of this — the same
+ * database, demo mode on for both, the same uploads directory — and the cost of
+ * them disagreeing is a web server serving an empty board, or a seeder writing
+ * one nobody reads. So it is one object rather than two lists.
+ *
+ * It also lives here rather than inside `support/demo-board.ts` because
+ * `process.env` may only be *read* in `packages/core/src/env.ts`, and a script
+ * that assigns its own environment before importing anything is the same
+ * unvalidated-configuration problem wearing a hat. A config file is where a
+ * process's environment is supposed to be decided; `scripts/guards.mjs` agrees.
+ */
+const DEMO_ENV = {
+  DATA_SOURCE: "postgres",
+  DATABASE_URL: DEMO_DATABASE_URL,
+  // One, as the behaviour specs also run. PGlite serves every socket from a
+  // single instance, so two pooled connections interleave on the same unnamed
+  // prepared statement and the board fails its own queries.
+  DATABASE_POOL_MAX: "1",
+  QUEUE_DRIVER: "postgres",
+  CACHE_DRIVER: "memory",
+  FILESTORE_DRIVER: "local",
+  UPLOADS_DIR: DEMO_UPLOADS_DIR,
+  // The board the site is selling: every theme it ships, and the shop.
+  DEMO_MODE: "1",
+  SHOWCASE_THEMES: "1",
+} as const
+
 export default defineConfig({
   testDir: '.',
   testMatch: /screenshot-site\.spec\.ts$/,
@@ -44,6 +74,7 @@ export default defineConfig({
       reuseExistingServer: true,
       timeout: 300_000,
       stdout: 'pipe',
+      env: { ...DEMO_ENV, LOG_LEVEL: 'warn' },
     },
     {
       command: `pnpm --filter @meith/web run dev --hostname 127.0.0.1 --port ${DEMO_PORT}`,
@@ -51,24 +82,12 @@ export default defineConfig({
       reuseExistingServer: true,
       timeout: 300_000,
       env: {
-        DATA_SOURCE: 'postgres',
-        DATABASE_URL: DEMO_DATABASE_URL,
-        // One, as the behaviour specs also run. PGlite serves every socket from
-        // a single instance, so two pooled connections interleave on the same
-        // unnamed prepared statement and the board fails its own queries.
-        DATABASE_POOL_MAX: '1',
-        QUEUE_DRIVER: 'postgres',
-        CACHE_DRIVER: 'memory',
-        FILESTORE_DRIVER: 'local',
-        UPLOADS_DIR: DEMO_UPLOADS_DIR,
+        ...DEMO_ENV,
         AUTH_SECRET: 'shots-only-secret-00000000000000',
         TICK_SECRET: 'shots-only-tick-secret-0000000000',
         APP_URL: DEMO_BASE_URL,
         FORUM_DIST_DIR: '.next-shots',
         NEXT_TELEMETRY_DISABLED: '1',
-        // The board the site is selling: every theme it ships, and the shop.
-        DEMO_MODE: '1',
-        SHOWCASE_THEMES: '1',
         DUES_STRIPE_SECRET_KEY: 'sk_test_shots_00000000000000000',
         DUES_STRIPE_WEBHOOK_SECRET: 'whsec_shots_signing_secret',
         DUES_STRIPE_API_BASE: `${DEMO_BASE_URL}/demo/stripe`,

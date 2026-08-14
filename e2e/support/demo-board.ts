@@ -11,45 +11,28 @@
  * It is written to be read: a fixture list, a raid roster, an AGM and a lost
  * gear bag sitting in the same forum tree. See docs/demo-mode.md.
  *
- * The environment is set here rather than in the Playwright config because
- * `@meith/core` parses and freezes it the moment it is imported, and the
- * imports below reach it. Hence the dynamic imports: every one of them happens
- * after the assignments, which a hoisted `import` statement would not.
+ * It reads no configuration of its own. `DEMO_MODE`, the database URL and the
+ * rest arrive from `e2e/screenshot-site.config.ts`, which is what starts this
+ * process and which declares the same environment for the web server that
+ * follows it — one place, so the two cannot disagree about which board they
+ * are talking about. Run this file by hand and it will refuse to boot, which
+ * is the correct answer: by hand there is nothing to photograph.
  */
 import { createServer } from 'node:net'
 
-import { DEMO_DATABASE_URL, DEMO_DB_PORT, DEMO_READY_PORT, DEMO_UPLOADS_DIR } from './config'
+import { closeDb, getDb } from '@meith/db'
+import { demoResetTask } from '@meith/demo'
 
-/*
- * The rule below says to read configuration from `env` in @meith/core, and it is
- * right everywhere except here. This is the process that *writes* the
- * environment core will parse; there is no validated `env` to read from until
- * after these lines have run, which is the whole reason the imports in `main`
- * are dynamic.
- */
-/* eslint-disable no-restricted-properties -- this is where the environment is set, not read */
-process.env.DATA_SOURCE = 'postgres'
-process.env.DATABASE_URL = DEMO_DATABASE_URL
-process.env.DATABASE_POOL_MAX = '1'
-process.env.QUEUE_DRIVER = 'postgres'
-process.env.CACHE_DRIVER = 'memory'
-process.env.FILESTORE_DRIVER = 'local'
-process.env.UPLOADS_DIR = DEMO_UPLOADS_DIR
-process.env.DEMO_MODE = '1'
-process.env.SHOWCASE_THEMES = '1'
-process.env.LOG_LEVEL = 'warn'
-/* eslint-enable no-restricted-properties */
+import { installedPluginDefinitions } from '../../apps/community/community.plugins'
+
+import { DEMO_DATABASE_URL, DEMO_DB_PORT, DEMO_READY_PORT } from './config'
+import { startDatabase } from './database'
 
 async function main(): Promise<void> {
-  const { startDatabase } = await import('./database')
-  const { closeDb, getDb } = await import('@meith/db')
-  const { demoResetTask } = await import('@meith/demo')
-  const { installedPluginDefinitions } = await import('../../apps/community/community.plugins')
-
   /*
-   * Two rather than the fixture's one, so the seed's connection and the web
-   * server's never contend for the same slot. Only one is ever open at a time —
-   * the seed closes its own before the readiness port opens.
+   * Two connections rather than the fixture's one, so the seed's connection and
+   * the web server's never contend for the same slot. Only one is ever open at a
+   * time — the seed closes its own before the readiness port opens.
    */
   const database = await startDatabase({
     seeded: false,
@@ -92,7 +75,6 @@ async function main(): Promise<void> {
     `demo board listening on ${DEMO_DATABASE_URL} — ` +
       `${summary.forums} forum(s), ${summary.threads} thread(s), ${summary.posts} post(s)`,
   )
-
 
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     process.on(signal, () => {
