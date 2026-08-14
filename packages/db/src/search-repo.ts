@@ -23,6 +23,33 @@ const TOP_AUTHORS = 24
 
 export const SEARCH_DOCUMENT_VERSION = 1
 
+const EXCERPT_HIGHLIGHT_START = String.fromCharCode(0xe000)
+const EXCERPT_HIGHLIGHT_STOP = String.fromCharCode(0xe001)
+
+const HEADLINE_OPTIONS =
+  `StartSel=${EXCERPT_HIGHLIGHT_START}, StopSel=${EXCERPT_HIGHLIGHT_STOP}, ` +
+  `MaxFragments=1, MaxWords=40, MinWords=15`
+
+const EXCERPT_HTML_ESCAPES: Readonly<Record<string, string>> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+}
+
+export function renderExcerptHtml(headline: string): string {
+  const escaped = headline.replace(
+    /[&<>"']/g,
+    (character) => EXCERPT_HTML_ESCAPES[character] ?? character,
+  )
+  return escaped
+    .split(EXCERPT_HIGHLIGHT_START)
+    .join('<b>')
+    .split(EXCERPT_HIGHLIGHT_STOP)
+    .join('</b>')
+}
+
 export function searchVectorSql(subject: SQL | string, message: SQL | string): SQL {
   return sql`
     setweight(to_tsvector(${SEARCH_CONFIG}, coalesce(${subject}, '')), 'A') ||
@@ -78,7 +105,7 @@ export class PostgresSearchRepository {
                author_user_id, author_username, created_at, rank,
                ts_headline(${SEARCH_CONFIG}, excerpt_source,
                            websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms}),
-                           'MaxFragments=1, MaxWords=40, MinWords=15') as excerpt
+                           ${HEADLINE_OPTIONS}) as excerpt
           from ${candidates}
          order by ${finalOrder}
          limit ${query.limit}
@@ -94,7 +121,7 @@ export class PostgresSearchRepository {
       authorUserId: row.author_user_id === null ? null : Number(row.author_user_id),
       authorUsername: String(row.author_username),
       postedAt: row.created_at instanceof Date ? row.created_at : new Date(String(row.created_at)),
-      excerpt: String(row.excerpt ?? ''),
+      excerpt: renderExcerptHtml(String(row.excerpt ?? '')),
       rank: Number(row.rank),
     }))
 
