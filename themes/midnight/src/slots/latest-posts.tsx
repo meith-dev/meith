@@ -18,11 +18,10 @@ export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
         <ul className="divide-y divide-border font-mono text-xs">
           {posts.map((post) => (
             <li key={post.href} className="px-3 py-1.5">
-              <a href={post.href} className="text-primary hover:underline">
+              <a href={post.href} className="block truncate text-primary hover:underline">
                 {post.threadTitle}
               </a>
-              <span className="text-muted-foreground">
-                {' · '}
+              <p className="truncate text-muted-foreground">
                 <a href={post.forum.href} className="hover:text-foreground">
                   {post.forum.label}
                 </a>
@@ -30,7 +29,7 @@ export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
                 <UserRef user={post.author} className="hover:text-foreground" />
                 {' · '}
                 <time dateTime={post.postedAt.iso}>{post.postedAt.label}</time>
-              </span>
+              </p>
               {post.excerpt !== '' && (
                 <p className="line-clamp-2 text-muted-foreground">{post.excerpt}</p>
               )}
