@@ -11,6 +11,7 @@ import { spendResendLimit, verifyChallenge } from './antispam'
 import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
 import { configuredIdentity, getContainer } from './container'
 import { formStateReporter } from './form-state-reporter'
+import { termsAcceptance } from './legal'
 import {
   profileFieldService,
   registrationFieldContext,
@@ -51,13 +52,22 @@ export async function registerAction(
   const username = field(form, 'username')
   const email = field(form, 'email')
   const password = field(form, 'password')
-  const values = { username, email }
+  const accepted = field(form, 'terms') !== ''
+  const values = { username, email, ...(accepted ? { terms: '1' } : {}) }
 
   const identity = await configuredIdentity()
 
   let verification: { token: string; email: string; username: string } | null = null
 
   try {
+    const terms = await termsAcceptance()
+    if (terms !== null && !accepted) {
+      return {
+        error: `Please read the ${terms.label.toLowerCase()} and tick the box to accept it.`,
+        values,
+      }
+    }
+
     const challenge = await verifyChallenge(form)
     if (!challenge.ok) return { error: challenge.reason, values }
 

@@ -628,6 +628,7 @@ test('a registration question is asked once the challenge is switched on', async
       await applicant.getByLabel('Username').fill(username)
       await applicant.getByLabel('Email').fill(`${username}@example.test`)
       await applicant.getByLabel('Password').fill(PASSWORD)
+      await applicant.getByLabel(/I have read and accept/).check()
       await applicant.getByLabel(question).fill('not the answer')
       await applicant.getByRole('button', { name: 'Create account' }).click()
       await expect(applicant).not.toHaveURL(/registered=1/)

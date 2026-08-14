@@ -7,6 +7,8 @@ export {
   type SettingValue,
 } from './definitions'
 
+export { DEFAULT_PRIVACY_POLICY, DEFAULT_TERMS_OF_SERVICE } from './legal'
+
 export {
   SettingsSnapshot,
   saveSettings,

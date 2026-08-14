@@ -481,6 +481,54 @@ There is no cookie banner, because there is nothing on the board that needs one.
 > its data, which is the operator's to decide — a board that adds its own
 > tracking is adding its own obligations with it.
 
+## Terms and privacy
+
+Two documents, written by whoever runs the board, in
+`/admin/settings?group=legal`:
+
+| Setting | Published at | Linked from |
+|---|---|---|
+| **Terms of service** (`legal.terms`) | `/terms` | the footer, and the registration form |
+| **Privacy policy** (`legal.privacy`) | `/privacy` | the footer |
+
+Both are Markdown, rendered by the parser posts use — without the board's
+smilies and custom directives, which have no business in a legal notice and
+would change what it says the day somebody edits one. Both ship with a
+template rather than empty, because a board with no terms at all is the state
+nobody notices — and both templates are written to be replaced. Read them, make
+them describe what your community actually does, and take advice on them if
+what your board does warrants it. They are a starting point, not legal advice.
+
+They are ordinary settings, so `/admin/settings` edits them and so does the
+CLI, which is the easier route for a document you keep in a file:
+
+```bash
+community settings:set legal.terms "$(cat terms.md)"
+```
+
+Emptying one takes the page, its footer link, and — for the terms — the
+registration checkbox away together. That is the switch: there is no separate
+"enabled" toggle to leave inconsistent with the text.
+
+### Accepting the terms
+
+While the terms have a body, the registration form carries a checkbox and the
+server refuses to create the account without it. The refusal is on the server,
+not the form: the checkbox has `required` on it, but the board never trusts
+that, and a submission that arrives without the box gets the same error
+whichever way it was sent.
+
+What the board does *not* do is record the acceptance against the account.
+There is no stored timestamp and no version history, because a per-account
+record that nobody keeps the corresponding text for proves nothing — the terms
+are one editable document, and editing it changes what every reader sees at
+once. Existing members are not asked again when the text changes: the terms in
+force are the ones on the page, which is what they say themselves.
+
+> `/terms` and `/privacy` are board routes, so a forum whose slug is `terms` or
+> `privacy` is reachable at neither — the same as `/search`, `/online` and the
+> other names the board has already taken.
+
 ## Plugins
 
 Same shape as a theme: add the package, a line in `community.config.ts`, a redeploy.

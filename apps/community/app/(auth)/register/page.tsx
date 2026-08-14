@@ -4,6 +4,7 @@ import { AuthPage } from "@/components/auth/auth-page"
 import { RegisterForm } from "@/components/auth/register-form"
 import { issueChallenge } from "@/server/antispam"
 import { boardAuthConfig } from "@/server/auth-config"
+import { termsAcceptance } from "@/server/legal"
 import { registrationFields } from "@/server/profile-fields"
 
 export const metadata: Metadata = { title: "Create account" }
@@ -12,6 +13,8 @@ export default async function RegisterPage() {
   const issued = await issueChallenge()
 
   const { minPasswordLength, usernameMin, usernameMax } = await boardAuthConfig()
+
+  const terms = await termsAcceptance()
 
   const customFields = (await registrationFields()).map((field) => ({
     ...field,
@@ -28,6 +31,7 @@ export default async function RegisterPage() {
       <RegisterForm
         customFields={customFields}
         limits={{ minPasswordLength, usernameMin, usernameMax }}
+        terms={terms}
         challenge={{
           prompt: issued.challenge?.prompt ?? null,
           token: issued.challenge?.token ?? '',

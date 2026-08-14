@@ -62,6 +62,13 @@ vi.mock('./antispam', async (importOriginal) => {
   }
 })
 
+const legal = vi.hoisted(() => ({ terms: 'Be nice to each other.' }))
+
+vi.mock('./legal', () => ({
+  termsAcceptance: async () =>
+    legal.terms.trim() === '' ? null : { label: 'Terms of service', href: '/terms' },
+}))
+
 vi.mock('./auth-config', async (importOriginal) => {
   const actual = await importOriginal<typeof AuthConfigModule>()
   return {
@@ -112,7 +119,12 @@ async function redirectOf(run: Promise<unknown>): Promise<string> {
   throw new Error('expected the action to redirect, but it returned')
 }
 
-const CREDS = { username: 'ivan', email: 'ivan@example.com', password: 'correct-horse' }
+const CREDS = {
+  username: 'ivan',
+  email: 'ivan@example.com',
+  password: 'correct-horse',
+  terms: '1',
+}
 
 async function registerUser(over: Partial<typeof CREDS> = {}): Promise<void> {
   await redirectOf(registerAction(EMPTY_STATE, form({ ...CREDS, ...over })))
@@ -127,6 +139,7 @@ beforeEach(() => {
   mail.failReset = false
   policy.activationMethod = 'none'
   limiter.refuse = false
+  legal.terms = 'Be nice to each other.'
 })
 
 describe('registerAction', () => {
@@ -153,6 +166,21 @@ describe('registerAction', () => {
     )
     expect(state.error).toBeTruthy()
     expect(JSON.stringify(state)).not.toContain(CREDS.password)
+  })
+
+  it('refuses an account when the terms were not accepted', async () => {
+    const state = await registerAction(EMPTY_STATE, form({ ...CREDS, terms: '' }))
+
+    expect(state.error).toContain('terms of service')
+    expect(state.values?.terms).toBeUndefined()
+  })
+
+  it('creates the account when the board publishes no terms', async () => {
+    legal.terms = ''
+
+    expect(
+      await redirectOf(registerAction(EMPTY_STATE, form({ ...CREDS, terms: '' }))),
+    ).toBe('/login?registered=1')
   })
 })
 

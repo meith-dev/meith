@@ -21,6 +21,7 @@ test('the fixture board, registration, and login work without JavaScript', async
   await page.getByLabel('Username').fill(username)
   await page.getByLabel('Email').fill(`${username}@example.test`)
   await page.getByLabel('Password').fill(password)
+  await page.getByLabel(/I have read and accept/).check()
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page).toHaveURL(/\/login\?registered=1$/)
   await expect(page.getByText('Account created. You can sign in now.')).toBeVisible()
