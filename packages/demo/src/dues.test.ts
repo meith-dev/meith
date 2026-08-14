@@ -100,20 +100,6 @@ describe('the dues shop on the demo board', () => {
     ).toBe(0)
   })
 
-  /*
-   * Measured against the clock the board was seeded at, not the database's.
-   *
-   * `now()` is the wall clock, and the board under it was built from `NOW` — so
-   * this asked whether a fixture written on the 10th of August had expired by
-   * whenever the suite happened to run. It passed for four days and then did
-   * not: the lapsing member's grant runs to exactly `NOW` + 4 days, being a
-   * failed renewal inside its seven-day grace window, so the assertion went red
-   * on the stroke of 09:00 on the 14th having found nothing wrong.
-   *
-   * The invariant worth holding is the one the name claims — that the seed
-   * never issues a grant that is dead on arrival — and that is a question about
-   * the moment of seeding. A fixture clock is the only clock that can answer it.
-   */
   it('never grants a membership that has already expired', async () => {
     expect(
       await count(

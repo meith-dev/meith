@@ -26,28 +26,10 @@ export const E2E_FAKE_STRIPE_PORT = 12_111
 
 export const E2E_DUES_WEBHOOK_SECRET = 'whsec_e2e_dues_signing_secret'
 
-/*
- * The board the marketing site is photographed against.
- *
- * Ports and directories of its own, because it is a different board from the
- * one the behaviour specs run on: demo mode, the showcase themes and the Dues
- * shop, seeded with the twenty forums of `packages/demo` rather than the
- * fixture. Sharing a port would mean `pnpm site:shots` and `pnpm test:e2e`
- * could not be run at the same time, and would silently photograph whichever
- * server happened to be up.
- */
 export const DEMO_DB_PORT = 55_434
 
 export const DEMO_DATABASE_URL = `postgres://postgres:postgres@127.0.0.1:${DEMO_DB_PORT}/postgres`
 
-/*
- * What Playwright waits on before it starts the board.
- *
- * Not `DEMO_DB_PORT`, which is the wrong signal: the seed runs *through* the
- * socket server, so the database port answers a good ten seconds before there
- * is a board behind it. This one is opened after the seed returns, so a server
- * that finds it open finds a board too.
- */
 export const DEMO_READY_PORT = 55_435
 
 export const DEMO_PORT = 3003

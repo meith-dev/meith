@@ -10,24 +10,6 @@ import { findSegment, origin, segmentHref, segments } from "../../../src/content
 import { site, themeShots } from "../../../src/content/site"
 import { docHref, quickstartHref } from "../../../src/docs/registry"
 
-/*
- * One page per audience, from `src/content/segments.ts`, and about two hundred
- * words of it.
- *
- * Everything here is that audience's own: their headline, their four
- * complaints in their own words, the one feature that is the argument for them
- * specifically, and the board in a theme that suits them.
- *
- * What is *not* here any more is the eleven hundred words of shared bands that
- * used to sit under all of it — the deployment routes, the cost note, the
- * licence explainer, the performance measurement — repeated verbatim on all
- * five of these pages and again on the general one. The argument for that was
- * that somebody arriving cold from a search should not have to go elsewhere to
- * find out what this costs. That is right, and the strip near the foot of this
- * page now does it in thirty words and a link, because the page it links to is
- * itself only five hundred words long.
- */
-
 export function generateStaticParams() {
   return segments.map((segment) => ({ segment: segment.slug }))
 }
@@ -139,13 +121,6 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
             </div>
           </div>
 
-          {/*
-            The board in the theme that suits this audience, rather than an
-            outline of one. A club sees Clubhouse and a clan sees Raidframe —
-            the same board, the same afternoon, a different coat of paint, which
-            is the one claim about themes worth making and the one a drawing
-            could never make.
-          */}
           <figure className="flex flex-col gap-3">
             <SchemeScreenshot dark={board.dark} light={board.light} priority />
             <figcaption className="text-micro leading-[1.5] text-fg-subtle text-pretty">
@@ -197,15 +172,6 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
         </div>
       </section>
 
-      {/*
-        What eleven hundred words of shared bands turned into.
-
-        The deployment routes, the cost note, the licence explainer and the
-        performance measurement used to be repeated in full on all five of
-        these pages. They are one link now — to a general page that is itself
-        only five hundred words, and to the documents that always argued it
-        better than a summary of them could.
-      */}
       <section className="border-b border-border bg-surface">
         <div className="shell flex flex-col gap-4 py-12 sm:flex-row sm:items-baseline sm:justify-between sm:gap-10 sm:py-14">
           <div className="flex max-w-[42rem] flex-col gap-2">

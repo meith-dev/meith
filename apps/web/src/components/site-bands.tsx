@@ -4,25 +4,6 @@ import { closing, site } from "../content/site"
 
 import { DemoLink } from "./demo-link"
 
-/*
- * The one band that is the same wherever you landed.
- *
- * There were five. `RunningBand`, `ProofBand` and `LicenceBand` rendered the
- * deployment routes, the cost note, the performance measurement, the migration
- * note and a two-point licence explainer on all six pages of this site — about
- * eleven hundred words each time, or three-quarters of every segment page.
- *
- * The case for that was that somebody arriving cold from a search should not
- * have to go to the general page to find out what this costs or who runs it.
- * The case was sound; the implementation answered it by making every page long
- * enough that nobody read any of it. The general page now says all of it in
- * five hundred words, the segment pages link there in thirty, and the
- * documents that always argued it properly are one click from both.
- *
- * `DocsBand` went with them. It listed the documentation sections on a page
- * whose header already carries a link to the documentation and a search box
- * over it.
- */
 export function ClosingBand({
   heading,
   body,

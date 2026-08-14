@@ -1,50 +1,7 @@
 import { licenceHref, site } from "./site"
 
-/*
- * ── One page per audience ─────────────────────────────────────────────────
- *
- * The general page says what the thing is. These say why it is about you.
- *
- * "Forum for a GAA club" and "Discord alternative that keeps history" are
- * different intents that want different words and different examples, and one
- * page cannot rank for both or speak to both without hedging into mush. So
- * each audience gets a URL of its own, which can be linked in a committee
- * email, pinned in a server, or pointed at by an advert.
- *
- * ── What these pages used to be ───────────────────────────────────────────
- *
- * Sixteen hundred rendered words each, of which about eleven hundred were the
- * same on all five: the deployment routes, the cost note, the licence
- * explainer, the performance band and the migration note, repeated verbatim
- * six times across the site. The argument for that was that somebody arriving
- * cold from a search should not have to go to the general page to find out
- * what this costs — which is true, and is now served by a strip of thirty
- * words and a link, because the general page is one click away and is itself
- * only five hundred words long.
- *
- * What is left is the half that was ever actually about the reader: their
- * headline, their four complaints in their own words, the one feature that is
- * the argument for them specifically, and the board in a theme that suits
- * them. Roughly two hundred words each.
- *
- * Three things went with the cut and are worth naming, so nobody adds them
- * back by accident:
- *
- *   - `capabilities`, which let a segment pick four of the six cards from the
- *     general page and reorder them. Six cards on one page is a summary; four
- *     of the same six on five more pages is the same summary five more times.
- *   - `origin`, five paragraphs that all said "there is no clean export, start
- *     fresh and run both for a season". One shared line does it.
- *   - `feature.points` and `feature.emphasis`, which turned a two-sentence
- *     argument into a six-sentence one.
- *
- * Adding a segment is still one entry here. The route, the sitemap, the
- * chooser on the general page and the metadata all follow from it.
- */
-
 export interface Loss {
   readonly complaint: string
-  /** One sentence. It used to be three, and the third was never the good one. */
   readonly answer: string
 }
 
@@ -54,24 +11,10 @@ export type SegmentLink =
 
 export interface Segment {
   readonly slug: string
-  /** How this audience is named in the chooser, the header of the page and the breadcrumb. */
   readonly name: string
-  /**
-   * The name mid-sentence, as in "Meith for …". Declared rather than
-   * lower-cased from `name`, because English does not lower-case by rule
-   * once proper nouns are involved: "discord & slack communities" is wrong
-   * in a way "sports clubs" is not.
-   */
   readonly lowerName: string
-  /** The one line under the name in the chooser on the general page. */
   readonly chooserLine: string
-  /**
-   * The theme this audience is shown the board in, by key. A club sees
-   * Clubhouse and a clan sees Raidframe, because a screenshot that looks like
-   * it was made for somebody else is worse than no screenshot.
-   */
   readonly theme: string
-  /** Under the board shot, naming whose board it is. */
   readonly boardCaption: string
   readonly meta: { readonly title: string; readonly description: string }
   readonly hero: {
@@ -91,11 +34,6 @@ export interface Segment {
 
 const duesHref = `${site.repository}/tree/main/plugins/dues`
 
-/*
- * The one paragraph that used to be five. Every platform on the list is a
- * platform you cannot get your history out of, and saying so once is more
- * convincing than saying it five times in five accents.
- */
 export const origin = {
   heading: "Coming from somewhere else?",
   body:

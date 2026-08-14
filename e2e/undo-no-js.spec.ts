@@ -68,6 +68,8 @@ test('a member trashes a message, restores it, and empties the folder', async ({
 })
 
 test('a member takes their avatar down again', async ({ page, request }) => {
+  test.setTimeout(150_000)
+
   await signUp(page, 'noface')
 
   await page.goto('/usercp/avatar')

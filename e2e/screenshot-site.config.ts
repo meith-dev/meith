@@ -8,48 +8,16 @@ import {
   DEMO_UPLOADS_DIR,
 } from './support/config'
 
-/*
- * The photographer's config, run by `pnpm site:shots` and by nothing else.
- *
- * A config of its own rather than a project in `playwright.config.ts`, because
- * the board it needs is a different board: demo mode, the showcase themes and
- * the Dues shop, on ports of its own. Folding it into the main config would
- * boot all of that for every `pnpm test:e2e` run, to serve one spec that is not
- * a test and does not assert anything.
- *
- * It is also why the shots are not captured on CI. They are a deliberate act
- * with a reviewable diff — a hundred kilobytes of PNG landing in a pull request
- * because a seed date moved is noise, and nobody reviews a binary that changed
- * on its own.
- */
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH
 
-/*
- * The board both processes below are talking about, declared once.
- *
- * The seeder and the web server have to agree on all of this — the same
- * database, demo mode on for both, the same uploads directory — and the cost of
- * them disagreeing is a web server serving an empty board, or a seeder writing
- * one nobody reads. So it is one object rather than two lists.
- *
- * It also lives here rather than inside `support/demo-board.ts` because
- * `process.env` may only be *read* in `packages/core/src/env.ts`, and a script
- * that assigns its own environment before importing anything is the same
- * unvalidated-configuration problem wearing a hat. A config file is where a
- * process's environment is supposed to be decided; `scripts/guards.mjs` agrees.
- */
 const DEMO_ENV = {
   DATA_SOURCE: "postgres",
   DATABASE_URL: DEMO_DATABASE_URL,
-  // One, as the behaviour specs also run. PGlite serves every socket from a
-  // single instance, so two pooled connections interleave on the same unnamed
-  // prepared statement and the board fails its own queries.
   DATABASE_POOL_MAX: "1",
   QUEUE_DRIVER: "postgres",
   CACHE_DRIVER: "memory",
   FILESTORE_DRIVER: "local",
   UPLOADS_DIR: DEMO_UPLOADS_DIR,
-  // The board the site is selling: every theme it ships, and the shop.
   DEMO_MODE: "1",
   SHOWCASE_THEMES: "1",
 } as const
@@ -69,7 +37,6 @@ export default defineConfig({
   webServer: [
     {
       command: 'pnpm exec tsx e2e/support/demo-board.ts',
-      // Not the database port. See DEMO_READY_PORT in ./support/config.
       port: DEMO_READY_PORT,
       reuseExistingServer: true,
       timeout: 300_000,

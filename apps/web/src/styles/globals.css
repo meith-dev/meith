@@ -1151,19 +1151,7 @@ body {
   border-radius: var(--radius-control);
 }
 
-/* ── photographs of a board ───────────────────────────────────────────────── */
 
-/*
- * Every picture on this site is a screenshot of a real board, taken by
- * `pnpm site:shots`. They are the argument the page used to make in prose, so
- * they are framed to be looked at rather than dropped in: a border and a radius
- * that match the cards around them, and the lift that says the thing is sitting
- * on the page rather than printed into it.
- *
- * `height: auto` against the width and height attributes on the element is what
- * lets the browser hold the right box before the bytes land, without locking the
- * image to its capture size.
- */
 .shot {
   display: block;
   width: 100%;
@@ -1174,14 +1162,6 @@ body {
   background: var(--raised);
 }
 
-/*
- * A light screenshot on a dark page is the tell that the picture was taken
- * somewhere else, so the hero carries both and CSS picks.
- *
- * The three states are the ones the tokens at the top of this file handle, and
- * for the same reason: a reader whose system is dark and who has since asked
- * for light needs the light rule to win, which a single media query cannot do.
- */
 .shot-dark {
   display: none;
 }
@@ -1212,15 +1192,6 @@ body {
   display: none;
 }
 
-/*
- * The phone standing in front of the desktop. Point two of the eight this page
- * makes, and the only one with no copy at all — a reader has taken it in before
- * they could have read a sentence claiming it.
- *
- * It overlaps only where there is room to overlap. Below the breakpoint the two
- * stack, because a phone shot laid over a desktop shot on a phone is a picture
- * of nothing.
- */
 .devices {
   position: relative;
   display: grid;
@@ -1228,11 +1199,6 @@ body {
 }
 
 @media (min-width: 48rem) {
-  /*
-   * Proportional rather than fixed, because this sits in the hero's image
-   * column now rather than across the whole shell. A phone pinned at 13rem was
-   * a third of the picture at full width and most of it at half.
-   */
   .devices {
     display: block;
     padding-inline-end: 20%;
@@ -1246,8 +1212,6 @@ body {
     box-shadow: var(--lift-lg);
   }
 }
-
-/* ── the theme switcher ───────────────────────────────────────────────────── */
 
 .tab {
   padding: 0.4rem 0.85rem;
