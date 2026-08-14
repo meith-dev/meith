@@ -11,6 +11,7 @@ import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
 import { reputationService, reputationSettings, viewerRaterLimits } from './reputation'
+import { isSafeLocalPath } from './safe-path'
 import type { FormState } from './auth-form-state'
 
 const toFormState = formStateReporter('reputation-actions', 'unexpected error rating somebody')
@@ -22,7 +23,7 @@ function positiveInt(form: FormData, name: string): number | null {
 
 function safeReturn(form: FormData, fallback: string): string {
   const raw = trimmedText(form, 'returnTo')
-  return raw.startsWith('/') && !raw.startsWith('//') ? raw : fallback
+  return isSafeLocalPath(raw) ? raw : fallback
 }
 
 async function requireReputation(): Promise<{

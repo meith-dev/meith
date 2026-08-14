@@ -14,6 +14,7 @@ import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt, text } from './form-values'
+import { isSafeLocalPath } from './safe-path'
 
 const toFormState = formStateReporter('subscription-actions', 'unexpected error in subscriptions')
 
@@ -143,6 +144,6 @@ export async function unsubscribeByTokenAction(
 }
 
 function safeReturn(value: string, fallback: string): string {
-  if (!value.startsWith('/') || value.startsWith('//')) return fallback
+  if (!isSafeLocalPath(value)) return fallback
   return value
 }

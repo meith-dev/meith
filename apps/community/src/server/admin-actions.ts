@@ -18,6 +18,7 @@ import { getActor } from './context'
 import { getContainer } from './container'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
+import { isSafeLocalPath } from './safe-path'
 import { clearAdminCookie, readAdminToken, setAdminCookie } from './session-cookies'
 import type { FormState } from './auth-form-state'
 
@@ -101,7 +102,7 @@ export async function adminSignOutAction(): Promise<void> {
 
 function safeAdminReturn(raw: string): string {
   const trimmed = raw.trim()
-  if (!trimmed.startsWith('/admin')) return '/admin'
-  if (trimmed.startsWith('//') || /^\/admin[^/?#]/.test(trimmed)) return '/admin'
+  if (!isSafeLocalPath(trimmed) || !trimmed.startsWith('/admin')) return '/admin'
+  if (/^\/admin[^/?#]/.test(trimmed)) return '/admin'
   return trimmed
 }

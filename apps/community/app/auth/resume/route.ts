@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server"
 import { logger } from "@meith/core"
 
 import { getContainer } from "@/server/container"
+import { isSafeLocalPath } from "@/server/safe-path"
 import {
   clearSessionCookies,
   readRememberToken,
@@ -15,8 +16,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 function safeNext(raw: string | null): string {
-  if (raw && raw.startsWith("/") && !raw.startsWith("//")) return raw
-  return "/"
+  return raw !== null && isSafeLocalPath(raw) ? raw : "/"
 }
 
 export async function GET(request: NextRequest): Promise<Response> {

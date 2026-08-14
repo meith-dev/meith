@@ -231,4 +231,21 @@ export const GUARDS = [
       clean: 'export function ThreadView({ regions }) {\n  return regions.posts\n}',
     },
   },
+  {
+    id: 'no-adhoc-local-redirect-check',
+    why:
+      'A redirect or return target is validated only by isSafeLocalPath ' +
+      '(apps/community/src/server/safe-path.ts). The bare ' +
+      'startsWith("/") && !startsWith("//") idiom accepts /\\evil.com, which a ' +
+      'browser resolves as //evil.com — an open redirect that turns a login link ' +
+      'into an off-site hop. isSafeLocalPath also rejects the backslash, control ' +
+      'characters, and any target whose resolved origin is not this board.',
+    files: /^apps\/community\/.*\.tsx?$/,
+    pattern: /\.startsWith\(\s*['"]\/\//,
+    allow: /^apps\/community\/src\/server\/safe-path\.ts$/,
+    probe: {
+      violates: "if (next.startsWith('/') && !next.startsWith('//')) return next",
+      clean: "return isSafeLocalPath(next) ? next : '/'",
+    },
+  },
 ]

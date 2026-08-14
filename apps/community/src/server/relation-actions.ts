@@ -9,6 +9,7 @@ import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
 import { isStaff, relationService } from './relations'
+import { isSafeLocalPath } from './safe-path'
 import type { FormState } from './auth-form-state'
 
 const toFormState = formStateReporter('relation-actions', 'unexpected error in a relation action')
@@ -37,7 +38,7 @@ async function requireLists(): Promise<{
 
 function safeReturn(form: FormData): string {
   const raw = trimmedText(form, 'returnTo')
-  return raw.startsWith('/') && !raw.startsWith('//') ? raw : '/usercp/contacts'
+  return isSafeLocalPath(raw) ? raw : '/usercp/contacts'
 }
 
 export async function setRelationAction(_prev: FormState, form: FormData): Promise<FormState> {

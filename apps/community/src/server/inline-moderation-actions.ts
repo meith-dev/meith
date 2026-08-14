@@ -19,12 +19,13 @@ import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
+import { isSafeLocalPath } from './safe-path'
 
 const toFormState = formStateReporter('inline-moderation', 'unexpected error in inline moderation')
 
 function safeReturn(form: FormData): string {
   const raw = form.get('returnTo')
-  if (typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//')) return raw
+  if (typeof raw === 'string' && isSafeLocalPath(raw)) return raw
   return '/'
 }
 
