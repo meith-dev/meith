@@ -1728,8 +1728,16 @@ form and running another search — which is also another entry against
 **This board:** the results page carries the filters with it. The stored search
 holds the words and the options it was run with; the results URL carries a
 *refinement* on top — a forum, an author, a window, an order — and the page
-re-runs the stored search with both applied. Each filter is a `<select>` in a
-GET form and, once on, a chip with an href that removes only itself.
+re-runs the stored search with both applied. The order is three links, because
+changing it is one decision and the commonest one; the filters are a strip of
+small labelled selects with one **apply**, because filtering is several
+decisions at once. Anything already on is also a chip, with an href that removes
+only itself.
+
+The strip is deliberately a strip. A results page is a listing, and a filter
+panel that fills the screen above it is a listing you cannot see — but hiding
+the filters behind a disclosure trades that for a worse fault, because a filter
+nobody can see is a filter nobody uses.
 
 **Why:** a stored search is a token and a set of words, and re-running it is
 what the page already does on every open to re-check the reader's access. Adding
