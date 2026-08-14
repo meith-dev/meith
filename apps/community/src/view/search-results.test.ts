@@ -167,6 +167,32 @@ describe('the refine panel', () => {
     ])
   })
 
+  it('offers the order as links, each keeping the filters already on', () => {
+    const model = build({ refine: { forumIds: [3] } })
+
+    expect(model.refine?.sorts).toEqual([
+      { label: 'Best match', href: '/search/abc?forum=3', isCurrent: true },
+      { label: 'Newest first', href: '/search/abc?sort=newest&forum=3', isCurrent: false },
+      { label: 'Oldest first', href: '/search/abc?sort=oldest&forum=3', isCurrent: false },
+    ])
+  })
+
+  it('marks the order the results are in, whoever asked for it', () => {
+    const newest = { ...FILTERS, sort: 'newest' } as const
+    const model = build({ filters: newest, effective: newest })
+
+    expect(model.refine?.sorts.find((sort) => sort.isCurrent)?.label).toBe('Newest first')
+    expect(model.refine?.sorts.find((sort) => sort.label === 'Newest first')?.href).toBe(
+      '/search/abc',
+    )
+  })
+
+  it('leaves the order alone when the filters are cleared', () => {
+    const model = build({ refine: { sort: 'newest', forumIds: [3] } })
+
+    expect(model.refine?.clearHref).toBe('/search/abc?sort=newest')
+  })
+
   it('marks the filter that is on', () => {
     const forum = build({ refine: { forumIds: [5] } }).refine?.choices.find(
       (choice) => choice.field === 'forum',
@@ -205,6 +231,7 @@ describe('the refine panel', () => {
 
   it('offers nothing to clear until something is filtering', () => {
     expect(build().refine?.clearHref).toBeNull()
+    expect(build({ refine: { sort: 'newest' } }).refine?.clearHref).toBeNull()
     expect(build({ refine: { forumIds: [3] } }).refine?.clearHref).toBe('/search/abc')
   })
 

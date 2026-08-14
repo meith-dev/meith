@@ -2,11 +2,6 @@ import type { OptionModel, SearchRefineModel, SearchResultsModel } from '@meith/
 
 import { FEED, LINK, PAGE, PILL, PILL_PRIMARY, Stamp } from '../shared'
 
-const LABEL = 'mb-1 block text-sm font-semibold text-foreground'
-
-const SELECT =
-  'w-full rounded-lg border border-input bg-surface px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-ring'
-
 export function SearchResults({
   terms,
   searchedAt,
@@ -122,6 +117,8 @@ function Refine({
   label,
   summary,
   note,
+  sorts,
+  sortsLabel,
   choices,
   submitLabel,
   applied,
@@ -129,56 +126,66 @@ function Refine({
 }: SearchRefineModel) {
   return (
     <section
-      aria-labelledby="search-refine"
-      className="rounded-lg border border-border bg-card px-4 py-3.5 shadow-elevation"
+      aria-label={label}
+      className="flex flex-col gap-2.5 rounded-lg border border-border bg-card px-4 py-3 shadow-elevation"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <h2 id="search-refine" className="text-sm font-semibold">
-            {label}
-          </h2>
-          <p className="text-sm text-muted-foreground">{summary}</p>
-        </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="text-sm font-semibold text-foreground">{summary}</p>
+
+        <nav
+          aria-label={sortsLabel}
+          className="flex items-center rounded-full border border-border p-0.5"
+        >
+          {sorts.map((sort) => (
+            <a
+              key={sort.label}
+              href={sort.href}
+              {...(sort.isCurrent ? { 'aria-current': 'true' as const } : {})}
+              className={
+                sort.isCurrent
+                  ? 'rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary'
+                  : 'rounded-full px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground'
+              }
+            >
+              {sort.label}
+            </a>
+          ))}
+        </nav>
+
+        {applied.map((chip) => (
+          <a
+            key={chip.label}
+            href={chip.removeHref}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-foreground hover:bg-primary/20"
+          >
+            {chip.label}
+            <span aria-hidden="true">×</span>
+            <span className="sr-only">— remove this filter</span>
+          </a>
+        ))}
+      </div>
+
+      <form
+        method="get"
+        action={action}
+        className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-2.5"
+      >
+        {choices.map((choice) => (
+          <RefineChoice key={choice.field} {...choice} />
+        ))}
+
+        <button type="submit" className={`${PILL} h-8 px-3 text-xs`}>
+          {submitLabel}
+        </button>
 
         {clearHref !== null && (
-          <a href={clearHref} className={`text-sm font-semibold ${LINK}`}>
+          <a href={clearHref} className={`text-xs font-semibold ${LINK}`}>
             Clear filters
           </a>
         )}
-      </div>
-
-      {note !== null && <p className="mt-1 text-xs text-muted-foreground">{note}</p>}
-
-      {applied.length > 0 && (
-        <ul className="mt-3 flex flex-wrap gap-2">
-          {applied.map((chip) => (
-            <li key={chip.label}>
-              <a
-                href={chip.removeHref}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold text-foreground hover:bg-muted"
-              >
-                {chip.label}
-                <span aria-hidden="true">×</span>
-                <span className="sr-only">— remove this filter</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <form method="get" action={action} className="mt-3 flex flex-col gap-3">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {choices.map((choice) => (
-            <RefineChoice key={choice.field} {...choice} />
-          ))}
-        </div>
-
-        <div>
-          <button type="submit" className={PILL}>
-            {submitLabel}
-          </button>
-        </div>
       </form>
+
+      {note !== null && <p className="text-xs text-muted-foreground">{note}</p>}
     </section>
   )
 }
@@ -196,17 +203,22 @@ function RefineChoice({
   const id = `search-refine-${field}`
 
   return (
-    <div>
-      <label htmlFor={id} className={LABEL}>
+    <span className="inline-flex items-center gap-1.5">
+      <label htmlFor={id} className="text-xs font-semibold text-muted-foreground">
         {label}
       </label>
-      <select id={id} name={field} defaultValue={selected?.value ?? ''} className={SELECT}>
+      <select
+        id={id}
+        name={field}
+        defaultValue={selected?.value ?? ''}
+        className="h-8 rounded-lg border border-input bg-surface px-2 text-xs text-foreground transition-colors focus-visible:border-ring"
+      >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
       </select>
-    </div>
+    </span>
   )
 }

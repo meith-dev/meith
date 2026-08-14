@@ -908,18 +908,20 @@ One search result: where it goes, and enough of it to decide whether to go. `exc
 
 ### SearchRefineModel
 
-The filter and sort panel on a results page. ## Why this is a form and not a set of links It is both. `choices` submit as a GET form, so several filters can be changed at once and the result is a URL; `applied` is the reverse — one chip per filter that is on, each with an href that removes just that one. A reader with JavaScript off gets both, because both are ordinary HTML. ## Counts, and what they count An option's label carries the number of results it would leave, counted against the search *without* the forum and author filters applied — so the counts stay put as a reader moves between forums instead of collapsing to the one they are already in. `note` carries the caveat when the board is big enough that the count is a floor rather than a total.
+Filtering and sorting for a results page, in the order of how often it is used: the count, the order, what is already narrowing the page, and — folded away until wanted — the filters themselves. ## Why the order is links and the filters are a form Changing the order is one decision and the commonest one, so `sorts` are links: one click, nothing to submit, and each href carries the filters already applied. Filtering is several decisions at once — a forum *and* a date, say — so `choices` are a GET form with one submit, and the result is a URL. `applied` is the reverse of both: one chip per filter that is on, each with an href that removes only itself. A reader with JavaScript off gets all three, because all three are ordinary HTML. ## The space this is allowed to take A results page is a listing, and a filter panel that fills the screen above it is a listing you cannot see. This is a strip, not a panel: labels sit beside their controls rather than above them, and the whole thing is meant to read as one bar between the heading and the results. Hiding it behind a disclosure is the other way to save the space and a worse one — a filter nobody can see is a filter nobody uses, and a reader who cannot see how a page was narrowed does not trust it. ## Counts, and what they count An option's label carries the number of results it would leave, counted against the search *without* the forum and author filters applied — so the counts stay put as a reader moves between forums instead of collapsing to the one they are already in. `note` carries the caveat when the board is big enough that the count is a floor rather than a total.
 
 | Field | Type | Notes |
 |---|---|---|
-| `action` | `string` | Where the panel submits: this same results page. |
+| `action` | `string` | Where the filters submit: this same results page. |
 | `label` | `string` |  |
 | `summary` | `string` | One line: how many matched, and what is being shown. |
 | `note` | `string \| null` | The bound on the count, when there is one. `null` when the count is exact. |
+| `sorts` | `readonly TabModel[]` | The order, as links. One is always current. |
+| `sortsLabel` | `string` | Names the run of order links, for a theme that labels it. |
 | `choices` | `readonly SearchChoiceModel[]` |  |
 | `submitLabel` | `string` |  |
 | `applied` | `readonly SearchChipModel[]` |  |
-| `clearHref` | `string \| null` | Back to the search as it was run, or `null` when nothing is filtering it. |
+| `clearHref` | `string \| null` | Drops every filter and keeps the order, or `null` when none is on. |
 
 ### SearchTextFieldModel
 

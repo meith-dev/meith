@@ -1015,14 +1015,31 @@ export interface SearchChipModel {
 }
 
 /**
- * The filter and sort panel on a results page.
+ * Filtering and sorting for a results page, in the order of how often it is
+ * used: the count, the order, what is already narrowing the page, and — folded
+ * away until wanted — the filters themselves.
  *
- * ## Why this is a form and not a set of links
+ * ## Why the order is links and the filters are a form
  *
- * It is both. `choices` submit as a GET form, so several filters can be changed
- * at once and the result is a URL; `applied` is the reverse — one chip per
- * filter that is on, each with an href that removes just that one. A reader
- * with JavaScript off gets both, because both are ordinary HTML.
+ * Changing the order is one decision and the commonest one, so `sorts` are
+ * links: one click, nothing to submit, and each href carries the filters
+ * already applied. Filtering is several decisions at once — a forum *and* a
+ * date, say — so `choices` are a GET form with one submit, and the result is a
+ * URL. `applied` is the reverse of both: one chip per filter that is on, each
+ * with an href that removes only itself.
+ *
+ * A reader with JavaScript off gets all three, because all three are ordinary
+ * HTML.
+ *
+ * ## The space this is allowed to take
+ *
+ * A results page is a listing, and a filter panel that fills the screen above
+ * it is a listing you cannot see. This is a strip, not a panel: labels sit
+ * beside their controls rather than above them, and the whole thing is meant
+ * to read as one bar between the heading and the results. Hiding it behind a
+ * disclosure is the other way to save the space and a worse one — a filter
+ * nobody can see is a filter nobody uses, and a reader who cannot see how a
+ * page was narrowed does not trust it.
  *
  * ## Counts, and what they count
  *
@@ -1033,17 +1050,21 @@ export interface SearchChipModel {
  * enough that the count is a floor rather than a total.
  */
 export interface SearchRefineModel {
-  /** Where the panel submits: this same results page. */
+  /** Where the filters submit: this same results page. */
   readonly action: string
   readonly label: string
   /** One line: how many matched, and what is being shown. */
   readonly summary: string
   /** The bound on the count, when there is one. `null` when the count is exact. */
   readonly note: string | null
+  /** The order, as links. One is always current. */
+  readonly sorts: readonly TabModel[]
+  /** Names the run of order links, for a theme that labels it. */
+  readonly sortsLabel: string
   readonly choices: readonly SearchChoiceModel[]
   readonly submitLabel: string
   readonly applied: readonly SearchChipModel[]
-  /** Back to the search as it was run, or `null` when nothing is filtering it. */
+  /** Drops every filter and keeps the order, or `null` when none is on. */
   readonly clearHref: string | null
 }
 

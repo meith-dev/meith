@@ -100,6 +100,7 @@ export function buildSearchResultsView(input: SearchResultsInput): SearchResults
 function buildRefine(input: SearchResultsInput): SearchRefineModel {
   const { token, refine, effective, summary } = input
   const href = (next: SearchRefinement): string => resultsHref(token, next)
+  const applied = chips(input, href)
 
   return {
     action: `/search/${token}`,
@@ -108,12 +109,13 @@ function buildRefine(input: SearchResultsInput): SearchRefineModel {
     note: summary.isCapped
       ? `Counting stops at ${input.countCap.toLocaleString('en')} matches, so the total and the counts below are floors.`
       : null,
+    sorts: SEARCH_SORTS.map((sort) => ({
+      label: SORT_LABELS[sort],
+      href: href({ ...refine, sort: sort === input.filters.sort ? undefined : sort }),
+      isCurrent: sort === effective.sort,
+    })),
+    sortsLabel: 'Sort by',
     choices: [
-      {
-        field: REFINE_FIELDS.sort,
-        label: 'Sort by',
-        options: choiceOptions(SEARCH_SORTS, SORT_LABELS, effective.sort),
-      },
       forumChoice(input),
       authorChoice(input),
       {
@@ -143,8 +145,11 @@ function buildRefine(input: SearchResultsInput): SearchRefineModel {
       },
     ],
     submitLabel: 'Apply filters',
-    applied: chips(input, href),
-    clearHref: isRefined(refine) ? `/search/${token}` : null,
+    applied,
+    clearHref:
+      applied.length === 0
+        ? null
+        : href(refine.sort === undefined ? {} : { sort: refine.sort }),
   }
 }
 

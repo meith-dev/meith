@@ -90,8 +90,7 @@ test('the results page sorts what it found without searching again', async ({ pa
   const hit = page.getByRole('link', { name: 'Show us your desk setup' })
   await expect(hit).toHaveAttribute('href', /post=121/)
 
-  await page.getByLabel('Sort by', { exact: true }).selectOption('newest')
-  await page.getByRole('button', { name: 'Apply filters' }).click()
+  await page.getByRole('link', { name: 'Newest first' }).click()
 
   await expect(page).toHaveURL(new RegExp(`${results.split('/').pop()!}\\?sort=newest`))
   await expect(page.getByRole('link', { name: 'Show us your desk setup' })).toHaveAttribute(

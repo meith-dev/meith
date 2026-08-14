@@ -127,65 +127,73 @@ function Refine({
   label,
   summary,
   note,
+  sorts,
+  sortsLabel,
   choices,
   submitLabel,
   applied,
   clearHref,
 }: SearchRefineModel) {
   return (
-    <Frame aria-labelledby="search-refine">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3">
-        <div>
-          <p id="search-refine" className={MICRO}>
-            {label}
-          </p>
-          <p className="text-sm text-muted-foreground">{summary}</p>
-        </div>
+    <section
+      aria-label={label}
+      className="flex flex-col gap-2.5 border border-border bg-card px-4 py-3 shadow-elevation"
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="text-sm font-medium text-foreground">{summary}</p>
+
+        <nav aria-label={sortsLabel} className="flex items-center gap-1">
+          {sorts.map((sort) => (
+            <a
+              key={sort.label}
+              href={sort.href}
+              {...(sort.isCurrent ? { 'aria-current': 'true' as const } : {})}
+              className={`${MICRO} border px-2 py-1 ${
+                sort.isCurrent
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-transparent hover:text-primary'
+              }`}
+            >
+              {sort.label}
+            </a>
+          ))}
+        </nav>
+
+        {applied.map((chip) => (
+          <a
+            key={chip.label}
+            href={chip.removeHref}
+            className={`${MICRO} inline-flex items-center gap-1.5 border border-primary bg-primary/10 px-2 py-1 normal-case text-primary hover:bg-primary/20`}
+          >
+            {chip.label}
+            <span aria-hidden="true">×</span>
+            <span className="sr-only">— remove this filter</span>
+          </a>
+        ))}
+      </div>
+
+      <form
+        method="get"
+        action={action}
+        className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-2.5"
+      >
+        {choices.map((choice) => (
+          <RefineChoice key={choice.field} {...choice} />
+        ))}
+
+        <button type="submit" className={`${BUTTON_PRIMARY} h-8 px-3`}>
+          {submitLabel}
+        </button>
 
         {clearHref !== null && (
           <a href={clearHref} className={`${MICRO} hover:text-primary`}>
             clear filters
           </a>
         )}
-      </div>
+      </form>
 
-      <div className={RULE} aria-hidden="true" />
-
-      <div className="flex flex-col gap-3 px-4 py-3">
-        {note !== null && <p className="text-xs text-muted-foreground">{note}</p>}
-
-        {applied.length > 0 && (
-          <ul className="flex flex-wrap gap-2">
-            {applied.map((chip) => (
-              <li key={chip.label}>
-                <a
-                  href={chip.removeHref}
-                  className={`${MICRO} inline-flex items-center gap-1.5 border border-border bg-surface px-2 py-1 normal-case hover:text-primary`}
-                >
-                  {chip.label}
-                  <span aria-hidden="true">×</span>
-                  <span className="sr-only">— remove this filter</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <form method="get" action={action} className="flex flex-col gap-3">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {choices.map((choice) => (
-              <RefineChoice key={choice.field} {...choice} />
-            ))}
-          </div>
-
-          <div>
-            <button type="submit" className={BUTTON_PRIMARY}>
-              {submitLabel}
-            </button>
-          </div>
-        </form>
-      </div>
-    </Frame>
+      {note !== null && <p className="text-xs text-muted-foreground">{note}</p>}
+    </section>
   )
 }
 
@@ -202,17 +210,22 @@ function RefineChoice({
   const id = `search-refine-${field}`
 
   return (
-    <div>
-      <label htmlFor={id} className={`${MICRO} mb-1 block`}>
+    <span className="inline-flex items-center gap-1.5">
+      <label htmlFor={id} className={MICRO}>
         {label}
       </label>
-      <select id={id} name={field} defaultValue={selected?.value ?? ''} className={CONTROL}>
+      <select
+        id={id}
+        name={field}
+        defaultValue={selected?.value ?? ''}
+        className="h-8 border border-input bg-surface px-2 text-xs text-foreground focus-visible:border-ring"
+      >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
       </select>
-    </div>
+    </span>
   )
 }

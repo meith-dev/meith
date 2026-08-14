@@ -523,15 +523,12 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
         label: 'Filter and sort these results',
         summary: '2 matching posts.',
         note: null,
+        sorts: [
+          { label: 'Best match', href: '/search/abc', isCurrent: true },
+          { label: 'Newest first', href: '/search/abc?sort=newest', isCurrent: false },
+        ],
+        sortsLabel: 'Sort by',
         choices: [
-          {
-            field: 'sort',
-            label: 'Sort by',
-            options: [
-              { value: 'relevance', label: 'Best match', isSelected: true },
-              { value: 'newest', label: 'Newest first', isSelected: false },
-            ],
-          },
           {
             field: 'forum',
             label: 'In',
@@ -554,7 +551,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       'name="q"',
       'Search within',
       '/search/abc?rank=0.4&amp;after=4102',
-      'name="sort"',
+      '/search/abc?sort=newest',
       'General discussion (2)',
       'Past week',
       '2 matching posts.',
