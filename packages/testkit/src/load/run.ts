@@ -308,6 +308,7 @@ async function buildScenarios(
         const results = await search.search(
           {
             terms: pick(COMMON_TERMS, i),
+            match: 'everything',
             grouping: 'posts',
             sort: 'relevance',
             limit: 20,
@@ -329,6 +330,7 @@ async function buildScenarios(
         const results = await search.search(
           {
             terms: pick(RARE_TERMS, i),
+            match: 'everything',
             grouping: 'threads',
             sort: 'relevance',
             limit: 20,

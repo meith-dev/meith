@@ -265,7 +265,7 @@ describe('the search index after an import', () => {
   const searchFor = async (terms: string) =>
     (
       await new PostgresSearchRepository(harness.db).search(
-        { terms, grouping: 'posts', sort: 'relevance', limit: 10, after: null },
+        { terms, match: 'everything', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
         { forumIds: [1], viewerUserId: null, content: PUBLIC_CONTENT },
       )
     ).hits.length

@@ -36,6 +36,7 @@ Each entry has the same four parts:
 - [Reading and discovery](#reading-and-discovery)
 - [Feeds, URLs and the sitemap](#feeds-urls-and-the-sitemap)
 - [Parity passes](#parity-passes)
+- [Search](#search)
 
 ---
 
@@ -1697,12 +1698,112 @@ content with it. `[table]` is the one most likely to matter — Markdown has
 tables, and a converter for MyBB's table syntax is a plausible later addition
 rather than a missing piece of this one.
 
+## Search
+
+### The search form has an advanced half
+
+**MyBB:** `search.php` has two forms — a one-line box in the header and a full
+page with forums, an author, a date bound, "search thread titles only", a sort
+column and a direction, and "display results as posts or threads".
+
+**This board:** one form, with the second half behind a disclosure that opens
+itself when anything in it is set. It carries the same axes, named for what they
+do rather than for the column they sort: a forum (with **include subforums**, so
+a category is one click rather than eight), one or more authors by username, a
+date window, whether to match thread titles alone, whether a result is a post or
+a thread, and the order.
+
+**Why:** the plain box is what almost every search is, and a form that opens on
+eight controls asks a reader to answer questions they do not have. The
+disclosure state is the app's decision rather than the browser's, because a
+search that *was* narrowed and comes back looking unnarrowed is a bug report
+waiting to happen.
+
+### Results are filtered where they are read, not by searching again
+
+**MyBB:** the results page is a listing. Narrowing it means going back to the
+form and running another search — which is also another entry against
+`searchfloodtime`.
+
+**This board:** the results page carries the filters with it. The stored search
+holds the words and the options it was run with; the results URL carries a
+*refinement* on top — a forum, an author, a window, an order — and the page
+re-runs the stored search with both applied. Each filter is a `<select>` in a
+GET form and, once on, a chip with an href that removes only itself.
+
+**Why:** a stored search is a token and a set of words, and re-running it is
+what the page already does on every open to re-check the reader's access. Adding
+a filter to the URL is therefore free of everything a new search costs: no row,
+no flood interval, no lost link. The reader's original search stays where it
+was, which is what makes "clear filters" a link rather than a re-type.
+
+### A refinement narrows and never widens
+
+**MyBB:** every search is run from the form, so the question does not arise.
+
+**This board:** a refinement can only make the set smaller. A search run against
+one forum cannot be refined into another; a titles-only search cannot be refined
+back into the whole post; a search for the past week cannot be refined to the
+past year. Where the two disagree the narrower wins, and clearing the refinement
+— not choosing a wider value — is what returns the search to what it was.
+
+**Why:** the results URL is a link people paste, and a link that quietly returns
+*more* than the search it came from is one that leaks. The rule is small enough
+to hold in the head: this page shows a subset of that search, always.
+
+### Counts and breakdowns are bounded by the same window
+
+**MyBB:** counts the whole match set for the result total.
+
+**This board:** counts the first 20,000 matches, and says so when it stops
+there. The same pass produces the per-forum and per-author breakdowns the filter
+panel shows, and those counts deliberately ignore the forum and author filters
+already applied, so the numbers beside the other forums stay put as a reader
+moves between them.
+
+**Why:** the reason below, for ranking. A count over a term matching most of a
+large board is the same scan, and "more than 20,000" answers the question a
+reader is actually asking as well as an exact number would.
+
+**Cost:** on a board where a term matches more than twenty thousand posts, the
+result total reads "more than 20,000" where MyBB printed an exact number, and
+the per-forum counts beside it are floors.
+
+### Sorting offers three orders, not six columns
+
+**MyBB:** sorts by relevance, subject, date, thread, forum or username, either
+direction.
+
+**This board:** best match, newest, oldest.
+
+**Why:** paging here is keyset, not `OFFSET` — `(rank, id)` for relevance and
+`id` for the two date orders — so a reader paging through results cannot have
+rows shuffle or repeat underneath them when somebody posts. A sort by username
+or subject has no such key, and the honest implementations are an `OFFSET` pager
+over an unbounded ranked set or an index per column. Neither is worth what it
+costs to answer a question the filters already answer better: a reader sorting
+by username wants one member's posts, which is what **posted by** does.
+
+**Cost:** a member who sorted results by subject, thread, forum or username has
+no equivalent order here, and must reach the same set through **in** and
+**posted by** instead.
+
+### One row per thread is a grouping, not a second query
+
+**MyBB:** "display results as threads" returns thread rows.
+
+**This board:** the same, and the row shown for a thread is its *best* match
+under the current order — the highest-ranked post when sorting by relevance, the
+newest when sorting by newest. Grouping is bounded by the same window as
+ranking, so a term matching more than 20,000 posts groups the recent ones.
+
 ### Search relevance is ranked within a window
 
 **MyBB:** ranks every matching post, however many there are.
 
 **This board:** ranks the **20,000 most recent matches** when sorting by
-relevance. Sorting by newest or oldest reads the whole corpus.
+relevance. Sorting by newest or oldest reads the whole corpus, unless the search
+groups by thread or asks for a count, both of which are bounded the same way.
 
 ### Why
 

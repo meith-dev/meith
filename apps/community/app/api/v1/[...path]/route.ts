@@ -11,7 +11,16 @@ import {
 import { sourceAsMarkdown } from '@meith/markdown'
 import { isAppError, statusForError, toPublicError } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
-import { isRunnable, parseSearchInput, type SearchCursor } from '@meith/search'
+import {
+  isRunnable,
+  parseSearchInput,
+  readGrouping,
+  readMatch,
+  readPeriod,
+  readSort,
+  searchQueryFrom,
+  type SearchCursor,
+} from '@meith/search'
 import type { ThreadCursor } from '@meith/threads'
 import type { NextRequest } from 'next/server'
 
@@ -335,14 +344,35 @@ async function dispatch(
         }
       }
 
+      const ids = (key: string): readonly number[] | undefined => {
+        const values = url.searchParams
+          .getAll(key)
+          .map((value) => Number(value))
+          .filter((value) => Number.isSafeInteger(value) && value > 0)
+
+        return values.length === 0 ? undefined : values
+      }
+
+      const forumIds = ids('forum')
+      const authorUserIds = ids('by')
+
       const results = await requireSearch().search(
-        {
-          terms: parsed.terms,
-          grouping: 'posts',
-          sort: 'relevance',
-          limit: pageLimit(url),
-          after: decodeCursor<SearchCursor>(url.searchParams.get('after')),
-        },
+        searchQueryFrom(
+          parsed.terms,
+          {
+            sort: readSort(url.searchParams.get('sort')),
+            match: readMatch(url.searchParams.get('in')),
+            grouping: readGrouping(url.searchParams.get('show')),
+            period: readPeriod(url.searchParams.get('when')),
+            ...(forumIds === undefined ? {} : { forumIds }),
+            ...(authorUserIds === undefined ? {} : { authorUserIds }),
+          },
+          {
+            limit: pageLimit(url),
+            after: decodeCursor<SearchCursor>(url.searchParams.get('after')),
+            now: new Date(),
+          },
+        ),
         await searchScopeFor(actor),
       )
 

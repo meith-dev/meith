@@ -145,6 +145,7 @@ describe('the seeded board', () => {
     const results = await new PostgresSearchRepository(db).search(
       {
         terms: 'reindex findable background',
+        match: 'everything',
         grouping: 'posts',
         sort: 'relevance',
         limit: 5,

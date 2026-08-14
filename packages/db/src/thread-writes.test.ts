@@ -264,7 +264,7 @@ describe('PostgresThreadWriteRepository and the search index', () => {
   const find = async (terms: string) =>
     (
       await search().search(
-        { terms, grouping: 'posts', sort: 'relevance', limit: 10, after: null },
+        { terms, match: 'everything', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
         scope,
       )
     ).hits.map((hit) => hit.postId)

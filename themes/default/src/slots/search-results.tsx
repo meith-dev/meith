@@ -8,9 +8,10 @@ import {
   EmptyTitle,
   Field,
   Input,
+  NativeSelect,
   buttonVariants,
 } from '@meith/ui'
-import type { SearchResultsModel } from '@meith/theme-kit'
+import type { OptionModel, SearchRefineModel, SearchResultsModel } from '@meith/theme-kit'
 
 import { LINK, Stamp, pageAt } from '../shared'
 
@@ -22,6 +23,7 @@ export function SearchResults({
   nextLabel,
   newSearchHref,
   within,
+  refine,
 }: SearchResultsModel) {
   return (
     <main
@@ -38,6 +40,8 @@ export function SearchResults({
           every time this page is opened, so they can change.
         </p>
       </div>
+
+      {refine !== undefined && <Refine {...refine} />}
 
       <Card>
         {hits.length === 0 ? (
@@ -78,6 +82,15 @@ export function SearchResults({
       <Card>
         <CardContent className="p-4 sm:p-5">
           <form method="get" action={within.action} className="flex flex-col gap-4">
+            {(within.hidden ?? []).map((field) => (
+              <input
+                key={`${field.name}-${field.value}`}
+                type="hidden"
+                name={field.name}
+                value={field.value}
+              />
+            ))}
+
             <Field name={within.field} label={within.label} description={within.hint}>
               {(control) => (
                 <Input
@@ -102,5 +115,99 @@ export function SearchResults({
         Start a new search
       </a>
     </main>
+  )
+}
+
+function Refine({
+  action,
+  label,
+  summary,
+  note,
+  choices,
+  submitLabel,
+  applied,
+  clearHref,
+}: SearchRefineModel) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-4 p-4 sm:p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="font-heading text-sm font-semibold text-foreground">{label}</h2>
+            <p className="text-sm text-muted-foreground">{summary}</p>
+          </div>
+
+          {clearHref !== null && (
+            <a href={clearHref} className={`text-sm font-medium text-foreground ${LINK}`}>
+              Clear filters
+            </a>
+          )}
+        </div>
+
+        {note !== null && <p className="text-xs text-muted-foreground">{note}</p>}
+
+        {applied.length > 0 && (
+          <ul className="flex flex-wrap gap-2">
+            {applied.map((chip) => (
+              <li key={chip.label}>
+                <a
+                  href={chip.removeHref}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted"
+                >
+                  {chip.label}
+                  <span aria-hidden="true">×</span>
+                  <span className="sr-only">— remove this filter</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <form method="get" action={action} className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {choices.map((choice) => (
+              <Choice
+                key={choice.field}
+                label={choice.label}
+                name={choice.field}
+                options={choice.options}
+              />
+            ))}
+          </div>
+
+          <div>
+            <button type="submit" className={buttonVariants({ variant: 'secondary' })}>
+              {submitLabel}
+            </button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+function Choice({
+  label,
+  name,
+  options,
+}: {
+  label: string
+  name: string
+  options: readonly OptionModel[]
+}) {
+  const selected = options.find((option) => option.isSelected)
+
+  return (
+    <Field name={name} label={label}>
+      {(control) => (
+        <NativeSelect {...control} defaultValue={selected?.value ?? ''}>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </NativeSelect>
+      )}
+    </Field>
   )
 }

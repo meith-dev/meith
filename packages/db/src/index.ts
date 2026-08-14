@@ -155,6 +155,7 @@ export { PostgresMaintenanceRepository } from './maintenance-repo'
 export {
   PostgresSearchRepository,
   SEARCH_DOCUMENT_VERSION,
+  SEARCH_WINDOW,
   indexedSubjectSql,
   searchVectorSql,
   type ReindexResult,

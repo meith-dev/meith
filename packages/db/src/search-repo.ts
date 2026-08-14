@@ -1,6 +1,15 @@
 import { sql, type SQL } from 'drizzle-orm'
 
-import type { SearchCursor, SearchHit, SearchQuery, SearchResults, SearchScope } from '@meith/search'
+import type {
+  AuthorFacet,
+  ForumFacet,
+  SearchCursor,
+  SearchHit,
+  SearchQuery,
+  SearchResults,
+  SearchScope,
+  SearchSummary,
+} from '@meith/search'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -8,7 +17,9 @@ import { visibleIn } from './visibility'
 
 const SEARCH_CONFIG = 'english'
 
-const RELEVANCE_WINDOW = 20_000
+export const SEARCH_WINDOW = 20_000
+
+const TOP_AUTHORS = 24
 
 export const SEARCH_DOCUMENT_VERSION = 1
 
@@ -30,6 +41,8 @@ export function indexedSubjectSql(post: SQL): SQL {
 
 const PENDING_INDEX: SQL = sql`(search_vector is null or search_version < ${SEARCH_DOCUMENT_VERSION})`
 
+const NOTHING: SearchSummary = { total: 0, isCapped: false, forums: [], authors: [] }
+
 export interface ReindexResult {
   readonly indexed: number
   readonly nextCursor: number | null
@@ -39,77 +52,35 @@ export class PostgresSearchRepository {
   constructor(private readonly db: Database) {}
 
   async search(query: SearchQuery, scope: SearchScope): Promise<SearchResults> {
-    if (query.terms.trim() === '') return { hits: [], nextCursor: null }
+    const conditions = matchConditions(query, scope)
+    if (conditions === null) return { hits: [], nextCursor: null }
 
-    const allowed =
-      query.forumIds === undefined
-        ? scope.forumIds
-        : scope.forumIds.filter((id) => query.forumIds!.includes(id))
+    const rank = rankSql(query.terms)
+    const finalOrder = orderSql(query.sort)
 
-    if (allowed.length === 0) return { hits: [], nextCursor: null }
-
-    const conditions: SQL[] = [
-      sql`p.forum_id in (${sql.join(allowed.map((id) => sql`${id}`), sql`, `)})`,
-      sql`p.search_vector @@ websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms})`,
-    ]
-
-    conditions.push(visibleIn(sql`p.visibility`, scope.content))
-    conditions.push(visibleIn(sql`t.visibility`, scope.content))
-
-    if (query.authorUserIds !== undefined && query.authorUserIds.length > 0) {
-      conditions.push(
-        sql`p.author_user_id in (${sql.join(
-          query.authorUserIds.map((id) => sql`${id}`),
-          sql`, `,
-        )})`,
-      )
-    }
-    if (query.postedAfter !== undefined) conditions.push(sql`p.created_at >= ${query.postedAfter}`)
-    if (query.postedBefore !== undefined) conditions.push(sql`p.created_at < ${query.postedBefore}`)
-
-    const rank = sql`ts_rank_cd(p.search_vector, websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms}))`
-
-    if (query.after !== null) {
-      conditions.push(
-        query.sort === 'relevance'
-          ? sql`(${rank} < ${query.after.rank}
-                 or (${rank} = ${query.after.rank} and p.id < ${query.after.postId}))`
-          : query.sort === 'newest'
-            ? sql`p.id < ${query.after.postId}`
-            : sql`p.id > ${query.after.postId}`,
-      )
-    }
-
-    const order =
-      query.sort === 'relevance'
-        ? sql`${rank} desc, p.id desc`
-        : query.sort === 'newest'
-          ? sql`p.id desc`
-          : sql`p.id asc`
-
-    const ranked = sql`
+    const selection = sql`
       select p.id as post_id, p.thread_id, p.forum_id,
              t.title as thread_title, t.slug as thread_slug,
-             p.author_user_id, p.author_username, p.created_at, p.message,
+             p.author_user_id, p.author_username, p.created_at,
+             ${excerptSourceSql(query.match)} as excerpt_source,
              ${rank} as rank
         from posts p
-        join threads t on t.id = p.thread_id
-       where ${sql.join(conditions, sql` and `)}`
+        join threads t on t.id = p.thread_id`
 
-    const windowed =
-      query.sort === 'relevance'
-        ? sql`(${ranked} order by p.id desc limit ${RELEVANCE_WINDOW}) as candidates`
-        : sql`(${ranked} order by ${order} limit ${query.limit}) as candidates`
+    const candidates =
+      query.grouping === 'threads'
+        ? groupedCandidates(query, selection, conditions)
+        : flatCandidates(query, selection, conditions, rank)
 
     const rows = resultRows(
       await this.db.execute(sql`
         select post_id, thread_id, forum_id, thread_title, thread_slug,
                author_user_id, author_username, created_at, rank,
-               ts_headline(${SEARCH_CONFIG}, message,
+               ts_headline(${SEARCH_CONFIG}, excerpt_source,
                            websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms}),
                            'MaxFragments=1, MaxWords=40, MinWords=15') as excerpt
-          from ${windowed}
-         order by ${query.sort === 'relevance' ? sql`rank desc, post_id desc` : sql`post_id ${query.sort === 'oldest' ? sql`asc` : sql`desc`}`}
+          from ${candidates}
+         order by ${finalOrder}
          limit ${query.limit}
       `),
     ) as Array<Record<string, unknown>>
@@ -134,6 +105,74 @@ export class PostgresSearchRepository {
         : { rank: last.rank, postId: last.postId }
 
     return { hits, nextCursor }
+  }
+
+  async summarize(query: SearchQuery, scope: SearchScope): Promise<SearchSummary> {
+    const conditions = matchConditions(query, scope)
+    if (conditions === null) return NOTHING
+
+    const rows = resultRows(
+      await this.db.execute(sql`
+        with candidates as (
+          select p.forum_id, p.thread_id, p.author_user_id, p.author_username
+            from posts p
+            join threads t on t.id = p.thread_id
+           where ${sql.join(conditions, sql` and `)}
+           limit ${SEARCH_WINDOW + 1}
+        )
+        select 'total' as facet, null::int as id, ''::text as username,
+               count(*)::int as posts, count(distinct thread_id)::int as threads
+          from candidates
+        union all
+        select 'forum', forum_id, '', count(*)::int, count(distinct thread_id)::int
+          from candidates
+         group by forum_id
+        union all
+        select * from (
+          select 'author' as facet, author_user_id as id,
+                 coalesce(max(author_username), '') as username,
+                 count(*)::int as posts, count(distinct thread_id)::int as threads
+            from candidates
+           where author_user_id is not null
+           group by author_user_id
+           order by count(*) desc
+           limit ${TOP_AUTHORS}
+        ) as top_authors
+      `),
+    ) as Array<Record<string, unknown>>
+
+    const scanned = rows.find((row) => row.facet === 'total')
+    if (scanned === undefined) return NOTHING
+
+    const isCapped = Number(scanned.posts) > SEARCH_WINDOW
+    const count = (row: Record<string, unknown>): number =>
+      query.grouping === 'threads'
+        ? Number(row.threads)
+        : Math.min(Number(row.posts), SEARCH_WINDOW)
+
+    const forums: ForumFacet[] = []
+    const authors: AuthorFacet[] = []
+
+    for (const row of rows) {
+      if (row.facet === 'forum') {
+        forums.push({ forumId: Number(row.id), hits: count(row) })
+      } else if (row.facet === 'author') {
+        authors.push({
+          userId: Number(row.id),
+          username: String(row.username),
+          hits: count(row),
+        })
+      }
+    }
+
+    const byHits = <T extends { readonly hits: number }>(a: T, b: T): number => b.hits - a.hits
+
+    return {
+      total: count(scanned),
+      isCapped,
+      forums: forums.sort(byHits),
+      authors: authors.sort(byHits),
+    }
   }
 
   async reindexChunk(afterPostId: number, limit: number): Promise<ReindexResult> {
@@ -178,4 +217,115 @@ export class PostgresSearchRepository {
   async invalidateIndex(): Promise<void> {
     await this.db.execute(sql`update posts set search_vector = null, search_version = 0`)
   }
+}
+
+function rankSql(terms: string): SQL {
+  return sql`ts_rank_cd(p.search_vector, websearch_to_tsquery(${SEARCH_CONFIG}, ${terms}))`
+}
+
+function excerptSourceSql(match: SearchQuery['match']): SQL {
+  return match === 'titles' ? sql`coalesce(p.subject, t.title)` : sql`p.message`
+}
+
+function orderSql(sort: SearchQuery['sort']): SQL {
+  return sort === 'relevance'
+    ? sql`rank desc, post_id desc`
+    : sort === 'newest'
+      ? sql`post_id desc`
+      : sql`post_id asc`
+}
+
+function matchConditions(query: SearchQuery, scope: SearchScope): SQL[] | null {
+  if (query.terms.trim() === '') return null
+
+  const allowed =
+    query.forumIds === undefined
+      ? scope.forumIds
+      : scope.forumIds.filter((id) => query.forumIds!.includes(id))
+
+  if (allowed.length === 0) return null
+  if (query.authorUserIds !== undefined && query.authorUserIds.length === 0) return null
+
+  const conditions: SQL[] = [
+    sql`p.forum_id in (${sql.join(
+      allowed.map((id) => sql`${id}`),
+      sql`, `,
+    )})`,
+    sql`p.search_vector @@ websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms})`,
+  ]
+
+  conditions.push(visibleIn(sql`p.visibility`, scope.content))
+  conditions.push(visibleIn(sql`t.visibility`, scope.content))
+
+  if (query.match === 'titles') {
+    conditions.push(
+      sql`to_tsvector(${SEARCH_CONFIG}, coalesce(${indexedSubjectSql(sql`p`)}, ''))
+          @@ websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms})`,
+    )
+  }
+
+  if (query.authorUserIds !== undefined) {
+    conditions.push(
+      sql`p.author_user_id in (${sql.join(
+        query.authorUserIds.map((id) => sql`${id}`),
+        sql`, `,
+      )})`,
+    )
+  }
+
+  if (query.postedAfter !== undefined) conditions.push(sql`p.created_at >= ${query.postedAfter}`)
+  if (query.postedBefore !== undefined) conditions.push(sql`p.created_at < ${query.postedBefore}`)
+
+  return conditions
+}
+
+function cursorSql(query: SearchQuery, rank: SQL, postId: SQL): SQL | null {
+  if (query.after === null) return null
+
+  return query.sort === 'relevance'
+    ? sql`(${rank} < ${query.after.rank}
+           or (${rank} = ${query.after.rank} and ${postId} < ${query.after.postId}))`
+    : query.sort === 'newest'
+      ? sql`${postId} < ${query.after.postId}`
+      : sql`${postId} > ${query.after.postId}`
+}
+
+function flatCandidates(
+  query: SearchQuery,
+  selection: SQL,
+  conditions: readonly SQL[],
+  rank: SQL,
+): SQL {
+  const cursor = cursorSql(query, rank, sql`p.id`)
+  const all = cursor === null ? [...conditions] : [...conditions, cursor]
+  const scan = sql`${selection} where ${sql.join(all, sql` and `)}`
+
+  return query.sort === 'relevance'
+    ? sql`(${scan} order by p.id desc limit ${SEARCH_WINDOW}) as candidates`
+    : sql`(${scan} order by ${query.sort === 'newest' ? sql`p.id desc` : sql`p.id asc`}
+           limit ${query.limit}) as candidates`
+}
+
+function groupedCandidates(query: SearchQuery, selection: SQL, conditions: readonly SQL[]): SQL {
+  const scan = sql`${selection} where ${sql.join([...conditions], sql` and `)}
+                   order by ${query.sort === 'oldest' ? sql`p.id asc` : sql`p.id desc`}
+                   limit ${SEARCH_WINDOW}`
+
+  const representative =
+    query.sort === 'relevance'
+      ? sql`thread_id, rank desc, post_id desc`
+      : query.sort === 'newest'
+        ? sql`thread_id, post_id desc`
+        : sql`thread_id, post_id asc`
+
+  const grouped = sql`
+    select distinct on (thread_id) * from (${scan}) as scanned order by ${representative}`
+
+  const cursor = cursorSql(query, sql`rank`, sql`post_id`)
+
+  return cursor === null
+    ? sql`(select * from (${grouped}) as grouped
+            order by ${orderSql(query.sort)} limit ${query.limit}) as candidates`
+    : sql`(select * from (${grouped}) as grouped where ${cursor}
+            order by ${orderSql(query.sort)} limit ${query.limit}) as candidates`
 }

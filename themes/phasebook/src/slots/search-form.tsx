@@ -1,4 +1,4 @@
-import type { OptionModel, SearchFormModel } from '@meith/theme-kit'
+import type { OptionModel, SearchAdvancedModel, SearchFormModel } from '@meith/theme-kit'
 
 import { PILL_PRIMARY } from '../shared'
 
@@ -36,6 +36,62 @@ function Choice({
   )
 }
 
+function Advanced({ label, isOpen, author, toggles, choices }: SearchAdvancedModel) {
+  return (
+    <details open={isOpen} className="rounded-lg border border-border bg-surface/60">
+      <summary className="cursor-default px-3 py-2 text-sm font-semibold select-none">
+        {label}
+      </summary>
+
+      <div className="flex flex-col gap-4 border-t border-border px-3 py-3">
+        <div>
+          <label htmlFor="search-author" className={LABEL}>
+            {author.label}
+          </label>
+          <input
+            id="search-author"
+            type="text"
+            name={author.field}
+            defaultValue={author.value}
+            placeholder={author.placeholder}
+            autoComplete="off"
+            aria-describedby="search-author-hint"
+            className="w-full rounded-full border border-input bg-surface px-4 py-2.5 text-sm text-foreground transition-colors focus-visible:border-ring"
+          />
+          <p id="search-author-hint" className="mt-1.5 text-xs text-muted-foreground">
+            {author.hint}
+          </p>
+        </div>
+
+        {toggles.map((toggle) => (
+          <label key={toggle.field} className="flex items-center gap-2 text-sm select-none">
+            <input
+              type="checkbox"
+              name={toggle.field}
+              value={toggle.value}
+              defaultChecked={toggle.isOn}
+              className="size-4 rounded border border-input accent-primary"
+            />
+            {toggle.label}
+          </label>
+        ))}
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          {choices.map((choice) => (
+            <Choice
+              key={choice.field}
+              id={`search-${choice.field}`}
+              label={choice.label}
+              name={choice.field}
+              options={choice.options}
+            />
+          ))}
+        </div>
+      </div>
+    </details>
+  )
+}
+
 export function SearchForm({
   action,
   fields,
@@ -45,6 +101,7 @@ export function SearchForm({
   sorts,
   hint,
   errorMessage,
+  advanced,
 }: SearchFormModel) {
   const described = [hint === null ? null : 'search-hint', errorMessage === null ? null : 'search-error']
     .filter((id): id is string => id !== null)
@@ -87,6 +144,8 @@ export function SearchForm({
           <Choice id="search-forum" label="In" name={fields.forum} options={forums} />
           <Choice id="search-sort" label="Sort by" name={fields.sort} options={sorts} />
         </div>
+
+        {advanced !== undefined && <Advanced {...advanced} />}
 
         <div>
           <button type="submit" className={PILL_PRIMARY}>

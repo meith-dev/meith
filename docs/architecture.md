@@ -190,6 +190,16 @@ versus 140 ms bounded on a 2.3M-post board. The column is written on insert
 and by a resumable backfill task rather than being `GENERATED`, because adding
 a generated column to a large table is an exclusive-lock outage.
 
+A search carries filters as well as words: forums (a subtree at a time),
+authors, a date window, whether to match thread titles alone, and whether a
+result is a post or a thread. They are stored with the search, and a results
+page may narrow them further through query parameters — never widen them, which
+is the rule that keeps a stored search's link honest about what it ran. The
+results page also asks the index for a **summary**: a bounded count and the
+per-forum and per-author breakdown the filter panel is built from, computed
+without the forum and author filters so the counts hold still as a reader moves
+between them.
+
 ### `@meith/drivers`
 
 Implementations of the four core ports, selected by environment:

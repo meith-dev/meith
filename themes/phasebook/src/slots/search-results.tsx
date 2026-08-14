@@ -1,6 +1,11 @@
-import type { SearchResultsModel } from '@meith/theme-kit'
+import type { OptionModel, SearchRefineModel, SearchResultsModel } from '@meith/theme-kit'
 
 import { FEED, LINK, PAGE, PILL, PILL_PRIMARY, Stamp } from '../shared'
+
+const LABEL = 'mb-1 block text-sm font-semibold text-foreground'
+
+const SELECT =
+  'w-full rounded-lg border border-input bg-surface px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-ring'
 
 export function SearchResults({
   terms,
@@ -10,6 +15,7 @@ export function SearchResults({
   nextLabel,
   newSearchHref,
   within,
+  refine,
 }: SearchResultsModel) {
   return (
     <main id="board-content" tabIndex={-1} className={`${PAGE} flex-1 py-4 sm:py-6`}>
@@ -23,6 +29,8 @@ export function SearchResults({
             every time this page is opened, so they can change.
           </p>
         </header>
+
+        {refine !== undefined && <Refine {...refine} />}
 
         {hits.length === 0 ? (
           <p className="rounded-lg border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground shadow-elevation">
@@ -63,6 +71,15 @@ export function SearchResults({
             action={within.action}
             className="flex flex-col gap-3 px-4 py-4"
           >
+            {(within.hidden ?? []).map((field) => (
+              <input
+                key={`${field.name}-${field.value}`}
+                type="hidden"
+                name={field.name}
+                value={field.value}
+              />
+            ))}
+
             <div>
               <label
                 htmlFor="search-within"
@@ -97,5 +114,99 @@ export function SearchResults({
         </a>
       </div>
     </main>
+  )
+}
+
+function Refine({
+  action,
+  label,
+  summary,
+  note,
+  choices,
+  submitLabel,
+  applied,
+  clearHref,
+}: SearchRefineModel) {
+  return (
+    <section
+      aria-labelledby="search-refine"
+      className="rounded-lg border border-border bg-card px-4 py-3.5 shadow-elevation"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h2 id="search-refine" className="text-sm font-semibold">
+            {label}
+          </h2>
+          <p className="text-sm text-muted-foreground">{summary}</p>
+        </div>
+
+        {clearHref !== null && (
+          <a href={clearHref} className={`text-sm font-semibold ${LINK}`}>
+            Clear filters
+          </a>
+        )}
+      </div>
+
+      {note !== null && <p className="mt-1 text-xs text-muted-foreground">{note}</p>}
+
+      {applied.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {applied.map((chip) => (
+            <li key={chip.label}>
+              <a
+                href={chip.removeHref}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold text-foreground hover:bg-muted"
+              >
+                {chip.label}
+                <span aria-hidden="true">×</span>
+                <span className="sr-only">— remove this filter</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form method="get" action={action} className="mt-3 flex flex-col gap-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {choices.map((choice) => (
+            <RefineChoice key={choice.field} {...choice} />
+          ))}
+        </div>
+
+        <div>
+          <button type="submit" className={PILL}>
+            {submitLabel}
+          </button>
+        </div>
+      </form>
+    </section>
+  )
+}
+
+function RefineChoice({
+  field,
+  label,
+  options,
+}: {
+  field: string
+  label: string
+  options: readonly OptionModel[]
+}) {
+  const selected = options.find((option) => option.isSelected)
+  const id = `search-refine-${field}`
+
+  return (
+    <div>
+      <label htmlFor={id} className={LABEL}>
+        {label}
+      </label>
+      <select id={id} name={field} defaultValue={selected?.value ?? ''} className={SELECT}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
   )
 }
