@@ -481,8 +481,29 @@ export const closing = {
   ],
 } as const
 
+/*
+ * ── The bottom bar ────────────────────────────────────────────────────────
+ *
+ * This used to say that the site is rendered from the repository's Markdown,
+ * carries no analytics and stores nothing but your colour scheme. All true,
+ * and all about the *brochure* rather than the software — a reader who has
+ * scrolled this far is deciding whether to run a forum, not admiring how the
+ * page about it was built. Nobody has ever needed that sentence.
+ *
+ * What a reader at the foot of the page actually wants is the three things
+ * the columns above do not carry: which release this describes, what has
+ * changed since, and where to go when something is wrong. The version is read
+ * out of the workspace manifest, so it cannot go stale.
+ */
 export const footer = {
-  colophon:
-    "Rendered from the Markdown in the repository. No analytics and no third-party scripts — " +
-    "the only thing this site stores is the colour scheme you pick, in your own browser.",
+  // Lower case, because it follows an em dash after the version rather than
+  // opening a sentence of its own.
+  note:
+    "the board, its plugins and the compose file all carry this number, so an upgrade " +
+    "moves them together.",
+  links: [
+    { label: "What changed", href: `${site.repository}/releases` },
+    { label: "How upgrades work", doc: "upgrading" },
+    { label: "Report a problem", href: `${site.repository}/issues` },
+  ],
 } as const
