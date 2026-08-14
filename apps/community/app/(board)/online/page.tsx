@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 
+import { Card, CardFooter, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
+
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { readOnline, presenceRepository } from '@/server/presence'
@@ -22,9 +24,12 @@ export default async function OnlinePage() {
   if (snapshot === null) {
     return (
       <PanelPage frame="standalone" title="Who’s online">
-        <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-          This board is not tracking who is online.
-        </p>
+        <Card>
+          <Empty>
+            <EmptyTitle>Nobody is counted here</EmptyTitle>
+            <EmptyDescription>This board is not tracking who is online.</EmptyDescription>
+          </Empty>
+        </Card>
       </PanelPage>
     )
   }
@@ -47,62 +52,64 @@ export default async function OnlinePage() {
         </>
       }
     >
-
-      {snapshot.members.length === 0 ? (
-        <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-          No members are online right now.
-        </p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border bg-card shadow-elevation">
-          {snapshot.members.map((member) => {
-            const where = locationOf(member)
-            return (
-              <li
-                key={member.userId}
-                className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
-              >
-                <span className="text-sm font-medium">
-                  <a
-                    href={`/member/${member.userId}`}
-                    className={`font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground ${
-                      identities.get(member.userId)?.nameClass ?? ''
-                    }`}
-                  >
-                    {member.username}
-                  </a>
-                  {member.invisible && (
-                    <span className="ml-1 text-xs text-muted-foreground">(invisible)</span>
-                  )}
-                </span>
-
-                <span className="text-xs text-muted-foreground">
-                  {where.href === null ? (
-                    where.label
-                  ) : (
-                    <a href={where.href} className="hover:underline">
-                      {where.label}
+      <Card>
+        {snapshot.members.length === 0 ? (
+          <Empty>
+            <EmptyTitle>Nobody is here</EmptyTitle>
+            <EmptyDescription>No members are online right now.</EmptyDescription>
+          </Empty>
+        ) : (
+          <CardRows>
+            {snapshot.members.map((member) => {
+              const where = locationOf(member)
+              return (
+                <li
+                  key={member.userId}
+                  className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
+                >
+                  <span className="text-sm font-medium">
+                    <a
+                      href={`/member/${member.userId}`}
+                      className={`font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground ${
+                        identities.get(member.userId)?.nameClass ?? ''
+                      }`}
+                    >
+                      {member.username}
                     </a>
-                  )}
-                  {' · '}
-                  <time dateTime={member.lastSeenAt.toISOString()}>
-                    {formatTime(member.lastSeenAt, now, preferences.timezone).label}
-                  </time>
-                </span>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+                    {member.invisible && (
+                      <span className="ml-1 text-xs text-muted-foreground">(invisible)</span>
+                    )}
+                  </span>
 
-      {record.at !== null && (
-        <p className="text-sm text-muted-foreground">
-          Most ever online: {record.count.toLocaleString()} on{' '}
-          <time dateTime={record.at.toISOString()}>
-            {formatTime(record.at, now, preferences.timezone).label}
-          </time>
-          .
-        </p>
-      )}
+                  <span className="text-xs text-muted-foreground">
+                    {where.href === null ? (
+                      where.label
+                    ) : (
+                      <a href={where.href} className="hover:underline">
+                        {where.label}
+                      </a>
+                    )}
+                    {' · '}
+                    <time dateTime={member.lastSeenAt.toISOString()}>
+                      {formatTime(member.lastSeenAt, now, preferences.timezone).label}
+                    </time>
+                  </span>
+                </li>
+              )
+            })}
+          </CardRows>
+        )}
+
+        {record.at !== null && (
+          <CardFooter>
+            Most ever online: {record.count.toLocaleString()} on{' '}
+            <time dateTime={record.at.toISOString()}>
+              {formatTime(record.at, now, preferences.timezone).label}
+            </time>
+            .
+          </CardFooter>
+        )}
+      </Card>
     </PanelPage>
   )
 }

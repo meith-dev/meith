@@ -2,6 +2,8 @@
 
 import { useActionState } from "react"
 
+import { Card, CardContent, Field, Textarea } from "@meith/ui"
+
 import {
   assignReportAction,
   closeReportAction,
@@ -21,26 +23,29 @@ export function ReportForm({
   const [state, action] = useActionState(fileReportAction, EMPTY_STATE)
 
   return (
-    <form action={action} className="flex flex-col gap-4" noValidate>
-      <FormError message={state.error} />
-      <input type="hidden" name="kind" value={kind} />
-      <input type="hidden" name="targetId" value={targetId} />
+    <Card>
+      <CardContent>
+        <form action={action} className="flex flex-col gap-4" noValidate>
+          <FormError message={state.error} />
+          <input type="hidden" name="kind" value={kind} />
+          <input type="hidden" name="targetId" value={targetId} />
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">What is wrong with it?</span>
-        <textarea
-          name="reason"
-          rows={5}
-          required
-          defaultValue={state.values?.reason ?? ""}
-          className="rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        />
-      </label>
+          <Field
+            name="reason"
+            label="What is wrong with it?"
+            description="Say what a moderator should look at. The member you are reporting never sees this."
+          >
+            {(control) => (
+              <Textarea {...control} required defaultValue={state.values?.reason ?? ""} />
+            )}
+          </Field>
 
-      <div>
-        <SubmitButton>Send report</SubmitButton>
-      </div>
-    </form>
+          <div>
+            <SubmitButton className="w-full sm:w-auto sm:px-8">Send report</SubmitButton>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   )
 }
 
