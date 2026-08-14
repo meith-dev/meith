@@ -162,12 +162,7 @@ jobs:
       # Trusted publishing lives in the npm CLI from 11.5.1; Node 22 bundles 10.x.
       - run: npm install -g npm@latest
       - run: pnpm install --frozen-lockfile
-      # The token is touched only when a package name is new to the registry
-      # — trusted publishing cannot create one — and the script confines it
-      # to that single publish. See docs/release.md.
       - run: node scripts/npm-publish.mjs
-        env:
-          NPM_BOOTSTRAP_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
 
   publish:
     name: Tags, the release branch, and the draft notes

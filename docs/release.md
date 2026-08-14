@@ -15,7 +15,7 @@ publishes comes out of that one act:
 | `ghcr.io/meith-dev/meith:X.Y.Z` | The board image — web, worker, migrator and operator CLI in one, `linux/amd64` and `linux/arm64`. This tag never moves again, and it is the only tag anything deploys: the Coolify compose file pins it exactly. |
 | `ghcr.io/meith-dev/meith:X.Y` | The release line, floating over its patches. A convenience for trying the image; nothing this repository ships deploys a floating tag. |
 | `ghcr.io/meith-dev/meith:latest` | The newest release, whatever line it is on. Same status: for trying, never for deploying. |
-| The `@meith` packages on npm | The theme and plugin kits, the first-party themes and plugins, and their dependency closure — ten packages at the release version, published with provenance. See [what publishes to npm](#what-publishes-to-npm). |
+| The `@meith` packages on npm | The theme and plugin kits, the first-party themes and plugins, and their dependency closure — eleven packages at the release version, published with provenance. See [what publishes to npm](#what-publishes-to-npm). |
 | The `release` branch | Fast-forwarded to the tag. The Quickstart points Coolify at this branch, so a board deployed by the guide follows releases and never sees `main` mid-cycle. |
 | A GitHub Release | Drafted by the workflow with generated notes and a header the maintainer must finish — see [the notes](#the-notes-say-which-kind-of-upgrade-this-is). |
 
@@ -128,8 +128,9 @@ the workflow drafts rather than publishes.
      `latest`;
    - the npm packages are published, dependencies first — a re-run skips
      whatever already reached the registry, so a half-failed publish resumes
-     rather than starts over, and a package the registry refuses holds back
-     only the packages that depend on it, not everything ordered behind it;
+     rather than starts over; a name the registry has never seen is skipped
+     with a notice, because only a person can make one
+     ([a package's first publish](#a-packages-first-publish));
    - the `release` branch is fast-forwarded to the tag — refused if the tag
      is not descended from it, which is the guard against tagging a side
      branch;
@@ -202,19 +203,20 @@ One-time steps around `v0.1.0`, in order:
    `ghcr.io/meith-dev/meith` private, and a private package is a quickstart
    that fails at `docker pull` with an authentication error no operator can
    act on. Package settings → change visibility → public.
-3. **Create the npm organisation, and bootstrap the packages with a token.**
-   The `meith` organisation owns the `@meith` scope. A package's very first
-   publish needs a granular automation token (in the repository's `NPM_TOKEN`
-   secret, deleted afterwards); from then on the workflow authenticates with
-   **trusted publishing** and no token exists to leak — see
-   [how the workflow authenticates](#how-the-workflow-authenticates).
+3. **Create the npm organisation, and publish each package by hand once.**
+   The `meith` organisation owns the `@meith` scope, and a package's very
+   first publish is made from a maintainer's own machine — the workflow
+   cannot make one. [A package's first publish](#a-packages-first-publish)
+   is the procedure, and it is the same one every package added since has
+   gone through; from then on the workflow authenticates with **trusted
+   publishing** and no token exists to leak.
 4. Protect the `release` branch from manual pushes, so the workflow's
    fast-forward is the only thing that moves it.
 
 ## What publishes to npm
 
 Every workspace package that is **not** `private: true` publishes on every
-release, at the release version. Ten at 0.1.0:
+release, at the release version. Eleven today, ten of them since 0.1.0:
 
 | | Packages |
 |---|---|
@@ -245,43 +247,59 @@ Two consequences worth knowing:
 - **Configuration lives on npmjs.com, per package**: package → Settings →
   Trusted Publisher → GitHub Actions, with the organisation (`meith-dev`),
   repository (`meith`) and workflow filename (`release.yml`). Renaming the
-  workflow file breaks publishing until the ten configurations are updated
+  workflow file breaks publishing until every one of those configurations is
+  updated
   to match — the failure is a clear authentication error at the `npm` job.
 - **A brand-new package cannot first-publish this way**, because trusted
-  publishing attaches to a package that exists. The publish script handles
-  the birth itself: a name the registry has never seen is published with the
-  `NPM_BOOTSTRAP_TOKEN` secret — a granular token allowed to create packages
-  in the scope — confined to that single publish, while everything
-  already-known keeps authenticating by OIDC in the same run. The job then
-  says, loudly, to give the newborn its trusted publisher on npmjs.com;
-  until that is done, the *next* release of that package fails at
-  authentication, because only its first publish takes the token path.
-  Without the secret set, the script names the package and both ways forward
-  — set the token, or publish it once by hand.
+  publishing attaches to a package that exists — the settings page it is
+  configured on is the package's own. So the release does not attempt it:
+  a name the registry has never seen is skipped, with a notice naming it,
+  and the rest of the release goes out. Below is the other half of that.
 
-  What the bootstrap token has to be, because npm answers a refusal with the
-  same `404` it uses for "no such package" and the difference is invisible
-  from the log: **granular** (classic tokens no longer publish at all),
-  unexpired, owned by someone who may create packages in the `meith`
-  organisation, and scoped under *Packages and scopes* to the **whole
-  `@meith` scope** with read and write. A token limited to selected packages
-  authenticates perfectly and still cannot create a name that does not exist
-  yet, which is what a first publish is. The script reports which of these it
-  is by asking the registry who the token is: no identity means expired or
-  revoked, an identity means the token's reach is what to widen.
+### A package's first publish
 
-  The by-hand way out, when the token is the slow thing to fix — packed by
-  `pnpm`, because a manifest still carrying `workspace:` ranges is an
-  `npm install` that resolves for nobody:
+npm has no way to name a trusted publisher for a package that does not exist
+yet — no pending publishers, no scope-wide configuration
+([npm/cli#8544](https://github.com/npm/cli/issues/8544) is the open request).
+A first publish therefore comes from a person, once, and every release after
+it is ordinary OIDC. The shape of it, with the newest package to have gone
+through it as the example — substitute the directory and the name:
 
-  ```sh
-  npm login   # so the publish carries 2FA
-  cd themes/clubhouse
-  pnpm pack --out /tmp/pack.tgz && npm publish /tmp/pack.tgz --access public
-  ```
+```sh
+npm login
+cd themes/clubhouse
+pnpm pack --out /tmp/pack.tgz
+npm publish /tmp/pack.tgz --access public
+npm trust github @meith/theme-clubhouse \
+  --repo meith-dev/meith --file release.yml --allow-publish
+```
 
-  Then re-run the release workflow against the tag; the newborn is an
-  ordinary package by then, and the run skips everything already published.
+Each line is load-bearing:
+
+- **`npm login`, not a token.** Creating a package is exactly the act that
+  should carry 2FA, and a CI token cannot answer a 2FA prompt — the only
+  token that publishes unattended is one marked *bypass 2FA*, which is a
+  long-lived secret with the run of the whole scope and the thing this
+  arrangement exists to avoid. There is no publish token in this repository,
+  and adding one would be a step backwards.
+- **`pnpm pack`, not `npm publish .`.** pnpm rewrites the `workspace:` ranges
+  into real ones. A manifest published with `workspace:^` still in it is an
+  `npm install` that resolves for nobody.
+- **`npm trust`** is the trusted publisher — the same thing as package →
+  Settings → Trusted Publisher on npmjs.com, from the terminal. It needs npm
+  12 or newer (`npm install -g npm@latest`). Without it the package publishes
+  this once and then fails every release after, at authentication.
+
+Do this **before** tagging and the release publishes the package like any
+other. Do it after and the package is one release behind; re-running the
+Release workflow against the tag catches it up, since the run publishes
+whatever is missing and skips whatever is already there.
+
+A package that *depends* on a skipped one is held back too, and the job says
+so. Its manifest would otherwise name a version of a package that is not on
+the registry — an install that resolves for nobody, the same failure `pnpm
+pack` avoids. Publishing the new package by hand and re-running the workflow
+clears both together.
 
 ### They carry the release version, not their own
 
