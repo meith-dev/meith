@@ -128,7 +128,8 @@ the workflow drafts rather than publishes.
      `latest`;
    - the npm packages are published, dependencies first — a re-run skips
      whatever already reached the registry, so a half-failed publish resumes
-     rather than starts over;
+     rather than starts over, and a package the registry refuses holds back
+     only the packages that depend on it, not everything ordered behind it;
    - the `release` branch is fast-forwarded to the tag — refused if the tag
      is not descended from it, which is the guard against tagging a side
      branch;
@@ -255,8 +256,32 @@ Two consequences worth knowing:
   says, loudly, to give the newborn its trusted publisher on npmjs.com;
   until that is done, the *next* release of that package fails at
   authentication, because only its first publish takes the token path.
-  Without the secret set, the script stops and names the package and both
-  ways forward — set the token, or publish it once by hand.
+  Without the secret set, the script names the package and both ways forward
+  — set the token, or publish it once by hand.
+
+  What the bootstrap token has to be, because npm answers a refusal with the
+  same `404` it uses for "no such package" and the difference is invisible
+  from the log: **granular** (classic tokens no longer publish at all),
+  unexpired, owned by someone who may create packages in the `meith`
+  organisation, and scoped under *Packages and scopes* to the **whole
+  `@meith` scope** with read and write. A token limited to selected packages
+  authenticates perfectly and still cannot create a name that does not exist
+  yet, which is what a first publish is. The script reports which of these it
+  is by asking the registry who the token is: no identity means expired or
+  revoked, an identity means the token's reach is what to widen.
+
+  The by-hand way out, when the token is the slow thing to fix — packed by
+  `pnpm`, because a manifest still carrying `workspace:` ranges is an
+  `npm install` that resolves for nobody:
+
+  ```sh
+  npm login   # so the publish carries 2FA
+  cd themes/clubhouse
+  pnpm pack --out /tmp/pack.tgz && npm publish /tmp/pack.tgz --access public
+  ```
+
+  Then re-run the release workflow against the tag; the newborn is an
+  ordinary package by then, and the run skips everything already published.
 
 ### They carry the release version, not their own
 
