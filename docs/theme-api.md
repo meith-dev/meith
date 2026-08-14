@@ -215,8 +215,11 @@ behaviour of its own; a bug fixed in `resolveTheme` is a package version.
 > nothing, so a theme written against `0.9` inherits them from whatever it
 > extends and keeps compiling. `0.11` keeps it again, with optional fields only:
 > `LinkModel.group`, and `notificationsHref` / `messagesHref` on
-> `UserPanelModel`. `0.12` adds one more, `PanelPageModel.frame`. A theme that
-> never reads them renders exactly what it rendered before.
+> `UserPanelModel`. `0.12` adds one more, `PanelPageModel.frame`. `0.13` adds
+> three: `SearchFormModel.advanced`, `SearchResultsModel.refine`, and
+> `within.hidden` on the same model — advanced search and the results filter,
+> every one of them optional. A theme that never reads them renders exactly what
+> it rendered before.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

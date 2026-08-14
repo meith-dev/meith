@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.12.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
+**theme-kit v0.13.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -448,6 +448,7 @@ Props: `SearchFormModel`
 | `sorts` | `readonly OptionModel[]` |  |
 | `hint` | `string \| null` | Guidance for an empty form: quoting, exclusion. `null` once submitted. |
 | `errorMessage` | `string \| null` |  |
+| `advanced` | `SearchAdvancedModel` | optional — The rest of the form: who posted it, when, where to look, and what a result is. Optional, and a theme that ignores it still submits a working search — every control in here is a narrowing the app defaults for a form that leaves it out. |
 
 ### SearchResults
 
@@ -465,7 +466,8 @@ Props: `SearchResultsModel`
 | `nextHref` | `string \| null` | The next page of this same search, or `null` at the end. |
 | `nextLabel` | `string` |  |
 | `newSearchHref` | `string` | Back to an empty form. Always offered: a search that found nothing needs it most. |
-| `within` | `{ readonly action: string readonly field: string readonly value: string readonly label: string readonly hint: string readonly submitLabel: string }` | The narrow-this-search form. A GET form, like `SearchForm` and for the same reason — the narrowed search is a URL of its own, not a state this page holds. |
+| `within` | `{ readonly action: string readonly field: string readonly value: string readonly label: string readonly hint: string readonly submitLabel: string readonly hidden?: readonly HiddenFieldModel[] }` | The narrow-this-search form. A GET form, like `SearchForm` and for the same reason — the narrowed search is a URL of its own, not a state this page holds. `hidden` carries the advanced options this search was run with, one input per entry, so that narrowing it keeps them; a theme that drops them narrows within the words alone. |
+| `refine` | `SearchRefineModel` | optional — Filtering and sorting for the set on screen. Optional: a theme that ignores it shows the results as the search asked for them. |
 
 ### DiscoveryView
 
@@ -671,6 +673,15 @@ Submitted as the form value. Opaque to the theme. readonly value: string readonl
 | `isUnread` | `boolean` | `false` for a guest, who has no read state. |
 | `subforums` | `readonly LinkModel[]` |  |
 
+### HiddenFieldModel
+
+A form value carried across a submit without being shown.
+
+| Field | Type | Notes |
+|---|---|---|
+| `name` | `string` |  |
+| `value` | `string` |  |
+
 ### LastPostModel
 
 The last post in a forum or thread, as a listing shows it.
@@ -851,6 +862,37 @@ A thread prefix; `token` supplies its styling.
 | `label` | `string` |  |
 | `token` | `string \| null` |  |
 
+### SearchAdvancedModel
+
+The advanced half of the search form. `isOpen` is the app saying whether the reader has anything in here — a returning search with an author or a date window set opens the panel so the narrowing that produced the results is visible rather than hidden behind a closed disclosure. A theme is free to render the panel open always; it must not render it *closed* when `isOpen` is true.
+
+| Field | Type | Notes |
+|---|---|---|
+| `label` | `string` |  |
+| `isOpen` | `boolean` |  |
+| `author` | `SearchTextFieldModel` |  |
+| `toggles` | `readonly SearchToggleModel[]` |  |
+| `choices` | `readonly SearchChoiceModel[]` |  |
+
+### SearchChipModel
+
+A filter that is on, and the href that turns it off.
+
+| Field | Type | Notes |
+|---|---|---|
+| `label` | `string` |  |
+| `removeHref` | `string` |  |
+
+### SearchChoiceModel
+
+One `<select>` in a search form or a results filter: the name to submit it under, a label, and the options with the current one marked. A theme renders these as it is handed them and in the order it is handed them. Which axes a search has is the app's decision, not a theme's, and a theme that enumerated them would lose one the day the app gained it.
+
+| Field | Type | Notes |
+|---|---|---|
+| `field` | `string` |  |
+| `label` | `string` |  |
+| `options` | `readonly OptionModel[]` |  |
+
 ### SearchHitModel
 
 One search result: where it goes, and enough of it to decide whether to go. `excerptHtml` is the only HTML in this model, and it is the app's own: the search engine returns the matching fragment with the matched words wrapped in `<b>`, and nothing else survives — the post's own markup is stripped before the excerpt is cut, so a theme is styling emphasis, not rendering a post.
@@ -863,6 +905,44 @@ One search result: where it goes, and enough of it to decide whether to go. `exc
 | `excerptHtml` | `string` |  |
 | `authorUsername` | `string` |  |
 | `postedAt` | `TimeModel` |  |
+
+### SearchRefineModel
+
+The filter and sort panel on a results page. ## Why this is a form and not a set of links It is both. `choices` submit as a GET form, so several filters can be changed at once and the result is a URL; `applied` is the reverse — one chip per filter that is on, each with an href that removes just that one. A reader with JavaScript off gets both, because both are ordinary HTML. ## Counts, and what they count An option's label carries the number of results it would leave, counted against the search *without* the forum and author filters applied — so the counts stay put as a reader moves between forums instead of collapsing to the one they are already in. `note` carries the caveat when the board is big enough that the count is a floor rather than a total.
+
+| Field | Type | Notes |
+|---|---|---|
+| `action` | `string` | Where the panel submits: this same results page. |
+| `label` | `string` |  |
+| `summary` | `string` | One line: how many matched, and what is being shown. |
+| `note` | `string \| null` | The bound on the count, when there is one. `null` when the count is exact. |
+| `choices` | `readonly SearchChoiceModel[]` |  |
+| `submitLabel` | `string` |  |
+| `applied` | `readonly SearchChipModel[]` |  |
+| `clearHref` | `string \| null` | Back to the search as it was run, or `null` when nothing is filtering it. |
+
+### SearchTextFieldModel
+
+A free-text control: a name to submit under, and what is in it now.
+
+| Field | Type | Notes |
+|---|---|---|
+| `field` | `string` |  |
+| `label` | `string` |  |
+| `value` | `string` |  |
+| `placeholder` | `string` |  |
+| `hint` | `string` |  |
+
+### SearchToggleModel
+
+A checkbox: on when `isOn`, submitted as `value` under `field`.
+
+| Field | Type | Notes |
+|---|---|---|
+| `field` | `string` |  |
+| `value` | `string` |  |
+| `label` | `string` |  |
+| `isOn` | `boolean` |  |
 
 ### SelectionModel
 
@@ -938,5 +1018,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.12. Nothing can be: this is the first
+Nothing is deprecated in v0.13. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

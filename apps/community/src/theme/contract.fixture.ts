@@ -416,8 +416,54 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       ],
       hint: null,
       errorMessage: 'That search is too short.',
+      advanced: {
+        label: 'Advanced options',
+        isOpen: true,
+        author: {
+          field: 'author',
+          label: 'Posted by',
+          value: 'Marlow',
+          placeholder: 'Anybody',
+          hint: 'Usernames, separated by commas. Up to 5.',
+        },
+        toggles: [
+          {
+            field: 'subforums',
+            value: 'yes',
+            label: 'Include subforums of the forum above',
+            isOn: true,
+          },
+        ],
+        choices: [
+          {
+            field: 'when',
+            label: 'Posted',
+            options: [
+              { value: 'any', label: 'Any time', isSelected: false },
+              { value: 'week', label: 'Past week', isSelected: true },
+            ],
+          },
+          {
+            field: 'in',
+            label: 'Matching in',
+            options: [
+              { value: 'everything', label: 'Titles and post text', isSelected: true },
+              { value: 'titles', label: 'Thread titles only', isSelected: false },
+            ],
+          },
+        ],
+      },
     },
-    requires: ['name="q"', 'method="get"', 'That search is too short.', 'General discussion'],
+    requires: [
+      'name="q"',
+      'method="get"',
+      'That search is too short.',
+      'General discussion',
+      'name="author"',
+      'name="subforums"',
+      'Past week',
+      'Thread titles only',
+    ],
   },
 
   AuthPage: {
@@ -470,6 +516,34 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
         label: 'Search within these results',
         hint: 'Adds your words to the ones above.',
         submitLabel: 'Search within',
+        hidden: [{ name: 'forum', value: '3' }],
+      },
+      refine: {
+        action: '/search/abc',
+        label: 'Filter and sort these results',
+        summary: '2 matching posts.',
+        note: null,
+        choices: [
+          {
+            field: 'sort',
+            label: 'Sort by',
+            options: [
+              { value: 'relevance', label: 'Best match', isSelected: true },
+              { value: 'newest', label: 'Newest first', isSelected: false },
+            ],
+          },
+          {
+            field: 'forum',
+            label: 'In',
+            options: [
+              { value: '', label: 'Every forum in this search', isSelected: true },
+              { value: '3', label: 'General discussion (2)', isSelected: false },
+            ],
+          },
+        ],
+        submitLabel: 'Apply',
+        applied: [{ label: 'Past week', removeHref: '/search/abc' }],
+        clearHref: '/search/abc',
       },
     },
     requires: [
@@ -480,6 +554,10 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       'name="q"',
       'Search within',
       '/search/abc?rank=0.4&amp;after=4102',
+      'name="sort"',
+      'General discussion (2)',
+      'Past week',
+      '2 matching posts.',
     ],
   },
 

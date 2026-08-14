@@ -1,5 +1,7 @@
 import type { ContentScope } from '@meith/core'
 
+import type { SearchGrouping, SearchMatch, SearchSort } from './filters'
+
 export interface SearchScope {
   readonly forumIds: readonly number[]
   readonly viewerUserId: number | null
@@ -12,8 +14,9 @@ export interface SearchQuery {
   readonly forumIds?: readonly number[] | undefined
   readonly postedAfter?: Date | undefined
   readonly postedBefore?: Date | undefined
-  readonly grouping: 'posts' | 'threads'
-  readonly sort: 'relevance' | 'newest' | 'oldest'
+  readonly match: SearchMatch
+  readonly grouping: SearchGrouping
+  readonly sort: SearchSort
   readonly limit: number
   readonly after: SearchCursor | null
 }
@@ -41,6 +44,25 @@ export interface SearchResults {
   readonly nextCursor: SearchCursor | null
 }
 
+export interface ForumFacet {
+  readonly forumId: number
+  readonly hits: number
+}
+
+export interface AuthorFacet {
+  readonly userId: number
+  readonly username: string
+  readonly hits: number
+}
+
+export interface SearchSummary {
+  readonly total: number
+  readonly isCapped: boolean
+  readonly forums: readonly ForumFacet[]
+  readonly authors: readonly AuthorFacet[]
+}
+
 export interface SearchProvider {
   search(query: SearchQuery, scope: SearchScope): Promise<SearchResults>
+  summarize(query: SearchQuery, scope: SearchScope): Promise<SearchSummary>
 }

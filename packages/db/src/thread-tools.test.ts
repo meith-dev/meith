@@ -450,7 +450,7 @@ describe('copy', () => {
     const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
     const found = await new PostgresSearchRepository(db).search(
-      { terms: 'hello', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
+      { terms: 'hello', match: 'everything', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
       { forumIds: [RIGHT], viewerUserId: null, content: PUBLIC_CONTENT },
     )
     expect(found.hits.map((hit) => hit.threadId)).toEqual([copy.threadId])

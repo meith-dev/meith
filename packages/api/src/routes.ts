@@ -64,7 +64,9 @@ export const ROUTES = [
     method: 'GET',
     path: '/search',
     scope: 'search:read',
-    summary: 'Full-text search, filtered to what the token’s owner may read.',
+    summary:
+      'Full-text search, filtered to what the token’s owner may read. ' +
+      'Narrow it with `forum`, `by`, `when`, `in` and `show`, and order it with `sort`.',
     cost: 10,
     authenticated: true,
   },

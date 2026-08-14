@@ -60,7 +60,7 @@ refused or not, carries `x-ratelimit-limit`, `x-ratelimit-remaining` and
 | `GET` | `/threads/:threadId` | `threads:read` | 1 | One thread’s metadata. |
 | `GET` | `/threads/:threadId/posts` | `posts:read` | 1 | Posts in a thread, oldest first, keyset-paged. |
 | `POST` | `/threads/:threadId/posts` | `posts:write` | 5 | Post a reply. Subject to the same flood control and moderation as the web form. |
-| `GET` | `/search` | `search:read` | 10 | Full-text search, filtered to what the token’s owner may read. |
+| `GET` | `/search` | `search:read` | 10 | Full-text search, filtered to what the token’s owner may read. Narrow it with `forum`, `by`, `when`, `in` and `show`, and order it with `sort`. |
 
 ## Errors
 

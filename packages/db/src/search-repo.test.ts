@@ -104,6 +104,7 @@ const scope = (overrides: Partial<SearchScope> = {}): SearchScope => ({
 
 const query = (overrides: Partial<SearchQuery> = {}): SearchQuery => ({
   terms: 'kestrel',
+  match: 'everything',
   grouping: 'posts',
   sort: 'relevance',
   limit: 10,
@@ -331,6 +332,147 @@ describe('filters', () => {
     expect(
       (await repo.search(query({ postedAfter: boundary }), scope())).hits.map((h) => h.postId),
     ).toEqual([2])
+  })
+
+  it('reads an author list that narrowed to nobody as matching nothing', async () => {
+    await seed({ id: 1, message: 'kestrel', authorUserId: 7 })
+
+    expect((await repo.search(query({ authorUserIds: [] }), scope())).hits).toEqual([])
+  })
+})
+
+describe('matching titles only', () => {
+  it('keeps a thread whose title matches and drops one that only mentions it', async () => {
+    await seed({ id: 1, threadId: 1, title: 'The kestrel returns', message: 'it is back' })
+    await seed({ id: 2, threadId: 2, title: 'Sunday', message: 'saw a kestrel today' })
+
+    const results = await repo.search(query({ match: 'titles' }), scope())
+    expect(results.hits.map((hit) => hit.postId)).toEqual([1])
+  })
+
+  it('keeps a reply that carries a subject of its own', async () => {
+    await seed({ id: 1, threadId: 1, title: 'Sunday', message: 'nothing much' })
+    await seed({
+      id: 2,
+      threadId: 1,
+      title: 'Sunday',
+      subject: 'A kestrel, though',
+      message: 'nothing much',
+      isFirstPost: false,
+    })
+
+    const results = await repo.search(query({ match: 'titles' }), scope())
+    expect(results.hits.map((hit) => hit.postId)).toEqual([2])
+  })
+
+  it('excerpts the title rather than a post with nothing to mark in it', async () => {
+    await seed({ id: 1, threadId: 1, title: 'The kestrel returns', message: 'it is back' })
+
+    const results = await repo.search(query({ match: 'titles' }), scope())
+    expect(results.hits[0]?.excerpt).toContain('<b>kestrel</b>')
+  })
+})
+
+describe('grouping by thread', () => {
+  it('answers with each thread once, however many posts in it matched', async () => {
+    await seed({ id: 1, threadId: 1, title: 'Kestrels', message: 'kestrel one' })
+    await seed({ id: 2, threadId: 1, title: 'Kestrels', message: 'kestrel two', isFirstPost: false })
+    await seed({ id: 3, threadId: 2, title: 'Elsewhere', message: 'kestrel three' })
+
+    const results = await repo.search(query({ grouping: 'threads' }), scope())
+    expect(results.hits.map((hit) => hit.threadId).sort()).toEqual([1, 2])
+  })
+
+  it('represents a thread by its best match when sorting by relevance', async () => {
+    await seed({ id: 1, threadId: 1, title: 'Sunday', message: 'a passing kestrel, plus a great deal of other text to dilute it' })
+    await seed({
+      id: 2,
+      threadId: 1,
+      title: 'Sunday',
+      subject: 'Kestrel',
+      message: 'kestrel',
+      isFirstPost: false,
+    })
+
+    const results = await repo.search(query({ grouping: 'threads' }), scope())
+    expect(results.hits.map((hit) => hit.postId)).toEqual([2])
+  })
+
+  it('represents a thread by its newest match when sorting by newest', async () => {
+    await seed({ id: 1, threadId: 1, title: 'Kestrels', message: 'kestrel one' })
+    await seed({ id: 2, threadId: 1, title: 'Kestrels', message: 'kestrel two', isFirstPost: false })
+
+    const results = await repo.search(query({ grouping: 'threads', sort: 'newest' }), scope())
+    expect(results.hits.map((hit) => hit.postId)).toEqual([2])
+  })
+
+  it('pages through threads without repeating one', async () => {
+    for (const id of [1, 2, 3, 4]) {
+      await seed({ id, threadId: id, title: `Thread ${id}`, message: 'kestrel' })
+      await seed({
+        id: id + 10,
+        threadId: id,
+        title: `Thread ${id}`,
+        message: 'kestrel again',
+        isFirstPost: false,
+      })
+    }
+
+    const first = await repo.search(query({ grouping: 'threads', sort: 'newest', limit: 2 }), scope())
+    const second = await repo.search(
+      query({ grouping: 'threads', sort: 'newest', limit: 2, after: first.nextCursor }),
+      scope(),
+    )
+
+    const seen = [...first.hits, ...second.hits].map((hit) => hit.threadId)
+    expect(seen).toEqual([4, 3, 2, 1])
+  })
+})
+
+describe('summarising a search', () => {
+  it('counts the matches and breaks them down by forum and author', async () => {
+    await seed({ id: 1, forumId: OPEN, message: 'kestrel', authorUserId: 7 })
+    await seed({ id: 2, forumId: OPEN, message: 'kestrel', authorUserId: 7 })
+    await seed({ id: 3, forumId: PRIVATE, message: 'kestrel', authorUserId: 8 })
+    await seed({ id: 4, forumId: OPEN, message: 'a heron' })
+
+    const summary = await repo.summarize(query(), scope())
+
+    expect(summary.total).toBe(3)
+    expect(summary.isCapped).toBe(false)
+    expect(summary.forums).toEqual([
+      { forumId: OPEN, hits: 2 },
+      { forumId: PRIVATE, hits: 1 },
+    ])
+    expect(summary.authors).toEqual([
+      { userId: 7, username: 'ann', hits: 2 },
+      { userId: 8, username: 'ann', hits: 1 },
+    ])
+  })
+
+  it('counts threads, not posts, when the search groups by thread', async () => {
+    await seed({ id: 1, threadId: 1, message: 'kestrel' })
+    await seed({ id: 2, threadId: 1, message: 'kestrel', isFirstPost: false })
+
+    expect((await repo.summarize(query({ grouping: 'threads' }), scope())).total).toBe(1)
+    expect((await repo.summarize(query(), scope())).total).toBe(2)
+  })
+
+  it('counts nothing it may not see', async () => {
+    await seed({ id: 1, forumId: PRIVATE, message: 'kestrel' })
+
+    expect((await repo.summarize(query(), scope({ forumIds: [OPEN] }))).total).toBe(0)
+  })
+
+  it('runs no query at all for empty terms', async () => {
+    await seed({ id: 1, message: 'kestrel' })
+
+    expect(await repo.summarize(query({ terms: '   ' }), scope())).toEqual({
+      total: 0,
+      isCapped: false,
+      forums: [],
+      authors: [],
+    })
   })
 })
 

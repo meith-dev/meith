@@ -1,6 +1,9 @@
-import type { SearchResultsModel } from '@meith/theme-kit'
+import type { OptionModel, SearchRefineModel, SearchResultsModel } from '@meith/theme-kit'
 
 import { BUTTON_PRIMARY, Frame, HEADING, MICRO, RULE, Stamp } from '../shared'
+
+const CONTROL =
+  'w-full border border-input bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-ring'
 
 export function SearchResults({
   terms,
@@ -10,6 +13,7 @@ export function SearchResults({
   nextLabel,
   newSearchHref,
   within,
+  refine,
 }: SearchResultsModel) {
   return (
     <main
@@ -31,6 +35,8 @@ export function SearchResults({
         </div>
         <div className={RULE} aria-hidden="true" />
       </div>
+
+      {refine !== undefined && <Refine {...refine} />}
 
       <Frame>
         {hits.length === 0 ? (
@@ -72,6 +78,15 @@ export function SearchResults({
 
       <Frame>
         <form method="get" action={within.action} className="flex flex-col gap-3 px-4 py-4">
+          {(within.hidden ?? []).map((field) => (
+            <input
+              key={`${field.name}-${field.value}`}
+              type="hidden"
+              name={field.name}
+              value={field.value}
+            />
+          ))}
+
           <div>
             <label htmlFor="search-within" className={`${MICRO} mb-1 block`}>
               {within.label}
@@ -83,7 +98,7 @@ export function SearchResults({
               defaultValue={within.value}
               autoComplete="off"
               aria-describedby="search-within-hint"
-              className="w-full border border-input bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-ring"
+              className={CONTROL}
             />
             <p id="search-within-hint" className="mt-1.5 text-xs text-muted-foreground">
               {within.hint}
@@ -104,5 +119,100 @@ export function SearchResults({
         </a>
       </p>
     </main>
+  )
+}
+
+function Refine({
+  action,
+  label,
+  summary,
+  note,
+  choices,
+  submitLabel,
+  applied,
+  clearHref,
+}: SearchRefineModel) {
+  return (
+    <Frame aria-labelledby="search-refine">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3">
+        <div>
+          <p id="search-refine" className={MICRO}>
+            {label}
+          </p>
+          <p className="text-sm text-muted-foreground">{summary}</p>
+        </div>
+
+        {clearHref !== null && (
+          <a href={clearHref} className={`${MICRO} hover:text-primary`}>
+            clear filters
+          </a>
+        )}
+      </div>
+
+      <div className={RULE} aria-hidden="true" />
+
+      <div className="flex flex-col gap-3 px-4 py-3">
+        {note !== null && <p className="text-xs text-muted-foreground">{note}</p>}
+
+        {applied.length > 0 && (
+          <ul className="flex flex-wrap gap-2">
+            {applied.map((chip) => (
+              <li key={chip.label}>
+                <a
+                  href={chip.removeHref}
+                  className={`${MICRO} inline-flex items-center gap-1.5 border border-border bg-surface px-2 py-1 normal-case hover:text-primary`}
+                >
+                  {chip.label}
+                  <span aria-hidden="true">×</span>
+                  <span className="sr-only">— remove this filter</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <form method="get" action={action} className="flex flex-col gap-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {choices.map((choice) => (
+              <RefineChoice key={choice.field} {...choice} />
+            ))}
+          </div>
+
+          <div>
+            <button type="submit" className={BUTTON_PRIMARY}>
+              {submitLabel}
+            </button>
+          </div>
+        </form>
+      </div>
+    </Frame>
+  )
+}
+
+function RefineChoice({
+  field,
+  label,
+  options,
+}: {
+  field: string
+  label: string
+  options: readonly OptionModel[]
+}) {
+  const selected = options.find((option) => option.isSelected)
+  const id = `search-refine-${field}`
+
+  return (
+    <div>
+      <label htmlFor={id} className={`${MICRO} mb-1 block`}>
+        {label}
+      </label>
+      <select id={id} name={field} defaultValue={selected?.value ?? ''} className={CONTROL}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
   )
 }
