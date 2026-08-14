@@ -17,7 +17,18 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH
 const INSTALL_SPECS = /install-[\w-]*\.spec\.ts$/
 
 const TOUR_SPECS = /screenshot-[\w-]*\.spec\.ts$/
-const BOARD_IGNORE = process.env.CI ? [INSTALL_SPECS, TOUR_SPECS] : [INSTALL_SPECS]
+
+/*
+ * The site's photographs need the demo board, on ports of their own, and
+ * `e2e/screenshot-site.config.ts` is what starts it. Run here they would
+ * photograph the fixture — so they are ignored on CI and off it alike, which
+ * the other tours are not.
+ */
+const SITE_SHOT_SPECS = /screenshot-site\.spec\.ts$/
+
+const BOARD_IGNORE = process.env.CI
+  ? [INSTALL_SPECS, TOUR_SPECS]
+  : [INSTALL_SPECS, SITE_SHOT_SPECS]
 
 export default defineConfig({
   testDir: './e2e',
