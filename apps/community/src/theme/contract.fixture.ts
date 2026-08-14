@@ -536,7 +536,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
             field: 'forum',
             label: 'In',
             options: [
-              { value: '', label: 'Every forum in this search', isSelected: true },
+              { value: '', label: 'Every forum', isSelected: true },
               { value: '3', label: 'General discussion (2)', isSelected: false },
             ],
           },

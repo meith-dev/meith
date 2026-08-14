@@ -161,7 +161,7 @@ describe('the refine panel', () => {
     const forum = build().refine?.choices.find((choice) => choice.field === 'forum')
 
     expect(forum?.options.map((option) => option.label)).toEqual([
-      'Every forum in this search',
+      'Every forum',
       'General discussion (2)',
       'Woodwork (1)',
     ])
