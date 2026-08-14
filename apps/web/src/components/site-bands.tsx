@@ -2,6 +2,8 @@ import Link from "next/link"
 
 import { closing, site } from "../content/site"
 
+import { DemoLink } from "./demo-link"
+
 /*
  * The one band that is the same wherever you landed.
  *
@@ -44,9 +46,7 @@ export function ClosingBand({
                 →
               </span>
             </Link>
-            <a className="btn btn-quiet" href={site.demo}>
-              See a live board
-            </a>
+            <DemoLink className="btn btn-quiet">See a live board</DemoLink>
             <a className="btn btn-quiet" href={site.repository}>
               Source
             </a>

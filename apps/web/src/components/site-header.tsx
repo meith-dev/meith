@@ -2,6 +2,7 @@ import Link from "next/link"
 
 import { site } from "../content/site"
 import { quickstartHref } from "../docs/registry"
+import { DemoLink } from "./demo-link"
 import { DocsSearch } from "./docs-search"
 import { Logomark } from "./logomark"
 import { ThemeToggle } from "./theme-toggle"
@@ -27,12 +28,9 @@ export function SiteHeader() {
           reachable from two buttons on one page.
         */}
         <nav aria-label="Site" className="flex items-center gap-3 sm:gap-4">
-          <a
-            href={site.demo}
-            className="text-micro font-medium text-fg-muted transition-colors hover:text-fg"
-          >
+          <DemoLink className="text-micro font-medium text-fg-muted transition-colors hover:text-fg">
             Demo
-          </a>
+          </DemoLink>
           <Link
             href="/for"
             className="hidden text-micro font-medium text-fg-muted transition-colors hover:text-fg sm:inline"

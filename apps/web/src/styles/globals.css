@@ -1228,16 +1228,21 @@ body {
 }
 
 @media (min-width: 48rem) {
+  /*
+   * Proportional rather than fixed, because this sits in the hero's image
+   * column now rather than across the whole shell. A phone pinned at 13rem was
+   * a third of the picture at full width and most of it at half.
+   */
   .devices {
     display: block;
-    padding-inline-end: 7rem;
+    padding-inline-end: 20%;
   }
 
   .devices .devices-phone {
     position: absolute;
     right: 0;
-    bottom: -1.5rem;
-    width: 13rem;
+    bottom: -1rem;
+    width: 27%;
     box-shadow: var(--lift-lg);
   }
 }

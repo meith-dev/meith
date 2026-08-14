@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { DemoLink } from "../src/components/demo-link"
 import { SchemeScreenshot } from "../src/components/screenshot"
 import { SegmentCards } from "../src/components/segment-cards"
 import { ClosingBand } from "../src/components/site-bands"
@@ -63,7 +64,16 @@ export default async function LandingPage() {
         <div aria-hidden className="hero-grid" />
         <div aria-hidden className="hero-glow" />
 
-        <div className="shell flex flex-col gap-12 pt-16 pb-20 sm:pt-24 sm:pb-24">
+        {/*
+          Text left, board right, rather than the board stacked underneath.
+          Full-bleed under the copy the shot was handsome and cost most of a
+          screen, which pushed the first actual claim — search — below the fold
+          on a laptop. Beside the copy it does the same work in half the height,
+          and the hero ends where the reader can still see there is a page under
+          it. Below `lg` the grid collapses and the stack returns, which is the
+          only arrangement that works at that width anyway.
+        */}
+        <div className="shell grid gap-x-12 gap-y-10 pt-14 pb-16 sm:pt-20 sm:pb-20 lg:grid-cols-[minmax(0,32rem)_minmax(0,1fr)] lg:items-center">
           <div className="flex max-w-[42rem] flex-col items-start gap-6">
             <p className="badge">
               <span aria-hidden className="badge-dot" />
@@ -76,8 +86,13 @@ export default async function LandingPage() {
               stop from a comma, so it broke the headline in the middle of the
               phrase the whole thing turns on. Given a box each, the two halves
               break where they should and balance within themselves.
+
+              And a step down from `text-hero`, which is sized for a headline
+              running the full width of the shell. In a column beside the board
+              it broke "A community / forum," — a line ending on an article,
+              which is the one break a headline cannot afford.
             */}
-            <h1 className="display-hero max-w-[18ch] text-hero leading-[1.02]">
+            <h1 className="display-hero max-w-[20ch] text-huge leading-[1.06]">
               <span className="block">{hero.headline.before}</span>
               <span className="block text-accent">{hero.headline.emphasis}</span>
             </h1>
@@ -85,12 +100,12 @@ export default async function LandingPage() {
             <p className="lede max-w-[36rem]">{hero.lede}</p>
 
             <div className="mt-1 flex flex-wrap items-center gap-3">
-              <a className="btn btn-primary" href={site.demo}>
+              <DemoLink className="btn btn-primary">
                 {hero.primary}
                 <span aria-hidden className="btn-arrow">
                   →
                 </span>
-              </a>
+              </DemoLink>
               <Link className="btn btn-quiet" href={startHref}>
                 {hero.secondary}
               </Link>
@@ -107,7 +122,7 @@ export default async function LandingPage() {
             reader has taken it in before they could have read a sentence
             about it. Writing one would only invite the doubt.
           */}
-          <figure aria-label={devices.label} className="flex flex-col gap-4">
+          <figure aria-label={devices.label} className="flex flex-col gap-3">
             <div className="devices">
               <SchemeScreenshot dark={board.dark} light={board.light} priority />
               <SchemeScreenshot

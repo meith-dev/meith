@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
+import { DemoLink } from "../../../src/components/demo-link"
 import { SchemeScreenshot } from "../../../src/components/screenshot"
 import { SegmentCards } from "../../../src/components/segment-cards"
 import { ClosingBand } from "../../../src/components/site-bands"
@@ -120,12 +121,12 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
             <p className="lede max-w-[36rem]">{segment.hero.lede}</p>
 
             <div className="mt-1 flex flex-wrap items-center gap-3">
-              <a className="btn btn-primary" href={site.demo}>
+              <DemoLink className="btn btn-primary">
                 See a live board
                 <span aria-hidden className="btn-arrow">
                   →
                 </span>
-              </a>
+              </DemoLink>
               <Link className="btn btn-quiet" href={startHref}>
                 Set one up
               </Link>

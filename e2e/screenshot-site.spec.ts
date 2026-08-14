@@ -5,6 +5,8 @@ import { expect, test, type APIRequestContext, type BrowserContext, type Page } 
 
 import { SCHEME_COOKIE, THEME_COOKIE } from '../apps/community/src/view/theme-preference'
 
+import { DEMO_BASE_URL } from './support/config'
+
 /*
  * The photographs the marketing site is built out of.
  *
@@ -103,21 +105,37 @@ async function shoot(page: Page, name: string): Promise<void> {
   await page.screenshot({ path: path.join(shotsDirectory(), `${name}.png`) })
 }
 
+/*
+ * `at` re-opens a given URL instead of reloading the current one. It exists for
+ * the search shots, where the current URL is a stored result set and reloading
+ * is fine, but the *route that produced it* must not be asked twice.
+ */
 async function paint(
   context: BrowserContext,
   page: Page,
   options: { theme?: string; scheme?: 'light' | 'dark' },
+  at?: string,
 ): Promise<void> {
+  /*
+   * Domain and path rather than `url`, which derives the path from whatever
+   * page happens to be open — so a preference set while standing on
+   * `/search/<token>` would be scoped to `/search/` and quietly stop applying
+   * everywhere else. The board reads both of these on every route.
+   */
+  const scope = { domain: new URL(DEMO_BASE_URL).hostname, path: '/' } as const
+
   const cookies = []
   if (options.theme !== undefined) {
-    cookies.push({ name: THEME_COOKIE, value: options.theme, url: page.url() })
+    cookies.push({ name: THEME_COOKIE, value: options.theme, ...scope })
   }
   if (options.scheme !== undefined) {
-    cookies.push({ name: SCHEME_COOKIE, value: options.scheme, url: page.url() })
+    cookies.push({ name: SCHEME_COOKIE, value: options.scheme, ...scope })
   }
 
   await context.addCookies(cookies)
-  await page.reload()
+
+  if (at === undefined) await page.reload()
+  else await page.goto(at)
 }
 
 async function signIn(page: Page, username: string, password: string): Promise<void> {
@@ -143,9 +161,32 @@ async function warmTheBoard(request: APIRequestContext, page: Page): Promise<voi
   await expect(async () => {
     await request.get(`/api/system/tick?secret=${TICK_SECRET}`)
     await page.goto(`/search?q=${SEARCH_TERM}`)
-    await expect(page.getByRole('link').filter({ hasText: /\w/ }).first()).toBeVisible()
-    await expect(page.getByText('Nothing matched')).toBeHidden()
+    await expectResults(page)
   }).toPass({ timeout: 120_000, intervals: [1_000, 2_000, 5_000, 10_000] })
+}
+
+/*
+ * That the page in front of us is a results page with results on it.
+ *
+ * Every one of these has been a way this shot went wrong. It photographed an
+ * unindexed board saying nothing matched; then, once the loop above was added,
+ * it photographed the *search form* carrying "You are searching very quickly.
+ * Try again in 30 seconds" — because the warm-up loop hammers the search
+ * endpoint, and unlike the e2e fixture the demo board leaves
+ * `search.flood_seconds` at its shipped value.
+ *
+ * The old assertion looked for the words "Nothing matched", which the flooded
+ * page does not say: it says "No results". So it passed, and the broken image
+ * shipped. Hence the shape of this — it names the failures rather than one
+ * phrase, and lands on the token URL a real results page redirects to.
+ */
+async function expectResults(page: Page): Promise<void> {
+  await expect(page).toHaveURL(/\/search\/[\w-]+$/)
+  await expect(page.getByRole('heading', { name: /Results for/ })).toBeVisible()
+  await expect(page.getByText(/searching very quickly/i)).toBeHidden()
+  await expect(page.getByText(/^No results/i)).toBeHidden()
+  await expect(page.getByText(/Nothing matched/i)).toBeHidden()
+  await expect(page.locator('a[href^="/thread/"]').first()).toBeVisible()
 }
 
 test('the marketing site, photographed', async ({ browser, request }) => {
@@ -211,11 +252,28 @@ test('the marketing site, photographed', async ({ browser, request }) => {
    * colour-scheme toggle in its header — so every shot it shows needs a partner
    * for the other side of it.
    */
-  await page.goto(`/search?q=${SEARCH_TERM}`)
-  await expect(page.getByText('Nothing matched')).toBeHidden()
+  /*
+   * Searched once, photographed twice.
+   *
+   * `/search?q=` runs a flood-checked search and redirects to a stored result
+   * set at `/search/<token>`; opening that token again reads what was stored
+   * rather than searching afresh. So the pair of shots is taken from the token
+   * URL, and the second scheme costs no search at all.
+   *
+   * Reloading `/search?q=` once per scheme is what broke this: the second
+   * request came back as the search form carrying a rate-limit warning, and
+   * that is the image that shipped.
+   */
+  await expect(async () => {
+    await page.goto(`/search?q=${SEARCH_TERM}`)
+    await expectResults(page)
+  }).toPass({ timeout: 120_000, intervals: [2_000, 5_000, 10_000, 15_000] })
+
+  const results = page.url()
 
   for (const scheme of SCHEMES) {
-    await paint(desktop, page, { scheme })
+    await paint(desktop, page, { scheme }, results)
+    await expectResults(page)
     await shoot(page, `search-${scheme}`)
   }
 
