@@ -21,7 +21,7 @@ export default async function OnlinePage() {
 
   if (snapshot === null) {
     return (
-      <PanelPage title="Who’s online">
+      <PanelPage frame="standalone" title="Who’s online">
         <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           This board is not tracking who is online.
         </p>
@@ -33,6 +33,7 @@ export default async function OnlinePage() {
 
   return (
     <PanelPage
+      frame="standalone"
       title="Who’s online"
       lede={
         <>

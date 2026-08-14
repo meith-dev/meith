@@ -1180,6 +1180,14 @@ export interface PanelPageModel {
   /** Where this page was reached from, when it is a page under another. */
   readonly back: LinkModel | null
   /**
+   * `panel` when a `PanelShell` is already around this page — it has centred
+   * the column and set the gutters, and the page fills what the rail leaves.
+   * `standalone` when nothing wraps the page and it has to find its own
+   * middle: who's online, the board statistics, the report form. Absent reads
+   * as `panel`, which is what a theme that ignores this renders today.
+   */
+  readonly frame?: 'panel' | 'standalone'
+  /**
    * `reading` for prose and forms, `wide` for a table nobody can read at
    * reading width. The theme decides what each measures.
    */

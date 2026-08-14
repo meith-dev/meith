@@ -590,6 +590,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
   PanelPage: {
     model: {
       panel: 'admincp',
+      frame: 'panel',
       title: 'Attachments',
       back: { label: 'Content', href: '/admin/content' },
       width: 'wide',

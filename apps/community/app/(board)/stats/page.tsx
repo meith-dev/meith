@@ -16,7 +16,7 @@ export default async function StatsPage() {
 
   if (view === null) {
     return (
-      <PanelPage title="Board statistics">
+      <PanelPage frame="standalone" title="Board statistics">
         <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           This board keeps no statistics.
         </p>
@@ -28,6 +28,7 @@ export default async function StatsPage() {
 
   return (
     <PanelPage
+      frame="standalone"
       gap="loose"
       title="Board statistics"
       lede={
