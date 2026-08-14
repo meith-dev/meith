@@ -16,6 +16,7 @@ import { boardUrl } from './board-url'
 import { getActor } from './context'
 import { activeDefinitions, pluginHost, syncOperatorDisables } from './plugin-host'
 import { runtimeContextFor } from './plugin-pages'
+import { isSafeLocalPath } from './safe-path'
 import { getSettingOverrides } from './settings'
 import { viewerRef } from './plugin-view'
 
@@ -114,7 +115,7 @@ async function readBody(
 }
 
 function redirectAllowed(to: string, definition: PluginDefinition): boolean {
-  if (to.startsWith('/') && !to.startsWith('//')) return true
+  if (isSafeLocalPath(to)) return true
 
   let url: URL
   try {
