@@ -1,11 +1,6 @@
 #!/usr/bin/env node
-// Publish every non-private workspace package at the release version — the
-// npm half of a release; docs/release.md is the narrative. Dependencies
-// publish before their dependents, a version already on the registry is
-// skipped rather than an error (so a partly-failed release run can be
-// re-run), and --dry-run packs everything without talking to the registry.
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -22,8 +17,6 @@ if (packages.length === 0) {
   process.exit(1)
 }
 
-// Dependencies first. `release-check` has already proven the set is closed,
-// so every workspace dependency of a published package is itself in the set.
 const names = new Set(packages.map((entry) => entry.name))
 const ordered = []
 const remaining = new Map(packages.map((entry) => [entry.name, entry]))
@@ -44,89 +37,134 @@ while (remaining.size > 0) {
   ordered.push(next)
 }
 
-let publishedCount = 0
-let skipped = 0
-let bootstrapped = 0
-for (const { dir, name, version } of ordered) {
-  // A package the registry has never seen cannot be created by trusted
-  // publishing, so its first publish uses the bootstrap token instead —
-  // docs/release.md § How the workflow authenticates.
-  let isNew = false
-  if (!dryRun) {
-    const view = spawnSync('npm', ['view', `${name}@${version}`, 'version'], {
-      cwd: join(ROOT, dir),
-      encoding: 'utf8',
-    })
-    if (view.status === 0 && view.stdout.trim() !== '') {
-      console.log(`- ${name}@${version} is already on the registry, skipping`)
-      skipped += 1
-      continue
-    }
-    if (view.status !== 0 && !`${view.stderr}`.includes('E404')) {
-      console.error(`✗ npm publish: could not ask the registry about ${name}@${version}:\n${view.stderr}`)
-      process.exit(1)
-    }
+const indent = (text) =>
+  `${text}`
+    .trimEnd()
+    .split('\n')
+    .map((line) => `    ${line}`)
+    .join('\n')
 
-    const pkg = spawnSync('npm', ['view', name, 'name'], { encoding: 'utf8' })
-    isNew = pkg.status !== 0 && `${pkg.stderr}`.includes('E404')
-    if (isNew && (process.env.NPM_BOOTSTRAP_TOKEN ?? '') === '') {
-      console.error(
-        `✗ npm publish: ${name} is new to the registry, and trusted publishing cannot create it.\n` +
-          `  Either set the NPM_BOOTSTRAP_TOKEN secret — a granular token allowed to create\n` +
-          `  packages in the scope — and re-run, or publish ${name}@${version} once by hand\n` +
-          `  and re-run. Afterwards, give the package its trusted publisher on npmjs.com.`,
-      )
-      process.exit(1)
-    }
+const onRegistry = new Map()
+const newToRegistry = []
+const failures = []
+const heldBack = new Map()
+const staysAbsent = new Set()
+
+for (const { dir, name, version } of ordered) {
+  if (dryRun) {
+    onRegistry.set(name, 'publishable')
+    continue
+  }
+
+  const atVersion = spawnSync('npm', ['view', `${name}@${version}`, 'version'], {
+    cwd: join(ROOT, dir),
+    encoding: 'utf8',
+  })
+  if (atVersion.status === 0 && atVersion.stdout.trim() !== '') {
+    onRegistry.set(name, 'published')
+    continue
+  }
+  if (atVersion.status !== 0 && !`${atVersion.stderr}`.includes('E404')) {
+    failures.push({
+      name,
+      why: `the registry could not be asked about it:\n${indent(atVersion.stderr)}`,
+    })
+    staysAbsent.add(name)
+    continue
+  }
+
+  const byName = spawnSync('npm', ['view', name, 'name'], { encoding: 'utf8' })
+  if (byName.status !== 0 && `${byName.stderr}`.includes('E404')) {
+    onRegistry.set(name, 'new')
+    newToRegistry.push({ dir, name, version })
+    staysAbsent.add(name)
+    continue
+  }
+  onRegistry.set(name, 'publishable')
+}
+
+let published = 0
+let alreadyThere = 0
+
+for (const { dir, name, version, manifest } of ordered) {
+  if (onRegistry.get(name) === 'published') {
+    console.log(`- ${name}@${version} is already on the registry, skipping`)
+    alreadyThere += 1
+    continue
+  }
+  if (onRegistry.get(name) === 'new') {
+    console.log(`- ${name} is new to the registry, skipping — a first publish is made by hand`)
+    continue
+  }
+  if (staysAbsent.has(name)) continue
+
+  const missing = Object.keys(manifest.dependencies ?? {}).find(
+    (dep) => names.has(dep) && staysAbsent.has(dep),
+  )
+  if (missing) {
+    heldBack.set(name, missing)
+    staysAbsent.add(name)
+    continue
   }
 
   console.log(`- publishing ${name}@${version}${dryRun ? ' (dry run)' : ''}`)
 
-  // pnpm packs (rewriting workspace: ranges); npm publishes (it implements
-  // trusted publishing) — docs/release.md § What publishes to npm.
   const tarball = join(tmpdir(), `${name.replace('/', '-').replace('@', '')}-${version}.tgz`)
   const pack = spawnSync('pnpm', ['pack', '--out', tarball], {
     cwd: join(ROOT, dir),
     stdio: 'inherit',
   })
   if (pack.status !== 0) {
-    console.error(`✗ npm publish: packing ${name}@${version} failed`)
-    process.exit(1)
-  }
-
-  // The token is confined to a scratch project directory that only the
-  // bootstrap publish runs from; every other publish sees no credentials
-  // and authenticates by OIDC.
-  let cwd = join(ROOT, dir)
-  if (isNew) {
-    cwd = await mkdtemp(join(tmpdir(), 'meith-bootstrap-'))
-    await writeFile(join(cwd, '.npmrc'), '//registry.npmjs.org/:_authToken=${NPM_BOOTSTRAP_TOKEN}\n')
-    console.log(`- ${name} is new to the registry; bootstrapping with the token`)
+    failures.push({ name, why: 'packing it failed; the publish was never attempted' })
+    staysAbsent.add(name)
+    continue
   }
 
   const publish = spawnSync(
     'npm',
     ['publish', tarball, '--access', 'public', ...(dryRun ? ['--dry-run'] : [])],
-    { cwd, stdio: 'inherit' },
+    { cwd: join(ROOT, dir), stdio: 'inherit' },
   )
   await rm(tarball, { force: true })
-  if (isNew) await rm(cwd, { recursive: true, force: true })
+
   if (publish.status !== 0) {
-    console.error(`✗ npm publish: ${name}@${version} failed; re-running this script resumes after what succeeded`)
-    process.exit(1)
+    failures.push({
+      name,
+      why:
+        'npm publish refused it — the error is above. A package that already exists publishes\n' +
+        '  by trusted publishing, so the usual cause is its trusted publisher on npmjs.com\n' +
+        '  naming a different repository or workflow file than this one.',
+    })
+    staysAbsent.add(name)
+    continue
   }
-  publishedCount += 1
-  if (isNew) bootstrapped += 1
+  published += 1
 }
 
 console.log(
-  `✓ npm publish: ${publishedCount} package${publishedCount === 1 ? '' : 's'} ` +
-    `${dryRun ? 'packed (dry run)' : 'published'}${skipped > 0 ? `, ${skipped} already on the registry` : ''}`,
+  `✓ npm publish: ${published} package${published === 1 ? '' : 's'} ` +
+    `${dryRun ? 'packed (dry run)' : 'published'}${alreadyThere > 0 ? `, ${alreadyThere} already on the registry` : ''}`,
 )
-if (bootstrapped > 0) {
+
+if (newToRegistry.length > 0) {
+  const list = newToRegistry.map((entry) => `${entry.name}@${entry.version}`).join(', ')
   console.log(
-    `! ${bootstrapped} package${bootstrapped === 1 ? ' was' : 's were'} created with the bootstrap token. ` +
-      'Give each its trusted publisher on npmjs.com before the next release — ' +
-      'docs/release.md § How the workflow authenticates.',
+    `\n! the registry has never seen ${list}, so ${newToRegistry.length === 1 ? 'it was' : 'they were'} skipped: ` +
+      'trusted publishing cannot create a package, and this workflow holds no token that could.\n' +
+      "  Publish by hand and add the trusted publisher — docs/release.md § A package's first publish — " +
+      'then re-run this workflow against the tag.',
   )
+}
+
+for (const [name, dep] of heldBack) {
+  console.log(`! ${name} was held back: it depends on ${dep}, which is not on the registry.`)
+}
+
+if (failures.length > 0) {
+  console.error(
+    `\n✗ npm publish: ${failures.length} package${failures.length === 1 ? '' : 's'} did not publish. ` +
+      'Everything else went out; re-running this script resumes after what succeeded.',
+  )
+  for (const { name, why } of failures) console.error(`\n  ${name}: ${why}`)
+  process.exit(1)
 }
