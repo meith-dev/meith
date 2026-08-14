@@ -1,6 +1,6 @@
 {
   "name": "@meith/plugin-kit",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "The SDK for writing a Meith plugin: typed manifests, hooks, routes, pages and migrations.",
   "license": "LGPL-3.0-or-later",
   "repository": {
