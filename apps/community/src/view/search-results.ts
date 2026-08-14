@@ -153,7 +153,7 @@ function forumChoice(input: SearchResultsInput): SearchChoiceModel {
   const chosen = input.refine.forumIds ?? []
 
   const options: OptionModel[] = [
-    { value: '', label: 'Every forum in this search', isSelected: chosen.length === 0 },
+    { value: '', label: 'Every forum', isSelected: chosen.length === 0 },
   ]
 
   for (const facet of input.summary.forums) {
