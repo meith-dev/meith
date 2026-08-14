@@ -109,6 +109,7 @@ How those packages relate — the layers, what may import what, and why — is
 | `pnpm lint` | ESLint. |
 | `pnpm verify` | **Everything CI's `static` job runs.** Run it before opening a pull request; CI's other jobs build the image and drive a browser. |
 | `pnpm test:e2e` | Playwright: the no-JS paths, the staff panels, and the accessibility checks. It starts its own Postgres and two dev servers — nothing to install. |
+| `pnpm site:shots` | Re-photographs meith.dev's screenshots against the demo board. Deliberate, never on CI — see [The site's photographs](#the-sites-photographs). |
 
 `pnpm verify` is the one that matters: invariant guards, the generated-document
 checks, lint, dependency rules, all three typecheck projects and the full test
@@ -177,6 +178,15 @@ changes something every page shows — a board-wide announcement, a board settin
 a pinned thread — puts it back, or a later file fails for a reason nothing in it
 can explain.
 
+It shares the **scheduler** too, and that catches specs the database rule does
+not. A spec waiting on background work — an avatar re-encode, the search index —
+drives it by calling `/api/system/tick`, but a task only runs when its interval
+is up: `queue.drain` is every sixty seconds. Run alone, a spec passes because a
+task that has never run is due immediately. Run after anything that ticked, the
+same wait can need a full interval. Give such a spec its own `test.setTimeout`
+longer than the wait it asks for — Playwright's default is thirty seconds, and a
+`toPass` budget larger than the test timeout is a budget that cannot be spent.
+
 The specs are typechecked by `pnpm typecheck` with everything else. Playwright
 transpiles TypeScript without checking it, so until `e2e/` was added to the root
 project a spec that did not compile failed only when it ran — and a support file
@@ -188,6 +198,50 @@ and fails the run on an unhandled server error however many tests passed. It
 exists because a green run was hiding fifty-six: every control-panel page threw
 a `ForbiddenError` on a visit its layout had already answered with the sign-in
 form, and every spec asserting on that form passed over the top of it.
+
+## The site's photographs
+
+Every image on meith.dev is a screenshot of a real board rather than an
+illustration, and `pnpm site:shots` is what takes them. They land in
+`apps/web/public/shots` and the site references them by name, so a rename there
+is a broken image on the page.
+
+It photographs the **demo board** — the twenty forums of `packages/demo`, all
+five themes and the Dues shop — rather than the fixture the behaviour specs run
+on, whose content is written to be asserted rather than looked at. That needs a
+different board on different ports, so it has a config of its own
+(`e2e/screenshot-site.config.ts`) rather than a project in `playwright.config.ts`;
+folding it in would boot all of that for every `pnpm test:e2e` run to serve one
+spec that asserts nothing.
+
+**It does not run on CI**, and that is the point of it being a separate command.
+The shots change whenever the seed's relative timestamps move, so a run on every
+push would put a few megabytes of visually identical PNGs into every pull
+request. Re-take them when the board's appearance actually changes, and commit
+only the images that differ.
+
+Four things about the demo board decide how the shots are taken, and each is
+asserted in `e2e/screenshot-site.spec.ts` rather than left to hold:
+
+- **The demo strip publishes `admin / admin`** at the top of every page. It is
+  hidden before each shot, and the run fails if the selector stops matching —
+  those credentials on a marketing page read as a security hole.
+- **The seed holds a spam thread in the moderation queue**, and an administrator
+  can see unapproved content. The shots are taken as `member`, or the board's own
+  "Latest threads" panel leads on cheap replica jerseys.
+- **A freshly seeded board has done no background work.** Nothing is indexed and
+  every counter is zero, which two themes render as "not counted yet" beside
+  three noughts. The scheduler is driven until search answers before anything is
+  photographed.
+- **Search is rate-limited.** `/search?q=` runs a flood-checked search and
+  redirects to a stored result set, so the light and dark pair is taken from that
+  stored `/search/<token>` URL. Asking the search route twice returns the form
+  carrying a rate-limit warning.
+
+Running the reset *task* rather than `resetDemoBoard` under it matters for the
+same reason: the task stamps the run in the `tasks` table, and without that
+stamp `demo.reset` is due immediately and the first tick drops the schema
+mid-run.
 
 ## The scripts that fail on purpose
 

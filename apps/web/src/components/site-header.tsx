@@ -2,6 +2,7 @@ import Link from "next/link"
 
 import { site } from "../content/site"
 import { quickstartHref } from "../docs/registry"
+import { DemoLink } from "./demo-link"
 import { DocsSearch } from "./docs-search"
 import { Logomark } from "./logomark"
 import { ThemeToggle } from "./theme-toggle"
@@ -20,9 +21,12 @@ export function SiteHeader() {
         </Link>
 
         <nav aria-label="Site" className="flex items-center gap-3 sm:gap-4">
+          <DemoLink className="text-micro font-medium text-fg-muted transition-colors hover:text-fg">
+            Demo
+          </DemoLink>
           <Link
             href="/for"
-            className="text-micro font-medium text-fg-muted transition-colors hover:text-fg"
+            className="hidden text-micro font-medium text-fg-muted transition-colors hover:text-fg sm:inline"
           >
             Who it&rsquo;s for
           </Link>

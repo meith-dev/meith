@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { footer, licence, licenceHref, site } from "../content/site"
+import { version } from "../content/version"
 import {
   docHref,
   documentsInSection,
@@ -90,9 +91,37 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-12 flex flex-wrap items-baseline justify-between gap-x-10 gap-y-3 border-t border-border pt-6">
-          <p className="max-w-[42rem] text-micro leading-[1.6] text-fg-subtle text-pretty">
-            {footer.colophon}
-          </p>
+          <div className="flex max-w-[46rem] flex-wrap items-baseline gap-x-5 gap-y-2">
+            <p className="text-micro leading-[1.6] text-fg-subtle text-pretty">
+              <b className="font-mono font-normal text-fg-muted">
+                {site.name} {version}
+              </b>{" "}
+              — {footer.note}
+            </p>
+
+            <span className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
+              {footer.links.map((link) =>
+                "doc" in link ? (
+                  <Link
+                    className="text-micro text-fg-muted transition-colors hover:text-fg"
+                    href={docHref(link.doc)}
+                    key={link.label}
+                  >
+                    {link.label}
+                  </Link>
+                ) : (
+                  <a
+                    className="text-micro text-fg-muted transition-colors hover:text-fg"
+                    href={link.href}
+                    key={link.label}
+                  >
+                    {link.label}
+                  </a>
+                ),
+              )}
+            </span>
+          </div>
+
           <p className="font-mono text-micro text-fg-subtle">
             <a className="transition-colors hover:text-fg" href={licenceHref}>
               {licence.spdx}

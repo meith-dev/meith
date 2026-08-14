@@ -18,4 +18,6 @@ function workspaceRoot(): string {
   }
 }
 
-export const DOCS_DIRECTORY = join(workspaceRoot(), "docs")
+export const WORKSPACE_ROOT = workspaceRoot()
+
+export const DOCS_DIRECTORY = join(WORKSPACE_ROOT, "docs")

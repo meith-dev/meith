@@ -104,7 +104,8 @@ describe('the dues shop on the demo board', () => {
     expect(
       await count(
         'user_group_memberships',
-        `granted_by_plugin = '${DUES_PLUGIN_KEY}' and (expires_at is null or expires_at <= now())`,
+        `granted_by_plugin = '${DUES_PLUGIN_KEY}' ` +
+          `and (expires_at is null or expires_at <= '${NOW.toISOString()}')`,
       ),
     ).toBe(0)
   })

@@ -25,3 +25,15 @@ export const E2E_UPLOADS_DIR = join(tmpdir(), 'forum-e2e-uploads')
 export const E2E_FAKE_STRIPE_PORT = 12_111
 
 export const E2E_DUES_WEBHOOK_SECRET = 'whsec_e2e_dues_signing_secret'
+
+export const DEMO_DB_PORT = 55_434
+
+export const DEMO_DATABASE_URL = `postgres://postgres:postgres@127.0.0.1:${DEMO_DB_PORT}/postgres`
+
+export const DEMO_READY_PORT = 55_435
+
+export const DEMO_PORT = 3003
+
+export const DEMO_BASE_URL = `http://127.0.0.1:${DEMO_PORT}`
+
+export const DEMO_UPLOADS_DIR = join(tmpdir(), 'meith-demo-shot-uploads')

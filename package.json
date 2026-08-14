@@ -21,6 +21,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "site:shots": "playwright test --config e2e/screenshot-site.config.ts",
     "community": "pnpm --filter @meith/cli start",
     "format": "prettier --write .",
     "verify": "pnpm workspace:check && pnpm root:check && pnpm release:check && pnpm guards && pnpm guards:probe && pnpm slots:check && pnpm slots:probe && pnpm theme:docs:check && pnpm plugin:docs:check && pnpm hooks:wired && pnpm api:docs:check && pnpm perf:docs:check && pnpm docs:index:check && pnpm site:docs:check && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm typecheck:site && pnpm test",
