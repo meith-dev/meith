@@ -20,6 +20,7 @@ export async function signUp(page: Page, label: string): Promise<string> {
   await page.getByLabel('Username').fill(username)
   await page.getByLabel('Email').fill(`${username}@example.test`)
   await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByLabel(/I have read and accept/).check()
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page).toHaveURL(/\/login\?registered=1$/)
 

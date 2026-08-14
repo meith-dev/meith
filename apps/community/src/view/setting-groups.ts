@@ -10,6 +10,7 @@ export const GROUP_LABELS: Record<SettingGroup, string> = {
   reputation: 'Reputation',
   security: 'Security',
   antispam: 'Anti-spam',
+  legal: 'Legal',
 }
 
 export const GROUP_ORDER: readonly SettingGroup[] = [
@@ -22,6 +23,7 @@ export const GROUP_ORDER: readonly SettingGroup[] = [
   'mail',
   'security',
   'antispam',
+  'legal',
 ]
 
 export const DEFAULT_SETTING_GROUP: SettingGroup = GROUP_ORDER[0]!

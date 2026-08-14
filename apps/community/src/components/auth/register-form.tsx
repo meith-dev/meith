@@ -24,14 +24,21 @@ export interface RegistrationLimits {
   readonly usernameMax: number
 }
 
+export interface TermsInput {
+  readonly label: string
+  readonly href: string
+}
+
 export function RegisterForm({
   customFields = [],
   challenge,
   limits,
+  terms = null,
 }: {
   customFields?: readonly CustomFieldInput[]
   challenge?: ChallengeInput
   limits: RegistrationLimits
+  terms?: TermsInput | null | undefined
 }) {
   const [state, action] = useActionState(registerAction, EMPTY_STATE)
   return (
@@ -93,6 +100,31 @@ export function RegisterForm({
             />
           )}
         </>
+      )}
+
+      {terms !== null && (
+        <label className="flex items-start gap-2 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            name="terms"
+            value="1"
+            required
+            defaultChecked={state.values?.terms === "1"}
+            className="mt-0.5 size-4 rounded border-input accent-primary"
+          />
+          <span>
+            I have read and accept the{" "}
+            <a
+              href={terms.href}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+            >
+              {terms.label}
+            </a>
+            .
+          </span>
+        </label>
       )}
 
       <SubmitButton>Create account</SubmitButton>

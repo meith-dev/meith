@@ -6,6 +6,7 @@ import { LogoutForm } from '@/components/account/logout-form'
 import { currentLogo } from '@/server/branding'
 import { ThemeSwitcher } from '@/components/shell/theme-switcher'
 import { getContainer } from '@/server/container'
+import { legalFooterLinks } from '@/server/legal'
 import { unreadMessageCount } from '@/server/messages'
 import { touchActivity } from '@/server/relations'
 import { touchCurrentLocation } from '@/server/presence'
@@ -97,7 +98,7 @@ export async function PageShell({
   )
   const footerModel = await filterView(
     'view.footer',
-    buildFooterModel([], boardTitle, preferences.timezone),
+    buildFooterModel(await legalFooterLinks(), boardTitle, preferences.timezone),
     pluginContext,
   )
 

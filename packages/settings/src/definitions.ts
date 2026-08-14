@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { DEFAULT_PRIVACY_POLICY, DEFAULT_TERMS_OF_SERVICE } from './legal'
 import { isUsableOrigin } from './origin'
 
 export type SettingGroup =
@@ -12,6 +13,7 @@ export type SettingGroup =
   | 'reputation'
   | 'security'
   | 'antispam'
+  | 'legal'
 
 interface SettingDefinitionBase<T> {
   readonly key: string
@@ -610,6 +612,36 @@ export const SETTING_DEFINITIONS = [
     schema: z.number().int().min(0).max(10_000),
     default: 0,
     ui: { min: 0, max: 10_000 },
+  }),
+
+  define({
+    key: 'legal.terms',
+    group: 'legal',
+    label: 'Terms of service',
+    description:
+      'Markdown, published at /terms and linked from the footer. Registration ' +
+      'asks the visitor to accept it before the account is created, so emptying ' +
+      'this box takes the page, the footer link and the checkbox away together. ' +
+      'What ships is a template written to be replaced: read it, make it say ' +
+      'what your community actually does, and take advice on it if it matters.',
+    schema: z.string().max(40_000),
+    default: DEFAULT_TERMS_OF_SERVICE,
+    invalidates: ['settings', 'layout'],
+    ui: { multiline: true },
+  }),
+  define({
+    key: 'legal.privacy',
+    group: 'legal',
+    label: 'Privacy policy',
+    description:
+      'Markdown, published at /privacy and linked from the footer. Emptied, the ' +
+      'page and the link go. It ships as a template describing what this ' +
+      'software does by default — your host, your mail provider and anything ' +
+      'you have added are yours to describe.',
+    schema: z.string().max(40_000),
+    default: DEFAULT_PRIVACY_POLICY,
+    invalidates: ['settings', 'layout'],
+    ui: { multiline: true },
   }),
 ] as const
 
