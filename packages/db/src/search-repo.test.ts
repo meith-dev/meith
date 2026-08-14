@@ -10,6 +10,7 @@ import {
   PostgresSearchRepository,
   SEARCH_DOCUMENT_VERSION,
   indexedSubjectSql,
+  renderExcerptHtml,
   searchVectorSql,
 } from './search-repo'
 
@@ -254,6 +255,23 @@ describe('matching and ranking', () => {
     const results = await repo.search(query(), scope())
     expect(results.hits[0]?.excerpt).toContain('kestrel')
     expect(results.hits[0]?.excerpt).toMatch(/<b>/)
+  })
+
+  it('escapes HTML in a body excerpt so an injected payload is inert', async () => {
+    await seed({ id: 1, message: 'before <img src=x onerror=alert(1)> a kestrel flew past' })
+
+    const excerpt = (await repo.search(query(), scope())).hits[0]?.excerpt ?? ''
+    expect(excerpt).not.toContain('<img')
+    expect(excerpt).toContain('&lt;img src=x onerror=alert(1)&gt;')
+    expect(excerpt).toMatch(/<b>kestrel<\/b>/i)
+  })
+
+  it('leaves no tag in an excerpt other than the highlight marks', async () => {
+    await seed({ id: 1, message: 'kestrel "><svg onload=alert(1)></svg>' })
+
+    const excerpt = (await repo.search(query(), scope())).hits[0]?.excerpt ?? ''
+    expect(excerpt).not.toContain('<svg')
+    expect(excerpt).not.toMatch(/<(?!\/?b>)/)
   })
 
   it('runs no query at all for empty terms', async () => {
@@ -534,5 +552,19 @@ describe('reindexing', () => {
     await repo.reindexChunk(0, 1)
 
     expect(await repo.indexProgress()).toEqual({ indexed: 1, pending: 3 })
+  })
+})
+
+describe('renderExcerptHtml', () => {
+  const start = String.fromCharCode(0xe000)
+  const stop = String.fromCharCode(0xe001)
+
+  it('escapes HTML and renders only the highlight sentinels as marks', () => {
+    const raw = `<script>alert(1)</script> ${start}kestrel${stop}`
+    expect(renderExcerptHtml(raw)).toBe('&lt;script&gt;alert(1)&lt;/script&gt; <b>kestrel</b>')
+  })
+
+  it('escapes quotes and ampersands so an attribute cannot break out', () => {
+    expect(renderExcerptHtml('a & b "><svg>')).toBe('a &amp; b &quot;&gt;&lt;svg&gt;')
   })
 })
