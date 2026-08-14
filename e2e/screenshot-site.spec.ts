@@ -45,8 +45,15 @@ const SCALE = 2
  * Every theme this repository ships, in the order the site shows them. `default`
  * leads because it is what an unconfigured board looks like, and the other four
  * are the argument that it does not have to.
+ *
+ * Each is photographed in both colour schemes. A theme is a pair of token sets,
+ * not one — a colour that reads on paper-white disappears at midnight, and the
+ * themes are built with both in mind. Showing one scheme would be showing half
+ * of each theme, and the half a given reader is not looking at.
  */
 const THEMES = ['default', 'clubhouse', 'midnight', 'phasebook', 'raidframe'] as const
+
+const SCHEMES = ['light', 'dark'] as const
 
 /*
  * Threads are reached by walking to them rather than by address. Forum and
@@ -178,61 +185,77 @@ test('the marketing site, photographed', async ({ browser, request }) => {
   // forum it is named after in the "latest posts" panel beside it.
   await expect(page.getByRole('link', { name: 'Noticeboard' }).first()).toBeVisible()
 
-  // 1 — what a board is. The hero, in both schemes the site itself offers.
-  await paint(desktop, page, { theme: 'default', scheme: 'light' })
-  await shoot(page, 'board-light')
-
-  await paint(desktop, page, { scheme: 'dark' })
-  await shoot(page, 'board-dark')
-
-  await paint(desktop, page, { scheme: 'light' })
-
-  // 5 — themeable, and the five are real. Same board, same reader, same moment.
+  /*
+   * 1 and 5 together — what a board is, and that it can look like five
+   * different things. Ten shots of one board on one afternoon, which is the
+   * only honest way to photograph a theme.
+   *
+   * The default theme's pair does double duty as the hero, so there is no
+   * separate `board-light` — it would be the same pixels under another name,
+   * and two files that must never disagree are one file too many.
+   */
   for (const theme of THEMES) {
-    await paint(desktop, page, { theme })
-    await shoot(page, `theme-${theme}`)
+    for (const scheme of SCHEMES) {
+      await paint(desktop, page, { theme, scheme })
+      await shoot(page, `theme-${theme}-${scheme}`)
+    }
   }
 
   await paint(desktop, page, { theme: 'default' })
 
-  // 1 — a thread is where the conversation actually happens.
-  await page.goto(RECENT_THREADS)
-  const thread = page.locator(THREAD_LINK).first()
-  await expect(thread).toBeVisible()
-  await thread.click()
-  await expect(page).toHaveURL(/\/thread\//)
-  await shoot(page, 'thread')
-
-  // 3 and 4 — search, and nothing ranking it for you.
+  /*
+   * 3 and 4 — search, and nothing ranking it for you.
+   *
+   * In both schemes, as everything below is. A light screenshot on a dark page
+   * is the tell that the picture was taken somewhere else, and this site has a
+   * colour-scheme toggle in its header — so every shot it shows needs a partner
+   * for the other side of it.
+   */
   await page.goto(`/search?q=${SEARCH_TERM}`)
   await expect(page.getByText('Nothing matched')).toBeHidden()
-  await shoot(page, 'search')
+
+  for (const scheme of SCHEMES) {
+    await paint(desktop, page, { scheme })
+    await shoot(page, `search-${scheme}`)
+  }
 
   // 7 — memberships, as a visitor who has not bought one meets them.
   const guest = await browser.newContext({ viewport: DESKTOP, deviceScaleFactor: SCALE })
   const guestPage = await guest.newPage()
   await guestPage.goto('/plugins/dues')
   await expect(guestPage.getByRole('heading', { level: 1 })).toBeVisible()
-  await shoot(guestPage, 'dues')
-  await guest.close()
 
+  for (const scheme of SCHEMES) {
+    await paint(guest, guestPage, { scheme })
+    await shoot(guestPage, `dues-${scheme}`)
+  }
+
+  await guest.close()
   await desktop.close()
 
-  // 2 — the same board on a phone. No copy anywhere near this one; the point is
-  // that it needs none.
+  /*
+   * 2 — a phone, to stand in front of the desktop shot in the hero. No copy goes
+   * anywhere near it; the point of the picture is that it needs none.
+   *
+   * A thread rather than the forum index, because the desktop shot beside it is
+   * already the index — the pair is then the two halves of what a board is for:
+   * finding the conversation, and having it.
+   */
   const phone = await browser.newContext({ viewport: PHONE, deviceScaleFactor: SCALE })
   const phonePage = await phone.newPage()
 
   await signIn(phonePage, 'member', 'member')
-  await paint(phone, phonePage, { theme: 'default', scheme: 'light' })
-  await shoot(phonePage, 'board-mobile')
 
   await phonePage.goto(RECENT_THREADS)
   const phoneThread = phonePage.locator(THREAD_LINK).first()
   await expect(phoneThread).toBeVisible()
   await phoneThread.click()
   await expect(phonePage).toHaveURL(/\/thread\//)
-  await shoot(phonePage, 'thread-mobile')
+
+  for (const scheme of SCHEMES) {
+    await paint(phone, phonePage, { theme: 'default', scheme })
+    await shoot(phonePage, `thread-mobile-${scheme}`)
+  }
 
   await phone.close()
 })

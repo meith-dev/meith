@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { findScenario, readFacts } from "./facts"
-import { performance as performanceCopy } from "./site"
+import { extensible, finding } from "./site"
 
 describe("the figures the landing page quotes", () => {
   it("finds all four of them in the generated references", async () => {
@@ -47,11 +47,28 @@ describe("the figures the landing page quotes", () => {
     )
   })
 
-  it("gives the speed band its sentence, with real numbers in it", async () => {
+  it("gives the search band its measurement, with real numbers in it", async () => {
     const facts = await readFacts()
-    const sentence = performanceCopy.evidence(facts)
+    const sentence = finding.evidence(facts)
 
     expect(sentence).not.toContain("NaN")
     expect(sentence).toMatch(/\d+(\.\d+)? ms/)
+  })
+
+  /*
+   * The strip counts rather than claims, so what it must never do is claim a
+   * count of nothing. A regular expression over the rendered values catches the
+   * failure this is actually exposed to: a reader in `facts.ts` that stops
+   * matching its document returns `NaN`, and `String(NaN)` is a perfectly
+   * valid-looking thing to render.
+   */
+  it("counts the extensible strip out of the generated references", async () => {
+    const facts = await readFacts()
+
+    for (const entry of extensible.counts(facts)) {
+      expect(entry.label).not.toBe("")
+      expect(entry.value).not.toContain("NaN")
+      expect(entry.value).not.toBe("0")
+    }
   })
 })

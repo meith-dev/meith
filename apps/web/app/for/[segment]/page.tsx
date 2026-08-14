@@ -2,31 +2,29 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
-import { BoardPreview } from "../../../src/components/board-preview"
+import { SchemeScreenshot } from "../../../src/components/screenshot"
 import { SegmentCards } from "../../../src/components/segment-cards"
-import {
-  ClosingBand,
-  LicenceBand,
-  ProofBand,
-  RunningBand,
-} from "../../../src/components/site-bands"
-import { readFacts } from "../../../src/content/facts"
-import { findSegment, segmentHref, segments } from "../../../src/content/segments"
-import { capabilitiesByIds, site } from "../../../src/content/site"
+import { ClosingBand } from "../../../src/components/site-bands"
+import { findSegment, origin, segmentHref, segments } from "../../../src/content/segments"
+import { site, themeShots } from "../../../src/content/site"
 import { docHref, quickstartHref } from "../../../src/docs/registry"
 
 /*
- * One page per audience, from `src/content/segments.ts`.
+ * One page per audience, from `src/content/segments.ts`, and about two hundred
+ * words of it.
  *
- * Everything above the shared bands is that audience's own: their headline,
- * their board with their forums in it, their four complaints in their own
- * words, the four capabilities that matter to them in their own order, the
- * one feature that is the argument for them specifically, and an honest
- * account of what leaving their platform actually involves.
+ * Everything here is that audience's own: their headline, their four
+ * complaints in their own words, the one feature that is the argument for them
+ * specifically, and the board in a theme that suits them.
  *
- * Below that it is the same page for everybody, because somebody who arrived
- * here from a search should not have to go anywhere else to find out what it
- * costs, who runs it, or what the licence means.
+ * What is *not* here any more is the eleven hundred words of shared bands that
+ * used to sit under all of it — the deployment routes, the cost note, the
+ * licence explainer, the performance measurement — repeated verbatim on all
+ * five of these pages and again on the general one. The argument for that was
+ * that somebody arriving cold from a search should not have to go elsewhere to
+ * find out what this costs. That is right, and the strip near the foot of this
+ * page now does it in thirty words and a link, because the page it links to is
+ * itself only five hundred words long.
  */
 
 export function generateStaticParams() {
@@ -73,9 +71,8 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
   const segment = findSegment(slug)
   if (!segment) notFound()
 
-  const facts = await readFacts()
   const startHref = quickstartHref()
-  const shown = capabilitiesByIds(segment.capabilities.ids)
+  const board = themeShots(segment.theme)
 
   return (
     <>
@@ -141,8 +138,15 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
             </div>
           </div>
 
+          {/*
+            The board in the theme that suits this audience, rather than an
+            outline of one. A club sees Clubhouse and a clan sees Raidframe —
+            the same board, the same afternoon, a different coat of paint, which
+            is the one claim about themes worth making and the one a drawing
+            could never make.
+          */}
           <figure className="flex flex-col gap-3">
-            <BoardPreview board={segment.board} />
+            <SchemeScreenshot dark={board.dark} light={board.light} priority />
             <figcaption className="text-micro leading-[1.5] text-fg-subtle text-pretty">
               {segment.boardCaption}
             </figcaption>
@@ -175,21 +179,6 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
           <div className="flex max-w-[36rem] flex-col gap-6 lg:pt-1">
             <p className="text-fg-muted text-pretty">{segment.feature.lede}</p>
 
-            <dl className="grid gap-x-10 gap-y-5 sm:grid-cols-2">
-              {segment.feature.points.map((point) => (
-                <div key={point.title}>
-                  <dt className="font-medium text-fg">{point.title}</dt>
-                  <dd className="mt-1 text-micro leading-[1.65] text-fg-muted text-pretty">
-                    {point.body}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-
-            <p className="border-l-2 border-accent pl-4 text-fg text-pretty">
-              {segment.feature.emphasis}
-            </p>
-
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
               {segment.feature.links.map((link) =>
                 "doc" in link ? (
@@ -207,61 +196,34 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
         </div>
       </section>
 
+      {/*
+        What eleven hundred words of shared bands turned into.
+
+        The deployment routes, the cost note, the licence explainer and the
+        performance measurement used to be repeated in full on all five of
+        these pages. They are one link now — to a general page that is itself
+        only five hundred words, and to the documents that always argued it
+        better than a summary of them could.
+      */}
       <section className="border-b border-border bg-surface">
-        <div className="shell py-16 sm:py-20">
-          <header className="max-w-[46rem]">
-            <p className="eyebrow">{segment.capabilities.eyebrow}</p>
-            <h2 className="display mt-3 text-large leading-[1.15]">
-              {segment.capabilities.heading}
+        <div className="shell flex flex-col gap-4 py-12 sm:flex-row sm:items-baseline sm:justify-between sm:gap-10 sm:py-14">
+          <div className="flex max-w-[42rem] flex-col gap-2">
+            <h2 className="text-mid leading-[1.25] font-semibold tracking-[-0.02em] text-fg">
+              {origin.heading}
             </h2>
-            <p className="mt-4 text-fg-muted text-pretty">{segment.capabilities.lede}</p>
-          </header>
+            <p className="text-micro leading-[1.65] text-fg-muted text-pretty">{origin.body}</p>
+          </div>
 
-          <div className="card-grid mt-10 sm:grid-cols-2">
-            {shown.map((capability) => (
-              <Link
-                href={docHref(capability.doc, capability.anchor ?? undefined)}
-                key={capability.id}
-              >
-                <h3 className="text-mid leading-[1.25] font-semibold tracking-[-0.02em] text-fg">
-                  {capability.title}
-                </h3>
-                <p className="text-micro leading-[1.65] text-fg-muted text-pretty">
-                  {capability.body}
-                </p>
-                <p className="mt-auto pt-4 font-mono text-micro text-fg-subtle">
-                  <span className="card-arrow">{capability.link} →</span>
-                </p>
-              </Link>
-            ))}
+          <div className="flex shrink-0 flex-col gap-2">
+            <Link className="textlink text-micro" href="/">
+              What Meith is, in five hundred words
+            </Link>
+            <Link className="textlink text-micro" href={docHref("mybb-parity")}>
+              {origin.link}
+            </Link>
           </div>
         </div>
       </section>
-
-      <section className="border-b border-border">
-        <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-          <header className="flex flex-col gap-3">
-            <p className="eyebrow">{segment.origin.eyebrow}</p>
-            <h2 className="display text-large leading-[1.15]">{segment.origin.heading}</h2>
-          </header>
-
-          {/*
-            The general page carries the "leave in the chat / put on the board"
-            lists here. They stay there: half these audiences are not leaving a
-            chat at all, and "today's lifts" is a strange thing to show somebody
-            running a Facebook group. Each segment says the same thing in its
-            own situation instead, which is what `origin.emphasis` is for.
-          */}
-          <div className="flex max-w-[36rem] flex-col gap-4 lg:pt-1">
-            <p className="text-fg-muted text-pretty">{segment.origin.body}</p>
-            <p className="text-fg text-pretty">{segment.origin.emphasis}</p>
-          </div>
-        </div>
-      </section>
-
-      <RunningBand />
-      <ProofBand facts={facts} />
-      <LicenceBand />
 
       <section className="border-b border-border">
         <div className="shell py-16 sm:py-20">
@@ -271,8 +233,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
               The same board, argued four other ways.
             </h2>
             <p className="mt-4 text-fg-muted text-pretty">
-              It is one piece of software underneath. What changes is which of its problems you
-              recognise — so there is a page for each.
+              One piece of software. What changes is which of its problems you recognise.
             </p>
           </header>
 

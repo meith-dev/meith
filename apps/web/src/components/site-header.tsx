@@ -19,10 +19,23 @@ export function SiteHeader() {
           </span>
         </Link>
 
+        {/*
+          The demo comes first, and it is the only outbound link in here that
+          earns the position: a live board answers "what is this?" in a way the
+          whole site is only an argument about. It used not to be in the header
+          at all, which meant the most persuasive thing the project has was
+          reachable from two buttons on one page.
+        */}
         <nav aria-label="Site" className="flex items-center gap-3 sm:gap-4">
+          <a
+            href={site.demo}
+            className="text-micro font-medium text-fg-muted transition-colors hover:text-fg"
+          >
+            Demo
+          </a>
           <Link
             href="/for"
-            className="text-micro font-medium text-fg-muted transition-colors hover:text-fg"
+            className="hidden text-micro font-medium text-fg-muted transition-colors hover:text-fg sm:inline"
           >
             Who it&rsquo;s for
           </Link>
