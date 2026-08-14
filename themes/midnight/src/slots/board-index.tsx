@@ -2,23 +2,31 @@ import type { BoardIndexModel } from '@meith/theme-kit'
 
 export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
   const latest = regions.latest ?? null
+  const hasRail = latest !== null || regions.online !== null || regions.stats !== null
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {latest !== null && <div className="flex flex-col gap-3">{latest}</div>}
-
-      {(regions.online !== null || regions.stats !== null) && (
-        <div className="flex flex-col gap-3">
-          {regions.online}
-          {regions.stats}
-        </div>
-      )}
-
       {regions.announcements !== undefined && (
         <div className="flex flex-col gap-3">{regions.announcements}</div>
       )}
 
-      <div className="flex flex-col gap-3">{regions.categories}</div>
+      <div
+        className={
+          hasRail
+            ? 'grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]'
+            : 'flex min-w-0 flex-col gap-3'
+        }
+      >
+        <div className="flex min-w-0 flex-col gap-3">{regions.categories}</div>
+
+        {hasRail && (
+          <aside aria-label="Board activity" className="flex min-w-0 flex-col gap-3">
+            {latest}
+            {regions.online}
+            {regions.stats}
+          </aside>
+        )}
+      </div>
 
       {regions.plugins}
 

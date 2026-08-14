@@ -49,6 +49,7 @@ export default async function ReportPage({
 
   return (
     <PanelPage
+      frame="standalone"
       title={`Report ${what}`}
       lede="A moderator will look at this. Your report is private."
     >

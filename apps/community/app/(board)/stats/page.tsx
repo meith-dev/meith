@@ -1,12 +1,19 @@
 import type { Metadata } from 'next'
 
-import { PanelPage } from '@/components/shell/panel-page'
+import { Card, CardContent, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
+
+import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { LEADERBOARD_SIZE, buildStatsView } from '@/server/stats'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Board statistics' }
+
+const LINK =
+  'font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground'
+
+const ROW = 'flex items-baseline justify-between gap-4 px-4 py-2.5 text-sm'
 
 export default async function StatsPage() {
   const actor = await getActor()
@@ -16,10 +23,13 @@ export default async function StatsPage() {
 
   if (view === null) {
     return (
-      <PanelPage title="Board statistics">
-        <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-          This board keeps no statistics.
-        </p>
+      <PanelPage frame="standalone" title="Board statistics">
+        <Card>
+          <Empty>
+            <EmptyTitle>Nothing is counted here</EmptyTitle>
+            <EmptyDescription>This board keeps no statistics.</EmptyDescription>
+          </Empty>
+        </Card>
       </PanelPage>
     )
   }
@@ -28,6 +38,7 @@ export default async function StatsPage() {
 
   return (
     <PanelPage
+      frame="standalone"
       gap="loose"
       title="Board statistics"
       lede={
@@ -46,70 +57,69 @@ export default async function StatsPage() {
         </>
       }
     >
+      <PanelSection id="totals-heading" title="Totals">
+        <Card>
+          <CardContent>
+            <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+              <Figure label="Threads" value={totals.threadCount} />
+              <Figure label="Posts" value={totals.postCount} />
+              <Figure label="Members" value={totals.memberCount} />
+              <div>
+                <dt className="text-muted-foreground">Newest member</dt>
+                <dd className="font-medium">
+                  {totals.newestUsername === null ? (
+                    '—'
+                  ) : totals.newestUserId === null ? (
+                    totals.newestUsername
+                  ) : (
+                    <a href={`/member/${totals.newestUserId}`} className={LINK}>
+                      {totals.newestUsername}
+                    </a>
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+      </PanelSection>
 
-      <section aria-labelledby="totals-heading" className="rounded-lg border border-border bg-card p-4 shadow-elevation">
-        <h2 id="totals-heading" className="font-heading text-lg font-semibold">
-          Totals
-        </h2>
-        <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-          <Figure label="Threads" value={totals.threadCount} />
-          <Figure label="Posts" value={totals.postCount} />
-          <Figure label="Members" value={totals.memberCount} />
-          <div>
-            <dt className="text-muted-foreground">Newest member</dt>
-            <dd className="font-medium">
-              {totals.newestUsername === null ? (
-                '—'
-              ) : totals.newestUserId === null ? (
-                totals.newestUsername
-              ) : (
-                <a
-                  href={`/member/${totals.newestUserId}`}
-                  className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                >
-                  {totals.newestUsername}
-                </a>
-              )}
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      <section aria-labelledby="posters-heading" className="rounded-lg border border-border bg-card p-4 shadow-elevation">
-        <h2 id="posters-heading" className="font-heading text-lg font-semibold">
-          Top {LEADERBOARD_SIZE} posters
-        </h2>
-        {topPosters.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">Nobody has posted yet.</p>
-        ) : (
-          <ol className="mt-3 flex flex-col gap-1 text-sm">
-            {topPosters.map((poster, index) => (
-              <li key={poster.userId} className="flex justify-between gap-4">
-                <span>
-                  <span className="text-muted-foreground">{index + 1}.</span>{' '}
-                  <a href={`/member/${poster.userId}`} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-                    {poster.username}
-                  </a>
-                </span>
-                <span className="text-muted-foreground">
-                  {poster.postCount.toLocaleString()} posts
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
+      <PanelSection id="posters-heading" title={`Top ${LEADERBOARD_SIZE} posters`}>
+        <Card>
+          {topPosters.length === 0 ? (
+            <Empty>
+              <EmptyTitle>No posts yet</EmptyTitle>
+              <EmptyDescription>Nobody has posted yet.</EmptyDescription>
+            </Empty>
+          ) : (
+            <CardRows>
+              {topPosters.map((poster, index) => (
+                <li key={poster.userId} className={ROW}>
+                  <span className="min-w-0 truncate">
+                    <span className="text-muted-foreground tabular-nums">{index + 1}.</span>{' '}
+                    <a href={`/member/${poster.userId}`} className={LINK}>
+                      {poster.username}
+                    </a>
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {poster.postCount.toLocaleString()} posts
+                  </span>
+                </li>
+              ))}
+            </CardRows>
+          )}
+        </Card>
+      </PanelSection>
 
       <ThreadTable
         id="viewed"
-        heading={`Most viewed threads`}
+        heading="Most viewed threads"
         rows={mostViewed}
         figure={(row) => `${row.viewCount.toLocaleString()} views`}
       />
 
       <ThreadTable
         id="replied"
-        heading={`Most replied-to threads`}
+        heading="Most replied-to threads"
         rows={mostReplied}
         figure={(row) => `${row.replyCount.toLocaleString()} replies`}
       />
@@ -146,31 +156,30 @@ function ThreadTable({
   figure: (row: { viewCount: number; replyCount: number }) => string
 }) {
   return (
-    <section aria-labelledby={`${id}-heading`} className="rounded-lg border border-border bg-card p-4 shadow-elevation">
-      <h2 id={`${id}-heading`} className="font-heading text-lg font-semibold">
-        {heading}
-      </h2>
-      {rows.length === 0 ? (
-        <p className="mt-2 text-sm text-muted-foreground">Nothing to show yet.</p>
-      ) : (
-        <ol className="mt-3 flex flex-col gap-1 text-sm">
-          {rows.map((row, index) => (
-            <li key={row.threadId} className="flex justify-between gap-4">
-              <span className="min-w-0 truncate">
-                <span className="text-muted-foreground">{index + 1}.</span>{' '}
-                <a
-                  href={`/thread/${row.threadId}-${row.slug}`}
-                  className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                >
-                  {row.title}
-                </a>{' '}
-                <span className="text-muted-foreground">in {row.forumTitle}</span>
-              </span>
-              <span className="shrink-0 text-muted-foreground">{figure(row)}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-    </section>
+    <PanelSection id={`${id}-heading`} title={heading}>
+      <Card>
+        {rows.length === 0 ? (
+          <Empty>
+            <EmptyTitle>No threads yet</EmptyTitle>
+            <EmptyDescription>Nothing to show yet.</EmptyDescription>
+          </Empty>
+        ) : (
+          <CardRows>
+            {rows.map((row, index) => (
+              <li key={row.threadId} className={ROW}>
+                <span className="min-w-0 truncate">
+                  <span className="text-muted-foreground tabular-nums">{index + 1}.</span>{' '}
+                  <a href={`/thread/${row.threadId}-${row.slug}`} className={LINK}>
+                    {row.title}
+                  </a>{' '}
+                  <span className="text-muted-foreground">in {row.forumTitle}</span>
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">{figure(row)}</span>
+              </li>
+            ))}
+          </CardRows>
+        )}
+      </Card>
+    </PanelSection>
   )
 }

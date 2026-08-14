@@ -18,11 +18,10 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
         <ul className="divide-y divide-border font-mono text-xs">
           {threads.map((thread) => (
             <li key={thread.href} className="px-3 py-1.5">
-              <a href={thread.href} className="text-primary hover:underline">
+              <a href={thread.href} className="block truncate text-primary hover:underline">
                 {thread.title}
               </a>
-              <span className="text-muted-foreground">
-                {' · '}
+              <p className="truncate text-muted-foreground">
                 <a href={thread.forum.href} className="hover:text-foreground">
                   {thread.forum.label}
                 </a>
@@ -30,7 +29,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
                 <UserRef user={thread.author} className="hover:text-foreground" />
                 {' · '}
                 <time dateTime={thread.startedAt.iso}>{thread.startedAt.label}</time>
-              </span>
+              </p>
             </li>
           ))}
         </ul>

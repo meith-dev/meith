@@ -84,6 +84,14 @@ the admin panel themeable at all: its forty-odd screens fill `PanelPage`'s body
 with app-rendered forms, and a theme restyles every one of them by overriding
 the frame around them once.
 
+**`PanelPage` also frames three pages that are in no panel at all** — who's
+online, the board statistics and the report form are panel-shaped without a
+rail beside them. `PanelShell` centres the pages inside it and sets their
+gutters, so a `PanelPage` under one must not centre itself; nothing wraps the
+other three, so there it must. `frame` says which case a theme is rendering,
+and a theme that reads it centres its standalone pages on the same measure as
+the header above them.
+
 **What a theme still does not own** is the body of an individual settings
 screen. A form posting to a Server Action never crosses this contract as data —
 so an admin screen's controls arrive as `children`, and a theme restyles them
@@ -207,8 +215,8 @@ behaviour of its own; a bug fixed in `resolveTheme` is a package version.
 > nothing, so a theme written against `0.9` inherits them from whatever it
 > extends and keeps compiling. `0.11` keeps it again, with optional fields only:
 > `LinkModel.group`, and `notificationsHref` / `messagesHref` on
-> `UserPanelModel`. A theme that never reads them renders exactly what it
-> rendered before.
+> `UserPanelModel`. `0.12` adds one more, `PanelPageModel.frame`. A theme that
+> never reads them renders exactly what it rendered before.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

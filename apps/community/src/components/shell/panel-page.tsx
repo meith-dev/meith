@@ -8,6 +8,7 @@ import { currentTheme } from '@/server/theme'
 export interface PanelPageProps {
   readonly title: string
   readonly panel?: PanelKind
+  readonly frame?: 'panel' | 'standalone'
   readonly back?: { readonly href: string; readonly label: string }
   readonly lede?: React.ReactNode
   readonly meta?: React.ReactNode
@@ -20,6 +21,7 @@ export interface PanelPageProps {
 export async function PanelPage({
   title,
   panel,
+  frame = 'panel',
   back,
   lede,
   meta,
@@ -35,6 +37,7 @@ export async function PanelPage({
     {
       title,
       panel: panel ?? null,
+      frame,
       back: back ?? null,
       width,
       gap,

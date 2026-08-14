@@ -3,14 +3,20 @@ import type { PanelPageModel, PanelSectionModel } from '@meith/theme-kit'
 
 import { MUTED_LINK } from '../shared'
 
-export function PanelPage({ title, back, width, gap, regions, children }: PanelPageModel) {
+export function PanelPage({ title, back, frame, width, gap, regions, children }: PanelPageModel) {
   return (
     <main
       id="board-content"
       tabIndex={-1}
       className={cn(
         'flex w-full flex-col',
-        width === 'wide' ? 'max-w-none' : 'max-w-4xl',
+        frame === 'standalone'
+          ? `mx-auto flex-1 px-3 py-4 sm:px-4 lg:py-6 ${
+              width === 'wide' ? 'max-w-6xl' : 'max-w-4xl'
+            }`
+          : width === 'wide'
+            ? 'max-w-none'
+            : 'max-w-4xl',
         gap === 'loose' ? 'gap-4' : 'gap-3',
       )}
     >

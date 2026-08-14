@@ -1,16 +1,18 @@
 import { cn } from '@meith/ui'
 import type { PanelPageModel, PanelSectionModel } from '@meith/theme-kit'
 
-import { MUTED_LINK } from '../shared'
+import { MUTED_LINK, PAGE, pageAt } from '../shared'
 
-export function PanelPage({ title, back, width, gap, regions, children }: PanelPageModel) {
+export function PanelPage({ title, back, frame, width, gap, regions, children }: PanelPageModel) {
   return (
     <main
       id="board-content"
       tabIndex={-1}
       className={cn(
-        'flex w-full flex-col px-6 py-8',
-        width === 'wide' ? 'max-w-none' : 'max-w-4xl',
+        'flex w-full flex-col py-8',
+        frame === 'standalone'
+          ? `flex-1 ${width === 'wide' ? PAGE : pageAt('max-w-4xl')}`
+          : `px-6 ${width === 'wide' ? 'max-w-none' : 'max-w-4xl'}`,
         gap === 'loose' ? 'gap-8' : 'gap-6',
       )}
     >

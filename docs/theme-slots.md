@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.11.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
+**theme-kit v0.12.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -531,6 +531,7 @@ Props: `PanelPageModel`
 | `panel` | `PanelKind \| null` |  |
 | `title` | `string` |  |
 | `back` | `LinkModel \| null` | Where this page was reached from, when it is a page under another. |
+| `frame` | `'panel' \| 'standalone'` | optional — `panel` when a `PanelShell` is already around this page — it has centred the column and set the gutters, and the page fills what the rail leaves. `standalone` when nothing wraps the page and it has to find its own middle: who's online, the board statistics, the report form. Absent reads as `panel`, which is what a theme that ignores this renders today. |
 | `width` | `'reading' \| 'wide'` | `reading` for prose and forms, `wide` for a table nobody can read at reading width. The theme decides what each measures. |
 | `gap` | `'normal' \| 'loose'` | `loose` for a page built of `PanelSection`s, `normal` for a page that is one thing. The theme decides what each measures; the distinction is whether the body has internal headings that need air around them. |
 | `regions` | `{ /** A sentence under the heading saying what this page is for. */ readonly lede?: ReactNode /** Smaller detail under the lede — counts, timestamps, scope. */ readonly meta?: ReactNode /** Controls that act on the whole page, beside the heading. */ readonly actions?: ReactNode }` |  |
@@ -937,5 +938,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.11. Nothing can be: this is the first
+Nothing is deprecated in v0.12. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

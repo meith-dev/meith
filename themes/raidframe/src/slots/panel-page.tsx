@@ -8,12 +8,23 @@ const LABEL: Record<PanelKind, string> = {
   admincp: 'control panel',
 }
 
-export function PanelPage({ panel, title, back, width, gap, regions, children }: PanelPageModel) {
+export function PanelPage({
+  panel,
+  title,
+  back,
+  frame,
+  width,
+  gap,
+  regions,
+  children,
+}: PanelPageModel) {
   return (
     <main
       id="board-content"
       tabIndex={-1}
-      className={`flex w-full flex-col p-4 ${width === 'wide' ? 'max-w-none' : 'max-w-4xl'} ${
+      className={`flex w-full flex-col p-4 ${
+        frame === 'standalone' ? 'mx-auto flex-1' : ''
+      } ${width === 'wide' ? 'max-w-none' : 'max-w-4xl'} ${
         gap === 'loose' ? 'gap-6' : 'gap-4'
       }`}
     >
