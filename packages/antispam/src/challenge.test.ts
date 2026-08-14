@@ -74,9 +74,11 @@ describe('the question captcha', () => {
     expect(await captcha.verify({ token: '1', answer: '' })).toEqual({ ok: true })
   })
 
-  it('accepts a token naming a question that has since gone', async () => {
+  it('refuses a token naming a question that has since gone', async () => {
     const captcha = new QuestionCaptcha(source(QUESTIONS))
-    expect(await captcha.verify({ token: '99', answer: 'anything' })).toEqual({ ok: true })
+    const verdict = await captcha.verify({ token: '99', answer: 'anything' })
+    expect(verdict).toMatchObject({ ok: false })
+    expect(verdict.ok === false && verdict.reason).toContain('challenge expired')
   })
 })
 

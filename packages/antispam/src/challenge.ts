@@ -55,7 +55,7 @@ export class QuestionCaptcha implements CaptchaProvider {
     if (questions.length === 0) return { ok: true }
 
     const question = questions.find((candidate) => String(candidate.id) === input.token)
-    if (question === undefined) return { ok: true }
+    if (question === undefined) return { ok: false, reason: 'That challenge expired. Try again.' }
 
     const given = normalise(input.answer)
     if (given === '') return { ok: false, reason: 'Answer the question to continue.' }
