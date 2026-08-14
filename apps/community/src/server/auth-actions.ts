@@ -17,6 +17,7 @@ import {
   registrationFieldContext,
   submittedFields,
 } from './profile-fields'
+import { isSafeLocalPath } from './safe-path'
 import type { FormState } from './auth-form-state'
 import {
   clearSessionCookies,
@@ -257,6 +258,5 @@ export async function confirmResetAction(
 }
 
 function sanitizeNext(next: string): string {
-  if (next.startsWith('/') && !next.startsWith('//')) return next
-  return '/'
+  return isSafeLocalPath(next) ? next : '/'
 }
