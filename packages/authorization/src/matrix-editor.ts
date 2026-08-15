@@ -129,7 +129,7 @@ export function readMatrixCell(
 ): boolean | number | null {
   if (raw === undefined || raw === '' || raw === 'inherit') return null
 
-  if (field.kind === 'boolean') {
+  if (field.kind === 'boolean' || field.kind === 'negative') {
     if (raw === '1' || raw === 'grant') return true
     if (raw === '0' || raw === 'deny') return false
     return null
@@ -137,4 +137,12 @@ export function readMatrixCell(
 
   const value = Number(raw)
   return Number.isSafeInteger(value) && value >= 0 ? value : null
+}
+
+export function matrixCellValue(
+  cell: Pick<MatrixCell, 'kind' | 'stored'>,
+): string {
+  if (cell.stored === null) return cell.kind === 'numeric' ? '' : 'inherit'
+  if (cell.kind === 'numeric') return String(cell.stored)
+  return cell.stored === true ? 'grant' : 'deny'
 }

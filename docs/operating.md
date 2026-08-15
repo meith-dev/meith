@@ -210,7 +210,9 @@ understanding the model.
 1. **Group permissions** — the floor. A member's groups are combined, and a
    boolean is granted if *any* of their groups grants it.
 2. **The forum matrix** — per forum, per group. Each cell has three states:
-   inherit, grant, deny.
+   inherit, grant, deny. The three requires-approval cells are requirements
+   rather than rights, so their explicit states read *Required* and *Not
+   required* instead.
 3. **Moderator rights** — per forum, per member or group, granted separately.
 
 > [!IMPORTANT]
