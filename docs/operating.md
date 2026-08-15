@@ -682,8 +682,10 @@ Three things are worth knowing before you need them.
 | Failing | The server stopped calling it after repeated errors. | The error is on the plugin's own page |
 
 **The disable button is durable.** It takes effect on every instance, not just
-the server that handled the click, and it survives a redeploy. Reach for it when
-a plugin is misbehaving — you do not need to deploy to stop one.
+the server that handled the click, and it survives a redeploy. A disabled
+plugin's scheduled tasks stop too: the switch is checked each time one comes
+due, so the worker skips them without a restart. Reach for it when a plugin is
+misbehaving — you do not need to deploy to stop one.
 
 **The panel never runs migrations.** It tells you which are outstanding;
 `community upgrade` applies them.
