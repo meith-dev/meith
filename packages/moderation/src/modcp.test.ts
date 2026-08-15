@@ -200,11 +200,21 @@ describe('the log allow-list', () => {
     expect(MOD_LOG_ACTIONS).not.toContain('user.promote')
   })
 
+  it('reads a flag being cleared as clearing it, not as setting it', () => {
+    expect(MOD_LOG_LABELS['thread.unlock']).toBe('Unlocked a thread')
+    expect(MOD_LOG_LABELS['thread.unstick']).toBe('Unpinned a thread')
+    expect(MOD_LOG_LABELS['thread.unlock']).not.toBe(MOD_LOG_LABELS['thread.lock'])
+    expect(MOD_LOG_LABELS['thread.unstick']).not.toBe(MOD_LOG_LABELS['thread.stick'])
+  })
+
   it('covers every moderation action Phase 4 writes', () => {
     for (const action of [
       'moderation.approve',
       'moderation.reject',
       'thread.lock',
+      'thread.unlock',
+      'thread.stick',
+      'thread.unstick',
       'thread.move',
       'thread.split',
       'thread.merge',

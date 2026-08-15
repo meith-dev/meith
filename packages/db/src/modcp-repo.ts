@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { sql, type SQL } from 'drizzle-orm'
 
 import type {
   IpMatch,
@@ -28,11 +28,12 @@ interface LogRow {
 const DETAIL_LABELS: Readonly<Record<string, string>> = {
   threadId: 'Thread',
   threadIds: 'Threads',
+  targetThreadId: 'Into thread',
+  newThreadId: 'New thread',
   postId: 'Post',
   postIds: 'Posts',
   forumId: 'Forum',
-  from: 'From forum',
-  to: 'To forum',
+  fromForumId: 'From forum',
   toForumId: 'To forum',
   applied: 'Applied to',
   posts: 'Posts affected',
@@ -63,6 +64,20 @@ function flattenDetail(
   return out
 }
 
+function forumScope(forumIds: readonly number[]): SQL {
+  if (forumIds.length === 0) return sql`false`
+  return sql.join(
+    forumIds.map(
+      (id) => sql`(
+        l.detail->'forumIds' @> ${String(id)}::jsonb
+        or l.detail->'forumId' = ${String(id)}::jsonb
+        or l.detail->'toForumId' = ${String(id)}::jsonb
+      )`,
+    ),
+    sql` or `,
+  )
+}
+
 export class PostgresModCpRepository implements ModCpRepository {
   constructor(private readonly db: Database) {}
 
@@ -83,31 +98,21 @@ export class PostgresModCpRepository implements ModCpRepository {
           select l.id, l.action, l.user_id, l.created_at, l.detail,
                  coalesce(
                    (l.detail->>'forumId')::int,
-                   (l.detail->>'toForumId')::int,
-                   (l.detail->>'to')::int,
-                   (l.detail->>'from')::int
+                   (l.detail->>'toForumId')::int
                  ) as forum_id
             from admin_log l
            where l.action in ${textList(MOD_LOG_ACTIONS)}
+             and (
+                   l.user_id = ${input.actorUserId}
+                   or ${forumScope(input.forumIds)}
+                 )
         )
         select e.id, e.action, e.user_id, u.username, e.forum_id,
                f.title as forum_title, e.detail, e.created_at
           from entry e
           left join users u on u.id = e.user_id
           left join forums f on f.id = e.forum_id
-         where (
-                 e.forum_id in ${idList(input.forumIds)}
-                 /*
-                  * Entries with no forum at all — a warning, an address lookup —
-                  * are the actor's own business only. A moderator seeing every
-                  * warning on the board through the log would be a wider grant
-                  * than the warn screen itself gives.
-                  */
-                 or (e.forum_id is null and e.user_id = ${input.actorUserId})
-                 /* Their own acts stay visible even in a forum they have left. */
-                 or e.user_id = ${input.actorUserId}
-               )
-           ${after}
+         where true ${after}
          order by e.created_at desc, e.id desc
          limit ${input.limit + 1}
       `),

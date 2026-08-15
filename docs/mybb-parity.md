@@ -448,8 +448,9 @@ Being explicit costs a moderator nothing, because they already know which one
 they mean.
 
 **Cost.** Merging the wrong way round is still possible — it is a moderator's
-mistake to make, and it is logged with both ids so it can be seen. What is not
-possible is the software making it for them.
+mistake to make, and it is logged with both thread ids and both forum ids under
+`threadId`/`targetThreadId` and `fromForumId`/`toForumId`, so it can be seen.
+What is not possible is the software making it for them.
 
 ---
 
@@ -566,6 +567,54 @@ will keep growing row types: a deny-list turns every future administrative
 action into a moderator-visible disclosure the day somebody forgets to update
 it, whereas an allow-list turns a new moderation action into a missing row
 somebody notices.
+
+### Every log row names the forums it concerns, at the moment it is written
+
+**MyBB:** the moderator log carries an `fid` column, and the ModCP scopes the
+list by it.
+
+**Here:** the writer puts the forums into `detail` — `forumIds`, an array of
+every forum the action reached — and the reader scopes by that and by nothing
+else. Single-forum actions also carry `forumId`, moves and merges carry
+`fromForumId` and `toForumId`, and the ModCP names the destination when it says
+which forum an entry happened in.
+
+**Why:** the reader used to guess, taking the first of `forumId`, `toForumId`,
+`to`, `from` that was present. A split logs `{from: sourceThreadId, to:
+newThreadId}` and a merge logs `{from, to}` as thread ids too, so the guess read
+a *thread* id as a *forum* id: the entry surfaced to whoever moderates the forum
+whose id happened to equal that thread's, stayed hidden from the forum's real
+moderators, and rendered "From forum" and "To forum" over two thread ids. Ids
+are only unambiguous where they are named, so they are named. Nothing derives a
+forum from a key that could hold something else.
+
+The array also gets the scope right where a single column cannot. A move and a
+merge concern two forums, and an approval batch can concern several; every one
+of those forums' moderators sees the entry, not only the destination's. Entries
+that concern no forum at all — a warning, an address lookup — carry no forum key
+and stay the actor's own business, and the actor always sees what they did
+wherever they did it. `admin_log_forum_scope_idx`, a GIN index over
+`detail -> 'forumIds'`, is what keeps the containment test cheap.
+
+**Cost.** Rows written before this change do not have `forumIds`. Ones that
+carried an unambiguous `forumId` or `toForumId` are still scoped by it; an old
+split, merge or move row is visible only to the moderator who wrote it, because
+the alternative is the misattribution above. There is no backfill: the old
+detail cannot say which of `from`/`to` was a forum without knowing the action,
+and a migration that guessed would write the bug into the table permanently.
+
+### A lock and an unlock are two actions, not one action with a flag
+
+**MyBB:** the moderator log records `open`/`close` and `stick`/`unstick` as
+separate action names.
+
+**Here:** the same — `thread.lock` and `thread.unlock`, `thread.stick` and
+`thread.unstick`, alongside the `inline.*` pair that already worked this way.
+
+**Why:** one action name with a boolean in `detail` gives the log one label to
+print, so unlocking a thread read as "Locked a thread" with "Set to: false"
+underneath it. A log is read by someone reconstructing what happened, and the
+first line has to be true on its own.
 
 ### The address lookup finds ranges, not addresses
 

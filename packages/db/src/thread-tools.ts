@@ -69,7 +69,12 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
     readonly actorUserId: number
     readonly at: Date
   }): Promise<boolean> {
-    return this.flag('is_locked', input.locked, input, 'thread.lock')
+    return this.flag(
+      'is_locked',
+      input.locked,
+      input,
+      input.locked ? 'thread.lock' : 'thread.unlock',
+    )
   }
 
   async setSticky(input: {
@@ -78,7 +83,12 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
     readonly actorUserId: number
     readonly at: Date
   }): Promise<boolean> {
-    return this.flag('is_sticky', input.sticky, input, 'thread.stick')
+    return this.flag(
+      'is_sticky',
+      input.sticky,
+      input,
+      input.sticky ? 'thread.stick' : 'thread.unstick',
+    )
   }
 
   private async flag(
@@ -92,14 +102,24 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
         await tx.execute(
           column === 'is_locked'
             ? sql`update threads set is_locked = ${value}, updated_at = ${input.at}
-                   where id = ${input.threadId} and is_locked <> ${value} returning id`
+                   where id = ${input.threadId} and is_locked <> ${value}
+                   returning id, forum_id`
             : sql`update threads set is_sticky = ${value}, updated_at = ${input.at}
-                   where id = ${input.threadId} and is_sticky <> ${value} returning id`,
+                   where id = ${input.threadId} and is_sticky <> ${value}
+                   returning id, forum_id`,
         ),
-      ) as Array<{ id: number }>
-      if (moved.length === 0) return false
+      ) as Array<{ id: number; forum_id: number }>
+      const row = moved[0]
+      if (!row) return false
 
-      await log(tx, action, input.actorUserId, { threadId: input.threadId, value }, input.at)
+      const forumId = Number(row.forum_id)
+      await log(
+        tx,
+        action,
+        input.actorUserId,
+        { threadId: input.threadId, forumId, forumIds: [forumId] },
+        input.at,
+      )
       return true
     })
   }
@@ -136,7 +156,7 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
         tx,
         input.to === 'visible' ? 'thread.restore' : 'thread.delete',
         input.actorUserId,
-        { threadId: input.threadId, forumId, posts: tally.posts },
+        { threadId: input.threadId, forumId, forumIds: [forumId], posts: tally.posts },
         input.at,
       )
       return true
@@ -178,8 +198,9 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
         input.actorUserId,
         {
           threadId: input.threadId,
-          from: input.fromForumId,
-          to: input.toForumId,
+          fromForumId: input.fromForumId,
+          toForumId: input.toForumId,
+          forumIds: [input.fromForumId, input.toForumId],
           posts: tally.posts,
         },
         input.at,

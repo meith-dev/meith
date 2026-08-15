@@ -132,6 +132,11 @@ describe('lock and stick', () => {
     const found = await repo.find(threadId)
     expect(found).toMatchObject({ isLocked: true })
     expect(await auditActions()).toEqual(['thread.lock'])
+
+    const rows = resultRows(
+      await db.execute(sql`select detail from admin_log`),
+    ) as Array<{ detail: Record<string, unknown> }>
+    expect(rows[0]!.detail).toMatchObject({ threadId, forumId: LEFT, forumIds: [LEFT] })
   })
 
   it('is a no-op, and writes no audit row, when the flag is already set', async () => {
@@ -144,6 +149,15 @@ describe('lock and stick', () => {
     expect(await auditActions()).toEqual(['thread.lock'])
   })
 
+  it('records unlocking under its own action, so the log can say so', async () => {
+    const { threadId } = await seedThread()
+
+    await repo.setLocked({ threadId, locked: true, actorUserId: MOD, at: AT })
+    await repo.setLocked({ threadId, locked: false, actorUserId: MOD, at: AT })
+
+    expect(await auditActions()).toEqual(['thread.lock', 'thread.unlock'])
+  })
+
   it('pins and unpins', async () => {
     const { threadId } = await seedThread()
 
@@ -152,7 +166,7 @@ describe('lock and stick', () => {
 
     await repo.setSticky({ threadId, sticky: false, actorUserId: MOD, at: AT })
     expect(await repo.find(threadId)).toMatchObject({ isSticky: false })
-    expect(await auditActions()).toEqual(['thread.stick', 'thread.stick'])
+    expect(await auditActions()).toEqual(['thread.stick', 'thread.unstick'])
   })
 
   it('moves no counter', async () => {
@@ -412,10 +426,15 @@ describe('moving a thread', () => {
 
     const rows = resultRows(
       await db.execute(sql`select action, detail from admin_log`),
-    ) as Array<{ action: string; detail: { from: number; to: number; posts: number } }>
+    ) as Array<{ action: string; detail: Record<string, unknown> }>
 
     expect(rows[0]).toMatchObject({ action: 'thread.move' })
-    expect(rows[0]!.detail).toMatchObject({ from: LEFT, to: RIGHT, posts: 2 })
+    expect(rows[0]!.detail).toMatchObject({
+      fromForumId: LEFT,
+      toForumId: RIGHT,
+      forumIds: [LEFT, RIGHT],
+      posts: 2,
+    })
   })
 
   it('is a no-op when the thread is not where the caller thought', async () => {

@@ -332,12 +332,36 @@ describe('the audit trail', () => {
 
     const rows = resultRows(
       await db.execute(sql`select user_id, action, detail from admin_log`),
-    ) as Array<{ user_id: number; action: string; detail: { applied: number } }>
+    ) as Array<{ user_id: number; action: string; detail: Record<string, unknown> }>
 
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ action: 'moderation.approve' })
     expect(Number(rows[0]!.user_id)).toBe(MODERATOR)
-    expect(rows[0]!.detail.applied).toBe(2)
+    expect(rows[0]!.detail).toMatchObject({
+      applied: 2,
+      forumId: FORUM,
+      forumIds: [FORUM],
+    })
+  })
+
+  it('names every forum a batch reached, so each one"s moderators see it', async () => {
+    await heldThread(100)
+    await heldThread(101, OTHER)
+
+    await repo.apply({
+      decision: 'approve',
+      threadIds: [100, 101],
+      postIds: [],
+      actorUserId: MODERATOR,
+      at: AT,
+    })
+
+    const rows = resultRows(
+      await db.execute(sql`select detail from admin_log`),
+    ) as Array<{ detail: { forumIds: number[]; forumId?: number } }>
+
+    expect(new Set(rows[0]!.detail.forumIds)).toEqual(new Set([FORUM, OTHER]))
+    expect(rows[0]!.detail.forumId).toBeUndefined()
   })
 
   it('records nothing when nothing changed', async () => {

@@ -183,6 +183,7 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
 
     return this.db.transaction(async (tx) => {
       let applied = 0
+      const touched = new Set<number>()
 
       for (const threadId of input.threadIds) {
         const moved = resultRows(
@@ -200,6 +201,7 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
         const thread = moved[0]
         if (!thread) continue
         applied += 1
+        touched.add(Number(thread.forum_id))
 
         if (thread.first_post_id !== null) {
           const post = resultRows(
@@ -241,6 +243,7 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
         const post = moved[0]
         if (!post) continue
         applied += 1
+        touched.add(Number(post.forum_id))
 
         if (approving) {
           await applyVisibilityChangeCounters(tx, {
@@ -255,6 +258,7 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
       }
 
       if (applied > 0) {
+        const forumIds = [...touched]
         await tx.execute(sql`
           insert into admin_log (user_id, action, detail, created_at)
           values (
@@ -263,6 +267,8 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
             ${JSON.stringify({
               threadIds: input.threadIds,
               postIds: input.postIds,
+              ...(forumIds.length === 1 ? { forumId: forumIds[0] } : {}),
+              forumIds,
               applied,
             })}::jsonb,
             ${input.at}
