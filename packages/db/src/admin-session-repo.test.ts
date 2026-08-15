@@ -217,6 +217,18 @@ describe('the admin log', () => {
     expect(await log.actions()).toEqual(['a.one', 'b.two'])
   })
 
+  it('offers every action present, not just the first alphabetical page of them', async () => {
+    const names = Array.from({ length: 120 }, (_, i) =>
+      `${String.fromCharCode(97 + (i % 26))}.action_${String(i).padStart(3, '0')}`,
+    )
+    for (const action of names) {
+      await log.record({ userId: ADA, action, detail: {}, ipPrefix: null, at: AT })
+    }
+
+    expect(await log.actions()).toHaveLength(names.length)
+    expect([...(await log.actions())].sort()).toEqual([...names].sort())
+  })
+
   it('reads a non-object detail as empty rather than failing the page', async () => {
     await db.execute(sql`
       insert into admin_log (user_id, action, detail)

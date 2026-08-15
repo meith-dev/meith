@@ -118,6 +118,8 @@ export class PostgresAdminSessionRepository implements AdminSessionRepository {
   }
 }
 
+export const ACTION_FILTER_LIMIT = 1_000
+
 export class PostgresAdminLogRepository implements AdminLogRepository {
   constructor(private readonly db: Database) {}
 
@@ -180,7 +182,7 @@ export class PostgresAdminLogRepository implements AdminLogRepository {
     }))
   }
 
-  async actions(limit = 50): Promise<readonly string[]> {
+  async actions(limit = ACTION_FILTER_LIMIT): Promise<readonly string[]> {
     const rows = resultRows(
       await this.db.execute(sql`
         select distinct action from admin_log order by action limit ${limit}

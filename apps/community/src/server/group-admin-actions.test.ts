@@ -20,17 +20,6 @@ vi.mock('./admin', () => ({
   },
 }))
 
-const invalidated: string[][] = []
-vi.mock('@meith/drivers', () => ({
-  drivers: () => ({
-    cache: {
-      async invalidateTags(tags: string[]) {
-        invalidated.push(tags)
-      },
-    },
-  }),
-}))
-
 const saved: Array<{ groupId: number; permissions: Record<string, boolean | number> }> = []
 const identities: Array<{ groupId: number; input: Record<string, unknown> }> = []
 const created: Array<Record<string, unknown>> = []
@@ -84,7 +73,6 @@ function form(fields: Record<string, string>): FormData {
 
 beforeEach(() => {
   adminCalls.length = 0
-  invalidated.length = 0
   revalidated.length = 0
   saved.length = 0
   identities.length = 0
@@ -125,7 +113,7 @@ describe('the admin gate', () => {
 
     expect(state.error).toBeDefined()
     expect(saved).toEqual([])
-    expect(invalidated).toEqual([])
+    expect(revalidated).toEqual([])
   })
 })
 
@@ -177,9 +165,9 @@ describe('saveGroupPermissionsAction', () => {
     expect(saved).toEqual([])
   })
 
-  it('clears the permission tag', async () => {
+  it('refreshes the screens the change is read back from', async () => {
     await saveGroupPermissionsAction({}, form({ groupId: '2' }))
-    expect(invalidated).toEqual([['permissions']])
+    expect(revalidated).toEqual(['/admin/groups', '/admin/groups/[id]'])
   })
 
   it('logs the group but not the permissions', async () => {
@@ -192,14 +180,14 @@ describe('saveGroupPermissionsAction', () => {
 })
 
 describe('saveGroupIdentityAction', () => {
-  it('clears the tag for a rename too', async () => {
+  it('refreshes them for a rename too', async () => {
     await saveGroupIdentityAction(
       {},
       form({ groupId: '2', title: 'Members', displayOrder: '5' }),
     )
 
     expect(identities[0]?.input).toMatchObject({ title: 'Members', displayOrder: 5 })
-    expect(invalidated).toEqual([['permissions']])
+    expect(revalidated).toEqual(['/admin/groups', '/admin/groups/[id]'])
   })
 
   it('refuses an empty title', async () => {
@@ -271,11 +259,11 @@ describe('deleteGroupAction', () => {
     expect(removed).toEqual([])
   })
 
-  it('passes both groups through and clears the tag', async () => {
+  it('passes both groups through and refreshes the screens', async () => {
     const state = await deleteGroupAction({}, form({ groupId: '8', moveMembersTo: '2' }))
     expect(state.notice).toBe('deleted')
     expect(removed).toEqual([{ groupId: 8, moveTo: 2 }])
-    expect(invalidated).toEqual([['permissions']])
+    expect(revalidated).toEqual(['/admin/groups', '/admin/groups/[id]'])
   })
 })
 
@@ -325,14 +313,19 @@ describe('moveMembersAction', () => {
     expect(chunks).toEqual([])
   })
 
-  it('clears the tag on every chunk, not only the last', async () => {
+  it('refreshes on every chunk, not only the last', async () => {
     await moveMembersAction({}, form({ fromGroupId: '2', toGroupId: '3' }))
     await moveMembersAction(
       {},
       form({ fromGroupId: '2', toGroupId: '3', afterUserId: '7', movedSoFar: '2' }),
     )
 
-    expect(invalidated).toEqual([['permissions'], ['permissions']])
+    expect(revalidated).toEqual([
+      '/admin/groups',
+      '/admin/groups/[id]',
+      '/admin/groups',
+      '/admin/groups/[id]',
+    ])
   })
 })
 
@@ -341,7 +334,7 @@ describe('applyPromotionsAction', () => {
     const state = await applyPromotionsAction({}, form({}))
 
     expect(state.notice).toBe('promoted:1')
-    expect(invalidated).toEqual([['permissions']])
+    expect(revalidated).toEqual(['/admin/groups', '/admin/groups/[id]'])
     expect(adminCalls[0]).toEqual({
       action: 'group.promotions_applied',
       detail: { promoted: 1, examined: 9 },

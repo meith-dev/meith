@@ -82,20 +82,15 @@ export function ClearCacheForm() {
       <FormError message={state.error} />
       {state.notice === "cleared" && <Result>Cleared {state.values?.tag}.</Result>}
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">What to clear</span>
-        <select
-          name="what"
-          defaultValue="forums"
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-        >
-          <option value="forums">The forum tree</option>
-          <option value="permissions">Resolved permissions</option>
-        </select>
-      </label>
+      <input type="hidden" name="what" value="forums" />
+      <p className="text-xs text-muted-foreground">
+        The forum tree is the only thing the board caches globally under a name
+        this screen can reach. Everything else is either resolved per request or
+        cleared by the write that changed it.
+      </p>
 
       <div>
-        <SubmitButton>Clear</SubmitButton>
+        <SubmitButton>Clear the forum tree</SubmitButton>
       </div>
     </form>
   )

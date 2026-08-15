@@ -2,9 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { CacheTags, PERMISSION_FIELDS, ValidationError } from '@meith/core'
+import { PERMISSION_FIELDS, ValidationError } from '@meith/core'
 import { permissionsCarryPower } from '@meith/db'
-import { drivers } from '@meith/drivers'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { formStateReporter } from './form-state-reporter'
@@ -23,8 +22,7 @@ function groupId(form: FormData, name = 'groupId'): number {
 
 const toFormState = formStateReporter('group-admin', 'group administration write failed')
 
-async function invalidatePermissions(): Promise<void> {
-  await drivers().cache.invalidateTags([CacheTags.permissions()])
+function refreshGroupScreens(): void {
   revalidatePath('/admin/groups')
   revalidatePath('/admin/groups/[id]', 'page')
 }
@@ -91,7 +89,7 @@ export async function saveGroupIdentityAction(
       nameColorDark: groupColour(form, 'nameColorDark'),
     })
 
-    await invalidatePermissions()
+    refreshGroupScreens()
     await recordAdminAction({ action: 'group.updated', detail: { groupId: id } })
 
     return { notice: 'saved' }
@@ -124,7 +122,7 @@ export async function saveGroupPermissionsAction(
 
     await requireGroupAdmin().savePermissions(id, values)
 
-    await invalidatePermissions()
+    refreshGroupScreens()
     await recordAdminAction({ action: 'group.permissions_changed', detail: { groupId: id } })
 
     return { notice: 'saved' }
@@ -164,7 +162,7 @@ export async function createGroupAction(
       copyFromGroupId: groupId(form, 'copyFromGroupId'),
     })
 
-    await invalidatePermissions()
+    refreshGroupScreens()
     await recordAdminAction({ action: 'group.created', detail: { groupId: id, key } })
 
     return { notice: 'created' }
@@ -184,7 +182,7 @@ export async function deleteGroupAction(
 
     await requireGroupAdmin().remove(id, moveTo)
 
-    await invalidatePermissions()
+    refreshGroupScreens()
     await recordAdminAction({
       action: 'group.deleted',
       detail: { groupId: id, movedTo: moveTo },
@@ -217,7 +215,7 @@ export async function moveMembersAction(
       limit: CHUNK,
     })
 
-    await invalidatePermissions()
+    refreshGroupScreens()
     await recordAdminAction({
       action: 'group.members_moved',
       detail: { fromGroupId: from, toGroupId: to, moved: chunk.moved },
@@ -248,7 +246,7 @@ export async function applyPromotionsAction(
 
     const result = await promotionService().apply()
 
-    await invalidatePermissions()
+    refreshGroupScreens()
     await recordAdminAction({
       action: 'group.promotions_applied',
       detail: { promoted: result.outcomes.length, examined: result.examined },

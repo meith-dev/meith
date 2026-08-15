@@ -768,13 +768,16 @@ test('the system screen reports the scheduler, the volumes and its own sweeps', 
   await page.getByRole('button', { name: 'Run one recount batch' }).click()
   await expect(page.getByText(/counters? corrected in this batch/)).toBeVisible()
 
-  await page.getByLabel('What to clear').selectOption('permissions')
-  await page.getByRole('button', { name: 'Clear', exact: true }).click()
-  await expect(page.getByText(/^Cleared /)).toBeVisible()
+  await page.getByRole('button', { name: 'Clear the forum tree' }).click()
+  await expect(page.getByText('Cleared forum-tree.')).toBeVisible()
 
   await page.getByLabel('Job id').fill('00000000-0000-4000-8000-000000000000')
   await page.getByRole('button', { name: 'Retry' }).click()
-  await expect(page.getByText(/No such job\.|went wrong/)).toBeVisible()
+  await expect(
+    page.getByText(/No dead-lettered job/),
+    'a retry that requeued nothing must say so rather than claim success',
+  ).toBeVisible()
+  await expect(page.getByText('Back on the queue.')).toHaveCount(0)
 })
 
 test('the overview counts the board it is looking at', async ({ page, request }) => {
