@@ -162,6 +162,8 @@ describe('scopes', () => {
   it('recognises exactly the declared set', () => {
     expect(isScope('posts:write')).toBe(true)
     expect(isScope('posts:delete')).toBe(false)
+    expect(isScope('threads:write')).toBe(false)
+    expect(isScope('admin:read')).toBe(false)
   })
 
   it('answers only for the scopes a token carries', () => {
@@ -170,8 +172,13 @@ describe('scopes', () => {
     expect(hasScope(token, 'posts:write')).toBe(false)
   })
 
-  it('offers no administrative write scope', () => {
-    expect(SCOPES.filter((scope) => scope.startsWith('admin:'))).toEqual(['admin:read'])
+  it('offers no scope that no route consumes', () => {
+    const consumed = new Set<string>(ROUTES.map((route) => route.scope))
+    expect(SCOPES.filter((scope) => !consumed.has(scope))).toEqual([])
+  })
+
+  it('offers no administrative scope', () => {
+    expect(SCOPES.filter((scope) => scope.startsWith('admin:'))).toEqual([])
   })
 })
 

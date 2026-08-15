@@ -103,7 +103,7 @@ describeIfPg('against real Postgres', () => {
     expect(Object.keys(rows[0]!)).toEqual(['now', 'due_before', 'locked_until'])
   })
 
-  describe('timestamps a repository returns from a raw execute', () => {
+  describe('what the API-token repository returns from a raw execute', () => {
     let repo: PostgresApiTokenRepository
 
     beforeAll(async () => {
@@ -137,6 +137,23 @@ describeIfPg('against real Postgres', () => {
       const [token] = await repo.listAll()
 
       expect(token!.revokedAt).toBeNull()
+    })
+
+    it('drops a scope the board no longer declares instead of refusing the token', async () => {
+      await harness.db.execute(sql`
+        insert into api_tokens (user_id, name, lookup, secret_hash, scopes, created_at)
+        values (1, 'issued before a scope was retired', 'deadbeef', 'x',
+                '["forums:read", "threads:write", "admin:read"]'::jsonb,
+                now() - interval '1 hour')
+      `)
+
+      const token = await repo.findByLookup('deadbeef')
+
+      expect(token).not.toBeNull()
+      expect(token!.scopes).toEqual(['forums:read'])
+
+      const listed = (await repo.listAll()).find((row) => row.lookup === 'deadbeef')
+      expect(listed!.scopes).toEqual(['forums:read'])
     })
   })
 })

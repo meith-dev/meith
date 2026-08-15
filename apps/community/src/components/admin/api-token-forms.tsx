@@ -65,6 +65,10 @@ export function IssueTokenForm({ scopes }: { scopes: readonly string[] }) {
           placeholder="Leave empty for no expiry"
           className="w-56 rounded-sm border border-input bg-card px-2 py-1"
         />
+        <span className="text-xs text-muted-foreground">
+          A whole number of days. Leave it empty for a token that never expires — anything
+          else is refused rather than read as never.
+        </span>
       </label>
 
       <SubmitButton>Issue token</SubmitButton>
