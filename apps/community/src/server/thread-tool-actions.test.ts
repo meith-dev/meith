@@ -1,3 +1,5 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -32,10 +34,12 @@ const { EMPTY_STATE } = await import('./auth-form-state')
 const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
 const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
+const { ThreadToolsForm } = await import('../components/moderation/thread-tools-form')
 
 class FakeTools implements ThreadToolsRepository {
   readonly calls: string[] = []
   forumId: number = SEED_FORUM.general
+  copiedTo: number | null = null
 
   async find(): Promise<ThreadToolTarget | null> {
     return {
@@ -68,13 +72,17 @@ class FakeTools implements ThreadToolsRepository {
     return true
   }
 
-  async move(): Promise<boolean> {
+  async move(input: Parameters<ThreadToolsRepository['move']>[0]): Promise<boolean> {
     this.calls.push('move')
+    this.forumId = input.toForumId
     return true
   }
 
-  async copy(): Promise<{ threadId: number; slug: string; posts: number }> {
+  async copy(
+    input: Parameters<ThreadToolsRepository['copy']>[0],
+  ): Promise<{ threadId: number; slug: string; posts: number }> {
     this.calls.push('copy')
+    this.copiedTo = input.toForumId
     return { threadId: 77, slug: 'hello', posts: 3 }
   }
 }
@@ -109,6 +117,39 @@ function installContainer(moderators: readonly MemoryAppointment[] = []): void {
 function form(entries: Record<string, string>): FormData {
   const f = new FormData()
   for (const [k, v] of Object.entries(entries)) f.set(k, v)
+  return f
+}
+
+function browserSubmit(html: string, submitter: { name: string; value: string }): FormData {
+  const formHtml = html
+    .split('<form')
+    .slice(1)
+    .map((chunk) => chunk.slice(0, chunk.indexOf('</form>')))
+    .find((chunk) => chunk.includes(`value="${submitter.value}"`))
+  if (formHtml === undefined) throw new Error(`no form contains value="${submitter.value}"`)
+
+  const f = new FormData()
+  let pressed = false
+  for (const control of formHtml.match(/<input[^>]*>|<select[\s\S]*?<\/select>|<button[^>]*>/g) ??
+    []) {
+    const name = /\bname="([^"]*)"/.exec(control)?.[1]
+    if (name === undefined) continue
+    if (control.startsWith('<select')) {
+      const selected = /<option[^>]*\bvalue="([^"]*)"/.exec(control)?.[1]
+      if (selected !== undefined) f.append(name, selected)
+      continue
+    }
+    const value = /\bvalue="([^"]*)"/.exec(control)?.[1] ?? ''
+    if (control.startsWith('<button')) {
+      if (!pressed && name === submitter.name && value === submitter.value) {
+        f.append(name, value)
+        pressed = true
+      }
+      continue
+    }
+    f.append(name, value)
+  }
+  if (!pressed) throw new Error(`no submit button named ${submitter.name}=${submitter.value}`)
   return f
 }
 
@@ -257,6 +298,47 @@ describe('copy', () => {
     )
     expect(state.error).toMatch(/cannot copy threads into/i)
     expect(tools.calls).toEqual([])
+  })
+
+  it('copies, not moves, when the rendered form is submitted via the Copy button', async () => {
+    const html = renderToStaticMarkup(
+      createElement(ThreadToolsForm, {
+        threadId: 20,
+        isLocked: false,
+        isSticky: false,
+        rights: { lock: true, stick: true, move: true, delete: true },
+        moveTargets: [{ id: SEED_FORUM.announcements, title: 'Announcements' }],
+      }),
+    )
+
+    const submitted = browserSubmit(html, { name: 'tool', value: 'copy' })
+
+    expect(await redirectOf(threadToolAction(EMPTY_STATE, submitted))).toBe(
+      '/thread/77-hello?tool=copy',
+    )
+    expect(tools.calls).toEqual(['copy'])
+    expect(tools.forumId).toBe(SEED_FORUM.general)
+    expect(tools.copiedTo).toBe(SEED_FORUM.announcements)
+  })
+
+  it('still moves when the rendered form is submitted via the Move button', async () => {
+    const html = renderToStaticMarkup(
+      createElement(ThreadToolsForm, {
+        threadId: 20,
+        isLocked: false,
+        isSticky: false,
+        rights: { lock: true, stick: true, move: true, delete: true },
+        moveTargets: [{ id: SEED_FORUM.announcements, title: 'Announcements' }],
+      }),
+    )
+
+    const submitted = browserSubmit(html, { name: 'tool', value: 'move' })
+
+    expect(await redirectOf(threadToolAction(EMPTY_STATE, submitted))).toBe(
+      '/thread/20-hello?tool=move',
+    )
+    expect(tools.calls).toEqual(['move'])
+    expect(tools.forumId).toBe(SEED_FORUM.announcements)
   })
 
   it('lands on the copy rather than on the source', async () => {

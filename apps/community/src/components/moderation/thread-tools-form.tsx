@@ -93,7 +93,6 @@ export function ThreadToolsForm({
         <form action={moveAction} className="flex items-center gap-2">
           <FormError message={moveState.error} />
           <input type="hidden" name="threadId" value={threadId} />
-          <input type="hidden" name="tool" value="move" />
           <label className="flex items-center gap-2 text-xs">
             <span className="sr-only">Move to</span>
             <select
@@ -107,7 +106,7 @@ export function ThreadToolsForm({
               ))}
             </select>
           </label>
-          <button type="submit" className={BUTTON}>
+          <button type="submit" name="tool" value="move" className={BUTTON}>
             Move
           </button>
           <button type="submit" name="tool" value="copy" className={BUTTON}>
