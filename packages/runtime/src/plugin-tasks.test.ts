@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { definePlugin } from '@meith/plugin-kit'
+import { definePlugin, pluginEnabledKey } from '@meith/plugin-kit'
 
 const stored = { current: new Map<string, string>() }
 
@@ -148,6 +148,55 @@ describe('running one', () => {
     await expect(pluginTasks({ db, plugins: [plugin] })[0]?.run(CONTEXT)).rejects.toThrow(
       'the remote is down',
     )
+  })
+
+  it('skips the task while the operator has the plugin switched off', async () => {
+    let runs = 0
+    const plugin = definePlugin({
+      key: 'alpha',
+      name: 'Alpha',
+      version: '1.0.0',
+      tasks: [
+        {
+          id: 'sweep',
+          intervalSeconds: 300,
+          run: () => {
+            runs += 1
+          },
+        },
+      ],
+    })
+
+    stored.current = new Map([[pluginEnabledKey('alpha'), '0']])
+    expect(await pluginTasks({ db, plugins: [plugin] })[0]?.run(CONTEXT)).toEqual({})
+    expect(runs).toBe(0)
+  })
+
+  it('runs again once the operator re-enables the plugin', async () => {
+    let runs = 0
+    const plugin = definePlugin({
+      key: 'alpha',
+      name: 'Alpha',
+      version: '1.0.0',
+      tasks: [
+        {
+          id: 'sweep',
+          intervalSeconds: 300,
+          run: () => {
+            runs += 1
+          },
+        },
+      ],
+    })
+
+    stored.current = new Map([[pluginEnabledKey('alpha'), '0']])
+    const [task] = pluginTasks({ db, plugins: [plugin] })
+    await task?.run(CONTEXT)
+
+    stored.current = new Map()
+    await task?.run(CONTEXT)
+
+    expect(runs).toBe(1)
   })
 
   it('reports no counters, because a plugin task returns none', async () => {

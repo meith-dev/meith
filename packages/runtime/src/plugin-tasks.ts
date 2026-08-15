@@ -9,6 +9,7 @@ import {
 } from '@meith/db'
 import { NotificationService } from '@meith/notifications'
 import {
+  pluginEnabledKey,
   pluginNotificationKindSpecs,
   pluginNotify,
   pluginTaskId,
@@ -46,6 +47,8 @@ export function pluginTasks(options: {
         maxDurationSeconds: MAX_DURATION_SECONDS,
         async run() {
           const overrides = await new PostgresSettingsRepository(options.db).loadAll()
+          if (overrides.get(pluginEnabledKey(plugin.key)) === '0') return {}
+
           const log = logger({ component: 'plugin-task', plugin: plugin.key })
 
           await task.run({
