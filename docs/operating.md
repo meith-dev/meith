@@ -52,7 +52,7 @@ not the same as encrypted, and is worth knowing before choosing.
 | `DATA_SOURCE` | No | `postgres` or `fixture`. Defaults to `fixture` when `DATABASE_URL` is unset. |
 | `ADMIN_IP_ALLOWLIST` | No | Comma-separated address prefixes. Empty allows everything. |
 | `TRUSTED_PROXY_HOPS` | No | How many proxies sit between the internet and the board. Defaults to `1`, which is the shape [self-hosting](self-hosting.md#5-put-a-proxy-in-front) describes. See [Who the board thinks you are](#who-the-board-thinks-you-are) — getting this wrong is a security setting, not a cosmetic one. |
-| `REMOTE_IMAGES` | No | `1` (the default) lets a post embed an image hosted anywhere; `0` confines images to this board. See [Images from elsewhere](#images-from-elsewhere). |
+| `REMOTE_IMAGES` | No | `0`, the default, confines images to this board and `data:` URLs. `1` lets a post embed an image hosted anywhere. See [Images from elsewhere](#images-from-elsewhere). |
 | `FILESTORE_DRIVER` | No | `local` or `s3`. Defaults to `local`, which is right for a board with a disk. See below. |
 | `MIGRATIONS_DIR` | No | The folder holding the generated SQL and its `meta/_journal.json`. Normally unset — the migrator looks beside `@meith/db` in a checkout and in `/app/migrations` in the image, which is where the Dockerfile puts it. Set it only if yours is somewhere else. |
 
@@ -89,17 +89,27 @@ been told to ignore.
 
 ### Images from elsewhere
 
-A post may embed an image by URL, and by default the board's content policy
-lets the browser fetch it. That is convenient and it has a cost: the reader's
-browser contacts a host you do not run, which learns their address and when
-they read the thread.
+A post may embed an image by URL. **By default the board's content policy does
+not let the browser fetch it**: `img-src` is this board and `data:` URLs, and
+nothing else.
 
-`REMOTE_IMAGES=0` narrows the policy to this board's own images and `data:`
-URLs. Nothing is proxied or cached in its place — an existing post embedding a
-remote image renders as a broken image, with its alt text. That visible loss is
-why the board does not narrow the policy on its own: a board whose threads are
-already full of such posts should make the trade deliberately rather than
-discover it.
+The reason is that a remote image is a beacon. The host serving it learns the
+address of every reader who opens the thread and the moment each of them did,
+and neither the reader nor the moderator who approved the post has any way to
+see that happening. One `![](https://…)` in a popular thread is a readership
+log for somebody who does not run your board.
+
+`REMOTE_IMAGES=1` allows them. Turn it on if your board's culture is image
+hosts and link dumps and you would rather have the pictures — plenty of forums
+would — and know what you are handing out when you do.
+
+Nothing is proxied or cached in between. With the default in place, a post that
+embeds a remote image renders as a broken image with its alt text: the URL is
+still stored, still valid, and starts working the day the variable is set.
+Uploaded attachments are served by the board itself and are unaffected either
+way; the one other thing to watch is a **smiley configured with an absolute
+URL**, which is a remote image like any other and needs uploading to the board
+instead.
 
 ### Where uploads go
 

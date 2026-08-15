@@ -6,7 +6,7 @@ export interface PolicyOptions {
 
 export function contentSecurityPolicy(options: PolicyOptions): string {
   const development = options.development ?? false
-  const remoteImages = options.remoteImages ?? true
+  const remoteImages = options.remoteImages ?? false
 
   return [
     "default-src 'self'",
