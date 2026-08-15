@@ -416,6 +416,24 @@ describe('updateAccount and the denormalised author names', () => {
     return rows.map((row) => String(row.name))
   }
 
+  async function rowVersions(userId: number): Promise<Record<string, string>> {
+    const versions: Record<string, string> = {}
+    for (const entry of DENORMALISED_USERNAME_COLUMNS) {
+      const rows = resultRows(
+        await db.execute(sql`
+          select id, xmin::text as version
+            from ${sql.raw(entry.table)}
+           where ${sql.raw(entry.idColumn)} = ${userId}
+           order by id
+        `),
+      ) as Array<{ id: number; version: string }>
+      versions[`${entry.table}.${entry.column}`] = rows
+        .map((row) => `${row.id}:${row.version}`)
+        .join(' ')
+    }
+    return versions
+  }
+
   it('shows the new name everywhere the board renders it', async () => {
     await seedBoard()
 
@@ -482,6 +500,39 @@ describe('updateAccount and the denormalised author names', () => {
     await rename(IVAN, 'ivan')
 
     expect(await names(POSTS_AUTHOR, IVAN)).toEqual(['stale'])
+  })
+
+  it('touches no content row at all when the name did not change', async () => {
+    await seedBoard()
+    const before = await rowVersions(IVAN)
+
+    await rename(IVAN, 'ivan')
+
+    expect(await rowVersions(IVAN)).toEqual(before)
+  })
+
+  it('touches every content row when the name did change', async () => {
+    await seedBoard()
+    const before = await rowVersions(IVAN)
+
+    await rename(IVAN, 'Ivanov')
+
+    const after = await rowVersions(IVAN)
+    for (const key of Object.keys(before)) {
+      expect(after[key], key).not.toEqual(before[key])
+    }
+  })
+
+  it('skips a row that already carries the new name, rather than rewriting it', async () => {
+    await seedBoard()
+    await db.execute(sql`update posts set author_username = 'Ivanov' where id = 1`)
+    const before = await rowVersions(IVAN)
+
+    await rename(IVAN, 'Ivanov')
+
+    const after = await rowVersions(IVAN)
+    expect(after['posts.author_username']).toEqual(before['posts.author_username'])
+    expect(after['threads.author_username']).not.toEqual(before['threads.author_username'])
   })
 })
 

@@ -9,13 +9,13 @@ export interface DenormalisedUsernameColumn {
 }
 
 export const DENORMALISED_USERNAME_COLUMNS: readonly DenormalisedUsernameColumn[] = [
-  { table: 'board_stats', column: 'newest_username', idColumn: 'newest_user_id' },
   { table: 'forums', column: 'last_post_username', idColumn: 'last_post_user_id' },
+  { table: 'threads', column: 'last_post_username', idColumn: 'last_post_user_id' },
+  { table: 'threads', column: 'author_username', idColumn: 'author_user_id' },
   { table: 'posts', column: 'author_username', idColumn: 'author_user_id' },
   { table: 'private_messages', column: 'author_username', idColumn: 'author_user_id' },
-  { table: 'threads', column: 'author_username', idColumn: 'author_user_id' },
-  { table: 'threads', column: 'last_post_username', idColumn: 'last_post_user_id' },
   { table: 'announcements', column: 'author_username', idColumn: 'author_user_id' },
+  { table: 'board_stats', column: 'newest_username', idColumn: 'newest_user_id' },
 ]
 
 export async function rewriteDenormalisedUsernames(
@@ -28,6 +28,7 @@ export async function rewriteDenormalisedUsernames(
       update ${sql.raw(entry.table)}
          set ${sql.raw(entry.column)} = ${username}
        where ${sql.raw(entry.idColumn)} = ${userId}
+         and ${sql.raw(entry.column)} is distinct from ${username}
     `)
   }
 }

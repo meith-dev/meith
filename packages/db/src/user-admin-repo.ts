@@ -215,24 +215,28 @@ export class PostgresUserAdminRepository {
     const primaryGroupId = input.primaryGroupId
 
     await withPermissionVersionBump(this.db, async (tx) => {
-      const existing = resultRows(
-        await tx.execute(sql`select username from users where id = ${userId} for update`),
+      const named = resultRows(
+        await tx.execute(sql`select username from users where id = ${userId}`),
       ) as Array<{ username: string }>
 
-      const previous = existing[0]?.username
-      if (previous === undefined) throw new ValidationError('No such member.')
+      const previous = named[0]?.username
 
-      await tx.execute(sql`
-        update users
-           set username = ${username},
-               username_lower = ${fold(username)},
-               email = ${email},
-               email_lower = ${fold(email)},
-               primary_group_id = ${primaryGroupId},
-               display_group_id = ${input.displayGroupId},
-               updated_at = now()
-         where id = ${userId}
-      `)
+      const rows = resultRows(
+        await tx.execute(sql`
+          update users
+             set username = ${username},
+                 username_lower = ${fold(username)},
+                 email = ${email},
+                 email_lower = ${fold(email)},
+                 primary_group_id = ${primaryGroupId},
+                 display_group_id = ${input.displayGroupId},
+                 updated_at = now()
+           where id = ${userId}
+          returning id
+        `),
+      ) as Array<{ id: number }>
+
+      if (rows[0] === undefined) throw new ValidationError('No such member.')
 
       if (previous !== username) {
         await rewriteDenormalisedUsernames(tx, userId, username)

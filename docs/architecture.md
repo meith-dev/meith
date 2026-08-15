@@ -203,6 +203,25 @@ the rest true after a recount. Nothing caches these names — the cached forum
 tree carries structure only — so a rename invalidates no tag beyond the
 permissions bump the account write already makes.
 
+Two things about that rewrite are load-bearing rather than incidental, because
+the board runs on a **small connection pool** — three by default, one in the
+browser suite — where a transaction that waits blocks every request behind it.
+
+- **It takes no lock it does not use.** The account write's first statement is
+  the `update users` it always was, which takes that row's lock; nothing reads
+  the row `for update` first, because that lock arrives one statement later
+  anyway and the `update users` is what serialises two simultaneous renames.
+- **It writes only rows whose name is actually wrong** — each statement carries
+  `and <column> is distinct from <new name>`, so an account save that changes a
+  group and not the name matches nothing, takes no row lock on `posts`,
+  `threads` or `forums`, and leaves those rows' versions untouched. That matters
+  for lock **order**: `applyCreatedContentCounters` locks `forums`, then
+  `threads`, then `users`, and a rename goes the other way round, so only a real
+  rename — an explicit, rare, administrator-initiated act — can contend with a
+  member posting. Two of the columns (`threads.last_post_user_id` and
+  `private_messages.author_user_id`) have no index, so a real rename scans those
+  tables; that cost belongs to the rename and not to every account save.
+
 Search is Postgres full-text: a `tsvector` column on `posts` (weighted so the
 thread's title beats a passing mention), a GIN index, keyset paging on
 `(rank, id)`, and a bounded relevance window — measured at 5.5 s unbounded
