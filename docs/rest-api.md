@@ -8,7 +8,7 @@
   `pnpm api:docs:check` and fail when this file and the code disagree.
 -->
 
-7 endpoints, 8 scopes. Base path: `/api/v1`.
+7 endpoints, 6 scopes. Base path: `/api/v1`.
 
 ## Authentication
 
@@ -32,16 +32,35 @@ telling a caller "expired" confirms the token was real.
 
 - `forums:read`
 - `threads:read`
-- `threads:write`
 - `posts:read`
 - `posts:write`
 - `members:read`
 - `search:read`
-- `admin:read`
 
-There is deliberately no `admin:write`. A token is a long-lived string in
-somebody’s CI configuration; reconfiguring a board should need a person at a
-keyboard with the admin panel’s re-authentication in front of them.
+Every scope on that list is required by at least one endpoint below, and a test
+holds it that way: a scope no route consumes is a checkbox that grants nothing,
+which reads as a permission and is not one.
+
+There is deliberately no administrative scope at all. A token is a long-lived
+string in somebody’s CI configuration; reconfiguring a board should need a person
+at a keyboard with the admin panel’s re-authentication in front of them.
+
+A token stored before a scope was retired keeps working. The scope is dropped as
+the token is read, so it simply no longer carries it — the endpoints it still has
+a scope for answer as before, and the rest answer `missing_scope`.
+
+## Issuing a token
+
+Tokens are issued from **API tokens** in the control panel. Issuing one is treated
+as a destructive operation: it asks for the administrator’s password again, on the
+same clock as banning a member or moving a forum, because a bearer string that
+leaves the building is at least as consequential. Revoking one does
+not ask — a revocation is the thing you want to be quick during an incident, and
+it is undone by issuing a new token rather than by recovering the old one.
+
+**Expires in (days)** takes a whole number of days, or nothing at all for a token
+that never expires. Anything else — a fraction, a word, a number in exponent
+notation — is refused and mints nothing, rather than being read as "never".
 
 ## Rate limits
 

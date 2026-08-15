@@ -1,9 +1,9 @@
 'use server'
 
-import { isAppError, logger } from '@meith/core'
+import { ValidationError, isAppError, logger } from '@meith/core'
 import { revalidatePath } from 'next/cache'
 
-import { requireAdmin } from './admin'
+import { requireAdmin, requireFreshAdmin } from './admin'
 import { apiTokenStore, issueApiToken } from './api-tokens-admin'
 import { recordAdminAction } from './admin'
 import type { FormState } from './auth-form-state'
@@ -11,6 +11,20 @@ import type { FormState } from './auth-form-state'
 function field(form: FormData, name: string): string {
   const value = form.get(name)
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function expiryFrom(raw: string, now: number): Date | null {
+  if (raw === '') return null
+
+  const days = /^\d+$/.test(raw) ? Number(raw) : Number.NaN
+  if (!Number.isSafeInteger(days) || days <= 0) {
+    throw new ValidationError(
+      'Expires in (days) must be a whole number of days above zero. ' +
+        'Leave it empty for a token that never expires.',
+    )
+  }
+
+  return new Date(now + days * 86_400_000)
 }
 
 function refreshTokenList(): void {
@@ -28,13 +42,9 @@ export async function issueApiTokenAction(
   form: FormData,
 ): Promise<FormState> {
   try {
-    const admin = await requireAdmin()
+    const admin = await requireFreshAdmin()
 
-    const days = Number(field(form, 'expiresInDays'))
-    const expiresAt =
-      Number.isSafeInteger(days) && days > 0
-        ? new Date(Date.now() + days * 86_400_000)
-        : null
+    const expiresAt = expiryFrom(field(form, 'expiresInDays'), Date.now())
 
     const token = await issueApiToken({
       userId: admin.userId,

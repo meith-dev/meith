@@ -8,12 +8,10 @@ const SECRET_BYTES = 32
 export const SCOPES = [
   'forums:read',
   'threads:read',
-  'threads:write',
   'posts:read',
   'posts:write',
   'members:read',
   'search:read',
-  'admin:read',
 ] as const
 
 export type Scope = (typeof SCOPES)[number]
