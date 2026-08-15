@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import { ValidationError } from '@meith/core'
 
 import type { Database } from './client'
+import { rewriteDenormalisedUsernames } from './denormalised-username'
 import { withPermissionVersionBump, type Tx } from './permission-version'
 import { resultRows } from './result-rows'
 import { BANNED_PREDICATE } from './user-admin-repo'
@@ -10,7 +11,6 @@ import {
   MERGE_DEDUPE,
   MERGE_DISCARD,
   MERGE_REASSIGN,
-  MERGE_RENAME,
   type DedupeColumn,
 } from './user-merge-map'
 
@@ -146,13 +146,7 @@ export class PostgresUserMergeRepository {
       const username = winner[0]?.username
       if (username === undefined) throw new ValidationError('No such member.')
 
-      for (const entry of MERGE_RENAME) {
-        await tx.execute(sql`
-          update ${sql.raw(entry.table)}
-             set ${sql.raw(entry.column)} = ${username}
-           where ${sql.raw(entry.idColumn)} = ${toUserId}
-        `)
-      }
+      await rewriteDenormalisedUsernames(tx, toUserId, username)
 
       await tx.execute(sql`
         update users w

@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
+import { DENORMALISED_USERNAME_COLUMNS } from './denormalised-username'
 import { PostgresUserMergeRepository } from './user-merge-repo'
 import { mergeMapColumns } from './user-merge-map'
 import { resultRows } from './result-rows'
@@ -34,8 +35,11 @@ beforeEach(async () => {
   await db.execute(sql`delete from sessions`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
+  await db.execute(sql`delete from announcements`)
+  await db.execute(sql`delete from private_messages`)
   await db.execute(sql`delete from users`)
   await db.execute(sql`delete from forums`)
+  await db.execute(sql`update board_stats set newest_user_id = null, newest_username = null`)
   await db.execute(sql`
     insert into forums (id, type, title, slug, path)
     values (1, 'forum', 'General', 'general', '1')
@@ -341,6 +345,49 @@ describe('finish', () => {
       await db.execute(sql`select author_username from posts where id = 1`),
     ) as Array<{ author_username: string }>
     expect(rows[0]?.author_username).toBe('keeper')
+  })
+
+  it('rewrites every column the rename path rewrites, so the two cannot drift', async () => {
+    await seedPair()
+    await db.execute(sql`
+      insert into threads (id, forum_id, author_user_id, author_username, title, slug,
+                           last_post_user_id, last_post_username)
+      values (1, 1, ${WINNER}, 'stale', 'T', 't', ${WINNER}, 'stale')
+    `)
+    await db.execute(sql`
+      insert into posts (id, thread_id, forum_id, author_user_id, author_username, message)
+      values (1, 1, 1, ${WINNER}, 'stale', 'x')
+    `)
+    await db.execute(sql`
+      insert into private_messages (id, author_user_id, author_username, subject, message)
+      values (1, ${WINNER}, 'stale', 'Re', 'body')
+    `)
+    await db.execute(sql`
+      insert into announcements (id, forum_id, title, message, author_user_id, author_username)
+      values (1, 1, 'Rules', 'body', ${WINNER}, 'stale')
+    `)
+    await db.execute(sql`
+      update forums set last_post_user_id = ${WINNER}, last_post_username = 'stale' where id = 1
+    `)
+    await db.execute(sql`
+      update board_stats set newest_user_id = ${WINNER}, newest_username = 'stale'
+    `)
+
+    await repo.finish(LOSER, WINNER)
+
+    for (const entry of DENORMALISED_USERNAME_COLUMNS) {
+      const rows = resultRows(
+        await db.execute(sql`
+          select ${sql.raw(entry.column)} as name
+            from ${sql.raw(entry.table)}
+           where ${sql.raw(entry.idColumn)} = ${WINNER}
+        `),
+      ) as Array<{ name: string | null }>
+      expect(
+        rows.map((row) => String(row.name)),
+        `${entry.table}.${entry.column}`,
+      ).toEqual(['keeper'])
+    }
   })
 
   it('adds the counters and zeroes the loser’s', async () => {

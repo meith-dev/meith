@@ -3,6 +3,7 @@ import { sql, type SQL } from 'drizzle-orm'
 import { ValidationError } from '@meith/core'
 
 import type { Database } from './client'
+import { rewriteDenormalisedUsernames } from './denormalised-username'
 import { withPermissionVersionBump } from './permission-version'
 import { resultRows } from './result-rows'
 import { toDate, toNullableDate } from './row-values'
@@ -214,6 +215,12 @@ export class PostgresUserAdminRepository {
     const primaryGroupId = input.primaryGroupId
 
     await withPermissionVersionBump(this.db, async (tx) => {
+      const named = resultRows(
+        await tx.execute(sql`select username from users where id = ${userId}`),
+      ) as Array<{ username: string }>
+
+      const previous = named[0]?.username
+
       const rows = resultRows(
         await tx.execute(sql`
           update users
@@ -230,6 +237,10 @@ export class PostgresUserAdminRepository {
       ) as Array<{ id: number }>
 
       if (rows[0] === undefined) throw new ValidationError('No such member.')
+
+      if (previous !== username) {
+        await rewriteDenormalisedUsernames(tx, userId, username)
+      }
     })
   }
 

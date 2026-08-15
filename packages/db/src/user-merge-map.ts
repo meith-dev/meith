@@ -1,3 +1,5 @@
+import { DENORMALISED_USERNAME_COLUMNS } from './denormalised-username'
+
 export interface ReassignColumn {
   readonly table: string
   readonly column: string
@@ -80,22 +82,6 @@ export const MERGE_BESPOKE: readonly ReassignColumn[] = [
   { table: 'user_relations', column: 'user_id' },
 ]
 
-export interface RenameColumn {
-  readonly table: string
-  readonly column: string
-  readonly idColumn: string
-}
-
-export const MERGE_RENAME: readonly RenameColumn[] = [
-  { table: 'board_stats', column: 'newest_username', idColumn: 'newest_user_id' },
-  { table: 'forums', column: 'last_post_username', idColumn: 'last_post_user_id' },
-  { table: 'posts', column: 'author_username', idColumn: 'author_user_id' },
-  { table: 'private_messages', column: 'author_username', idColumn: 'author_user_id' },
-  { table: 'threads', column: 'author_username', idColumn: 'author_user_id' },
-  { table: 'threads', column: 'last_post_username', idColumn: 'last_post_user_id' },
-  { table: 'announcements', column: 'author_username', idColumn: 'author_user_id' },
-]
-
 export const MERGE_NOT_A_REFERENCE: readonly ReassignColumn[] = [
   { table: 'mass_mails', column: 'last_user_id' },
 ]
@@ -106,7 +92,7 @@ export function mergeMapColumns(): readonly string[] {
     ...MERGE_DEDUPE,
     ...MERGE_DISCARD,
     ...MERGE_BESPOKE,
-    ...MERGE_RENAME,
+    ...DENORMALISED_USERNAME_COLUMNS,
     ...MERGE_NOT_A_REFERENCE,
   ]
     .map((entry) => `${entry.table}.${entry.column}`)
