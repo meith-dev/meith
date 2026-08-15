@@ -4,6 +4,7 @@ import { emptyPermissionSet, type PermissionSet } from '@meith/core'
 
 import {
   buildPermissionMatrix,
+  matrixCellValue,
   planCopyToDescendants,
   readMatrixCell,
 } from './matrix-editor'
@@ -132,15 +133,45 @@ describe('numeric cells', () => {
   })
 })
 
+describe('negative cells', () => {
+  it('carry the resolved requirement and the same three states', () => {
+    const rows = buildPermissionMatrix({
+      chain: CHAIN,
+      groups: [group(REGISTERED, 'Registered', { requiresPostApproval: true })],
+      overrides: [
+        { forumId: PARENT, groupId: REGISTERED, overrides: { requiresPostApproval: false } },
+      ],
+    })
+
+    const found = cell(rows, REGISTERED, 'requiresPostApproval')
+    expect(found.kind).toBe('negative')
+    expect(found.stored).toBeNull()
+    expect(found.control).toBe('inherit')
+    expect(found.effective).toBe(false)
+    expect(found.inheritedFrom).toBe(PARENT)
+  })
+})
+
 describe('readMatrixCell', () => {
   const boolean = { key: 'canPostThreads', kind: 'boolean' } as never
   const numeric = { key: 'maxAttachmentsPerPost', kind: 'numeric' } as never
+  const negative = { key: 'requiresThreadApproval', kind: 'negative' } as never
 
   it('reads the three states of a boolean', () => {
     expect(readMatrixCell(boolean, 'grant')).toBe(true)
     expect(readMatrixCell(boolean, 'deny')).toBe(false)
     expect(readMatrixCell(boolean, 'inherit')).toBeNull()
     expect(readMatrixCell(boolean, undefined)).toBeNull()
+  })
+
+  it('reads the three states of a requirement, never as a number', () => {
+    expect(readMatrixCell(negative, 'grant')).toBe(true)
+    expect(readMatrixCell(negative, 'deny')).toBe(false)
+    expect(readMatrixCell(negative, 'inherit')).toBeNull()
+    expect(readMatrixCell(negative, '')).toBeNull()
+    expect(readMatrixCell(negative, undefined)).toBeNull()
+    expect(readMatrixCell(negative, 'true')).toBeNull()
+    expect(readMatrixCell(negative, 'false')).toBeNull()
   })
 
   it('reads a number, and an empty box as inherit', () => {
@@ -153,6 +184,50 @@ describe('readMatrixCell', () => {
     expect(readMatrixCell(numeric, 'abc')).toBeNull()
     expect(readMatrixCell(numeric, '-1')).toBeNull()
     expect(readMatrixCell(numeric, '1.5')).toBeNull()
+  })
+})
+
+describe('matrixCellValue', () => {
+  it('renders explicit booleans and requirements as grant or deny, and null as inherit', () => {
+    expect(matrixCellValue({ kind: 'boolean', stored: true })).toBe('grant')
+    expect(matrixCellValue({ kind: 'boolean', stored: false })).toBe('deny')
+    expect(matrixCellValue({ kind: 'boolean', stored: null })).toBe('inherit')
+    expect(matrixCellValue({ kind: 'negative', stored: true })).toBe('grant')
+    expect(matrixCellValue({ kind: 'negative', stored: false })).toBe('deny')
+    expect(matrixCellValue({ kind: 'negative', stored: null })).toBe('inherit')
+  })
+
+  it('renders a stored number as itself, and null as an empty box', () => {
+    expect(matrixCellValue({ kind: 'numeric', stored: 4 })).toBe('4')
+    expect(matrixCellValue({ kind: 'numeric', stored: 0 })).toBe('0')
+    expect(matrixCellValue({ kind: 'numeric', stored: null })).toBe('')
+  })
+})
+
+describe('a stored negative override round-trips through the editor', () => {
+  const field = { key: 'requiresApprovalOnEdit', kind: 'negative' } as never
+
+  it('parses each rendered state back to the value it came from', () => {
+    for (const stored of [true, false, null]) {
+      const rendered = matrixCellValue({ kind: 'negative', stored })
+      expect(readMatrixCell(field, rendered)).toBe(stored)
+    }
+  })
+
+  it('is not wiped by a save that never touched it', () => {
+    const overrides: ForumOverride[] = [
+      { forumId: CHILD, groupId: REGISTERED, overrides: { requiresApprovalOnEdit: false } },
+    ]
+    const rows = buildPermissionMatrix({
+      chain: CHAIN,
+      groups: [group(REGISTERED, 'Registered')],
+      overrides,
+    })
+
+    const found = cell(rows, REGISTERED, 'requiresApprovalOnEdit')
+    expect(found.stored).toBe(false)
+    expect(found.control).toBe('deny')
+    expect(readMatrixCell(field, found.control)).toBe(false)
   })
 })
 

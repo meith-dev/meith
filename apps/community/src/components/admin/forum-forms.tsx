@@ -128,8 +128,14 @@ export function ForumOptionsForm({ forum }: { forum: ForumOptionsValues }) {
   )
 }
 
+function effectiveValue(cell: MatrixCell): string {
+  if (cell.kind === "boolean") return cell.effective ? "allowed" : "denied"
+  if (cell.kind === "negative") return cell.effective ? "required" : "not required"
+  return String(cell.effective)
+}
+
 function effectiveLabel(cell: MatrixCell, forumTitles: ReadonlyMap<number, string>): string {
-  const value = cell.kind === "boolean" ? (cell.effective ? "allowed" : "denied") : String(cell.effective)
+  const value = effectiveValue(cell)
 
   if (cell.stored !== null) return `set here: ${value}`
   if (cell.inheritedFrom === null) return `inherited from the group's own default: ${value}`
@@ -137,26 +143,26 @@ function effectiveLabel(cell: MatrixCell, forumTitles: ReadonlyMap<number, strin
 }
 
 function CellControl({ cell }: { cell: MatrixCell }) {
-  if (cell.kind === "boolean") {
-    const current = cell.stored === null ? "inherit" : cell.stored ? "grant" : "deny"
+  if (cell.kind === "numeric") {
     return (
-      <select name={cell.key} defaultValue={current} className={INPUT}>
-        <option value="inherit">Inherit</option>
-        <option value="grant">Grant</option>
-        <option value="deny">Deny</option>
-      </select>
+      <input
+        type="number"
+        name={cell.key}
+        min={0}
+        placeholder="Inherit"
+        defaultValue={cell.control}
+        className={INPUT}
+      />
     )
   }
 
+  const negative = cell.kind === "negative"
   return (
-    <input
-      type="number"
-      name={cell.key}
-      min={0}
-      placeholder="Inherit"
-      defaultValue={cell.stored === null ? "" : String(cell.stored)}
-      className={INPUT}
-    />
+    <select name={cell.key} defaultValue={cell.control} className={INPUT}>
+      <option value="inherit">Inherit</option>
+      <option value="grant">{negative ? "Required" : "Grant"}</option>
+      <option value="deny">{negative ? "Not required" : "Deny"}</option>
+    </select>
   )
 }
 

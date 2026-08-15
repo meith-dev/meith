@@ -210,7 +210,9 @@ understanding the model.
 1. **Group permissions** — the floor. A member's groups are combined, and a
    boolean is granted if *any* of their groups grants it.
 2. **The forum matrix** — per forum, per group. Each cell has three states:
-   inherit, grant, deny.
+   inherit, grant, deny. The three requires-approval cells are requirements
+   rather than rights, so their explicit states read *Required* and *Not
+   required* instead.
 3. **Moderator rights** — per forum, per member or group, granted separately.
 
 > [!IMPORTANT]
@@ -682,8 +684,10 @@ Three things are worth knowing before you need them.
 | Failing | The server stopped calling it after repeated errors. | The error is on the plugin's own page |
 
 **The disable button is durable.** It takes effect on every instance, not just
-the server that handled the click, and it survives a redeploy. Reach for it when
-a plugin is misbehaving — you do not need to deploy to stop one.
+the server that handled the click, and it survives a redeploy. A disabled
+plugin's scheduled tasks stop too: the switch is checked each time one comes
+due, so the worker skips them without a restart. Reach for it when a plugin is
+misbehaving — you do not need to deploy to stop one.
 
 **The panel never runs migrations.** It tells you which are outstanding;
 `community upgrade` applies them.

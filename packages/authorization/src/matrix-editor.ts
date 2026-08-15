@@ -12,6 +12,7 @@ export interface MatrixCell {
   readonly description: string
   readonly kind: PermissionField['kind']
   readonly stored: boolean | number | null
+  readonly control: string
   readonly effective: boolean | number
   readonly inheritedFrom: number | null
 }
@@ -63,12 +64,14 @@ export function buildPermissionMatrix(input: MatrixInput): readonly MatrixRow[] 
       cells: FORUM_PERMISSION_FIELDS.map((field) => {
         const stored = own?.overrides[field.key as keyof ForumPermissions]
         const source = sourceOf(input.chain, group.groupId, field.key, byForumGroup)
+        const storedOrNull = stored === undefined ? null : stored
 
         return {
           key: field.key,
           description: field.description,
           kind: field.kind,
-          stored: stored === undefined ? null : stored,
+          stored: storedOrNull,
+          control: matrixCellValue({ kind: field.kind, stored: storedOrNull }),
           effective: resolved[field.key as keyof ForumPermissions] as boolean | number,
           inheritedFrom: source === null || source === forumId ? null : source,
         }
@@ -129,7 +132,7 @@ export function readMatrixCell(
 ): boolean | number | null {
   if (raw === undefined || raw === '' || raw === 'inherit') return null
 
-  if (field.kind === 'boolean') {
+  if (field.kind === 'boolean' || field.kind === 'negative') {
     if (raw === '1' || raw === 'grant') return true
     if (raw === '0' || raw === 'deny') return false
     return null
@@ -137,4 +140,12 @@ export function readMatrixCell(
 
   const value = Number(raw)
   return Number.isSafeInteger(value) && value >= 0 ? value : null
+}
+
+export function matrixCellValue(
+  cell: Pick<MatrixCell, 'kind' | 'stored'>,
+): string {
+  if (cell.stored === null) return cell.kind === 'numeric' ? '' : 'inherit'
+  if (cell.kind === 'numeric') return String(cell.stored)
+  return cell.stored === true ? 'grant' : 'deny'
 }
