@@ -486,25 +486,46 @@ export const SETTING_DEFINITIONS = [
     key: 'security.session_idle_days',
     group: 'security',
     label: 'Session idle timeout (days)',
-    description: 'Sessions unused for this long are treated as expired.',
+    description:
+      'Sessions unused for this long are treated as expired. Separate from ' +
+      '“keep me signed in”, which is a different token with a longer life of ' +
+      'its own.',
     schema: z.number().int().min(1).max(365),
-    default: 30,
+    default: 14,
     ui: { min: 1, max: 365, advanced: true },
   }),
   define({
     key: 'security.max_login_attempts',
     group: 'security',
     label: 'Failed login attempts before lockout',
-    description: '0 disables lockout. Counted per account, not per IP.',
+    description:
+      'Counted per account per address, so somebody guessing at one account ' +
+      'from one place meets this first. 0 disables it.',
     schema: z.number().int().min(0).max(100),
     default: 5,
     ui: { min: 0, max: 100, advanced: true },
   }),
   define({
+    key: 'security.max_account_login_attempts',
+    group: 'security',
+    label: 'Failed login attempts before an account locks everywhere',
+    description:
+      'The same count for one account across every address at once, which is ' +
+      'what a guess spread over a botnet meets. Keep it well above the ' +
+      'per-address number — it locks the real owner out too, which is the ' +
+      'cost of it working at all. 0 disables it.',
+    schema: z.number().int().min(0).max(10_000),
+    default: 50,
+    ui: { min: 0, max: 10_000, advanced: true },
+  }),
+  define({
     key: 'security.lockout_minutes',
     group: 'security',
     label: 'Lockout duration (minutes)',
-    description: 'How long an account stays locked after too many failures.',
+    description:
+      'How long an account stays locked after too many failures. The window ' +
+      'the counts above are measured over, and the one the per-address limit ' +
+      'on the anti-spam screen shares.',
     schema: z.number().int().min(1).max(10_080),
     default: 15,
     ui: { min: 1, max: 10_080, advanced: true },

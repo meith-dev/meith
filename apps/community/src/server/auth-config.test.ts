@@ -9,7 +9,8 @@ vi.mock('./settings', () => ({
   getSettings: async () => ({ get: (key: string) => stored.values[key] }),
 }))
 
-const { AUTH_CONFIG, boardAuthConfig } = await import('./auth-config')
+const { AUTH_CONFIG, REMEMBER_DAYS, boardAuthConfig, boardSessionConfig } =
+  await import('./auth-config')
 
 async function onPostgres<T>(body: () => Promise<T>): Promise<T> {
   vi.stubEnv('DATA_SOURCE', 'postgres')
@@ -48,6 +49,38 @@ describe('boardAuthConfig', () => {
     expect(resolved.minPasswordLength).toBe(16)
     expect(resolved.usernameMin).toBe(4)
     expect(resolved.usernameMax).toBe(24)
+  })
+
+  it('takes the lockout and the session timeout from the registry as well', async () => {
+    stored.values = {
+      'registration.method': 'none',
+      'security.max_login_attempts': 3,
+      'security.max_account_login_attempts': 30,
+      'security.lockout_minutes': 60,
+      'security.session_idle_days': 7,
+    }
+
+    const resolved = await onPostgres(boardAuthConfig)
+
+    expect(resolved.maxLoginAttempts).toBe(3)
+    expect(resolved.maxAccountLoginAttempts).toBe(30)
+    expect(resolved.lockoutMinutes).toBe(60)
+    expect(resolved.sessionIdleDays).toBe(7)
+  })
+
+  it('lets an operator switch the lockout off outright', async () => {
+    stored.values = { 'registration.method': 'none', 'security.max_login_attempts': 0 }
+
+    expect((await onPostgres(boardAuthConfig)).maxLoginAttempts).toBe(0)
+  })
+
+  it('hands the session timeout to whoever mints a session', async () => {
+    stored.values = { 'registration.method': 'none', 'security.session_idle_days': 7 }
+
+    const resolved = await onPostgres(boardSessionConfig)
+
+    expect(resolved.sessionIdleDays).toBe(7)
+    expect(resolved.rememberDays).toBe(REMEMBER_DAYS)
   })
 
   it('leaves what the board does not configure exactly as the const declares it', async () => {

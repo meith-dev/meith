@@ -1195,6 +1195,25 @@ against volume rather than a wall.
 
 Set any of them to `0` to switch it off.
 
+### The three login counters, and where each lives
+
+A failed sign-in is counted three times over, and the three answer different
+attacks. Two are on the **security** screen and the third is above, on
+anti-spam, because it is a volume control rather than an account one.
+
+| Counter | Setting | Default | Trips when |
+|---|---|---|---|
+| Per account, per address | `security.max_login_attempts` | 5 | Somebody guesses at one account from one place |
+| Per account, everywhere | `security.max_account_login_attempts` | 50 | The same guess is spread over many addresses |
+| Per address, any account | `antispam.login_ip_attempts` | 100 | One address sprays single guesses across many accounts |
+
+All three are measured over `security.lockout_minutes` and all three are
+cleared by a successful sign-in. The middle one is the uncomfortable one: it
+locks the **real owner** out too, which is the price of it working at all
+against a botnet. Keep it well above the per-address number, and remember that
+a member who is genuinely locked out can still reset their password — the reset
+form is a separate door with limits of its own.
+
 ### Limits and the flood interval are different controls
 
 | | What it bounds | What it stops |

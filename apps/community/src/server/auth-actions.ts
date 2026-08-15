@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { env, logger, truncateIp } from '@meith/core'
 
-import { DEFAULT_AUTH_POLICY, foldIdentifier, type LoginBucket } from '@meith/accounts'
+import { foldIdentifier, type AuthConfig, type LoginBucket } from '@meith/accounts'
 
 import { remoteAddress } from './admin'
 import {
@@ -17,7 +17,8 @@ import {
   verifyChallenge,
 } from './antispam'
 import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
-import { configuredIdentity, getContainer } from './container'
+import { boardAuthConfig } from './auth-config'
+import { configuredIdentity, configuredSessions, getContainer } from './container'
 import { formStateReporter } from './form-state-reporter'
 import { termsAcceptance } from './legal'
 import {
@@ -41,11 +42,14 @@ function field(form: FormData, name: string): string {
 
 const toFormState = formStateReporter('auth-actions', 'unexpected error in auth action')
 
-async function loginBuckets(identifier: string): Promise<readonly LoginBucket[]> {
+async function loginBuckets(
+  identifier: string,
+  config: AuthConfig,
+): Promise<readonly LoginBucket[]> {
   const account = foldIdentifier(identifier)
   const wide: LoginBucket = {
     key: `login:${account}`,
-    max: DEFAULT_AUTH_POLICY.maxAccountLoginAttempts,
+    max: config.maxAccountLoginAttempts,
   }
 
   const address = await remoteAddress()
@@ -178,17 +182,19 @@ export async function loginAction(
   const next = sanitizeNext(field(form, 'next'))
   const values = { identifier }
 
-  const { identity, sessions } = getContainer()
-
   try {
+    const config = await boardAuthConfig()
+    const identity = await configuredIdentity()
+
     const result = await identity.login(
       identifier,
       password,
-      await loginBuckets(identifier),
+      await loginBuckets(identifier, config),
     )
     await setSessionCookie(result.sessionToken, result.expiresAt)
 
     if (remember) {
+      const sessions = await configuredSessions()
       const remembered = await sessions.startRemembered(result.account.id)
       await setRememberCookie(remembered.rememberToken, remembered.rememberExpiresAt)
     }

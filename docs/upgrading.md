@@ -434,6 +434,31 @@ is generous for a board and low for a lecture hall. It is on
 `/admin/settings?group=antispam` with the rest, and `0` switches any of them
 off.
 
+## The security settings screen does something now
+
+`Admin → Settings → Security` has carried three switches — the session idle
+timeout, the failed-login count, and the lockout duration — that **nothing
+read**. Changing them did nothing at all; the lockout ran on constants
+compiled into the board, and the screen gave no sign of it.
+
+They are wired now, which means a board that changed one of them at some point
+is about to get the behaviour it asked for. Worth a look before you deploy if
+you ever touched that screen.
+
+Two things moved as part of it:
+
+- **The session idle timeout now says 14 days, not 30.** 14 is what the board
+  has actually been doing, so nothing changes; the setting was simply printing
+  a number nobody honoured. A board that wants 30 can now set it and get it.
+- **`security.max_account_login_attempts` is new**, defaulting to the 50 the
+  code has always used, so no behaviour moves. It is the account-wide lockout
+  backstop, which had no control on the screen even though its two neighbours
+  did — see [the three login counters](./operating.md#the-three-login-counters-and-where-each-lives).
+
+While that screen was lying, so was the demo board's lockout relief: it sets a
+laxer lockout so one visitor's typo cannot lock the published login for the
+next, and half of that was inert for the same reason. It works now.
+
 ## What the CLI applies
 
 `community upgrade` applies **core migrations, then each installed plugin's, then

@@ -91,7 +91,13 @@ import { drivers } from '@meith/drivers'
 
 import forumConfig from '../../community.config'
 
-import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS, boardAuthConfig } from './auth-config'
+import {
+  AUTH_CONFIG,
+  REMEMBER_DAYS,
+  SESSION_IDLE_DAYS,
+  boardAuthConfig,
+  boardSessionConfig,
+} from './auth-config'
 import { FixtureActorSource } from './fixture-actor-source'
 import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
@@ -108,6 +114,7 @@ export interface Container {
   readonly actorSource: ActorSource
   readonly identity: IdentityService
   readonly sessions: SessionService
+  readonly banLookup: BanLookup | null
   readonly forums: ForumRepository
   readonly threads: ThreadRepository
   readonly threadWrites: (ThreadWriteRepository & ReplyWriteRepository) | null
@@ -210,6 +217,7 @@ function identityServices(
 ): {
   identity: IdentityService
   sessions: SessionService
+  banLookup: BanLookup | null
 } {
   return {
     identity: new IdentityService({
@@ -222,6 +230,7 @@ function identityServices(
       rememberDays: REMEMBER_DAYS,
       sessionIdleDays: SESSION_IDLE_DAYS,
     }),
+    banLookup: bans ?? null,
   }
 }
 
@@ -366,8 +375,17 @@ export function getAuthorizer(): Authorizer {
 }
 
 export async function configuredIdentity(): Promise<IdentityService> {
+  const { accountStore, banLookup } = getContainer()
   return new IdentityService({
-    store: getContainer().accountStore,
+    store: accountStore,
     config: await boardAuthConfig(),
+    ...(banLookup === null ? {} : { bans: banLookup }),
+  })
+}
+
+export async function configuredSessions(): Promise<SessionService> {
+  return new SessionService({
+    store: getContainer().accountStore,
+    ...(await boardSessionConfig()),
   })
 }

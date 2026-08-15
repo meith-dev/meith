@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server"
 
 import { logger } from "@meith/core"
 
-import { getContainer } from "@/server/container"
+import { configuredSessions } from "@/server/container"
 import { isSafeLocalPath } from "@/server/safe-path"
 import { isTopLevelNavigation } from "@/server/same-origin"
 import {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     })
   }
 
-  const { sessions } = getContainer()
+  const sessions = await configuredSessions()
   const outcome = await sessions.resume(token)
 
   if (outcome.status === "ok") {

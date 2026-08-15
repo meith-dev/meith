@@ -31,6 +31,10 @@ export const AUTH_SETTING_KEYS = {
   minPasswordLength: 'registration.min_password_length',
   usernameMin: 'registration.username_min',
   usernameMax: 'registration.username_max',
+  maxLoginAttempts: 'security.max_login_attempts',
+  maxAccountLoginAttempts: 'security.max_account_login_attempts',
+  lockoutMinutes: 'security.lockout_minutes',
+  sessionIdleDays: 'security.session_idle_days',
 } as const
 
 export type SettingReader = (key: string) => unknown
@@ -40,6 +44,10 @@ export interface ResolvedAuthSettings {
   readonly minPasswordLength: number
   readonly usernameMin: number
   readonly usernameMax: number
+  readonly maxLoginAttempts: number
+  readonly maxAccountLoginAttempts: number
+  readonly lockoutMinutes: number
+  readonly sessionIdleDays: number
 }
 
 const ACTIVATION_METHODS: readonly AuthConfig['activationMethod'][] = [
@@ -71,9 +79,22 @@ export function resolveAuthPolicy(
       positiveInteger(read(AUTH_SETTING_KEYS.minPasswordLength)) ?? base.minPasswordLength,
     usernameMin: impossible ? base.usernameMin : usernameMin,
     usernameMax: impossible ? base.usernameMax : usernameMax,
+    maxLoginAttempts:
+      countingInteger(read(AUTH_SETTING_KEYS.maxLoginAttempts)) ?? base.maxLoginAttempts,
+    maxAccountLoginAttempts:
+      countingInteger(read(AUTH_SETTING_KEYS.maxAccountLoginAttempts)) ??
+      base.maxAccountLoginAttempts,
+    lockoutMinutes:
+      positiveInteger(read(AUTH_SETTING_KEYS.lockoutMinutes)) ?? base.lockoutMinutes,
+    sessionIdleDays:
+      positiveInteger(read(AUTH_SETTING_KEYS.sessionIdleDays)) ?? base.sessionIdleDays,
   }
 }
 
 function positiveInteger(value: unknown): number | null {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null
+}
+
+function countingInteger(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null
 }

@@ -49,7 +49,10 @@ vi.mock('./auth-mail', () => ({
   },
 }))
 
-const policy = vi.hoisted(() => ({ activationMethod: 'none' as string }))
+const policy = vi.hoisted(() => ({
+  activationMethod: 'none' as string,
+  overrides: {} as Record<string, number>,
+}))
 
 const limiter = vi.hoisted(() => ({
   refuse: false,
@@ -96,6 +99,7 @@ vi.mock('./auth-config', async (importOriginal) => {
     boardAuthConfig: async () => ({
       ...actual.AUTH_CONFIG,
       activationMethod: policy.activationMethod,
+      ...policy.overrides,
     }),
   }
 })
@@ -158,6 +162,7 @@ beforeEach(() => {
   mail.failVerification = false
   mail.failReset = false
   policy.activationMethod = 'none'
+  policy.overrides = {}
   limiter.refuse = false
   limiter.refuseRegistration = false
   limiter.registrationsSpent = 0
@@ -303,6 +308,55 @@ describe('loginAction', () => {
     )
     expect(state.error).toBeTruthy()
     expect(jar.has(SESSION_COOKIE)).toBe(false)
+  })
+
+  it('locks out at the number the settings screen says, not at the constant', async () => {
+    await registerUser()
+    policy.overrides = { maxLoginAttempts: 2 }
+
+    for (let i = 0; i < 2; i++) {
+      const state = await loginAction(
+        EMPTY_STATE,
+        form({ identifier: CREDS.username, password: 'wrong-password' }),
+      )
+      expect(state.error).toMatch(/incorrect/i)
+    }
+
+    const blocked = await loginAction(
+      EMPTY_STATE,
+      form({ identifier: CREDS.username, password: CREDS.password }),
+    )
+    expect(blocked.error).toMatch(/too many/i)
+    expect(jar.has(SESSION_COOKIE)).toBe(false)
+  })
+
+  it('lets a board switch the lockout off entirely', async () => {
+    await registerUser()
+    policy.overrides = { maxLoginAttempts: 0, maxAccountLoginAttempts: 0 }
+
+    for (let i = 0; i < 8; i++) {
+      await loginAction(EMPTY_STATE, form({ identifier: CREDS.username, password: 'nope' }))
+    }
+
+    await redirectOf(
+      loginAction(EMPTY_STATE, form({ identifier: CREDS.username, password: CREDS.password })),
+    )
+    expect(jar.get(SESSION_COOKIE)).toBeTruthy()
+  })
+
+  it('takes the account-wide backstop from the settings screen too', async () => {
+    await registerUser()
+    policy.overrides = { maxLoginAttempts: 0, maxAccountLoginAttempts: 2 }
+
+    for (let i = 0; i < 2; i++) {
+      await loginAction(EMPTY_STATE, form({ identifier: CREDS.username, password: 'nope' }))
+    }
+
+    const blocked = await loginAction(
+      EMPTY_STATE,
+      form({ identifier: CREDS.username, password: CREDS.password }),
+    )
+    expect(blocked.error).toMatch(/too many/i)
   })
 
   it('stops a spray of single guesses at unrelated accounts from one address', async () => {
