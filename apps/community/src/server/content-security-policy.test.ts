@@ -31,13 +31,13 @@ describe('contentSecurityPolicy', () => {
     )
   })
 
-  it('drops remote images when the board has turned them off', () => {
+  it('confines images to the board unless it has opted out', () => {
     expect(directive(contentSecurityPolicy({ nonce: 'n' }), 'img-src')).toBe(
-      "img-src 'self' data: https:",
+      "img-src 'self' data:",
     )
     expect(
-      directive(contentSecurityPolicy({ nonce: 'n', remoteImages: false }), 'img-src'),
-    ).toBe("img-src 'self' data:")
+      directive(contentSecurityPolicy({ nonce: 'n', remoteImages: true }), 'img-src'),
+    ).toBe("img-src 'self' data: https:")
   })
 
   it('keeps the rest of the header set it inherited', () => {
