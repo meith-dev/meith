@@ -3,8 +3,14 @@ import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
+import {
+  DISPLACED_PRIMARY_REASON,
+  expireTimedGroupMemberships,
+  pluginGrants,
+} from './plugin-grants'
 import { PostgresUserAdminRepository, likeFragment } from './user-admin-repo'
 import { resultRows } from './result-rows'
+import { toNullableDate } from './row-values'
 
 let harness: TestDb
 let db: Database
@@ -65,6 +71,27 @@ async function permissionVersion(): Promise<number> {
     await db.execute(sql`select version from cache_versions where key = 'permissions'`),
   ) as Array<{ version: number }>
   return Number(rows[0]?.version ?? 0)
+}
+
+const SUPPORTERS = 50
+
+const inHours = (hours: number) => new Date(Date.now() + hours * 3_600_000)
+
+async function seedSupportersGroup(): Promise<void> {
+  await db.execute(sql`
+    insert into usergroups (id, key, title, plugin_grantable)
+    values (${SUPPORTERS}, 'supporters', 'Supporters', true)
+    on conflict (id) do nothing
+  `)
+}
+
+async function membership(groupId: number): Promise<Record<string, unknown> | undefined> {
+  const rows = resultRows(
+    await db.execute(sql`
+      select * from user_group_memberships where user_id = 1 and group_id = ${groupId}
+    `),
+  ) as Array<Record<string, unknown>>
+  return rows[0]
 }
 
 describe('likeFragment', () => {
@@ -417,6 +444,82 @@ describe('secondary groups', () => {
     await expect(repo.setSecondaryGroups(9_999, [ADMINS], null)).rejects.toThrow(
       /No such member/,
     )
+  })
+
+  it('leaves a plugin-granted membership and its metadata alone when it stays ticked', async () => {
+    await seed({ id: 1, username: 'ann' })
+    await seedSupportersGroup()
+    const until = inHours(1)
+    await pluginGrants(db, 'dues').grant({
+      userId: 1,
+      groupKey: 'supporters',
+      until,
+      reason: 'bought a pass',
+    })
+
+    await repo.setSecondaryGroups(1, [SUPPORTERS, ADMINS], null)
+
+    const row = await membership(SUPPORTERS)
+    expect(row).toMatchObject({ granted_by_plugin: 'dues', grant_reason: 'bought a pass' })
+    expect(toNullableDate(row?.expires_at)?.getTime()).toBe(until.getTime())
+    expect(await repo.readSecondaryGroups(1)).toEqual([ADMINS, SUPPORTERS])
+  })
+
+  it('keeps the owning plugin able to extend and revoke after an admin save', async () => {
+    await seed({ id: 1, username: 'ann' })
+    await seedSupportersGroup()
+    const grants = pluginGrants(db, 'dues')
+    await grants.grant({
+      userId: 1,
+      groupKey: 'supporters',
+      until: inHours(1),
+      reason: 'bought a pass',
+    })
+
+    await repo.setSecondaryGroups(1, [SUPPORTERS, ADMINS], null)
+
+    const later = inHours(2)
+    await grants.extend({ userId: 1, groupKey: 'supporters', until: later })
+    expect(toNullableDate((await membership(SUPPORTERS))?.expires_at)?.getTime()).toBe(
+      later.getTime(),
+    )
+
+    await grants.revoke({ userId: 1, groupKey: 'supporters', reason: 'refunded' })
+    expect(await repo.readSecondaryGroups(1)).toEqual([ADMINS])
+  })
+
+  it('keeps a primary-swap grant intact across a save of unrelated groups', async () => {
+    await seed({ id: 1, username: 'ann', groupId: REGISTERED })
+    await seedSupportersGroup()
+    await pluginGrants(db, 'dues').grant({
+      userId: 1,
+      groupKey: 'supporters',
+      until: inHours(1),
+      reason: 'bought a pass',
+      primary: true,
+    })
+
+    await repo.setSecondaryGroups(1, [REGISTERED, ADMINS], null)
+
+    expect(await membership(SUPPORTERS)).toMatchObject({
+      granted_by_plugin: 'dues',
+      previous_primary_group_id: REGISTERED,
+    })
+    expect(await membership(REGISTERED)).toMatchObject({
+      grant_reason: DISPLACED_PRIMARY_REASON,
+    })
+
+    await db.execute(sql`
+      update user_group_memberships set expires_at = now() - interval '1 minute'
+       where user_id = 1 and group_id = ${SUPPORTERS}
+    `)
+    await expireTimedGroupMemberships(db, 10)
+
+    const rows = resultRows(
+      await db.execute(sql`select primary_group_id from users where id = 1`),
+    ) as Array<{ primary_group_id: number }>
+    expect(Number(rows[0]?.primary_group_id)).toBe(REGISTERED)
+    expect(await repo.readSecondaryGroups(1)).toEqual([ADMINS])
   })
 })
 
