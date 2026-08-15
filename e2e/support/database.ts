@@ -173,6 +173,8 @@ function seedSql(staffHash: string): string {
 
   const settings = [
     { key: 'antispam.min_form_seconds', value: '0', group_key: 'antispam' },
+    { key: 'antispam.register_ip_per_hour', value: '0', group_key: 'antispam' },
+    { key: 'antispam.login_ip_attempts', value: '0', group_key: 'antispam' },
     { key: 'reputation.min_posts_to_give', value: '0', group_key: 'reputation' },
     { key: 'registration.method', value: 'none', group_key: 'registration' },
     { key: 'search.flood_seconds', value: '0', group_key: 'search' },

@@ -4,6 +4,10 @@ import { signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
+const BOARD = 'http://127.0.0.1:3001'
+
+const SAME_ORIGIN = { origin: BOARD }
+
 function row(page: Page, name: string | RegExp, within?: Locator): Locator {
   return (within ?? page)
     .locator('li')
@@ -113,9 +117,22 @@ test('read markers are not offered to a guest, and the routes refuse one', async
   await expect(page.getByRole('button', { name: 'Mark read' })).toHaveCount(0)
 
   for (const url of ['/api/read/all', '/api/read/forum/200', '/api/read/thread/4']) {
-    const response = await request.post(url, { maxRedirects: 0 })
+    const response = await request.post(url, { maxRedirects: 0, headers: SAME_ORIGIN })
     expect(response.status(), url).toBe(303)
-    expect(new URL(response.headers()['location'] ?? '', 'http://127.0.0.1:3001').pathname).toBe('/')
+    expect(new URL(response.headers()['location'] ?? '', BOARD).pathname).toBe('/')
+  }
+})
+
+test('a mark-read POST from anywhere but the board is refused', async ({ request }) => {
+  for (const url of ['/api/read/all', '/api/read/forum/200', '/api/read/thread/4']) {
+    const elsewhere = await request.post(url, {
+      maxRedirects: 0,
+      headers: { origin: 'https://elsewhere.example' },
+    })
+    expect(elsewhere.status(), url).toBe(403)
+
+    const nameless = await request.post(url, { maxRedirects: 0 })
+    expect(nameless.status(), url).toBe(403)
   }
 })
 
@@ -127,18 +144,18 @@ test('marking a forum that is not there is a redirect, not an error', async ({ b
     await signUp(page, 'marksbad')
 
     for (const url of ['/api/read/forum/999999', '/api/read/forum/abc', '/api/read/thread/999999']) {
-      const response = await page.request.post(url, { maxRedirects: 0 })
+      const response = await page.request.post(url, { maxRedirects: 0, headers: SAME_ORIGIN })
       expect(response.status(), url).toBe(303)
       expect(
-        new URL(response.headers()['location'] ?? '', 'http://127.0.0.1:3001').pathname,
+        new URL(response.headers()['location'] ?? '', BOARD).pathname,
         url,
       ).toBe('/')
     }
 
-    const category = await page.request.post('/api/read/forum/10', { maxRedirects: 0 })
+    const category = await page.request.post('/api/read/forum/10', { maxRedirects: 0, headers: SAME_ORIGIN })
     expect(category.status()).toBe(303)
     expect(
-      new URL(category.headers()['location'] ?? '', 'http://127.0.0.1:3001').pathname,
+      new URL(category.headers()['location'] ?? '', BOARD).pathname,
       'a category can hold threads now, so marking it read lands on its page',
     ).toBe('/10-main')
   } finally {

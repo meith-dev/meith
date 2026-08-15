@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { env } from '@meith/core/env'
+
 import {
   DEV_GUEST_COOKIE,
   DEV_REMEMBER_COOKIE,
@@ -12,7 +14,13 @@ import {
   guestCookieName,
 } from './src/server/cookies'
 import {
+  contentSecurityPolicy,
+  newNonce,
+  readsAsAsset,
+} from './src/server/content-security-policy'
+import {
   FRESH_GUEST_HEADER,
+  NONCE_HEADER,
   PATH_HEADER,
   QUERY_HEADER,
 } from './src/server/location-header'
@@ -37,6 +45,13 @@ const RESUME_PATH = '/auth/resume'
 
 const DAY_MS = 86_400_000
 
+const CSP_HEADER = 'content-security-policy'
+
+interface Policy {
+  readonly nonce: string
+  readonly value: string
+}
+
 /**
  * Passes the request through, and hands a reader something to be counted by.
  *
@@ -51,10 +66,12 @@ const DAY_MS = 86_400_000
  * otherwise, so a crawler that never keeps one is never counted and a client
  * cannot supply its own.
  */
-function withPath(req: NextRequest): NextResponse {
+function withPath(req: NextRequest, policy: Policy): NextResponse {
   const fresh = !req.cookies.has(GUEST_COOKIE) && !req.cookies.has(DEV_GUEST_COOKIE)
 
   const headers = new Headers(req.headers)
+  headers.set(NONCE_HEADER, policy.nonce)
+  headers.set(CSP_HEADER, policy.value)
   headers.set(PATH_HEADER, req.nextUrl.pathname)
   if (req.nextUrl.search === '') headers.delete(QUERY_HEADER)
   else headers.set(QUERY_HEADER, req.nextUrl.search)
@@ -98,7 +115,7 @@ function themeRedirect(req: NextRequest): NextResponse | null {
   return res
 }
 
-export function proxy(req: NextRequest): NextResponse {
+function triage(req: NextRequest, policy: Policy): NextResponse {
   const themed = themeRedirect(req)
   if (themed !== null) return themed
 
@@ -106,7 +123,7 @@ export function proxy(req: NextRequest): NextResponse {
   const hasSession = req.cookies.has(SESSION_COOKIE) || req.cookies.has(DEV_SESSION_COOKIE)
   const hasRemember = req.cookies.has(REMEMBER_COOKIE) || req.cookies.has(DEV_REMEMBER_COOKIE)
 
-  if (hasSession) return withPath(req)
+  if (hasSession) return withPath(req, policy)
 
   if (hasRemember && pathname !== RESUME_PATH) {
     const url = req.nextUrl.clone()
@@ -124,9 +141,28 @@ export function proxy(req: NextRequest): NextResponse {
     return NextResponse.redirect(url)
   }
 
-  return withPath(req)
+  return withPath(req, policy)
+}
+
+export function proxy(req: NextRequest): NextResponse {
+  const nonce = newNonce()
+  const policy: Policy = {
+    nonce,
+    value: contentSecurityPolicy({
+      nonce,
+      development: env.NODE_ENV !== 'production',
+      remoteImages: env.REMOTE_IMAGES,
+    }),
+  }
+
+  const res = readsAsAsset(req.nextUrl.pathname)
+    ? NextResponse.next()
+    : triage(req, policy)
+
+  res.headers.set(CSP_HEADER, policy.value)
+  return res
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],
+  matcher: ['/((?!_next/static|_next/image).*)'],
 }

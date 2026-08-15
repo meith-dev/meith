@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { logger } from '@meith/core'
+import { env, logger, resolveClientAddress } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 import {
   DEFAULT_ROUTE_BODY_BYTES,
@@ -17,6 +17,7 @@ import { getActor } from './context'
 import { activeDefinitions, pluginHost, syncOperatorDisables } from './plugin-host'
 import { runtimeContextFor } from './plugin-pages'
 import { isSafeLocalPath } from './safe-path'
+import { isSameOrigin } from './same-origin'
 import { getSettingOverrides } from './settings'
 import { viewerRef } from './plugin-view'
 
@@ -31,20 +32,6 @@ function json(body: unknown, status: number): Response {
 
 function fail(status: number, code: string, message: string): Response {
   return json({ error: { code, message, requestId: currentRequestId() ?? null } }, status)
-}
-
-function crossOrigin(request: Request): boolean {
-  const origin = request.headers.get('origin')
-  if (origin === null) return false
-
-  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
-  if (host === null) return true
-
-  try {
-    return new URL(origin).host !== host.trim().toLowerCase()
-  } catch {
-    return true
-  }
 }
 
 function passedHeaders(request: Request): Readonly<Record<string, string>> {
@@ -170,12 +157,14 @@ const routeLimiter = createRouteRateLimiter()
 
 function callerKey(request: Request, userId: number | null): string {
   if (userId !== null) return `u:${userId}`
-  const forwarded = request.headers.get('x-forwarded-for')
-  const address =
-    forwarded !== null && forwarded.trim() !== ''
-      ? (forwarded.split(',')[0] ?? '').trim()
-      : (request.headers.get('x-real-ip') ?? 'unknown')
-  return `a:${address}`
+  const address = resolveClientAddress(
+    {
+      forwardedFor: request.headers.get('x-forwarded-for'),
+      realIp: request.headers.get('x-real-ip'),
+    },
+    env.TRUSTED_PROXY_HOPS,
+  )
+  return `a:${address ?? 'unknown'}`
 }
 
 export type PluginRouteSurface = 'board' | 'admin'
@@ -228,7 +217,7 @@ export async function dispatchPluginRoute(
     }
   }
 
-  if (route.access !== 'anonymous' && method === 'POST' && crossOrigin(request)) {
+  if (route.access !== 'anonymous' && method === 'POST' && !isSameOrigin(request)) {
     return fail(403, 'cross_origin', 'This form was posted from somewhere that is not the board.')
   }
 

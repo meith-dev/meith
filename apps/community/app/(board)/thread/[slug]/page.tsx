@@ -26,6 +26,7 @@ import { viewerIgnoredIds } from '@/server/relations'
 import { reputationSettings, thanksForPosts } from '@/server/reputation'
 import { signaturesFor } from '@/server/signatures'
 import { moderatorTargetFor } from '@/server/modcp'
+import { cspNonce } from '@/server/nonce'
 import { currentTheme } from '@/server/theme'
 import {
   INLINE_FORM_ID,
@@ -616,6 +617,7 @@ export default async function ThreadPage({
       {jsonLd !== null && (
         <script
           type="application/ld+json"
+          nonce={await cspNonce()}
           dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
         />
       )}

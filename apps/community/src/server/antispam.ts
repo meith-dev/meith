@@ -7,6 +7,7 @@ import {
   noCaptcha,
   holdsForReview,
   subjectFor,
+  type AuthRateLimitScope,
   type CaptchaProvider,
   type Challenge,
   type ChallengeVerdict,
@@ -81,6 +82,84 @@ export async function spendLimit(input: {
   } catch (error) {
     logger().warn({ err: String(error), scope: input.scope }, 'rate limit unavailable')
     return null
+  }
+}
+
+type AuthLimitSetting =
+  | 'antispam.register_ip_per_hour'
+  | 'antispam.reset_per_hour'
+  | 'antispam.reset_ip_per_hour'
+
+async function spendAuthLimit(input: {
+  readonly scope: AuthRateLimitScope
+  readonly setting: AuthLimitSetting
+  readonly subject: string | null
+}): Promise<RateLimitOutcome | null> {
+  const store = rateLimitStore()
+  if (store === null || input.subject === null) return null
+
+  try {
+    const settings = await getSettings()
+    const max = Number(settings.get(input.setting) ?? 0)
+    if (max <= 0) return null
+
+    return await new RateLimiter(store).consume({
+      scope: input.scope,
+      subject: input.subject,
+      rule: { max, windowSeconds: HOUR },
+    })
+  } catch (error) {
+    logger().warn({ err: String(error), scope: input.scope }, 'rate limit unavailable')
+    return null
+  }
+}
+
+async function requestPrefix(): Promise<string | null> {
+  return truncateIp(await remoteAddress()) ?? null
+}
+
+export async function spendResetLimits(
+  emailLower: string,
+): Promise<readonly (RateLimitOutcome | null)[]> {
+  const prefix = await requestPrefix()
+
+  return [
+    await spendAuthLimit({
+      scope: 'reset',
+      setting: 'antispam.reset_per_hour',
+      subject: emailLower === '' ? null : `e:${emailLower}`,
+    }),
+    await spendAuthLimit({
+      scope: 'reset_ip',
+      setting: 'antispam.reset_ip_per_hour',
+      subject: prefix === null ? null : `ip:${prefix}`,
+    }),
+  ]
+}
+
+export async function spendRegisterLimit(): Promise<RateLimitOutcome | null> {
+  const prefix = await requestPrefix()
+
+  return spendAuthLimit({
+    scope: 'register_ip',
+    setting: 'antispam.register_ip_per_hour',
+    subject: prefix === null ? null : `ip:${prefix}`,
+  })
+}
+
+export function refused(
+  outcome: RateLimitOutcome | null,
+): outcome is RateLimitOutcome & { allowed: false } {
+  return outcome !== null && !outcome.allowed
+}
+
+export async function loginAddressAttempts(): Promise<number> {
+  try {
+    const max = Number((await getSettings()).get('antispam.login_ip_attempts') ?? 0)
+    return Number.isFinite(max) && max > 0 ? max : 0
+  } catch (error) {
+    logger().warn({ err: String(error) }, 'could not read the per-address login limit')
+    return 0
   }
 }
 

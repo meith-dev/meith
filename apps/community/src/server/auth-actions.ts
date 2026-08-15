@@ -2,12 +2,20 @@
 
 import { redirect } from 'next/navigation'
 
-import { env, logger } from '@meith/core'
+import { env, logger, truncateIp } from '@meith/core'
 
 import { DEFAULT_AUTH_POLICY, foldIdentifier, type LoginBucket } from '@meith/accounts'
 
 import { remoteAddress } from './admin'
-import { spendResendLimit, verifyChallenge } from './antispam'
+import {
+  limitMessage,
+  loginAddressAttempts,
+  refused,
+  spendRegisterLimit,
+  spendResendLimit,
+  spendResetLimits,
+  verifyChallenge,
+} from './antispam'
 import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
 import { configuredIdentity, getContainer } from './container'
 import { formStateReporter } from './form-state-reporter'
@@ -43,7 +51,17 @@ async function loginBuckets(identifier: string): Promise<readonly LoginBucket[]>
   const address = await remoteAddress()
   if (address === null || address === '') return [wide]
 
-  return [{ key: `login:${account}@${address}` }, wide]
+  const perAddress = await loginAddressAttempts()
+  const prefix = truncateIp(address)
+  if (perAddress <= 0 || prefix === undefined) {
+    return [{ key: `login:${account}@${address}` }, wide]
+  }
+
+  return [
+    { key: `login:${account}@${address}` },
+    wide,
+    { key: `login@${prefix}`, max: perAddress },
+  ]
 }
 
 export async function registerAction(
@@ -71,6 +89,9 @@ export async function registerAction(
 
     const challenge = await verifyChallenge(form)
     if (!challenge.ok) return { error: challenge.reason, values }
+
+    const limited = await spendRegisterLimit()
+    if (refused(limited)) return { error: limitMessage(limited), values }
 
     const fields = profileFieldService()
     const context = fields === null ? null : await registrationFieldContext()
@@ -206,6 +227,9 @@ export async function requestResetAction(
     'If an account exists for that email, a password reset link has been sent.'
 
   try {
+    const limits = await spendResetLimits(foldIdentifier(email))
+    if (limits.some(refused)) return { notice }
+
     const { token, userId } = await identity.requestPasswordReset(email)
 
     if (token !== null && userId !== null) {

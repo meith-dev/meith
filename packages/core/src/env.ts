@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { MAX_TRUSTED_PROXY_HOPS } from "./client-address"
+
 const nonEmpty = z.string().min(1)
 
 const databaseUrl = z
@@ -17,6 +19,11 @@ const secret = z
 const flag = z
   .enum(["0", "1", "true", "false"], { message: "must be one of 0, 1, true or false" })
   .default("0")
+  .transform((value) => value === "1" || value === "true")
+
+const flagOn = z
+  .enum(["0", "1", "true", "false"], { message: "must be one of 0, 1, true or false" })
+  .default("1")
   .transform((value) => value === "1" || value === "true")
 
 const envSchema = z
@@ -67,6 +74,15 @@ const envSchema = z
     MAIL_SMTP_PASSWORD: nonEmpty.optional(),
 
     ADMIN_IP_ALLOWLIST: z.string().optional(),
+
+    TRUSTED_PROXY_HOPS: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TRUSTED_PROXY_HOPS)
+      .default(1),
+
+    REMOTE_IMAGES: flagOn,
 
     // A public demo board: seeded content, published credentials, and a reset on
     // a timer. It is not a lighter board — it is the whole board with the

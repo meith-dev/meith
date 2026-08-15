@@ -31,6 +31,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 const allowlistRef: { current: string | undefined } = { current: undefined }
+const hopsRef: { current: number } = { current: 1 }
 vi.mock('@meith/core', async () => {
   const actual = await vi.importActual<typeof import('@meith/core')>('@meith/core')
   return {
@@ -38,10 +39,11 @@ vi.mock('@meith/core', async () => {
     env: new Proxy(
       {},
       {
-        get: (_t, key: string) =>
-          key === 'ADMIN_IP_ALLOWLIST'
-            ? allowlistRef.current
-            : (actual.env as unknown as Record<string, unknown>)[key],
+        get: (_t, key: string) => {
+          if (key === 'ADMIN_IP_ALLOWLIST') return allowlistRef.current
+          if (key === 'TRUSTED_PROXY_HOPS') return hopsRef.current
+          return (actual.env as unknown as Record<string, unknown>)[key]
+        },
       },
     ),
   }
@@ -106,6 +108,7 @@ beforeEach(async () => {
   adminSessions = new FakeSessions()
   adminSessions.row = session()
   headerRef.current = { 'x-forwarded-for': '203.0.113.9' }
+  hopsRef.current = 1
   allowlistRef.current = undefined
   tokenRef.current = 'a-token'
   actorRef.current = await actorFor(SEED_GROUP.administrators, ADA)
@@ -141,11 +144,26 @@ describe('the address allowlist', () => {
     expect(await resolveAdmin()).toHaveProperty('context')
   })
 
-  it('reads the left-most forwarded entry, which is the client', async () => {
+  it('refuses an allowlisted address a caller prepended to the chain', async () => {
     allowlistRef.current = '203.0.113.'
     headerRef.current = { 'x-forwarded-for': '203.0.113.9, 10.0.0.1, 10.0.0.2' }
 
+    expect(await resolveAdmin()).toEqual({ denied: 'address' })
+  })
+
+  it('walks back the configured number of trusted proxies', async () => {
+    allowlistRef.current = '203.0.113.'
+    headerRef.current = { 'x-forwarded-for': '198.51.100.1, 203.0.113.9, 10.0.0.1' }
+    hopsRef.current = 2
+
     expect(await resolveAdmin()).toHaveProperty('context')
+  })
+
+  it('ignores the forwarding header when no proxy is trusted', async () => {
+    allowlistRef.current = '203.0.113.'
+    hopsRef.current = 0
+
+    expect(await resolveAdmin()).toEqual({ denied: 'address' })
   })
 
   it('refuses when the deployment reports no address at all', async () => {

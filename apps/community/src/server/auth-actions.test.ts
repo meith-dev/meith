@@ -51,14 +51,34 @@ vi.mock('./auth-mail', () => ({
 
 const policy = vi.hoisted(() => ({ activationMethod: 'none' as string }))
 
-const limiter = vi.hoisted(() => ({ refuse: false }))
+const limiter = vi.hoisted(() => ({
+  refuse: false,
+  refuseRegistration: false,
+  registrationsSpent: 0,
+  refuseReset: null as null | 'email' | 'address',
+  loginAddressAttempts: 0,
+  resetSubjects: [] as string[],
+}))
+
+const REFUSED = { allowed: false as const, used: 99, retryAfterSeconds: 600 }
 
 vi.mock('./antispam', async (importOriginal) => {
   const actual = await importOriginal<typeof AntispamModule>()
   return {
     ...actual,
-    spendResendLimit: async () =>
-      limiter.refuse ? { allowed: false as const, used: 4, retryAfterSeconds: 600 } : null,
+    spendResendLimit: async () => (limiter.refuse ? REFUSED : null),
+    spendRegisterLimit: async () => {
+      limiter.registrationsSpent += 1
+      return limiter.refuseRegistration ? REFUSED : null
+    },
+    spendResetLimits: async (emailLower: string) => {
+      limiter.resetSubjects.push(emailLower)
+      return [
+        limiter.refuseReset === 'email' ? REFUSED : null,
+        limiter.refuseReset === 'address' ? REFUSED : null,
+      ]
+    },
+    loginAddressAttempts: async () => limiter.loginAddressAttempts,
   }
 })
 
@@ -139,6 +159,11 @@ beforeEach(() => {
   mail.failReset = false
   policy.activationMethod = 'none'
   limiter.refuse = false
+  limiter.refuseRegistration = false
+  limiter.registrationsSpent = 0
+  limiter.refuseReset = null
+  limiter.loginAddressAttempts = 0
+  limiter.resetSubjects.length = 0
   legal.terms = 'Be nice to each other.'
 })
 
@@ -173,6 +198,31 @@ describe('registerAction', () => {
 
     expect(state.error).toContain('terms of service')
     expect(state.values?.terms).toBeUndefined()
+  })
+
+  it('spends no allowance on a form a person simply got wrong', async () => {
+    await registerAction(EMPTY_STATE, form({ ...CREDS, terms: '' }))
+
+    expect(limiter.registrationsSpent).toBe(0)
+  })
+
+  it('refuses an account when the address has registered too often', async () => {
+    limiter.refuseRegistration = true
+
+    const state = await registerAction(EMPTY_STATE, form(CREDS))
+
+    expect(state.error).toMatch(/too many times/i)
+    expect(state.values?.username).toBe(CREDS.username)
+  })
+
+  it('does not spend the limit and then create the account anyway', async () => {
+    limiter.refuseRegistration = true
+    await registerAction(EMPTY_STATE, form(CREDS))
+
+    limiter.refuseRegistration = false
+    expect(await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))).toBe(
+      '/login?registered=1',
+    )
   })
 
   it('creates the account when the board publishes no terms', async () => {
@@ -253,6 +303,37 @@ describe('loginAction', () => {
     )
     expect(state.error).toBeTruthy()
     expect(jar.has(SESSION_COOKIE)).toBe(false)
+  })
+
+  it('stops a spray of single guesses at unrelated accounts from one address', async () => {
+    await registerUser()
+    limiter.loginAddressAttempts = 2
+
+    for (const identifier of ['nobody', 'somebody']) {
+      const state = await loginAction(EMPTY_STATE, form({ identifier, password: 'guess' }))
+      expect(state.error).toMatch(/incorrect/i)
+    }
+
+    const blocked = await loginAction(
+      EMPTY_STATE,
+      form({ identifier: CREDS.username, password: CREDS.password }),
+    )
+    expect(blocked.error).toMatch(/too many/i)
+    expect(jar.has(SESSION_COOKIE)).toBe(false)
+  })
+
+  it('leaves the spray bucket out when the board has turned it off', async () => {
+    await registerUser()
+    limiter.loginAddressAttempts = 0
+
+    for (const identifier of ['nobody', 'somebody', 'anybody']) {
+      await loginAction(EMPTY_STATE, form({ identifier, password: 'guess' }))
+    }
+
+    await redirectOf(
+      loginAction(EMPTY_STATE, form({ identifier: CREDS.username, password: CREDS.password })),
+    )
+    expect(jar.get(SESSION_COOKIE)).toBeTruthy()
   })
 
   it('locks the account out after the configured number of failures', async () => {
@@ -351,6 +432,35 @@ describe('password reset', () => {
 
     await requestResetAction(EMPTY_STATE, form({ email: 'nobody@example.com' }))
     expect(mail.resets).toEqual([])
+  })
+
+  it('sends nothing once the address has asked too often, and says so no differently', async () => {
+    await registerUser()
+    const allowed = await requestResetAction(EMPTY_STATE, form({ email: CREDS.email }))
+    mail.resets.length = 0
+
+    limiter.refuseReset = 'email'
+    const limited = await requestResetAction(EMPTY_STATE, form({ email: CREDS.email }))
+
+    expect(mail.resets).toEqual([])
+    expect(limited).toEqual(allowed)
+  })
+
+  it('stops a caller working through a list of addresses from one place', async () => {
+    await registerUser()
+    limiter.refuseReset = 'address'
+
+    const state = await requestResetAction(EMPTY_STATE, form({ email: CREDS.email }))
+
+    expect(mail.resets).toEqual([])
+    expect(state.notice).toBeTruthy()
+    expect(state.error).toBeUndefined()
+  })
+
+  it('counts the request against the folded address, so case cannot buy more', async () => {
+    await requestResetAction(EMPTY_STATE, form({ email: 'Ivan@Example.com' }))
+
+    expect(limiter.resetSubjects).toEqual(['ivan@example.com'])
   })
 
   it('gives the same answer when the send fails', async () => {

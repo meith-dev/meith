@@ -202,6 +202,26 @@ Prefer nginx? The equivalent is a `proxy_pass` to `127.0.0.1:3000` with
 `client_max_body_size 25m`, `proxy_set_header X-Forwarded-Proto https`, and
 certbot for the certificate. Nothing about the board cares which you pick.
 
+### Count your proxies
+
+The board only sees a visitor's address because the proxy forwards it, and it
+has to be told how many proxies did the forwarding. One — the setup above — is
+the default, so **there is nothing to set for this Caddyfile**.
+
+Put a CDN or a second load balancer in front of Caddy and the chain grows by
+one, so set `TRUSTED_PROXY_HOPS=2` in the environment. Whatever the number, it
+must match reality: too high and a visitor can forge their address by sending a
+forwarding header of their own, walking straight past `ADMIN_IP_ALLOWLIST` and
+the login lockout. [Who the board thinks you are](operating.md#who-the-board-thinks-you-are)
+has the table.
+
+If you expose the board's port directly with nothing in front — do not, but if
+you do — set `TRUSTED_PROXY_HOPS=0` so the header is ignored outright.
+
+Whatever you put in front must also pass the board's `Content-Security-Policy`
+response header through untouched: it carries a per-request nonce, and a proxy
+that caches or rewrites it will serve pages whose scripts the browser refuses.
+
 ## 6. Install it
 
 Open `https://board.example/install` — your domain, over the proxy you just set

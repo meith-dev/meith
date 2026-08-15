@@ -394,6 +394,46 @@ this post", so those two moved out of its way: they are `?removed=post` and
 `?unchanged=post`. They are notices on a redirect the board issues itself —
 nothing stores them, and there is nothing to update.
 
+## Count your proxies, if there is more than one
+
+The board used to take the **left-most** `X-Forwarded-For` entry as the
+visitor's address. That entry is whatever the caller put there, so a board
+reachable by anything but its own proxy could be told any address at all —
+which is the address `ADMIN_IP_ALLOWLIST`, the login lockout and the moderator
+log all key off.
+
+It now counts back from the right-hand end of the chain instead, and
+`TRUSTED_PROXY_HOPS` says how far. **A board behind one reverse proxy — the
+shape [self-hosting](./self-hosting.md#5-put-a-proxy-in-front) describes and the
+Docker Compose stack ships — needs nothing:** the default of `1` resolves the
+same address it always did.
+
+Set it if your board is behind **more than one** hop. A CDN in front of your
+proxy is `TRUSTED_PROXY_HOPS=2`; leave it at `1` and every visitor resolves to
+the CDN, which is visible immediately as an allowlist that admits nobody and a
+moderator log full of one address.
+[Who the board thinks you are](./operating.md#who-the-board-thinks-you-are) has
+the table.
+
+## Three anti-spam limits arrive switched on
+
+Everything else on the anti-spam screen ships off. These three do not, because
+each bounds something a board cannot want unbounded and none of them is
+reachable by a member doing anything ordinary:
+
+| Setting | Default | Bounds |
+|---|---|---|
+| `antispam.register_ip_per_hour` | 10/hour per /24 | Registrations from one address |
+| `antispam.reset_per_hour` | 5/hour per address | Reset mails sent to one e-mail address |
+| `antispam.reset_ip_per_hour` | 20/hour per /24 | Reset requests from one caller |
+| `antispam.login_ip_attempts` | 100 per lockout window | Failed logins from one address, whatever accounts they name |
+
+The one to look at is the first, and only if your members share an address —
+a school, an office, a conference. Ten new accounts an hour from a single /24
+is generous for a board and low for a lecture hall. It is on
+`/admin/settings?group=antispam` with the rest, and `0` switches any of them
+off.
+
 ## What the CLI applies
 
 `community upgrade` applies **core migrations, then each installed plugin's, then
