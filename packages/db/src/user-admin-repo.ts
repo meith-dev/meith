@@ -306,10 +306,25 @@ export class PostgresUserAdminRepository {
       if (rows[0] === undefined) throw new ValidationError('No such member.')
       const primary = Number(rows[0].primary_group_id)
 
-      const wanted = [...new Set(groupIds)].filter((id) => id !== primary)
+      const wanted = new Set([...groupIds].filter((id) => id !== primary))
 
-      await tx.execute(sql`delete from user_group_memberships where user_id = ${userId}`)
+      const held = resultRows(
+        await tx.execute(sql`
+          select group_id from user_group_memberships where user_id = ${userId}
+        `),
+      ) as Array<{ group_id: number }>
+      const existing = new Set(held.map((row) => Number(row.group_id)))
+
+      for (const groupId of existing) {
+        if (wanted.has(groupId) || groupId === primary) continue
+        await tx.execute(sql`
+          delete from user_group_memberships
+           where user_id = ${userId} and group_id = ${groupId}
+        `)
+      }
+
       for (const groupId of wanted) {
+        if (existing.has(groupId)) continue
         await tx.execute(sql`
           insert into user_group_memberships (user_id, group_id, granted_by_user_id)
           values (${userId}, ${groupId}, ${grantedByUserId})
