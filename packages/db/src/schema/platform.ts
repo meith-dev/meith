@@ -199,6 +199,10 @@ export const adminLog = pgTable(
   (t) => [
     index('admin_log_user_idx').on(t.userId, t.createdAt.desc()),
     index('admin_log_action_idx').on(t.action, t.createdAt.desc()),
+    index('admin_log_forum_scope_idx').using(
+      'gin',
+      sql`(${t.detail} -> 'forumIds') jsonb_path_ops`,
+    ),
   ],
 )
 

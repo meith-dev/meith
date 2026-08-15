@@ -99,6 +99,7 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
 
     return this.db.transaction(async (tx) => {
       let applied = 0
+      const touched = await forumsOf(tx, input.threadIds, input.postIds)
 
       switch (input.tool) {
         case 'lock':
@@ -147,8 +148,8 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
           {
             threadIds: input.threadIds,
             postIds: input.postIds,
-            ...(input.toForumId === undefined ? {} : { toForumId: input.toForumId }),
             applied,
+            ...forumKeys([...touched], input.toForumId),
           },
           input.at,
         )
@@ -157,6 +158,36 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
       return applied
     })
   }
+}
+
+async function forumsOf(
+  tx: CounterTx,
+  threadIds: readonly number[],
+  postIds: readonly number[],
+): Promise<ReadonlySet<number>> {
+  const rows = resultRows(
+    await tx.execute(sql`
+      select forum_id from threads where id in ${idList(threadIds)}
+      union
+      select forum_id from posts where id in ${idList(postIds)}
+    `),
+  ) as Array<{ forum_id: number }>
+  return new Set(rows.map((row) => Number(row.forum_id)))
+}
+
+function forumKeys(
+  source: readonly number[],
+  toForumId: number | undefined,
+): Record<string, unknown> {
+  if (toForumId === undefined) {
+    return source.length === 1
+      ? { forumId: source[0], forumIds: source }
+      : { forumIds: source }
+  }
+  const forumIds = [...new Set([...source, toForumId])]
+  return source.length === 1
+    ? { fromForumId: source[0], toForumId, forumIds }
+    : { toForumId, forumIds }
 }
 
 async function flagThreads(

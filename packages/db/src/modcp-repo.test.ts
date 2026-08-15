@@ -111,8 +111,133 @@ describe('the moderator log', () => {
     )
   })
 
-  it('shows a move to the destination forum"s moderators as well', async () => {
-    await logRow('thread.move', { threadId: 7, from: THEIRS, to: MINE }, OTHER_MOD)
+  it('shows a move to both ends" moderators', async () => {
+    await logRow(
+      'thread.move',
+      { threadId: 7, fromForumId: THEIRS, toForumId: MINE, forumIds: [THEIRS, MINE] },
+      OTHER_MOD,
+    )
+
+    expect(
+      (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
+    ).toHaveLength(1)
+    expect(
+      (await repo.log({ forumIds: [THEIRS], actorUserId: IVAN, limit: 10 })).entries,
+    ).toHaveLength(1)
+  })
+
+  it('names both ends of a move, as forums rather than threads', async () => {
+    await logRow(
+      'thread.move',
+      { threadId: 7, fromForumId: THEIRS, toForumId: MINE, forumIds: [THEIRS, MINE] },
+      OTHER_MOD,
+    )
+
+    const entry = (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 }))
+      .entries[0]!
+    expect(entry.forumTitle).toBe('Mine')
+    expect(entry.detail).toContainEqual({ label: 'From forum', value: String(THEIRS) })
+    expect(entry.detail).toContainEqual({ label: 'To forum', value: String(MINE) })
+  })
+
+  it('shows a split to the forum it happened in, and to nobody whose forum shares an id with the thread', async () => {
+    await logRow(
+      'thread.split',
+      { threadId: THEIRS, newThreadId: 9, forumId: MINE, forumIds: [MINE], posts: 2 },
+      OTHER_MOD,
+    )
+
+    expect(
+      (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
+    ).toHaveLength(1)
+    expect(
+      (await repo.log({ forumIds: [THEIRS], actorUserId: IVAN, limit: 10 })).entries,
+    ).toEqual([])
+  })
+
+  it('shows a merge to both forums, and not to one that merely shares an id with a thread', async () => {
+    await logRow(
+      'thread.merge',
+      {
+        threadId: THEIRS,
+        targetThreadId: MINE,
+        fromForumId: MINE,
+        toForumId: MINE,
+        forumIds: [MINE],
+        posts: 3,
+      },
+      OTHER_MOD,
+    )
+
+    expect(
+      (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
+    ).toHaveLength(1)
+    expect(
+      (await repo.log({ forumIds: [THEIRS], actorUserId: IVAN, limit: 10 })).entries,
+    ).toEqual([])
+  })
+
+  it('shows an approval to everyone who moderates the forum it happened in', async () => {
+    await logRow(
+      'moderation.approve',
+      { threadIds: [7], postIds: [], forumId: MINE, forumIds: [MINE], applied: 1 },
+      OTHER_MOD,
+    )
+
+    expect(
+      (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
+    ).toHaveLength(1)
+  })
+
+  it('shows a lock to a colleague moderating the same forum', async () => {
+    await logRow('thread.lock', { threadId: 7, forumId: MINE, forumIds: [MINE] }, OTHER_MOD)
+
+    expect(
+      (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
+    ).toHaveLength(1)
+  })
+
+  it('spreads an approval that spanned two forums to both sets of moderators', async () => {
+    await logRow(
+      'moderation.approve',
+      { threadIds: [7, 8], postIds: [], forumIds: [MINE, THEIRS], applied: 2 },
+      OTHER_MOD,
+    )
+
+    expect(
+      (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
+    ).toHaveLength(1)
+    expect(
+      (await repo.log({ forumIds: [THEIRS], actorUserId: IVAN, limit: 10 })).entries,
+    ).toHaveLength(1)
+  })
+
+  it('leaves an old split row with the actor who wrote it rather than guessing a forum', async () => {
+    await logRow('thread.split', { from: THEIRS, to: 9, posts: 2 }, OTHER_MOD)
+
+    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
+      [],
+    )
+    expect((await repo.log({ forumIds: [THEIRS], actorUserId: MOD, limit: 10 })).entries).toEqual(
+      [],
+    )
+    expect(
+      (await repo.log({ forumIds: [], actorUserId: OTHER_MOD, limit: 10 })).entries,
+    ).toHaveLength(1)
+  })
+
+  it('renders no forum for an old split row, and no forum-shaped detail either', async () => {
+    await logRow('thread.split', { from: THEIRS, to: 9, posts: 2 }, MOD)
+
+    const entry = (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 }))
+      .entries[0]!
+    expect(entry.forumId).toBeNull()
+    expect(entry.forumTitle).toBeNull()
+    expect(entry.detail.map((d) => d.label)).toEqual(['Posts affected'])
+  })
+
+  it('still trusts the honest forum key an older row carried', async () => {
+    await logRow('thread.delete', { threadId: 7, forumId: MINE, posts: 4 }, OTHER_MOD)
 
     expect(
       (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,

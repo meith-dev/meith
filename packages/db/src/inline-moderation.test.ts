@@ -481,6 +481,28 @@ describe('bulk move', () => {
     expect(rows.map((r) => Number(r.forum_id))).toEqual([RIGHT])
   })
 
+  it('records the forum it left as well as the one it arrived in', async () => {
+    const { threadId } = await seedThread({ forumId: LEFT })
+
+    await repo.apply({
+      tool: 'move',
+      threadIds: [threadId],
+      postIds: [],
+      toForumId: RIGHT,
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    const rows = resultRows(
+      await db.execute(sql`select detail from admin_log`),
+    ) as Array<{ detail: Record<string, unknown> }>
+    expect(rows[0]!.detail).toMatchObject({
+      fromForumId: LEFT,
+      toForumId: RIGHT,
+      forumIds: [LEFT, RIGHT],
+    })
+  })
+
   it('moves nothing when the thread is already there', async () => {
     const { threadId } = await seedThread({ forumId: RIGHT })
 
@@ -521,6 +543,8 @@ describe('the audit trail', () => {
     expect(rows[0]!.detail).toMatchObject({
       threadIds: [first.threadId, second.threadId],
       applied: 2,
+      forumId: LEFT,
+      forumIds: [LEFT],
     })
   })
 

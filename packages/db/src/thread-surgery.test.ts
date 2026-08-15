@@ -260,11 +260,13 @@ describe('splitting', () => {
 
     const rows = resultRows(
       await db.execute(sql`select action, detail from admin_log`),
-    ) as Array<{ action: string; detail: { from: number; to: number; posts: number } }>
+    ) as Array<{ action: string; detail: Record<string, unknown> }>
     expect(rows[0]).toMatchObject({ action: 'thread.split' })
     expect(rows[0]!.detail).toMatchObject({
-      from: threadId,
-      to: outcome.threadId,
+      threadId,
+      newThreadId: outcome.threadId,
+      forumId: LEFT,
+      forumIds: [LEFT],
       posts: 2,
     })
   })
@@ -465,12 +467,15 @@ describe('merging', () => {
 
     const rows = resultRows(
       await db.execute(sql`select action, detail from admin_log`),
-    ) as Array<{
-      action: string
-      detail: { from: number; to: number; fromForum: number; toForum: number }
-    }>
+    ) as Array<{ action: string; detail: Record<string, unknown> }>
     expect(rows[0]).toMatchObject({ action: 'thread.merge' })
-    expect(rows[0]!.detail).toMatchObject({ fromForum: LEFT, toForum: RIGHT })
+    expect(rows[0]!.detail).toMatchObject({
+      threadId: source.threadId,
+      targetThreadId: target.threadId,
+      fromForumId: LEFT,
+      toForumId: RIGHT,
+      forumIds: [LEFT, RIGHT],
+    })
   })
 })
 

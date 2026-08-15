@@ -183,7 +183,13 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
         tx,
         'thread.split',
         plan.actorUserId,
-        { from: plan.sourceThreadId, to: newThreadId, posts: moved },
+        {
+          threadId: plan.sourceThreadId,
+          newThreadId,
+          forumId,
+          forumIds: [forumId],
+          posts: moved,
+        },
         plan.at,
       )
 
@@ -258,11 +264,12 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
         'thread.merge',
         plan.actorUserId,
         {
-          from: plan.sourceThreadId,
-          to: plan.targetThreadId,
+          threadId: plan.sourceThreadId,
+          targetThreadId: plan.targetThreadId,
           posts: moved,
-          fromForum: sourceForum,
-          toForum: targetForum,
+          fromForumId: sourceForum,
+          toForumId: targetForum,
+          forumIds: [...new Set([sourceForum, targetForum])],
         },
         plan.at,
       )
