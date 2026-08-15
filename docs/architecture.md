@@ -183,6 +183,26 @@ because they are data or online-DDL-sensitive. The runner
 serialise, and has exactly four callers: `community migrate`, `community upgrade`, the
 web installer, and the `COMMUNITY_ROLE=migrate` one-shot container.
 
+An author's **name** is stored beside the content that renders it rather than
+joined in: `posts.author_username`, `threads.author_username` and
+`threads.last_post_username`, `forums.last_post_username`,
+`private_messages.author_username`, `announcements.author_username` and
+`board_stats.newest_username`. A page of posts costs no join to `users`, and the
+price is that the name has more than one owner. So the two writes that can
+change a member's name — the rename on `/admin/users/[id]`, and the account
+merge, which is the same rewrite pointed at the surviving account — rewrite
+every one of those columns **in the transaction that writes `users`**, including
+a rename that changes only the letter case. They share one enumeration of the
+columns and one function that applies it (`DENORMALISED_USERNAME_COLUMNS` and
+`rewriteDenormalisedUsernames` in `denormalised-username.ts`): a second list is
+how one of these columns gets left behind wearing a name nobody uses any more,
+and `user-merge-repo.test.ts` holds the enumeration against the columns the
+schema actually has. The counter recount re-derives a thread's and a forum's
+last-post name from `posts.author_username`, so the posts rewrite is what keeps
+the rest true after a recount. Nothing caches these names — the cached forum
+tree carries structure only — so a rename invalidates no tag beyond the
+permissions bump the account write already makes.
+
 Search is Postgres full-text: a `tsvector` column on `posts` (weighted so the
 thread's title beats a passing mention), a GIN index, keyset paging on
 `(rank, id)`, and a bounded relevance window — measured at 5.5 s unbounded

@@ -3,6 +3,7 @@ import { sql, type SQL } from 'drizzle-orm'
 import { ValidationError } from '@meith/core'
 
 import type { Database } from './client'
+import { rewriteDenormalisedUsernames } from './denormalised-username'
 import { withPermissionVersionBump } from './permission-version'
 import { resultRows } from './result-rows'
 import { toDate, toNullableDate } from './row-values'
@@ -214,22 +215,28 @@ export class PostgresUserAdminRepository {
     const primaryGroupId = input.primaryGroupId
 
     await withPermissionVersionBump(this.db, async (tx) => {
-      const rows = resultRows(
-        await tx.execute(sql`
-          update users
-             set username = ${username},
-                 username_lower = ${fold(username)},
-                 email = ${email},
-                 email_lower = ${fold(email)},
-                 primary_group_id = ${primaryGroupId},
-                 display_group_id = ${input.displayGroupId},
-                 updated_at = now()
-           where id = ${userId}
-          returning id
-        `),
-      ) as Array<{ id: number }>
+      const existing = resultRows(
+        await tx.execute(sql`select username from users where id = ${userId} for update`),
+      ) as Array<{ username: string }>
 
-      if (rows[0] === undefined) throw new ValidationError('No such member.')
+      const previous = existing[0]?.username
+      if (previous === undefined) throw new ValidationError('No such member.')
+
+      await tx.execute(sql`
+        update users
+           set username = ${username},
+               username_lower = ${fold(username)},
+               email = ${email},
+               email_lower = ${fold(email)},
+               primary_group_id = ${primaryGroupId},
+               display_group_id = ${input.displayGroupId},
+               updated_at = now()
+         where id = ${userId}
+      `)
+
+      if (previous !== username) {
+        await rewriteDenormalisedUsernames(tx, userId, username)
+      }
     })
   }
 

@@ -2,6 +2,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
+import {
+  DENORMALISED_USERNAME_COLUMNS,
+  type DenormalisedUsernameColumn,
+} from './denormalised-username'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import {
   DISPLACED_PRIMARY_REASON,
@@ -30,7 +34,13 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
+  await db.execute(sql`delete from posts`)
+  await db.execute(sql`delete from threads`)
+  await db.execute(sql`delete from announcements`)
+  await db.execute(sql`delete from private_messages`)
   await db.execute(sql`delete from users`)
+  await db.execute(sql`delete from forums`)
+  await db.execute(sql`update board_stats set newest_user_id = null, newest_username = null`)
   await db.execute(sql`update cache_versions set version = 1 where key = 'permissions'`)
 })
 
@@ -334,6 +344,144 @@ describe('updateAccount', () => {
     ).rejects.toThrow()
 
     expect(await permissionVersion()).toBe(before)
+  })
+})
+
+describe('updateAccount and the denormalised author names', () => {
+  const IVAN = 1
+  const NINA = 2
+
+  const POSTS_AUTHOR: DenormalisedUsernameColumn = {
+    table: 'posts',
+    column: 'author_username',
+    idColumn: 'author_user_id',
+  }
+
+  async function seedBoard(): Promise<void> {
+    await seed({ id: IVAN, username: 'ivan' })
+    await seed({ id: NINA, username: 'nina' })
+
+    await db.execute(sql`
+      insert into forums (id, type, title, slug, path,
+                          last_post_user_id, last_post_username)
+      values (1, 'forum', 'General', 'general', '1', ${IVAN}, 'ivan'),
+             (2, 'forum', 'Lounge', 'lounge', '2', ${NINA}, 'nina')
+    `)
+    await db.execute(sql`
+      insert into threads (id, forum_id, author_user_id, author_username, title, slug,
+                           last_post_user_id, last_post_username)
+      values (1, 1, ${IVAN}, 'ivan', 'Hello', 'hello', ${IVAN}, 'ivan'),
+             (2, 2, ${NINA}, 'nina', 'Hi', 'hi', ${NINA}, 'nina')
+    `)
+    await db.execute(sql`
+      insert into posts (id, thread_id, forum_id, author_user_id, author_username, message)
+      values (1, 1, 1, ${IVAN}, 'ivan', 'first'),
+             (2, 2, 2, ${NINA}, 'nina', 'second')
+    `)
+    await db.execute(sql`
+      insert into private_messages (id, author_user_id, author_username, subject, message)
+      values (1, ${IVAN}, 'ivan', 'Re', 'body'),
+             (2, ${NINA}, 'nina', 'Re', 'body')
+    `)
+    await db.execute(sql`
+      insert into announcements (id, forum_id, title, message, author_user_id, author_username)
+      values (1, 1, 'Rules', 'body', ${IVAN}, 'ivan'),
+             (2, 2, 'Notice', 'body', ${NINA}, 'nina')
+    `)
+    await db.execute(sql`
+      update board_stats set newest_user_id = ${IVAN}, newest_username = 'ivan'
+    `)
+  }
+
+  async function rename(userId: number, username: string): Promise<void> {
+    await repo.updateAccount(userId, {
+      username,
+      email: `${username}@example.test`,
+      primaryGroupId: REGISTERED,
+      displayGroupId: null,
+    })
+  }
+
+  async function names(
+    entry: DenormalisedUsernameColumn,
+    userId: number,
+  ): Promise<string[]> {
+    const rows = resultRows(
+      await db.execute(sql`
+        select ${sql.raw(entry.column)} as name
+          from ${sql.raw(entry.table)}
+         where ${sql.raw(entry.idColumn)} = ${userId}
+      `),
+    ) as Array<{ name: string | null }>
+    return rows.map((row) => String(row.name))
+  }
+
+  it('shows the new name everywhere the board renders it', async () => {
+    await seedBoard()
+
+    await rename(IVAN, 'Ivanov')
+
+    const rows = resultRows(
+      await db.execute(sql`
+        select (select author_username from posts where id = 1) as post,
+               (select author_username from threads where id = 1) as thread,
+               (select last_post_username from threads where id = 1) as thread_last,
+               (select last_post_username from forums where id = 1) as forum_last,
+               (select author_username from private_messages where id = 1) as pm,
+               (select author_username from announcements where id = 1) as announcement,
+               (select newest_username from board_stats where id = 1) as newest
+      `),
+    ) as Array<Record<string, unknown>>
+
+    expect(rows[0]).toEqual({
+      post: 'Ivanov',
+      thread: 'Ivanov',
+      thread_last: 'Ivanov',
+      forum_last: 'Ivanov',
+      pm: 'Ivanov',
+      announcement: 'Ivanov',
+      newest: 'Ivanov',
+    })
+  })
+
+  it('rewrites every column the merge map enumerates, so the two cannot drift', async () => {
+    await seedBoard()
+
+    await rename(IVAN, 'Ivanov')
+
+    for (const entry of DENORMALISED_USERNAME_COLUMNS) {
+      expect(await names(entry, IVAN), `${entry.table}.${entry.column}`).toEqual(['Ivanov'])
+    }
+  })
+
+  it('leaves another member alone', async () => {
+    await seedBoard()
+
+    await rename(IVAN, 'Ivanov')
+
+    for (const entry of DENORMALISED_USERNAME_COLUMNS) {
+      const expected = entry.table === 'board_stats' ? [] : ['nina']
+      expect(await names(entry, NINA), `${entry.table}.${entry.column}`).toEqual(expected)
+    }
+  })
+
+  it('propagates a rename that only changes case', async () => {
+    await seedBoard()
+
+    await rename(IVAN, 'IVAN')
+
+    for (const entry of DENORMALISED_USERNAME_COLUMNS) {
+      expect(await names(entry, IVAN), `${entry.table}.${entry.column}`).toEqual(['IVAN'])
+    }
+  })
+
+  it('writes nothing denormalised when the name did not change', async () => {
+    await seedBoard()
+    await db.execute(sql`update posts set author_username = 'stale' where id = 1`)
+
+    await rename(IVAN, 'ivan')
+
+    expect(await names(POSTS_AUTHOR, IVAN)).toEqual(['stale'])
   })
 })
 
