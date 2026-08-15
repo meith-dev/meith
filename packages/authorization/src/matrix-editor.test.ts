@@ -146,6 +146,7 @@ describe('negative cells', () => {
     const found = cell(rows, REGISTERED, 'requiresPostApproval')
     expect(found.kind).toBe('negative')
     expect(found.stored).toBeNull()
+    expect(found.control).toBe('inherit')
     expect(found.effective).toBe(false)
     expect(found.inheritedFrom).toBe(PARENT)
   })
@@ -225,9 +226,8 @@ describe('a stored negative override round-trips through the editor', () => {
 
     const found = cell(rows, REGISTERED, 'requiresApprovalOnEdit')
     expect(found.stored).toBe(false)
-
-    const submitted = matrixCellValue(found)
-    expect(readMatrixCell(field, submitted)).toBe(false)
+    expect(found.control).toBe('deny')
+    expect(readMatrixCell(field, found.control)).toBe(false)
   })
 })
 

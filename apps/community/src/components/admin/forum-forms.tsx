@@ -2,7 +2,7 @@
 
 import { useActionState } from "react"
 
-import { matrixCellValue, type MatrixCell, type MatrixRow } from "@meith/authorization"
+import type { MatrixCell, MatrixRow } from "@meith/authorization"
 
 import {
   appointModeratorAction,
@@ -150,7 +150,7 @@ function CellControl({ cell }: { cell: MatrixCell }) {
         name={cell.key}
         min={0}
         placeholder="Inherit"
-        defaultValue={matrixCellValue(cell)}
+        defaultValue={cell.control}
         className={INPUT}
       />
     )
@@ -158,7 +158,7 @@ function CellControl({ cell }: { cell: MatrixCell }) {
 
   const negative = cell.kind === "negative"
   return (
-    <select name={cell.key} defaultValue={matrixCellValue(cell)} className={INPUT}>
+    <select name={cell.key} defaultValue={cell.control} className={INPUT}>
       <option value="inherit">Inherit</option>
       <option value="grant">{negative ? "Required" : "Grant"}</option>
       <option value="deny">{negative ? "Not required" : "Deny"}</option>

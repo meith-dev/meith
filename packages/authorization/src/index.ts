@@ -29,7 +29,6 @@ export { PUBLIC_CONTENT, type ContentScope } from '@meith/core'
 
 export {
   buildPermissionMatrix,
-  matrixCellValue,
   planCopyToDescendants,
   readMatrixCell,
   type CopyChange,
