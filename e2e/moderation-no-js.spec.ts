@@ -220,22 +220,46 @@ test('a moderator warns a member, and the points are on the record', async ({ br
   }
 })
 
-test('the moderator log records what was done, and by whom', async ({ browser }) => {
+test('the moderator log records what was done, where, and by whom', async ({ browser }) => {
   const { modPage, threadUrl, close } = await scene(browser, 'logged')
 
   try {
     const threadId = /\/thread\/(\d+)/.exec(threadUrl)?.[1]
     expect(threadId).toBeDefined()
+    const generalId = '200'
+
+    const heading = (label: string) => modPage.getByText(label, { exact: true })
+    const logEntry = (label: string) =>
+      modPage.locator('li').filter({ has: heading(label) })
 
     await modPage.goto(threadUrl)
     await modPage.getByRole('button', { name: 'Lock', exact: true }).click()
     await expect(modPage.getByRole('button', { name: 'Unlock', exact: true })).toBeVisible()
 
     await modPage.goto('/modcp/log')
-    const entry = modPage.locator('li', { hasText: 'Locked a thread' }).first()
-    await expect(entry).toBeVisible()
-    await expect(entry).toContainText('e2e_moderator')
-    await expect(entry.locator('dd')).toContainText([threadId!, 'true'])
+    const locked = logEntry('Locked a thread').first()
+    await expect(locked).toBeVisible()
+    await expect(locked).toContainText('e2e_moderator')
+    await expect(locked).toContainText('in General')
+    await expect(locked.locator('dt')).toContainText(['Thread:', 'Forum:'])
+    await expect(locked.locator('dd')).toContainText([threadId!, generalId])
+
+    const locksBefore = await heading('Locked a thread').count()
+    const unlocksBefore = await heading('Unlocked a thread').count()
+
+    await modPage.goto(threadUrl)
+    await modPage.getByRole('button', { name: 'Unlock', exact: true }).click()
+    await expect(modPage.getByRole('button', { name: 'Lock', exact: true })).toBeVisible()
+
+    await modPage.goto('/modcp/log')
+    const unlocked = logEntry('Unlocked a thread').first()
+    await expect(unlocked).toBeVisible()
+    await expect(unlocked).toContainText('e2e_moderator')
+    await expect(unlocked).toContainText('in General')
+    await expect(unlocked.locator('dd')).toContainText([threadId!, generalId])
+    await expect(heading('Unlocked a thread')).toHaveCount(unlocksBefore + 1)
+    await expect(heading('Locked a thread')).toHaveCount(locksBefore)
+    await expect(modPage.getByText('Set to:')).toHaveCount(0)
   } finally {
     await close()
   }
