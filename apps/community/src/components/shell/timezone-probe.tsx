@@ -1,3 +1,4 @@
+import { cspNonce } from '@/server/nonce'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { TIMEZONE_COOKIE } from '@/view/timezone'
 
@@ -35,6 +36,7 @@ export async function TimezoneProbe() {
 
   return (
     <script
+      nonce={await cspNonce()}
       dangerouslySetInnerHTML={{
         __html: probe(preferences.timezone, preferences.timezoneIsAutomatic),
       }}

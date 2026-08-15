@@ -2,6 +2,7 @@ import { PUBLIC_CONTENT } from '@meith/core'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { crossOriginRefusal, isSameOrigin } from '@/server/same-origin'
 import { seeOther } from '@/server/see-other'
 import { canHoldThreads } from '@meith/forums'
 
@@ -12,6 +13,8 @@ function idFrom(value: string | null): number | null {
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!isSameOrigin(request)) return crossOriginRefusal()
+
   const url = new URL(request.url)
   const threadId = idFrom((await params).id)
   const postId = idFrom(url.searchParams.get('post'))

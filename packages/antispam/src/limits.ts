@@ -4,7 +4,13 @@ export type ConfiguredRateLimitScope = (typeof RATE_LIMIT_SCOPES)[number]
 export const FIXED_RATE_LIMIT_SCOPES = ['verify_resend'] as const
 export type FixedRateLimitScope = (typeof FIXED_RATE_LIMIT_SCOPES)[number]
 
-export type RateLimitScope = ConfiguredRateLimitScope | FixedRateLimitScope
+export const AUTH_RATE_LIMIT_SCOPES = ['reset', 'reset_ip', 'register_ip'] as const
+export type AuthRateLimitScope = (typeof AUTH_RATE_LIMIT_SCOPES)[number]
+
+export type RateLimitScope =
+  | ConfiguredRateLimitScope
+  | FixedRateLimitScope
+  | AuthRateLimitScope
 
 export function isRateLimitScope(value: string): value is ConfiguredRateLimitScope {
   return (RATE_LIMIT_SCOPES as readonly string[]).includes(value)

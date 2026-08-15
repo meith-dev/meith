@@ -241,6 +241,41 @@ describe('login', () => {
     ).rejects.toThrow(/too many/i)
   })
 
+  it('an address-only counter stops a guess sprayed across accounts', async () => {
+    const { service } = makeService(store)
+    const from = (account: string) => [
+      { key: `login:${account}@203.0.113.1` },
+      { key: `login:${account}`, max: 50 },
+      { key: 'login@203.0.113.0/24', max: 3 },
+    ]
+
+    for (const account of ['dave', 'erin', 'frank']) {
+      await expect(service.login(account, 'wrong', from(account))).rejects.toThrow(/incorrect/i)
+    }
+
+    await expect(
+      service.login('alice', 'correct horse battery', from('alice')),
+    ).rejects.toThrow(/too many/i)
+  })
+
+  it('a success clears the address-only counter too', async () => {
+    const { service } = makeService(store)
+    const from = (account: string) => [
+      { key: `login:${account}@203.0.113.1` },
+      { key: 'login@203.0.113.0/24', max: 2 },
+    ]
+
+    await expect(service.login('dave', 'wrong', from('dave'))).rejects.toThrow(/incorrect/i)
+    await expect(
+      service.login('alice', 'correct horse battery', from('alice')),
+    ).resolves.toBeTruthy()
+
+    await expect(service.login('erin', 'wrong', from('erin'))).rejects.toThrow(/incorrect/i)
+    await expect(
+      service.login('alice', 'correct horse battery', from('alice')),
+    ).resolves.toBeTruthy()
+  })
+
   it('a success clears every counter, the wide one included', async () => {
     const { service } = makeService(store)
     const buckets = [{ key: 'login:alice@203.0.113.1' }, { key: 'login:alice', max: 4 }]

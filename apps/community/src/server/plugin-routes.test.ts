@@ -175,7 +175,7 @@ function request(
 ): Request {
   return new Request(`https://board.example${path}`, {
     ...init,
-    headers: { host: 'board.example', ...init.headers },
+    headers: { host: 'board.example', origin: 'https://board.example', ...init.headers },
   })
 }
 
@@ -246,7 +246,7 @@ describe('access', () => {
     expect(await asMember.json()).toEqual({ userId: 7 })
   })
 
-  it('refuses a member POST from another origin, allows the board’s own and origin-less clients', async () => {
+  it('refuses a member POST from another origin, allows the board’s own', async () => {
     actor.current = { userId: 7 }
 
     const crossSite = await dispatchPluginRoute(
@@ -268,13 +268,42 @@ describe('access', () => {
       ['checkout'],
     )
     expect(sameOrigin.status).toBe(303)
+  })
 
-    const noOrigin = await dispatchPluginRoute(
-      request('/api/plugins/alpha/checkout', { method: 'POST' }),
+  it('refuses a member POST that names no origin at all', async () => {
+    actor.current = { userId: 7 }
+
+    const bare = await dispatchPluginRoute(
+      request('/api/plugins/alpha/checkout', { method: 'POST', headers: { origin: '' } }),
       'alpha',
       ['checkout'],
     )
-    expect(noOrigin.status).toBe(303)
+    expect(bare.status).toBe(403)
+    expect(handled).toHaveLength(0)
+  })
+
+  it('takes Sec-Fetch-Site for an answer when a client sends no origin', async () => {
+    actor.current = { userId: 7 }
+
+    const sameOrigin = await dispatchPluginRoute(
+      request('/api/plugins/alpha/checkout', {
+        method: 'POST',
+        headers: { origin: '', 'sec-fetch-site': 'same-origin' },
+      }),
+      'alpha',
+      ['checkout'],
+    )
+    expect(sameOrigin.status).toBe(303)
+
+    const crossSite = await dispatchPluginRoute(
+      request('/api/plugins/alpha/checkout', {
+        method: 'POST',
+        headers: { origin: '', 'sec-fetch-site': 'cross-site' },
+      }),
+      'alpha',
+      ['checkout'],
+    )
+    expect(crossSite.status).toBe(403)
   })
 
   it('403s everyone but the panel on an admin route — a member is not enough', async () => {

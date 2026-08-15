@@ -27,3 +27,11 @@ export const QUERY_HEADER = 'x-forum-query'
  * supply its own.
  */
 export const FRESH_GUEST_HEADER = 'x-forum-fresh-guest'
+
+/**
+ * The per-request Content-Security-Policy nonce minted by `proxy.ts`, for the
+ * handful of inline `<script>` tags the app emits itself. Next reads the nonce
+ * out of the policy header on its own; this one is for our tags. See
+ * `docs/operating.md`.
+ */
+export const NONCE_HEADER = 'x-nonce'

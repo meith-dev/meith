@@ -1,5 +1,6 @@
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { crossOriginRefusal, isSameOrigin } from '@/server/same-origin'
 import { seeOther } from '@/server/see-other'
 import { canHoldThreads } from '@meith/forums'
 
@@ -9,7 +10,9 @@ function idFrom(value: string): number | null {
   return Number.isSafeInteger(id) ? id : null
 }
 
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!isSameOrigin(request)) return crossOriginRefusal()
+
   const id = idFrom((await params).id)
   const actor = await getActor()
   const { forums, authorizer, readState } = getContainer()

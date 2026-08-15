@@ -77,6 +77,12 @@ export {
   type CacheTag,
   type CachedGlobalOptions,
 } from "./cache"
+export {
+  MAX_TRUSTED_PROXY_HOPS,
+  forwardedChain,
+  resolveClientAddress,
+  type ForwardingHeaders,
+} from "./client-address"
 export { timingSafeEqualString } from "./crypto"
 export type { Clock } from "./clock"
 export { systemClock, fixedClock } from "./clock"

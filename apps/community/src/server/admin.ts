@@ -6,7 +6,7 @@ import { cache } from 'react'
 
 import { AdminService, ipAllowed, parseAllowlist, type AdminContext } from '@meith/admin'
 import { hashToken } from '@meith/accounts'
-import { ForbiddenError, env, truncateIp } from '@meith/core'
+import { ForbiddenError, env, logger, resolveClientAddress, truncateIp } from '@meith/core'
 
 import { getContainer } from './container'
 import { getActor } from './context'
@@ -24,13 +24,25 @@ export function adminService(): AdminService | null {
   return adminSessions === null ? null : new AdminService({ sessions: adminSessions })
 }
 
+let announcedUntrustedForwarding = false
+
 export async function remoteAddress(): Promise<string | null> {
   const jar = await headers()
   const forwarded = jar.get('x-forwarded-for')
-  if (forwarded !== null && forwarded.trim() !== '') {
-    return (forwarded.split(',')[0] ?? '').trim() || null
+
+  if (env.TRUSTED_PROXY_HOPS === 0 && forwarded !== null && !announcedUntrustedForwarding) {
+    announcedUntrustedForwarding = true
+    logger({ module: 'admin' }).warn(
+      'TRUSTED_PROXY_HOPS is 0 and a request arrived carrying X-Forwarded-For; ' +
+        'the header is being ignored. Set it to the number of proxies in front ' +
+        'of the board, or addresses will not resolve.',
+    )
   }
-  return jar.get('x-real-ip')
+
+  return resolveClientAddress(
+    { forwardedFor: forwarded, realIp: jar.get('x-real-ip') },
+    env.TRUSTED_PROXY_HOPS,
+  )
 }
 
 export const adminAllowlist = cache(async (): Promise<readonly string[]> =>

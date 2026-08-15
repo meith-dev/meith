@@ -5,6 +5,7 @@ import { logger } from "@meith/core"
 
 import { getContainer } from "@/server/container"
 import { isSafeLocalPath } from "@/server/safe-path"
+import { isTopLevelNavigation } from "@/server/same-origin"
 import {
   clearSessionCookies,
   readRememberToken,
@@ -24,6 +25,13 @@ export async function GET(request: NextRequest): Promise<Response> {
   const token = await readRememberToken()
 
   if (!token) redirect(next)
+
+  if (!isTopLevelNavigation(request)) {
+    return new Response("A session is resumed by opening the board, not by a subresource.", {
+      status: 403,
+      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+    })
+  }
 
   const { sessions } = getContainer()
   const outcome = await sessions.resume(token)

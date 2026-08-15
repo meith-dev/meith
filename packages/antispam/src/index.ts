@@ -1,10 +1,12 @@
 export {
+  AUTH_RATE_LIMIT_SCOPES,
   FIXED_RATE_LIMIT_SCOPES,
   RATE_LIMIT_SCOPES,
   RateLimiter,
   isRateLimitScope,
   subjectFor,
   windowStartFor,
+  type AuthRateLimitScope,
   type ConfiguredRateLimitScope,
   type FixedRateLimitScope,
   type RateLimitOutcome,

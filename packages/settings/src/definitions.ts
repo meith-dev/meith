@@ -563,6 +563,55 @@ export const SETTING_DEFINITIONS = [
   }),
 
   define({
+    key: 'antispam.register_ip_per_hour',
+    group: 'antispam',
+    label: 'Registrations per hour from one address',
+    description:
+      'Counted per /24 (or /48), so a household or an office shares one ' +
+      'allowance. Independent of the challenge: a board with no captcha is ' +
+      'the one that needs this most. 0 disables the limit.',
+    schema: z.number().int().min(0).max(10_000),
+    default: 10,
+    ui: { min: 0, max: 10_000 },
+  }),
+  define({
+    key: 'antispam.reset_per_hour',
+    group: 'antispam',
+    label: 'Password reset requests per hour per address',
+    description:
+      'How many reset mails one e-mail address can be sent in an hour. ' +
+      'Without it, the reset form is an e-mail cannon anybody can point at ' +
+      'anybody. 0 disables the limit.',
+    schema: z.number().int().min(0).max(10_000),
+    default: 5,
+    ui: { min: 0, max: 10_000 },
+  }),
+  define({
+    key: 'antispam.reset_ip_per_hour',
+    group: 'antispam',
+    label: 'Password reset requests per hour from one address',
+    description:
+      'The same limit counted per requesting /24, which is what stops one ' +
+      'caller working through a list of e-mail addresses. 0 disables it.',
+    schema: z.number().int().min(0).max(10_000),
+    default: 20,
+    ui: { min: 0, max: 10_000 },
+  }),
+  define({
+    key: 'antispam.login_ip_attempts',
+    group: 'antispam',
+    label: 'Failed logins from one address before lockout',
+    description:
+      'The per-account counters catch somebody guessing at one account. ' +
+      'This one catches the opposite shape — a single guess against each of ' +
+      'a thousand accounts — and shares the lockout window with them. ' +
+      '0 disables it.',
+    schema: z.number().int().min(0).max(10_000),
+    default: 100,
+    ui: { min: 0, max: 10_000, advanced: true },
+  }),
+
+  define({
     key: 'antispam.post_per_hour',
     group: 'antispam',
     label: 'Posts per hour',

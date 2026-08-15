@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { signUp } from './support/session'
+import { PASSWORD, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
@@ -68,6 +68,34 @@ test('the remember-me exchange sends a visitor on, and never off the board', asy
 
   await page.goto('/auth/resume')
   await expect(page).toHaveURL('/')
+})
+
+test('a remembered visitor is resumed by opening the board, and never by a subresource', async ({
+  page,
+}) => {
+  const username = await signUp(page, 'remembered')
+
+  await page.goto('/login')
+  await page.getByLabel('Username or email').fill(username)
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByLabel('Keep me signed in').check()
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page).toHaveURL('/')
+
+  const context = page.context()
+  const remembered = (await context.cookies()).filter((c) => !/session/.test(c.name))
+  await context.clearCookies()
+  await context.addCookies(remembered)
+
+  const forged = await page.request.get('/auth/resume?next=/usercp', {
+    headers: { 'sec-fetch-mode': 'no-cors', 'sec-fetch-dest': 'image' },
+    maxRedirects: 0,
+  })
+  expect(forged.status()).toBe(403)
+
+  await page.goto('/usercp')
+  await expect(page).toHaveURL('/usercp')
+  await expect(page.getByRole('heading', { name: 'Your control panel' })).toBeVisible()
 })
 
 test('an unsubscribe link that arrived broken explains itself', async ({ page }) => {

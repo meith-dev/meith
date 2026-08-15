@@ -51,8 +51,55 @@ not the same as encrypted, and is worth knowing before choosing.
 | `MAIL_DRIVER` | No | `log`, `http` or `smtp`. Optional for the same reason as `APP_URL`: `http` or `smtp` here wins outright, and the mail settings screen warns that what it stores is not used while the variable is set. `log` or unset leaves mail to the board. See [Mail](#mail) for the companions each transport needs. |
 | `DATA_SOURCE` | No | `postgres` or `fixture`. Defaults to `fixture` when `DATABASE_URL` is unset. |
 | `ADMIN_IP_ALLOWLIST` | No | Comma-separated address prefixes. Empty allows everything. |
+| `TRUSTED_PROXY_HOPS` | No | How many proxies sit between the internet and the board. Defaults to `1`, which is the shape [self-hosting](self-hosting.md#5-put-a-proxy-in-front) describes. See [Who the board thinks you are](#who-the-board-thinks-you-are) — getting this wrong is a security setting, not a cosmetic one. |
+| `REMOTE_IMAGES` | No | `1` (the default) lets a post embed an image hosted anywhere; `0` confines images to this board. See [Images from elsewhere](#images-from-elsewhere). |
 | `FILESTORE_DRIVER` | No | `local` or `s3`. Defaults to `local`, which is right for a board with a disk. See below. |
 | `MIGRATIONS_DIR` | No | The folder holding the generated SQL and its `meta/_journal.json`. Normally unset — the migrator looks beside `@meith/db` in a checkout and in `/app/migrations` in the image, which is where the Dockerfile puts it. Set it only if yours is somewhere else. |
+
+### Who the board thinks you are
+
+Four things key off a visitor's address: the control panel allowlist, the login
+lockout counters, the hourly limits a guest gets, and the truncated address
+written to the moderator log. Behind a proxy the board cannot see the connection
+— it sees `X-Forwarded-For`, a header each proxy **appends** its view of the
+caller to, and which the caller may send some of themselves.
+
+`TRUSTED_PROXY_HOPS` is how many proxies are in front of the board, and the
+board reads that many entries back from the **right-hand** end of the chain.
+The right-hand end is the one your own proxy wrote; everything to the left of
+the entry it lands on is discarded, because a caller can put anything there.
+
+| Deployment | Setting | Chain the board sees | Address it takes |
+|---|---|---|---|
+| One reverse proxy — Caddy, nginx, Traefik | `1` (the default) | `<visitor>` | `<visitor>` |
+| A CDN in front of that proxy | `2` | `<visitor>, <cdn>` | `<visitor>` |
+| No proxy at all, port exposed directly | `0` | anything | none; the header is ignored |
+
+Set it too **low** and allowlisted visitors are read as their proxy. Set it too
+**high** and a caller can forge the address by prepending entries of their own
+— which lets them walk past `ADMIN_IP_ALLOWLIST`, dodge the login lockout by
+appearing to be somebody new on each attempt, and write a false address into the
+audit trail. When in doubt, count the proxies and use that number; it is safer
+to be one too low than one too high.
+
+At `0` the board resolves no address at all: the allowlist refuses everybody,
+guest limits fall back to a single shared bucket, and the log records nothing.
+It warns once per process when a request arrives with a forwarding header it has
+been told to ignore.
+
+### Images from elsewhere
+
+A post may embed an image by URL, and by default the board's content policy
+lets the browser fetch it. That is convenient and it has a cost: the reader's
+browser contacts a host you do not run, which learns their address and when
+they read the thread.
+
+`REMOTE_IMAGES=0` narrows the policy to this board's own images and `data:`
+URLs. Nothing is proxied or cached in its place — an existing post embedding a
+remote image renders as a broken image, with its alt text. That visible loss is
+why the board does not narrow the policy on its own: a board whose threads are
+already full of such posts should make the trade deliberately rather than
+discover it.
 
 ### Where uploads go
 
@@ -465,7 +512,7 @@ The board sets six cookies of its own and no third-party ones:
 
 | Cookie | What it is for |
 |---|---|
-| session, remember-me | signing in. The session row also carries the CSRF secret that protects that session's forms — a column, not a cookie of its own |
+| session, remember-me | signing in. Both are random tokens stored hashed; neither carries a CSRF secret, because the board has none — see [Requests from somewhere else](#requests-from-somewhere-else) |
 | admin session | the control panel's separate sign-in |
 | `meith_theme`, `meith_scheme` | the appearance controls, written only when a member presses one |
 | `meith_tz` | the reader's own timezone, so the server can format times in it. Carries an IANA zone name and nothing else |
@@ -480,6 +527,60 @@ There is no cookie banner, because there is nothing on the board that needs one.
 > What a particular board must disclose or record depends on what it does with
 > its data, which is the operator's to decide — a board that adds its own
 > tracking is adding its own obligations with it.
+
+## The content policy
+
+Every response carries a `Content-Security-Policy` built per request in
+`apps/community/proxy.ts`. Two parts of it are worth an operator knowing about.
+
+**Scripts run only with this request's nonce.** `script-src` is
+`'self' 'nonce-…' 'strict-dynamic'` and carries no `'unsafe-inline'`, so an
+inline `<script>` that arrives in a post, a profile field or a search excerpt
+does not execute even if some future bug lets the markup through. The board's
+own two inline scripts — the timezone probe and a thread's structured-data
+block — are stamped with the nonce as they are rendered. A fresh nonce is
+minted for every request, which is why no page of the board is served from a
+CDN cache.
+
+**Styles are not nonced, and that is a deliberate limit.** A theme may emit a
+`<style>` block — four of the shipped ones do — and themes are a published API
+that has no way to be handed a per-request nonce. `style-src` therefore keeps
+`'unsafe-inline'`. Injected CSS can restyle a page; it cannot execute, which is
+the line the script directive holds.
+
+`img-src` is the third part, and it is a setting: see
+[Images from elsewhere](#images-from-elsewhere).
+
+If you put something in front of the board that rewrites headers, do not let it
+replace this one — a cached or hand-written policy will not carry the nonce for
+the request it is served with, and every page will arrive with its scripts
+refused.
+
+## Requests from somewhere else
+
+**There is no CSRF token, and no per-session CSRF secret.** A board that claims
+one and does not have it is worse than a board that says which mechanism it
+actually relies on, so here is the mechanism.
+
+Every write the board performs is one of three shapes, and each is closed
+differently:
+
+| Shape | What turns a forged request away |
+|---|---|
+| A Server Action — nearly every form on the board | The framework's own `Origin`↔`Host` check, before the action runs |
+| A route handler that changes something — the read markers, a plugin's `POST` | The board's own same-origin check: an `Origin` that matches, or a `Sec-Fetch-Site` that says `same-origin`. A request that offers **neither** is refused, not admitted |
+| `/auth/resume`, which rotates a remember-me token | It acts only on a top-level page navigation. An `<img>`, an `<iframe>` or a background fetch pointed at it is refused, so a link on somebody else's site cannot rotate a reader's token behind their back |
+
+Underneath all three, session cookies are `SameSite=Lax` and the content policy
+sets `form-action 'self'`, so a form on another site cannot post to the board
+at all.
+
+The practical consequence for an operator: **a client that sends no `Origin`
+header cannot write to the board.** Browsers all send one on a `POST`. A script
+of your own that posts to a plugin route must send one too, or use the
+[REST API](rest-api.md), which authenticates with a token and is not
+cookie-authenticated — so it is not a forgery risk and not subject to this
+check.
 
 ## Terms and privacy
 
@@ -1049,11 +1150,40 @@ on by default because no human notices either.
 | A question | Scripted registration | A moment, every time. Switch it on when you have a problem. |
 | Hold first posts | Nearly all forum spam | One wait per genuine new member. |
 | Hourly limits | A night's work by one script | Nothing, set sensibly. |
+| The three auth limits | Signup floods, reset-mail bombing, password spraying | Nothing. They ship on. |
 
 > [!TIP]
 > **Holding a new member's first posts is the effective one.** Spam accounts post
 > once or twice and never come back, so a threshold of two or three catches most
 > of it. Held posts go to the moderation queue like anything else.
+
+### The limits on the pages nobody has signed in to yet
+
+The hourly limits above are about members posting. Three more sit on the pages
+a visitor reaches before they have an account, and unlike the rest of this
+screen they **ship switched on** — each closes a hole that costs nothing to
+leave shut.
+
+| Setting | Default | Counted per | What it stops |
+|---|---|---|---|
+| `antispam.register_ip_per_hour` | 10/hour | requesting /24 | A script working through a list of usernames. Independent of the challenge, so it covers the default board, which has no challenge |
+| `antispam.reset_per_hour` | 5/hour | target e-mail address | Somebody using your board's reset form to mail-bomb one person |
+| `antispam.reset_ip_per_hour` | 20/hour | requesting /24 | The same caller working through a list of addresses, probing which have accounts |
+| `antispam.login_ip_attempts` | 100 per lockout window | requesting /24 | **Spraying** — one guess each against a thousand accounts, which trips no per-account counter |
+
+The reset form answers identically whether it sent a mail, declined to, or
+refused on a limit. That is the point of it: a form that says "too many
+requests for that address" has confirmed the address has an account. Nothing
+about hitting a limit is visible to whoever hit it.
+
+The login limit shares the lockout window with the per-account counters
+(`security.lockout_minutes`), and like them it is **cleared by a successful
+sign-in** from that address — a household behind one address is not locked out
+by one member's bad afternoon. That also means a caller who holds one valid
+account can clear their own counter, which is why the number is a backstop
+against volume rather than a wall.
+
+Set any of them to `0` to switch it off.
 
 ### Limits and the flood interval are different controls
 
