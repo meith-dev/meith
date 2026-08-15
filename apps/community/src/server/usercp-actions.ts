@@ -11,7 +11,7 @@ import { boardAuthConfig } from './auth-config'
 import { adminService } from './admin'
 import { AVATAR_FIELD, canUploadAvatar, requireAvatarService } from './avatars'
 import { getActor } from './context'
-import { getContainer } from './container'
+import { configuredSessions, getContainer } from './container'
 import { assertDemoAccountChangeable } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
@@ -122,7 +122,7 @@ export async function changePasswordAction(
       minLength: (await boardAuthConfig()).minPasswordLength,
     })
 
-    const session = await getContainer().sessions.start(userId)
+    const session = await (await configuredSessions()).start(userId)
     await setSessionCookie(session.token, session.expiresAt)
 
     const admin = adminService()

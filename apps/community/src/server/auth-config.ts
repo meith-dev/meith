@@ -16,6 +16,11 @@ export const AUTH_CONFIG: AuthConfig = {
   defaultMemberGroupId: SEED_GROUP.registered,
 }
 
+export interface BoardSessionConfig {
+  readonly rememberDays: number
+  readonly sessionIdleDays: number
+}
+
 export async function boardAuthConfig(): Promise<AuthConfig> {
   if (env.DATA_SOURCE !== 'postgres') return AUTH_CONFIG
 
@@ -24,6 +29,13 @@ export async function boardAuthConfig(): Promise<AuthConfig> {
     ...AUTH_CONFIG,
     ...resolveAuthPolicy((key) => settings.get(key as never), AUTH_CONFIG),
   })
+}
+
+export async function boardSessionConfig(): Promise<BoardSessionConfig> {
+  return {
+    rememberDays: REMEMBER_DAYS,
+    sessionIdleDays: (await boardAuthConfig()).sessionIdleDays,
+  }
 }
 
 /**

@@ -16,6 +16,10 @@ describe('resolveAuthPolicy', () => {
         [AUTH_SETTING_KEYS.minPasswordLength]: 16,
         [AUTH_SETTING_KEYS.usernameMin]: 4,
         [AUTH_SETTING_KEYS.usernameMax]: 24,
+        [AUTH_SETTING_KEYS.maxLoginAttempts]: 3,
+        [AUTH_SETTING_KEYS.maxAccountLoginAttempts]: 30,
+        [AUTH_SETTING_KEYS.lockoutMinutes]: 60,
+        [AUTH_SETTING_KEYS.sessionIdleDays]: 7,
       }),
       BASE,
     )
@@ -25,6 +29,10 @@ describe('resolveAuthPolicy', () => {
       minPasswordLength: 16,
       usernameMin: 4,
       usernameMax: 24,
+      maxLoginAttempts: 3,
+      maxAccountLoginAttempts: 30,
+      lockoutMinutes: 60,
+      sessionIdleDays: 7,
     })
   })
 
@@ -34,7 +42,56 @@ describe('resolveAuthPolicy', () => {
       minPasswordLength: BASE.minPasswordLength,
       usernameMin: BASE.usernameMin,
       usernameMax: BASE.usernameMax,
+      maxLoginAttempts: BASE.maxLoginAttempts,
+      maxAccountLoginAttempts: BASE.maxAccountLoginAttempts,
+      lockoutMinutes: BASE.lockoutMinutes,
+      sessionIdleDays: BASE.sessionIdleDays,
     })
+  })
+
+  it('reads a zero lockout count as the operator switching it off', () => {
+    const resolved = resolveAuthPolicy(
+      reader({
+        [AUTH_SETTING_KEYS.maxLoginAttempts]: 0,
+        [AUTH_SETTING_KEYS.maxAccountLoginAttempts]: 0,
+      }),
+      BASE,
+    )
+
+    expect(resolved.maxLoginAttempts).toBe(0)
+    expect(resolved.maxAccountLoginAttempts).toBe(0)
+  })
+
+  it('refuses a zero for the two that have no "off"', () => {
+    const resolved = resolveAuthPolicy(
+      reader({
+        [AUTH_SETTING_KEYS.lockoutMinutes]: 0,
+        [AUTH_SETTING_KEYS.sessionIdleDays]: 0,
+      }),
+      BASE,
+    )
+
+    expect(resolved.lockoutMinutes).toBe(BASE.lockoutMinutes)
+    expect(resolved.sessionIdleDays).toBe(BASE.sessionIdleDays)
+  })
+
+  it.each([
+    ['NaN', Number.NaN],
+    ['a string', '5'],
+    ['a fraction', 2.5],
+    ['negative', -1],
+    ['null', null],
+  ])('ignores a stored %s for the lockout counts', (_label, value) => {
+    const resolved = resolveAuthPolicy(
+      reader({
+        [AUTH_SETTING_KEYS.maxLoginAttempts]: value,
+        [AUTH_SETTING_KEYS.maxAccountLoginAttempts]: value,
+      }),
+      BASE,
+    )
+
+    expect(resolved.maxLoginAttempts).toBe(BASE.maxLoginAttempts)
+    expect(resolved.maxAccountLoginAttempts).toBe(BASE.maxAccountLoginAttempts)
   })
 
   it.each([
