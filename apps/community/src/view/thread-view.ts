@@ -27,6 +27,7 @@ export interface PostCapabilities {
   readonly editOwn: boolean
   readonly editOthers: boolean
   readonly softDelete: boolean
+  readonly restore: boolean
   readonly editWindowMinutes: number
   readonly bypassesWindow: boolean
   readonly canReport: boolean
@@ -40,6 +41,7 @@ const NO_CAPABILITIES: PostCapabilities = {
   editOwn: false,
   editOthers: false,
   softDelete: false,
+  restore: false,
   editWindowMinutes: 0,
   bypassesWindow: false,
   canReport: false,
@@ -156,7 +158,7 @@ function post(
           : `${replyHref}?quote=${post.id}`,
       editHref: mayEdit ? manageHref : null,
       restoreHref:
-        post.visibility === 'deleted' && capabilities.softDelete ? manageHref : null,
+        post.visibility === 'deleted' && capabilities.restore ? manageHref : null,
       reportHref:
         capabilities.canReport && !isOwn && post.visibility === 'visible'
           ? `/report?kind=post&id=${post.id}`
