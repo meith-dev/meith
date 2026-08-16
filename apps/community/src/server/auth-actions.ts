@@ -42,6 +42,10 @@ function field(form: FormData, name: string): string {
 
 const toFormState = formStateReporter('auth-actions', 'unexpected error in auth action')
 
+async function addressContext(): Promise<{ readonly ipPrefix: string | null }> {
+  return { ipPrefix: truncateIp(await remoteAddress()) ?? null }
+}
+
 async function loginBuckets(
   identifier: string,
   config: AuthConfig,
@@ -104,7 +108,10 @@ export async function registerAction(
         ? []
         : await fields.validateRegistration({ submitted: submittedFields(form), context })
 
-    const result = await identity.register({ username, email, password })
+    const result = await identity.register(
+      { username, email, password },
+      await addressContext(),
+    )
 
     if (fields !== null) await fields.applyRegistration(result.account.id, fieldValues)
 
@@ -190,6 +197,7 @@ export async function loginAction(
       identifier,
       password,
       await loginBuckets(identifier, config),
+      await addressContext(),
     )
     await setSessionCookie(result.sessionToken, result.expiresAt)
 

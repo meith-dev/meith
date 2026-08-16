@@ -1,9 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { truncateIp } from '@meith/core'
+
 import { createTestDb, type TestDb } from './pglite.fixture'
 import {
   createPostgresAccountStore,
 } from './account-repos'
+import { PostgresModCpRepository } from './modcp-repo'
 import { credentialTokens, loginAttempts, rememberTokens, sessions, usergroups } from './schema'
 import type { AccountStore } from '@meith/accounts'
 
@@ -302,6 +305,69 @@ describe('Postgres account repositories', () => {
       await store.loginAttempts.record('alice', false, new Date())
       await store.loginAttempts.clear('alice')
       expect(await store.loginAttempts.countFailuresSince('alice', new Date(0))).toBe(0)
+    })
+  })
+
+  describe('the address ranges the moderator panel looks up', () => {
+    let modcp: PostgresModCpRepository
+
+    beforeAll(() => {
+      modcp = new PostgresModCpRepository(h.db)
+    })
+
+    async function joined(name: string, address: string | null): Promise<number> {
+      const created = await store.accounts.create({
+        username: name,
+        usernameLower: name,
+        email: `${name}@example.test`,
+        emailLower: `${name}@example.test`,
+        passwordHash: 'x',
+        passwordAlgo: 'argon2id',
+        state: 'active',
+        primaryGroupId: 2,
+        registrationIpPrefix: address === null ? null : (truncateIp(address) ?? null),
+      })
+      return created.id
+    }
+
+    it('keeps the range a registration came from, never the address', async () => {
+      const id = await joined('ida', '192.0.2.14')
+
+      expect(await modcp.ipPrefixesFor(id)).toEqual({
+        registration: '192.0.2.0/24',
+        lastVisit: null,
+      })
+    })
+
+    it('records a sign-in range without disturbing the registration range', async () => {
+      const id = await joined('ines', '192.0.2.14')
+
+      await store.accounts.recordLastIpPrefix(id, truncateIp('198.18.51.9')!)
+
+      expect(await modcp.ipPrefixesFor(id)).toEqual({
+        registration: '192.0.2.0/24',
+        lastVisit: '198.18.51.0/24',
+      })
+    })
+
+    it('finds the account sharing a range and leaves an unrelated one out', async () => {
+      const iris = await joined('iris', '198.51.100.14')
+      const ivo = await joined('ivo', '198.51.100.200')
+      const ilse = await joined('ilse', '203.0.113.9')
+
+      const matches = await modcp.ipMatches(iris, 10)
+
+      expect(matches.map((m) => m.userId)).toEqual([ivo])
+      expect(matches[0]).toMatchObject({ username: 'ivo', matchedOn: 'registration' })
+      expect(matches.map((m) => m.userId)).not.toContain(ilse)
+    })
+
+    it('leaves an account with no recorded range out of every lookup', async () => {
+      const inge = await joined('inge', null)
+      const ingrid = await joined('ingrid', null)
+
+      expect(await modcp.ipMatches(inge, 10)).toEqual([])
+      expect((await modcp.ipMatches(ingrid, 10)).map((m) => m.userId)).not.toContain(inge)
     })
   })
 })

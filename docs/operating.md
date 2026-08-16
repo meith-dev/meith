@@ -58,11 +58,14 @@ not the same as encrypted, and is worth knowing before choosing.
 
 ### Who the board thinks you are
 
-Four things key off a visitor's address: the control panel allowlist, the login
-lockout counters, the hourly limits a guest gets, and the truncated address
-written to the moderator log. Behind a proxy the board cannot see the connection
-— it sees `X-Forwarded-For`, a header each proxy **appends** its view of the
-caller to, and which the caller may send some of themselves.
+Five things key off a visitor's address: the control panel allowlist, the login
+lockout counters, the hourly limits a guest gets, the truncated address written
+to the moderator log, and the truncated range recorded against an account when
+it registers and each time it signs in — which is what the ModCP's address
+lookup and the member search's **IP** filter read. Behind a proxy the board
+cannot see the connection — it sees `X-Forwarded-For`, a header each proxy
+**appends** its view of the caller to, and which the caller may send some of
+themselves.
 
 `TRUSTED_PROXY_HOPS` is how many proxies are in front of the board, and the
 board reads that many entries back from the **right-hand** end of the chain.
@@ -83,7 +86,8 @@ audit trail. When in doubt, count the proxies and use that number; it is safer
 to be one too low than one too high.
 
 At `0` the board resolves no address at all: the allowlist refuses everybody,
-guest limits fall back to a single shared bucket, and the log records nothing.
+guest limits fall back to a single shared bucket, and neither the log nor an
+account's ranges record anything.
 It warns once per process when a request arrives with a forwarding header it has
 been told to ignore.
 

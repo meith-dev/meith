@@ -113,6 +113,7 @@ const {
 } = await import('./auth-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
 const { SESSION_COOKIE } = await import('./cookies')
+const { getContainer } = await import('./container')
 
 const CONTAINER_KEY = Symbol.for('@meith/forum.container')
 
@@ -403,6 +404,43 @@ describe('loginAction', () => {
     )
     expect(state.error).toBeTruthy()
     expect(jar.has(SESSION_COOKIE)).toBe(false)
+  })
+})
+
+describe('the address range an account is recorded against', () => {
+  const ADDRESS = '203.0.113.7'
+  const RANGE = '203.0.113.0/24'
+
+  it('stores the range a registration came from, never the address', async () => {
+    const create = vi.spyOn(getContainer().accountStore.accounts, 'create')
+
+    await registerUser()
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ registrationIpPrefix: RANGE }),
+    )
+    expect(JSON.stringify(create.mock.calls)).not.toContain(ADDRESS)
+  })
+
+  it('records the range a sign-in came from, never the address', async () => {
+    await registerUser()
+    const record = vi.spyOn(getContainer().accountStore.accounts, 'recordLastIpPrefix')
+
+    await redirectOf(
+      loginAction(EMPTY_STATE, form({ identifier: CREDS.username, password: CREDS.password })),
+    )
+
+    expect(record).toHaveBeenCalledWith(expect.any(Number), RANGE)
+    expect(JSON.stringify(record.mock.calls)).not.toContain(ADDRESS)
+  })
+
+  it('records nothing when a sign-in is refused', async () => {
+    await registerUser()
+    const record = vi.spyOn(getContainer().accountStore.accounts, 'recordLastIpPrefix')
+
+    await loginAction(EMPTY_STATE, form({ identifier: CREDS.username, password: 'wrong' }))
+
+    expect(record).not.toHaveBeenCalled()
   })
 })
 
