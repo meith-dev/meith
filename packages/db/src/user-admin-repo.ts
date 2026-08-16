@@ -252,14 +252,16 @@ export class PostgresUserAdminRepository {
     await withPermissionVersionBump(this.db, async (tx) => {
       const rows = resultRows(
         await tx.execute(sql`
-          update users set state = ${assertState(state)}, updated_at = now()
-           where id = ${userId} and state <> 'banned'
-          returning id
+          update users u set state = ${assertState(state)}, updated_at = now()
+           where u.id = ${userId} and not ${BANNED_PREDICATE}
+          returning u.id
         `),
       ) as Array<{ id: number }>
 
       if (rows[0] === undefined) {
-        throw new ValidationError('No such member, or the member is banned.')
+        throw new ValidationError(
+          'No such member, or the member is under a ban. Lift the ban first.',
+        )
       }
     })
   }

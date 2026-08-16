@@ -949,6 +949,23 @@ anybody rates that member. Editing `users.reputation` by hand therefore does
 nothing lasting — use **Recount & rebuild** on `/admin/system` if you need it
 corrected.
 
+## Member state and bans
+
+An account's **state** — active, or awaiting activation — and a **ban** are two
+different things, kept in two different places. The state is a column on the
+account; a ban is a record, with a reason, an expiry and the group the member
+held before it. Banning through `/admin/users/[id]` writes the record; it does
+not flip the state column.
+
+Because of that, the state form on the member's screen is not shown at all while
+a ban is in force, and **the server refuses the change too** — it looks for an
+unlifted ban record, not just for the word `banned` in the state column, so a
+request sent straight to the action gets the same answer the screen gives. Lift
+the ban and the form comes back.
+
+Issuing a ban from the state form is refused outright: bans belong to the ban
+screen, which is the only path that records who did it, why, and what to restore.
+
 ## Pruning dormant accounts
 
 `/admin/users/prune` closes accounts in batches: a registration date, optionally
