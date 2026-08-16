@@ -110,9 +110,14 @@ export class PostgresAccountRepository implements AccountRepository {
         state: input.state,
         // eslint-disable-next-line no-restricted-properties -- writing the persisted column, not a decision
         primaryGroupId: input.primaryGroupId,
+        registrationIpPrefix: input.registrationIpPrefix ?? null,
       })
       .returning(ACCOUNT_COLUMNS)
     return toAccountRecord(rows[0]!)
+  }
+
+  async recordLastIpPrefix(userId: number, prefix: string): Promise<void> {
+    await this.db.update(users).set({ lastIpPrefix: prefix }).where(eq(users.id, userId))
   }
 
   async updatePassword(

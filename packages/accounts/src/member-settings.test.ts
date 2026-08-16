@@ -103,6 +103,7 @@ class MemoryAccounts implements AccountRepository {
   async markEmailVerified(): Promise<null> {
     return null
   }
+  async recordLastIpPrefix() {}
 }
 
 class MemorySessions {

@@ -16,6 +16,10 @@ import type {
 
 class MemoryAccounts implements AccountRepository {
   private readonly byId = new Map<number, AccountRecord>()
+  private readonly ipPrefixes = new Map<
+    number,
+    { registration: string | null; lastVisit: string | null }
+  >()
   private seq = 0
 
   async findById(id: number): Promise<AccountRecord | null> {
@@ -51,7 +55,17 @@ class MemoryAccounts implements AccountRepository {
       primaryGroupId: input.primaryGroupId,
     }
     this.byId.set(record.id, record)
+    this.ipPrefixes.set(record.id, {
+      registration: input.registrationIpPrefix ?? null,
+      lastVisit: null,
+    })
     return record
+  }
+
+  async recordLastIpPrefix(userId: number, prefix: string): Promise<void> {
+    const current = this.ipPrefixes.get(userId)
+    if (current === undefined) return
+    this.ipPrefixes.set(userId, { ...current, lastVisit: prefix })
   }
 
   async updatePassword(userId: number, passwordHash: string, passwordAlgo: string): Promise<void> {

@@ -1,6 +1,6 @@
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { argon2id } from 'hash-wasm'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { rejectionMessage } from './test-support.fixture'
 
@@ -750,5 +750,68 @@ describe('ban filters block registration and login', () => {
   it('does nothing when no filter repository is supplied', async () => {
     const service = new IdentityService({ store: createMemoryStore(), config: BASE_CONFIG })
     await expect(service.register(CREDS)).resolves.toBeDefined()
+  })
+})
+
+describe('the address ranges an account is recorded against', () => {
+  const CREDS = {
+    username: 'Ivan',
+    email: 'ivan@example.com',
+    password: 'correct horse battery',
+  }
+  const REGISTERED_FROM = '198.51.100.0/24'
+  const SIGNED_IN_FROM = '203.0.113.0/24'
+
+  let store: AccountStore
+
+  beforeEach(() => {
+    store = createMemoryStore()
+  })
+
+  it('keeps the registration range the caller resolved', async () => {
+    const create = vi.spyOn(store.accounts, 'create')
+    const { service } = makeService(store)
+
+    await service.register(CREDS, { ipPrefix: REGISTERED_FROM })
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ registrationIpPrefix: REGISTERED_FROM }),
+    )
+  })
+
+  it('records the range a sign-in came from', async () => {
+    const { service } = makeService(store)
+    const { account } = await service.register(CREDS, { ipPrefix: REGISTERED_FROM })
+
+    const record = vi.spyOn(store.accounts, 'recordLastIpPrefix')
+    await service.login('ivan', CREDS.password, 'ivan', { ipPrefix: SIGNED_IN_FROM })
+
+    expect(record).toHaveBeenCalledWith(account.id, SIGNED_IN_FROM)
+  })
+
+  it('records nothing when the board resolved no address', async () => {
+    const { service } = makeService(store)
+    const create = vi.spyOn(store.accounts, 'create')
+    const record = vi.spyOn(store.accounts, 'recordLastIpPrefix')
+
+    await service.register(CREDS)
+    await service.login('ivan', CREDS.password, 'ivan')
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ registrationIpPrefix: null }),
+    )
+    expect(record).not.toHaveBeenCalled()
+  })
+
+  it('records nothing for a sign-in that failed', async () => {
+    const { service } = makeService(store)
+    await service.register(CREDS, { ipPrefix: REGISTERED_FROM })
+
+    const record = vi.spyOn(store.accounts, 'recordLastIpPrefix')
+    await expect(
+      service.login('ivan', 'wrong', 'ivan', { ipPrefix: SIGNED_IN_FROM }),
+    ).rejects.toThrow(ValidationError)
+
+    expect(record).not.toHaveBeenCalled()
   })
 })

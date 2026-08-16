@@ -24,6 +24,7 @@ export interface NewAccount {
   readonly passwordAlgo: string
   readonly state: AccountState
   readonly primaryGroupId: number
+  readonly registrationIpPrefix?: string | null
 }
 
 export interface AccountRepository {
@@ -35,6 +36,7 @@ export interface AccountRepository {
   setState(userId: number, state: AccountState): Promise<void>
   markEmailVerified(userId: number, at: Date, activate: boolean): Promise<AccountState | null>
   touchLastActive(userId: number, now: Date, windowSeconds: number): Promise<boolean>
+  recordLastIpPrefix(userId: number, prefix: string): Promise<void>
 }
 
 export interface MemberProfileRecord {

@@ -629,6 +629,24 @@ choice made here. It is stated on the screen because the difference matters to
 what a moderator does next: "shares an address" reads as proof, "shares a range"
 reads as something to check, and only the second is what the data supports.
 
+**Two ranges are on record per account, and they are written at two moments.**
+`registration_ip_prefix` is written once, by the registration that created the
+account; `last_ip_prefix` is rewritten by every successful sign-in. MyBB also
+stamps `lastip` on ordinary page views; here the presence write is left alone,
+because the sign-in is the moment the board learns an account is being used from
+somewhere and it costs one update per session rather than one per member per
+minute. The consequence is worth knowing at the screen: a member who is still
+signed in from before this shipped shows no last-visit range until they sign in
+again, and one who never signs in again keeps the range of their last sign-in
+rather than of their last visit.
+
+**Cost.** Both columns are null for every account the board already had, and for
+every account a MyBB import creates — the importer does not carry `regip` or
+`lastip` across, so an imported board's lookups stay empty until its members
+register or sign in here. `posts.ip_prefix` exists in the schema and nothing
+writes it: the lookup does not read it, and a per-post range would be a second
+address trail to keep rather than a second thing to search.
+
 ### Copying a thread credits its authors twice
 
 **MyBB:** copying a thread duplicates its posts, and each copy counts towards

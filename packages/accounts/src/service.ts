@@ -37,6 +37,7 @@ export interface BanLookup {
 
 export interface RequestContext {
   readonly ip?: string | undefined
+  readonly ipPrefix?: string | null | undefined
 }
 
 export interface RegisterInput {
@@ -140,6 +141,7 @@ export class IdentityService {
       passwordAlgo: PASSWORD_ALGO,
       state,
       primaryGroupId: this.config.defaultMemberGroupId,
+      registrationIpPrefix: prefixOf(context),
     })
 
     if (this.verifiesEmail()) {
@@ -271,6 +273,11 @@ export class IdentityService {
       await this.store.accounts.updatePassword(account.id, upgraded, PASSWORD_ALGO)
     }
 
+    const prefix = prefixOf(context)
+    if (prefix !== null) {
+      await this.store.accounts.recordLastIpPrefix(account.id, prefix)
+    }
+
     return this.startSession(account, at)
   }
 
@@ -388,6 +395,13 @@ export class IdentityService {
       })
     }
   }
+}
+
+function prefixOf(context: RequestContext): string | null {
+  const prefix = context.ipPrefix
+  if (prefix === undefined || prefix === null) return null
+  const value = prefix.trim()
+  return value === '' ? null : value
 }
 
 let dummyHashPromise: Promise<string> | null = null
