@@ -1,6 +1,6 @@
 {
   "name": "@meith/theme-kit",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "The SDK for writing a Meith theme: the frozen slot contract, its view models, and the helpers a theme fills them with.",
   "license": "LGPL-3.0-or-later",
   "repository": {

@@ -56,7 +56,7 @@ services:
   # applied before the first request rather than racing it — and an upgrade that
   # fails to migrate never serves the new code at all.
   migrate:
-    image: ${MEITH_IMAGE:-ghcr.io/meith-dev/meith:0.5.0}
+    image: ${MEITH_IMAGE:-ghcr.io/meith-dev/meith:0.6.0}
     environment:
       COMMUNITY_ROLE: migrate
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
@@ -81,7 +81,7 @@ services:
   # worker whether its process is alive. A single web-shaped check declared per
   # service is how every worker container ended up permanently unhealthy.
   web:
-    image: ${MEITH_IMAGE:-ghcr.io/meith-dev/meith:0.5.0}
+    image: ${MEITH_IMAGE:-ghcr.io/meith-dev/meith:0.6.0}
     restart: unless-stopped
     environment:
       # Ask Coolify for a domain on port 3000, then hand the board the same
@@ -127,7 +127,7 @@ services:
   # here — queued mail leaves, bans expire, digests send — so a board without
   # this service is one where nothing fails and nothing happens.
   worker:
-    image: ${MEITH_IMAGE:-ghcr.io/meith-dev/meith:0.5.0}
+    image: ${MEITH_IMAGE:-ghcr.io/meith-dev/meith:0.6.0}
     restart: unless-stopped
     environment:
       - COMMUNITY_ROLE=worker

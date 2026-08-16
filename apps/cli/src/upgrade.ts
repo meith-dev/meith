@@ -9,7 +9,7 @@ import {
 import type { PluginDefinition } from '@meith/plugin-kit'
 import { planUpgrade, upgradeNotice, type PluginUpgrade } from '@meith/upgrade'
 
-export const CODE_VERSION = '0.5.0'
+export const CODE_VERSION = '0.6.0'
 
 export function pluginUpgrades(plugins: readonly PluginDefinition[]): readonly PluginUpgrade[] {
   return plugins.map((plugin) => ({
