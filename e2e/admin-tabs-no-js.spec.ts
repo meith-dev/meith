@@ -356,6 +356,8 @@ test('a member edited in the panel is changed on the board, and a ban locks them
 
     await page.getByRole('checkbox', { name: 'Super Moderators' }).check()
     await page.getByRole('button', { name: 'Save groups' }).click()
+    await expect(page.getByText('Saved.')).toBeVisible()
+
     await page.reload()
     await expect(page.getByRole('checkbox', { name: 'Super Moderators' })).toBeChecked()
 
@@ -364,6 +366,7 @@ test('a member edited in the panel is changed on the board, and a ban locks them
 
     await page.getByRole('checkbox', { name: 'Super Moderators' }).uncheck()
     await page.getByRole('button', { name: 'Save groups' }).click()
+    await expect(page.getByText('Saved.')).toBeVisible()
 
     const ban = composer(page, 'Ban this member')
     await ban.getByLabel('Length in days').fill('3')
