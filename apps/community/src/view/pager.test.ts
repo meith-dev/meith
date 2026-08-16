@@ -149,8 +149,14 @@ describe('buildOffsetPager', () => {
     expect(buildOffsetPager({ ...BASE, params: {}, page: 1 }).previousHref).toBeNull()
   })
 
-  it('clamps a page past the end back onto the last one', () => {
-    expect(buildOffsetPager({ ...BASE, params: {}, page: 99 }).page).toBe(11)
+  it('keeps a page past the end, and offers the last one that exists', () => {
+    const beyond = buildOffsetPager({ ...BASE, params: {}, page: 99 })
+
+    expect(beyond.page, 'the rows really are empty; saying page 1 would be a lie').toBe(99)
+    expect(beyond.pageCount).toBe(11)
+    expect(beyond.previousHref).toBe('/admin/users?page=11')
+    expect(beyond.nextHref).toBeNull()
+    expect(beyond.pages.map((entry) => entry.page)).toEqual([1, 9, 10, 11])
   })
 
   it('is one page when nothing matched', () => {

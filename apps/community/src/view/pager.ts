@@ -163,12 +163,19 @@ function numberedHref(input: OffsetPagerInput, page: number): string {
 
 export function buildOffsetPager(input: OffsetPagerInput): PaginationModel {
   const pageCount = pageCountOf(input.total, input.pageSize)
-  const page = Math.min(Math.max(input.page, 1), pageCount)
+  const page = Math.max(input.page, 1)
 
-  const numbers = new Set<number>([1, pageCount, page])
+  // A page past the end is not clamped to a page that was not asked for: the
+  // rows really are empty, and saying "page 1" over an empty list reads as a
+  // board with no members. It keeps the number it was given and offers the
+  // last page that exists, which is the way back.
+  const anchor = Math.min(page, pageCount)
+
+  const numbers = new Set<number>([1, pageCount])
+  if (page <= pageCount) numbers.add(page)
   for (let step = 1; step <= NEIGHBOURS; step += 1) {
-    if (page - step >= 1) numbers.add(page - step)
-    if (page + step <= pageCount) numbers.add(page + step)
+    if (anchor - step >= 1) numbers.add(anchor - step)
+    if (anchor + step <= pageCount) numbers.add(anchor + step)
   }
 
   return {
@@ -182,7 +189,8 @@ export function buildOffsetPager(input: OffsetPagerInput): PaginationModel {
         href: numberedHref(input, number),
         isCurrent: number === page,
       })),
-    previousHref: page === 1 ? null : numberedHref(input, page - 1),
-    nextHref: page === pageCount ? null : numberedHref(input, page + 1),
+    previousHref:
+      page === 1 ? null : numberedHref(input, page > pageCount ? pageCount : page - 1),
+    nextHref: page >= pageCount ? null : numberedHref(input, page + 1),
   }
 }
