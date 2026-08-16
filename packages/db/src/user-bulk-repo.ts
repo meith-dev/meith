@@ -5,6 +5,7 @@ import { ValidationError } from '@meith/core'
 import type { Database } from './client'
 import { withPermissionVersionBump } from './permission-version'
 import { resultRows } from './result-rows'
+import { isStaffGroupSql } from './staff-groups'
 import { BANNED_PREDICATE } from './user-admin-repo'
 
 export interface PruneCriteria {
@@ -60,15 +61,17 @@ export class PostgresUserBulkRepository {
       sql`u.created_at < ${criteria.registeredBefore}`,
       sql`u.post_count = 0`,
       sql`u.thread_count = 0`,
+      sql`not exists (select 1 from posts p where p.author_user_id = u.id)`,
+      sql`not exists (select 1 from threads t where t.author_user_id = u.id)`,
       sql`not ${BANNED_PREDICATE}`,
       sql`not exists (
         select 1 from usergroups g
-         where g.id = u.primary_group_id and g.is_staff_group = true
+         where g.id = u.primary_group_id and (${isStaffGroupSql('g')})
       )`,
       sql`not exists (
         select 1 from user_group_memberships m
           join usergroups g on g.id = m.group_id
-         where m.user_id = u.id and g.is_staff_group = true
+         where m.user_id = u.id and (${isStaffGroupSql('g')})
       )`,
       sql`not exists (select 1 from forum_moderators f where f.user_id = u.id)`,
     ]

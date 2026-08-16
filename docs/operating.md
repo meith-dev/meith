@@ -949,6 +949,32 @@ anybody rates that member. Editing `users.reputation` by hand therefore does
 nothing lasting — use **Recount & rebuild** on `/admin/system` if you need it
 corrected.
 
+## Pruning dormant accounts
+
+`/admin/users/prune` closes accounts in batches: a registration date, optionally
+a "not seen since" date, optionally only accounts still awaiting activation. It
+**closes** rather than deletes — the row stays, with `deleted_at` set — so a
+wrong date is recoverable.
+
+The screen previews before it acts, and the preview and the execution are built
+from the same predicate, so what you were shown is what gets closed.
+
+Four exclusions are unconditional, and none of them is a checkbox:
+
+- **Anybody who has written anything.** Not "anybody with a post count" — the
+  count only tracks posts the board currently shows, and a member whose only
+  contributions are held for approval or have been removed by a moderator has
+  still posted. The prune looks for the posts and threads themselves, whatever
+  their state, as well as at the counters.
+- **Anybody in a staff group.** That means the same thing here as it does in the
+  postbit: the **staff group** switch, *or* any group carrying administrative or
+  moderation power, held as a primary group or as an additional one. A group
+  with `Can approve content` ticked and the staff switch left off is still
+  staff as far as the prune is concerned.
+- **Any forum moderator**, whatever group they are in.
+- **Any banned account**, whether the ban is a state on the account or an
+  unlifted ban record. A lifted ban does not protect an account.
+
 ## Mail
 
 Mail is the one subsystem a new board gets wrong silently. Nothing errors: the
