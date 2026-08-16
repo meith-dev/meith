@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { isAppError } from '@meith/core'
 import { requireSlot } from '@meith/theme-kit'
 
+import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
 import {
@@ -80,6 +81,7 @@ export default async function SearchResultsPage({
     summary,
     forums: await namedForums(),
     countCap: SEARCH_COUNT_CAP,
+    wordFilter: await activeWordFilter(),
   })
 
   const SearchResults = requireSlot(await currentTheme(), 'SearchResults')

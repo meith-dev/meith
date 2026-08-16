@@ -1,5 +1,4 @@
 import {
-  applyWordFilter,
   postBodyHtml,
   type BoardVocabulary,
   type CompiledWordFilter,
@@ -21,6 +20,7 @@ import { memberHref } from './member-profile'
 import { postAnchor } from './post-link'
 import type { MemberIdentity } from './member-identity'
 import { formatDate, formatTime } from './time'
+import { filterWords } from './word-filter'
 
 export interface PostCapabilities {
   readonly viewerUserId: number | null
@@ -132,9 +132,7 @@ function post(
     },
     bodyHtml: hidden
       ? ''
-      : context.wordFilter === undefined
-        ? postBodyHtml(post, context.vocabulary)
-        : applyWordFilter(postBodyHtml(post, context.vocabulary), context.wordFilter),
+      : filterWords(postBodyHtml(post, context.vocabulary), context.wordFilter),
     postedAt: formatTime(post.createdAt, now, timeZone),
     editedNote: editedNote(
       { editedAt: post.editedAt, editedByUsername: post.editedByUsername, reason: post.editReason },

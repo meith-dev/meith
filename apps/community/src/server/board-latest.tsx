@@ -8,6 +8,7 @@ import { requireSlot } from '@meith/theme-kit'
 import { buildLatestPostsModel, buildLatestThreadsModel } from '@/view/board-latest'
 import { distinctUserIds } from '@/view/member-identity'
 
+import { activeWordFilter } from './content-admin'
 import { getContainer } from './container'
 import { getActor } from './context'
 import { identitiesFor } from './group-identity'
@@ -62,6 +63,8 @@ export async function renderLatestPanels(): Promise<React.ReactNode> {
     ]),
   )
 
+  const wordFilter = await activeWordFilter()
+
   const theme = await currentTheme()
   const LatestThreads = requireSlot(theme, 'LatestThreads')
   const LatestPosts = requireSlot(theme, 'LatestPosts')
@@ -85,6 +88,7 @@ export async function renderLatestPanels(): Promise<React.ReactNode> {
         now,
         timeZone: preferences.timezone,
         identities,
+        wordFilter,
       }),
       context,
     ),

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { compileWordFilter } from '@meith/markdown'
+
 import {
   buildLatestPostsModel,
   buildLatestThreadsModel,
@@ -109,5 +111,24 @@ describe('buildLatestPostsModel', () => {
     const { posts } = buildLatestPostsModel({ rows: [postRow()], now: NOW })
 
     expect(posts[0]?.forum).toEqual({ label: 'General', href: '/3-general' })
+  })
+
+  it('applies the board word filter to the excerpt', () => {
+    const { posts } = buildLatestPostsModel({
+      rows: [postRow()],
+      now: NOW,
+      wordFilter: compileWordFilter([
+        { pattern: 'slate', replacement: 'shale', wholeWord: true },
+      ]),
+    })
+
+    expect(posts[0]?.excerpt).toBe('The roof should be corrugated, not shale.')
+    expect(posts[0]?.excerpt).not.toContain('slate')
+  })
+
+  it('brings the word back when the filter is removed', () => {
+    const { posts } = buildLatestPostsModel({ rows: [postRow()], now: NOW })
+
+    expect(posts[0]?.excerpt).toContain('slate')
   })
 })

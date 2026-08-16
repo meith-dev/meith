@@ -25,9 +25,11 @@ import type { ThreadCursor } from '@meith/threads'
 import type { NextRequest } from 'next/server'
 
 import { apiActor, apiToken } from '@/server/api-auth'
+import { activeWordFilter } from '@/server/content-admin'
 import { getContainer } from '@/server/container'
 import { resolveReplyTarget, submitReply } from '@/server/reply-core'
 import { requireSearch, searchScopeFor } from '@/server/search'
+import { filterWords } from '@/view/word-filter'
 import { canHoldThreads } from '@meith/forums'
 
 export const dynamic = 'force-dynamic'
@@ -376,6 +378,8 @@ async function dispatch(
         await searchScopeFor(actor),
       )
 
+      const wordFilter = await activeWordFilter()
+
       return {
         status: 200,
         body: {
@@ -387,7 +391,7 @@ async function dispatch(
             authorUserId: hit.authorUserId,
             authorUsername: hit.authorUsername,
             postedAt: hit.postedAt.toISOString(),
-            excerpt: hit.excerpt,
+            excerpt: filterWords(hit.excerpt, wordFilter),
           })),
           nextCursor: results.nextCursor === null ? null : encodeCursor(results.nextCursor),
         },

@@ -10,6 +10,7 @@ import {
   type SearchRefinement,
   type SearchSummary,
 } from '@meith/search'
+import type { CompiledWordFilter } from '@meith/markdown'
 import type {
   HiddenFieldModel,
   OptionModel,
@@ -31,6 +32,7 @@ import {
   resultsHref,
 } from './search-controls'
 import { formatTime } from './time'
+import { filterWords } from './word-filter'
 
 export interface SearchHitRow {
   readonly postId: number
@@ -62,6 +64,7 @@ export interface SearchResultsInput {
   readonly summary: SearchSummary
   readonly forums: readonly SearchForumRef[]
   readonly countCap: number
+  readonly wordFilter?: CompiledWordFilter | undefined
 }
 
 export function buildSearchResultsView(input: SearchResultsInput): SearchResultsModel {
@@ -75,7 +78,7 @@ export function buildSearchResultsView(input: SearchResultsInput): SearchResults
       postId: hit.postId,
       threadTitle: hit.threadTitle,
       href: postLink(`/thread/${hit.threadId}-${hit.threadSlug}`, hit.postId),
-      excerptHtml: hit.excerpt,
+      excerptHtml: filterWords(hit.excerpt, input.wordFilter),
       authorUsername: hit.authorUsername,
       postedAt: formatTime(hit.postedAt, input.now, input.timeZone),
     })),

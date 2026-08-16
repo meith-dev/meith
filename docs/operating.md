@@ -791,6 +791,38 @@ demand and are rewritten in the background by the ordinary tick — but on a lar
 board expect a period of extra rendering, and expect `/admin/system` to report a
 backlog until it clears.
 
+### What "everywhere" covers
+
+"Everywhere" is a claim about every place the board shows a reader the words
+somebody posted, not only the thread page:
+
+- post bodies on a thread page, and the description in that page's structured
+  data;
+- the Latest Posts excerpts on the board index;
+- the RSS and Atom summaries — board, forum and thread feeds;
+- search-result excerpts, on `/search` and on `GET /api/v1/search`.
+
+Every one of those reads the same compiled filter through one function
+(`filterWords` in `apps/community/src/view/word-filter.ts`) fed by
+`activeWordFilter()`, which loads the rules once per request behind the
+`wordFilters` cache tag that saving a filter invalidates. A new surface that
+shows post text and does not call it is a bug — the filter once covered the
+thread page alone while this page already promised "everywhere", and one shared
+call path is what keeps the promise from drifting again.
+
+Three things are deliberately *not* filtered, and none of them is a display of
+somebody's post to a reader:
+
+- **What is stored.** The filter never rewrites the row, which is what makes a
+  pattern you regret harmless — so the editor, the quote box and
+  `GET /api/v1/threads/:id/posts` (which returns the Markdown source) all show
+  the words as written. Anything re-rendered from that source is filtered when
+  it is shown.
+- **Private messages.** A message is not a post, and the filter is a board-wide
+  vocabulary for public content.
+- **The moderation queue and the report screens.** Staff are judging the text,
+  so they are shown what was actually written.
+
 ### Custom directives
 
 Markdown's extension point, and the board's own additions to it. A directive
