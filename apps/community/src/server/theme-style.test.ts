@@ -249,9 +249,24 @@ describe('renderGroupNameStyle', () => {
     expect(css).toContain(`:root:not(.light) .${groupNameClass(4)}`)
   })
 
-  it('emits no media query for a board with only light colours', () => {
+  it('leaves a dark reader the ordinary text colour when only a light one is set', () => {
     const css = renderGroupNameStyle([{ groupId: 4, light: RED, dark: null }])
-    expect(css).not.toContain('@media')
+    const selector = `.${groupNameClass(4)}`
+
+    expect(css).toContain(`.light ${selector}`)
+    expect(css).toContain('@media (prefers-color-scheme: light)')
+    expect(css).toContain(`:root:not(.dark) ${selector}`)
+    expect(css).not.toMatch(new RegExp(`(^|[}{])\\${selector}`))
+  })
+
+  it('leaves a light reader the ordinary text colour when only a dark one is set', () => {
+    const css = renderGroupNameStyle([{ groupId: 4, light: null, dark: PINK }])
+    const selector = `.${groupNameClass(4)}`
+
+    expect(css).toContain(`.dark ${selector}`)
+    expect(css).toContain('@media (prefers-color-scheme: dark)')
+    expect(css).not.toContain('prefers-color-scheme: light')
+    expect(css).not.toMatch(new RegExp(`(^|[}{])\\${selector}`))
   })
 
   it('refuses a colour that would close the declaration', () => {

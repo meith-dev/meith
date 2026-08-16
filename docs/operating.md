@@ -296,7 +296,9 @@ exactly as it did before they existed.
 - **A name colour**, set separately for **light and dark**. Both are worth
   filling in: a colour that reads well on white is usually unreadable on a dark
   page, and the board will not guess a second one for you. Set one and the other
-  is simply not applied in that scheme.
+  is simply not applied in that scheme — the two directions behave the same way,
+  so an unfilled dark picker leaves a dark reader the ordinary text colour
+  exactly as an unfilled light one leaves a light reader it.
 - **A badge**, as two uploads, light and dark, on the same terms as the board
   logo — the bytes decide the format rather than the file name, and SVG is
   accepted. Upload one and it is used in both schemes. It appears beside the
@@ -366,6 +368,11 @@ posted last, the profile heading, who is online. It is delivered as a stylesheet
 rule rather than a colour on each name, which is why it works for a reader whose
 dark mode comes from their operating system rather than from the board's own
 control — that reader's page carries no dark-mode class for a theme to match on.
+Each colour ships as a pair of rules for exactly that reason: one on the class
+the appearance control writes when a member chooses a scheme, and one under a
+`prefers-color-scheme` query for the member who has chosen nothing. Neither
+colour is ever emitted without a scheme around it, which is what keeps a light
+colour off a dark page.
 
 > **Check the contrast.** Nothing stops you setting a pale yellow no reader can
 > make out on a white page. Beneath each picker is a sample of the name on the
