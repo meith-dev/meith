@@ -6,7 +6,7 @@ import type { PostListingRow } from '@meith/posts'
 import type { ThreadListingRow } from '@meith/threads'
 
 import type { MemberIdentity } from './member-identity'
-import { buildThreadView, revealedFrom } from './thread-view'
+import { buildThreadView, revealedFrom, threadToolsHeading } from './thread-view'
 
 const forum: ForumRow = {
   id: 2,
@@ -635,5 +635,15 @@ describe('the author\'s group standing', () => {
     expect(author.title).toBe('Moderator')
     expect(author.badge).not.toBeNull()
     expect(author.reputation).toBe(42)
+  })
+})
+
+describe('threadToolsHeading', () => {
+  it('calls the panel what it is for somebody appointed over the forum', () => {
+    expect(threadToolsHeading(true)).toBe('Moderator tools')
+  })
+
+  it('does not call an author a moderator for holding canDeleteOwnThreads', () => {
+    expect(threadToolsHeading(false)).toBe('Thread tools')
   })
 })

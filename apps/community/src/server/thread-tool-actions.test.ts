@@ -35,6 +35,7 @@ const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
 const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
 const { ThreadToolsForm } = await import('../components/moderation/thread-tools-form')
+const { threadToolsHeading } = await import('../view/thread-view')
 
 class FakeTools implements ThreadToolsRepository {
   readonly calls: string[] = []
@@ -431,5 +432,48 @@ describe('deleting a thread you started', () => {
 
     expect(state.error).toMatch(/cannot delete threads/i)
     expect(tools.calls).toEqual([])
+  })
+})
+
+describe('the panel an author sees', () => {
+  function render(rights: Parameters<typeof ThreadToolsForm>[0]['rights'], heading?: string): string {
+    return renderToStaticMarkup(
+      createElement(ThreadToolsForm, {
+        threadId: 20,
+        isLocked: false,
+        isSticky: false,
+        rights,
+        moveTargets: [],
+        ...(heading === undefined ? {} : { heading }),
+      }),
+    )
+  }
+
+  const AUTHOR_ONLY = { lock: false, stick: false, move: false, delete: true }
+
+  it('is headed Thread tools, and says so to a screen reader too', () => {
+    const html = render(AUTHOR_ONLY, threadToolsHeading(false))
+
+    expect(html).toContain('aria-label="Thread tools"')
+    expect(html).toContain('>Thread tools<')
+    expect(html).not.toContain('Moderator tools')
+  })
+
+  it('offers the author the delete button and no moderator tool beside it', () => {
+    const html = render(AUTHOR_ONLY, threadToolsHeading(false))
+
+    expect(html).toContain('Delete thread')
+    for (const absent of ['Lock', 'Unlock', 'Pin', 'Unpin', 'Move', 'Copy']) {
+      expect(html).not.toContain(`>${absent}<`)
+    }
+  })
+
+  it('still reads Moderator tools for an appointee, and by default', () => {
+    const everything = { lock: true, stick: true, move: true, delete: true }
+
+    expect(render(everything, threadToolsHeading(true))).toContain(
+      'aria-label="Moderator tools"',
+    )
+    expect(render(everything)).toContain('aria-label="Moderator tools"')
   })
 })

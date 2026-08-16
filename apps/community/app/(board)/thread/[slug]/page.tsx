@@ -43,7 +43,11 @@ import { getSettings } from '@/server/settings'
 import { buildBreadcrumb } from '@/view/breadcrumb'
 import { locatedHref } from '@/view/post-link'
 import { leadingId } from '@/view/slug-id'
-import { buildThreadView, revealedFrom } from '@/view/thread-view'
+import {
+  buildThreadView,
+  revealedFrom,
+  threadToolsHeading,
+} from '@/view/thread-view'
 import {
   cardDescription,
   jsonLdScript,
@@ -560,9 +564,7 @@ export default async function ThreadPage({
             isSticky={thread.isSticky}
             rights={toolRights}
             moveTargets={moveTargets}
-            heading={
-              appointment.isForumModerator ? 'Moderator tools' : 'Thread tools'
-            }
+            heading={threadToolsHeading(appointment.isForumModerator)}
           >
             <ThreadSurgeryForm
               threadId={thread.id}

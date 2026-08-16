@@ -214,6 +214,10 @@ export function revealHref(currentHref: string, postId: number, number: number):
   return `${path}${separator}reveal=${postId}#${postAnchor(number)}`
 }
 
+export function threadToolsHeading(isForumModerator: boolean): string {
+  return isForumModerator ? 'Moderator tools' : 'Thread tools'
+}
+
 export function revealedFrom(raw: string | readonly string[] | undefined): ReadonlySet<number> {
   if (raw === undefined) return EMPTY_IDS
   const values = typeof raw === 'string' ? [raw] : raw
