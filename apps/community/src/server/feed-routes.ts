@@ -3,6 +3,7 @@ import 'server-only'
 import { renderAtom, renderRss, type FeedChannel } from '@/view/feed'
 
 import { boardOffline } from './board-offline'
+import { activeWordFilter } from './content-admin'
 import { feedFor } from './feed-builder'
 import { getSettings } from './settings'
 import { FEED_LIMIT, feedRepository, origin, publicScope } from './syndication'
@@ -51,7 +52,7 @@ export async function boardFeed(format: FeedFormat, selfPath: string): Promise<R
   const threads = await repo.recentThreads(FEED_LIMIT, scope)
   const settings = await getSettings()
 
-  const feed = feedFor(await origin())
+  const feed = feedFor(await origin(), await activeWordFilter())
 
   return feedResponse(
     feed.channel({

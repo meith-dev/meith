@@ -1,3 +1,4 @@
+import { activeWordFilter } from '@/server/content-admin'
 import { feedFor } from '@/server/feed-builder'
 import { feedResponse, noFeed, offlineFeed } from '@/server/feed-routes'
 import { getContainer } from '@/server/container'
@@ -29,7 +30,7 @@ export async function GET(
 
   const threads = await repo.recentThreads(FEED_LIMIT, scope, id)
 
-  const feed = feedFor(await origin())
+  const feed = feedFor(await origin(), await activeWordFilter())
 
   return feedResponse(
     feed.channel({

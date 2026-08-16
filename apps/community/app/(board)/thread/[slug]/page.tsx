@@ -348,9 +348,11 @@ export default async function ThreadPage({
     await attachmentsForPosts(postPage.rows.map((row) => row.id)),
   )
 
+  const wordFilter = await activeWordFilter()
+
   const view = buildThreadView({
     thread,
-    wordFilter: await activeWordFilter(),
+    wordFilter,
     vocabulary: await activeVocabulary(),
     capabilities,
     replyHref: canReply ? `/thread/${thread.id}-${thread.slug}/reply` : null,
@@ -423,6 +425,7 @@ export default async function ThreadPage({
           description: cardDescription(
             opening.message,
             `A discussion in ${forum.title}.`,
+            wordFilter,
           ),
         })
 

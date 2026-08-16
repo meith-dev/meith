@@ -1,13 +1,18 @@
 import 'server-only'
 
 import type { FeedPost, FeedThread } from '@meith/db'
+import type { CompiledWordFilter } from '@meith/markdown'
 
 import { summarise, type FeedChannel, type FeedEntry } from '@/view/feed'
 import { postLink } from '@/view/post-link'
+import { filterWords } from '@/view/word-filter'
 
 import { absoluteTo } from './syndication'
 
-export function feedFor(origin: string): {
+export function feedFor(
+  origin: string,
+  wordFilter: CompiledWordFilter | undefined,
+): {
   threadEntry: (thread: FeedThread) => FeedEntry
   postEntry: (post: FeedPost) => FeedEntry
   channel: (input: ChannelInput) => FeedChannel
@@ -27,7 +32,7 @@ export function feedFor(origin: string): {
       author: thread.authorUsername,
       published: thread.createdAt,
       updated: thread.lastPostAt,
-      summary: summarise(thread.excerptSource),
+      summary: filterWords(summarise(thread.excerptSource), wordFilter),
     }
   }
 
@@ -41,7 +46,7 @@ export function feedFor(origin: string): {
       author: post.authorUsername,
       published: post.createdAt,
       updated: post.createdAt,
-      summary: summarise(post.messageSource),
+      summary: filterWords(summarise(post.messageSource), wordFilter),
     }
   }
 

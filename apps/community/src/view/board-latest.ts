@@ -1,4 +1,4 @@
-import { summarise } from '@meith/markdown'
+import { summarise, type CompiledWordFilter } from '@meith/markdown'
 import type {
   LatestPostModel,
   LatestPostsModel,
@@ -11,6 +11,7 @@ import { nameClassOf, type MemberIdentity } from './member-identity'
 import { memberHref } from './member-profile'
 import { postLink } from './post-link'
 import { formatTime } from './time'
+import { filterWords } from './word-filter'
 
 export interface LatestThreadRow {
   readonly threadId: number
@@ -44,6 +45,7 @@ export interface LatestInput<Row> {
   readonly now: Date
   readonly timeZone?: string | undefined
   readonly identities?: ReadonlyMap<number, MemberIdentity>
+  readonly wordFilter?: CompiledWordFilter | undefined
 }
 
 const EXCERPT_CHARS = 140
@@ -91,7 +93,7 @@ export function buildLatestPostsModel(input: LatestInput<LatestPostRow>): Latest
       href: forumHref({ id: row.forumId, slug: row.forumSlug }),
     },
     author: authorOf(row, input.identities),
-    excerpt: summarise(row.messageSource, EXCERPT_CHARS),
+    excerpt: filterWords(summarise(row.messageSource, EXCERPT_CHARS), input.wordFilter),
     postedAt: formatTime(row.createdAt, input.now, input.timeZone),
   }))
 

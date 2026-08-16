@@ -55,7 +55,9 @@ export default async function AdminContentPage() {
           Applied when a post is shown, never to what is stored — so removing a filter
           brings the word back everywhere, immediately, and a pattern you regret does no
           lasting damage. A filter added now also applies to every post ever written, not
-          just to new ones.
+          just to new ones. Everywhere means every reader-facing surface: thread pages,
+          the index excerpts, the feeds and search results. Staff screens that exist to
+          judge a post show it as written.
         </p>
         <p className="text-xs text-muted-foreground">
           Matching is case-insensitive and always literal text — never a pattern language
