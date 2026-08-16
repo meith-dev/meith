@@ -59,6 +59,7 @@ const FORUM: ForumPostingRules = {
   allowThreads: true,
   allowReplies: true,
   allowPolls: true,
+  allowAttachments: true,
   requiresPrefix: false,
   moderateNewThreads: false,
   moderateNewPosts: false,

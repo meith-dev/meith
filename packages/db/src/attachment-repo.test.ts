@@ -221,6 +221,16 @@ describe('listForPosts', () => {
     await pending()
     expect(await repo.listForPosts([otherPostId])).toEqual([])
   })
+
+  it('keeps listing what is already there after the forum stops taking attachments', async () => {
+    const existing = await pending()
+    await db.execute(sql`update forums set allow_attachments = false where id = ${FORUM}`)
+
+    expect((await repo.listForPosts([postId])).map((r) => r.id)).toEqual([existing.id])
+    expect(await repo.findForDownload(existing.id)).toMatchObject({
+      record: { id: existing.id },
+    })
+  })
 })
 
 describe('recordDownload', () => {
