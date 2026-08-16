@@ -244,6 +244,7 @@ export default async function ThreadPage({
     editOwn: writable && authorizer.can(actor, 'post.editOwn', own),
     editOthers: writable && authorizer.can(actor, 'post.editOthers', others),
     softDelete: writable && authorizer.can(actor, 'post.softDelete', own),
+    restore: writable && authorizer.can(actor, 'post.restore', own),
     editWindowMinutes: Number(matrix.editTimeLimitMinutes ?? 0),
     bypassesWindow:
       authorizer.can(actor, 'post.editOthers', others) ||
@@ -318,6 +319,9 @@ export default async function ThreadPage({
     delete:
       inlineModeration !== null &&
       authorizer.can(actor, 'post.softDelete', toolTarget),
+    restore:
+      inlineModeration !== null &&
+      authorizer.can(actor, 'post.restore', toolTarget),
   }
   const inlineOffered = anyInlineTool(inlineRights) || surgeryRights.split
 

@@ -459,6 +459,34 @@ While that screen was lying, so was the demo board's lockout relief: it sets a
 laxer lockout so one visitor's typo cannot lock the published login for the
 next, and half of that was inert for the same reason. It works now.
 
+## Four moderator checkboxes were lying, and are not any more
+
+`/admin/forums/[id]` offered twelve per-forum moderator rights. Four of them
+granted nothing at all, on a screen whose entire job is saying who may do what.
+
+**"Restore posts" is a real right now.** Nothing read it: restoring a post or a
+thread was gated on *Delete posts*, so a moderator ticked for restore alone
+could restore nothing while the ModCP told them they held the right — and one
+ticked for delete quietly got the undo too. Restoring now needs *Restore posts*,
+and the ModCP's "My forums" says so.
+
+Nobody loses an undo they were already using: a migration grants *Restore posts*
+to every existing appointment that holds *Delete posts*. It runs once, and only
+adds. **New appointments do not get that pairing** — tick both boxes if you mean
+both, and see [what an appointment
+grants](./operating.md#what-an-appointment-grants).
+
+A group given `canSoftDeletePosts` in the forum matrix keeps both halves, since
+that cell has always been documented as the reversible one.
+
+**"Delete permanently", "Manage polls" and "See posters' addresses" are gone
+from the screen**, and their columns are dropped from `forum_moderators`. There
+is no hard-delete path, no per-forum poll management, and the ModCP's IP lookup
+is administrators and super-moderators only — so each was a promise the board
+had no way to keep, and shipping three new features to justify three checkboxes
+is not the honest fix. Whatever was ticked in them was already inert; nothing a
+board could observe changes when they go.
+
 ## What the CLI applies
 
 `community upgrade` applies **core migrations, then each installed plugin's, then

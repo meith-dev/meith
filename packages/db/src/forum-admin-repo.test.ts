@@ -2,12 +2,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
 import { FORUM_PERMISSION_FIELDS } from '@meith/core'
+import { NO_MODERATOR_RIGHTS } from '@meith/authorization'
 
 import { MODERATOR_RIGHTS } from './forum-admin-repo'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresForumAdminRepository } from './forum-admin-repo'
+import { columnName } from './schema/permission-columns'
 import { resultRows } from './result-rows'
 
 let harness: TestDb
@@ -301,6 +303,42 @@ describe('moderator appointments', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0]?.cascadeToSubforums).toBe(true)
     expect(rows[0]?.rights).toMatchObject({ canEditPosts: false, canStickThreads: true })
+  })
+
+  it('offers exactly the rights the Authorizer reads, and no others', () => {
+    expect([...MODERATOR_RIGHTS].sort()).toEqual(
+      Object.keys(NO_MODERATOR_RIGHTS).sort(),
+    )
+    for (const gone of ['canHardDeletePosts', 'canManagePolls', 'canViewIps']) {
+      expect(MODERATOR_RIGHTS).not.toContain(gone)
+    }
+  })
+
+  it('round-trips every right the screen offers, and stores nothing else', async () => {
+    const everything = Object.fromEntries(
+      MODERATOR_RIGHTS.map((right) => [right, true]),
+    ) as Record<(typeof MODERATOR_RIGHTS)[number], boolean>
+
+    await repo.appoint({
+      forumId: CHILD,
+      userId: 1,
+      groupId: null,
+      cascadeToSubforums: false,
+      rights: everything,
+    })
+
+    expect((await repo.listModerators(CHILD))[0]?.rights).toEqual(everything)
+
+    const columns = (
+      resultRows(
+        await db.execute(sql`
+          select column_name from information_schema.columns
+           where table_name = 'forum_moderators' and column_name like 'can_%'
+        `),
+      ) as Array<{ column_name: string }>
+    ).map((row) => row.column_name)
+
+    expect(columns.sort()).toEqual([...MODERATOR_RIGHTS].map(columnName).sort())
   })
 
   it('refuses an appointment that names both a member and a group, or neither', async () => {

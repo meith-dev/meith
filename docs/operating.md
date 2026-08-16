@@ -282,6 +282,49 @@ forum does not have, because a descendant that denied something the source
 inherits would leave you with two forums you had just been told now match. The
 change is previewed cell by cell before it applies.
 
+### What an appointment grants
+
+`/admin/forums/[id]` appoints a member or a group to one forum, optionally
+cascading to everything beneath it. It offers **nine** checkboxes, and each one
+is read by an authorization decision — there is nothing on that screen that
+grants nothing:
+
+| Checkbox | What it decides |
+|---|---|
+| Edit posts | `post.editOthers` — editing somebody else's post |
+| Delete posts | `post.softDelete` and `thread.delete` — moving content to `visibility=deleted` |
+| Restore posts | `post.restore` and `thread.restore` — putting deleted content back |
+| Approve content | `content.approve` — releasing held content, and the approval queue |
+| Open and close threads | `thread.lock` |
+| Stick threads | `thread.stick` |
+| Move threads | `thread.move`, in the source forum and the destination alike |
+| Merge threads | `thread.merge` |
+| Split threads | `thread.split` |
+
+Any appointment at all — even one carrying no checkbox — lets its holder *see*
+held and deleted content in that forum. That is what makes the queue readable;
+acting on what is in it needs the right that names the act.
+
+> [!IMPORTANT]
+> **Delete and restore are two grants, not one.** Somebody appointed with
+> *Delete posts* alone can remove a post and cannot put it back — including one
+> they removed themselves. Tick *Restore posts* as well unless withholding the
+> undo is what you meant.
+>
+> Boards upgrading past 0.4 keep what they had: a one-off migration granted
+> *Restore posts* to every existing appointment that held *Delete posts*, so
+> nobody lost an undo they were already using. New appointments start from
+> nothing and get exactly what is ticked.
+
+A group given `canSoftDeletePosts` in the forum matrix — rather than by
+appointment — can both delete and restore in that forum, because that cell has
+always meant "may move a post to deleted, reversibly" and there is no second
+cell beside it.
+
+**"My forums" in the ModCP lists what somebody actually holds**, per forum,
+using the same nine names. If a right is not in that list, the board will refuse
+the act; if it is, it will not.
+
 ### The one door no bypass opens
 
 `admincp.access`. Super-moderator and administrator bypasses apply everywhere

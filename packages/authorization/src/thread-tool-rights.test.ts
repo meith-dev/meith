@@ -70,6 +70,7 @@ const TOOLS: readonly Action[] = [
   'thread.stick',
   'thread.move',
   'thread.delete',
+  'thread.restore',
 ]
 
 async function allowed(
@@ -127,6 +128,20 @@ describe('moderatorRightsIn', () => {
     }
 
     expect(await allowed(actor([GROUP.registered]), [canDelete])).toEqual(['thread.delete'])
+  })
+
+  it('maps restoring a thread to the restore right, which deleting does not carry', async () => {
+    const canRestore: MemoryAppointment = {
+      ...NONE,
+      userId: 10,
+      forumId: FORUM.general,
+      cascadeToSubforums: false,
+      canRestorePosts: true,
+    }
+
+    expect(await allowed(actor([GROUP.registered]), [canRestore])).toEqual([
+      'thread.restore',
+    ])
   })
 
   it('follows the appointment down the tree only when it cascades', async () => {
@@ -189,6 +204,7 @@ describe('what an appointment grants over posts', () => {
   const POST_ACTIONS: readonly Action[] = [
     'post.editOthers',
     'post.softDelete',
+    'post.restore',
     'content.approve',
   ]
 
@@ -230,8 +246,24 @@ describe('what an appointment grants over posts', () => {
     ).toEqual(['post.softDelete'])
 
     expect(
+      await overPosts(actor([GROUP.registered]), [appointment({ canRestorePosts: true })]),
+    ).toEqual(['post.restore'])
+
+    expect(
       await overPosts(actor([GROUP.registered]), [appointment({ canApproveContent: true })]),
     ).toEqual(['content.approve'])
+  })
+
+  it('grants restoring to an appointment that holds both, and to neither otherwise', async () => {
+    expect(
+      await overPosts(actor([GROUP.registered]), [
+        appointment({ canSoftDeletePosts: true, canRestorePosts: true }),
+      ]),
+    ).toEqual(['post.softDelete', 'post.restore'])
+
+    expect(
+      await overPosts(actor([GROUP.registered]), [appointment({ canEditPosts: true })]),
+    ).toEqual(['post.editOthers'])
   })
 
   it('still grants a group that holds the column outright, with no appointment', async () => {
@@ -252,6 +284,7 @@ describe('what an appointment grants over posts', () => {
 
     expect(authorizer.can(who, 'post.editOthers', target)).toBe(true)
     expect(authorizer.can(who, 'post.softDelete', target)).toBe(true)
+    expect(authorizer.can(who, 'post.restore', target)).toBe(true)
   })
 
   it('lets any appointee see held and deleted content, whatever they may act on', async () => {

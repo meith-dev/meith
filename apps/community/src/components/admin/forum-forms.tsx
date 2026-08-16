@@ -369,15 +369,12 @@ const RIGHT_LABELS: Record<string, string> = {
   canEditPosts: "Edit posts",
   canSoftDeletePosts: "Delete posts",
   canRestorePosts: "Restore posts",
-  canHardDeletePosts: "Delete permanently",
   canApproveContent: "Approve content",
   canOpenCloseThreads: "Open and close threads",
   canStickThreads: "Stick threads",
   canMoveThreads: "Move threads",
   canMergeThreads: "Merge threads",
   canSplitThreads: "Split threads",
-  canManagePolls: "Manage polls",
-  canViewIps: "See posters' addresses",
 }
 
 export interface ModeratorRow {

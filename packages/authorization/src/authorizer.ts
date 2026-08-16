@@ -45,6 +45,7 @@ const FORUM_SCOPED: ReadonlySet<Action> = new Set<Action>([
   'post.editOthers',
   'post.deleteOwn',
   'post.softDelete',
+  'post.restore',
   'content.viewUnapproved',
   'content.viewDeleted',
   'content.approve',
@@ -52,6 +53,7 @@ const FORUM_SCOPED: ReadonlySet<Action> = new Set<Action>([
   'thread.stick',
   'thread.move',
   'thread.delete',
+  'thread.restore',
   'thread.merge',
   'thread.split',
   'attachment.upload',
@@ -391,6 +393,11 @@ export class Authorizer {
           target.moderatorRights?.canSoftDeletePosts === true ||
           forum.canSoftDeletePosts === true
         )
+      case 'post.restore':
+        return (
+          target.moderatorRights?.canRestorePosts === true ||
+          forum.canSoftDeletePosts === true
+        )
       case 'content.viewUnapproved':
         return (
           target.isForumModerator === true || forum.canViewUnapproved === true
@@ -411,6 +418,8 @@ export class Authorizer {
         return target.moderatorRights?.canMoveThreads === true
       case 'thread.delete':
         return target.moderatorRights?.canSoftDeletePosts === true
+      case 'thread.restore':
+        return target.moderatorRights?.canRestorePosts === true
       case 'thread.merge':
         return target.moderatorRights?.canMergeThreads === true
       case 'thread.split':

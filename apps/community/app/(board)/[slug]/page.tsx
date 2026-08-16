@@ -192,6 +192,9 @@ export default async function ForumPage({
     delete:
       inlineModeration !== null &&
       authorizer.can(actor, 'thread.delete', inlineTarget),
+    restore:
+      inlineModeration !== null &&
+      authorizer.can(actor, 'thread.restore', inlineTarget),
   }
   const inlineOffered = anyInlineTool(inlineRights)
   const inlineMoveTargets = !inlineRights.move
