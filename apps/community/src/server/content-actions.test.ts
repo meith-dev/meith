@@ -68,6 +68,7 @@ class FakeWrites implements ThreadWriteRepository, ReplyWriteRepository {
       threadId,
       slug: 'hello',
       title: 'Hello',
+      authorUserId: null,
       isLocked: false,
       visibility: 'visible',
       lastPostId: 31,

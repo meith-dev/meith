@@ -31,7 +31,7 @@ export async function latestScopeFor(actor: Actor): Promise<LatestScope> {
   const staff = actor.global.isAdministrator === true || actor.global.isSuperModerator === true
 
   return {
-    forumIds: await authorizer.forumIdsWhere(actor, 'thread.view'),
+    ...(await authorizer.threadAudience(actor)),
     content: contentScopeFrom({ seesUnapproved: staff, seesDeleted: staff }),
   }
 }

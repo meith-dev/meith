@@ -91,6 +91,7 @@ export class PostgresReportRepository implements ReportRepository {
             id: Number(row.id),
             forumId: null,
             threadId: null,
+            threadAuthorUserId: null,
             label: row.subject,
           }
     }
@@ -104,16 +105,28 @@ export class PostgresReportRepository implements ReportRepository {
       const row = rows[0]
       return row === undefined
         ? null
-        : { kind, id: Number(row.id), forumId: null, threadId: null, label: row.username }
+        : {
+            kind,
+            id: Number(row.id),
+            forumId: null,
+            threadId: null,
+            threadAuthorUserId: null,
+            label: row.username,
+          }
     }
 
     if (kind === 'thread') {
       const rows = resultRows(
         await this.db.execute(sql`
-          select id, forum_id, title from threads
+          select id, forum_id, author_user_id, title from threads
            where id = ${id} and ${visibleIn(threads.visibility, PUBLIC_CONTENT)}
         `),
-      ) as Array<{ id: number; forum_id: number; title: string }>
+      ) as Array<{
+        id: number
+        forum_id: number
+        author_user_id: number | null
+        title: string
+      }>
       const row = rows[0]
       return row === undefined
         ? null
@@ -122,20 +135,28 @@ export class PostgresReportRepository implements ReportRepository {
             id: Number(row.id),
             forumId: Number(row.forum_id),
             threadId: Number(row.id),
+            threadAuthorUserId:
+              row.author_user_id === null ? null : Number(row.author_user_id),
             label: row.title,
           }
     }
 
     const rows = resultRows(
       await this.db.execute(sql`
-        select p.id, p.forum_id, p.thread_id, t.title
+        select p.id, p.forum_id, p.thread_id, t.author_user_id, t.title
           from posts p
           join threads t on t.id = p.thread_id
          where p.id = ${id}
            and ${visibleIn(sql`p.visibility`, PUBLIC_CONTENT)}
            and ${visibleIn(sql`t.visibility`, PUBLIC_CONTENT)}
       `),
-    ) as Array<{ id: number; forum_id: number; thread_id: number; title: string }>
+    ) as Array<{
+      id: number
+      forum_id: number
+      thread_id: number
+      author_user_id: number | null
+      title: string
+    }>
     const row = rows[0]
     return row === undefined
       ? null
@@ -144,6 +165,8 @@ export class PostgresReportRepository implements ReportRepository {
           id: Number(row.id),
           forumId: Number(row.forum_id),
           threadId: Number(row.thread_id),
+          threadAuthorUserId:
+            row.author_user_id === null ? null : Number(row.author_user_id),
           label: row.title,
         }
   }

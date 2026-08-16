@@ -1,4 +1,4 @@
-import { PUBLIC_CONTENT } from '@meith/core'
+import { ALL_THREAD_AUTHORS, PUBLIC_CONTENT } from '@meith/core'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
@@ -22,12 +22,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { forums, posts, threads, authorizer, readState } = getContainer()
   if (threadId === null || postId === null || actor.userId === null || readState === null) return seeOther('/')
 
-  const thread = await threads.findById(threadId, PUBLIC_CONTENT)
+  const thread = await threads.findById(threadId, PUBLIC_CONTENT, ALL_THREAD_AUTHORS)
   if (!thread) return seeOther('/')
   const forum = await forums.findById(thread.forumId)
   if (!forum || !canHoldThreads(forum.type)) return seeOther('/')
   const matrix = await authorizer.forumMatrix(actor, forum.id)
-  if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) return seeOther('/')
+  const target = {
+    ...(await authorizer.moderatorTargetIn(actor, forum.id, matrix)),
+    threadAuthorId: thread.authorUserId,
+  }
+  if (!authorizer.can(actor, 'thread.view', target)) return seeOther('/')
   if ((await posts.findVisibleById(threadId, postId)) === null) return seeOther('/')
 
   await readState.markThreadRead(actor.userId, threadId, postId, new Date())

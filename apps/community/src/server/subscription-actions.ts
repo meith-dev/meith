@@ -22,19 +22,20 @@ async function mayView(target: 'thread' | 'forum', targetId: number): Promise<bo
   const actor = await getActor()
   const { authorizer, threads, forums } = getContainer()
 
-  const forumId =
-    target === 'forum' ? targetId : await threads.locateForum(targetId)
+  const located = target === 'forum' ? null : await threads.locate(targetId)
+  const forumId = target === 'forum' ? targetId : (located?.forumId ?? null)
   if (forumId === null) return false
 
   const forum = await forums.findById(forumId)
   if (!forum) return false
 
   const matrix = await authorizer.forumMatrix(actor, forumId)
-  return authorizer.can(
-    actor,
-    target === 'forum' ? 'forum.view' : 'thread.view',
-    { forumId, forum: matrix },
-  )
+  return target === 'forum'
+    ? authorizer.can(actor, 'forum.view', { forumId, forum: matrix })
+    : authorizer.can(actor, 'thread.view', {
+        ...(await authorizer.moderatorTargetIn(actor, forumId, matrix)),
+        threadAuthorId: located?.authorUserId ?? null,
+      })
 }
 
 export async function subscribeAction(_prev: FormState, form: FormData): Promise<FormState> {

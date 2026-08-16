@@ -20,6 +20,7 @@ import { postLink } from './post-link'
 export interface BoardIndexInput {
   readonly rows: readonly ForumListingRow[]
   readonly visibleForumIds: ReadonlySet<number>
+  readonly ownThreadsOnlyForumIds?: ReadonlySet<number>
   readonly unreadForumIds?: ReadonlySet<number>
   readonly markAllReadAction?: string | null
   readonly now: Date
@@ -68,17 +69,20 @@ function toForumRow(
   timeZone: string | undefined,
   unreadForumIds: ReadonlySet<number> | undefined,
   identities: ReadonlyMap<number, MemberIdentity> | undefined,
+  ownThreadsOnlyForumIds: ReadonlySet<number> | undefined,
 ): ForumRowModel {
+  const ownThreadsOnly = ownThreadsOnlyForumIds?.has(node.id) ?? false
+
   return {
     id: node.id,
     title: node.title,
     description: node.description,
     href: hrefFor(node),
     type: node.type,
-    threadCount: node.threadCount,
-    postCount: node.postCount,
-    lastPost: toLastPost(node, now, timeZone, identities),
-    isUnread: unreadForumIds?.has(node.id) ?? false,
+    threadCount: ownThreadsOnly ? 0 : node.threadCount,
+    postCount: ownThreadsOnly ? 0 : node.postCount,
+    lastPost: ownThreadsOnly ? null : toLastPost(node, now, timeZone, identities),
+    isUnread: !ownThreadsOnly && (unreadForumIds?.has(node.id) ?? false),
     subforums: node.children.map(
       (child): LinkModel => ({ label: child.title, href: hrefFor(child) }),
     ),
@@ -117,7 +121,14 @@ export function buildSectionView(input: SectionInput): BoardIndexBlock | null {
   if (node === null) return null
 
   const row = (candidate: ForumNode<ForumListingRow>): ForumRowModel =>
-    toForumRow(candidate, input.now, input.timeZone, input.unreadForumIds, input.identities)
+    toForumRow(
+      candidate,
+      input.now,
+      input.timeZone,
+      input.unreadForumIds,
+      input.identities,
+      input.ownThreadsOnlyForumIds,
+    )
 
   return { block: { category: row(node) }, forums: node.children.map(row) }
 }
@@ -137,10 +148,18 @@ export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
           input.timeZone,
           input.unreadForumIds,
           input.identities,
+          input.ownThreadsOnlyForumIds,
         ),
       },
       forums: node.children.map((child) =>
-        toForumRow(child, input.now, input.timeZone, input.unreadForumIds, input.identities),
+        toForumRow(
+          child,
+          input.now,
+          input.timeZone,
+          input.unreadForumIds,
+          input.identities,
+          input.ownThreadsOnlyForumIds,
+        ),
       ),
     })),
   }

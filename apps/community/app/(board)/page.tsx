@@ -25,9 +25,9 @@ export default async function BoardIndexPage() {
   const actor = await getActor()
   const { forums, authorizer, readState } = getContainer()
 
-  const [rows, visible, read, preferences] = await Promise.all([
+  const [rows, listing, read, preferences] = await Promise.all([
     forums.listListing(),
-    authorizer.visibleForumIds(actor),
+    authorizer.listingVisibility(actor),
     actor.userId === null || readState === null ? Promise.resolve(null) : readState.forUser(actor.userId),
     getViewerPreferences(),
   ])
@@ -50,7 +50,8 @@ export default async function BoardIndexPage() {
 
   const view = buildBoardIndexView({
     rows,
-    visibleForumIds: new Set(visible),
+    visibleForumIds: new Set(listing.visibleForumIds),
+    ownThreadsOnlyForumIds: new Set(listing.ownThreadsOnlyForumIds),
     ...(read === null ? {} : { unreadForumIds: read.unreadForumIds }),
     markAllReadAction: read === null ? null : '/api/read/all',
     now,
@@ -59,7 +60,7 @@ export default async function BoardIndexPage() {
   })
 
   const announcements = await liveAnnouncements({
-    visibleForumIds: visible,
+    visibleForumIds: listing.visibleForumIds,
     now,
     timeZone: preferences.timezone,
   })

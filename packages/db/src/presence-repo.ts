@@ -5,12 +5,15 @@ import type { ContentScope } from '@meith/core'
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { toDate } from './row-values'
+import { inAudience } from './thread-audience'
 import { visibleIn } from './visibility'
 
 export const ONLINE_WINDOW_MINUTES = 15
 
 export interface OnlineScope {
   readonly forumIds: readonly number[]
+  readonly ownThreadsOnlyForumIds: readonly number[]
+  readonly viewerUserId: number | null
   readonly content: ContentScope
   readonly seesInvisible: boolean
 }
@@ -53,7 +56,11 @@ export class PostgresPresenceRepository {
             sql`, `,
           )})`
 
-    const mayNameThread = sql`(${mayName} and ${visibleIn(sql`t.visibility`, scope.content)})`
+    const mayNameThread = sql`(${inAudience(
+      sql`t.forum_id`,
+      sql`t.author_user_id`,
+      scope,
+    )} and ${visibleIn(sql`t.visibility`, scope.content)})`
 
     const rows = resultRows(
       await this.db.execute(sql`

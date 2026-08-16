@@ -116,7 +116,7 @@ function installContainer(
     container: {
       threadSurgery: surgery,
       threads: {
-        locateForum: async (id: number) => forumOf[id] ?? null,
+        locate: async (id: number) => forumOf[id] ?? null,
         findById: async () => null,
         listForum: async () => ({ rows: [], nextCursor: null }),
       },

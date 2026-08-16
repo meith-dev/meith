@@ -18,6 +18,7 @@ export interface Actor {
 export type Action =
   | 'forum.view'
   | 'thread.view'
+  | 'thread.viewOthers'
   | 'thread.post'
   | 'reply.post'
   | 'poll.post'
@@ -65,6 +66,7 @@ export interface Target {
   readonly forumId?: number
   readonly forum?: ForumPermissions
   readonly ownerId?: number | null
+  readonly threadAuthorId?: number | null
   readonly visibility?: ContentVisibility
   readonly isForumModerator?: boolean
   readonly moderatorRights?: ModeratorRights

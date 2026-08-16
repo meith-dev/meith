@@ -39,7 +39,7 @@ export function installTestContainer(
     ...identityOver(store),
 
     threads: {
-      locateForum: async () => null,
+      locate: async () => null,
       findById: async () => null,
       listForum: async () => ({ rows: [], nextCursor: null }),
     },

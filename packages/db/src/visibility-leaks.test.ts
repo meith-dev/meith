@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
 import {
+  ALL_THREAD_AUTHORS,
   PUBLIC_CONTENT,
   contentScopeFrom,
   type ContentScope,
@@ -118,7 +119,11 @@ const PATHS: ReadonlyArray<{
   {
     name: 'threads.listForum',
     async run(scope) {
-      const page = await threads.listForum(FORUM, { limit: 50, scope })
+      const page = await threads.listForum(FORUM, {
+        limit: 50,
+        scope,
+        authors: ALL_THREAD_AUTHORS,
+      })
       return page.rows.map((row) => row.visibility)
     },
   },
@@ -126,7 +131,9 @@ const PATHS: ReadonlyArray<{
     name: 'threads.findById',
     async run(scope) {
       const found = await Promise.all(
-        Object.values(THREAD).map((id) => threads.findById(id, scope)),
+        Object.values(THREAD).map((id) =>
+          threads.findById(id, scope, ALL_THREAD_AUTHORS),
+        ),
       )
       return found.flatMap((row) => (row === null ? [] : [row.visibility]))
     },
@@ -154,7 +161,9 @@ describe('no read path returns content outside its scope', () => {
 
   it('shows exactly the expected threads at each scope', async () => {
     const listed = async (scope: ContentScope): Promise<number[]> =>
-      (await threads.listForum(FORUM, { limit: 50, scope })).rows.map((row) => row.id).sort()
+      (await threads.listForum(FORUM, { limit: 50, scope, authors: ALL_THREAD_AUTHORS })).rows
+        .map((row) => row.id)
+        .sort()
 
     expect(await listed(PUBLIC_CONTENT)).toEqual([THREAD.visible])
     expect(await listed(contentScopeFrom({ seesUnapproved: true, seesDeleted: false }))).toEqual(

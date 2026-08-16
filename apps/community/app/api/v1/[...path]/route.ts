@@ -138,21 +138,33 @@ async function threadScope(
   threadId: number,
 ): Promise<{
   readonly scope: ReturnType<ReturnType<typeof getContainer>['authorizer']['contentScope']>
+  readonly authors: ReturnType<
+    ReturnType<typeof getContainer>['authorizer']['authorFilter']
+  >
   readonly forumId: number
 } | null> {
   const { authorizer, forums, threads } = getContainer()
 
-  const forumId = await threads.locateForum(threadId)
-  if (forumId === null) return null
+  const located = await threads.locate(threadId)
+  if (located === null) return null
 
-  const forum = await forums.findById(forumId)
+  const forum = await forums.findById(located.forumId)
   if (!forum || !canHoldThreads(forum.type)) return null
 
   const matrix = await authorizer.forumMatrix(actor, forum.id)
-  if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) return null
+  const target = await authorizer.moderatorTargetIn(actor, forum.id, matrix)
+  if (
+    !authorizer.can(actor, 'thread.view', {
+      ...target,
+      threadAuthorId: located.authorUserId,
+    })
+  ) {
+    return null
+  }
 
   return {
-    scope: await authorizer.contentScopeIn(actor, forum.id, matrix),
+    scope: authorizer.contentScope(actor, target),
+    authors: authorizer.authorFilter(actor, target),
     forumId: forum.id,
   }
 }
@@ -238,10 +250,12 @@ async function dispatch(
         return notFound
       }
 
+      const target = await authorizer.moderatorTargetIn(actor, forum.id, matrix)
       const cursor = decodeCursor<ThreadCursor>(url.searchParams.get('after'))
       const page = await threads.listForum(forum.id, {
         limit: pageLimit(url),
-        scope: await authorizer.contentScopeIn(actor, forum.id, matrix),
+        scope: authorizer.contentScope(actor, target),
+        authors: authorizer.authorFilter(actor, target),
         ...(cursor === null
           ? {}
           : { after: { ...cursor, lastPostAt: new Date(cursor.lastPostAt) } }),
@@ -263,7 +277,7 @@ async function dispatch(
       const resolved = await threadScope(actor, threadId)
       if (resolved === null) return notFound
 
-      const thread = await threads.findById(threadId, resolved.scope)
+      const thread = await threads.findById(threadId, resolved.scope, resolved.authors)
       if (!thread) return notFound
 
       return { status: 200, body: { data: threadBody(thread) } }

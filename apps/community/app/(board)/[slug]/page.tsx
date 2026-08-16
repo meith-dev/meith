@@ -132,13 +132,15 @@ export default async function ForumPage({
     threadWrites,
     inlineModeration,
   } = getContainer()
-  const [rows, visible, read] = await Promise.all([
+  const [rows, listing, read] = await Promise.all([
     forums.listListing(),
-    authorizer.visibleForumIds(actor),
+    authorizer.listingVisibility(actor),
     actor.userId === null || readState === null
       ? Promise.resolve(null)
       : readState.forUser(actor.userId),
   ])
+  const visible = listing.visibleForumIds
+  const ownThreadsOnlyForumIds = new Set(listing.ownThreadsOnlyForumIds)
   const forum = rows.find((row) => row.id === id)
   if (!forum || !visible.includes(id)) notFound()
 
@@ -148,6 +150,7 @@ export default async function ForumPage({
         category={forum}
         rows={rows}
         visibleForumIds={new Set(visible)}
+        ownThreadsOnlyForumIds={ownThreadsOnlyForumIds}
         {...(read === null ? {} : { unreadForumIds: read.unreadForumIds })}
         homeLabel={(await getSettings()).get('board.name')}
       />
@@ -166,6 +169,7 @@ export default async function ForumPage({
     ...(after === undefined ? {} : { after }),
     limit: preferences.threadsPerPage,
     scope,
+    authors: authorizer.authorFilter(actor, inlineTarget),
     sort,
   })
   const nextHref = threadPage.nextCursor
@@ -220,6 +224,7 @@ export default async function ForumPage({
     subforums: rows.filter(
       (row) => row.parentId === id && visible.includes(row.id),
     ),
+    ownThreadsOnlyForumIds,
     page: threadPage,
     pageNumber: page,
     nextHref,

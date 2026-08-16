@@ -132,7 +132,7 @@ function install(forumId: number | null = SEED_FORUM.general, hidden = false) {
       subscriptions,
       notifications,
       threads: {
-        locateForum: async () => forumId,
+        locate: async () => forumId,
         findById: async () => ({ id: forumId ?? 0, type: 'forum', title: 'A forum', slug: 'a-forum' }),
         listForum: async () => ({ rows: [], nextCursor: null }),
       },

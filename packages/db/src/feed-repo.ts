@@ -5,10 +5,13 @@ import type { ContentScope } from '@meith/core'
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { toDate } from './row-values'
+import { audienceIsEmpty, inAudience } from './thread-audience'
 import { visibleIn } from './visibility'
 
 export interface FeedScope {
   readonly forumIds: readonly number[]
+  readonly ownThreadsOnlyForumIds: readonly number[]
+  readonly viewerUserId: number | null
   readonly content: ContentScope
 }
 
@@ -57,19 +60,13 @@ export class PostgresFeedRepository {
     scope: FeedScope,
     forumId?: number,
   ): Promise<readonly FeedThread[]> {
-    if (scope.forumIds.length === 0) return []
+    if (audienceIsEmpty(scope)) return []
 
+    const audience = inAudience(sql`t.forum_id`, sql`t.author_user_id`, scope)
     const forums =
       forumId === undefined
-        ? sql`t.forum_id in (${sql.join(
-            scope.forumIds.map((id) => sql`${id}`),
-            sql`, `,
-          )})`
-        :
-          sql`t.forum_id = ${forumId} and t.forum_id in (${sql.join(
-            scope.forumIds.map((id) => sql`${id}`),
-            sql`, `,
-          )})`
+        ? audience
+        : sql`t.forum_id = ${forumId} and ${audience}`
 
     const rows = resultRows(
       await this.db.execute(sql`
@@ -112,7 +109,7 @@ export class PostgresFeedRepository {
     limit: number,
     scope: FeedScope,
   ): Promise<readonly FeedPost[]> {
-    if (scope.forumIds.length === 0) return []
+    if (audienceIsEmpty(scope)) return []
 
     const rows = resultRows(
       await this.db.execute(sql`
@@ -121,10 +118,7 @@ export class PostgresFeedRepository {
           from posts p
           join threads t on t.id = p.thread_id
          where p.thread_id = ${threadId}
-           and t.forum_id in (${sql.join(
-             scope.forumIds.map((id) => sql`${id}`),
-             sql`, `,
-           )})
+           and ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, scope)}
            and ${visibleIn(sql`t.visibility`, scope.content)}
            and ${visibleIn(sql`p.visibility`, scope.content)}
          order by p.created_at desc, p.id desc
@@ -167,16 +161,13 @@ export class PostgresFeedRepository {
   }
 
   async sitemapThreadCount(scope: FeedScope): Promise<number> {
-    if (scope.forumIds.length === 0) return 0
+    if (audienceIsEmpty(scope)) return 0
 
     const rows = resultRows(
       await this.db.execute(sql`
         select count(*)::int as n
           from threads t
-         where t.forum_id in (${sql.join(
-           scope.forumIds.map((id) => sql`${id}`),
-           sql`, `,
-         )})
+         where ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, scope)}
            and ${visibleIn(sql`t.visibility`, scope.content)}
       `),
     ) as Array<{ n: number }>
@@ -186,16 +177,13 @@ export class PostgresFeedRepository {
 
   async sitemapBoundaryId(skip: number, scope: FeedScope): Promise<number | null> {
     if (skip <= 0) return 0
-    if (scope.forumIds.length === 0) return null
+    if (audienceIsEmpty(scope)) return null
 
     const rows = resultRows(
       await this.db.execute(sql`
         select t.id
           from threads t
-         where t.forum_id in (${sql.join(
-           scope.forumIds.map((id) => sql`${id}`),
-           sql`, `,
-         )})
+         where ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, scope)}
            and ${visibleIn(sql`t.visibility`, scope.content)}
          order by t.id
          offset ${skip - 1}
@@ -211,16 +199,13 @@ export class PostgresFeedRepository {
     limit: number,
     scope: FeedScope,
   ): Promise<readonly SitemapThread[]> {
-    if (scope.forumIds.length === 0) return []
+    if (audienceIsEmpty(scope)) return []
 
     const rows = resultRows(
       await this.db.execute(sql`
         select t.id, t.slug, t.last_post_at
           from threads t
-         where t.forum_id in (${sql.join(
-           scope.forumIds.map((id) => sql`${id}`),
-           sql`, `,
-         )})
+         where ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, scope)}
            and ${visibleIn(sql`t.visibility`, scope.content)}
            and t.id > ${afterId}
          order by t.id
