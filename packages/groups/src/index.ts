@@ -6,7 +6,9 @@ export {
   type PromotionRule,
 } from './promotion'
 
-export type { PromotionRepository } from './ports'
+export { promotionRuleProblem, type PromotionRuleInput } from './promotion-rules'
+
+export type { PromotionRepository, PromotionRuleRepository } from './ports'
 
 export {
   PromotionService,

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { PERMISSION_FIELDS } from '@meith/core'
+import { PERMISSION_FIELDS, ValidationError } from '@meith/core'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
 const requireAdminMock = vi.fn(async () => ({ userId: 1 }))
@@ -29,7 +29,36 @@ const chunks: Array<Record<string, number>> = []
 const chunkResult = { current: { moved: 2, nextCursor: 7 as number | null } }
 const applied = { current: { outcomes: [{ userId: 1 }], examined: 9 } }
 
+const rulesCreated: Array<Record<string, unknown>> = []
+const rulesUpdated: Array<{ id: number; input: Record<string, unknown> }> = []
+const rulesToggled: Array<{ id: number; enabled: boolean }> = []
+const rulesRemoved: number[] = []
+const ruleRefusal = { current: null as Error | null }
+
+function refuseIfAsked(): void {
+  if (ruleRefusal.current !== null) throw ruleRefusal.current
+}
+
 vi.mock('./group-admin', () => ({
+  requirePromotionRules: () => ({
+    async createRule(input: Record<string, unknown>) {
+      refuseIfAsked()
+      rulesCreated.push(input)
+      return 11
+    },
+    async updateRule(id: number, input: Record<string, unknown>) {
+      refuseIfAsked()
+      rulesUpdated.push({ id, input })
+    },
+    async setRuleEnabled(id: number, enabled: boolean) {
+      refuseIfAsked()
+      rulesToggled.push({ id, enabled })
+    },
+    async deleteRule(id: number) {
+      refuseIfAsked()
+      rulesRemoved.push(id)
+    },
+  }),
   requireGroupAdmin: () => ({
     async savePermissions(groupId: number, permissions: Record<string, boolean | number>) {
       saved.push({ groupId, permissions })
@@ -59,11 +88,25 @@ vi.mock('./group-admin', () => ({
 const {
   applyPromotionsAction,
   createGroupAction,
+  createPromotionRuleAction,
   deleteGroupAction,
+  deletePromotionRuleAction,
   moveMembersAction,
   saveGroupIdentityAction,
   saveGroupPermissionsAction,
+  setPromotionRuleEnabledAction,
+  updatePromotionRuleAction,
 } = await import('./group-admin-actions')
+
+const RULE = {
+  title: 'Veteran',
+  displayOrder: '3',
+  minPostCount: '100',
+  minReputation: '',
+  minDaysRegistered: '',
+  fromPrimaryGroupId: '2',
+  toPrimaryGroupId: '50',
+}
 
 function form(fields: Record<string, string>): FormData {
   const data = new FormData()
@@ -79,6 +122,11 @@ beforeEach(() => {
   created.length = 0
   removed.length = 0
   chunks.length = 0
+  rulesCreated.length = 0
+  rulesUpdated.length = 0
+  rulesToggled.length = 0
+  rulesRemoved.length = 0
+  ruleRefusal.current = null
   chunkResult.current = { moved: 2, nextCursor: 7 }
   applied.current = { outcomes: [{ userId: 1 }], examined: 9 }
   requireAdminMock.mockClear()
@@ -334,10 +382,148 @@ describe('applyPromotionsAction', () => {
     const state = await applyPromotionsAction({}, form({}))
 
     expect(state.notice).toBe('promoted:1')
-    expect(revalidated).toEqual(['/admin/groups', '/admin/groups/[id]'])
     expect(adminCalls[0]).toEqual({
       action: 'group.promotions_applied',
       detail: { promoted: 1, examined: 9 },
     })
+  })
+
+  it('refreshes the preview it just invalidated', async () => {
+    await applyPromotionsAction({}, form({}))
+
+    expect(revalidated).toEqual([
+      '/admin/groups',
+      '/admin/groups/[id]',
+      '/admin/groups/promotions',
+    ])
+  })
+})
+
+describe('promotion rules', () => {
+  it('asks for the admin gate on every write', async () => {
+    await createPromotionRuleAction({}, form(RULE))
+    await updatePromotionRuleAction({}, form({ ...RULE, id: '4' }))
+    await setPromotionRuleEnabledAction({}, form({ id: '4' }))
+
+    expect(requireAdminMock).toHaveBeenCalledTimes(3)
+    expect(requireFreshAdminMock).not.toHaveBeenCalled()
+  })
+
+  it('re-authenticates a removal, because it is the one press with no undo', async () => {
+    await deletePromotionRuleAction({}, form({ id: '4' }))
+
+    expect(requireFreshAdminMock).toHaveBeenCalledTimes(1)
+    expect(requireAdminMock).not.toHaveBeenCalled()
+    expect(rulesRemoved).toEqual([4])
+  })
+
+  it('writes nothing and logs nothing when the gate refuses', async () => {
+    requireAdminMock.mockRejectedValue(
+      Object.assign(new Error('nope'), { code: 'FORBIDDEN', publicMessage: 'nope' }),
+    )
+
+    const state = await createPromotionRuleAction({}, form(RULE))
+
+    expect(state.error).toBeDefined()
+    expect(rulesCreated).toEqual([])
+    expect(adminCalls).toEqual([])
+    expect(revalidated).toEqual([])
+  })
+
+  it('does not re-authenticate a removal it has already refused', async () => {
+    requireFreshAdminMock.mockRejectedValue(
+      Object.assign(new Error('nope'), { code: 'FORBIDDEN', publicMessage: 'nope' }),
+    )
+
+    const state = await deletePromotionRuleAction({}, form({ id: '4' }))
+
+    expect(state.error).toBeDefined()
+    expect(rulesRemoved).toEqual([])
+    expect(adminCalls).toEqual([])
+  })
+
+  it('reads a blank criterion as no constraint, and a blank order as zero', async () => {
+    await createPromotionRuleAction(
+      {},
+      form({ ...RULE, displayOrder: '', minDaysRegistered: '' }),
+    )
+
+    expect(rulesCreated[0]).toEqual({
+      title: 'Veteran',
+      displayOrder: 0,
+      minPostCount: 100,
+      minReputation: null,
+      minDaysRegistered: null,
+      fromPrimaryGroupId: 2,
+      toPrimaryGroupId: 50,
+    })
+  })
+
+  it('reads an unchosen source group as "any group"', async () => {
+    await createPromotionRuleAction({}, form({ ...RULE, fromPrimaryGroupId: '' }))
+    expect(rulesCreated[0]?.fromPrimaryGroupId).toBeNull()
+  })
+
+  it('logs the rule it created, and refreshes the screen it is read from', async () => {
+    const state = await createPromotionRuleAction({}, form(RULE))
+
+    expect(state.notice).toBe('created')
+    expect(revalidated).toEqual(['/admin/groups/promotions'])
+    expect(adminCalls).toEqual([
+      { action: 'group.promotion_rule_added', detail: { ruleId: 11 } },
+    ])
+  })
+
+  it('logs an edit against the rule it edited', async () => {
+    const state = await updatePromotionRuleAction({}, form({ ...RULE, id: '4' }))
+
+    expect(state.notice).toBe('saved')
+    expect(rulesUpdated[0]?.id).toBe(4)
+    expect(adminCalls).toEqual([
+      { action: 'group.promotion_rule_changed', detail: { ruleId: 4 } },
+    ])
+  })
+
+  it('logs which way a toggle went', async () => {
+    await setPromotionRuleEnabledAction({}, form({ id: '4', enabled: '1' }))
+    await setPromotionRuleEnabledAction({}, form({ id: '4' }))
+
+    expect(rulesToggled).toEqual([
+      { id: 4, enabled: true },
+      { id: 4, enabled: false },
+    ])
+    expect(adminCalls).toEqual([
+      { action: 'group.promotion_rule_toggled', detail: { ruleId: 4, enabled: true } },
+      { action: 'group.promotion_rule_toggled', detail: { ruleId: 4, enabled: false } },
+    ])
+  })
+
+  it('logs a removal', async () => {
+    const state = await deletePromotionRuleAction({}, form({ id: '4' }))
+
+    expect(state.notice).toBe('deleted')
+    expect(adminCalls).toEqual([
+      { action: 'group.promotion_rule_removed', detail: { ruleId: 4 } },
+    ])
+  })
+
+  it('refuses a rule id that is not a rule id, before touching the store', async () => {
+    for (const id of ['', '0', '-1', 'seven']) {
+      const state = await updatePromotionRuleAction({}, form({ ...RULE, id }))
+      expect(state.error, id).toMatch(/no such promotion rule/i)
+    }
+
+    expect(rulesUpdated).toEqual([])
+    expect(adminCalls).toEqual([])
+  })
+
+  it('turns the store’s refusal into a message, and logs nothing', async () => {
+    ruleRefusal.current = new ValidationError('A rule with no criteria matches everyone.')
+
+    const state = await createPromotionRuleAction({}, form(RULE))
+
+    expect(state.error).toMatch(/no criteria/i)
+    expect(adminCalls).toEqual([])
+    expect(revalidated).toEqual([])
   })
 })

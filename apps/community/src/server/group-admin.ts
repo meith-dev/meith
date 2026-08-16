@@ -69,6 +69,22 @@ function permissionCells(permissions: PermissionSet): readonly GroupPermissionCe
   }))
 }
 
+export function promotionRuleRepository(): PostgresPromotionRepository | null {
+  return getContainer().dataSource === 'postgres'
+    ? new PostgresPromotionRepository(getDb())
+    : null
+}
+
+export function requirePromotionRules(): PostgresPromotionRepository {
+  const repository = promotionRuleRepository()
+  if (repository === null) {
+    throw new ForbiddenError(
+      'This board is running on in-memory sample data, so its promotion rules cannot be edited.',
+    )
+  }
+  return repository
+}
+
 export async function previewPromotions(limit = 500): Promise<PromotionRunResult | null> {
   if (getContainer().dataSource !== 'postgres') return null
 
