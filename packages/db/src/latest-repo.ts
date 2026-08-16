@@ -5,10 +5,13 @@ import type { ContentScope } from '@meith/core'
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { toDate } from './row-values'
+import { audienceIsEmpty, inAudience } from './thread-audience'
 import { visibleIn } from './visibility'
 
 export interface LatestScope {
   readonly forumIds: readonly number[]
+  readonly ownThreadsOnlyForumIds: readonly number[]
+  readonly viewerUserId: number | null
   readonly content: ContentScope
 }
 
@@ -45,7 +48,7 @@ export class PostgresLatestRepository {
   constructor(private readonly db: Database) {}
 
   async threads(limit: number, scope: LatestScope): Promise<readonly LatestThreadRow[]> {
-    if (scope.forumIds.length === 0) return []
+    if (audienceIsEmpty(scope)) return []
 
     const rows = resultRows(
       await this.db.execute(sql`
@@ -54,10 +57,7 @@ export class PostgresLatestRepository {
                t.reply_count, t.created_at
           from threads t
           join forums f on f.id = t.forum_id
-         where t.forum_id in (${sql.join(
-           scope.forumIds.map((id) => sql`${id}`),
-           sql`, `,
-         )})
+         where ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, scope)}
            and ${visibleIn(sql`t.visibility`, scope.content)}
          order by t.id desc
          limit ${limit}
@@ -79,7 +79,7 @@ export class PostgresLatestRepository {
   }
 
   async posts(limit: number, scope: LatestScope): Promise<readonly LatestPostRow[]> {
-    if (scope.forumIds.length === 0) return []
+    if (audienceIsEmpty(scope)) return []
 
     const rows = resultRows(
       await this.db.execute(sql`
@@ -90,10 +90,7 @@ export class PostgresLatestRepository {
           from posts p
           join threads t on t.id = p.thread_id
           join forums f on f.id = t.forum_id
-         where t.forum_id in (${sql.join(
-           scope.forumIds.map((id) => sql`${id}`),
-           sql`, `,
-         )})
+         where ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, scope)}
            and ${visibleIn(sql`t.visibility`, scope.content)}
            and ${visibleIn(sql`p.visibility`, scope.content)}
          order by p.id desc

@@ -91,6 +91,7 @@ class FakeAttachments {
     record: record(),
     postVisibility: 'visible',
     threadVisibility: 'visible',
+    threadAuthorUserId: null,
   }
   created: unknown[] = []
   downloads: number[] = []
@@ -290,6 +291,7 @@ describe('resolving a download', () => {
       record: record({ thumbnailKey: null }),
       postVisibility: 'visible',
       threadVisibility: 'visible',
+      threadAuthorUserId: null,
     }
     expect(await get('thumb')).toBeNull()
   })
@@ -299,6 +301,7 @@ describe('resolving a download', () => {
       record: record({ status: 'pending', storageKey: null, sourceKey: 'attachments/a/source' }),
       postVisibility: 'visible',
       threadVisibility: 'visible',
+      threadAuthorUserId: null,
     }
     expect(await get()).toBeNull()
   })
@@ -308,6 +311,7 @@ describe('resolving a download', () => {
       record: record({ status: 'failed', storageKey: null }),
       postVisibility: 'visible',
       threadVisibility: 'visible',
+      threadAuthorUserId: null,
     }
     expect(await get()).toBeNull()
   })
@@ -317,6 +321,7 @@ describe('resolving a download', () => {
       record: record({ status: 'pending', storageKey: 'attachments/a/file' }),
       postVisibility: 'visible',
       threadVisibility: 'visible',
+      threadAuthorUserId: null,
     }
     expect(await get()).toBeNull()
   })
@@ -336,6 +341,7 @@ describe('resolving a download', () => {
       record: record({ forumId: SEED_FORUM.announcements }),
       postVisibility: 'visible',
       threadVisibility: 'visible',
+      threadAuthorUserId: null,
     }
     expect(await get()).toBeNull()
   })
@@ -359,6 +365,7 @@ describe('resolving a download', () => {
       record: record(),
       postVisibility: 'deleted',
       threadVisibility: 'visible',
+      threadAuthorUserId: null,
     }
     expect(await get()).toBeNull()
 
@@ -366,6 +373,7 @@ describe('resolving a download', () => {
       record: record(),
       postVisibility: 'visible',
       threadVisibility: 'unapproved',
+      threadAuthorUserId: null,
     }
     expect(await get()).toBeNull()
   })
@@ -375,6 +383,7 @@ describe('resolving a download', () => {
       record: record(),
       postVisibility: 'unapproved',
       threadVisibility: 'visible',
+      threadAuthorUserId: null,
     }
     actorRef.current = await actorFor(SEED_GROUP.superModerators, 2)
 

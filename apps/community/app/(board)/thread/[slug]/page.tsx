@@ -67,22 +67,27 @@ export async function generateMetadata({
   const actor = await getActor()
   const { forums, threads, authorizer } = getContainer()
 
-  const forumId = await threads.locateForum(id)
-  if (forumId === null) return { title: 'Thread' }
+  const located = await threads.locate(id)
+  if (located === null) return { title: 'Thread' }
 
-  const forum = await forums.findById(forumId)
+  const forum = await forums.findById(located.forumId)
   if (!forum || !canHoldThreads(forum.type)) return { title: 'Thread' }
 
   const matrix = await authorizer.forumMatrix(actor, forum.id)
+  const target = await authorizer.moderatorTargetIn(actor, forum.id, matrix)
   if (
-    !authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })
+    !authorizer.can(actor, 'thread.view', {
+      ...target,
+      threadAuthorId: located.authorUserId,
+    })
   ) {
     return { title: 'Thread' }
   }
 
   const thread = await threads.findById(
     id,
-    await authorizer.contentScopeIn(actor, forum.id, matrix),
+    authorizer.contentScope(actor, target),
+    authorizer.authorFilter(actor, target),
   )
   if (!thread) return { title: 'Thread' }
 
@@ -184,20 +189,28 @@ export default async function ThreadPage({
     polls,
     drafts,
   } = getContainer()
-  const forumId = await threads.locateForum(id)
-  if (forumId === null) notFound()
+  const located = await threads.locate(id)
+  if (located === null) notFound()
 
-  const forum = await forums.findById(forumId)
+  const forum = await forums.findById(located.forumId)
   if (!forum || !canHoldThreads(forum.type)) notFound()
   const matrix = await authorizer.forumMatrix(actor, forum.id)
+
+  const appointment = await moderatorTargetFor(actor, forum.id, matrix)
   if (
-    !authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })
+    !authorizer.can(actor, 'thread.view', {
+      ...appointment,
+      threadAuthorId: located.authorUserId,
+    })
   )
     notFound()
 
-  const appointment = await moderatorTargetFor(actor, forum.id, matrix)
   const scope = authorizer.contentScope(actor, appointment)
-  const thread = await threads.findById(id, scope)
+  const thread = await threads.findById(
+    id,
+    scope,
+    authorizer.authorFilter(actor, appointment),
+  )
   if (!thread) notFound()
 
   const preferences = await getViewerPreferences()

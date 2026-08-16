@@ -80,6 +80,8 @@ async function seedPost(post: SeedPost): Promise<void> {
 
 const scope = (overrides: Partial<LatestScope> = {}): LatestScope => ({
   forumIds: [OPEN, PRIVATE],
+  ownThreadsOnlyForumIds: [],
+  viewerUserId: null,
   content: PUBLIC_CONTENT,
   ...overrides,
 })

@@ -1,4 +1,4 @@
-export type { ThreadRepository } from "./ports";
+export type { ThreadLocation, ThreadRepository } from "./ports";
 export type {
   ThreadCursor,
   ThreadLastPost,

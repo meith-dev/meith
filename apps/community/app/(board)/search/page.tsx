@@ -21,8 +21,10 @@ import {
   type SearchFilterSet,
 } from '@meith/search'
 
+import { SearchOffNotice } from '@/components/board/search-off-notice'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
+import { SEARCH_OFF_MESSAGE, searchEnabled } from '@/server/search'
 import { MAX_AUTHOR_NAMES, runSearch, type RunSearchOutcome } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
 import { currentTheme } from '@/server/theme'
@@ -58,6 +60,8 @@ export default async function SearchPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
+  if (!(await searchEnabled())) return <SearchOffNotice message={SEARCH_OFF_MESSAGE} />
+
   const params = await searchParams
   const submitted = read(params)
 
@@ -123,7 +127,9 @@ function errorFor(outcome: Exclude<RunSearchOutcome, { kind: 'ok' }>): string {
   }
   if (outcome.kind === 'limited') return outcome.message
   if (outcome.kind === 'unknown-author') return `Nobody here is called “${outcome.name}”.`
-  if (outcome.reason === 'too-short') return 'That search is too short — try a whole word.'
+  if (outcome.reason === 'too-short') {
+    return `That search is too short — one word in it has to be at least ${outcome.minWordLength} characters.`
+  }
   if (outcome.reason === 'too-long') return 'That search is too long to run.'
   return 'Type something to search for.'
 }

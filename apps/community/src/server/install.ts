@@ -214,6 +214,7 @@ async function performInstall(input: InstallInput): Promise<readonly StepOutcome
           ...DEFAULT_AUTH_POLICY,
           activationMethod: 'none',
         }),
+        registrationEnabled: true,
         activationMethod: 'none',
         defaultMemberGroupId: registered.id,
       }

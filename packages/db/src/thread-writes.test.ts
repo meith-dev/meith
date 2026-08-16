@@ -299,7 +299,12 @@ describe('PostgresThreadWriteRepository prefixes', () => {
 
 describe('PostgresThreadWriteRepository and the search index', () => {
   const search = () => new PostgresSearchRepository(db)
-  const scope = { forumIds: [FORUM], viewerUserId: null, content: PUBLIC_CONTENT }
+  const scope = {
+    forumIds: [FORUM],
+    ownThreadsOnlyForumIds: [],
+    viewerUserId: null,
+    content: PUBLIC_CONTENT,
+  }
   const find = async (terms: string) =>
     (
       await search().search(

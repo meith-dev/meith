@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { MAX_QUERY_LENGTH, isRunnable, parseSearchInput } from './query'
+import { MAX_QUERY_LENGTH, MIN_TERM_LENGTH, isRunnable, parseSearchInput } from './query'
 
 describe('parseSearchInput', () => {
   it('passes ordinary words through', () => {
@@ -34,6 +34,30 @@ describe('parseSearchInput', () => {
 
   it('accepts a short word when a long one is present', () => {
     expect(parseSearchInput('a good post').refusal).toBeNull()
+  })
+
+  it('measures against the length the caller was configured with', () => {
+    expect(parseSearchInput('cat', 3).refusal).toBeNull()
+    expect(parseSearchInput('cat', 4).refusal).toBe('too-short')
+    expect(parseSearchInput('cats', 4).refusal).toBeNull()
+  })
+
+  it('refuses nothing above one letter when the board asks for one', () => {
+    expect(parseSearchInput('a', 1).refusal).toBeNull()
+    expect(parseSearchInput('a b c', 1).refusal).toBeNull()
+  })
+
+  it('still needs only one long enough word, whatever the length is', () => {
+    expect(parseSearchInput('a good post', 4).refusal).toBeNull()
+    expect(parseSearchInput('a b c', 4).refusal).toBe('too-short')
+  })
+
+  it('falls back to its own minimum rather than trusting a nonsense one', () => {
+    for (const bad of [0, -1, 2.5, Number.NaN]) {
+      expect(parseSearchInput('a', bad).refusal, String(bad)).toBe('too-short')
+      expect(parseSearchInput('ab', bad).refusal, String(bad)).toBeNull()
+    }
+    expect(MIN_TERM_LENGTH).toBe(2)
   })
 
   it('refuses a paste rather than running it', () => {

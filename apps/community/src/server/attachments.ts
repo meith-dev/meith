@@ -152,7 +152,13 @@ export async function resolveDownload(
     forumId: record.forumId,
     forum: await authorizer.forumMatrix(actor, record.forumId),
   }
-  if (!authorizer.can(actor, 'thread.view', scope)) return null
+  if (
+    !authorizer.can(actor, 'thread.view', {
+      ...(await authorizer.moderatorTargetIn(actor, scope.forumId, scope.forum)),
+      threadAuthorId: found.threadAuthorUserId,
+    })
+  )
+    return null
   if (!authorizer.can(actor, 'attachment.download', scope)) return null
 
   const hidden =

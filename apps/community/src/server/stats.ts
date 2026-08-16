@@ -25,7 +25,7 @@ export async function statsScopeFor(actor: Actor): Promise<StatsScope> {
     actor.global.isAdministrator === true || actor.global.isSuperModerator === true
 
   return {
-    forumIds: await authorizer.forumIdsWhere(actor, 'thread.view'),
+    ...(await authorizer.threadAudience(actor)),
     content: contentScopeFrom({ seesUnapproved: staff, seesDeleted: staff }),
   }
 }

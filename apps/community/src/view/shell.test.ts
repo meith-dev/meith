@@ -66,6 +66,22 @@ describe('buildUserPanelModel', () => {
     expect(panel.links.map((l) => l.href)).toEqual(['/login', '/register'])
   })
 
+  it('takes the register link away when the board is closed to new members', () => {
+    const panel = buildUserPanelModel(buildViewerModel(guest), {
+      registrationOpen: false,
+    })
+
+    expect(panel.links.map((l) => l.href)).toEqual(['/login'])
+  })
+
+  it('keeps the register link when registration is open', () => {
+    const panel = buildUserPanelModel(buildViewerModel(guest), {
+      registrationOpen: true,
+    })
+
+    expect(panel.links.map((l) => l.href)).toEqual(['/login', '/register'])
+  })
+
   it('offers the member profile and every account route', () => {
     expect(buildUserPanelModel(buildViewerModel(member)).links).toEqual([
       { label: 'Profile', href: '/member/42', group: 'account' },
@@ -273,6 +289,23 @@ describe('buildBoardNavigation', () => {
       '/search',
       '/online',
     ])
+  })
+
+  it('drops the search link when the board has search switched off', () => {
+    const hrefs = buildBoardNavigation(buildViewerModel(member), {
+      searchEnabled: false,
+    }).map((link) => link.href)
+
+    expect(hrefs).not.toContain('/search')
+    expect(hrefs).toContain('/online')
+  })
+
+  it('keeps the search link when search is on', () => {
+    const hrefs = buildBoardNavigation(buildViewerModel(member), {
+      searchEnabled: true,
+    }).map((link) => link.href)
+
+    expect(hrefs).toContain('/search')
   })
 
   it('omits the personal view for a guest rather than offering a refusal', () => {

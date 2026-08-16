@@ -154,6 +154,103 @@ community settings:get board.name
 community settings:set board.name "The Townland"
 ```
 
+### Switching search off
+
+**Enable search** — `search.enabled`, in the search group — decides whether
+this board answers searches at all. Off is what you reach for when search is
+what is loading your database, or when a board is small enough that browsing is
+the better answer anyway.
+
+```sh
+community settings:set search.enabled false
+```
+
+Off, three things change together:
+
+- The **Search** link goes from the board navigation.
+- **`/search`** and any results page somebody still holds the link to say search
+  is switched off, rather than rendering a form or a result set.
+- **`GET /api/v1/search`** answers `403`, with the same message in the JSON
+  error body. The route is the reason hiding the form is not enough: a token
+  that carries the `search` scope reaches it directly.
+
+**The index is kept, and goes on being maintained.** New posts are still
+indexed, `search.reindex` still runs on the tick, and switching search back on
+needs no reindex and no restart. Nothing else keys off this: a board with search
+off still has its forums, its feeds and the rest of the REST API.
+
+### How short a search may be
+
+**Shortest word a search may rest on** — `search.min_word_length`, default 2 —
+is the one dial on what the board will agree to look for.
+
+The rule is *at least one word*, not *every word*. A search is refused when
+every word in it is shorter than the setting; a search with one long enough word
+runs, and the short ones go to the index along with it. At 3, `a good post` runs
+and `a b c` does not.
+
+```sh
+community settings:set search.min_word_length 3
+```
+
+The short words are **not** dropped by the board. They are passed to Postgres,
+which drops the ones that carry no meaning — `the`, `a`, `of` — as part of
+building the query, and keeps the rest. So `a C++` and `is it OK` search for
+what they say; the setting is there to refuse a search that is *nothing but*
+noise, which is the shape that scans the whole index and finds everything.
+
+It applies to `/search` and to `GET /api/v1/search` alike, and both name the
+configured number when they refuse, so a member is told what would work rather
+than being told no.
+
+The default is 2, which is what this board has always enforced rather than a
+number chosen afresh — the setting used to be inert, and moving the default
+would have changed every board's search on the day it started being read. Raise
+it to 3 if your slow searches turn out to be short words; set it to 1 to refuse
+nothing but an empty box.
+
+### Closing registration
+
+**Allow new registrations** — `registration.enabled`, in the registration group
+— decides whether strangers may join. Off is the setting to reach for when a
+spam wave is faster than your moderators, or when the board is meant to be
+invitation-only.
+
+```sh
+community settings:set registration.enabled false
+```
+
+Off, three things change together, which is what makes it a closed door rather
+than a hidden one:
+
+- The **Register** link disappears from the user panel and from the sign-in
+  page. Nothing offers a route that would refuse.
+- **`/register`** says the board is not taking new members and points at
+  `/login`, instead of rendering a form.
+- **The action behind that form refuses**, so a submission POSTed straight at it
+  is answered with a `403` and creates nothing. Hiding a form is not closing it:
+  the registration form's fields are public knowledge, and a spam run does not
+  read your navigation.
+
+Signing in, password reset and e-mail confirmation are untouched — the members
+you already have are unaffected.
+
+**It never locks you out of your own board.** The installer creates the first
+administrator with registration forced open, whatever the settings table says,
+and `community user:create` does the same. So a board can be closed to the
+public and still gain members, one at a time, from the command line:
+
+```sh
+echo "correct horse battery staple" |
+  community user:create --username ada --email ada@example.com --group registered
+```
+
+> [!NOTE]
+> **Upgrading an existing board?** This setting had no effect until recently:
+> the switch saved, and registration stayed open however it was set. A board
+> that stored `false` closes as soon as it upgrades. See
+> [Settings that gained a reader](./upgrading.md#settings-that-gained-a-reader).
+
 ### Taking the board offline
 
 **Board offline** — under `/admin/settings`, in the advanced part of the board
@@ -263,6 +360,47 @@ understanding the model.
 > checkbox writes an explicit value into every cell the first time you save,
 > pinning that forum so later changes at its parent do nothing. Silently pinning
 > a forum is the commonest way a board's permissions end up wrong.
+
+### A "your threads only" forum
+
+Denying **see threads started by other users** (`canViewOthersThreads`) on a
+forum turns it into a support desk: everybody may post, and nobody but its
+author reads a thread. It is the control to reach for when the forum collects
+applications, appeals, or anything a member should be able to write without the
+rest of the board reading it.
+
+Deny is enforced in the query, not in the page, so it holds on every read path:
+the thread list, the thread page reached by a guessed URL, search, the RSS and
+Atom feeds, the sitemap, the "what's new" and "latest" panels, the board
+statistics, the who-is-online location column, attachment downloads, quoting,
+and the REST API. A refused thread is a 404, the same answer a thread that does
+not exist gives, because a distinguishable refusal is itself an answer.
+
+What a Deny forum looks like:
+
+- **A member** sees the forum in the index and may post in it. In the listing
+  they see only the threads they started; every other thread is absent rather
+  than locked. On the board index the forum's thread and post counts read `0`,
+  its last-post column is blank, and it never shows the unread mark — the
+  counts, the last post and the unread mark all describe other people's
+  threads, and a forum that will not show them should not summarise them
+  either. The forum's own page shows the member's threads.
+- **A guest** sees the forum and sees nothing in it. A guest has authored
+  nothing, so "your threads only" resolves to no threads at all — including
+  threads whose author account was since deleted, which belong to nobody and so
+  are nobody's own. Grant the permission to the guest group if a forum is meant
+  to be publicly readable.
+- **A moderator of that forum** sees everything in it, on the same footing as
+  *see unapproved* and *see deleted*: an appointment over the forum carries the
+  right, so a support desk stays workable without granting the group permission
+  back. Super-moderators and administrators bypass it as they bypass every other
+  forum permission, and the bypass is logged.
+
+> [!IMPORTANT]
+> Denying this permission does **not** hide the forum. `canView` decides whether
+> the forum exists for a viewer and `canViewThreads` whether its threads open at
+> all; this one only decides *whose* threads. A forum meant to be invisible
+> wants `canView` denied instead.
 
 ### Numbers behave differently from switches
 
@@ -921,6 +1059,40 @@ things follow for an operator:
   survive, the presentation does not. It is the one permanent loss in the
   conversion, and it is recorded in
   [mybb-parity.md](./mybb-parity.md#the-markup-language-is-markdown-not-bbcode).
+
+### The silent edit window
+
+**Silent edit window** — `posting.edit_grace_seconds`, in the posting group,
+default 300 — is how long after posting somebody may fix their own post without
+the board announcing it. Inside the window the post carries no *Last edited by*
+line; outside it, the line appears as it always has.
+
+```sh
+community settings:set posting.edit_grace_seconds 600   # ten minutes
+community settings:set posting.edit_grace_seconds 0     # always show the notice
+```
+
+It is measured from when the **post was written**, not from the last edit, so
+the window closes once and stays closed. A member who fixes a typo twice inside
+five minutes leaves no notice; one who comes back an hour later leaves one.
+
+Two limits on it are the point of it being safe:
+
+- **A moderator editing somebody else's post is never silent**, however soon
+  after the post it happens. The notice is what tells a reader that the words
+  they are reading are not entirely the ones the author wrote, and that is
+  exactly the case it must not hide. The window applies only to an author
+  editing their own post.
+- **The revision history is untouched.** Every edit still writes a revision
+  recording who edited, when, why, and what the post said before. The setting
+  suppresses one line rendered to readers; it does not suppress the record, and
+  a moderator looking at the post's history sees the silent edits along with
+  the rest.
+
+Set it to 0 for a board that wants every change on the record in public. Raising
+it much above a few minutes starts to mean "the post you are reading may have
+changed since the reply below it", which is the thing the notice exists to
+prevent.
 
 ### Attachments
 

@@ -55,7 +55,11 @@ export async function fileReportAction(
 
     if (target.forumId !== null) {
       const matrix = await authorizer.forumMatrix(actor, target.forumId)
-      if (!authorizer.can(actor, 'thread.view', { forumId: target.forumId, forum: matrix })) {
+      const scope = {
+        ...(await authorizer.moderatorTargetIn(actor, target.forumId, matrix)),
+        threadAuthorId: target.threadAuthorUserId,
+      }
+      if (!authorizer.can(actor, 'thread.view', scope)) {
         throw new ValidationError('That does not exist.')
       }
     } else if (kind === 'user') {

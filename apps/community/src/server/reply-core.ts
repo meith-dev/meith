@@ -40,7 +40,12 @@ export async function resolveReplyTarget(
     allowsAttachments: target.forum.allowAttachments,
   }
 
-  if (!authorizer.can(actor, 'thread.view', scope)) {
+  if (
+    !authorizer.can(actor, 'thread.view', {
+      ...(await authorizer.moderatorTargetIn(actor, forumId, scope.forum)),
+      threadAuthorId: target.authorUserId,
+    })
+  ) {
     throw new ValidationError('That thread does not exist.')
   }
   authorizer.require(actor, 'reply.post', scope)
