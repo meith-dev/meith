@@ -178,6 +178,20 @@ export function upgradeNotice(plan: UpgradePlan, state: UpgradeState): string | 
     .filter((step) => step.kind !== 'record-version')
     .reduce((total, step) => total + step.migrationIds.length, 0)
 
+  if (compareVersions(state.recordedVersion, state.codeVersion) === 0) {
+    const plugins = plan.steps
+      .filter((step) => step.kind === 'plugin-migrations')
+      .map((step) => step.pluginKey)
+      .filter((key): key is string => key !== null)
+
+    return (
+      `The database and this deployment are both at ${state.recordedVersion}, but ` +
+      `${migrations} migration(s) have never been applied` +
+      (plugins.length > 0 ? ` (${plugins.join(', ')})` : '') +
+      '. Run `community upgrade`.'
+    )
+  }
+
   return (
     `An upgrade is pending: the database is at ${state.recordedVersion} and this deployment ` +
     `is ${state.codeVersion}` +
