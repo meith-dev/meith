@@ -9,6 +9,7 @@ import type {
 
 import type { Database } from './client'
 import { groupPromotions, users } from './schema'
+import { keptDisplayGroupSql } from './staff-groups'
 
 function optionalNumber(value: number | null): number | undefined {
   return value === null ? undefined : value
@@ -63,9 +64,15 @@ export class PostgresPromotionRepository implements PromotionRepository {
         sql`, `,
       )
 
+      const displayGroup = keptDisplayGroupSql({
+        column: sql.raw('u.display_group_id'),
+        leavingGroupId: sql.raw('u.primary_group_id'),
+        arrivingGroupId: sql.raw('v.group_id'),
+      })
+
       await tx.execute(sql`
         update ${users} as u
-        set primary_group_id = v.group_id, display_group_id = v.group_id
+        set primary_group_id = v.group_id, display_group_id = ${displayGroup}
         from (values ${values}) as v(user_id, group_id)
         where u.id = v.user_id
       `)

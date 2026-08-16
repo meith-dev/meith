@@ -37,6 +37,18 @@ async function permissionVersion(): Promise<number> {
   return Number(rows[0]?.version ?? 0)
 }
 
+async function displayGroupOf(userId: number): Promise<number | null> {
+  const rows = resultRows(
+    await db.execute(sql`select display_group_id from users where id = ${userId}`),
+  ) as Array<{ display_group_id: number | null }>
+  const value = rows[0]?.display_group_id
+  return value === null || value === undefined ? null : Number(value)
+}
+
+async function setDisplayGroup(userId: number, groupId: number | null): Promise<void> {
+  await db.execute(sql`update users set display_group_id = ${groupId} where id = ${userId}`)
+}
+
 async function seedMembers(count: number, groupId: number): Promise<void> {
   for (let i = 1; i <= count; i += 1) {
     await db.execute(sql`
@@ -190,6 +202,40 @@ describe('remove', () => {
 
     expect(await permissionVersion()).toBe(before)
   })
+
+  it('keeps a display group the member chose for themselves', async () => {
+    const id = await repo.create({ key: 'veterans', title: 'V', copyFromGroupId: REGISTERED })
+    await seedMembers(1, id)
+    await db.execute(sql`insert into user_group_memberships (user_id, group_id) values (1, ${ADMINS})`)
+    await setDisplayGroup(1, ADMINS)
+
+    await repo.remove(id, REGISTERED)
+
+    expect(await displayGroupOf(1)).toBe(ADMINS)
+  })
+
+  it('clears a display group that pointed at the group being deleted', async () => {
+    const id = await repo.create({ key: 'veterans', title: 'V', copyFromGroupId: REGISTERED })
+    await seedMembers(1, id)
+    await setDisplayGroup(1, id)
+
+    await repo.remove(id, REGISTERED)
+
+    expect(await displayGroupOf(1)).toBeNull()
+  })
+
+  it('stores nothing for a member who was displaying the group they land in', async () => {
+    const id = await repo.create({ key: 'veterans', title: 'V', copyFromGroupId: REGISTERED })
+    await seedMembers(1, id)
+    await db.execute(
+      sql`insert into user_group_memberships (user_id, group_id) values (1, ${REGISTERED})`,
+    )
+    await setDisplayGroup(1, REGISTERED)
+
+    await repo.remove(id, REGISTERED)
+
+    expect(await displayGroupOf(1)).toBeNull()
+  })
 })
 
 describe('moveMembersChunk', () => {
@@ -254,6 +300,36 @@ describe('moveMembersChunk', () => {
 
     expect(chunk.moved).toBe(2)
     expect((await repo.list()).find((g) => g.id === REGISTERED)?.memberCount).toBe(3)
+  })
+
+  it('keeps a display group the member chose for themselves', async () => {
+    await seedMembers(2, REGISTERED)
+    await db.execute(sql`insert into user_group_memberships (user_id, group_id) values (1, ${GUESTS})`)
+    await setDisplayGroup(1, GUESTS)
+
+    await repo.moveMembersChunk({
+      fromGroupId: REGISTERED,
+      toGroupId: ADMINS,
+      afterUserId: 0,
+      limit: 10,
+    })
+
+    expect(await displayGroupOf(1)).toBe(GUESTS)
+    expect(await displayGroupOf(2)).toBeNull()
+  })
+
+  it('clears a display group pointing at the group being moved out of', async () => {
+    await seedMembers(1, REGISTERED)
+    await setDisplayGroup(1, REGISTERED)
+
+    await repo.moveMembersChunk({
+      fromGroupId: REGISTERED,
+      toGroupId: ADMINS,
+      afterUserId: 0,
+      limit: 10,
+    })
+
+    expect(await displayGroupOf(1)).toBeNull()
   })
 
   it('moves nobody when the source group is empty', async () => {

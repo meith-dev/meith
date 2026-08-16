@@ -314,6 +314,23 @@ it lapses, and a member wearing it goes back to their primary group — they
 cannot pin a badge to a membership they no longer hold. The picker is not shown
 at all to a member who is only in one group.
 
+**An administrator moving somebody between groups does not silently take that
+choice away.** Promotions, a mass move of one group's members into another, and
+deleting a group and rehoming its members all change the *primary* group, and
+all three leave an explicit display group alone. Two cases are the exception,
+and in both of them the stored choice has stopped meaning anything:
+
+- The member was displaying the group they are being moved out of, or the group
+  being deleted. That badge no longer describes a group they hold, so it is
+  cleared and they go back to showing their new primary group.
+- The member was displaying the group they are being moved *into*. That is now
+  their primary group, and the convention above is that picking your primary
+  group stores nothing — so the row is cleared rather than left pinned, and the
+  choice goes on following the primary group if it changes again.
+
+Everything else — a badge from a secondary membership, a paid group, anything
+the member picked for themselves — survives the move untouched.
+
 **Staff are shown as staff, and have no choice about it.** A member whose
 primary group is a staff group — or any group carrying administrative or
 moderation power — is displayed as that group everywhere: the postbit, the
