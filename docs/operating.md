@@ -1684,6 +1684,26 @@ above.
 It needs an import to have run, because the redirect is a lookup in the legacy id
 map.
 
+Switched on, it answers both shapes a MyBB board publishes:
+
+| Old address | Goes to |
+|---|---|
+| `showthread.php?tid=91`, `Thread-Bikeshedding-91` | the thread |
+| `showthread.php?pid=4102`, `Thread-Bikeshedding--4102` | the post |
+| `forumdisplay.php?fid=3`, `Forum-General-3` | the forum, slug and `?page=` carried |
+| `member.php?uid=12` | the member |
+| `index.php` | the board index |
+
+The answer is a **308**, not a 301: it is `permanentRedirect()`, and the
+difference is that 308 forbids a client rewriting the method on the way, which
+301 historically permitted. Search engines treat the two the same way, so an
+imported board's ranking follows either.
+
+Two shapes are deliberately not answered. `Thread-Bikeshedding-page-2` carries no
+id, and picking a thread from the words in a slug is guessing; `User-wren` is a
+username rather than an id, and a username can be changed or taken by somebody
+else, so resolving one could point an old link at the wrong member.
+
 ### Everything is broken and the panel will not load
 
 The CLI does not need the web app:

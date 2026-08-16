@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
 import { requireSlot } from '@meith/theme-kit'
@@ -10,6 +10,7 @@ import { BOARD_MEASURE } from '@/components/shell/measure'
 import { liveAnnouncements } from '@/server/announcements'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { legacyDestination } from '@/server/legacy-redirect'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { moderatorTargetFor } from '@/server/modcp'
 import { currentTheme } from '@/server/theme'
@@ -114,6 +115,12 @@ export default async function ForumPage({
   const after = decodeForumCursor(query.after)
   const sort = query.sort === 'rating' ? 'rating' : 'activity'
   const page = query.page === undefined ? 1 : Number(query.page)
+
+  if (id === null) {
+    const legacy = await legacyDestination(`/${slug}`, query)
+    if (legacy !== null) permanentRedirect(legacy)
+  }
+
   if (
     id === null ||
     after === null ||
