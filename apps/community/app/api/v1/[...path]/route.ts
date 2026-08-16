@@ -28,7 +28,12 @@ import { apiActor, apiToken } from '@/server/api-auth'
 import { activeWordFilter } from '@/server/content-admin'
 import { getContainer } from '@/server/container'
 import { resolveReplyTarget, submitReply } from '@/server/reply-core'
-import { requireSearch, searchScopeFor } from '@/server/search'
+import {
+  requireSearch,
+  requireSearchEnabled,
+  searchMinWordLength,
+  searchScopeFor,
+} from '@/server/search'
 import { filterWords } from '@/view/word-filter'
 import { canHoldThreads } from '@meith/forums'
 
@@ -328,7 +333,10 @@ async function dispatch(
     }
 
     case 'GET /search': {
-      const parsed = parseSearchInput(url.searchParams.get('q') ?? '')
+      await requireSearchEnabled()
+
+      const minWordLength = await searchMinWordLength()
+      const parsed = parseSearchInput(url.searchParams.get('q') ?? '', minWordLength)
       if (!isRunnable(parsed)) {
         return {
           status: 400,
@@ -337,7 +345,7 @@ async function dispatch(
               code: 'bad_query',
               message:
                 parsed.refusal === 'too-short'
-                  ? 'That search term is too short.'
+                  ? `That search term is too short — one word in it has to be at least ${minWordLength} characters.`
                   : parsed.refusal === 'too-long'
                     ? 'That search term is too long.'
                     : 'Provide a search term in ?q=.',

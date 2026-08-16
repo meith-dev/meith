@@ -1,18 +1,136 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('./container', () => ({ getContainer: () => ({ dataSource: 'postgres' }) }))
-vi.mock('./search', () => ({ requireSearch: () => ({}), searchScopeFor: async () => ({}) }))
+import { ForbiddenError, NotFoundError } from '@meith/core'
+
+const search = vi.hoisted(() => ({ enabled: true, minWordLength: 3 }))
+
+const SEARCH_OFF = 'Search is switched off on this board.'
+
+vi.mock('./container', () => ({
+  getContainer: () => ({ dataSource: 'postgres', authorizer: { can: () => false } }),
+}))
+vi.mock('./antispam', () => ({
+  spendLimit: async () => null,
+  limitMessage: () => 'slow down',
+}))
+vi.mock('./search', () => ({
+  requireSearch: () => ({}),
+  searchScopeFor: async () => ({}),
+  requireSearchEnabled: async () => {
+    if (!search.enabled) throw new ForbiddenError(SEARCH_OFF)
+  },
+  searchMinWordLength: async () => search.minWordLength,
+}))
 vi.mock('./settings', () => ({ getSettings: async () => ({ get: () => 0 }) }))
 vi.mock('@meith/db', () => ({
   getDb: () => ({}),
-  PostgresSearchStore: class {},
+  PostgresSearchStore: class {
+    async findByToken(): Promise<null> {
+      return null
+    }
+    async create(input: { token: string }): Promise<{ token: string }> {
+      return { token: input.token }
+    }
+  },
   SEARCH_WINDOW: 20_000,
   ownsSearch: () => true,
 }))
 
-const { MAX_AUTHOR_NAMES, parseAuthorNames, readFilters, readRefinement } = await import(
-  './search-page'
-)
+const {
+  MAX_AUTHOR_NAMES,
+  openSearch,
+  parseAuthorNames,
+  readFilters,
+  readRefinement,
+  runSearch,
+} = await import('./search-page')
+
+const GUEST = {
+  userId: null,
+  groupIds: [1],
+  primaryGroupId: 1,
+  state: 'guest',
+  global: {},
+  permissionVersion: 1,
+} as unknown as Parameters<typeof runSearch>[0]['actor']
+
+beforeEach(() => {
+  search.enabled = true
+  search.minWordLength = 3
+})
+
+describe('the configured shortest word', () => {
+  const running = (terms: string) =>
+    runSearch({
+      actor: GUEST,
+      sessionKey: null,
+      terms,
+      authors: '',
+      filters: { sort: 'relevance', match: 'everything', grouping: 'posts', period: 'any' },
+    })
+
+  it('is what a search is measured against, not a constant', async () => {
+    search.minWordLength = 6
+
+    await expect(running('lemma')).resolves.toEqual({
+      kind: 'refused',
+      reason: 'too-short',
+      minWordLength: 6,
+    })
+  })
+
+  it('lets a shorter word through when the board asks for one', async () => {
+    search.minWordLength = 1
+
+    await expect(running('a')).resolves.toMatchObject({ kind: 'ok' })
+  })
+
+  it('tells the caller which length refused it, so the screen can say', async () => {
+    search.minWordLength = 4
+
+    await expect(running('cat')).resolves.toMatchObject({ minWordLength: 4 })
+  })
+})
+
+describe('the search switch', () => {
+  const running = () =>
+    runSearch({
+      actor: GUEST,
+      sessionKey: null,
+      terms: 'a',
+      authors: '',
+      filters: { sort: 'relevance', match: 'everything', grouping: 'posts', period: 'any' },
+    })
+
+  const opening = () =>
+    openSearch({
+      actor: GUEST,
+      sessionKey: null,
+      token: 'whatever',
+      after: null,
+      refine: {},
+      now: new Date('2026-08-16T00:00:00Z'),
+    })
+
+  it('refuses to run a search when it is off', async () => {
+    search.enabled = false
+    await expect(running()).rejects.toBeInstanceOf(ForbiddenError)
+  })
+
+  it('refuses to reopen a search somebody already holds the link to', async () => {
+    search.enabled = false
+    await expect(opening()).rejects.toBeInstanceOf(ForbiddenError)
+  })
+
+  it('is checked before anything else, so nothing is parsed or looked up', async () => {
+    search.enabled = false
+    await expect(running()).rejects.toBeInstanceOf(ForbiddenError)
+
+    search.enabled = true
+    await expect(running()).resolves.toMatchObject({ kind: 'refused', reason: 'too-short' })
+    await expect(opening()).rejects.toBeInstanceOf(NotFoundError)
+  })
+})
 
 describe('readFilters', () => {
   it('reads a stored filter set', () => {

@@ -16,6 +16,7 @@ export {
 
 export {
   IdentityService,
+  REGISTRATION_CLOSED,
   VERIFICATION_TTL_HOURS,
   type ActivationOutcome,
   type BanLookup,

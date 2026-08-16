@@ -288,7 +288,10 @@ async function postEditor(posts: PostWriteRepository): Promise<PostEditor> {
   const settings = await getSettings()
   return new PostEditor({
     posts,
-    config: { maxLength: settings.get('posting.max_length') },
+    config: {
+      maxLength: settings.get('posting.max_length'),
+      editGraceSeconds: settings.get('posting.edit_grace_seconds'),
+    },
   })
 }
 

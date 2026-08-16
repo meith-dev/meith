@@ -17,6 +17,7 @@ import {
 import type { AccountStore, AuthConfig } from './ports'
 
 const BASE_CONFIG: AuthConfig = {
+  registrationEnabled: true,
   minPasswordLength: 8,
   usernameMin: 3,
   usernameMax: 20,
@@ -75,6 +76,20 @@ describe('register', () => {
     expect(verificationToken).toBeUndefined()
     expect(account.passwordHash).toMatch(/^\$argon2id\$/)
     expect(account.passwordHash).not.toContain('correct horse')
+  })
+
+  it('refuses to create an account when registration is closed', async () => {
+    const { service } = makeService(store, { registrationEnabled: false })
+
+    await expect(
+      service.register({
+        username: 'Dana',
+        email: 'dana@example.com',
+        password: 'correct horse battery',
+      }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+
+    expect(await store.accounts.findByUsernameLower('dana')).toBeNull()
   })
 
   it('holds the account for activation and issues a token when method=email', async () => {
