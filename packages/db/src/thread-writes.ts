@@ -148,8 +148,8 @@ export class PostgresThreadWriteRepository
   async replyTarget(threadId: number): Promise<ReplyTarget | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select t.id, t.slug, t.title, t.is_locked, t.visibility, t.last_post_id,
-               t.reply_count,
+        select t.id, t.slug, t.title, t.author_user_id, t.is_locked, t.visibility,
+               t.last_post_id, t.reply_count,
                f.id as forum_id, f.type as forum_type, f.slug as forum_slug,
                f.is_open, f.allow_threads, f.allow_replies, f.allow_polls, f.requires_prefix,
                f.moderate_new_threads, f.moderate_new_posts
@@ -161,6 +161,7 @@ export class PostgresThreadWriteRepository
       id: number
       slug: string
       title: string
+      author_user_id: number | null
       is_locked: boolean
       visibility: 'visible' | 'unapproved' | 'deleted'
       last_post_id: number | null
@@ -184,6 +185,7 @@ export class PostgresThreadWriteRepository
       threadId: Number(row.id),
       slug: row.slug,
       title: row.title,
+      authorUserId: row.author_user_id === null ? null : Number(row.author_user_id),
       isLocked: row.is_locked,
       visibility: row.visibility,
       lastPostId: row.last_post_id === null ? null : Number(row.last_post_id),

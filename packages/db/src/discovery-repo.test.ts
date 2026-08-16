@@ -77,6 +77,7 @@ async function seedPost(id: number, threadId: number, authorUserId: number, visi
 
 const scope = (overrides: Partial<DiscoveryScope> = {}): DiscoveryScope => ({
   forumIds: [OPEN, PRIVATE],
+  ownThreadsOnlyForumIds: [],
   content: PUBLIC_CONTENT,
   viewerUserId: ANN,
   ...overrides,

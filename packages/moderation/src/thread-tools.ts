@@ -35,6 +35,7 @@ export interface ThreadToolRights {
   readonly stick: boolean
   readonly move: boolean
   readonly delete: boolean
+  readonly restore: boolean
 }
 
 export interface ThreadToolOutcome {
@@ -162,7 +163,7 @@ export class ThreadTools {
       }
 
       case 'restore': {
-        this.require(input.rights.delete, 'restore threads')
+        this.require(input.rights.restore, 'restore threads')
         if (target.visibility !== 'deleted') {
           throw new ValidationError('That thread is not deleted.')
         }

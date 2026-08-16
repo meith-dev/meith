@@ -12,8 +12,20 @@ import {
 
 const NOW = new Date('2026-07-30T12:00:00Z')
 
-const ALL: ThreadToolRights = { lock: true, stick: true, move: true, delete: true }
-const NONE: ThreadToolRights = { lock: false, stick: false, move: false, delete: false }
+const ALL: ThreadToolRights = {
+  lock: true,
+  stick: true,
+  move: true,
+  delete: true,
+  restore: true,
+}
+const NONE: ThreadToolRights = {
+  lock: false,
+  stick: false,
+  move: false,
+  delete: false,
+  restore: false,
+}
 
 class FakeThreads implements ThreadToolsRepository {
   readonly calls: string[] = []

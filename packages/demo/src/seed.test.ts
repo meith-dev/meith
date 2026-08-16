@@ -151,7 +151,7 @@ describe('the seeded board', () => {
         limit: 5,
         after: null,
       },
-      { forumIds, viewerUserId: null, content: PUBLIC_CONTENT },
+      { forumIds, ownThreadsOnlyForumIds: [], viewerUserId: null, content: PUBLIC_CONTENT },
     )
 
     expect(results.hits.length).toBeGreaterThan(0)

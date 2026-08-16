@@ -3,6 +3,7 @@ import type { AuthConfig } from './ports'
 export type AuthPolicy = Omit<AuthConfig, 'activationMethod' | 'defaultMemberGroupId'>
 
 export const DEFAULT_AUTH_POLICY: AuthPolicy = {
+  registrationEnabled: true,
   minPasswordLength: 8,
   usernameMin: 3,
   usernameMax: 30,
@@ -27,6 +28,7 @@ export const DEFAULT_AUTH_POLICY: AuthPolicy = {
 }
 
 export const AUTH_SETTING_KEYS = {
+  registrationEnabled: 'registration.enabled',
   activationMethod: 'registration.method',
   minPasswordLength: 'registration.min_password_length',
   usernameMin: 'registration.username_min',
@@ -40,6 +42,7 @@ export const AUTH_SETTING_KEYS = {
 export type SettingReader = (key: string) => unknown
 
 export interface ResolvedAuthSettings {
+  readonly registrationEnabled: boolean
   readonly activationMethod: AuthConfig['activationMethod']
   readonly minPasswordLength: number
   readonly usernameMin: number
@@ -69,7 +72,11 @@ export function resolveAuthPolicy(
   const usernameMax = positiveInteger(max) ?? base.usernameMax
   const impossible = usernameMin > usernameMax
 
+  const enabled = read(AUTH_SETTING_KEYS.registrationEnabled)
+
   return {
+    registrationEnabled:
+      typeof enabled === 'boolean' ? enabled : base.registrationEnabled,
     activationMethod:
       typeof method === 'string' &&
       (ACTIVATION_METHODS as readonly string[]).includes(method)

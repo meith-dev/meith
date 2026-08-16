@@ -1,4 +1,4 @@
-import type { ContentScope } from '@meith/core'
+import type { ContentScope, ThreadAuthorFilter } from '@meith/core'
 
 import type {
   ThreadCursor,
@@ -7,10 +7,19 @@ import type {
   ThreadSort,
 } from './types'
 
-export interface ThreadRepository {
-  findById(id: number, scope: ContentScope): Promise<ThreadListingRow | null>
+export interface ThreadLocation {
+  readonly forumId: number
+  readonly authorUserId: number | null
+}
 
-  locateForum(threadId: number): Promise<number | null>
+export interface ThreadRepository {
+  findById(
+    id: number,
+    scope: ContentScope,
+    authors: ThreadAuthorFilter,
+  ): Promise<ThreadListingRow | null>
+
+  locate(threadId: number): Promise<ThreadLocation | null>
 
   listForum(
     forumId: number,
@@ -18,6 +27,7 @@ export interface ThreadRepository {
       readonly after?: ThreadCursor
       readonly limit: number
       readonly scope: ContentScope
+      readonly authors: ThreadAuthorFilter
       readonly sort?: ThreadSort
     },
   ): Promise<ThreadPage>

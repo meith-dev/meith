@@ -104,6 +104,7 @@ describe('resolveTarget', () => {
       id: postId,
       forumId: FORUM,
       threadId: 100,
+      threadAuthorUserId: AUTHOR,
       label: 'Thread 100',
     })
   })
@@ -121,6 +122,7 @@ describe('resolveTarget', () => {
       id: AUTHOR,
       forumId: null,
       threadId: null,
+      threadAuthorUserId: null,
       label: 'ada',
     })
   })
@@ -167,6 +169,7 @@ describe('resolveTarget', () => {
         id,
         forumId: null,
         threadId: null,
+        threadAuthorUserId: null,
         label: 'Read this',
       })
     })

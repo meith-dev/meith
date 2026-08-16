@@ -1,5 +1,5 @@
 import { Authorizer } from '@meith/authorization'
-import { PUBLIC_CONTENT } from '@meith/core'
+import { ALL_THREAD_AUTHORS, PUBLIC_CONTENT } from '@meith/core'
 import {
   ActorBuilder,
   getDb,
@@ -250,6 +250,7 @@ async function buildScenarios(
         const page = await threads.listForum(marks.busiestForumId, {
           limit: 20,
           scope,
+          authors: ALL_THREAD_AUTHORS,
         })
         return page.rows.length
       },
@@ -270,6 +271,7 @@ async function buildScenarios(
           },
           limit: 20,
           scope,
+          authors: ALL_THREAD_AUTHORS,
         })
         return page.rows.length
       },
@@ -294,6 +296,7 @@ async function buildScenarios(
           { limit: 20, after: null },
           {
             forumIds: visibleForumIds,
+            ownThreadsOnlyForumIds: [],
             content: scope,
             viewerUserId: marks.viewerUserId,
           },
@@ -316,6 +319,7 @@ async function buildScenarios(
           },
           {
             forumIds: visibleForumIds,
+            ownThreadsOnlyForumIds: [],
             content: scope,
             viewerUserId: marks.viewerUserId,
           },
@@ -338,6 +342,7 @@ async function buildScenarios(
           },
           {
             forumIds: visibleForumIds,
+            ownThreadsOnlyForumIds: [],
             content: scope,
             viewerUserId: marks.viewerUserId,
           },

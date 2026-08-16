@@ -52,6 +52,7 @@ export interface PostEditRecord {
   readonly reason: string | null
   readonly editedByUserId: number
   readonly editedAt: Date
+  readonly silent: boolean
   readonly previousMessage: string
   readonly previousSubject: string | null
   readonly revision: number
@@ -97,6 +98,7 @@ export interface PostWriteRepository {
 
 export interface PostEditorConfig {
   readonly maxLength: number
+  readonly editGraceSeconds: number
 }
 
 export class PostEditor {
@@ -165,6 +167,7 @@ export class PostEditor {
     const to = held ? 'unapproved' : from
 
     const reason = input.reason.trim()
+    const at = this.now()
     await this.posts.applyEdit({
       postId: post.id,
       threadId: post.threadId,
@@ -174,7 +177,8 @@ export class PostEditor {
       message,
       reason: reason.length === 0 ? null : reason,
       editedByUserId: editorUserId,
-      editedAt: this.now(),
+      editedAt: at,
+      silent: this.withinGrace(capabilities, post, at),
       previousMessage: post.message,
       previousSubject: post.subject,
       revision: post.revisionCount + 1,
@@ -260,6 +264,19 @@ export class PostEditor {
       to: 'visible',
       changed,
     }
+  }
+
+  private withinGrace(
+    capabilities: EditCapabilities,
+    post: EditablePost,
+    at: Date,
+  ): boolean {
+    if (!capabilities.isOwn) return false
+
+    const grace = this.config.editGraceSeconds
+    if (!Number.isFinite(grace) || grace <= 0) return false
+
+    return (at.getTime() - post.createdAt.getTime()) / 1000 <= grace
   }
 
   private enforceEditWindow(

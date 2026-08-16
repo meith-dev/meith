@@ -98,6 +98,7 @@ const STAFF_CONTENT = contentScopeFrom({ seesUnapproved: true, seesDeleted: true
 
 const scope = (overrides: Partial<SearchScope> = {}): SearchScope => ({
   forumIds: [OPEN, PRIVATE],
+  ownThreadsOnlyForumIds: [],
   viewerUserId: null,
   content: PUBLIC_CONTENT,
   ...overrides,
@@ -566,5 +567,42 @@ describe('renderExcerptHtml', () => {
 
   it('escapes quotes and ampersands so an attribute cannot break out', () => {
     expect(renderExcerptHtml('a & b "><svg>')).toBe('a &amp; b &quot;&gt;&lt;svg&gt;')
+  })
+})
+
+describe('a "your threads only" forum', () => {
+  const ANN = 7
+  const BOB = 8
+
+  beforeEach(async () => {
+    await seed({ id: 1, threadId: 1, message: 'hedgehog', authorUserId: ANN })
+    await seed({ id: 2, threadId: 2, message: 'hedgehog', authorUserId: BOB })
+    await db.execute(sql`update threads set author_user_id = id + 6`)
+  })
+
+  const restricted = (viewerUserId: number | null): SearchScope =>
+    scope({ forumIds: [OPEN], ownThreadsOnlyForumIds: [OPEN], viewerUserId })
+
+  const hedgehog = query({ terms: 'hedgehog' })
+
+  it('returns only hits inside the searcher’s own threads', async () => {
+    const results = await repo.search(hedgehog, restricted(ANN))
+
+    expect(results.hits.map((hit) => hit.threadId)).toEqual([1])
+  })
+
+  it('counts the same way it lists, so the summary does not leak either', async () => {
+    expect((await repo.summarize(hedgehog, restricted(ANN))).total).toBe(1)
+    expect((await repo.summarize(hedgehog, restricted(BOB))).total).toBe(1)
+  })
+
+  it('returns nothing to a guest, who authored nothing', async () => {
+    expect((await repo.search(hedgehog, restricted(null))).hits).toEqual([])
+  })
+
+  it('returns both once the forum is unrestricted', async () => {
+    const results = await repo.search(hedgehog, scope({ forumIds: [OPEN] }))
+
+    expect(results.hits.map((hit) => hit.threadId).sort()).toEqual([1, 2])
   })
 })

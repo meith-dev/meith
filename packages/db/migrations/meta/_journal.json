@@ -281,6 +281,20 @@
       "when": 1786828395513,
       "tag": "0039_moderator_log_forum_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1786828396513,
+      "tag": "0040_moderator_restore_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1786847512081,
+      "tag": "0041_drop_placebo_moderator_rights",
+      "breakpoints": true
     }
   ]
 }

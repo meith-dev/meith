@@ -27,15 +27,12 @@ export const MODERATOR_RIGHTS = [
   'canEditPosts',
   'canSoftDeletePosts',
   'canRestorePosts',
-  'canHardDeletePosts',
   'canApproveContent',
   'canOpenCloseThreads',
   'canStickThreads',
   'canMoveThreads',
   'canMergeThreads',
   'canSplitThreads',
-  'canManagePolls',
-  'canViewIps',
 ] as const
 
 export type ModeratorRight = (typeof MODERATOR_RIGHTS)[number]

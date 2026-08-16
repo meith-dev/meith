@@ -239,6 +239,99 @@ A setting can also change behaviour by starting to be *read*. That is not a
 default moving, and there is nothing to run — but it is worth knowing which
 switches on your board were, until now, decorative.
 
+### `posting.edit_grace_seconds` now suppresses the edit notice
+
+**Silent edit window** had no reader either. `PostEditor.edit` stamped
+`edited_at` on every edit that changed anything, `applyEdit` always wrote it,
+and the notice rendered whenever it was set — so the board behaved permanently
+as though the window were 0, whatever the box said.
+
+It is read now, with the registry default of **300 seconds**, so an author
+fixing their own post within five minutes of writing it leaves no *Last edited
+by* line. **This is a visible change on a board that never touched the
+setting**: notices that used to appear on quick typo fixes stop appearing.
+`posting.edit_grace_seconds 0` restores the old behaviour exactly.
+
+Nothing is hidden that should not be:
+
+- A **moderator editing somebody else's post** is never silent, whatever the
+  window says.
+- The **revision history is unchanged** — every edit still records who, when,
+  why and what the post said before. Only the reader-facing line is suppressed.
+- A silent edit **does not clear a notice already on the post**, so an earlier
+  moderator edit stays visible.
+
+See [The silent edit window](./operating.md#the-silent-edit-window).
+
+### `search.min_word_length` now reaches the query parser
+
+**Minimum search term length** was never read. `parseSearchInput` carried a
+hard-coded 2 and took no configuration, so the box moved and the board went on
+refusing only single letters — a board that had asked for 5 got 2, and a board
+that had asked for 1 also got 2.
+
+The value is threaded in now, as an argument — `@meith/search` reads no
+settings of its own.
+
+**Its default moved from 3 to 2 in the same release, so nothing changes under
+you.** The parser has always enforced 2, and 2 is what every board has actually
+had; leaving the default at 3 would have made two-letter searches like `ok` or
+`C++` start being refused on every board at once, on the day the setting gained
+a reader. A board that had stored a number gets that number now, which is the
+change it asked for. The same reasoning moved `registration.method` to `none`
+above.
+
+**The description changed rather than the code**, because the old one described
+something the board has never done. It said short terms were "dropped from the
+query"; what actually happens is that a search is refused when *every* word in
+it is shorter than the limit, and short words in a search that also has a long
+one are passed to the index rather than removed. Dropping words silently is the
+worse of the two behaviours — it answers a question nobody asked, and it has no
+sensible answer when every word is short — so the sentence on the screen was
+made true instead. The label says **Shortest word a search may rest on** now,
+which is what the rule is.
+
+See [How short a search may be](./operating.md#how-short-a-search-may-be).
+
+### `search.enabled` now actually switches search off
+
+**Enable search** was another switch nobody read. The Search link was
+unconditional, `/search` ran queries, and `GET /api/v1/search` answered them —
+so a board that had turned search off to take load off its database was still
+carrying every search it had been trying to refuse.
+
+It is read now, in all three places: the link goes, the two search pages say so
+instead of rendering, and the REST route answers `403`. The default is on. A
+board that stored `false` loses its search the moment it upgrades — which is
+what it asked for, though it is worth telling your members rather than letting
+them find the link missing.
+
+Nothing is thrown away: the index is still maintained while search is off, so
+switching it back on needs no reindex.
+
+See [Switching search off](./operating.md#switching-search-off).
+
+### `registration.enabled` now actually closes registration
+
+**Allow new registrations** stored its value and nothing read it. Whatever the
+switch said, `/register` rendered its form, the action behind it created the
+account, and the **Register** link sat in the user panel — so a board that
+believed it had closed the door was taking members the whole time.
+
+It is read now. Off takes the link away, replaces the form with a line saying
+the board is not taking new members, and refuses a submission POSTed straight at
+the action with a `403`. The default is on, so a board that never touched the
+switch sees nothing change; a board that stored `false` gets the closure it
+asked for the moment it upgrades — and if that board has been quietly accepting
+registrations, its member list is worth a look.
+
+Neither the installer nor `community user:create` consults it, for the same
+reason the activation method does not stop them: an operator at a terminal
+cannot be locked out of the board they are installing. A closed board still
+gains members from the command line.
+
+See [Closing registration](./operating.md#closing-registration).
+
 ### `registration.method` now decides what a new account has to do
 
 `registration.method` had been a setting with no reader: the dropdown
@@ -458,6 +551,34 @@ Two things moved as part of it:
 While that screen was lying, so was the demo board's lockout relief: it sets a
 laxer lockout so one visitor's typo cannot lock the published login for the
 next, and half of that was inert for the same reason. It works now.
+
+## Four moderator checkboxes were lying, and are not any more
+
+`/admin/forums/[id]` offered twelve per-forum moderator rights. Four of them
+granted nothing at all, on a screen whose entire job is saying who may do what.
+
+**"Restore posts" is a real right now.** Nothing read it: restoring a post or a
+thread was gated on *Delete posts*, so a moderator ticked for restore alone
+could restore nothing while the ModCP told them they held the right — and one
+ticked for delete quietly got the undo too. Restoring now needs *Restore posts*,
+and the ModCP's "My forums" says so.
+
+Nobody loses an undo they were already using: a migration grants *Restore posts*
+to every existing appointment that holds *Delete posts*. It runs once, and only
+adds. **New appointments do not get that pairing** — tick both boxes if you mean
+both, and see [what an appointment
+grants](./operating.md#what-an-appointment-grants).
+
+A group given `canSoftDeletePosts` in the forum matrix keeps both halves, since
+that cell has always been documented as the reversible one.
+
+**"Delete permanently", "Manage polls" and "See posters' addresses" are gone
+from the screen**, and their columns are dropped from `forum_moderators`. There
+is no hard-delete path, no per-forum poll management, and the ModCP's IP lookup
+is administrators and super-moderators only — so each was a promise the board
+had no way to keep, and shipping three new features to justify three checkboxes
+is not the honest fix. Whatever was ticked in them was already inert; nothing a
+board could observe changes when they go.
 
 ## What the CLI applies
 

@@ -330,7 +330,7 @@ export function getContainer(): Container {
   const cached = g[GLOBAL_KEY] as Partial<Container> | undefined
   if (
     !cached ||
-    typeof cached.threads?.locateForum !== 'function' ||
+    typeof cached.threads?.locate !== 'function' ||
     typeof cached.posts?.listThread !== 'function' ||
     typeof cached.posts?.findVisibleById !== 'function' ||
     cached.readState === undefined ||

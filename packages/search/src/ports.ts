@@ -4,6 +4,7 @@ import type { SearchGrouping, SearchMatch, SearchSort } from './filters'
 
 export interface SearchScope {
   readonly forumIds: readonly number[]
+  readonly ownThreadsOnlyForumIds: readonly number[]
   readonly viewerUserId: number | null
   readonly content: ContentScope
 }

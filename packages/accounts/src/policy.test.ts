@@ -12,6 +12,7 @@ describe('resolveAuthPolicy', () => {
   it('takes every configured value the board stored', () => {
     const resolved = resolveAuthPolicy(
       reader({
+        [AUTH_SETTING_KEYS.registrationEnabled]: false,
         [AUTH_SETTING_KEYS.activationMethod]: 'both',
         [AUTH_SETTING_KEYS.minPasswordLength]: 16,
         [AUTH_SETTING_KEYS.usernameMin]: 4,
@@ -25,6 +26,7 @@ describe('resolveAuthPolicy', () => {
     )
 
     expect(resolved).toEqual({
+      registrationEnabled: false,
       activationMethod: 'both',
       minPasswordLength: 16,
       usernameMin: 4,
@@ -38,6 +40,7 @@ describe('resolveAuthPolicy', () => {
 
   it('falls back to the base for anything unset', () => {
     expect(resolveAuthPolicy(reader({}), BASE)).toEqual({
+      registrationEnabled: BASE.registrationEnabled,
       activationMethod: BASE.activationMethod,
       minPasswordLength: BASE.minPasswordLength,
       usernameMin: BASE.usernameMin,
@@ -47,6 +50,15 @@ describe('resolveAuthPolicy', () => {
       lockoutMinutes: BASE.lockoutMinutes,
       sessionLifetimeDays: BASE.sessionLifetimeDays,
     })
+  })
+
+  it('keeps registration open when the stored value is not a boolean', () => {
+    const resolved = resolveAuthPolicy(
+      reader({ [AUTH_SETTING_KEYS.registrationEnabled]: 'no' }),
+      BASE,
+    )
+
+    expect(resolved.registrationEnabled).toBe(true)
   })
 
   it('reads a zero lockout count as the operator switching it off', () => {

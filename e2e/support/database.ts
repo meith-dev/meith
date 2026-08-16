@@ -179,6 +179,7 @@ function seedSql(staffHash: string): string {
     { key: 'registration.method', value: 'none', group_key: 'registration' },
     { key: 'search.flood_seconds', value: '0', group_key: 'search' },
     { key: 'posting.flood_seconds', value: '0', group_key: 'posting' },
+    { key: 'posting.edit_grace_seconds', value: '0', group_key: 'posting' },
   ]
 
   const styledGroup = [

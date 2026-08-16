@@ -314,7 +314,12 @@ class FakeRepo implements AttachmentRepository {
     const record = await this.findById(id)
     return record === null
       ? null
-      : { record, postVisibility: 'visible', threadVisibility: 'visible' }
+      : {
+          record,
+          postVisibility: 'visible',
+          threadVisibility: 'visible',
+          threadAuthorUserId: null,
+        }
   }
   async listForPosts(postIds: readonly number[]) {
     return this.rows.filter((row) => postIds.includes(row.postId))

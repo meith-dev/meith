@@ -19,6 +19,7 @@ const TOOL_ACTIONS: Readonly<Record<keyof ThreadToolRights, Action>> = {
   stick: 'thread.stick',
   move: 'thread.move',
   delete: 'thread.delete',
+  restore: 'thread.restore',
 }
 
 export async function threadToolAction(
@@ -96,5 +97,6 @@ async function resolveRights(forumId: number): Promise<ThreadToolRights> {
     stick: authorizer.can(actor, TOOL_ACTIONS.stick, target),
     move: authorizer.can(actor, TOOL_ACTIONS.move, target),
     delete: authorizer.can(actor, TOOL_ACTIONS.delete, target),
+    restore: authorizer.can(actor, TOOL_ACTIONS.restore, target),
   }
 }

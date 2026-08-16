@@ -1,9 +1,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresAuthorizationSource } from './authorization-source'
+import { resultRows } from './result-rows'
 import { forums, users } from './schema'
 
 let harness: TestDb
@@ -96,5 +100,78 @@ describe('moderatorAppointments', () => {
       values (${FORUM}, ${MODERATOR}, true)
     `)
     expect(await source.moderatorAppointments(MODERATOR, [])).toHaveLength(1)
+  })
+})
+
+describe('the 0040 upgrade path for appointments that predate the restore right', () => {
+  const backfill = readFileSync(
+    path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '..',
+      'migrations',
+      '0040_moderator_restore_grants.sql',
+    ),
+    'utf8',
+  )
+
+  async function rightsAfterBackfill(): Promise<
+    Array<{ userId: number; canRestorePosts: boolean }>
+  > {
+    await harness.client.exec(backfill)
+    const rows = resultRows(
+      await db.execute(sql`
+        select user_id, can_restore_posts from forum_moderators order by user_id
+      `),
+    ) as Array<{ user_id: number; can_restore_posts: boolean }>
+
+    return rows.map((row) => ({
+      userId: Number(row.user_id),
+      canRestorePosts: row.can_restore_posts,
+    }))
+  }
+
+  beforeEach(async () => {
+    await db.execute(sql`
+      insert into users (id, username, username_lower, email, email_lower,
+                         password_hash, password_algo, primary_group_id)
+      values (2, 'del', 'del', 'd@example.test', 'd@example.test', 'x', 'argon2id', 2),
+             (3, 'nil', 'nil', 'n@example.test', 'n@example.test', 'x', 'argon2id', 2)
+    `)
+  })
+
+  it('grants restore wherever soft delete was already held', async () => {
+    await db.execute(sql`
+      insert into forum_moderators (forum_id, user_id, can_soft_delete_posts)
+      values (${FORUM}, ${MODERATOR}, true)
+    `)
+
+    expect(await rightsAfterBackfill()).toEqual([
+      { userId: MODERATOR, canRestorePosts: true },
+    ])
+  })
+
+  it('leaves an appointment that never held soft delete alone', async () => {
+    await db.execute(sql`
+      insert into forum_moderators (forum_id, user_id, can_soft_delete_posts,
+                                    can_open_close_threads)
+      values (${FORUM}, 3, false, true)
+    `)
+
+    expect(await rightsAfterBackfill()).toEqual([
+      { userId: 3, canRestorePosts: false },
+    ])
+  })
+
+  it('is idempotent, and does not take a restore right away', async () => {
+    await db.execute(sql`
+      insert into forum_moderators (forum_id, user_id, can_soft_delete_posts,
+                                    can_restore_posts)
+      values (${FORUM}, 2, false, true)
+    `)
+
+    await rightsAfterBackfill()
+    expect(await rightsAfterBackfill()).toEqual([
+      { userId: 2, canRestorePosts: true },
+    ])
   })
 })

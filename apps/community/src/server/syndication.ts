@@ -32,7 +32,7 @@ export async function publicScope(): Promise<FeedScope> {
   const guest = await actorSource.buildGuest()
 
   return {
-    forumIds: await authorizer.forumIdsWhere(guest, 'thread.view'),
+    ...(await authorizer.threadAudience(guest)),
     content: PUBLIC_CONTENT,
   }
 }

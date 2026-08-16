@@ -7,7 +7,15 @@ export interface ParsedSearchInput {
   readonly refusal: 'empty' | 'too-short' | 'too-long' | null
 }
 
-export function parseSearchInput(raw: string): ParsedSearchInput {
+export function parseSearchInput(
+  raw: string,
+  minTermLength: number = MIN_TERM_LENGTH,
+): ParsedSearchInput {
+  const shortest =
+    Number.isInteger(minTermLength) && minTermLength >= 1
+      ? minTermLength
+      : MIN_TERM_LENGTH
+
   const cleaned = raw
     // eslint-disable-next-line no-control-regex -- matching control characters is the point: they are what is being removed
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
@@ -22,7 +30,7 @@ export function parseSearchInput(raw: string): ParsedSearchInput {
     .map((word) => word.replace(/^-/, '').replace(/"/g, ''))
     .reduce((best, word) => Math.max(best, word.length), 0)
 
-  if (longest < MIN_TERM_LENGTH) return { terms: '', refusal: 'too-short' }
+  if (longest < shortest) return { terms: '', refusal: 'too-short' }
 
   return { terms: cleaned, refusal: null }
 }

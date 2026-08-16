@@ -39,7 +39,7 @@ export function installTestContainer(
     ...identityOver(store),
 
     threads: {
-      locateForum: async () => null,
+      locate: async () => null,
       findById: async () => null,
       listForum: async () => ({ rows: [], nextCursor: null }),
     },
@@ -71,6 +71,7 @@ function identityOver(store: ReturnType<typeof createMemoryStore>) {
     identity: new IdentityService({
       store,
       config: {
+        registrationEnabled: true,
         minPasswordLength: 8,
         usernameMin: 3,
         usernameMax: 30,
