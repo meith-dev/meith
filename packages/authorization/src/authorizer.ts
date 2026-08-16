@@ -441,6 +441,8 @@ export class Authorizer {
 
     const ownsContent =
       target.ownerId != null && target.ownerId === actor.userId
+    const ownsThread =
+      target.threadAuthorId != null && target.threadAuthorId === actor.userId
 
     switch (action) {
       case 'forum.view':
@@ -515,7 +517,10 @@ export class Authorizer {
       case 'thread.move':
         return target.moderatorRights?.canMoveThreads === true
       case 'thread.delete':
-        return target.moderatorRights?.canSoftDeletePosts === true
+        return (
+          target.moderatorRights?.canSoftDeletePosts === true ||
+          (ownsThread && forum.canDeleteOwnThreads === true)
+        )
       case 'thread.restore':
         return target.moderatorRights?.canRestorePosts === true
       case 'thread.merge':

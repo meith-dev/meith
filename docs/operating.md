@@ -337,9 +337,10 @@ missing rather than hidden.
 
 ## Permissions
 
-46 permission fields — 27 resolved per member per forum, 19 board-wide. Every
+45 permission fields — 26 resolved per member per forum, 19 board-wide. Every
 read path — pages, search, feeds, the REST API — asks the same resolver, so
-there is no route that quietly reads around the rules.
+there is no route that quietly reads around the rules, and every field on the
+screen is one some decision reads.
 
 ### The three layers
 
@@ -402,6 +403,31 @@ What a Deny forum looks like:
 > all; this one only decides *whose* threads. A forum meant to be invisible
 > wants `canView` denied instead.
 
+### Letting members take their own threads down
+
+`canDeleteOwnThreads` is the thread-sized twin of `canDeleteOwnPosts`. Granted,
+the member who **started** a thread gets a **Delete thread** button on it, and
+pressing it moves the whole thread to `visibility=deleted` — the same reversible
+state a moderator's delete produces, not a destruction. It is off by default.
+
+Three things about it are worth knowing before you grant it:
+
+- **It is per forum**, like every other cell in the matrix, so it can be granted
+  in a scratch forum and denied in the one that holds your rules.
+- **It does not carry the undo.** Restoring a thread is `thread.restore`, a
+  moderator right, and it stays that way: a member who deletes their thread by
+  accident has to ask. This mirrors `canDeleteOwnPosts`, which has never carried
+  `post.restore` either.
+- **It takes the replies with it.** A thread is deleted whole, so granting it in
+  a busy forum means one member can remove a conversation other people wrote in.
+  In forums where that matters, leave it denied and let members delete their own
+  *posts* instead.
+
+The tools panel on a thread is headed **Thread tools** for a member who holds
+nothing but this, and **Moderator tools** for somebody appointed over the forum.
+Bulk deletion from a forum listing is unaffected: that surface is moderators
+only, and it stays that way.
+
 ### Numbers behave differently from switches
 
 Numeric permissions — attachments per post, signature length, edit window —
@@ -409,6 +435,46 @@ combine as the **most generous** value across a member's groups.
 
 > [!NOTE]
 > **`0` means unlimited, not none.** A cell showing `0` is not a restriction.
+
+### The daily post allowance
+
+`maxPostsPerDay` is a board-wide numeric permission and it caps **threads and
+replies together**, so replying is not a way around a cap set on posting. It is
+spent in the write path, on the same counters the anti-spam limits use, which
+means every instance of your board shares one allowance rather than getting one
+each.
+
+- **`0` is unlimited**, as everywhere else. Because numeric permissions combine
+  as the most generous value, a member in *any* group with `0` has no cap —
+  which is how you exempt somebody: put them in a group that sets it to `0`
+  rather than looking for a bypass switch.
+- **The day is a UTC day.** The allowance resets at midnight UTC, not at
+  midnight in the board's display timezone, because the counter is a fixed
+  window rather than a per-member calendar.
+- **Guests are not counted.** The cap is per member id, and a guest cannot post
+  in the first place.
+- **Bypass flood check does not lift it.** That permission is about the interval
+  between two actions and the hourly anti-spam limits, both of which are board
+  settings; this one is a grant the group itself carries, so the group's own
+  value is what exempts it.
+
+Somebody who has spent their allowance is told so, and told roughly when it
+comes back — the message speaks in hours, since "try again in 1,290 minutes" is
+not an answer.
+
+### The daily private message allowance
+
+`maxPrivateMessagesPerDay` works the same way for **sending** private messages,
+on its own counter: a member who has run out of posts can still send messages,
+and the other way round. One send is one unit however many people it is
+addressed to, since that is one press of the button.
+
+> [!IMPORTANT]
+> **`maxPrivateMessagesPerDay` and `privateMessageQuota` are different
+> controls, and the pair is easy to mix up.** The first is a *rate*: how many
+> messages a member may send in a day. The second is *storage*: how many
+> messages they may keep. A full inbox is the quota; "you have used your
+> allowance for today" is the rate. Setting one does nothing about the other.
 
 ### Reading the matrix
 
@@ -458,6 +524,13 @@ A group given `canSoftDeletePosts` in the forum matrix — rather than by
 appointment — can both delete and restore in that forum, because that cell has
 always meant "may move a post to deleted, reversibly" and there is no second
 cell beside it.
+
+> [!NOTE]
+> **There is no hard delete, and no permission claims there is.** Deleting a
+> post or a thread always means `visibility=deleted`: the row stays, the
+> moderator log records the act, and somebody with *Restore posts* can undo it.
+> Nothing in the panel destroys content, which is why the matrix has one delete
+> cell for other people's posts rather than two.
 
 **"My forums" in the ModCP lists what somebody actually holds**, per forum,
 using the same nine names. If a right is not in that list, the board will refuse
@@ -1768,6 +1841,11 @@ form is a separate door with limits of its own.
 A script satisfies any interval you would be willing to set — every 31 seconds,
 all night, is thousands of posts and never breaks the rule. Use both. Members
 with **bypass flood check** are exempt from both.
+
+There is a third control, and it is not on this screen: `maxPostsPerDay` is a
+**group permission** rather than a board setting, so it caps a particular group
+rather than everybody, and *bypass flood check* does not lift it. See [the daily
+post allowance](#the-daily-post-allowance).
 
 Limits are counted in the database, so every instance of your board shares one
 allowance rather than getting one each. The counters are pruned hourly by the

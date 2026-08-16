@@ -1,9 +1,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
+import { FORUM_PERMISSION_FIELDS, PERMISSION_FIELDS } from '@meith/core'
+
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresGroupAdminRepository } from './group-admin-repo'
+import { columnName } from './schema/permission-columns'
+import { PLUGIN_UNGRANTABLE_PERMISSIONS } from './staff-groups'
 import { resultRows } from './result-rows'
 
 let harness: TestDb
@@ -89,6 +93,45 @@ describe('readPermissions', () => {
 
   it('is null for a group that does not exist', async () => {
     expect(await repo.readPermissions(9_999)).toBeNull()
+  })
+})
+
+describe('the columns behind the group form', () => {
+  async function columnsOf(table: string): Promise<string[]> {
+    return (
+      resultRows(
+        await db.execute(sql`
+          select column_name from information_schema.columns
+           where table_name = ${table}
+        `),
+      ) as Array<{ column_name: string }>
+    ).map((row) => row.column_name)
+  }
+
+  it('carries a column for every declared permission, and none besides', async () => {
+    const groupColumns = await columnsOf('usergroups')
+    for (const field of PERMISSION_FIELDS) {
+      expect(groupColumns).toContain(columnName(field.key))
+    }
+
+    const declared = new Set(FORUM_PERMISSION_FIELDS.map((f) => columnName(f.key)))
+    const structural = new Set(['forum_id', 'group_id', 'updated_at'])
+    const matrixColumns = (await columnsOf('forum_permissions')).filter(
+      (name) => !structural.has(name),
+    )
+
+    expect(matrixColumns.sort()).toEqual([...declared].sort())
+  })
+
+  it('does not offer canDeleteOthersPosts, which nothing could carry out', async () => {
+    expect(PERMISSION_FIELDS.map((field) => field.key)).not.toContain(
+      'canDeleteOthersPosts',
+    )
+    expect(PLUGIN_UNGRANTABLE_PERMISSIONS).not.toContain('canDeleteOthersPosts')
+    expect(await columnsOf('usergroups')).not.toContain('can_delete_others_posts')
+    expect(await columnsOf('forum_permissions')).not.toContain(
+      'can_delete_others_posts',
+    )
   })
 })
 

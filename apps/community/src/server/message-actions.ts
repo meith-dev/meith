@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { parseFolder } from '@meith/messages'
 
-import { limitMessage, spendLimit } from './antispam'
+import { dailyLimitMessage, limitMessage, spendDailyLimit, spendLimit } from './antispam'
 import { getActor } from './context'
 import { getContainer } from './container'
 import { formStateReporter } from './form-state-reporter'
@@ -53,9 +53,16 @@ export async function sendMessageAction(_prev: FormState, form: FormData): Promi
   try {
     const { service, userId, username } = await requireMessaging()
 
-    const limited = await spendLimit({ scope: 'message', actor: await getActor() })
+    const actor = await getActor()
+
+    const limited = await spendLimit({ scope: 'message', actor })
     if (limited !== null && !limited.allowed) {
       return { error: limitMessage(limited), values }
+    }
+
+    const daily = await spendDailyLimit({ scope: 'message_day', actor })
+    if (daily !== null && !daily.allowed) {
+      return { error: dailyLimitMessage('message_day', daily), values }
     }
 
     const replyTo = Number(text(form, 'replyTo'))

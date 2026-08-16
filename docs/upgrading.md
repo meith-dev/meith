@@ -580,6 +580,88 @@ had no way to keep, and shipping three new features to justify three checkboxes
 is not the honest fix. Whatever was ticked in them was already inert; nothing a
 board could observe changes when they go.
 
+## Four group permissions that granted nothing
+
+`/admin/groups/[id]` offered them, the board stored them, resolved them and
+displayed them back as effective values — and no decision anywhere read them.
+Setting one changed nothing at all.
+
+### `canDeleteOwnThreads` is a real permission now
+
+It read "Delete a whole thread you started", and deleting a thread was a
+moderator right and nothing else. A member could not delete a thread they had
+started even in a forum where the box was ticked for their group.
+
+Granted, the thread's author now gets a **Delete thread** button on it, and it
+moves the thread to `visibility=deleted` — reversible, exactly as a moderator's
+delete is. Restoring stays a moderator right, so a member who deletes by
+accident has to ask, the same way `canDeleteOwnPosts` has never carried
+`post.restore`. It is **off by default** and nothing about an existing board
+changes until you tick it; see [letting members take their own
+threads down](./operating.md#letting-members-take-their-own-threads-down)
+before you do, because a thread is deleted whole and takes other people's
+replies with it.
+
+### `canDeleteOthersPosts` is gone from the panel
+
+It read "Hard-delete anyone's post", and the board has never had a hard delete
+to perform. No decision consulted it: deleting somebody else's post has always
+gone through `post.softDelete`, which reads `canSoftDeletePosts` and is
+reversible. The cell was a promise the board had no way to keep, and shipping a
+row-destroying delete to justify a checkbox is not the honest fix — the same
+call PR #124 made when it removed *Delete permanently* from the per-forum
+moderator rights for exactly this reason.
+
+Migration **0042** drops `can_delete_others_posts` from `usergroups` and from
+`forum_permissions`. Whatever was ticked in it was already inert, so nothing a
+board can observe changes when it goes. A group that is meant to remove other
+people's posts wants `canSoftDeletePosts`, which it almost certainly already
+has.
+
+One knock-on worth knowing: the column was one of the permissions that marked a
+group as **carrying power**, and so barred it from *may be granted by plugins*
+and forced its members to be displayed as staff. `canEditOthersPosts` and
+`canSoftDeletePosts` are still on that list and cover the same ground, so a
+group that was barred for holding real moderation power still is. A group whose
+*only* power was this dead column — which granted nothing — stops being treated
+as powerful, which is now the truth about it.
+
+### `maxPostsPerDay` is enforced now
+
+"Daily post cap. 0 = unlimited" was stored, resolved and shown as an effective
+number, and no write path looked at it. A group set to five posts a day could
+post five thousand.
+
+It is spent now, in the write path, against the same database counters the
+hourly anti-spam limits already use — one shared allowance across every instance
+of your board, over a **UTC day**. Threads and replies come off the same
+allowance, and the REST API's reply endpoint spends it too, since both go
+through the composer rather than the page.
+
+**Check your groups before you deploy this.** `0` still means unlimited and is
+the default, so a board that never touched the field is unaffected. A board that
+*did* set a number — believing it was doing something — will start enforcing it,
+and the number may be one nobody has looked at in a while. Note that *bypass
+flood check* does not lift this cap: it covers the flood interval and the hourly
+limits, which are board settings, while this one is carried by the group. To
+exempt a group, set its value to `0`.
+
+### `maxPrivateMessagesPerDay` is enforced now
+
+The fourth of the four, and the same story: "Daily PM send cap. 0 = unlimited"
+was offered, stored, resolved and displayed, and `sendMessageAction` never
+looked at it. It is spent now, on its own daily counter, beside the hourly
+`antispam.message_per_hour` limit that was already there.
+
+`0` remains the default and remains unlimited, so an untouched board is
+unaffected. Check the number on any group where you set one.
+
+> [!NOTE]
+> Do not confuse it with `privateMessageQuota`, which has always worked and is
+> a different thing: the quota is how many messages a member may **keep**, and
+> it is what a full inbox means. This one is how many they may **send** in a
+> day.
+
 ## What the CLI applies
 
 `community upgrade` applies **core migrations, then each installed plugin's, then

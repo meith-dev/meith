@@ -1,5 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 
+import type * as Antispam from './antispam'
+
 import {
   InMemoryAuthorizationSource,
   combinePermissionSets,
@@ -40,6 +42,16 @@ const actorRef: { current: Actor | null } = { current: null }
 vi.mock('./context', () => ({
   getActor: async () => actorRef.current,
 }))
+
+const daily = vi.hoisted(() => ({
+  outcome: null as { allowed: false; used: number; retryAfterSeconds: number } | null,
+}))
+vi.mock('./antispam', async (importOriginal) => ({
+  ...(await importOriginal<typeof Antispam>()),
+  spendDailyLimit: async () => daily.outcome,
+}))
+
+const CAPPED = { allowed: false, used: 51, retryAfterSeconds: 36_000 } as const
 
 const storedObjects = new Map<string, Uint8Array>()
 vi.mock('@meith/drivers', () => ({
@@ -267,6 +279,7 @@ async function redirectOf(run: Promise<unknown>): Promise<string> {
 
 beforeEach(async () => {
   writes = new FakeWrites()
+  daily.outcome = null
   actorRef.current = await actorFor(SEED_GROUP.registered, 1)
   installContainer()
 })
@@ -403,6 +416,46 @@ describe('createThreadAction', () => {
     const state = await createThreadAction(EMPTY_STATE, form(VALID))
 
     expect(state.error).toMatch(/sample data/)
+  })
+})
+
+describe('the daily post cap', () => {
+  it('refuses a new thread once maxPostsPerDay is spent, and writes nothing', async () => {
+    daily.outcome = { ...CAPPED }
+
+    const result = await createThreadAction(EMPTY_STATE, form(VALID))
+
+    expect(result.error).toBe(
+      'You have used your allowance of posts for today. It resets in 10 hours.',
+    )
+    expect(writes.written).toEqual([])
+  })
+
+  it('refuses a reply on the same allowance, so replies are not a way around it', async () => {
+    daily.outcome = { ...CAPPED }
+
+    const result = await createReplyAction(
+      EMPTY_STATE,
+      form({ threadId: '20', message: 'Quite so.', seenLastPostId: '31' }),
+    )
+
+    expect(result.error).toBe(
+      'You have used your allowance of posts for today. It resets in 10 hours.',
+    )
+    expect(writes.replies).toEqual([])
+  })
+
+  it('keeps the form’s contents so nothing typed is lost to a refusal', async () => {
+    daily.outcome = { ...CAPPED }
+
+    const result = await createThreadAction(EMPTY_STATE, form(VALID))
+
+    expect(result.values).toMatchObject({ title: VALID.title, message: VALID.message })
+  })
+
+  it('lets a member whose allowance is not spent through', async () => {
+    expect(await redirectOf(createThreadAction(EMPTY_STATE, form(VALID)))).toContain('/thread/')
+    expect(writes.written).toHaveLength(1)
   })
 })
 

@@ -35,6 +35,7 @@ const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
 const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
 const { ThreadToolsForm } = await import('../components/moderation/thread-tools-form')
+const { threadToolsHeading } = await import('../view/thread-view')
 
 class FakeTools implements ThreadToolsRepository {
   readonly calls: string[] = []
@@ -355,5 +356,124 @@ describe('copy', () => {
       ),
     ).toBe('/thread/77-hello?tool=copy')
     expect(tools.calls).toEqual(['copy'])
+  })
+})
+
+describe('deleting a thread you started', () => {
+  const AUTHOR = 4
+  const BYSTANDER = 5
+
+  function installOwnThreads(granted: boolean, authorUserId: number | null = AUTHOR): void {
+    installTestContainer({
+      board: {
+        ...SEED_BOARD,
+        moderators: [],
+        overrides: [
+          ...SEED_BOARD.overrides,
+          {
+            forumId: SEED_FORUM.general,
+            groupId: SEED_GROUP.registered,
+            overrides: { canDeleteOwnThreads: granted },
+          },
+        ],
+      },
+      container: {
+        threadTools: tools,
+        threads: {
+          locate: async () => ({ forumId: SEED_FORUM.general, authorUserId }),
+          findById: async () => null,
+          listForum: async () => ({ rows: [], nextCursor: null }),
+        },
+      },
+    })
+  }
+
+  beforeEach(async () => {
+    actorRef.current = await actorFor(SEED_GROUP.registered, AUTHOR)
+    installOwnThreads(true)
+  })
+
+  it('lets the author take it down when the forum grants it', async () => {
+    expect(
+      await redirectOf(threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'delete' }))),
+    ).toBe(`/${SEED_FORUM.general}?thread=deleted`)
+    expect(tools.calls).toEqual(['setVisibility'])
+  })
+
+  it('refuses somebody who did not start it', async () => {
+    actorRef.current = await actorFor(SEED_GROUP.registered, BYSTANDER)
+
+    const state = await threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'delete' }))
+
+    expect(state.error).toMatch(/cannot delete threads/i)
+    expect(tools.calls).toEqual([])
+  })
+
+  it('refuses the author where the forum denies it', async () => {
+    installOwnThreads(false)
+
+    const state = await threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'delete' }))
+
+    expect(state.error).toMatch(/cannot delete threads/i)
+    expect(tools.calls).toEqual([])
+  })
+
+  it('does not hand the author the undo along with it', async () => {
+    const state = await threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'restore' }))
+
+    expect(state.error).toMatch(/cannot restore threads/i)
+    expect(tools.calls).toEqual([])
+  })
+
+  it('grants nothing when the thread has no author to be', async () => {
+    installOwnThreads(true, null)
+
+    const state = await threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'delete' }))
+
+    expect(state.error).toMatch(/cannot delete threads/i)
+    expect(tools.calls).toEqual([])
+  })
+})
+
+describe('the panel an author sees', () => {
+  function render(rights: Parameters<typeof ThreadToolsForm>[0]['rights'], heading?: string): string {
+    return renderToStaticMarkup(
+      createElement(ThreadToolsForm, {
+        threadId: 20,
+        isLocked: false,
+        isSticky: false,
+        rights,
+        moveTargets: [],
+        ...(heading === undefined ? {} : { heading }),
+      }),
+    )
+  }
+
+  const AUTHOR_ONLY = { lock: false, stick: false, move: false, delete: true }
+
+  it('is headed Thread tools, and says so to a screen reader too', () => {
+    const html = render(AUTHOR_ONLY, threadToolsHeading(false))
+
+    expect(html).toContain('aria-label="Thread tools"')
+    expect(html).toContain('>Thread tools<')
+    expect(html).not.toContain('Moderator tools')
+  })
+
+  it('offers the author the delete button and no moderator tool beside it', () => {
+    const html = render(AUTHOR_ONLY, threadToolsHeading(false))
+
+    expect(html).toContain('Delete thread')
+    for (const absent of ['Lock', 'Unlock', 'Pin', 'Unpin', 'Move', 'Copy']) {
+      expect(html).not.toContain(`>${absent}<`)
+    }
+  })
+
+  it('still reads Moderator tools for an appointee, and by default', () => {
+    const everything = { lock: true, stick: true, move: true, delete: true }
+
+    expect(render(everything, threadToolsHeading(true))).toContain(
+      'aria-label="Moderator tools"',
+    )
+    expect(render(everything)).toContain('aria-label="Moderator tools"')
   })
 })

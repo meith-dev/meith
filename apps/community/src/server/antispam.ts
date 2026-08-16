@@ -1,6 +1,7 @@
 import 'server-only'
 
 import {
+  DAY_SECONDS,
   QuestionCaptcha,
   RateLimiter,
   checkHoneypot,
@@ -12,9 +13,10 @@ import {
   type Challenge,
   type ChallengeVerdict,
   type ConfiguredRateLimitScope,
+  type GroupRateLimitScope,
   type RateLimitOutcome,
 } from '@meith/antispam'
-import type { Actor } from '@meith/authorization'
+import type { Actor, NumericGlobalPermission } from '@meith/authorization'
 import { env, logger, truncateIp } from '@meith/core'
 import {
   PostgresCaptchaQuestionRepository,
@@ -83,6 +85,50 @@ export async function spendLimit(input: {
     logger().warn({ err: String(error), scope: input.scope }, 'rate limit unavailable')
     return null
   }
+}
+
+const DAILY_LIMIT_PERMISSION = {
+  post_day: 'maxPostsPerDay',
+  message_day: 'maxPrivateMessagesPerDay',
+} as const satisfies Record<GroupRateLimitScope, NumericGlobalPermission>
+
+const DAILY_LIMIT_NOUN = {
+  post_day: 'posts',
+  message_day: 'private messages',
+} as const satisfies Record<GroupRateLimitScope, string>
+
+export async function spendDailyLimit(input: {
+  readonly scope: GroupRateLimitScope
+  readonly actor: Actor
+}): Promise<RateLimitOutcome | null> {
+  const store = rateLimitStore()
+  if (store === null || input.actor.userId === null) return null
+
+  try {
+    const { authorizer } = getContainer()
+    const max = authorizer.globalLimit(input.actor, DAILY_LIMIT_PERMISSION[input.scope])
+    if (max <= 0) return null
+
+    return await new RateLimiter(store).consume({
+      scope: input.scope,
+      subject: subjectFor({ userId: input.actor.userId }),
+      rule: { max, windowSeconds: DAY_SECONDS },
+    })
+  } catch (error) {
+    logger().warn({ err: String(error), scope: input.scope }, 'daily limit unavailable')
+    return null
+  }
+}
+
+export function dailyLimitMessage(
+  scope: GroupRateLimitScope,
+  outcome: RateLimitOutcome & { allowed: false },
+): string {
+  const hours = Math.ceil(outcome.retryAfterSeconds / 3600)
+  const noun = DAILY_LIMIT_NOUN[scope]
+  return hours <= 1
+    ? `You have used your allowance of ${noun} for today. It resets within the hour.`
+    : `You have used your allowance of ${noun} for today. It resets in ${hours} hours.`
 }
 
 type AuthLimitSetting =

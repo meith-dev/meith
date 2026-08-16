@@ -295,6 +295,13 @@
       "when": 1786847512081,
       "tag": "0041_drop_placebo_moderator_rights",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1786865562203,
+      "tag": "0042_drop_placebo_delete_others",
+      "breakpoints": true
     }
   ]
 }

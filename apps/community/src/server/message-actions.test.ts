@@ -1,6 +1,8 @@
 import { BodyFormat } from '@meith/markdown'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type * as Antispam from './antispam'
+
 import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
 import type { Actor } from '@meith/authorization'
 import type {
@@ -30,6 +32,14 @@ vi.mock('next/navigation', () => ({
 
 const actorRef: { current: Actor | null } = { current: null }
 vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
+
+const daily = vi.hoisted(() => ({
+  outcome: null as { allowed: false; used: number; retryAfterSeconds: number } | null,
+}))
+vi.mock('./antispam', async (importOriginal) => ({
+  ...(await importOriginal<typeof Antispam>()),
+  spendDailyLimit: async () => daily.outcome,
+}))
 
 const { messageBulkAction, sendMessageAction } = await import('./message-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
@@ -198,6 +208,7 @@ async function install(): Promise<void> {
 
 beforeEach(async () => {
   messages = new FakeMessages()
+  daily.outcome = null
   actorRef.current = await actorFor(SEED_GROUP.registered, IVAN)
   await install()
 }, 30_000)
@@ -305,6 +316,43 @@ describe('sending', () => {
     )
 
     expect(messages.messages[0]?.receiptRequested).toBe(true)
+  })
+})
+
+describe('the daily private message allowance', () => {
+  const CAPPED = { allowed: false, used: 11, retryAfterSeconds: 7200 } as const
+
+  const SEND: Array<[string, string]> = [
+    ['to', 'bob'],
+    ['subject', 'Hello'],
+    ['message', 'A message.'],
+  ]
+
+  it('refuses once maxPrivateMessagesPerDay is spent, and sends nothing', async () => {
+    daily.outcome = { ...CAPPED }
+
+    const result = await run(sendMessageAction, form(SEND))
+
+    expect(result.error).toBe(
+      'You have used your allowance of private messages for today. It resets in 2 hours.',
+    )
+    expect(messages.messages).toEqual([])
+    expect(messages.copies).toEqual([])
+  })
+
+  it('keeps what was typed, so a refusal does not lose the message', async () => {
+    daily.outcome = { ...CAPPED }
+
+    const result = await run(sendMessageAction, form(SEND))
+
+    expect(result.values).toMatchObject({ to: 'bob', subject: 'Hello', message: 'A message.' })
+  })
+
+  it('sends as normal when the allowance is not spent', async () => {
+    expect((await run(sendMessageAction, form(SEND))).redirectedTo).toBe(
+      '/messages?folder=sent&sent=1',
+    )
+    expect(messages.messages).toHaveLength(1)
   })
 })
 

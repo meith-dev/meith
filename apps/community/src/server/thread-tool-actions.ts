@@ -36,7 +36,7 @@ export async function threadToolAction(
     return { error: 'That thread does not exist.' }
   }
 
-  const { authorizer, threadTools } = getContainer()
+  const { authorizer, threadTools, threads } = getContainer()
   if (threadTools === null) {
     return {
       error: 'This board is running on in-memory sample data, so it has no thread tools.',
@@ -56,10 +56,11 @@ export async function threadToolAction(
       throw new ValidationError('That thread does not exist.')
     }
 
-    const rights = await resolveRights(target.forumId)
+    const threadAuthorId = (await threads.locate(threadId))?.authorUserId ?? null
+    const rights = await resolveRights(target.forumId, threadAuthorId)
     const destinationRights =
       (tool === 'move' || tool === 'copy') && toForumId !== null
-        ? await resolveRights(toForumId)
+        ? await resolveRights(toForumId, threadAuthorId)
         : undefined
 
     outcome = await new ThreadTools({ threads: threadTools }).apply({
@@ -83,14 +84,17 @@ export async function threadToolAction(
   redirect(`/thread/${outcome.threadId}-${outcome.slug}?tool=${outcome.tool}`)
 }
 
-async function resolveRights(forumId: number): Promise<ThreadToolRights> {
+async function resolveRights(
+  forumId: number,
+  threadAuthorId: number | null,
+): Promise<ThreadToolRights> {
   const actor = await getActor()
   const { authorizer } = getContainer()
   const [forum, moderatorRights] = await Promise.all([
     authorizer.forumMatrix(actor, forumId),
     authorizer.moderatorRightsIn(actor, forumId),
   ])
-  const target = { forumId, forum, moderatorRights }
+  const target = { forumId, forum, moderatorRights, threadAuthorId }
 
   return {
     lock: authorizer.can(actor, TOOL_ACTIONS.lock, target),

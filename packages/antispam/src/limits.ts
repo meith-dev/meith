@@ -7,10 +7,16 @@ export type FixedRateLimitScope = (typeof FIXED_RATE_LIMIT_SCOPES)[number]
 export const AUTH_RATE_LIMIT_SCOPES = ['reset', 'reset_ip', 'register_ip'] as const
 export type AuthRateLimitScope = (typeof AUTH_RATE_LIMIT_SCOPES)[number]
 
+export const GROUP_RATE_LIMIT_SCOPES = ['post_day', 'message_day'] as const
+export type GroupRateLimitScope = (typeof GROUP_RATE_LIMIT_SCOPES)[number]
+
+export const DAY_SECONDS = 86_400
+
 export type RateLimitScope =
   | ConfiguredRateLimitScope
   | FixedRateLimitScope
   | AuthRateLimitScope
+  | GroupRateLimitScope
 
 export function isRateLimitScope(value: string): value is ConfiguredRateLimitScope {
   return (RATE_LIMIT_SCOPES as readonly string[]).includes(value)

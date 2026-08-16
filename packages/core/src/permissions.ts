@@ -116,20 +116,13 @@ export const PERMISSION_FIELDS = [
       'than a group default.',
   },
   {
-    key: 'canDeleteOthersPosts',
-    kind: 'boolean',
-    scope: 'forum',
-    fallback: false,
-    description: 'Hard-delete anyone\u2019s post.',
-  },
-  {
     key: 'canSoftDeletePosts',
     kind: 'boolean',
     scope: 'forum',
     fallback: false,
     description:
-      'Move a post to visibility=deleted, which is reversible. Distinct from ' +
-      'canDeleteOthersPosts, which destroys the row.',
+      'Delete and restore anyone\u2019s post. Reversible: the post moves to ' +
+      'visibility=deleted rather than leaving the database.',
   },
   {
     key: 'canViewUnapproved',
