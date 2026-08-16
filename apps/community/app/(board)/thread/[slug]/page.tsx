@@ -82,7 +82,7 @@ export async function generateMetadata({
 
   const thread = await threads.findById(
     id,
-    authorizer.contentScope(actor, { forumId: forum.id, forum: matrix }),
+    await authorizer.contentScopeIn(actor, forum.id, matrix),
   )
   if (!thread) return { title: 'Thread' }
 
@@ -195,10 +195,8 @@ export default async function ThreadPage({
   )
     notFound()
 
-  const scope = authorizer.contentScope(actor, {
-    forumId: forum.id,
-    forum: matrix,
-  })
+  const appointment = await moderatorTargetFor(actor, forum.id, matrix)
+  const scope = authorizer.contentScope(actor, appointment)
   const thread = await threads.findById(id, scope)
   if (!thread) notFound()
 
@@ -237,7 +235,6 @@ export default async function ThreadPage({
         forum: matrix,
       }))
 
-  const appointment = await moderatorTargetFor(actor, forum.id, matrix)
   const own = { ...appointment, ownerId: actor.userId }
   const others = { ...appointment, ownerId: -1 }
   const writable = postWrites !== null

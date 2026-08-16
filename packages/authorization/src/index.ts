@@ -13,6 +13,7 @@ export type {
   ContentVisibility,
   ForumOverride,
   GroupDefaults,
+  ModeratedTarget,
   NumericGlobalPermission,
   Target,
   Visible,

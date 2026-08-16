@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { hasAnyModeratorRight } from '@meith/authorization'
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
 import { requireSlot } from '@meith/theme-kit'
 
@@ -12,6 +11,7 @@ import { liveAnnouncements } from '@/server/announcements'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { moderatorTargetFor } from '@/server/modcp'
 import { currentTheme } from '@/server/theme'
 import { decodeForumCursor, encodeForumCursor } from '@/view/forum-cursor'
 import { FollowForm } from '@/components/account/subscription-forms'
@@ -159,7 +159,8 @@ export default async function ForumPage({
   if (!authorizer.can(actor, 'thread.view', { forumId: id, forum: matrix }))
     notFound()
 
-  const scope = authorizer.contentScope(actor, { forumId: id, forum: matrix })
+  const inlineTarget = await moderatorTargetFor(actor, id, matrix)
+  const scope = authorizer.contentScope(actor, inlineTarget)
   const preferences = await getViewerPreferences()
   const threadPage = await threads.listForum(id, {
     ...(after === undefined ? {} : { after }),
@@ -175,13 +176,6 @@ export default async function ForumPage({
     acceptsThreads(forum) &&
     authorizer.can(actor, 'thread.post', { forumId: id, forum: matrix })
 
-  const moderatorRights = await authorizer.moderatorRightsIn(actor, id)
-  const inlineTarget = {
-    forumId: id,
-    forum: matrix,
-    moderatorRights,
-    isForumModerator: hasAnyModeratorRight(moderatorRights),
-  }
   const inlineRights = {
     approve:
       inlineModeration !== null &&

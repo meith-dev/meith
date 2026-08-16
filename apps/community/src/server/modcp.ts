@@ -3,8 +3,8 @@ import 'server-only'
 import { cache } from 'react'
 
 import {
-  hasAnyModeratorRight,
   type Actor,
+  type ModeratedTarget,
   type ModeratorRights,
 } from '@meith/authorization'
 import { ModerationQueue } from '@meith/moderation'
@@ -123,18 +123,6 @@ export async function moderatorTargetFor(
   forum: Awaited<
     ReturnType<ReturnType<typeof getContainer>['authorizer']['forumMatrix']>
   >,
-): Promise<{
-  forumId: number
-  forum: typeof forum
-  moderatorRights: ModeratorRights
-  isForumModerator: boolean
-}> {
-  const { authorizer } = getContainer()
-  const moderatorRights = await authorizer.moderatorRightsIn(actor, forumId)
-  return {
-    forumId,
-    forum,
-    moderatorRights,
-    isForumModerator: hasAnyModeratorRight(moderatorRights),
-  }
+): Promise<ModeratedTarget> {
+  return getContainer().authorizer.moderatorTargetIn(actor, forumId, forum)
 }
