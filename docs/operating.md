@@ -374,6 +374,52 @@ control — that reader's page carries no dark-mode class for a theme to match o
 > so the light sample is light even if your machine is set to dark mode. It is
 > there to be looked at.
 
+### Promotions
+
+`/admin/groups/promotions` moves members into a group once they have earned it.
+The screen holds the rules, and beneath them the preview: exactly who the rules
+would move if they ran this second, with nothing written.
+
+A rule is:
+
+- **A title.** For the preview and the admin log. Members never see it.
+- **Display order.** The first rule in this order that matches a member is the
+  one applied, and no member is moved twice in a run.
+- **Promote from** — a primary group, or *any group*.
+- **Promote into** — the group that becomes their primary *and* display group.
+- **At least**: posts, reputation, days registered. Each one optional; a blank
+  box means the rule does not look at that number.
+
+**A new rule is enabled straight away**, and from then on the board applies it
+without anybody pressing anything: a `promotions.apply` task runs every six
+hours. **Disable** is the reversible way to stop a rule — it stays on the screen
+and is skipped. **Remove** deletes it, asks for your password again, and has no
+undo.
+
+Two rules are refused rather than warned about, because both are quiet in the
+preview and loud six hours later:
+
+- **A rule that promotes a group into itself** can never move anybody. It looks
+  configured and does nothing.
+- **A rule with no criteria at all** matches every member it examines, which is
+  a board-wide primary-group change on the next tick. If that really is what you
+  want, say it out loud: set *posts* to `0`. Zero is accepted — it is blank that
+  is refused.
+
+Everything else the promotion machinery refuses, it refuses at run time and
+without being configured to. **A promotion never lifts a ban, never demotes, and
+never re-applies to somebody already in the target group.** Banned members,
+administrators and super-moderators are skipped entirely whatever a rule says,
+and a rule whose target group ranks below the member's current one is passed
+over rather than applied. A member promoted by a rule keeps every secondary
+membership they held.
+
+The preview is the same evaluation the task runs, so it is worth reading before
+enabling a rule on a board with history — a `100 posts` rule on a five-year-old
+board moves five years of members on its first tick. **Run it** applies exactly
+what the preview lists, asks for your password again, and records the count in
+the admin log. Deleting the target group deletes the rules that point at it.
+
 ## Themes
 
 A theme is a package named in `apps/community/community.config.ts`. Installing one is
