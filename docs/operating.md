@@ -1201,6 +1201,22 @@ as empty password boxes and a blank one means *unchanged* rather than *clear it*
 and `community env:check` and the audit log both refuse to print them. To clear one
 deliberately, set it to the empty string.
 
+### Who a mass mail reaches
+
+`/admin/users/mail` sends to everybody, or to one group. Either way it reaches
+only accounts that are **active, not closed, and have a verified address** — an
+unverified address is as often a typo as it is the member's.
+
+The **Send to** list carries the size of each audience in brackets beside it, and
+those numbers are the real thing: they are counted with the same rules the send
+itself uses, so the figure beside a group is how many messages choosing that
+group will queue. A group counts members who hold it as their primary group and
+members who hold it as an additional one, each member once.
+
+The numbers are counted when the page is rendered, not as you change the
+selection — the screen carries no JavaScript, and every audience is on it
+already, so there is nothing to update. Reload the page for a fresh count.
+
 ### Queued mail needs the tick
 
 Notification and mass mail are delivered by a job that runs on the tick. A

@@ -304,6 +304,41 @@ describe('mass mail', () => {
     expect(await repo.massMailAudience(SUPER_MODS)).toBe(2)
   })
 
+  it('gives every group its own audience, on the same terms as the whole board', async () => {
+    await seed({ id: 1, username: 'primary', groupId: SUPER_MODS })
+    await seed({ id: 2, username: 'secondary' })
+    await seed({ id: 3, username: 'ordinary' })
+    await seed({ id: 4, username: 'unverified', groupId: SUPER_MODS, verified: false })
+    await db.execute(sql`
+      insert into user_group_memberships (user_id, group_id) values (2, ${SUPER_MODS})
+    `)
+
+    const byGroup = await repo.massMailAudienceByGroup()
+
+    expect(byGroup.get(SUPER_MODS)).toBe(2)
+    expect(byGroup.get(REGISTERED)).toBe(2)
+    expect(await repo.massMailAudience(SUPER_MODS)).toBe(byGroup.get(SUPER_MODS))
+    expect(await repo.massMailAudience(REGISTERED)).toBe(byGroup.get(REGISTERED))
+  })
+
+  it('counts a member holding a group twice over only once', async () => {
+    await seed({ id: 1, username: 'both', groupId: SUPER_MODS })
+    await db.execute(sql`
+      insert into user_group_memberships (user_id, group_id) values (1, ${SUPER_MODS})
+    `)
+
+    expect((await repo.massMailAudienceByGroup()).get(SUPER_MODS)).toBe(1)
+  })
+
+  it('reads every group in one query', async () => {
+    await seed({ id: 1, username: 'one' })
+    await seed({ id: 2, username: 'two', groupId: SUPER_MODS })
+
+    harness.queries.reset()
+    await repo.massMailAudienceByGroup()
+    expect(harness.queries.count).toBe(1)
+  })
+
   it('refuses an empty subject or body', async () => {
     await expect(
       repo.createMassMail({ subject: '  ', body: 'x', targetGroupId: null, createdByUserId: null }),

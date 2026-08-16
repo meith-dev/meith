@@ -190,6 +190,27 @@ export class PostgresUserBulkRepository {
     return Number(rows[0]?.n ?? 0)
   }
 
+  async massMailAudienceByGroup(): Promise<ReadonlyMap<number, number>> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select g.id as group_id, count(u.id)::int as n
+          from usergroups g
+          left join users u
+            on (
+                 u.primary_group_id = g.id
+                 or exists (
+                   select 1 from user_group_memberships m
+                    where m.user_id = u.id and m.group_id = g.id
+                 )
+               )
+           and ${this.audienceWhere(null)}
+         group by g.id
+      `),
+    ) as Array<{ group_id: number; n: number }>
+
+    return new Map(rows.map((row) => [Number(row.group_id), Number(row.n)]))
+  }
+
   private audienceWhere(targetGroupId: number | null): SQL {
     const conditions: SQL[] = [
       sql`u.deleted_at is null`,
