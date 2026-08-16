@@ -129,9 +129,6 @@ export const forumModerators = pgTable(
       .notNull()
       .default(false),
     canRestorePosts: boolean('can_restore_posts').notNull().default(false),
-    canHardDeletePosts: boolean('can_hard_delete_posts')
-      .notNull()
-      .default(false),
     canApproveContent: boolean('can_approve_content').notNull().default(false),
     canOpenCloseThreads: boolean('can_open_close_threads')
       .notNull()
@@ -140,8 +137,6 @@ export const forumModerators = pgTable(
     canMoveThreads: boolean('can_move_threads').notNull().default(false),
     canMergeThreads: boolean('can_merge_threads').notNull().default(false),
     canSplitThreads: boolean('can_split_threads').notNull().default(false),
-    canManagePolls: boolean('can_manage_polls').notNull().default(false),
-    canViewIps: boolean('can_view_ips').notNull().default(false),
 
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()

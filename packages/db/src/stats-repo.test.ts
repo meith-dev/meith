@@ -84,6 +84,8 @@ async function seedThread(
 
 const scope = (overrides: Partial<StatsScope> = {}): StatsScope => ({
   forumIds: [OPEN],
+  ownThreadsOnlyForumIds: [],
+  viewerUserId: null,
   content: PUBLIC_CONTENT,
   ...overrides,
 })

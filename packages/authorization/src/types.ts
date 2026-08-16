@@ -18,6 +18,7 @@ export interface Actor {
 export type Action =
   | 'forum.view'
   | 'thread.view'
+  | 'thread.viewOthers'
   | 'thread.post'
   | 'reply.post'
   | 'poll.post'
@@ -27,6 +28,7 @@ export type Action =
   | 'post.editOthers'
   | 'post.deleteOwn'
   | 'post.softDelete'
+  | 'post.restore'
   | 'content.viewUnapproved'
   | 'content.viewDeleted'
   | 'content.approve'
@@ -34,6 +36,7 @@ export type Action =
   | 'thread.stick'
   | 'thread.move'
   | 'thread.delete'
+  | 'thread.restore'
   | 'thread.merge'
   | 'thread.split'
   | 'attachment.upload'
@@ -63,6 +66,7 @@ export interface Target {
   readonly forumId?: number
   readonly forum?: ForumPermissions
   readonly ownerId?: number | null
+  readonly threadAuthorId?: number | null
   readonly visibility?: ContentVisibility
   readonly isForumModerator?: boolean
   readonly moderatorRights?: ModeratorRights

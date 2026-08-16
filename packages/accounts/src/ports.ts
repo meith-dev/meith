@@ -148,6 +148,7 @@ export interface LoginBucket {
 }
 
 export interface AuthConfig {
+  readonly registrationEnabled: boolean
   readonly minPasswordLength: number
   readonly usernameMin: number
   readonly usernameMax: number

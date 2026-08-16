@@ -57,6 +57,7 @@ export async function createContext(): Promise<CliContext> {
       ...DEFAULT_AUTH_POLICY,
       activationMethod: 'none',
     }),
+    registrationEnabled: true,
     activationMethod: 'none',
     defaultMemberGroupId: await defaultMemberGroupId(admin),
   }

@@ -5,7 +5,13 @@ const calls: string[] = []
 vi.mock('./container', () => ({
   getContainer: () => ({
     dataSource: 'postgres',
-    authorizer: { forumIdsWhere: async () => [1] },
+    authorizer: {
+      threadAudience: async (actor: { userId: number | null }) => ({
+        forumIds: [1],
+        ownThreadsOnlyForumIds: [],
+        viewerUserId: actor.userId,
+      }),
+    },
   }),
 }))
 vi.mock('@meith/db', () => ({

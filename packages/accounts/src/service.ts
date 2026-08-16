@@ -78,6 +78,9 @@ export interface ResendVerification {
 
 const USERNAME_RE = /^[\p{L}\p{N}][\p{L}\p{N} ._-]*$/u
 
+export const REGISTRATION_CLOSED =
+  'This board is not taking new members at the moment.'
+
 export class IdentityService {
   private readonly store: AccountStore
   private readonly config: AuthConfig
@@ -99,6 +102,10 @@ export class IdentityService {
     input: RegisterInput,
     context: RequestContext = {},
   ): Promise<RegisterResult> {
+    if (!this.config.registrationEnabled) {
+      throw new ForbiddenError(REGISTRATION_CLOSED)
+    }
+
     const username = input.username.trim()
     const email = input.email.trim()
     const usernameLower = foldIdentifier(username)

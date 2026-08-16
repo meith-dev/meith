@@ -118,5 +118,7 @@ async function rightsIn(actor: Actor, forumId: number): Promise<InlineRights> {
     move: authorizer.can(actor, 'thread.move', target),
     deleteThreads: authorizer.can(actor, 'thread.delete', target),
     deletePosts: authorizer.can(actor, 'post.softDelete', target),
+    restoreThreads: authorizer.can(actor, 'thread.restore', target),
+    restorePosts: authorizer.can(actor, 'post.restore', target),
   }
 }

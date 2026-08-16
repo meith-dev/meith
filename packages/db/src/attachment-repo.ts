@@ -99,13 +99,20 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
                a.content_type, a.size_bytes, a.storage_key, a.source_key,
                a.thumbnail_key, a.width, a.height, a.status, a.failure_reason,
                a.download_count, a.created_at,
-               p.visibility as post_visibility, t.visibility as thread_visibility
+               p.visibility as post_visibility, t.visibility as thread_visibility,
+               t.author_user_id as thread_author_user_id
           from attachments a
           join posts p on p.id = a.post_id
           join threads t on t.id = p.thread_id
          where a.id = ${id}
       `),
-    ) as Array<RawAttachment & { post_visibility: string; thread_visibility: string }>
+    ) as Array<
+      RawAttachment & {
+        post_visibility: string
+        thread_visibility: string
+        thread_author_user_id: number | null
+      }
+    >
 
     const row = rows[0]
     if (row === undefined) return null
@@ -113,6 +120,8 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
       record: toRecord(row),
       postVisibility: row.post_visibility,
       threadVisibility: row.thread_visibility,
+      threadAuthorUserId:
+        row.thread_author_user_id === null ? null : Number(row.thread_author_user_id),
     }
   }
 

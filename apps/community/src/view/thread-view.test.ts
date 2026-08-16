@@ -167,6 +167,7 @@ describe('post affordances', () => {
     editOwn: true,
     editOthers: false,
     softDelete: false,
+    restore: false,
     editWindowMinutes: 0,
     bypassesWindow: false,
     canWarn: false,
@@ -280,7 +281,7 @@ describe('post affordances', () => {
   })
 
   it('offers Restore instead of Edit on a deleted post', () => {
-    const post = actionsFor({ visibility: 'deleted' }, { softDelete: true })
+    const post = actionsFor({ visibility: 'deleted' }, { restore: true })
     expect(post.actions).toMatchObject({
       editHref: null,
       restoreHref: '/thread/3-hello/edit?post=4',
@@ -313,6 +314,7 @@ describe('the report link', () => {
     editOwn: false,
     editOthers: false,
     softDelete: false,
+    restore: false,
     editWindowMinutes: 0,
     bypassesWindow: false,
     canWarn: false,
@@ -418,6 +420,7 @@ describe('ignored posts', () => {
         editOwn: false,
         editOthers: false,
         softDelete: false,
+        restore: false,
         editWindowMinutes: 0,
         bypassesWindow: false,
         canReport: true,
@@ -527,6 +530,7 @@ describe('the author\'s group standing', () => {
         editOwn: false,
         editOthers: false,
         softDelete: false,
+        restore: false,
         editWindowMinutes: 0,
         bypassesWindow: false,
         canWarn: false,

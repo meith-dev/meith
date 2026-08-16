@@ -13,6 +13,7 @@ export interface ReplyTarget {
   readonly threadId: number
   readonly slug: string
   readonly title: string
+  readonly authorUserId: number | null
   readonly isLocked: boolean
   readonly visibility: 'visible' | 'unapproved' | 'deleted'
   readonly lastPostId: number | null

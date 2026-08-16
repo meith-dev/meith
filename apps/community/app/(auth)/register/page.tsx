@@ -6,10 +6,25 @@ import { issueChallenge } from "@/server/antispam"
 import { boardAuthConfig } from "@/server/auth-config"
 import { termsAcceptance } from "@/server/legal"
 import { registrationFields } from "@/server/profile-fields"
+import {
+  REGISTRATION_CLOSED_LEDE,
+  REGISTRATION_CLOSED_TITLE,
+  registrationOpen,
+} from "@/server/registration"
 
 export const metadata: Metadata = { title: "Create account" }
 
 export default async function RegisterPage() {
+  if (!(await registrationOpen())) {
+    return (
+      <AuthPage
+        title={REGISTRATION_CLOSED_TITLE}
+        lede={REGISTRATION_CLOSED_LEDE}
+        links={[{ label: "Sign in", href: "/login", lead: "Already a member?" }]}
+      />
+    )
+  }
+
   const issued = await issueChallenge()
 
   const { minPasswordLength, usernameMin, usernameMax } = await boardAuthConfig()

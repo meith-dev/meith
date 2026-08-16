@@ -47,7 +47,9 @@ export async function resolvePostScope(
     mayDelete: isOwn
       ? authorizer.can(actor, 'post.deleteOwn', scope) || softDeletes
       : softDeletes,
-    mayRestore: softDeletes && authorizer.can(actor, 'content.viewDeleted', scope),
+    mayRestore:
+      authorizer.can(actor, 'post.restore', scope) &&
+      authorizer.can(actor, 'content.viewDeleted', scope),
     bypassesLock: moderates,
     capabilities: {
       isOwn,
