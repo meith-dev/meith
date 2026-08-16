@@ -288,6 +288,28 @@ describe('InlineModeration', () => {
       expect(outcome).toMatchObject({ applied: 0, skipped: 1 })
     })
 
+    it('will not approve a held reply whose thread has been deleted', async () => {
+      const inline = new FakeInline()
+      inline.rows = [
+        target({
+          kind: 'post',
+          id: 7,
+          visibility: 'unapproved',
+          threadVisibility: 'deleted',
+        }),
+      ]
+
+      const outcome = await commandFor(inline).apply({
+        selection: ids('post', [7]),
+        tool: 'approve',
+        scopeForumIds: SCOPE,
+        rights: everywhere(ALL),
+        actorUserId: 9,
+      })
+
+      expect(outcome).toMatchObject({ applied: 0, skipped: 1 })
+    })
+
     it('approves a thread that is itself held', async () => {
       const inline = new FakeInline()
       inline.rows = [

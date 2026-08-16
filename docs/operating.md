@@ -911,6 +911,31 @@ is safe to delete and a sticky thread is not.
 
 Dates are entered in UTC.
 
+## The moderation queue
+
+`/modcp` lists what is waiting for approval in the forums you moderate: held
+threads, and held replies. It is a queue of **decisions that can actually be
+carried out**, and two rules keep it that way.
+
+**A held reply inside a thread that is itself held is not listed.** Approving
+the thread is what puts it in front of anybody, so the reply is not a separate
+decision.
+
+**A held reply whose thread has been deleted is not listed either.** Approving
+it would mark it visible inside a thread nobody can reach, and — because
+approving a post is what adds it to the forum's and the author's post counts —
+would move counters for something the board does not show. The counters would
+then disagree with the visible board until the next recount. Restoring the
+thread brings its held replies back into the queue, where the decision means
+something again.
+
+The exclusion is enforced where the decision is applied, not only where the
+queue is drawn, so a selection assembled by hand gets the same answer: the reply
+is reported as no longer pending rather than approved. The pending count on the
+panel counts the same set the list shows. The inline moderation tools on a
+thread page follow the same rule — **Approve** does not apply to a reply whose
+thread is not visible.
+
 ## Reputation
 
 `/admin/settings` under **Reputation**. Four settings, and the first two decide
