@@ -211,8 +211,11 @@ export const SETTING_DEFINITIONS = [
     group: 'posting',
     label: 'Silent edit window',
     description:
-      'Edits within this window do not add an "edited by" notice. 0 always ' +
-      'shows the notice.',
+      'Seconds after posting during which an author fixing their own post ' +
+      'leaves no "edited by" notice on it. 0 always shows the notice. A ' +
+      'moderator editing somebody else\'s post is never silent, however soon ' +
+      'it happens, and the revision history records every edit either way — ' +
+      'this hides the line under the post, nothing else.',
     schema: z.number().int().min(0).max(86_400),
     default: 300,
     ui: { min: 0, max: 86_400 },

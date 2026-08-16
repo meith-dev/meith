@@ -72,8 +72,16 @@ function target(overrides: {
   }
 }
 
-function editor(posts: PostWriteRepository, maxLength = 100): PostEditor {
-  return new PostEditor({ posts, config: { maxLength }, now: () => NOW })
+function editor(
+  posts: PostWriteRepository,
+  maxLength = 100,
+  editGraceSeconds = 0,
+): PostEditor {
+  return new PostEditor({
+    posts,
+    config: { maxLength, editGraceSeconds },
+    now: () => NOW,
+  })
 }
 
 describe('PostEditor.edit', () => {
@@ -313,6 +321,66 @@ describe('PostEditor.restore', () => {
     const posts = new RecordingPosts()
     await expect(editor(posts).restore(9, target())).rejects.toThrow(ValidationError)
     expect(posts.moves).toHaveLength(0)
+  })
+})
+
+describe('the silent edit window', () => {
+  const OWN: EditCapabilities = { ...CAPABILITIES, isOwn: true }
+  const MODERATOR: EditCapabilities = { ...CAPABILITIES, isOwn: false, bypassesWindow: true }
+
+  const change = async (
+    capabilities: EditCapabilities,
+    graceSeconds: number,
+    createdAt: Date,
+  ): Promise<PostEditRecord> => {
+    const posts = new RecordingPosts()
+    await editor(posts, 100, graceSeconds).edit(
+      { message: 'a better body', reason: 'typo', capabilities },
+      7,
+      target({ post: { createdAt } }),
+    )
+    return posts.edits[0]!
+  }
+
+  const MINUTE_OLD = new Date(NOW.getTime() - 60_000)
+  const HOUR_OLD = new Date(NOW.getTime() - 3_600_000)
+
+  it('leaves no notice when the author edits inside the window', async () => {
+    expect((await change(OWN, 300, MINUTE_OLD)).silent).toBe(true)
+  })
+
+  it('leaves the notice on an edit made after the window', async () => {
+    expect((await change(OWN, 300, HOUR_OLD)).silent).toBe(false)
+  })
+
+  it('counts the boundary second as inside', async () => {
+    const exactly = new Date(NOW.getTime() - 300_000)
+    expect((await change(OWN, 300, exactly)).silent).toBe(true)
+    expect((await change(OWN, 300, new Date(exactly.getTime() - 1000))).silent).toBe(false)
+  })
+
+  it('always shows the notice when the window is zero', async () => {
+    expect((await change(OWN, 0, MINUTE_OLD)).silent).toBe(false)
+  })
+
+  it('never hides a moderator editing somebody else"s post', async () => {
+    expect((await change(MODERATOR, 300, MINUTE_OLD)).silent).toBe(false)
+    expect((await change(MODERATOR, 86_400, NOW)).silent).toBe(false)
+  })
+
+  it('records the revision either way, so the audit trail is whole', async () => {
+    const silent = await change(OWN, 300, MINUTE_OLD)
+    const noticed = await change(OWN, 300, HOUR_OLD)
+
+    for (const record of [silent, noticed]) {
+      expect(record).toMatchObject({
+        previousMessage: 'the original body',
+        revision: 1,
+        reason: 'typo',
+        editedByUserId: 7,
+        editedAt: NOW,
+      })
+    }
   })
 })
 

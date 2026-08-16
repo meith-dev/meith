@@ -239,6 +239,30 @@ A setting can also change behaviour by starting to be *read*. That is not a
 default moving, and there is nothing to run — but it is worth knowing which
 switches on your board were, until now, decorative.
 
+### `posting.edit_grace_seconds` now suppresses the edit notice
+
+**Silent edit window** had no reader either. `PostEditor.edit` stamped
+`edited_at` on every edit that changed anything, `applyEdit` always wrote it,
+and the notice rendered whenever it was set — so the board behaved permanently
+as though the window were 0, whatever the box said.
+
+It is read now, with the registry default of **300 seconds**, so an author
+fixing their own post within five minutes of writing it leaves no *Last edited
+by* line. **This is a visible change on a board that never touched the
+setting**: notices that used to appear on quick typo fixes stop appearing.
+`posting.edit_grace_seconds 0` restores the old behaviour exactly.
+
+Nothing is hidden that should not be:
+
+- A **moderator editing somebody else's post** is never silent, whatever the
+  window says.
+- The **revision history is unchanged** — every edit still records who, when,
+  why and what the post said before. Only the reader-facing line is suppressed.
+- A silent edit **does not clear a notice already on the post**, so an earlier
+  moderator edit stays visible.
+
+See [The silent edit window](./operating.md#the-silent-edit-window).
+
 ### `search.min_word_length` now reaches the query parser
 
 **Minimum search term length** was never read. `parseSearchInput` carried a

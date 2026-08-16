@@ -112,6 +112,11 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
       `)
 
       const body = renderMarkdown(record.message, vocabularyOptions(vocabulary))
+      const notice = record.silent
+        ? sql``
+        : sql`edited_at = ${record.editedAt},
+              edited_by_user_id = ${record.editedByUserId},
+              edit_reason = ${record.reason},`
       await tx.execute(sql`
         update posts p
            set message = ${record.message},
@@ -140,9 +145,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
                 */
                body_format = ${BodyFormat.Markdown},
                visibility = ${record.toVisibility},
-               edited_at = ${record.editedAt},
-               edited_by_user_id = ${record.editedByUserId},
-               edit_reason = ${record.reason},
+               ${notice}
                revision_count = revision_count + 1
          where id = ${record.postId}
       `)

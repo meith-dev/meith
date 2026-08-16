@@ -530,6 +530,29 @@ describe('post actions', () => {
       expect(postWrites.edits).toHaveLength(0)
     })
 
+    it('leaves no notice when the author edits straight after posting', async () => {
+      postWrites.post = { createdAt: new Date() }
+
+      await redirectOf(editPostAction(EMPTY_STATE, form(EDIT)))
+
+      expect(postWrites.edits[0]).toMatchObject({ silent: true, reason: 'typo' })
+    })
+
+    it('leaves the notice on an edit made long after posting', async () => {
+      await redirectOf(editPostAction(EMPTY_STATE, form(EDIT)))
+
+      expect(postWrites.edits[0]).toMatchObject({ silent: false })
+    })
+
+    it('never hides a moderator editing somebody else"s post', async () => {
+      actorRef.current = await actorFor(SEED_GROUP.superModerators, 2)
+      postWrites.post = { authorUserId: 1, createdAt: new Date() }
+
+      await redirectOf(editPostAction(EMPTY_STATE, form(EDIT)))
+
+      expect(postWrites.edits[0]).toMatchObject({ silent: false, editedByUserId: 2 })
+    })
+
     it('reports an unchanged body without writing a revision', async () => {
       expect(
         await redirectOf(

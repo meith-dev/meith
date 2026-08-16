@@ -1019,6 +1019,40 @@ things follow for an operator:
   conversion, and it is recorded in
   [mybb-parity.md](./mybb-parity.md#the-markup-language-is-markdown-not-bbcode).
 
+### The silent edit window
+
+**Silent edit window** — `posting.edit_grace_seconds`, in the posting group,
+default 300 — is how long after posting somebody may fix their own post without
+the board announcing it. Inside the window the post carries no *Last edited by*
+line; outside it, the line appears as it always has.
+
+```sh
+community settings:set posting.edit_grace_seconds 600   # ten minutes
+community settings:set posting.edit_grace_seconds 0     # always show the notice
+```
+
+It is measured from when the **post was written**, not from the last edit, so
+the window closes once and stays closed. A member who fixes a typo twice inside
+five minutes leaves no notice; one who comes back an hour later leaves one.
+
+Two limits on it are the point of it being safe:
+
+- **A moderator editing somebody else's post is never silent**, however soon
+  after the post it happens. The notice is what tells a reader that the words
+  they are reading are not entirely the ones the author wrote, and that is
+  exactly the case it must not hide. The window applies only to an author
+  editing their own post.
+- **The revision history is untouched.** Every edit still writes a revision
+  recording who edited, when, why, and what the post said before. The setting
+  suppresses one line rendered to readers; it does not suppress the record, and
+  a moderator looking at the post's history sees the silent edits along with
+  the rest.
+
+Set it to 0 for a board that wants every change on the record in public. Raising
+it much above a few minutes starts to mean "the post you are reading may have
+changed since the reply below it", which is the thing the notice exists to
+prevent.
+
 ### Attachments
 
 **Deleting an attachment does not touch the post it was on.** Attachments are
