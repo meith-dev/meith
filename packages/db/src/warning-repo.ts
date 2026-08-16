@@ -20,7 +20,7 @@ interface Tx {
 
 const LIVE = sql`revoked_at is null and (expires_at is null or expires_at > now())`
 
-async function recalculate(tx: Tx, userId: number): Promise<number> {
+export async function recalculateWarningPoints(tx: Tx, userId: number): Promise<number> {
   const rows = resultRows(
     await tx.execute(sql`
       update users u
@@ -169,7 +169,7 @@ export class PostgresWarningRepository implements WarningRepository {
         `),
       ) as Array<{ id: number }>
 
-      const points = await recalculate(tx, input.userId)
+      const points = await recalculateWarningPoints(tx, input.userId)
 
       await tx.execute(sql`
         insert into admin_log (user_id, action, detail, created_at)
@@ -211,7 +211,7 @@ export class PostgresWarningRepository implements WarningRepository {
       if (!row) return null
 
       const userId = Number(row.user_id)
-      const points = await recalculate(tx, userId)
+      const points = await recalculateWarningPoints(tx, userId)
 
       await tx.execute(sql`
         insert into admin_log (user_id, action, detail, created_at)
@@ -228,7 +228,7 @@ export class PostgresWarningRepository implements WarningRepository {
   }
 
   async pointsFor(userId: number): Promise<number> {
-    return this.db.transaction(async (tx) => recalculate(tx, userId))
+    return this.db.transaction(async (tx) => recalculateWarningPoints(tx, userId))
   }
 
   async readRestriction(userId: number): Promise<PostingRestriction> {

@@ -28,6 +28,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.execute(sql`delete from reputation`)
+  await db.execute(sql`delete from warnings`)
   await db.execute(sql`delete from user_relations`)
   await db.execute(sql`delete from thread_subscriptions`)
   await db.execute(sql`delete from forum_subscriptions`)
@@ -390,23 +391,69 @@ describe('finish', () => {
     }
   })
 
-  it('adds the counters and zeroes the loser’s', async () => {
+  it('adds the post counters, and rebuilds reputation from the rows that survive', async () => {
     await seedPair()
+    await seedUser(3, 'third')
     await db.execute(sql`
       update users set post_count = 10, thread_count = 2, reputation = 5 where id = ${WINNER}
     `)
     await db.execute(sql`
       update users set post_count = 3, thread_count = 1, reputation = 2 where id = ${LOSER}
     `)
+    await db.execute(sql`
+      insert into reputation (id, user_id, given_by_user_id, points)
+      values (1, ${WINNER}, 3, 1), (2, ${LOSER}, 3, 1)
+    `)
 
     await repo.finish(LOSER, WINNER)
 
     const rows = resultRows(
       await db.execute(sql`select id, post_count, thread_count, reputation
-                             from users order by id`),
+                             from users where id in (${WINNER}, ${LOSER}) order by id`),
     ) as Array<Record<string, number>>
-    expect(rows[0]).toMatchObject({ post_count: 13, thread_count: 3, reputation: 7 })
+    expect(rows[0]).toMatchObject({ post_count: 13, thread_count: 3, reputation: 1 })
     expect(rows[1]).toMatchObject({ post_count: 0, thread_count: 0, reputation: 0 })
+    expect(await count(sql`select count(*)::int as n from reputation`)).toBe(1)
+  })
+
+  it('corrects a third party whose rating the dedupe removed', async () => {
+    await seedPair()
+    await seedUser(3, 'third')
+    await db.execute(sql`
+      insert into reputation (id, user_id, given_by_user_id, points)
+      values (1, 3, ${WINNER}, 1), (2, 3, ${LOSER}, 1)
+    `)
+    await db.execute(sql`update users set reputation = 2 where id = 3`)
+
+    await repo.finish(LOSER, WINNER)
+
+    const rows = resultRows(
+      await db.execute(sql`select reputation from users where id = 3`),
+    ) as Array<{ reputation: number }>
+    expect(Number(rows[0]?.reputation)).toBe(1)
+    expect(await count(sql`select count(*)::int as n from reputation where user_id = 3`)).toBe(1)
+  })
+
+  it('rebuilds the winner’s warning points from the warnings that are still live', async () => {
+    await seedPair()
+    await db.execute(sql`
+      insert into warnings (id, user_id, title, points, created_at, expires_at, revoked_at)
+      values (1, ${WINNER}, 'Spam', 2, now(), null, null),
+             (2, ${WINNER}, 'Old', 6, now(), null, now()),
+             (3, ${LOSER}, 'Flame', 3, now(), now() + interval '30 days', null),
+             (4, ${LOSER}, 'Lapsed', 4, now(), now() - interval '1 day', null)
+    `)
+    await db.execute(sql`update users set warning_points = 9 where id in (${WINNER}, ${LOSER})`)
+
+    await repo.finish(LOSER, WINNER)
+
+    const rows = resultRows(
+      await db.execute(sql`select id, warning_points from users
+                            where id in (${WINNER}, ${LOSER}) order by id`),
+    ) as Array<{ id: number; warning_points: number }>
+    expect(rows.map((row) => Number(row.warning_points))).toEqual([5, 0])
+    expect(await count(sql`select count(*)::int as n from warnings where user_id = ${WINNER}`))
+      .toBe(4)
   })
 
   it('soft-deletes the losing account rather than dropping it', async () => {

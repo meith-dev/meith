@@ -5,6 +5,7 @@ import { ValidationError } from '@meith/core'
 import type { Database } from './client'
 import { rewriteDenormalisedUsernames } from './denormalised-username'
 import { withPermissionVersionBump, type Tx } from './permission-version'
+import { recountReputation } from './reputation-repo'
 import { resultRows } from './result-rows'
 import { BANNED_PREDICATE } from './user-admin-repo'
 import {
@@ -13,6 +14,7 @@ import {
   MERGE_REASSIGN,
   type DedupeColumn,
 } from './user-merge-map'
+import { recalculateWarningPoints } from './warning-repo'
 
 export interface MergePreview {
   readonly fromUsername: string
@@ -130,7 +132,7 @@ export class PostgresUserMergeRepository {
         await dedupeThenMove(tx, entry, fromUserId, toUserId)
       }
 
-      await mergeBespoke(tx, fromUserId, toUserId)
+      const rated = await mergeBespoke(tx, fromUserId, toUserId)
 
       for (const entry of MERGE_REASSIGN) {
         await tx.execute(sql`
@@ -152,11 +154,18 @@ export class PostgresUserMergeRepository {
         update users w
            set post_count = w.post_count + l.post_count,
                thread_count = w.thread_count + l.thread_count,
-               reputation = w.reputation + l.reputation,
                updated_at = now()
           from users l
          where w.id = ${toUserId} and l.id = ${fromUserId}
       `)
+
+      const rerate = new Set(rated)
+      rerate.add(toUserId)
+      rerate.delete(fromUserId)
+      await recountReputation(tx, [...rerate])
+
+      await recalculateWarningPoints(tx, toUserId)
+      await recalculateWarningPoints(tx, fromUserId)
 
       await tx.execute(sql`
         update users
@@ -202,15 +211,27 @@ async function dedupeThenMove(
   `)
 }
 
-async function mergeBespoke(tx: Tx, fromUserId: number, toUserId: number): Promise<void> {
-  await tx.execute(sql`
+async function mergeBespoke(
+  tx: Tx,
+  fromUserId: number,
+  toUserId: number,
+): Promise<readonly number[]> {
+  const rated = new Set<number>()
+
+  const deleteRatings = async (query: ReturnType<typeof sql>): Promise<void> => {
+    const rows = resultRows(await tx.execute(query)) as Array<{ user_id: number }>
+    for (const row of rows) rated.add(Number(row.user_id))
+  }
+
+  await deleteRatings(sql`
     delete from reputation
      where (given_by_user_id = ${fromUserId} and user_id = ${toUserId})
         or (given_by_user_id = ${toUserId} and user_id = ${fromUserId})
         or (given_by_user_id = ${fromUserId} and user_id = ${fromUserId})
+    returning user_id
   `)
 
-  await tx.execute(sql`
+  await deleteRatings(sql`
     delete from reputation loser
      where loser.given_by_user_id = ${fromUserId}
        and exists (
@@ -219,12 +240,13 @@ async function mergeBespoke(tx: Tx, fromUserId: number, toUserId: number): Promi
             and winner.post_id is not distinct from loser.post_id
             and winner.user_id is not distinct from loser.user_id
        )
+    returning loser.user_id
   `)
   await tx.execute(sql`
     update reputation set given_by_user_id = ${toUserId}
      where given_by_user_id = ${fromUserId}
   `)
-  await tx.execute(sql`
+  await deleteRatings(sql`
     delete from reputation loser
      where loser.user_id = ${fromUserId}
        and exists (
@@ -233,6 +255,7 @@ async function mergeBespoke(tx: Tx, fromUserId: number, toUserId: number): Promi
             and winner.given_by_user_id = loser.given_by_user_id
             and winner.post_id is not distinct from loser.post_id
        )
+    returning loser.user_id
   `)
   await tx.execute(sql`
     update reputation set user_id = ${toUserId} where user_id = ${fromUserId}
@@ -270,4 +293,6 @@ async function mergeBespoke(tx: Tx, fromUserId: number, toUserId: number): Promi
   await tx.execute(sql`
     update user_relations set other_user_id = ${toUserId} where other_user_id = ${fromUserId}
   `)
+
+  return [...rated]
 }
