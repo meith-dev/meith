@@ -123,6 +123,7 @@ export interface AttachmentForDownload {
   readonly record: AttachmentRecord
   readonly postVisibility: string
   readonly threadVisibility: string
+  readonly threadAuthorUserId: number | null
 }
 
 export interface AttachmentRepository {

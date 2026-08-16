@@ -43,6 +43,7 @@ class FakeReports implements ReportRepository {
     id: 50,
     forumId: SEED_FORUM.general,
     threadId: 20,
+    threadAuthorUserId: null,
     label: 'A thread',
   }
 
@@ -128,7 +129,14 @@ describe('fileReportAction', () => {
   })
 
   it('returns to the profile for a member report', async () => {
-    reports.target = { kind: 'user', id: 9, forumId: null, threadId: null, label: 'ada' }
+    reports.target = {
+      kind: 'user',
+      id: 9,
+      forumId: null,
+      threadId: null,
+      threadAuthorUserId: null,
+      label: 'ada',
+    }
 
     expect(
       await redirectOf(
@@ -153,6 +161,7 @@ describe('fileReportAction', () => {
       id: 50,
       forumId: hidden,
       threadId: 20,
+      threadAuthorUserId: null,
       label: 'A thread',
     }
     installContainer({

@@ -243,3 +243,67 @@ describe('buildSectionView', () => {
     expect(section(5)?.forums).toEqual([])
   })
 })
+
+describe('a "your threads only" forum row', () => {
+  const rows = [
+    forum({ id: 1, type: 'category', title: 'Forum' }),
+    forum({
+      id: 2,
+      title: 'Support desk',
+      parentId: 1,
+      threadCount: 412,
+      postCount: 900,
+      lastPost: {
+        postId: 99,
+        threadId: 7,
+        threadTitle: 'My bank details are wrong',
+        userId: 3,
+        username: 'ada',
+        at: NOW,
+      },
+    }),
+  ]
+
+  it('says nothing about threads the viewer may not see', () => {
+    const result = buildBoardIndexView({
+      rows,
+      visibleForumIds: new Set([1, 2]),
+      ownThreadsOnlyForumIds: new Set([2]),
+      unreadForumIds: new Set([2]),
+      now: NOW,
+    })
+
+    const row = result.blocks[0]!.forums[0]!
+    expect(row.lastPost).toBeNull()
+    expect(row.threadCount).toBe(0)
+    expect(row.postCount).toBe(0)
+    expect(row.isUnread).toBe(false)
+  })
+
+  it('leaves the row alone when the viewer may see everything', () => {
+    const result = buildBoardIndexView({
+      rows,
+      visibleForumIds: new Set([1, 2]),
+      unreadForumIds: new Set([2]),
+      now: NOW,
+    })
+
+    const row = result.blocks[0]!.forums[0]!
+    expect(row.lastPost?.threadTitle).toBe('My bank details are wrong')
+    expect(row.threadCount).toBe(412)
+    expect(row.isUnread).toBe(true)
+  })
+
+  it('treats a section listing the same way', () => {
+    const section = buildSectionView({
+      rows,
+      visibleForumIds: new Set([1, 2]),
+      ownThreadsOnlyForumIds: new Set([2]),
+      categoryId: 1,
+      now: NOW,
+    })
+
+    expect(section!.forums[0]!.lastPost).toBeNull()
+    expect(section!.forums[0]!.threadCount).toBe(0)
+  })
+})

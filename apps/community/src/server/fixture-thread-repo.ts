@@ -1,9 +1,10 @@
 import 'server-only'
 
-import type { ContentScope } from '@meith/core'
+import { authorFilterAdmits, type ContentScope, type ThreadAuthorFilter } from '@meith/core'
 import type {
   ThreadCursor,
   ThreadListingRow,
+  ThreadLocation,
   ThreadPage,
   ThreadRepository,
   ThreadSort,
@@ -47,16 +48,23 @@ export class FixtureThreadRepository implements ThreadRepository {
     private readonly rows: readonly ThreadListingRow[] = SEED_THREAD_ROWS,
   ) {}
 
-  async locateForum(threadId: number): Promise<number | null> {
-    return this.rows.find((entry) => entry.id === threadId)?.forumId ?? null
+  async locate(threadId: number): Promise<ThreadLocation | null> {
+    const row = this.rows.find((entry) => entry.id === threadId)
+    return row === undefined
+      ? null
+      : { forumId: row.forumId, authorUserId: row.authorUserId }
   }
 
   async findById(
     id: number,
     scope: ContentScope,
+    authors: ThreadAuthorFilter,
   ): Promise<ThreadListingRow | null> {
     const row = this.rows.find(
-      (entry) => entry.id === id && scope.states.includes(entry.visibility),
+      (entry) =>
+        entry.id === id &&
+        scope.states.includes(entry.visibility) &&
+        authorFilterAdmits(authors, entry.authorUserId),
     )
     return row ? { ...row } : null
   }
@@ -67,6 +75,7 @@ export class FixtureThreadRepository implements ThreadRepository {
       readonly after?: ThreadCursor
       readonly limit: number
       readonly scope: ContentScope
+      readonly authors: ThreadAuthorFilter
       readonly sort?: ThreadSort
     },
   ): Promise<ThreadPage> {
@@ -76,6 +85,7 @@ export class FixtureThreadRepository implements ThreadRepository {
         (row) =>
           row.forumId === forumId &&
           options.scope.states.includes(row.visibility) &&
+          authorFilterAdmits(options.authors, row.authorUserId) &&
           (!options.after || after(row, options.after, sort)),
       )
       .sort((a, b) => compare(a, b, sort))

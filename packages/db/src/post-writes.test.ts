@@ -279,7 +279,7 @@ describe('applyEdit', () => {
 
     const found = await new PostgresSearchRepository(db).search(
       { terms: 'hello', match: 'everything', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
-      { forumIds: [FORUM], viewerUserId: null, content: PUBLIC_CONTENT },
+      { forumIds: [FORUM], ownThreadsOnlyForumIds: [], viewerUserId: null, content: PUBLIC_CONTENT },
     )
     expect(found.hits.map((hit) => hit.postId)).toEqual([first])
   })

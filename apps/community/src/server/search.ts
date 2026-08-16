@@ -41,14 +41,12 @@ export function requireSearch(): PostgresSearchRepository {
 
 export async function searchScopeFor(actor: Actor): Promise<SearchScope> {
   const { authorizer } = getContainer()
-  const forumIds = await authorizer.forumIdsWhere(actor, 'thread.view')
 
   const staff =
     actor.global.isAdministrator === true || actor.global.isSuperModerator === true
 
   return {
-    forumIds,
-    viewerUserId: actor.userId,
+    ...(await authorizer.threadAudience(actor)),
     content: contentScopeFrom({ seesUnapproved: staff, seesDeleted: staff }),
   }
 }

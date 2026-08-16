@@ -361,6 +361,47 @@ understanding the model.
 > pinning that forum so later changes at its parent do nothing. Silently pinning
 > a forum is the commonest way a board's permissions end up wrong.
 
+### A "your threads only" forum
+
+Denying **see threads started by other users** (`canViewOthersThreads`) on a
+forum turns it into a support desk: everybody may post, and nobody but its
+author reads a thread. It is the control to reach for when the forum collects
+applications, appeals, or anything a member should be able to write without the
+rest of the board reading it.
+
+Deny is enforced in the query, not in the page, so it holds on every read path:
+the thread list, the thread page reached by a guessed URL, search, the RSS and
+Atom feeds, the sitemap, the "what's new" and "latest" panels, the board
+statistics, the who-is-online location column, attachment downloads, quoting,
+and the REST API. A refused thread is a 404, the same answer a thread that does
+not exist gives, because a distinguishable refusal is itself an answer.
+
+What a Deny forum looks like:
+
+- **A member** sees the forum in the index and may post in it. In the listing
+  they see only the threads they started; every other thread is absent rather
+  than locked. On the board index the forum's thread and post counts read `0`,
+  its last-post column is blank, and it never shows the unread mark — the
+  counts, the last post and the unread mark all describe other people's
+  threads, and a forum that will not show them should not summarise them
+  either. The forum's own page shows the member's threads.
+- **A guest** sees the forum and sees nothing in it. A guest has authored
+  nothing, so "your threads only" resolves to no threads at all — including
+  threads whose author account was since deleted, which belong to nobody and so
+  are nobody's own. Grant the permission to the guest group if a forum is meant
+  to be publicly readable.
+- **A moderator of that forum** sees everything in it, on the same footing as
+  *see unapproved* and *see deleted*: an appointment over the forum carries the
+  right, so a support desk stays workable without granting the group permission
+  back. Super-moderators and administrators bypass it as they bypass every other
+  forum permission, and the bypass is logged.
+
+> [!IMPORTANT]
+> Denying this permission does **not** hide the forum. `canView` decides whether
+> the forum exists for a viewer and `canViewThreads` whether its threads open at
+> all; this one only decides *whose* threads. A forum meant to be invisible
+> wants `canView` denied instead.
+
 ### Numbers behave differently from switches
 
 Numeric permissions — attachments per post, signature length, edit window —

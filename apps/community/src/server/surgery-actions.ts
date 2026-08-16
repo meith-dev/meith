@@ -139,7 +139,7 @@ async function visibleForumOf(threadId: number): Promise<number> {
   const { threads, authorizer } = getContainer()
   const actor = await getActor()
 
-  const forumId = await threads.locateForum(threadId)
+  const forumId = (await threads.locate(threadId))?.forumId ?? null
   if (forumId === null) throw new ValidationError('That thread does not exist.')
 
   const forum = await authorizer.forumMatrix(actor, forumId)

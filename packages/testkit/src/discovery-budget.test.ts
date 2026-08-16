@@ -30,7 +30,12 @@ afterAll(async () => {
   await harness.close()
 })
 
-const scope = () => ({ forumIds, content: PUBLIC_CONTENT, viewerUserId })
+const scope = () => ({
+  forumIds,
+  ownThreadsOnlyForumIds: [],
+  content: PUBLIC_CONTENT,
+  viewerUserId,
+})
 const query = { limit: 20, after: null }
 const EPOCH = new Date('2000-01-01T00:00:00Z')
 
@@ -73,6 +78,7 @@ describe('discovery query budget', () => {
       const bigRepo = new PostgresDiscoveryRepository(bigger.db)
       const bigScope = {
         forumIds: await bigAuthorizer.forumIdsWhere(bigActor!, 'thread.view'),
+        ownThreadsOnlyForumIds: [],
         content: PUBLIC_CONTENT,
         viewerUserId: bigActor!.userId as number,
       }

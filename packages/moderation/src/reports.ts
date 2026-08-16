@@ -13,6 +13,7 @@ export interface ReportTarget {
   readonly id: number
   readonly forumId: number | null
   readonly threadId: number | null
+  readonly threadAuthorUserId: number | null
   readonly label: string
 }
 

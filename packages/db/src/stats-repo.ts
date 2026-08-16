@@ -5,6 +5,7 @@ import type { ContentScope } from '@meith/core'
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { toDate } from './row-values'
+import { audienceIsEmpty, inAudience } from './thread-audience'
 import { visibleIn } from './visibility'
 
 export interface BoardTotals {
@@ -34,6 +35,8 @@ export interface TopThread {
 
 export interface StatsScope {
   readonly forumIds: readonly number[]
+  readonly ownThreadsOnlyForumIds: readonly number[]
+  readonly viewerUserId: number | null
   readonly content: ContentScope
 }
 
@@ -120,7 +123,7 @@ export class PostgresStatsRepository {
     limit: number,
     scope: StatsScope,
   ): Promise<readonly TopThread[]> {
-    if (scope.forumIds.length === 0) return []
+    if (audienceIsEmpty(scope)) return []
 
     const rows = resultRows(
       await this.db.execute(sql`
@@ -128,10 +131,7 @@ export class PostgresStatsRepository {
                t.view_count, t.reply_count
           from threads t
           join forums f on f.id = t.forum_id
-         where t.forum_id in (${sql.join(
-           scope.forumIds.map((id) => sql`${id}`),
-           sql`, `,
-         )})
+         where ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, scope)}
            and ${visibleIn(sql`t.visibility`, scope.content)}
          order by ${order}
          limit ${limit}

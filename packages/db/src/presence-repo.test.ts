@@ -87,6 +87,8 @@ async function seedThread(id: number, forumId: number, visibility = 'visible') {
 
 const scope = (overrides: Partial<OnlineScope> = {}): OnlineScope => ({
   forumIds: [OPEN],
+  ownThreadsOnlyForumIds: [],
+  viewerUserId: null,
   content: PUBLIC_CONTENT,
   seesInvisible: false,
   ...overrides,

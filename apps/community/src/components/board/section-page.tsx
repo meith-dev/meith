@@ -16,12 +16,14 @@ export async function SectionPage({
   category,
   rows,
   visibleForumIds,
+  ownThreadsOnlyForumIds,
   unreadForumIds,
   homeLabel,
 }: {
   category: ForumListingRow
   rows: readonly ForumListingRow[]
   visibleForumIds: ReadonlySet<number>
+  ownThreadsOnlyForumIds?: ReadonlySet<number>
   unreadForumIds?: ReadonlySet<number>
   homeLabel?: string
 }) {
@@ -34,6 +36,7 @@ export async function SectionPage({
   const section = buildSectionView({
     rows,
     visibleForumIds,
+    ...(ownThreadsOnlyForumIds === undefined ? {} : { ownThreadsOnlyForumIds }),
     ...(unreadForumIds === undefined ? {} : { unreadForumIds }),
     categoryId: category.id,
     now: new Date(),
