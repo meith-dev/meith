@@ -154,6 +154,48 @@ community settings:get board.name
 community settings:set board.name "The Townland"
 ```
 
+### Closing registration
+
+**Allow new registrations** — `registration.enabled`, in the registration group
+— decides whether strangers may join. Off is the setting to reach for when a
+spam wave is faster than your moderators, or when the board is meant to be
+invitation-only.
+
+```sh
+community settings:set registration.enabled false
+```
+
+Off, three things change together, which is what makes it a closed door rather
+than a hidden one:
+
+- The **Register** link disappears from the user panel and from the sign-in
+  page. Nothing offers a route that would refuse.
+- **`/register`** says the board is not taking new members and points at
+  `/login`, instead of rendering a form.
+- **The action behind that form refuses**, so a submission POSTed straight at it
+  is answered with a `403` and creates nothing. Hiding a form is not closing it:
+  the registration form's fields are public knowledge, and a spam run does not
+  read your navigation.
+
+Signing in, password reset and e-mail confirmation are untouched — the members
+you already have are unaffected.
+
+**It never locks you out of your own board.** The installer creates the first
+administrator with registration forced open, whatever the settings table says,
+and `community user:create` does the same. So a board can be closed to the
+public and still gain members, one at a time, from the command line:
+
+```sh
+echo "correct horse battery staple" |
+  community user:create --username ada --email ada@example.com --group registered
+```
+
+> [!NOTE]
+> **Upgrading an existing board?** This setting had no effect until recently:
+> the switch saved, and registration stayed open however it was set. A board
+> that stored `false` closes as soon as it upgrades. See
+> [Settings that gained a reader](./upgrading.md#settings-that-gained-a-reader).
+
 ### Taking the board offline
 
 **Board offline** — under `/admin/settings`, in the advanced part of the board

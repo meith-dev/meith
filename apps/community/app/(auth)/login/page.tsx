@@ -1,7 +1,10 @@
 import type { Metadata } from "next"
 
+import type { AuthLinkModel } from "@meith/theme-kit"
+
 import { AuthPage } from "@/components/auth/auth-page"
 import { LoginForm } from "@/components/auth/login-form"
+import { registrationOpen } from "@/server/registration"
 
 export const metadata: Metadata = { title: "Sign in" }
 
@@ -48,16 +51,21 @@ export default async function LoginPage({
               ? NOTICES.already
               : undefined
 
+  const links: AuthLinkModel[] = [
+    { label: "Forgot your password?", href: "/reset", lead: null },
+    { label: "Need a new confirmation link?", href: "/verify/resend", lead: null },
+  ]
+
+  if (await registrationOpen()) {
+    links.push({ label: "Create an account", href: "/register", lead: "New here?" })
+  }
+
   return (
     <AuthPage
       title="Welcome back"
       lede="Sign in to your account."
       alert={params.verify === "failed" ? VERIFY_FAILED : null}
-      links={[
-        { label: "Forgot your password?", href: "/reset", lead: null },
-        { label: "Need a new confirmation link?", href: "/verify/resend", lead: null },
-        { label: "Create an account", href: "/register", lead: "New here?" },
-      ]}
+      links={links}
     >
       <LoginForm next={params.next} notice={notice} />
     </AuthPage>

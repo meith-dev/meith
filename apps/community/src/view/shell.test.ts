@@ -66,6 +66,22 @@ describe('buildUserPanelModel', () => {
     expect(panel.links.map((l) => l.href)).toEqual(['/login', '/register'])
   })
 
+  it('takes the register link away when the board is closed to new members', () => {
+    const panel = buildUserPanelModel(buildViewerModel(guest), {
+      registrationOpen: false,
+    })
+
+    expect(panel.links.map((l) => l.href)).toEqual(['/login'])
+  })
+
+  it('keeps the register link when registration is open', () => {
+    const panel = buildUserPanelModel(buildViewerModel(guest), {
+      registrationOpen: true,
+    })
+
+    expect(panel.links.map((l) => l.href)).toEqual(['/login', '/register'])
+  })
+
   it('offers the member profile and every account route', () => {
     expect(buildUserPanelModel(buildViewerModel(member)).links).toEqual([
       { label: 'Profile', href: '/member/42', group: 'account' },

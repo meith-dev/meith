@@ -239,6 +239,27 @@ A setting can also change behaviour by starting to be *read*. That is not a
 default moving, and there is nothing to run — but it is worth knowing which
 switches on your board were, until now, decorative.
 
+### `registration.enabled` now actually closes registration
+
+**Allow new registrations** stored its value and nothing read it. Whatever the
+switch said, `/register` rendered its form, the action behind it created the
+account, and the **Register** link sat in the user panel — so a board that
+believed it had closed the door was taking members the whole time.
+
+It is read now. Off takes the link away, replaces the form with a line saying
+the board is not taking new members, and refuses a submission POSTed straight at
+the action with a `403`. The default is on, so a board that never touched the
+switch sees nothing change; a board that stored `false` gets the closure it
+asked for the moment it upgrades — and if that board has been quietly accepting
+registrations, its member list is worth a look.
+
+Neither the installer nor `community user:create` consults it, for the same
+reason the activation method does not stop them: an operator at a terminal
+cannot be locked out of the board they are installing. A closed board still
+gains members from the command line.
+
+See [Closing registration](./operating.md#closing-registration).
+
 ### `registration.method` now decides what a new account has to do
 
 `registration.method` had been a setting with no reader: the dropdown

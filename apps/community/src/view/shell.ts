@@ -73,12 +73,18 @@ const MESSAGES_HREF = '/messages'
 
 export function buildUserPanelModel(
   viewer: ViewerModel,
-  options: { unreadNotifications?: number; unreadMessages?: number } = {},
+  options: {
+    unreadNotifications?: number
+    unreadMessages?: number
+    registrationOpen?: boolean
+  } = {},
 ): UserPanelModel {
   const links: readonly LinkModel[] = viewer.isGuest
     ? [
         { label: 'Sign in', href: '/login' },
-        { label: 'Register', href: '/register' },
+        ...(options.registrationOpen === false
+          ? []
+          : [{ label: 'Register', href: '/register' }]),
       ]
     : viewer.profileHref === null
       ? []

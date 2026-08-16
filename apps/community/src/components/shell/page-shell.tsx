@@ -11,6 +11,7 @@ import { unreadMessageCount } from '@/server/messages'
 import { touchActivity } from '@/server/relations'
 import { touchCurrentLocation } from '@/server/presence'
 import { unreadNotificationCount } from '@/server/notifications'
+import { registrationOpen } from '@/server/registration'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { getSettings } from '@/server/settings'
 import { avatarsFor } from '@/server/avatars'
@@ -93,7 +94,11 @@ export async function PageShell({
   const headerModel = await filterView('view.header', header, pluginContext)
   const userPanelModel = await filterView(
     'view.user-panel',
-    buildUserPanelModel(viewer, { unreadNotifications, unreadMessages }),
+    buildUserPanelModel(viewer, {
+      unreadNotifications,
+      unreadMessages,
+      registrationOpen: await registrationOpen(),
+    }),
     pluginContext,
   )
   const footerModel = await filterView(

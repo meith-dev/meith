@@ -114,7 +114,13 @@ export const SETTING_DEFINITIONS = [
     key: 'registration.enabled',
     group: 'registration',
     label: 'Allow new registrations',
-    description: 'When off, the registration form returns 403.',
+    description:
+      'Off closes the board to new members: the Register link goes, /register ' +
+      'says so instead of offering a form, and the action behind it refuses a ' +
+      'submission sent straight to it. Existing members sign in as before, the ' +
+      'installer still creates the first administrator, and ' +
+      '"community user:create" still works — closing the door is not the same ' +
+      'as locking yourself out.',
     schema: z.boolean(),
     default: true,
     invalidates: ['settings'],
