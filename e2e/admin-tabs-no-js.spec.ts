@@ -462,7 +462,9 @@ test('pruning is a dry run until it is confirmed, and mass mail queues', async (
 
   await page.getByLabel('Registered before').fill('2020-01-01')
   await page.getByRole('button', { name: 'Show me' }).click()
-  await expect(page.getByText(/has posted, is staff, moderates a forum, or is banned/)).toBeVisible()
+  await expect(
+    page.getByText(/has written something, is staff, moderates a forum, or is banned/),
+  ).toBeVisible()
   await expect(
     page.getByRole('button', { name: /^Close/ }),
     'nothing matched, so there is nothing to confirm',
