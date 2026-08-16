@@ -69,6 +69,13 @@ export interface Target {
   readonly passwordSatisfied?: boolean
 }
 
+export interface ModeratedTarget extends Target {
+  readonly forumId: number
+  readonly forum: ForumPermissions
+  readonly moderatorRights: ModeratorRights
+  readonly isForumModerator: boolean
+}
+
 export interface GroupDefaults {
   readonly groupId: number
   readonly permissions: PermissionSet

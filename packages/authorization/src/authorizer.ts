@@ -5,13 +5,18 @@ import {
   type ForumPermissions,
 } from '@meith/core'
 
-import { NO_MODERATOR_RIGHTS, type ModeratorRights } from './types'
+import {
+  NO_MODERATOR_RIGHTS,
+  hasAnyModeratorRight,
+  type ModeratorRights,
+} from './types'
 
 import { resolveForumMatrix, indexOverrides } from './resolve'
 import type {
   Action,
   Actor,
   AuthorizationSource,
+  ModeratedTarget,
   NumericGlobalPermission,
   Target,
   Visible,
@@ -285,6 +290,31 @@ export class Authorizer {
       seesUnapproved: this.can(actor, 'content.viewUnapproved', target),
       seesDeleted: this.can(actor, 'content.viewDeleted', target),
     })
+  }
+
+  async moderatorTargetIn(
+    actor: Actor,
+    forumId: number,
+    forum: ForumPermissions,
+  ): Promise<ModeratedTarget> {
+    const moderatorRights = await this.moderatorRightsIn(actor, forumId)
+    return {
+      forumId,
+      forum,
+      moderatorRights,
+      isForumModerator: hasAnyModeratorRight(moderatorRights),
+    }
+  }
+
+  async contentScopeIn(
+    actor: Actor,
+    forumId: number,
+    forum: ForumPermissions,
+  ): Promise<ContentScope> {
+    return this.contentScope(
+      actor,
+      await this.moderatorTargetIn(actor, forumId, forum),
+    )
   }
 
   globalLimit(actor: Actor, key: NumericGlobalPermission): number {

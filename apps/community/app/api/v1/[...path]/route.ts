@@ -150,7 +150,7 @@ async function threadScope(
   if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) return null
 
   return {
-    scope: authorizer.contentScope(actor, { forumId: forum.id, forum: matrix }),
+    scope: await authorizer.contentScopeIn(actor, forum.id, matrix),
     forumId: forum.id,
   }
 }
@@ -239,7 +239,7 @@ async function dispatch(
       const cursor = decodeCursor<ThreadCursor>(url.searchParams.get('after'))
       const page = await threads.listForum(forum.id, {
         limit: pageLimit(url),
-        scope: authorizer.contentScope(actor, { forumId: forum.id, forum: matrix }),
+        scope: await authorizer.contentScopeIn(actor, forum.id, matrix),
         ...(cursor === null
           ? {}
           : { after: { ...cursor, lastPostAt: new Date(cursor.lastPostAt) } }),
