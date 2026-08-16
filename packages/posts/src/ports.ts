@@ -17,6 +17,7 @@ export interface PostRepository {
     threadId: number,
     options: {
       readonly afterId?: number
+      readonly offset?: number
       readonly limit: number
       readonly scope: ContentScope
     },

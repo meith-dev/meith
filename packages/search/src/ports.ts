@@ -20,6 +20,8 @@ export interface SearchQuery {
   readonly sort: SearchSort
   readonly limit: number
   readonly after: SearchCursor | null
+  /** Rows to skip, for a numbered page. Ignored when `after` is set. */
+  readonly offset?: number
 }
 
 export interface SearchCursor {

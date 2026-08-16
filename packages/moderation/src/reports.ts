@@ -70,7 +70,11 @@ export interface ReportRepository {
 
   listOpen(
     scope: ReportScope,
-    options: { readonly limit: number; readonly after?: string },
+    options: {
+      readonly limit: number
+      readonly after?: string
+      readonly offset?: number
+    },
   ): Promise<ReportPage>
 
   countOpen(scope: ReportScope): Promise<number>
@@ -154,12 +158,13 @@ export class ReportService {
 
   async listOpen(
     scope: ReportScope,
-    options: { readonly after?: string } = {},
+    options: { readonly after?: string; readonly offset?: number } = {},
   ): Promise<ReportPage> {
     if (scope.forumIds.length === 0 && !scope.global) return { rows: [] }
     return this.reports.listOpen(scope, {
       limit: REPORTS_PAGE_SIZE,
       ...(options.after === undefined ? {} : { after: options.after }),
+      ...(options.offset === undefined ? {} : { offset: options.offset }),
     })
   }
 

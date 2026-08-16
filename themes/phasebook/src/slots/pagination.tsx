@@ -3,7 +3,14 @@ import type { PaginationModel } from '@meith/theme-kit'
 
 import { NUMERIC, PILL } from '../shared'
 
-export function Pagination({ page, pageCount, pages, previousHref, nextHref }: PaginationModel) {
+export function Pagination({
+  page,
+  pageCount,
+  pageCountIsExact,
+  pages,
+  previousHref,
+  nextHref,
+}: PaginationModel) {
   if (pageCount <= 1 && previousHref === null && nextHref === null) return null
 
   const disabled = cn(PILL, 'pointer-events-none opacity-40')
@@ -55,7 +62,7 @@ export function Pagination({ page, pageCount, pages, previousHref, nextHref }: P
 
         <li className={`ml-1 text-xs whitespace-nowrap text-muted-foreground ${NUMERIC}`}>
           <span className="sr-only">Page </span>
-          {page} of {pageCount}
+          {pageCountIsExact ? `${page} of ${pageCount}` : `Page ${page}`}
         </li>
       </ol>
 

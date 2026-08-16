@@ -52,7 +52,7 @@ export function planMove(
     forumId,
     newParentId,
     pathUpdates: planPathUpdates(rows, forum, newParent?.path ?? null),
-    orderUpdates: planOrderUpdates(siblings, forum.id, target.position),
+    orderUpdates: planOrderUpdates(siblings, forum.id, target),
   }
 }
 
@@ -76,13 +76,27 @@ function planPathUpdates(
 function planOrderUpdates(
   siblings: readonly ForumRow[],
   forumId: number,
-  position: number | undefined,
+  target: MoveTarget,
 ): { id: number; displayOrder: number }[] {
   const ids = siblings.map((s) => s.id)
 
-  const index =
-    position === undefined ? ids.length : Math.min(Math.max(position, 0), ids.length)
-
-  ids.splice(index, 0, forumId)
+  ids.splice(insertionIndex(ids, target), 0, forumId)
   return ids.map((id, displayOrder) => ({ id, displayOrder }))
+}
+
+function insertionIndex(ids: readonly number[], target: MoveTarget): number {
+  if (target.after !== undefined) {
+    if (target.after === null) return 0
+
+    const at = ids.indexOf(target.after)
+    if (at === -1) {
+      throw new ConflictError(
+        'The forum it was to follow is no longer there. Reload the tree and try that again.',
+      )
+    }
+    return at + 1
+  }
+
+  const { position } = target
+  return position === undefined ? ids.length : Math.min(Math.max(position, 0), ids.length)
 }

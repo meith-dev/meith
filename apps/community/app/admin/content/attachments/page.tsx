@@ -8,6 +8,10 @@ import { formatBytes } from '@/view/attachments'
 import { postLink } from '@/view/post-link'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
+import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { cn } from '@meith/ui'
+import { PanelPagination } from '@/components/shell/panel-pagination'
+import { offsetOf, readPage } from '@/view/pager'
 
 export const metadata: Metadata = { title: 'Attachments' }
 
@@ -40,15 +44,13 @@ export default async function AdminAttachmentsPage({
 
   const filename = one('filename')
   const status = one('status')
-  const beforeText = one('before')
-  const beforeId =
-    beforeText !== undefined && /^\d+$/.test(beforeText) ? Number(beforeText) : undefined
+  const pageNumber = readPage(params)
 
   const [page, totals] = await Promise.all([
     repository.list({
       ...(filename === undefined ? {} : { filename }),
       ...(status === undefined ? {} : { status }),
-      ...(beforeId === undefined ? {} : { beforeId }),
+      offset: offsetOf(pageNumber, PAGE_SIZE),
       limit: PAGE_SIZE,
     }),
     repository.totals(),
@@ -56,14 +58,6 @@ export default async function AdminAttachmentsPage({
 
   const now = new Date()
   const { timezone } = await getViewerPreferences()
-  const nextHref = (): string => {
-    const next = new URLSearchParams()
-    if (filename !== undefined) next.set('filename', filename)
-    if (status !== undefined) next.set('status', status)
-    next.set('before', String(page.nextBeforeId))
-    return `/admin/content/attachments?${next.toString()}`
-  }
-
   return (
     <PanelPage
       back={{ href: '/admin/content', label: 'Content' }}
@@ -103,7 +97,7 @@ export default async function AdminAttachmentsPage({
 
       <form
         method="get"
-        className="flex flex-wrap items-end gap-3 rounded-lg border border-border p-4"
+        className={cn(PANEL_CARD, 'flex-row flex-wrap items-end')}
       >
         <label className="flex min-w-48 flex-1 flex-col gap-1 text-sm">
           <span className="font-medium">Filename contains</span>
@@ -141,9 +135,9 @@ export default async function AdminAttachmentsPage({
           Nothing matches.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+        <ul className={PANEL_LIST}>
           {page.rows.map((row) => (
-            <li key={row.id} className="flex items-start justify-between gap-3 px-4 py-3">
+            <li key={row.id} className={PANEL_ROW}>
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="truncate text-sm font-medium">{row.filename}</span>
                 <span className="truncate text-xs text-muted-foreground">
@@ -183,14 +177,13 @@ export default async function AdminAttachmentsPage({
         </ul>
       )}
 
-      {page.nextBeforeId !== null && (
-        <a
-          href={nextHref()}
-          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Older →
-        </a>
-      )}
+      <PanelPagination
+        path="/admin/content/attachments"
+        params={params}
+        page={pageNumber}
+        pageSize={PAGE_SIZE}
+        total={page.total}
+      />
     </PanelPage>
   )
 }

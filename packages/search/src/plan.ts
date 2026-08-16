@@ -7,6 +7,7 @@ export function searchQueryFrom(
   page: {
     readonly limit: number
     readonly after: SearchCursor | null
+    readonly offset?: number
     readonly now: Date
   },
 ): SearchQuery {
@@ -19,6 +20,7 @@ export function searchQueryFrom(
     sort: filters.sort,
     limit: page.limit,
     after: page.after,
+    ...(page.offset === undefined ? {} : { offset: page.offset }),
     ...(filters.forumIds === undefined ? {} : { forumIds: filters.forumIds }),
     ...(filters.authorUserIds === undefined ? {} : { authorUserIds: filters.authorUserIds }),
     ...(postedAfter === null ? {} : { postedAfter }),

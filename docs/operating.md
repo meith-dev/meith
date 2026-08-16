@@ -335,6 +335,47 @@ The commands that exist are the ones `--help` lists. This project does not
 document a command it has not written, so one you expected and cannot find is
 missing rather than hidden.
 
+## The forum tree
+
+`/admin/forums` draws the tree in the order the board renders it, and that
+screen is where the order is decided.
+
+### Moving a forum
+
+Drag a row by its handle to move it: up and down to reorder, sideways to change
+how deep it sits. A line shows where it will land, indented to the depth it will
+land at, and the row follows the pointer until you let go. Nothing is written
+until then.
+
+Each row also carries four arrows — up, down, in, out — and they are not a
+consolation prize. They are what a keyboard gets (the handle takes the arrow
+keys directly), what a screen reader gets, and what the screen falls back to
+with JavaScript switched off, where each arrow is an ordinary form submission.
+An arrow with nowhere to go is disabled rather than hidden, so the shape of what
+is possible stays visible.
+
+Three rules the screen enforces, because the tree does:
+
+- **A forum takes its subforums with it.** They move as a block and keep their
+  order inside it.
+- **What lands somewhere new inherits from where it landed.** Moving a busy
+  forum under a private category hides the whole subtree; the screen says so
+  under the tree rather than after the fact.
+- **A link row holds nothing.** Nothing nests inside one, by drag or by arrow.
+
+### Which moves ask for your password again
+
+Reordering under the same parent does not — it changes nothing about who may
+read what. Re-parenting does, on the same fifteen-minute rule as everything else
+destructive in the panel, because it changes what the subtree inherits.
+
+### Display order
+
+Each forum's **Display order** on `/admin/forums/[id]` is the same number the
+tree screen writes. A move renumbers that forum's new siblings densely from
+zero, so the numbers never drift into ties; typing one by hand still works and
+is the slow way of saying what a drag says.
+
 ## Permissions
 
 45 permission fields — 26 resolved per member per forum, 19 board-wide. Every

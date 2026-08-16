@@ -391,6 +391,51 @@ into every theme, where it becomes a timezone-dependent hydration mismatch. A
 timestamp crosses as `TimeModel` (`iso` + a preformatted `label`); paging crosses
 as resolved hrefs, never a function that builds them.
 
+### Paging: one builder, and one page parameter
+
+Every paged list — the members list, the logs, the queues, the inbox, a forum's
+threads, a thread's posts, a search — pages by number. The page is `?page=N`,
+the rows come from `limit … offset`, and the pager is built by
+`buildOffsetPager` in `src/view/pager.ts` and handed to the `Pagination` slot.
+Pages do not hand-roll a "Next" link; that is how the board ended up with eight
+of them, each with its own idea of which query parameters survive a page turn.
+
+Two helpers keep the arithmetic in one place: `readPage` reads the parameter
+and refuses anything that is not a page (a zero, a negative, a word), and
+`offsetOf(page, size)` is what the repository is given. **The offset never
+comes from the URL** — only the page number does, so no address can ask a
+repository to skip an arbitrary number of rows.
+
+Every list's repository therefore answers two questions, and the count is of
+*the filter*, not of the table:
+
+```ts
+const [rows, total] = await Promise.all([
+  repository.list({ ...filter, limit: PAGE, offset: offsetOf(page, PAGE) }),
+  repository.count(filter),
+])
+```
+
+Some counts are already denormalised and no query is needed: a forum knows its
+`threadCount`, a thread its `replyCount`, the queue and the report desk already
+count what is open for the badge in the rail. Use those rather than adding a
+second `count(*)` to a hot page.
+
+**Keyset paging is still there, and is still the right answer for an API.** The
+cursors did not go away: `after` on a forum listing, `after_id` on the members
+search, the search provider's rank-and-id pair. The REST API pages with them,
+because a cursor cannot skip or repeat a row when the set changes underneath a
+client walking it. The screens page by number because a reader wants to jump
+to page 9 and hand somebody the address, and because "of 12" is a fact a
+reader can act on. `pageCountIsExact` tells a theme which of the two it has:
+`true` from `buildOffsetPager`, `false` from the cursor pager that remains for
+anything paging without a total.
+
+The cost is the usual one: a deep offset makes Postgres walk the rows it is
+skipping. That is a real limit at page 900 of a hot table and not one this
+board's screens reach; when it does, the fix is a covering index or a hybrid
+that seeds the offset from a cursor, not a return to next-only links.
+
 **Never link to a route that does not exist.** The user-panel builder earned
 this rule by example: while the profile and control-panel screens were unbuilt,
 `buildUserPanelModel` returned an empty link list rather than advertising pages

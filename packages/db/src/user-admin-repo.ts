@@ -27,7 +27,8 @@ export interface UserSearchFilter {
   readonly minPostCount?: number | undefined
   readonly maxPostCount?: number | undefined
   readonly includeDeleted?: boolean | undefined
-  readonly afterUserId: number
+  readonly afterUserId?: number | undefined
+  readonly offset?: number | undefined
   readonly limit: number
 }
 
@@ -52,6 +53,8 @@ export interface UserSearchRow {
 export interface UserSearchPage {
   readonly rows: readonly UserSearchRow[]
   readonly nextCursor: number | null
+  /** How many accounts the filter matches, whichever page was asked for. */
+  readonly total: number
 }
 
 export interface UserDetail extends UserSearchRow {
@@ -109,7 +112,11 @@ export class PostgresUserAdminRepository {
   constructor(private readonly db: Database) {}
 
   async search(filter: UserSearchFilter): Promise<UserSearchPage> {
-    const conditions: SQL[] = [sql`u.id > ${filter.afterUserId}`]
+    const conditions: SQL[] = []
+
+    if (filter.afterUserId !== undefined && filter.afterUserId > 0) {
+      conditions.push(sql`u.id > ${filter.afterUserId}`)
+    }
 
     if (filter.username !== undefined && filter.username.trim() !== '') {
       conditions.push(
@@ -157,8 +164,11 @@ export class PostgresUserAdminRepository {
       conditions.push(sql`u.deleted_at is null`)
     }
 
-    const rows = resultRows(
-      await this.db.execute(sql`
+    const where = conditions.length === 0 ? sql`true` : sql.join(conditions, sql` and `)
+    const offset = filter.offset ?? 0
+
+    const [listed, counted] = await Promise.all([
+      this.db.execute(sql`
         select u.id, u.username, u.email, u.state, u.primary_group_id,
                g.title as primary_group_title,
                u.post_count, u.reputation, u.warning_points,
@@ -167,17 +177,27 @@ export class PostgresUserAdminRepository {
                ${BANNED_PREDICATE} as is_banned
           from users u
           join usergroups g on g.id = u.primary_group_id
-         where ${sql.join(conditions, sql` and `)}
+         where ${where}
          order by u.id
-         limit ${filter.limit}
+         limit ${filter.limit} offset ${offset}
       `),
-    ) as Array<Record<string, unknown>>
+      this.db.execute(sql`
+        select count(*)::int as total
+          from users u
+         where ${where}
+      `),
+    ])
 
-    const mapped = rows.map(toSearchRow)
+    const mapped = (resultRows(listed) as Array<Record<string, unknown>>).map(toSearchRow)
+    const total = Number(
+      (resultRows(counted) as Array<Record<string, unknown>>)[0]?.total ?? 0,
+    )
+
     return {
       rows: mapped,
       nextCursor:
         mapped.length < filter.limit ? null : (mapped[mapped.length - 1]?.id ?? null),
+      total,
     }
   }
 

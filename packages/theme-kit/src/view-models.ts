@@ -255,6 +255,18 @@ export interface ThreadRowModel {
 export interface PaginationModel {
   readonly page: number
   readonly pageCount: number
+  /**
+   * Whether `pageCount` is the real number of pages or only what has been
+   * proved so far.
+   *
+   * A keyset-paged list knows the page it is on and whether another one
+   * follows; it does not know how many there are, and counting rows to find
+   * out is the query the cursor exists to avoid. So `pageCount` is a floor
+   * when this is `false`, and a theme that prints "3 of 4" from it is telling
+   * the reader something nobody checked. Print the page on its own instead,
+   * and keep "of N" for the lists that do know.
+   */
+  readonly pageCountIsExact: boolean
   readonly pages: readonly {
     readonly page: number
     readonly href: string
@@ -1114,7 +1126,14 @@ export interface SearchResultsModel {
   readonly terms: string
   readonly searchedAt: TimeModel
   readonly hits: readonly SearchHitModel[]
-  /** The next page of this same search, or `null` at the end. */
+  /**
+   * The next page of this same search, or `null` at the end.
+   *
+   * Superseded by `regions.pagination`, which walks backwards as well and says
+   * which page this is. Both are populated: a theme written before the region
+   * existed keeps working, and one that renders the region should not also
+   * render this link or the page carries two pagers.
+   */
   readonly nextHref: string | null
   readonly nextLabel: string
   /** Back to an empty form. Always offered: a search that found nothing needs it most. */
@@ -1140,6 +1159,10 @@ export interface SearchResultsModel {
    * ignores it shows the results as the search asked for them.
    */
   readonly refine?: SearchRefineModel
+  readonly regions?: {
+    /** The `Pagination` for this result set, rendered by the page. */
+    readonly pagination?: ReactNode
+  }
 }
 
 /** One row in a discovery listing. */
@@ -1248,9 +1271,46 @@ export type PanelNavCurrent = 'here' | 'under'
  * render on the server: the alternative is `usePathname`, which makes the whole
  * rail a client component and ships a router hook to a board that needs none.
  */
+/**
+ * What one rail item is about, named rather than drawn.
+ *
+ * The app knows a section is the member list; only the theme knows what a
+ * member looks like in its own hand. Passing a name instead of an `<svg>` is
+ * what keeps the icon set a theme's decision — a theme that wants none ignores
+ * this, and one with its own drawing does not have to match anybody else's line
+ * weight. A name a theme has no drawing for is drawn as nothing, never as a
+ * broken box.
+ */
+export type PanelNavIcon =
+  | 'antispam'
+  | 'avatar'
+  | 'buddies'
+  | 'content'
+  | 'forums'
+  | 'groups'
+  | 'ip'
+  | 'log'
+  | 'messages'
+  | 'notifications'
+  | 'overview'
+  | 'plugins'
+  | 'profile'
+  | 'queue'
+  | 'reports'
+  | 'security'
+  | 'settings'
+  | 'signature'
+  | 'subscriptions'
+  | 'system'
+  | 'themes'
+  | 'tokens'
+  | 'users'
+
 export interface PanelNavItemModel {
   readonly href: string
   readonly title: string
+  /** What this item is about, for a themed icon. `null` on a child item. */
+  readonly icon: PanelNavIcon | null
   /** A waiting count — the approval queue, unread messages — or `null`. */
   readonly count: number | null
   /** `null` when the reader is somewhere else entirely. */

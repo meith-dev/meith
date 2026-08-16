@@ -11,6 +11,7 @@ export function SearchResults({
   newSearchHref,
   within,
   refine,
+  regions,
 }: SearchResultsModel) {
   return (
     <main id="board-content" tabIndex={-1} className={`${PAGE} flex-1 py-4 sm:py-6`}>
@@ -54,11 +55,12 @@ export function SearchResults({
           </ul>
         )}
 
-        {nextHref !== null && (
-          <a href={nextHref} className={PILL}>
-            {nextLabel} →
-          </a>
-        )}
+        {regions?.pagination ??
+          (nextHref !== null && (
+            <a href={nextHref} className={PILL}>
+              {nextLabel} →
+            </a>
+          ))}
 
         <section className="rounded-lg border border-border bg-card shadow-elevation">
           <form

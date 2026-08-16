@@ -3,7 +3,14 @@ import type { PaginationModel } from '@meith/theme-kit'
 
 import { NUMERIC } from '../shared'
 
-export function Pagination({ page, pageCount, pages, previousHref, nextHref }: PaginationModel) {
+export function Pagination({
+  page,
+  pageCount,
+  pageCountIsExact,
+  pages,
+  previousHref,
+  nextHref,
+}: PaginationModel) {
   if (pageCount <= 1 && previousHref === null && nextHref === null) return null
 
   const step = cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'min-w-20')
@@ -54,9 +61,8 @@ export function Pagination({ page, pageCount, pages, previousHref, nextHref }: P
         })}
 
         <li className="ml-1 text-xs whitespace-nowrap text-muted-foreground">
-          <span className="sr-only">Page </span>
           <span className={NUMERIC}>
-            {page} of {pageCount}
+            {pageCountIsExact ? `Page ${page} of ${pageCount}` : `Page ${page}`}
           </span>
         </li>
       </ol>

@@ -4,6 +4,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { PluginEnableForm } from '@/components/admin/plugin-forms'
 import { adminPageContext } from '@/server/admin'
 import { hookListeners, pluginInventory } from '@/server/plugin-admin'
+import { PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Plugins' }
 
@@ -30,7 +31,7 @@ export default async function AdminPluginsPage() {
           No plugins are configured on this board.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+        <ul className={PANEL_LIST}>
           {plugins.map((plugin) => {
             const pending = plugin.migrations.filter(
               (migration) => !migration.applied,
@@ -39,7 +40,7 @@ export default async function AdminPluginsPage() {
             return (
               <li
                 key={plugin.key}
-                className="flex items-start justify-between gap-3 px-4 py-3"
+                className={PANEL_ROW}
               >
                 <span className="flex min-w-0 flex-col gap-1">
                   <span className="truncate text-sm font-medium">

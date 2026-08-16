@@ -40,7 +40,7 @@ export function Header({ boardTitle, homeHref, navigation, logo, children }: Hea
       {navigation.length > 0 && (
         <nav aria-label="Board sections" className="border-t border-border bg-surface">
           <div className={PAGE}>
-            <ul className="-mx-4 flex items-stretch gap-1 overflow-x-auto px-4 text-sm sm:-mx-6 sm:px-6">
+            <ul className="-mx-4 flex items-stretch gap-1 overflow-x-auto px-4 text-sm [mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)] sm:-mx-6 sm:px-6 sm:[mask-image:none]">
               {navigation.map((item) => (
                 <li key={item.href} className="shrink-0">
                   <a

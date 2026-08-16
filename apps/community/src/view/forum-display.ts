@@ -105,6 +105,7 @@ export interface ForumDisplayInput {
   readonly page: ThreadPage;
   readonly pageNumber: number;
   readonly nextHref: string | null;
+  readonly pagination?: PaginationModel;
   readonly newThreadHref?: string | null;
   readonly readState?: Pick<ReadState, "forumReadAt" | "threadLastPostId"> | null;
   readonly markReadAction?: string | null;
@@ -140,9 +141,10 @@ export function buildForumDisplayView(
     threads: input.page.rows.map((row) =>
       threadRowModel(row, input.now, input.readState ?? null, input.timeZone, input.identities),
     ),
-    pagination: {
+    pagination: input.pagination ?? {
       page: input.pageNumber,
       pageCount: input.pageNumber,
+      pageCountIsExact: false,
       pages: [{ page: input.pageNumber, href: "", isCurrent: true }],
       previousHref: null,
       nextHref: input.nextHref,

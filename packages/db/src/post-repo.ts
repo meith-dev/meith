@@ -142,6 +142,7 @@ export class PostgresPostRepository implements PostRepository {
     threadId: number,
     options: {
       readonly afterId?: number
+      readonly offset?: number
       readonly limit: number
       readonly scope: ContentScope
     },
@@ -190,10 +191,14 @@ export class PostgresPostRepository implements PostRepository {
       )
       .orderBy(asc(posts.id))
       .limit(options.limit + 1)
+      .offset(options.offset ?? 0)
 
+    const skipped = options.offset ?? 0
     const page = rows
       .slice(0, options.limit)
-      .map((row, index) => toPost({ ...row, beforeCount: Number(row.beforeCount) + index }))
+      .map((row, index) =>
+        toPost({ ...row, beforeCount: Number(row.beforeCount) + skipped + index }),
+      )
     const last = page.at(-1)
     return {
       rows: page,

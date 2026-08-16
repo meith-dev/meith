@@ -13,6 +13,9 @@ import { notificationService } from '@/server/notifications'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { currentTheme } from '@/server/theme'
 import { buildNotificationCentreView, notificationNotice } from '@/view/notifications'
+import { PanelPagination } from '@/components/shell/panel-pagination'
+import { offsetOf, readPage } from '@/view/pager'
+import { NOTIFICATIONS_PAGE_SIZE } from '@meith/notifications'
 
 export const metadata: Metadata = { title: 'Notifications' }
 
@@ -27,9 +30,11 @@ export default async function NotificationsPage({
 
   if (actor.userId === null || service === null) notFound()
 
-  const [page, unread] = await Promise.all([
-    service.list(actor.userId, query.after === undefined ? {} : { after: query.after }),
+  const pageNumber = readPage(query)
+  const [page, unread, total] = await Promise.all([
+    service.list(actor.userId, { offset: offsetOf(pageNumber, NOTIFICATIONS_PAGE_SIZE) }),
     service.unreadCount(actor.userId),
+    service.count(actor.userId),
   ])
 
   const { timezone } = await getViewerPreferences()
@@ -121,14 +126,13 @@ export default async function NotificationsPage({
         </ul>
       )}
 
-      {view.nextHref !== null && (
-        <a
-          href={view.nextHref}
-          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Older notifications
-        </a>
-      )}
+      <PanelPagination
+        path="/notifications"
+        params={query}
+        page={pageNumber}
+        pageSize={NOTIFICATIONS_PAGE_SIZE}
+        total={total}
+      />
     </PanelPage>
   )
 }

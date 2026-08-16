@@ -4,7 +4,11 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
-import { nextPageQuery, parseUserFilter, userAdminRepository } from '@/server/user-admin'
+import { USER_PAGE, parseUserFilter, userAdminRepository } from '@/server/user-admin'
+import { PANEL_CARD, PANEL_LIST, PANEL_ROW, PanelActionLink } from '@/components/shell/panel-list'
+import { buttonVariants, cn } from '@meith/ui'
+import { PanelPagination } from '@/components/shell/panel-pagination'
+import { readPage } from '@/view/pager'
 
 export const metadata: Metadata = { title: 'Members' }
 
@@ -57,37 +61,27 @@ export default async function AdminUsersPage({
       }
       width="wide"
     >
-      <nav className="flex flex-wrap gap-4 text-sm">
-        <a
-          href="/admin/users/prune"
-          className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Prune dormant accounts
-        </a>
-        <a
-          href="/admin/users/mail"
-          className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Mass mail
-        </a>
+      <nav className="flex flex-wrap gap-2">
+        <PanelActionLink href="/admin/users/prune">Prune dormant accounts</PanelActionLink>
+        <PanelActionLink href="/admin/users/mail">Mass mail</PanelActionLink>
       </nav>
 
       <form
         method="get"
-        className="flex flex-col gap-3 rounded-lg border border-border p-4"
+        className={PANEL_CARD}
       >
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="flex flex-col gap-1 text-sm">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <label className="col-span-2 flex flex-col gap-1 text-sm sm:col-span-1">
             <span className="font-medium">Username contains</span>
             <input name="username" defaultValue={value('username')} className={INPUT} />
           </label>
 
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="col-span-2 flex flex-col gap-1 text-sm sm:col-span-1">
             <span className="font-medium">Email contains</span>
             <input name="email" defaultValue={value('email')} className={INPUT} />
           </label>
 
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="col-span-2 flex flex-col gap-1 text-sm sm:col-span-1">
             <span className="font-medium">IP starts with</span>
             <input name="ip" defaultValue={value('ip')} className={INPUT} />
             <span className="text-xs text-muted-foreground">
@@ -193,11 +187,11 @@ export default async function AdminUsersPage({
           check the spelling before widening it.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+        <ul className={PANEL_LIST}>
           {page.rows.map((row) => (
             <li
               key={row.id}
-              className="flex items-center justify-between gap-3 px-4 py-3"
+              className={PANEL_ROW}
             >
               <span className="flex min-w-0 flex-col">
                 <span className="truncate text-sm font-medium">
@@ -230,7 +224,7 @@ export default async function AdminUsersPage({
               <a
                 href={`/admin/users/${row.id}`}
                 aria-label={`Edit ${row.username}`}
-                className="shrink-0 text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'shrink-0')}
               >
                 Edit
               </a>
@@ -239,14 +233,13 @@ export default async function AdminUsersPage({
         </ul>
       )}
 
-      {page.nextCursor !== null && (
-        <a
-          href={nextPageQuery(params, page.nextCursor)}
-          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Next {50} members →
-        </a>
-      )}
+      <PanelPagination
+        path="/admin/users"
+        params={params}
+        page={readPage(params)}
+        pageSize={USER_PAGE}
+        total={page.total}
+      />
     </PanelPage>
   )
 }

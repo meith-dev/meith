@@ -13,6 +13,8 @@ import {
   promotionRuleRepository,
 } from '@/server/group-admin'
 import { promotionRuleFormValues, promotionRuleSummary } from '@/view/promotion-rules'
+import { PANEL_LIST } from '@/components/shell/panel-list'
+import { cn } from '@meith/ui'
 
 export const metadata: Metadata = { title: 'Promotions' }
 
@@ -104,7 +106,7 @@ export default async function AdminPromotionsPage() {
           </p>
         ) : (
           <>
-            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border text-sm">
+            <ul className={cn(PANEL_LIST, 'text-sm')}>
               {result.outcomes.map((outcome) => (
                 <li
                   key={`${outcome.userId}:${outcome.ruleId}`}

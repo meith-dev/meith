@@ -178,6 +178,18 @@ describe('the admin log', () => {
     expect(await log.list({ limit: 10 })).toHaveLength(2)
   })
 
+  it('pages by number, and counts the filter', async () => {
+    for (const action of ['a.one', 'a.two', 'b.one']) {
+      await log.record({ userId: ADA, action, detail: {}, ipPrefix: null, at: AT })
+    }
+
+    expect(await log.count({})).toBe(3)
+    expect(await log.count({ action: 'a.one' })).toBe(1)
+
+    const second = await log.list({ limit: 2, offset: 2 })
+    expect(second).toHaveLength(1)
+  })
+
   it('filters by action', async () => {
     await log.record({ userId: ADA, action: 'a.one', detail: {}, ipPrefix: null, at: AT })
     await log.record({ userId: ADA, action: 'b.two', detail: {}, ipPrefix: null, at: AT })

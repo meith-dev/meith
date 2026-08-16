@@ -25,6 +25,7 @@ export interface ThreadRepository {
     forumId: number,
     options: {
       readonly after?: ThreadCursor
+      readonly offset?: number
       readonly limit: number
       readonly scope: ContentScope
       readonly authors: ThreadAuthorFilter

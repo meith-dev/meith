@@ -18,6 +18,7 @@ import {
 } from '@meith/db'
 
 import { getContainer } from './container'
+import { offsetOf, readPage } from '@/view/pager'
 
 export const USER_PAGE = 50
 
@@ -104,23 +105,9 @@ export function parseUserFilter(
     ...(number('minPosts') === undefined ? {} : { minPostCount: number('minPosts') }),
     ...(number('maxPosts') === undefined ? {} : { maxPostCount: number('maxPosts') }),
     ...(one('deleted') === undefined ? {} : { includeDeleted: true }),
-    afterUserId: number('after_id') ?? 0,
+    offset: offsetOf(readPage(params), USER_PAGE),
     limit: USER_PAGE,
   }
-}
-
-export function nextPageQuery(
-  params: Record<string, string | string[] | undefined>,
-  cursor: number,
-): string {
-  const query = new URLSearchParams()
-  for (const [key, value] of Object.entries(params)) {
-    if (key === 'after_id') continue
-    const text = Array.isArray(value) ? value[0] : value
-    if (text !== undefined && text !== '') query.set(key, text)
-  }
-  query.set('after_id', String(cursor))
-  return `?${query.toString()}`
 }
 
 export interface MemberView {

@@ -183,6 +183,7 @@ export interface ThreadViewInput {
   readonly forum: ForumRow
   readonly page: PostPage
   readonly pageNumber: number
+  readonly pagination?: PaginationModel
   readonly nextHref: string | null
   readonly markReadAction?: string | null
   readonly replyHref?: string | null
@@ -263,9 +264,10 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
         vocabulary: input.vocabulary,
       }),
     ),
-    pagination: {
+    pagination: input.pagination ?? {
       page: input.pageNumber,
       pageCount: input.pageNumber,
+      pageCountIsExact: false,
       pages: [{ page: input.pageNumber, href: '', isCurrent: true }],
       previousHref: null,
       nextHref: input.nextHref,

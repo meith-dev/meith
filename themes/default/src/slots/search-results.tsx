@@ -25,6 +25,7 @@ export function SearchResults({
   newSearchHref,
   within,
   refine,
+  regions,
 }: SearchResultsModel) {
   return (
     <main
@@ -71,12 +72,16 @@ export function SearchResults({
           </CardRows>
         )}
 
-        {nextHref !== null && (
-          <CardFooter>
-            <a href={nextHref} className={`font-medium text-foreground ${LINK}`}>
-              {nextLabel} →
-            </a>
-          </CardFooter>
+        {regions?.pagination !== undefined ? (
+          <CardFooter>{regions.pagination}</CardFooter>
+        ) : (
+          nextHref !== null && (
+            <CardFooter>
+              <a href={nextHref} className={`font-medium text-foreground ${LINK}`}>
+                {nextLabel} →
+              </a>
+            </CardFooter>
+          )
         )}
       </Card>
 

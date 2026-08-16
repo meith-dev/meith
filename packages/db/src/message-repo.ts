@@ -63,6 +63,7 @@ export class PostgresMessageRepository implements MessageRepository {
     readonly folder: MessageFolder
     readonly limit: number
     readonly before?: number | undefined
+    readonly offset?: number | undefined
   }): Promise<readonly MessageListRow[]> {
     const before =
       input.before === undefined ? sql`` : sql`and c.id < ${input.before}`
@@ -107,7 +108,7 @@ export class PostgresMessageRepository implements MessageRepository {
            and c.folder = ${input.folder}
            ${before}
          order by c.id desc
-         limit ${input.limit}
+         limit ${input.limit} offset ${input.offset ?? 0}
       `),
     ) as Array<{
       copy_id: number

@@ -7,11 +7,11 @@ vi.mock('@meith/db', () => ({
   PostgresBanRepository: class {},
 }))
 
-const { USER_PAGE, nextPageQuery, parseUserFilter } = await import('./user-admin')
+const { USER_PAGE, parseUserFilter } = await import('./user-admin')
 
 describe('parseUserFilter', () => {
   it('is everybody when nothing is given', () => {
-    expect(parseUserFilter({})).toEqual({ afterUserId: 0, limit: USER_PAGE })
+    expect(parseUserFilter({})).toEqual({ offset: 0, limit: USER_PAGE })
   })
 
   it('reads every criterion the form offers', () => {
@@ -26,7 +26,7 @@ describe('parseUserFilter', () => {
       after: '2026-01-01',
       before: '2026-06-01',
       deleted: '1',
-      after_id: '42',
+      page: '3',
     })
 
     expect(filter).toMatchObject({
@@ -38,7 +38,7 @@ describe('parseUserFilter', () => {
       minPostCount: 10,
       maxPostCount: 100,
       includeDeleted: true,
-      afterUserId: 42,
+      offset: USER_PAGE * 2,
     })
     expect(filter.registeredAfter?.toISOString()).toBe('2026-01-01T00:00:00.000Z')
   })
@@ -54,7 +54,7 @@ describe('parseUserFilter', () => {
   it('treats a blank field as absent, because an empty input submits one', () => {
     const filter = parseUserFilter({ username: '', email: '   ', group: '' })
 
-    expect(filter).toEqual({ afterUserId: 0, limit: USER_PAGE })
+    expect(filter).toEqual({ offset: 0, limit: USER_PAGE })
   })
 
   it('ignores a state that is not one of the three', () => {
@@ -62,8 +62,9 @@ describe('parseUserFilter', () => {
     expect(parseUserFilter({ state: 'banned' }).state).toBe('banned')
   })
 
-  it('refuses a negative cursor rather than paging backwards off the end', () => {
-    expect(parseUserFilter({ after_id: '-5' }).afterUserId).toBe(0)
+  it('refuses a page before the first one rather than counting backwards', () => {
+    expect(parseUserFilter({ page: '-5' }).offset).toBe(0)
+    expect(parseUserFilter({ page: 'nine' }).offset).toBe(0)
   })
 
   it('takes the first value when a key is repeated', () => {
@@ -71,18 +72,3 @@ describe('parseUserFilter', () => {
   })
 })
 
-describe('nextPageQuery', () => {
-  it('keeps every filter and replaces the cursor', () => {
-    const query = nextPageQuery({ username: 'ann', state: 'active', after_id: '10' }, 60)
-    const params = new URLSearchParams(query.slice(1))
-
-    expect(params.get('username')).toBe('ann')
-    expect(params.get('state')).toBe('active')
-    expect(params.get('after_id')).toBe('60')
-  })
-
-  it('drops empty values, so the link is not a wall of blanks', () => {
-    const query = nextPageQuery({ username: 'ann', email: '' }, 60)
-    expect(query).not.toContain('email')
-  })
-})

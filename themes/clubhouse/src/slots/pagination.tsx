@@ -3,7 +3,14 @@ import type { PaginationModel } from '@meith/theme-kit'
 
 import { BUTTON, MICRO, NUMERIC } from '../shared'
 
-export function Pagination({ page, pageCount, pages, previousHref, nextHref }: PaginationModel) {
+export function Pagination({
+  page,
+  pageCount,
+  pageCountIsExact,
+  pages,
+  previousHref,
+  nextHref,
+}: PaginationModel) {
   if (pageCount <= 1 && previousHref === null && nextHref === null) return null
 
   const step = cn(BUTTON, 'min-w-20 justify-center border border-border bg-card hover:bg-accent')
@@ -53,9 +60,8 @@ export function Pagination({ page, pageCount, pages, previousHref, nextHref }: P
         })}
 
         <li className={`ml-2 whitespace-nowrap ${MICRO}`}>
-          <span className="sr-only">Page </span>
           <span className={NUMERIC}>
-            {page} of {pageCount}
+            {pageCountIsExact ? `Page ${page} of ${pageCount}` : `Page ${page}`}
           </span>
         </li>
       </ol>

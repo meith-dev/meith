@@ -64,9 +64,13 @@ export interface AdminLogRepository {
 
   list(input: {
     readonly limit: number
+    readonly offset?: number | undefined
     readonly before?: number | undefined
     readonly action?: string | undefined
   }): Promise<readonly AdminLogRow[]>
+
+  /** How many entries the filter matches, whichever page was asked for. */
+  count(input: { readonly action?: string | undefined }): Promise<number>
 
   actions(limit?: number): Promise<readonly string[]>
 }

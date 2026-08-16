@@ -140,6 +140,7 @@ export async function openSearch(input: {
   readonly sessionKey: string | null
   readonly token: string
   readonly after: SearchCursor | null
+  readonly offset?: number
   readonly refine: SearchRefinement
   readonly now: Date
 }): Promise<SearchPageView> {
@@ -166,6 +167,7 @@ export async function openSearch(input: {
       searchQueryFrom(search.terms, effective, {
         limit: SEARCH_PAGE,
         after: input.after,
+        ...(input.offset === undefined ? {} : { offset: input.offset }),
         now: input.now,
       }),
       scope,

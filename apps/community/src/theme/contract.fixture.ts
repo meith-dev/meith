@@ -111,6 +111,7 @@ const POST = {
 const PAGINATION = {
   page: 2,
   pageCount: 4,
+  pageCountIsExact: true,
   pages: [
     { page: 1, href: '/f/3-general?page=1', isCurrent: false },
     { page: 2, href: '/f/3-general?page=2', isCurrent: true },
@@ -614,6 +615,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
         {
           href: '/usercp',
           title: 'Overview',
+          icon: 'overview',
           count: null,
           current: null,
           isRecord: false,
@@ -624,6 +626,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
         {
           href: '/messages',
           title: 'Private messages',
+          icon: 'messages',
           count: 3,
           current: null,
           isRecord: false,
@@ -634,6 +637,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
         {
           href: '/usercp/options',
           title: 'Options',
+          icon: 'settings',
           count: null,
           current: 'here',
           isRecord: false,
@@ -643,6 +647,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
             {
               href: '/usercp/options/advanced',
               title: 'Advanced',
+              icon: null,
               count: null,
               current: null,
               isRecord: false,

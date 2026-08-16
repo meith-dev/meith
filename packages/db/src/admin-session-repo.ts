@@ -139,6 +139,7 @@ export class PostgresAdminLogRepository implements AdminLogRepository {
 
   async list(input: {
     readonly limit: number
+    readonly offset?: number | undefined
     readonly before?: number | undefined
     readonly action?: string | undefined
   }): Promise<readonly AdminLogRow[]> {
@@ -156,7 +157,7 @@ export class PostgresAdminLogRepository implements AdminLogRepository {
           left join users u on u.id = l.user_id
          where true ${before} ${action}
          order by l.id desc
-         limit ${input.limit}
+         limit ${input.limit} offset ${input.offset ?? 0}
       `),
     ) as Array<{
       id: number
@@ -180,6 +181,21 @@ export class PostgresAdminLogRepository implements AdminLogRepository {
       ipPrefix: row.ip_prefix,
       createdAt: toDate(row.created_at),
     }))
+  }
+
+  async count(input: { readonly action?: string | undefined }): Promise<number> {
+    const action =
+      input.action === undefined || input.action === ''
+        ? sql``
+        : sql`and l.action = ${input.action}`
+
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select count(*)::int as total from admin_log l where true ${action}
+      `),
+    ) as Array<{ total: number }>
+
+    return Number(rows[0]?.total ?? 0)
   }
 
   async actions(limit = ACTION_FILTER_LIMIT): Promise<readonly string[]> {

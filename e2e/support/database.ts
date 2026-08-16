@@ -285,6 +285,15 @@ export async function startDatabase(
   if (seeded) {
     await db.exec(migrationSql())
     await db.exec(DUES_MIGRATIONS.flatMap((migration) => migration.statements).join(';\n'))
+    await db.exec(
+      insert(
+        'plugin_migrations',
+        DUES_MIGRATIONS.map((migration) => ({
+          plugin_key: 'dues',
+          migration_id: migration.id,
+        })),
+      ),
+    )
     await db.exec(seedSql(await hashPassword(STAFF_PASSWORD)))
     await seedBadgeFiles()
   }

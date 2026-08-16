@@ -13,6 +13,9 @@ import { messageService } from '@/server/messages'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { MESSAGE_FORM_ID, buildMessageFolderView, messageNotice } from '@/view/messages'
+import { PanelPagination } from '@/components/shell/panel-pagination'
+import { offsetOf, readPage } from '@/view/pager'
+import { MESSAGES_PAGE_SIZE } from '@meith/messages'
 
 export const metadata: Metadata = { title: 'Private messages' }
 
@@ -38,14 +41,14 @@ export default async function MessagesPage({
   if (!authorizer.can(actor, 'pm.use')) notFound()
 
   const folder = parseFolder(query.folder ?? 'inbox') ?? 'inbox'
-  const before = Number(query.before)
+  const pageNumber = readPage(query)
 
   const preferences = await getViewerPreferences()
   const [page, counts] = await Promise.all([
     service.list({
       userId: actor.userId,
       folder,
-      ...(Number.isInteger(before) && before > 0 ? { before } : {}),
+      offset: offsetOf(pageNumber, MESSAGES_PAGE_SIZE),
     }),
     service.counts(actor.userId),
   ])
@@ -163,14 +166,13 @@ export default async function MessagesPage({
         </>
       )}
 
-      {view.nextHref !== null && (
-        <a
-          href={view.nextHref}
-          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Older messages
-        </a>
-      )}
+      <PanelPagination
+        path="/messages"
+        params={query}
+        page={pageNumber}
+        pageSize={MESSAGES_PAGE_SIZE}
+        total={counts[folder === 'sent' ? 'sent' : folder === 'trash' ? 'trash' : 'inbox']}
+      />
     </PanelPage>
   )
 }

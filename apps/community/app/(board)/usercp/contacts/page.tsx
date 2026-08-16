@@ -11,6 +11,7 @@ import { relationService } from '@/server/relations'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildContactsView, contactsNotice, type ContactRowView } from '@/view/contacts'
+import { PANEL_LIST } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Buddies and ignored members' }
 
@@ -67,7 +68,7 @@ export default async function ContactsPage({
             Nobody yet. There is a link on every member&rsquo;s profile.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+          <ul className={PANEL_LIST}>
             {view.buddies.map((row) => (
               <ContactLine key={row.userId} row={row} />
             ))}
@@ -86,7 +87,7 @@ export default async function ContactsPage({
         {view.ignored.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nobody.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+          <ul className={PANEL_LIST}>
             {view.ignored.map((row) => (
               <ContactLine key={row.userId} row={row} />
             ))}

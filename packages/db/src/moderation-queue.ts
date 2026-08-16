@@ -74,7 +74,11 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
 
   async list(
     forumIds: readonly number[],
-    options: { readonly limit: number; readonly after?: string },
+    options: {
+      readonly limit: number
+      readonly after?: string
+      readonly offset?: number
+    },
   ): Promise<QueuePage> {
     if (forumIds.length === 0) return { items: [] }
 
@@ -111,7 +115,7 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
         select * from q
          where true ${after}
          order by q.created_at, q.kind, q.id
-         limit ${options.limit + 1}
+         limit ${options.limit + 1} offset ${options.offset ?? 0}
       `),
     ) as QueueRow[]
 

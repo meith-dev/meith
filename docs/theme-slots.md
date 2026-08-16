@@ -314,6 +314,7 @@ Props: `PaginationModel`
 |---|---|---|
 | `page` | `number` |  |
 | `pageCount` | `number` |  |
+| `pageCountIsExact` | `boolean` | Whether `pageCount` is the real number of pages or only what has been proved so far. A keyset-paged list knows the page it is on and whether another one follows; it does not know how many there are, and counting rows to find out is the query the cursor exists to avoid. So `pageCount` is a floor when this is `false`, and a theme that prints "3 of 4" from it is telling the reader something nobody checked. Print the page on its own instead, and keep "of N" for the lists that do know. |
 | `pages` | `readonly { readonly page: number readonly href: string readonly isCurrent: boolean }[]` |  |
 | `previousHref` | `string \| null` |  |
 | `nextHref` | `string \| null` |  |
@@ -463,11 +464,12 @@ Props: `SearchResultsModel`
 | `terms` | `string` | What was searched for, as the reader typed it. |
 | `searchedAt` | `TimeModel` |  |
 | `hits` | `readonly SearchHitModel[]` |  |
-| `nextHref` | `string \| null` | The next page of this same search, or `null` at the end. |
+| `nextHref` | `string \| null` | The next page of this same search, or `null` at the end. Superseded by `regions.pagination`, which walks backwards as well and says which page this is. Both are populated: a theme written before the region existed keeps working, and one that renders the region should not also render this link or the page carries two pagers. |
 | `nextLabel` | `string` |  |
 | `newSearchHref` | `string` | Back to an empty form. Always offered: a search that found nothing needs it most. |
 | `within` | `{ readonly action: string readonly field: string readonly value: string readonly label: string readonly hint: string readonly submitLabel: string readonly hidden?: readonly HiddenFieldModel[] }` | The narrow-this-search form. A GET form, like `SearchForm` and for the same reason — the narrowed search is a URL of its own, not a state this page holds. `hidden` carries the advanced options this search was run with, one input per entry, so that narrowing it keeps them; a theme that drops them narrows within the words alone. |
 | `refine` | `SearchRefineModel` | optional — Filtering and sorting for the set on screen. Optional: a theme that ignores it shows the results as the search asked for them. |
+| `regions` | `{ /** The `Pagination` for this result set, rendered by the page. */ readonly pagination?: ReactNode }` | optional |
 
 ### DiscoveryView
 
@@ -765,12 +767,11 @@ One choice in a `<select>` or a radio group, with the current one marked. `isSel
 
 ### PanelNavItemModel
 
-One item in a panel's navigation. `current` is resolved by the app from the request path — the theme is told where the reader is, it does not work it out. That is what lets this slot render on the server: the alternative is `usePathname`, which makes the whole rail a client component and ships a router hook to a board that needs none.
-
 | Field | Type | Notes |
 |---|---|---|
 | `href` | `string` |  |
 | `title` | `string` |  |
+| `icon` | `PanelNavIcon \| null` | What this item is about, for a themed icon. `null` on a child item. |
 | `count` | `number \| null` | A waiting count — the approval queue, unread messages — or `null`. |
 | `current` | `PanelNavCurrent \| null` | `null` when the reader is somewhere else entirely. |
 | `isRecord` | `boolean` | A page reached from elsewhere rather than from the rail — warning a member, editing one forum. It is shown as where you are and it is not a link, because a link to the page you are on that also needs an argument you no longer have is a dead end. Only ever present while the reader is on it. |
@@ -781,6 +782,7 @@ One item in a panel's navigation. `current` is resolved by the app from the requ
 |---|---|---|
 | `href` | `string` | from `PanelNavItemModel` |
 | `title` | `string` | from `PanelNavItemModel` |
+| `icon` | `PanelNavIcon \| null` | from `PanelNavItemModel` — What this item is about, for a themed icon. `null` on a child item. |
 | `count` | `number \| null` | from `PanelNavItemModel` — A waiting count — the approval queue, unread messages — or `null`. |
 | `current` | `PanelNavCurrent \| null` | from `PanelNavItemModel` — `null` when the reader is somewhere else entirely. |
 | `isRecord` | `boolean` | from `PanelNavItemModel` — A page reached from elsewhere rather than from the rail — warning a member, editing one forum. It is shown as where you are and it is not a link, because a link to the page you are on that also needs an argument you no longer have is a dead end. Only ever present while the reader is on it. |

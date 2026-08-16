@@ -9,6 +9,7 @@ import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { themeListing } from '@/server/theme-admin'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
+import { PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Themes' }
 
@@ -72,11 +73,11 @@ export default async function AdminThemesPage() {
 
       <h2 className="font-heading text-lg font-semibold">Installed themes</h2>
 
-      <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+      <ul className={PANEL_LIST}>
         {themes.map((theme) => (
           <li
             key={theme.key}
-            className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+            className={PANEL_ROW}
           >
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="flex flex-wrap items-center gap-2">

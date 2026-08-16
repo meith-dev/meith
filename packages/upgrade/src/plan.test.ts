@@ -241,6 +241,19 @@ describe('the admin notice', () => {
     expect(notice).toContain('community upgrade')
   })
 
+  it('does not recite one version twice when only migrations are pending', () => {
+    const same = state({
+      recordedVersion: '1.1.0',
+      plugins: [plugin('dues', { migrationIds: ['0001_a', '0002_b'] })],
+    })
+    const notice = upgradeNotice(planUpgrade(same), same) as string
+
+    expect(notice).toContain('both at 1.1.0')
+    expect(notice).toContain('2 migration(s)')
+    expect(notice).toContain('dues')
+    expect(notice).not.toContain('An upgrade is pending')
+  })
+
   it('omits the migration count when there are none', () => {
     const pending = state({ recordedVersion: '1.0.0', codeVersion: '1.0.1' })
     expect(upgradeNotice(planUpgrade(pending), pending)).not.toContain('migration(s)')

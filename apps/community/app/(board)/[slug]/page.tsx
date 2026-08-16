@@ -14,7 +14,8 @@ import { legacyDestination } from '@/server/legacy-redirect'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { moderatorTargetFor } from '@/server/modcp'
 import { currentTheme } from '@/server/theme'
-import { decodeForumCursor, encodeForumCursor } from '@/view/forum-cursor'
+import { decodeForumCursor } from '@/view/forum-cursor'
+import { buildOffsetPager, offsetOf } from '@/view/pager'
 import { FollowForm } from '@/components/account/subscription-forms'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { getSettings } from '@/server/settings'
@@ -175,14 +176,19 @@ export default async function ForumPage({
   const preferences = await getViewerPreferences()
   const threadPage = await threads.listForum(id, {
     ...(after === undefined ? {} : { after }),
+    ...(after === undefined ? { offset: offsetOf(page, preferences.threadsPerPage) } : {}),
     limit: preferences.threadsPerPage,
     scope,
     authors: authorizer.authorFilter(actor, inlineTarget),
     sort,
   })
-  const nextHref = threadPage.nextCursor
-    ? `/${id}-${forum.slug}?after=${encodeForumCursor(threadPage.nextCursor)}&page=${page + 1}${sort === 'rating' ? '&sort=rating' : ''}`
-    : null
+  const pager = buildOffsetPager({
+    path: `/${id}-${forum.slug}`,
+    params: query,
+    page,
+    pageSize: preferences.threadsPerPage,
+    total: forum.threadCount,
+  })
   const canPost =
     threadWrites !== null &&
     acceptsThreads(forum) &&
@@ -234,8 +240,9 @@ export default async function ForumPage({
     ),
     ownThreadsOnlyForumIds,
     page: threadPage,
-    pageNumber: page,
-    nextHref,
+    pageNumber: pager.page,
+    nextHref: pager.nextHref,
+    pagination: pager,
     readState: read,
     markReadAction: read === null ? null : `/api/read/forum/${id}`,
     now: new Date(),

@@ -13,6 +13,7 @@ import { adminPageContext } from '@/server/admin'
 import { buildSystemHealthView } from '@/server/system-admin'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
+import { PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'System health' }
 
@@ -160,11 +161,11 @@ export default async function AdminSystemPage() {
             is not wired up on this deployment.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+          <ul className={PANEL_LIST}>
             {scheduler.tasks.map((task) => (
               <li
                 key={task.key}
-                className="flex items-center justify-between gap-3 px-4 py-3"
+                className={PANEL_ROW}
               >
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-sm font-medium">{task.key}</span>
