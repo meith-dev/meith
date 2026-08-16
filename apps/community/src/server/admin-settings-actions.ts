@@ -8,6 +8,7 @@ import {
   SETTING_DEFINITIONS,
   coerceFormValue,
   saveSettings,
+  secretClearField,
   type SettingDefinition,
 } from '@meith/settings'
 
@@ -45,6 +46,7 @@ export async function saveAdminSettingsAction(
       const value = coerceFormValue(
         definition,
         typeof raw === 'string' ? raw : undefined,
+        { clear: form.get(secretClearField(definition.key)) === '1' },
       )
       if (value !== undefined) updates[definition.key] = value
     }

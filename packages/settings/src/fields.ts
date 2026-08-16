@@ -33,12 +33,20 @@ export function settingField(definition: SettingDefinition): SettingField {
   }
 }
 
+export function secretClearField(key: string): string {
+  return `${key}__clear`
+}
+
 export function coerceFormValue(
   definition: SettingDefinition,
   raw: string | undefined,
+  options: { readonly clear?: boolean } = {},
 ): unknown {
   if (typeof definition.default === 'boolean') return raw !== undefined && raw !== ''
-  if (definition.secret === true && (raw === undefined || raw === '')) return undefined
+  if (definition.secret === true) {
+    if (options.clear === true) return definition.default
+    if (raw === undefined || raw === '') return undefined
+  }
   if (raw === undefined) return undefined
 
   if (typeof definition.default === 'number') {

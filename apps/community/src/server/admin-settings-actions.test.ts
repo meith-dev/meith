@@ -162,6 +162,40 @@ describe('caches and the audit log', () => {
   })
 })
 
+describe('a stored secret', () => {
+  beforeEach(() => {
+    snapshotRef.current = SettingsSnapshot.fromOverrides(
+      new Map([['mail.http_token', 'live-key']]),
+    )
+  })
+
+  it('survives an ordinary save, because a blank box means unchanged', async () => {
+    const state = await saveAdminSettingsAction(
+      {},
+      form({ keys: 'mail.http_token', 'mail.http_token': '' }),
+    )
+
+    expect(state.notice).toBe('unchanged')
+    expect(written).toEqual([])
+    expect(deleted).toEqual([])
+  })
+
+  it('is removed when the clear box is ticked, so the control has a way back', async () => {
+    const state = await saveAdminSettingsAction(
+      {},
+      form({
+        keys: 'mail.http_token',
+        'mail.http_token': '',
+        'mail.http_token__clear': '1',
+      }),
+    )
+
+    expect(state.notice).toBe('saved')
+    expect(deleted).toEqual([['mail.http_token']])
+    expect(written).toEqual([])
+  })
+})
+
 describe('validation', () => {
   it('reports a bad value and writes none of the batch', async () => {
     const state = await saveAdminSettingsAction(

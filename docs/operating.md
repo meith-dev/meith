@@ -1198,8 +1198,18 @@ community task:run                     # run the tick once, so queued mail leave
 
 The two secrets are write-only from the operator's side: the panel renders them
 as empty password boxes and a blank one means *unchanged* rather than *clear it*,
-and `community env:check` and the audit log both refuse to print them. To clear one
-deliberately, set it to the empty string.
+and `community env:check` and the audit log both refuse to print them.
+
+Clearing one is therefore a separate, deliberate act rather than a side effect of
+saving an empty box — otherwise every accidental save of the mail page would wipe
+the key. Once a secret is stored, a **Clear the stored value and go back to the
+default** tick-box appears under its field; tick it and save, and the stored
+value is removed. Ticking it wins over anything typed into the box in the same
+submit, so there is no ambiguity about which one you meant. The box is not
+offered when nothing is stored, because there would be nothing to clear.
+
+`community settings:set mail.http_token ''` does the same thing from the command
+line.
 
 ### Who a mass mail reaches
 

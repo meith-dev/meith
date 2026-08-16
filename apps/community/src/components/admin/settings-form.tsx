@@ -52,14 +52,27 @@ function Control({ setting }: { setting: SettingFieldModel }) {
       )
     case "secret":
       return (
-        <input
-          id={key}
-          type="password"
-          name={key}
-          placeholder="Unchanged"
-          autoComplete="off"
-          className={INPUT}
-        />
+        <div className="flex flex-col gap-1">
+          <input
+            id={key}
+            type="password"
+            name={key}
+            placeholder="Unchanged"
+            autoComplete="off"
+            className={INPUT}
+          />
+          {setting.clearName !== null && (
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                name={setting.clearName}
+                value="1"
+                className="size-4"
+              />
+              <span>Clear the stored value and go back to the default</span>
+            </label>
+          )}
+        </div>
       )
     default:
       return <input id={key} type="text" name={key} defaultValue={value} className={INPUT} />
