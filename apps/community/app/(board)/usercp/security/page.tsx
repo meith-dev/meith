@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { PASSKEY_LIMIT, type ProviderKind } from '@meith/accounts'
+import { PASSKEY_LIMIT, providerLabel } from '@meith/accounts'
 import { requireSlot } from '@meith/theme-kit'
 
 import { PanelPage } from '@/components/shell/panel-page'
@@ -77,12 +77,14 @@ export default async function SecurityPage({
     at === null ? null : formatDate(at, timezone).label
 
   const linked = await accountStore.identities.listForUser(actor.userId)
-  const labels = new Map(providers.map((provider) => [provider.id as string, provider.label]))
+  const labels = new Map<string, string>(
+    providers.map((provider) => [provider.id, provider.label]),
+  )
 
   const linkedView: readonly LinkedIdentityView[] = linked.map((identity) => ({
     id: identity.id,
     provider: identity.provider,
-    label: labels.get(identity.provider) ?? identity.provider,
+    label: labels.get(identity.provider) ?? providerLabel(identity.provider),
     detail: identity.label,
     linkedAt: on(identity.linkedAt) ?? '',
     lastUsedAt: on(identity.lastUsedAt),
@@ -90,7 +92,7 @@ export default async function SecurityPage({
 
   const offered: readonly OfferedProvider[] = providers
     .filter((provider) => !linked.some((identity) => identity.provider === provider.id))
-    .map((provider) => ({ id: provider.id as ProviderKind, label: provider.label }))
+    .map((provider) => ({ id: provider.id, label: provider.label }))
 
   const held = passkeys ? await accountStore.passkeys.listForUser(actor.userId) : []
   const passkeyView: readonly PasskeyView[] = held.map((passkey) => ({

@@ -155,7 +155,10 @@ identity may only ever belong to one account. Trying to link an identity another
 member already holds is refused rather than moved.
 
 Unlinking is refused when it would leave the account with no way in at all: no
-password, no passkey and no other link. Set a password first.
+password, no passkey and no other link. Set a password first. Only credentials
+the board would accept *today* count — a passkey on a board that has since
+switched passkeys off, or a link to a provider an operator has turned off,
+opens nothing and is not treated as a way back in.
 
 Operators who would rather members did not manage this themselves can turn off
 **Let members link and unlink their own sign-ins**. Existing links keep working;

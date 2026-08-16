@@ -273,9 +273,39 @@ describe('removing a passkey', () => {
       now: NOW,
     })
 
-    await service().remove({ userId, passkeyId: held!.id, hasPassword: false })
+    await service().remove({
+      userId,
+      passkeyId: held!.id,
+      hasPassword: false,
+      usableProviders: ['github'],
+    })
 
     expect(await store.passkeys.listForUser(userId)).toHaveLength(0)
+  })
+
+  it('does not count a link to a provider the board has switched off', async () => {
+    const device = await createAuthenticator({ rpId: PARTY.id })
+    await enrol(device)
+    const [held] = await store.passkeys.listForUser(userId)
+
+    await store.identities.link({
+      userId,
+      provider: 'github',
+      subject: 'gh-2',
+      label: null,
+      now: NOW,
+    })
+
+    expect(
+      await rejectionMessage(
+        service().remove({
+          userId,
+          passkeyId: held!.id,
+          hasPassword: false,
+          usableProviders: [],
+        }),
+      ),
+    ).toContain('only way you have left to sign in')
   })
 
   it('will not remove somebody else’s passkey', async () => {

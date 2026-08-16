@@ -51,6 +51,7 @@ export {
   isProviderKind,
   parseScopes,
   providerFor,
+  providerLabel,
   type ProviderBuildDeps,
 } from './federation/catalog'
 

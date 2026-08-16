@@ -160,13 +160,16 @@ export class FederationService {
     readonly userId: number
     readonly identityId: number
     readonly hasPassword: boolean
-    readonly passkeyCount: number
+    readonly usablePasskeys: number
+    readonly usableProviders: readonly string[]
   }): Promise<void> {
     const remaining = (await this.identities.listForUser(input.userId)).filter(
-      (identity) => identity.id !== input.identityId,
+      (identity) =>
+        identity.id !== input.identityId &&
+        input.usableProviders.includes(identity.provider),
     )
 
-    if (!input.hasPassword && input.passkeyCount === 0 && remaining.length === 0) {
+    if (!input.hasPassword && input.usablePasskeys === 0 && remaining.length === 0) {
       throw new ForbiddenError(UNLINK_LAST_CREDENTIAL)
     }
 

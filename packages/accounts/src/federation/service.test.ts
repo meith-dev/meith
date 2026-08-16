@@ -332,7 +332,8 @@ describe('unlinking', () => {
       userId,
       identityId: identity.id,
       hasPassword: true,
-      passkeyCount: 0,
+      usablePasskeys: 0,
+      usableProviders: ['github'],
     })
 
     expect(await store.identities.listForUser(userId)).toHaveLength(0)
@@ -349,7 +350,8 @@ describe('unlinking', () => {
           userId,
           identityId: identity!.id,
           hasPassword: false,
-          passkeyCount: 0,
+          usablePasskeys: 0,
+          usableProviders: ['github'],
         }),
       ),
     ).toContain('only way you have left to sign in')
@@ -366,9 +368,35 @@ describe('unlinking', () => {
       userId,
       identityId: identity!.id,
       hasPassword: false,
-      passkeyCount: 1,
+      usablePasskeys: 1,
+      usableProviders: ['github'],
     })
 
     expect(await store.identities.listForUser(userId)).toHaveLength(0)
+  })
+
+  it('does not count a link to a provider the board has switched off', async () => {
+    const outcome = await build().completeSignIn({ provider: PROVIDER, profile: profile() })
+    const userId = outcome.status === 'signed-in' ? outcome.account.id : 0
+
+    await build().linkToViewer({
+      userId,
+      provider: { ...PROVIDER, id: 'google', label: 'Google' },
+      profile: profile({ subject: 'goog-1' }),
+    })
+
+    const [identity] = await store.identities.listForUser(userId)
+
+    expect(
+      await rejectionMessage(
+        build().unlink({
+          userId,
+          identityId: identity!.id,
+          hasPassword: false,
+          usablePasskeys: 0,
+          usableProviders: ['github'],
+        }),
+      ),
+    ).toContain('only way you have left to sign in')
   })
 })

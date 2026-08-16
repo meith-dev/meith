@@ -11,6 +11,21 @@ import type {
 
 export const PROVIDER_KINDS: readonly ProviderKind[] = ['github', 'google', 'oidc']
 
+/**
+ * What a link is called when the provider behind it is switched off: the
+ * identity stays on the account, so the row still has to say something a
+ * member recognises rather than the key it is stored under.
+ */
+const PROVIDER_LABELS: Readonly<Record<ProviderKind, string>> = {
+  github: 'GitHub',
+  google: 'Google',
+  oidc: 'Single sign-on',
+}
+
+export function providerLabel(id: string): string {
+  return isProviderKind(id) ? PROVIDER_LABELS[id] : id
+}
+
 const GOOGLE_ISSUER = 'https://accounts.google.com'
 
 export interface ProviderBuildDeps {

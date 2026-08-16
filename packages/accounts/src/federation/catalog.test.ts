@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { configuredProviders, isProviderKind, parseScopes, providerFor } from './catalog'
+import {
+  configuredProviders,
+  isProviderKind,
+  parseScopes,
+  providerFor,
+  providerLabel,
+} from './catalog'
 import type { FederationOptions } from './types'
 
 const OFF: FederationOptions = {
@@ -96,5 +102,17 @@ describe('the scopes asked for', () => {
 
   it('accepts commas, which is how half the consoles print them', () => {
     expect(parseScopes('email, profile')).toEqual(['openid', 'email', 'profile'])
+  })
+})
+
+describe('what a link is called', () => {
+  it('names a provider even when it has been switched off since', () => {
+    expect(providerLabel('github')).toBe('GitHub')
+    expect(providerLabel('google')).toBe('Google')
+    expect(providerLabel('oidc')).toBe('Single sign-on')
+  })
+
+  it('says back whatever it was given when the name means nothing here', () => {
+    expect(providerLabel('facebook')).toBe('facebook')
   })
 })

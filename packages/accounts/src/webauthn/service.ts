@@ -191,14 +191,19 @@ export class PasskeyService {
     readonly userId: number
     readonly passkeyId: number
     readonly hasPassword: boolean
+    readonly usableProviders?: readonly string[]
   }): Promise<void> {
     const remaining = (await this.passkeys.listForUser(input.userId)).filter(
       (passkey) => passkey.id !== input.passkeyId,
     )
 
-    const links = this.identities === undefined
-      ? []
-      : await this.identities.listForUser(input.userId)
+    const usable = input.usableProviders ?? []
+    const links =
+      this.identities === undefined
+        ? []
+        : (await this.identities.listForUser(input.userId)).filter((identity) =>
+            usable.includes(identity.provider),
+          )
 
     if (!input.hasPassword && remaining.length === 0 && links.length === 0) {
       throw new ForbiddenError(REMOVE_LAST_CREDENTIAL)
