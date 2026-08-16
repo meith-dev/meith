@@ -154,6 +154,31 @@ community settings:get board.name
 community settings:set board.name "The Townland"
 ```
 
+### Switching search off
+
+**Enable search** — `search.enabled`, in the search group — decides whether
+this board answers searches at all. Off is what you reach for when search is
+what is loading your database, or when a board is small enough that browsing is
+the better answer anyway.
+
+```sh
+community settings:set search.enabled false
+```
+
+Off, three things change together:
+
+- The **Search** link goes from the board navigation.
+- **`/search`** and any results page somebody still holds the link to say search
+  is switched off, rather than rendering a form or a result set.
+- **`GET /api/v1/search`** answers `403`, with the same message in the JSON
+  error body. The route is the reason hiding the form is not enough: a token
+  that carries the `search` scope reaches it directly.
+
+**The index is kept, and goes on being maintained.** New posts are still
+indexed, `search.reindex` still runs on the tick, and switching search back on
+needs no reindex and no restart. Nothing else keys off this: a board with search
+off still has its forums, its feeds and the rest of the REST API.
+
 ### Closing registration
 
 **Allow new registrations** — `registration.enabled`, in the registration group

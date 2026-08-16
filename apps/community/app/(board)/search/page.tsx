@@ -21,8 +21,10 @@ import {
   type SearchFilterSet,
 } from '@meith/search'
 
+import { SearchOffNotice } from '@/components/board/search-off-notice'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
+import { SEARCH_OFF_MESSAGE, searchEnabled } from '@/server/search'
 import { MAX_AUTHOR_NAMES, runSearch, type RunSearchOutcome } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
 import { currentTheme } from '@/server/theme'
@@ -58,6 +60,8 @@ export default async function SearchPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
+  if (!(await searchEnabled())) return <SearchOffNotice message={SEARCH_OFF_MESSAGE} />
+
   const params = await searchParams
   const submitted = read(params)
 

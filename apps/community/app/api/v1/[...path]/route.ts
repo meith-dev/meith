@@ -28,7 +28,7 @@ import { apiActor, apiToken } from '@/server/api-auth'
 import { activeWordFilter } from '@/server/content-admin'
 import { getContainer } from '@/server/container'
 import { resolveReplyTarget, submitReply } from '@/server/reply-core'
-import { requireSearch, searchScopeFor } from '@/server/search'
+import { requireSearch, requireSearchEnabled, searchScopeFor } from '@/server/search'
 import { filterWords } from '@/view/word-filter'
 import { canHoldThreads } from '@meith/forums'
 
@@ -328,6 +328,8 @@ async function dispatch(
     }
 
     case 'GET /search': {
+      await requireSearchEnabled()
+
       const parsed = parseSearchInput(url.searchParams.get('q') ?? '')
       if (!isRunnable(parsed)) {
         return {

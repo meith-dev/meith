@@ -239,6 +239,24 @@ A setting can also change behaviour by starting to be *read*. That is not a
 default moving, and there is nothing to run — but it is worth knowing which
 switches on your board were, until now, decorative.
 
+### `search.enabled` now actually switches search off
+
+**Enable search** was another switch nobody read. The Search link was
+unconditional, `/search` ran queries, and `GET /api/v1/search` answered them —
+so a board that had turned search off to take load off its database was still
+carrying every search it had been trying to refuse.
+
+It is read now, in all three places: the link goes, the two search pages say so
+instead of rendering, and the REST route answers `403`. The default is on. A
+board that stored `false` loses its search the moment it upgrades — which is
+what it asked for, though it is worth telling your members rather than letting
+them find the link missing.
+
+Nothing is thrown away: the index is still maintained while search is off, so
+switching it back on needs no reindex.
+
+See [Switching search off](./operating.md#switching-search-off).
+
 ### `registration.enabled` now actually closes registration
 
 **Allow new registrations** stored its value and nothing read it. Whatever the

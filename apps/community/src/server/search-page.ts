@@ -34,7 +34,7 @@ import { REFINE_FIELDS } from '@/view/search-controls'
 
 import { limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
-import { requireSearch, searchScopeFor } from './search'
+import { requireSearch, requireSearchEnabled, searchScopeFor } from './search'
 import { getSettings } from './settings'
 
 export const SEARCH_PAGE = 20
@@ -69,6 +69,8 @@ export type RunSearchOutcome =
   | { readonly kind: 'unknown-author'; readonly name: string }
 
 export async function runSearch(input: RunSearchInput): Promise<RunSearchOutcome> {
+  await requireSearchEnabled()
+
   const parsed = parseSearchInput(input.terms)
   if (!isRunnable(parsed)) {
     return { kind: 'refused', reason: parsed.refusal ?? 'empty' }
@@ -130,6 +132,8 @@ export async function openSearch(input: {
   readonly refine: SearchRefinement
   readonly now: Date
 }): Promise<SearchPageView> {
+  await requireSearchEnabled()
+
   const store = searchStore()
   if (store === null) throw new NotFoundError('No such search.')
 

@@ -276,7 +276,10 @@ export const SETTING_DEFINITIONS = [
     group: 'search',
     label: 'Enable search',
     description:
-      'Turning this off hides search UI and returns 403 from the route.',
+      'Off takes the Search link out of the board navigation, replaces /search ' +
+      'and any results page still linked to with a line saying so, and answers ' +
+      'GET /api/v1/search with a 403. The index is kept and goes on being ' +
+      'maintained, so switching it back on needs no reindex.',
     schema: z.boolean(),
     default: true,
     invalidates: ['settings'],

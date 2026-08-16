@@ -52,13 +52,16 @@ export function buildHeaderModel(
   }
 }
 
-export function buildBoardNavigation(viewer: ViewerModel): readonly LinkModel[] {
+export function buildBoardNavigation(
+  viewer: ViewerModel,
+  options: { searchEnabled?: boolean } = {},
+): readonly LinkModel[] {
   return [
     { label: 'Home', href: '/' },
     { label: 'New posts', href: '/discover/new' },
     { label: 'Unanswered', href: '/discover/unanswered' },
     ...(viewer.isGuest ? [] : [{ label: 'My posts', href: '/discover/participated' }]),
-    { label: 'Search', href: '/search' },
+    ...(options.searchEnabled === false ? [] : [{ label: 'Search', href: '/search' }]),
     { label: "Who's online", href: '/online' },
   ]
 }

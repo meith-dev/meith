@@ -291,6 +291,23 @@ describe('buildBoardNavigation', () => {
     ])
   })
 
+  it('drops the search link when the board has search switched off', () => {
+    const hrefs = buildBoardNavigation(buildViewerModel(member), {
+      searchEnabled: false,
+    }).map((link) => link.href)
+
+    expect(hrefs).not.toContain('/search')
+    expect(hrefs).toContain('/online')
+  })
+
+  it('keeps the search link when search is on', () => {
+    const hrefs = buildBoardNavigation(buildViewerModel(member), {
+      searchEnabled: true,
+    }).map((link) => link.href)
+
+    expect(hrefs).toContain('/search')
+  })
+
   it('omits the personal view for a guest rather than offering a refusal', () => {
     const hrefs = buildBoardNavigation(buildViewerModel(guest)).map((link) => link.href)
 

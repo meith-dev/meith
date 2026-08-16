@@ -12,6 +12,7 @@ import { touchActivity } from '@/server/relations'
 import { touchCurrentLocation } from '@/server/presence'
 import { unreadNotificationCount } from '@/server/notifications'
 import { registrationOpen } from '@/server/registration'
+import { searchEnabled } from '@/server/search'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { getSettings } from '@/server/settings'
 import { avatarsFor } from '@/server/avatars'
@@ -73,7 +74,7 @@ export async function PageShell({
   })
   const header = buildHeaderModel(
     viewer,
-    buildBoardNavigation(viewer),
+    buildBoardNavigation(viewer, { searchEnabled: await searchEnabled() }),
     boardTitle,
     await currentLogo(boardTitle),
   )
