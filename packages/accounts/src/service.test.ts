@@ -110,6 +110,36 @@ describe('register', () => {
     ).rejects.toThrow(/at least 8/i)
   })
 
+  describe('measures a username in code points, as the setting says', () => {
+    const FOUR_ASTRAL = '𝐇𝐚𝐧𝐬'
+    const TWO_ASTRAL = '𝐉𝐨'
+
+    it('accepts a name inside the maximum that would overrun it in code units', async () => {
+      expect(FOUR_ASTRAL.length).toBe(8)
+      const { service } = makeService(store, { usernameMax: 5 })
+
+      const { account } = await service.register({
+        username: FOUR_ASTRAL,
+        email: 'hans@example.com',
+        password: 'correct horse battery',
+      })
+      expect(account.username).toBe(FOUR_ASTRAL)
+    })
+
+    it('rejects a name under the minimum that would clear it in code units', async () => {
+      expect(TWO_ASTRAL.length).toBe(4)
+      const { service } = makeService(store, { usernameMin: 3 })
+
+      await expect(
+        service.register({
+          username: TWO_ASTRAL,
+          email: 'jo@example.com',
+          password: 'correct horse battery',
+        }),
+      ).rejects.toThrow(/between 3 and/i)
+    })
+  })
+
   describe('names the field it refused', () => {
     const cases: readonly [string, RegisterInput, RegisterField][] = [
       ['a reserved name', { username: 'admin', email: 'a@example.com', password: 'correct horse battery' }, 'username'],

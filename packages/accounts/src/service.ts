@@ -364,10 +364,8 @@ export class IdentityService {
   }
 
   private assertUsername(username: string, usernameLower: string): void {
-    if (
-      username.length < this.config.usernameMin ||
-      username.length > this.config.usernameMax
-    ) {
+    const length = codePointLength(username)
+    if (length < this.config.usernameMin || length > this.config.usernameMax) {
       throw new ValidationError(
         `Username must be between ${this.config.usernameMin} and ${this.config.usernameMax} characters.`,
         {},
@@ -395,6 +393,10 @@ export class IdentityService {
       })
     }
   }
+}
+
+function codePointLength(value: string): number {
+  return [...value].length
 }
 
 function prefixOf(context: RequestContext): string | null {

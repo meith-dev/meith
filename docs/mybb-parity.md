@@ -1079,6 +1079,28 @@ set by editing a group, because there is no group to edit. Restricting what an
 unactivated account may do is not a MyBB feature people use — they cannot log in
 at all — but it is a knob that exists there and does not here.
 
+### A username's length is counted in code points
+
+**MyBB:** measures with `my_strlen`, which counts characters where mbstring is
+available and bytes where it is not — so the same name can be two different
+lengths on two installations of the same software.
+
+**Here:** `registration.username_min` and `registration.username_max` are counted
+in Unicode code points, on every board, and the settings screen says so.
+
+**Why:** the accepted alphabet is `\p{L}\p{N}` under `/u`, which admits letters
+outside the Basic Multilingual Plane — the mathematical alphabets, the CJK
+extensions, the newer scripts. JavaScript's `String.length` counts UTF-16 code
+units, and every one of those letters occupies two, so measuring with it made a
+name of four such letters count as eight and fail a maximum of five, while a name
+of two counted as four and cleared a minimum of three. The rule was not "longer
+names are refused"; it was "your alphabet decides what the number means", which is
+the thing the setting's own description promised it would not do.
+
+**Cost:** none. `users.username` is `text` with the length enforced above it, and
+Postgres counts a `varchar` limit in characters rather than bytes in any case, so
+nothing downstream disagrees with the count.
+
 ## Private messages
 
 ### A private message is stored once, not once per recipient
