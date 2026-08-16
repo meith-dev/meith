@@ -83,6 +83,7 @@ class FakeSurgery implements ThreadSurgeryRepository {
 }
 
 let forumOf: Record<number, number>
+let authorOf: Record<number, number>
 let surgery: FakeSurgery
 
 function appointment(
@@ -116,7 +117,10 @@ function installContainer(
     container: {
       threadSurgery: surgery,
       threads: {
-        locate: async (id: number) => forumOf[id] ?? null,
+        locate: async (id: number) =>
+          forumOf[id] === undefined
+            ? null
+            : { forumId: forumOf[id], authorUserId: authorOf[id] ?? null },
         findById: async () => null,
         listForum: async () => ({ rows: [], nextCursor: null }),
       },
@@ -160,6 +164,7 @@ async function redirectOf(run: Promise<unknown>): Promise<string> {
 beforeEach(async () => {
   surgery = new FakeSurgery()
   forumOf = { [SOURCE]: SEED_FORUM.general, [TARGET]: SEED_FORUM.general }
+  authorOf = { [SOURCE]: 7, [TARGET]: 7 }
   actorRef.current = await actorFor(SEED_GROUP.superModerators, 2)
   installContainer()
 })
