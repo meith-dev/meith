@@ -143,7 +143,7 @@ export default async function BoardIndexPage() {
               {latest}
             </LiveRegion>
           ),
-        plugins: boardRegion('index.footer', actor),
+        plugins: await boardRegion('index.footer', actor),
         ...(announcements.length === 0
           ? {}
           : {

@@ -89,7 +89,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
           },
       ),
       regions: {
-        plugins: pluginRegion('profile.panel', {
+        plugins: await pluginRegion('profile.panel', {
           viewer: viewerRef(actor),
           subjectId: id,
           authorId: id,

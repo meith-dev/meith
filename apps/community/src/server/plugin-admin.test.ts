@@ -33,13 +33,28 @@ const HEALTHY: PluginHealth = {
   lastError: null,
 }
 
+const operatorDisabled = new Set<string>()
 const host = {
-  health: (): readonly PluginHealth[] => [HEALTHY],
+  setOperatorDisabled: (keys: readonly string[]) => {
+    operatorDisabled.clear()
+    for (const key of keys) operatorDisabled.add(key)
+  },
+  health: (): readonly PluginHealth[] => [
+    {
+      ...HEALTHY,
+      enabled: HEALTHY.enabled && !operatorDisabled.has(HEALTHY.key),
+      operatorDisabled: operatorDisabled.has(HEALTHY.key),
+    },
+  ],
   listeners: () => ({ 'post.created': ['alpha'], 'markdown.render.html': [] }),
 }
 vi.mock('./plugin-host', async (importOriginal) => ({
   ...(await importOriginal<typeof PluginHostModule>()),
   pluginHost: host,
+  syncOperatorDisables: async () => {
+    const { operatorDisabledPlugins } = await import('@meith/plugin-kit')
+    host.setOperatorDisabled(operatorDisabledPlugins(overrides.current))
+  },
 }))
 
 const dataSource = { current: 'postgres' as 'postgres' | 'fixture' }
@@ -85,6 +100,7 @@ const ALPHA = {
 beforeEach(() => {
   config.current.plugins = [{ key: 'alpha', plugin: ALPHA }]
   overrides.current = new Map()
+  operatorDisabled.clear()
   dataSource.current = 'postgres'
   applied.current = ['0001_first']
   applied.throws = false
@@ -109,6 +125,14 @@ describe('the three states of "enabled"', () => {
 
     const [row] = (await pluginInventory()).plugins
     expect(row).toMatchObject({ configuredEnabled: true, operatorEnabled: false, running: false })
+  })
+
+  it('reconciles the host before reading health, so a fresh process does not say "running"', async () => {
+    overrides.current = new Map([['plugin.alpha._enabled', '0']])
+
+    const [row] = (await pluginInventory()).plugins
+    expect(row?.health).toMatchObject({ enabled: false, operatorDisabled: true })
+    expect(row?.running).toBe(false)
   })
 
   it('is not running when the host has auto-disabled it', async () => {
