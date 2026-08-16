@@ -22,6 +22,7 @@ import { getContainer } from './container'
 export interface AttachmentScope {
   readonly forumId: number
   readonly forum: ForumPermissions
+  readonly allowsAttachments: boolean
 }
 
 export function attachmentService(): AttachmentService | null {
@@ -44,7 +45,11 @@ export function attachmentLimits(scope: AttachmentScope): UploadLimits {
 
 export function canAttach(actor: Actor, scope: AttachmentScope): boolean {
   const { authorizer } = getContainer()
-  return attachmentService() !== null && authorizer.can(actor, 'attachment.upload', scope)
+  return (
+    scope.allowsAttachments &&
+    attachmentService() !== null &&
+    authorizer.can(actor, 'attachment.upload', scope)
+  )
 }
 
 export async function submittedFiles(form: FormData): Promise<readonly IncomingFile[]> {
@@ -72,6 +77,9 @@ export async function stageAttachments(
   const service = attachmentService()
   if (service === null) {
     throw new ValidationError('This board cannot accept file attachments.')
+  }
+  if (!scope.allowsAttachments) {
+    throw new ValidationError('This forum does not accept file attachments.')
   }
 
   const { authorizer } = getContainer()

@@ -42,6 +42,7 @@ export default async function ReplyPage({
   const scope = {
     forumId: target.forum.id,
     forum: await authorizer.forumMatrix(actor, target.forum.id),
+    allowsAttachments: target.forum.allowAttachments,
   }
   if (!authorizer.can(actor, 'thread.view', scope)) notFound()
   if (!authorizer.can(actor, 'reply.post', scope)) notFound()

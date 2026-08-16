@@ -141,7 +141,10 @@ async function actorFor(groupId: number, userId: number | null): Promise<Actor> 
   }
 }
 
-async function scope(actor: Actor, forumId = PUBLIC_FORUM) {
+async function scope(
+  actor: Actor,
+  { forumId = PUBLIC_FORUM, allowsAttachments = true } = {},
+) {
   const installed = (
     globalThis as Record<
       symbol,
@@ -152,6 +155,7 @@ async function scope(actor: Actor, forumId = PUBLIC_FORUM) {
   return {
     forumId,
     forum: (await installed.authorizer.forumMatrix(actor, forumId)) as never,
+    allowsAttachments,
   }
 }
 
@@ -178,6 +182,13 @@ describe('the composer control', () => {
   it('is absent for a guest', async () => {
     const guest = await actorFor(SEED_GROUP.guest, null)
     expect(canAttach(guest, await scope(guest))).toBe(false)
+  })
+
+  it('is absent in a forum that does not take attachments, permission or not', async () => {
+    const actor = actorRef.current!
+    expect(
+      canAttach(actor, await scope(actor, { allowsAttachments: false })),
+    ).toBe(false)
   })
 })
 
@@ -221,6 +232,16 @@ describe('staging', () => {
     await expect(
       stageAttachments(guest, await scope(guest), [{ filename: 'a.png', bytes: PNG }]),
     ).rejects.toThrow(/may not attach/)
+    expect(objects.size).toBe(0)
+  })
+
+  it('refuses a member with the permission in a forum that takes no attachments', async () => {
+    const actor = actorRef.current!
+    await expect(
+      stageAttachments(actor, await scope(actor, { allowsAttachments: false }), [
+        { filename: 'a.png', bytes: PNG },
+      ]),
+    ).rejects.toThrow(/forum does not accept file attachments/)
     expect(objects.size).toBe(0)
   })
 

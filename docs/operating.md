@@ -924,6 +924,31 @@ things follow for an operator:
 
 ### Attachments
 
+**Two switches have to agree before a member can attach anything.** The
+permission `attachment.upload` — per group, per forum, resolved through the
+matrix — answers *may this member attach files here*. **Allow attachments**, on
+`/admin/forums/[id]`, answers *does this forum take attachments at all*. A file
+is accepted only where both say yes, so unticking the forum switch closes that
+forum to new attachments however generous the matrix is, and it is the shorter
+path to "no files in here" than editing every group's cell.
+
+The switch is enforced where the post is written, not only where the form is
+drawn. The composer, the reply page and the quick reply stop offering the file
+control in a forum that does not take attachments; a submission that carries a
+file anyway — a form left open in another tab, or a request built by hand —
+is refused with *This forum does not accept file attachments.* Nothing is
+written when that happens: the member gets their text back and no post, rather
+than a post that quietly lost the file it was meant to carry. The numeric limits
+beside the permission (attachments per post, maximum size) still apply on top,
+and `0` there still means unlimited rather than none.
+
+**Turning it off leaves the attachments already posted alone.** They keep
+rendering under their posts and their links keep working, gated as they always
+were on `attachment.download` and on whether the viewer may read the thread. The
+switch governs what the forum accepts next; it is not a retraction of what it
+accepted before, because unposting what members already wrote is not something
+an operator asks for by unticking a box. To take one down, delete the attachment.
+
 **Deleting an attachment does not touch the post it was on.** Attachments are
 listed beside a post rather than written into it, so removing one takes an entry
 off a list and nothing else. The bytes go to the hourly sweep rather than being

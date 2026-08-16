@@ -514,7 +514,15 @@ export default async function ThreadPage({
     polls !== null &&
     actor.userId !== null &&
     authorizer.can(actor, 'thread.rate', { forumId: forum.id, forum: matrix })
-  const replyTarget = { forumId: forum.id, forum: matrix }
+  const replyRules =
+    threadWrites === null || !canReply
+      ? null
+      : await threadWrites.postingRules(forum.id)
+  const replyTarget = {
+    forumId: forum.id,
+    forum: matrix,
+    allowsAttachments: replyRules?.allowAttachments === true,
+  }
   const quickReply = !canReply ? null : (
     <>
       <QuoteInPlace threadId={thread.id} />

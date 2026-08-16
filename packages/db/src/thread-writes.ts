@@ -28,7 +28,8 @@ export class PostgresThreadWriteRepository
     const rows = resultRows(
       await this.db.execute(sql`
         select id, type, slug, is_open, allow_threads, allow_replies, allow_polls,
-               requires_prefix, moderate_new_threads, moderate_new_posts
+               allow_attachments, requires_prefix, moderate_new_threads,
+               moderate_new_posts
           from forums where id = ${forumId}
       `),
     ) as Array<{
@@ -39,6 +40,7 @@ export class PostgresThreadWriteRepository
       allow_threads: boolean
       allow_replies: boolean
       allow_polls: boolean
+      allow_attachments: boolean
       requires_prefix: boolean
       moderate_new_threads: boolean
       moderate_new_posts: boolean
@@ -55,6 +57,7 @@ export class PostgresThreadWriteRepository
       allowThreads: row.allow_threads,
       allowReplies: row.allow_replies,
       allowPolls: row.allow_polls,
+      allowAttachments: row.allow_attachments,
       requiresPrefix: row.requires_prefix,
       moderateNewThreads: row.moderate_new_threads,
       moderateNewPosts: row.moderate_new_posts,
@@ -151,7 +154,8 @@ export class PostgresThreadWriteRepository
         select t.id, t.slug, t.title, t.is_locked, t.visibility, t.last_post_id,
                t.reply_count,
                f.id as forum_id, f.type as forum_type, f.slug as forum_slug,
-               f.is_open, f.allow_threads, f.allow_replies, f.allow_polls, f.requires_prefix,
+               f.is_open, f.allow_threads, f.allow_replies, f.allow_polls,
+               f.allow_attachments, f.requires_prefix,
                f.moderate_new_threads, f.moderate_new_posts
           from threads t
           join forums f on f.id = t.forum_id
@@ -172,6 +176,7 @@ export class PostgresThreadWriteRepository
       allow_threads: boolean
       allow_replies: boolean
       allow_polls: boolean
+      allow_attachments: boolean
       requires_prefix: boolean
       moderate_new_threads: boolean
       moderate_new_posts: boolean
@@ -196,6 +201,7 @@ export class PostgresThreadWriteRepository
         allowThreads: row.allow_threads,
         allowReplies: row.allow_replies,
         allowPolls: row.allow_polls,
+        allowAttachments: row.allow_attachments,
         requiresPrefix: row.requires_prefix,
         moderateNewThreads: row.moderate_new_threads,
         moderateNewPosts: row.moderate_new_posts,

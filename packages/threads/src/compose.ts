@@ -8,6 +8,7 @@ export interface ForumPostingRules {
   readonly allowThreads: boolean
   readonly allowReplies: boolean
   readonly allowPolls: boolean
+  readonly allowAttachments: boolean
   readonly requiresPrefix: boolean
   readonly moderateNewThreads: boolean
   readonly moderateNewPosts: boolean

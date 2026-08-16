@@ -41,6 +41,8 @@ export default async function NewThreadPage({
 
   const prefixes = await threadWrites.listPrefixes(id)
 
+  const attachTarget = { ...target, allowsAttachments: rules.allowAttachments }
+
   const view = buildNewThreadView({
     forum: { id: forum.id, title: forum.title, slug: forum.slug },
     errorMessage:
@@ -65,7 +67,9 @@ export default async function NewThreadPage({
                 canSubscribe={authorizer.can(actor, 'forum.subscribe', target)}
                 canPostPoll={authorizer.can(actor, 'poll.post', target)}
                 attachmentLimits={
-                  canAttach(actor, target) ? attachmentLimits(target) : null
+                  canAttach(actor, attachTarget)
+                    ? attachmentLimits(attachTarget)
+                    : null
                 }
                 draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, id, null)}
               />

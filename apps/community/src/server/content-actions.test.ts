@@ -41,6 +41,41 @@ vi.mock('./context', () => ({
   getActor: async () => actorRef.current,
 }))
 
+const storedObjects = new Map<string, Uint8Array>()
+vi.mock('@meith/drivers', () => ({
+  drivers: () => ({
+    files: {
+      async put(key: string, body: Uint8Array) {
+        storedObjects.set(key, body)
+        return { key, size: body.length, contentType: 'image/png' }
+      },
+      async get(key: string) {
+        return storedObjects.get(key)
+      },
+      async delete(key: string) {
+        storedObjects.delete(key)
+      },
+      async signedUrl() {
+        return undefined
+      },
+      url: (key: string) => `/files/${key}`,
+    },
+    queue: {
+      async enqueue() {
+        return { id: '1', deduplicated: false }
+      },
+    },
+  }),
+}))
+
+vi.mock('@meith/drivers/images', () => ({
+  imageProcessor: {
+    async process() {
+      throw new Error('not used in this suite')
+    },
+  },
+}))
+
 const {
   createReplyAction,
   createThreadAction,
@@ -92,6 +127,7 @@ class FakeWrites implements ThreadWriteRepository, ReplyWriteRepository {
       allowThreads: true,
       allowReplies: true,
       allowPolls: true,
+      allowAttachments: true,
       requiresPrefix: false,
       moderateNewThreads: false,
       moderateNewPosts: false,
@@ -118,6 +154,50 @@ class FakeWrites implements ThreadWriteRepository, ReplyWriteRepository {
 }
 
 let writes: FakeWrites
+
+class FakeAttachments {
+  readonly created: Array<Record<string, unknown>> = []
+
+  async create(input: Record<string, unknown>) {
+    this.created.push(input)
+    return {
+      id: this.created.length,
+      postId: input.postId as number,
+      forumId: input.forumId as number,
+      uploaderUserId: input.uploaderUserId as number,
+      filename: input.filename as string,
+      contentType: input.contentType as string,
+      sizeBytes: input.sizeBytes as number,
+      storageKey: input.storageKey as string | null,
+      sourceKey: input.sourceKey as string | null,
+      thumbnailKey: null,
+      width: null,
+      height: null,
+      status: input.status as 'pending' | 'ready',
+      failureReason: null,
+      downloadCount: 0,
+      createdAt: new Date(),
+    }
+  }
+  async findById() { return null }
+  async findForDownload() { return null }
+  async listForPosts() { return [] }
+  async countForPost() { return 0 }
+  async markReady() {}
+  async markFailed() {}
+  async recordDownload() {}
+  async stalled() { return [] }
+  async rememberKey() {}
+  async forgetKeys() {}
+  async staleKeys() { return [] }
+}
+
+const PNG = new Uint8Array(64)
+PNG.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+PNG.set([0, 0, 0, 13], 8)
+PNG.set([0x49, 0x48, 0x44, 0x52], 12)
+new DataView(PNG.buffer).setUint32(16, 10)
+new DataView(PNG.buffer).setUint32(20, 10)
 
 class FakeDrafts {
   readonly saved: Array<{ userId: number; draft: unknown }> = []
@@ -146,6 +226,12 @@ function installContainer(
 function form(entries: Record<string, string>): FormData {
   const f = new FormData()
   for (const [k, v] of Object.entries(entries)) f.set(k, v)
+  return f
+}
+
+function formWithFile(entries: Record<string, string>): FormData {
+  const f = form(entries)
+  f.append('attachments', new File([PNG], 'photo.png', { type: 'image/png' }))
   return f
 }
 
@@ -442,6 +528,71 @@ class FakePostWrites implements PostWriteRepository {
     return true
   }
 }
+
+describe('a forum that does not take attachments', () => {
+  let attachments: FakeAttachments
+
+  const REPLY = { threadId: '20', message: 'Quite so.', seenLastPostId: '31' }
+
+  beforeEach(() => {
+    storedObjects.clear()
+    attachments = new FakeAttachments()
+    installContainer({ attachments })
+  })
+
+  it('takes the file on a new thread while the forum accepts them', async () => {
+    await redirectOf(createThreadAction(EMPTY_STATE, formWithFile(VALID)))
+
+    expect(writes.written).toHaveLength(1)
+    expect(attachments.created).toHaveLength(1)
+    expect(attachments.created[0]).toMatchObject({
+      forumId: SEED_FORUM.general,
+      filename: 'photo.png',
+      uploaderUserId: 1,
+    })
+  })
+
+  it('refuses the file on a new thread, and writes no thread either', async () => {
+    writes = new FakeWrites({ allowAttachments: false })
+    installContainer({ attachments })
+
+    const state = await createThreadAction(EMPTY_STATE, formWithFile(VALID))
+
+    expect(state.error).toMatch(/forum does not accept file attachments/)
+    expect(writes.written).toEqual([])
+    expect(attachments.created).toEqual([])
+    expect(storedObjects.size).toBe(0)
+  })
+
+  it('still takes a thread with no file in it', async () => {
+    writes = new FakeWrites({ allowAttachments: false })
+    installContainer({ attachments })
+
+    await redirectOf(createThreadAction(EMPTY_STATE, form(VALID)))
+
+    expect(writes.written).toHaveLength(1)
+    expect(attachments.created).toEqual([])
+  })
+
+  it('takes the file on a reply while the forum accepts them', async () => {
+    await redirectOf(createReplyAction(EMPTY_STATE, formWithFile(REPLY)))
+
+    expect(writes.replies).toHaveLength(1)
+    expect(attachments.created).toHaveLength(1)
+  })
+
+  it('refuses the file on a reply, and writes no reply either', async () => {
+    writes = new FakeWrites({ allowAttachments: false })
+    installContainer({ attachments })
+
+    const state = await createReplyAction(EMPTY_STATE, formWithFile(REPLY))
+
+    expect(state.error).toMatch(/forum does not accept file attachments/)
+    expect(writes.replies).toEqual([])
+    expect(attachments.created).toEqual([])
+    expect(storedObjects.size).toBe(0)
+  })
+})
 
 describe('post actions', () => {
   let postWrites: FakePostWrites
