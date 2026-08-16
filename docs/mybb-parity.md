@@ -1219,12 +1219,18 @@ rather than silently scaling everybody's totals.
 **MyBB:** `users.reputation` is adjusted as ratings are added and removed.
 
 **Here:** the column is rebuilt with a `sum` over the live rows, inside the same
-transaction as whatever changed them.
+transaction as whatever changed them — a rating, a withdrawal, and an account
+merge, which drops the ratings that would become self-ratings or duplicates and
+then rebuilds the surviving account's total *and* the total of every third party
+whose duplicate rating went with them. `warning_points` is rebuilt the same way,
+by the same derivation the warning path uses, from the warnings the merge moved.
 
 **Why:** an incremented total cannot survive a rating being revised or
 withdrawn, and when it drifts nobody notices until somebody counts by hand. Same
 decision this board made for `warning_points` and for the thread and forum
-counters.
+counters. A merge that added the two cached numbers together would be counting
+the rows it had just deleted, and the counter recount does not cover either
+column, so the drift would never be swept up.
 
 **Cost:** one extra aggregate per rating. It is bounded by the number of ratings
 one member has, and a rating is a deliberate act rather than a hot path.

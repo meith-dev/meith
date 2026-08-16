@@ -1,3 +1,4 @@
+import type { SQLWrapper } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 
 import type {
@@ -49,12 +50,24 @@ const SELECT_ROW = sql`
     left join posts p on p.id = r.post_id
 `
 
-function recountInto(tx: Database, userId: number) {
-  return tx.execute(sql`
-    update users
+interface ReputationTransaction {
+  execute(query: SQLWrapper): Promise<unknown>
+}
+
+export async function recountReputation(
+  tx: ReputationTransaction,
+  userIds: readonly number[],
+): Promise<void> {
+  if (userIds.length === 0) return
+
+  await tx.execute(sql`
+    update users u
        set reputation = coalesce(
-             (select sum(points)::int from reputation where user_id = ${userId}), 0)
-     where id = ${userId}
+             (select sum(r.points)::int from reputation r where r.user_id = u.id), 0)
+     where u.id in ${sql`(${sql.join(
+       userIds.map((id) => sql`${id}`),
+       sql`, `,
+     )})`}
   `)
 }
 
@@ -127,7 +140,7 @@ export class PostgresReputationRepository implements ReputationRepository {
         `)
       }
 
-      await recountInto(tx as unknown as Database, input.userId)
+      await recountReputation(tx, [input.userId])
       return true
     })
   }
@@ -148,7 +161,7 @@ export class PostgresReputationRepository implements ReputationRepository {
       const row = rows[0]
       if (row === undefined) return false
 
-      await recountInto(tx as unknown as Database, Number(row.user_id))
+      await recountReputation(tx, [Number(row.user_id)])
       return true
     })
   }
@@ -267,7 +280,7 @@ export class PostgresReputationRepository implements ReputationRepository {
   }
 
   async recount(userId: number): Promise<number> {
-    await recountInto(this.db, userId)
+    await recountReputation(this.db, [userId])
 
     const rows = resultRows(
       await this.db.execute(sql`select reputation from users where id = ${userId}`),
