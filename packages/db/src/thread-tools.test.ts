@@ -470,7 +470,7 @@ describe('copy', () => {
 
     const found = await new PostgresSearchRepository(db).search(
       { terms: 'hello', match: 'everything', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
-      { forumIds: [RIGHT], viewerUserId: null, content: PUBLIC_CONTENT },
+      { forumIds: [RIGHT], ownThreadsOnlyForumIds: [], viewerUserId: null, content: PUBLIC_CONTENT },
     )
     expect(found.hits.map((hit) => hit.threadId)).toEqual([copy.threadId])
     expect((await new PostgresSearchRepository(db).indexProgress()).pending).toBe(0)

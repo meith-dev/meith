@@ -4,8 +4,11 @@ import { notFound } from 'next/navigation'
 import { isAppError } from '@meith/core'
 import { requireSlot } from '@meith/theme-kit'
 
+import { SearchOffNotice } from '@/components/board/search-off-notice'
+import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
+import { SEARCH_OFF_MESSAGE, searchEnabled } from '@/server/search'
 import {
   openSearch,
   readRefinement,
@@ -28,6 +31,8 @@ export default async function SearchResultsPage({
   params: Promise<{ token: string }>
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
+  if (!(await searchEnabled())) return <SearchOffNotice message={SEARCH_OFF_MESSAGE} />
+
   const { token } = await params
   const query = await searchParams
 
@@ -80,6 +85,7 @@ export default async function SearchResultsPage({
     summary,
     forums: await namedForums(),
     countCap: SEARCH_COUNT_CAP,
+    wordFilter: await activeWordFilter(),
   })
 
   const SearchResults = requireSlot(await currentTheme(), 'SearchResults')

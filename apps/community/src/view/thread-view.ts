@@ -1,5 +1,4 @@
 import {
-  applyWordFilter,
   postBodyHtml,
   type BoardVocabulary,
   type CompiledWordFilter,
@@ -21,12 +20,14 @@ import { memberHref } from './member-profile'
 import { postAnchor } from './post-link'
 import type { MemberIdentity } from './member-identity'
 import { formatDate, formatTime } from './time'
+import { filterWords } from './word-filter'
 
 export interface PostCapabilities {
   readonly viewerUserId: number | null
   readonly editOwn: boolean
   readonly editOthers: boolean
   readonly softDelete: boolean
+  readonly restore: boolean
   readonly editWindowMinutes: number
   readonly bypassesWindow: boolean
   readonly canReport: boolean
@@ -40,6 +41,7 @@ const NO_CAPABILITIES: PostCapabilities = {
   editOwn: false,
   editOthers: false,
   softDelete: false,
+  restore: false,
   editWindowMinutes: 0,
   bypassesWindow: false,
   canReport: false,
@@ -132,9 +134,7 @@ function post(
     },
     bodyHtml: hidden
       ? ''
-      : context.wordFilter === undefined
-        ? postBodyHtml(post, context.vocabulary)
-        : applyWordFilter(postBodyHtml(post, context.vocabulary), context.wordFilter),
+      : filterWords(postBodyHtml(post, context.vocabulary), context.wordFilter),
     postedAt: formatTime(post.createdAt, now, timeZone),
     editedNote: editedNote(
       { editedAt: post.editedAt, editedByUsername: post.editedByUsername, reason: post.editReason },
@@ -156,7 +156,7 @@ function post(
           : `${replyHref}?quote=${post.id}`,
       editHref: mayEdit ? manageHref : null,
       restoreHref:
-        post.visibility === 'deleted' && capabilities.softDelete ? manageHref : null,
+        post.visibility === 'deleted' && capabilities.restore ? manageHref : null,
       reportHref:
         capabilities.canReport && !isOwn && post.visibility === 'visible'
           ? `/report?kind=post&id=${post.id}`

@@ -1,4 +1,6 @@
-import { summarise } from '@meith/markdown'
+import { summarise, type CompiledWordFilter } from '@meith/markdown'
+
+import { filterWords } from './word-filter'
 
 export interface CanonicalInput {
   readonly path: string
@@ -23,9 +25,13 @@ export function pageLinks(input: CanonicalInput & { readonly hasNext: boolean })
   }
 }
 
-export function cardDescription(source: string | null, fallback: string): string {
+export function cardDescription(
+  source: string | null,
+  fallback: string,
+  wordFilter?: CompiledWordFilter | undefined,
+): string {
   if (source === null) return fallback
-  const flat = summarise(source, 200)
+  const flat = filterWords(summarise(source, 200), wordFilter)
   return flat === '' ? fallback : flat
 }
 

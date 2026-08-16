@@ -5,7 +5,7 @@ import { drivers } from '@meith/drivers'
 import { parseThemeExport } from '@meith/db'
 import { revalidatePath } from 'next/cache'
 
-import { recordAdminAction, requireAdmin } from './admin'
+import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
 import { isBuildTheme, requireThemeAdmin, themeListing, themeTitle, themeTokens } from './theme-admin'
@@ -142,7 +142,7 @@ function declarationBlock(
 
 export async function resetThemeAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
-    await requireAdmin()
+    await requireFreshAdmin()
     const key = themeKey(form)
 
     await requireThemeAdmin().reset(key)
@@ -158,7 +158,7 @@ export async function resetThemeAction(_prev: FormState, form: FormData): Promis
 
 export async function importThemeAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
-    await requireAdmin()
+    await requireFreshAdmin()
     const key = themeKey(form)
 
     const tokens = themeTokens(key)

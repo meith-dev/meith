@@ -1,8 +1,13 @@
 import {
   ForbiddenError,
+  NO_THREAD_AUDIENCE,
+  authorFilterFrom,
   contentScopeFrom,
+  unrestrictedAudience,
   type ContentScope,
   type ForumPermissions,
+  type ThreadAudience,
+  type ThreadAuthorFilter,
 } from '@meith/core'
 
 import {
@@ -36,6 +41,7 @@ export interface AuthorizerOptions {
 const FORUM_SCOPED: ReadonlySet<Action> = new Set<Action>([
   'forum.view',
   'thread.view',
+  'thread.viewOthers',
   'thread.post',
   'reply.post',
   'poll.post',
@@ -45,6 +51,7 @@ const FORUM_SCOPED: ReadonlySet<Action> = new Set<Action>([
   'post.editOthers',
   'post.deleteOwn',
   'post.softDelete',
+  'post.restore',
   'content.viewUnapproved',
   'content.viewDeleted',
   'content.approve',
@@ -52,6 +59,7 @@ const FORUM_SCOPED: ReadonlySet<Action> = new Set<Action>([
   'thread.stick',
   'thread.move',
   'thread.delete',
+  'thread.restore',
   'thread.merge',
   'thread.split',
   'attachment.upload',
@@ -134,6 +142,31 @@ export class Authorizer {
       if (matrix.canView === true) visible.push(forumId)
     }
     return visible
+  }
+
+  async listingVisibility(actor: Actor): Promise<{
+    readonly visibleForumIds: number[]
+    readonly ownThreadsOnlyForumIds: number[]
+  }> {
+    if (actor.global.isAdministrator === true) {
+      return {
+        visibleForumIds: [...(await this.source.allForumIds())],
+        ownThreadsOnlyForumIds: [],
+      }
+    }
+
+    const visibleForumIds: number[] = []
+    const ownThreadsOnlyForumIds: number[] = []
+    for (const target of await this.resolvedTargets(actor)) {
+      visibleForumIds.push(target.forumId)
+      if (
+        this.can(actor, 'thread.view', target) &&
+        !this.can(actor, 'thread.viewOthers', target)
+      ) {
+        ownThreadsOnlyForumIds.push(target.forumId)
+      }
+    }
+    return { visibleForumIds, ownThreadsOnlyForumIds }
   }
 
   async moderatedForumIds(
@@ -244,6 +277,66 @@ export class Authorizer {
       return [...(await this.source.allForumIds())]
     }
 
+    const permitted: number[] = []
+    for (const target of await this.resolvedTargets(actor)) {
+      if (this.can(actor, action, target)) permitted.push(target.forumId)
+    }
+    return permitted
+  }
+
+  async threadAudience(actor: Actor): Promise<ThreadAudience> {
+    if (actor.state === 'banned') {
+      return { ...NO_THREAD_AUDIENCE, viewerUserId: actor.userId }
+    }
+
+    if (actor.global.isAdministrator === true) {
+      this.logBypass('administrator', actor, 'thread.view', undefined)
+      return unrestrictedAudience(
+        [...(await this.source.allForumIds())],
+        actor.userId,
+      )
+    }
+    if (actor.global.isSuperModerator === true) {
+      this.logBypass('super_moderator', actor, 'thread.view', undefined)
+      return unrestrictedAudience(
+        [...(await this.source.allForumIds())],
+        actor.userId,
+      )
+    }
+
+    const forumIds: number[] = []
+    const ownThreadsOnlyForumIds: number[] = []
+    for (const target of await this.resolvedTargets(actor)) {
+      if (!this.can(actor, 'thread.view', target)) continue
+      forumIds.push(target.forumId)
+      if (!this.can(actor, 'thread.viewOthers', target)) {
+        ownThreadsOnlyForumIds.push(target.forumId)
+      }
+    }
+    return { forumIds, ownThreadsOnlyForumIds, viewerUserId: actor.userId }
+  }
+
+  authorFilter(actor: Actor, target: Target): ThreadAuthorFilter {
+    return authorFilterFrom({
+      seesOthersThreads: this.can(actor, 'thread.viewOthers', target),
+      viewerUserId: actor.userId,
+    })
+  }
+
+  async authorFilterIn(
+    actor: Actor,
+    forumId: number,
+    forum: ForumPermissions,
+  ): Promise<ThreadAuthorFilter> {
+    return this.authorFilter(
+      actor,
+      await this.moderatorTargetIn(actor, forumId, forum),
+    )
+  }
+
+  private async resolvedTargets(
+    actor: Actor,
+  ): Promise<readonly ModeratedTarget[]> {
     const [chains, groups, appointments] = await Promise.all([
       this.source.allAncestorChains(),
       this.source.groupDefaults(actor.groupIds),
@@ -255,7 +348,7 @@ export class Authorizer {
       await this.source.forumOverrides(everyForumInvolved, actor.groupIds),
     )
 
-    const permitted: number[] = []
+    const targets: ModeratedTarget[] = []
     for (const [forumId, chain] of chains) {
       const forum = resolveForumMatrix(chain, groups, overrides)
       if (forum.canView !== true) continue
@@ -272,18 +365,14 @@ export class Authorizer {
         moderatorRights = unionRights(moderatorRights, appointment)
       }
 
-      if (
-        this.can(actor, action, {
-          forumId,
-          forum,
-          moderatorRights,
-          isForumModerator: appointed,
-        })
-      ) {
-        permitted.push(forumId)
-      }
+      targets.push({
+        forumId,
+        forum,
+        moderatorRights,
+        isForumModerator: appointed,
+      })
     }
-    return permitted
+    return targets
   }
 
   contentScope(actor: Actor, target: Target): ContentScope {
@@ -356,8 +445,19 @@ export class Authorizer {
     switch (action) {
       case 'forum.view':
         return true
-      case 'thread.view':
-        return forum.canViewThreads === true
+      case 'thread.view': {
+        if (forum.canViewThreads !== true) return false
+        const author = target.threadAuthorId
+        if (author === undefined) return true
+        if (author !== null && author === actor.userId) return true
+        return this.canForum(actor, 'thread.viewOthers', target)
+      }
+      case 'thread.viewOthers':
+        return (
+          forum.canViewThreads === true &&
+          (target.isForumModerator === true ||
+            forum.canViewOthersThreads === true)
+        )
       case 'forum.search':
         return forum.canSearch === true
       case 'forum.subscribe':
@@ -391,6 +491,11 @@ export class Authorizer {
           target.moderatorRights?.canSoftDeletePosts === true ||
           forum.canSoftDeletePosts === true
         )
+      case 'post.restore':
+        return (
+          target.moderatorRights?.canRestorePosts === true ||
+          forum.canSoftDeletePosts === true
+        )
       case 'content.viewUnapproved':
         return (
           target.isForumModerator === true || forum.canViewUnapproved === true
@@ -411,6 +516,8 @@ export class Authorizer {
         return target.moderatorRights?.canMoveThreads === true
       case 'thread.delete':
         return target.moderatorRights?.canSoftDeletePosts === true
+      case 'thread.restore':
+        return target.moderatorRights?.canRestorePosts === true
       case 'thread.merge':
         return target.moderatorRights?.canMergeThreads === true
       case 'thread.split':
@@ -467,6 +574,7 @@ function isReadAction(action: Action): boolean {
   return (
     action === 'forum.view' ||
     action === 'thread.view' ||
+    action === 'thread.viewOthers' ||
     action === 'forum.search' ||
     action === 'profile.view' ||
     action === 'memberlist.view'

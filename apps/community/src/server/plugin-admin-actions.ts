@@ -1,6 +1,6 @@
 'use server'
 
-import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
+import { CacheTags, ValidationError, isAppError, logger, readPluginEnv } from '@meith/core'
 import { PostgresSettingsRepository, getDb } from '@meith/db'
 import { drivers } from '@meith/drivers'
 import { revalidatePath } from 'next/cache'
@@ -8,14 +8,16 @@ import {
   parsePluginSetting,
   pluginEnabledKey,
   pluginSettingType,
+  resolvePluginSettingDetails,
   serialisePluginSetting,
   type PluginDefinition,
 } from '@meith/plugin-kit'
 
 import forumConfig from '../../community.config'
-import { recordAdminAction, requireAdmin } from './admin'
+import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { syncOperatorDisables } from './plugin-host'
+import { getSettingOverrides } from './settings'
 
 function requireDefinition(key: string): PluginDefinition {
   const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === key)
@@ -43,10 +45,15 @@ export async function setPluginEnabledAction(
   form: FormData,
 ): Promise<FormState> {
   try {
-    await requireAdmin()
-
     const key = String(form.get('key') ?? '')
     const enabled = form.get('enabled') === '1'
+
+    if (enabled) {
+      await requireAdmin()
+    } else {
+      await requireFreshAdmin()
+    }
+
     requireDefinition(key)
 
     const repository = new PostgresSettingsRepository(getDb())
@@ -87,15 +94,24 @@ export async function savePluginSettingsAction(
       throw new ValidationError(`"${key}" declares no settings.`)
     }
 
+    const resolved = resolvePluginSettingDetails(
+      definition,
+      await getSettingOverrides(),
+      readPluginEnv,
+    )
+    const environmentOwned = new Set(
+      resolved
+        .filter((detail) => detail.source === 'environment')
+        .map((detail) => detail.setting.key),
+    )
+
     const updates = new Map<string, string>()
     for (const setting of declared) {
       const field = `setting.${setting.key}`
       const type = pluginSettingType(setting)
       const raw = form.get(field)
 
-      // A field the environment owns arrives disabled and absent; writing a
-      // stored value under it would be a value nobody sees until the
-      // variable is unset, which is a surprise saved up for later.
+      if (environmentOwned.has(setting.key)) continue
       if (raw === null && type !== 'boolean') continue
 
       if (type === 'boolean') {

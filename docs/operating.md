@@ -154,6 +154,103 @@ community settings:get board.name
 community settings:set board.name "The Townland"
 ```
 
+### Switching search off
+
+**Enable search** — `search.enabled`, in the search group — decides whether
+this board answers searches at all. Off is what you reach for when search is
+what is loading your database, or when a board is small enough that browsing is
+the better answer anyway.
+
+```sh
+community settings:set search.enabled false
+```
+
+Off, three things change together:
+
+- The **Search** link goes from the board navigation.
+- **`/search`** and any results page somebody still holds the link to say search
+  is switched off, rather than rendering a form or a result set.
+- **`GET /api/v1/search`** answers `403`, with the same message in the JSON
+  error body. The route is the reason hiding the form is not enough: a token
+  that carries the `search` scope reaches it directly.
+
+**The index is kept, and goes on being maintained.** New posts are still
+indexed, `search.reindex` still runs on the tick, and switching search back on
+needs no reindex and no restart. Nothing else keys off this: a board with search
+off still has its forums, its feeds and the rest of the REST API.
+
+### How short a search may be
+
+**Shortest word a search may rest on** — `search.min_word_length`, default 2 —
+is the one dial on what the board will agree to look for.
+
+The rule is *at least one word*, not *every word*. A search is refused when
+every word in it is shorter than the setting; a search with one long enough word
+runs, and the short ones go to the index along with it. At 3, `a good post` runs
+and `a b c` does not.
+
+```sh
+community settings:set search.min_word_length 3
+```
+
+The short words are **not** dropped by the board. They are passed to Postgres,
+which drops the ones that carry no meaning — `the`, `a`, `of` — as part of
+building the query, and keeps the rest. So `a C++` and `is it OK` search for
+what they say; the setting is there to refuse a search that is *nothing but*
+noise, which is the shape that scans the whole index and finds everything.
+
+It applies to `/search` and to `GET /api/v1/search` alike, and both name the
+configured number when they refuse, so a member is told what would work rather
+than being told no.
+
+The default is 2, which is what this board has always enforced rather than a
+number chosen afresh — the setting used to be inert, and moving the default
+would have changed every board's search on the day it started being read. Raise
+it to 3 if your slow searches turn out to be short words; set it to 1 to refuse
+nothing but an empty box.
+
+### Closing registration
+
+**Allow new registrations** — `registration.enabled`, in the registration group
+— decides whether strangers may join. Off is the setting to reach for when a
+spam wave is faster than your moderators, or when the board is meant to be
+invitation-only.
+
+```sh
+community settings:set registration.enabled false
+```
+
+Off, three things change together, which is what makes it a closed door rather
+than a hidden one:
+
+- The **Register** link disappears from the user panel and from the sign-in
+  page. Nothing offers a route that would refuse.
+- **`/register`** says the board is not taking new members and points at
+  `/login`, instead of rendering a form.
+- **The action behind that form refuses**, so a submission POSTed straight at it
+  is answered with a `403` and creates nothing. Hiding a form is not closing it:
+  the registration form's fields are public knowledge, and a spam run does not
+  read your navigation.
+
+Signing in, password reset and e-mail confirmation are untouched — the members
+you already have are unaffected.
+
+**It never locks you out of your own board.** The installer creates the first
+administrator with registration forced open, whatever the settings table says,
+and `community user:create` does the same. So a board can be closed to the
+public and still gain members, one at a time, from the command line:
+
+```sh
+echo "correct horse battery staple" |
+  community user:create --username ada --email ada@example.com --group registered
+```
+
+> [!NOTE]
+> **Upgrading an existing board?** This setting had no effect until recently:
+> the switch saved, and registration stayed open however it was set. A board
+> that stored `false` closes as soon as it upgrades. See
+> [Settings that gained a reader](./upgrading.md#settings-that-gained-a-reader).
+
 ### Taking the board offline
 
 **Board offline** — under `/admin/settings`, in the advanced part of the board
@@ -264,6 +361,47 @@ understanding the model.
 > pinning that forum so later changes at its parent do nothing. Silently pinning
 > a forum is the commonest way a board's permissions end up wrong.
 
+### A "your threads only" forum
+
+Denying **see threads started by other users** (`canViewOthersThreads`) on a
+forum turns it into a support desk: everybody may post, and nobody but its
+author reads a thread. It is the control to reach for when the forum collects
+applications, appeals, or anything a member should be able to write without the
+rest of the board reading it.
+
+Deny is enforced in the query, not in the page, so it holds on every read path:
+the thread list, the thread page reached by a guessed URL, search, the RSS and
+Atom feeds, the sitemap, the "what's new" and "latest" panels, the board
+statistics, the who-is-online location column, attachment downloads, quoting,
+and the REST API. A refused thread is a 404, the same answer a thread that does
+not exist gives, because a distinguishable refusal is itself an answer.
+
+What a Deny forum looks like:
+
+- **A member** sees the forum in the index and may post in it. In the listing
+  they see only the threads they started; every other thread is absent rather
+  than locked. On the board index the forum's thread and post counts read `0`,
+  its last-post column is blank, and it never shows the unread mark — the
+  counts, the last post and the unread mark all describe other people's
+  threads, and a forum that will not show them should not summarise them
+  either. The forum's own page shows the member's threads.
+- **A guest** sees the forum and sees nothing in it. A guest has authored
+  nothing, so "your threads only" resolves to no threads at all — including
+  threads whose author account was since deleted, which belong to nobody and so
+  are nobody's own. Grant the permission to the guest group if a forum is meant
+  to be publicly readable.
+- **A moderator of that forum** sees everything in it, on the same footing as
+  *see unapproved* and *see deleted*: an appointment over the forum carries the
+  right, so a support desk stays workable without granting the group permission
+  back. Super-moderators and administrators bypass it as they bypass every other
+  forum permission, and the bypass is logged.
+
+> [!IMPORTANT]
+> Denying this permission does **not** hide the forum. `canView` decides whether
+> the forum exists for a viewer and `canViewThreads` whether its threads open at
+> all; this one only decides *whose* threads. A forum meant to be invisible
+> wants `canView` denied instead.
+
 ### Numbers behave differently from switches
 
 Numeric permissions — attachments per post, signature length, edit window —
@@ -281,6 +419,49 @@ inherited from* — "inherit" on its own tells nobody anything.
 forum does not have, because a descendant that denied something the source
 inherits would leave you with two forums you had just been told now match. The
 change is previewed cell by cell before it applies.
+
+### What an appointment grants
+
+`/admin/forums/[id]` appoints a member or a group to one forum, optionally
+cascading to everything beneath it. It offers **nine** checkboxes, and each one
+is read by an authorization decision — there is nothing on that screen that
+grants nothing:
+
+| Checkbox | What it decides |
+|---|---|
+| Edit posts | `post.editOthers` — editing somebody else's post |
+| Delete posts | `post.softDelete` and `thread.delete` — moving content to `visibility=deleted` |
+| Restore posts | `post.restore` and `thread.restore` — putting deleted content back |
+| Approve content | `content.approve` — releasing held content, and the approval queue |
+| Open and close threads | `thread.lock` |
+| Stick threads | `thread.stick` |
+| Move threads | `thread.move`, in the source forum and the destination alike |
+| Merge threads | `thread.merge` |
+| Split threads | `thread.split` |
+
+Any appointment at all — even one carrying no checkbox — lets its holder *see*
+held and deleted content in that forum. That is what makes the queue readable;
+acting on what is in it needs the right that names the act.
+
+> [!IMPORTANT]
+> **Delete and restore are two grants, not one.** Somebody appointed with
+> *Delete posts* alone can remove a post and cannot put it back — including one
+> they removed themselves. Tick *Restore posts* as well unless withholding the
+> undo is what you meant.
+>
+> Boards upgrading past 0.4 keep what they had: a one-off migration granted
+> *Restore posts* to every existing appointment that held *Delete posts*, so
+> nobody lost an undo they were already using. New appointments start from
+> nothing and get exactly what is ticked.
+
+A group given `canSoftDeletePosts` in the forum matrix — rather than by
+appointment — can both delete and restore in that forum, because that cell has
+always meant "may move a post to deleted, reversibly" and there is no second
+cell beside it.
+
+**"My forums" in the ModCP lists what somebody actually holds**, per forum,
+using the same nine names. If a right is not in that list, the board will refuse
+the act; if it is, it will not.
 
 ### The one door no bypass opens
 
@@ -540,6 +721,14 @@ leaves the board as a fresh install. It keeps the row when the board has turned
 the theme off, because putting colours back must not put a theme back in
 everybody's switcher.
 
+**Reset and import ask for your password again.** Both replace every stored
+override for that theme in one press and neither has an undo, so they are
+treated the way the panel treats a ban or a forum move: if it has been a while
+since you signed in to the panel, you confirm before it happens. The reversible
+controls on the same screen — turning a theme on or off, moving the default,
+saving the palette from the editor — do not ask, because each of them is undone
+by the control beside it.
+
 ### A board in a club's colours
 
 `clubhouse` is the theme shipped for a sports club — GAA, soccer, basketball,
@@ -777,6 +966,18 @@ plugin's scheduled tasks stop too: the switch is checked each time one comes
 due, so the worker skips them without a restart. Reach for it when a plugin is
 misbehaving — you do not need to deploy to stop one.
 
+Because it takes a live capability off the whole board at once, **disabling asks
+for your password again** when your panel sign-in has gone stale. Enabling does
+not: it is the undo, and nothing is lost by pressing it.
+
+**The switch is read before the screen answers, not after.** Every server has an
+in-memory copy of which plugins the operator has switched off, and a process
+that has just started has not read the settings table yet. Anything that renders
+a plugin's contribution or reports "Running on this server" reconciles that copy
+first, so a plugin you switched off yesterday is off in the first response from
+a server that booted this morning — rather than off only once some other request
+happened to refresh it.
+
 **The panel never runs migrations.** It tells you which are outstanding;
 `community upgrade` applies them.
 
@@ -792,6 +993,15 @@ field is write-only; the board will tell you a value is set but never show
 it — or supplied as the environment variable named beside the field, which
 overrides the panel and greys its box. Prefer the environment where you can
 set one: it keeps credentials out of the database and out of backups.
+
+**A greyed field is not saved over.** Any setting the environment owns is left
+out of the write entirely, whatever kind it is — a tickbox as much as a text
+box. A greyed control submits nothing, so a save that took the absence at face
+value would store the *empty* answer under it: a switch showing "on" from the
+environment would quietly acquire a stored "off" that nobody chose and nobody
+could see, and the day the variable came out of the environment the plugin would
+change behaviour. The screen already knows which fields the environment owns —
+it is what greys them — and the save now skips exactly those.
 
 > [!WARNING]
 > A plugin with unapplied migrations is running against a schema that does not
@@ -837,6 +1047,38 @@ demand and are rewritten in the background by the ordinary tick — but on a lar
 board expect a period of extra rendering, and expect `/admin/system` to report a
 backlog until it clears.
 
+### What "everywhere" covers
+
+"Everywhere" is a claim about every place the board shows a reader the words
+somebody posted, not only the thread page:
+
+- post bodies on a thread page, and the description in that page's structured
+  data;
+- the Latest Posts excerpts on the board index;
+- the RSS and Atom summaries — board, forum and thread feeds;
+- search-result excerpts, on `/search` and on `GET /api/v1/search`.
+
+Every one of those reads the same compiled filter through one function
+(`filterWords` in `apps/community/src/view/word-filter.ts`) fed by
+`activeWordFilter()`, which loads the rules once per request behind the
+`wordFilters` cache tag that saving a filter invalidates. A new surface that
+shows post text and does not call it is a bug — the filter once covered the
+thread page alone while this page already promised "everywhere", and one shared
+call path is what keeps the promise from drifting again.
+
+Three things are deliberately *not* filtered, and none of them is a display of
+somebody's post to a reader:
+
+- **What is stored.** The filter never rewrites the row, which is what makes a
+  pattern you regret harmless — so the editor, the quote box and
+  `GET /api/v1/threads/:id/posts` (which returns the Markdown source) all show
+  the words as written. Anything re-rendered from that source is filtered when
+  it is shown.
+- **Private messages.** A message is not a post, and the filter is a board-wide
+  vocabulary for public content.
+- **The moderation queue and the report screens.** Staff are judging the text,
+  so they are shown what was actually written.
+
 ### Custom directives
 
 Markdown's extension point, and the board's own additions to it. A directive
@@ -863,6 +1105,40 @@ things follow for an operator:
   survive, the presentation does not. It is the one permanent loss in the
   conversion, and it is recorded in
   [mybb-parity.md](./mybb-parity.md#the-markup-language-is-markdown-not-bbcode).
+
+### The silent edit window
+
+**Silent edit window** — `posting.edit_grace_seconds`, in the posting group,
+default 300 — is how long after posting somebody may fix their own post without
+the board announcing it. Inside the window the post carries no *Last edited by*
+line; outside it, the line appears as it always has.
+
+```sh
+community settings:set posting.edit_grace_seconds 600   # ten minutes
+community settings:set posting.edit_grace_seconds 0     # always show the notice
+```
+
+It is measured from when the **post was written**, not from the last edit, so
+the window closes once and stays closed. A member who fixes a typo twice inside
+five minutes leaves no notice; one who comes back an hour later leaves one.
+
+Two limits on it are the point of it being safe:
+
+- **A moderator editing somebody else's post is never silent**, however soon
+  after the post it happens. The notice is what tells a reader that the words
+  they are reading are not entirely the ones the author wrote, and that is
+  exactly the case it must not hide. The window applies only to an author
+  editing their own post.
+- **The revision history is untouched.** Every edit still writes a revision
+  recording who edited, when, why, and what the post said before. The setting
+  suppresses one line rendered to readers; it does not suppress the record, and
+  a moderator looking at the post's history sees the silent edits along with
+  the rest.
+
+Set it to 0 for a board that wants every change on the record in public. Raising
+it much above a few minutes starts to mean "the post you are reading may have
+changed since the reply below it", which is the thing the notice exists to
+prevent.
 
 ### Attachments
 

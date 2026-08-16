@@ -10,9 +10,13 @@ vi.mock('./container', () => ({
       buildForUser: async () => ({ userId: 42, tag: 'member' }),
     },
     authorizer: {
-      forumIdsWhere: async (actor: { tag: string }) => {
+      threadAudience: async (actor: { tag: string; userId: number | null }) => {
         asked.push(actor.tag)
-        return actor.tag === 'guest' ? [1] : [1, 2]
+        return {
+          forumIds: actor.tag === 'guest' ? [1] : [1, 2],
+          ownThreadsOnlyForumIds: actor.tag === 'guest' ? [1] : [2],
+          viewerUserId: actor.userId,
+        }
       },
     },
   }),
@@ -34,6 +38,13 @@ describe('publicScope', () => {
 
     expect(asked).toEqual(['guest'])
     expect(scope.forumIds).toEqual([1])
+  })
+
+  it('carries the guest’s own-threads restriction into the feed scope', async () => {
+    const scope = await publicScope()
+
+    expect(scope.ownThreadsOnlyForumIds).toEqual([1])
+    expect(scope.viewerUserId).toBeNull()
   })
 
   it('uses the public content states', async () => {

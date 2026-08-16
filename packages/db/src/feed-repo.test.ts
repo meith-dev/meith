@@ -82,12 +82,16 @@ async function seedPost(input: {
 
 const guest = (overrides: Partial<FeedScope> = {}): FeedScope => ({
   forumIds: [OPEN],
+  ownThreadsOnlyForumIds: [],
+  viewerUserId: null,
   content: PUBLIC_CONTENT,
   ...overrides,
 })
 
 const staff: FeedScope = {
   forumIds: [OPEN, SECRET],
+  ownThreadsOnlyForumIds: [],
+  viewerUserId: null,
   content: contentScopeFrom({ seesUnapproved: true, seesDeleted: true }),
 }
 
@@ -262,5 +266,48 @@ describe('the sitemap’s paging', () => {
 
     expect(forums.find((f) => f.forumId === OPEN)?.lastPostAt).not.toBeNull()
     expect(forums.find((f) => f.forumId === SECRET)?.lastPostAt).toBeNull()
+  })
+})
+
+describe('a "your threads only" forum', () => {
+  const BOB = 8
+
+  beforeEach(async () => {
+    await db.execute(sql`
+      insert into users (id, username, username_lower, email, email_lower,
+                         password_hash, password_algo, primary_group_id)
+      values (${BOB}, 'bob', 'bob', 'bob@example.test', 'bob@example.test',
+              'x', 'argon2id', 2)
+    `)
+    await seedThread({ id: 1, title: 'Mine' })
+    await seedThread({ id: 2, title: 'Theirs' })
+    await db.execute(sql`update threads set author_user_id = ${BOB} where id = 2`)
+  })
+
+  const restricted = (viewerUserId: number | null): FeedScope =>
+    guest({ ownThreadsOnlyForumIds: [OPEN], viewerUserId })
+
+  it('feeds a member only the threads they started', async () => {
+    const rows = await repo.recentThreads(10, restricted(ANN), OPEN)
+
+    expect(rows.map((row) => row.title)).toEqual(['Mine'])
+  })
+
+  it('feeds a guest nothing from that forum', async () => {
+    expect(await repo.recentThreads(10, restricted(null), OPEN)).toEqual([])
+  })
+
+  it('keeps the sitemap in step with the feed', async () => {
+    expect(await repo.sitemapThreadCount(restricted(ANN))).toBe(1)
+    expect(
+      (await repo.sitemapThreads(0, 10, restricted(ANN))).map((row) => row.threadId),
+    ).toEqual([1])
+    expect(await repo.sitemapThreadCount(restricted(null))).toBe(0)
+  })
+
+  it('refuses a per-thread feed for somebody else’s thread', async () => {
+    await seedPost({ id: 11, threadId: 2 })
+
+    expect(await repo.recentPosts(2, 10, restricted(ANN))).toEqual([])
   })
 })

@@ -274,6 +274,7 @@ test('a group is created by copying another, and deleted by rehoming its members
     await page.getByRole('link', { name: `Edit ${title}` }).click()
     await page.locator('input[name="canPostPolls"]').uncheck()
     await page.getByRole('button', { name: 'Save permissions' }).click()
+    await expect(page.getByText('Saved.')).toBeVisible()
     await page.reload()
     await expect(page.locator('input[name="canPostPolls"]')).not.toBeChecked()
   } finally {
@@ -355,6 +356,8 @@ test('a member edited in the panel is changed on the board, and a ban locks them
 
     await page.getByRole('checkbox', { name: 'Super Moderators' }).check()
     await page.getByRole('button', { name: 'Save groups' }).click()
+    await expect(page.getByText('Saved.')).toBeVisible()
+
     await page.reload()
     await expect(page.getByRole('checkbox', { name: 'Super Moderators' })).toBeChecked()
 
@@ -363,6 +366,7 @@ test('a member edited in the panel is changed on the board, and a ban locks them
 
     await page.getByRole('checkbox', { name: 'Super Moderators' }).uncheck()
     await page.getByRole('button', { name: 'Save groups' }).click()
+    await expect(page.getByText('Saved.')).toBeVisible()
 
     const ban = composer(page, 'Ban this member')
     await ban.getByLabel('Length in days').fill('3')

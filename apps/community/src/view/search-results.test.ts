@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { compileWordFilter } from '@meith/markdown'
 import type { SearchFilterSet, SearchRefinement, SearchSummary } from '@meith/search'
 
 import { buildSearchResultsView, type SearchResultsInput } from './search-results'
@@ -64,6 +65,20 @@ describe('buildSearchResultsView', () => {
 
   it('passes the engine’s excerpt through, emphasis and all', () => {
     expect(build().hits[0]?.excerptHtml).toBe('the <b>teak</b> one')
+  })
+
+  it('applies the board word filter to the excerpt, marks and all', () => {
+    const model = build({
+      wordFilter: compileWordFilter([
+        { pattern: 'teak', replacement: 'oak', wholeWord: true },
+      ]),
+    })
+
+    expect(model.hits[0]?.excerptHtml).toBe('the <b>oak</b> one')
+  })
+
+  it('brings the word back when the filter is removed', () => {
+    expect(build().hits[0]?.excerptHtml).toContain('teak')
   })
 
   it('formats every timestamp in the viewer’s zone', () => {

@@ -1,9 +1,10 @@
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm'
 
-import type { ContentScope } from '@meith/core'
+import type { ContentScope, ThreadAuthorFilter } from '@meith/core'
 import type {
   ThreadCursor,
   ThreadListingRow,
+  ThreadLocation,
   ThreadPage,
   ThreadRepository,
   ThreadSort,
@@ -11,6 +12,7 @@ import type {
 
 import type { Database } from './client'
 import { threadPrefixes, threads } from './schema'
+import { authoredBy } from './thread-audience'
 import { visibleIn } from './visibility'
 
 function afterActivity(cursor: ThreadCursor) {
@@ -127,18 +129,25 @@ function rowToListing(row: {
 export class PostgresThreadRepository implements ThreadRepository {
   constructor(private readonly db: Database) {}
 
-  async locateForum(threadId: number): Promise<number | null> {
+  async locate(threadId: number): Promise<ThreadLocation | null> {
     const rows = await this.db
-      .select({ forumId: threads.forumId })
+      .select({
+        forumId: threads.forumId,
+        authorUserId: threads.authorUserId,
+      })
       .from(threads)
       .where(eq(threads.id, threadId))
       .limit(1)
-    return rows[0]?.forumId ?? null
+    const row = rows[0]
+    return row
+      ? { forumId: row.forumId, authorUserId: row.authorUserId }
+      : null
   }
 
   async findById(
     id: number,
     scope: ContentScope,
+    authors: ThreadAuthorFilter,
   ): Promise<ThreadListingRow | null> {
     const rows = await this.db
       .select({
@@ -165,7 +174,13 @@ export class PostgresThreadRepository implements ThreadRepository {
       })
       .from(threads)
       .leftJoin(threadPrefixes, eq(threads.prefixId, threadPrefixes.id))
-      .where(and(eq(threads.id, id), visibleIn(threads.visibility, scope)))
+      .where(
+        and(
+          eq(threads.id, id),
+          visibleIn(threads.visibility, scope),
+          authoredBy(threads.authorUserId, authors),
+        ),
+      )
       .limit(1)
     const row = rows[0]
     return row ? rowToListing(row) : null
@@ -177,6 +192,7 @@ export class PostgresThreadRepository implements ThreadRepository {
       readonly after?: ThreadCursor
       readonly limit: number
       readonly scope: ContentScope
+      readonly authors: ThreadAuthorFilter
       readonly sort?: ThreadSort
     },
   ): Promise<ThreadPage> {
@@ -210,6 +226,7 @@ export class PostgresThreadRepository implements ThreadRepository {
         and(
           eq(threads.forumId, forumId),
           visibleIn(threads.visibility, options.scope),
+          authoredBy(threads.authorUserId, options.authors),
           ...(options.after
             ? [
                 sort === 'rating'

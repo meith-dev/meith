@@ -23,6 +23,7 @@ export interface InlineToolRights {
   readonly stick: boolean
   readonly move: boolean
   readonly delete: boolean
+  readonly restore: boolean
 }
 
 export function InlineModerationForm({
@@ -84,7 +85,7 @@ export function InlineModerationForm({
             </button>
           </>
         )}
-        {rights.delete && (
+        {rights.restore && (
           <button type="submit" name="tool" value="restore" className={BUTTON}>
             Restore
           </button>

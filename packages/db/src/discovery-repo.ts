@@ -4,10 +4,12 @@ import type { ContentScope } from '@meith/core'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { audienceIsEmpty, inAudience } from './thread-audience'
 import { visibleIn } from './visibility'
 
 export interface DiscoveryScope {
   readonly forumIds: readonly number[]
+  readonly ownThreadsOnlyForumIds: readonly number[]
   readonly content: ContentScope
   readonly viewerUserId: number | null
 }
@@ -82,10 +84,10 @@ export class PostgresDiscoveryRepository {
     query: DiscoveryQuery,
     scope: DiscoveryScope,
   ): Promise<DiscoveryPage> {
-    if (scope.forumIds.length === 0) return { rows: [], nextCursor: null }
+    if (audienceIsEmpty(scope)) return { rows: [], nextCursor: null }
 
     const where: SQL[] = [
-      sql`t.forum_id in (${sql.join(scope.forumIds.map((id) => sql`${id}`), sql`, `)})`,
+      inAudience(sql`t.forum_id`, sql`t.author_user_id`, scope),
       visibleIn(sql`t.visibility`, scope.content),
       ...conditions,
     ]

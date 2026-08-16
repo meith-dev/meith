@@ -13,6 +13,7 @@ import type {
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { inAudience } from './thread-audience'
 import { visibleIn } from './visibility'
 
 const SEARCH_CONFIG = 'english'
@@ -274,10 +275,10 @@ function matchConditions(query: SearchQuery, scope: SearchScope): SQL[] | null {
   if (query.authorUserIds !== undefined && query.authorUserIds.length === 0) return null
 
   const conditions: SQL[] = [
-    sql`p.forum_id in (${sql.join(
-      allowed.map((id) => sql`${id}`),
-      sql`, `,
-    )})`,
+    inAudience(sql`p.forum_id`, sql`t.author_user_id`, {
+      ...scope,
+      forumIds: allowed,
+    }),
     sql`p.search_vector @@ websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms})`,
   ]
 

@@ -59,8 +59,14 @@ export async function quotePostAction(
   if (target === null) return null
 
   const forumId = target.forum.id
-  const scope = { forumId, forum: await authorizer.forumMatrix(actor, forumId) }
-  if (!authorizer.can(actor, 'thread.view', scope)) return null
+  const matrix = await authorizer.forumMatrix(actor, forumId)
+  if (
+    !authorizer.can(actor, 'thread.view', {
+      ...(await authorizer.moderatorTargetIn(actor, forumId, matrix)),
+      threadAuthorId: target.authorUserId,
+    })
+  )
+    return null
 
   const quoted = await posts.findQuotable(threadId, postId)
   if (quoted === null) return null
@@ -288,7 +294,10 @@ async function postEditor(posts: PostWriteRepository): Promise<PostEditor> {
   const settings = await getSettings()
   return new PostEditor({
     posts,
-    config: { maxLength: settings.get('posting.max_length') },
+    config: {
+      maxLength: settings.get('posting.max_length'),
+      editGraceSeconds: settings.get('posting.edit_grace_seconds'),
+    },
   })
 }
 
