@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
 import { requireSlot } from '@meith/theme-kit'
@@ -10,6 +10,7 @@ import { BOARD_MEASURE } from '@/components/shell/measure'
 import { liveAnnouncements } from '@/server/announcements'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { legacyDestination } from '@/server/legacy-redirect'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { moderatorTargetFor } from '@/server/modcp'
 import { currentTheme } from '@/server/theme'
@@ -25,10 +26,10 @@ import { distinctUserIds } from '@/view/member-identity'
 import { canonicalPath } from '@/view/metadata'
 import { leadingId } from '@/view/slug-id'
 import { buildSubscriptionsView } from '@/view/subscriptions'
+import { forumNotice } from '@/view/forum-notice'
 import {
   INLINE_FORM_ID,
   anyInlineTool,
-  inlineOutcomeNotice,
   selectionFor,
 } from '@/view/inline-moderation'
 
@@ -102,6 +103,7 @@ export default async function ForumPage({
     page?: string
     sort?: string
     posted?: string
+    thread?: string
     did?: string
     n?: string
     refused?: string
@@ -114,6 +116,12 @@ export default async function ForumPage({
   const after = decodeForumCursor(query.after)
   const sort = query.sort === 'rating' ? 'rating' : 'activity'
   const page = query.page === undefined ? 1 : Number(query.page)
+
+  if (id === null) {
+    const legacy = await legacyDestination(`/${slug}`, query)
+    if (legacy !== null) permanentRedirect(legacy)
+  }
+
   if (
     id === null ||
     after === null ||
@@ -261,10 +269,7 @@ export default async function ForumPage({
   const SubforumList = requireSlot(await currentTheme(), 'SubforumList')
   const Pagination = requireSlot(await currentTheme(), 'Pagination')
 
-  const notice =
-    query.posted === 'moderated'
-      ? 'Your thread was posted and is waiting for a moderator to approve it.'
-      : inlineOutcomeNotice(query)
+  const notice = forumNotice(query)
 
   const pluginContext = { ...viewerRef(actor), forumId: id }
 

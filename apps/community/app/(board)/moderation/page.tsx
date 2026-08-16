@@ -69,8 +69,8 @@ export default async function ModerationPage({
       title="Approval queue"
       lede={
         view.pending === 1
-          ? '1 post awaiting approval.'
-          : `${view.pending} posts awaiting approval.`
+          ? '1 item awaiting approval.'
+          : `${view.pending} items awaiting approval.`
       }
     >
       {notice !== null && (

@@ -77,6 +77,14 @@ async function groupOf(userId: number): Promise<number | null> {
   return row?.g ?? null
 }
 
+async function displayGroupOf(userId: number): Promise<number | null> {
+  const [row] = await db
+    .select({ g: users.displayGroupId })
+    .from(users)
+    .where(eq(users.id, userId))
+  return row?.g ?? null
+}
+
 function service() {
   return new PromotionService({ promotions: repo, guards: GUARDS })
 }
@@ -124,6 +132,38 @@ describe('applying', () => {
       .from(cacheVersions)
       .where(eq(cacheVersions.key, 'permissions'))
     expect(version?.v).toBe(1)
+  })
+
+  it('keeps a display group the member chose for themselves', async () => {
+    await addRule()
+    await addUser(1, { postCount: 150 })
+    await addUser(2, { postCount: 150 })
+    await db.execute(sql`update users set display_group_id = ${ADMINS} where id = 1`)
+
+    await service().apply()
+
+    expect(await displayGroupOf(1)).toBe(ADMINS)
+    expect(await displayGroupOf(2)).toBeNull()
+  })
+
+  it('clears a display group pinned to the group the promotion moves them out of', async () => {
+    await addRule()
+    await addUser(1, { postCount: 150 })
+    await db.execute(sql`update users set display_group_id = ${REGISTERED} where id = 1`)
+
+    await service().apply()
+
+    expect(await displayGroupOf(1)).toBeNull()
+  })
+
+  it('stores nothing when the chosen group is the one being promoted into', async () => {
+    await addRule()
+    await addUser(1, { postCount: 150 })
+    await db.execute(sql`update users set display_group_id = ${VETERAN} where id = 1`)
+
+    await service().apply()
+
+    expect(await displayGroupOf(1)).toBeNull()
   })
 
   it('is idempotent across repeated runs', async () => {
@@ -228,6 +268,166 @@ describe('candidate scan', () => {
 
     const page = await repo.candidates(3, 10)
     expect(page.map((c) => c.userId)).toEqual([4, 5])
+  })
+})
+
+describe('rule writes', () => {
+  const INPUT = {
+    title: 'Veteran',
+    displayOrder: 3,
+    minPostCount: 100,
+    minReputation: null,
+    minDaysRegistered: null,
+    fromPrimaryGroupId: REGISTERED,
+    toPrimaryGroupId: VETERAN,
+  }
+
+  it('reads back everything a create was given', async () => {
+    const id = await repo.createRule({
+      ...INPUT,
+      minReputation: 5,
+      minDaysRegistered: 30,
+    })
+
+    const [rule] = await repo.listRules()
+    expect(rule).toEqual({
+      id,
+      title: 'Veteran',
+      enabled: true,
+      displayOrder: 3,
+      minPostCount: 100,
+      minReputation: 5,
+      minDaysRegistered: 30,
+      fromPrimaryGroupId: REGISTERED,
+      toPrimaryGroupId: VETERAN,
+    })
+  })
+
+  it('stores a blank criterion as "no constraint" rather than as zero', async () => {
+    await repo.createRule(INPUT)
+
+    const [rule] = await repo.listRules()
+    expect(rule?.minReputation).toBeUndefined()
+    expect(rule?.minDaysRegistered).toBeUndefined()
+  })
+
+  it('stores a rule from any group', async () => {
+    await repo.createRule({ ...INPUT, fromPrimaryGroupId: null })
+
+    const [rule] = await repo.listRules()
+    expect(rule?.fromPrimaryGroupId).toBeNull()
+  })
+
+  it('replaces every field on an edit, including clearing a criterion', async () => {
+    const id = await repo.createRule({ ...INPUT, minReputation: 5 })
+
+    await repo.updateRule(id, {
+      ...INPUT,
+      title: 'Old hand',
+      displayOrder: 9,
+      minPostCount: null,
+      minReputation: null,
+      minDaysRegistered: 90,
+      fromPrimaryGroupId: null,
+    })
+
+    const [rule] = await repo.listRules()
+    expect(rule).toMatchObject({
+      id,
+      title: 'Old hand',
+      displayOrder: 9,
+      minDaysRegistered: 90,
+      fromPrimaryGroupId: null,
+    })
+    expect(rule?.minPostCount).toBeUndefined()
+    expect(rule?.minReputation).toBeUndefined()
+  })
+
+  it('toggles enabled both ways without touching the criteria', async () => {
+    const id = await repo.createRule(INPUT)
+
+    await repo.setRuleEnabled(id, false)
+    expect((await repo.listRules())[0]).toMatchObject({ enabled: false, minPostCount: 100 })
+
+    await repo.setRuleEnabled(id, true)
+    expect((await repo.listRules())[0]?.enabled).toBe(true)
+  })
+
+  it('deletes a rule', async () => {
+    const id = await repo.createRule(INPUT)
+    await repo.deleteRule(id)
+
+    expect(await repo.listRules()).toEqual([])
+  })
+
+  it('refuses an edit or a toggle of a rule that is not there', async () => {
+    await expect(repo.updateRule(9_999, INPUT)).rejects.toThrow(/no such promotion rule/i)
+    await expect(repo.setRuleEnabled(9_999, false)).rejects.toThrow(
+      /no such promotion rule/i,
+    )
+  })
+
+  it('refuses a rule that promotes a group into itself', async () => {
+    await expect(
+      repo.createRule({ ...INPUT, fromPrimaryGroupId: VETERAN, toPrimaryGroupId: VETERAN }),
+    ).rejects.toThrow(/into itself/i)
+
+    expect(await repo.listRules()).toEqual([])
+  })
+
+  it('refuses a rule with no criteria at all', async () => {
+    await expect(
+      repo.createRule({
+        ...INPUT,
+        minPostCount: null,
+        minReputation: null,
+        minDaysRegistered: null,
+      }),
+    ).rejects.toThrow(/every member/i)
+
+    expect(await repo.listRules()).toEqual([])
+  })
+
+  it('refuses an edit that would make a stored rule invalid, leaving it as it was', async () => {
+    const id = await repo.createRule(INPUT)
+
+    await expect(
+      repo.updateRule(id, { ...INPUT, toPrimaryGroupId: REGISTERED }),
+    ).rejects.toThrow(/into itself/i)
+
+    expect((await repo.listRules())[0]?.toPrimaryGroupId).toBe(VETERAN)
+  })
+
+  it('promotes exactly the members a stored rule matches, and leaves the rest alone', async () => {
+    await repo.createRule({
+      ...INPUT,
+      minPostCount: 100,
+      minDaysRegistered: 30,
+    })
+
+    await addUser(1, { postCount: 150, createdAt: new Date('2020-01-01T00:00:00Z') })
+    await addUser(2, { postCount: 99, createdAt: new Date('2020-01-01T00:00:00Z') })
+    await addUser(3, { postCount: 150, createdAt: new Date() })
+    await addUser(4, { postCount: 150, groupId: VETERAN })
+
+    const result = await service().apply()
+
+    expect(result.outcomes.map((o) => o.userId)).toEqual([1])
+    expect(await groupOf(1)).toBe(VETERAN)
+    expect(await groupOf(2)).toBe(REGISTERED)
+    expect(await groupOf(3)).toBe(REGISTERED)
+    expect(await groupOf(4)).toBe(VETERAN)
+  })
+
+  it('is skipped by the run once it is disabled', async () => {
+    const id = await repo.createRule(INPUT)
+    await addUser(1, { postCount: 150 })
+
+    await repo.setRuleEnabled(id, false)
+    expect((await service().preview()).outcomes).toEqual([])
+
+    await repo.setRuleEnabled(id, true)
+    expect((await service().preview()).outcomes).toHaveLength(1)
   })
 })
 

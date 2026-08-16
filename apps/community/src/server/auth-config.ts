@@ -7,18 +7,18 @@ import { SEED_GROUP } from './seed-board'
 import { getSettings } from './settings'
 
 export const REMEMBER_DAYS = 30
-export const SESSION_IDLE_DAYS = 14
+export const SESSION_LIFETIME_DAYS = 14
 
 export const AUTH_CONFIG: AuthConfig = {
   ...DEFAULT_AUTH_POLICY,
-  sessionIdleDays: SESSION_IDLE_DAYS,
+  sessionLifetimeDays: SESSION_LIFETIME_DAYS,
   activationMethod: 'none',
   defaultMemberGroupId: SEED_GROUP.registered,
 }
 
 export interface BoardSessionConfig {
   readonly rememberDays: number
-  readonly sessionIdleDays: number
+  readonly sessionLifetimeDays: number
 }
 
 export async function boardAuthConfig(): Promise<AuthConfig> {
@@ -34,7 +34,7 @@ export async function boardAuthConfig(): Promise<AuthConfig> {
 export async function boardSessionConfig(): Promise<BoardSessionConfig> {
   return {
     rememberDays: REMEMBER_DAYS,
-    sessionIdleDays: (await boardAuthConfig()).sessionIdleDays,
+    sessionLifetimeDays: (await boardAuthConfig()).sessionLifetimeDays,
   }
 }
 

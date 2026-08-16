@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { SETTING_DEFINITIONS, SETTING_DEFINITION_BY_KEY } from './definitions'
-import { coerceFormValue, settingField } from './fields'
+import { coerceFormValue, secretClearField, settingField } from './fields'
 import type { SettingDefinition } from './definitions'
 
 function definition(key: string): SettingDefinition {
@@ -71,6 +71,32 @@ describe('coerceFormValue', () => {
 
   it('passes a string through', () => {
     expect(coerceFormValue(definition('board.name'), ' My board ')).toBe(' My board ')
+  })
+
+  it('clears a secret back to its default when the clear box is ticked', () => {
+    const secret = definition('mail.http_token')
+    expect(coerceFormValue(secret, '', { clear: true })).toBe(secret.default)
+    expect(coerceFormValue(secret, undefined, { clear: true })).toBe(secret.default)
+  })
+
+  it('lets clearing win over anything typed into the box in the same submit', () => {
+    const secret = definition('mail.smtp_password')
+    expect(coerceFormValue(secret, 'hunter2', { clear: true })).toBe(secret.default)
+  })
+
+  it('leaves a non-secret alone when the clear flag arrives for it', () => {
+    expect(coerceFormValue(definition('board.name'), 'Still here', { clear: true })).toBe(
+      'Still here',
+    )
+  })
+})
+
+describe('secretClearField', () => {
+  it('never collides with the name of a setting', () => {
+    const names = new Set<string>(SETTING_DEFINITIONS.map((d) => d.key))
+    for (const d of SETTING_DEFINITIONS) {
+      expect(names.has(secretClearField(d.key))).toBe(false)
+    }
   })
 })
 

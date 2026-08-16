@@ -29,8 +29,8 @@ export default async function AdminForumsPage() {
       title="Forums"
       lede={
         <>
-          The board&rsquo;s tree, in the order it renders. A category holds no threads; a
-          link is a redirect row.
+          The board&rsquo;s tree, in the order it renders. A category holds forums, and
+          threads too where it has been told to; a link is a redirect row.
         </>
       }
     >

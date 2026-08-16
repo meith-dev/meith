@@ -554,8 +554,26 @@ describe('setState', () => {
   it('refuses to move a banned member out of the banned state', async () => {
     await seed({ id: 1, username: 'ann', state: 'banned' })
 
-    await expect(repo.setState(1, 'active')).rejects.toThrow(/banned/)
+    await expect(repo.setState(1, 'active')).rejects.toThrow(/under a ban/)
     expect((await repo.readDetail(1))?.state).toBe('banned')
+  })
+
+  it('refuses a member held by an unlifted ban record, whatever the state column says', async () => {
+    await seed({ id: 1, username: 'ann', state: 'awaiting_activation' })
+    await db.execute(sql`insert into bans (user_id, created_at) values (1, now())`)
+
+    await expect(repo.setState(1, 'active')).rejects.toThrow(/under a ban/)
+    expect((await repo.readDetail(1))?.state).toBe('awaiting_activation')
+  })
+
+  it('allows it again once the ban has been lifted', async () => {
+    await seed({ id: 1, username: 'ann', state: 'awaiting_activation' })
+    await db.execute(
+      sql`insert into bans (user_id, created_at, lifted_at) values (1, now(), now())`,
+    )
+
+    await repo.setState(1, 'active')
+    expect((await repo.readDetail(1))?.state).toBe('active')
   })
 
   it('bumps the permission version', async () => {

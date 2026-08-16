@@ -550,7 +550,9 @@ exactly as it did before they existed.
 - **A name colour**, set separately for **light and dark**. Both are worth
   filling in: a colour that reads well on white is usually unreadable on a dark
   page, and the board will not guess a second one for you. Set one and the other
-  is simply not applied in that scheme.
+  is simply not applied in that scheme — the two directions behave the same way,
+  so an unfilled dark picker leaves a dark reader the ordinary text colour
+  exactly as an unfilled light one leaves a light reader it.
 - **A badge**, as two uploads, light and dark, on the same terms as the board
   logo — the bytes decide the format rather than the file name, and SVG is
   accepted. Upload one and it is used in both schemes. It appears beside the
@@ -567,6 +569,23 @@ group if it later changes. A group held only until a date leaves the list when
 it lapses, and a member wearing it goes back to their primary group — they
 cannot pin a badge to a membership they no longer hold. The picker is not shown
 at all to a member who is only in one group.
+
+**An administrator moving somebody between groups does not silently take that
+choice away.** Promotions, a mass move of one group's members into another, and
+deleting a group and rehoming its members all change the *primary* group, and
+all three leave an explicit display group alone. Two cases are the exception,
+and in both of them the stored choice has stopped meaning anything:
+
+- The member was displaying the group they are being moved out of, or the group
+  being deleted. That badge no longer describes a group they hold, so it is
+  cleared and they go back to showing their new primary group.
+- The member was displaying the group they are being moved *into*. That is now
+  their primary group, and the convention above is that picking your primary
+  group stores nothing — so the row is cleared rather than left pinned, and the
+  choice goes on following the primary group if it changes again.
+
+Everything else — a badge from a secondary membership, a paid group, anything
+the member picked for themselves — survives the move untouched.
 
 **Staff are shown as staff, and have no choice about it.** A member whose
 primary group is a staff group — or any group carrying administrative or
@@ -620,6 +639,11 @@ posted last, the profile heading, who is online. It is delivered as a stylesheet
 rule rather than a colour on each name, which is why it works for a reader whose
 dark mode comes from their operating system rather than from the board's own
 control — that reader's page carries no dark-mode class for a theme to match on.
+Each colour ships as a pair of rules for exactly that reason: one on the class
+the appearance control writes when a member chooses a scheme, and one under a
+`prefers-color-scheme` query for the member who has chosen nothing. Neither
+colour is ever emitted without a scheme around it, which is what keeps a light
+colour off a dark page.
 
 > **Check the contrast.** Nothing stops you setting a pale yellow no reader can
 > make out on a white page. Beneath each picker is a sample of the name on the
@@ -627,6 +651,52 @@ control — that reader's page carries no dark-mode class for a theme to match o
 > board's own palette rather than inherited from the screen you are looking at,
 > so the light sample is light even if your machine is set to dark mode. It is
 > there to be looked at.
+
+### Promotions
+
+`/admin/groups/promotions` moves members into a group once they have earned it.
+The screen holds the rules, and beneath them the preview: exactly who the rules
+would move if they ran this second, with nothing written.
+
+A rule is:
+
+- **A title.** For the preview and the admin log. Members never see it.
+- **Display order.** The first rule in this order that matches a member is the
+  one applied, and no member is moved twice in a run.
+- **Promote from** — a primary group, or *any group*.
+- **Promote into** — the group that becomes their primary *and* display group.
+- **At least**: posts, reputation, days registered. Each one optional; a blank
+  box means the rule does not look at that number.
+
+**A new rule is enabled straight away**, and from then on the board applies it
+without anybody pressing anything: a `promotions.apply` task runs every six
+hours. **Disable** is the reversible way to stop a rule — it stays on the screen
+and is skipped. **Remove** deletes it, asks for your password again, and has no
+undo.
+
+Two rules are refused rather than warned about, because both are quiet in the
+preview and loud six hours later:
+
+- **A rule that promotes a group into itself** can never move anybody. It looks
+  configured and does nothing.
+- **A rule with no criteria at all** matches every member it examines, which is
+  a board-wide primary-group change on the next tick. If that really is what you
+  want, say it out loud: set *posts* to `0`. Zero is accepted — it is blank that
+  is refused.
+
+Everything else the promotion machinery refuses, it refuses at run time and
+without being configured to. **A promotion never lifts a ban, never demotes, and
+never re-applies to somebody already in the target group.** Banned members,
+administrators and super-moderators are skipped entirely whatever a rule says,
+and a rule whose target group ranks below the member's current one is passed
+over rather than applied. A member promoted by a rule keeps every secondary
+membership they held.
+
+The preview is the same evaluation the task runs, so it is worth reading before
+enabling a rule on a board with history — a `100 posts` rule on a five-year-old
+board moves five years of members on its first tick. **Run it** applies exactly
+what the preview lists, asks for your password again, and records the count in
+the admin log. Deleting the target group deletes the rules that point at it.
 
 ## Themes
 
@@ -726,7 +796,13 @@ board starts and where most stay.
 - **Custom CSS.** For any theme other than the board's default this is nested
   under that theme's own selector, so it stops applying when a member picks
   another one — and a rule aimed at `:root` will not match inside the nesting.
-  Target `body` or a class and it works in both positions.
+  Target `body` or a class and it works in both positions. The **default**
+  theme's custom CSS is the exception, and it is the one worth knowing: it is
+  appended unscoped, so it reaches every member of the board including those who
+  have picked something else. That is what makes it the place for a rule that
+  belongs to the *board* rather than to a look; a rule that belongs to one look
+  goes on a theme that is not the default. The editor says which of the two you
+  are on.
 - **Export and import** — an exact JSON round-trip, so a look can be moved
   between boards. Documents written before per-scheme overrides existed
   (`"version": 1`) still import; their values apply to both schemes.
@@ -843,6 +919,33 @@ There is no cookie banner, because there is nothing on the board that needs one.
 > What a particular board must disclose or record depends on what it does with
 > its data, which is the operator's to decide — a board that adds its own
 > tracking is adding its own obligations with it.
+
+### A board session has a lifetime, not an idle timeout
+
+**Session lifetime (days)** on the security screen is an *absolute* life. The
+expiry is fixed when the session is minted and nothing extends it, so a member
+reading the board every day is signed out on that date exactly like a member who
+never came back. The setting key is still `security.session_idle_days` because
+renaming a stored key would strand the value on every board that has set one;
+the key is the historical name and the screen is the accurate one.
+
+That is deliberate, and the two reasons are worth having written down:
+
+- **A stolen token has a known last day.** A sliding session hands whoever holds
+  the token the ability to keep it alive forever simply by using it, which is
+  precisely what a thief does. An absolute life is the only guarantee here that
+  survives the token leaving its owner's browser.
+- **"Keep me signed in" is already the renewing half.** The remember-me token
+  rotates on every resume and mints a fresh session, so a member who ticked the
+  box is carried over the expiry without noticing it, and a *reused* remember
+  token — the fingerprint of a stolen one — revokes the whole family and every
+  session with it. Renewal and theft-detection travel together on that token,
+  and separately from the session cookie on purpose.
+
+The control panel's own session is the other way round — a 30-minute idle
+timeout under an 8-hour ceiling — because it writes to `admin_sessions` on
+requests an administrator makes while a panel screen is open, which is a rate
+the board's whole signed-in read traffic is not.
 
 ## The content policy
 
@@ -1169,6 +1272,31 @@ prevent.
 
 ### Attachments
 
+**Two switches have to agree before a member can attach anything.** The
+permission `attachment.upload` — per group, per forum, resolved through the
+matrix — answers *may this member attach files here*. **Allow attachments**, on
+`/admin/forums/[id]`, answers *does this forum take attachments at all*. A file
+is accepted only where both say yes, so unticking the forum switch closes that
+forum to new attachments however generous the matrix is, and it is the shorter
+path to "no files in here" than editing every group's cell.
+
+The switch is enforced where the post is written, not only where the form is
+drawn. The composer, the reply page and the quick reply stop offering the file
+control in a forum that does not take attachments; a submission that carries a
+file anyway — a form left open in another tab, or a request built by hand —
+is refused with *This forum does not accept file attachments.* Nothing is
+written when that happens: the member gets their text back and no post, rather
+than a post that quietly lost the file it was meant to carry. The numeric limits
+beside the permission (attachments per post, maximum size) still apply on top,
+and `0` there still means unlimited rather than none.
+
+**Turning it off leaves the attachments already posted alone.** They keep
+rendering under their posts and their links keep working, gated as they always
+were on `attachment.download` and on whether the viewer may read the thread. The
+switch governs what the forum accepts next; it is not a retraction of what it
+accepted before, because unposting what members already wrote is not something
+an operator asks for by unticking a box. To take one down, delete the attachment.
+
 **Deleting an attachment does not touch the post it was on.** Attachments are
 listed beside a post rather than written into it, so removing one takes an entry
 off a list and nothing else. The bytes go to the hourly sweep rather than being
@@ -1181,6 +1309,31 @@ on its own date, and removing it removes nothing anybody wrote — which is why 
 is safe to delete and a sticky thread is not.
 
 Dates are entered in UTC.
+
+## The moderation queue
+
+`/modcp` lists what is waiting for approval in the forums you moderate: held
+threads, and held replies. It is a queue of **decisions that can actually be
+carried out**, and two rules keep it that way.
+
+**A held reply inside a thread that is itself held is not listed.** Approving
+the thread is what puts it in front of anybody, so the reply is not a separate
+decision.
+
+**A held reply whose thread has been deleted is not listed either.** Approving
+it would mark it visible inside a thread nobody can reach, and — because
+approving a post is what adds it to the forum's and the author's post counts —
+would move counters for something the board does not show. The counters would
+then disagree with the visible board until the next recount. Restoring the
+thread brings its held replies back into the queue, where the decision means
+something again.
+
+The exclusion is enforced where the decision is applied, not only where the
+queue is drawn, so a selection assembled by hand gets the same answer: the reply
+is reported as no longer pending rather than approved. The pending count on the
+panel counts the same set the list shows. The inline moderation tools on a
+thread page follow the same rule — **Approve** does not apply to a reply whose
+thread is not visible.
 
 ## Reputation
 
@@ -1219,6 +1372,49 @@ really leaves, and a total that has somehow drifted repairs itself the next time
 anybody rates that member. Editing `users.reputation` by hand therefore does
 nothing lasting — use **Recount & rebuild** on `/admin/system` if you need it
 corrected.
+
+## Member state and bans
+
+An account's **state** — active, or awaiting activation — and a **ban** are two
+different things, kept in two different places. The state is a column on the
+account; a ban is a record, with a reason, an expiry and the group the member
+held before it. Banning through `/admin/users/[id]` writes the record; it does
+not flip the state column.
+
+Because of that, the state form on the member's screen is not shown at all while
+a ban is in force, and **the server refuses the change too** — it looks for an
+unlifted ban record, not just for the word `banned` in the state column, so a
+request sent straight to the action gets the same answer the screen gives. Lift
+the ban and the form comes back.
+
+Issuing a ban from the state form is refused outright: bans belong to the ban
+screen, which is the only path that records who did it, why, and what to restore.
+
+## Pruning dormant accounts
+
+`/admin/users/prune` closes accounts in batches: a registration date, optionally
+a "not seen since" date, optionally only accounts still awaiting activation. It
+**closes** rather than deletes — the row stays, with `deleted_at` set — so a
+wrong date is recoverable.
+
+The screen previews before it acts, and the preview and the execution are built
+from the same predicate, so what you were shown is what gets closed.
+
+Four exclusions are unconditional, and none of them is a checkbox:
+
+- **Anybody who has written anything.** Not "anybody with a post count" — the
+  count only tracks posts the board currently shows, and a member whose only
+  contributions are held for approval or have been removed by a moderator has
+  still posted. The prune looks for the posts and threads themselves, whatever
+  their state, as well as at the counters.
+- **Anybody in a staff group.** That means the same thing here as it does in the
+  postbit: the **staff group** switch, *or* any group carrying administrative or
+  moderation power, held as a primary group or as an additional one. A group
+  with `Can approve content` ticked and the staff switch left off is still
+  staff as far as the prune is concerned.
+- **Any forum moderator**, whatever group they are in.
+- **Any banned account**, whether the ban is a state on the account or an
+  unlifted ban record. A lifted ban does not protect an account.
 
 ## Mail
 
@@ -1426,8 +1622,34 @@ community task:run                     # run the tick once, so queued mail leave
 
 The two secrets are write-only from the operator's side: the panel renders them
 as empty password boxes and a blank one means *unchanged* rather than *clear it*,
-and `community env:check` and the audit log both refuse to print them. To clear one
-deliberately, set it to the empty string.
+and `community env:check` and the audit log both refuse to print them.
+
+Clearing one is therefore a separate, deliberate act rather than a side effect of
+saving an empty box — otherwise every accidental save of the mail page would wipe
+the key. Once a secret is stored, a **Clear the stored value and go back to the
+default** tick-box appears under its field; tick it and save, and the stored
+value is removed. Ticking it wins over anything typed into the box in the same
+submit, so there is no ambiguity about which one you meant. The box is not
+offered when nothing is stored, because there would be nothing to clear.
+
+`community settings:set mail.http_token ''` does the same thing from the command
+line.
+
+### Who a mass mail reaches
+
+`/admin/users/mail` sends to everybody, or to one group. Either way it reaches
+only accounts that are **active, not closed, and have a verified address** — an
+unverified address is as often a typo as it is the member's.
+
+The **Send to** list carries the size of each audience in brackets beside it, and
+those numbers are the real thing: they are counted with the same rules the send
+itself uses, so the figure beside a group is how many messages choosing that
+group will queue. A group counts members who hold it as their primary group and
+members who hold it as an additional one, each member once.
+
+The numbers are counted when the page is rendered, not as you change the
+selection — the screen carries no JavaScript, and every audience is on it
+already, so there is nothing to update. Reload the page for a fresh count.
 
 ### Queued mail needs the tick
 
@@ -1629,6 +1851,16 @@ Limits are counted in the database, so every instance of your board shares one
 allowance rather than getting one each. The counters are pruned hourly by the
 tick; if the tick is stopped they accumulate, but `/admin/system` will tell you
 the tick is stale long before this becomes your problem.
+
+### The upload allowance covers both kinds of upload
+
+`antispam.upload_per_hour` is one bucket per member, and both things a member
+can upload spend from it: the files attached to a post, one unit each, and a new
+avatar, one unit at the point the image is accepted. Replacing an avatar six
+times in an hour therefore costs exactly what attaching six files to a post
+costs — which is what the setting has always said and what an account using the
+avatar form as its upload channel would otherwise get for nothing. Removing an
+avatar spends nothing, because it uploads nothing.
 
 ### If registration stops working
 
@@ -1926,6 +2158,26 @@ above.
 
 It needs an import to have run, because the redirect is a lookup in the legacy id
 map.
+
+Switched on, it answers both shapes a MyBB board publishes:
+
+| Old address | Goes to |
+|---|---|
+| `showthread.php?tid=91`, `Thread-Bikeshedding-91` | the thread |
+| `showthread.php?pid=4102`, `Thread-Bikeshedding--4102` | the post |
+| `forumdisplay.php?fid=3`, `Forum-General-3` | the forum, slug and `?page=` carried |
+| `member.php?uid=12` | the member |
+| `index.php` | the board index |
+
+The answer is a **308**, not a 301: it is `permanentRedirect()`, and the
+difference is that 308 forbids a client rewriting the method on the way, which
+301 historically permitted. Search engines treat the two the same way, so an
+imported board's ranking follows either.
+
+Two shapes are deliberately not answered. `Thread-Bikeshedding-page-2` carries no
+id, and picking a thread from the words in a slug is guessing; `User-wren` is a
+username rather than an id, and a username can be changed or taken by somebody
+else, so resolving one could point an old link at the wrong member.
 
 ### Everything is broken and the panel will not load
 

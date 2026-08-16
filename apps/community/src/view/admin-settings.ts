@@ -1,5 +1,6 @@
 import {
   SETTING_DEFINITIONS,
+  secretClearField,
   settingField,
   type SettingDefinition,
   type SettingField,
@@ -20,6 +21,7 @@ export interface SettingFieldModel {
   readonly checked: boolean
   readonly isDefault: boolean
   readonly advanced: boolean
+  readonly clearName: string | null
 }
 
 export interface SettingGroupModel {
@@ -87,6 +89,7 @@ export function buildAdminSettingsModel(input: {
       }
 
       const current = input.snapshot.get(definition.key as never) as unknown
+      const isDefault = Object.is(current, definition.default)
       settings.push({
         key: definition.key,
         label: definition.label,
@@ -94,8 +97,12 @@ export function buildAdminSettingsModel(input: {
         field: settingField(definition),
         value: formValue(definition, current),
         checked: current === true,
-        isDefault: Object.is(current, definition.default),
+        isDefault,
         advanced,
+        clearName:
+          definition.secret === true && !isDefault
+            ? secretClearField(definition.key)
+            : null,
       })
     }
 

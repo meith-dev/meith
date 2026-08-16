@@ -8,6 +8,7 @@ import { columnName } from './schema/permission-columns'
 import { groupRowToPermissionSet } from './permissions-map'
 import { withPermissionVersionBump, type Tx } from './permission-version'
 import { resultRows } from './result-rows'
+import { keptDisplayGroupSql } from './staff-groups'
 
 export interface GroupSummaryRow {
   readonly id: number
@@ -192,7 +193,11 @@ export class PostgresGroupAdminRepository {
       await tx.execute(sql`
         update users
            set primary_group_id = ${moveMembersTo},
-               display_group_id = ${moveMembersTo}
+               display_group_id = ${keptDisplayGroupSql({
+                 column: sql.raw('display_group_id'),
+                 leavingGroupId: sql`${groupId}`,
+                 arrivingGroupId: sql`${moveMembersTo}`,
+               })}
          where primary_group_id = ${groupId}
       `)
       await tx.execute(sql`delete from usergroups where id = ${groupId}`)
@@ -214,7 +219,11 @@ export class PostgresGroupAdminRepository {
         await tx.execute(sql`
           update users
              set primary_group_id = ${input.toGroupId},
-                 display_group_id = ${input.toGroupId}
+                 display_group_id = ${keptDisplayGroupSql({
+                   column: sql.raw('display_group_id'),
+                   leavingGroupId: sql`${input.fromGroupId}`,
+                   arrivingGroupId: sql`${input.toGroupId}`,
+                 })}
            where id in (
              select id from users
               where primary_group_id = ${input.fromGroupId} and id > ${input.afterUserId}

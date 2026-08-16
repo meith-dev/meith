@@ -148,6 +148,22 @@ describe('the queue read', () => {
     expect(page.items.map((i) => i.id)).toEqual([100])
   })
 
+  it('does not list a reply whose thread has been deleted', async () => {
+    await heldReply(200, 2000)
+    await db.execute(sql`update threads set visibility = 'deleted' where id = 200`)
+
+    expect((await repo.list([FORUM], { limit: 10 })).items).toEqual([])
+    expect(await repo.countPending([FORUM])).toBe(0)
+  })
+
+  it('lists the reply again once its thread is restored', async () => {
+    await heldReply(200, 2000)
+    await db.execute(sql`update threads set visibility = 'deleted' where id = 200`)
+    await db.execute(sql`update threads set visibility = 'visible' where id = 200`)
+
+    expect((await repo.list([FORUM], { limit: 10 })).items.map((i) => i.id)).toEqual([2000])
+  })
+
   it('shows only the forums it was asked about', async () => {
     await heldThread(100, FORUM)
     await heldThread(101, OTHER)
@@ -201,6 +217,13 @@ describe('resolve', () => {
     await db.execute(sql`update threads set visibility = 'visible' where id = 100`)
 
     expect(await repo.resolve([{ kind: 'thread', id: 100 }])).toEqual([])
+  })
+
+  it('omits a reply whose thread is gone, so a crafted selection cannot approve it', async () => {
+    await heldReply(200, 2000)
+    await db.execute(sql`update threads set visibility = 'deleted' where id = 200`)
+
+    expect(await repo.resolve([{ kind: 'post', id: 2000 }])).toEqual([])
   })
 })
 
@@ -395,5 +418,23 @@ describe('through the command', () => {
     expect(outcome).toMatchObject({ applied: 1, refused: 1, missing: 0 })
     expect(await stateOf('threads', 100)).toBe('visible')
     expect(await stateOf('threads', 101)).toBe('unapproved')
+  })
+
+  it('never publishes a reply into a deleted thread, so no counter drifts', async () => {
+    await heldReply(200, 2000)
+    await db.execute(sql`update threads set visibility = 'deleted' where id = 200`)
+    const before = await forumCounts(FORUM)
+    const queue = new ModerationQueue({ queue: repo, now: () => AT })
+
+    const outcome = await queue.decide({
+      selection: [{ kind: 'post', id: 2000 }],
+      decision: 'approve',
+      moderatedForumIds: new Set([FORUM]),
+      actorUserId: MODERATOR,
+    })
+
+    expect(outcome).toMatchObject({ applied: 0, refused: 0, missing: 1 })
+    expect(await stateOf('posts', 2000)).toBe('unapproved')
+    expect(await forumCounts(FORUM)).toEqual(before)
   })
 })

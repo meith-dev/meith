@@ -45,10 +45,11 @@ export default async function AdminPrunePage({
       title="Prune members"
       lede={
         <>
-          Closes dormant accounts in batches. It will never touch anybody who has posted,
-          anybody in a staff group, any forum moderator, or a banned account — those are
-          exclusions rather than options, because closing one of them does damage a date
-          filter cannot justify.
+          Closes dormant accounts in batches. It will never touch anybody who has posted —
+          including posts still held for approval or already removed — anybody in a staff
+          group or any group carrying staff powers, any forum moderator, or a banned
+          account. Those are exclusions rather than options, because closing one of them
+          does damage a date filter cannot justify.
         </>
       }
     >
@@ -109,8 +110,8 @@ export default async function AdminPrunePage({
         </p>
       ) : preview !== null && preview.total === 0 ? (
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-          Nothing matches. Every account registered before that date has posted, is staff,
-          moderates a forum, or is banned.
+          Nothing matches. Every account registered before that date has written
+          something, is staff, moderates a forum, or is banned.
         </p>
       ) : preview !== null ? (
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">

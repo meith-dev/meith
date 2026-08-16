@@ -32,23 +32,31 @@ function searchStringOf(params: Record<string, string | string[] | undefined>): 
   return rendered === '' ? '' : `?${rendered}`
 }
 
+export async function legacyDestination(
+  pathname: string,
+  searchParams: Record<string, string | string[] | undefined>,
+): Promise<string | null> {
+  if (env.DATA_SOURCE !== 'postgres') return null
+
+  const settings = await getSettings()
+  if (settings.get('board.legacy_redirects') !== true) return null
+
+  const target = resolveLegacyUrl(pathname, searchStringOf(searchParams))
+  if (target === null) return null
+
+  if (target.kind === 'home') return '/'
+
+  const newId = await resolveLegacyId(getDb(), LEGACY_KIND[target.kind], target.legacyId)
+  if (newId === null) return null
+
+  return legacyRedirectPath(target, newId, await slugFor(target, newId))
+}
+
 export async function serveLegacyUrl(
   script: LegacyScript,
   searchParams: Record<string, string | string[] | undefined>,
 ): Promise<never> {
-  if (env.DATA_SOURCE !== 'postgres') notFound()
-  const settings = await getSettings()
-  if (settings.get('board.legacy_redirects') !== true) notFound()
-
-  const target = resolveLegacyUrl(`/${script}`, searchStringOf(searchParams))
-  if (target === null) notFound()
-
-  if (target.kind === 'home') permanentRedirect('/')
-
-  const newId = await resolveLegacyId(getDb(), LEGACY_KIND[target.kind], target.legacyId)
-  if (newId === null) notFound()
-
-  const path = legacyRedirectPath(target, newId, await slugFor(target, newId))
+  const path = await legacyDestination(`/${script}`, searchParams)
   if (path === null) notFound()
 
   permanentRedirect(path)

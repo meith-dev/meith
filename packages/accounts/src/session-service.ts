@@ -4,7 +4,7 @@ import type { AccountStore, Clock } from './ports'
 export interface SessionServiceDeps {
   readonly store: AccountStore
   readonly rememberDays: number
-  readonly sessionIdleDays: number
+  readonly sessionLifetimeDays: number
   readonly clock?: Clock
 }
 
@@ -26,13 +26,13 @@ const DAY_MS = 86_400_000
 export class SessionService {
   private readonly store: AccountStore
   private readonly rememberDays: number
-  private readonly sessionIdleDays: number
+  private readonly sessionLifetimeDays: number
   private readonly now: Clock
 
   constructor(deps: SessionServiceDeps) {
     this.store = deps.store
     this.rememberDays = deps.rememberDays
-    this.sessionIdleDays = deps.sessionIdleDays
+    this.sessionLifetimeDays = deps.sessionLifetimeDays
     this.now = deps.clock ?? (() => new Date())
   }
 
@@ -97,7 +97,7 @@ export class SessionService {
     at: Date,
   ): Promise<{ token: string; expiresAt: Date }> {
     const token = generateToken()
-    const expiresAt = new Date(at.getTime() + this.sessionIdleDays * DAY_MS)
+    const expiresAt = new Date(at.getTime() + this.sessionLifetimeDays * DAY_MS)
     await this.store.sessions.create({
       tokenHash: await hashToken(token),
       userId,

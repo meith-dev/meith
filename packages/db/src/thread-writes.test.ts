@@ -210,12 +210,51 @@ describe('PostgresThreadWriteRepository replies', () => {
       visibility: 'visible',
       lastPostId: thread.postId,
       replyCount: 0,
-      forum: { id: FORUM, allowReplies: true, moderateNewPosts: false },
+      forum: {
+        id: FORUM,
+        allowReplies: true,
+        allowAttachments: true,
+        moderateNewPosts: false,
+      },
+    })
+  })
+
+  it('carries the attachment switch the forum was saved with', async () => {
+    const thread = await repo.create(RECORD)
+    await db.update(forums).set({ allowAttachments: false }).where(eq(forums.id, FORUM))
+
+    expect(await repo.replyTarget(thread.threadId)).toMatchObject({
+      forum: { id: FORUM, allowAttachments: false },
     })
   })
 
   it('has no target for a thread that does not exist', async () => {
     expect(await repo.replyTarget(4242)).toBeNull()
+  })
+})
+
+describe('PostgresThreadWriteRepository.postingRules', () => {
+  it('reports a forum that takes attachments', async () => {
+    expect(await repo.postingRules(FORUM)).toMatchObject({
+      id: FORUM,
+      slug: 'general',
+      allowThreads: true,
+      allowAttachments: true,
+    })
+  })
+
+  it('reports a forum whose operator turned attachments off', async () => {
+    await db.update(forums).set({ allowAttachments: false }).where(eq(forums.id, FORUM))
+
+    expect(await repo.postingRules(FORUM)).toMatchObject({
+      id: FORUM,
+      allowThreads: true,
+      allowAttachments: false,
+    })
+  })
+
+  it('has no rules for a forum that does not exist', async () => {
+    expect(await repo.postingRules(4242)).toBeNull()
   })
 })
 

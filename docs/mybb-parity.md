@@ -397,15 +397,19 @@ not one checkbox.
 crediting the copies to their original authors — so one piece of writing raises
 its author's post count twice.
 
-**We** have not built it, and the double-count is why. It is recorded here
-rather than left as a gap because the *reason* is a product decision somebody
-has to make: either a copy does not credit anybody (and author counts stop
-matching the posts that exist), or it credits twice (and post counts stop
-meaning "things this person wrote").
+**We** offer it too, on the same thread tools as move, and it makes the same
+choice about the counts. The product decision behind that — either a copy
+credits nobody and author counts stop matching the posts that exist, or it
+credits twice and a post count stops meaning "things this person wrote" — was
+settled in favour of parity. Two entries later on this page carry it:
+[copying credits its authors twice](#copying-a-thread-credits-its-authors-twice)
+for the arithmetic, and
+[copy is authorised by `thread.move`, at both ends](#copy-is-authorised-by-threadmove-at-both-ends)
+for who may do it.
 
-**Cost.** Moderators split and re-file threads by moving rather than copying.
-Splitting is the operation that actually covers most of what copy is used for,
-and it has to answer the same question.
+**Cost.** After a copy, `post_count` means "posts attributed to you" rather than
+"posts you wrote", and `PostgresCounterRecount` agrees with it rather than
+undoing it. Only visible posts are copied.
 
 ---
 
@@ -438,14 +442,29 @@ posts 3, 7 and 12 and not 4–6 cannot express that yet.
 **MyBB** merges by thread URL or id and keeps the thread the moderator is
 looking at, absorbing the one they name.
 
-**We** do the same, and refuse to infer it from anything else — not the older
-thread, not the one with more posts.
+**We** go the other way round, and the direction is the important sentence on
+this page: **the thread on screen is the one that is merged away.** Its posts
+move into the thread whose number the moderator types, and the thread they were
+looking at is the row that is deleted. The tools say so — the field reads "Merge
+into thread #" and the button reads "Merge away" — and the survivor is never
+inferred from anything else, not the older thread and not the one with more
+posts.
 
 **Why.** A merge destroys a thread row. Every heuristic for picking the survivor
 is right most of the time, and the times it is wrong are unrecoverable: the
 thread somebody meant to keep is gone and its posts are wearing another title.
 Being explicit costs a moderator nothing, because they already know which one
-they mean.
+they mean. Naming the *destination* rather than the victim is what makes the
+form readable in one direction only — "merge this into that" — where naming the
+victim would read as "merge that into this" from the same screen.
+
+**And what goes with the deleted thread.** Only its posts are carried across.
+Everything else hanging off the source row goes with it, by cascade and without
+a prompt: its **poll**, every **vote** cast in that poll, its **ratings**, every
+**subscription** to it, and every member's **read marker** for it. The surviving
+thread keeps its own. That is the part a moderator cannot undo, and it is the
+strongest reason to check the direction before pressing the button — merging a
+long-running poll thread into a two-post duplicate destroys the poll.
 
 **Cost.** Merging the wrong way round is still possible — it is a moderator's
 mistake to make, and it is logged with both thread ids and both forum ids under
@@ -466,8 +485,9 @@ operation creates or destroys a post, so `users.post_count` never moves. Only
 `users.thread_count` does, by one — a split creates a thread, a merge destroys
 one.
 
-**Cost.** None here. This is the answer to the question the copy entry above
-leaves open, and it is the reason we built split before copy.
+**Cost.** None here. Copy is the operation that genuinely creates rows and so
+had to answer the question differently; the entry on that is
+[copying credits its authors twice](#copying-a-thread-credits-its-authors-twice).
 
 ### Inline moderation offers no "unapprove"
 
@@ -1078,6 +1098,28 @@ which the `both` method needs and a single group membership cannot express.
 set by editing a group, because there is no group to edit. Restricting what an
 unactivated account may do is not a MyBB feature people use — they cannot log in
 at all — but it is a knob that exists there and does not here.
+
+### A username's length is counted in code points
+
+**MyBB:** measures with `my_strlen`, which counts characters where mbstring is
+available and bytes where it is not — so the same name can be two different
+lengths on two installations of the same software.
+
+**Here:** `registration.username_min` and `registration.username_max` are counted
+in Unicode code points, on every board, and the settings screen says so.
+
+**Why:** the accepted alphabet is `\p{L}\p{N}` under `/u`, which admits letters
+outside the Basic Multilingual Plane — the mathematical alphabets, the CJK
+extensions, the newer scripts. JavaScript's `String.length` counts UTF-16 code
+units, and every one of those letters occupies two, so measuring with it made a
+name of four such letters count as eight and fail a maximum of five, while a name
+of two counted as four and cleared a minimum of three. The rule was not "longer
+names are refused"; it was "your alphabet decides what the number means", which is
+the thing the setting's own description promised it would not do.
+
+**Cost:** none. `users.username` is `text` with the length enforced above it, and
+Postgres counts a `varchar` limit in characters rather than bytes in any case, so
+nothing downstream disagrees with the count.
 
 ## Private messages
 

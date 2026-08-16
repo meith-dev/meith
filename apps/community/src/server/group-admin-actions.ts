@@ -4,11 +4,12 @@ import { revalidatePath } from 'next/cache'
 
 import { PERMISSION_FIELDS, ValidationError } from '@meith/core'
 import { permissionsCarryPower } from '@meith/db'
+import type { PromotionRuleInput } from '@meith/groups'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { formStateReporter } from './form-state-reporter'
 import { checkbox, trimmedText } from './form-values'
-import { promotionService, requireGroupAdmin } from './group-admin'
+import { promotionService, requireGroupAdmin, requirePromotionRules } from './group-admin'
 import { assertSafeCssValue } from './theme-style'
 import type { FormState } from './auth-form-state'
 
@@ -25,6 +26,33 @@ const toFormState = formStateReporter('group-admin', 'group administration write
 function refreshGroupScreens(): void {
   revalidatePath('/admin/groups')
   revalidatePath('/admin/groups/[id]', 'page')
+}
+
+function refreshPromotionScreen(): void {
+  revalidatePath('/admin/groups/promotions')
+}
+
+function ruleId(form: FormData): number {
+  const id = Number(trimmedText(form, 'id'))
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError('No such promotion rule.')
+  return id
+}
+
+function blankOr(form: FormData, name: string): number | null {
+  const raw = trimmedText(form, name)
+  return raw === '' ? null : Number(raw)
+}
+
+function promotionRuleInput(form: FormData): PromotionRuleInput {
+  return {
+    title: trimmedText(form, 'title'),
+    displayOrder: blankOr(form, 'displayOrder') ?? 0,
+    minPostCount: blankOr(form, 'minPostCount'),
+    minReputation: blankOr(form, 'minReputation'),
+    minDaysRegistered: blankOr(form, 'minDaysRegistered'),
+    fromPrimaryGroupId: blankOr(form, 'fromPrimaryGroupId'),
+    toPrimaryGroupId: Number(trimmedText(form, 'toPrimaryGroupId')),
+  }
 }
 
 function groupColour(form: FormData, field: string): string | null {
@@ -237,6 +265,85 @@ export async function moveMembersAction(
   }
 }
 
+export async function createPromotionRuleAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+
+    const id = await requirePromotionRules().createRule(promotionRuleInput(form))
+
+    refreshPromotionScreen()
+    await recordAdminAction({ action: 'group.promotion_rule_added', detail: { ruleId: id } })
+
+    return { notice: 'created' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+export async function updatePromotionRuleAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+    const id = ruleId(form)
+
+    await requirePromotionRules().updateRule(id, promotionRuleInput(form))
+
+    refreshPromotionScreen()
+    await recordAdminAction({ action: 'group.promotion_rule_changed', detail: { ruleId: id } })
+
+    return { notice: 'saved' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+export async function setPromotionRuleEnabledAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+    const id = ruleId(form)
+    const enabled = checkbox(form, 'enabled')
+
+    await requirePromotionRules().setRuleEnabled(id, enabled)
+
+    refreshPromotionScreen()
+    await recordAdminAction({
+      action: 'group.promotion_rule_toggled',
+      detail: { ruleId: id, enabled },
+    })
+
+    return { notice: enabled ? 'enabled' : 'disabled' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+export async function deletePromotionRuleAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireFreshAdmin()
+    const id = ruleId(form)
+
+    await requirePromotionRules().deleteRule(id)
+
+    refreshPromotionScreen()
+    await recordAdminAction({ action: 'group.promotion_rule_removed', detail: { ruleId: id } })
+
+    return { notice: 'deleted' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
 export async function applyPromotionsAction(
   _prev: FormState,
   _form: FormData,
@@ -247,6 +354,7 @@ export async function applyPromotionsAction(
     const result = await promotionService().apply()
 
     refreshGroupScreens()
+    refreshPromotionScreen()
     await recordAdminAction({
       action: 'group.promotions_applied',
       detail: { promoted: result.outcomes.length, examined: result.examined },

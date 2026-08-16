@@ -32,6 +32,14 @@ export function isStaffGroupSql(groupAlias: string): SQL {
   )
 }
 
+export function keptDisplayGroupSql(input: {
+  readonly column: SQL
+  readonly leavingGroupId: SQL
+  readonly arrivingGroupId: SQL
+}): SQL {
+  return sql`nullif(nullif(${input.column}, ${input.leavingGroupId}), ${input.arrivingGroupId})`
+}
+
 export function displayGroupIdSql(userAlias: string, primaryAlias: string): SQL {
   return sql`case when (${isStaffGroupSql(primaryAlias)}) then ${sql.raw(`${userAlias}.primary_group_id`)}
                   else coalesce(${sql.raw(`${userAlias}.display_group_id`)}, ${sql.raw(`${userAlias}.primary_group_id`)})

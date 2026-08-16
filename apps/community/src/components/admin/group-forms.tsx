@@ -5,10 +5,14 @@ import { useActionState, useState } from "react"
 import {
   applyPromotionsAction,
   createGroupAction,
+  createPromotionRuleAction,
   deleteGroupAction,
+  deletePromotionRuleAction,
   moveMembersAction,
   saveGroupIdentityAction,
   saveGroupPermissionsAction,
+  setPromotionRuleEnabledAction,
+  updatePromotionRuleAction,
 } from "@/server/group-admin-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
@@ -28,15 +32,24 @@ function GroupSelect({
   groups,
   defaultValue,
   exclude,
+  required = true,
+  placeholder = "— choose a group —",
 }: {
   name: string
   groups: readonly GroupOption[]
   defaultValue?: string | undefined
   exclude?: number | undefined
+  required?: boolean
+  placeholder?: string
 }) {
   return (
-    <select name={name} defaultValue={defaultValue ?? ""} className={INPUT} required>
-      <option value="">— choose a group —</option>
+    <select
+      name={name}
+      defaultValue={defaultValue ?? ""}
+      className={INPUT}
+      required={required}
+    >
+      <option value="">{placeholder}</option>
       {groups
         .filter((group) => group.id !== exclude)
         .map((group) => (
@@ -172,7 +185,11 @@ export function GroupIdentityForm({
           Lets an installed plugin put members in this group for a limited time — a paid
           pass, a trial. Refused for system and staff groups, and for any group whose
           permissions carry administrative or moderation power. Membership a plugin
-          grants always expires and never changes anyone&rsquo;s primary group.
+          grants always expires. A plugin may ask for the group to become the
+          member&rsquo;s primary one, which is what a plugin selling membership normally
+          wants: the group they were primary in becomes a secondary membership and comes
+          back the moment the grant is revoked or lapses. A staff member&rsquo;s primary
+          group is never displaced — staff is appointed, and a purchase cannot move it.
         </span>
       </label>
 
@@ -396,6 +413,204 @@ export function MoveMembersForm({ groups }: { groups: readonly GroupOption[] }) 
         Moves up to 500 members per press, so the board stays responsive while a
         long run works through. You will be asked for your password again.
       </p>
+    </form>
+  )
+}
+
+export interface PromotionRuleValues {
+  readonly id: number
+  readonly title: string
+  readonly enabled: boolean
+  readonly displayOrder: string
+  readonly minPostCount: string
+  readonly minReputation: string
+  readonly minDaysRegistered: string
+  readonly fromPrimaryGroupId: string
+  readonly toPrimaryGroupId: string
+}
+
+function PromotionRuleFields({
+  groups,
+  rule,
+}: {
+  groups: readonly GroupOption[]
+  rule?: PromotionRuleValues
+}) {
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Title</span>
+          <input
+            name="title"
+            defaultValue={rule?.title ?? ""}
+            className={INPUT}
+            placeholder="Veteran"
+            required
+          />
+          <span className="text-xs text-muted-foreground">
+            Names the rule in the preview and in the admin log. Members never see it.
+          </span>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Display order</span>
+          <input
+            type="number"
+            name="displayOrder"
+            min={0}
+            defaultValue={rule?.displayOrder ?? "0"}
+            className={INPUT}
+          />
+          <span className="text-xs text-muted-foreground">
+            The first rule in this order that matches a member is the one applied.
+          </span>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Promote from</span>
+          <GroupSelect
+            name="fromPrimaryGroupId"
+            groups={groups}
+            defaultValue={rule?.fromPrimaryGroupId}
+            required={false}
+            placeholder="Any group"
+          />
+          <span className="text-xs text-muted-foreground">
+            Their primary group. Any group considers every member the guards allow.
+          </span>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Promote into</span>
+          <GroupSelect
+            name="toPrimaryGroupId"
+            groups={groups}
+            defaultValue={rule?.toPrimaryGroupId}
+          />
+          <span className="text-xs text-muted-foreground">
+            Becomes their primary and display group.
+          </span>
+        </label>
+      </div>
+
+      <fieldset className="flex flex-col gap-3">
+        <legend className="text-sm font-medium">They must have at least</legend>
+        <p className="text-xs text-muted-foreground">
+          Blank means the rule does not look at that number. At least one has to be
+          filled in — a rule with none matches every member it examines.
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Posts</span>
+            <input
+              type="number"
+              name="minPostCount"
+              min={0}
+              defaultValue={rule?.minPostCount ?? ""}
+              className={INPUT}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Reputation</span>
+            <input
+              type="number"
+              name="minReputation"
+              min={0}
+              defaultValue={rule?.minReputation ?? ""}
+              className={INPUT}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Days registered</span>
+            <input
+              type="number"
+              name="minDaysRegistered"
+              min={0}
+              defaultValue={rule?.minDaysRegistered ?? ""}
+              className={INPUT}
+            />
+          </label>
+        </div>
+      </fieldset>
+    </>
+  )
+}
+
+export function PromotionRuleRowForm({
+  rule,
+  groups,
+}: {
+  rule: PromotionRuleValues
+  groups: readonly GroupOption[]
+}) {
+  const [state, action] = useActionState(updatePromotionRuleAction, EMPTY_STATE)
+  const [toggleState, toggleAction] = useActionState(
+    setPromotionRuleEnabledAction,
+    EMPTY_STATE,
+  )
+  const [removeState, removeAction] = useActionState(deletePromotionRuleAction, EMPTY_STATE)
+
+  return (
+    <div className="flex flex-col gap-3 py-4">
+      <FormError message={state.error ?? toggleState.error ?? removeState.error} />
+      <Saved when={state.notice === "saved"}>Saved.</Saved>
+      <Saved when={toggleState.notice === "enabled"}>
+        Enabled. The scheduled task will apply it.
+      </Saved>
+      <Saved when={toggleState.notice === "disabled"}>
+        Disabled. It stays here and is skipped.
+      </Saved>
+
+      <form action={action} className="flex flex-col gap-3" noValidate>
+        <input type="hidden" name="id" value={rule.id} />
+        <PromotionRuleFields groups={groups} rule={rule} />
+
+        <div>
+          <SubmitButton>Save rule</SubmitButton>
+        </div>
+      </form>
+
+      <div className="flex flex-wrap items-center gap-4">
+        <form action={toggleAction} className="flex items-center">
+          <input type="hidden" name="id" value={rule.id} />
+          {!rule.enabled && <input type="hidden" name="enabled" value="1" />}
+          <button type="submit" className="text-xs text-muted-foreground hover:underline">
+            {rule.enabled ? "Disable this rule" : "Enable this rule"}
+          </button>
+        </form>
+
+        <form action={removeAction} className="flex items-center">
+          <input type="hidden" name="id" value={rule.id} />
+          <button type="submit" className="text-xs text-destructive hover:underline">
+            Remove
+          </button>
+        </form>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Removing asks for your password again. Disabling does not, and is the
+        reversible way to stop a rule.
+      </p>
+    </div>
+  )
+}
+
+export function NewPromotionRuleForm({ groups }: { groups: readonly GroupOption[] }) {
+  const [state, action] = useActionState(createPromotionRuleAction, EMPTY_STATE)
+
+  return (
+    <form action={action} className="flex flex-col gap-3" noValidate>
+      <FormError message={state.error} />
+      <Saved when={state.notice === "created"}>Added. It is enabled straight away.</Saved>
+
+      <PromotionRuleFields groups={groups} />
+
+      <div>
+        <SubmitButton>Add rule</SubmitButton>
+      </div>
     </form>
   )
 }

@@ -23,6 +23,10 @@ export interface GroupChoice {
   readonly title: string
 }
 
+export interface MassMailGroupChoice extends GroupChoice {
+  readonly audience: number
+}
+
 export interface MemberAccountValues {
   readonly id: number
   readonly username: string
@@ -360,7 +364,7 @@ export function MassMailForm({
   groups,
   audience,
 }: {
-  groups: readonly GroupChoice[]
+  groups: readonly MassMailGroupChoice[]
   audience: number
 }) {
   const [state, action] = useActionState(startMassMailAction, EMPTY_STATE)
@@ -402,17 +406,19 @@ export function MassMailForm({
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Send to</span>
         <select name="targetGroupId" defaultValue="" className={INPUT}>
-          <option value="">Every member with a verified address</option>
+          <option value="">
+            Every member with a verified address ({audience})
+          </option>
           {groups.map((group) => (
             <option key={group.id} value={group.id}>
-              {group.title}
+              {group.title} ({group.audience})
             </option>
           ))}
         </select>
         <span className="text-xs text-muted-foreground">
           A group means members who hold it as their primary group or as an
-          additional one. {audience} member{audience === 1 ? "" : "s"} would be
-          reached right now.
+          additional one. The number beside each audience is how many members it
+          would reach right now.
         </span>
       </label>
 

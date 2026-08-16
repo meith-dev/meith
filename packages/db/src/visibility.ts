@@ -13,3 +13,5 @@ export function visibleIn(column: PgColumn | SQL, scope: ContentScope): SQL {
 }
 
 export const PENDING_APPROVAL = 'unapproved' as const
+
+export const VISIBLE = 'visible' as const

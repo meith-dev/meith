@@ -1,10 +1,11 @@
 import 'server-only'
 
-import { ForbiddenError, ValidationError, type ForumPermissions } from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import type { Actor } from '@meith/authorization'
 import { ReplyComposer, type AuthorRestriction, type ReplyTarget } from '@meith/threads'
 import { restrictsPosting } from '@meith/moderation'
 
+import type { AttachmentScope } from './attachments'
 import {
   dailyLimitMessage,
   holdsNewMember,
@@ -20,7 +21,7 @@ import { getSettings } from './settings'
 export interface ResolvedReplyTarget {
   readonly target: ReplyTarget
   readonly forumId: number
-  readonly scope: { readonly forumId: number; readonly forum: ForumPermissions }
+  readonly scope: AttachmentScope
 }
 
 export async function resolveReplyTarget(
@@ -39,7 +40,11 @@ export async function resolveReplyTarget(
   if (!target) throw new ValidationError('That thread does not exist.')
 
   const forumId = target.forum.id
-  const scope = { forumId, forum: await authorizer.forumMatrix(actor, forumId) }
+  const scope = {
+    forumId,
+    forum: await authorizer.forumMatrix(actor, forumId),
+    allowsAttachments: target.forum.allowAttachments,
+  }
 
   if (
     !authorizer.can(actor, 'thread.view', {

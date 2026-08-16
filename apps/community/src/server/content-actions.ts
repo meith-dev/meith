@@ -168,7 +168,11 @@ export async function createThreadAction(
       },
     })
 
-    staged = await stageAttachments(actor, target, await submittedFiles(form))
+    staged = await stageAttachments(
+      actor,
+      { ...target, allowsAttachments: forum.allowAttachments },
+      await submittedFiles(form),
+    )
 
     author = await authorProfile(actor.userId)
 

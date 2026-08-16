@@ -29,13 +29,47 @@ beforeEach(async () => {
   await db.execute(sql`delete from mass_mails`)
   await db.execute(sql`delete from forum_moderators`)
   await db.execute(sql`delete from user_group_memberships`)
+  await db.execute(sql`delete from posts`)
+  await db.execute(sql`delete from threads`)
   await db.execute(sql`delete from users`)
+  await db.execute(sql`delete from usergroups where is_system = false`)
   await db.execute(sql`delete from forums`)
   await db.execute(sql`
     insert into forums (id, type, title, slug, path)
     values (1, 'forum', 'General', 'general', '1')
   `)
 })
+
+async function powerGroupWithoutTheFlag(): Promise<number> {
+  const rows = resultRows(
+    await db.execute(sql`
+      insert into usergroups (key, title, is_system, is_staff_group, can_approve_content)
+      values ('helpers', 'Helpers', false, false, true)
+      returning id
+    `),
+  ) as Array<{ id: number }>
+  return Number(rows[0]?.id)
+}
+
+async function addThread(input: {
+  readonly id: number
+  readonly authorUserId: number
+  readonly visibility: string
+  readonly deleted?: boolean
+}): Promise<void> {
+  await db.execute(sql`
+    insert into threads (id, forum_id, title, slug, author_user_id, author_username,
+                         visibility)
+    values (${input.id}, 1, ${`T${input.id}`}, ${`t${input.id}`}, ${input.authorUserId},
+            ${`u${input.authorUserId}`}, ${input.visibility})
+  `)
+  await db.execute(sql`
+    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+                       message, visibility, is_first_post)
+    values (${input.id}, ${input.id}, 1, ${input.authorUserId}, ${`u${input.authorUserId}`},
+            'hello', ${input.visibility}, true)
+  `)
+}
 
 interface SeedUser {
   readonly id: number
@@ -105,6 +139,28 @@ describe('prunePreview', () => {
     await db.execute(sql`
       insert into user_group_memberships (user_id, group_id) values (2, ${SUPER_MODS})
     `)
+
+    expect((await repo.prunePreview(CRITERIA)).sample.map((r) => r.id)).toEqual([1])
+  })
+
+  it('excludes a group that carries power without the staff flag', async () => {
+    const helpers = await powerGroupWithoutTheFlag()
+    await seed({ id: 1, username: 'ghost' })
+    await seed({ id: 2, username: 'helper-primary', groupId: helpers })
+    await seed({ id: 3, username: 'helper-secondary' })
+    await db.execute(sql`
+      insert into user_group_memberships (user_id, group_id) values (3, ${helpers})
+    `)
+
+    expect((await repo.prunePreview(CRITERIA)).sample.map((r) => r.id)).toEqual([1])
+  })
+
+  it('excludes a member whose only posts are held or deleted', async () => {
+    await seed({ id: 1, username: 'ghost' })
+    await seed({ id: 2, username: 'held' })
+    await seed({ id: 3, username: 'removed' })
+    await addThread({ id: 1, authorUserId: 2, visibility: 'unapproved' })
+    await addThread({ id: 2, authorUserId: 3, visibility: 'deleted' })
 
     expect((await repo.prunePreview(CRITERIA)).sample.map((r) => r.id)).toEqual([1])
   })
@@ -195,11 +251,18 @@ describe('pruneChunk', () => {
   })
 
   it('applies the same exclusions the preview showed', async () => {
+    const helpers = await powerGroupWithoutTheFlag()
     await seed({ id: 1, username: 'ghost' })
     await seed({ id: 2, username: 'poster', postCount: 3 })
     await seed({ id: 3, username: 'boss', groupId: SUPER_MODS })
+    await seed({ id: 4, username: 'helper', groupId: helpers })
+    await seed({ id: 5, username: 'held' })
+    await addThread({ id: 1, authorUserId: 5, visibility: 'unapproved' })
 
+    const preview = await repo.prunePreview(CRITERIA)
     await repo.pruneChunk(CRITERIA, 50)
+
+    expect(preview.sample.map((row) => row.id)).toEqual([1])
     expect(await deletedIds()).toEqual([1])
   })
 
@@ -239,6 +302,41 @@ describe('mass mail', () => {
     `)
 
     expect(await repo.massMailAudience(SUPER_MODS)).toBe(2)
+  })
+
+  it('gives every group its own audience, on the same terms as the whole board', async () => {
+    await seed({ id: 1, username: 'primary', groupId: SUPER_MODS })
+    await seed({ id: 2, username: 'secondary' })
+    await seed({ id: 3, username: 'ordinary' })
+    await seed({ id: 4, username: 'unverified', groupId: SUPER_MODS, verified: false })
+    await db.execute(sql`
+      insert into user_group_memberships (user_id, group_id) values (2, ${SUPER_MODS})
+    `)
+
+    const byGroup = await repo.massMailAudienceByGroup()
+
+    expect(byGroup.get(SUPER_MODS)).toBe(2)
+    expect(byGroup.get(REGISTERED)).toBe(2)
+    expect(await repo.massMailAudience(SUPER_MODS)).toBe(byGroup.get(SUPER_MODS))
+    expect(await repo.massMailAudience(REGISTERED)).toBe(byGroup.get(REGISTERED))
+  })
+
+  it('counts a member holding a group twice over only once', async () => {
+    await seed({ id: 1, username: 'both', groupId: SUPER_MODS })
+    await db.execute(sql`
+      insert into user_group_memberships (user_id, group_id) values (1, ${SUPER_MODS})
+    `)
+
+    expect((await repo.massMailAudienceByGroup()).get(SUPER_MODS)).toBe(1)
+  })
+
+  it('reads every group in one query', async () => {
+    await seed({ id: 1, username: 'one' })
+    await seed({ id: 2, username: 'two', groupId: SUPER_MODS })
+
+    harness.queries.reset()
+    await repo.massMailAudienceByGroup()
+    expect(harness.queries.count).toBe(1)
   })
 
   it('refuses an empty subject or body', async () => {

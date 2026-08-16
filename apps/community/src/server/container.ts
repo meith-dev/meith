@@ -94,7 +94,7 @@ import forumConfig from '../../community.config'
 import {
   AUTH_CONFIG,
   REMEMBER_DAYS,
-  SESSION_IDLE_DAYS,
+  SESSION_LIFETIME_DAYS,
   boardAuthConfig,
   boardSessionConfig,
 } from './auth-config'
@@ -228,7 +228,7 @@ function identityServices(
     sessions: new SessionService({
       store,
       rememberDays: REMEMBER_DAYS,
-      sessionIdleDays: SESSION_IDLE_DAYS,
+      sessionLifetimeDays: SESSION_LIFETIME_DAYS,
     }),
     banLookup: bans ?? null,
   }
