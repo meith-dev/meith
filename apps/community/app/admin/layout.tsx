@@ -49,14 +49,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </a>
 
       <header className="sticky top-0 z-30 border-b border-border bg-card">
-        <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 sm:px-6">
+        <div className="mx-auto flex min-h-14 w-full max-w-6xl items-center gap-x-3 px-4 py-2 sm:gap-x-4 sm:px-6">
           <a
             href="/admin"
-            className="font-heading text-lg font-semibold whitespace-nowrap text-foreground"
+            className="min-w-0 truncate font-heading text-base font-semibold whitespace-nowrap text-foreground sm:text-lg"
           >
             Control panel
           </a>
-          <div className="ml-auto flex items-center gap-4 text-sm whitespace-nowrap">
+          <div className="ml-auto flex shrink-0 items-center gap-3 text-sm whitespace-nowrap sm:gap-4">
             <a href="/" className="text-muted-foreground hover:text-foreground">
               The board
             </a>

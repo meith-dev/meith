@@ -4,6 +4,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { CreateGroupForm } from '@/components/admin/group-forms'
 import { adminPageContext } from '@/server/admin'
 import { groupAdminRepository } from '@/server/group-admin'
+import { PANEL_LIST, PANEL_ROW, PanelActionLink } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Groups' }
 
@@ -40,11 +41,11 @@ export default async function AdminGroupsPage() {
         </>
       }
     >
-      <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+      <ul className={PANEL_LIST}>
         {groups.map((group) => (
           <li
             key={group.id}
-            className="flex items-center justify-between gap-3 px-4 py-3"
+            className={PANEL_ROW}
           >
             <span className="flex min-w-0 flex-col">
               <span className="truncate text-sm font-medium">
@@ -77,19 +78,9 @@ export default async function AdminGroupsPage() {
         ))}
       </ul>
 
-      <nav className="flex flex-wrap gap-4 text-sm">
-        <a
-          href="/admin/groups/promotions"
-          className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Promotions
-        </a>
-        <a
-          href="/admin/groups/memberships"
-          className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Mass membership change
-        </a>
+      <nav className="flex flex-wrap gap-2">
+        <PanelActionLink href="/admin/groups/promotions">Promotions</PanelActionLink>
+        <PanelActionLink href="/admin/groups/memberships">Mass membership change</PanelActionLink>
       </nav>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">

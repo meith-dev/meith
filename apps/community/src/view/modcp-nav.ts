@@ -17,6 +17,7 @@ export interface ModCpNavAccess {
 export const MODCP_OVERVIEW: PanelSection = {
   href: '/modcp',
   title: 'Overview',
+  icon: 'overview',
   blurb: 'What is waiting across the forums you moderate, and where you may act.',
 }
 
@@ -25,6 +26,7 @@ export function modCpSections(access: ModCpNavAccess): PanelNav {
     {
       href: '/moderation',
       title: 'Approval queue',
+      icon: 'queue',
       blurb: 'Posts and threads held for approval in the forums you moderate.',
       children: access.canWarn
         ? [{ href: '/moderation/warn', title: 'Warn a member', record: true }]
@@ -33,26 +35,30 @@ export function modCpSections(access: ModCpNavAccess): PanelNav {
     {
       href: '/moderation/reports',
       title: 'Reports',
+      icon: 'reports',
       blurb: 'What members have reported, who has picked it up, and what came of it.',
     },
     {
       href: '/modcp/forums',
       title: 'My forums',
+      icon: 'forums',
       blurb: 'Where you are appointed, and exactly what you may do in each.',
     },
     {
       href: '/modcp/log',
       title: 'Moderator log',
+      icon: 'log',
       blurb: 'What has been done in your forums, by whom, and when.',
     },
     ...(access.canLookUpIp
-      ? [
+      ? ([
           {
             href: '/modcp/ip',
             title: 'Address lookup',
+            icon: 'ip',
             blurb: 'Who else has posted from an address. Every lookup is logged.',
           },
-        ]
+        ] satisfies PanelNav)
       : []),
   ]
 }

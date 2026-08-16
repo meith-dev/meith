@@ -70,6 +70,7 @@ export type {
   PaginationModel,
   PanelKind,
   PanelNavCurrent,
+  PanelNavIcon,
   PanelNavItemModel,
   PanelNavModel,
   PanelNavSectionModel,

@@ -1,6 +1,7 @@
 import type {
   PanelKind,
   PanelNavCurrent,
+  PanelNavIcon,
   PanelNavModel,
   PanelNavSectionModel,
 } from '@meith/theme-kit'
@@ -15,6 +16,7 @@ export interface PanelSection {
   readonly href: string
   readonly title: string
   readonly blurb: string
+  readonly icon?: PanelNavIcon
   readonly children?: readonly PanelSubsection[]
 }
 
@@ -129,6 +131,7 @@ export function buildPanelNavModel(input: {
     return {
       href: section.href,
       title: section.title,
+      icon: section.icon ?? null,
       count: countFor(input.counts, section.href),
       current: currentFor(input.location, section.href, deepest),
       isRecord: false,
@@ -138,6 +141,7 @@ export function buildPanelNavModel(input: {
         ? visibleChildren(section, deepest).map((child) => ({
             href: child.href,
             title: child.title,
+            icon: null,
             count: countFor(input.counts, child.href),
             current: currentFor(input.location, child.href, deepest),
             isRecord: child.record === true,

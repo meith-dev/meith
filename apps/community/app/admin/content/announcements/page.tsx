@@ -10,6 +10,8 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { announcementRepository } from '@/server/announcements'
 import { getContainer } from '@/server/container'
+import { PANEL_LIST } from '@/components/shell/panel-list'
+import { cn } from '@meith/ui'
 
 export const metadata: Metadata = { title: 'Announcements' }
 
@@ -60,7 +62,7 @@ export default async function AdminAnnouncementsPage() {
           None. The board shows no announcements.
         </p>
       ) : (
-        <section className="flex flex-col divide-y divide-border rounded-lg border border-border px-4">
+        <section className={cn(PANEL_LIST, 'px-4')}>
           {rows.map((row) => {
             const live =
               row.enabled &&
