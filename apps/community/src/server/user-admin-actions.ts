@@ -1,6 +1,6 @@
 'use server'
 
-import { CacheTags, ValidationError } from '@meith/core'
+import { ValidationError } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import { revalidatePath } from 'next/cache'
 
@@ -25,8 +25,7 @@ function userId(form: FormData): number {
 
 const toFormState = formStateReporter('user-admin', 'user administration write failed')
 
-async function invalidatePermissions(): Promise<void> {
-  await drivers().cache.invalidateTags([CacheTags.permissions()])
+function refreshMemberScreens(): void {
   revalidatePath('/admin/users')
   revalidatePath('/admin/users/[id]', 'page')
 }
@@ -61,7 +60,7 @@ export async function saveMemberAccountAction(
       displayGroupId,
     })
 
-    await invalidatePermissions()
+    refreshMemberScreens()
     await recordAdminAction({ action: 'user.account_changed', detail: { userId: id } })
 
     return { notice: 'saved' }
@@ -85,7 +84,7 @@ export async function setMemberStateAction(
 
     await requireUserAdmin().setState(id, state)
 
-    await invalidatePermissions()
+    refreshMemberScreens()
     await recordAdminAction({ action: 'user.state_changed', detail: { userId: id, state } })
 
     return { notice: 'saved' }
@@ -122,7 +121,7 @@ export async function banMemberAction(
       ...(expiresAt === undefined ? {} : { expiresAt }),
     })
 
-    await invalidatePermissions()
+    refreshMemberScreens()
     await recordAdminAction({
       action: 'user.banned',
       detail: { userId: id, days: days === '' ? null : Number(days) },
@@ -153,7 +152,7 @@ export async function saveSecondaryGroupsAction(
 
     await requireUserAdmin().setSecondaryGroups(id, groupIds, context.session.userId)
 
-    await invalidatePermissions()
+    refreshMemberScreens()
     await recordAdminAction({
       action: 'user.groups_changed',
       detail: { userId: id, groups: groupIds.length },
@@ -194,7 +193,7 @@ export async function mergeStepAction(_prev: FormState, form: FormData): Promise
 
     await merge.finish(fromUserId, toUserId)
 
-    await invalidatePermissions()
+    refreshMemberScreens()
     await recordAdminAction({
       action: 'user.merged',
       detail: { fromUserId, toUserId },
@@ -233,7 +232,7 @@ export async function pruneMembersAction(
       PRUNE_CHUNK,
     )
 
-    await invalidatePermissions()
+    refreshMemberScreens()
     await recordAdminAction({
       action: 'user.pruned',
       detail: { pruned: chunk.pruned, remaining: chunk.remaining },
@@ -327,7 +326,7 @@ export async function liftBanAction(_prev: FormState, form: FormData): Promise<F
 
     await banService().lift(id)
 
-    await invalidatePermissions()
+    refreshMemberScreens()
     await recordAdminAction({ action: 'user.ban_lifted', detail: { userId: id } })
 
     return { notice: 'lifted' }

@@ -205,7 +205,7 @@ describe('saveMemberAccountAction', () => {
         displayGroupId: 4,
       },
     })
-    expect(invalidated).toEqual([['permissions']])
+    expect(revalidated).toEqual(['/admin/users', '/admin/users/[id]'])
   })
 
   it('reads a blank display group as null, meaning "same as primary"', async () => {
@@ -316,7 +316,7 @@ describe('liftBanAction', () => {
 
     expect(state.notice).toBe('lifted')
     expect(lifted).toEqual([7])
-    expect(invalidated).toEqual([['permissions']])
+    expect(revalidated).toEqual(['/admin/users', '/admin/users/[id]'])
   })
 })
 
@@ -325,7 +325,7 @@ describe('saveSecondaryGroupsAction', () => {
     await saveSecondaryGroupsAction({}, form({ userId: '7' }))
 
     expect(secondaryGroups).toEqual([{ userId: 7, groupIds: [], by: 1 }])
-    expect(invalidated).toEqual([['permissions']])
+    expect(revalidated).toEqual(['/admin/users', '/admin/users/[id]'])
   })
 
   it('passes the ticked groups through, and records who granted them', async () => {
@@ -368,7 +368,7 @@ describe('mergeStepAction', () => {
     expect(chunks).toEqual([{ from: 7, to: 3, limit: 500 }])
     expect(finished).toEqual([{ from: 7, to: 3 }])
     expect(state.notice).toBe('merged')
-    expect(invalidated).toEqual([['permissions']])
+    expect(revalidated).toEqual(['/admin/users', '/admin/users/[id]'])
   })
 
   it('stops after a batch while posts remain, and does not finish', async () => {
@@ -517,7 +517,7 @@ describe('mass mail', () => {
 })
 
 describe('the screens the write is read back from', () => {
-  it('are refreshed by every write, not only the board’s own cache', async () => {
+  it('are refreshed by every write, so the row read back is the row written', async () => {
     await saveMemberAccountAction({}, form({ userId: '7', username: 'ann', email: 'a@b.test', primaryGroupId: '2' }))
     expect(revalidated).toEqual(['/admin/users', '/admin/users/[id]'])
   })

@@ -1,10 +1,11 @@
 'use server'
 
-import { CacheTags, ValidationError } from '@meith/core'
+import { NotFoundError, ValidationError } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import { revalidatePath } from 'next/cache'
 
 import { recordAdminAction, requireAdmin } from './admin'
+import { clearableTag } from './cache-targets'
 import { formStateReporter } from './form-state-reporter'
 import { requireSearch } from './search'
 import { requireMaintenance, requireRecount } from './system-admin'
@@ -93,13 +94,7 @@ export async function clearCacheAction(
   try {
     await requireAdmin()
 
-    const what = form.get('what')
-    const tag =
-      what === 'forums'
-        ? CacheTags.forumTree()
-        : what === 'permissions'
-          ? CacheTags.permissions()
-          : null
+    const tag = clearableTag(form.get('what'))
 
     if (tag === null) throw new ValidationError('Choose what to clear.')
 
@@ -122,10 +117,17 @@ export async function retryJobAction(_prev: FormState, form: FormData): Promise<
       throw new ValidationError('No such job.')
     }
 
-    await drivers().queue.retry(jobId.trim())
+    const id = jobId.trim()
+    const requeued = await drivers().queue.retry(id)
+
+    if (!requeued) {
+      throw new NotFoundError(
+        `No dead-lettered job ${id}. Only a job that has exhausted its attempts can be retried.`,
+      )
+    }
 
     refreshSystemScreen()
-    await recordAdminAction({ action: 'system.job_retried', detail: { jobId } })
+    await recordAdminAction({ action: 'system.job_retried', detail: { jobId: id } })
     return { notice: 'retried' }
   } catch (err) {
     return toFormState(err)

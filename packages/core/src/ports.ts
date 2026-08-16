@@ -26,7 +26,7 @@ export interface QueueDriver {
 
   deadLettered(limit: number): Promise<readonly Job[]>
 
-  retry(jobId: string): Promise<void>
+  retry(jobId: string): Promise<boolean>
 }
 
 export interface CacheSetOptions {

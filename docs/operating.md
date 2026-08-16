@@ -1256,6 +1256,52 @@ members rather than a setting.
 The provider seam is there if you want one — see `packages/antispam`. It is a
 small module, not a fork.
 
+## The system screen
+
+`/admin/system` is where the board's maintenance buttons live. Each one reports
+what it did, and each one is expected to have done it — a button that says
+"cleared" or "back on the queue" for something that never happened is a bug, not
+a rounding error, because the operator then goes looking for the fault
+somewhere else.
+
+### Clear cache
+
+**The forum tree is the only thing this button offers**, because it is the only
+global cache entry that outlives the write that changed it and is not already
+invalidated by that write.
+
+The board caches very little globally. The forum tree, the board's settings, the
+group name colours, the compiled word filters and vocabulary, and each theme's
+compiled style — every one of those is cleared by the admin screen that changes
+it, so the only reason to reach for this button is a tree that looks stale after
+something changed it from outside the panel (a direct database edit, a restore,
+an import).
+
+**Permissions are not cached and never were**, so there is nothing to clear. A
+member's rights are resolved from the group defaults and the forum overrides on
+every request; the `cache_versions` counter that permission writes bump is a
+version stamp on that per-request resolution, not a cache entry. A member who
+still cannot see a forum after a permission change is not looking at a stale
+cache — see [A member cannot see a forum they should](#a-member-cannot-see-a-forum-they-should).
+
+### Retry a dead-lettered job
+
+A job dead-letters after exhausting its attempts. **Retry requeues one job by
+id, and only a job that is actually dead**: an id that names nothing, or names a
+job that is pending, running or done, is refused and says so rather than
+reporting success. Nothing is written to the admin log unless a job really went
+back on the queue.
+
+The reason a job died is usually still true, so retrying every one puts the same
+failures straight back. Read the last error first.
+
+### The admin log's action filter
+
+`/admin/log` builds its **Action** dropdown from the distinct actions actually
+recorded, so every action the board has ever logged can be filtered on. The
+dropdown is what the log contains, not a fixed list — an action nobody has
+performed yet is not offered, and appears the first time it happens.
+
 ## Migrations
 
 Migrations are **forward-only**. There is no down migration and there will not be

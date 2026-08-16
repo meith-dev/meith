@@ -30,8 +30,7 @@ async function invalidateTree(): Promise<void> {
   revalidatePath('/admin/forums/[id]', 'page')
 }
 
-async function invalidateForumPermissions(): Promise<void> {
-  await drivers().cache.invalidateTags([CacheTags.permissions()])
+function refreshForumPermissionScreens(): void {
   revalidatePath('/admin/forums/[id]', 'page')
   revalidatePath('/admin/forums/[id]/permissions', 'page')
 }
@@ -104,7 +103,7 @@ export async function saveForumPermissionsAction(
 
     await requireForumAdmin().saveOverrides(id, groupId, values)
 
-    await invalidateForumPermissions()
+    refreshForumPermissionScreens()
     await recordAdminAction({
       action: 'forum.permissions_changed',
       detail: { forumId: id, groupId },
@@ -133,7 +132,7 @@ export async function copyForumPermissionsAction(
     const groups = (await repository.listGroups()).map((group) => group.id)
     await repository.copyToDescendants(id, descendants, groups)
 
-    await invalidateForumPermissions()
+    refreshForumPermissionScreens()
     await recordAdminAction({
       action: 'forum.permissions_copied',
       detail: { forumId: id, forums: descendants.length },
@@ -213,7 +212,7 @@ export async function moveForumAction(
     await getContainer().forums.move(id, { newParentId })
 
     await invalidateTree()
-    await invalidateForumPermissions()
+    refreshForumPermissionScreens()
     await recordAdminAction({
       action: 'forum.moved',
       detail: { forumId: id, newParentId },
@@ -267,7 +266,7 @@ export async function appointModeratorAction(
       rights,
     })
 
-    await invalidateForumPermissions()
+    refreshForumPermissionScreens()
     await recordAdminAction({
       action: 'forum.moderator_appointed',
       detail: { forumId: id, userId, groupId },
@@ -293,7 +292,7 @@ export async function removeModeratorAction(
 
     await requireForumAdmin().removeModerator(id, appointmentId)
 
-    await invalidateForumPermissions()
+    refreshForumPermissionScreens()
     await recordAdminAction({
       action: 'forum.moderator_removed',
       detail: { forumId: id, appointmentId },

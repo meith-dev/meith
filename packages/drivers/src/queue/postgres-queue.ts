@@ -173,8 +173,11 @@ export class PostgresQueue implements QueueDriver {
     }))
   }
 
-  async retry(jobId: string): Promise<void> {
-    await this.db
+  async retry(jobId: string): Promise<boolean> {
+    const id = Number(jobId)
+    if (!Number.isSafeInteger(id)) return false
+
+    const requeued = await this.db
       .update(jobs)
       .set({
         status: 'pending',
@@ -184,7 +187,10 @@ export class PostgresQueue implements QueueDriver {
         lockedUntil: null,
         lockedBy: null,
       })
-      .where(and(eq(jobs.id, Number(jobId)), eq(jobs.status, 'dead')))
+      .where(and(eq(jobs.id, id), eq(jobs.status, 'dead')))
+      .returning({ id: jobs.id })
+
+    return requeued.length > 0
   }
 
   static completedBefore(cutoff: Date) {

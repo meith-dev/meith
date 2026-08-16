@@ -101,15 +101,15 @@ export class MemoryQueue implements QueueDriver {
     )
   }
 
-  retry(jobId: string): Promise<void> {
+  retry(jobId: string): Promise<boolean> {
     const row = this.rows.find((r) => r.id === jobId && r.status === 'dead')
-    if (row) {
-      row.status = 'pending'
-      row.attempts = 0
-      row.runAt = Date.now()
-      delete row.lastError
-    }
-    return Promise.resolve()
+    if (!row) return Promise.resolve(false)
+
+    row.status = 'pending'
+    row.attempts = 0
+    row.runAt = Date.now()
+    delete row.lastError
+    return Promise.resolve(true)
   }
 
   size(): number {

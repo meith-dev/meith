@@ -138,6 +138,49 @@ export function queueDriverContract(name: string, make: DriverFactory<QueueDrive
 
       expect(result.processed + result.failed).toBe(2)
     })
+
+    async function deadLetterOne(queue: QueueDriver): Promise<string> {
+      await queue.enqueue('test.job', { n: 1 }, { maxAttempts: 1 })
+      await queue.drain(10, async () => {
+        throw new Error('handler blew up')
+      })
+
+      const dead = await queue.deadLettered(10)
+      expect(dead).toHaveLength(1)
+      return dead[0]!.id
+    }
+
+    it('requeues a dead-lettered job, and says that it did', async () => {
+      const queue = await make()
+      const id = await deadLetterOne(queue)
+
+      expect(await queue.retry(id)).toBe(true)
+      expect(await queue.deadLettered(10)).toEqual([])
+    })
+
+    it('reports that it requeued nothing when the id names no job', async () => {
+      const queue = await make()
+      await deadLetterOne(queue)
+
+      expect(await queue.retry('987654321')).toBe(false)
+      expect(await queue.retry('not-a-job-id')).toBe(false)
+      expect(await queue.deadLettered(10)).toHaveLength(1)
+    })
+
+    it('reports that it requeued nothing for a job that is not dead', async () => {
+      const queue = await make()
+      const { id } = await queue.enqueue('test.job', { n: 1 })
+
+      expect(await queue.retry(id)).toBe(false)
+    })
+
+    it('is not a way to run a job twice: a second retry requeues nothing', async () => {
+      const queue = await make()
+      const id = await deadLetterOne(queue)
+
+      expect(await queue.retry(id)).toBe(true)
+      expect(await queue.retry(id)).toBe(false)
+    })
   })
 }
 

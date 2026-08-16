@@ -12,7 +12,6 @@ export const CacheTags = {
   thread: (threadId: number) => `thread:${threadId}`,
   user: (userId: number) => `user:${userId}`,
   groups: () => "groups",
-  permissions: () => "permissions",
 } as const
 
 export type CacheTag = ReturnType<(typeof CacheTags)[keyof typeof CacheTags]>
@@ -25,7 +24,6 @@ export const GLOBAL_TAGS: readonly string[] = [
   CacheTags.wordFilters(),
   CacheTags.boardStats(),
   CacheTags.groups(),
-  CacheTags.permissions(),
 ]
 
 export interface CachedGlobalOptions {
