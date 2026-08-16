@@ -12,6 +12,7 @@ import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildQueueView } from '@/view/moderation-queue'
+import { PanelPagination } from '@/components/shell/panel-pagination'
 
 export const metadata: Metadata = { title: 'Moderation queue' }
 
@@ -96,14 +97,12 @@ export default async function ModerationPage({
 
       {view.rows.length > 0 && <QueueForm rows={view.rows} />}
 
-      {view.nextHref !== null && (
-        <a
-          href={view.nextHref}
-          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Older items
-        </a>
-      )}
+      <PanelPagination
+        path="/moderation"
+        params={query}
+        cursorParams={['after']}
+        nextCursor={page.nextCursor === undefined || page.nextCursor === null ? null : { after: String(page.nextCursor) }}
+      />
     </PanelPage>
   )
 }

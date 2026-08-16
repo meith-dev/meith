@@ -21,6 +21,7 @@ import { filterView, viewerRef } from '@/server/plugin-view'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { CURSOR_FIELDS } from '@/view/search-controls'
 import { buildSearchResultsView, type SearchForumRef } from '@/view/search-results'
+import { buildPager } from '@/view/pager'
 
 export const metadata: Metadata = { title: 'Search results' }
 
@@ -89,8 +90,34 @@ export default async function SearchResultsPage({
   })
 
   const SearchResults = requireSlot(await currentTheme(), 'SearchResults')
+  const Pagination = requireSlot(await currentTheme(), 'Pagination')
 
-  return <SearchResults {...await filterView('view.search-results', model, viewerRef(actor))} />
+  const pager = buildPager({
+    path: `/search/${token}`,
+    params: query,
+    cursorParams: [CURSOR_FIELDS.rank, CURSOR_FIELDS.after],
+    pageSize: SEARCH_PAGE,
+    nextCursor:
+      results.nextCursor === null
+        ? null
+        : {
+            [CURSOR_FIELDS.rank]: String(results.nextCursor.rank),
+            [CURSOR_FIELDS.after]: String(results.nextCursor.postId),
+          },
+  })
+
+  const filtered = await filterView('view.search-results', model, viewerRef(actor))
+
+  return (
+    <SearchResults
+      {...filtered}
+      regions={{
+        pagination: (
+          <Pagination {...await filterView('view.pagination', pager, viewerRef(actor))} />
+        ),
+      }}
+    />
+  )
 }
 
 async function namedForums(): Promise<readonly SearchForumRef[]> {

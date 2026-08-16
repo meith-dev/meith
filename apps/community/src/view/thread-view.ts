@@ -266,6 +266,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
     pagination: {
       page: input.pageNumber,
       pageCount: input.pageNumber,
+      pageCountIsExact: false,
       pages: [{ page: input.pageNumber, href: '', isCurrent: true }],
       previousHref: null,
       nextHref: input.nextHref,

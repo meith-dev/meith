@@ -109,20 +109,6 @@ export function parseUserFilter(
   }
 }
 
-export function nextPageQuery(
-  params: Record<string, string | string[] | undefined>,
-  cursor: number,
-): string {
-  const query = new URLSearchParams()
-  for (const [key, value] of Object.entries(params)) {
-    if (key === 'after_id') continue
-    const text = Array.isArray(value) ? value[0] : value
-    if (text !== undefined && text !== '') query.set(key, text)
-  }
-  query.set('after_id', String(cursor))
-  return `?${query.toString()}`
-}
-
 export interface MemberView {
   readonly member: UserDetail
   readonly secondaryGroupIds: readonly number[]

@@ -13,6 +13,7 @@ import { messageService } from '@/server/messages'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { MESSAGE_FORM_ID, buildMessageFolderView, messageNotice } from '@/view/messages'
+import { PanelPagination } from '@/components/shell/panel-pagination'
 
 export const metadata: Metadata = { title: 'Private messages' }
 
@@ -163,14 +164,12 @@ export default async function MessagesPage({
         </>
       )}
 
-      {view.nextHref !== null && (
-        <a
-          href={view.nextHref}
-          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Older messages
-        </a>
-      )}
+      <PanelPagination
+        path="/messages"
+        params={query}
+        cursorParams={['before']}
+        nextCursor={page.nextBefore === null || page.nextBefore === undefined ? null : { before: String(page.nextBefore) }}
+      />
     </PanelPage>
   )
 }

@@ -7,7 +7,7 @@ vi.mock('@meith/db', () => ({
   PostgresBanRepository: class {},
 }))
 
-const { USER_PAGE, nextPageQuery, parseUserFilter } = await import('./user-admin')
+const { USER_PAGE, parseUserFilter } = await import('./user-admin')
 
 describe('parseUserFilter', () => {
   it('is everybody when nothing is given', () => {
@@ -71,18 +71,3 @@ describe('parseUserFilter', () => {
   })
 })
 
-describe('nextPageQuery', () => {
-  it('keeps every filter and replaces the cursor', () => {
-    const query = nextPageQuery({ username: 'ann', state: 'active', after_id: '10' }, 60)
-    const params = new URLSearchParams(query.slice(1))
-
-    expect(params.get('username')).toBe('ann')
-    expect(params.get('state')).toBe('active')
-    expect(params.get('after_id')).toBe('60')
-  })
-
-  it('drops empty values, so the link is not a wall of blanks', () => {
-    const query = nextPageQuery({ username: 'ann', email: '' }, 60)
-    expect(query).not.toContain('email')
-  })
-})

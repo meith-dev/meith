@@ -4,7 +4,9 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { getViewerPreferences } from '@/server/viewer-preferences'
-import { buildAdminLogView } from '@/view/admin-log'
+import { ADMIN_LOG_PAGE_SIZE, buildAdminLogView } from '@/view/admin-log'
+import { PanelPagination } from '@/components/shell/panel-pagination'
+import { PANEL_LIST } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Admin log' }
 
@@ -66,7 +68,7 @@ export default async function AdminLogPage({
       {view.rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nothing logged.</p>
       ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+        <ul className={PANEL_LIST}>
           {view.rows.map((row) => (
             <li key={row.id} className="flex flex-col gap-1 px-4 py-3">
               <div className="flex flex-wrap items-baseline gap-2 text-sm">
@@ -94,14 +96,13 @@ export default async function AdminLogPage({
         </ul>
       )}
 
-      {view.nextHref !== null && (
-        <a
-          href={view.nextHref}
-          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Older entries
-        </a>
-      )}
+      <PanelPagination
+        path="/admin/log"
+        params={query}
+        cursorParams={['before']}
+        pageSize={ADMIN_LOG_PAGE_SIZE}
+        nextCursor={view.nextCursor === null ? null : { before: view.nextCursor }}
+      />
     </PanelPage>
   )
 }

@@ -14,6 +14,7 @@ export function SearchResults({
   newSearchHref,
   within,
   refine,
+  regions,
 }: SearchResultsModel) {
   return (
     <main
@@ -67,12 +68,16 @@ export function SearchResults({
           </ul>
         )}
 
-        {nextHref !== null && (
-          <p className="border-t border-border px-4 py-2">
-            <a href={nextHref} className={`${MICRO} hover:text-primary`}>
-              {nextLabel} →
-            </a>
-          </p>
+        {regions?.pagination !== undefined ? (
+          <div className="border-t border-border px-4 py-2">{regions.pagination}</div>
+        ) : (
+          nextHref !== null && (
+            <p className="border-t border-border px-4 py-2">
+              <a href={nextHref} className={`${MICRO} hover:text-primary`}>
+                {nextLabel} →
+              </a>
+            </p>
+          )
         )}
       </Frame>
 

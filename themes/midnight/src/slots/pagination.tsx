@@ -1,7 +1,14 @@
 import type { PaginationModel } from '@meith/theme-kit'
 
-export function Pagination({ page, pageCount, pages, previousHref, nextHref }: PaginationModel) {
-  if (pageCount <= 1) return null
+export function Pagination({
+  page,
+  pageCount,
+  pageCountIsExact,
+  pages,
+  previousHref,
+  nextHref,
+}: PaginationModel) {
+  if (pageCount <= 1 && previousHref === null && nextHref === null) return null
 
   return (
     <nav aria-label="Pagination" className="flex flex-wrap items-center gap-1 font-mono text-xs">
@@ -31,7 +38,7 @@ export function Pagination({ page, pageCount, pages, previousHref, nextHref }: P
         </a>
       )}
       <span className="ml-2 text-muted-foreground">
-        page {page} of {pageCount}
+        page {pageCountIsExact ? `${page} of ${pageCount}` : page}
       </span>
     </nav>
   )

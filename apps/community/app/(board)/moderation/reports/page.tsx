@@ -15,6 +15,7 @@ import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
+import { PanelPagination } from '@/components/shell/panel-pagination'
 
 export const metadata: Metadata = { title: 'Reports' }
 
@@ -149,14 +150,12 @@ export default async function ReportsPage({
         </ul>
       )}
 
-      {page.nextCursor !== undefined && (
-        <a
-          href={`/moderation/reports?after=${encodeURIComponent(page.nextCursor)}`}
-          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Older reports
-        </a>
-      )}
+      <PanelPagination
+        path="/moderation/reports"
+        params={query}
+        cursorParams={['after']}
+        nextCursor={page.nextCursor === undefined || page.nextCursor === null ? null : { after: String(page.nextCursor) }}
+      />
     </PanelPage>
   )
 }

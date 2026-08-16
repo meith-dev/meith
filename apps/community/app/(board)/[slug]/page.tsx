@@ -15,6 +15,7 @@ import { getViewerPreferences } from '@/server/viewer-preferences'
 import { moderatorTargetFor } from '@/server/modcp'
 import { currentTheme } from '@/server/theme'
 import { decodeForumCursor, encodeForumCursor } from '@/view/forum-cursor'
+import { buildPager } from '@/view/pager'
 import { FollowForm } from '@/components/account/subscription-forms'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { getSettings } from '@/server/settings'
@@ -180,9 +181,17 @@ export default async function ForumPage({
     authors: authorizer.authorFilter(actor, inlineTarget),
     sort,
   })
-  const nextHref = threadPage.nextCursor
-    ? `/${id}-${forum.slug}?after=${encodeForumCursor(threadPage.nextCursor)}&page=${page + 1}${sort === 'rating' ? '&sort=rating' : ''}`
-    : null
+  const pager = buildPager({
+    path: `/${id}-${forum.slug}`,
+    params: { ...query, page: undefined },
+    cursorParams: ['after'],
+    pageSize: preferences.threadsPerPage,
+    total: forum.threadCount,
+    nextCursor:
+      threadPage.nextCursor === undefined || threadPage.nextCursor === null
+        ? null
+        : { after: encodeForumCursor(threadPage.nextCursor) },
+  })
   const canPost =
     threadWrites !== null &&
     acceptsThreads(forum) &&
@@ -234,8 +243,9 @@ export default async function ForumPage({
     ),
     ownThreadsOnlyForumIds,
     page: threadPage,
-    pageNumber: page,
-    nextHref,
+    pageNumber: pager.page,
+    nextHref: pager.nextHref,
+    pagination: pager,
     readState: read,
     markReadAction: read === null ? null : `/api/read/forum/${id}`,
     now: new Date(),

@@ -13,6 +13,7 @@ import { notificationService } from '@/server/notifications'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { currentTheme } from '@/server/theme'
 import { buildNotificationCentreView, notificationNotice } from '@/view/notifications'
+import { PanelPagination } from '@/components/shell/panel-pagination'
 
 export const metadata: Metadata = { title: 'Notifications' }
 
@@ -121,14 +122,12 @@ export default async function NotificationsPage({
         </ul>
       )}
 
-      {view.nextHref !== null && (
-        <a
-          href={view.nextHref}
-          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          Older notifications
-        </a>
-      )}
+      <PanelPagination
+        path="/notifications"
+        params={query}
+        cursorParams={['after']}
+        nextCursor={page.nextCursor === undefined || page.nextCursor === null ? null : { after: String(page.nextCursor) }}
+      />
     </PanelPage>
   )
 }

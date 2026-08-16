@@ -391,6 +391,32 @@ into every theme, where it becomes a timezone-dependent hydration mismatch. A
 timestamp crosses as `TimeModel` (`iso` + a preformatted `label`); paging crosses
 as resolved hrefs, never a function that builds them.
 
+### Paging: one builder, and what a cursor can honestly say
+
+Every paged list — the members list, the logs, the queues, the inbox, a forum's
+threads, a search — builds its pager with `buildPager` in `src/view/pager.ts`
+and hands the result to the `Pagination` slot. Pages do not hand-roll a "Next"
+link; that is how the board ended up with eight of them, each with its own idea
+of which query parameters survive a page turn.
+
+The lists are keyset-paged, which buys a cursor that does not slow down at page
+900 and costs the two things offset paging gives away for free:
+
+- **Backwards.** A cursor points one way, so the pager carries the cursors it
+  has already used in a `seen` parameter and walks back down it. That makes
+  Previous — and a link to any page already visited — an address rather than
+  browser state, so it survives a reload and can be handed to somebody else.
+  The trail is capped at `TRAIL_LIMIT` entries; past that the earliest pages
+  fall off and page one is still one click away.
+- **A total.** `pageCount` is a floor, not a count, unless the page passes a
+  `total` it already knows — a forum knows its `threadCount`, so its pager says
+  "Page 3 of 12" and everything else says "Page 3". `pageCountIsExact` is which
+  of the two a theme is looking at, and a theme that ignores it prints a number
+  nobody checked.
+
+Jumping *forward* to an arbitrary page is the thing this shape cannot do, and
+the pager does not pretend otherwise: it offers no link it cannot address.
+
 **Never link to a route that does not exist.** The user-panel builder earned
 this rule by example: while the profile and control-panel screens were unbuilt,
 `buildUserPanelModel` returned an empty link list rather than advertising pages

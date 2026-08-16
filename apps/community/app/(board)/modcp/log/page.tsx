@@ -16,6 +16,7 @@ import { getContainer } from '@/server/container'
 import { resolveModCpAccess } from '@/server/modcp'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
+import { PanelPagination } from '@/components/shell/panel-pagination'
 
 export const metadata: Metadata = { title: 'Moderator log' }
 
@@ -85,16 +86,14 @@ export default async function ModLogPage({
           </CardRows>
         )}
 
-        {page.nextCursor !== undefined && (
-          <CardFooter>
-            <a
-              href={`/modcp/log?after=${encodeURIComponent(page.nextCursor)}`}
-              className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-            >
-              Older entries
-            </a>
-          </CardFooter>
-        )}
+        <CardFooter>
+          <PanelPagination
+            path="/modcp/log"
+            params={query}
+            cursorParams={['after']}
+            nextCursor={page.nextCursor === undefined || page.nextCursor === null ? null : { after: String(page.nextCursor) }}
+          />
+        </CardFooter>
       </Card>
     </PanelPage>
   )
