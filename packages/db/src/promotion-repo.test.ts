@@ -77,6 +77,14 @@ async function groupOf(userId: number): Promise<number | null> {
   return row?.g ?? null
 }
 
+async function displayGroupOf(userId: number): Promise<number | null> {
+  const [row] = await db
+    .select({ g: users.displayGroupId })
+    .from(users)
+    .where(eq(users.id, userId))
+  return row?.g ?? null
+}
+
 function service() {
   return new PromotionService({ promotions: repo, guards: GUARDS })
 }
@@ -124,6 +132,38 @@ describe('applying', () => {
       .from(cacheVersions)
       .where(eq(cacheVersions.key, 'permissions'))
     expect(version?.v).toBe(1)
+  })
+
+  it('keeps a display group the member chose for themselves', async () => {
+    await addRule()
+    await addUser(1, { postCount: 150 })
+    await addUser(2, { postCount: 150 })
+    await db.execute(sql`update users set display_group_id = ${ADMINS} where id = 1`)
+
+    await service().apply()
+
+    expect(await displayGroupOf(1)).toBe(ADMINS)
+    expect(await displayGroupOf(2)).toBeNull()
+  })
+
+  it('clears a display group pinned to the group the promotion moves them out of', async () => {
+    await addRule()
+    await addUser(1, { postCount: 150 })
+    await db.execute(sql`update users set display_group_id = ${REGISTERED} where id = 1`)
+
+    await service().apply()
+
+    expect(await displayGroupOf(1)).toBeNull()
+  })
+
+  it('stores nothing when the chosen group is the one being promoted into', async () => {
+    await addRule()
+    await addUser(1, { postCount: 150 })
+    await db.execute(sql`update users set display_group_id = ${VETERAN} where id = 1`)
+
+    await service().apply()
+
+    expect(await displayGroupOf(1)).toBeNull()
   })
 
   it('is idempotent across repeated runs', async () => {

@@ -24,10 +24,17 @@ export default async function AdminMassMailPage() {
     )
   }
 
-  const [groups, audience] = await Promise.all([
+  const [groups, everybody, byGroup] = await Promise.all([
     users.listGroups(),
     bulk.massMailAudience(null),
+    bulk.massMailAudienceByGroup(),
   ])
+
+  const audiences = groups.map((group) => ({
+    id: group.id,
+    title: group.title,
+    audience: byGroup.get(group.id) ?? 0,
+  }))
 
   return (
     <PanelPage
@@ -42,7 +49,7 @@ export default async function AdminMassMailPage() {
       }
     >
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <MassMailForm groups={groups} audience={audience} />
+        <MassMailForm groups={audiences} audience={everybody} />
       </section>
 
       <div className="flex flex-col gap-2 rounded-lg border border-border p-4 text-xs text-muted-foreground">

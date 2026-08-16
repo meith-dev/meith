@@ -497,6 +497,23 @@ it lapses, and a member wearing it goes back to their primary group — they
 cannot pin a badge to a membership they no longer hold. The picker is not shown
 at all to a member who is only in one group.
 
+**An administrator moving somebody between groups does not silently take that
+choice away.** Promotions, a mass move of one group's members into another, and
+deleting a group and rehoming its members all change the *primary* group, and
+all three leave an explicit display group alone. Two cases are the exception,
+and in both of them the stored choice has stopped meaning anything:
+
+- The member was displaying the group they are being moved out of, or the group
+  being deleted. That badge no longer describes a group they hold, so it is
+  cleared and they go back to showing their new primary group.
+- The member was displaying the group they are being moved *into*. That is now
+  their primary group, and the convention above is that picking your primary
+  group stores nothing — so the row is cleared rather than left pinned, and the
+  choice goes on following the primary group if it changes again.
+
+Everything else — a badge from a secondary membership, a paid group, anything
+the member picked for themselves — survives the move untouched.
+
 **Staff are shown as staff, and have no choice about it.** A member whose
 primary group is a staff group — or any group carrying administrative or
 moderation power — is displayed as that group everywhere: the postbit, the
@@ -1220,6 +1237,31 @@ is safe to delete and a sticky thread is not.
 
 Dates are entered in UTC.
 
+## The moderation queue
+
+`/modcp` lists what is waiting for approval in the forums you moderate: held
+threads, and held replies. It is a queue of **decisions that can actually be
+carried out**, and two rules keep it that way.
+
+**A held reply inside a thread that is itself held is not listed.** Approving
+the thread is what puts it in front of anybody, so the reply is not a separate
+decision.
+
+**A held reply whose thread has been deleted is not listed either.** Approving
+it would mark it visible inside a thread nobody can reach, and — because
+approving a post is what adds it to the forum's and the author's post counts —
+would move counters for something the board does not show. The counters would
+then disagree with the visible board until the next recount. Restoring the
+thread brings its held replies back into the queue, where the decision means
+something again.
+
+The exclusion is enforced where the decision is applied, not only where the
+queue is drawn, so a selection assembled by hand gets the same answer: the reply
+is reported as no longer pending rather than approved. The pending count on the
+panel counts the same set the list shows. The inline moderation tools on a
+thread page follow the same rule — **Approve** does not apply to a reply whose
+thread is not visible.
+
 ## Reputation
 
 `/admin/settings` under **Reputation**. Four settings, and the first two decide
@@ -1257,6 +1299,49 @@ really leaves, and a total that has somehow drifted repairs itself the next time
 anybody rates that member. Editing `users.reputation` by hand therefore does
 nothing lasting — use **Recount & rebuild** on `/admin/system` if you need it
 corrected.
+
+## Member state and bans
+
+An account's **state** — active, or awaiting activation — and a **ban** are two
+different things, kept in two different places. The state is a column on the
+account; a ban is a record, with a reason, an expiry and the group the member
+held before it. Banning through `/admin/users/[id]` writes the record; it does
+not flip the state column.
+
+Because of that, the state form on the member's screen is not shown at all while
+a ban is in force, and **the server refuses the change too** — it looks for an
+unlifted ban record, not just for the word `banned` in the state column, so a
+request sent straight to the action gets the same answer the screen gives. Lift
+the ban and the form comes back.
+
+Issuing a ban from the state form is refused outright: bans belong to the ban
+screen, which is the only path that records who did it, why, and what to restore.
+
+## Pruning dormant accounts
+
+`/admin/users/prune` closes accounts in batches: a registration date, optionally
+a "not seen since" date, optionally only accounts still awaiting activation. It
+**closes** rather than deletes — the row stays, with `deleted_at` set — so a
+wrong date is recoverable.
+
+The screen previews before it acts, and the preview and the execution are built
+from the same predicate, so what you were shown is what gets closed.
+
+Four exclusions are unconditional, and none of them is a checkbox:
+
+- **Anybody who has written anything.** Not "anybody with a post count" — the
+  count only tracks posts the board currently shows, and a member whose only
+  contributions are held for approval or have been removed by a moderator has
+  still posted. The prune looks for the posts and threads themselves, whatever
+  their state, as well as at the counters.
+- **Anybody in a staff group.** That means the same thing here as it does in the
+  postbit: the **staff group** switch, *or* any group carrying administrative or
+  moderation power, held as a primary group or as an additional one. A group
+  with `Can approve content` ticked and the staff switch left off is still
+  staff as far as the prune is concerned.
+- **Any forum moderator**, whatever group they are in.
+- **Any banned account**, whether the ban is a state on the account or an
+  unlifted ban record. A lifted ban does not protect an account.
 
 ## Mail
 
@@ -1464,8 +1549,34 @@ community task:run                     # run the tick once, so queued mail leave
 
 The two secrets are write-only from the operator's side: the panel renders them
 as empty password boxes and a blank one means *unchanged* rather than *clear it*,
-and `community env:check` and the audit log both refuse to print them. To clear one
-deliberately, set it to the empty string.
+and `community env:check` and the audit log both refuse to print them.
+
+Clearing one is therefore a separate, deliberate act rather than a side effect of
+saving an empty box — otherwise every accidental save of the mail page would wipe
+the key. Once a secret is stored, a **Clear the stored value and go back to the
+default** tick-box appears under its field; tick it and save, and the stored
+value is removed. Ticking it wins over anything typed into the box in the same
+submit, so there is no ambiguity about which one you meant. The box is not
+offered when nothing is stored, because there would be nothing to clear.
+
+`community settings:set mail.http_token ''` does the same thing from the command
+line.
+
+### Who a mass mail reaches
+
+`/admin/users/mail` sends to everybody, or to one group. Either way it reaches
+only accounts that are **active, not closed, and have a verified address** — an
+unverified address is as often a typo as it is the member's.
+
+The **Send to** list carries the size of each audience in brackets beside it, and
+those numbers are the real thing: they are counted with the same rules the send
+itself uses, so the figure beside a group is how many messages choosing that
+group will queue. A group counts members who hold it as their primary group and
+members who hold it as an additional one, each member once.
+
+The numbers are counted when the page is rendered, not as you change the
+selection — the screen carries no JavaScript, and every audience is on it
+already, so there is nothing to update. Reload the page for a fresh count.
 
 ### Queued mail needs the tick
 

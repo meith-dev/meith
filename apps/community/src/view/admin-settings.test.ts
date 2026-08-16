@@ -112,6 +112,26 @@ describe('values', () => {
     expect(built.groups[0]?.settings.find((s) => s.key === secret.key)?.value).toBe('')
   })
 
+  it('offers a way to clear a secret only once one is stored', () => {
+    const empty = buildAdminSettingsModel({
+      snapshot: SettingsSnapshot.fromOverrides(new Map()),
+      group: 'mail',
+      advanced: true,
+    })
+    const stored = buildAdminSettingsModel({
+      snapshot: SettingsSnapshot.fromOverrides(new Map([['mail.http_token', 'live-key']])),
+      group: 'mail',
+      advanced: true,
+    })
+
+    const find = (built: ReturnType<typeof buildAdminSettingsModel>) =>
+      built.groups[0]?.settings.find((s) => s.key === 'mail.http_token')
+
+    expect(find(empty)?.clearName).toBeNull()
+    expect(find(stored)?.clearName).toBe('mail.http_token__clear')
+    expect(find(stored)?.value).toBe('')
+  })
+
   it('reads a boolean as checked rather than as a string', () => {
     const snapshot = SettingsSnapshot.fromOverrides(new Map([['search.enabled', 'false']]))
     const built = buildAdminSettingsModel({ snapshot, group: 'search' })

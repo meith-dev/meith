@@ -223,7 +223,7 @@ function isApplicable(
     case 'approve':
       return (
         target.visibility === 'unapproved' &&
-        (target.kind === 'thread' || target.threadVisibility !== 'unapproved')
+        (target.kind === 'thread' || target.threadVisibility === 'visible')
       )
     case 'delete':
       return target.visibility === 'visible'

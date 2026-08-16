@@ -19,6 +19,7 @@ export {
 
 export {
   coerceFormValue,
+  secretClearField,
   settingField,
   type SettingField,
   type SettingOption,
