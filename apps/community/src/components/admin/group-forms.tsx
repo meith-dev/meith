@@ -172,7 +172,11 @@ export function GroupIdentityForm({
           Lets an installed plugin put members in this group for a limited time — a paid
           pass, a trial. Refused for system and staff groups, and for any group whose
           permissions carry administrative or moderation power. Membership a plugin
-          grants always expires and never changes anyone&rsquo;s primary group.
+          grants always expires. A plugin may ask for the group to become the
+          member&rsquo;s primary one, which is what a plugin selling membership normally
+          wants: the group they were primary in becomes a secondary membership and comes
+          back the moment the grant is revoked or lapses. A staff member&rsquo;s primary
+          group is never displaced — staff is appointed, and a purchase cannot move it.
         </span>
       </label>
 
