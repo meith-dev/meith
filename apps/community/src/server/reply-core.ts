@@ -5,7 +5,13 @@ import type { Actor } from '@meith/authorization'
 import { ReplyComposer, type AuthorRestriction, type ReplyTarget } from '@meith/threads'
 import { restrictsPosting } from '@meith/moderation'
 
-import { holdsNewMember, limitMessage, spendLimit } from './antispam'
+import {
+  dailyLimitMessage,
+  holdsNewMember,
+  limitMessage,
+  spendDailyLimit,
+  spendLimit,
+} from './antispam'
 import { emitEvent, viewerRef } from './plugin-view'
 import { getContainer } from './container'
 import { notifyPostAudience } from './post-notifications'
@@ -76,6 +82,11 @@ export async function submitReply(
 
   const limited = await spendLimit({ scope: 'post', actor, settings })
   if (limited !== null && !limited.allowed) throw new ValidationError(limitMessage(limited))
+
+  const daily = await spendDailyLimit({ scope: 'post_day', actor })
+  if (daily !== null && !daily.allowed) {
+    throw new ValidationError(dailyLimitMessage('post_day', daily))
+  }
 
   const composer = new ReplyComposer({
     posts: threadWrites,

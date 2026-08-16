@@ -626,6 +626,26 @@ group that was barred for holding real moderation power still is. A group whose
 *only* power was this dead column — which granted nothing — stops being treated
 as powerful, which is now the truth about it.
 
+### `maxPostsPerDay` is enforced now
+
+"Daily post cap. 0 = unlimited" was stored, resolved and shown as an effective
+number, and no write path looked at it. A group set to five posts a day could
+post five thousand.
+
+It is spent now, in the write path, against the same database counters the
+hourly anti-spam limits already use — one shared allowance across every instance
+of your board, over a **UTC day**. Threads and replies come off the same
+allowance, and the REST API's reply endpoint spends it too, since both go
+through the composer rather than the page.
+
+**Check your groups before you deploy this.** `0` still means unlimited and is
+the default, so a board that never touched the field is unaffected. A board that
+*did* set a number — believing it was doing something — will start enforcing it,
+and the number may be one nobody has looked at in a while. Note that *bypass
+flood check* does not lift this cap: it covers the flood interval and the hourly
+limits, which are board settings, while this one is carried by the group. To
+exempt a group, set its value to `0`.
+
 ## What the CLI applies
 
 `community upgrade` applies **core migrations, then each installed plugin's, then

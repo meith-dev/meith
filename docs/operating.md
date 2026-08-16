@@ -436,6 +436,32 @@ combine as the **most generous** value across a member's groups.
 > [!NOTE]
 > **`0` means unlimited, not none.** A cell showing `0` is not a restriction.
 
+### The daily post allowance
+
+`maxPostsPerDay` is a board-wide numeric permission and it caps **threads and
+replies together**, so replying is not a way around a cap set on posting. It is
+spent in the write path, on the same counters the anti-spam limits use, which
+means every instance of your board shares one allowance rather than getting one
+each.
+
+- **`0` is unlimited**, as everywhere else. Because numeric permissions combine
+  as the most generous value, a member in *any* group with `0` has no cap —
+  which is how you exempt somebody: put them in a group that sets it to `0`
+  rather than looking for a bypass switch.
+- **The day is a UTC day.** The allowance resets at midnight UTC, not at
+  midnight in the board's display timezone, because the counter is a fixed
+  window rather than a per-member calendar.
+- **Guests are not counted.** The cap is per member id, and a guest cannot post
+  in the first place.
+- **Bypass flood check does not lift it.** That permission is about the interval
+  between two actions and the hourly anti-spam limits, both of which are board
+  settings; this one is a grant the group itself carries, so the group's own
+  value is what exempts it.
+
+Somebody who has spent their allowance is told so, and told roughly when it
+comes back — the message speaks in hours, since "try again in 1,290 minutes" is
+not an answer.
+
 ### Reading the matrix
 
 `/admin/forums` holds it. Each cell shows what it resolves to *and which forum it
@@ -1579,6 +1605,11 @@ form is a separate door with limits of its own.
 A script satisfies any interval you would be willing to set — every 31 seconds,
 all night, is thousands of posts and never breaks the rule. Use both. Members
 with **bypass flood check** are exempt from both.
+
+There is a third control, and it is not on this screen: `maxPostsPerDay` is a
+**group permission** rather than a board setting, so it caps a particular group
+rather than everybody, and *bypass flood check* does not lift it. See [the daily
+post allowance](#the-daily-post-allowance).
 
 Limits are counted in the database, so every instance of your board shares one
 allowance rather than getting one each. The counters are pruned hourly by the

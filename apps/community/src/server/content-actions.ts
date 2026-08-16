@@ -18,7 +18,13 @@ import { activeVocabulary } from './content-admin'
 
 import { attachStaged, stageAttachments, submittedFiles } from './attachments'
 import { getActor } from './context'
-import { holdsNewMember, limitMessage, spendLimit } from './antispam'
+import {
+  dailyLimitMessage,
+  holdsNewMember,
+  limitMessage,
+  spendDailyLimit,
+  spendLimit,
+} from './antispam'
 import { getContainer } from './container'
 import { notifyPostAudience } from './post-notifications'
 import { resolveReplyTarget, submitReply } from './reply-core'
@@ -147,6 +153,11 @@ export async function createThreadAction(
     const limited = await spendLimit({ scope: 'post', actor, settings })
     if (limited !== null && !limited.allowed) {
       return { error: limitMessage(limited), values }
+    }
+
+    const daily = await spendDailyLimit({ scope: 'post_day', actor })
+    if (daily !== null && !daily.allowed) {
+      return { error: dailyLimitMessage('post_day', daily), values }
     }
 
     const composer = new ThreadComposer({

@@ -1,6 +1,8 @@
 export {
   AUTH_RATE_LIMIT_SCOPES,
+  DAY_SECONDS,
   FIXED_RATE_LIMIT_SCOPES,
+  GROUP_RATE_LIMIT_SCOPES,
   RATE_LIMIT_SCOPES,
   RateLimiter,
   isRateLimitScope,
@@ -9,6 +11,7 @@ export {
   type AuthRateLimitScope,
   type ConfiguredRateLimitScope,
   type FixedRateLimitScope,
+  type GroupRateLimitScope,
   type RateLimitOutcome,
   type RateLimitRule,
   type RateLimitScope,
