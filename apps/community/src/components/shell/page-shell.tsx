@@ -114,7 +114,7 @@ export async function PageShell({
         </UserPanel>
       </Header>
 
-      {boardRegion('header.notice', actor)}
+      {await boardRegion('header.notice', actor)}
 
       {children}
 

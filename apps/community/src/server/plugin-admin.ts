@@ -15,7 +15,7 @@ import {
 } from '@meith/plugin-kit'
 
 import forumConfig from '../../community.config'
-import { configuredPlugins, pluginHost } from './plugin-host'
+import { configuredPlugins, pluginHost, syncOperatorDisables } from './plugin-host'
 import { getSettingOverrides } from './settings'
 
 export type PluginSettingKind = PluginSettingType
@@ -110,6 +110,7 @@ async function appliedByPlugin(
 export async function pluginInventory(): Promise<PluginInventory> {
   const definitions = definitionsByKey()
   const overrides = await getSettingOverrides()
+  await syncOperatorDisables()
   const health = new Map(pluginHost.health().map((entry) => [entry.key, entry]))
 
   const withMigrations = [...definitions]

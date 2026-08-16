@@ -452,6 +452,14 @@ leaves the board as a fresh install. It keeps the row when the board has turned
 the theme off, because putting colours back must not put a theme back in
 everybody's switcher.
 
+**Reset and import ask for your password again.** Both replace every stored
+override for that theme in one press and neither has an undo, so they are
+treated the way the panel treats a ban or a forum move: if it has been a while
+since you signed in to the panel, you confirm before it happens. The reversible
+controls on the same screen — turning a theme on or off, moving the default,
+saving the palette from the editor — do not ask, because each of them is undone
+by the control beside it.
+
 ### A board in a club's colours
 
 `clubhouse` is the theme shipped for a sports club — GAA, soccer, basketball,
@@ -689,6 +697,18 @@ plugin's scheduled tasks stop too: the switch is checked each time one comes
 due, so the worker skips them without a restart. Reach for it when a plugin is
 misbehaving — you do not need to deploy to stop one.
 
+Because it takes a live capability off the whole board at once, **disabling asks
+for your password again** when your panel sign-in has gone stale. Enabling does
+not: it is the undo, and nothing is lost by pressing it.
+
+**The switch is read before the screen answers, not after.** Every server has an
+in-memory copy of which plugins the operator has switched off, and a process
+that has just started has not read the settings table yet. Anything that renders
+a plugin's contribution or reports "Running on this server" reconciles that copy
+first, so a plugin you switched off yesterday is off in the first response from
+a server that booted this morning — rather than off only once some other request
+happened to refresh it.
+
 **The panel never runs migrations.** It tells you which are outstanding;
 `community upgrade` applies them.
 
@@ -704,6 +724,15 @@ field is write-only; the board will tell you a value is set but never show
 it — or supplied as the environment variable named beside the field, which
 overrides the panel and greys its box. Prefer the environment where you can
 set one: it keeps credentials out of the database and out of backups.
+
+**A greyed field is not saved over.** Any setting the environment owns is left
+out of the write entirely, whatever kind it is — a tickbox as much as a text
+box. A greyed control submits nothing, so a save that took the absence at face
+value would store the *empty* answer under it: a switch showing "on" from the
+environment would quietly acquire a stored "off" that nobody chose and nobody
+could see, and the day the variable came out of the environment the plugin would
+change behaviour. The screen already knows which fields the environment owns —
+it is what greys them — and the save now skips exactly those.
 
 > [!WARNING]
 > A plugin with unapplied migrations is running against a schema that does not

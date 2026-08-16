@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
 const requireAdminMock = vi.fn(async () => ({ session: { userId: 1 } }))
+const requireFreshAdminMock = vi.fn(async () => ({ session: { userId: 1 } }))
 const revalidated: string[] = []
 vi.mock('next/cache', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>
@@ -15,7 +16,7 @@ vi.mock('next/cache', async (importOriginal) => {
 
 vi.mock('./admin', () => ({
   requireAdmin: () => requireAdminMock(),
-  requireFreshAdmin: () => requireAdminMock(),
+  requireFreshAdmin: () => requireFreshAdminMock(),
   recordAdminAction: async (input: { action: string; detail?: unknown }) => {
     adminCalls.push({ action: input.action, detail: input.detail })
   },
@@ -95,7 +96,15 @@ beforeEach(() => {
   defaults.length = 0
   requireAdminMock.mockClear()
   requireAdminMock.mockResolvedValue({ session: { userId: 1 } })
+  requireFreshAdminMock.mockClear()
+  requireFreshAdminMock.mockResolvedValue({ session: { userId: 1 } })
 })
+
+const staleProof = () =>
+  Object.assign(new Error('confirm'), {
+    code: 'FORBIDDEN',
+    publicMessage: 'Confirm your password again before doing this.',
+  })
 
 describe('the admin gate', () => {
   it('is asked for on every write', async () => {
@@ -103,7 +112,59 @@ describe('the admin gate', () => {
     await resetThemeAction({}, form({ key: 'default' }))
     await setThemeEnabledAction({}, form({ key: 'midnight', enabled: 'false' }))
     await setDefaultThemeAction({}, form({ key: 'midnight' }))
-    expect(requireAdminMock).toHaveBeenCalledTimes(4)
+    expect(requireAdminMock).toHaveBeenCalledTimes(3)
+    expect(requireFreshAdminMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('asks for a fresh password before throwing every override away', async () => {
+    await resetThemeAction({}, form({ key: 'default' }))
+    await importThemeAction(
+      {},
+      form({
+        key: 'default',
+        document: JSON.stringify({ version: 1, tokenOverrides: {}, customCss: null }),
+      }),
+    )
+
+    expect(requireFreshAdminMock).toHaveBeenCalledTimes(2)
+    expect(requireAdminMock).not.toHaveBeenCalled()
+  })
+
+  it('destroys nothing when the proof is stale', async () => {
+    requireFreshAdminMock.mockRejectedValue(staleProof())
+
+    const reset = await resetThemeAction({}, form({ key: 'default' }))
+    const imported = await importThemeAction(
+      {},
+      form({
+        key: 'default',
+        document: JSON.stringify({
+          version: 2,
+          tokenOverrides: { light: { primary: '#abcdef' }, dark: {} },
+          customCss: null,
+        }),
+      }),
+    )
+
+    expect(reset.error).toBeDefined()
+    expect(imported.error).toBeDefined()
+    expect(resets).toEqual([])
+    expect(saved).toEqual([])
+    expect(invalidated).toEqual([])
+    expect(adminCalls).toEqual([])
+  })
+
+  it('lets the reversible writes through on the panel session alone', async () => {
+    requireFreshAdminMock.mockRejectedValue(staleProof())
+
+    const editing = await saveThemeAction({}, form({ key: 'default', 'token.both.radius': '1rem' }))
+    const off = await setThemeEnabledAction({}, form({ key: 'midnight', enabled: 'false' }))
+    const made = await setDefaultThemeAction({}, form({ key: 'midnight' }))
+
+    expect(editing.notice).toBe('saved')
+    expect(off.notice).toBe('disabled')
+    expect(made.notice).toBe('default')
+    expect(requireFreshAdminMock).not.toHaveBeenCalled()
   })
 
   it('writes nothing when it refuses', async () => {

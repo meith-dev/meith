@@ -34,10 +34,12 @@ export async function emitEvent<K extends HookName>(
   await pluginHost.emit(name, value, context)
 }
 
-export function pluginRegion(
+export async function pluginRegion(
   region: PluginRegion,
   context: Omit<PluginRegionContext, 'region'>,
-): React.ReactNode {
+): Promise<React.ReactNode> {
+  await syncOperatorDisables()
+
   const nodes = pluginHost.renderRegion(region, { ...context, region })
   if (nodes.length === 0) return null
 
@@ -50,6 +52,9 @@ export function pluginRegion(
   )
 }
 
-export function boardRegion(region: PluginRegion, actor: Actor): React.ReactNode {
+export async function boardRegion(
+  region: PluginRegion,
+  actor: Actor,
+): Promise<React.ReactNode> {
   return pluginRegion(region, { viewer: viewerRef(actor), subjectId: null, authorId: null })
 }

@@ -473,12 +473,12 @@ export default async function ThreadPage({
                 )}
               </PostActions>
             ),
-            pluginBadges: pluginRegion('postbit.badges', {
+            pluginBadges: await pluginRegion('postbit.badges', {
               viewer: viewerRef(actor),
               subjectId: post.id,
               authorId: post.author.userId,
             }),
-            pluginFooter: pluginRegion('postbit.footer', {
+            pluginFooter: await pluginRegion('postbit.footer', {
               viewer: viewerRef(actor),
               subjectId: post.id,
               authorId: post.author.userId,
