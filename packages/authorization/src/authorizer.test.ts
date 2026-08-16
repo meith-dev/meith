@@ -113,6 +113,43 @@ describe('flood.bypass', () => {
   })
 })
 
+describe('board.viewOffline', () => {
+  it('is granted by the permission, without any forum context', () => {
+    const actor = actorWith({ canViewBoardOffline: true })
+
+    expect(new Authorizer(source).can(actor, 'board.viewOffline')).toBe(true)
+  })
+
+  it('is denied to an ordinary member', () => {
+    expect(new Authorizer(source).can(actorWith({}), 'board.viewOffline')).toBe(false)
+  })
+
+  it('is denied to a guest', () => {
+    const guest = actorWith({}, { userId: null, groupIds: [1], state: 'guest' })
+    expect(new Authorizer(source).can(guest, 'board.viewOffline')).toBe(false)
+  })
+
+  it('is force-granted to an administrator, so maintenance can be finished', () => {
+    const onBypass = vi.fn()
+    const admin = actorWith({ isAdministrator: true, canViewBoardOffline: false })
+
+    expect(new Authorizer(source, { onBypass }).can(admin, 'board.viewOffline')).toBe(true)
+    expect(onBypass).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'administrator', action: 'board.viewOffline' }),
+    )
+  })
+
+  it('is NOT force-granted to a super-moderator', () => {
+    const superMod = actorWith({ isSuperModerator: true, canViewBoardOffline: false })
+    expect(new Authorizer(source).can(superMod, 'board.viewOffline')).toBe(false)
+  })
+
+  it('is denied to a banned member who holds it', () => {
+    const banned = actorWith({ canViewBoardOffline: true }, { state: 'banned' })
+    expect(new Authorizer(source).can(banned, 'board.viewOffline')).toBe(false)
+  })
+})
+
 describe('applicableGroupRows', () => {
   const rows = [
     { fieldId: 1, groupId: 2, canView: true },

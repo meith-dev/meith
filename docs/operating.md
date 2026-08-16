@@ -150,6 +150,44 @@ community settings:get board.name
 community settings:set board.name "The Townland"
 ```
 
+### Taking the board offline
+
+**Board offline** — under `/admin/settings`, in the advanced part of the board
+group — closes the board while you work on it. It is a switch, not a deploy:
+
+```sh
+community settings:set board.offline true
+community settings:set board.offline_message "Back within the hour."
+```
+
+Every page under the board itself — the index, forums, threads, search, the
+member pages, the user and moderator panels — is replaced by a single page
+carrying **Offline message**. Left empty, that page falls back to a plain
+maintenance line rather than rendering nothing. The board's RSS and Atom feeds
+answer `503` with the same text, and the board stops being indexable:
+`robots.txt` becomes `Disallow: /` and the sitemap 404s, which is what an
+offline board already did before it closed anything.
+
+Three things stay reachable, because otherwise the switch would be a lock with
+the key inside:
+
+- **`/login`**, so an administrator who is not signed in can become one.
+- **`/admin`**, which is the screen you turn the setting back off from. It has
+  its own gate — `admincp.access`, and the password prompt — and always did.
+- **`/api/health`**, so whatever is watching the deployment does not report the
+  board as dead while you are working on it.
+
+Who gets through is one permission: **can view board offline**
+(`canViewBoardOffline`), on `/admin/groups/[id]` like every other board-wide
+right. Administrators — anyone whose group carries `isAdministrator` — get
+through whether or not the box is ticked, so a board can always be reopened.
+Grant it to a group to let, say, your moderators check their work while the
+board is closed to everyone else.
+
+> [!NOTE]
+> Offline is not a security boundary. It closes the board's own pages; it is not
+> a substitute for the forum permissions that decide who may read what.
+
 ## The operator CLI
 
 Everything you should not need a browser for: migrations, users, forums,

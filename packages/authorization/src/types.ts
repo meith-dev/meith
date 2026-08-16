@@ -47,6 +47,7 @@ export type Action =
   | 'content.report'
   | 'modcp.access'
   | 'admincp.access'
+  | 'board.viewOffline'
   | 'user.warn'
   | 'flood.bypass'
   | 'reputation.give'

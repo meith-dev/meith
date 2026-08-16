@@ -87,8 +87,11 @@ export const SETTING_DEFINITIONS = [
     group: 'board',
     label: 'Board offline',
     description:
-      'Closes the board to everyone without the "can view board offline" ' +
-      'permission. Administrators keep access so they can finish maintenance.',
+      'Closes every board page to everyone without the "can view board offline" ' +
+      'permission: they get the offline message instead, and the board’s feeds ' +
+      'answer 503. Administrators keep access so they can finish maintenance, and ' +
+      'the login screen, the control panel and the health endpoint stay reachable. ' +
+      'An offline board is never indexable.',
     schema: z.boolean(),
     default: false,
     invalidates: ['settings', 'layout'],
@@ -98,7 +101,9 @@ export const SETTING_DEFINITIONS = [
     key: 'board.offline_message',
     group: 'board',
     label: 'Offline message',
-    description: 'Shown to visitors while the board is offline.',
+    description:
+      'Shown on the offline page, and returned as the body of the 503 the feeds ' +
+      'answer with. Left empty, a plain maintenance line is shown instead.',
     schema: z.string().max(2000),
     default: 'The board is temporarily unavailable for maintenance.',
     invalidates: ['settings'],

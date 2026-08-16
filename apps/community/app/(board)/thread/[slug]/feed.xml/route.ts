@@ -1,5 +1,5 @@
 import { feedFor } from '@/server/feed-builder'
-import { feedResponse, noFeed } from '@/server/feed-routes'
+import { feedResponse, noFeed, offlineFeed } from '@/server/feed-routes'
 import { FEED_LIMIT, feedRepository, origin, publicScope } from '@/server/syndication'
 import { leadingId } from '@/view/slug-id'
 
@@ -9,6 +9,9 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ): Promise<Response> {
+  const offline = await offlineFeed()
+  if (offline !== null) return offline
+
   const repo = feedRepository()
   if (repo === null) return noFeed()
 

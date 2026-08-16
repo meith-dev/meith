@@ -70,6 +70,7 @@ const ADMIN_ALWAYS: ReadonlySet<Action> = new Set<Action>([
   'reputation.give',
   'signature.use',
   'flood.bypass',
+  'board.viewOffline',
 ])
 
 export class Authorizer {
@@ -445,6 +446,8 @@ export class Authorizer {
         return actor.global.canAccessAdminCp === true
       case 'flood.bypass':
         return actor.global.canBypassFloodCheck === true
+      case 'board.viewOffline':
+        return actor.global.canViewBoardOffline === true
       default:
         return false
     }
