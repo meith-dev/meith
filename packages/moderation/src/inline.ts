@@ -28,6 +28,8 @@ export interface InlineRights {
   readonly move: boolean
   readonly deleteThreads: boolean
   readonly deletePosts: boolean
+  readonly restoreThreads: boolean
+  readonly restorePosts: boolean
 }
 
 export const NO_INLINE_RIGHTS: InlineRights = {
@@ -37,6 +39,8 @@ export const NO_INLINE_RIGHTS: InlineRights = {
   move: false,
   deleteThreads: false,
   deletePosts: false,
+  restoreThreads: false,
+  restorePosts: false,
 }
 
 export interface InlineRightsResolver {
@@ -194,8 +198,9 @@ function holdsRight(
     case 'approve':
       return rights.approve
     case 'delete':
-    case 'restore':
       return kind === 'thread' ? rights.deleteThreads : rights.deletePosts
+    case 'restore':
+      return kind === 'thread' ? rights.restoreThreads : rights.restorePosts
     case 'lock':
     case 'unlock':
       return rights.lock
@@ -265,5 +270,5 @@ export const INLINE_TOOL_ACTIONS = {
   unstick: ['thread.stick'],
   move: ['thread.move'],
   delete: ['thread.delete', 'post.softDelete'],
-  restore: ['thread.delete', 'post.softDelete'],
+  restore: ['thread.restore', 'post.restore'],
 } as const satisfies Readonly<Record<InlineTool, readonly string[]>>

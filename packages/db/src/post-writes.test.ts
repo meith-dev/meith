@@ -156,12 +156,13 @@ async function postRow(id: number): Promise<{
   visibility: string
   revision_count: number
   edit_reason: string | null
+  edited_at: Date | null
   edited_by_user_id: number | null
 }> {
   const rows = resultRows(
     await db.execute(sql`
       select message, message_html, render_version, visibility, revision_count,
-             edit_reason, edited_by_user_id
+             edit_reason, edited_at, edited_by_user_id
         from posts where id = ${id}
     `),
   ) as Array<{
@@ -171,6 +172,7 @@ async function postRow(id: number): Promise<{
     visibility: string
     revision_count: number
     edit_reason: string | null
+    edited_at: Date | null
     edited_by_user_id: number | null
   }>
   return { ...rows[0]!, render_version: Number(rows[0]!.render_version) }
@@ -205,6 +207,7 @@ describe('applyEdit', () => {
     reason: 'typo',
     editedByUserId: AUTHOR,
     editedAt: new Date('2026-07-30T13:00:00Z'),
+    silent: false,
     previousMessage: 'reply 0',
     previousSubject: null,
     revision: 1,
@@ -276,7 +279,7 @@ describe('applyEdit', () => {
 
     const found = await new PostgresSearchRepository(db).search(
       { terms: 'hello', match: 'everything', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
-      { forumIds: [FORUM], viewerUserId: null, content: PUBLIC_CONTENT },
+      { forumIds: [FORUM], ownThreadsOnlyForumIds: [], viewerUserId: null, content: PUBLIC_CONTENT },
     )
     expect(found.hits.map((hit) => hit.postId)).toEqual([first])
   })
@@ -291,6 +294,60 @@ describe('applyEdit', () => {
     await repo.applyEdit(edit(postIds[1]!, threadId))
 
     expect(await search.indexProgress()).toEqual({ indexed: 1, pending: 1 })
+  })
+
+  it('leaves the reader-facing notice alone on a silent edit', async () => {
+    const { threadId, postIds } = await seedThread()
+    await repo.applyEdit(edit(postIds[1]!, threadId, { silent: true }))
+
+    expect(await postRow(postIds[1]!)).toMatchObject({
+      message: 'a **revised** body',
+      revision_count: 1,
+      edited_at: null,
+      edited_by_user_id: null,
+      edit_reason: null,
+    })
+  })
+
+  it('records the revision on a silent edit, so nothing is lost from the trail', async () => {
+    const { threadId, postIds } = await seedThread()
+    await repo.applyEdit(edit(postIds[1]!, threadId, { silent: true }))
+
+    const revisions = resultRows(
+      await db.execute(sql`
+        select revision, message, edit_reason, edited_by_user_id, created_at
+          from post_revisions where post_id = ${postIds[1]!}
+      `),
+    ) as Array<{ revision: number; message: string; edit_reason: string | null }>
+
+    expect(revisions).toHaveLength(1)
+    expect(revisions[0]).toMatchObject({
+      revision: 1,
+      message: 'reply 0',
+      edit_reason: 'typo',
+      edited_by_user_id: AUTHOR,
+    })
+  })
+
+  it('does not wipe a notice somebody else left behind', async () => {
+    const { threadId, postIds } = await seedThread()
+
+    await repo.applyEdit(edit(postIds[1]!, threadId, { editedByUserId: MOD }))
+    await repo.applyEdit(
+      edit(postIds[1]!, threadId, {
+        silent: true,
+        revision: 2,
+        previousMessage: 'a **revised** body',
+        message: 'third time',
+      }),
+    )
+
+    expect(await postRow(postIds[1]!)).toMatchObject({
+      message: 'third time',
+      revision_count: 2,
+      edited_by_user_id: MOD,
+    })
+    expect((await postRow(postIds[1]!)).edited_at).not.toBeNull()
   })
 
   it('numbers a second revision after the first', async () => {
@@ -485,6 +542,7 @@ describe('the moderator log a single-post write leaves', () => {
     reason: 'off topic',
     editedByUserId,
     editedAt: new Date('2026-07-30T13:00:00Z'),
+    silent: false,
     previousMessage: 'reply 0',
     previousSubject: null,
     revision: 1,

@@ -288,6 +288,34 @@ describe('inlineModerateAction', () => {
     expect(inline.applied).toEqual([{ tool: 'delete', threadIds: [], postIds: [7] }])
   })
 
+  it('lets an appointee who may only restore put a deleted post back', async () => {
+    actorRef.current = await actorFor(SEED_GROUP.registered, 3)
+    installContainer([appointment(SEED_FORUM.general, { canRestorePosts: true })])
+    inline.rows = [target({ kind: 'post', id: 7, visibility: 'deleted' })]
+
+    const where = await redirectOf(
+      inlineModerateAction(
+        EMPTY_STATE,
+        form({ tool: 'restore', returnTo: '/thread/20-hello' }, ['post:7']),
+      ),
+    )
+    expect(where).toBe('/thread/20-hello?did=restore&n=1')
+    expect(inline.applied).toEqual([{ tool: 'restore', threadIds: [], postIds: [7] }])
+  })
+
+  it('refuses to restore for an appointee who may only delete', async () => {
+    actorRef.current = await actorFor(SEED_GROUP.registered, 3)
+    installContainer([appointment(SEED_FORUM.general, { canSoftDeletePosts: true })])
+    inline.rows = [target({ kind: 'post', id: 7, visibility: 'deleted' })]
+
+    const state = await inlineModerateAction(
+      EMPTY_STATE,
+      form({ tool: 'restore', returnTo: '/thread/20-hello' }, ['post:7']),
+    )
+    expect(state.error).toMatch(/cannot moderate/i)
+    expect(inline.applied).toEqual([])
+  })
+
   it('needs the move right in the destination as well as the source', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
     installContainer([appointment(SEED_FORUM.general, { canMoveThreads: true })])

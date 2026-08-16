@@ -25,6 +25,8 @@ const ALL: InlineRights = {
   move: true,
   deleteThreads: true,
   deletePosts: true,
+  restoreThreads: true,
+  restorePosts: true,
 }
 
 const SCOPE = [4, 5]
@@ -209,6 +211,33 @@ describe('InlineModeration', () => {
 
     expect(outcome).toMatchObject({ applied: 1, refused: 1 })
     expect(inline.chunks).toEqual([{ tool: 'delete', threadIds: [], postIds: [7] }])
+  })
+
+  it('separates restoring from deleting, which are different grants', async () => {
+    const inline = new FakeInline()
+    inline.rows = [target({ kind: 'post', id: 7, visibility: 'deleted' })]
+
+    const refused = await commandFor(inline).apply({
+      selection: ids('post', [7]),
+      tool: 'restore',
+      scopeForumIds: SCOPE,
+      rights: everywhere({ ...NO_INLINE_RIGHTS, deletePosts: true }),
+      actorUserId: 9,
+    })
+
+    expect(refused).toMatchObject({ applied: 0, refused: 1 })
+    expect(inline.chunks).toEqual([])
+
+    const applied = await commandFor(inline).apply({
+      selection: ids('post', [7]),
+      tool: 'restore',
+      scopeForumIds: SCOPE,
+      rights: everywhere({ ...NO_INLINE_RIGHTS, restorePosts: true }),
+      actorUserId: 9,
+    })
+
+    expect(applied).toMatchObject({ applied: 1, refused: 0 })
+    expect(inline.chunks).toEqual([{ tool: 'restore', threadIds: [], postIds: [7] }])
   })
 
   it('resolves rights once per forum, not once per row', async () => {
@@ -531,7 +560,10 @@ describe('parseInlineTool', () => {
 describe('INLINE_TOOL_ACTIONS', () => {
   it('scopes deletion by both the thread and the post action', () => {
     expect(INLINE_TOOL_ACTIONS.delete).toEqual(['thread.delete', 'post.softDelete'])
-    expect(INLINE_TOOL_ACTIONS.restore).toEqual(['thread.delete', 'post.softDelete'])
+  })
+
+  it('scopes restoring by the restore actions, which deleting does not authorise', () => {
+    expect(INLINE_TOOL_ACTIONS.restore).toEqual(['thread.restore', 'post.restore'])
   })
 
   it('pairs each flag tool with the action that authorises both directions', () => {

@@ -45,15 +45,19 @@ function lastPost(
   };
 }
 
-function forum(row: ForumListingRow): ForumRowModel {
+function forum(
+  row: ForumListingRow,
+  ownThreadsOnlyForumIds: ReadonlySet<number> | undefined,
+): ForumRowModel {
+  const ownThreadsOnly = ownThreadsOnlyForumIds?.has(row.id) ?? false;
   return {
     id: row.id,
     title: row.title,
     description: row.description,
     href: forumHref(row),
     type: row.type,
-    threadCount: row.threadCount,
-    postCount: row.postCount,
+    threadCount: ownThreadsOnly ? 0 : row.threadCount,
+    postCount: ownThreadsOnly ? 0 : row.postCount,
     lastPost: null,
     isUnread: false,
     subforums: [],
@@ -97,6 +101,7 @@ export function threadRowModel(
 export interface ForumDisplayInput {
   readonly forum: ForumListingRow;
   readonly subforums: readonly ForumListingRow[];
+  readonly ownThreadsOnlyForumIds?: ReadonlySet<number>;
   readonly page: ThreadPage;
   readonly pageNumber: number;
   readonly nextHref: string | null;
@@ -120,14 +125,18 @@ export function buildForumDisplayView(
 ): ForumDisplayView {
   return {
     display: {
-      forum: forum(input.forum),
+      forum: forum(input.forum, input.ownThreadsOnlyForumIds),
       newThreadHref: input.newThreadHref ?? null,
       markReadAction: input.markReadAction ?? null,
     },
     subforums:
       input.subforums.length === 0
         ? null
-        : { forums: input.subforums.map(forum) },
+        : {
+            forums: input.subforums.map((row) =>
+              forum(row, input.ownThreadsOnlyForumIds),
+            ),
+          },
     threads: input.page.rows.map((row) =>
       threadRowModel(row, input.now, input.readState ?? null, input.timeZone, input.identities),
     ),

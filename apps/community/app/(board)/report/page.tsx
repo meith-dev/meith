@@ -35,7 +35,11 @@ export default async function ReportPage({
   if (target === null) notFound()
   if (target.forumId !== null) {
     const matrix = await authorizer.forumMatrix(actor, target.forumId)
-    if (!authorizer.can(actor, 'thread.view', { forumId: target.forumId, forum: matrix })) {
+    const scope = {
+      ...(await authorizer.moderatorTargetIn(actor, target.forumId, matrix)),
+      threadAuthorId: target.threadAuthorUserId,
+    }
+    if (!authorizer.can(actor, 'thread.view', scope)) {
       notFound()
     }
   }

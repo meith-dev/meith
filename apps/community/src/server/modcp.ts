@@ -83,7 +83,7 @@ export interface ModeratedForumRights {
 const RIGHT_LABELS: Readonly<Record<keyof ModeratorRights, string>> = {
   canApproveContent: 'Approve content',
   canEditPosts: 'Edit posts',
-  canSoftDeletePosts: 'Delete and restore',
+  canSoftDeletePosts: 'Delete posts',
   canRestorePosts: 'Restore posts',
   canOpenCloseThreads: 'Lock and unlock',
   canStickThreads: 'Pin and unpin',

@@ -52,13 +52,16 @@ export function buildHeaderModel(
   }
 }
 
-export function buildBoardNavigation(viewer: ViewerModel): readonly LinkModel[] {
+export function buildBoardNavigation(
+  viewer: ViewerModel,
+  options: { searchEnabled?: boolean } = {},
+): readonly LinkModel[] {
   return [
     { label: 'Home', href: '/' },
     { label: 'New posts', href: '/discover/new' },
     { label: 'Unanswered', href: '/discover/unanswered' },
     ...(viewer.isGuest ? [] : [{ label: 'My posts', href: '/discover/participated' }]),
-    { label: 'Search', href: '/search' },
+    ...(options.searchEnabled === false ? [] : [{ label: 'Search', href: '/search' }]),
     { label: "Who's online", href: '/online' },
   ]
 }
@@ -73,12 +76,18 @@ const MESSAGES_HREF = '/messages'
 
 export function buildUserPanelModel(
   viewer: ViewerModel,
-  options: { unreadNotifications?: number; unreadMessages?: number } = {},
+  options: {
+    unreadNotifications?: number
+    unreadMessages?: number
+    registrationOpen?: boolean
+  } = {},
 ): UserPanelModel {
   const links: readonly LinkModel[] = viewer.isGuest
     ? [
         { label: 'Sign in', href: '/login' },
-        { label: 'Register', href: '/register' },
+        ...(options.registrationOpen === false
+          ? []
+          : [{ label: 'Register', href: '/register' }]),
       ]
     : viewer.profileHref === null
       ? []

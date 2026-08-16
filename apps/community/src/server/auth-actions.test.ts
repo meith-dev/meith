@@ -51,6 +51,7 @@ vi.mock('./auth-mail', () => ({
 
 const policy = vi.hoisted(() => ({
   activationMethod: 'none' as string,
+  registrationEnabled: true,
   overrides: {} as Record<string, number>,
 }))
 
@@ -99,6 +100,7 @@ vi.mock('./auth-config', async (importOriginal) => {
     boardAuthConfig: async () => ({
       ...actual.AUTH_CONFIG,
       activationMethod: policy.activationMethod,
+      registrationEnabled: policy.registrationEnabled,
       ...policy.overrides,
     }),
   }
@@ -163,6 +165,7 @@ beforeEach(() => {
   mail.failVerification = false
   mail.failReset = false
   policy.activationMethod = 'none'
+  policy.registrationEnabled = true
   policy.overrides = {}
   limiter.refuse = false
   limiter.refuseRegistration = false
@@ -175,6 +178,19 @@ beforeEach(() => {
 
 describe('registerAction', () => {
   it('creates the account and sends the user to login', async () => {
+    expect(await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))).toBe(
+      '/login?registered=1',
+    )
+  })
+
+  it('refuses a form POSTed straight at it while registration is closed', async () => {
+    policy.registrationEnabled = false
+
+    const state = await registerAction(EMPTY_STATE, form(CREDS))
+
+    expect(state.error).toMatch(/not taking new members/i)
+
+    policy.registrationEnabled = true
     expect(await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))).toBe(
       '/login?registered=1',
     )

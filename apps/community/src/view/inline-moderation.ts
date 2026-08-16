@@ -9,6 +9,7 @@ export interface InlineToolAvailability {
   readonly stick: boolean
   readonly move: boolean
   readonly delete: boolean
+  readonly restore: boolean
 }
 
 export const NO_INLINE_TOOLS: InlineToolAvailability = {
@@ -17,6 +18,7 @@ export const NO_INLINE_TOOLS: InlineToolAvailability = {
   stick: false,
   move: false,
   delete: false,
+  restore: false,
 }
 
 export function anyInlineTool(available: InlineToolAvailability): boolean {
@@ -25,7 +27,8 @@ export function anyInlineTool(available: InlineToolAvailability): boolean {
     available.lock ||
     available.stick ||
     available.move ||
-    available.delete
+    available.delete ||
+    available.restore
   )
 }
 

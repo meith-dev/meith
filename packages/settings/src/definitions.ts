@@ -114,7 +114,13 @@ export const SETTING_DEFINITIONS = [
     key: 'registration.enabled',
     group: 'registration',
     label: 'Allow new registrations',
-    description: 'When off, the registration form returns 403.',
+    description:
+      'Off closes the board to new members: the Register link goes, /register ' +
+      'says so instead of offering a form, and the action behind it refuses a ' +
+      'submission sent straight to it. Existing members sign in as before, the ' +
+      'installer still creates the first administrator, and ' +
+      '"community user:create" still works — closing the door is not the same ' +
+      'as locking yourself out.',
     schema: z.boolean(),
     default: true,
     invalidates: ['settings'],
@@ -205,8 +211,11 @@ export const SETTING_DEFINITIONS = [
     group: 'posting',
     label: 'Silent edit window',
     description:
-      'Edits within this window do not add an "edited by" notice. 0 always ' +
-      'shows the notice.',
+      'Seconds after posting during which an author fixing their own post ' +
+      'leaves no "edited by" notice on it. 0 always shows the notice. A ' +
+      'moderator editing somebody else\'s post is never silent, however soon ' +
+      'it happens, and the revision history records every edit either way — ' +
+      'this hides the line under the post, nothing else.',
     schema: z.number().int().min(0).max(86_400),
     default: 300,
     ui: { min: 0, max: 86_400 },
@@ -270,7 +279,10 @@ export const SETTING_DEFINITIONS = [
     group: 'search',
     label: 'Enable search',
     description:
-      'Turning this off hides search UI and returns 403 from the route.',
+      'Off takes the Search link out of the board navigation, replaces /search ' +
+      'and any results page still linked to with a line saying so, and answers ' +
+      'GET /api/v1/search with a 403. The index is kept and goes on being ' +
+      'maintained, so switching it back on needs no reindex.',
     schema: z.boolean(),
     default: true,
     invalidates: ['settings'],
@@ -300,10 +312,15 @@ export const SETTING_DEFINITIONS = [
   define({
     key: 'search.min_word_length',
     group: 'search',
-    label: 'Minimum search term length',
-    description: 'Shorter terms are dropped from the query.',
+    label: 'Shortest word a search may rest on',
+    description:
+      'A search is refused unless at least one of its words is this long, so ' +
+      'at 3 "a good post" runs and "a b c" does not. The short words are not ' +
+      'dropped — they are still sent to the index, which drops the ones ' +
+      'carrying no meaning on its own. Raise it if short words are what your ' +
+      'expensive searches turn out to be.',
     schema: z.number().int().min(1).max(10),
-    default: 3,
+    default: 2,
     ui: { min: 1, max: 10 },
   }),
 

@@ -34,7 +34,12 @@ import { REFINE_FIELDS } from '@/view/search-controls'
 
 import { limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
-import { requireSearch, searchScopeFor } from './search'
+import {
+  requireSearch,
+  requireSearchEnabled,
+  searchMinWordLength,
+  searchScopeFor,
+} from './search'
 import { getSettings } from './settings'
 
 export const SEARCH_PAGE = 20
@@ -63,15 +68,23 @@ export interface RunSearchInput {
 
 export type RunSearchOutcome =
   | { readonly kind: 'ok'; readonly token: string }
-  | { readonly kind: 'refused'; readonly reason: 'empty' | 'too-short' | 'too-long' }
+  | {
+      readonly kind: 'refused'
+      readonly reason: 'empty' | 'too-short' | 'too-long'
+      readonly minWordLength: number
+    }
   | { readonly kind: 'flooded'; readonly seconds: number }
   | { readonly kind: 'limited'; readonly message: string }
   | { readonly kind: 'unknown-author'; readonly name: string }
 
 export async function runSearch(input: RunSearchInput): Promise<RunSearchOutcome> {
-  const parsed = parseSearchInput(input.terms)
+  await requireSearchEnabled()
+
+  const minWordLength = await searchMinWordLength()
+
+  const parsed = parseSearchInput(input.terms, minWordLength)
   if (!isRunnable(parsed)) {
-    return { kind: 'refused', reason: parsed.refusal ?? 'empty' }
+    return { kind: 'refused', reason: parsed.refusal ?? 'empty', minWordLength }
   }
 
   const store = searchStore()
@@ -130,6 +143,8 @@ export async function openSearch(input: {
   readonly refine: SearchRefinement
   readonly now: Date
 }): Promise<SearchPageView> {
+  await requireSearchEnabled()
+
   const store = searchStore()
   if (store === null) throw new NotFoundError('No such search.')
 

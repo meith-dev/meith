@@ -35,7 +35,12 @@ export async function resolveReplyTarget(
   const forumId = target.forum.id
   const scope = { forumId, forum: await authorizer.forumMatrix(actor, forumId) }
 
-  if (!authorizer.can(actor, 'thread.view', scope)) {
+  if (
+    !authorizer.can(actor, 'thread.view', {
+      ...(await authorizer.moderatorTargetIn(actor, forumId, scope.forum)),
+      threadAuthorId: target.authorUserId,
+    })
+  ) {
     throw new ValidationError('That thread does not exist.')
   }
   authorizer.require(actor, 'reply.post', scope)

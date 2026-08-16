@@ -94,3 +94,16 @@ export {
   type ContentScope,
   type ContentVisibility,
 } from './visibility'
+export {
+  ALL_THREAD_AUTHORS,
+  NO_THREAD_AUTHORS,
+  NO_THREAD_AUDIENCE,
+  audienceFilterIn,
+  audienceForumIds,
+  audienceIsEmpty,
+  authorFilterAdmits,
+  authorFilterFrom,
+  unrestrictedAudience,
+  type ThreadAudience,
+  type ThreadAuthorFilter,
+} from './thread-audience'
