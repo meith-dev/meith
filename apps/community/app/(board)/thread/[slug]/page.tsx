@@ -282,7 +282,7 @@ export default async function ThreadPage({
     threadTools === null
       ? []
       : await authorizer.moderatedForumIds(actor, 'canMoveThreads')
-  const toolTarget = appointment
+  const toolTarget = { ...appointment, threadAuthorId: located.authorUserId }
   const toolRights = {
     lock:
       threadTools !== null && authorizer.can(actor, 'thread.lock', toolTarget),
@@ -560,6 +560,9 @@ export default async function ThreadPage({
             isSticky={thread.isSticky}
             rights={toolRights}
             moveTargets={moveTargets}
+            heading={
+              appointment.isForumModerator ? 'Moderator tools' : 'Thread tools'
+            }
           >
             <ThreadSurgeryForm
               threadId={thread.id}

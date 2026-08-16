@@ -200,6 +200,93 @@ describe('moderatorRightsIn', () => {
   })
 })
 
+describe('deleting a thread you started', () => {
+  const AUTHOR = 10
+  const SOMEBODY_ELSE = 77
+
+  function authorizerWith(
+    over: Partial<PermissionSet>,
+    overrides: MemoryBoard['overrides'] = [],
+  ): Authorizer {
+    return new Authorizer(
+      new InMemoryAuthorizationSource({
+        ...board([]),
+        groups: [{ groupId: GROUP.registered, permissions: set({ ...READ, ...over }) }],
+        overrides,
+      }),
+    )
+  }
+
+  async function mayDelete(
+    over: Partial<PermissionSet>,
+    threadAuthorId: number | null,
+    userId: number | null = AUTHOR,
+  ): Promise<boolean> {
+    const authorizer = authorizerWith(over)
+    const who = actor([GROUP.registered], userId)
+    const forum = await authorizer.forumMatrix(who, FORUM.general)
+    return authorizer.can(who, 'thread.delete', {
+      forumId: FORUM.general,
+      forum,
+      moderatorRights: NO_MODERATOR_RIGHTS,
+      threadAuthorId,
+    })
+  }
+
+  it('is refused without the permission, even to the author', async () => {
+    expect(await mayDelete({}, AUTHOR)).toBe(false)
+  })
+
+  it('is granted to the author when the group carries it', async () => {
+    expect(await mayDelete({ canDeleteOwnThreads: true }, AUTHOR)).toBe(true)
+  })
+
+  it('does not reach a thread somebody else started', async () => {
+    expect(await mayDelete({ canDeleteOwnThreads: true }, SOMEBODY_ELSE)).toBe(false)
+  })
+
+  it('does not reach a thread with no author, nor help a guest', async () => {
+    expect(await mayDelete({ canDeleteOwnThreads: true }, null)).toBe(false)
+    expect(await mayDelete({ canDeleteOwnThreads: true }, null, null)).toBe(false)
+  })
+
+  it('leaves the undo to a moderator', async () => {
+    const authorizer = authorizerWith({ canDeleteOwnThreads: true })
+    const who = actor([GROUP.registered], AUTHOR)
+    const forum = await authorizer.forumMatrix(who, FORUM.general)
+
+    expect(
+      authorizer.can(who, 'thread.restore', {
+        forumId: FORUM.general,
+        forum,
+        moderatorRights: NO_MODERATOR_RIGHTS,
+        threadAuthorId: AUTHOR,
+      }),
+    ).toBe(false)
+  })
+
+  it('is refused where the forum matrix denies it, whatever the group holds', async () => {
+    const authorizer = authorizerWith({ canDeleteOwnThreads: true }, [
+      {
+        forumId: FORUM.general,
+        groupId: GROUP.registered,
+        overrides: { canDeleteOwnThreads: false },
+      },
+    ])
+    const who = actor([GROUP.registered], AUTHOR)
+    const forum = await authorizer.forumMatrix(who, FORUM.general)
+
+    expect(
+      authorizer.can(who, 'thread.delete', {
+        forumId: FORUM.general,
+        forum,
+        moderatorRights: NO_MODERATOR_RIGHTS,
+        threadAuthorId: AUTHOR,
+      }),
+    ).toBe(false)
+  })
+})
+
 describe('what an appointment grants over posts', () => {
   const POST_ACTIONS: readonly Action[] = [
     'post.editOthers',

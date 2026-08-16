@@ -53,6 +53,7 @@ export function ThreadToolsForm({
   isSticky,
   rights,
   moveTargets,
+  heading = "Moderator tools",
   children,
 }: {
   threadId: number
@@ -60,16 +61,17 @@ export function ThreadToolsForm({
   isSticky: boolean
   rights: { lock: boolean; stick: boolean; move: boolean; delete: boolean }
   moveTargets: readonly MoveOption[]
+  heading?: string
   children?: React.ReactNode
 }) {
   const [moveState, moveAction] = useActionState(threadToolAction, EMPTY_STATE)
 
   return (
     <section
-      aria-label="Moderator tools"
+      aria-label={heading}
       className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-secondary px-4 py-3"
     >
-      <span className="text-xs font-medium text-muted-foreground">Moderator tools</span>
+      <span className="text-xs font-medium text-muted-foreground">{heading}</span>
 
       {rights.lock && (
         <ToolButton

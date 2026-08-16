@@ -580,6 +580,28 @@ had no way to keep, and shipping three new features to justify three checkboxes
 is not the honest fix. Whatever was ticked in them was already inert; nothing a
 board could observe changes when they go.
 
+## Four group permissions that granted nothing
+
+`/admin/groups/[id]` offered them, the board stored them, resolved them and
+displayed them back as effective values — and no decision anywhere read them.
+Setting one changed nothing at all.
+
+### `canDeleteOwnThreads` is a real permission now
+
+It read "Delete a whole thread you started", and deleting a thread was a
+moderator right and nothing else. A member could not delete a thread they had
+started even in a forum where the box was ticked for their group.
+
+Granted, the thread's author now gets a **Delete thread** button on it, and it
+moves the thread to `visibility=deleted` — reversible, exactly as a moderator's
+delete is. Restoring stays a moderator right, so a member who deletes by
+accident has to ask, the same way `canDeleteOwnPosts` has never carried
+`post.restore`. It is **off by default** and nothing about an existing board
+changes until you tick it; see [letting members take their own
+threads down](./operating.md#letting-members-take-their-own-threads-down)
+before you do, because a thread is deleted whole and takes other people's
+replies with it.
+
 ## What the CLI applies
 
 `community upgrade` applies **core migrations, then each installed plugin's, then

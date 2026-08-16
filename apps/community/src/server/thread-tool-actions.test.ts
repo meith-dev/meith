@@ -357,3 +357,79 @@ describe('copy', () => {
     expect(tools.calls).toEqual(['copy'])
   })
 })
+
+describe('deleting a thread you started', () => {
+  const AUTHOR = 4
+  const BYSTANDER = 5
+
+  function installOwnThreads(granted: boolean, authorUserId: number | null = AUTHOR): void {
+    installTestContainer({
+      board: {
+        ...SEED_BOARD,
+        moderators: [],
+        overrides: [
+          ...SEED_BOARD.overrides,
+          {
+            forumId: SEED_FORUM.general,
+            groupId: SEED_GROUP.registered,
+            overrides: { canDeleteOwnThreads: granted },
+          },
+        ],
+      },
+      container: {
+        threadTools: tools,
+        threads: {
+          locate: async () => ({ forumId: SEED_FORUM.general, authorUserId }),
+          findById: async () => null,
+          listForum: async () => ({ rows: [], nextCursor: null }),
+        },
+      },
+    })
+  }
+
+  beforeEach(async () => {
+    actorRef.current = await actorFor(SEED_GROUP.registered, AUTHOR)
+    installOwnThreads(true)
+  })
+
+  it('lets the author take it down when the forum grants it', async () => {
+    expect(
+      await redirectOf(threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'delete' }))),
+    ).toBe(`/${SEED_FORUM.general}?thread=deleted`)
+    expect(tools.calls).toEqual(['setVisibility'])
+  })
+
+  it('refuses somebody who did not start it', async () => {
+    actorRef.current = await actorFor(SEED_GROUP.registered, BYSTANDER)
+
+    const state = await threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'delete' }))
+
+    expect(state.error).toMatch(/cannot delete threads/i)
+    expect(tools.calls).toEqual([])
+  })
+
+  it('refuses the author where the forum denies it', async () => {
+    installOwnThreads(false)
+
+    const state = await threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'delete' }))
+
+    expect(state.error).toMatch(/cannot delete threads/i)
+    expect(tools.calls).toEqual([])
+  })
+
+  it('does not hand the author the undo along with it', async () => {
+    const state = await threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'restore' }))
+
+    expect(state.error).toMatch(/cannot restore threads/i)
+    expect(tools.calls).toEqual([])
+  })
+
+  it('grants nothing when the thread has no author to be', async () => {
+    installOwnThreads(true, null)
+
+    const state = await threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'delete' }))
+
+    expect(state.error).toMatch(/cannot delete threads/i)
+    expect(tools.calls).toEqual([])
+  })
+})

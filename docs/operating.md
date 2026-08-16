@@ -402,6 +402,31 @@ What a Deny forum looks like:
 > all; this one only decides *whose* threads. A forum meant to be invisible
 > wants `canView` denied instead.
 
+### Letting members take their own threads down
+
+`canDeleteOwnThreads` is the thread-sized twin of `canDeleteOwnPosts`. Granted,
+the member who **started** a thread gets a **Delete thread** button on it, and
+pressing it moves the whole thread to `visibility=deleted` — the same reversible
+state a moderator's delete produces, not a destruction. It is off by default.
+
+Three things about it are worth knowing before you grant it:
+
+- **It is per forum**, like every other cell in the matrix, so it can be granted
+  in a scratch forum and denied in the one that holds your rules.
+- **It does not carry the undo.** Restoring a thread is `thread.restore`, a
+  moderator right, and it stays that way: a member who deletes their thread by
+  accident has to ask. This mirrors `canDeleteOwnPosts`, which has never carried
+  `post.restore` either.
+- **It takes the replies with it.** A thread is deleted whole, so granting it in
+  a busy forum means one member can remove a conversation other people wrote in.
+  In forums where that matters, leave it denied and let members delete their own
+  *posts* instead.
+
+The tools panel on a thread is headed **Thread tools** for a member who holds
+nothing but this, and **Moderator tools** for somebody appointed over the forum.
+Bulk deletion from a forum listing is unaffected: that surface is moderators
+only, and it stays that way.
+
 ### Numbers behave differently from switches
 
 Numeric permissions — attachments per post, signature length, edit window —
