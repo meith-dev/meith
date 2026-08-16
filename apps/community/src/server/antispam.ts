@@ -89,10 +89,12 @@ export async function spendLimit(input: {
 
 const DAILY_LIMIT_PERMISSION = {
   post_day: 'maxPostsPerDay',
+  message_day: 'maxPrivateMessagesPerDay',
 } as const satisfies Record<GroupRateLimitScope, NumericGlobalPermission>
 
 const DAILY_LIMIT_NOUN = {
   post_day: 'posts',
+  message_day: 'private messages',
 } as const satisfies Record<GroupRateLimitScope, string>
 
 export async function spendDailyLimit(input: {

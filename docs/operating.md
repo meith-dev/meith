@@ -462,6 +462,20 @@ Somebody who has spent their allowance is told so, and told roughly when it
 comes back — the message speaks in hours, since "try again in 1,290 minutes" is
 not an answer.
 
+### The daily private message allowance
+
+`maxPrivateMessagesPerDay` works the same way for **sending** private messages,
+on its own counter: a member who has run out of posts can still send messages,
+and the other way round. One send is one unit however many people it is
+addressed to, since that is one press of the button.
+
+> [!IMPORTANT]
+> **`maxPrivateMessagesPerDay` and `privateMessageQuota` are different
+> controls, and the pair is easy to mix up.** The first is a *rate*: how many
+> messages a member may send in a day. The second is *storage*: how many
+> messages they may keep. A full inbox is the quota; "you have used your
+> allowance for today" is the rate. Setting one does nothing about the other.
+
 ### Reading the matrix
 
 `/admin/forums` holds it. Each cell shows what it resolves to *and which forum it

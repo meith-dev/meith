@@ -646,6 +646,22 @@ flood check* does not lift this cap: it covers the flood interval and the hourly
 limits, which are board settings, while this one is carried by the group. To
 exempt a group, set its value to `0`.
 
+### `maxPrivateMessagesPerDay` is enforced now
+
+The fourth of the four, and the same story: "Daily PM send cap. 0 = unlimited"
+was offered, stored, resolved and displayed, and `sendMessageAction` never
+looked at it. It is spent now, on its own daily counter, beside the hourly
+`antispam.message_per_hour` limit that was already there.
+
+`0` remains the default and remains unlimited, so an untouched board is
+unaffected. Check the number on any group where you set one.
+
+> [!NOTE]
+> Do not confuse it with `privateMessageQuota`, which has always worked and is
+> a different thing: the quota is how many messages a member may **keep**, and
+> it is what a full inbox means. This one is how many they may **send** in a
+> day.
+
 ## What the CLI applies
 
 `community upgrade` applies **core migrations, then each installed plugin's, then

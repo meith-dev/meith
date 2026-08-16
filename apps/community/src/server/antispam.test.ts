@@ -134,6 +134,26 @@ describe('spendDailyLimit', () => {
   })
 })
 
+describe('spendDailyLimit for private messages', () => {
+  it('reads its own permission and keeps its own bucket', async () => {
+    const actor = member({ maxPrivateMessagesPerDay: 2, maxPostsPerDay: 1 })
+
+    expect(await spendDailyLimit({ scope: 'message_day', actor })).toMatchObject({ allowed: true })
+    expect(await spendDailyLimit({ scope: 'message_day', actor })).toMatchObject({ allowed: true })
+    expect(refused(await spendDailyLimit({ scope: 'message_day', actor }))).toBe(true)
+
+    expect(await spendDailyLimit({ scope: 'post_day', actor })).toMatchObject({ allowed: true })
+  })
+
+  it('is unlimited at 0 even where the post cap is set', async () => {
+    const actor = member({ maxPrivateMessagesPerDay: 0, maxPostsPerDay: 1 })
+
+    for (let i = 0; i < 20; i += 1) {
+      expect(await spendDailyLimit({ scope: 'message_day', actor })).toBeNull()
+    }
+  })
+})
+
 describe('dailyLimitMessage', () => {
   it('speaks in hours rather than the hundreds of minutes a day contains', () => {
     expect(dailyLimitMessage('post_day', { allowed: false, used: 9, retryAfterSeconds: 36_000 }))
@@ -143,5 +163,11 @@ describe('dailyLimitMessage', () => {
   it('rounds the last stretch to within the hour', () => {
     expect(dailyLimitMessage('post_day', { allowed: false, used: 9, retryAfterSeconds: 120 }))
       .toBe('You have used your allowance of posts for today. It resets within the hour.')
+  })
+
+  it('names what ran out', () => {
+    expect(
+      dailyLimitMessage('message_day', { allowed: false, used: 9, retryAfterSeconds: 7200 }),
+    ).toBe('You have used your allowance of private messages for today. It resets in 2 hours.')
   })
 })
