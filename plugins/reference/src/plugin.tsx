@@ -46,7 +46,7 @@ function contribution(region: PluginRegion) {
 export const referencePlugin = definePlugin({
   key: 'reference',
   name: 'Reference plugin',
-  version: '0.4.0',
+  version: '0.5.0',
   description: 'Exercises every documented extension point. Installed in CI, not on a board.',
   apiVersion: '0',
 
