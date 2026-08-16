@@ -23,6 +23,7 @@ const CATEGORY = 1
 const FORUM = 4
 const CHILD = 5
 const AUTHOR = 1
+const MOD = 2
 
 const AT = new Date('2026-07-30T12:00:00Z')
 
@@ -38,6 +39,7 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
+  await db.execute(sql`delete from admin_log`)
   await db.execute(sql`delete from post_revisions`)
   await db.execute(sql`delete from thread_subscriptions`)
   await db.execute(sql`delete from content_counter_rollups`)
@@ -47,16 +49,21 @@ beforeEach(async () => {
   await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
 
-  await db.insert(users).values({
-    id: AUTHOR,
-    username: 'ada',
-    usernameLower: 'ada',
-    email: 'ada@example.test',
-    emailLower: 'ada@example.test',
-    passwordHash: 'x',
-    passwordAlgo: 'argon2id',
-    primaryGroupId: 2,
-  })
+  await db.insert(users).values(
+    [
+      [AUTHOR, 'ada'],
+      [MOD, 'mod'],
+    ].map(([id, name]) => ({
+      id: id as number,
+      username: name as string,
+      usernameLower: name as string,
+      email: `${String(name)}@example.test`,
+      emailLower: `${String(name)}@example.test`,
+      passwordHash: 'x',
+      passwordAlgo: 'argon2id',
+      primaryGroupId: 2,
+    })),
+  )
   await db.insert(forums).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
     { id: FORUM, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
@@ -438,6 +445,144 @@ describe('applyVisibility', () => {
       topic: 'post.visibility_changed',
       payload: { postId: postIds[1], visible: false },
     })
+  })
+})
+
+describe('the moderator log a single-post write leaves', () => {
+  async function logRows(): Promise<
+    Array<{ user_id: number; action: string; detail: Record<string, unknown> }>
+  > {
+    return resultRows(
+      await db.execute(sql`select user_id, action, detail from admin_log order by id`),
+    ) as Array<{ user_id: number; action: string; detail: Record<string, unknown> }>
+  }
+
+  const visibility = (
+    postId: number,
+    threadId: number,
+    from: 'visible' | 'deleted',
+    to: 'visible' | 'deleted',
+    actedByUserId: number,
+  ) => ({
+    postId,
+    threadId,
+    forumId: FORUM,
+    authorUserId: AUTHOR,
+    isFirstPost: false,
+    from,
+    to,
+    actedByUserId,
+    at: new Date('2026-07-30T13:00:00Z'),
+  })
+
+  const edit = (postId: number, threadId: number, editedByUserId: number) => ({
+    postId,
+    threadId,
+    forumId: FORUM,
+    authorUserId: AUTHOR,
+    isFirstPost: false,
+    message: 'a **revised** body',
+    reason: 'off topic',
+    editedByUserId,
+    editedAt: new Date('2026-07-30T13:00:00Z'),
+    previousMessage: 'reply 0',
+    previousSubject: null,
+    revision: 1,
+    fromVisibility: 'visible' as const,
+    toVisibility: 'visible' as const,
+  })
+
+  it('records a moderator removing somebody else"s post, with the forum it was in', async () => {
+    const { threadId, postIds } = await seedThread()
+
+    await repo.applyVisibility(visibility(postIds[1]!, threadId, 'visible', 'deleted', MOD))
+
+    const rows = await logRows()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ user_id: MOD, action: 'post.delete' })
+    expect(rows[0]!.detail).toEqual({
+      postId: postIds[1],
+      threadId,
+      forumId: FORUM,
+      forumIds: [FORUM],
+    })
+  })
+
+  it('records the restore as its own action rather than the deletion again', async () => {
+    const { threadId, postIds } = await seedThread()
+
+    await repo.applyVisibility(visibility(postIds[1]!, threadId, 'visible', 'deleted', MOD))
+    await repo.applyVisibility(visibility(postIds[1]!, threadId, 'deleted', 'visible', MOD))
+
+    expect((await logRows()).map((row) => row.action)).toEqual([
+      'post.delete',
+      'post.restore',
+    ])
+  })
+
+  it('says nothing when a member removes their own post', async () => {
+    const { threadId, postIds } = await seedThread()
+
+    await repo.applyVisibility(visibility(postIds[1]!, threadId, 'visible', 'deleted', AUTHOR))
+
+    expect(await logRows()).toEqual([])
+  })
+
+  it('writes no row for a delete that changed nothing', async () => {
+    const { threadId, postIds } = await seedThread()
+
+    await repo.applyVisibility(visibility(postIds[1]!, threadId, 'visible', 'deleted', MOD))
+    await repo.applyVisibility(visibility(postIds[1]!, threadId, 'visible', 'deleted', MOD))
+
+    expect(await logRows()).toHaveLength(1)
+  })
+
+  it('records a moderator editing a post they did not write', async () => {
+    const { threadId, postIds } = await seedThread()
+
+    await repo.applyEdit(edit(postIds[1]!, threadId, MOD))
+
+    const rows = await logRows()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ user_id: MOD, action: 'post.edit' })
+    expect(rows[0]!.detail).toEqual({
+      postId: postIds[1],
+      threadId,
+      forumId: FORUM,
+      forumIds: [FORUM],
+    })
+  })
+
+  it('keeps the edit reason and the new body out of the log', async () => {
+    const { threadId, postIds } = await seedThread()
+
+    await repo.applyEdit(edit(postIds[1]!, threadId, MOD))
+
+    const written = JSON.stringify(await logRows())
+    expect(written).not.toContain('off topic')
+    expect(written).not.toContain('revised')
+  })
+
+  it('says nothing when the author edits their own post', async () => {
+    const { threadId, postIds } = await seedThread()
+
+    await repo.applyEdit(edit(postIds[1]!, threadId, AUTHOR))
+
+    expect(await logRows()).toEqual([])
+  })
+
+  it('records a moderator acting on a post whose author has no account', async () => {
+    const { threadId, postIds } = await seedThread()
+    await db.execute(sql`
+      update posts set author_user_id = null where id = ${postIds[1]!}
+    `)
+
+    await repo.applyVisibility({
+      ...visibility(postIds[1]!, threadId, 'visible', 'deleted', MOD),
+      authorUserId: null,
+    })
+
+    expect((await logRows())[0]).toMatchObject({ action: 'post.delete' })
   })
 })
 

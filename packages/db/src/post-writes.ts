@@ -11,11 +11,29 @@ import type {
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { SEARCH_DOCUMENT_VERSION, indexedSubjectSql, searchVectorSql } from './search-repo'
+import { logModeratorAction } from './thread-counters'
 import { readBoardVocabulary } from './vocabulary-repo'
 import { applyVisibilityChangeCounters } from './visibility-counters'
 
 function isCounted(visibility: string): boolean {
   return visibility === 'visible'
+}
+
+function actedOnAnother(actorUserId: number, authorUserId: number | null): boolean {
+  return authorUserId === null || actorUserId !== authorUserId
+}
+
+function scopedDetail(record: {
+  readonly postId: number
+  readonly threadId: number
+  readonly forumId: number
+}): Record<string, unknown> {
+  return {
+    postId: record.postId,
+    threadId: record.threadId,
+    forumId: record.forumId,
+    forumIds: [record.forumId],
+  }
 }
 
 export class PostgresPostWriteRepository implements PostWriteRepository {
@@ -141,6 +159,16 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
           delta: delta as 1 | -1,
         })
       }
+
+      if (actedOnAnother(record.editedByUserId, record.authorUserId)) {
+        await logModeratorAction(
+          tx,
+          'post.edit',
+          record.editedByUserId,
+          scopedDetail(record),
+          record.editedAt,
+        )
+      }
     })
   }
 
@@ -163,6 +191,16 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
           isFirstPost: record.isFirstPost,
           delta: delta as 1 | -1,
         })
+      }
+
+      if (actedOnAnother(record.actedByUserId, record.authorUserId)) {
+        await logModeratorAction(
+          tx,
+          record.to === 'deleted' ? 'post.delete' : 'post.restore',
+          record.actedByUserId,
+          scopedDetail(record),
+          record.at,
+        )
       }
 
       return true

@@ -503,6 +503,19 @@ describe('mass mail', () => {
     expect(state.values?.queued).toBe('7')
   })
 
+  it('records every further batch, so a campaign is not one row and then silence', async () => {
+    claimResult.current = {
+      recipients: [{ userId: 3, email: 'c@example.test', username: 'cal' }],
+      finished: false,
+    }
+
+    await continueMassMailAction({}, form({ massMailId: '55' }))
+
+    expect(adminCalls).toEqual([
+      { action: 'user.mass_mail_continued', detail: { massMailId: 55, sent: 1, queued: 7 } },
+    ])
+  })
+
   it('refuses to continue a campaign that is not one', async () => {
     const state = await continueMassMailAction({}, form({ massMailId: 'latest' }))
     expect(state.error).toBeDefined()

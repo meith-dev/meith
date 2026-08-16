@@ -16,6 +16,7 @@ import type { Database } from './client'
 import { decodeCursor, encodeCursor } from './cursor'
 import { resultRows } from './result-rows'
 import { idList } from './sql-lists'
+import { logModeratorAction } from './thread-counters'
 import { visibleIn } from './visibility'
 import { threads } from './schema'
 
@@ -299,16 +300,29 @@ export class PostgresReportRepository implements ReportRepository {
                  resolved_at = ${input.at},
                  updated_at = ${input.at}
            where id = ${input.reportId} and status = 'open'
-           returning id
+           returning id, forum_id
         `),
-      ) as Array<{ id: number }>
-      if (moved.length === 0) return false
+      ) as Array<{ id: number; forum_id: number | null }>
+      const row = moved[0]
+      if (!row) return false
 
       await tx.execute(sql`
         insert into report_events (report_id, actor_user_id, kind, note, created_at)
         values (${input.reportId}, ${input.actorUserId}, ${input.status},
                 ${input.note}, ${input.at})
       `)
+
+      const forumId = row.forum_id === null ? null : Number(row.forum_id)
+      await logModeratorAction(
+        tx,
+        input.status === 'resolved' ? 'report.resolve' : 'report.reject',
+        input.actorUserId,
+        {
+          reportId: input.reportId,
+          ...(forumId === null ? {} : { forumId, forumIds: [forumId] }),
+        },
+        input.at,
+      )
       return true
     })
   }

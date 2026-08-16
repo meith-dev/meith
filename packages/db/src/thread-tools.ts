@@ -218,11 +218,12 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
     return this.db.transaction(async (tx) => {
       const sourceRows = resultRows(
         await tx.execute(sql`
-          select id, title, slug, prefix_id, author_user_id, author_username
+          select id, forum_id, title, slug, prefix_id, author_user_id, author_username
             from threads where id = ${input.threadId}
         `),
       ) as Array<{
         id: number
+        forum_id: number
         title: string
         slug: string
         prefix_id: number | null
@@ -294,13 +295,16 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
       await repairThreadLastPost(tx, newThreadId)
       await repairForumLastPostChain(tx, input.toForumId)
 
+      const fromForumId = Number(source.forum_id)
       await log(
         tx,
         'thread.copy',
         input.actorUserId,
         {
           threadId: input.threadId,
+          fromForumId,
           toForumId: input.toForumId,
+          forumIds: [...new Set([fromForumId, input.toForumId])],
           newThreadId,
           posts: copied.length,
         },

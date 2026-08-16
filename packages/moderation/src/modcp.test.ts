@@ -198,6 +198,8 @@ describe('the log allow-list', () => {
     expect(MOD_LOG_ACTIONS).not.toContain('settings.update')
     expect(MOD_LOG_ACTIONS).not.toContain('permission.bypass')
     expect(MOD_LOG_ACTIONS).not.toContain('user.promote')
+    expect(MOD_LOG_ACTIONS).not.toContain('user.mass_mail_started')
+    expect(MOD_LOG_ACTIONS).not.toContain('user.mass_mail_continued')
   })
 
   it('reads a flag being cleared as clearing it, not as setting it', () => {
@@ -218,12 +220,31 @@ describe('the log allow-list', () => {
       'thread.move',
       'thread.split',
       'thread.merge',
+      'thread.copy',
       'inline.delete',
+      'post.edit',
+      'post.delete',
+      'post.restore',
+      'report.resolve',
+      'report.reject',
       'warning.issue',
       'warning.revoke',
+      'signature.lock',
+      'signature.unlock',
+      'avatar.lock',
+      'avatar.unlock',
       'modcp.ip_lookup',
     ]) {
       expect(MOD_LOG_ACTIONS).toContain(action)
+    }
+  })
+
+  it('reads a lock and its release as two different things, for every lockable thing', () => {
+    for (const [set, cleared] of [
+      ['signature.lock', 'signature.unlock'],
+      ['avatar.lock', 'avatar.unlock'],
+    ]) {
+      expect(MOD_LOG_LABELS[set!]).not.toBe(MOD_LOG_LABELS[cleared!])
     }
   })
 })
