@@ -3,7 +3,9 @@ import { sql } from 'drizzle-orm'
 
 import { ReportService } from '@meith/moderation'
 
+import { PostgresAdminLogRepository } from './admin-session-repo'
 import type { Database } from './client'
+import { PostgresModCpRepository } from './modcp-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresReportRepository } from './report-repo'
 import { resultRows } from './result-rows'
@@ -35,6 +37,7 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
+  await db.execute(sql`delete from admin_log`)
   await db.execute(sql`delete from private_message_copies`)
   await db.execute(sql`delete from private_messages`)
   await db.execute(sql`delete from report_events`)
@@ -405,6 +408,126 @@ describe('assignment and closing', () => {
     const found = await repo.find(id)
     expect(found!.report.status).toBe('resolved')
     expect(found!.events.map((e) => e.kind)).toEqual(['opened', 'resolved'])
+  })
+})
+
+describe('the moderator log a closed report leaves', () => {
+  async function logRows(): Promise<
+    Array<{ user_id: number; action: string; detail: Record<string, unknown> }>
+  > {
+    return resultRows(
+      await db.execute(sql`select user_id, action, detail from admin_log order by id`),
+    ) as Array<{ user_id: number; action: string; detail: Record<string, unknown> }>
+  }
+
+  async function openOn(forumId: number): Promise<number> {
+    const postId = await seedThread(100, forumId)
+    const { reportId } = await service().file({
+      kind: 'post',
+      targetId: postId,
+      reason: 'spam',
+      reporterUserId: REPORTER,
+    })
+    return reportId
+  }
+
+  it('names who resolved it, which report, and the forum it was filed in', async () => {
+    const id = await openOn(FORUM)
+    await repo.close({
+      reportId: id,
+      status: 'resolved',
+      note: 'warned the member',
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    const rows = await logRows()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ user_id: MOD, action: 'report.resolve' })
+    expect(rows[0]!.detail).toEqual({ reportId: id, forumId: FORUM, forumIds: [FORUM] })
+  })
+
+  it('separates a dismissal from a resolution', async () => {
+    const id = await openOn(FORUM)
+    await repo.close({
+      reportId: id,
+      status: 'rejected',
+      note: null,
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    expect((await logRows())[0]).toMatchObject({ action: 'report.reject' })
+  })
+
+  it('keeps the private note out of the shared log', async () => {
+    const id = await openOn(FORUM)
+    await repo.close({
+      reportId: id,
+      status: 'resolved',
+      note: 'banned them for the third time',
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    expect(JSON.stringify(await logRows())).not.toContain('third time')
+  })
+
+  it('carries no forum key for a report about a member rather than a post', async () => {
+    const { reportId } = await service().file({
+      kind: 'user',
+      targetId: AUTHOR,
+      reason: 'spam',
+      reporterUserId: REPORTER,
+    })
+    await repo.close({
+      reportId,
+      status: 'resolved',
+      note: null,
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    expect((await logRows())[0]!.detail).toEqual({ reportId })
+  })
+
+  it('appears in the administrator log the panel lists, named after who closed it', async () => {
+    const id = await openOn(FORUM)
+    await repo.close({ reportId: id, status: 'resolved', note: null, actorUserId: MOD, at: AT })
+
+    const listed = await new PostgresAdminLogRepository(db).list({ limit: 10 })
+
+    expect(listed[0]).toMatchObject({
+      action: 'report.resolve',
+      userId: MOD,
+      username: 'mod',
+      detail: { reportId: id, forumId: FORUM },
+    })
+  })
+
+  it('appears in the moderator log of the forum the report was filed in', async () => {
+    const id = await openOn(FORUM)
+    await repo.close({ reportId: id, status: 'rejected', note: null, actorUserId: MOD, at: AT })
+
+    const page = await new PostgresModCpRepository(db).log({
+      forumIds: [FORUM],
+      actorUserId: REPORTER,
+      limit: 10,
+    })
+
+    expect(page.entries[0]).toMatchObject({
+      action: 'report.reject',
+      forumTitle: 'General',
+      actorUsername: 'mod',
+    })
+  })
+
+  it('writes nothing when the report was already closed', async () => {
+    const id = await openOn(FORUM)
+    await repo.close({ reportId: id, status: 'resolved', note: null, actorUserId: MOD, at: AT })
+    await repo.close({ reportId: id, status: 'rejected', note: null, actorUserId: MOD, at: AT })
+
+    expect(await logRows()).toHaveLength(1)
   })
 })
 

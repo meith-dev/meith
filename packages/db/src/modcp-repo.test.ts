@@ -244,6 +244,64 @@ describe('the moderator log', () => {
     ).toHaveLength(1)
   })
 
+  it('shows a copy to the moderators of the forum it came from and the one it landed in', async () => {
+    await logRow(
+      'thread.copy',
+      {
+        threadId: 7,
+        fromForumId: THEIRS,
+        toForumId: MINE,
+        forumIds: [THEIRS, MINE],
+        newThreadId: 9,
+        posts: 2,
+      },
+      OTHER_MOD,
+    )
+
+    expect(
+      (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
+    ).toHaveLength(1)
+    expect(
+      (await repo.log({ forumIds: [THEIRS], actorUserId: IVAN, limit: 10 })).entries,
+    ).toHaveLength(1)
+  })
+
+  it('shows a closed report to everyone who moderates the forum it was filed in', async () => {
+    await logRow('report.resolve', { reportId: 3, forumId: MINE, forumIds: [MINE] }, OTHER_MOD)
+
+    const entry = (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 }))
+      .entries[0]!
+    expect(entry.action).toBe('report.resolve')
+    expect(entry.forumTitle).toBe('Mine')
+    expect(entry.detail).toContainEqual({ label: 'Report', value: '3' })
+  })
+
+  it('shows a single-post deletion to the forum the post was in', async () => {
+    await logRow(
+      'post.delete',
+      { postId: 11, threadId: 7, forumId: MINE, forumIds: [MINE] },
+      OTHER_MOD,
+    )
+
+    expect(
+      (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
+    ).toHaveLength(1)
+    expect(
+      (await repo.log({ forumIds: [THEIRS], actorUserId: IVAN, limit: 10 })).entries,
+    ).toEqual([])
+  })
+
+  it('shows a signature lock to the moderator who set it and to nobody else', async () => {
+    await logRow('signature.lock', { userId: IVAN }, OTHER_MOD)
+
+    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
+      [],
+    )
+    const own = await repo.log({ forumIds: [], actorUserId: OTHER_MOD, limit: 10 })
+    expect(own.entries[0]).toMatchObject({ action: 'signature.lock' })
+    expect(own.entries[0]!.detail).toContainEqual({ label: 'Member', value: String(IVAN) })
+  })
+
   it('shows a forum-less entry only to the moderator who wrote it', async () => {
     await logRow('warning.issue', { userId: IVAN, points: 2 }, OTHER_MOD)
 

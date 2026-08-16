@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { ModerationQueue, parseSelection } from '@meith/moderation'
 
+import { recordAdminAction } from './admin'
 import { avatarService } from './avatars'
 import { getActor } from './context'
 import { getContainer } from './container'
@@ -106,6 +107,10 @@ export async function setSignatureLockAction(
     }
 
     await store.setLocked({ userId, locked, reason: locked ? reason : null })
+    await recordAdminAction({
+      action: locked ? 'signature.lock' : 'signature.unlock',
+      detail: { userId },
+    })
   } catch (err) {
     return toFormState(err)
   }
@@ -136,10 +141,11 @@ export async function setAvatarLockAction(
       throw new ValidationError('No such member.')
     }
 
-    await service.setLock({
-      userId,
-      locked: form.get('locked') === '1',
-      reason: text('reason'),
+    const locked = form.get('locked') === '1'
+    await service.setLock({ userId, locked, reason: text('reason') })
+    await recordAdminAction({
+      action: locked ? 'avatar.lock' : 'avatar.unlock',
+      detail: { userId },
     })
   } catch (err) {
     return toFormState(err)

@@ -1340,6 +1340,22 @@ recorded, so every action the board has ever logged can be filtered on. The
 dropdown is what the log contains, not a fixed list — an action nobody has
 performed yet is not offered, and appears the first time it happens.
 
+### What reaches the admin log
+
+`/admin/log` is the whole table. Administrative actions and moderation actions
+share it, so the control panel's log is the superset and the ModCP's is the same
+rows filtered to moderation actions in the forums a moderator holds — see
+[Everything that changes something is logged](./mybb-parity.md#everything-that-changes-something-is-logged-and-nothing-that-does-not)
+for what qualifies.
+
+Two things are on the screen but not in the table, and knowing which is which
+saves an investigation. A member editing or deleting **their own** post writes
+no row; the row appears when somebody else does it to them. And a report's
+assignment — a moderator taking it, or putting it back — is on the report's own
+timeline rather than in the log, because it changes nothing about the board.
+Everything else a moderator or an administrator does leaves a row, including
+each 500-recipient batch of a mass mail.
+
 ## Migrations
 
 Migrations are **forward-only**. There is no down migration and there will not be

@@ -273,7 +273,7 @@ export async function startMassMailAction(
       detail: { massMailId, targetGroupId },
     })
 
-    return queueMassMailBatch(bulk, massMailId)
+    return (await queueMassMailBatch(bulk, massMailId)).state
   } catch (err) {
     return toFormState(err)
   }
@@ -291,7 +291,13 @@ export async function continueMassMailAction(
       throw new ValidationError('No such message.')
     }
 
-    return queueMassMailBatch(requireUserBulk(), massMailId)
+    const batch = await queueMassMailBatch(requireUserBulk(), massMailId)
+    await recordAdminAction({
+      action: 'user.mass_mail_continued',
+      detail: { massMailId, sent: batch.sent, queued: batch.queued },
+    })
+
+    return batch.state
   } catch (err) {
     return toFormState(err)
   }
@@ -300,7 +306,7 @@ export async function continueMassMailAction(
 async function queueMassMailBatch(
   bulk: ReturnType<typeof requireUserBulk>,
   massMailId: number,
-): Promise<FormState> {
+): Promise<{ state: FormState; sent: number; queued: number }> {
   const chunk = await bulk.claimMassMailChunk(massMailId, MASS_MAIL_CHUNK)
 
   for (const recipient of chunk.recipients) {
@@ -314,8 +320,12 @@ async function queueMassMailBatch(
   const total = (await bulk.readMassMail(massMailId))?.queuedCount ?? 0
 
   return {
-    notice: chunk.finished ? 'sent' : 'more',
-    values: { massMailId: String(massMailId), queued: String(total) },
+    state: {
+      notice: chunk.finished ? 'sent' : 'more',
+      values: { massMailId: String(massMailId), queued: String(total) },
+    },
+    sent: chunk.recipients.length,
+    queued: total,
   }
 }
 

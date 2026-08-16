@@ -537,7 +537,7 @@ describe('copy', () => {
     expect(Number(rows[0]!.reply_count)).toBe(1)
   })
 
-  it('logs the act with both thread ids', async () => {
+  it('logs the act with both thread ids and both forums', async () => {
     const { threadId } = await seedThread(LEFT)
     const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
@@ -547,10 +547,22 @@ describe('copy', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0]!.detail).toMatchObject({
       threadId,
+      fromForumId: LEFT,
       toForumId: RIGHT,
+      forumIds: [LEFT, RIGHT],
       newThreadId: copy.threadId,
       posts: 2,
     })
+  })
+
+  it('names one forum once when a thread is copied within its own forum', async () => {
+    const { threadId } = await seedThread(LEFT)
+    await repo.copy({ threadId, toForumId: LEFT, actorUserId: MOD, at: AT })
+
+    const rows = resultRows(
+      await db.execute(sql`select detail from admin_log where action = 'thread.copy'`),
+    ) as Array<{ detail: Record<string, unknown> }>
+    expect(rows[0]!.detail).toMatchObject({ forumIds: [LEFT] })
   })
 
   it('puts the copies in the roll-up ledger', async () => {

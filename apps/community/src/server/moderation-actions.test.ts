@@ -31,7 +31,20 @@ vi.mock('next/navigation', () => ({
 const actorRef: { current: Actor | null } = { current: null }
 vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
-const { moderateQueueAction } = await import('./moderation-actions')
+const adminCalls: Array<{ action: string; detail: unknown }> = []
+vi.mock('./admin', () => ({
+  recordAdminAction: async (input: { action: string; detail?: unknown }) => {
+    adminCalls.push({ action: input.action, detail: input.detail })
+  },
+}))
+
+const avatarLocks: Array<{ userId: number; locked: boolean; reason: string }> = []
+const avatarServiceRef: { current: unknown } = { current: null }
+vi.mock('./avatars', () => ({ avatarService: () => avatarServiceRef.current }))
+
+const { moderateQueueAction, setAvatarLockAction, setSignatureLockAction } = await import(
+  './moderation-actions'
+)
 const { EMPTY_STATE } = await import('./auth-form-state')
 const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
@@ -103,9 +116,24 @@ const SELECTION: Array<[string, string]> = [
   ['item', 'post:20'],
 ]
 
+const signatureLocks: Array<{ userId: number; locked: boolean; reason: string | null }> = []
+
+async function warnerActor(userId: number): Promise<Actor> {
+  const actor = await actorFor(SEED_GROUP.superModerators, userId)
+  return { ...actor, global: { ...actor.global, canWarnUsers: true } }
+}
+
 beforeEach(async () => {
   queue = new FakeQueue()
   actorRef.current = await actorFor(SEED_GROUP.superModerators, 2)
+  adminCalls.length = 0
+  signatureLocks.length = 0
+  avatarLocks.length = 0
+  avatarServiceRef.current = {
+    setLock: async (input: { userId: number; locked: boolean; reason: string }) => {
+      avatarLocks.push(input)
+    },
+  }
   installContainer()
 })
 
@@ -209,5 +237,91 @@ describe('moderateQueueAction', () => {
 
     expect(state.error).toMatch(/select at least one/i)
     expect(queue.applied).toHaveLength(0)
+  })
+})
+
+describe('locking what a member displays', () => {
+  beforeEach(async () => {
+    actorRef.current = await warnerActor(2)
+    installContainer({
+      signatures: {
+        setLocked: async (input: {
+          userId: number
+          locked: boolean
+          reason: string | null
+        }) => {
+          signatureLocks.push(input)
+        },
+      },
+    })
+  })
+
+  it('records a signature lock against the member it was applied to', async () => {
+    await redirectOf(
+      setSignatureLockAction(
+        EMPTY_STATE,
+        form([['userId', '7'], ['locked', '1'], ['reason', 'advertising']]),
+      ),
+    )
+
+    expect(signatureLocks[0]).toMatchObject({ userId: 7, locked: true })
+    expect(adminCalls).toEqual([{ action: 'signature.lock', detail: { userId: 7 } }])
+  })
+
+  it('records the release as its own action, not as the lock again', async () => {
+    await redirectOf(
+      setSignatureLockAction(EMPTY_STATE, form([['userId', '7'], ['locked', '0']])),
+    )
+
+    expect(adminCalls).toEqual([{ action: 'signature.unlock', detail: { userId: 7 } }])
+  })
+
+  it('records an avatar lock and its release the same way', async () => {
+    await redirectOf(
+      setAvatarLockAction(
+        EMPTY_STATE,
+        form([['userId', '7'], ['locked', '1'], ['reason', 'obscene']]),
+      ),
+    )
+    await redirectOf(
+      setAvatarLockAction(EMPTY_STATE, form([['userId', '7'], ['locked', '0']])),
+    )
+
+    expect(avatarLocks).toHaveLength(2)
+    expect(adminCalls.map((call) => call.action)).toEqual(['avatar.lock', 'avatar.unlock'])
+  })
+
+  it('keeps the reason the member is shown out of the log', async () => {
+    await redirectOf(
+      setSignatureLockAction(
+        EMPTY_STATE,
+        form([['userId', '7'], ['locked', '1'], ['reason', 'advertising a rival board']]),
+      ),
+    )
+
+    expect(JSON.stringify(adminCalls)).not.toContain('rival board')
+  })
+
+  it('logs nothing when the lock was refused', async () => {
+    actorRef.current = await actorFor(SEED_GROUP.registered, 3)
+
+    const state = await setSignatureLockAction(
+      EMPTY_STATE,
+      form([['userId', '7'], ['locked', '1'], ['reason', 'advertising']]),
+    )
+
+    expect(state.error).toBeTruthy()
+    expect(signatureLocks).toEqual([])
+    expect(adminCalls).toEqual([])
+  })
+
+  it('logs nothing when the lock was rejected for having no reason', async () => {
+    const state = await setSignatureLockAction(
+      EMPTY_STATE,
+      form([['userId', '7'], ['locked', '1']]),
+    )
+
+    expect(state.error).toMatch(/say why/i)
+    expect(adminCalls).toEqual([])
   })
 })

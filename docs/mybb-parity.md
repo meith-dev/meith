@@ -568,6 +568,49 @@ action into a moderator-visible disclosure the day somebody forgets to update
 it, whereas an allow-list turns a new moderation action into a missing row
 somebody notices.
 
+### Everything that changes something is logged, and nothing that does not
+
+**MyBB:** the moderator log records what the moderation tools do. Handling a
+report, deleting one post from the thread it is in, or editing somebody else's
+post leaves nothing behind in it.
+
+**Here:** every path that changes content, a member's presentation or a report
+writes a row, whichever screen it was reached from. Closing a report writes
+`report.resolve` or `report.reject`; deleting or restoring a single post from
+the postbit writes `post.delete` or `post.restore`; editing a post somebody else
+wrote writes `post.edit`; locking a signature or an avatar writes
+`signature.lock`/`signature.unlock` or `avatar.lock`/`avatar.unlock`. Copying a
+thread already wrote `thread.copy` and now appears in the ModCP, because the
+action is in the allow-list the reader filters by. Every further batch of a mass
+mail writes `user.mass_mail_continued`, so a campaign is not one row followed by
+silence for the next several thousand recipients.
+
+**Why:** `/admin/log` says it holds "every administrative and moderation action"
+and the ModCP offers itself as the record of a forum. A log that is only mostly
+complete is worse than one that admits a boundary, because the missing row reads
+as "it did not happen". The rows that concern a forum carry the same
+`forumIds`/`forumId` scope keys as every other moderation row, so they reach the
+moderators of the forum they happened in and no one else.
+
+Where the change is a database write, the row is written in the transaction that
+makes it — a moderation that rolls back leaves no row claiming it happened. The
+two that are not database writes of their own, the signature and avatar locks,
+go through the same helper as the rest of the control panel and so also record
+the address the moderator acted from.
+
+**The boundary is authorship, and it is deliberate.** A member deleting or
+editing their own post writes nothing: it is not moderation, and logging it
+would bury the moderation in it. The row is written when the actor is not the
+post's author, which is the same question the postbit asks to decide whether it
+is showing a moderator's button. Taking a report or putting it back is not
+logged either — it moves nothing, and the report's own timeline already shows
+who holds it.
+
+**Cost.** A forum whose moderators edit heavily has a longer log than MyBB's,
+and every entry names a post rather than only a thread. The moderator log has no
+retention policy, so `admin_log` grows with moderation rather than with
+administration alone.
+
 ### Every log row names the forums it concerns, at the moment it is written
 
 **MyBB:** the moderator log carries an `fid` column, and the ModCP scopes the
