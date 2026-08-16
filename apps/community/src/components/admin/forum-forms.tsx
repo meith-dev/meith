@@ -17,6 +17,7 @@ import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import { FormError, SubmitButton } from "../auth/form-controls"
 import { INPUT } from "./form-bits"
+import { PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
 
 const TOGGLES = [
   { name: "isOpen", label: "Open for posting" },
@@ -93,6 +94,10 @@ export function ForumOptionsForm({ forum }: { forum: ForumOptionsValues }) {
           defaultValue={forum.displayOrder}
           className={INPUT}
         />
+        <span className="text-xs text-muted-foreground">
+          Its place among the forums beside it, counting from zero. Dragging it on the
+          tree screen writes this for you, and renumbers its siblings to match.
+        </span>
       </label>
 
       <fieldset className="flex flex-col gap-2">
@@ -408,9 +413,9 @@ export function ModeratorsPanel({
       {moderators.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nobody moderates this forum.</p>
       ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+        <ul className={PANEL_LIST}>
           {moderators.map((moderator) => (
-            <li key={moderator.id} className="flex items-start justify-between gap-3 px-4 py-3">
+            <li key={moderator.id} className={PANEL_ROW}>
               <span className="flex min-w-0 flex-col">
                 <span className="text-sm font-medium">{moderator.subject}</span>
                 <span className="text-xs text-muted-foreground">

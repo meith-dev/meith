@@ -7,6 +7,16 @@ import { FORUM_PERMISSION_FIELDS } from '@meith/core'
 import { readMatrixCell } from '@meith/authorization'
 import { drivers } from '@meith/drivers'
 
+import {
+  isNudge,
+  isWhereItIs,
+  moveTargetOf,
+  nudgeTarget,
+  outlineOf,
+  type DropTarget,
+  type ForumOutlineRow,
+} from '@meith/forums'
+
 import { MODERATOR_RIGHTS } from '@meith/db'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
@@ -216,6 +226,72 @@ export async function moveForumAction(
     await recordAdminAction({
       action: 'forum.moved',
       detail: { forumId: id, newParentId },
+    })
+
+    return { notice: 'moved' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+function dropTarget(
+  form: FormData,
+  outline: readonly ForumOutlineRow[],
+  id: number,
+): DropTarget {
+  const nudge = trimmedText(form, 'nudge')
+
+  if (nudge !== '') {
+    if (!isNudge(nudge)) throw new ValidationError('That is not a direction.')
+
+    const target = nudgeTarget(outline, id, nudge)
+    if (target === null) {
+      throw new ValidationError('That forum cannot go any further in that direction.')
+    }
+    return target
+  }
+
+  const parent = trimmedText(form, 'parentId')
+  const after = trimmedText(form, 'afterId')
+  const parentId = parent === '' ? null : Number(parent)
+  const afterId = after === '' ? null : Number(after)
+
+  if (parentId !== null && (!Number.isSafeInteger(parentId) || parentId <= 0)) {
+    throw new ValidationError('No such parent forum.')
+  }
+  if (afterId !== null && (!Number.isSafeInteger(afterId) || afterId <= 0)) {
+    throw new ValidationError('No such forum to follow.')
+  }
+
+  return { parentId, afterId }
+}
+
+export async function arrangeForumAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+    const id = forumId(form)
+
+    const { forums } = getContainer()
+    const outline = outlineOf(await forums.listAll())
+
+    const row = outline.find((entry) => entry.id === id)
+    if (row === undefined) throw new ValidationError('No such forum.')
+
+    const target = dropTarget(form, outline, id)
+    if (isWhereItIs(outline, id, target)) return { notice: 'unmoved' }
+
+    if (target.parentId !== row.parentId) await requireFreshAdmin()
+
+    await forums.move(id, moveTargetOf(target))
+
+    await invalidateTree()
+    refreshForumPermissionScreens()
+    await recordAdminAction({
+      action: 'forum.moved',
+      detail: { forumId: id, newParentId: target.parentId, afterId: target.afterId },
     })
 
     return { notice: 'moved' }

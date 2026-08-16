@@ -121,6 +121,24 @@ describe('planMove — sibling ordering', () => {
     const plan = planMove(TREE, 4, { newParentId: null, position: 99 })
     expect(plan.orderUpdates.find((o) => o.id === 4)?.displayOrder).toBe(2)
   })
+
+  it('puts a forum directly after the sibling it was dropped onto', () => {
+    const plan = planMove(TREE, 4, { newParentId: null, after: 1 })
+    expect(plan.orderUpdates).toEqual([
+      { id: 1, displayOrder: 0 },
+      { id: 4, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+    ])
+  })
+
+  it('puts a forum first when it follows nothing', () => {
+    const plan = planMove(TREE, 4, { newParentId: null, after: null })
+    expect(plan.orderUpdates.find((o) => o.id === 4)?.displayOrder).toBe(0)
+  })
+
+  it('refuses an anchor that is no longer a sibling, rather than guessing', () => {
+    expect(() => planMove(TREE, 4, { newParentId: null, after: 9 })).toThrow(ConflictError)
+  })
 })
 
 describe('applying a plan keeps the tree walkable', () => {

@@ -45,8 +45,9 @@ export default async function AdminForumPage({
       title={forum.title}
       lede={
         <>
-          Position in the tree is not edited here — moving a forum re-parents a whole
-          subtree and takes the forest lock.
+          Everything this forum is, apart from where it sits. Order is arranged on the
+          tree screen; the move below is the long way round, for a destination too far to
+          drag to.
         </>
       }
       gap="loose"

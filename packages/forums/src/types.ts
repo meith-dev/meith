@@ -50,6 +50,7 @@ export interface NewForum {
 export interface MoveTarget {
   readonly newParentId: number | null
   readonly position?: number
+  readonly after?: number | null
 }
 
 export interface PathUpdate {
