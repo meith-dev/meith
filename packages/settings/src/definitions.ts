@@ -490,11 +490,12 @@ export const SETTING_DEFINITIONS = [
   define({
     key: 'security.session_idle_days',
     group: 'security',
-    label: 'Session idle timeout (days)',
+    label: 'Session lifetime (days)',
     description:
-      'Sessions unused for this long are treated as expired. Separate from ' +
-      '“keep me signed in”, which is a different token with a longer life of ' +
-      'its own.',
+      'How long a sign-in lasts, counted from the moment it happened and not ' +
+      'extended by use — a session in daily use still ends on its date. ' +
+      'Separate from “keep me signed in”, which is a different token with a ' +
+      'longer life of its own and does renew as it is used.',
     schema: z.number().int().min(1).max(365),
     default: 14,
     ui: { min: 1, max: 365, advanced: true },

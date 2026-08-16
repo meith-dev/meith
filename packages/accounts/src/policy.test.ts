@@ -19,7 +19,7 @@ describe('resolveAuthPolicy', () => {
         [AUTH_SETTING_KEYS.maxLoginAttempts]: 3,
         [AUTH_SETTING_KEYS.maxAccountLoginAttempts]: 30,
         [AUTH_SETTING_KEYS.lockoutMinutes]: 60,
-        [AUTH_SETTING_KEYS.sessionIdleDays]: 7,
+        [AUTH_SETTING_KEYS.sessionLifetimeDays]: 7,
       }),
       BASE,
     )
@@ -32,7 +32,7 @@ describe('resolveAuthPolicy', () => {
       maxLoginAttempts: 3,
       maxAccountLoginAttempts: 30,
       lockoutMinutes: 60,
-      sessionIdleDays: 7,
+      sessionLifetimeDays: 7,
     })
   })
 
@@ -45,7 +45,7 @@ describe('resolveAuthPolicy', () => {
       maxLoginAttempts: BASE.maxLoginAttempts,
       maxAccountLoginAttempts: BASE.maxAccountLoginAttempts,
       lockoutMinutes: BASE.lockoutMinutes,
-      sessionIdleDays: BASE.sessionIdleDays,
+      sessionLifetimeDays: BASE.sessionLifetimeDays,
     })
   })
 
@@ -66,13 +66,13 @@ describe('resolveAuthPolicy', () => {
     const resolved = resolveAuthPolicy(
       reader({
         [AUTH_SETTING_KEYS.lockoutMinutes]: 0,
-        [AUTH_SETTING_KEYS.sessionIdleDays]: 0,
+        [AUTH_SETTING_KEYS.sessionLifetimeDays]: 0,
       }),
       BASE,
     )
 
     expect(resolved.lockoutMinutes).toBe(BASE.lockoutMinutes)
-    expect(resolved.sessionIdleDays).toBe(BASE.sessionIdleDays)
+    expect(resolved.sessionLifetimeDays).toBe(BASE.sessionLifetimeDays)
   })
 
   it.each([

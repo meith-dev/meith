@@ -24,7 +24,7 @@ const BASE_CONFIG: AuthConfig = {
   maxLoginAttempts: 3,
   maxAccountLoginAttempts: 0,
   lockoutMinutes: 15,
-  sessionIdleDays: 30,
+  sessionLifetimeDays: 30,
   resetTokenTtlMinutes: 60,
   reservedUsernames: ['admin', 'root'],
   defaultMemberGroupId: 2,
@@ -640,7 +640,7 @@ describe('resolveSession', () => {
 
   it('returns null after the session has expired', async () => {
     const clock = fixedClock()
-    const { service } = makeService(store, { sessionIdleDays: 1 }, clock)
+    const { service } = makeService(store, { sessionLifetimeDays: 1 }, clock)
     const login = await service.login('alice', 'correct horse battery', 'alice')
     expect(await service.resolveSession(login.sessionToken)).not.toBeNull()
 

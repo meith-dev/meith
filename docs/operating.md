@@ -590,6 +590,33 @@ There is no cookie banner, because there is nothing on the board that needs one.
 > its data, which is the operator's to decide — a board that adds its own
 > tracking is adding its own obligations with it.
 
+### A board session has a lifetime, not an idle timeout
+
+**Session lifetime (days)** on the security screen is an *absolute* life. The
+expiry is fixed when the session is minted and nothing extends it, so a member
+reading the board every day is signed out on that date exactly like a member who
+never came back. The setting key is still `security.session_idle_days` because
+renaming a stored key would strand the value on every board that has set one;
+the key is the historical name and the screen is the accurate one.
+
+That is deliberate, and the two reasons are worth having written down:
+
+- **A stolen token has a known last day.** A sliding session hands whoever holds
+  the token the ability to keep it alive forever simply by using it, which is
+  precisely what a thief does. An absolute life is the only guarantee here that
+  survives the token leaving its owner's browser.
+- **"Keep me signed in" is already the renewing half.** The remember-me token
+  rotates on every resume and mints a fresh session, so a member who ticked the
+  box is carried over the expiry without noticing it, and a *reused* remember
+  token — the fingerprint of a stolen one — revokes the whole family and every
+  session with it. Renewal and theft-detection travel together on that token,
+  and separately from the session cookie on purpose.
+
+The control panel's own session is the other way round — a 30-minute idle
+timeout under an 8-hour ceiling — because it writes to `admin_sessions` on
+requests an administrator makes while a panel screen is open, which is a rate
+the board's whole signed-in read traffic is not.
+
 ## The content policy
 
 Every response carries a `Content-Security-Policy` built per request in

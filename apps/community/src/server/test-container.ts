@@ -78,7 +78,7 @@ function identityOver(store: ReturnType<typeof createMemoryStore>) {
         maxLoginAttempts: 5,
         maxAccountLoginAttempts: 50,
         lockoutMinutes: 15,
-        sessionIdleDays: 30,
+        sessionLifetimeDays: 30,
         resetTokenTtlMinutes: 60,
         reservedUsernames: [],
         defaultMemberGroupId: 2,
@@ -87,7 +87,7 @@ function identityOver(store: ReturnType<typeof createMemoryStore>) {
     sessions: new SessionService({
       store,
       rememberDays: 30,
-      sessionIdleDays: 30,
+      sessionLifetimeDays: 30,
     }),
   }
 }

@@ -354,7 +354,7 @@ export class IdentityService {
 
   private async startSession(account: AccountRecord, at: Date): Promise<LoginResult> {
     const token = generateToken()
-    const expiresAt = new Date(at.getTime() + this.config.sessionIdleDays * 86_400_000)
+    const expiresAt = new Date(at.getTime() + this.config.sessionLifetimeDays * 86_400_000)
     await this.store.sessions.create({
       tokenHash: await hashToken(token),
       userId: account.id,
