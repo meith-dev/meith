@@ -66,6 +66,7 @@ export default async function AdminThemePage({
           themeKey={view.key}
           tokens={view.tokens}
           customCss={view.customCss}
+          isDefault={view.isDefault}
         />
       </section>
 

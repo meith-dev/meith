@@ -472,7 +472,13 @@ board starts and where most stay.
 - **Custom CSS.** For any theme other than the board's default this is nested
   under that theme's own selector, so it stops applying when a member picks
   another one — and a rule aimed at `:root` will not match inside the nesting.
-  Target `body` or a class and it works in both positions.
+  Target `body` or a class and it works in both positions. The **default**
+  theme's custom CSS is the exception, and it is the one worth knowing: it is
+  appended unscoped, so it reaches every member of the board including those who
+  have picked something else. That is what makes it the place for a rule that
+  belongs to the *board* rather than to a look; a rule that belongs to one look
+  goes on a theme that is not the default. The editor says which of the two you
+  are on.
 - **Export and import** — an exact JSON round-trip, so a look can be moved
   between boards. Documents written before per-scheme overrides existed
   (`"version": 1`) still import; their values apply to both schemes.

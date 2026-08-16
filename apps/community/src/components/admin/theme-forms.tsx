@@ -199,10 +199,12 @@ export function ThemeEditorForm({
   themeKey,
   tokens,
   customCss,
+  isDefault,
 }: {
   themeKey: string
   tokens: readonly EditableToken[]
   customCss: string
+  isDefault: boolean
 }) {
   const [state, action] = useActionState(themeEditorAction, EMPTY_STATE)
   const hydrated = useHydrated()
@@ -414,10 +416,22 @@ export function ThemeEditorForm({
             <span className="text-xs text-muted-foreground">
               Appended after the theme&rsquo;s own styles. <code>@import</code>, <code>url(</code>{" "}
               and a closing style tag are refused — those are how a stylesheet stops being a
-              stylesheet. When more than one theme is enabled this is nested under the
-              theme&rsquo;s own selector, so it stops applying the moment a member picks a
-              different one; a rule aimed at <code>:root</code> will not match there, so target{" "}
-              <code>body</code> or a class instead.
+              stylesheet.{" "}
+              {isDefault ? (
+                <>
+                  This is the board&rsquo;s default theme, so what you write here goes into the
+                  page unscoped: it applies to every member, including one who has picked
+                  another theme. Rules meant for this theme alone belong on a theme that is
+                  not the default.
+                </>
+              ) : (
+                <>
+                  This theme is not the board default, so what you write here is nested under
+                  its own selector and stops applying the moment a member picks a different
+                  theme; a rule aimed at <code>:root</code> will not match there, so target{" "}
+                  <code>body</code> or a class instead.
+                </>
+              )}
             </span>
           </label>
 
