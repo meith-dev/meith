@@ -1337,6 +1337,16 @@ allowance rather than getting one each. The counters are pruned hourly by the
 tick; if the tick is stopped they accumulate, but `/admin/system` will tell you
 the tick is stale long before this becomes your problem.
 
+### The upload allowance covers both kinds of upload
+
+`antispam.upload_per_hour` is one bucket per member, and both things a member
+can upload spend from it: the files attached to a post, one unit each, and a new
+avatar, one unit at the point the image is accepted. Replacing an avatar six
+times in an hour therefore costs exactly what attaching six files to a post
+costs — which is what the setting has always said and what an account using the
+avatar form as its upload channel would otherwise get for nothing. Removing an
+avatar spends nothing, because it uploads nothing.
+
 ### If registration stops working
 
 Check `/admin/antispam` first.
