@@ -10,7 +10,6 @@ export const PLUGIN_UNGRANTABLE_PERMISSIONS = [
   'canWarnUsers',
   'canApproveContent',
   'canEditOthersPosts',
-  'canDeleteOthersPosts',
   'canSoftDeletePosts',
 ] as const
 

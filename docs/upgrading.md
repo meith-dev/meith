@@ -602,6 +602,30 @@ threads down](./operating.md#letting-members-take-their-own-threads-down)
 before you do, because a thread is deleted whole and takes other people's
 replies with it.
 
+### `canDeleteOthersPosts` is gone from the panel
+
+It read "Hard-delete anyone's post", and the board has never had a hard delete
+to perform. No decision consulted it: deleting somebody else's post has always
+gone through `post.softDelete`, which reads `canSoftDeletePosts` and is
+reversible. The cell was a promise the board had no way to keep, and shipping a
+row-destroying delete to justify a checkbox is not the honest fix — the same
+call PR #124 made when it removed *Delete permanently* from the per-forum
+moderator rights for exactly this reason.
+
+Migration **0042** drops `can_delete_others_posts` from `usergroups` and from
+`forum_permissions`. Whatever was ticked in it was already inert, so nothing a
+board can observe changes when it goes. A group that is meant to remove other
+people's posts wants `canSoftDeletePosts`, which it almost certainly already
+has.
+
+One knock-on worth knowing: the column was one of the permissions that marked a
+group as **carrying power**, and so barred it from *may be granted by plugins*
+and forced its members to be displayed as staff. `canEditOthersPosts` and
+`canSoftDeletePosts` are still on that list and cover the same ground, so a
+group that was barred for holding real moderation power still is. A group whose
+*only* power was this dead column — which granted nothing — stops being treated
+as powerful, which is now the truth about it.
+
 ## What the CLI applies
 
 `community upgrade` applies **core migrations, then each installed plugin's, then

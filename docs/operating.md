@@ -337,9 +337,10 @@ missing rather than hidden.
 
 ## Permissions
 
-46 permission fields — 27 resolved per member per forum, 19 board-wide. Every
+45 permission fields — 26 resolved per member per forum, 19 board-wide. Every
 read path — pages, search, feeds, the REST API — asks the same resolver, so
-there is no route that quietly reads around the rules.
+there is no route that quietly reads around the rules, and every field on the
+screen is one some decision reads.
 
 ### The three layers
 
@@ -483,6 +484,13 @@ A group given `canSoftDeletePosts` in the forum matrix — rather than by
 appointment — can both delete and restore in that forum, because that cell has
 always meant "may move a post to deleted, reversibly" and there is no second
 cell beside it.
+
+> [!NOTE]
+> **There is no hard delete, and no permission claims there is.** Deleting a
+> post or a thread always means `visibility=deleted`: the row stays, the
+> moderator log records the act, and somebody with *Restore posts* can undo it.
+> Nothing in the panel destroys content, which is why the matrix has one delete
+> cell for other people's posts rather than two.
 
 **"My forums" in the ModCP lists what somebody actually holds**, per forum,
 using the same nine names. If a right is not in that list, the board will refuse
