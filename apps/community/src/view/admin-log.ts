@@ -18,7 +18,6 @@ export interface AdminLogView {
   readonly rows: readonly AdminLogRowView[]
   readonly actions: readonly string[]
   readonly currentAction: string
-  readonly nextCursor: string | null
 }
 
 export function buildAdminLogView(input: {
@@ -28,12 +27,8 @@ export function buildAdminLogView(input: {
   readonly now: Date
   readonly timeZone?: string
 }): AdminLogView {
-  const page = input.rows.slice(0, ADMIN_LOG_PAGE_SIZE)
-  const last = page[page.length - 1]
-  const hasMore = input.rows.length > ADMIN_LOG_PAGE_SIZE && last !== undefined
-
   return {
-    rows: page.map((row) => ({
+    rows: input.rows.map((row) => ({
       id: row.id,
       action: row.action,
       actor: row.username ?? (row.userId === null ? 'the system' : 'a deleted account'),
@@ -43,7 +38,6 @@ export function buildAdminLogView(input: {
     })),
     actions: input.actions,
     currentAction: input.currentAction,
-    nextCursor: hasMore && last !== undefined ? String(last.id) : null,
   }
 }
 

@@ -109,7 +109,7 @@ export class PostgresSearchRepository {
                            ${HEADLINE_OPTIONS}) as excerpt
           from ${candidates}
          order by ${finalOrder}
-         limit ${query.limit}
+         limit ${query.limit} offset ${query.after === null ? (query.offset ?? 0) : 0}
       `),
     ) as Array<Record<string, unknown>>
 

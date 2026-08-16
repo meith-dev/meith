@@ -40,7 +40,11 @@ export interface QueueOutcome {
 export interface ModerationQueueRepository {
   list(
     forumIds: readonly number[],
-    options: { readonly limit: number; readonly after?: string },
+    options: {
+      readonly limit: number
+      readonly after?: string
+      readonly offset?: number
+    },
   ): Promise<QueuePage>
 
   countPending(forumIds: readonly number[]): Promise<number>
@@ -71,12 +75,13 @@ export class ModerationQueue {
 
   async list(
     moderatedForumIds: readonly number[],
-    options: { readonly after?: string } = {},
+    options: { readonly after?: string; readonly offset?: number } = {},
   ): Promise<QueuePage> {
     if (moderatedForumIds.length === 0) return { items: [] }
     return this.queue.list(moderatedForumIds, {
       limit: QUEUE_PAGE_SIZE,
       ...(options.after === undefined ? {} : { after: options.after }),
+      ...(options.offset === undefined ? {} : { offset: options.offset }),
     })
   }
 

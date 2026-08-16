@@ -21,7 +21,7 @@ import { filterView, viewerRef } from '@/server/plugin-view'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { CURSOR_FIELDS } from '@/view/search-controls'
 import { buildSearchResultsView, type SearchForumRef } from '@/view/search-results'
-import { buildPager } from '@/view/pager'
+import { buildOffsetPager, offsetOf, readPage } from '@/view/pager'
 
 export const metadata: Metadata = { title: 'Search results' }
 
@@ -50,6 +50,8 @@ export default async function SearchResultsPage({
       ? { rank, postId }
       : null
 
+  const pageNumber = readPage(query)
+
   const actor = await getActor()
   const now = new Date()
 
@@ -60,6 +62,7 @@ export default async function SearchResultsPage({
       sessionKey: await currentSessionKey(),
       token,
       after,
+      offset: offsetOf(pageNumber, SEARCH_PAGE),
       refine: readRefinement(query),
       now,
     })
@@ -92,18 +95,12 @@ export default async function SearchResultsPage({
   const SearchResults = requireSlot(await currentTheme(), 'SearchResults')
   const Pagination = requireSlot(await currentTheme(), 'Pagination')
 
-  const pager = buildPager({
+  const pager = buildOffsetPager({
     path: `/search/${token}`,
     params: query,
-    cursorParams: [CURSOR_FIELDS.rank, CURSOR_FIELDS.after],
+    page: pageNumber,
     pageSize: SEARCH_PAGE,
-    nextCursor:
-      results.nextCursor === null
-        ? null
-        : {
-            [CURSOR_FIELDS.rank]: String(results.nextCursor.rank),
-            [CURSOR_FIELDS.after]: String(results.nextCursor.postId),
-          },
+    total: summary.total,
   })
 
   const filtered = await filterView('view.search-results', model, viewerRef(actor))

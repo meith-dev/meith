@@ -119,7 +119,11 @@ export class PostgresNotificationRepository implements NotificationRepository {
 
   async listFor(
     userId: number,
-    options: { readonly limit: number; readonly after?: string },
+    options: {
+      readonly limit: number
+      readonly after?: string
+      readonly offset?: number
+    },
   ): Promise<NotificationPage> {
     const cursor = options.after === undefined ? null : decodeCursor(options.after)
     const after = cursor
@@ -131,7 +135,7 @@ export class PostgresNotificationRepository implements NotificationRepository {
         ${SELECT_NOTIFICATION}
          where n.user_id = ${userId} ${after}
          order by n.created_at desc, n.id desc
-         limit ${options.limit + 1}
+         limit ${options.limit + 1} offset ${options.offset ?? 0}
       `),
     ) as RawNotification[]
 
@@ -140,6 +144,16 @@ export class PostgresNotificationRepository implements NotificationRepository {
     return rows.length > options.limit && last
       ? { rows: page, nextCursor: encodeCursor(last.createdAt, last.id) }
       : { rows: page }
+  }
+
+  async countFor(userId: number): Promise<number> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select count(*)::int as total from notifications where user_id = ${userId}
+      `),
+    ) as Array<{ total: number }>
+
+    return Number(rows[0]?.total ?? 0)
   }
 
   async unreadCount(userId: number): Promise<number> {

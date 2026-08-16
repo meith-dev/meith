@@ -11,6 +11,7 @@ import { formatTime } from '@/view/time'
 import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
 import { cn } from '@meith/ui'
 import { PanelPagination } from '@/components/shell/panel-pagination'
+import { offsetOf, readPage } from '@/view/pager'
 
 export const metadata: Metadata = { title: 'Attachments' }
 
@@ -43,15 +44,13 @@ export default async function AdminAttachmentsPage({
 
   const filename = one('filename')
   const status = one('status')
-  const beforeText = one('before')
-  const beforeId =
-    beforeText !== undefined && /^\d+$/.test(beforeText) ? Number(beforeText) : undefined
+  const pageNumber = readPage(params)
 
   const [page, totals] = await Promise.all([
     repository.list({
       ...(filename === undefined ? {} : { filename }),
       ...(status === undefined ? {} : { status }),
-      ...(beforeId === undefined ? {} : { beforeId }),
+      offset: offsetOf(pageNumber, PAGE_SIZE),
       limit: PAGE_SIZE,
     }),
     repository.totals(),
@@ -181,9 +180,9 @@ export default async function AdminAttachmentsPage({
       <PanelPagination
         path="/admin/content/attachments"
         params={params}
-        cursorParams={['before']}
+        page={pageNumber}
         pageSize={PAGE_SIZE}
-        nextCursor={page.nextBeforeId === null ? null : { before: String(page.nextBeforeId) }}
+        total={page.total}
       />
     </PanelPage>
   )

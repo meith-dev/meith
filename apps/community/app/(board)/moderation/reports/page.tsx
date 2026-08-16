@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { ReportService } from '@meith/moderation'
+import { REPORTS_PAGE_SIZE, ReportService } from '@meith/moderation'
 import { requireSlot } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
@@ -16,13 +16,14 @@ import { getViewerPreferences } from '@/server/viewer-preferences'
 import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
 import { PanelPagination } from '@/components/shell/panel-pagination'
+import { offsetOf, readPage } from '@/view/pager'
 
 export const metadata: Metadata = { title: 'Reports' }
 
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ after?: string; closed?: string }>
+  searchParams: Promise<{ page?: string; closed?: string }>
 }) {
   const query = await searchParams
   const actor = await getActor()
@@ -33,8 +34,9 @@ export default async function ReportsPage({
   if (!hasReportScope(scope)) notFound()
 
   const service = new ReportService({ reports })
+  const pageNumber = readPage(query)
   const [page, open] = await Promise.all([
-    service.listOpen(scope, query.after === undefined ? {} : { after: query.after }),
+    service.listOpen(scope, { offset: offsetOf(pageNumber, REPORTS_PAGE_SIZE) }),
     service.countOpen(scope),
   ])
 
@@ -153,8 +155,9 @@ export default async function ReportsPage({
       <PanelPagination
         path="/moderation/reports"
         params={query}
-        cursorParams={['after']}
-        nextCursor={page.nextCursor === undefined || page.nextCursor === null ? null : { after: String(page.nextCursor) }}
+        page={pageNumber}
+        pageSize={REPORTS_PAGE_SIZE}
+        total={open}
       />
     </PanelPage>
   )

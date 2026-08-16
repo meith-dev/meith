@@ -59,6 +59,10 @@ class MemoryNotifications implements NotificationRepository {
     return this.rows.filter((r) => r.userId === userId && r.readAt === null).length
   }
 
+  async countFor(userId: number): Promise<number> {
+    return this.rows.filter((r) => r.userId === userId).length
+  }
+
   async markRead(userId: number, id: number): Promise<boolean> {
     const row = this.rows.find((r) => r.id === id && r.userId === userId && r.readAt === null)
     if (row === undefined) return false

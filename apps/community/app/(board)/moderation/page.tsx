@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { ModerationQueue } from '@meith/moderation'
+import { ModerationQueue, QUEUE_PAGE_SIZE } from '@meith/moderation'
 import { requireSlot } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
@@ -13,6 +13,7 @@ import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildQueueView } from '@/view/moderation-queue'
 import { PanelPagination } from '@/components/shell/panel-pagination'
+import { offsetOf, readPage } from '@/view/pager'
 
 export const metadata: Metadata = { title: 'Moderation queue' }
 
@@ -34,8 +35,9 @@ export default async function ModerationPage({
 
   const moderated = await authorizer.moderatedForumIds(actor)
   const queue = new ModerationQueue({ queue: moderationQueue })
+  const pageNumber = readPage(query)
   const [page, pending] = await Promise.all([
-    queue.list(moderated, query.after === undefined ? {} : { after: query.after }),
+    queue.list(moderated, { offset: offsetOf(pageNumber, QUEUE_PAGE_SIZE) }),
     queue.countPending(moderated),
   ])
 
@@ -100,8 +102,9 @@ export default async function ModerationPage({
       <PanelPagination
         path="/moderation"
         params={query}
-        cursorParams={['after']}
-        nextCursor={page.nextCursor === undefined || page.nextCursor === null ? null : { after: String(page.nextCursor) }}
+        page={pageNumber}
+        pageSize={QUEUE_PAGE_SIZE}
+        total={pending}
       />
     </PanelPage>
   )

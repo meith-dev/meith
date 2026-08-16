@@ -27,6 +27,19 @@ export interface PagerInput {
   readonly total?: number | null
 }
 
+export const PAGE_PARAM = 'page'
+
+const NEIGHBOURS = 2
+
+export interface OffsetPagerInput {
+  readonly path: string
+  readonly params: QueryParams
+  readonly pageParam?: string
+  readonly page: number
+  readonly pageSize: number
+  readonly total: number
+}
+
 export function one(params: QueryParams, key: string): string | undefined {
   const raw = params[key]
   const value = Array.isArray(raw) ? raw[0] : raw
@@ -113,5 +126,63 @@ export function buildPager(input: PagerInput): PaginationModel {
       input.nextCursor === null
         ? null
         : href(input, input.nextCursor, [...trail, input.nextCursor].slice(-TRAIL_LIMIT)),
+  }
+}
+
+export function readPage(params: QueryParams, pageParam: string = PAGE_PARAM): number {
+  const raw = one(params, pageParam)
+  if (raw === undefined) return 1
+
+  const page = Number(raw)
+  return Number.isSafeInteger(page) && page >= 1 ? page : 1
+}
+
+export function offsetOf(page: number, pageSize: number): number {
+  return (Math.max(page, 1) - 1) * pageSize
+}
+
+export function pageCountOf(total: number, pageSize: number): number {
+  return Math.max(1, Math.ceil(Math.max(total, 0) / Math.max(pageSize, 1)))
+}
+
+function numberedHref(input: OffsetPagerInput, page: number): string {
+  const pageParam = input.pageParam ?? PAGE_PARAM
+  const query = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(input.params)) {
+    if (key === pageParam || key === TRAIL_PARAM) continue
+    const text = Array.isArray(value) ? value[0] : value
+    if (text !== undefined && text !== '') query.set(key, text)
+  }
+
+  if (page > 1) query.set(pageParam, String(page))
+
+  const search = query.toString()
+  return search === '' ? input.path : `${input.path}?${search}`
+}
+
+export function buildOffsetPager(input: OffsetPagerInput): PaginationModel {
+  const pageCount = pageCountOf(input.total, input.pageSize)
+  const page = Math.min(Math.max(input.page, 1), pageCount)
+
+  const numbers = new Set<number>([1, pageCount, page])
+  for (let step = 1; step <= NEIGHBOURS; step += 1) {
+    if (page - step >= 1) numbers.add(page - step)
+    if (page + step <= pageCount) numbers.add(page + step)
+  }
+
+  return {
+    page,
+    pageCount,
+    pageCountIsExact: true,
+    pages: [...numbers]
+      .sort((a, b) => a - b)
+      .map((number) => ({
+        page: number,
+        href: numberedHref(input, number),
+        isCurrent: number === page,
+      })),
+    previousHref: page === 1 ? null : numberedHref(input, page - 1),
+    nextHref: page === pageCount ? null : numberedHref(input, page + 1),
   }
 }

@@ -99,17 +99,22 @@ export class NotificationService {
 
   async list(
     userId: number,
-    options: { readonly after?: string } = {},
+    options: { readonly after?: string; readonly offset?: number } = {},
   ): Promise<{ rows: readonly NotificationView[]; nextCursor?: string }> {
     const page = await this.repository.listFor(userId, {
       limit: NOTIFICATIONS_PAGE_SIZE,
       ...(options.after === undefined ? {} : { after: options.after }),
+      ...(options.offset === undefined ? {} : { offset: options.offset }),
     })
 
     return {
       rows: page.rows.map(renderNotification),
       ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
     }
+  }
+
+  async count(userId: number): Promise<number> {
+    return this.repository.countFor(userId)
   }
 
   async unreadCount(userId: number): Promise<number> {

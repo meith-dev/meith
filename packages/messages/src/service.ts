@@ -68,12 +68,14 @@ export class MessageService {
     readonly userId: number
     readonly folder: MessageFolder
     readonly before?: number | undefined
+    readonly offset?: number | undefined
   }): Promise<{ rows: readonly MessageListRow[]; nextBefore: number | null }> {
     const rows = await this.repository.list({
       userId: input.userId,
       folder: input.folder,
       limit: MESSAGES_PAGE_SIZE + 1,
       before: input.before,
+      offset: input.offset,
     })
 
     const page = rows.slice(0, MESSAGES_PAGE_SIZE)

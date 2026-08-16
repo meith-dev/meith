@@ -58,10 +58,17 @@ export interface NotificationRepository {
 
   listFor(
     userId: number,
-    options: { readonly limit: number; readonly after?: string },
+    options: {
+      readonly limit: number
+      readonly after?: string
+      readonly offset?: number
+    },
   ): Promise<NotificationPage>
 
   unreadCount(userId: number): Promise<number>
+
+  /** Every notification this member has, read or not. */
+  countFor(userId: number): Promise<number>
 
   markRead(userId: number, notificationId: number): Promise<boolean>
 

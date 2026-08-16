@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { TRAIL_LIMIT, buildPager, readTrail } from './pager'
+import {
+  TRAIL_LIMIT,
+  buildOffsetPager,
+  buildPager,
+  offsetOf,
+  readPage,
+  readTrail,
+} from './pager'
 
 const BASE = { path: '/admin/users', cursorParams: ['after_id'], pageSize: 50 }
 
@@ -108,5 +115,62 @@ describe('the trail', () => {
   it('ignores an empty trail', () => {
     expect(readTrail({ seen: '' })).toEqual([])
     expect(readTrail({})).toEqual([])
+  })
+})
+
+describe('buildOffsetPager', () => {
+  const BASE = { path: '/admin/users', pageSize: 20, total: 204 }
+
+  it('counts the pages from the total', () => {
+    const pager = buildOffsetPager({ ...BASE, params: {}, page: 1 })
+
+    expect(pager.pageCount).toBe(11)
+    expect(pager.pageCountIsExact).toBe(true)
+  })
+
+  it('links straight to any page, not just the next one', () => {
+    const pager = buildOffsetPager({ ...BASE, params: {}, page: 6 })
+
+    expect(pager.pages.map((entry) => entry.page)).toEqual([1, 4, 5, 6, 7, 8, 11])
+    expect(pager.pages.at(-1)?.href).toBe('/admin/users?page=11')
+  })
+
+  it('leaves the page out of the first page’s address', () => {
+    expect(buildOffsetPager({ ...BASE, params: {}, page: 2 }).previousHref).toBe('/admin/users')
+  })
+
+  it('keeps the filter on every page', () => {
+    const pager = buildOffsetPager({ ...BASE, params: { username: 'ada' }, page: 2 })
+    expect(pager.nextHref).toBe('/admin/users?username=ada&page=3')
+  })
+
+  it('has no next on the last page and no previous on the first', () => {
+    expect(buildOffsetPager({ ...BASE, params: {}, page: 11 }).nextHref).toBeNull()
+    expect(buildOffsetPager({ ...BASE, params: {}, page: 1 }).previousHref).toBeNull()
+  })
+
+  it('clamps a page past the end back onto the last one', () => {
+    expect(buildOffsetPager({ ...BASE, params: {}, page: 99 }).page).toBe(11)
+  })
+
+  it('is one page when nothing matched', () => {
+    const pager = buildOffsetPager({ ...BASE, params: {}, page: 1, total: 0 })
+    expect(pager.pageCount).toBe(1)
+    expect(pager.nextHref).toBeNull()
+  })
+})
+
+describe('readPage', () => {
+  it('starts at one, and refuses nonsense', () => {
+    expect(readPage({})).toBe(1)
+    expect(readPage({ page: '7' })).toBe(7)
+    expect(readPage({ page: '0' })).toBe(1)
+    expect(readPage({ page: '-3' })).toBe(1)
+    expect(readPage({ page: 'nine' })).toBe(1)
+  })
+
+  it('counts rows from the page', () => {
+    expect(offsetOf(1, 50)).toBe(0)
+    expect(offsetOf(4, 50)).toBe(150)
   })
 })

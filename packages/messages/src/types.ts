@@ -88,6 +88,7 @@ export interface MessageRepository {
     readonly folder: MessageFolder
     readonly limit: number
     readonly before?: number | undefined
+    readonly offset?: number | undefined
   }): Promise<readonly MessageListRow[]>
 
   counts(userId: number): Promise<FolderCounts>

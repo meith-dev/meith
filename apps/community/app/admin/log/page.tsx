@@ -6,6 +6,7 @@ import { getContainer } from '@/server/container'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { ADMIN_LOG_PAGE_SIZE, buildAdminLogView } from '@/view/admin-log'
 import { PanelPagination } from '@/components/shell/panel-pagination'
+import { offsetOf, readPage } from '@/view/pager'
 import { PANEL_LIST } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Admin log' }
@@ -13,7 +14,7 @@ export const metadata: Metadata = { title: 'Admin log' }
 export default async function AdminLogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ before?: string; action?: string }>
+  searchParams: Promise<{ page?: string; action?: string }>
 }) {
   if ((await adminPageContext()) === null) return null
 
@@ -21,15 +22,23 @@ export default async function AdminLogPage({
   const { adminLog } = getContainer()
   if (adminLog === null) return null
 
-  const before = Number(query.before)
   const { timezone } = await getViewerPreferences()
-  const view = buildAdminLogView({
-    rows: await adminLog.list({
-      limit: 51,
-      ...(Number.isInteger(before) && before > 0 ? { before } : {}),
-      ...(query.action === undefined ? {} : { action: query.action }),
+  const page = readPage(query)
+  const filter = query.action === undefined ? {} : { action: query.action }
+
+  const [rows, total, actions] = await Promise.all([
+    adminLog.list({
+      limit: ADMIN_LOG_PAGE_SIZE,
+      offset: offsetOf(page, ADMIN_LOG_PAGE_SIZE),
+      ...filter,
     }),
-    actions: await adminLog.actions(),
+    adminLog.count(filter),
+    adminLog.actions(),
+  ])
+
+  const view = buildAdminLogView({
+    rows,
+    actions,
     currentAction: query.action ?? '',
     now: new Date(),
     timeZone: timezone,
@@ -99,9 +108,9 @@ export default async function AdminLogPage({
       <PanelPagination
         path="/admin/log"
         params={query}
-        cursorParams={['before']}
+        page={page}
         pageSize={ADMIN_LOG_PAGE_SIZE}
-        nextCursor={view.nextCursor === null ? null : { before: view.nextCursor }}
+        total={total}
       />
     </PanelPage>
   )

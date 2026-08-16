@@ -8,6 +8,7 @@ import { USER_PAGE, parseUserFilter, userAdminRepository } from '@/server/user-a
 import { PANEL_CARD, PANEL_LIST, PANEL_ROW, PanelActionLink } from '@/components/shell/panel-list'
 import { buttonVariants, cn } from '@meith/ui'
 import { PanelPagination } from '@/components/shell/panel-pagination'
+import { readPage } from '@/view/pager'
 
 export const metadata: Metadata = { title: 'Members' }
 
@@ -235,9 +236,9 @@ export default async function AdminUsersPage({
       <PanelPagination
         path="/admin/users"
         params={params}
-        cursorParams={['after_id']}
+        page={readPage(params)}
         pageSize={USER_PAGE}
-        nextCursor={page.nextCursor === null ? null : { after_id: String(page.nextCursor) }}
+        total={page.total}
       />
     </PanelPage>
   )

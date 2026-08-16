@@ -24,12 +24,15 @@ export interface AttachmentAdminFilter {
   readonly status?: string | undefined
   readonly uploaderUserId?: number | undefined
   readonly beforeId?: number | undefined
+  readonly offset?: number | undefined
   readonly limit: number
 }
 
 export interface AttachmentAdminPage {
   readonly rows: readonly AttachmentAdminRow[]
   readonly nextBeforeId: number | null
+  /** How many attachments the filter matches, whichever page was asked for. */
+  readonly total: number
 }
 
 export interface AttachmentTotals {
@@ -64,8 +67,8 @@ export class PostgresAttachmentAdminRepository {
 
     const where = sql.join(conditions, sql` and `)
 
-    const rows = resultRows(
-      await this.db.execute(sql`
+    const [listed, counted] = await Promise.all([
+      this.db.execute(sql`
         select a.id, a.post_id, a.filename, a.content_type, a.size_bytes, a.status,
                a.failure_reason, a.download_count, a.uploader_user_id, a.created_at,
                u.username as uploader_username, t.slug as thread_slug
@@ -75,9 +78,14 @@ export class PostgresAttachmentAdminRepository {
           left join threads t on t.id = p.thread_id
          where ${where}
          order by a.id desc
-         limit ${filter.limit + 1}
+         limit ${filter.limit + 1} offset ${filter.offset ?? 0}
       `),
-    ) as Array<Record<string, unknown>>
+      this.db.execute(sql`
+        select count(*)::int as total from attachments a where ${where}
+      `),
+    ])
+
+    const rows = resultRows(listed) as Array<Record<string, unknown>>
 
     const page = rows.slice(0, filter.limit).map(
       (row): AttachmentAdminRow => ({
@@ -96,9 +104,14 @@ export class PostgresAttachmentAdminRepository {
       }),
     )
 
+    const total = Number(
+      (resultRows(counted) as Array<Record<string, unknown>>)[0]?.total ?? 0,
+    )
+
     return {
       rows: page,
       nextBeforeId: rows.length > filter.limit ? (page[page.length - 1]?.id ?? null) : null,
+      total,
     }
   }
 

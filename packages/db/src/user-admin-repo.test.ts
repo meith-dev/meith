@@ -245,6 +245,28 @@ describe('search', () => {
     expect(last.nextCursor).toBeNull()
   })
 
+  it('pages by number, and counts what the filter matched', async () => {
+    for (let id = 1; id <= 5; id += 1) await seed({ id, username: `u${id}` })
+
+    const first = await repo.search({ offset: 0, limit: 2 })
+    expect(first.rows.map((row) => row.id)).toEqual([1, 2])
+    expect(first.total, 'the count is of the filter, not of the page').toBe(5)
+
+    const third = await repo.search({ offset: 4, limit: 2 })
+    expect(third.rows.map((row) => row.id)).toEqual([5])
+    expect(third.total).toBe(5)
+  })
+
+  it('counts what the filter matched rather than the whole table', async () => {
+    await seed({ id: 1, username: 'ann' })
+    await seed({ id: 2, username: 'annabel' })
+    await seed({ id: 3, username: 'bob' })
+
+    const page = await repo.search({ username: 'ann', offset: 0, limit: 1 })
+    expect(page.rows).toHaveLength(1)
+    expect(page.total).toBe(2)
+  })
+
   it('carries the group title, so the listing does not need a second query', async () => {
     await seed({ id: 1, username: 'ann', groupId: ADMINS })
     expect((await repo.search(ALL)).rows[0]?.primaryGroupTitle).toBe('Administrators')

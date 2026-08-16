@@ -190,6 +190,7 @@ export class PostgresThreadRepository implements ThreadRepository {
     forumId: number,
     options: {
       readonly after?: ThreadCursor
+      readonly offset?: number
       readonly limit: number
       readonly scope: ContentScope
       readonly authors: ThreadAuthorFilter
@@ -250,6 +251,7 @@ export class PostgresThreadRepository implements ThreadRepository {
         desc(threads.id),
       )
       .limit(options.limit + 1)
+      .offset(options.offset ?? 0)
 
     const page = rows.slice(0, options.limit).map(rowToListing)
     const last = page.at(-1)

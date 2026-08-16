@@ -110,6 +110,21 @@ describe('listing', () => {
     expect(second.rows.map((row) => row.id)).toEqual([3, 2])
   })
 
+  it('pages by number, and counts what the filter matched', async () => {
+    for (let id = 1; id <= 5; id += 1) await addAttachment({ id, filename: `f${id}.png` })
+
+    const second = await repo.list({ limit: 2, offset: 2 })
+    expect(second.rows.map((row) => row.id)).toEqual([3, 2])
+    expect(second.total).toBe(5)
+  })
+
+  it('counts the filter rather than the table', async () => {
+    await addAttachment({ id: 1, filename: 'ok.png' })
+    await addAttachment({ id: 2, filename: 'broken.png', status: 'failed' })
+
+    expect((await repo.list({ limit: 10, status: 'failed' })).total).toBe(1)
+  })
+
   it('reports no cursor on the last page', async () => {
     await addAttachment({ id: 1, filename: 'only.png' })
     expect((await repo.list({ limit: 10 })).nextBeforeId).toBeNull()

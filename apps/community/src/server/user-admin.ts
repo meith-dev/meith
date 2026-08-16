@@ -18,6 +18,7 @@ import {
 } from '@meith/db'
 
 import { getContainer } from './container'
+import { offsetOf, readPage } from '@/view/pager'
 
 export const USER_PAGE = 50
 
@@ -104,7 +105,7 @@ export function parseUserFilter(
     ...(number('minPosts') === undefined ? {} : { minPostCount: number('minPosts') }),
     ...(number('maxPosts') === undefined ? {} : { maxPostCount: number('maxPosts') }),
     ...(one('deleted') === undefined ? {} : { includeDeleted: true }),
-    afterUserId: number('after_id') ?? 0,
+    offset: offsetOf(readPage(params), USER_PAGE),
     limit: USER_PAGE,
   }
 }

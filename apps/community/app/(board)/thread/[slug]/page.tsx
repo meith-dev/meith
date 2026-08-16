@@ -56,6 +56,7 @@ import {
 } from '@/view/metadata'
 import { buildSubscriptionsView } from '@/view/subscriptions'
 import { BOARD_MEASURE } from '@/components/shell/measure'
+import { buildOffsetPager, offsetOf } from '@/view/pager'
 
 export async function generateMetadata({
   params,
@@ -235,14 +236,22 @@ export default async function ThreadPage({
   }
 
   const postPage = await posts.listThread(thread.id, {
-    ...(after === undefined ? {} : { afterId: after }),
+    ...(after === undefined
+      ? { offset: offsetOf(page, preferences.postsPerPage) }
+      : { afterId: after }),
     limit: preferences.postsPerPage,
     scope,
   })
-  const nextHref =
-    postPage.nextAfterId === null
-      ? null
-      : `/thread/${thread.id}-${thread.slug}?after=${postPage.nextAfterId}&page=${page + 1}`
+
+  const pager = buildOffsetPager({
+    path: `/thread/${thread.id}-${thread.slug}`,
+    params: query,
+    page,
+    pageSize: preferences.postsPerPage,
+    total: thread.replyCount + 1,
+  })
+
+  const nextHref = pager.nextHref
   const canReply =
     threadWrites !== null &&
     authorizer.can(actor, 'reply.post', { forumId: forum.id, forum: matrix }) &&
@@ -379,8 +388,9 @@ export default async function ThreadPage({
     replyHref: canReply ? `/thread/${thread.id}-${thread.slug}/reply` : null,
     forum,
     page: postPage,
-    pageNumber: page,
+    pageNumber: pager.page,
     nextHref,
+    pagination: pager,
     markReadAction:
       actor.userId === null || postPage.rows.at(-1) === undefined
         ? null

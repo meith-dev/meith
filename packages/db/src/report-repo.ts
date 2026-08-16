@@ -206,7 +206,11 @@ export class PostgresReportRepository implements ReportRepository {
 
   async listOpen(
     scope: ReportScope,
-    options: { readonly limit: number; readonly after?: string },
+    options: {
+      readonly limit: number
+      readonly after?: string
+      readonly offset?: number
+    },
   ): Promise<ReportPage> {
     const cursor = options.after === undefined ? null : decodeCursor(options.after)
     const after = cursor
@@ -218,7 +222,7 @@ export class PostgresReportRepository implements ReportRepository {
         ${SELECT_REPORT}
          where r.status = 'open' and ${this.scopePredicate(scope)} ${after}
          order by r.created_at, r.id
-         limit ${options.limit + 1}
+         limit ${options.limit + 1} offset ${options.offset ?? 0}
       `),
     ) as RawReport[]
 

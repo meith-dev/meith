@@ -53,6 +53,10 @@ class FakeNotifications implements NotificationRepository {
     return 0
   }
 
+  async countFor(): Promise<number> {
+    return 0
+  }
+
   async markRead(userId: number, id: number): Promise<boolean> {
     this.markedRead.push({ userId, id })
     return true
