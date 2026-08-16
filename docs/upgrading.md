@@ -239,6 +239,36 @@ A setting can also change behaviour by starting to be *read*. That is not a
 default moving, and there is nothing to run — but it is worth knowing which
 switches on your board were, until now, decorative.
 
+### `search.min_word_length` now reaches the query parser
+
+**Minimum search term length** was never read. `parseSearchInput` carried a
+hard-coded 2 and took no configuration, so the box moved and the board went on
+refusing only single letters — a board that had asked for 5 got 2, and a board
+that had asked for 1 also got 2.
+
+The value is threaded in now, as an argument — `@meith/search` reads no
+settings of its own.
+
+**Its default moved from 3 to 2 in the same release, so nothing changes under
+you.** The parser has always enforced 2, and 2 is what every board has actually
+had; leaving the default at 3 would have made two-letter searches like `ok` or
+`C++` start being refused on every board at once, on the day the setting gained
+a reader. A board that had stored a number gets that number now, which is the
+change it asked for. The same reasoning moved `registration.method` to `none`
+above.
+
+**The description changed rather than the code**, because the old one described
+something the board has never done. It said short terms were "dropped from the
+query"; what actually happens is that a search is refused when *every* word in
+it is shorter than the limit, and short words in a search that also has a long
+one are passed to the index rather than removed. Dropping words silently is the
+worse of the two behaviours — it answers a question nobody asked, and it has no
+sensible answer when every word is short — so the sentence on the screen was
+made true instead. The label says **Shortest word a search may rest on** now,
+which is what the rule is.
+
+See [How short a search may be](./operating.md#how-short-a-search-may-be).
+
 ### `search.enabled` now actually switches search off
 
 **Enable search** was another switch nobody read. The Search link was

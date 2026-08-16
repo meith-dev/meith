@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 
+import { MIN_TERM_LENGTH } from '@meith/search'
 import { SettingsSnapshot } from '@meith/settings'
 
 const overrides = { current: new Map<string, string>() }
@@ -13,7 +14,8 @@ vi.mock('@meith/db', () => ({
   PostgresSearchRepository: class {},
 }))
 
-const { SEARCH_OFF_MESSAGE, requireSearchEnabled, searchEnabled } = await import('./search')
+const { SEARCH_OFF_MESSAGE, requireSearchEnabled, searchEnabled, searchMinWordLength } =
+  await import('./search')
 
 beforeEach(() => {
   overrides.current = new Map()
@@ -27,6 +29,17 @@ describe('searchEnabled', () => {
   it('follows the stored switch', async () => {
     overrides.current = new Map([['search.enabled', '0']])
     expect(await searchEnabled()).toBe(false)
+  })
+})
+
+describe('searchMinWordLength', () => {
+  it('leaves an untouched board searching exactly as the parser always has', async () => {
+    expect(await searchMinWordLength()).toBe(MIN_TERM_LENGTH)
+  })
+
+  it('hands the parser whatever the board stored', async () => {
+    overrides.current = new Map([['search.min_word_length', '5']])
+    expect(await searchMinWordLength()).toBe(5)
   })
 })
 

@@ -179,6 +179,36 @@ indexed, `search.reindex` still runs on the tick, and switching search back on
 needs no reindex and no restart. Nothing else keys off this: a board with search
 off still has its forums, its feeds and the rest of the REST API.
 
+### How short a search may be
+
+**Shortest word a search may rest on** — `search.min_word_length`, default 2 —
+is the one dial on what the board will agree to look for.
+
+The rule is *at least one word*, not *every word*. A search is refused when
+every word in it is shorter than the setting; a search with one long enough word
+runs, and the short ones go to the index along with it. At 3, `a good post` runs
+and `a b c` does not.
+
+```sh
+community settings:set search.min_word_length 3
+```
+
+The short words are **not** dropped by the board. They are passed to Postgres,
+which drops the ones that carry no meaning — `the`, `a`, `of` — as part of
+building the query, and keeps the rest. So `a C++` and `is it OK` search for
+what they say; the setting is there to refuse a search that is *nothing but*
+noise, which is the shape that scans the whole index and finds everything.
+
+It applies to `/search` and to `GET /api/v1/search` alike, and both name the
+configured number when they refuse, so a member is told what would work rather
+than being told no.
+
+The default is 2, which is what this board has always enforced rather than a
+number chosen afresh — the setting used to be inert, and moving the default
+would have changed every board's search on the day it started being read. Raise
+it to 3 if your slow searches turn out to be short words; set it to 1 to refuse
+nothing but an empty box.
+
 ### Closing registration
 
 **Allow new registrations** — `registration.enabled`, in the registration group

@@ -127,7 +127,9 @@ function errorFor(outcome: Exclude<RunSearchOutcome, { kind: 'ok' }>): string {
   }
   if (outcome.kind === 'limited') return outcome.message
   if (outcome.kind === 'unknown-author') return `Nobody here is called “${outcome.name}”.`
-  if (outcome.reason === 'too-short') return 'That search is too short — try a whole word.'
+  if (outcome.reason === 'too-short') {
+    return `That search is too short — one word in it has to be at least ${outcome.minWordLength} characters.`
+  }
   if (outcome.reason === 'too-long') return 'That search is too long to run.'
   return 'Type something to search for.'
 }

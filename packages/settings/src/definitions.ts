@@ -309,10 +309,15 @@ export const SETTING_DEFINITIONS = [
   define({
     key: 'search.min_word_length',
     group: 'search',
-    label: 'Minimum search term length',
-    description: 'Shorter terms are dropped from the query.',
+    label: 'Shortest word a search may rest on',
+    description:
+      'A search is refused unless at least one of its words is this long, so ' +
+      'at 3 "a good post" runs and "a b c" does not. The short words are not ' +
+      'dropped — they are still sent to the index, which drops the ones ' +
+      'carrying no meaning on its own. Raise it if short words are what your ' +
+      'expensive searches turn out to be.',
     schema: z.number().int().min(1).max(10),
-    default: 3,
+    default: 2,
     ui: { min: 1, max: 10 },
   }),
 

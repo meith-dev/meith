@@ -19,6 +19,10 @@ export async function requireSearchEnabled(): Promise<void> {
   if (!(await searchEnabled())) throw new ForbiddenError(SEARCH_OFF_MESSAGE)
 }
 
+export async function searchMinWordLength(): Promise<number> {
+  return (await getSettings()).get('search.min_word_length')
+}
+
 export function searchProvider(): PostgresSearchRepository | null {
   return getContainer().dataSource === 'postgres'
     ? new PostgresSearchRepository(getDb())
