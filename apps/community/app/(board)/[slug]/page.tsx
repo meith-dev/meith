@@ -26,10 +26,10 @@ import { distinctUserIds } from '@/view/member-identity'
 import { canonicalPath } from '@/view/metadata'
 import { leadingId } from '@/view/slug-id'
 import { buildSubscriptionsView } from '@/view/subscriptions'
+import { forumNotice } from '@/view/forum-notice'
 import {
   INLINE_FORM_ID,
   anyInlineTool,
-  inlineOutcomeNotice,
   selectionFor,
 } from '@/view/inline-moderation'
 
@@ -103,6 +103,7 @@ export default async function ForumPage({
     page?: string
     sort?: string
     posted?: string
+    thread?: string
     did?: string
     n?: string
     refused?: string
@@ -260,10 +261,7 @@ export default async function ForumPage({
   const SubforumList = requireSlot(await currentTheme(), 'SubforumList')
   const Pagination = requireSlot(await currentTheme(), 'Pagination')
 
-  const notice =
-    query.posted === 'moderated'
-      ? 'Your thread was posted and is waiting for a moderator to approve it.'
-      : inlineOutcomeNotice(query)
+  const notice = forumNotice(query)
 
   const pluginContext = { ...viewerRef(actor), forumId: id }
 
