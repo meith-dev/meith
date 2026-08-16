@@ -33,6 +33,8 @@ export const MERGE_REASSIGN: readonly ReassignColumn[] = [
   { table: 'announcements', column: 'author_user_id' },
   { table: 'board_stats', column: 'newest_user_id' },
   { table: 'user_group_memberships', column: 'granted_by_user_id' },
+  { table: 'user_identities', column: 'user_id' },
+  { table: 'passkeys', column: 'user_id' },
   { table: 'warnings', column: 'issued_by_user_id' },
   { table: 'warnings', column: 'revoked_by_user_id' },
   { table: 'warnings', column: 'user_id' },

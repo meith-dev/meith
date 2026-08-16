@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { DEFAULT_PRIVACY_POLICY, DEFAULT_TERMS_OF_SERVICE } from './legal'
-import { isUsableOrigin } from './origin'
+import { isUsableIssuer, isUsableOrigin } from './origin'
 
 export type SettingGroup =
   | 'board'
@@ -12,6 +12,7 @@ export type SettingGroup =
   | 'mail'
   | 'reputation'
   | 'security'
+  | 'federation'
   | 'antispam'
   | 'legal'
 
@@ -707,6 +708,181 @@ export const SETTING_DEFINITIONS = [
     schema: z.number().int().min(0).max(10_000),
     default: 0,
     ui: { min: 0, max: 10_000 },
+  }),
+
+  define({
+    key: 'federation.github_enabled',
+    group: 'federation',
+    label: 'Sign in with GitHub',
+    description:
+      'Off by default, and off is a position: turning it on means GitHub is told ' +
+      'the address of this board every time somebody signs in with it, and gets ' +
+      'to see who your members are. Needs the client ID and secret below, from a ' +
+      'GitHub OAuth app whose callback URL is your board address followed by ' +
+      '/auth/sso/github/callback.',
+    schema: z.boolean(),
+    default: false,
+    invalidates: ['settings', 'layout'],
+  }),
+  define({
+    key: 'federation.github_client_id',
+    group: 'federation',
+    label: 'GitHub client ID',
+    description: 'From the OAuth app you registered with GitHub.',
+    schema: z.string().trim().max(200),
+    default: '',
+    invalidates: ['settings', 'layout'],
+  }),
+  define({
+    key: 'federation.github_client_secret',
+    group: 'federation',
+    label: 'GitHub client secret',
+    description:
+      'Stored as written and never shown again. Leave the box empty to keep the ' +
+      'secret already saved.',
+    schema: z.string().max(400),
+    default: '',
+    secret: true,
+    invalidates: ['settings', 'layout'],
+  }),
+
+  define({
+    key: 'federation.google_enabled',
+    group: 'federation',
+    label: 'Sign in with Google',
+    description:
+      'Off by default. Turning it on means Google meets your members: it learns ' +
+      'this board’s address and who signs in with it. The callback URL to give ' +
+      'Google is your board address followed by /auth/sso/google/callback.',
+    schema: z.boolean(),
+    default: false,
+    invalidates: ['settings', 'layout'],
+  }),
+  define({
+    key: 'federation.google_client_id',
+    group: 'federation',
+    label: 'Google client ID',
+    description: 'From the OAuth 2.0 client you created in the Google Cloud console.',
+    schema: z.string().trim().max(200),
+    default: '',
+    invalidates: ['settings', 'layout'],
+  }),
+  define({
+    key: 'federation.google_client_secret',
+    group: 'federation',
+    label: 'Google client secret',
+    description:
+      'Stored as written and never shown again. Leave the box empty to keep the ' +
+      'secret already saved.',
+    schema: z.string().max(400),
+    default: '',
+    secret: true,
+    invalidates: ['settings', 'layout'],
+  }),
+
+  define({
+    key: 'federation.oidc_enabled',
+    group: 'federation',
+    label: 'Sign in with your own OpenID provider',
+    description:
+      'The generic path, and the one an organisation usually wants: any provider ' +
+      'that publishes an OpenID Connect discovery document — Entra ID, Okta, ' +
+      'Keycloak, Authentik, your own. Off by default. The callback URL is your ' +
+      'board address followed by /auth/sso/oidc/callback.',
+    schema: z.boolean(),
+    default: false,
+    invalidates: ['settings', 'layout'],
+  }),
+  define({
+    key: 'federation.oidc_label',
+    group: 'federation',
+    label: 'What to call it on the sign-in page',
+    description:
+      'The button reads “Continue with …” and this fills the gap. Left empty it ' +
+      'says “Single sign-on”, which tells a member nothing about which login they ' +
+      'are being sent to.',
+    schema: z.string().trim().max(60),
+    default: '',
+    invalidates: ['settings', 'layout'],
+  }),
+  define({
+    key: 'federation.oidc_issuer',
+    group: 'federation',
+    label: 'Issuer URL',
+    description:
+      'The issuer, with no trailing slash and no path of its own — the board asks ' +
+      'it for /.well-known/openid-configuration and reads every endpoint from ' +
+      'there, so nothing else needs configuring.',
+    schema: z.string().trim().refine(
+      (value) => value === '' || isUsableIssuer(value),
+      'Give the absolute https address of the issuer — https://login.example.com.',
+    ),
+    default: '',
+    invalidates: ['settings', 'layout'],
+  }),
+  define({
+    key: 'federation.oidc_client_id',
+    group: 'federation',
+    label: 'OpenID client ID',
+    description: 'The client this board is registered as with that provider.',
+    schema: z.string().trim().max(200),
+    default: '',
+    invalidates: ['settings', 'layout'],
+  }),
+  define({
+    key: 'federation.oidc_client_secret',
+    group: 'federation',
+    label: 'OpenID client secret',
+    description:
+      'Stored as written and never shown again. Leave the box empty to keep the ' +
+      'secret already saved.',
+    schema: z.string().max(400),
+    default: '',
+    secret: true,
+    invalidates: ['settings', 'layout'],
+  }),
+  define({
+    key: 'federation.oidc_scopes',
+    group: 'federation',
+    label: 'Scopes to ask for',
+    description:
+      'Space-separated. `openid` is always sent whether or not it is here. The ' +
+      'default asks for the address and the display name, which is the least this ' +
+      'board can register an account from.',
+    schema: z.string().trim().max(300),
+    default: 'openid email profile',
+    invalidates: ['settings'],
+    ui: { advanced: true },
+  }),
+
+  define({
+    key: 'federation.passkeys_enabled',
+    group: 'federation',
+    label: 'Allow passkeys',
+    description:
+      'Lets a member add a passkey from their account security page and sign in ' +
+      'with it afterwards — a fingerprint, a face, or a security key, with no ' +
+      'password to phish. Nothing leaves this board: the passkey is created ' +
+      'against your own address and no third party is involved. A member who has ' +
+      'one keeps their password unless they clear it themselves.',
+    schema: z.boolean(),
+    default: false,
+    invalidates: ['settings', 'layout'],
+  }),
+
+  define({
+    key: 'federation.link_from_usercp',
+    group: 'federation',
+    label: 'Let members link and unlink their own sign-ins',
+    description:
+      'On, a member manages their linked providers and passkeys from ' +
+      '/usercp/security. Off, existing links keep working and the page stops ' +
+      'offering to change them — for a board where identity is decided by the ' +
+      'organisation and not by the member.',
+    schema: z.boolean(),
+    default: true,
+    invalidates: ['settings'],
+    ui: { advanced: true },
   }),
 
   define({

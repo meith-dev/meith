@@ -20,6 +20,7 @@ export {
   VERIFICATION_TTL_HOURS,
   type ActivationOutcome,
   type BanLookup,
+  type FederatedProvision,
   type IdentityDeps,
   type RegisterInput,
   type RegisterResult,
@@ -28,6 +29,73 @@ export {
   type ResendVerification,
   type ResetRequest,
 } from './service'
+
+export {
+  encodeBase64Url,
+  decodeBase64Url,
+  decodeBase64UrlText,
+  randomBase64Url,
+} from './crypto/base64url'
+
+export {
+  FederationService,
+  UNLINK_LAST_CREDENTIAL,
+  type CompleteSignInInput,
+  type FederationDeps,
+  type FederationOutcome,
+} from './federation/service'
+
+export {
+  PROVIDER_KINDS,
+  configuredProviders,
+  isProviderKind,
+  parseScopes,
+  providerFor,
+  type ProviderBuildDeps,
+} from './federation/catalog'
+
+export { githubProvider, type GithubProviderConfig } from './federation/github'
+
+export {
+  DEFAULT_OIDC_SCOPES,
+  oidcProvider,
+  type OidcProviderConfig,
+} from './federation/oidc'
+
+export { codeChallenge, newHandshake, type HandshakeSecrets } from './federation/pkce'
+
+export type {
+  AuthorizeInput,
+  ExchangeInput,
+  FederationOptions,
+  IdentityProvider,
+  OidcCredentials,
+  ProviderCredentials,
+  ProviderKind,
+  ProviderProfile,
+} from './federation/types'
+
+export {
+  CHALLENGE_BYTES,
+  PASSKEY_LABEL_MAX,
+  PASSKEY_LIMIT,
+  PasskeyService,
+  REMOVE_LAST_CREDENTIAL,
+  newChallenge,
+  passkeyLabel,
+  type PasskeyAssertionOptions,
+  type PasskeyDeps,
+  type PasskeyRegistrationOptions,
+} from './webauthn/service'
+
+export {
+  verifyAssertion,
+  verifyRegistration,
+  type AssertionResponse,
+  type RegisteredCredential,
+  type RegistrationResponse,
+  type RelyingParty,
+} from './webauthn/verify'
 
 export {
   SessionService,
@@ -89,6 +157,12 @@ export type {
   BanRepository,
   BanFilterRepository,
   CreateBanInput,
+  LinkIdentityInput,
+  NewPasskey,
+  PasskeyRecord,
+  PasskeyRepository,
+  UserIdentityRecord,
+  UserIdentityRepository,
   AccountRecord,
   MemberProfileRecord,
   MemberProfileRepository,

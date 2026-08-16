@@ -14,6 +14,7 @@ server, on a domain, in about twenty minutes.
 | Setting up a board for the first time | [Quickstart](./quickstart.md) |
 | Running one | [Running a board](./operating.md) |
 | Upgrading one | [Upgrading a board](./upgrading.md) |
+| Adding SSO or passkeys | [Signing in without a password](./single-sign-on.md) |
 | Deploying without a panel | [Deploying by hand](./self-hosting.md) |
 | Running a public demo of it | [Demo mode](./demo-mode.md) |
 | Writing a theme | [The theme API](./theme-api.md) |
@@ -33,6 +34,7 @@ The path from nothing to a board people are posting on, and everything after.
 | [`quickstart.md`](./quickstart.md) | **Start here.** Nothing to a board people can reach, on your own server with Coolify. |
 | [`operating.md`](./operating.md) | **The operator handbook.** Configuration, the operator CLI, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
 | [`upgrading.md`](./upgrading.md) | Taking a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
+| [`single-sign-on.md`](./single-sign-on.md) | Federated sign-in and passkeys: what turning a provider on means for your members, how each one is configured, and how an account is found or opened on a first sign-in. |
 | [`performance.md`](./performance.md) | The p95 budgets for hot pages, and what the last recorded run measured on a full-scale board. *Generated — do not edit.* |
 | [`demo-mode.md`](./demo-mode.md) | A public board with its password printed on it, seeded with content, that deletes everything and rebuilds itself on a timer. What runs at demo.meith.dev, and what it changes. |
 

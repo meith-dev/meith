@@ -20,8 +20,8 @@ export interface NewAccount {
   readonly usernameLower: string
   readonly email: string
   readonly emailLower: string
-  readonly passwordHash: string
-  readonly passwordAlgo: string
+  readonly passwordHash: string | null
+  readonly passwordAlgo: string | null
   readonly state: AccountState
   readonly primaryGroupId: number
   readonly registrationIpPrefix?: string | null
@@ -136,6 +136,62 @@ export interface CredentialTokenRepository {
   revokeAllForUser(userId: number, purpose: CredentialPurpose): Promise<void>
 }
 
+export interface UserIdentityRecord {
+  readonly id: number
+  readonly userId: number
+  readonly provider: string
+  readonly subject: string
+  readonly label: string | null
+  readonly linkedAt: Date
+  readonly lastUsedAt: Date | null
+}
+
+export interface LinkIdentityInput {
+  readonly userId: number
+  readonly provider: string
+  readonly subject: string
+  readonly label: string | null
+  readonly now: Date
+}
+
+export interface UserIdentityRepository {
+  findBySubject(provider: string, subject: string): Promise<UserIdentityRecord | null>
+  listForUser(userId: number): Promise<readonly UserIdentityRecord[]>
+  link(input: LinkIdentityInput): Promise<UserIdentityRecord>
+  unlink(userId: number, identityId: number): Promise<boolean>
+  markUsed(identityId: number, now: Date): Promise<void>
+}
+
+export interface PasskeyRecord {
+  readonly id: number
+  readonly userId: number
+  readonly credentialId: string
+  readonly publicKey: string
+  readonly signCount: number
+  readonly label: string
+  readonly transports: string | null
+  readonly createdAt: Date
+  readonly lastUsedAt: Date | null
+}
+
+export interface NewPasskey {
+  readonly userId: number
+  readonly credentialId: string
+  readonly publicKey: string
+  readonly signCount: number
+  readonly label: string
+  readonly transports: string | null
+  readonly now: Date
+}
+
+export interface PasskeyRepository {
+  findByCredentialId(credentialId: string): Promise<PasskeyRecord | null>
+  listForUser(userId: number): Promise<readonly PasskeyRecord[]>
+  create(input: NewPasskey): Promise<PasskeyRecord>
+  remove(userId: number, passkeyId: number): Promise<boolean>
+  markUsed(passkeyId: number, signCount: number, now: Date): Promise<void>
+}
+
 export interface LoginAttemptRepository {
   record(bucket: string, succeeded: boolean, at: Date): Promise<void>
   countFailuresSince(bucket: string, since: Date): Promise<number>
@@ -170,6 +226,8 @@ export interface AccountStore {
   readonly tokens: CredentialTokenRepository
   readonly loginAttempts: LoginAttemptRepository
   readonly remember: RememberTokenRepository
+  readonly identities: UserIdentityRepository
+  readonly passkeys: PasskeyRepository
 }
 
 export interface BanRecord {

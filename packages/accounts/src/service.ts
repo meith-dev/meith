@@ -78,6 +78,18 @@ export interface ResendVerification {
 
 const USERNAME_RE = /^[\p{L}\p{N}][\p{L}\p{N} ._-]*$/u
 
+const USERNAME_CHARACTER_RE = /[\p{L}\p{N} ._-]/u
+
+const USERNAME_ATTEMPTS = 50
+
+const FALLBACK_USERNAME = 'member'
+
+export interface FederatedProvision {
+  readonly username: string
+  readonly email: string
+  readonly emailVerified: boolean
+}
+
 export const REGISTRATION_CLOSED =
   'This board is not taking new members at the moment.'
 
@@ -156,6 +168,101 @@ export class IdentityService {
     }
 
     return { account }
+  }
+
+  async provisionFederated(
+    input: FederatedProvision,
+    context: RequestContext = {},
+  ): Promise<RegisterResult> {
+    if (!this.config.registrationEnabled) {
+      throw new ForbiddenError(REGISTRATION_CLOSED)
+    }
+
+    const email = input.email.trim()
+    const emailLower = foldIdentifier(email)
+
+    this.assertEmail(email)
+    await this.assertNotFiltered({ email, ip: context.ip })
+
+    if (await this.store.accounts.findByEmailLower(emailLower)) {
+      throw new ConflictError(
+        'An account here already uses that address. Sign in with your password first, ' +
+          'then link the two from your account security page.',
+        { meta: { field: REGISTER_FIELD.email } },
+      )
+    }
+
+    const username = await this.availableUsername(input.username)
+    await this.assertNotFiltered({ username })
+
+    const created = await this.store.accounts.create({
+      username,
+      usernameLower: foldIdentifier(username),
+      email,
+      emailLower,
+      passwordHash: null,
+      passwordAlgo: null,
+      state: this.config.activationMethod === 'none' ? 'active' : 'awaiting_activation',
+      primaryGroupId: this.config.defaultMemberGroupId,
+      registrationIpPrefix: prefixOf(context),
+    })
+
+    if (!this.verifiesEmail()) return { account: created }
+
+    if (!input.emailVerified) {
+      return {
+        account: created,
+        verificationToken: await this.issueVerification(created.id),
+      }
+    }
+
+    await this.store.accounts.markEmailVerified(
+      created.id,
+      this.now(),
+      this.config.activationMethod !== 'both',
+    )
+
+    return { account: (await this.store.accounts.findById(created.id)) ?? created }
+  }
+
+  private async availableUsername(suggestion: string): Promise<string> {
+    const base = this.usernameStem(suggestion)
+
+    for (let attempt = 0; attempt < USERNAME_ATTEMPTS; attempt += 1) {
+      const suffix = attempt === 0 ? '' : String(attempt + 1)
+      const stem = trimToLength(base, this.config.usernameMax - suffix.length)
+      const candidate = `${stem}${suffix}`
+
+      const lower = foldIdentifier(candidate)
+      if (this.config.reservedUsernames.includes(lower)) continue
+      if (await this.store.accounts.findByUsernameLower(lower)) continue
+
+      return candidate
+    }
+
+    throw new ConflictError(
+      'Could not settle on a free username for that account. Register with a password ' +
+        'instead, then link the two from your account security page.',
+      { meta: { field: REGISTER_FIELD.username } },
+    )
+  }
+
+  private usernameStem(suggestion: string): string {
+    const cleaned = [...suggestion.normalize('NFC')]
+      .filter((character) => USERNAME_CHARACTER_RE.test(character))
+      .join('')
+      .replace(/\s+/gu, ' ')
+      .trim()
+      .replace(/^[^\p{L}\p{N}]+/u, '')
+
+    const stem = trimToLength(cleaned, this.config.usernameMax)
+    if (codePointLength(stem) < this.config.usernameMin) {
+      return trimToLength(
+        FALLBACK_USERNAME.padEnd(this.config.usernameMin, '0'),
+        this.config.usernameMax,
+      )
+    }
+    return stem
   }
 
   private verifiesEmail(): boolean {
@@ -254,18 +361,10 @@ export class IdentityService {
       throw new ValidationError('Incorrect username or password.')
     }
 
-    const ban = await this.bans?.findActive(account.id)
-    if (ban || account.state === 'banned') {
+    const refusal = await this.signInRefusal(account)
+    if (refusal !== null) {
       await recordFailure()
-      throw new ForbiddenError(
-        ban?.publicReason
-          ? `This account is banned: ${ban.publicReason}`
-          : 'This account is banned.',
-      )
-    }
-    if (account.state === 'awaiting_activation') {
-      await recordFailure()
-      throw new ForbiddenError('This account is not yet activated.')
+      throw new ForbiddenError(refusal)
     }
 
     await this.assertNotFiltered({ username: account.username, email: account.email })
@@ -286,6 +385,40 @@ export class IdentityService {
     }
 
     return this.startSession(account, at)
+  }
+
+  private async signInRefusal(account: AccountRecord): Promise<string | null> {
+    const ban = await this.bans?.findActive(account.id)
+    if (ban || account.state === 'banned') {
+      return ban?.publicReason
+        ? `This account is banned: ${ban.publicReason}`
+        : 'This account is banned.'
+    }
+    if (account.state === 'awaiting_activation') {
+      return 'This account is not yet activated.'
+    }
+    return null
+  }
+
+  async assertSignInAllowed(account: AccountRecord): Promise<void> {
+    const refusal = await this.signInRefusal(account)
+    if (refusal !== null) throw new ForbiddenError(refusal)
+
+    await this.assertNotFiltered({ username: account.username, email: account.email })
+  }
+
+  async startSessionFor(
+    account: AccountRecord,
+    context: RequestContext = {},
+  ): Promise<LoginResult> {
+    await this.assertSignInAllowed(account)
+
+    const prefix = prefixOf(context)
+    if (prefix !== null) {
+      await this.store.accounts.recordLastIpPrefix(account.id, prefix)
+    }
+
+    return this.startSession(account, this.now())
   }
 
   private async assertNotFiltered(subject: BanFilterSubject): Promise<void> {
@@ -404,6 +537,10 @@ export class IdentityService {
 
 function codePointLength(value: string): number {
   return [...value].length
+}
+
+function trimToLength(value: string, max: number): string {
+  return [...value].slice(0, Math.max(max, 1)).join('').trim()
 }
 
 function prefixOf(context: RequestContext): string | null {

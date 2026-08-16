@@ -10,10 +10,14 @@ import {
   adminCookie,
   clearedAdminCookie,
   clearedCookie,
+  passkeyCookie,
+  passkeyCookieName,
   rememberCookieName,
   rememberCookie,
   sessionCookieName,
   sessionCookie,
+  ssoCookie,
+  ssoCookieName,
 } from './cookies'
 
 function secure(): boolean {
@@ -73,4 +77,38 @@ export async function readRememberToken(): Promise<string | undefined> {
 export async function readSessionToken(): Promise<string | undefined> {
   const jar = await cookies()
   return jar.get(sessionCookieName(secure()))?.value
+}
+
+export async function setHandshakeCookie(value: string): Promise<void> {
+  const jar = await cookies()
+  const isSecure = secure()
+  jar.set(ssoCookieName(isSecure), value, ssoCookie(isSecure))
+}
+
+export async function readHandshakeCookie(): Promise<string | undefined> {
+  const jar = await cookies()
+  return jar.get(ssoCookieName(secure()))?.value
+}
+
+export async function clearHandshakeCookie(): Promise<void> {
+  const jar = await cookies()
+  const isSecure = secure()
+  jar.set(ssoCookieName(isSecure), '', clearedCookie(isSecure))
+}
+
+export async function setPasskeyChallengeCookie(value: string): Promise<void> {
+  const jar = await cookies()
+  const isSecure = secure()
+  jar.set(passkeyCookieName(isSecure), value, passkeyCookie(isSecure))
+}
+
+export async function readPasskeyChallengeCookie(): Promise<string | undefined> {
+  const jar = await cookies()
+  return jar.get(passkeyCookieName(secure()))?.value
+}
+
+export async function clearPasskeyChallengeCookie(): Promise<void> {
+  const jar = await cookies()
+  const isSecure = secure()
+  jar.set(passkeyCookieName(isSecure), '', clearedCookie(isSecure))
 }

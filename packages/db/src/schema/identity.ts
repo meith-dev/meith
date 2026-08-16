@@ -262,6 +262,53 @@ export const rememberTokens = pgTable(
   ],
 )
 
+export const userIdentities = pgTable(
+  'user_identities',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    provider: text('provider').notNull(),
+    subject: text('subject').notNull(),
+    label: text('label'),
+
+    linkedAt: timestamp('linked_at', { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('user_identities_provider_subject_key').on(t.provider, t.subject),
+    index('user_identities_user_idx').on(t.userId, t.id),
+  ],
+)
+
+export const passkeys = pgTable(
+  'passkeys',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    credentialId: text('credential_id').notNull(),
+    publicKey: text('public_key').notNull(),
+    signCount: integer('sign_count').notNull().default(0),
+
+    label: text('label').notNull(),
+    transports: text('transports'),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('passkeys_credential_id_key').on(t.credentialId),
+    index('passkeys_user_idx').on(t.userId, t.id),
+  ],
+)
+
 export const loginAttempts = pgTable(
   'login_attempts',
   {

@@ -360,6 +360,8 @@ export function getContainer(): Container {
     cached.attachments === undefined ||
     cached.avatars === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
+    typeof cached.accountStore?.identities?.listForUser !== 'function' ||
+    typeof cached.accountStore?.passkeys?.listForUser !== 'function' ||
     (cached.dataSource === 'fixture' &&
       cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' &&

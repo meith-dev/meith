@@ -17,6 +17,10 @@ import type {
 } from '@meith/accounts'
 
 import type { Database } from './client'
+import {
+  PostgresPasskeyRepository,
+  PostgresUserIdentityRepository,
+} from './identity-link-repo'
 import { resultRows } from './result-rows'
 import {
   credentialTokens,
@@ -472,5 +476,7 @@ export function createPostgresAccountStore(db: Database): AccountStore {
     tokens: new PostgresCredentialTokenRepository(db),
     loginAttempts: new PostgresLoginAttemptRepository(db),
     remember: new PostgresRememberTokenRepository(db),
+    identities: new PostgresUserIdentityRepository(db),
+    passkeys: new PostgresPasskeyRepository(db),
   }
 }

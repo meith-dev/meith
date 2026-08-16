@@ -5,13 +5,19 @@ import type {
   AccountStore,
   CredentialPurpose,
   CredentialTokenRepository,
+  LinkIdentityInput,
   LoginAttemptRepository,
   NewAccount,
+  NewPasskey,
+  PasskeyRecord,
+  PasskeyRepository,
   RememberRotation,
   RememberTokenRepository,
   SessionLocation,
   SessionRecord,
   SessionRepository,
+  UserIdentityRecord,
+  UserIdentityRepository,
 } from './ports'
 
 class MemoryAccounts implements AccountRepository {
@@ -328,6 +334,101 @@ class MemoryLoginAttempts implements LoginAttemptRepository {
   }
 }
 
+class MemoryUserIdentities implements UserIdentityRepository {
+  private readonly byId = new Map<number, UserIdentityRecord>()
+  private seq = 0
+
+  async findBySubject(provider: string, subject: string): Promise<UserIdentityRecord | null> {
+    for (const record of this.byId.values()) {
+      if (record.provider === provider && record.subject === subject) return record
+    }
+    return null
+  }
+
+  async listForUser(userId: number): Promise<readonly UserIdentityRecord[]> {
+    return [...this.byId.values()]
+      .filter((record) => record.userId === userId)
+      .sort((a, b) => a.id - b.id)
+  }
+
+  async link(input: LinkIdentityInput): Promise<UserIdentityRecord> {
+    const existing = await this.findBySubject(input.provider, input.subject)
+    if (existing !== null) return existing
+
+    const record: UserIdentityRecord = {
+      id: ++this.seq,
+      userId: input.userId,
+      provider: input.provider,
+      subject: input.subject,
+      label: input.label,
+      linkedAt: input.now,
+      lastUsedAt: null,
+    }
+    this.byId.set(record.id, record)
+    return record
+  }
+
+  async unlink(userId: number, identityId: number): Promise<boolean> {
+    const record = this.byId.get(identityId)
+    if (record === undefined || record.userId !== userId) return false
+    this.byId.delete(identityId)
+    return true
+  }
+
+  async markUsed(identityId: number, now: Date): Promise<void> {
+    const record = this.byId.get(identityId)
+    if (record !== undefined) this.byId.set(identityId, { ...record, lastUsedAt: now })
+  }
+}
+
+class MemoryPasskeys implements PasskeyRepository {
+  private readonly byId = new Map<number, PasskeyRecord>()
+  private seq = 0
+
+  async findByCredentialId(credentialId: string): Promise<PasskeyRecord | null> {
+    for (const record of this.byId.values()) {
+      if (record.credentialId === credentialId) return record
+    }
+    return null
+  }
+
+  async listForUser(userId: number): Promise<readonly PasskeyRecord[]> {
+    return [...this.byId.values()]
+      .filter((record) => record.userId === userId)
+      .sort((a, b) => a.id - b.id)
+  }
+
+  async create(input: NewPasskey): Promise<PasskeyRecord> {
+    const record: PasskeyRecord = {
+      id: ++this.seq,
+      userId: input.userId,
+      credentialId: input.credentialId,
+      publicKey: input.publicKey,
+      signCount: input.signCount,
+      label: input.label,
+      transports: input.transports,
+      createdAt: input.now,
+      lastUsedAt: null,
+    }
+    this.byId.set(record.id, record)
+    return record
+  }
+
+  async remove(userId: number, passkeyId: number): Promise<boolean> {
+    const record = this.byId.get(passkeyId)
+    if (record === undefined || record.userId !== userId) return false
+    this.byId.delete(passkeyId)
+    return true
+  }
+
+  async markUsed(passkeyId: number, signCount: number, now: Date): Promise<void> {
+    const record = this.byId.get(passkeyId)
+    if (record !== undefined) {
+      this.byId.set(passkeyId, { ...record, signCount, lastUsedAt: now })
+    }
+  }
+}
+
 export function createMemoryStore(): AccountStore {
   return {
     accounts: new MemoryAccounts(),
@@ -335,5 +436,7 @@ export function createMemoryStore(): AccountStore {
     tokens: new MemoryCredentialTokens(),
     loginAttempts: new MemoryLoginAttempts(),
     remember: new MemoryRememberTokens(),
+    identities: new MemoryUserIdentities(),
+    passkeys: new MemoryPasskeys(),
   }
 }

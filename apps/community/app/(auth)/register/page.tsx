@@ -2,8 +2,10 @@ import type { Metadata } from "next"
 
 import { AuthPage } from "@/components/auth/auth-page"
 import { RegisterForm } from "@/components/auth/register-form"
+import { SsoButtons } from "@/components/auth/sso-buttons"
 import { issueChallenge } from "@/server/antispam"
 import { boardAuthConfig } from "@/server/auth-config"
+import { signInProviders } from "@/server/federation"
 import { termsAcceptance } from "@/server/legal"
 import { registrationFields } from "@/server/profile-fields"
 import {
@@ -43,17 +45,27 @@ export default async function RegisterPage() {
       lede="Join the discussion."
       links={[{ label: "Sign in", href: "/login", lead: "Already have an account?" }]}
     >
-      <RegisterForm
-        customFields={customFields}
-        limits={{ minPasswordLength, usernameMin, usernameMax }}
-        terms={terms}
-        challenge={{
-          prompt: issued.challenge?.prompt ?? null,
-          token: issued.challenge?.token ?? '',
-          honeypot: issued.honeypot,
-          issuedAt: issued.issuedAt,
-        }}
-      />
+      <div className="flex flex-col gap-4">
+        <SsoButtons
+          providers={await signInProviders()}
+          lede={
+            "Registering this way creates an account here from the address that provider " +
+            "holds for you, and tells them you are a member. No password is set, and you " +
+            "can add one later."
+          }
+        />
+        <RegisterForm
+          customFields={customFields}
+          limits={{ minPasswordLength, usernameMin, usernameMax }}
+          terms={terms}
+          challenge={{
+            prompt: issued.challenge?.prompt ?? null,
+            token: issued.challenge?.token ?? '',
+            honeypot: issued.honeypot,
+            issuedAt: issued.issuedAt,
+          }}
+        />
+      </div>
     </AuthPage>
   )
 }

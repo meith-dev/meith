@@ -233,7 +233,10 @@ than a hidden one:
   read your navigation.
 
 Signing in, password reset and e-mail confirmation are untouched — the members
-you already have are unaffected.
+you already have are unaffected. A closed board also refuses to open an account
+from a federated sign-in, so turning on "sign in with GitHub" does not quietly
+reopen the door: see [Signing in without a
+password](./single-sign-on.md#what-a-new-account-inherits).
 
 **It never locks you out of your own board.** The installer creates the first
 administrator with registration forced open, whatever the settings table says,
@@ -941,12 +944,13 @@ the only readers still on UTC. A member who wants UTC picks it, once.
 
 ## Cookies
 
-The board sets six cookies of its own and no third-party ones:
+The board sets eight cookies of its own and no third-party ones:
 
 | Cookie | What it is for |
 |---|---|
 | session, remember-me | signing in. Both are random tokens stored hashed; neither carries a CSRF secret, because the board has none — see [Requests from somewhere else](#requests-from-somewhere-else) |
 | admin session | the control panel's separate sign-in |
+| sign-in handshake, passkey challenge | only while a federated sign-in or a passkey exchange is in flight, and cleared the moment it finishes either way. Ten minutes at most, and nothing is written unless a member presses one of those buttons — see [Signing in without a password](./single-sign-on.md) |
 | `meith_theme`, `meith_scheme` | the appearance controls, written only when a member presses one |
 | `meith_tz` | the reader's own timezone, so the server can format times in it. Carries an IANA zone name and nothing else |
 

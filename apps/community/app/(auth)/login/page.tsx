@@ -4,7 +4,11 @@ import type { AuthLinkModel } from "@meith/theme-kit"
 
 import { AuthPage } from "@/components/auth/auth-page"
 import { LoginForm } from "@/components/auth/login-form"
+import { PasskeySignIn } from "@/components/auth/passkey-sign-in"
+import { SsoButtons } from "@/components/auth/sso-buttons"
+import { passkeysEnabled, signInProviders } from "@/server/federation"
 import { registrationOpen } from "@/server/registration"
+import { ssoNotice } from "@/view/sso-notices"
 
 export const metadata: Metadata = { title: "Sign in" }
 
@@ -34,9 +38,11 @@ export default async function LoginPage({
     confirmed?: string
     already?: string
     verify?: string
+    sso?: string
   }>
 }) {
   const params = await searchParams
+  const federated = ssoNotice(params.sso)
   const notice = params.installed
     ? NOTICES.installed
     : params.registered
@@ -60,14 +66,26 @@ export default async function LoginPage({
     links.push({ label: "Create an account", href: "/register", lead: "New here?" })
   }
 
+  const providers = await signInProviders()
+  const passkeys = await passkeysEnabled()
+
+  const alert =
+    params.verify === "failed"
+      ? VERIFY_FAILED
+      : federated?.kind === "warning"
+        ? federated.message
+        : null
+
   return (
-    <AuthPage
-      title="Welcome back"
-      lede="Sign in to your account."
-      alert={params.verify === "failed" ? VERIFY_FAILED : null}
-      links={links}
-    >
-      <LoginForm next={params.next} notice={notice} />
+    <AuthPage title="Welcome back" lede="Sign in to your account." alert={alert} links={links}>
+      <div className="flex flex-col gap-4">
+        <SsoButtons providers={providers} next={params.next} />
+        <LoginForm
+          next={params.next}
+          notice={federated?.kind === "info" ? federated.message : notice}
+        />
+        {passkeys ? <PasskeySignIn next={params.next} /> : null}
+      </div>
     </AuthPage>
   )
 }

@@ -81,6 +81,15 @@
       "primary": false
     },
     {
+      "slug": "single-sign-on",
+      "file": "single-sign-on.md",
+      "section": "running",
+      "title": "Signing in without a password",
+      "blurb": "Federated sign-in and passkeys: what turning a provider on means for your members, how GitHub, Google and any OpenID Connect provider are configured, and how an account is found or opened on a first sign-in.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "performance",
       "file": "performance.md",
       "section": "running",
