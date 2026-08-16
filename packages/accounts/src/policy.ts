@@ -10,7 +10,7 @@ export const DEFAULT_AUTH_POLICY: AuthPolicy = {
   maxLoginAttempts: 5,
   maxAccountLoginAttempts: 50,
   lockoutMinutes: 15,
-  sessionIdleDays: 14,
+  sessionLifetimeDays: 14,
   resetTokenTtlMinutes: 60,
   reservedUsernames: [
     'admin',
@@ -36,7 +36,7 @@ export const AUTH_SETTING_KEYS = {
   maxLoginAttempts: 'security.max_login_attempts',
   maxAccountLoginAttempts: 'security.max_account_login_attempts',
   lockoutMinutes: 'security.lockout_minutes',
-  sessionIdleDays: 'security.session_idle_days',
+  sessionLifetimeDays: 'security.session_idle_days',
 } as const
 
 export type SettingReader = (key: string) => unknown
@@ -50,7 +50,7 @@ export interface ResolvedAuthSettings {
   readonly maxLoginAttempts: number
   readonly maxAccountLoginAttempts: number
   readonly lockoutMinutes: number
-  readonly sessionIdleDays: number
+  readonly sessionLifetimeDays: number
 }
 
 const ACTIVATION_METHODS: readonly AuthConfig['activationMethod'][] = [
@@ -93,8 +93,8 @@ export function resolveAuthPolicy(
       base.maxAccountLoginAttempts,
     lockoutMinutes:
       positiveInteger(read(AUTH_SETTING_KEYS.lockoutMinutes)) ?? base.lockoutMinutes,
-    sessionIdleDays:
-      positiveInteger(read(AUTH_SETTING_KEYS.sessionIdleDays)) ?? base.sessionIdleDays,
+    sessionLifetimeDays:
+      positiveInteger(read(AUTH_SETTING_KEYS.sessionLifetimeDays)) ?? base.sessionLifetimeDays,
   }
 }
 

@@ -6,7 +6,7 @@ import type { AccountStore } from './ports'
 import { SessionService } from './session-service'
 
 function makeService(store: AccountStore) {
-  return new SessionService({ store, rememberDays: 30, sessionIdleDays: 7 })
+  return new SessionService({ store, rememberDays: 30, sessionLifetimeDays: 7 })
 }
 
 describe('SessionService remember-me', () => {

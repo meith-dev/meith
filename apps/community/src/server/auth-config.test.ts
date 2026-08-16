@@ -65,7 +65,7 @@ describe('boardAuthConfig', () => {
     expect(resolved.maxLoginAttempts).toBe(3)
     expect(resolved.maxAccountLoginAttempts).toBe(30)
     expect(resolved.lockoutMinutes).toBe(60)
-    expect(resolved.sessionIdleDays).toBe(7)
+    expect(resolved.sessionLifetimeDays).toBe(7)
   })
 
   it('lets an operator switch the lockout off outright', async () => {
@@ -79,7 +79,7 @@ describe('boardAuthConfig', () => {
 
     const resolved = await onPostgres(boardSessionConfig)
 
-    expect(resolved.sessionIdleDays).toBe(7)
+    expect(resolved.sessionLifetimeDays).toBe(7)
     expect(resolved.rememberDays).toBe(REMEMBER_DAYS)
   })
 
@@ -87,7 +87,7 @@ describe('boardAuthConfig', () => {
     const resolved = await onPostgres(boardAuthConfig)
 
     expect(resolved.maxLoginAttempts).toBe(AUTH_CONFIG.maxLoginAttempts)
-    expect(resolved.sessionIdleDays).toBe(AUTH_CONFIG.sessionIdleDays)
+    expect(resolved.sessionLifetimeDays).toBe(AUTH_CONFIG.sessionLifetimeDays)
     expect(resolved.resetTokenTtlMinutes).toBe(AUTH_CONFIG.resetTokenTtlMinutes)
     expect(resolved.defaultMemberGroupId).toBe(AUTH_CONFIG.defaultMemberGroupId)
     expect(resolved.reservedUsernames).toEqual(AUTH_CONFIG.reservedUsernames)

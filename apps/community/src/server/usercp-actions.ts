@@ -9,6 +9,7 @@ import { prepareSignature } from '@meith/signatures'
 
 import { boardAuthConfig } from './auth-config'
 import { adminService } from './admin'
+import { limitMessage, spendLimit } from './antispam'
 import { AVATAR_FIELD, canUploadAvatar, requireAvatarService } from './avatars'
 import { getActor } from './context'
 import { configuredSessions, getContainer } from './container'
@@ -203,6 +204,9 @@ export async function saveAvatarAction(_prev: FormState, form: FormData): Promis
     if (!(file instanceof File) || file.size === 0) {
       throw new ValidationError('Choose an image first.')
     }
+
+    const limited = await spendLimit({ scope: 'upload', actor })
+    if (limited !== null && !limited.allowed) throw new ValidationError(limitMessage(limited))
 
     await service.upload({
       userId: actor.userId as number,

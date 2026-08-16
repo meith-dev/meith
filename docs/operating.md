@@ -477,7 +477,9 @@ exactly as it did before they existed.
 - **A name colour**, set separately for **light and dark**. Both are worth
   filling in: a colour that reads well on white is usually unreadable on a dark
   page, and the board will not guess a second one for you. Set one and the other
-  is simply not applied in that scheme.
+  is simply not applied in that scheme — the two directions behave the same way,
+  so an unfilled dark picker leaves a dark reader the ordinary text colour
+  exactly as an unfilled light one leaves a light reader it.
 - **A badge**, as two uploads, light and dark, on the same terms as the board
   logo — the bytes decide the format rather than the file name, and SVG is
   accepted. Upload one and it is used in both schemes. It appears beside the
@@ -547,6 +549,11 @@ posted last, the profile heading, who is online. It is delivered as a stylesheet
 rule rather than a colour on each name, which is why it works for a reader whose
 dark mode comes from their operating system rather than from the board's own
 control — that reader's page carries no dark-mode class for a theme to match on.
+Each colour ships as a pair of rules for exactly that reason: one on the class
+the appearance control writes when a member chooses a scheme, and one under a
+`prefers-color-scheme` query for the member who has chosen nothing. Neither
+colour is ever emitted without a scheme around it, which is what keeps a light
+colour off a dark page.
 
 > **Check the contrast.** Nothing stops you setting a pale yellow no reader can
 > make out on a white page. Beneath each picker is a sample of the name on the
@@ -699,7 +706,13 @@ board starts and where most stay.
 - **Custom CSS.** For any theme other than the board's default this is nested
   under that theme's own selector, so it stops applying when a member picks
   another one — and a rule aimed at `:root` will not match inside the nesting.
-  Target `body` or a class and it works in both positions.
+  Target `body` or a class and it works in both positions. The **default**
+  theme's custom CSS is the exception, and it is the one worth knowing: it is
+  appended unscoped, so it reaches every member of the board including those who
+  have picked something else. That is what makes it the place for a rule that
+  belongs to the *board* rather than to a look; a rule that belongs to one look
+  goes on a theme that is not the default. The editor says which of the two you
+  are on.
 - **Export and import** — an exact JSON round-trip, so a look can be moved
   between boards. Documents written before per-scheme overrides existed
   (`"version": 1`) still import; their values apply to both schemes.
@@ -816,6 +829,33 @@ There is no cookie banner, because there is nothing on the board that needs one.
 > What a particular board must disclose or record depends on what it does with
 > its data, which is the operator's to decide — a board that adds its own
 > tracking is adding its own obligations with it.
+
+### A board session has a lifetime, not an idle timeout
+
+**Session lifetime (days)** on the security screen is an *absolute* life. The
+expiry is fixed when the session is minted and nothing extends it, so a member
+reading the board every day is signed out on that date exactly like a member who
+never came back. The setting key is still `security.session_idle_days` because
+renaming a stored key would strand the value on every board that has set one;
+the key is the historical name and the screen is the accurate one.
+
+That is deliberate, and the two reasons are worth having written down:
+
+- **A stolen token has a known last day.** A sliding session hands whoever holds
+  the token the ability to keep it alive forever simply by using it, which is
+  precisely what a thief does. An absolute life is the only guarantee here that
+  survives the token leaving its owner's browser.
+- **"Keep me signed in" is already the renewing half.** The remember-me token
+  rotates on every resume and mints a fresh session, so a member who ticked the
+  box is carried over the expiry without noticing it, and a *reused* remember
+  token — the fingerprint of a stolen one — revokes the whole family and every
+  session with it. Renewal and theft-detection travel together on that token,
+  and separately from the session cookie on purpose.
+
+The control panel's own session is the other way round — a 30-minute idle
+timeout under an 8-hour ceiling — because it writes to `admin_sessions` on
+requests an administrator makes while a panel screen is open, which is a rate
+the board's whole signed-in read traffic is not.
 
 ## The content policy
 
@@ -1623,6 +1663,16 @@ allowance rather than getting one each. The counters are pruned hourly by the
 tick; if the tick is stopped they accumulate, but `/admin/system` will tell you
 the tick is stale long before this becomes your problem.
 
+### The upload allowance covers both kinds of upload
+
+`antispam.upload_per_hour` is one bucket per member, and both things a member
+can upload spend from it: the files attached to a post, one unit each, and a new
+avatar, one unit at the point the image is accepted. Replacing an avatar six
+times in an hour therefore costs exactly what attaching six files to a post
+costs — which is what the setting has always said and what an account using the
+avatar form as its upload channel would otherwise get for nothing. Removing an
+avatar spends nothing, because it uploads nothing.
+
 ### If registration stops working
 
 Check `/admin/antispam` first.
@@ -1919,6 +1969,26 @@ above.
 
 It needs an import to have run, because the redirect is a lookup in the legacy id
 map.
+
+Switched on, it answers both shapes a MyBB board publishes:
+
+| Old address | Goes to |
+|---|---|
+| `showthread.php?tid=91`, `Thread-Bikeshedding-91` | the thread |
+| `showthread.php?pid=4102`, `Thread-Bikeshedding--4102` | the post |
+| `forumdisplay.php?fid=3`, `Forum-General-3` | the forum, slug and `?page=` carried |
+| `member.php?uid=12` | the member |
+| `index.php` | the board index |
+
+The answer is a **308**, not a 301: it is `permanentRedirect()`, and the
+difference is that 308 forbids a client rewriting the method on the way, which
+301 historically permitted. Search engines treat the two the same way, so an
+imported board's ranking follows either.
+
+Two shapes are deliberately not answered. `Thread-Bikeshedding-page-2` carries no
+id, and picking a thread from the words in a slug is guessing; `User-wren` is a
+username rather than an id, and a username can be changed or taken by somebody
+else, so resolving one could point an old link at the wrong member.
 
 ### Everything is broken and the panel will not load
 

@@ -236,8 +236,9 @@ export function CopyPermissionsForm({
         </SubmitButton>
       </div>
       <p className="text-xs text-muted-foreground">
-        You will be asked for your password again. This rewrites forums you are
-        not looking at and there is no undo.
+        You will be asked for your password again if it is more than 15 minutes since
+        you last confirmed it. This rewrites forums you are not looking at and there is
+        no undo.
       </p>
     </form>
   )
@@ -359,7 +360,8 @@ export function MoveForumForm({
       <p className="text-xs text-muted-foreground">
         Everything beneath this forum moves with it, and inherits from wherever
         it lands — so moving a busy forum under a private category hides its
-        whole subtree. You will be asked for your password again.
+        whole subtree. You will be asked for your password again if it is more than
+        15 minutes since you last confirmed it.
       </p>
     </form>
   )

@@ -25,7 +25,7 @@ const BASE_CONFIG: AuthConfig = {
   maxLoginAttempts: 3,
   maxAccountLoginAttempts: 0,
   lockoutMinutes: 15,
-  sessionIdleDays: 30,
+  sessionLifetimeDays: 30,
   resetTokenTtlMinutes: 60,
   reservedUsernames: ['admin', 'root'],
   defaultMemberGroupId: 2,
@@ -123,6 +123,36 @@ describe('register', () => {
     await expect(
       service.register({ username: 'Dave', email: 'd@example.com', password: 'short' }),
     ).rejects.toThrow(/at least 8/i)
+  })
+
+  describe('measures a username in code points, as the setting says', () => {
+    const FOUR_ASTRAL = '𝐇𝐚𝐧𝐬'
+    const TWO_ASTRAL = '𝐉𝐨'
+
+    it('accepts a name inside the maximum that would overrun it in code units', async () => {
+      expect(FOUR_ASTRAL.length).toBe(8)
+      const { service } = makeService(store, { usernameMax: 5 })
+
+      const { account } = await service.register({
+        username: FOUR_ASTRAL,
+        email: 'hans@example.com',
+        password: 'correct horse battery',
+      })
+      expect(account.username).toBe(FOUR_ASTRAL)
+    })
+
+    it('rejects a name under the minimum that would clear it in code units', async () => {
+      expect(TWO_ASTRAL.length).toBe(4)
+      const { service } = makeService(store, { usernameMin: 3 })
+
+      await expect(
+        service.register({
+          username: TWO_ASTRAL,
+          email: 'jo@example.com',
+          password: 'correct horse battery',
+        }),
+      ).rejects.toThrow(/between 3 and/i)
+    })
   })
 
   describe('names the field it refused', () => {
@@ -655,7 +685,7 @@ describe('resolveSession', () => {
 
   it('returns null after the session has expired', async () => {
     const clock = fixedClock()
-    const { service } = makeService(store, { sessionIdleDays: 1 }, clock)
+    const { service } = makeService(store, { sessionLifetimeDays: 1 }, clock)
     const login = await service.login('alice', 'correct horse battery', 'alice')
     expect(await service.resolveSession(login.sessionToken)).not.toBeNull()
 

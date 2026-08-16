@@ -264,13 +264,20 @@ export function renderGroupNameStyle(groups: readonly GroupNameColour[]): string
       })
       .join('')
 
-  const dark = block((group) => group.dark, '.dark ')
+  const scheme = (
+    pick: (group: GroupNameColour) => string | null,
+    chosen: ColourScheme,
+    other: ColourScheme,
+  ): string => {
+    const chose = block(pick, `.${chosen} `)
+    if (chose === '') return ''
+
+    const followsTheSystem = block(pick, `:root:not(.${other}) `)
+    return `${chose}@media (prefers-color-scheme: ${chosen}){${followsTheSystem}}`
+  }
 
   return (
-    block((group) => group.light, '') +
-    dark +
-    (dark === ''
-      ? ''
-      : `@media (prefers-color-scheme: dark){${block((group) => group.dark, ':root:not(.light) ')}}`)
+    scheme((group) => group.light, 'light', 'dark') +
+    scheme((group) => group.dark, 'dark', 'light')
   )
 }

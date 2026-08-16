@@ -156,7 +156,7 @@ export interface AuthConfig {
   readonly maxLoginAttempts: number
   readonly maxAccountLoginAttempts: number
   readonly lockoutMinutes: number
-  readonly sessionIdleDays: number
+  readonly sessionLifetimeDays: number
   readonly resetTokenTtlMinutes: number
   readonly reservedUsernames: readonly string[]
   readonly defaultMemberGroupId: number
