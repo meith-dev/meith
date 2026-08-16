@@ -274,6 +274,7 @@ test('a group is created by copying another, and deleted by rehoming its members
     await page.getByRole('link', { name: `Edit ${title}` }).click()
     await page.locator('input[name="canPostPolls"]').uncheck()
     await page.getByRole('button', { name: 'Save permissions' }).click()
+    await expect(page.getByText('Saved.')).toBeVisible()
     await page.reload()
     await expect(page.locator('input[name="canPostPolls"]')).not.toBeChecked()
   } finally {
