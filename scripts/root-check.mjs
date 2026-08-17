@@ -1,17 +1,10 @@
 #!/usr/bin/env node
-// The repository root is an interface, and this is its registry: every entry
-// that may live there, with the reason it must. A new root file either has a
-// contract that pins it to the root (a tool that only looks there, a path
-// operators already depend on) — name it here with that reason — or it
-// belongs in a folder. Gitignored files (a developer's .env, build output)
-// are exempt: this check is about what the repository ships.
 import { spawnSync } from 'node:child_process'
 import { readdir } from 'node:fs/promises'
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 
 const ALLOWED = new Map([
-  // Directories.
   ['.git', 'the repository itself'],
   ['.github', 'GitHub reads workflows and community files from this path only'],
   ['apps', 'workspace'],
@@ -28,7 +21,6 @@ const ALLOWED = new Map([
   ['.dockerignore', 'must sit at the build context root to apply, and the context is the workspace'],
   ['.env.example', 'the development .env it documents is read from the root (apps/community/next.config.mjs)'],
 
-  // Tooling contracts: each is read from the root by the tool it configures.
   ['package.json', 'the workspace root manifest'],
   ['pnpm-lock.yaml', 'pnpm'],
   ['pnpm-workspace.yaml', 'pnpm'],
@@ -43,7 +35,6 @@ const ALLOWED = new Map([
   ['.gitignore', 'git'],
   ['.gitattributes', 'git'],
 
-  // Community and legal conventions: GitHub and readers expect these here.
   ['README.md', 'the front page'],
   ['AGENTS.md', 'coding agents read it from the root by convention'],
   ['LICENSE.md', 'LGPL-3.0-or-later'],
@@ -53,8 +44,6 @@ const ALLOWED = new Map([
 const entries = await readdir(ROOT)
 const unknown = entries.filter((name) => !ALLOWED.has(name))
 
-// A developer's .env, build output, editor folders — anything gitignored is
-// not shipped and not this check's business.
 const tolerated = new Set()
 if (unknown.length > 0) {
   const result = spawnSync('git', ['check-ignore', '--stdin'], {

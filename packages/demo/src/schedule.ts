@@ -27,10 +27,6 @@ export function demoResetTask(deps: Omit<ResetDeps, 'now'>): TaskDefinition {
     async run({ now }) {
       const result = await resetDemoBoard({ ...deps, now })
 
-      // The reset deleted the row that says when the reset last ran, so it
-      // writes it back. Without this the task looks like it has never run, is
-      // due immediately, and resets the board again on the next tick — for as
-      // long as anybody leaves it running.
       await stampLastRun(deps.db, now)
 
       return {

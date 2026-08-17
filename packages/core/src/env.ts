@@ -14,8 +14,6 @@ const secret = z
   .string()
   .min(32, "must be at least 32 characters of high-entropy random data")
 
-// Deliberately not z.coerce.boolean(), which reads "false" as true. A typo in a
-// flag that disarms mail and webhooks should stop the boot, not be rounded up.
 const flag = z
   .enum(["0", "1", "true", "false"], { message: "must be one of 0, 1, true or false" })
   .default("0")
@@ -79,10 +77,6 @@ const envSchema = z
 
     REMOTE_IMAGES: flag,
 
-    // A public demo board: seeded content, published credentials, and a reset on
-    // a timer. It is not a lighter board — it is the whole board with the
-    // outbound surfaces disarmed, because everybody who visits is an
-    // administrator. See docs/demo-mode.md.
     DEMO_MODE: flag,
     DEMO_RESET_MINUTES: z.coerce.number().int().min(5).max(1440).default(60),
 

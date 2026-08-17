@@ -95,10 +95,6 @@ export default async function SecurityPage({
 
   const enrolment = factor.pending ? await pendingEnrolment(actor.userId) : null
 
-  // The confirm posts back to this URL, and its response is the only place the
-  // fresh recovery codes exist. Staying on the setup screen while `?factor=setup`
-  // is in the address is what lets that response carry them to a member whose
-  // browser runs no JavaScript.
   const settingUp = factor.pending || query.factor === 'setup'
 
   const linked = await accountStore.identities.listForUser(actor.userId)

@@ -46,9 +46,9 @@ describe('the published logins', () => {
     })
   })
 
-  it('refuse a password, email or username change, and say why', () => {
+  it('refuse a password, email, username or sign-in method change, and say why', () => {
     inDemoMode(() => {
-      for (const field of ['password', 'email', 'username'] as const) {
+      for (const field of ['password', 'email', 'username', 'sign-in method'] as const) {
         expect(() => assertDemoAccountIsChangeable('admin', field)).toThrow(
           new RegExp(`${field} is fixed`),
         )

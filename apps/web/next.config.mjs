@@ -1,5 +1,3 @@
-// Set by Dockerfile.site. The excludes below drop every traced file, which a
-// standalone server cannot survive — it carries its own node_modules.
 const standalone = process.env.SITE_STANDALONE === "1"
 
 const nextConfig = {
@@ -39,9 +37,6 @@ const nextConfig = {
               "default-src 'self'",
               "img-src 'self' data:",
               "style-src 'self' 'unsafe-inline'",
-              // React's development build needs eval() for its debugging
-              // features and logs to every page load without it. Never shipped:
-              // `next build` sets NODE_ENV=production.
               `script-src 'self' 'unsafe-inline'${
                 process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"
               }`,

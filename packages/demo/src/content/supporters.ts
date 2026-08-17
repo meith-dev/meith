@@ -12,7 +12,6 @@ import type { DemoThread } from './types'
  * a club, and a demo that shows one is selling the wrong thing.
  */
 export const SUPPORTERS_THREADS: readonly DemoThread[] = [
-  // ── Supporters' lounge ─────────────────────────────────────────────────────
   {
     forum: 'supporters',
     author: 'admin',
@@ -157,7 +156,6 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── Where the money goes ───────────────────────────────────────────────────
   {
     forum: 'accounts',
     author: 'admin',
@@ -280,7 +278,6 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── First look ─────────────────────────────────────────────────────────────
   {
     forum: 'firstlook',
     author: 'admin',
@@ -397,7 +394,6 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── The supporters' draw ───────────────────────────────────────────────────
   {
     forum: 'draw',
     author: 'rosa',

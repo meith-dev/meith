@@ -23,7 +23,8 @@ import {
   verifyChallenge,
 } from './antispam'
 import { recordAuthEvent } from './auth-events'
-import { requestFingerprint, twoFactorService } from './two-factor'
+import { requestFingerprint } from './request-fingerprint'
+import { twoFactorService } from './two-factor'
 import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
 import { boardAuthConfig } from './auth-config'
 import { configuredIdentity, configuredSessions, getContainer } from './container'
@@ -220,7 +221,7 @@ export async function loginAction(
       identifier,
       password,
       await loginBuckets(identifier, config),
-      await addressContext(),
+      await deviceContext(),
       { remember },
     )
 

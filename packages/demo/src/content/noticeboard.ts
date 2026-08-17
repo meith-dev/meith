@@ -6,7 +6,6 @@ import type { DemoThread } from './types'
  * bag and nothing for sale is a website.
  */
 export const NOTICEBOARD_THREADS: readonly DemoThread[] = [
-  // ── Photos and clips ───────────────────────────────────────────────────────
   {
     forum: 'media',
     author: 'mango',
@@ -137,7 +136,6 @@ export const NOTICEBOARD_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── Noticeboard ────────────────────────────────────────────────────────────
   {
     forum: 'noticeboard',
     author: 'mira',
@@ -291,7 +289,6 @@ export const NOTICEBOARD_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── Buy, sell and swap ─────────────────────────────────────────────────────
   {
     forum: 'market',
     author: 'tomas',
@@ -436,9 +433,6 @@ export const NOTICEBOARD_THREADS: readonly DemoThread[] = [
       { author: 'petra', hoursAfter: 3, message: 'They are yours. See you at the clubhouse at eight.' },
       { author: 'frank', hoursAfter: 9, message: 'Face value only is the correct way to do this and I wish every club in the country would copy it.' },
       {
-        // Visible, and reported. The held post in the next thread shows the queue
-        // catching one; this shows the other half of the job — the one that got
-        // through, and the member who flagged it.
         author: 'spambot',
         hoursAfter: 106,
         message:
@@ -451,14 +445,11 @@ export const NOTICEBOARD_THREADS: readonly DemoThread[] = [
     author: 'spambot',
     title: 'cheap replica jerseys all clubs best price fast shipping',
     daysAgo: 0,
-    // Left unapproved on purpose: the moderation queue is a headline feature and
-    // an empty queue demonstrates nothing. This is what one looks like.
     visibility: 'unapproved',
     message:
       'official quality replica jerseys all clubs all sizes cheapest price online fast worldwide shipping order now http://example.invalid/jerseys',
   },
 
-  // ── Anything else ──────────────────────────────────────────────────────────
   {
     forum: 'offtopic',
     author: 'ken',

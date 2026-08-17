@@ -107,6 +107,36 @@ export type RememberRotation =
   | { readonly status: 'reuse'; readonly userId: number; readonly familyId: string }
   | { readonly status: 'invalid' }
 
+/**
+ * How long after a remember token is rotated its old value is still honoured.
+ *
+ * Rotation is single-use, and two requests carrying the same cookie arrive
+ * whenever a browser restores several tabs at once, a link is double-clicked, or
+ * a prefetch races the navigation that prompted it. Exactly one wins the claim;
+ * without this window the others are indistinguishable from a stolen token and
+ * cost the member every session they hold. Real theft reuses a token long after
+ * the fact, not inside the same breath.
+ */
+export const REMEMBER_ROTATION_GRACE_SECONDS = 30
+
+/**
+ * Whether a spent remember token is a concurrent request rather than a theft.
+ *
+ * A revoked family is always theft: the board has already decided about it.
+ * Elapsed time is not required to be positive — requests racing each other
+ * stamp `now` on the way in, so the one that loses the claim can carry a
+ * timestamp from just before the winner wrote `usedAt`, which is the very case
+ * this window exists to forgive.
+ */
+export function withinRotationGrace(
+  row: { readonly usedAt: Date | null; readonly revokedAt: Date | null },
+  now: Date,
+): boolean {
+  if (row.revokedAt !== null || row.usedAt === null) return false
+
+  return now.getTime() - row.usedAt.getTime() <= REMEMBER_ROTATION_GRACE_SECONDS * 1_000
+}
+
 export interface RememberTokenRepository {
   issue(input: {
     tokenHash: string

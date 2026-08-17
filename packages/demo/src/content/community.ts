@@ -6,7 +6,6 @@ import type { DemoThread } from './types'
  * without any of them looking out of place.
  */
 export const COMMUNITY_THREADS: readonly DemoThread[] = [
-  // ── General discussion ─────────────────────────────────────────────────────
   {
     forum: 'general',
     author: 'marty',
@@ -227,7 +226,6 @@ export const COMMUNITY_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── Events and fixtures ────────────────────────────────────────────────────
   {
     forum: 'events',
     author: 'paudie',

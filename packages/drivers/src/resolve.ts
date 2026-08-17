@@ -61,12 +61,6 @@ function buildFiles(): FileStore {
 }
 
 export async function currentMailConfig(): Promise<MailConfig> {
-  // Before the environment, and before the settings table, because on a demo
-  // the settings table is written by whoever visited last. MAIL_DRIVER=log
-  // resolves to null here and falls through to those settings, so a demo
-  // administrator who fills in the SMTP screen would otherwise be sending real
-  // mail from the host — an open relay reachable by anyone with the published
-  // password.
   if (env.DEMO_MODE) return NO_MAIL
 
   const fromEnvironment = mailConfigFromEnvironment(env)

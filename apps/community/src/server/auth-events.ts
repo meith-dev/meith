@@ -4,7 +4,7 @@ import type { AuthEventKind, AuthEventRecord } from '@meith/accounts'
 import { logger } from '@meith/core'
 
 import { getContainer } from './container'
-import { requestFingerprint } from './two-factor'
+import { requestFingerprint } from './request-fingerprint'
 
 export const MEMBER_ACTIVITY_LIMIT = 20
 

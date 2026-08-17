@@ -82,9 +82,6 @@ export async function saveGroupIdentityAction(
     const pluginGrantable = checkbox(form, 'pluginGrantable')
 
     if (pluginGrantable) {
-      // The same refusals the grant call makes, made early so the operator
-      // hears them while the checkbox is in front of them rather than when a
-      // plugin's first grant fails.
       if (isStaffGroup) {
         throw new ValidationError(
           'A staff group cannot be granted by plugins — staff is appointed, not sold.',

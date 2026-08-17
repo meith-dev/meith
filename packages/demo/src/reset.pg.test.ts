@@ -58,8 +58,6 @@ describe('a reset against a real engine', () => {
   it('throws away what a visitor did and puts the seeded board back', async () => {
     inDemoMode()
 
-    // A visitor has been busy: a forum deleted, the guest group's permissions
-    // wrecked, and a thread of their own added.
     await db.execute(sql`update usergroups set can_view = false where key = 'guests'`)
     await new PostgresForumRepository(db).create({
       type: 'forum',
@@ -78,8 +76,6 @@ describe('a reset against a real engine', () => {
       await db.execute(sql`select can_view from usergroups where key = 'guests'`),
     ) as Array<{ can_view: boolean }>
 
-    // The point of dropping rather than truncating: a truncate would have left
-    // the wrecked permission row exactly as the visitor set it.
     expect(guests[0]?.can_view).toBe(true)
   }, 120_000)
 

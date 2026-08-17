@@ -153,8 +153,6 @@ export async function pluginInventory(): Promise<PluginInventory> {
           description: setting.description ?? null,
           advanced: setting.advanced === true,
           kind,
-          // A secret's value never reaches a row: the panel learns that one
-          // is set, not what it is.
           default: secret ? '' : setting.default,
           value: secret ? '' : value,
           overridden: overrides.has(`plugin.${entry.key}.${setting.key}`),

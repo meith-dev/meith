@@ -38,9 +38,6 @@ export async function publicScope(): Promise<FeedScope> {
 }
 
 export async function isIndexable(): Promise<boolean> {
-  // A demo is never indexable. Its content is thrown away every hour, so half of
-  // what a crawler stored is already a 404, and the half that is not is whatever
-  // an anonymous visitor typed into a board carrying the project's own domain.
   if (env.DEMO_MODE) return false
 
   try {

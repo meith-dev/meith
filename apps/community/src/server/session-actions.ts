@@ -62,10 +62,12 @@ export async function revokeOtherSessionsAction(
     const userId = await requireViewer()
     const { accountStore } = getContainer()
 
-    const revoked = await accountStore.sessions.revokeAllForUserExcept(
-      userId,
-      await currentSessionId(),
-    )
+    const keep = await currentSessionId()
+    if (keep === null) {
+      return { error: 'This session could not be identified, so nothing was signed out.' }
+    }
+
+    const revoked = await accountStore.sessions.revokeAllForUserExcept(userId, keep)
 
     if (revoked > 0) await recordAuthEvent({ userId, kind: 'sessions_revoked' })
   } catch (err) {

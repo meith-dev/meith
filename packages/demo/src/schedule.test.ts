@@ -70,8 +70,6 @@ describe('the reset task', () => {
       ...demoResetTask({ db }),
       async run(context: Parameters<ReturnType<typeof demoResetTask>['run']>[0]) {
         resets += 1
-        // Stands in for the real reset, which drops every table including this
-        // one — the row the tick just claimed does not survive it.
         await db.execute(sql`delete from tasks`)
         await db.execute(sql`
           insert into tasks (key, interval_seconds, last_run_at)

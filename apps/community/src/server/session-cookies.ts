@@ -34,9 +34,6 @@ export async function setSessionCookie(
   const isSecure = secure()
   jar.set(sessionCookieName(isSecure), token, sessionCookie(expiresAt, isSecure))
 
-  // They were a guest a moment ago, and that row is still inside the online
-  // window. Left alone it counts them twice: once by name, once as somebody
-  // anonymous who is really the same person.
   await retireGuestPresence()
 }
 

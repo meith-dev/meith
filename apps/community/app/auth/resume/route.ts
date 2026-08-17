@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server"
 import { logger } from "@meith/core"
 
 import { configuredSessions } from "@/server/container"
+import { requestFingerprint } from "@/server/request-fingerprint"
 import { isSafeLocalPath } from "@/server/safe-path"
 import { isTopLevelNavigation } from "@/server/same-origin"
 import {
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const sessions = await configuredSessions()
-  const outcome = await sessions.resume(token)
+  const outcome = await sessions.resume(token, await requestFingerprint())
 
   if (outcome.status === "ok") {
     await setSessionCookie(outcome.login.sessionToken, outcome.login.sessionExpiresAt)

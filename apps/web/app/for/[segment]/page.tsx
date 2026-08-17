@@ -28,9 +28,6 @@ export async function generateMetadata({
   const canonical = segmentHref(segment.slug)
 
   return {
-    // The template in the root layout appends the site name, and these titles
-    // are written to carry it — so the absolute form keeps "Meith" from
-    // turning up twice in a search result.
     title: { absolute: segment.meta.title },
     description: segment.meta.description,
     alternates: { canonical },

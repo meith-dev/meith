@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-// One version, everywhere it is written down — the lockstep rule docs/release.md
-// describes. With --tag vX.Y.Z (the release workflow passes it), also asserts
-// the tag being released matches the version the tree carries.
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -25,10 +22,6 @@ for (const { dir, manifest } of await workspacePackages()) {
   }
 }
 
-// The npm publish set is every workspace package without `private: true`, and
-// it must be closed: a published package depending on a private one is an
-// `npm install` that succeeds and a resolution that fails, for everyone,
-// forever — see docs/release.md.
 const published = [...byName.values()].filter(({ manifest }) => manifest.private !== true)
 
 for (const { dir, manifest } of published) {
@@ -41,9 +34,6 @@ for (const { dir, manifest } of published) {
     }
   }
 
-  // What npm needs from a manifest it is going to serve: a licence, a
-  // provenance-matching repository entry, a files whitelist, and public
-  // access for a scoped name.
   if (manifest.license !== 'LGPL-3.0-or-later') {
     problems.push(`${dir} is published without the repository licence`)
   }
@@ -58,11 +48,9 @@ for (const { dir, manifest } of published) {
   }
 }
 
-// The version the code states about itself.
 const CONSTANTS = [
   { file: 'apps/cli/src/upgrade.ts', pattern: /export const CODE_VERSION = '([^']+)'/ },
   { file: 'apps/community/src/server/upgrade-notice.ts', pattern: /export const CODE_VERSION = '([^']+)'/ },
-  // The version create-meith writes into a scaffolded project's dependencies.
   { file: 'packages/create-meith/src/bin.ts', pattern: /run\(process\.argv\.slice\(2\), '([^']+)'\)/ },
 ]
 
@@ -81,9 +69,6 @@ for (const { file, pattern } of [...CONSTANTS, ...PLUGIN_MANIFESTS]) {
   }
 }
 
-// The Coolify compose file pins the exact release version, once per service,
-// and every pin must agree — deploys are deterministic, and only a release
-// commit moves what a board runs.
 const compose = await readFile(join(ROOT, 'docker/compose.coolify.yml'), 'utf8')
 const pins = [...compose.matchAll(/\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:([^}]+)\}/g)]
 

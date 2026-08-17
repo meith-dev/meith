@@ -98,6 +98,42 @@ test('a remembered visitor is resumed by opening the board, and never by a subre
   await expect(page.getByRole('heading', { name: 'Your control panel' })).toBeVisible()
 })
 
+test('tabs restoring together all resume, and none of them signs the member out', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false })
+  const page = await context.newPage()
+
+  try {
+    const username = await signUp(page, 'racing')
+
+    await page.goto('/login')
+    await page.getByLabel('Username or email').fill(username)
+    await page.getByLabel('Password').fill(PASSWORD)
+    await page.getByLabel('Keep me signed in').check()
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+    await expect(page).toHaveURL('/')
+
+    const session = (await context.cookies()).find((c) => /session/.test(c.name))
+    await context.clearCookies({ name: session!.name })
+
+    const tabs = await Promise.all(Array.from({ length: 4 }, () => context.newPage()))
+    const landed = await Promise.all(
+      tabs.map(async (tab) => {
+        await tab.goto('/auth/resume?next=/usercp')
+        return new URL(tab.url()).pathname
+      }),
+    )
+
+    expect(landed).toEqual(['/usercp', '/usercp', '/usercp', '/usercp'])
+
+    await page.goto('/usercp')
+    await expect(page).toHaveURL('/usercp')
+  } finally {
+    await context.close()
+  }
+})
+
 test('an unsubscribe link that arrived broken explains itself', async ({ page }) => {
   for (const url of ['/unsubscribe', '/unsubscribe?token=truncated-by-a-mail-client']) {
     await page.goto(url)

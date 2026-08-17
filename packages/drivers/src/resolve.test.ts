@@ -36,8 +36,6 @@ describe('mail on a demo board', () => {
 
   it('does not reach the database to find out, so it cannot be talked round', async () => {
     onDemo()
-    // No database is reachable at that URL. Anything that read the settings
-    // table here would throw rather than resolve.
     await expect(currentMailConfig()).resolves.toEqual({ transport: 'log' })
   })
 })
