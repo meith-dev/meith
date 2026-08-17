@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 
+import { cn } from '@meith/ui'
+
 import {
   DirectiveRowForm,
   DeletePrefixForm,
@@ -10,6 +12,7 @@ import {
   SmileyRowForm,
   WordFilterRowForm,
 } from '@/components/admin/content-forms'
+import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { contentAdminRepository } from '@/server/content-admin'
@@ -49,7 +52,7 @@ export default async function AdminContentPage() {
       }
       gap="loose"
     >
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Word filters</h2>
         <p className="text-sm text-muted-foreground">
           Applied when a post is shown, never to what is stored — so removing a filter
@@ -84,7 +87,7 @@ export default async function AdminContentPage() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Thread prefixes</h2>
         <p className="text-sm text-muted-foreground">
           Labels a member can put in front of a thread title. Removing one takes it off
@@ -123,7 +126,7 @@ export default async function AdminContentPage() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
+      <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
         <h2 className="font-heading text-lg font-semibold">Announcements</h2>
         <p className="text-muted-foreground">
           A dated notice above the forums, board-wide or attached to one. Not a pinned
@@ -138,7 +141,7 @@ export default async function AdminContentPage() {
         </a>
       </section>
 
-      <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
+      <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
         <h2 className="font-heading text-lg font-semibold">Attachments</h2>
         <p className="text-muted-foreground">
           What members have uploaded, what it is costing in storage, and what has failed
@@ -153,7 +156,7 @@ export default async function AdminContentPage() {
         </a>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Smilies</h2>
         <p className="text-sm text-muted-foreground">
           A literal code and an image. The code is matched as text, never as a pattern,
@@ -188,7 +191,7 @@ export default async function AdminContentPage() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Custom directives</h2>
         <p className="text-sm text-muted-foreground">
           Markdown&rsquo;s extension point, and this board&rsquo;s own additions to it. A

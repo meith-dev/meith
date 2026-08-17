@@ -3,11 +3,14 @@ import { describe, expect, it } from 'vitest'
 import {
   ADMIN_NAV,
   ADMIN_OVERVIEW,
+  ADMIN_PLUGINS_HREF,
   ADMIN_SECTIONS,
   activeSectionHref,
+  adminNavWithPlugin,
   currentProps,
   deepestNavHref,
   isUnder,
+  pluginKeyAt,
 } from './admin-nav'
 
 const current = (pathname: string, href: string) =>
@@ -94,5 +97,82 @@ describe('the tree itself', () => {
         expect(isUnder(child.href, section.href)).toBe(true)
       }
     }
+  })
+})
+
+describe('pluginKeyAt', () => {
+  it('reads the key out of anything under a plugin', () => {
+    expect(pluginKeyAt('/admin/plugins/dues')).toBe('dues')
+    expect(pluginKeyAt('/admin/plugins/dues/plans')).toBe('dues')
+    expect(pluginKeyAt('/admin/plugins/dues/plans?created=day-pass')).toBe('dues')
+  })
+
+  it('is null anywhere else, the listing included', () => {
+    expect(pluginKeyAt('/admin/plugins')).toBeNull()
+    expect(pluginKeyAt('/admin/plugins/')).toBeNull()
+    expect(pluginKeyAt('/admin/users')).toBeNull()
+    expect(pluginKeyAt('')).toBeNull()
+  })
+})
+
+describe('adminNavWithPlugin', () => {
+  const dues = {
+    key: 'dues',
+    name: 'Dues',
+    pages: [
+      { href: '/admin/plugins/dues/plans', title: 'Plans' },
+      { href: '/admin/plugins/dues/members', title: 'Memberships' },
+    ],
+  }
+
+  const navWithDues = adminNavWithPlugin(dues)
+
+  it('gives the plugin a section of its own, directly under Plugins', () => {
+    const at = navWithDues.findIndex((section) => section.href === '/admin/plugins/dues')
+
+    expect(navWithDues[at - 1]?.href).toBe(ADMIN_PLUGINS_HREF)
+    expect(navWithDues[at]?.title).toBe('Dues')
+    expect(navWithDues[at]?.children).toEqual(dues.pages)
+  })
+
+  it('leaves the rest of the tree exactly as it was', () => {
+    expect(navWithDues.filter((section) => section.href !== '/admin/plugins/dues')).toEqual(
+      ADMIN_NAV,
+    )
+  })
+
+  it('keeps the invariants the static tree holds', () => {
+    const hrefs = navWithDues.flatMap((section) => [
+      section.href,
+      ...(section.children ?? []).map((child) => child.href),
+    ])
+    expect(new Set(hrefs).size).toBe(hrefs.length)
+
+    for (const section of navWithDues) {
+      for (const child of section.children ?? []) {
+        expect(isUnder(child.href, section.href)).toBe(true)
+      }
+    }
+  })
+
+  it('lights the page you are on, and the plugin while you are under it', () => {
+    const at = (pathname: string, href: string) =>
+      currentProps(pathname, href, deepestNavHref(pathname, navWithDues))['aria-current']
+
+    expect(at('/admin/plugins/dues/plans', '/admin/plugins/dues/plans')).toBe('page')
+    expect(at('/admin/plugins/dues/plans', '/admin/plugins/dues')).toBeUndefined()
+    expect(at('/admin/plugins/dues', '/admin/plugins/dues')).toBe('page')
+  })
+
+  it('opens the plugin rather than Plugins while you are inside it', () => {
+    expect(activeSectionHref('/admin/plugins/dues/plans', navWithDues)).toBe(
+      '/admin/plugins/dues',
+    )
+    expect(activeSectionHref('/admin/plugins', navWithDues)).toBe(ADMIN_PLUGINS_HREF)
+  })
+
+  it('is the plain tree for a plugin with no pages, and for no plugin at all', () => {
+    expect(adminNavWithPlugin({ ...dues, pages: [] })).toBe(ADMIN_NAV)
+    expect(adminNavWithPlugin(null)).toBe(ADMIN_NAV)
   })
 })

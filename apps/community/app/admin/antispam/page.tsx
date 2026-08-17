@@ -1,9 +1,12 @@
 import type { Metadata } from 'next'
 
+import { cn } from '@meith/ui'
+
 import {
   CaptchaQuestionRowForm,
   NewCaptchaQuestionForm,
 } from '@/components/admin/content-forms'
+import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { captchaQuestionRepository } from '@/server/antispam'
@@ -49,7 +52,7 @@ export default async function AdminAntispamPage() {
         </p>
       )}
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Registration questions</h2>
         <p className="text-sm text-muted-foreground">
           Asked on the registration form when the challenge is set to{' '}
@@ -88,7 +91,7 @@ export default async function AdminAntispamPage() {
         )}
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4 text-sm">
+      <section className={cn(PANEL_CARD, 'text-sm')}>
         <h2 className="font-heading text-lg font-semibold">What each control is worth</h2>
         <dl className="flex flex-col gap-3 text-muted-foreground">
           <div>
@@ -147,7 +150,7 @@ export default async function AdminAntispamPage() {
         </dl>
       </section>
 
-      <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
+      <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
         <h2 className="font-heading text-lg font-semibold">Using a hosted captcha</h2>
         <p className="text-muted-foreground">
           Not offered here, and not because it would be hard. A hosted captcha means every

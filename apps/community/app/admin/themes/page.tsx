@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 
+import { cn } from '@meith/ui'
+
 import { PanelPage } from '@/components/shell/panel-page'
 import { LogoUploadForm } from '@/components/admin/branding-forms'
 import { ThemeStateForms } from '@/components/admin/theme-forms'
@@ -9,7 +11,7 @@ import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { themeListing } from '@/server/theme-admin'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
-import { PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Themes' }
 
@@ -129,7 +131,7 @@ export default async function AdminThemesPage() {
         ))}
       </ul>
 
-      <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
+      <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
         <h2 className="font-heading text-lg font-semibold">
           What a member&rsquo;s choice changes
         </h2>

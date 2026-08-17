@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 
+import { PANEL_CARD } from '@/components/shell/panel-list'
 import { sendTestMailAction } from '@/server/mail-test-actions'
 import { EMPTY_STATE, type FormState } from '@/server/auth-form-state'
 
@@ -20,7 +21,7 @@ export function MailTestCard({
   )
 
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+    <section className={PANEL_CARD}>
       <div className="flex flex-col gap-1">
         <h2 className="font-heading text-lg font-semibold">How this board sends mail</h2>
         <p className="text-sm">

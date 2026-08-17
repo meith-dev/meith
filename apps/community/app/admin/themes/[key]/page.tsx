@@ -1,11 +1,14 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { cn } from '@meith/ui'
+
 import {
   ImportThemeForm,
   ResetThemeForm,
   ThemeEditorForm,
 } from '@/components/admin/theme-forms'
+import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildThemeAdminView, themeAdminRepository } from '@/server/theme-admin'
@@ -61,7 +64,7 @@ export default async function AdminThemePage({
           : 'A member who picks this theme gets its components as well as these colours.'
       }
     >
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <ThemeEditorForm
           themeKey={view.key}
           tokens={view.tokens}
@@ -70,7 +73,7 @@ export default async function AdminThemePage({
         />
       </section>
 
-      <section className="flex max-w-3xl flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={cn(PANEL_CARD, 'max-w-3xl')}>
         <h2 className="font-heading text-lg font-semibold">Export</h2>
         <p className="text-sm text-muted-foreground">
           Everything this board has changed, as a document another board can import. It
@@ -84,12 +87,12 @@ export default async function AdminThemePage({
         />
       </section>
 
-      <section className="flex max-w-3xl flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={cn(PANEL_CARD, 'max-w-3xl')}>
         <h2 className="font-heading text-lg font-semibold">Import</h2>
         <ImportThemeForm themeKey={view.key} />
       </section>
 
-      <section className="flex max-w-3xl flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={cn(PANEL_CARD, 'max-w-3xl')}>
         <h2 className="font-heading text-lg font-semibold">Reset</h2>
         {view.customised ? (
           <>

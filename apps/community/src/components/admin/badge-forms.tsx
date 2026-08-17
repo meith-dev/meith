@@ -2,6 +2,9 @@
 
 import { useActionState } from "react"
 
+import { cn } from "@meith/ui"
+
+import { PANEL_CARD } from "@/components/shell/panel-list"
 import { removeBadgeAction, saveBadgeAction } from "@/server/group-badge-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
@@ -29,7 +32,7 @@ export function BadgeUploadForm({
   const id = `badge-${groupId}-${scheme}`
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+    <div className={cn(PANEL_CARD, "gap-3 p-3")}>
       <h3 className="text-sm font-medium">{label}</h3>
 
       <FormError message={saved.error ?? removed.error} />

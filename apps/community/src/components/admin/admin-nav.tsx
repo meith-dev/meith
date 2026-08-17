@@ -1,11 +1,21 @@
 import { PanelNavRegion } from '@/components/shell/panel-nav'
-import { ADMIN_NAV, ADMIN_OVERVIEW } from '@/view/admin-nav'
+import { currentLocation } from '@/server/current-location'
+import { pluginPanelSection } from '@/server/plugin-panel'
+import { ADMIN_OVERVIEW, adminNavWithPlugin, pluginKeyAt } from '@/view/admin-nav'
+import { pluginNavChildren } from '@/view/plugin-panel'
 
-export function AdminNav() {
+export async function AdminNav() {
+  const pluginKey = pluginKeyAt(await currentLocation())
+  const plugin = pluginKey === null ? null : await pluginPanelSection(pluginKey)
+
   return (
     <PanelNavRegion
       panel="admincp"
-      nav={ADMIN_NAV}
+      nav={adminNavWithPlugin(
+        plugin === null
+          ? null
+          : { key: plugin.key, name: plugin.name, pages: pluginNavChildren(plugin.pages) },
+      )}
       overviewHref={ADMIN_OVERVIEW.href}
       fallbackHref={ADMIN_OVERVIEW.href}
     />

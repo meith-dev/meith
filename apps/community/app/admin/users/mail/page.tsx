@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
 
+import { cn } from '@meith/ui'
+
+import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { MassMailForm } from '@/components/admin/user-forms'
 import { adminPageContext } from '@/server/admin'
@@ -48,11 +51,11 @@ export default async function AdminMassMailPage() {
         </>
       }
     >
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <MassMailForm groups={audiences} audience={everybody} />
       </section>
 
-      <div className="flex flex-col gap-2 rounded-lg border border-border p-4 text-xs text-muted-foreground">
+      <div className={cn(PANEL_CARD, 'gap-2 text-xs text-muted-foreground')}>
         <p>Before you press it:</p>
         <ul className="flex list-disc flex-col gap-1 pl-4">
           <li>

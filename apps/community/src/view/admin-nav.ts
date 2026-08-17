@@ -1,6 +1,7 @@
 import {
   type PanelNav,
   type PanelSection,
+  type PanelSubsection,
   currentProps,
   deepestHrefIn,
   isUnder,
@@ -111,10 +112,40 @@ export const ADMIN_SECTIONS: PanelNav = [
 
 export const ADMIN_NAV: PanelNav = [ADMIN_OVERVIEW, ...ADMIN_SECTIONS]
 
-export function activeSectionHref(pathname: string): string {
-  return sectionHrefIn(ADMIN_NAV, pathname) ?? ADMIN_OVERVIEW.href
+export const ADMIN_PLUGINS_HREF = '/admin/plugins'
+
+const PLUGIN_KEY_PATTERN = /^\/admin\/plugins\/([a-z][a-z0-9-]*)(?:\/|$|\?)/
+
+export function pluginKeyAt(pathname: string): string | null {
+  return PLUGIN_KEY_PATTERN.exec(pathname)?.[1] ?? null
 }
 
-export function deepestNavHref(pathname: string): string {
-  return deepestHrefIn(ADMIN_NAV, pathname) ?? ADMIN_OVERVIEW.href
+export interface PluginNavSection {
+  readonly key: string
+  readonly name: string
+  readonly pages: readonly PanelSubsection[]
+}
+
+export function adminNavWithPlugin(plugin: PluginNavSection | null): PanelNav {
+  if (plugin === null || plugin.pages.length === 0) return ADMIN_NAV
+
+  const section: PanelSection = {
+    href: `${ADMIN_PLUGINS_HREF}/${plugin.key}`,
+    title: plugin.name,
+    icon: 'plugins',
+    blurb: `Every screen ${plugin.name} adds to the panel.`,
+    children: plugin.pages,
+  }
+
+  const at = ADMIN_NAV.findIndex((entry) => entry.href === ADMIN_PLUGINS_HREF)
+
+  return [...ADMIN_NAV.slice(0, at + 1), section, ...ADMIN_NAV.slice(at + 1)]
+}
+
+export function activeSectionHref(pathname: string, nav: PanelNav = ADMIN_NAV): string {
+  return sectionHrefIn(nav, pathname) ?? ADMIN_OVERVIEW.href
+}
+
+export function deepestNavHref(pathname: string, nav: PanelNav = ADMIN_NAV): string {
+  return deepestHrefIn(nav, pathname) ?? ADMIN_OVERVIEW.href
 }

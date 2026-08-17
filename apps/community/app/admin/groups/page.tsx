@@ -4,7 +4,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { CreateGroupForm } from '@/components/admin/group-forms'
 import { adminPageContext } from '@/server/admin'
 import { groupAdminRepository } from '@/server/group-admin'
-import { PANEL_LIST, PANEL_ROW, PanelActionLink } from '@/components/shell/panel-list'
+import { PANEL_CARD, PANEL_LIST, PANEL_ROW, PanelActionLink } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Groups' }
 
@@ -83,7 +83,7 @@ export default async function AdminGroupsPage() {
         <PanelActionLink href="/admin/groups/memberships">Mass membership change</PanelActionLink>
       </nav>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Add a group</h2>
         <CreateGroupForm
           groups={groups.map((group) => ({

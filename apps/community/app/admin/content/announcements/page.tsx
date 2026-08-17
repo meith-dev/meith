@@ -10,7 +10,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { announcementRepository } from '@/server/announcements'
 import { getContainer } from '@/server/container'
-import { PANEL_LIST } from '@/components/shell/panel-list'
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE } from '@/components/shell/panel-list'
 import { cn } from '@meith/ui'
 
 export const metadata: Metadata = { title: 'Announcements' }
@@ -58,7 +58,7 @@ export default async function AdminAnnouncementsPage() {
       gap="loose"
     >
       {rows.length === 0 ? (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        <p className={PANEL_NOTE}>
           None. The board shows no announcements.
         </p>
       ) : (
@@ -103,7 +103,7 @@ export default async function AdminAnnouncementsPage() {
         </section>
       )}
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">New announcement</h2>
         <NewAnnouncementForm forums={choices} />
       </section>

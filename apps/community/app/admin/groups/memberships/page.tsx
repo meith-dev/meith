@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { MoveMembersForm } from '@/components/admin/group-forms'
 import { adminPageContext } from '@/server/admin'
@@ -35,7 +36,7 @@ export default async function AdminMembershipsPage() {
         </>
       }
     >
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <MoveMembersForm
           groups={groups.map((group) => ({
             id: group.id,

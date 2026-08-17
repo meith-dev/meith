@@ -8,6 +8,7 @@ import {
   MemberStateForm,
   SecondaryGroupsForm,
 } from '@/components/admin/user-forms'
+import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildMemberView } from '@/server/user-admin'
@@ -66,7 +67,7 @@ export default async function AdminMemberPage({
         </>
       }
     >
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Account</h2>
         <MemberAccountForm
           member={{
@@ -81,7 +82,7 @@ export default async function AdminMemberPage({
         />
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Additional groups</h2>
         <p className="text-sm text-muted-foreground">
           Groups held <em>as well as</em> the primary one. They grant in exactly the same
@@ -97,7 +98,7 @@ export default async function AdminMemberPage({
         />
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">State</h2>
         {activeBan !== null || member.state === 'banned' ? (
           <p className="text-sm text-muted-foreground">
@@ -109,7 +110,7 @@ export default async function AdminMemberPage({
         )}
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Ban</h2>
         {activeBan === null ? (
           <BanMemberForm userId={member.id} />
@@ -144,7 +145,7 @@ export default async function AdminMemberPage({
         )}
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Merge</h2>
         <p className="text-sm text-muted-foreground">
           Fold this account into another one — for a member who registered twice, or a
@@ -160,7 +161,7 @@ export default async function AdminMemberPage({
         </p>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Network</h2>
         <p className="text-sm text-muted-foreground">
           Registered from{' '}
