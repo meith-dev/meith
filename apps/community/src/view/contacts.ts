@@ -3,7 +3,7 @@ import { isOnline, type RelationKind, type RelationRow } from '@meith/relations'
 import type { TimeModel } from '@meith/theme-kit'
 
 import { memberHref } from './member-profile'
-import { formatTime } from './time'
+import { formatTime, untranslated } from './time'
 
 export interface ContactRowView {
   readonly userId: number
@@ -58,30 +58,28 @@ export function buildContactsView(input: {
   }
 }
 
-export function contactsNotice(query: {
-  readonly added?: string | undefined
-  readonly ignored?: string | undefined
-  readonly removed?: string | undefined
-}): { kind: 'info'; message: string } | null {
+export function contactsNotice(
+  query: {
+    readonly added?: string | undefined
+    readonly ignored?: string | undefined
+    readonly removed?: string | undefined
+  },
+  t: Translator = untranslated(),
+): { kind: 'info'; message: string } | null {
   if (query.added !== undefined) {
-    return { kind: 'info', message: `${nameOf(query.added)} is now on your buddy list.` }
+    return { kind: 'info', message: t.t('contacts.added', { name: nameOf(query.added, t) }) }
   }
   if (query.ignored !== undefined) {
-    return {
-      kind: 'info',
-      message:
-        `You are now ignoring ${nameOf(query.ignored)}. Their posts are hidden ` +
-        'behind a link, and they cannot send you private messages.',
-    }
+    return { kind: 'info', message: t.t('contacts.ignored', { name: nameOf(query.ignored, t) }) }
   }
   if (query.removed !== undefined) {
-    return { kind: 'info', message: `${nameOf(query.removed)} has been taken off your lists.` }
+    return { kind: 'info', message: t.t('contacts.removed', { name: nameOf(query.removed, t) }) }
   }
   return null
 }
 
-function nameOf(raw: string): string {
+function nameOf(raw: string, t: Translator): string {
   const trimmed = raw.trim()
-  if (trimmed === '') return 'That member'
+  if (trimmed === '') return t.t('contacts.someMember')
   return trimmed.length > 30 ? `${trimmed.slice(0, 30)}…` : trimmed
 }

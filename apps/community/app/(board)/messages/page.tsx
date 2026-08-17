@@ -64,7 +64,7 @@ export default async function MessagesPage({
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
-  const notice = messageNotice(query)
+  const notice = messageNotice(query, await getTranslator())
 
   return (
     <PanelPage

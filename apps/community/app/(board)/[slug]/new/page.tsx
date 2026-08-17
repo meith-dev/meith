@@ -8,6 +8,7 @@ import { NewThreadForm } from '@/components/content/new-thread-form'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
 import { buildNewThreadView } from '@/view/post-form'
 import { leadingId } from '@/view/slug-id'
@@ -40,6 +41,7 @@ export default async function NewThreadPage({ params }: { params: Promise<{ slug
   const attachTarget = { ...target, allowsAttachments: rules.allowAttachments }
 
   const view = buildNewThreadView({
+    t: await getTranslator(),
     forum: { id: forum.id, title: forum.title, slug: forum.slug },
     errorMessage:
       rules.isOpen && rules.allowThreads ? null : 'This forum is closed to new threads.',

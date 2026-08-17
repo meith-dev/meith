@@ -45,7 +45,7 @@ export default async function ContactsPage({
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
-  const notice = contactsNotice(query)
+  const notice = contactsNotice(query, await getTranslator())
 
   return (
     <PanelPage

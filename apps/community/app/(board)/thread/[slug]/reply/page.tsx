@@ -9,6 +9,7 @@ import { ReplyForm } from '@/components/content/reply-form'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
 import { buildReplyView } from '@/view/post-form'
 import { postLink } from '@/view/post-link'
@@ -65,6 +66,7 @@ export default async function ReplyPage({
   }
 
   const view = buildReplyView({
+    t: await getTranslator(),
     thread: { id: target.threadId, title: target.title, slug: target.slug },
     errorMessage: locked ? 'This thread is locked.' : null,
   })

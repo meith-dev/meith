@@ -1,26 +1,52 @@
+import type { Translator } from '@meith/i18n'
 import type { ErrorNoticeModel } from '@meith/theme-kit'
+
+import { untranslated } from './time'
 
 export interface ErrorNoticeCopy {
   readonly status: number
-  readonly title: string
-  readonly message: string
+  readonly titleKey: string
+  readonly messageKey: string
 }
 
 export const NOT_FOUND_NOTICE: ErrorNoticeCopy = {
   status: 404,
-  title: 'Page not found',
-  message: 'The page you requested does not exist or is no longer available.',
+  titleKey: 'errorNotice.notFound.title',
+  messageKey: 'errorNotice.notFound.message',
 }
 
+export const CRASH_NOTICE_STATUS = 500
+
 export const CRASH_NOTICE: ErrorNoticeCopy = {
-  status: 500,
-  title: 'Something went wrong',
-  message: 'The board could not finish this page. Try again, or return to the forum.',
+  status: CRASH_NOTICE_STATUS,
+  titleKey: 'errorNotice.crash.title',
+  messageKey: 'errorNotice.crash.message',
+}
+
+export interface CrashNoticeCopy {
+  readonly title: string
+  readonly message: string
+  readonly homeLabel: string
+}
+
+export function crashNoticeCopy(t: Translator = untranslated()): CrashNoticeCopy {
+  return {
+    title: t.t(CRASH_NOTICE.titleKey),
+    message: t.t(CRASH_NOTICE.messageKey),
+    homeLabel: t.t('errorNotice.home'),
+  }
 }
 
 export function buildErrorNotice(
   copy: ErrorNoticeCopy,
   requestId: string | null,
+  t: Translator = untranslated(),
 ): ErrorNoticeModel {
-  return { ...copy, homeHref: '/', requestId }
+  return {
+    status: copy.status,
+    title: t.t(copy.titleKey),
+    message: t.t(copy.messageKey),
+    homeHref: '/',
+    requestId,
+  }
 }

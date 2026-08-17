@@ -3,7 +3,7 @@ import type { Translator } from '@meith/i18n'
 import type { MemberProfileModel } from '@meith/theme-kit'
 
 import { count } from './count'
-import { formatDate, formatTime } from './time'
+import { formatDate, formatTime, untranslated } from './time'
 
 export function memberHref(userId: number): string {
   return `/member/${userId}`
@@ -24,7 +24,7 @@ export function buildMemberProfileView(
   const {
     canWarn = false,
     canMessage = false,
-    t,
+    t = untranslated(),
     customFields = [],
     avatarUrl = null,
     nameClass = null,
@@ -52,13 +52,13 @@ export function buildMemberProfileView(
       ...(canMessage
         ? [
             {
-              label: 'Send a message',
+              label: t.t('profile.sendMessage'),
               href: `/messages/compose?to=${encodeURIComponent(profile.username)}`,
             },
           ]
         : []),
       ...(canWarn
-        ? [{ label: 'Warn this member', href: `/moderation/warn?user=${profile.id}` }]
+        ? [{ label: t.t('profile.warnMember'), href: `/moderation/warn?user=${profile.id}` }]
         : []),
     ],
   }

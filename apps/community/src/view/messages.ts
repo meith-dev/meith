@@ -2,7 +2,7 @@ import type { Translator } from '@meith/i18n'
 import type { FolderCounts, MessageDetail, MessageFolder, MessageListRow } from '@meith/messages'
 import type { LinkModel, TimeModel } from '@meith/theme-kit'
 
-import { formatTime } from './time'
+import { formatTime, untranslated } from './time'
 
 export const MESSAGE_FORM_ID = 'message-actions'
 
@@ -80,6 +80,7 @@ export function buildMessageFolderView(input: {
   readonly now: Date
   readonly t?: Translator
 }): MessageFolderView {
+  const t = input.t ?? untranslated()
   const tabs: readonly FolderTab[] = (['inbox', 'sent', 'trash'] as const).map((folder) => ({
     folder,
     label: FOLDER_LABELS[folder],
@@ -94,7 +95,7 @@ export function buildMessageFolderView(input: {
     rows: input.rows.map((row) => ({
       copyId: row.copyId,
       href: `/messages/${row.messageId}`,
-      subject: row.subject === '' ? '(no subject)' : row.subject,
+      subject: row.subject === '' ? t.t('message.noSubject') : row.subject,
       people: peopleLabel(row),
       peopleLabel: row.folder === 'sent' ? 'To' : 'From',
       at: formatTime(row.sentAt, input.now, input.t),
@@ -151,6 +152,7 @@ export function buildMessageView(input: {
   readonly now: Date
   readonly t?: Translator
 }): MessageView {
+  const t = input.t ?? untranslated()
   const { detail } = input
   const isAuthor = detail.copy.role === 'author'
 
@@ -161,15 +163,17 @@ export function buildMessageView(input: {
       participant.role === 'author'
         ? null
         : participant.readAt === null
-          ? 'Not read yet'
+          ? t.t('message.notRead')
           : `Read ${formatTime(participant.readAt, input.now, input.t).label}`,
   }))
 
   return {
     id: detail.message.id,
-    subject: detail.message.subject === '' ? '(no subject)' : detail.message.subject,
+    subject: detail.message.subject === '' ? t.t('message.noSubject') : detail.message.subject,
     author:
-      detail.message.authorUsername === '' ? 'A deleted member' : detail.message.authorUsername,
+      detail.message.authorUsername === ''
+        ? t.t('message.deletedMember')
+        : detail.message.authorUsername,
     at: formatTime(detail.message.sentAt, input.now, input.t),
     bodyHtml: input.bodyHtml,
     folder: detail.copy.folder,
@@ -185,14 +189,17 @@ export function buildMessageView(input: {
   }
 }
 
-export function messageNotice(query: {
-  readonly sent?: string | undefined
-  readonly moved?: string | undefined
-  readonly deleted?: string | undefined
-  readonly marked?: string | undefined
-  readonly emptied?: string | undefined
-}): { kind: 'info'; message: string } | null {
-  if (query.sent !== undefined) return { kind: 'info', message: 'Your message has been sent.' }
+export function messageNotice(
+  query: {
+    readonly sent?: string | undefined
+    readonly moved?: string | undefined
+    readonly deleted?: string | undefined
+    readonly marked?: string | undefined
+    readonly emptied?: string | undefined
+  },
+  t: Translator = untranslated(),
+): { kind: 'info'; message: string } | null {
+  if (query.sent !== undefined) return { kind: 'info', message: t.t('message.sent') }
   if (query.moved !== undefined) {
     return { kind: 'info', message: `${plural(query.moved, 'message')} moved.` }
   }
