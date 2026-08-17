@@ -3,7 +3,7 @@ import type { WarningRow, WarningStanding, WarningType } from '@meith/moderation
 import type { TimeModel } from '@meith/theme-kit'
 
 import { memberHref } from './member-profile'
-import { formatTime } from './time'
+import { formatTime, untranslated } from './time'
 
 export interface WarningHistoryRow {
   readonly id: number
@@ -34,10 +34,15 @@ export interface WarningView {
   readonly nextHref: string | null
 }
 
-const LEVEL_LABELS: Readonly<Record<string, string>> = {
-  moderate_posting: 'Posts held for review',
-  suspend_posting: 'Suspended from posting',
-  ban: 'Banned',
+function levelLabel(action: string, t: Translator): string {
+  const key = LEVEL_KEYS[action]
+  return key === undefined ? action : t.t(key)
+}
+
+const LEVEL_KEYS: Readonly<Record<string, string>> = {
+  moderate_posting: 'warning.level.moderate_posting',
+  suspend_posting: 'warning.level.suspend_posting',
+  ban: 'warning.level.ban',
 }
 
 export function buildWarningView(input: {
@@ -49,6 +54,8 @@ export function buildWarningView(input: {
   readonly now: Date
   readonly t?: Translator
 }): WarningView {
+  const t = input.t ?? untranslated()
+
   return {
     member: {
       userId: input.member.userId,
@@ -57,17 +64,16 @@ export function buildWarningView(input: {
     },
     standing: {
       points: input.standing.points,
-      levelLabel:
-        input.standing.level === null
-          ? null
-          : (LEVEL_LABELS[input.standing.level.action] ?? input.standing.level.action),
+      levelLabel: input.standing.level === null ? null : levelLabel(input.standing.level.action, t),
       levelPoints: input.standing.level?.points ?? null,
     },
     types: input.types.map((type) => ({
       id: type.id,
-      label: `${type.title} — ${type.points} ${type.points === 1 ? 'point' : 'points'}${
-        type.expiryDays === null ? ', never expires' : `, expires after ${type.expiryDays} days`
-      }`,
+      label: t.t(type.expiryDays === null ? 'warning.type' : 'warning.typeExpiring', {
+        title: type.title,
+        points: type.points,
+        days: type.expiryDays ?? 0,
+      }),
     })),
     history: input.history.map((row) => warningRow(row, input.now, input.t)),
     nextHref:
@@ -100,19 +106,23 @@ function warningRow(row: WarningRow, now: Date, t: Translator | undefined): Warn
   }
 }
 
-export function warningNotice(query: {
-  readonly warned?: string | undefined
-  readonly level?: string | undefined
-  readonly revoked?: string | undefined
-}): string | null {
+export function warningNotice(
+  query: {
+    readonly warned?: string | undefined
+    readonly level?: string | undefined
+    readonly revoked?: string | undefined
+  },
+  t: Translator = untranslated(),
+): string | null {
   if (query.warned !== undefined) {
-    const level = query.level === undefined ? null : (LEVEL_LABELS[query.level] ?? null)
-    const base = `Warning issued. They are now on ${query.warned} points.`
-    return level === null ? base : `${base} That reached a threshold: ${level}.`
+    const key = query.level === undefined ? undefined : LEVEL_KEYS[query.level]
+    const issued = t.t('warning.issued', { points: query.warned })
+    if (key === undefined) return issued
+    return `${issued} ${t.t('warning.threshold', { level: t.t(key) })}`
   }
-  if (query.revoked === 'already') return 'That warning had already been revoked.'
+  if (query.revoked === 'already') return t.t('warning.revokedAlready')
   if (query.revoked !== undefined) {
-    return `Warning revoked. They are now on ${query.revoked} points.`
+    return t.t('warning.revoked', { points: query.revoked })
   }
   return null
 }

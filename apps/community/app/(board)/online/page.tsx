@@ -61,7 +61,7 @@ export default async function OnlinePage() {
         ) : (
           <CardRows>
             {snapshot.members.map((member) => {
-              const where = locationOf(member)
+              const where = locationOf(member, translator)
               return (
                 <li
                   key={member.userId}

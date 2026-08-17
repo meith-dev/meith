@@ -33,7 +33,7 @@ export default async function NotificationPreferencesPage({
 
   const view = buildPreferencesView(rows, await getTranslator())
   const Notice = requireSlot(await currentTheme(), 'Notice')
-  const notice = notificationNotice(query)
+  const notice = notificationNotice(query, await getTranslator())
 
   return (
     <PanelPage

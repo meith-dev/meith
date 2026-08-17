@@ -526,7 +526,7 @@ export default async function ThreadPage({
             isSticky={thread.isSticky}
             rights={toolRights}
             moveTargets={moveTargets}
-            heading={threadToolsHeading(appointment.isForumModerator)}
+            heading={threadToolsHeading(appointment.isForumModerator, await getTranslator())}
           >
             <ThreadSurgeryForm
               threadId={thread.id}

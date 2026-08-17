@@ -99,7 +99,9 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             {repSummary !== null && (
               <div className="flex flex-wrap items-baseline gap-3 px-4 py-3">
                 <span className="text-muted-foreground">Reputation</span>
-                <span className="font-medium">{reputationLabel(repSummary)}</span>
+                <span className="font-medium">
+                  {reputationLabel(repSummary, await getTranslator())}
+                </span>
                 <a
                   href={`/member/${id}/reputation`}
                   className="ms-auto font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"

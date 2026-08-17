@@ -31,6 +31,8 @@ export default async function ReputationPage({
   if (id === null) notFound()
 
   const query = await searchParams
+
+  const translator = await getTranslator()
   const actor = await getActor()
   const { authorizer, memberProfiles } = getContainer()
   if (!authorizer.can(actor, 'profile.view')) notFound()
@@ -77,7 +79,7 @@ export default async function ReputationPage({
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
-  const notice = reputationNotice(query)
+  const notice = reputationNotice(query, translator)
   const returnTo = `/member/${id}/reputation`
 
   return (
@@ -91,7 +93,9 @@ export default async function ReputationPage({
           <h1 className="font-heading text-2xl font-semibold">
             {profile.username}&rsquo;s reputation
           </h1>
-          <p className="text-sm text-muted-foreground">{reputationLabel(view.summary)}</p>
+          <p className="text-sm text-muted-foreground">
+            {reputationLabel(view.summary, translator)}
+          </p>
           <a
             href={`/member/${id}`}
             className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"

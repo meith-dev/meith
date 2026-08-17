@@ -70,7 +70,7 @@ export default async function WarnPage({
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
-  const notice = warningNotice(query)
+  const notice = warningNotice(query, translator)
 
   return (
     <PanelPage

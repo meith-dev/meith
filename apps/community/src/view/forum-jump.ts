@@ -1,5 +1,8 @@
 import { buildTree, type ForumNode, keepVisibleSubtrees } from '@meith/forums'
+import type { Translator } from '@meith/i18n'
 import type { ForumJumpModel, ForumJumpOption } from '@meith/theme-kit'
+
+import { untranslated } from './time'
 
 export interface ForumJumpRow {
   readonly id: number
@@ -16,6 +19,7 @@ export interface ForumJumpInput {
   readonly currentForumId?: number | null
   readonly action?: string
   readonly field?: string
+  readonly t?: Translator
 }
 
 export const JUMP_ACTION = '/jump'
@@ -28,6 +32,7 @@ export function parseJumpTarget(raw: string | readonly string[] | undefined): nu
 }
 
 export function buildForumJumpModel(input: ForumJumpInput): ForumJumpModel {
+  const t = input.t ?? untranslated()
   const visible = keepVisibleSubtrees(input.rows, (row) => input.visibleForumIds.has(row.id))
 
   const forums: ForumJumpOption[] = []
@@ -49,7 +54,7 @@ export function buildForumJumpModel(input: ForumJumpInput): ForumJumpModel {
     action: input.action ?? JUMP_ACTION,
     field: input.field ?? JUMP_FIELD,
     forums,
-    submitLabel: 'Go',
-    label: 'Jump to forum',
+    submitLabel: t.t('forumJump.go'),
+    label: t.t('forumJump.label'),
   }
 }

@@ -153,6 +153,12 @@ const KEY_SHAPE = /^[a-z][\w-]*(?:\.[\w-]+)+$/
 
 for (const { abs, rel } of source) {
   const text = await readFile(abs, 'utf8')
+
+  for (const match of text.matchAll(new RegExp(STRING, 'g'))) {
+    const key = match[0].slice(1, -1)
+    if (catalog[key] !== undefined) used.add(key)
+  }
+
   for (const match of [...text.matchAll(CALL), ...text.matchAll(CARRIED)]) {
     const key = match[1]
     if (!KEY_SHAPE.test(key)) continue

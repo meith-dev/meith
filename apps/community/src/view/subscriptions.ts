@@ -3,7 +3,7 @@ import type { SubscriptionMode, SubscriptionRow } from '@meith/subscriptions'
 import { MODE_LABELS, SUBSCRIPTION_MODES } from '@meith/subscriptions'
 import type { TimeModel } from '@meith/theme-kit'
 
-import { formatTime } from './time'
+import { formatTime, untranslated } from './time'
 
 export interface SubscriptionRowView {
   readonly key: string
@@ -54,19 +54,23 @@ function toRow(row: SubscriptionRow, now: Date, t: Translator | undefined): Subs
   }
 }
 
-export function subscriptionNotice(query: {
-  readonly followed?: string | undefined
-  readonly stopped?: string | undefined
-}): string | null {
-  if (query.followed !== undefined) return 'Saved. You are following this.'
-  if (query.stopped !== undefined) return 'You will not be notified about that any more.'
+export function subscriptionNotice(
+  query: {
+    readonly followed?: string | undefined
+    readonly stopped?: string | undefined
+  },
+  t: Translator = untranslated(),
+): string | null {
+  if (query.followed !== undefined) return t.t('subscription.followed')
+  if (query.stopped !== undefined) return t.t('subscription.stopped')
   return null
 }
 
-export function unsubscribeNotice(done: string | undefined): string | null {
-  if (done === 'email') {
-    return 'Done — subscription e-mails are off. Your subscriptions are unchanged, and you will still see them in your notifications.'
-  }
-  if (done === 'one') return 'Done — you will not be notified about that any more.'
+export function unsubscribeNotice(
+  done: string | undefined,
+  t: Translator = untranslated(),
+): string | null {
+  if (done === 'email') return t.t('subscription.emailsOff')
+  if (done === 'one') return t.t('subscription.doneOne')
   return null
 }

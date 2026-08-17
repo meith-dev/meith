@@ -70,12 +70,15 @@ function translated(translator: Translator, key: string | undefined, fallback: s
   return key !== undefined && translator.has(key) ? translator.t(key) : fallback
 }
 
-export function notificationNotice(query: {
-  readonly read?: string | undefined
-  readonly saved?: string | undefined
-}): string | null {
-  if (query.saved !== undefined) return 'Your notification preferences were saved.'
-  if (query.read === 'all') return 'All notifications marked as read.'
-  if (query.read === 'one') return 'Marked as read.'
+export function notificationNotice(
+  query: {
+    readonly read?: string | undefined
+    readonly saved?: string | undefined
+  },
+  t: Translator = untranslated(),
+): string | null {
+  if (query.saved !== undefined) return t.t('notice.preferencesSaved')
+  if (query.read === 'all') return t.t('notice.allRead')
+  if (query.read === 'one') return t.t('notice.markedRead')
   return null
 }

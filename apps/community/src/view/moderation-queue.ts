@@ -3,7 +3,7 @@ import type { QueueItem } from '@meith/moderation'
 import type { TimeModel } from '@meith/theme-kit'
 
 import { postLink } from './post-link'
-import { formatTime } from './time'
+import { formatTime, untranslated } from './time'
 
 export interface QueueRowModel {
   readonly value: string
@@ -39,7 +39,7 @@ function row(item: QueueItem, now: Date, t: Translator | undefined): QueueRowMod
   return {
     value: `${item.kind}:${item.id}`,
     kind: item.kind,
-    kindLabel: item.kind === 'thread' ? 'New thread' : 'Reply',
+    kindLabel: (t ?? untranslated()).t(item.kind === 'thread' ? 'queue.newThread' : 'queue.reply'),
     forumTitle: item.forumTitle,
     threadTitle: item.threadTitle,
     href: item.kind === 'thread' ? `/${item.forumId}` : postLink(thread, item.id),

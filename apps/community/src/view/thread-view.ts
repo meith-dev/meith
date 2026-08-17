@@ -17,7 +17,7 @@ import { threadRowModel } from './forum-display'
 import type { MemberIdentity } from './member-identity'
 import { memberHref } from './member-profile'
 import { postAnchor } from './post-link'
-import { formatDate, formatTime } from './time'
+import { formatDate, formatTime, untranslated } from './time'
 import { filterWords } from './word-filter'
 
 export interface PostCapabilities {
@@ -202,8 +202,11 @@ export function revealHref(currentHref: string, postId: number, number: number):
   return `${path}${separator}reveal=${postId}#${postAnchor(number)}`
 }
 
-export function threadToolsHeading(isForumModerator: boolean): string {
-  return isForumModerator ? 'Moderator tools' : 'Thread tools'
+export function threadToolsHeading(
+  isForumModerator: boolean,
+  t: Translator = untranslated(),
+): string {
+  return t.t(isForumModerator ? 'thread.moderatorTools' : 'thread.threadTools')
 }
 
 export function revealedFrom(raw: string | readonly string[] | undefined): ReadonlySet<number> {

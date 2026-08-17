@@ -35,7 +35,7 @@ async function buildJumpModel(actor: Actor) {
     authorizer.forumIdsWhere(actor, 'forum.view'),
   ])
 
-  return buildForumJumpModel({ rows, visibleForumIds: new Set(visible) })
+  return buildForumJumpModel({ rows, visibleForumIds: new Set(visible), t: await getTranslator() })
 }
 
 export async function PageShell({ actor, children }: { actor: Actor; children: React.ReactNode }) {

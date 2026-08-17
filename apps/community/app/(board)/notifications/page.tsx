@@ -48,7 +48,7 @@ export default async function NotificationsPage({
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
-  const notice = notificationNotice(query)
+  const notice = notificationNotice(query, await getTranslator())
 
   return (
     <PanelPage
