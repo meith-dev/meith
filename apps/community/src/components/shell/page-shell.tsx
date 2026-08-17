@@ -118,7 +118,9 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
   return (
     <Shell boardTitle={shellModel.boardTitle} viewer={shellModel.viewer}>
       <Header {...headerModel}>
-        <UserPanel {...userPanelModel}>{viewer.isGuest ? null : <LogoutForm />}</UserPanel>
+        <UserPanel {...userPanelModel}>
+          {viewer.isGuest ? null : <LogoutForm label={(await getTranslator()).t('nav.logOut')} />}
+        </UserPanel>
       </Header>
 
       {await boardRegion('header.notice', actor)}

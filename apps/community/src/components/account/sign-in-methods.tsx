@@ -8,6 +8,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { removePasskeyAction, unlinkIdentityAction } from '@/server/federation-actions'
 
 import { FormError } from '../auth/form-controls'
+import { type Copy, fromCopy } from '../shell/copy'
 
 const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
 
@@ -19,47 +20,48 @@ export interface LinkedIdentityView {
   readonly provider: string
   readonly label: string
   readonly detail: string | null
-  readonly linkedAt: string
-  readonly lastUsedAt: string | null
+  readonly usage: string
 }
 
 export interface PasskeyView {
   readonly id: number
   readonly label: string
-  readonly createdAt: string
-  readonly lastUsedAt: string | null
+  readonly usage: string
 }
 
 export interface OfferedProvider {
   readonly id: string
-  readonly label: string
+  readonly cta: string
 }
 
 export function LinkedSignIns({
   linked,
   offered,
   manageable,
+  copy,
 }: {
   readonly linked: readonly LinkedIdentityView[]
   readonly offered: readonly OfferedProvider[]
   readonly manageable: boolean
+  readonly copy: Copy
 }) {
   const [state, action] = useActionState(unlinkIdentityAction, EMPTY_STATE)
 
   return (
     <section className={CARD}>
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold tracking-tight">Linked sign-ins</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {fromCopy(copy, 'accountForm.linked.title')}
+        </h2>
         <p className="text-xs text-muted-foreground">
-          Anything listed here can open your account without your password. Unlink one and it stops
-          being a way in immediately.
+          {fromCopy(copy, 'accountForm.linked.blurb')}
         </p>
       </div>
 
       <FormError message={state.error} />
 
       {linked.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nothing is linked to your account yet.</p>
+        <p className="text-sm text-muted-foreground">{fromCopy(copy, 'accountForm.linked.none')}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {linked.map((identity) => (
@@ -71,19 +73,14 @@ export function LinkedSignIns({
                     <span className="font-normal text-muted-foreground"> — {identity.detail}</span>
                   )}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  Linked {identity.linkedAt}
-                  {identity.lastUsedAt === null
-                    ? ', never used since'
-                    : `, last used ${identity.lastUsedAt}`}
-                </span>
+                <span className="text-xs text-muted-foreground">{identity.usage}</span>
               </span>
 
               {manageable ? (
                 <form action={action}>
                   <input type="hidden" name="identityId" value={identity.id} />
                   <Button type="submit" variant="destructive" size="sm">
-                    Unlink
+                    {fromCopy(copy, 'accountForm.linked.unlink')}
                   </Button>
                 </form>
               ) : null}
@@ -101,7 +98,7 @@ export function LinkedSignIns({
                 type="submit"
                 className="inline-flex h-9 items-center rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted"
               >
-                Link {provider.label}
+                {provider.cta}
               </button>
             </form>
           ))}
@@ -114,10 +111,12 @@ export function LinkedSignIns({
 export function PasskeyList({
   passkeys,
   manageable,
+  copy,
   children,
 }: {
   readonly passkeys: readonly PasskeyView[]
   readonly manageable: boolean
+  readonly copy: Copy
   readonly children?: React.ReactNode
 }) {
   const [state, action] = useActionState(removePasskeyAction, EMPTY_STATE)
@@ -125,36 +124,34 @@ export function PasskeyList({
   return (
     <section className={CARD}>
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold tracking-tight">Passkeys</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {fromCopy(copy, 'accountForm.passkeys.title')}
+        </h2>
         <p className="text-xs text-muted-foreground">
-          A passkey signs you in with the fingerprint, face or security key your device already
-          uses. It never leaves that device, and there is no password to phish.
+          {fromCopy(copy, 'accountForm.passkeys.blurb')}
         </p>
       </div>
 
       <FormError message={state.error} />
 
       {passkeys.length === 0 ? (
-        <p className="text-sm text-muted-foreground">You have no passkeys yet.</p>
+        <p className="text-sm text-muted-foreground">
+          {fromCopy(copy, 'accountForm.passkeys.none')}
+        </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {passkeys.map((passkey) => (
             <li key={passkey.id} className={ROW}>
               <span className="flex flex-col text-sm">
                 <span className="font-medium">{passkey.label}</span>
-                <span className="text-xs text-muted-foreground">
-                  Added {passkey.createdAt}
-                  {passkey.lastUsedAt === null
-                    ? ', never used'
-                    : `, last used ${passkey.lastUsedAt}`}
-                </span>
+                <span className="text-xs text-muted-foreground">{passkey.usage}</span>
               </span>
 
               {manageable ? (
                 <form action={action}>
                   <input type="hidden" name="passkeyId" value={passkey.id} />
                   <Button type="submit" variant="destructive" size="sm">
-                    Remove
+                    {fromCopy(copy, 'accountForm.passkeys.remove')}
                   </Button>
                 </form>
               ) : null}

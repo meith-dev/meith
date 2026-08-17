@@ -7,6 +7,7 @@ import { requireSlot } from '@meith/theme-kit'
 import { UnsubscribeConfirmForm } from '@/components/account/subscription-forms'
 import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
+import { followFormCopy } from '@/view/account-copy'
 import { unsubscribeNotice } from '@/view/subscriptions'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -63,9 +64,10 @@ export default async function UnsubscribePage({
             token={token}
             description={
               claim.scope === 'email'
-                ? 'This will stop subscription e-mails. What you follow stays as it is, and new posts will still appear in your notifications on the board.'
-                : 'This will stop notifications about the thread or forum this message was about. Everything else you follow stays as it is.'
+                ? await tr('page.unsubscribe.emailScope')
+                : await tr('page.unsubscribe.targetScope')
             }
+            copy={followFormCopy(await getTranslator())}
           />
         )}
       </div>

@@ -26,6 +26,18 @@ import { getTranslator, tr } from '@/server/i18n'
 import { currentSessionId } from '@/server/session-actions'
 import { currentTheme } from '@/server/theme'
 import { pendingEnrolment, secondFactorPosture, twoFactorState } from '@/server/two-factor'
+import {
+  activeSessionsCopy,
+  activityDetailLabel,
+  emailFormCopy,
+  linkedUsageLabel,
+  passkeyUsageLabel,
+  passwordFormCopy,
+  securityActivityCopy,
+  sessionDetailLabel,
+  signInMethodsCopy,
+  twoFactorFormsCopy,
+} from '@/view/account-copy'
 import { passkeyEnrolCopy } from '@/view/auth-copy'
 import { authEventLabel, describeAddress, describeDevice } from '@/view/security-activity'
 import { ssoNotice } from '@/view/sso-notices'
@@ -36,13 +48,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.account-security') }
 }
 
-const NOTICES: Record<string, string> = {
-  'passkey:added': 'That passkey is ready. You can sign in with it from now on.',
-  'passkey:removed': 'That passkey has been removed. It can no longer reach your account.',
-  'factor:setup': 'Add the key below to your authenticator app, then confirm a code.',
-  'factor:off': 'Two-factor authentication is off. Your password is all that is asked for now.',
-  'sessions:revoked': 'That session has been signed out.',
-  'sessions:elsewhere': 'Every other session has been signed out.',
+const NOTICE_KEYS: Record<string, string> = {
+  'passkey:added': 'securityNotice.passkeyAdded',
+  'passkey:removed': 'securityNotice.passkeyRemoved',
+  'factor:setup': 'securityNotice.factorSetup',
+  'factor:off': 'securityNotice.factorOff',
+  'sessions:revoked': 'securityNotice.sessionRevoked',
+  'sessions:elsewhere': 'securityNotice.sessionsElsewhere',
 }
 
 interface SecurityQuery {
@@ -100,20 +112,21 @@ export default async function SecurityPage({
     provider: identity.provider,
     label: labels.get(identity.provider) ?? providerLabel(identity.provider),
     detail: identity.label,
-    linkedAt: on(identity.linkedAt) ?? '',
-    lastUsedAt: on(identity.lastUsedAt),
+    usage: linkedUsageLabel(on(identity.linkedAt) ?? '', on(identity.lastUsedAt), translator),
   }))
 
   const offered: readonly OfferedProvider[] = providers
     .filter((provider) => !linked.some((identity) => identity.provider === provider.id))
-    .map((provider) => ({ id: provider.id, label: provider.label }))
+    .map((provider) => ({
+      id: provider.id,
+      cta: translator.t('accountForm.linked.link', { provider: provider.label }),
+    }))
 
   const held = passkeys ? await accountStore.passkeys.listForUser(actor.userId) : []
   const passkeyView: readonly PasskeyView[] = held.map((passkey) => ({
     id: passkey.id,
     label: passkey.label,
-    createdAt: on(passkey.createdAt) ?? '',
-    lastUsedAt: on(passkey.lastUsedAt),
+    usage: passkeyUsageLabel(on(passkey.createdAt) ?? '', on(passkey.lastUsedAt), translator),
   }))
 
   const rightNow = new Date()
@@ -125,9 +138,12 @@ export default async function SecurityPage({
   ).map((session) => ({
     id: session.id,
     device: describeDevice(session.userAgent, translator),
-    address: describeAddress(session.ipPrefix),
-    lastSeen: when(session.lastSeenAt),
-    startedAt: when(session.createdAt),
+    detail: sessionDetailLabel(
+      describeAddress(session.ipPrefix),
+      when(session.createdAt),
+      when(session.lastSeenAt),
+      translator,
+    ),
     current: session.id === thisSession,
   }))
 
@@ -135,9 +151,12 @@ export default async function SecurityPage({
     (event) => ({
       id: event.id,
       label: authEventLabel(event.kind, translator),
-      at: when(event.at),
-      address: describeAddress(event.ipPrefix),
-      device: describeDevice(event.userAgent, translator),
+      detail: activityDetailLabel(
+        when(event.at),
+        describeDevice(event.userAgent, translator),
+        describeAddress(event.ipPrefix),
+        translator,
+      ),
     }),
   )
 
@@ -152,34 +171,50 @@ export default async function SecurityPage({
         <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/security" />
       )}
 
-      <PasswordForm minLength={(await boardAuthConfig()).minPasswordLength} />
-      <EmailForm email={settings.email} />
+      <PasswordForm
+        minLength={(await boardAuthConfig()).minPasswordLength}
+        copy={passwordFormCopy(translator)}
+      />
+      <EmailForm email={settings.email} copy={emailFormCopy(translator)} />
 
       {posture.offered &&
         (settingUp ? (
-          <TwoFactorSetup enrolment={enrolment} />
+          <TwoFactorSetup
+            enrolment={enrolment}
+            copy={twoFactorFormsCopy(factor.recoveryCodesLeft, translator)}
+          />
         ) : (
           <TwoFactorPanel
             enrolled={factor.enrolled}
             required={posture.required}
             hasPassword={hasPassword}
             recoveryCodesLeft={factor.recoveryCodesLeft}
+            copy={twoFactorFormsCopy(factor.recoveryCodesLeft, translator)}
           />
         ))}
 
       {anywhereToSignIn && (
-        <LinkedSignIns linked={linkedView} offered={offered} manageable={manageable} />
+        <LinkedSignIns
+          linked={linkedView}
+          offered={offered}
+          manageable={manageable}
+          copy={signInMethodsCopy(translator)}
+        />
       )}
 
       {passkeys && (
-        <PasskeyList passkeys={passkeyView} manageable={manageable}>
+        <PasskeyList
+          passkeys={passkeyView}
+          manageable={manageable}
+          copy={signInMethodsCopy(translator)}
+        >
           <PasskeyEnrol copy={passkeyEnrolCopy(PASSKEY_LIMIT, await getTranslator())} />
         </PasskeyList>
       )}
 
-      <ActiveSessions sessions={sessionView} />
+      <ActiveSessions sessions={sessionView} copy={activeSessionsCopy(translator)} />
 
-      <SecurityActivity events={activity} />
+      <SecurityActivity events={activity} copy={securityActivityCopy(translator)} />
     </PanelPage>
   )
 }
@@ -197,8 +232,9 @@ async function pageNotice(
   ] as const) {
     if (value === undefined) continue
 
-    const message = NOTICES[`${key}:${value}`]
-    if (message !== undefined) return { kind: 'info', message }
+    const messageKey = NOTICE_KEYS[`${key}:${value}`]
+    if (messageKey !== undefined)
+      return { kind: 'info', message: (await getTranslator()).t(messageKey) }
   }
 
   return userCpNotice(query, await getTranslator())

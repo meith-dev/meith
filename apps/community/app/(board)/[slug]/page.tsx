@@ -20,6 +20,7 @@ import { filterView, viewerRef } from '@/server/plugin-view'
 import { getSettings } from '@/server/settings'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { followFormCopy } from '@/view/account-copy'
 import { buildBreadcrumb } from '@/view/breadcrumb'
 import { decodeForumCursor } from '@/view/forum-cursor'
 import { buildForumDisplayView } from '@/view/forum-display'
@@ -310,7 +311,8 @@ export default async function ForumPage({
                   mode={followMode}
                   modes={followModes}
                   back={`/${id}-${forum.slug}`}
-                  label="Follow this forum"
+                  label={(await getTranslator()).t('accountForm.follow.forum')}
+                  copy={followFormCopy(await getTranslator())}
                 />
               ),
             }

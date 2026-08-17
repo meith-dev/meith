@@ -8,6 +8,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { revokeOtherSessionsAction, revokeSessionAction } from '@/server/session-actions'
 
 import { FormError } from '../auth/form-controls'
+import { type Copy, fromCopy } from '../shell/copy'
 
 const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
 
@@ -17,13 +18,17 @@ const ROW =
 export interface SessionView {
   readonly id: number
   readonly device: string
-  readonly address: string
-  readonly lastSeen: string
-  readonly startedAt: string
+  readonly detail: string
   readonly current: boolean
 }
 
-export function ActiveSessions({ sessions }: { readonly sessions: readonly SessionView[] }) {
+export function ActiveSessions({
+  sessions,
+  copy,
+}: {
+  readonly sessions: readonly SessionView[]
+  readonly copy: Copy
+}) {
   const [revokeState, revoke] = useActionState(revokeSessionAction, EMPTY_STATE)
   const [allState, revokeAll] = useActionState(revokeOtherSessionsAction, EMPTY_STATE)
 
@@ -32,10 +37,11 @@ export function ActiveSessions({ sessions }: { readonly sessions: readonly Sessi
   return (
     <section className={CARD}>
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold tracking-tight">Where you are signed in</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {fromCopy(copy, 'accountForm.sessions.title')}
+        </h2>
         <p className="text-xs text-muted-foreground">
-          Every device holding a live sign-in to your account. Signing one out takes effect at once,
-          and whoever holds it has to sign in again.
+          {fromCopy(copy, 'accountForm.sessions.blurb')}
         </p>
       </div>
 
@@ -48,19 +54,20 @@ export function ActiveSessions({ sessions }: { readonly sessions: readonly Sessi
               <span className="font-medium">
                 {session.device}
                 {session.current ? (
-                  <span className="font-normal text-muted-foreground"> — this device</span>
+                  <span className="font-normal text-muted-foreground">
+                    {' '}
+                    {fromCopy(copy, 'accountForm.sessions.thisDevice')}
+                  </span>
                 ) : null}
               </span>
-              <span className="text-xs text-muted-foreground">
-                {session.address} · started {session.startedAt} · last seen {session.lastSeen}
-              </span>
+              <span className="text-xs text-muted-foreground">{session.detail}</span>
             </span>
 
             {session.current ? null : (
               <form action={revoke}>
                 <input type="hidden" name="sessionId" value={session.id} />
                 <Button type="submit" variant="destructive" size="sm">
-                  Sign out
+                  {fromCopy(copy, 'accountForm.sessions.signOut')}
                 </Button>
               </form>
             )}
@@ -71,7 +78,7 @@ export function ActiveSessions({ sessions }: { readonly sessions: readonly Sessi
       {others > 0 ? (
         <form action={revokeAll}>
           <Button type="submit" variant="outline" size="sm">
-            Sign out everywhere else
+            {fromCopy(copy, 'accountForm.sessions.signOutElsewhere')}
           </Button>
         </form>
       ) : null}

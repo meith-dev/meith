@@ -10,6 +10,7 @@ import { getTranslator, tr } from '@/server/i18n'
 import { reputationService, reputationSettings, viewerRaterLimits } from '@/server/reputation'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { rateMemberFormCopy } from '@/view/account-copy'
 import { buildReputationView, reputationLabel, reputationNotice } from '@/view/reputation'
 import { numericId } from '@/view/slug-id'
 
@@ -109,7 +110,6 @@ export default async function ReputationPage({
         {mayRate && (
           <RateMemberForm
             userId={id}
-            username={profile.username}
             postId={postId}
             returnTo={returnTo}
             allowNegative={settings.allowNegative}
@@ -117,6 +117,7 @@ export default async function ReputationPage({
             existingComment={existing?.comment ?? null}
             existingPoints={existing?.points ?? null}
             remainingLabel={view.remainingLabel}
+            copy={rateMemberFormCopy(profile.username, translator)}
           />
         )}
 
@@ -163,7 +164,12 @@ export default async function ReputationPage({
                   )}
                   {row.isMine && (
                     <span className="ml-auto">
-                      <WithdrawRatingForm ratingId={row.id} userId={id} returnTo={returnTo} />
+                      <WithdrawRatingForm
+                        ratingId={row.id}
+                        userId={id}
+                        returnTo={returnTo}
+                        copy={rateMemberFormCopy(profile.username, translator)}
+                      />
                     </span>
                   )}
                 </div>

@@ -10,6 +10,7 @@ import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { signatureStore, viewerSignatureLimits } from '@/server/signatures'
 import { currentTheme } from '@/server/theme'
+import { signatureFormCopy } from '@/view/account-copy'
 import { userCpNotice } from '@/view/usercp'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -51,6 +52,7 @@ export default async function SignaturePage({
         maxLength={signatureLimit(limits)}
         locked={stored.locked}
         lockedReason={stored.lockedReason}
+        copy={signatureFormCopy(signatureLimit(limits), await getTranslator())}
       />
 
       {preview !== null && (

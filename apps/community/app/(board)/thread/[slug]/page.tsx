@@ -33,6 +33,7 @@ import { getSettings } from '@/server/settings'
 import { signaturesFor } from '@/server/signatures'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { followFormCopy } from '@/view/account-copy'
 import { attachmentsByPost } from '@/view/attachments'
 import { buildBreadcrumb } from '@/view/breadcrumb'
 import {
@@ -553,7 +554,8 @@ export default async function ThreadPage({
             mode={followMode}
             modes={followModes}
             back={`/thread/${thread.id}-${thread.slug}`}
-            label="Follow this thread"
+            label={(await getTranslator()).t('accountForm.follow.thread')}
+            copy={followFormCopy(await getTranslator())}
           />
         )}
       </>

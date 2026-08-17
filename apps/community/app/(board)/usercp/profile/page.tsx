@@ -10,6 +10,7 @@ import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { profileFieldService, viewerFieldContext } from '@/server/profile-fields'
 import { currentTheme } from '@/server/theme'
+import { displayGroupFormCopy, profileFormCopy } from '@/view/account-copy'
 import {
   customFieldInputs,
   displayGroupChoices,
@@ -69,9 +70,15 @@ export default async function ProfileSettingsPage({
         <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/profile" />
       )}
 
-      <ProfileForm {...values} customFields={customFields} />
+      <ProfileForm
+        {...values}
+        customFields={customFields}
+        copy={profileFormCopy(await getTranslator())}
+      />
 
-      {groups.choices.length > 1 && <DisplayGroupForm {...groups} />}
+      {groups.choices.length > 1 && (
+        <DisplayGroupForm {...groups} copy={displayGroupFormCopy(await getTranslator())} />
+      )}
     </PanelPage>
   )
 }

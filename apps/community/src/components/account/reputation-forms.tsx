@@ -6,6 +6,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { rateMemberAction, withdrawRatingAction } from '@/server/reputation-actions'
 
 import { FormError } from '../auth/form-controls'
+import { type Copy, fromCopy } from '../shell/copy'
 
 const FIELD =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -17,7 +18,6 @@ const CHOICE =
 
 export function RateMemberForm({
   userId,
-  username,
   postId = null,
   returnTo,
   allowNegative,
@@ -25,9 +25,9 @@ export function RateMemberForm({
   existingComment = null,
   existingPoints = null,
   remainingLabel = null,
+  copy,
 }: {
   userId: number
-  username: string
   postId?: number | null
   returnTo: string
   allowNegative: boolean
@@ -35,6 +35,7 @@ export function RateMemberForm({
   existingComment?: string | null
   existingPoints?: number | null
   remainingLabel?: string | null
+  copy: Copy
 }) {
   const [state, action] = useActionState(rateMemberAction, EMPTY_STATE)
 
@@ -46,11 +47,17 @@ export function RateMemberForm({
       <input type="hidden" name="returnTo" value={returnTo} />
 
       <h2 className="text-lg font-semibold tracking-tight">
-        {existingPoints === null ? `Rate ${username}` : `Change your rating of ${username}`}
+        {existingPoints === null
+          ? fromCopy(copy, 'accountForm.rate.title')
+          : fromCopy(copy, 'accountForm.rate.changeTitle')}
       </h2>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Why{commentRequired ? '' : ' (optional)'}</span>
+        <span className="font-medium">
+          {commentRequired
+            ? fromCopy(copy, 'accountForm.rate.why')
+            : fromCopy(copy, 'accountForm.rate.whyOptional')}
+        </span>
         <textarea
           name="comment"
           defaultValue={state.values?.comment ?? existingComment ?? ''}
@@ -60,20 +67,24 @@ export function RateMemberForm({
           required={commentRequired}
         />
         <span className="text-xs text-muted-foreground">
-          Plain text, shown on their profile beside your name.
+          {fromCopy(copy, 'accountForm.rate.whyHint')}
         </span>
       </label>
 
       <div className="flex flex-wrap items-center gap-2">
         <button type="submit" name="points" value="1" className={CHOICE}>
-          {allowNegative ? 'Positive' : 'Thanks'}
+          {allowNegative
+            ? fromCopy(copy, 'accountForm.rate.positive')
+            : fromCopy(copy, 'accountForm.rate.thanks')}
         </button>
         <button type="submit" name="points" value="0" className={CHOICE}>
-          {allowNegative ? 'Neutral' : 'Just a comment'}
+          {allowNegative
+            ? fromCopy(copy, 'accountForm.rate.neutral')
+            : fromCopy(copy, 'accountForm.rate.justComment')}
         </button>
         {allowNegative && (
           <button type="submit" name="points" value="-1" className={CHOICE}>
-            Negative
+            {fromCopy(copy, 'accountForm.rate.negative')}
           </button>
         )}
       </div>
@@ -87,10 +98,12 @@ export function WithdrawRatingForm({
   ratingId,
   userId,
   returnTo,
+  copy,
 }: {
   ratingId: number
   userId: number
   returnTo: string
+  copy: Copy
 }) {
   const [state, action] = useActionState(withdrawRatingAction, EMPTY_STATE)
 
@@ -104,7 +117,7 @@ export function WithdrawRatingForm({
         type="submit"
         className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        Withdraw
+        {fromCopy(copy, 'accountForm.rate.withdraw')}
       </button>
     </form>
   )

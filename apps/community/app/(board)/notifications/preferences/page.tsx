@@ -10,6 +10,7 @@ import { getTranslator, tr } from '@/server/i18n'
 import { audiencesForActor } from '@/server/notification-audience'
 import { notificationService } from '@/server/notifications'
 import { currentTheme } from '@/server/theme'
+import { notificationFormsCopy } from '@/view/account-copy'
 import { buildPreferencesView, notificationNotice } from '@/view/notifications'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -47,7 +48,10 @@ export default async function NotificationPreferencesPage({
         <Notice kind="info" message={notice} dismissHref="/notifications/preferences" />
       )}
 
-      <NotificationPreferencesForm rows={view.rows} />
+      <NotificationPreferencesForm
+        rows={view.rows}
+        copy={notificationFormsCopy(await getTranslator())}
+      />
     </PanelPage>
   )
 }

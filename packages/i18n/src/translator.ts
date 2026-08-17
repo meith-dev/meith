@@ -9,6 +9,7 @@ export interface Translator {
   readonly timeZone: string
   t(key: string, args?: MessageArgs): string
   has(key: string): boolean
+  pattern(key: string): string | undefined
   number(value: number, options?: Intl.NumberFormatOptions): string
   list(items: readonly string[], options?: Intl.ListFormatOptions): string
   parts(value: Date, options: Intl.DateTimeFormatOptions): string
@@ -43,6 +44,10 @@ export function createTranslator(input: TranslatorInput): Translator {
 
     has(key) {
       return input.catalog[key] !== undefined
+    },
+
+    pattern(key) {
+      return input.catalog[key]
     },
 
     number(value, options) {

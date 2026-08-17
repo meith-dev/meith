@@ -204,7 +204,9 @@ export function twoFactorFormsCopy(
   }
 }
 
-export function signInMethodsCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
+export function signInMethodsCopy(
+  t: Translator = untranslated(),
+): Readonly<Record<string, string>> {
   return copyFor(
     [
       'accountForm.linked.title',
@@ -240,7 +242,9 @@ export function passkeyUsageLabel(
     : t.t('accountForm.passkeys.addedUsed', { at: createdAt, used: lastUsedAt })
 }
 
-export function activeSessionsCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
+export function activeSessionsCopy(
+  t: Translator = untranslated(),
+): Readonly<Record<string, string>> {
   return copyFor(
     [
       'accountForm.sessions.title',

@@ -10,6 +10,7 @@ import { getActor } from '@/server/context'
 import { catalogs, getTranslator, tr } from '@/server/i18n'
 import { getSettings } from '@/server/settings'
 import { currentTheme } from '@/server/theme'
+import { optionsFormCopy } from '@/view/account-copy'
 import { localeChoices, optionsFormValues, timezoneChoices, userCpNotice } from '@/view/usercp'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -47,8 +48,11 @@ export default async function OptionsPage({
         {...values}
         timezones={timezoneChoices(await getTranslator())}
         locales={localeChoices(catalogs.locales, await getTranslator())}
-        boardPostsPerPage={board.get('display.posts_per_page')}
-        boardThreadsPerPage={board.get('display.threads_per_page')}
+        copy={optionsFormCopy(
+          board.get('display.posts_per_page'),
+          board.get('display.threads_per_page'),
+          await getTranslator(),
+        )}
       />
     </PanelPage>
   )

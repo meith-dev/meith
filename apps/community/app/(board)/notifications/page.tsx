@@ -14,6 +14,7 @@ import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { notificationService } from '@/server/notifications'
 import { currentTheme } from '@/server/theme'
+import { notificationFormsCopy } from '@/view/account-copy'
 import { buildNotificationCentreView, notificationNotice } from '@/view/notifications'
 import { offsetOf, readPage } from '@/view/pager'
 
@@ -67,7 +68,12 @@ export default async function NotificationsPage({
           .
         </>
       }
-      actions={<MarkAllNotificationsReadForm unread={view.unread} />}
+      actions={
+        <MarkAllNotificationsReadForm
+          unread={view.unread}
+          copy={notificationFormsCopy(translator)}
+        />
+      }
     >
       {notice !== null && <Notice kind="info" message={notice} dismissHref="/notifications" />}
 
@@ -116,7 +122,12 @@ export default async function NotificationsPage({
                     View
                   </a>
                 )}
-                {!row.isRead && <MarkNotificationReadForm notificationId={row.id} />}
+                {!row.isRead && (
+                  <MarkNotificationReadForm
+                    notificationId={row.id}
+                    copy={notificationFormsCopy(translator)}
+                  />
+                )}
               </div>
             </li>
           ))}

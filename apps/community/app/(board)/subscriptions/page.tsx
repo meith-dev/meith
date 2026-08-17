@@ -10,6 +10,8 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
+import { followFormCopy } from '@/view/account-copy'
+import { splitAround } from '@/view/copy'
 import {
   buildSubscriptionsView,
   type SubscriptionRowView,
@@ -59,23 +61,24 @@ export default async function SubscriptionsPage({
       {notice !== null && <Notice kind="info" message={notice} dismissHref="/subscriptions" />}
 
       {view.total === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          You are not following anything yet. Use the “Follow” control on a thread or a forum, or
-          tick the box when you post.
-        </p>
+        <p className="text-sm text-muted-foreground">{await tr('page.subscriptions.none')}</p>
       ) : (
         <>
           <Section
             title={await tr('page.threads')}
-            empty="You are not following any threads."
+            empty={await tr('page.subscriptions.noThreads')}
             rows={view.threads}
             modes={view.modes}
+            since={splitAround(translator, 'page.subscriptions.since', 'time')}
+            copy={followFormCopy(translator)}
           />
           <Section
             title={await tr('page.forums')}
-            empty="You are not following any forums."
+            empty={await tr('page.subscriptions.noForums')}
             rows={view.forums}
             modes={view.modes}
+            since={splitAround(translator, 'page.subscriptions.since', 'time')}
+            copy={followFormCopy(translator)}
           />
         </>
       )}
@@ -88,11 +91,15 @@ function Section({
   empty,
   rows,
   modes,
+  since,
+  copy,
 }: {
   title: string
   empty: string
   rows: readonly SubscriptionRowView[]
   modes: readonly { readonly value: string; readonly label: string }[]
+  since: readonly [string, string]
+  copy: Readonly<Record<string, string>>
 }) {
   return (
     <section className="flex flex-col gap-3">
@@ -112,7 +119,9 @@ function Section({
                   {row.title}
                 </a>
                 <span className="text-xs text-muted-foreground">
-                  Following since <time dateTime={row.since.iso}>{row.since.label}</time>
+                  {since[0]}
+                  <time dateTime={row.since.iso}>{row.since.label}</time>
+                  {since[1]}
                   {row.pending === null ? null : ` · ${row.pending}`}
                 </span>
               </div>
@@ -123,6 +132,7 @@ function Section({
                   targetId={row.targetId}
                   mode={row.mode}
                   modes={modes}
+                  copy={copy}
                 />
               </div>
             </li>

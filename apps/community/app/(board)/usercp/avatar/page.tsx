@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { avatarUrl } from '@meith/avatars'
+import { AVATAR_BOX, AVATAR_MAX_BYTES } from '@meith/avatars/limits'
 import { requireSlot } from '@meith/theme-kit'
 
 import { AvatarForm } from '@/components/account/avatar-form'
@@ -10,6 +11,7 @@ import { avatarFor, canUploadAvatar } from '@/server/avatars'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
+import { avatarFormCopy } from '@/view/account-copy'
 import { userCpNotice } from '@/view/usercp'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -42,6 +44,14 @@ export default async function AvatarPage({
         failureReason={avatar.failureReason}
         locked={avatar.locked}
         lockedReason={avatar.lockedReason}
+        copy={avatarFormCopy(
+          {
+            maxMegabytes: Math.round(AVATAR_MAX_BYTES / (1024 * 1024)),
+            width: AVATAR_BOX.width,
+            height: AVATAR_BOX.height,
+          },
+          await getTranslator(),
+        )}
       />
     </PanelPage>
   )
