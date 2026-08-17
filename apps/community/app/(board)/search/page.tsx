@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { isInSubtree } from '@meith/forums'
+import type { Translator } from '@meith/i18n'
 import {
   MAX_QUERY_LENGTH,
   readGrouping,
@@ -24,6 +25,7 @@ import {
 import { SearchOffNotice } from '@/components/board/search-off-notice'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { SEARCH_OFF_MESSAGE, searchEnabled } from '@/server/search'
 import { MAX_AUTHOR_NAMES, type RunSearchOutcome, runSearch } from '@/server/search-page'
@@ -31,11 +33,11 @@ import { currentSessionKey } from '@/server/session-key'
 import { currentTheme } from '@/server/theme'
 import {
   choiceOptions,
-  GROUPING_LABELS,
-  MATCH_LABELS,
-  PERIOD_LABELS,
+  GROUPING_LABEL_KEYS,
+  MATCH_LABEL_KEYS,
+  PERIOD_LABEL_KEYS,
   SEARCH_FIELDS,
-  SORT_LABELS,
+  SORT_LABEL_KEYS,
   SUBFORUMS_ON,
 } from '@/view/search-controls'
 
@@ -181,9 +183,10 @@ async function formModel(
   submitted: Submitted,
 ): Promise<Omit<SearchFormModel, 'hint' | 'errorMessage'>> {
   const chosen = submitted.forums[0] ?? ''
+  const t = await getTranslator()
 
   const forums: OptionModel[] = [
-    { value: '', label: 'Every forum I can see', isSelected: chosen === '' },
+    { value: '', label: t.t('search.everyVisibleForum'), isSelected: chosen === '' },
   ]
   for (const visible of await visibleForums()) {
     forums.push({
@@ -203,16 +206,16 @@ async function formModel(
     query: submitted.terms,
     maxQueryLength: MAX_QUERY_LENGTH,
     forums,
-    sorts: choiceOptions(SEARCH_SORTS, SORT_LABELS, submitted.filters.sort),
-    advanced: advancedModel(submitted),
+    sorts: choiceOptions(SEARCH_SORTS, SORT_LABEL_KEYS, submitted.filters.sort, t),
+    advanced: advancedModel(submitted, t),
   }
 }
 
-function advancedModel(submitted: Submitted): SearchAdvancedModel {
+function advancedModel(submitted: Submitted, t: Translator): SearchAdvancedModel {
   const { filters } = submitted
 
   return {
-    label: 'Advanced options',
+    label: t.t('search.advanced'),
     isOpen:
       submitted.authors !== '' ||
       submitted.subforums ||
@@ -221,34 +224,34 @@ function advancedModel(submitted: Submitted): SearchAdvancedModel {
       filters.grouping !== 'posts',
     author: {
       field: SEARCH_FIELDS.author,
-      label: 'Posted by',
+      label: t.t('search.postedBy'),
       value: submitted.authors,
-      placeholder: 'Anybody',
+      placeholder: t.t('search.anybody'),
       hint: AUTHOR_HINT,
     },
     toggles: [
       {
         field: SEARCH_FIELDS.subforums,
         value: SUBFORUMS_ON,
-        label: 'Include subforums of the forum above',
+        label: t.t('search.includeSubforums'),
         isOn: submitted.subforums,
       },
     ],
     choices: [
       {
         field: SEARCH_FIELDS.period,
-        label: 'Posted',
-        options: choiceOptions(SEARCH_PERIODS, PERIOD_LABELS, filters.period),
+        label: t.t('search.posted'),
+        options: choiceOptions(SEARCH_PERIODS, PERIOD_LABEL_KEYS, filters.period, t),
       },
       {
         field: SEARCH_FIELDS.match,
-        label: 'Matching in',
-        options: choiceOptions(SEARCH_MATCHES, MATCH_LABELS, filters.match),
+        label: t.t('search.matchingIn'),
+        options: choiceOptions(SEARCH_MATCHES, MATCH_LABEL_KEYS, filters.match, t),
       },
       {
         field: SEARCH_FIELDS.grouping,
-        label: 'Show',
-        options: choiceOptions(SEARCH_GROUPINGS, GROUPING_LABELS, filters.grouping),
+        label: t.t('search.show'),
+        options: choiceOptions(SEARCH_GROUPINGS, GROUPING_LABEL_KEYS, filters.grouping, t),
       },
     ],
   }

@@ -1,4 +1,7 @@
+import type { Translator } from '@meith/i18n'
+
 import { inlineOutcomeNotice } from './inline-moderation'
+import { untranslated } from './time'
 
 export interface ForumNoticeQuery {
   readonly posted?: string | undefined
@@ -10,14 +13,12 @@ export interface ForumNoticeQuery {
   readonly skipped?: string | undefined
 }
 
-export function forumNotice(query: ForumNoticeQuery): string | null {
-  if (query.posted === 'moderated') {
-    return 'Your thread was posted and is waiting for a moderator to approve it.'
-  }
-
-  if (query.thread === 'deleted') {
-    return 'The thread was deleted. It is removed rather than destroyed, so a moderator can restore it.'
-  }
+export function forumNotice(
+  query: ForumNoticeQuery,
+  t: Translator = untranslated(),
+): string | null {
+  if (query.posted === 'moderated') return t.t('forum.threadHeld')
+  if (query.thread === 'deleted') return t.t('forum.threadDeleted')
 
   return inlineOutcomeNotice(query)
 }

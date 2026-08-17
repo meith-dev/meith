@@ -247,7 +247,7 @@ export default async function ForumPage({
   const SubforumList = requireSlot(await currentTheme(), 'SubforumList')
   const Pagination = requireSlot(await currentTheme(), 'Pagination')
 
-  const notice = forumNotice(query)
+  const notice = forumNotice(query, await getTranslator())
 
   const pluginContext = { ...viewerRef(actor), forumId: id }
 

@@ -24,13 +24,13 @@ import type {
 import { postLink } from './post-link'
 import {
   choiceOptions,
-  GROUPING_LABELS,
-  MATCH_LABELS,
-  PERIOD_LABELS,
+  GROUPING_LABEL_KEYS,
+  MATCH_LABEL_KEYS,
+  PERIOD_LABEL_KEYS,
   REFINE_FIELDS,
   resultsHref,
   SEARCH_FIELDS,
-  SORT_LABELS,
+  SORT_LABEL_KEYS,
 } from './search-controls'
 import { formatTime, untranslated } from './time'
 import { filterWords } from './word-filter'
@@ -69,6 +69,7 @@ export interface SearchResultsInput {
 }
 
 export function buildSearchResultsView(input: SearchResultsInput): SearchResultsModel {
+  const t = input.t ?? untranslated()
   const nextHref =
     input.nextCursor === null ? null : resultsHref(input.token, input.refine, input.nextCursor)
 
@@ -84,15 +85,15 @@ export function buildSearchResultsView(input: SearchResultsInput): SearchResults
       postedAt: formatTime(hit.postedAt, input.now, input.t),
     })),
     nextHref,
-    nextLabel: `Next ${input.pageSize} results`,
+    nextLabel: t.t('search.nextResults', { count: input.pageSize }),
     newSearchHref: '/search',
     within: {
       action: '/search',
       field: SEARCH_FIELDS.query,
       value: `${input.terms} `,
-      label: 'Search within these results',
-      hint: 'Adds your words to the ones above. Everything already typed stays.',
-      submitLabel: 'Search within',
+      label: t.t('search.withinLabel'),
+      hint: t.t('search.withinHint'),
+      submitLabel: t.t('search.within'),
       hidden: carriedFilters(input.filters),
     },
     ...(input.summary.total === 0 && !isRefined(input.refine)
@@ -103,34 +104,36 @@ export function buildSearchResultsView(input: SearchResultsInput): SearchResults
 
 function buildRefine(input: SearchResultsInput): SearchRefineModel {
   const { token, refine, effective, summary } = input
+  const t = input.t ?? untranslated()
   const href = (next: SearchRefinement): string => resultsHref(token, next)
   const applied = chips(input, href)
 
   return {
     action: `/search/${token}`,
-    label: 'Filter and sort these results',
+    label: t.t('search.filterLabel'),
     summary: summaryLine(input),
     note: summary.isCapped
       ? `Counting stops at ${number(input.t, input.countCap)} matches, so the total and the counts below are floors.`
       : null,
     sorts: SEARCH_SORTS.map((sort) => ({
-      label: SORT_LABELS[sort],
+      label: t.t(SORT_LABEL_KEYS[sort]),
       href: href({ ...refine, sort: sort === input.filters.sort ? undefined : sort }),
       isCurrent: sort === effective.sort,
     })),
-    sortsLabel: 'Sort by',
+    sortsLabel: t.t('search.sortBy'),
     choices: [
       forumChoice(input),
       authorChoice(input),
       {
         field: REFINE_FIELDS.period,
-        label: 'Posted',
+        label: t.t('search.posted'),
         options: choiceOptions(
           SEARCH_PERIODS.filter(
             (period) => narrowerPeriod(input.filters.period, period) === period,
           ),
-          PERIOD_LABELS,
+          PERIOD_LABEL_KEYS,
           effective.period,
+          t,
         ),
       },
       ...(input.filters.match === 'titles'
@@ -138,17 +141,17 @@ function buildRefine(input: SearchResultsInput): SearchRefineModel {
         : [
             {
               field: REFINE_FIELDS.match,
-              label: 'Matching in',
-              options: choiceOptions(SEARCH_MATCHES, MATCH_LABELS, effective.match),
+              label: t.t('search.matchingIn'),
+              options: choiceOptions(SEARCH_MATCHES, MATCH_LABEL_KEYS, effective.match, t),
             },
           ]),
       {
         field: REFINE_FIELDS.grouping,
-        label: 'Show',
-        options: choiceOptions(SEARCH_GROUPINGS, GROUPING_LABELS, effective.grouping),
+        label: t.t('search.show'),
+        options: choiceOptions(SEARCH_GROUPINGS, GROUPING_LABEL_KEYS, effective.grouping, t),
       },
     ],
-    submitLabel: 'Apply filters',
+    submitLabel: t.t('search.applyFilters'),
     applied,
     clearHref:
       applied.length === 0 ? null : href(refine.sort === undefined ? {} : { sort: refine.sort }),
@@ -156,11 +159,12 @@ function buildRefine(input: SearchResultsInput): SearchRefineModel {
 }
 
 function forumChoice(input: SearchResultsInput): SearchChoiceModel {
+  const t = input.t ?? untranslated()
   const titles = new Map(input.forums.map((forum) => [forum.id, forum.title]))
   const chosen = input.refine.forumIds ?? []
 
   const options: OptionModel[] = [
-    { value: '', label: 'Every forum', isSelected: chosen.length === 0 },
+    { value: '', label: t.t('search.everyForum'), isSelected: chosen.length === 0 },
   ]
 
   for (const facet of input.summary.forums) {
@@ -175,6 +179,7 @@ function forumChoice(input: SearchResultsInput): SearchChoiceModel {
 }
 
 function authorChoice(input: SearchResultsInput): SearchChoiceModel {
+  const t = input.t ?? untranslated()
   const chosen = input.refine.authorUserIds ?? []
 
   const options: OptionModel[] = [{ value: '', label: 'Anybody', isSelected: chosen.length === 0 }]
@@ -187,7 +192,7 @@ function authorChoice(input: SearchResultsInput): SearchChoiceModel {
     })
   }
 
-  return { field: REFINE_FIELDS.author, label: 'Posted by', options }
+  return { field: REFINE_FIELDS.author, label: t.t('search.postedBy'), options }
 }
 
 function chips(
@@ -207,6 +212,8 @@ function chips(
     })
   }
 
+  const t = input.t ?? untranslated()
+
   for (const id of refine.authorUserIds ?? []) {
     applied.push({
       label: `By ${usernames.get(id) ?? `member ${id}`}`,
@@ -216,21 +223,21 @@ function chips(
 
   if (refine.period !== undefined) {
     applied.push({
-      label: PERIOD_LABELS[refine.period],
+      label: t.t(PERIOD_LABEL_KEYS[refine.period]),
       removeHref: href({ ...refine, period: undefined }),
     })
   }
 
   if (refine.match !== undefined) {
     applied.push({
-      label: MATCH_LABELS[refine.match],
+      label: t.t(MATCH_LABEL_KEYS[refine.match]),
       removeHref: href({ ...refine, match: undefined }),
     })
   }
 
   if (refine.grouping !== undefined) {
     applied.push({
-      label: GROUPING_LABELS[refine.grouping],
+      label: t.t(GROUPING_LABEL_KEYS[refine.grouping]),
       removeHref: href({ ...refine, grouping: undefined }),
     })
   }
