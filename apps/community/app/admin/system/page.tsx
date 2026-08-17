@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 
+import { cn } from '@meith/ui'
+
 import {
   ClearCacheForm,
   PruneSessionsForm,
@@ -13,7 +15,7 @@ import { adminPageContext } from '@/server/admin'
 import { buildSystemHealthView } from '@/server/system-admin'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
-import { PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'System health' }
 
@@ -155,7 +157,7 @@ export default async function AdminSystemPage() {
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-lg font-semibold">Scheduled tasks</h2>
         {scheduler.tasks.length === 0 ? (
-          <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+          <p className={PANEL_NOTE}>
             No tasks are registered. A build registers a task only when it has a worker
             that can genuinely do the work, so an absent one means the feature behind it
             is not wired up on this deployment.
@@ -282,7 +284,7 @@ export default async function AdminSystemPage() {
         <ReindexSearchForm pending={view.searchIndex.pending} />
       </section>
 
-      <section className="flex flex-col gap-4 rounded-lg border border-border p-4">
+      <section className={cn(PANEL_CARD, 'gap-4')}>
         <h2 className="font-heading text-lg font-semibold">Maintenance</h2>
         <p className="text-sm text-muted-foreground">
           Each of these is bounded to one batch. Nothing here destroys anything an

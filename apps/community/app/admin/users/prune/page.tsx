@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { PruneForm } from '@/components/admin/user-forms'
 import { adminPageContext } from '@/server/admin'
@@ -55,7 +56,7 @@ export default async function AdminPrunePage({
     >
       <form
         method="get"
-        className="flex flex-col gap-3 rounded-lg border border-border p-4"
+        className={PANEL_CARD}
       >
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Registered before</span>
@@ -105,16 +106,16 @@ export default async function AdminPrunePage({
       </form>
 
       {criteria === null ? (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        <p className={PANEL_NOTE}>
           Choose a registration date to see what a prune would reach.
         </p>
       ) : preview !== null && preview.total === 0 ? (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        <p className={PANEL_NOTE}>
           Nothing matches. Every account registered before that date has written
           something, is staff, moderates a forum, or is banned.
         </p>
       ) : preview !== null ? (
-        <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <section className={PANEL_CARD}>
           <h2 className="font-heading text-lg font-semibold">
             {preview.total} account{preview.total === 1 ? '' : 's'} would be closed
           </h2>

@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
 
+import { cn } from '@meith/ui'
+
 import { PanelPage } from '@/components/shell/panel-page'
 import { PluginEnableForm } from '@/components/admin/plugin-forms'
 import { adminPageContext } from '@/server/admin'
 import { hookListeners, pluginInventory } from '@/server/plugin-admin'
-import { PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Plugins' }
 
@@ -27,7 +29,7 @@ export default async function AdminPluginsPage() {
       }
     >
       {plugins.length === 0 ? (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        <p className={PANEL_NOTE}>
           No plugins are configured on this board.
         </p>
       ) : (
@@ -81,6 +83,20 @@ export default async function AdminPluginsPage() {
                       <code className="text-xs">community upgrade</code>.
                     </span>
                   )}
+
+                  {plugin.pages.length > 0 && (
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1">
+                      {plugin.pages.map((page) => (
+                        <a
+                          key={page.path}
+                          href={page.href}
+                          className="inline-flex items-center rounded-md border border-border bg-surface px-2 py-0.5 text-xs font-medium transition-colors hover:border-primary hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        >
+                          {page.title}
+                        </a>
+                      ))}
+                    </span>
+                  )}
                 </span>
 
                 <span className="flex shrink-0 items-center gap-3">
@@ -104,7 +120,7 @@ export default async function AdminPluginsPage() {
       )}
 
       {!migrationsKnown && (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        <p className={PANEL_NOTE}>
           This board could not be asked which plugin migrations have run, so the rows
           above do not say. On a board running on sample data there is no such table; on a
           real one, that is worth looking into.
@@ -112,7 +128,7 @@ export default async function AdminPluginsPage() {
       )}
 
       {listeners.length > 0 && (
-        <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
+        <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
           <h2 className="font-heading text-lg font-semibold">Hooks in use</h2>
           <p className="text-muted-foreground">
             Only hooks something is listening on. The full list of every extension point
@@ -134,7 +150,7 @@ export default async function AdminPluginsPage() {
         </section>
       )}
 
-      <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
+      <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
         <h2 className="font-heading text-lg font-semibold">Installing a plugin</h2>
         <p className="text-muted-foreground">
           A plugin is code, so it has to be in the build before it can run:{' '}

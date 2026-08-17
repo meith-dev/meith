@@ -2,6 +2,7 @@
 
 import { useActionState } from "react"
 
+import { PANEL_CARD } from "@/components/shell/panel-list"
 import { removeLogoAction, saveLogoAction } from "@/server/branding-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
@@ -24,7 +25,7 @@ export function LogoUploadForm({ slot, maxKib }: { slot: LogoSlot; maxKib: numbe
   const id = `logo-${slot.scheme}`
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+    <div className={PANEL_CARD}>
       <div className="flex flex-col gap-1">
         <h3 className="text-sm font-medium">{slot.label}</h3>
         <p className="text-xs text-muted-foreground">{slot.hint}</p>

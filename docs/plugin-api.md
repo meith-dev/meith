@@ -406,6 +406,37 @@ string, not the path.
 > An ordinary navigation is outside `form-action`'s remit. `plugins/dues`
 > ships this as its `go` page.
 
+## Admin pages
+
+`adminPages` are the operator-facing half, mounted at
+`/admin/plugins/<key>/<path>`. `render` gets a `PluginAdminPageContext` — the
+runtime context plus the panel URL's query string — and returns markup, which
+the panel frames on `surface` so that whatever cards the page brings still read
+as raised.
+
+A plugin's pages are the plugin: its own screen in the panel says how it runs,
+and these say what it is for. So a plugin that declares any becomes a place in
+the panel rather than a row in a list, in three ways:
+
+- **A tab bar across the top of every one of its screens**, the plugin's own
+  screen included, which is labelled `Settings` and is the first tab. Moving
+  between a plugin's screens is then the same gesture as moving between a
+  forum's, and a plugin with one page gets no tab bar, because a single tab is
+  not a choice.
+- **Its own section in the panel's rail**, headed with the plugin's name and
+  listing its pages, from the moment the operator is anywhere under
+  `/admin/plugins/<key>` — the same way Users opens to show its own screens.
+- **Links on its row of `/admin/plugins`**, so the screens are reachable
+  before anyone opens the plugin at all.
+
+Declaring a page is the whole of it. There is nothing to register with the nav
+and no ordering to configure: the pages appear in the order the plugin declares
+them, and a page on a disabled plugin appears nowhere.
+
+**`title` is a label, so keep it short.** It is the tab, the rail entry and the
+page's heading, and the plugin's name is already above all three — `'Plans'`,
+not `'Dues — plans'`, which reads as the name twice everywhere it lands.
+
 ## Board pages
 
 `pages` are the member-facing half, mounted at `/plugins/<key>/<path>` and

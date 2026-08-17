@@ -9,6 +9,9 @@ export const PANEL_ROW =
 export const PANEL_CARD =
   'flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-elevation'
 
+export const PANEL_NOTE =
+  'rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground shadow-elevation'
+
 export function PanelList({
   children,
   className,

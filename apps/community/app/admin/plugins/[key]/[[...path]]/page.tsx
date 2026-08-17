@@ -2,10 +2,13 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { PluginEnableForm, PluginSettingsForm } from '@/components/admin/plugin-forms'
+import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
+import { ViewTabs } from '@/components/shell/view-tabs'
 import { adminPageContext } from '@/server/admin'
 import { pluginRow } from '@/server/plugin-admin'
 import { renderPluginAdminPage } from '@/server/plugin-pages'
+import { pluginPanelTabs } from '@/view/plugin-panel'
 
 export const metadata: Metadata = { title: 'Plugin' }
 
@@ -49,13 +52,22 @@ export default async function AdminPluginPage({
           </>
         }
       >
+        <ViewTabs
+          label={`${plugin.name ?? plugin.key} screens`}
+          tabs={pluginPanelTabs({
+            pluginKey: key,
+            pages: plugin.pages,
+            current: segments[0] as string,
+          })}
+        />
+
         {rendered.node === null ? (
-          <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+          <p className={PANEL_NOTE}>
             This page failed to render. The plugin&rsquo;s error is in the server log, and
             the rest of the panel is unaffected.
           </p>
         ) : (
-          <section className="rounded-lg border border-border p-4">
+          <section className="rounded-xl border border-border bg-surface p-4">
             {rendered.node}
           </section>
         )}
@@ -84,7 +96,12 @@ export default async function AdminPluginPage({
           }
         : {})}
     >
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <ViewTabs
+        label={`${plugin.name ?? plugin.key} screens`}
+        tabs={pluginPanelTabs({ pluginKey: key, pages: plugin.pages, current: null })}
+      />
+
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Status</h2>
         <dl className="flex flex-col gap-2 text-sm">
           <div className="flex flex-wrap justify-between gap-2">
@@ -117,7 +134,7 @@ export default async function AdminPluginPage({
       </section>
 
       {plugin.health !== null && (
-        <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <section className={PANEL_CARD}>
           <h2 className="font-heading text-lg font-semibold">Health</h2>
           <p className="text-sm text-muted-foreground">
             Counted by <em>this</em> server since it started, not across the board and not
@@ -154,7 +171,7 @@ export default async function AdminPluginPage({
       )}
 
       {visibleSettings.length > 0 && (
-        <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <section className={PANEL_CARD}>
           <h2 className="font-heading text-lg font-semibold">Settings</h2>
           <p className="text-sm text-muted-foreground">
             Stored under this plugin&rsquo;s own namespace, so two plugins cannot collide
@@ -165,7 +182,7 @@ export default async function AdminPluginPage({
       )}
 
       {plugin.migrations.length > 0 && (
-        <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <section className={PANEL_CARD}>
           <h2 className="font-heading text-lg font-semibold">Migrations</h2>
           <p className="text-sm text-muted-foreground">
             Applied by <code className="text-xs">community upgrade</code>, in one transaction
@@ -200,27 +217,8 @@ export default async function AdminPluginPage({
         </section>
       )}
 
-      {plugin.pages.length > 0 && (
-        <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-          <h2 className="font-heading text-lg font-semibold">Pages</h2>
-          <ul className="flex flex-col divide-y divide-border text-sm">
-            {plugin.pages.map((page) => (
-              <li key={page.path} className="flex justify-between gap-3 py-2">
-                <a
-                  href={page.href}
-                  className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                >
-                  {page.title}
-                </a>
-                <code className="text-xs text-muted-foreground">{page.href}</code>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       {plugin.tasks.length > 0 && (
-        <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <section className={PANEL_CARD}>
           <h2 className="font-heading text-lg font-semibold">Scheduled tasks</h2>
           <p className="text-sm text-muted-foreground">
             Registered in the board&rsquo;s own task registry and run by the same tick.
@@ -247,7 +245,7 @@ export default async function AdminPluginPage({
       )}
 
       {(plugin.hooks.length > 0 || plugin.regions.length > 0) && (
-        <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <section className={PANEL_CARD}>
           <h2 className="font-heading text-lg font-semibold">What it attaches to</h2>
           {plugin.hooks.length > 0 && (
             <div className="flex flex-col gap-1">

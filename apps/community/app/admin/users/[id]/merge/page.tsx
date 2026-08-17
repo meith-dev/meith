@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { cn } from '@meith/ui'
+
+import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { MergeForm } from '@/components/admin/user-forms'
 import { adminPageContext } from '@/server/admin'
@@ -63,7 +66,7 @@ export default async function AdminMergePage({
     >
       <form
         method="get"
-        className="flex flex-col gap-3 rounded-lg border border-border p-4"
+        className={PANEL_CARD}
       >
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Keep which account?</span>
@@ -85,7 +88,7 @@ export default async function AdminMergePage({
       </form>
 
       {into !== '' && previews.length === 0 && (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        <p className={PANEL_NOTE}>
           No other account matches “{into}”.
         </p>
       )}
@@ -94,7 +97,7 @@ export default async function AdminMergePage({
         preview === null ? null : (
           <section
             key={row.id}
-            className="flex flex-col gap-3 rounded-lg border border-border p-4"
+            className={PANEL_CARD}
           >
             <h2 className="font-heading text-lg font-semibold">Keep {row.username}</h2>
             <p className="text-sm text-muted-foreground">
@@ -124,7 +127,7 @@ export default async function AdminMergePage({
         ),
       )}
 
-      <div className="flex flex-col gap-2 rounded-lg border border-border p-4 text-xs text-muted-foreground">
+      <div className={cn(PANEL_CARD, 'gap-2 text-xs text-muted-foreground')}>
         <p>What a merge does, in full:</p>
         <ul className="flex list-disc flex-col gap-1 pl-4">
           <li>

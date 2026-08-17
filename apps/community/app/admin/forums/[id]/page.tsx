@@ -8,6 +8,7 @@ import {
   ModeratorsPanel,
   MoveForumForm,
 } from '@/components/admin/forum-forms'
+import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
@@ -74,7 +75,7 @@ export default async function AdminForumPage({
         }}
       />
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Move</h2>
         <MoveForumForm
           forumId={forum.id}

@@ -6,6 +6,7 @@ import {
   GroupIdentityForm,
   GroupPermissionsForm,
 } from '@/components/admin/group-forms'
+import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { BadgeUploadForm } from '@/components/admin/badge-forms'
 import { adminPageContext } from '@/server/admin'
@@ -54,7 +55,7 @@ export default async function AdminGroupPage({
       }
       gap="loose"
     >
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Details</h2>
         <GroupIdentityForm
           group={{
@@ -72,7 +73,7 @@ export default async function AdminGroupPage({
         />
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Badge</h2>
         <p className="text-sm text-muted-foreground">
           A small image shown beside a member&rsquo;s name. Two of them, for the reason
@@ -98,7 +99,7 @@ export default async function AdminGroupPage({
         </div>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Permissions</h2>
         <p className="text-sm text-muted-foreground">
           These are this group&rsquo;s answers, not a forum&rsquo;s. A member in several
@@ -109,7 +110,7 @@ export default async function AdminGroupPage({
         <GroupPermissionsForm groupId={view.group.id} cells={view.cells} />
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Delete</h2>
         {view.group.isSystem ? (
           <p className="text-sm text-muted-foreground">

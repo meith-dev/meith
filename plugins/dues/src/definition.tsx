@@ -251,27 +251,27 @@ export function dues(input: DuesConfigInput): PluginDefinition {
     adminPages: [
       {
         path: 'status',
-        title: 'Dues — status',
+        title: 'Status',
         render: (context) => StatusPage({ config, context }),
       },
       {
         path: 'plans',
-        title: 'Dues — plans',
+        title: 'Plans',
         render: (context) => PlansAdminPage({ config, context }),
       },
       {
         path: 'members',
-        title: 'Dues — memberships',
+        title: 'Memberships',
         render: (context) => MembersPage({ context }),
       },
       {
         path: 'codes',
-        title: 'Dues — discount codes',
+        title: 'Discount codes',
         render: (context) => CodesPage({ config, context }),
       },
       {
         path: 'ledger',
-        title: 'Dues — ledger',
+        title: 'Ledger',
         render: (context) => LedgerPage({ config, context }),
       },
     ],

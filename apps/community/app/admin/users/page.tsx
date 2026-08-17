@@ -5,7 +5,7 @@ import { adminPageContext } from '@/server/admin'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 import { USER_PAGE, parseUserFilter, userAdminRepository } from '@/server/user-admin'
-import { PANEL_CARD, PANEL_LIST, PANEL_ROW, PanelActionLink } from '@/components/shell/panel-list'
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW, PanelActionLink } from '@/components/shell/panel-list'
 import { buttonVariants, cn } from '@meith/ui'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { readPage } from '@/view/pager'
@@ -182,7 +182,7 @@ export default async function AdminUsersPage({
       </form>
 
       {page.rows.length === 0 ? (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        <p className={PANEL_NOTE}>
           No members match. An empty result from a filled-in filter is a real answer —
           check the spelling before widening it.
         </p>

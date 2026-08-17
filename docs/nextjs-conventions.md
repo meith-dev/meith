@@ -78,6 +78,33 @@ review instead of being indistinguishable from a file nobody checked.
 
 ---
 
+## Panel surfaces
+
+The control panel is a stack of panels on a page, and the page is a light grey
+so that `card` — plain white — reads as something sitting on it. A section that
+draws a border and leaves its fill to the page is therefore invisible as a
+panel: the border is doing work the surface should be doing, and on a long
+screen the eye has nothing to group by.
+
+Three constants in `src/components/shell/panel-list.tsx` are the whole
+vocabulary, and a panel screen should reach for one rather than write the
+classes out:
+
+| Constant | What it is |
+|---|---|
+| `PANEL_CARD` | A section of the page: bordered, filled with `card`, raised by `shadow-elevation`. |
+| `PANEL_LIST` | The same surface as a list of rows, divided rather than padded. Rows use `PANEL_ROW`. |
+| `PANEL_NOTE` | The empty state or aside that stands in for a card — same surface, muted text. |
+
+Vary one with `cn(PANEL_CARD, 'gap-2 text-sm')`; `cn` merges through
+tailwind-merge, so the later class wins. **Do not nest one inside another.**
+Two `card` surfaces stacked are indistinguishable — a subsection inside a card
+keeps its border and drops its fill, and content the panel does not own (a
+plugin's rendered page) sits on `surface`, the band cut into the page, so the
+cards a plugin brings still read as raised.
+
+---
+
 ## Server Components by default
 
 `"use client"` goes on **leaf interactive components only** — never a page,

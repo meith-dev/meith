@@ -8,7 +8,7 @@ import { formatBytes } from '@/view/attachments'
 import { postLink } from '@/view/post-link'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
-import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 import { cn } from '@meith/ui'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { offsetOf, readPage } from '@/view/pager'
@@ -72,7 +72,7 @@ export default async function AdminAttachmentsPage({
       }
       width="wide"
     >
-      <dl className="grid grid-cols-2 gap-4 rounded-lg border border-border p-4 sm:grid-cols-4">
+      <dl className={cn(PANEL_CARD, 'grid grid-cols-2 gap-4 sm:grid-cols-4')}>
         <div>
           <dt className="text-xs text-muted-foreground">Files</dt>
           <dd className="text-lg">{totals.count}</dd>
@@ -131,7 +131,7 @@ export default async function AdminAttachmentsPage({
       </form>
 
       {page.rows.length === 0 ? (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        <p className={PANEL_NOTE}>
           Nothing matches.
         </p>
       ) : (

@@ -13,7 +13,7 @@ import {
   promotionRuleRepository,
 } from '@/server/group-admin'
 import { promotionRuleFormValues, promotionRuleSummary } from '@/view/promotion-rules'
-import { PANEL_LIST } from '@/components/shell/panel-list'
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE } from '@/components/shell/panel-list'
 import { cn } from '@meith/ui'
 
 export const metadata: Metadata = { title: 'Promotions' }
@@ -61,7 +61,7 @@ export default async function AdminPromotionsPage() {
       }
       gap="loose"
     >
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Rules</h2>
 
         {stored.length === 0 ? (
@@ -87,7 +87,7 @@ export default async function AdminPromotionsPage() {
         )}
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Add a rule</h2>
         <NewPromotionRuleForm groups={options} />
       </section>
@@ -99,7 +99,7 @@ export default async function AdminPromotionsPage() {
         </p>
 
         {result.outcomes.length === 0 ? (
-          <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+          <p className={PANEL_NOTE}>
             {stored.length === 0
               ? 'Nobody would be promoted, because there is no rule to promote them by.'
               : 'Nobody would be promoted. Everyone who qualifies is already where these rules would put them.'}
@@ -121,7 +121,7 @@ export default async function AdminPromotionsPage() {
               ))}
             </ul>
 
-            <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+            <section className={PANEL_CARD}>
               <h3 className="font-heading text-lg font-semibold">Run it</h3>
               <ApplyPromotionsForm count={result.outcomes.length} />
             </section>

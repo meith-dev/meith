@@ -17,7 +17,7 @@ import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import { FormError, SubmitButton } from "../auth/form-controls"
 import { INPUT } from "./form-bits"
-import { PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
 
 const TOGGLES = [
   { name: "isOpen", label: "Open for posting" },
@@ -183,7 +183,7 @@ export function ForumPermissionRowForm({
   const [state, action] = useActionState(saveForumPermissionsAction, EMPTY_STATE)
 
   return (
-    <form action={action} className="flex flex-col gap-3 rounded-lg border border-border p-4">
+    <form action={action} className={PANEL_CARD}>
       <FormError message={state.error} />
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-base font-semibold tracking-tight">{row.groupTitle}</h3>
@@ -443,7 +443,7 @@ export function ModeratorsPanel({
         </ul>
       )}
 
-      <form action={appoint} className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <form action={appoint} className={PANEL_CARD}>
         <FormError message={appointState.error} />
         {appointState.notice === "saved" && (
           <p className="text-sm text-muted-foreground">Saved.</p>
