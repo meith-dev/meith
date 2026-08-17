@@ -207,10 +207,26 @@ carry it in the catalog. They are the exception, and the reasons differ:
 any difference, so they cannot drift: adding a setting fails the build until its
 `setting.<key>.label` and `setting.<key>.description` exist and match.
 
-### The rest of the copy
+### The rest of the copy, and the ratchet
 
-The view builders under `apps/community/src/view/` are being extracted a file at
-a time. `scripts/i18n-baseline.json` records how much English each still holds,
-and `pnpm i18n:check` refuses any file that gains a string. When you finish
-extracting one, run `pnpm i18n:baseline` to bank it — the numbers only ever go
-down.
+The view builders under `apps/community/src/view/` are done: every one of them
+reads its copy from the catalog. Most of the board's words are not — the pages
+and components under `apps/community/app/` and `src/components/`, the sentences
+domain packages raise as validation errors, and the themes' and plugins' own
+headings still hold English, some 4,900 strings across 470 files.
+
+They cannot grow. `scripts/i18n-baseline.json` records how much English each
+file holds — string literals and JSX text alike — and `pnpm i18n:check` fails
+any file that gains one. A file not listed must hold none at all, so new code
+starts translated. When you finish extracting a file, run `pnpm i18n:baseline`
+to bank it; the numbers only ever go down.
+
+A handful of the counts are noise rather than copy: `view/feed.ts` and
+`view/sso-hand-off.ts` build XML and HTML documents whose fragments read like
+prose to the counter, and `view/setting-groups.ts` holds the group labels the
+catalog mirrors. They sit in the baseline at a fixed number and stay there.
+
+Extracting a file is the same four steps every time: give each string a key in
+`en.json`, replace the literal with `t.t(key)`, take a `Translator` where the
+builder does not already have one, and hand it in from the page. A builder
+called without one falls back to English, so nothing breaks half-way through.
