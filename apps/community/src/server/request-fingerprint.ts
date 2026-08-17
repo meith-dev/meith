@@ -14,10 +14,10 @@ export interface RequestFingerprint {
 /** Where a request came from and what made it, as much as is kept about either. */
 export async function requestFingerprint(): Promise<RequestFingerprint> {
   const incoming = await headers()
-  const agent = incoming.get('user-agent')
+  const agent = incoming.get('user-agent') ?? ''
 
   return {
     ipPrefix: truncateIp(await remoteAddress()) ?? null,
-    userAgent: agent === null || agent.trim() === '' ? null : agent.slice(0, 300),
+    userAgent: agent.trim() === '' ? null : agent.slice(0, 300),
   }
 }
