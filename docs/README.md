@@ -13,6 +13,7 @@ bare server to a board on your own domain in about twenty minutes.
 |---|---|
 | Set up a board for the first time | [Quickstart](./quickstart.md) |
 | Run a board day to day | [Running a board](./operating.md) |
+| See what is being read, and decide what is counted | [Analytics](./analytics.md) |
 | Move a board to a new version | [Upgrading a board](./upgrading.md) |
 | Add 2FA, SSO or passkeys | [Signing in](./single-sign-on.md) |
 | Deploy with Docker Compose, no panel | [Deploying by hand](./self-hosting.md) |
@@ -32,6 +33,7 @@ bare server to a board on your own domain in about twenty minutes.
 | [`quickstart.md`](./quickstart.md) | **Start here.** From nothing to a live board on your own server, using Coolify. |
 | [`operating.md`](./operating.md) | The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting. |
 | [`upgrading.md`](./upgrading.md) | Moving between versions: the upgrade command, how far you can jump, and the behaviour changes each upgrade brings. |
+| [`analytics.md`](./analytics.md) | What the board counts about its own traffic, where to read it, and the opt-in Google Analytics connector. |
 | [`single-sign-on.md`](./single-sign-on.md) | Everything beyond a password: two-factor authentication, federated sign-in, passkeys, sessions, and the sign-in activity log. |
 | [`performance.md`](./performance.md) | The p95 budgets for hot pages and what the last load run measured. *Generated — do not edit.* |
 | [`demo-mode.md`](./demo-mode.md) | The self-resetting public demo board that runs at demo.meith.dev, and how to run one yourself. |

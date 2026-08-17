@@ -38,6 +38,7 @@ const nextConfig = {
   },
   transpilePackages: [
     "@meith/accounts",
+    "@meith/analytics",
     "@meith/authorization",
     "@meith/core",
     "@meith/db",

@@ -1,5 +1,6 @@
 const DOMAIN = [
   'accounts',
+  'analytics',
   'antispam',
   'groups',
   'authorization',

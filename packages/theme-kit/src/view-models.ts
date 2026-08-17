@@ -1280,6 +1280,7 @@ export type PanelNavCurrent = 'here' | 'under'
  * broken box.
  */
 export type PanelNavIcon =
+  | 'analytics'
   | 'antispam'
   | 'avatar'
   | 'buddies'

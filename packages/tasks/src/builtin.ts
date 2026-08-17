@@ -25,6 +25,7 @@ export interface TaskWorkers {
   sweepAttachments(batchSize: number): Promise<{ deleted: number; failed: number }>
   sweepAvatars(batchSize: number): Promise<number>
   rollUpStatistics(): Promise<{ memberCount: number; online: number; record: boolean }>
+  pruneAnalytics(): Promise<{ removed: number; retentionDays: number }>
 }
 
 function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
@@ -340,6 +341,25 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         return { detail: { memberCount, online, record: record ? 1 : 0 } }
       },
     },
+
+    {
+      id: 'analytics.prune',
+      title: 'Forget page counts past their retention',
+      description:
+        'Deletes the daily view counts, and the per-day visitor hashes behind ' +
+        'them, once they are older than the retention the board is set to keep. ' +
+        'It runs whether or not counting is switched on, so a board that has ' +
+        'turned it off empties itself as the last rows age out rather than ' +
+        'holding them forever. Purely subtractive and bounded by a date, so a ' +
+        'skipped run costs a day of extra history and a doubled one deletes ' +
+        'nothing twice.',
+      intervalSeconds: 3_600,
+      maxDurationSeconds: 30,
+      async run() {
+        const { removed, retentionDays } = await workers.pruneAnalytics()
+        return { detail: { removed, retentionDays } }
+      },
+    },
   ]
 }
 
@@ -363,6 +383,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'attachments.sweep': 'sweepAttachments',
   'avatars.sweep': 'sweepAvatars',
   'stats.rollup': 'rollUpStatistics',
+  'analytics.prune': 'pruneAnalytics',
 }
 
 export function builtinTasks(workers: Partial<TaskWorkers>): TaskDefinition[] {

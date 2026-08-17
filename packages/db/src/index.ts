@@ -184,6 +184,11 @@ export {
   type TopThread,
 } from './stats-repo'
 export {
+  PostgresAnalyticsRepository,
+  type PageViewRecord,
+  type SummaryRequest,
+} from './analytics-repo'
+export {
   PostgresDiscoveryRepository,
   type DiscoveryPage,
   type DiscoveryQuery,

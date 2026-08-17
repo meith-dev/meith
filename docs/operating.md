@@ -882,7 +882,7 @@ The board sets ten cookies of its own and no third-party ones:
 |---|---|
 | session, remember-me | Signing in. Both are random tokens stored hashed; neither carries a CSRF secret, because the board has none — see [cross-site requests](#cross-site-requests). |
 | admin session | The control panel's separate sign-in. Scoped to the `/admin` path, `SameSite=Strict`. |
-| guest cookie | Opaque randomness minted on a first visit, so a guest can be counted as online. It identifies nobody and no code path turns it into an actor. |
+| guest cookie | Opaque randomness minted on a first visit, so a guest can be counted as online and — where [analytics](./analytics.md) is switched on — told from the next reader for one day. It identifies nobody and no code path turns it into an actor. |
 | sign-in handshake, passkey challenge, second factor | Only while a sign-in is half-finished. Cleared the moment it finishes either way, ten minutes at most — see [Signing in](./single-sign-on.md). |
 | `meith_theme`, `meith_scheme` | The appearance controls, written only when a member presses one. |
 | `meith_tz` | The reader's timezone, so the server can format times in it. An IANA zone name and nothing else. |
@@ -893,7 +893,10 @@ is nothing on the board that needs one.
 
 > What a particular board must disclose depends on what it does with its
 > data, which is the operator's to decide — a board that adds its own
-> tracking adds its own obligations with it.
+> tracking adds its own obligations with it. The board's own page counting
+> is off until you switch it on, stores no address and loads nothing into a
+> browser; the Google Analytics connector is a third party and is a
+> disclosure decision. Both are described in [Analytics](./analytics.md).
 
 ### A board session has a lifetime, not an idle timeout
 

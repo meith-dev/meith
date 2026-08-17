@@ -8,6 +8,7 @@ export type SettingGroup =
   | 'registration'
   | 'posting'
   | 'display'
+  | 'analytics'
   | 'search'
   | 'mail'
   | 'reputation'
@@ -241,6 +242,83 @@ export const SETTING_DEFINITIONS = [
     default: 20,
     invalidates: ['settings'],
     ui: { min: 5, max: 100 },
+  }),
+
+  define({
+    key: 'analytics.enabled',
+    group: 'analytics',
+    label: 'Count page views',
+    description:
+      'Off by default, and off is the honest default: a board that has not been ' +
+      'asked to count anything counts nothing. On, the board records the pages it ' +
+      'renders as it renders them — no script reaches the reader, nothing is sent ' +
+      'anywhere, and no address or user agent is stored. What is kept is a daily ' +
+      'tally per page, the source a visit arrived from, and a per-day one-way hash ' +
+      'that separates one reader from another for that day only. The result is on ' +
+      'the Analytics screen in the control panel.',
+    schema: z.boolean(),
+    default: false,
+    invalidates: ['settings'],
+  }),
+  define({
+    key: 'analytics.retention_days',
+    group: 'analytics',
+    label: 'Keep counts for (days)',
+    description:
+      'How long the daily rows are kept before a scheduled task deletes them. ' +
+      'Ninety days is two months of comparison and no archive; raise it if you ' +
+      'report on the year, lower it if you would rather hold less. The counts are ' +
+      'already aggregated, so shortening this loses history rather than detail.',
+    schema: z.number().int().min(1).max(730),
+    default: 90,
+    ui: { min: 1, max: 730 },
+  }),
+  define({
+    key: 'analytics.google_enabled',
+    group: 'analytics',
+    label: 'Send page views to Google Analytics',
+    description:
+      'Off by default. On, every page view the board counts is also sent to ' +
+      'Google — from the server, after the page has been delivered, so the reader’s ' +
+      'browser never loads a Google script and Google never meets them directly. ' +
+      'It also means Google sees this server rather than your members: no address, ' +
+      'no user agent, no device, and therefore none of the geography or device ' +
+      'reports a browser tag would fill in. What arrives is the page, the referrer ' +
+      'and an opaque per-reader id. Needs both fields below; without them nothing ' +
+      'is sent.',
+    schema: z.boolean(),
+    default: false,
+    invalidates: ['settings'],
+  }),
+  define({
+    key: 'analytics.google_measurement_id',
+    group: 'analytics',
+    label: 'Measurement ID',
+    description:
+      'The GA4 property to send to — the G-XXXXXXX shown under Admin, Data ' +
+      'streams in Google Analytics. A Universal Analytics UA- id is a different, ' +
+      'switched-off product and is refused.',
+    schema: z.string().trim().refine(
+      (value) => value === '' || /^G-[A-Z0-9]{4,20}$/.test(value),
+      'That is not a GA4 measurement ID — it looks like G-ABCD1234.',
+    ),
+    default: '',
+    invalidates: ['settings'],
+  }),
+  define({
+    key: 'analytics.google_api_secret',
+    group: 'analytics',
+    label: 'Measurement Protocol API secret',
+    description:
+      'Created beside the measurement id, under Admin, Data streams, Measurement ' +
+      'Protocol API secrets. It is what lets a server send events at all: the ' +
+      'browser tag needs no secret, and this connector is not a browser. Stored as ' +
+      'written and never shown again — leave the box empty to keep the one already ' +
+      'saved.',
+    schema: z.string().trim().max(200),
+    default: '',
+    secret: true,
+    invalidates: ['settings'],
   }),
 
   define({

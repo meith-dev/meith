@@ -92,6 +92,7 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 | Running a board | [`quickstart.md`](./docs/quickstart.md) | From nothing to a board on your own domain, with Coolify, in about twenty minutes. The deploy pulls the released image rather than building anything. |
 | Running a board | [`operating.md`](./docs/operating.md) | The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting. |
 | Running a board | [`upgrading.md`](./docs/upgrading.md) | Moving a board between versions: the upgrade command, how far you can jump, and the behaviour changes each release brings. |
+| Running a board | [`analytics.md`](./docs/analytics.md) | What a board counts about its own traffic, how it counts it without a third-party beacon, and the opt-in Google Analytics connector that sends from the server rather than the browser. |
 | Running a board | [`single-sign-on.md`](./docs/single-sign-on.md) | Two-factor authentication, federated sign-in and passkeys: what each means for your members, how to configure them, and the record of what has opened an account. |
 | Running a board | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
 | Running a board | [`demo-mode.md`](./docs/demo-mode.md) | The self-resetting public demo board that runs at demo.meith.dev — what it changes, and how to run one yourself. |

@@ -81,6 +81,15 @@
       "primary": false
     },
     {
+      "slug": "analytics",
+      "file": "analytics.md",
+      "section": "running",
+      "title": "Analytics",
+      "blurb": "What a board counts about its own traffic, how it counts it without a third-party beacon, and the opt-in Google Analytics connector that sends from the server rather than the browser.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "single-sign-on",
       "file": "single-sign-on.md",
       "section": "running",

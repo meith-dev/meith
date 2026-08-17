@@ -83,6 +83,20 @@ means anyone at all, including search engines. Your e-mail address and your IP
 address are not shown to other members; administrators and moderators can see
 them as part of moderating.
 
+## Counting who reads what
+
+The board can count the pages it serves, and if this one does, the counting is
+its own: no script is loaded into your browser, and no address, browser or
+fingerprint is stored. What is kept is a tally per page per day, whether the
+visit arrived from a link on another site, and a hash that tells one reader from
+another for that day and cannot be followed to the next.
+
+If the administrators have connected Google Analytics — off unless they switch
+it on — the board also sends Google the address of the page you looked at, the
+site that linked you here, and an opaque identifier for your browser. That is
+sent by the board's own server after the page has reached you, so Google never
+meets your browser and is not told your address.
+
 ## Who else is involved
 
 The board runs on servers rented from a hosting provider, and it may send mail

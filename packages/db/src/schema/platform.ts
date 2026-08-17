@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -276,6 +277,53 @@ export const boardStats = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [check('board_stats_singleton', sql`${t.id} = 1`)],
+)
+
+export const analyticsDays = pgTable('analytics_days', {
+  day: date('day').primaryKey(),
+
+  views: integer('views').notNull().default(0),
+  memberViews: integer('member_views').notNull().default(0),
+  visitors: integer('visitors').notNull().default(0),
+  memberVisitors: integer('member_visitors').notNull().default(0),
+
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const analyticsPages = pgTable(
+  'analytics_pages',
+  {
+    day: date('day').notNull(),
+    path: text('path').notNull(),
+    views: integer('views').notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.day, t.path] }),
+    index('analytics_pages_day_idx').on(t.day, t.views),
+  ],
+)
+
+export const analyticsSources = pgTable(
+  'analytics_sources',
+  {
+    day: date('day').notNull(),
+    source: text('source').notNull(),
+    views: integer('views').notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.day, t.source] }),
+    index('analytics_sources_day_idx').on(t.day, t.views),
+  ],
+)
+
+export const analyticsVisitors = pgTable(
+  'analytics_visitors',
+  {
+    day: date('day').notNull(),
+    visitor: text('visitor').notNull(),
+    member: boolean('member').notNull().default(false),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.visitor] })],
 )
 
 export const rateLimits = pgTable(

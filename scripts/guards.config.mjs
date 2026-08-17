@@ -232,6 +232,30 @@ export const GUARDS = [
     },
   },
   {
+    id: 'no-third-party-beacon',
+    why:
+      'The board ships no third-party browser code. A vendor tag here is a request ' +
+      'from every member’s browser to somebody else’s server on every page, which ' +
+      'is the one thing the board promises not to do and which no setting can take ' +
+      'back once it has happened — the board shipped @vercel/analytics to every ' +
+      'visitor for exactly this reason, and nobody could switch it off. Counting is ' +
+      'first-party instead: apps/community/src/server/analytics.ts records a view as ' +
+      'the page renders, and the Google connector in packages/analytics/src/google.ts ' +
+      'is sent from the server after the response, so the reader never meets Google. ' +
+      'A board that wants a vendor tag adds it as a plugin, on its own account.',
+    files: /^(apps\/community|themes|examples)\/.*\.(ts|tsx|json)$/,
+    pattern:
+      /@vercel\/analytics|googletagmanager\.com|google-analytics\.com|\bgtag\s*\(|plausible\.io|\bmatomo\b|cdn\.segment\.com|static\.hotjar\.com|clarity\.ms|<script[^>]+src\s*=\s*["'{]?\s*['"`]?https?:/i,
+    probe: {
+      violates: 'import { Analytics } from "@vercel/analytics/next"',
+      clean: "import { recordPageView } from '@/server/analytics'",
+    },
+    alsoClean: [
+      '<script nonce={nonce} dangerouslySetInnerHTML={{ __html: probe }} />',
+      "const POWERED_BY = { label: 'Powered by Meith', href: 'https://meith.dev' }",
+    ],
+  },
+  {
     id: 'no-adhoc-local-redirect-check',
     why:
       'A redirect or return target is validated only by isSafeLocalPath ' +

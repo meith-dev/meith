@@ -34,6 +34,7 @@ import { deliverNotificationEmail, NotificationService } from '@meith/notificati
 import type { PluginDefinition } from '@meith/plugin-kit'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/tasks'
 
+import { analyticsPruner } from './analytics-retention'
 import { buildEventRegistry } from './event-handlers'
 import { SEED_GROUP } from './groups'
 import { resolveMailBrand, resolveSenderName } from './mail-brand'
@@ -142,6 +143,7 @@ export function buildSchedulerBundle(deps: {
         renderBackfill: new PostgresRenderBackfill(db),
         searchIndex: new PostgresSearchRepository(db),
         ...(env.DEMO_MODE ? {} : { webhooks: new PostgresWebhookRepository(db) }),
+        analytics: analyticsPruner({ db }),
         statistics: {
           stats: new PostgresStatsRepository(db),
           presence: new PostgresPresenceRepository(db),

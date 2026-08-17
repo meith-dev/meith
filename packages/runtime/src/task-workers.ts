@@ -45,6 +45,7 @@ export interface TaskWorkerDeps {
   }
   readonly attachments?: AttachmentService
   readonly avatars?: AvatarService
+  readonly analytics?: { prune(): Promise<{ removed: number; retentionDays: number }> }
   readonly statistics?: {
     readonly stats: { rollUp(now: Date): Promise<{ memberCount: number }> }
     readonly presence: {
@@ -199,6 +200,14 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
       : {
           async sweepAvatars(batchSize: number) {
             return deps.avatars!.sweep(batchSize)
+          },
+        }),
+
+    ...(deps.analytics === undefined
+      ? {}
+      : {
+          async pruneAnalytics() {
+            return deps.analytics!.prune()
           },
         }),
 

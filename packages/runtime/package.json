@@ -7,6 +7,7 @@
   "types": "./src/index.ts",
   "dependencies": {
     "@meith/accounts": "workspace:*",
+    "@meith/analytics": "workspace:*",
     "@meith/api": "workspace:*",
     "@meith/attachments": "workspace:*",
     "@meith/avatars": "workspace:*",

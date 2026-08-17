@@ -53,6 +53,8 @@
       "@meith/reputation": ["../../packages/reputation/src/index.ts"],
       "@meith/signatures": ["../../packages/signatures/src/index.ts"],
       "@meith/admin": ["../../packages/admin/src/index.ts"],
+      "@meith/analytics": ["../../packages/analytics/src/index.ts"],
+      "@meith/analytics/*": ["../../packages/analytics/src/*"],
       "@meith/posts/*": ["../../packages/posts/src/*"],
       "@meith/markdown": ["../../packages/markdown/src/index.ts"],
       "@meith/markdown/*": ["../../packages/markdown/src/*"],

@@ -3,6 +3,7 @@ import type { Actor } from '@meith/authorization'
 import { currentRequestId } from '@meith/core/logger'
 
 import { LogoutForm } from '@/components/account/logout-form'
+import { recordPageView } from '@/server/analytics'
 import { currentLogo } from '@/server/branding'
 import { ThemeSwitcher } from '@/components/shell/theme-switcher'
 import { getContainer } from '@/server/container'
@@ -86,6 +87,8 @@ export async function PageShell({
   await touchActivity(actor.userId)
 
   await touchCurrentLocation()
+
+  await recordPageView(actor.userId)
 
   const preferences = await getViewerPreferences()
 

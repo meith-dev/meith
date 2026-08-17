@@ -378,11 +378,12 @@ mid-run. Every task is written as an idempotent catch-up operation ("flush
 what is outstanding"), never "run at 03:00", so a missed day is caught up
 rather than lost.
 
-Nineteen built-in tasks ride the tick: the outbox relay, queue drain and
+Twenty built-in tasks ride the tick: the outbox relay, queue drain and
 instant subscriptions at 60 s; the stats rollup and view-count flush at five
 minutes; the render backfill and search reindex at ten; ban, group and
-warning expiry, session and token pruning, and the attachment and avatar
-sweeps on their own intervals; and counter reconciliation every six hours.
+warning expiry, session and token pruning, analytics retention, and the
+attachment and avatar sweeps on their own intervals; and counter
+reconciliation every six hours.
 Plugin tasks join the same schedule under a namespaced id. Demo mode adjusts
 the list at both ends: webhook delivery is never registered (the task does
 not exist, rather than existing and refusing) and `demo.reset` is added — in

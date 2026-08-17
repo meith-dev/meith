@@ -417,6 +417,26 @@ what a member may *keep*, not what they may send in a day.
 
 ### Behaviour that changed shape
 
+#### The third-party beacon is gone
+
+Production boards used to render Vercel's analytics component on every
+page, with no setting to stop it: every member's browser made a request to
+a third party nobody had agreed to. It has been removed. **A board that
+upgrades makes that request no more, and there is nothing to configure** —
+the removal is subtractive.
+
+What arrives in its place is the board's own counting, and it is **off
+until you switch it on**. Switched on, it records a daily tally per page
+on your own database as each page renders — no script in the browser, no
+address or user agent stored — and shows it on **Analytics** in the
+control panel. There is also an opt-in Google Analytics connector, off by
+default, which sends from the server after the response rather than
+loading a tag into your members' browsers. Both are described in
+[Analytics](./analytics.md).
+
+The migration that ships with this creates four empty tables and touches
+nothing else.
+
 #### Links into a post
 
 A post used to be anchored by its id (`#post-90`, under a corner reading

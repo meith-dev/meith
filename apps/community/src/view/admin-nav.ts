@@ -91,6 +91,12 @@ export const ADMIN_SECTIONS: PanelNav = [
     blurb: 'Issue and revoke tokens, and see what each one may reach.',
   },
   {
+    href: '/admin/analytics',
+    title: 'Analytics',
+    icon: 'analytics',
+    blurb: 'What is being read, by how many, and where they arrived from.',
+  },
+  {
     href: '/admin/system',
     title: 'System',
     icon: 'system',
