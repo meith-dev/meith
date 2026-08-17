@@ -2027,8 +2027,11 @@ Supabase and their kind.
   there for the next. The database layer is configured for this; a plugin
   issuing raw SQL should be too.
 - **`pg_dump` and migrations want the direct URL.** Both need
-  session-level state. Set `DIRECT_DATABASE_URL` for migrations when your
-  provider offers both strings.
+  session-level state. The migration runner takes a session-level advisory
+  lock so two deploys migrating at once queue instead of colliding, and a
+  transaction-mode pooler cannot hold one. Set `DIRECT_DATABASE_URL` for
+  migrations when your provider offers both strings; the runner prefers it
+  over `DATABASE_URL` whenever it is set.
 
 ## Troubleshooting
 
