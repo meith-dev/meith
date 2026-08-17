@@ -66,7 +66,7 @@ export default async function SecurityPage({
   const settings = await memberSettings.read(actor.userId)
   if (settings === null) notFound()
 
-  const notice = pageNotice(query)
+  const notice = await pageNotice(query)
   const Notice = requireSlot(await currentTheme(), 'Notice')
 
   const manageable = await memberManagedSignIns()
@@ -121,7 +121,7 @@ export default async function SecurityPage({
     await accountStore.sessions.listActiveForUser(actor.userId, rightNow)
   ).map((session) => ({
     id: session.id,
-    device: describeDevice(session.userAgent),
+    device: describeDevice(session.userAgent, translator),
     address: describeAddress(session.ipPrefix),
     lastSeen: when(session.lastSeenAt),
     startedAt: when(session.createdAt),
@@ -131,10 +131,10 @@ export default async function SecurityPage({
   const activity: readonly ActivityView[] = (await memberSecurityActivity(actor.userId)).map(
     (event) => ({
       id: event.id,
-      label: authEventLabel(event.kind),
+      label: authEventLabel(event.kind, translator),
       at: when(event.at),
       address: describeAddress(event.ipPrefix),
-      device: describeDevice(event.userAgent),
+      device: describeDevice(event.userAgent, translator),
     }),
   )
 
@@ -181,8 +181,10 @@ export default async function SecurityPage({
   )
 }
 
-function pageNotice(query: SecurityQuery): { kind: 'info' | 'warning'; message: string } | null {
-  const federated = ssoNotice(query.sso)
+async function pageNotice(
+  query: SecurityQuery,
+): Promise<{ kind: 'info' | 'warning'; message: string } | null> {
+  const federated = ssoNotice(query.sso, await getTranslator())
   if (federated !== null) return federated
 
   for (const [key, value] of [
@@ -196,5 +198,5 @@ function pageNotice(query: SecurityQuery): { kind: 'info' | 'warning'; message: 
     if (message !== undefined) return { kind: 'info', message }
   }
 
-  return userCpNotice(query)
+  return userCpNotice(query, await getTranslator())
 }

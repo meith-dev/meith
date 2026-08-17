@@ -4,19 +4,21 @@ import {
   type MemberGroupChoice,
   type MemberSettings,
 } from '@meith/accounts'
-import { SOURCE_LOCALE } from '@meith/i18n'
+import { SOURCE_LOCALE, type Translator } from '@meith/i18n'
 import { maxLengthFor, type ResolvedProfileField } from '@meith/profile-fields'
+
+import { untranslated } from './time'
 
 export interface TimezoneChoice {
   readonly value: string
   readonly label: string
 }
 
-export const AUTOMATIC_TIMEZONE_LABEL = 'Automatic — whatever this device is set to'
+export const AUTOMATIC_TIMEZONE_KEY = 'usercp.automaticTimezone'
 
-export function timezoneChoices(): readonly TimezoneChoice[] {
+export function timezoneChoices(t: Translator = untranslated()): readonly TimezoneChoice[] {
   return [
-    { value: AUTOMATIC_TIMEZONE, label: AUTOMATIC_TIMEZONE_LABEL },
+    { value: AUTOMATIC_TIMEZONE, label: t.t(AUTOMATIC_TIMEZONE_KEY) },
     ...availableTimezones().map((zone) => ({
       value: zone,
       label: zone.replace(/_/g, ' '),
@@ -24,11 +26,14 @@ export function timezoneChoices(): readonly TimezoneChoice[] {
   ]
 }
 
-export const AUTOMATIC_LOCALE_LABEL = 'Automatic — whatever your browser asks for'
+export const AUTOMATIC_LOCALE_KEY = 'usercp.automaticLocale'
 
-export function localeChoices(supported: readonly string[]): readonly TimezoneChoice[] {
+export function localeChoices(
+  supported: readonly string[],
+  t: Translator = untranslated(),
+): readonly TimezoneChoice[] {
   return [
-    { value: AUTOMATIC_LOCALE, label: AUTOMATIC_LOCALE_LABEL },
+    { value: AUTOMATIC_LOCALE, label: t.t(AUTOMATIC_LOCALE_KEY) },
     ...[...supported]
       .map((locale) => ({ value: locale, label: localeName(locale) }))
       .sort((a, b) => a.label.localeCompare(b.label, SOURCE_LOCALE)),
@@ -158,46 +163,34 @@ export function customFieldInputs(resolved: readonly ResolvedProfileField[]): re
   }))
 }
 
-export function userCpNotice(query: {
-  readonly saved?: string | undefined
-  readonly changed?: string | undefined
-  readonly sent?: string | undefined
-  readonly confirmed?: string | undefined
-  readonly failed?: string | undefined
-}): { kind: 'info' | 'warning'; message: string } | null {
+export function userCpNotice(
+  query: {
+    readonly saved?: string | undefined
+    readonly changed?: string | undefined
+    readonly sent?: string | undefined
+    readonly confirmed?: string | undefined
+    readonly failed?: string | undefined
+  },
+  t: Translator = untranslated(),
+): { kind: 'info' | 'warning'; message: string } | null {
   if (query.saved === 'processing') {
-    return {
-      kind: 'info',
-      message: 'Your new avatar is being processed and will appear shortly.',
-    }
+    return { kind: 'info', message: t.t('usercp.avatarProcessing') }
   }
   if (query.saved === 'removed') {
-    return { kind: 'info', message: 'Your avatar has been removed.' }
+    return { kind: 'info', message: t.t('usercp.avatarRemoved') }
   }
-  if (query.saved !== undefined) return { kind: 'info', message: 'Saved.' }
+  if (query.saved !== undefined) return { kind: 'info', message: t.t('usercp.saved') }
   if (query.changed === 'password') {
-    return {
-      kind: 'info',
-      message:
-        'Your password has been changed. You are still signed in here; every other device has been signed out.',
-    }
+    return { kind: 'info', message: t.t('usercp.passwordChanged') }
   }
   if (query.sent !== undefined) {
-    return {
-      kind: 'info',
-      message:
-        'Check the new address for a confirmation link. Nothing changes until you follow it.',
-    }
+    return { kind: 'info', message: t.t('usercp.emailConfirmSent') }
   }
   if (query.confirmed !== undefined) {
-    return { kind: 'info', message: 'Your e-mail address has been changed.' }
+    return { kind: 'info', message: t.t('usercp.emailChanged') }
   }
   if (query.failed !== undefined) {
-    return {
-      kind: 'warning',
-      message:
-        'That confirmation link is no longer valid — it may have been used already, expired, or the address may have been taken in the meantime.',
-    }
+    return { kind: 'warning', message: t.t('usercp.linkInvalid') }
   }
   return null
 }

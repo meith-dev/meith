@@ -7,6 +7,7 @@ import { DisplayGroupForm, ProfileForm } from '@/components/account/usercp-forms
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { profileFieldService, viewerFieldContext } from '@/server/profile-fields'
 import { currentTheme } from '@/server/theme'
 import {
@@ -43,7 +44,7 @@ export default async function ProfileSettingsPage({
     fields === null || context === null
       ? []
       : customFieldInputs(await fields.editableFor(actor.userId, context))
-  const notice = userCpNotice(query)
+  const notice = userCpNotice(query, await getTranslator())
   const Notice = requireSlot(await currentTheme(), 'Notice')
 
   return (

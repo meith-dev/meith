@@ -6,6 +6,7 @@ import { type DiscoveryViewModel, requireSlot } from '@meith/theme-kit'
 
 import { getActor } from '@/server/context'
 import { DISCOVER_PAGE, DISCOVERY_VIEWS, isDiscoveryView, runDiscovery } from '@/server/discovery'
+import { getTranslator } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -17,7 +18,11 @@ export async function generateMetadata({
   params: Promise<{ view: string }>
 }): Promise<Metadata> {
   const { view } = await params
-  return { title: isDiscoveryView(view) ? DISCOVERY_LABELS[view].label : 'Discover' }
+  const t = await getTranslator()
+
+  return {
+    title: isDiscoveryView(view) ? t.t(DISCOVERY_LABELS[view].labelKey) : t.t('discovery.title'),
+  }
 }
 
 export default async function DiscoverPage({

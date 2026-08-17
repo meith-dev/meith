@@ -7,6 +7,7 @@ import { LoginForm } from '@/components/auth/login-form'
 import { PasskeySignIn } from '@/components/auth/passkey-sign-in'
 import { SsoButtons } from '@/components/auth/sso-buttons'
 import { passkeysEnabled, signInProviders } from '@/server/federation'
+import { getTranslator } from '@/server/i18n'
 import { registrationOpen } from '@/server/registration'
 import { ssoNotice } from '@/view/sso-notices'
 
@@ -40,7 +41,7 @@ export default async function LoginPage({
   }>
 }) {
   const params = await searchParams
-  const federated = ssoNotice(params.sso)
+  const federated = ssoNotice(params.sso, await getTranslator())
   const notice = params.installed
     ? NOTICES.installed
     : params.registered

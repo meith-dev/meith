@@ -66,7 +66,7 @@ export default async function AdminSecurityPage({
             <option value="">Everything</option>
             {AUTH_EVENT_KINDS.map((value) => (
               <option key={value} value={value}>
-                {authEventLabel(value)}
+                {authEventLabel(value, translator)}
               </option>
             ))}
           </select>
@@ -86,12 +86,13 @@ export default async function AdminSecurityPage({
           {page.map((event) => (
             <li key={event.id} className={PANEL_ROW}>
               <span className="flex flex-col text-sm">
-                <span className="font-medium">{authEventLabel(event.kind)}</span>
+                <span className="font-medium">{authEventLabel(event.kind, translator)}</span>
                 <span className="text-xs text-muted-foreground">
                   {event.userId === null
                     ? 'no account named'
                     : (names.get(event.userId) ?? `member ${event.userId}`)}{' '}
-                  · {describeDevice(event.userAgent)} · {describeAddress(event.ipPrefix)}
+                  · {describeDevice(event.userAgent, translator)} ·{' '}
+                  {describeAddress(event.ipPrefix)}
                 </span>
               </span>
               <span className="text-xs text-muted-foreground">
