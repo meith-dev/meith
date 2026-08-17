@@ -7,14 +7,16 @@ import { PanelSectionGrid, PanelWaitingList } from '@/components/shell/panel-ove
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { unreadMessageCount } from '@/server/messages'
 import { unreadNotificationCount } from '@/server/notifications'
 import { currentTheme } from '@/server/theme'
 import { panelSectionCopy } from '@/view/panel-nav'
 import { USERCP_SECTIONS } from '@/view/usercp-nav'
 
-export const metadata: Metadata = { title: 'Your control panel' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.control-panel-2') }
+}
 
 export default async function UserCpPage() {
   const actor = await getActor()
@@ -30,8 +32,8 @@ export default async function UserCpPage() {
 
   return (
     <PanelPage
-      title="Your control panel"
-      lede="Everything about your account that you decide."
+      title={await tr('page.control-panel-2')}
+      lede={await tr('page.everything-about-account-that-decide')}
       gap="loose"
     >
       <Notice
@@ -40,7 +42,7 @@ export default async function UserCpPage() {
         dismissHref={null}
       />
 
-      <PanelSection id="waiting-heading" title="Waiting for you">
+      <PanelSection id="waiting-heading" title={await tr('page.waiting-for')}>
         <PanelWaitingList
           items={[
             {
@@ -63,7 +65,7 @@ export default async function UserCpPage() {
         />
       </PanelSection>
 
-      <PanelSection id="sections-heading" title="Sections">
+      <PanelSection id="sections-heading" title={await tr('page.sections')}>
         <PanelSectionGrid sections={panelSectionCopy(USERCP_SECTIONS, await getTranslator())} />
       </PanelSection>
     </PanelPage>

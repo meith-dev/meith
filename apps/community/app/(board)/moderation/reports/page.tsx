@@ -10,7 +10,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { messageService } from '@/server/messages'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { currentTheme } from '@/server/theme'
@@ -18,7 +18,9 @@ import { offsetOf, readPage } from '@/view/pager'
 import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Reports' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.reports') }
+}
 
 export default async function ReportsPage({
   searchParams,
@@ -54,7 +56,7 @@ export default async function ReportsPage({
 
   return (
     <PanelPage
-      title="Reports"
+      title={await tr('page.reports')}
       lede={open === 1 ? '1 report still open.' : `${open} reports still open.`}
     >
       {notice !== null && <Notice kind="info" message={notice} dismissHref="/moderation/reports" />}

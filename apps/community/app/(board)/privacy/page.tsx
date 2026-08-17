@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
 
 import { LegalDocument } from '@/components/legal/legal-document'
+import { tr } from '@/server/i18n'
 
-export const metadata: Metadata = { title: 'Privacy policy' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.privacy-policy') }
+}
 
 export default async function PrivacyPage() {
   return <LegalDocument slug="privacy" />

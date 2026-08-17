@@ -7,11 +7,13 @@ import { Card, CardFooter, CardRows, Empty, EmptyDescription, EmptyTitle } from 
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getContainer } from '@/server/container'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { resolveModCpAccess } from '@/server/modcp'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Moderator log' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.moderator-log') }
+}
 
 export default async function ModLogPage({
   searchParams,
@@ -35,8 +37,8 @@ export default async function ModLogPage({
 
   return (
     <PanelPage
-      title="Moderator log"
-      lede="Scoped to the forums you moderate, plus your own actions elsewhere."
+      title={await tr('page.moderator-log')}
+      lede={await tr('page.scoped-forums-moderate-plus-own')}
     >
       <Card>
         {page.entries.length === 0 ? (

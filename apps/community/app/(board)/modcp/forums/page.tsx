@@ -4,9 +4,12 @@ import { notFound } from 'next/navigation'
 import { Badge, Card, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { PanelPage } from '@/components/shell/panel-page'
+import { tr } from '@/server/i18n'
 import { moderatedForumRights, resolveModCpAccess } from '@/server/modcp'
 
-export const metadata: Metadata = { title: 'My forums' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.my-forums') }
+}
 
 export default async function ModCpForumsPage() {
   const access = await resolveModCpAccess()
@@ -16,8 +19,8 @@ export default async function ModCpForumsPage() {
 
   return (
     <PanelPage
-      title="My forums"
-      lede="Where you are appointed, and exactly what you may do in each."
+      title={await tr('page.my-forums')}
+      lede={await tr('page.where-appointed-exactly-what-may')}
     >
       <Card>
         {forums.length === 0 ? (

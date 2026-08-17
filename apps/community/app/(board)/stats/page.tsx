@@ -4,12 +4,14 @@ import { Card, CardContent, CardRows, Empty, EmptyDescription, EmptyTitle } from
 
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { buildStatsView, LEADERBOARD_SIZE } from '@/server/stats'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Board statistics' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.board-statistics') }
+}
 
 const LINK =
   'font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground'
@@ -25,7 +27,7 @@ export default async function StatsPage() {
 
   if (view === null) {
     return (
-      <PanelPage frame="standalone" title="Board statistics">
+      <PanelPage frame="standalone" title={await tr('page.board-statistics')}>
         <Card>
           <Empty>
             <EmptyTitle>Nothing is counted here</EmptyTitle>
@@ -42,7 +44,7 @@ export default async function StatsPage() {
     <PanelPage
       frame="standalone"
       gap="loose"
-      title="Board statistics"
+      title={await tr('page.board-statistics')}
       lede={
         totals.computedAt === null ? (
           'The totals below have not been counted yet — they are rolled up on a schedule.'
@@ -57,7 +59,7 @@ export default async function StatsPage() {
         )
       }
     >
-      <PanelSection id="totals-heading" title="Totals">
+      <PanelSection id="totals-heading" title={await tr('page.totals')}>
         <Card>
           <CardContent>
             <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">

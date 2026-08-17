@@ -5,7 +5,7 @@ import { Card, CardFooter, CardRows, Empty, EmptyDescription, EmptyTitle } from 
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { presenceRepository, readOnline } from '@/server/presence'
 import { locationOf } from '@/view/presence'
 import { formatTime } from '@/view/time'
@@ -23,7 +23,7 @@ export default async function OnlinePage() {
 
   if (snapshot === null) {
     return (
-      <PanelPage frame="standalone" title="Who’s online">
+      <PanelPage frame="standalone" title={await tr('page.who-s-online')}>
         <Card>
           <Empty>
             <EmptyTitle>Nobody is counted here</EmptyTitle>
@@ -39,7 +39,7 @@ export default async function OnlinePage() {
   return (
     <PanelPage
       frame="standalone"
-      title="Who’s online"
+      title={await tr('page.who-s-online')}
       lede={
         <>
           {translator.t('presence.summary', {

@@ -8,9 +8,12 @@ import { MergeForm } from '@/components/admin/user-forms'
 import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
+import { tr } from '@/server/i18n'
 import { userAdminRepository } from '@/server/user-admin'
 
-export const metadata: Metadata = { title: 'Merge account' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.merge-account') }
+}
 
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'

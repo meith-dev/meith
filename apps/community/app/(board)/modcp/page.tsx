@@ -11,12 +11,14 @@ import {
 } from '@/components/shell/panel-overview'
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { modCpCounts, moderatedForumRights, resolveModCpAccess } from '@/server/modcp'
 import { modCpSections } from '@/view/modcp-nav'
 import { panelSectionCopy } from '@/view/panel-nav'
 
-export const metadata: Metadata = { title: 'Moderator control panel' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.moderator-control-panel') }
+}
 
 export default async function ModCpPage() {
   const access = await resolveModCpAccess()
@@ -50,11 +52,11 @@ export default async function ModCpPage() {
 
   return (
     <PanelPage
-      title="Moderator control panel"
-      lede="The forums you are responsible for, and what they need from you."
+      title={await tr('page.moderator-control-panel')}
+      lede={await tr('page.forums-responsible-for-what-they')}
       gap="loose"
     >
-      <PanelSection id="waiting-heading" title="Waiting for you">
+      <PanelSection id="waiting-heading" title={await tr('page.waiting-for')}>
         <PanelWaitingList
           items={waiting}
           emptyTitle="Nothing is waiting"
@@ -64,7 +66,7 @@ export default async function ModCpPage() {
 
       <PanelSection
         id="forums-heading"
-        title="Your forums"
+        title={await tr('page.forums-2')}
         description="Busiest first. What you may do in each is on My forums."
       >
         <Card>
@@ -105,7 +107,7 @@ export default async function ModCpPage() {
         </Card>
       </PanelSection>
 
-      <PanelSection id="sections-heading" title="Sections">
+      <PanelSection id="sections-heading" title={await tr('page.sections')}>
         <PanelSectionGrid
           sections={panelSectionCopy(modCpSections(access), await getTranslator())}
         />

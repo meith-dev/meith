@@ -4,13 +4,15 @@ import { notFound } from 'next/navigation'
 import { requireSlot } from '@meith/theme-kit'
 
 import { DeletePostForm, EditPostForm, RestorePostForm } from '@/components/content/edit-post-form'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { resolvePostScope } from '@/server/post-scope'
 import { currentTheme } from '@/server/theme'
 import { buildEditView } from '@/view/post-form'
 import { leadingId } from '@/view/slug-id'
 
-export const metadata: Metadata = { title: 'Edit post' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.edit-post') }
+}
 
 function postId(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d*$/.test(value)) return null

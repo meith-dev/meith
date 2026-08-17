@@ -16,8 +16,11 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { contentAdminRepository } from '@/server/content-admin'
+import { tr } from '@/server/i18n'
 
-export const metadata: Metadata = { title: 'Content' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.content') }
+}
 
 export default async function AdminContentPage() {
   if ((await adminPageContext()) === null) return null
@@ -25,7 +28,7 @@ export default async function AdminContentPage() {
   const repository = contentAdminRepository()
   if (repository === null) {
     return (
-      <PanelPage title="Content">
+      <PanelPage title={await tr('page.content')}>
         <p className="mt-2 text-sm text-muted-foreground">
           This board is running on in-memory sample data, so its content settings are not stored.
         </p>
@@ -42,7 +45,7 @@ export default async function AdminContentPage() {
 
   return (
     <PanelPage
-      title="Content"
+      title={await tr('page.content')}
       lede={
         <>
           The board-wide vocabularies: what a post may contain, what gets filtered out of it, and

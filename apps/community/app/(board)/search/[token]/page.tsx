@@ -8,7 +8,7 @@ import { SearchOffNotice } from '@/components/board/search-off-notice'
 import { getContainer } from '@/server/container'
 import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { SEARCH_OFF_MESSAGE, searchEnabled } from '@/server/search'
 import { openSearch, readRefinement, SEARCH_COUNT_CAP, SEARCH_PAGE } from '@/server/search-page'
@@ -18,7 +18,9 @@ import { buildOffsetPager, offsetOf, readPage } from '@/view/pager'
 import { CURSOR_FIELDS } from '@/view/search-controls'
 import { buildSearchResultsView, type SearchForumRef } from '@/view/search-results'
 
-export const metadata: Metadata = { title: 'Search results' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.search-results') }
+}
 
 export default async function SearchResultsPage({
   params,

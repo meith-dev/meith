@@ -5,8 +5,11 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { groupAdminRepository } from '@/server/group-admin'
+import { tr } from '@/server/i18n'
 
-export const metadata: Metadata = { title: 'Mass membership change' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.mass-membership-change') }
+}
 
 export default async function AdminMembershipsPage() {
   if ((await adminPageContext()) === null) return null
@@ -14,7 +17,7 @@ export default async function AdminMembershipsPage() {
   const repository = groupAdminRepository()
   if (repository === null) {
     return (
-      <PanelPage title="Mass membership change">
+      <PanelPage title={await tr('page.mass-membership-change')}>
         <p className="mt-2 text-sm text-muted-foreground">
           This board is running on in-memory sample data, so its memberships cannot be edited.
         </p>
@@ -27,7 +30,7 @@ export default async function AdminMembershipsPage() {
   return (
     <PanelPage
       back={{ href: '/admin/groups', label: 'All groups' }}
-      title="Mass membership change"
+      title={await tr('page.mass-membership-change')}
       lede={
         <>
           Moves every member of one group into another, a batch at a time. The counts beside each

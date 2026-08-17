@@ -8,10 +8,12 @@ import { AdminNav } from '@/components/admin/admin-nav'
 import { PanelShell } from '@/components/shell/panel-shell'
 import { askForPassword, resolveAdmin } from '@/server/admin'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { buildPanelLinks } from '@/view/shell'
 
-export const metadata: Metadata = { title: 'Control panel' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.control-panel') }
+}
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const resolved = await resolveAdmin()

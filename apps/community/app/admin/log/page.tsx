@@ -5,11 +5,13 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { ADMIN_LOG_PAGE_SIZE, buildAdminLogView } from '@/view/admin-log'
 import { offsetOf, readPage } from '@/view/pager'
 
-export const metadata: Metadata = { title: 'Admin log' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.admin-log') }
+}
 
 export default async function AdminLogPage({
   searchParams,
@@ -46,7 +48,7 @@ export default async function AdminLogPage({
 
   return (
     <PanelPage
-      title="Admin log"
+      title={await tr('page.admin-log')}
       lede={<>Every administrative and moderation action, newest first.</>}
       width="wide"
     >

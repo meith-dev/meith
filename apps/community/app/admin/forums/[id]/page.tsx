@@ -9,8 +9,11 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { forumAdminRepository } from '@/server/forum-admin'
+import { tr } from '@/server/i18n'
 
-export const metadata: Metadata = { title: 'Forum options' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.forum-options') }
+}
 
 export default async function AdminForumPage({ params }: { params: Promise<{ id: string }> }) {
   if ((await adminPageContext()) === null) return null

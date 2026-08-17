@@ -8,7 +8,7 @@ import { SubscriptionRowForm } from '@/components/account/subscription-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
 import {
   buildSubscriptionsView,
@@ -16,7 +16,9 @@ import {
   subscriptionNotice,
 } from '@/view/subscriptions'
 
-export const metadata: Metadata = { title: 'Subscriptions' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.subscriptions') }
+}
 
 export default async function SubscriptionsPage({
   searchParams,
@@ -40,7 +42,7 @@ export default async function SubscriptionsPage({
 
   return (
     <PanelPage
-      title="Subscriptions"
+      title={await tr('page.subscriptions')}
       lede={
         <>
           What you follow, and how often you hear about it.{' '}
@@ -64,13 +66,13 @@ export default async function SubscriptionsPage({
       ) : (
         <>
           <Section
-            title="Threads"
+            title={await tr('page.threads')}
             empty="You are not following any threads."
             rows={view.threads}
             modes={view.modes}
           />
           <Section
-            title="Forums"
+            title={await tr('page.forums')}
             empty="You are not following any forums."
             rows={view.forums}
             modes={view.modes}

@@ -6,14 +6,16 @@ import { requireSlot } from '@meith/theme-kit'
 import { RateMemberForm, WithdrawRatingForm } from '@/components/account/reputation-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { reputationService, reputationSettings, viewerRaterLimits } from '@/server/reputation'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildReputationView, reputationLabel, reputationNotice } from '@/view/reputation'
 import { numericId } from '@/view/slug-id'
 
-export const metadata: Metadata = { title: 'Reputation' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.reputation') }
+}
 
 export default async function ReputationPage({
   params,

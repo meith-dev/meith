@@ -10,14 +10,16 @@ import { PanelPagination } from '@/components/shell/panel-pagination'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { messageService } from '@/server/messages'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildMessageFolderView, MESSAGE_FORM_ID, messageNotice } from '@/view/messages'
 import { offsetOf, readPage } from '@/view/pager'
 
-export const metadata: Metadata = { title: 'Private messages' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.private-messages') }
+}
 
 export default async function MessagesPage({
   searchParams,
@@ -68,7 +70,7 @@ export default async function MessagesPage({
 
   return (
     <PanelPage
-      title="Private messages"
+      title={await tr('page.private-messages')}
       actions={
         <a
           href={view.composeHref}

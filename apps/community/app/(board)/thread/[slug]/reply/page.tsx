@@ -9,13 +9,15 @@ import { ReplyForm } from '@/components/content/reply-form'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
 import { buildReplyView } from '@/view/post-form'
 import { postLink } from '@/view/post-link'
 import { leadingId } from '@/view/slug-id'
 
-export const metadata: Metadata = { title: 'Reply' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.reply') }
+}
 
 function quotedPostId(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d*$/.test(value)) return null

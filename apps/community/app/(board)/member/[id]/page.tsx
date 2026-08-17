@@ -10,7 +10,7 @@ import { avatarFor, avatarsFor } from '@/server/avatars'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
 import { visibleProfileFields } from '@/server/profile-fields'
 import { relationService } from '@/server/relations'
@@ -21,7 +21,9 @@ import { buildMemberProfileView } from '@/view/member-profile'
 import { reputationLabel } from '@/view/reputation'
 import { numericId } from '@/view/slug-id'
 
-export const metadata: Metadata = { title: 'Member profile' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.member-profile') }
+}
 
 export default async function MemberProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const id = numericId((await params).id)

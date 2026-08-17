@@ -8,12 +8,14 @@ import { AdminSettingsForm } from '@/components/admin/settings-form'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { boardUrlResolution } from '@/server/board-url'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { assessMailReadiness } from '@/server/mail-health'
 import { getSettings } from '@/server/settings'
 import { buildAdminSettingsModel, DEFAULT_SETTING_GROUP, settingsHref } from '@/view/admin-settings'
 
-export const metadata: Metadata = { title: 'Board settings' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.board-settings') }
+}
 
 export default async function AdminSettingsPage({
   searchParams,
@@ -44,7 +46,7 @@ export default async function AdminSettingsPage({
 
   return (
     <PanelPage
-      title="Board settings"
+      title={await tr('page.board-settings')}
       lede={
         <>
           Every setting this build has, with what it does. A value equal to its default is not

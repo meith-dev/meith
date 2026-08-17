@@ -6,9 +6,12 @@ import { MassMailForm } from '@/components/admin/user-forms'
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
+import { tr } from '@/server/i18n'
 import { userAdminRepository, userBulkRepository } from '@/server/user-admin'
 
-export const metadata: Metadata = { title: 'Mass mail' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.mass-mail') }
+}
 
 export default async function AdminMassMailPage() {
   if ((await adminPageContext()) === null) return null
@@ -19,8 +22,8 @@ export default async function AdminMassMailPage() {
     return (
       <PanelPage
         back={{ href: '/admin/users', label: 'All members' }}
-        title="Mass mail"
-        lede="This board is running on in-memory sample data, so it has nobody to mail."
+        title={await tr('page.mass-mail')}
+        lede={await tr('page.this-board-running-in-memory-sample')}
       >
         {null}
       </PanelPage>
@@ -42,7 +45,7 @@ export default async function AdminMassMailPage() {
   return (
     <PanelPage
       back={{ href: '/admin/users', label: 'All members' }}
-      title="Mass mail"
+      title={await tr('page.mass-mail')}
       lede={
         <>
           Sends one message to every member of a group. It goes only to addresses the board has{' '}

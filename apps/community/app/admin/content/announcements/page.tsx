@@ -13,8 +13,11 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { announcementRepository } from '@/server/announcements'
 import { getContainer } from '@/server/container'
+import { tr } from '@/server/i18n'
 
-export const metadata: Metadata = { title: 'Announcements' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.announcements') }
+}
 
 export default async function AdminAnnouncementsPage() {
   if ((await adminPageContext()) === null) return null
@@ -22,7 +25,7 @@ export default async function AdminAnnouncementsPage() {
   const repository = announcementRepository()
   if (repository === null) {
     return (
-      <PanelPage title="Announcements">
+      <PanelPage title={await tr('page.announcements')}>
         <p className="mt-2 text-sm text-muted-foreground">
           This board is running on in-memory sample data, so it stores no announcements.
         </p>
@@ -47,7 +50,7 @@ export default async function AdminAnnouncementsPage() {
   return (
     <PanelPage
       back={{ href: '/admin/content', label: 'Content' }}
-      title="Announcements"
+      title={await tr('page.announcements')}
       lede={
         <>
           A dated notice above the forums. Nobody can reply to one, it disappears on its own date,

@@ -12,12 +12,14 @@ import {
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { parseUserFilter, USER_PAGE, userAdminRepository } from '@/server/user-admin'
 import { readPage } from '@/view/pager'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Members' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.members') }
+}
 
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -32,7 +34,7 @@ export default async function AdminUsersPage({
   const repository = userAdminRepository()
   if (repository === null) {
     return (
-      <PanelPage title="Members" width="wide">
+      <PanelPage title={await tr('page.members')} width="wide">
         <p className="mt-2 text-sm text-muted-foreground">
           This board is running on in-memory sample data, so its members cannot be searched or
           edited.
@@ -55,7 +57,7 @@ export default async function AdminUsersPage({
 
   return (
     <PanelPage
-      title="Members"
+      title={await tr('page.members')}
       lede={
         <>
           Every criterion is combined, and every one is optional — an empty search is everybody. The

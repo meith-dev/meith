@@ -16,9 +16,12 @@ import { isUsableOrigin, MAIL_PRESETS, normaliseOrigin } from '@meith/settings'
 import { Alert, AlertDescription, AlertTitle, Disclosure } from '@meith/ui'
 
 import { InstallForm } from '@/components/install/install-form'
+import { tr } from '@/server/i18n'
 import { gatherPreflight, installerIsSealed, probeMail } from '@/server/install'
 
-export const metadata: Metadata = { title: 'Install' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.install') }
+}
 
 export const dynamic = 'force-dynamic'
 

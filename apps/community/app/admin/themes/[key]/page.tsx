@@ -7,13 +7,15 @@ import { ImportThemeForm, ResetThemeForm, ThemeEditorForm } from '@/components/a
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { buildThemeAdminView, themeAdminRepository } from '@/server/theme-admin'
 import { contrastCopy } from '@/view/contrast'
 import { tokenGroupCopy } from '@/view/theme-tokens'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Theme' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.theme') }
+}
 
 export default async function AdminThemePage({ params }: { params: Promise<{ key: string }> }) {
   if ((await adminPageContext()) === null) return null

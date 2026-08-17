@@ -7,9 +7,12 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { captchaQuestionRepository } from '@/server/antispam'
+import { tr } from '@/server/i18n'
 import { getSettings } from '@/server/settings'
 
-export const metadata: Metadata = { title: 'Anti-spam' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.anti-spam') }
+}
 
 export default async function AdminAntispamPage() {
   if ((await adminPageContext()) === null) return null
@@ -23,7 +26,7 @@ export default async function AdminAntispamPage() {
 
   return (
     <PanelPage
-      title="Anti-spam"
+      title={await tr('page.anti-spam')}
       lede={
         <>
           The thresholds are in{' '}

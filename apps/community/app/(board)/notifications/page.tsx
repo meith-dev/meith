@@ -11,13 +11,15 @@ import {
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { notificationService } from '@/server/notifications'
 import { currentTheme } from '@/server/theme'
 import { buildNotificationCentreView, notificationNotice } from '@/view/notifications'
 import { offsetOf, readPage } from '@/view/pager'
 
-export const metadata: Metadata = { title: 'Notifications' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.notifications') }
+}
 
 export default async function NotificationsPage({
   searchParams,
@@ -52,7 +54,7 @@ export default async function NotificationsPage({
 
   return (
     <PanelPage
-      title="Notifications"
+      title={await tr('page.notifications')}
       lede={
         <>
           {view.unread === 0 ? 'Nothing unread.' : `${view.unread} unread.`}{' '}

@@ -8,12 +8,14 @@ import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { logoKey, logoSrc } from '@/server/branding'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { themeListing } from '@/server/theme-admin'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Themes' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.themes') }
+}
 
 export default async function AdminThemesPage() {
   if ((await adminPageContext()) === null) return null
@@ -25,7 +27,7 @@ export default async function AdminThemesPage() {
 
   return (
     <PanelPage
-      title="Themes"
+      title={await tr('page.themes')}
       lede={
         <>
           Every theme this build contains. Turn one on and members can pick it from the appearance

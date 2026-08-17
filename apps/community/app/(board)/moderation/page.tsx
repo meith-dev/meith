@@ -10,12 +10,14 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
 import { buildQueueView } from '@/view/moderation-queue'
 import { offsetOf, readPage } from '@/view/pager'
 
-export const metadata: Metadata = { title: 'Moderation queue' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.moderation-queue') }
+}
 
 export default async function ModerationPage({
   searchParams,
@@ -69,7 +71,7 @@ export default async function ModerationPage({
 
   return (
     <PanelPage
-      title="Approval queue"
+      title={await tr('page.approval-queue')}
       lede={
         view.pending === 1
           ? '1 item awaiting approval.'

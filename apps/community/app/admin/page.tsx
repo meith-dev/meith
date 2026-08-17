@@ -19,7 +19,7 @@ import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { readTotals } from '@/server/stats'
 import { pendingUpgradeNotice } from '@/server/upgrade-notice'
@@ -59,7 +59,7 @@ export default async function AdminHomePage() {
 
   return (
     <PanelPage
-      title="Overview"
+      title={await tr('page.overview')}
       lede={
         <>
           Signed in to the control panel since{' '}
@@ -71,7 +71,7 @@ export default async function AdminHomePage() {
       }
       gap="loose"
     >
-      <PanelSection id="waiting-heading" title="Waiting for you">
+      <PanelSection id="waiting-heading" title={await tr('page.waiting-for')}>
         {upgradeNotice !== null && (
           <Alert tone="warning">
             <AlertDescription>
@@ -113,7 +113,7 @@ export default async function AdminHomePage() {
       </PanelSection>
 
       {totals !== null && (
-        <PanelSection id="totals-heading" title="The board">
+        <PanelSection id="totals-heading" title={await tr('page.board')}>
           <Card>
             {totals.computedAt === null ? (
               <Empty className="py-8">
@@ -157,7 +157,7 @@ export default async function AdminHomePage() {
         </PanelSection>
       )}
 
-      <PanelSection id="activity-heading" title="Latest activity">
+      <PanelSection id="activity-heading" title={await tr('page.latest-activity')}>
         <Card>
           {recent.length === 0 ? (
             <Empty className="py-8">
@@ -198,7 +198,7 @@ export default async function AdminHomePage() {
         </Card>
       </PanelSection>
 
-      <PanelSection id="sections-heading" title="Sections">
+      <PanelSection id="sections-heading" title={await tr('page.sections')}>
         <PanelSectionGrid sections={panelSectionCopy(ADMIN_SECTIONS, translator)} />
       </PanelSection>
     </PanelPage>

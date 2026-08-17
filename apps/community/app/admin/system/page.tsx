@@ -13,11 +13,13 @@ import {
 import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { buildSystemHealthView } from '@/server/system-admin'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'System health' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.system-health') }
+}
 
 export default async function AdminSystemPage() {
   if ((await adminPageContext()) === null) return null
@@ -28,7 +30,7 @@ export default async function AdminSystemPage() {
 
   if (view === null) {
     return (
-      <PanelPage title="System health">
+      <PanelPage title={await tr('page.system-health')}>
         <p className="mt-2 text-sm text-muted-foreground">
           This board is running on in-memory sample data, so it has no scheduler and nothing to
           maintain.
@@ -41,7 +43,7 @@ export default async function AdminSystemPage() {
 
   return (
     <PanelPage
-      title="System health"
+      title={await tr('page.system-health')}
       lede={<>What the board does on a schedule, and whether it is doing it.</>}
       gap="loose"
     >

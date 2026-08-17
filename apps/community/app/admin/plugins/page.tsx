@@ -6,9 +6,12 @@ import { PluginEnableForm } from '@/components/admin/plugin-forms'
 import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
+import { tr } from '@/server/i18n'
 import { hookListeners, pluginInventory } from '@/server/plugin-admin'
 
-export const metadata: Metadata = { title: 'Plugins' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.plugins') }
+}
 
 export default async function AdminPluginsPage() {
   if ((await adminPageContext()) === null) return null
@@ -18,7 +21,7 @@ export default async function AdminPluginsPage() {
 
   return (
     <PanelPage
-      title="Plugins"
+      title={await tr('page.plugins')}
       lede={
         <>
           Everything installable is named in <code className="text-xs">community.config.ts</code> so

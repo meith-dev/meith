@@ -22,7 +22,7 @@ import { memberSecurityActivity } from '@/server/auth-events'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { memberManagedSignIns, passkeysEnabled, signInProviders } from '@/server/federation'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { currentSessionId } from '@/server/session-actions'
 import { currentTheme } from '@/server/theme'
 import { pendingEnrolment, secondFactorPosture, twoFactorState } from '@/server/two-factor'
@@ -31,7 +31,9 @@ import { ssoNotice } from '@/view/sso-notices'
 import { formatDate, formatTime } from '@/view/time'
 import { userCpNotice } from '@/view/usercp'
 
-export const metadata: Metadata = { title: 'Account security' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.account-security') }
+}
 
 const NOTICES: Record<string, string> = {
   'passkey:added': 'That passkey is ready. You can sign in with it from now on.',
@@ -142,8 +144,8 @@ export default async function SecurityPage({
 
   return (
     <PanelPage
-      title="Account security"
-      lede="Changing either your e-mail address or your password needs the password you have now. Everything below it is a way into your account, and a record of what has used one."
+      title={await tr('page.account-security')}
+      lede={await tr('page.changing-either-e-mail-address-password')}
     >
       {notice !== null && (
         <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/security" />

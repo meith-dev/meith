@@ -7,12 +7,14 @@ import { requireSlot } from '@meith/theme-kit'
 import { SignatureForm } from '@/components/account/usercp-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { signatureStore, viewerSignatureLimits } from '@/server/signatures'
 import { currentTheme } from '@/server/theme'
 import { userCpNotice } from '@/view/usercp'
 
-export const metadata: Metadata = { title: 'Your signature' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.signature') }
+}
 
 export default async function SignaturePage({
   searchParams,
@@ -36,7 +38,10 @@ export default async function SignaturePage({
   const preview = signatureHtml(stored)
 
   return (
-    <PanelPage title="Your signature" lede="Shown under every post you have made, past and future.">
+    <PanelPage
+      title={await tr('page.signature')}
+      lede={await tr('page.shown-under-every-post-have')}
+    >
       {notice !== null && (
         <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/signature" />
       )}

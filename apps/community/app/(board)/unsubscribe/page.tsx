@@ -5,11 +5,13 @@ import { readUnsubscribeToken } from '@meith/subscriptions'
 import { requireSlot } from '@meith/theme-kit'
 
 import { UnsubscribeConfirmForm } from '@/components/account/subscription-forms'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
 import { unsubscribeNotice } from '@/view/subscriptions'
 
-export const metadata: Metadata = { title: 'Unsubscribe' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.unsubscribe') }
+}
 
 export default async function UnsubscribePage({
   searchParams,

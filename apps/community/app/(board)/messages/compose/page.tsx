@@ -5,9 +5,12 @@ import { ComposeForm } from '@/components/messages/message-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { tr } from '@/server/i18n'
 import { messageService } from '@/server/messages'
 
-export const metadata: Metadata = { title: 'Write a message' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.write-message') }
+}
 
 export default async function ComposePage({
   searchParams,
@@ -35,8 +38,8 @@ export default async function ComposePage({
   return (
     <PanelPage
       back={{ href: '/messages', label: 'Private messages' }}
-      title="Write a message"
-      lede="Private messages are not moderated, but the person you write to can report one."
+      title={await tr('page.write-message')}
+      lede={await tr('page.private-messages-not-moderated-but')}
     >
       <ComposeForm
         to={draft?.to ?? query.to ?? ''}

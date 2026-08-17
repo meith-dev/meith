@@ -7,11 +7,13 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { boardSecurityActivity } from '@/server/auth-events'
 import { getContainer } from '@/server/container'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { authEventLabel, describeAddress, describeDevice } from '@/view/security-activity'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Sign-in activity' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.sign-in-activity') }
+}
 
 const PAGE_SIZE = 50
 
@@ -45,7 +47,7 @@ export default async function AdminSecurityPage({
 
   return (
     <PanelPage
-      title="Sign-in activity"
+      title={await tr('page.sign-in-activity')}
       lede={
         <>
           Every authentication event on this board, newest first: who signed in, what was refused,

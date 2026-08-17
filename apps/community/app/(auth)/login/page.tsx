@@ -7,11 +7,13 @@ import { LoginForm } from '@/components/auth/login-form'
 import { PasskeySignIn } from '@/components/auth/passkey-sign-in'
 import { SsoButtons } from '@/components/auth/sso-buttons'
 import { passkeysEnabled, signInProviders } from '@/server/federation'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { registrationOpen } from '@/server/registration'
 import { ssoNotice } from '@/view/sso-notices'
 
-export const metadata: Metadata = { title: 'Sign in' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.sign') }
+}
 
 const NOTICES: Record<string, string> = {
   installed: 'Your board is installed. Sign in with the administrator account you just created.',
@@ -76,7 +78,12 @@ export default async function LoginPage({
         : null
 
   return (
-    <AuthPage title="Welcome back" lede="Sign in to your account." alert={alert} links={links}>
+    <AuthPage
+      title={await tr('page.welcome-back')}
+      lede={await tr('page.sign-account')}
+      alert={alert}
+      links={links}
+    >
       <div className="flex flex-col gap-4">
         <SsoButtons providers={providers} next={params.next} />
         <LoginForm

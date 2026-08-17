@@ -5,8 +5,11 @@ import { PANEL_CARD, PANEL_LIST, PANEL_ROW, PanelActionLink } from '@/components
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { groupAdminRepository } from '@/server/group-admin'
+import { tr } from '@/server/i18n'
 
-export const metadata: Metadata = { title: 'Groups' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.groups') }
+}
 
 export default async function AdminGroupsPage() {
   if ((await adminPageContext()) === null) return null
@@ -14,7 +17,7 @@ export default async function AdminGroupsPage() {
   const repository = groupAdminRepository()
   if (repository === null) {
     return (
-      <PanelPage title="Groups">
+      <PanelPage title={await tr('page.groups')}>
         <p className="mt-2 text-sm text-muted-foreground">
           This board is running on in-memory sample data, so its groups cannot be edited.
         </p>
@@ -26,7 +29,7 @@ export default async function AdminGroupsPage() {
 
   return (
     <PanelPage
-      title="Groups"
+      title={await tr('page.groups')}
       lede={
         <>
           A group is a set of permissions and the members who hold it. What a group allows here is

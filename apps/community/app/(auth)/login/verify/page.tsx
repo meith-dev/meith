@@ -5,11 +5,14 @@ import { AuthPage } from '@/components/auth/auth-page'
 import { PasskeySecondFactor } from '@/components/auth/passkey-second-factor'
 import { SecondFactorForm } from '@/components/auth/second-factor-form'
 import { configuredIdentity, getContainer } from '@/server/container'
+import { tr } from '@/server/i18n'
 import { isSafeLocalPath } from '@/server/safe-path'
 import { readSecondFactorToken } from '@/server/session-cookies'
 import { twoFactorState } from '@/server/two-factor'
 
-export const metadata: Metadata = { title: 'Confirm it is you' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.confirm-it') }
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -32,8 +35,8 @@ export default async function VerifyPage({
 
   return (
     <AuthPage
-      title="One more step"
-      lede="Your password was right. Enter the code your authenticator app is showing."
+      title={await tr('page.one-more-step')}
+      lede={await tr('page.password-was-right-enter-code')}
       links={[{ label: 'Back to sign in', href: '/login', lead: null }]}
     >
       <div className="flex flex-col gap-4">

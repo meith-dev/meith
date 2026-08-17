@@ -6,6 +6,7 @@ import { SsoButtons } from '@/components/auth/sso-buttons'
 import { issueChallenge } from '@/server/antispam'
 import { boardAuthConfig } from '@/server/auth-config'
 import { signInProviders } from '@/server/federation'
+import { tr } from '@/server/i18n'
 import { termsAcceptance } from '@/server/legal'
 import { registrationFields } from '@/server/profile-fields'
 import {
@@ -14,7 +15,9 @@ import {
   registrationOpen,
 } from '@/server/registration'
 
-export const metadata: Metadata = { title: 'Create account' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.create-account') }
+}
 
 export default async function RegisterPage() {
   if (!(await registrationOpen())) {
@@ -41,8 +44,8 @@ export default async function RegisterPage() {
 
   return (
     <AuthPage
-      title="Create your account"
-      lede="Join the discussion."
+      title={await tr('page.create-account-2')}
+      lede={await tr('page.join-discussion')}
       links={[{ label: 'Sign in', href: '/login', lead: 'Already have an account?' }]}
     >
       <div className="flex flex-col gap-4">

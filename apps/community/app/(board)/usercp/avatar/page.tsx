@@ -8,11 +8,13 @@ import { AvatarForm } from '@/components/account/avatar-form'
 import { PanelPage } from '@/components/shell/panel-page'
 import { avatarFor, canUploadAvatar } from '@/server/avatars'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
 import { userCpNotice } from '@/view/usercp'
 
-export const metadata: Metadata = { title: 'Your avatar' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.avatar') }
+}
 
 export default async function AvatarPage({
   searchParams,
@@ -29,7 +31,7 @@ export default async function AvatarPage({
   const notice = userCpNotice(query, await getTranslator())
 
   return (
-    <PanelPage title="Your avatar" lede="Shown beside every post you make, and on your profile.">
+    <PanelPage title={await tr('page.avatar')} lede={await tr('page.shown-beside-every-post-make')}>
       {notice !== null && (
         <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/avatar" />
       )}

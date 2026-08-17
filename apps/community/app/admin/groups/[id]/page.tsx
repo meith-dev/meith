@@ -12,10 +12,13 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildGroupPermissionView, groupAdminRepository } from '@/server/group-admin'
 import { badgeKey, badgeSrc } from '@/server/group-badge'
+import { tr } from '@/server/i18n'
 import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { boardSampleSurfaces } from '@/server/theme-admin'
 
-export const metadata: Metadata = { title: 'Group' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.group') }
+}
 
 export default async function AdminGroupPage({ params }: { params: Promise<{ id: string }> }) {
   if ((await adminPageContext()) === null) return null

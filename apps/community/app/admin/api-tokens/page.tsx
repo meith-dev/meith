@@ -4,10 +4,12 @@ import { IssueTokenForm, RevokeTokenForm } from '@/components/admin/api-token-fo
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildApiTokenView } from '@/server/api-tokens-admin'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'API tokens' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.api-tokens') }
+}
 
 export default async function AdminApiTokensPage() {
   if ((await adminPageContext()) === null) return null
@@ -18,7 +20,7 @@ export default async function AdminApiTokensPage() {
 
   if (view === null) {
     return (
-      <PanelPage title="API tokens">
+      <PanelPage title={await tr('page.api-tokens')}>
         <p className="mt-2 text-sm text-muted-foreground">
           This board is running on in-memory sample data, so it has no API.
         </p>
@@ -28,7 +30,7 @@ export default async function AdminApiTokensPage() {
 
   return (
     <PanelPage
-      title="API tokens"
+      title={await tr('page.api-tokens')}
       lede={
         <>
           Bearer tokens for <code className="font-mono text-xs">/api/v1</code>. Every request is

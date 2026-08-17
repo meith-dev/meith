@@ -6,11 +6,14 @@ import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { adminPageContext } from '@/server/admin'
+import { tr } from '@/server/i18n'
 import { pluginRow } from '@/server/plugin-admin'
 import { renderPluginAdminPage } from '@/server/plugin-pages'
 import { pluginPanelTabs } from '@/view/plugin-panel'
 
-export const metadata: Metadata = { title: 'Plugin' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.plugin') }
+}
 
 export default async function AdminPluginPage({
   params,

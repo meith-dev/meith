@@ -8,13 +8,15 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
 import { attachmentAdminRepository } from '@/server/content-admin'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { formatBytes } from '@/view/attachments'
 import { offsetOf, readPage } from '@/view/pager'
 import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Attachments' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.attachments') }
+}
 
 const PAGE_SIZE = 50
 
@@ -28,7 +30,7 @@ export default async function AdminAttachmentsPage({
   const repository = attachmentAdminRepository()
   if (repository === null) {
     return (
-      <PanelPage title="Attachments" width="wide">
+      <PanelPage title={await tr('page.attachments')} width="wide">
         <p className="mt-2 text-sm text-muted-foreground">
           This board is running on in-memory sample data, so it stores no files.
         </p>
@@ -62,7 +64,7 @@ export default async function AdminAttachmentsPage({
   return (
     <PanelPage
       back={{ href: '/admin/content', label: 'Content' }}
-      title="Attachments"
+      title={await tr('page.attachments')}
       lede={
         <>
           Every file members have uploaded. Deleting one removes it from the list under its post and

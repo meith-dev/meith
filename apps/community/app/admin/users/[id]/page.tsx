@@ -11,11 +11,13 @@ import {
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { buildMemberView } from '@/server/user-admin'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Member' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.member') }
+}
 
 export default async function AdminMemberPage({ params }: { params: Promise<{ id: string }> }) {
   if ((await adminPageContext()) === null) return null

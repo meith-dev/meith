@@ -15,9 +15,12 @@ import {
   previewPromotions,
   promotionRuleRepository,
 } from '@/server/group-admin'
+import { tr } from '@/server/i18n'
 import { promotionRuleFormValues, promotionRuleSummary } from '@/view/promotion-rules'
 
-export const metadata: Metadata = { title: 'Promotions' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.promotions') }
+}
 
 export default async function AdminPromotionsPage() {
   if ((await adminPageContext()) === null) return null
@@ -28,7 +31,7 @@ export default async function AdminPromotionsPage() {
 
   if (repository === null || rules === null || result === null) {
     return (
-      <PanelPage title="Promotions">
+      <PanelPage title={await tr('page.promotions')}>
         <p className="mt-2 text-sm text-muted-foreground">
           This board is running on in-memory sample data, so promotions cannot run.
         </p>
@@ -52,7 +55,7 @@ export default async function AdminPromotionsPage() {
   return (
     <PanelPage
       back={{ href: '/admin/groups', label: 'All groups' }}
-      title="Promotions"
+      title={await tr('page.promotions')}
       lede={
         <>
           A promotion rule moves a member into a group once they have earned it. The rules are here,

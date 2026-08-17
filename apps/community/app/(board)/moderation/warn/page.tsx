@@ -9,11 +9,13 @@ import { IssueWarningForm, RevokeWarningForm } from '@/components/moderation/war
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
 import { buildWarningView, warningNotice } from '@/view/warnings'
 
-export const metadata: Metadata = { title: 'Warn a member' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.warn-member') }
+}
 
 function positiveInt(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d*$/.test(value)) return null
@@ -100,7 +102,7 @@ export default async function WarnPage({
         types={view.types}
       />
 
-      <PanelSection id="history-heading" title="History">
+      <PanelSection id="history-heading" title={await tr('page.history')}>
         {view.history.length === 0 ? (
           <Card>
             <Empty className="py-8">

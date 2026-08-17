@@ -2,8 +2,11 @@ import type { Metadata } from 'next'
 
 import { AuthPage } from '@/components/auth/auth-page'
 import { ResendVerificationForm } from '@/components/auth/resend-verification-form'
+import { tr } from '@/server/i18n'
 
-export const metadata: Metadata = { title: 'Confirm your account' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.confirm-account') }
+}
 
 export default async function ResendVerificationPage({
   searchParams,
@@ -30,7 +33,7 @@ export default async function ResendVerificationPage({
 
   return (
     <AuthPage
-      title="Confirm your account"
+      title={await tr('page.confirm-account')}
       lede={lede}
       note="Nothing arrived? Check the spam folder first, then send another link. Each new link replaces the last one."
       links={[{ label: 'Back to sign in', href: '/login', lead: null }]}

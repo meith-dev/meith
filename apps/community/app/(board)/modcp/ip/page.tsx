@@ -18,12 +18,14 @@ import {
 
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { resolveModCpAccess } from '@/server/modcp'
 import { memberHref } from '@/view/member-profile'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Address lookup' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.address-lookup') }
+}
 
 function positiveInt(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d*$/.test(value)) return null
@@ -66,7 +68,7 @@ export default async function IpLookupPage({
 
   return (
     <PanelPage
-      title="Address lookup"
+      title={await tr('page.address-lookup')}
       lede={
         <>
           Finds accounts that share a stored address <em>range</em> with a member. The board never

@@ -7,7 +7,7 @@ import { DisplayGroupForm, ProfileForm } from '@/components/account/usercp-forms
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { profileFieldService, viewerFieldContext } from '@/server/profile-fields'
 import { currentTheme } from '@/server/theme'
 import {
@@ -17,7 +17,9 @@ import {
   userCpNotice,
 } from '@/view/usercp'
 
-export const metadata: Metadata = { title: 'Your profile' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.profile') }
+}
 
 export default async function ProfileSettingsPage({
   searchParams,
@@ -49,7 +51,7 @@ export default async function ProfileSettingsPage({
 
   return (
     <PanelPage
-      title="Your profile"
+      title={await tr('page.profile')}
       lede={
         <>
           Shown on{' '}

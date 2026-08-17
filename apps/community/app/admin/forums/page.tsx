@@ -8,8 +8,11 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
+import { tr } from '@/server/i18n'
 
-export const metadata: Metadata = { title: 'Forums' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.forums') }
+}
 
 export default async function AdminForumsPage() {
   if ((await adminPageContext()) === null) return null
@@ -18,7 +21,7 @@ export default async function AdminForumsPage() {
 
   return (
     <PanelPage
-      title="Forums"
+      title={await tr('page.forums')}
       width="wide"
       gap="loose"
       lede={

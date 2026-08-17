@@ -8,13 +8,15 @@ import { RemoveRelationForm } from '@/components/account/relation-forms'
 import { PANEL_LIST } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { relationService } from '@/server/relations'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildContactsView, type ContactRowView, contactsNotice } from '@/view/contacts'
 
-export const metadata: Metadata = { title: 'Buddies and ignored members' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.buddies-ignored-members') }
+}
 
 const RETURN_TO = '/usercp/contacts'
 
@@ -49,7 +51,7 @@ export default async function ContactsPage({
 
   return (
     <PanelPage
-      title="Buddies and ignored members"
+      title={await tr('page.buddies-ignored-members')}
       lede={`Add somebody from their profile. ${view.total} of ${view.limit} used.`}
     >
       {notice !== null && (

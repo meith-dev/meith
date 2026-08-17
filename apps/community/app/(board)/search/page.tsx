@@ -25,7 +25,7 @@ import {
 import { SearchOffNotice } from '@/components/board/search-off-notice'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { SEARCH_OFF_MESSAGE, searchEnabled } from '@/server/search'
 import { MAX_AUTHOR_NAMES, type RunSearchOutcome, runSearch } from '@/server/search-page'
@@ -41,7 +41,9 @@ import {
   SUBFORUMS_ON,
 } from '@/view/search-controls'
 
-export const metadata: Metadata = { title: 'Search' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.search') }
+}
 
 const HINT =
   'Searches every forum you can see. Put a phrase in quotes to match it exactly, ' +

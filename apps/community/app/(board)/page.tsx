@@ -9,7 +9,7 @@ import { refreshLatestPanels } from '@/server/board-latest-actions'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { boardRegion, filterView, viewerRef } from '@/server/plugin-view'
 import { presenceRepository, readOnline } from '@/server/presence'
 import { readTotals } from '@/server/stats'
@@ -19,7 +19,9 @@ import { buildBoardIndexView } from '@/view/board-index'
 import { distinctUserIds } from '@/view/member-identity'
 import { buildBoardStatsModel, buildWhoIsOnlineModel } from '@/view/presence'
 
-export const metadata: Metadata = { title: 'Forums' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.forums') }
+}
 
 export default async function BoardIndexPage() {
   const actor = await getActor()

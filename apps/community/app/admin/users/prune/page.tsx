@@ -4,9 +4,12 @@ import { PruneForm } from '@/components/admin/user-forms'
 import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
+import { tr } from '@/server/i18n'
 import { parsePruneCriteria, userBulkRepository } from '@/server/user-admin'
 
-export const metadata: Metadata = { title: 'Prune members' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.prune-members') }
+}
 
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -21,7 +24,7 @@ export default async function AdminPrunePage({
   const repository = userBulkRepository()
   if (repository === null) {
     return (
-      <PanelPage title="Prune members">
+      <PanelPage title={await tr('page.prune-members')}>
         <p className="mt-2 text-sm text-muted-foreground">
           This board is running on in-memory sample data, so it has no membership to sweep.
         </p>
@@ -42,7 +45,7 @@ export default async function AdminPrunePage({
   return (
     <PanelPage
       back={{ href: '/admin/users', label: 'All members' }}
-      title="Prune members"
+      title={await tr('page.prune-members')}
       lede={
         <>
           Closes dormant accounts in batches. It will never touch anybody who has posted — including
