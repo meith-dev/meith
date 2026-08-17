@@ -31,7 +31,7 @@ export function BoardStats({
           ].map((figure) => (
             <span key={figure.label}>
               <span className={`font-semibold text-foreground ${NUMERIC}`}>
-                {figure.value.toLocaleString('en')}
+                {figure.value.label}
               </span>{' '}
               {figure.label}
             </span>

@@ -1,0 +1,232 @@
+# Languages
+
+Meith renders in the reader's language when it has a catalog for it, and in
+English when it does not. This document is how a board picks its language, how
+you add a new one, and how a theme or a plugin ships its own words.
+
+Everything here is served by one package, `@meith/i18n`. It has no dependencies
+and no network calls: messages are ordinary JSON compiled into the build, and
+the formatting comes from `Intl`, which every runtime Meith supports already
+carries.
+
+## How a page picks its language
+
+Three things are asked, in this order, and the first that names a language the
+board can serve wins:
+
+1. **The member's own choice**, set in *Your control panel → Options*. Left at
+   *Automatic*, it names nothing and the next question is asked.
+2. **The browser's `Accept-Language` header**, in the order of preference the
+   browser sent. `pt-PT` is served by a `pt-BR` catalog if that is the only
+   Portuguese the board has — a near miss beats English.
+3. **The board default**, set in *Admin CP → Settings → Display → Default
+   language*. It is `en` on a fresh board.
+
+The answer sets `<html lang>` and `<html dir>`, so screen readers, spell
+checkers and hyphenation follow the same decision the text did, and a
+right-to-left language lays the page out right-to-left.
+
+Language and timezone are separate preferences and always have been: a Berliner
+reading in English still wants their timestamps in `Europe/Berlin`. Setting one
+never moves the other.
+
+## Messages
+
+A message is an ICU MessageFormat pattern under a dotted key:
+
+```json
+{
+  "nav.home": "Home",
+  "stats.posts": "{count, plural, one {# post} other {# posts}}",
+  "time.today": "Today, {time}"
+}
+```
+
+The parts of ICU that Meith implements:
+
+| Written | Does |
+|---|---|
+| `{name}` | Substitutes a value. A missing one renders as nothing, never as `undefined`. |
+| `{n, number}` | Formats by the locale — `1,234` in English, `1.234` in German. |
+| `{n, number, percent}`, `{n, number, integer}`, `{n, number, ::group-off .0}` | Number styles, and the skeleton subset for grouping and fraction digits. |
+| `{at, date, short}`, `{at, time, medium}` | Dates and times, in the viewer's timezone. |
+| `{n, plural, one {…} other {…}}` | Picks the plural category **the reader's language actually has** — Russian has `one/few/many/other`, Arabic adds `zero` and `two`, Japanese has only `other`. `#` is the number, formatted. |
+| `{n, plural, =0 {…} …}` | An exact match, preferred over any category. |
+| `{n, plural, offset:1 …}` | Subtracts from `#` without changing which category is chosen. |
+| `{n, selectordinal, one {#st} …}` | Ordinals. |
+| `{g, select, female {…} male {…} other {…}}` | Branches on a value. |
+| `'{'`, `''` | An escaped brace, and a literal apostrophe. |
+
+Every plural and select must carry an `other` branch, and a plural may only name
+a real CLDR category. Both are refused when the catalog is parsed, which happens
+in the test suite, so a typo is a failing build rather than a branch that
+silently never matches.
+
+A key nothing translates falls back through the language tag — `pt-BR`, then
+`pt`, then English — and a key nothing carries at all renders as itself, which
+is ugly on purpose: a missing message should be visible, not invisible.
+
+## Adding a language
+
+1. Copy `packages/i18n/src/catalogs/en.json` to a new file named for the
+   language tag — `de.json`, `pt-BR.json`. Keep the keys; translate the values.
+   You do not have to translate all of them. Anything you leave out falls back
+   to English, so a half-finished catalog is a useful catalog.
+
+2. Register it in `packages/i18n/src/catalogs/index.ts`:
+
+   ```ts
+   import de from './de.json'
+   import en from './en.json'
+
+   export const BOARD_CATALOG: CatalogSource = {
+     id: BOARD_CATALOG_ID,
+     messages: { en, de },
+   }
+   ```
+
+   Registration is a static import because nothing is discovered by scanning a
+   directory at runtime — a bundle contains only what the bundler could see.
+
+3. Set the board default, or pick the language in your control panel, and read a
+   page.
+
+Three things are worth knowing while you translate:
+
+- **`time.hourCycle`** is not prose. It is `h23` for a 24-hour clock, `h12` for
+  a 12-hour one, or `auto` to take whatever the language conventionally uses.
+- **Word order is yours.** `time.thisYear` is `{day} {month}, {time}` in
+  English; write `{month} {day}, {time}` if that is how your language dates
+  things. The month name itself comes from `Intl`, in your language, whatever
+  the pattern says.
+- **Plural categories are yours too.** English needs `one` and `other`. Write
+  the categories your language has; nothing in the board assumes two.
+
+`pnpm i18n:check` and `pnpm test` between them prove that every message in every
+catalog parses, that a translation names no key English does not have, and that
+a translated message reads the same arguments as the English one — so a `{count}`
+that became `{anzahl}` fails rather than rendering blank.
+
+## Catalogs from a theme or a plugin
+
+Both contribute through `community.config.ts`, next to where they are installed:
+
+```ts
+import { defineForumConfig } from '@meith/core'
+import { clubhouseMessages } from '@meith/theme-clubhouse'
+
+export default defineForumConfig({
+  themes: {
+    clubhouse: { key: 'clubhouse', title: 'Clubhouse', tokens, theme, messages: clubhouseMessages },
+  },
+  defaultTheme: 'clubhouse',
+  plugins: [{ key: 'dues', plugin: dues, messages: duesMessages }],
+  messages: { en: { 'nav.home': 'The Lobby' } },
+})
+```
+
+A `messages` bundle is `{ [locale]: { [key]: pattern } }` — the same shape as a
+catalog file, one per language.
+
+Later registrations win, and the order is board catalog, then themes, then
+plugins, then the `messages` at the top of the config. So a theme may reword the
+board, a plugin may reword a theme, and the board's own `messages` block has the
+last word on all of them. That is how you rename *Threads* to *Missions* without
+forking anything.
+
+Namespace your own keys — `dues.expired`, not `expired` — and use the board's
+keys only when you mean to override them.
+
+## Working on the board itself
+
+New user-facing copy goes in the catalog. Two mechanical checks hold the line,
+both run by `pnpm verify`:
+
+- **`no-fixed-locale-format`**, one of the textual guards in
+  `scripts/guards.config.mjs`, refuses a locale named at a formatting call site
+  — `toLocaleString('en')` and its bare no-argument form alike. Format through
+  the viewer's `Translator`, and hand a theme a `CountModel` rather than a
+  number.
+- **`pnpm i18n:check`** proves the catalog and the code agree: that every key a
+  call site names exists, that no message has outlived the call site that read
+  it, that the mirrored definitions still match, and that no view builder gained
+  a new English string.
+
+### Getting a translator
+
+In a server component, `getTranslator()` from `@/server/i18n` returns one bound
+to the viewer's language *and* timezone. It is request-scoped, so awaiting it
+repeatedly costs nothing.
+
+```ts
+const t = await getTranslator()
+
+t.t('stats.posts', { count: forum.postCount }) // '1,204 posts'
+t.number(1204) // '1,204'
+t.list(['a', 'b', 'c']) // 'a, b, and c'
+```
+
+View builders take it as `t` in their input object and pass it to
+`formatTime()`, which is why timestamps carry a language as well as a zone. A
+builder called without one falls back to `untranslated()`, an English translator
+in UTC — which is what tests and the fixture board use.
+
+Themes are never handed a translator, or a locale: a slot receives a view model
+and nothing else, by design. Numbers reach a theme already formatted, as a
+`CountModel` carrying both the string and the number — the same bargain
+`TimeModel` has always made for timestamps. So a view builder that puts a
+counter in a model wraps it with `count()` from `@/view/count`, and the theme
+renders `postCount.label`. Anything a theme needs to *say* rather than count
+belongs in its own catalog. [The theme API](./theme-api.md) has the theme side.
+
+A plugin is different: it renders arbitrary UI rather than filling a slot, so
+its page context carries `locale` and it formats what it needs to.
+
+### The three mirrored surfaces
+
+Setting labels in `packages/settings/src/definitions.ts`, error messages in
+`packages/core/src/errors.ts` and notification kinds in
+`packages/notifications/src/kinds.ts` keep their English text in place *and*
+carry it in the catalog. They are the exception, and the reasons differ:
+
+- **Errors have no choice.** `@meith/core` is the bottom of the stack and
+  dependency-cruiser's `core-depends-on-nothing` forbids it a sibling import,
+  so `errors.ts` has no catalog to read. An error raised in the worker or the
+  CLI carries English of its own, and the key is what lets a render boundary
+  upgrade it.
+- **Notification kinds are half-forced.** A plugin registers a kind with plain
+  `title` and `description` strings through `@meith/plugin-kit`, so the field
+  stays a string; the nine built-in kinds are mirrored to match.
+- **Settings are a readability choice.** Nothing outside the admin panel reads
+  a setting's label, so they could have moved wholesale. A definition that says
+  `label: 'Board name'` tells you what a setting is where you are editing it,
+  and one that says `labelKey: 'setting.board.name.label'` sends you to another
+  file to find out.
+
+`pnpm i18n:check` compares the two copies character for character and fails on
+any difference, so they cannot drift: adding a setting fails the build until its
+`setting.<key>.label` and `setting.<key>.description` exist and match.
+
+### The rest of the copy, and the ratchet
+
+The view builders under `apps/community/src/view/` are done: every one of them
+reads its copy from the catalog. Most of the board's words are not — the pages
+and components under `apps/community/app/` and `src/components/`, the sentences
+domain packages raise as validation errors, and the themes' and plugins' own
+headings still hold English, some 4,900 strings across 470 files.
+
+They cannot grow. `scripts/i18n-baseline.json` records how much English each
+file holds — string literals and JSX text alike — and `pnpm i18n:check` fails
+any file that gains one. A file not listed must hold none at all, so new code
+starts translated. When you finish extracting a file, run `pnpm i18n:baseline`
+to bank it; the numbers only ever go down.
+
+A handful of the counts are noise rather than copy: `view/feed.ts` and
+`view/sso-hand-off.ts` build XML and HTML documents whose fragments read like
+prose to the counter, and `view/setting-groups.ts` holds the group labels the
+catalog mirrors. They sit in the baseline at a fixed number and stay there.
+
+Extracting a file is the same four steps every time: give each string a key in
+`en.json`, replace the literal with `t.t(key)`, take a `Translator` where the
+builder does not already have one, and hand it in from the page. A builder
+called without one falls back to English, so nothing breaks half-way through.

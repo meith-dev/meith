@@ -11,7 +11,7 @@ export function SubforumList({ forums }: SubforumListModel) {
       {forums.map((forum) => (
         <a key={forum.href} href={forum.href} className="text-primary hover:underline">
           {forum.title}
-          <span className="ml-1 text-muted-foreground">({forum.threadCount})</span>
+          <span className="ml-1 text-muted-foreground">({forum.threadCount.label})</span>
         </a>
       ))}
     </nav>

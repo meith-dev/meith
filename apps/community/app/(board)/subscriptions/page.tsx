@@ -8,8 +8,8 @@ import { SubscriptionRowForm } from '@/components/account/subscription-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import {
   buildSubscriptionsView,
   type SubscriptionRowView,
@@ -32,9 +32,9 @@ export default async function SubscriptionsPage({
   const visibleForumIds = await authorizer.visibleForumIds(actor)
   const rows = await new SubscriptionService({ subscriptions }).list(actor.userId, visibleForumIds)
 
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
-  const view = buildSubscriptionsView({ rows, now: new Date(), timeZone: timezone })
+  const view = buildSubscriptionsView({ rows, now: new Date(), t: translator })
   const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = subscriptionNotice(query)
 

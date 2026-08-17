@@ -55,7 +55,7 @@ export function MemberProfile({
         </div>
         <div>
           <dt className="text-muted-foreground">posts</dt>
-          <dd>{postCount}</dd>
+          <dd>{postCount.label}</dd>
         </div>
         {fields.map((field) => (
           <div key={field.label}>

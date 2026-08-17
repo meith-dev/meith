@@ -98,8 +98,10 @@ export function DiscoveryView({
                 </div>
 
                 <p className={`${MICRO} shrink-0 normal-case sm:text-right`}>
-                  <span className={`${NUMERIC} text-foreground`}>{row.replyCount}</span>{' '}
-                  <span className="uppercase">{row.replyCount === 1 ? 'reply' : 'replies'}</span>
+                  <span className={`${NUMERIC} text-foreground`}>{row.replyCount.label}</span>{' '}
+                  <span className="uppercase">
+                    {row.replyCount.value === 1 ? 'reply' : 'replies'}
+                  </span>
                   <span className="block">
                     <Stamp at={row.lastPostAt} />
                     {row.lastPostUsername === null ? null : ` by ${row.lastPostUsername}`}

@@ -1,18 +1,23 @@
+import type { Translator } from '@meith/i18n'
 import type { PostFormModel } from '@meith/theme-kit'
 
 import { postLink } from './post-link'
+import { untranslated } from './time'
 
 export interface PostFormInput {
   readonly forum: { readonly id: number; readonly title: string; readonly slug: string }
   readonly errorMessage?: string | null
+  readonly t?: Translator
 }
 
 export function buildNewThreadView(input: PostFormInput): Omit<PostFormModel, 'regions'> {
+  const t = input.t ?? untranslated()
+
   return {
     mode: 'thread',
-    heading: `Post a new thread in ${input.forum.title}`,
+    heading: t.t('postForm.newThread', { forum: input.forum.title }),
     cancelHref: `/${input.forum.id}-${input.forum.slug}`,
-    cancelLabel: `Back to ${input.forum.title}`,
+    cancelLabel: t.t('postForm.backToForum', { forum: input.forum.title }),
     errorMessage: input.errorMessage ?? null,
   }
 }
@@ -20,14 +25,17 @@ export function buildNewThreadView(input: PostFormInput): Omit<PostFormModel, 'r
 export interface ReplyViewInput {
   readonly thread: { readonly id: number; readonly title: string; readonly slug: string }
   readonly errorMessage?: string | null
+  readonly t?: Translator
 }
 
 export function buildReplyView(input: ReplyViewInput): Omit<PostFormModel, 'regions'> {
+  const t = input.t ?? untranslated()
+
   return {
     mode: 'reply',
-    heading: `Reply to ${input.thread.title}`,
+    heading: t.t('postForm.reply', { thread: input.thread.title }),
     cancelHref: `/thread/${input.thread.id}-${input.thread.slug}`,
-    cancelLabel: 'Back to the thread',
+    cancelLabel: t.t('postForm.backToThread'),
     errorMessage: input.errorMessage ?? null,
   }
 }
@@ -37,14 +45,17 @@ export interface EditViewInput {
   readonly postId: number
   readonly isDeleted: boolean
   readonly errorMessage?: string | null
+  readonly t?: Translator
 }
 
 export function buildEditView(input: EditViewInput): Omit<PostFormModel, 'regions'> {
+  const t = input.t ?? untranslated()
+
   return {
     mode: 'edit',
-    heading: input.isDeleted ? 'Deleted post' : 'Edit post',
+    heading: t.t(input.isDeleted ? 'postForm.deletedPost' : 'postForm.editPost'),
     cancelHref: postLink(`/thread/${input.thread.id}-${input.thread.slug}`, input.postId),
-    cancelLabel: 'Back to the thread',
+    cancelLabel: t.t('postForm.backToThread'),
     errorMessage: input.errorMessage ?? null,
   }
 }

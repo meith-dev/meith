@@ -11,9 +11,9 @@ import {
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { notificationService } from '@/server/notifications'
 import { currentTheme } from '@/server/theme'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildNotificationCentreView, notificationNotice } from '@/view/notifications'
 import { offsetOf, readPage } from '@/view/pager'
 
@@ -37,18 +37,18 @@ export default async function NotificationsPage({
     service.count(actor.userId),
   ])
 
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
   const view = buildNotificationCentreView({
     rows: page.rows,
     unread,
     ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
     now: new Date(),
-    timeZone: timezone,
+    t: translator,
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
-  const notice = notificationNotice(query)
+  const notice = notificationNotice(query, await getTranslator())
 
   return (
     <PanelPage

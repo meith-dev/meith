@@ -7,6 +7,7 @@ import { requireSlot } from '@meith/theme-kit'
 import { SignatureForm } from '@/components/account/usercp-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { signatureStore, viewerSignatureLimits } from '@/server/signatures'
 import { currentTheme } from '@/server/theme'
 import { userCpNotice } from '@/view/usercp'
@@ -31,7 +32,7 @@ export default async function SignaturePage({
   if (stored === null) notFound()
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
-  const notice = userCpNotice(query)
+  const notice = userCpNotice(query, await getTranslator())
   const preview = signatureHtml(stored)
 
   return (

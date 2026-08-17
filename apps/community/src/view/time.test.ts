@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatDate, formatTime, timezoneLabel } from './time'
+import { formatDate, formatTime, timezoneLabel, untranslated } from './time'
 
 const NOW = new Date('2026-07-30T12:00:00Z')
 
@@ -61,32 +61,34 @@ describe('the viewer’s timezone', () => {
   it('formats in the zone it is given', () => {
     const at = new Date('2026-07-31T08:41:00Z')
 
-    expect(formatTime(at, NOW, 'UTC').label).toBe('Today, 08:41')
-    expect(formatTime(at, NOW, 'Europe/London').label).toBe('Today, 09:41')
-    expect(formatTime(at, NOW, 'Australia/Sydney').label).toBe('Today, 18:41')
+    expect(formatTime(at, NOW, untranslated('UTC')).label).toBe('Today, 08:41')
+    expect(formatTime(at, NOW, untranslated('Europe/London')).label).toBe('Today, 09:41')
+    expect(formatTime(at, NOW, untranslated('Australia/Sydney')).label).toBe('Today, 18:41')
   })
 
   it('keeps the machine-readable value in UTC whatever the label says', () => {
     const at = new Date('2026-07-31T08:41:00Z')
-    expect(formatTime(at, NOW, 'Australia/Sydney').iso).toBe('2026-07-31T08:41:00.000Z')
+    expect(formatTime(at, NOW, untranslated('Australia/Sydney')).iso).toBe(
+      '2026-07-31T08:41:00.000Z',
+    )
   })
 
   it('says "Today" by the viewer’s calendar, not by UTC’s', () => {
     const at = new Date('2026-07-30T23:30:00Z')
     const now = new Date('2026-07-31T00:30:00Z')
 
-    expect(formatTime(at, now, 'UTC').label).toBe('Yesterday, 23:30')
-    expect(formatTime(at, now, 'Australia/Sydney').label).toBe('Today, 09:30')
+    expect(formatTime(at, now, untranslated('UTC')).label).toBe('Yesterday, 23:30')
+    expect(formatTime(at, now, untranslated('Australia/Sydney')).label).toBe('Today, 09:30')
   })
 
   it('defaults to UTC, which is what every timestamp used before per-member timezones existed', () => {
     const at = new Date('2026-07-31T08:41:00Z')
-    expect(formatTime(at, NOW).label).toBe(formatTime(at, NOW, 'UTC').label)
+    expect(formatTime(at, NOW).label).toBe(formatTime(at, NOW, untranslated('UTC')).label)
   })
 
   it('falls back to UTC for a zone the runtime has never heard of', () => {
     const at = new Date('2026-07-31T08:41:00Z')
-    expect(formatTime(at, NOW, 'Middle/Earth').label).toBe('Today, 08:41')
+    expect(formatTime(at, NOW, untranslated('Middle/Earth')).label).toBe('Today, 08:41')
   })
 
   it('names a zone the way the footer shows it', () => {
@@ -116,10 +118,12 @@ describe('formatDate', () => {
     const instant = new Date('2025-12-31T23:30:00Z')
 
     expect(formatDate(instant).label).toBe('31 Dec 2025')
-    expect(formatDate(instant, 'Pacific/Auckland').label).toBe('1 Jan 2026')
+    expect(formatDate(instant, untranslated('Pacific/Auckland')).label).toBe('1 Jan 2026')
   })
 
   it('falls back to UTC for a zone the runtime has never heard of', () => {
-    expect(formatDate(new Date('2026-03-12T09:14:00Z'), 'Mars/Olympus').label).toBe('12 Mar 2026')
+    expect(formatDate(new Date('2026-03-12T09:14:00Z'), untranslated('Mars/Olympus')).label).toBe(
+      '12 Mar 2026',
+    )
   })
 })

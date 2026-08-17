@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { requireSlot, resolveTheme, type ThemeDefinition } from '@meith/theme-kit'
 
 import { CrashNoticeProvider } from '@/components/shell/crash-notice'
-import { buildErrorNotice, CRASH_NOTICE } from '@/view/error-notice'
+import { buildErrorNotice, CRASH_NOTICE, crashNoticeCopy } from '@/view/error-notice'
 
 import ErrorPage from '../../app/error'
 import forumConfig from '../../community.config'
@@ -31,6 +31,7 @@ function renderErrorPage(notice: ReactNode): string {
     createElement(CrashNoticeProvider, {
       notice,
       requestId: REQUEST_ID,
+      copy: crashNoticeCopy(),
       // biome-ignore lint/correctness/noChildrenProp: CrashNoticeValue declares children, so the props form is the only one that typechecks
       children: createElement(ErrorPage),
     }),
@@ -51,7 +52,7 @@ describe('the crash page', () => {
     const html = renderErrorPage(notice)
 
     expect(html).toContain(markup(notice))
-    expect(html).toContain(CRASH_NOTICE.title)
+    expect(html).toContain(crashNoticeCopy().title)
     expect(html).toContain(REQUEST_ID)
     expect(html).toContain('id="board-content"')
   })
@@ -59,8 +60,8 @@ describe('the crash page', () => {
   it('falls back to a plain notice when the theme could not be resolved', () => {
     const html = renderErrorPage(null)
 
-    expect(html).toContain(CRASH_NOTICE.title)
-    expect(html).toContain(CRASH_NOTICE.message)
+    expect(html).toContain(crashNoticeCopy().title)
+    expect(html).toContain(crashNoticeCopy().message)
     expect(html).toContain(REQUEST_ID)
     expect(html).toContain('href="/"')
   })

@@ -5,6 +5,7 @@ import { requireSlot } from '@meith/theme-kit'
 
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
+import { getTranslator } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -28,7 +29,7 @@ export async function SectionPage({
   homeLabel?: string
 }) {
   const actor = await getActor()
-  const preferences = await getViewerPreferences()
+  const _preferences = await getViewerPreferences()
   const identities = await identitiesFor(
     distinctUserIds(rows.map((row) => row.lastPost?.userId ?? null)),
   )
@@ -40,7 +41,7 @@ export async function SectionPage({
     ...(unreadForumIds === undefined ? {} : { unreadForumIds }),
     categoryId: category.id,
     now: new Date(),
-    timeZone: preferences.timezone,
+    t: await getTranslator(),
     identities,
   })
 

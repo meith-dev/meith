@@ -10,6 +10,7 @@ interface RawSettings {
   id: number
   email: string
   timezone: string
+  locale: string
   posts_per_page: number | null
   threads_per_page: number | null
   invisible: boolean
@@ -32,7 +33,7 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
   async read(userId: number): Promise<MemberSettings | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select id, email, timezone, posts_per_page, threads_per_page,
+        select id, email, timezone, locale, posts_per_page, threads_per_page,
                invisible, location, website, bio, display_group_id
           from users
          where id = ${userId} and state <> 'deleted'
@@ -46,6 +47,7 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
       userId: Number(row.id),
       email: row.email,
       timezone: row.timezone,
+      locale: row.locale,
       postsPerPage: row.posts_per_page === null ? null : Number(row.posts_per_page),
       threadsPerPage: row.threads_per_page === null ? null : Number(row.threads_per_page),
       invisible: row.invisible === true,
@@ -114,6 +116,7 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
   async saveOptions(input: {
     readonly userId: number
     readonly timezone: string
+    readonly locale: string
     readonly postsPerPage: number | null
     readonly threadsPerPage: number | null
     readonly invisible: boolean
@@ -121,6 +124,7 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
     await this.db.execute(sql`
       update users
          set timezone = ${input.timezone},
+             locale = ${input.locale},
              posts_per_page = ${input.postsPerPage},
              threads_per_page = ${input.threadsPerPage},
              invisible = ${input.invisible},

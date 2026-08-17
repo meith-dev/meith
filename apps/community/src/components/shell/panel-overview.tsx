@@ -1,6 +1,6 @@
 import { buttonVariants, Card, CardContent, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
-import type { PanelNav } from '@/view/panel-nav'
+import type { PanelSectionCopy } from '@/view/panel-nav'
 
 export interface WaitingItem {
   readonly count: number
@@ -57,7 +57,7 @@ export function PanelWaitingList({
   )
 }
 
-export function PanelSectionGrid({ sections }: { sections: PanelNav }) {
+export function PanelSectionGrid({ sections }: { sections: readonly PanelSectionCopy[] }) {
   return (
     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {sections.map((section) => (

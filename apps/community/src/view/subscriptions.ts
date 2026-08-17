@@ -1,8 +1,9 @@
+import type { Translator } from '@meith/i18n'
 import type { SubscriptionMode, SubscriptionRow } from '@meith/subscriptions'
 import { MODE_LABELS, SUBSCRIPTION_MODES } from '@meith/subscriptions'
 import type { TimeModel } from '@meith/theme-kit'
 
-import { formatTime } from './time'
+import { formatTime, untranslated } from './time'
 
 export interface SubscriptionRowView {
   readonly key: string
@@ -26,9 +27,9 @@ export interface SubscriptionsView {
 export function buildSubscriptionsView(input: {
   readonly rows: readonly SubscriptionRow[]
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
 }): SubscriptionsView {
-  const rows = input.rows.map((row) => toRow(row, input.now, input.timeZone))
+  const rows = input.rows.map((row) => toRow(row, input.now, input.t))
 
   return {
     threads: rows.filter((row) => row.target === 'thread'),
@@ -38,7 +39,7 @@ export function buildSubscriptionsView(input: {
   }
 }
 
-function toRow(row: SubscriptionRow, now: Date, timeZone: string | undefined): SubscriptionRowView {
+function toRow(row: SubscriptionRow, now: Date, t: Translator | undefined): SubscriptionRowView {
   return {
     key: `${row.target}:${row.targetId}`,
     target: row.target,
@@ -47,25 +48,29 @@ function toRow(row: SubscriptionRow, now: Date, timeZone: string | undefined): S
     href: row.href,
     mode: row.mode,
     modeLabel: MODE_LABELS[row.mode],
-    since: formatTime(row.createdAt, now, timeZone),
+    since: formatTime(row.createdAt, now, t),
     pending:
       row.pending === 0 ? null : `${row.pending} new ${row.pending === 1 ? 'post' : 'posts'}`,
   }
 }
 
-export function subscriptionNotice(query: {
-  readonly followed?: string | undefined
-  readonly stopped?: string | undefined
-}): string | null {
-  if (query.followed !== undefined) return 'Saved. You are following this.'
-  if (query.stopped !== undefined) return 'You will not be notified about that any more.'
+export function subscriptionNotice(
+  query: {
+    readonly followed?: string | undefined
+    readonly stopped?: string | undefined
+  },
+  t: Translator = untranslated(),
+): string | null {
+  if (query.followed !== undefined) return t.t('subscription.followed')
+  if (query.stopped !== undefined) return t.t('subscription.stopped')
   return null
 }
 
-export function unsubscribeNotice(done: string | undefined): string | null {
-  if (done === 'email') {
-    return 'Done — subscription e-mails are off. Your subscriptions are unchanged, and you will still see them in your notifications.'
-  }
-  if (done === 'one') return 'Done — you will not be notified about that any more.'
+export function unsubscribeNotice(
+  done: string | undefined,
+  t: Translator = untranslated(),
+): string | null {
+  if (done === 'email') return t.t('subscription.emailsOff')
+  if (done === 'one') return t.t('subscription.doneOne')
   return null
 }

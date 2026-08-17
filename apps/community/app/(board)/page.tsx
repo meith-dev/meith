@@ -9,6 +9,7 @@ import { refreshLatestPanels } from '@/server/board-latest-actions'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
+import { getTranslator } from '@/server/i18n'
 import { boardRegion, filterView, viewerRef } from '@/server/plugin-view'
 import { presenceRepository, readOnline } from '@/server/presence'
 import { readTotals } from '@/server/stats'
@@ -24,7 +25,7 @@ export default async function BoardIndexPage() {
   const actor = await getActor()
   const { forums, authorizer, readState } = getContainer()
 
-  const [rows, listing, read, preferences] = await Promise.all([
+  const [rows, listing, read, _preferences] = await Promise.all([
     forums.listListing(),
     authorizer.listingVisibility(actor),
     actor.userId === null || readState === null
@@ -34,6 +35,8 @@ export default async function BoardIndexPage() {
   ])
 
   const now = new Date()
+
+  const translator = await getTranslator()
   const [online, totals, record, latest] = await Promise.all([
     readOnline(actor, now),
     readTotals(),
@@ -56,14 +59,14 @@ export default async function BoardIndexPage() {
     ...(read === null ? {} : { unreadForumIds: read.unreadForumIds }),
     markAllReadAction: read === null ? null : '/api/read/all',
     now,
-    timeZone: preferences.timezone,
+    t: translator,
     identities,
   })
 
   const announcements = await liveAnnouncements({
     visibleForumIds: listing.visibleForumIds,
     now,
-    timeZone: preferences.timezone,
+    t: translator,
   })
 
   const Announcement = requireSlot(await currentTheme(), 'Announcement')
@@ -98,7 +101,7 @@ export default async function BoardIndexPage() {
           buildBoardStatsModel({
             ...totals,
             now,
-            timeZone: preferences.timezone,
+            t: translator,
             identities,
           }),
           pluginContext,
@@ -115,7 +118,7 @@ export default async function BoardIndexPage() {
             recordCount: record.count,
             recordAt: record.at,
             now,
-            timeZone: preferences.timezone,
+            t: translator,
             identities,
           }),
           pluginContext,

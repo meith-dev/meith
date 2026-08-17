@@ -4,10 +4,11 @@ import { ForbiddenError } from '@meith/core'
 import { getDb, PostgresThemeAdminRepository, type ThemeRecord } from '@meith/db'
 
 import type { EditableToken } from '@/view/theme-draft'
-import { tokenMeta } from '@/view/theme-tokens'
+import { tokenCopy } from '@/view/theme-tokens'
 
 import forumConfig from '../../community.config'
 import { getContainer } from './container'
+import { getTranslator } from './i18n'
 import { type TokenOverrides, validateTokenOverrides } from './theme-style'
 
 export function themeAdminRepository(): PostgresThemeAdminRepository | null {
@@ -95,6 +96,7 @@ export async function themeListing(): Promise<readonly ThemeListing[]> {
 }
 
 export async function buildThemeAdminView(key: string): Promise<ThemeAdminView | null> {
+  const t = await getTranslator()
   const installed = forumConfig.themes[key]
   const repository = themeAdminRepository()
   if (installed === undefined || repository === null) return null
@@ -119,7 +121,7 @@ export async function buildThemeAdminView(key: string): Promise<ThemeAdminView |
     tokens: Object.keys(installed.tokens.light).map((name) => {
       const light = installed.tokens.light[name] ?? ''
       const dark = installed.tokens.dark[name] ?? ''
-      const meta = tokenMeta(name)
+      const meta = tokenCopy(name, t)
       return {
         name,
         label: meta.label,

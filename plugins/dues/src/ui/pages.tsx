@@ -28,13 +28,13 @@ const BUY_BUTTON =
 const QUIET_BUTTON =
   'inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm'
 
-function fmtDate(date: Date): ReactNode {
-  const label = date.toLocaleDateString('en-GB', {
+function fmtDate(date: Date, locale: string): ReactNode {
+  const label = new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
-  })
+  }).format(date)
   return <time dateTime={date.toISOString()}>{label}</time>
 }
 
@@ -113,18 +113,24 @@ function membershipDate(membership: MembershipRow): Date {
   return membership.status === 'grace' ? membership.graceUntil : membership.currentPeriodEnd
 }
 
-function membershipWhen(membership: MembershipRow): ReactNode {
+function membershipWhen(membership: MembershipRow, locale: string): ReactNode {
   if (membership.renewalMode === 'lifetime' && membership.status === 'active') {
     return 'yours for good'
   }
   return (
     <>
-      {membershipLine(membership)} {fmtDate(membershipDate(membership))}
+      {membershipLine(membership)} {fmtDate(membershipDate(membership), locale)}
     </>
   )
 }
 
-function HeldCard({ memberships }: { memberships: readonly MembershipRow[] }) {
+function HeldCard({
+  memberships,
+  locale,
+}: {
+  memberships: readonly MembershipRow[]
+  locale: string
+}) {
   const live = memberships.filter(
     (row) => row.status === 'active' || row.status === 'grace' || row.status === 'closing',
   )
@@ -140,7 +146,7 @@ function HeldCard({ memberships }: { memberships: readonly MembershipRow[] }) {
           <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="font-medium">{row.planKey}</span>
             <span className={row.status === 'grace' ? '' : 'text-muted-foreground'}>
-              {membershipWhen(row)}
+              {membershipWhen(row, locale)}
             </span>
           </li>
         ))}
@@ -247,7 +253,7 @@ export async function PlansPage({
   return (
     <div className="flex flex-col gap-6">
       <Notice query={context.query} />
-      <HeldCard memberships={memberships} />
+      <HeldCard memberships={memberships} locale={context.locale} />
       {plans.length === 0 && <p className={QUIET_PANEL}>Nothing is on sale just now.</p>}
       <div className="grid gap-4 sm:grid-cols-2">
         {plans.map((plan) => (
@@ -484,7 +490,7 @@ export async function ManagePage({
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-medium">{membership.planKey}</span>
                   <span className={membership.status === 'grace' ? '' : 'text-muted-foreground'}>
-                    {membershipWhen(membership)}
+                    {membershipWhen(membership, context.locale)}
                   </span>
                 </div>
                 {membership.status === 'grace' && (
@@ -498,11 +504,11 @@ export async function ManagePage({
                     <input type="hidden" name="membership" value={membership.id} />
                     <button type="submit" className={QUIET_BUTTON}>
                       Cancel renewal — keep access until{' '}
-                      {membershipDate(membership).toLocaleDateString('en-GB', {
+                      {new Intl.DateTimeFormat(context.locale, {
                         day: 'numeric',
                         month: 'long',
                         timeZone: 'UTC',
-                      })}
+                      }).format(membershipDate(membership))}
                     </button>
                   </form>
                 )}

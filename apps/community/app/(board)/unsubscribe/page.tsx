@@ -5,6 +5,7 @@ import { readUnsubscribeToken } from '@meith/subscriptions'
 import { requireSlot } from '@meith/theme-kit'
 
 import { UnsubscribeConfirmForm } from '@/components/account/subscription-forms'
+import { getTranslator } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
 import { unsubscribeNotice } from '@/view/subscriptions'
 
@@ -16,7 +17,7 @@ export default async function UnsubscribePage({
   searchParams: Promise<{ token?: string; done?: string }>
 }) {
   const query = await searchParams
-  const done = unsubscribeNotice(query.done)
+  const done = unsubscribeNotice(query.done, await getTranslator())
 
   const token = query.token ?? ''
   const secret = env.AUTH_SECRET

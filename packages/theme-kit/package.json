@@ -24,5 +24,8 @@
   },
   "devDependencies": {
     "@types/react": "^19.2.18"
+  },
+  "dependencies": {
+    "@meith/i18n": "workspace:*"
   }
 }

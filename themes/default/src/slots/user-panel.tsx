@@ -47,19 +47,19 @@ export function UserPanel({
       />
 
       <div className="flex min-w-0 items-center gap-2">
-        {unreadNotifications > 0 && (
+        {unreadNotifications.value > 0 && (
           <a href={notificationsHref} className={COUNT_LINK}>
             <Badge tone="solid">
-              {unreadNotifications}
+              {unreadNotifications.label}
               <span className="sr-only"> unread notifications</span>
               <span aria-hidden="true"> new</span>
             </Badge>
           </a>
         )}
-        {unreadMessages > 0 && (
+        {unreadMessages.value > 0 && (
           <a href={messagesHref} className={COUNT_LINK}>
             <Badge tone="outline">
-              {unreadMessages}
+              {unreadMessages.label}
               <span className="sr-only"> unread messages</span>
               <span aria-hidden="true"> unread</span>
             </Badge>

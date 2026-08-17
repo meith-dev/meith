@@ -37,8 +37,8 @@ describe('pluginPanelTabs', () => {
 describe('pluginNavChildren', () => {
   it('is the pages as rail entries, in the order the plugin declared them', () => {
     expect(pluginNavChildren(PAGES)).toEqual([
-      { href: '/admin/plugins/dues/status', title: 'Status' },
-      { href: '/admin/plugins/dues/plans', title: 'Plans' },
+      { href: '/admin/plugins/dues/status', titleText: 'Status' },
+      { href: '/admin/plugins/dues/plans', titleText: 'Plans' },
     ])
   })
 })

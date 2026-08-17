@@ -6,6 +6,7 @@ import { requireSlot } from '@meith/theme-kit'
 import { RateMemberForm, WithdrawRatingForm } from '@/components/account/reputation-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { reputationService, reputationSettings, viewerRaterLimits } from '@/server/reputation'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -30,6 +31,8 @@ export default async function ReputationPage({
   if (id === null) notFound()
 
   const query = await searchParams
+
+  const translator = await getTranslator()
   const actor = await getActor()
   const { authorizer, memberProfiles } = getContainer()
   if (!authorizer.can(actor, 'profile.view')) notFound()
@@ -44,7 +47,7 @@ export default async function ReputationPage({
   const before = Number(query.before)
   const ratedPost = Number(query.post)
   const postId = Number.isInteger(ratedPost) && ratedPost > 0 ? ratedPost : null
-  const preferences = await getViewerPreferences()
+  const _preferences = await getViewerPreferences()
 
   const [summary, history, limits] = await Promise.all([
     service.summary(id),
@@ -72,11 +75,11 @@ export default async function ReputationPage({
     maxPerDay: limits.maxPerDay,
     givenToday,
     now: new Date(),
-    timeZone: preferences.timezone,
+    t: await getTranslator(),
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
-  const notice = reputationNotice(query)
+  const notice = reputationNotice(query, translator)
   const returnTo = `/member/${id}/reputation`
 
   return (
@@ -90,7 +93,9 @@ export default async function ReputationPage({
           <h1 className="font-heading text-2xl font-semibold">
             {profile.username}&rsquo;s reputation
           </h1>
-          <p className="text-sm text-muted-foreground">{reputationLabel(view.summary)}</p>
+          <p className="text-sm text-muted-foreground">
+            {reputationLabel(view.summary, translator)}
+          </p>
           <a
             href={`/member/${id}`}
             className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"

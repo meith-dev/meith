@@ -1,28 +1,32 @@
 import type { AuthEventKind } from '@meith/accounts'
+import type { Translator } from '@meith/i18n'
 
-const LABELS: Readonly<Record<AuthEventKind, string>> = {
-  login: 'Signed in',
-  login_failed: 'A sign-in was refused',
-  logout: 'Signed out',
-  second_factor_failed: 'A wrong two-factor code was given',
-  second_factor_enabled: 'Two-factor authentication turned on',
-  second_factor_disabled: 'Two-factor authentication turned off',
-  recovery_code_used: 'A recovery code was used to sign in',
-  recovery_codes_replaced: 'Recovery codes replaced',
-  password_changed: 'Password changed',
-  password_reset: 'Password reset',
-  email_change_requested: 'An e-mail change was requested',
-  email_changed: 'E-mail address changed',
-  session_revoked: 'A session was signed out',
-  sessions_revoked: 'Every other session was signed out',
-  identity_linked: 'A sign-in provider was linked',
-  identity_unlinked: 'A sign-in provider was unlinked',
-  passkey_added: 'A passkey was added',
-  passkey_removed: 'A passkey was removed',
+import { untranslated } from './time'
+
+const LABEL_KEYS: Readonly<Record<AuthEventKind, string>> = {
+  login: 'authEvent.login',
+  login_failed: 'authEvent.login_failed',
+  logout: 'authEvent.logout',
+  second_factor_failed: 'authEvent.second_factor_failed',
+  second_factor_enabled: 'authEvent.second_factor_enabled',
+  second_factor_disabled: 'authEvent.second_factor_disabled',
+  recovery_code_used: 'authEvent.recovery_code_used',
+  recovery_codes_replaced: 'authEvent.recovery_codes_replaced',
+  password_changed: 'authEvent.password_changed',
+  password_reset: 'authEvent.password_reset',
+  email_change_requested: 'authEvent.email_change_requested',
+  email_changed: 'authEvent.email_changed',
+  session_revoked: 'authEvent.session_revoked',
+  sessions_revoked: 'authEvent.sessions_revoked',
+  identity_linked: 'authEvent.identity_linked',
+  identity_unlinked: 'authEvent.identity_unlinked',
+  passkey_added: 'authEvent.passkey_added',
+  passkey_removed: 'authEvent.passkey_removed',
 }
 
-export function authEventLabel(kind: string): string {
-  return LABELS[kind as AuthEventKind] ?? kind.replace(/_/g, ' ')
+export function authEventLabel(kind: string, t: Translator = untranslated()): string {
+  const key = LABEL_KEYS[kind as AuthEventKind]
+  return key === undefined ? kind.replace(/_/g, ' ') : t.t(key)
 }
 
 /**
@@ -30,8 +34,9 @@ export function authEventLabel(kind: string): string {
  * from another, and no more: the full string is a fingerprint, and this is a
  * page whose job is recognition, not identification.
  */
-export function describeDevice(userAgent: string | null): string {
-  if (userAgent === null || userAgent.trim() === '') return 'Unknown device'
+export function describeDevice(userAgent: string | null, t: Translator = untranslated()): string {
+  const unknown = t.t('device.unknown')
+  if (userAgent === null || userAgent.trim() === '') return unknown
 
   const platform =
     firstMatch(userAgent, [
@@ -42,7 +47,7 @@ export function describeDevice(userAgent: string | null): string {
       [/Mac OS X|Macintosh/i, 'Mac'],
       [/CrOS/i, 'ChromeOS'],
       [/Linux/i, 'Linux'],
-    ]) ?? 'Unknown device'
+    ]) ?? unknown
 
   const browser = firstMatch(userAgent, [
     [/Edg\//i, 'Edge'],

@@ -5,6 +5,7 @@ import { UserRef } from '../shared'
 export function WhoIsOnline({
   guestCount,
   members,
+  memberCount,
   total,
   recordCount,
   recordAt,
@@ -16,10 +17,10 @@ export function WhoIsOnline({
         id="who-is-online-heading"
         className="border-b border-border bg-secondary px-3 py-1 font-mono text-xs uppercase tracking-wide"
       >
-        Online now — {total}
+        Online now — {total.label}
       </h2>
       <p className="px-3 py-2 text-xs">
-        {members.length === 0 ? (
+        {memberCount.value === 0 ? (
           <span className="text-muted-foreground">no members</span>
         ) : (
           members.map((member, index) => (
@@ -34,7 +35,7 @@ export function WhoIsOnline({
         )}
         <span className="text-muted-foreground">
           {' · '}
-          {guestCount} guests
+          {guestCount.label} guests
         </span>
       </p>
       <p className="border-t border-border px-3 py-1 font-mono text-xs text-muted-foreground">
@@ -42,7 +43,7 @@ export function WhoIsOnline({
           full list
         </a>
         {' · record '}
-        {recordCount}
+        {recordCount.label}
         {recordAt !== null && (
           <>
             {' on '}

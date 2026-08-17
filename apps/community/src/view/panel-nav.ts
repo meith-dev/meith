@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import type {
   PanelKind,
   PanelNavCurrent,
@@ -6,18 +7,59 @@ import type {
   PanelNavSectionModel,
 } from '@meith/theme-kit'
 
+import { untranslated } from './time'
+
 export interface PanelSubsection {
   readonly href: string
-  readonly title: string
+  readonly titleKey?: string
+  /** Set instead of `titleKey` where the name is data, such as a plugin's. */
+  readonly titleText?: string
   readonly record?: boolean
 }
 
 export interface PanelSection {
   readonly href: string
-  readonly title: string
-  readonly blurb: string
+  readonly titleKey?: string
+  readonly titleText?: string
+  readonly blurbKey?: string
+  readonly blurbText?: string
   readonly icon?: PanelNavIcon
   readonly children?: readonly PanelSubsection[]
+}
+
+export function panelText(
+  t: Translator,
+  entry: { readonly titleKey?: string; readonly titleText?: string },
+): string
+export function panelText(
+  t: Translator,
+  entry: { readonly blurbKey?: string; readonly blurbText?: string },
+  field: 'blurb',
+): string
+export function panelText(
+  t: Translator,
+  entry: Readonly<Record<string, string | undefined>>,
+  field: 'title' | 'blurb' = 'title',
+): string {
+  const text = entry[`${field}Text`]
+  if (text !== undefined) return text
+
+  const key = entry[`${field}Key`]
+  return key === undefined ? '' : t.t(key)
+}
+
+export interface PanelSectionCopy {
+  readonly href: string
+  readonly title: string
+  readonly blurb: string
+}
+
+export function panelSectionCopy(nav: PanelNav, t: Translator): readonly PanelSectionCopy[] {
+  return nav.map((section) => ({
+    href: section.href,
+    title: panelText(t, section),
+    blurb: panelText(t, section, 'blurb'),
+  }))
 }
 
 export type PanelNav = readonly PanelSection[]
@@ -118,7 +160,9 @@ export function buildPanelNavModel(input: {
   readonly fallbackHref?: string | undefined
   readonly counts?: PanelCounts | undefined
   readonly label?: string
+  readonly t?: Translator | undefined
 }): PanelNavModel {
+  const t = input.t ?? untranslated()
   const fallback = input.fallbackHref ?? null
   const open = sectionHrefIn(input.nav, input.location) ?? fallback
   const deepest = deepestHrefIn(input.nav, input.location) ?? fallback
@@ -128,7 +172,7 @@ export function buildPanelNavModel(input: {
 
     return {
       href: section.href,
-      title: section.title,
+      title: panelText(t, section),
       icon: section.icon ?? null,
       count: countFor(input.counts, section.href),
       current: currentFor(input.location, section.href, deepest),
@@ -138,7 +182,7 @@ export function buildPanelNavModel(input: {
       children: isOpen
         ? visibleChildren(section, deepest).map((child) => ({
             href: child.href,
-            title: child.title,
+            title: panelText(t, child),
             icon: null,
             count: countFor(input.counts, child.href),
             current: currentFor(input.location, child.href, deepest),
@@ -152,8 +196,8 @@ export function buildPanelNavModel(input: {
 
   return {
     panel: input.panel,
-    label: input.label ?? 'Sections',
+    label: input.label ?? t.t('panel.sections'),
     sections,
-    currentTitle: here?.title ?? null,
+    currentTitle: here === undefined ? null : panelText(t, here),
   }
 }

@@ -44,6 +44,7 @@ function Row({ member }: { member: OnlineMemberModel }) {
 export function WhoIsOnline({
   guestCount,
   members,
+  memberCount,
   total,
   recordCount,
   recordAt,
@@ -63,14 +64,13 @@ export function WhoIsOnline({
       }
     >
       <p className={`px-3 text-xs text-muted-foreground ${NUMERIC}`}>
-        {count(total)} online — {count(members.length)}{' '}
-        {plural(members.length, 'member', 'members')}, {count(guestCount)}{' '}
-        {plural(guestCount, 'guest', 'guests')}
+        {count(total)} online — {count(memberCount)} {plural(memberCount, 'member', 'members')},{' '}
+        {count(guestCount)} {plural(guestCount, 'guest', 'guests')}
       </p>
 
-      {members.length === 0 ? (
+      {memberCount.value === 0 ? (
         <p className="px-3 pt-2 pb-3 text-xs text-muted-foreground">
-          {guestCount === 0
+          {guestCount.value === 0
             ? 'Nobody is reading the board right now.'
             : 'Only guests are reading the board right now.'}
         </p>
@@ -82,7 +82,7 @@ export function WhoIsOnline({
           {hidden > 0 && (
             <li className="px-2 py-1.5">
               <a href={fullListHref} className={`text-xs font-semibold ${MUTED_LINK}`}>
-                and {count(hidden)} more
+                and {hidden} more
               </a>
             </li>
           )}

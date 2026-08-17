@@ -11,8 +11,10 @@ import {
 } from '@/components/shell/panel-overview'
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
+import { getTranslator } from '@/server/i18n'
 import { modCpCounts, moderatedForumRights, resolveModCpAccess } from '@/server/modcp'
 import { modCpSections } from '@/view/modcp-nav'
+import { panelSectionCopy } from '@/view/panel-nav'
 
 export const metadata: Metadata = { title: 'Moderator control panel' }
 
@@ -104,7 +106,9 @@ export default async function ModCpPage() {
       </PanelSection>
 
       <PanelSection id="sections-heading" title="Sections">
-        <PanelSectionGrid sections={modCpSections(access)} />
+        <PanelSectionGrid
+          sections={panelSectionCopy(modCpSections(access), await getTranslator())}
+        />
       </PanelSection>
     </PanelPage>
   )

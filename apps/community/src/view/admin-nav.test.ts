@@ -131,7 +131,7 @@ describe('adminNavWithPlugin', () => {
     const at = navWithDues.findIndex((section) => section.href === '/admin/plugins/dues')
 
     expect(navWithDues[at - 1]?.href).toBe(ADMIN_PLUGINS_HREF)
-    expect(navWithDues[at]?.title).toBe('Dues')
+    expect(navWithDues[at]?.titleText).toBe('Dues')
     expect(navWithDues[at]?.children).toEqual(dues.pages)
   })
 

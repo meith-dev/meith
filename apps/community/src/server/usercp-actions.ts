@@ -89,6 +89,7 @@ export async function saveOptionsAction(_prev: FormState, form: FormData): Promi
     await service.saveOptions({
       userId,
       timezone: text(form, 'timezone'),
+      locale: text(form, 'locale'),
       postsPerPage: text(form, 'postsPerPage'),
       threadsPerPage: text(form, 'threadsPerPage'),
       invisible: form.get('invisible') !== null,

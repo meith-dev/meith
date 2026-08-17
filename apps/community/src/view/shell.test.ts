@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { Actor } from '@meith/authorization'
 import { emptyPermissionSet } from '@meith/core'
+import { createTranslator, EN_CATALOG } from '@meith/i18n'
 
 import {
   BOARD_TITLE,
@@ -154,15 +155,15 @@ describe('buildUserPanelModel', () => {
 
   it('carries both unread counts, defaulting each to zero', () => {
     const none = buildUserPanelModel(buildViewerModel(member))
-    expect(none.unreadNotifications).toBe(0)
-    expect(none.unreadMessages).toBe(0)
+    expect(none.unreadNotifications.value).toBe(0)
+    expect(none.unreadMessages.value).toBe(0)
 
     const some = buildUserPanelModel(buildViewerModel(member), {
       unreadNotifications: 3,
       unreadMessages: 2,
     })
-    expect(some.unreadNotifications).toBe(3)
-    expect(some.unreadMessages).toBe(2)
+    expect(some.unreadNotifications.value).toBe(3)
+    expect(some.unreadMessages.value).toBe(2)
   })
 
   it('offers a guest no notification centre', () => {
@@ -174,8 +175,8 @@ describe('buildUserPanelModel', () => {
   it('reports no unread notifications unless it is given a count', () => {
     const panel = buildUserPanelModel(buildViewerModel(guest))
 
-    expect(panel.unreadNotifications).toBe(0)
-    expect(panel.unreadMessages).toBe(0)
+    expect(panel.unreadNotifications.value).toBe(0)
+    expect(panel.unreadMessages.value).toBe(0)
   })
 
   it('carries the unread notification count the shell resolved', () => {
@@ -183,7 +184,7 @@ describe('buildUserPanelModel', () => {
       unreadNotifications: 3,
     })
 
-    expect(panel.unreadNotifications).toBe(3)
+    expect(panel.unreadNotifications.value).toBe(3)
   })
 })
 
@@ -271,6 +272,27 @@ describe('ViewerModel.username', () => {
   it('is null when the caller has no name to give, rather than inventing one', () => {
     expect(buildViewerModel(member).username).toBeNull()
     expect(buildViewerModel(guest).username).toBeNull()
+  })
+})
+
+describe('the navigation in another language', () => {
+  const german = createTranslator({
+    locale: 'de',
+    catalog: { ...EN_CATALOG, 'nav.home': 'Startseite', 'nav.search': 'Suche' },
+  })
+
+  it('labels the links from the catalog and leaves the hrefs alone', () => {
+    const links = buildBoardNavigation(buildViewerModel(member), { t: german })
+
+    expect(links.map((link) => link.label)).toContain('Startseite')
+    expect(links.map((link) => link.label)).toContain('Suche')
+    expect(links.map((link) => link.href)).toContain('/')
+  })
+
+  it('falls back to English for a message the translation is missing', () => {
+    const links = buildBoardNavigation(buildViewerModel(member), { t: german })
+
+    expect(links.map((link) => link.label)).toContain('Unanswered')
   })
 })
 

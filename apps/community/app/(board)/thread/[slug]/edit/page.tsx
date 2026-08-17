@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { requireSlot } from '@meith/theme-kit'
 
 import { DeletePostForm, EditPostForm, RestorePostForm } from '@/components/content/edit-post-form'
+import { getTranslator } from '@/server/i18n'
 import { resolvePostScope } from '@/server/post-scope'
 import { currentTheme } from '@/server/theme'
 import { buildEditView } from '@/view/post-form'
@@ -37,6 +38,7 @@ export default async function EditPostPage({
   if (!mayManage) notFound()
 
   const view = buildEditView({
+    t: await getTranslator(),
     thread: {
       id: scope.target.thread.id,
       title: scope.target.thread.title,

@@ -1,7 +1,9 @@
 import type { MemberProfileRecord } from '@meith/accounts'
+import type { Translator } from '@meith/i18n'
 import type { MemberProfileModel } from '@meith/theme-kit'
 
-import { formatDate, formatTime } from './time'
+import { count } from './count'
+import { formatDate, formatTime, untranslated } from './time'
 
 export function memberHref(userId: number): string {
   return `/member/${userId}`
@@ -12,7 +14,7 @@ export function buildMemberProfileView(
   now: Date,
   options: {
     readonly canWarn?: boolean
-    readonly timeZone?: string
+    readonly t?: Translator
     readonly customFields?: readonly { readonly label: string; readonly value: string }[]
     readonly canMessage?: boolean
     readonly avatarUrl?: string | null
@@ -22,7 +24,7 @@ export function buildMemberProfileView(
   const {
     canWarn = false,
     canMessage = false,
-    timeZone,
+    t = untranslated(),
     customFields = [],
     avatarUrl = null,
     nameClass = null,
@@ -36,10 +38,9 @@ export function buildMemberProfileView(
     },
     avatarUrl,
     title: profile.title,
-    joinedAt: formatDate(profile.createdAt, timeZone),
-    lastVisitAt:
-      profile.lastActiveAt === null ? null : formatTime(profile.lastActiveAt, now, timeZone),
-    postCount: profile.postCount,
+    joinedAt: formatDate(profile.createdAt, t),
+    lastVisitAt: profile.lastActiveAt === null ? null : formatTime(profile.lastActiveAt, now, t),
+    postCount: count(profile.postCount, t),
     signatureHtml: null,
     fields: [
       profile.location === null ? null : { label: 'Location', value: profile.location },
@@ -51,13 +52,13 @@ export function buildMemberProfileView(
       ...(canMessage
         ? [
             {
-              label: 'Send a message',
+              label: t.t('profile.sendMessage'),
               href: `/messages/compose?to=${encodeURIComponent(profile.username)}`,
             },
           ]
         : []),
       ...(canWarn
-        ? [{ label: 'Warn this member', href: `/moderation/warn?user=${profile.id}` }]
+        ? [{ label: t.t('profile.warnMember'), href: `/moderation/warn?user=${profile.id}` }]
         : []),
     ],
   }

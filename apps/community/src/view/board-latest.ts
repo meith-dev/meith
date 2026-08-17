@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import { type CompiledWordFilter, summarise } from '@meith/markdown'
 import type {
   LatestPostModel,
@@ -7,6 +8,7 @@ import type {
 } from '@meith/theme-kit'
 
 import { forumHref } from './board-index'
+import { count } from './count'
 import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { postLink } from './post-link'
@@ -43,7 +45,7 @@ export interface LatestPostRow {
 export interface LatestInput<Row> {
   readonly rows: readonly Row[]
   readonly now: Date
-  readonly timeZone?: string | undefined
+  readonly t?: Translator | undefined
   readonly identities?: ReadonlyMap<number, MemberIdentity>
   readonly wordFilter?: CompiledWordFilter | undefined
 }
@@ -75,11 +77,11 @@ export function buildLatestThreadsModel(input: LatestInput<LatestThreadRow>): La
       href: forumHref({ id: row.forumId, slug: row.forumSlug }),
     },
     author: authorOf(row, input.identities),
-    replyCount: row.replyCount,
-    startedAt: formatTime(row.createdAt, input.now, input.timeZone),
+    replyCount: count(row.replyCount, input.t),
+    startedAt: formatTime(row.createdAt, input.now, input.t),
   }))
 
-  return { threads, capturedAt: formatTime(input.now, input.now, input.timeZone) }
+  return { threads, capturedAt: formatTime(input.now, input.now, input.t) }
 }
 
 export function buildLatestPostsModel(input: LatestInput<LatestPostRow>): LatestPostsModel {
@@ -92,8 +94,8 @@ export function buildLatestPostsModel(input: LatestInput<LatestPostRow>): Latest
     },
     author: authorOf(row, input.identities),
     excerpt: filterWords(summarise(row.messageSource, EXCERPT_CHARS), input.wordFilter),
-    postedAt: formatTime(row.createdAt, input.now, input.timeZone),
+    postedAt: formatTime(row.createdAt, input.now, input.t),
   }))
 
-  return { posts, capturedAt: formatTime(input.now, input.now, input.timeZone) }
+  return { posts, capturedAt: formatTime(input.now, input.now, input.t) }
 }

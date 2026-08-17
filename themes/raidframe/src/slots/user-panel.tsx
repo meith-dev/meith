@@ -54,20 +54,20 @@ export function UserPanel({
         }}
       />
 
-      {unreadNotifications > 0 && (
+      {unreadNotifications.value > 0 && (
         <a
           href={notificationsHref}
           className={`${COUNT} border-primary/60 bg-primary/15 text-primary hover:border-primary`}
         >
-          {unreadNotifications} new
+          {unreadNotifications.label} new
         </a>
       )}
-      {unreadMessages > 0 && (
+      {unreadMessages.value > 0 && (
         <a
           href={messagesHref}
           className={`${COUNT} border-forum-unread/60 bg-forum-unread/15 text-forum-unread hover:border-forum-unread`}
         >
-          {unreadMessages} pm
+          {unreadMessages.label} pm
         </a>
       )}
 

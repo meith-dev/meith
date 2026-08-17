@@ -38,5 +38,5 @@ export function pluginPanelTabs(input: {
 }
 
 export function pluginNavChildren(pages: readonly PluginPage[]): readonly PanelSubsection[] {
-  return pages.map((page) => ({ href: page.href, title: page.title }))
+  return pages.map((page) => ({ href: page.href, titleText: page.title }))
 }

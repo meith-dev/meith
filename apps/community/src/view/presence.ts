@@ -1,8 +1,10 @@
+import type { Translator } from '@meith/i18n'
 import type { BoardStatsModel, OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
 
+import { count } from './count'
 import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
-import { formatTime } from './time'
+import { formatTime, untranslated } from './time'
 
 export interface OnlineRow {
   readonly userId: number
@@ -22,11 +24,14 @@ export interface OnlineInput {
   readonly recordCount: number
   readonly recordAt: Date | null
   readonly now: Date
-  readonly timeZone?: string | undefined
+  readonly t?: Translator | undefined
   readonly identities?: ReadonlyMap<number, MemberIdentity>
 }
 
-export function locationOf(row: OnlineRow): { label: string; href: string | null } {
+export function locationOf(
+  row: OnlineRow,
+  t: Translator = untranslated(),
+): { label: string; href: string | null } {
   if (row.threadId !== null && row.threadTitle !== null) {
     return {
       label: `Reading ${row.threadTitle}`,
@@ -38,7 +43,7 @@ export function locationOf(row: OnlineRow): { label: string; href: string | null
     return { label: `Viewing ${row.forumTitle}`, href: `/${row.forumId}` }
   }
 
-  return { label: 'Somewhere on the board', href: null }
+  return { label: t.t('presence.somewhere'), href: null }
 }
 
 export function buildWhoIsOnlineModel(input: OnlineInput): WhoIsOnlineModel {
@@ -47,18 +52,18 @@ export function buildWhoIsOnlineModel(input: OnlineInput): WhoIsOnlineModel {
     username: row.username,
     profileHref: memberHref(row.userId),
     nameClass: nameClassOf(input.identities, row.userId),
-    location: locationOf(row),
+    location: locationOf(row, input.t ?? untranslated()),
     isInvisible: row.invisible,
-    lastSeen: formatTime(row.lastSeenAt, input.now, input.timeZone),
+    lastSeen: formatTime(row.lastSeenAt, input.now, input.t),
   }))
 
   return {
-    guestCount: input.guestCount,
+    guestCount: count(input.guestCount, input.t),
     members,
-    total: members.length + input.guestCount,
-    recordCount: input.recordCount,
-    recordAt:
-      input.recordAt === null ? null : formatTime(input.recordAt, input.now, input.timeZone),
+    memberCount: count(members.length, input.t),
+    total: count(members.length + input.guestCount, input.t),
+    recordCount: count(input.recordCount, input.t),
+    recordAt: input.recordAt === null ? null : formatTime(input.recordAt, input.now, input.t),
     fullListHref: '/online',
   }
 }
@@ -71,15 +76,15 @@ export interface StatsInput {
   readonly newestUsername: string | null
   readonly computedAt: Date | null
   readonly now: Date
-  readonly timeZone?: string | undefined
+  readonly t?: Translator | undefined
   readonly identities?: ReadonlyMap<number, MemberIdentity>
 }
 
 export function buildBoardStatsModel(input: StatsInput): BoardStatsModel {
   return {
-    threadCount: input.threadCount,
-    postCount: input.postCount,
-    memberCount: input.memberCount,
+    threadCount: count(input.threadCount, input.t),
+    postCount: count(input.postCount, input.t),
+    memberCount: count(input.memberCount, input.t),
     newestMember:
       input.newestUsername === null
         ? null
@@ -89,7 +94,6 @@ export function buildBoardStatsModel(input: StatsInput): BoardStatsModel {
             profileHref: input.newestUserId === null ? null : memberHref(input.newestUserId),
             nameClass: nameClassOf(input.identities, input.newestUserId),
           },
-    computedAt:
-      input.computedAt === null ? null : formatTime(input.computedAt, input.now, input.timeZone),
+    computedAt: input.computedAt === null ? null : formatTime(input.computedAt, input.now, input.t),
   }
 }

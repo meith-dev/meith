@@ -8,12 +8,12 @@ import { SearchOffNotice } from '@/components/board/search-off-notice'
 import { getContainer } from '@/server/container'
 import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { SEARCH_OFF_MESSAGE, searchEnabled } from '@/server/search'
 import { openSearch, readRefinement, SEARCH_COUNT_CAP, SEARCH_PAGE } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
 import { currentTheme } from '@/server/theme'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildOffsetPager, offsetOf, readPage } from '@/view/pager'
 import { CURSOR_FIELDS } from '@/view/search-controls'
 import { buildSearchResultsView, type SearchForumRef } from '@/view/search-results'
@@ -65,7 +65,7 @@ export default async function SearchResultsPage({
   }
 
   const { search, results, summary, filters, effective, refine } = view
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
   const model = buildSearchResultsView({
     token,
@@ -75,7 +75,7 @@ export default async function SearchResultsPage({
     nextCursor: results.nextCursor,
     pageSize: SEARCH_PAGE,
     now,
-    timeZone: timezone,
+    t: translator,
     filters,
     effective,
     refine,

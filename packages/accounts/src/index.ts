@@ -69,10 +69,12 @@ export type {
   ProviderProfile,
 } from './federation/types'
 export {
+  AUTOMATIC_LOCALE,
   AUTOMATIC_TIMEZONE,
   BIO_MAX,
   EMAIL_CHANGE_TTL_MINUTES,
   isKnownTimezone,
+  isLocalePreference,
   isTimezonePreference,
   LOCATION_MAX,
   type MemberGroupChoice,

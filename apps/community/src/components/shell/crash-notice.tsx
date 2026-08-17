@@ -2,30 +2,36 @@
 
 import { Component, createContext, type ReactNode, useContext } from 'react'
 
-import { CRASH_NOTICE } from '@/view/error-notice'
+import { CRASH_NOTICE_STATUS, type CrashNoticeCopy } from '@/view/error-notice'
 
 interface CrashNoticeValue {
   readonly notice: ReactNode
   readonly requestId: string | null
+  readonly copy: CrashNoticeCopy
 }
 
-const CrashNoticeContext = createContext<CrashNoticeValue>({ notice: null, requestId: null })
+const CrashNoticeContext = createContext<CrashNoticeValue>({
+  notice: null,
+  requestId: null,
+  copy: { title: '', message: '', homeLabel: '' },
+})
 
 export function CrashNoticeProvider({
   notice,
   requestId,
+  copy,
   children,
 }: CrashNoticeValue & { readonly children: ReactNode }) {
   return (
-    <CrashNoticeContext.Provider value={{ notice, requestId }}>
+    <CrashNoticeContext.Provider value={{ notice, requestId, copy }}>
       {children}
     </CrashNoticeContext.Provider>
   )
 }
 
 export function CrashNotice() {
-  const { notice, requestId } = useContext(CrashNoticeContext)
-  const plain = <PlainNotice requestId={requestId} />
+  const { notice, requestId, copy } = useContext(CrashNoticeContext)
+  const plain = <PlainNotice requestId={requestId} copy={copy} />
 
   if (notice === null || notice === undefined) return plain
 
@@ -47,20 +53,26 @@ class ThemeGuard extends Component<
   }
 }
 
-function PlainNotice({ requestId }: { readonly requestId: string | null }) {
+function PlainNotice({
+  requestId,
+  copy,
+}: {
+  readonly requestId: string | null
+  readonly copy: CrashNoticeCopy
+}) {
   return (
     <section className="w-full max-w-lg rounded-lg border border-border bg-card p-6 text-card-foreground">
       <p className="text-xs font-medium tracking-wide text-destructive uppercase">
-        Error {CRASH_NOTICE.status}
+        Error {CRASH_NOTICE_STATUS}
       </p>
-      <h1 className="mt-1 text-2xl font-semibold tracking-tight">{CRASH_NOTICE.title}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{CRASH_NOTICE.message}</p>
+      <h1 className="mt-1 text-2xl font-semibold tracking-tight">{copy.title}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{copy.message}</p>
 
       <a
         href="/"
         className="mt-5 inline-block rounded-md border border-border px-3 py-2 text-sm hover:bg-secondary"
       >
-        Forum home
+        {copy.homeLabel}
       </a>
 
       {requestId !== null && (

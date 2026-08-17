@@ -1,4 +1,5 @@
 import { buildTree, type ForumListingRow, type ForumNode, keepVisibleSubtrees } from '@meith/forums'
+import type { Translator } from '@meith/i18n'
 import type {
   BoardIndexModel,
   CategoryBlockModel,
@@ -7,6 +8,7 @@ import type {
   LinkModel,
 } from '@meith/theme-kit'
 
+import { count } from './count'
 import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { postLink } from './post-link'
@@ -19,7 +21,7 @@ export interface BoardIndexInput {
   readonly unreadForumIds?: ReadonlySet<number>
   readonly markAllReadAction?: string | null
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
   readonly identities?: ReadonlyMap<number, MemberIdentity>
 }
 
@@ -39,7 +41,7 @@ function threadHref(threadId: number, postId: number): string {
 function toLastPost(
   row: ForumListingRow,
   now: Date,
-  timeZone: string | undefined,
+  t: Translator | undefined,
   identities: ReadonlyMap<number, MemberIdentity> | undefined,
 ): LastPostModel | null {
   const last = row.lastPost
@@ -54,14 +56,14 @@ function toLastPost(
       profileHref: last.userId === null ? null : memberHref(last.userId),
       nameClass: nameClassOf(identities, last.userId),
     },
-    at: formatTime(last.at, now, timeZone),
+    at: formatTime(last.at, now, t),
   }
 }
 
 function toForumRow(
   node: ForumNode<ForumListingRow>,
   now: Date,
-  timeZone: string | undefined,
+  t: Translator | undefined,
   unreadForumIds: ReadonlySet<number> | undefined,
   identities: ReadonlyMap<number, MemberIdentity> | undefined,
   ownThreadsOnlyForumIds: ReadonlySet<number> | undefined,
@@ -74,9 +76,9 @@ function toForumRow(
     description: node.description,
     href: hrefFor(node),
     type: node.type,
-    threadCount: ownThreadsOnly ? 0 : node.threadCount,
-    postCount: ownThreadsOnly ? 0 : node.postCount,
-    lastPost: ownThreadsOnly ? null : toLastPost(node, now, timeZone, identities),
+    threadCount: count(ownThreadsOnly ? 0 : node.threadCount, t),
+    postCount: count(ownThreadsOnly ? 0 : node.postCount, t),
+    lastPost: ownThreadsOnly ? null : toLastPost(node, now, t, identities),
     isUnread: !ownThreadsOnly && (unreadForumIds?.has(node.id) ?? false),
     subforums: node.children.map(
       (child): LinkModel => ({ label: child.title, href: hrefFor(child) }),
@@ -121,7 +123,7 @@ export function buildSectionView(input: SectionInput): BoardIndexBlock | null {
     toForumRow(
       candidate,
       input.now,
-      input.timeZone,
+      input.t,
       input.unreadForumIds,
       input.identities,
       input.ownThreadsOnlyForumIds,
@@ -144,7 +146,7 @@ export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
         category: toForumRow(
           node,
           input.now,
-          input.timeZone,
+          input.t,
           input.unreadForumIds,
           input.identities,
           input.ownThreadsOnlyForumIds,
@@ -154,7 +156,7 @@ export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
         toForumRow(
           child,
           input.now,
-          input.timeZone,
+          input.t,
           input.unreadForumIds,
           input.identities,
           input.ownThreadsOnlyForumIds,

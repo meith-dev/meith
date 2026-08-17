@@ -19,8 +19,7 @@ export function SubforumList({ forums }: SubforumListModel) {
               </a>
               {forum.type !== 'link' && (
                 <p className={`${MICRO} ${NUMERIC} mt-0.5`}>
-                  {forum.threadCount.toLocaleString('en')} threads ·{' '}
-                  {forum.postCount.toLocaleString('en')} posts
+                  {forum.threadCount.label} threads · {forum.postCount.label} posts
                 </p>
               )}
             </li>

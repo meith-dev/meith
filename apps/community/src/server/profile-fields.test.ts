@@ -99,6 +99,7 @@ class FakeSettings implements MemberSettingsRepository {
     userId: OWNER,
     email: 'ivan@example.test',
     timezone: 'UTC',
+    locale: 'auto',
     postsPerPage: null,
     threadsPerPage: null,
     invisible: false,

@@ -20,7 +20,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@meith/plugin-kit": "workspace:^"
+    "@meith/plugin-kit": "workspace:^",
+    "@meith/theme-kit": "workspace:^"
   },
   "peerDependencies": {
     "react": "^19.2.0"

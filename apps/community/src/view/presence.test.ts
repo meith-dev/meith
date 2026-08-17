@@ -63,7 +63,7 @@ describe('buildWhoIsOnlineModel', () => {
       now: NOW,
     })
 
-    expect(model.total).toBe(5)
+    expect(model.total).toEqual({ value: 5, label: '5' })
     expect(model.members).toHaveLength(1)
     expect(model.fullListHref).toBe('/online')
   })

@@ -22,6 +22,7 @@ import { getContainer } from '@/server/container'
 import { activeVocabulary, activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
+import { getTranslator } from '@/server/i18n'
 import { moderatorTargetFor } from '@/server/modcp'
 import { cspNonce } from '@/server/nonce'
 import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
@@ -351,7 +352,7 @@ export default async function ThreadPage({
         ? null
         : `/api/read/thread/${thread.id}?post=${postPage.rows.at(-1)!.id}`,
     now: new Date(),
-    timeZone: preferences.timezone,
+    t: await getTranslator(),
     authorFields,
     signatures,
     attachments,
@@ -525,7 +526,7 @@ export default async function ThreadPage({
             isSticky={thread.isSticky}
             rights={toolRights}
             moveTargets={moveTargets}
-            heading={threadToolsHeading(appointment.isForumModerator)}
+            heading={threadToolsHeading(appointment.isForumModerator, await getTranslator())}
           >
             <ThreadSurgeryForm
               threadId={thread.id}

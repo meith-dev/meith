@@ -7,6 +7,7 @@ import { ThemeSwitcher } from '@/components/shell/theme-switcher'
 import { avatarsFor } from '@/server/avatars'
 import { currentLogo } from '@/server/branding'
 import { getContainer } from '@/server/container'
+import { getTranslator } from '@/server/i18n'
 import { legalFooterLinks } from '@/server/legal'
 import { unreadMessageCount } from '@/server/messages'
 import { unreadNotificationCount } from '@/server/notifications'
@@ -34,7 +35,7 @@ async function buildJumpModel(actor: Actor) {
     authorizer.forumIdsWhere(actor, 'forum.view'),
   ])
 
-  return buildForumJumpModel({ rows, visibleForumIds: new Set(visible) })
+  return buildForumJumpModel({ rows, visibleForumIds: new Set(visible), t: await getTranslator() })
 }
 
 export async function PageShell({ actor, children }: { actor: Actor; children: React.ReactNode }) {
@@ -68,7 +69,10 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
   })
   const header = buildHeaderModel(
     viewer,
-    buildBoardNavigation(viewer, { searchEnabled: await searchEnabled() }),
+    buildBoardNavigation(viewer, {
+      searchEnabled: await searchEnabled(),
+      t: await getTranslator(),
+    }),
     boardTitle,
     await currentLogo(boardTitle),
   )
@@ -93,12 +97,18 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
       unreadNotifications,
       unreadMessages,
       registrationOpen: await registrationOpen(),
+      t: await getTranslator(),
     }),
     pluginContext,
   )
   const footerModel = await filterView(
     'view.footer',
-    buildFooterModel(await legalFooterLinks(), boardTitle, preferences.timezone),
+    buildFooterModel(
+      await legalFooterLinks(),
+      boardTitle,
+      preferences.timezone,
+      await getTranslator(),
+    ),
     pluginContext,
   )
 

@@ -7,6 +7,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { activeVocabulary } from '@/server/content-admin'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { messageService } from '@/server/messages'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildMessageView, folderHref } from '@/view/messages'
@@ -28,13 +29,13 @@ export default async function MessagePage({ params }: { params: Promise<{ id: st
   const detail = await service.open({ messageId, userId: actor.userId }).catch(() => null)
   if (detail === null) notFound()
 
-  const preferences = await getViewerPreferences()
+  const _preferences = await getViewerPreferences()
   const view = buildMessageView({
     detail,
     bodyHtml: postBodyHtml(detail.message, await activeVocabulary()),
     viewerUserId: actor.userId,
     now: new Date(),
-    timeZone: preferences.timezone,
+    t: await getTranslator(),
   })
 
   return (

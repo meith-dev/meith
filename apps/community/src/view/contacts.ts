@@ -1,8 +1,9 @@
+import type { Translator } from '@meith/i18n'
 import { isOnline, type RelationKind, type RelationRow } from '@meith/relations'
 import type { TimeModel } from '@meith/theme-kit'
 
 import { memberHref } from './member-profile'
-import { formatTime } from './time'
+import { formatTime, untranslated } from './time'
 
 export interface ContactRowView {
   readonly userId: number
@@ -29,7 +30,7 @@ export function buildContactsView(input: {
   readonly ignored: readonly RelationRow[]
   readonly limit: number
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
 }): ContactsView {
   const row = (entry: RelationRow): ContactRowView => ({
     userId: entry.userId,
@@ -39,8 +40,8 @@ export function buildContactsView(input: {
     lastSeenLabel:
       entry.lastActiveAt === null
         ? null
-        : `Last seen ${formatTime(entry.lastActiveAt, input.now, input.timeZone).label}`,
-    addedAt: formatTime(entry.createdAt, input.now, input.timeZone),
+        : `Last seen ${formatTime(entry.lastActiveAt, input.now, input.t).label}`,
+    addedAt: formatTime(entry.createdAt, input.now, input.t),
     messageHref:
       entry.kind === 'buddy' ? `/messages/compose?to=${encodeURIComponent(entry.username)}` : null,
   })
@@ -57,30 +58,28 @@ export function buildContactsView(input: {
   }
 }
 
-export function contactsNotice(query: {
-  readonly added?: string | undefined
-  readonly ignored?: string | undefined
-  readonly removed?: string | undefined
-}): { kind: 'info'; message: string } | null {
+export function contactsNotice(
+  query: {
+    readonly added?: string | undefined
+    readonly ignored?: string | undefined
+    readonly removed?: string | undefined
+  },
+  t: Translator = untranslated(),
+): { kind: 'info'; message: string } | null {
   if (query.added !== undefined) {
-    return { kind: 'info', message: `${nameOf(query.added)} is now on your buddy list.` }
+    return { kind: 'info', message: t.t('contacts.added', { name: nameOf(query.added, t) }) }
   }
   if (query.ignored !== undefined) {
-    return {
-      kind: 'info',
-      message:
-        `You are now ignoring ${nameOf(query.ignored)}. Their posts are hidden ` +
-        'behind a link, and they cannot send you private messages.',
-    }
+    return { kind: 'info', message: t.t('contacts.ignored', { name: nameOf(query.ignored, t) }) }
   }
   if (query.removed !== undefined) {
-    return { kind: 'info', message: `${nameOf(query.removed)} has been taken off your lists.` }
+    return { kind: 'info', message: t.t('contacts.removed', { name: nameOf(query.removed, t) }) }
   }
   return null
 }
 
-function nameOf(raw: string): string {
+function nameOf(raw: string, t: Translator): string {
   const trimmed = raw.trim()
-  if (trimmed === '') return 'That member'
+  if (trimmed === '') return t.t('contacts.someMember')
   return trimmed.length > 30 ? `${trimmed.slice(0, 30)}…` : trimmed
 }

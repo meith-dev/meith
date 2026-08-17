@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { normaliseLocale, SOURCE_LOCALE } from '@meith/i18n'
+
 import { DEFAULT_PRIVACY_POLICY, DEFAULT_TERMS_OF_SERVICE } from './legal'
 import { isUsableIssuer, isUsableOrigin } from './origin'
 
@@ -244,6 +246,24 @@ export const SETTING_DEFINITIONS = [
     default: 20,
     invalidates: ['settings'],
     ui: { min: 5, max: 100 },
+  }),
+
+  define({
+    key: 'display.default_locale',
+    group: 'display',
+    label: 'Default language',
+    description:
+      'The language a page is written in when the reader has expressed no preference — ' +
+      'a BCP-47 tag such as en, de or pt-BR. A signed-in member overrides it in their ' +
+      'control panel, and a visitor who has not is served whichever language their ' +
+      'browser asks for that this board has a catalog for. Left at a language nothing ' +
+      'translates, every message falls back to English rather than disappearing.',
+    schema: z
+      .string()
+      .trim()
+      .refine((value) => normaliseLocale(value) !== null, 'Give a language tag — en, de, pt-BR.'),
+    default: SOURCE_LOCALE,
+    invalidates: ['settings', 'layout'],
   }),
 
   define({

@@ -3,6 +3,8 @@ export type NotificationAudience = 'member' | 'staff'
 interface NotificationKindBase {
   readonly title: string
   readonly description: string
+  readonly titleKey?: string
+  readonly descriptionKey?: string
   readonly audience: NotificationAudience
   readonly emailByDefault: boolean
   readonly emailConfigurable: boolean
@@ -11,6 +13,8 @@ interface NotificationKindBase {
 export const NOTIFICATION_KINDS = [
   {
     id: 'warning.received',
+    titleKey: 'notification.warning.received.title',
+    descriptionKey: 'notification.warning.received.description',
     title: 'You receive a warning',
     description:
       'A moderator has warned you. The notification records what it was for ' +
@@ -21,6 +25,8 @@ export const NOTIFICATION_KINDS = [
   },
   {
     id: 'report.actioned',
+    titleKey: 'notification.report.actioned.title',
+    descriptionKey: 'notification.report.actioned.description',
     title: 'A report you filed is closed',
     description:
       'A moderator has resolved or rejected something you reported. The ' +
@@ -31,6 +37,8 @@ export const NOTIFICATION_KINDS = [
   },
   {
     id: 'subscription.reply',
+    titleKey: 'notification.subscription.reply.title',
+    descriptionKey: 'notification.subscription.reply.description',
     title: 'A thread you follow gets a reply',
     description:
       'Somebody replies in a thread or forum you follow and asked to hear ' +
@@ -41,6 +49,8 @@ export const NOTIFICATION_KINDS = [
   },
   {
     id: 'subscription.digest',
+    titleKey: 'notification.subscription.digest.title',
+    descriptionKey: 'notification.subscription.digest.description',
     title: 'Your daily or weekly digest is ready',
     description:
       'A summary of what arrived in the threads and forums you follow on a ' + 'digest cadence.',
@@ -50,6 +60,8 @@ export const NOTIFICATION_KINDS = [
   },
   {
     id: 'post.mentioned',
+    titleKey: 'notification.post.mentioned.title',
+    descriptionKey: 'notification.post.mentioned.description',
     title: 'Somebody mentions you in a post',
     description:
       'Somebody writes @your-name in a post. The notification links to the ' +
@@ -60,6 +72,8 @@ export const NOTIFICATION_KINDS = [
   },
   {
     id: 'post.quoted',
+    titleKey: 'notification.post.quoted.title',
+    descriptionKey: 'notification.post.quoted.description',
     title: 'Somebody quotes your post',
     description:
       'Somebody carries your words into their reply with the quote button. ' +
@@ -70,6 +84,8 @@ export const NOTIFICATION_KINDS = [
   },
   {
     id: 'pm.received',
+    titleKey: 'notification.pm.received.title',
+    descriptionKey: 'notification.pm.received.description',
     title: 'You receive a private message',
     description:
       'Somebody sends you a private message. The notification carries who ' +
@@ -80,6 +96,8 @@ export const NOTIFICATION_KINDS = [
   },
   {
     id: 'pm.receipt',
+    titleKey: 'notification.pm.receipt.title',
+    descriptionKey: 'notification.pm.receipt.description',
     title: 'A message you asked to track is read',
     description:
       'Somebody opens a private message you sent with a read receipt ' +
@@ -90,6 +108,8 @@ export const NOTIFICATION_KINDS = [
   },
   {
     id: 'system.task_failed',
+    titleKey: 'notification.system.task_failed.title',
+    descriptionKey: 'notification.system.task_failed.description',
     title: 'A scheduled task fails',
     description:
       'A background task raised an error. Counters, digests and search ' +

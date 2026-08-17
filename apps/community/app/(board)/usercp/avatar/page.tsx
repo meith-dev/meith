@@ -8,6 +8,7 @@ import { AvatarForm } from '@/components/account/avatar-form'
 import { PanelPage } from '@/components/shell/panel-page'
 import { avatarFor, canUploadAvatar } from '@/server/avatars'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
 import { userCpNotice } from '@/view/usercp'
 
@@ -25,7 +26,7 @@ export default async function AvatarPage({
 
   const avatar = await avatarFor(actor.userId)
   const Notice = requireSlot(await currentTheme(), 'Notice')
-  const notice = userCpNotice(query)
+  const notice = userCpNotice(query, await getTranslator())
 
   return (
     <PanelPage title="Your avatar" lede="Shown beside every post you make, and on your profile.">

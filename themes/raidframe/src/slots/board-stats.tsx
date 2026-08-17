@@ -1,12 +1,14 @@
-import type { BoardStatsModel } from '@meith/theme-kit'
+import type { BoardStatsModel, CountModel } from '@meith/theme-kit'
 
 import { Frame, MICRO, NUMERIC, PanelHead, Stamp, UserRef } from '../shared'
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: CountModel }) {
   return (
     <div className="border border-border bg-surface px-2 py-1.5">
       <dt className={MICRO}>{label}</dt>
-      <dd className={`${NUMERIC} text-lg leading-tight font-semibold text-foreground`}>{value}</dd>
+      <dd className={`${NUMERIC} text-lg leading-tight font-semibold text-foreground`}>
+        {value.label}
+      </dd>
     </div>
   )
 }

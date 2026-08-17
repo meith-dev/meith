@@ -22,10 +22,10 @@ import { memberSecurityActivity } from '@/server/auth-events'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { memberManagedSignIns, passkeysEnabled, signInProviders } from '@/server/federation'
+import { getTranslator } from '@/server/i18n'
 import { currentSessionId } from '@/server/session-actions'
 import { currentTheme } from '@/server/theme'
 import { pendingEnrolment, secondFactorPosture, twoFactorState } from '@/server/two-factor'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { authEventLabel, describeAddress, describeDevice } from '@/view/security-activity'
 import { ssoNotice } from '@/view/sso-notices'
 import { formatDate, formatTime } from '@/view/time'
@@ -66,16 +66,16 @@ export default async function SecurityPage({
   const settings = await memberSettings.read(actor.userId)
   if (settings === null) notFound()
 
-  const notice = pageNotice(query)
+  const notice = await pageNotice(query)
   const Notice = requireSlot(await currentTheme(), 'Notice')
 
   const manageable = await memberManagedSignIns()
   const providers = await signInProviders()
   const passkeys = await passkeysEnabled()
 
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
   const on = (at: Date | null): string | null =>
-    at === null ? null : formatDate(at, timezone).label
+    at === null ? null : formatDate(at, translator).label
 
   const account = await accountStore.accounts.findById(actor.userId)
   const hasPassword = account !== null && account.passwordHash !== null
@@ -114,14 +114,14 @@ export default async function SecurityPage({
   }))
 
   const rightNow = new Date()
-  const when = (at: Date): string => formatTime(at, rightNow, timezone).label
+  const when = (at: Date): string => formatTime(at, rightNow, translator).label
 
   const thisSession = await currentSessionId()
   const sessionView: readonly SessionView[] = (
     await accountStore.sessions.listActiveForUser(actor.userId, rightNow)
   ).map((session) => ({
     id: session.id,
-    device: describeDevice(session.userAgent),
+    device: describeDevice(session.userAgent, translator),
     address: describeAddress(session.ipPrefix),
     lastSeen: when(session.lastSeenAt),
     startedAt: when(session.createdAt),
@@ -131,10 +131,10 @@ export default async function SecurityPage({
   const activity: readonly ActivityView[] = (await memberSecurityActivity(actor.userId)).map(
     (event) => ({
       id: event.id,
-      label: authEventLabel(event.kind),
+      label: authEventLabel(event.kind, translator),
       at: when(event.at),
       address: describeAddress(event.ipPrefix),
-      device: describeDevice(event.userAgent),
+      device: describeDevice(event.userAgent, translator),
     }),
   )
 
@@ -181,8 +181,10 @@ export default async function SecurityPage({
   )
 }
 
-function pageNotice(query: SecurityQuery): { kind: 'info' | 'warning'; message: string } | null {
-  const federated = ssoNotice(query.sso)
+async function pageNotice(
+  query: SecurityQuery,
+): Promise<{ kind: 'info' | 'warning'; message: string } | null> {
+  const federated = ssoNotice(query.sso, await getTranslator())
   if (federated !== null) return federated
 
   for (const [key, value] of [
@@ -196,5 +198,5 @@ function pageNotice(query: SecurityQuery): { kind: 'info' | 'warning'; message: 
     if (message !== undefined) return { kind: 'info', message }
   }
 
-  return userCpNotice(query)
+  return userCpNotice(query, await getTranslator())
 }

@@ -8,6 +8,7 @@ const VISIBLE_NAMES = 12
 export function WhoIsOnline({
   guestCount,
   members,
+  memberCount,
   total,
   recordCount,
   recordAt,
@@ -26,14 +27,14 @@ export function WhoIsOnline({
       </h2>
 
       <span className={NUMERIC}>
-        <span className="font-medium text-foreground">{total.toLocaleString('en')}</span> online —{' '}
-        {members.length.toLocaleString('en')} {members.length === 1 ? 'member' : 'members'},{' '}
-        {guestCount.toLocaleString('en')} {guestCount === 1 ? 'guest' : 'guests'}
+        <span className="font-medium text-foreground">{total.label}</span> online —{' '}
+        {memberCount.label} {memberCount.value === 1 ? 'member' : 'members'}, {guestCount.label}{' '}
+        {guestCount.value === 1 ? 'guest' : 'guests'}
       </span>
 
-      {members.length === 0 ? (
+      {memberCount.value === 0 ? (
         <span>
-          {guestCount === 0
+          {guestCount.value === 0
             ? 'Nobody is reading the board right now.'
             : 'Only guests are reading the board right now.'}
         </span>
@@ -49,7 +50,7 @@ export function WhoIsOnline({
                 className={`inline cursor-default list-none ${LINK} [&::-webkit-details-marker]:hidden [&::marker]:content-none`}
               >
                 {' and '}
-                <span className={NUMERIC}>{rest.length.toLocaleString('en')}</span> more
+                <span className={NUMERIC}>{rest.length}</span> more
               </summary>
               {': '}
               {rest.map((member, index) => (
@@ -66,7 +67,7 @@ export function WhoIsOnline({
         </a>
         {recordAt !== null && (
           <span className={NUMERIC}>
-            Record: {recordCount.toLocaleString('en')} on <Stamp at={recordAt} />
+            Record: {recordCount.label} on <Stamp at={recordAt} />
           </span>
         )}
       </span>

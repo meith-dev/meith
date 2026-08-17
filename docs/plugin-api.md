@@ -166,6 +166,7 @@ names, so a plugin cannot collide with another plugin or reach a core name:
 | Setting | `plugin.<key>.<setting>` |
 | Task | `plugin.<key>.<task>` |
 | Admin page | `/admin/plugins/<key>/<path>` |
+| Message | `<key>.<message>`, by convention rather than by construction |
 
 One name in that namespace belongs to the host: `plugin.<key>._enabled` is
 the operator's kill switch. A plugin cannot declare it — setting names
@@ -175,6 +176,31 @@ than unlikely.
 `definePlugin` refuses a key, setting name, task id or page path that would
 not namespace cleanly: a dot in a plugin key would produce an ambiguous
 setting key, and a slash in a page path would escape the admin prefix.
+
+## Words of its own
+
+A plugin that shows text to a member ships a message catalog and is registered
+with it in `community.config.ts`:
+
+```ts
+plugins: [{ key: 'dues', plugin: dues, messages: duesMessages }]
+```
+
+where `duesMessages` is `{ [locale]: { [key]: pattern } }`. Plugin catalogs are
+merged after the board's and after any theme's, so a plugin can reword either —
+which is a feature when you mean it and a collision when you do not. Namespace
+your keys with your plugin key, the way settings and tasks are namespaced, and
+name a board key only when overriding it is the point.
+
+A page context also carries `locale`, the language tag the board resolved for
+this reader. A plugin renders arbitrary UI rather than filling a slot, so unlike
+a theme it formats its own dates and numbers — `new Intl.NumberFormat(context.locale)`
+rather than `toLocaleString()`, which the `no-fixed-locale-format` guard refuses.
+
+Nothing about a plugin's own text is required to be translatable; a plugin that
+ships only `en` works, and its messages fall back to English for every reader.
+[Languages](./internationalisation.md) covers the message syntax, the plural
+categories, and how a translator adds a language.
 
 ## Timed group grants
 

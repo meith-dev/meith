@@ -134,9 +134,9 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           )}
 
           <dl className="mt-2.5">
-            <StatLine label="posts">{post.author.postCount}</StatLine>
+            <StatLine label="posts">{post.author.postCount.label}</StatLine>
             {post.author.reputation != null && (
-              <StatLine label="rep">{post.author.reputation}</StatLine>
+              <StatLine label="rep">{post.author.reputation.label}</StatLine>
             )}
             {post.author.joinedAt !== null && (
               <StatLine label="joined">

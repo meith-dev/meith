@@ -30,9 +30,7 @@ export function BoardStats({
             { label: 'members', value: memberCount },
           ].map((figure) => (
             <span key={figure.label}>
-              <span className={`font-medium text-foreground ${NUMERIC}`}>
-                {figure.value.toLocaleString('en')}
-              </span>{' '}
+              <span className={`font-medium text-foreground ${NUMERIC}`}>{figure.value.label}</span>{' '}
               {figure.label}
             </span>
           ))}

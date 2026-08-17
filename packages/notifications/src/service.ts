@@ -16,6 +16,8 @@ export interface NotificationPreferenceView {
   readonly kind: string
   readonly title: string
   readonly description: string
+  readonly titleKey?: string
+  readonly descriptionKey?: string
   readonly email: boolean
   readonly isDefault: boolean
 }
@@ -143,6 +145,8 @@ export class NotificationService {
         kind: spec.id,
         title: spec.title,
         description: spec.description,
+        ...(spec.titleKey === undefined ? {} : { titleKey: spec.titleKey }),
+        ...(spec.descriptionKey === undefined ? {} : { descriptionKey: spec.descriptionKey }),
         email: override ?? spec.emailByDefault,
         isDefault: override === undefined,
       }

@@ -5,6 +5,7 @@ import { Frame, MICRO, NUMERIC, PanelHead, Stamp, UserRef } from '../shared'
 export function WhoIsOnline({
   guestCount,
   members,
+  memberCount,
   total,
   recordCount,
   recordAt,
@@ -24,14 +25,14 @@ export function WhoIsOnline({
             <span
               className={`${NUMERIC} text-[0.625rem] font-bold tracking-[0.12em] text-moderation-approved uppercase`}
             >
-              {total} online
+              {total.label} online
             </span>
           </span>
         }
       />
 
       <p className="px-3 py-2.5 text-xs">
-        {members.length === 0 ? (
+        {memberCount.value === 0 ? (
           <span className={MICRO}>no members</span>
         ) : (
           members.map((member, index) => (
@@ -49,9 +50,9 @@ export function WhoIsOnline({
           full list
         </a>
         <span className="text-border">{' | '}</span>
-        <span className="uppercase">{guestCount} guests</span>
+        <span className="uppercase">{guestCount.label} guests</span>
         <span className="text-border">{' | '}</span>
-        <span className="uppercase">record {recordCount}</span>
+        <span className="uppercase">record {recordCount.label}</span>
         {recordAt !== null && (
           <>
             {' '}

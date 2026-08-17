@@ -7,7 +7,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { boardSecurityActivity } from '@/server/auth-events'
 import { getContainer } from '@/server/container'
-import { getViewerPreferences } from '@/server/viewer-preferences'
+import { getTranslator } from '@/server/i18n'
 import { authEventLabel, describeAddress, describeDevice } from '@/view/security-activity'
 import { formatTime } from '@/view/time'
 
@@ -23,7 +23,7 @@ export default async function AdminSecurityPage({
   if ((await adminPageContext()) === null) return null
 
   const query = await searchParams
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
   const kind = (AUTH_EVENT_KINDS as readonly string[]).includes(query.kind ?? '')
     ? (query.kind as (typeof AUTH_EVENT_KINDS)[number])
@@ -66,7 +66,7 @@ export default async function AdminSecurityPage({
             <option value="">Everything</option>
             {AUTH_EVENT_KINDS.map((value) => (
               <option key={value} value={value}>
-                {authEventLabel(value)}
+                {authEventLabel(value, translator)}
               </option>
             ))}
           </select>
@@ -86,16 +86,17 @@ export default async function AdminSecurityPage({
           {page.map((event) => (
             <li key={event.id} className={PANEL_ROW}>
               <span className="flex flex-col text-sm">
-                <span className="font-medium">{authEventLabel(event.kind)}</span>
+                <span className="font-medium">{authEventLabel(event.kind, translator)}</span>
                 <span className="text-xs text-muted-foreground">
                   {event.userId === null
                     ? 'no account named'
                     : (names.get(event.userId) ?? `member ${event.userId}`)}{' '}
-                  · {describeDevice(event.userAgent)} · {describeAddress(event.ipPrefix)}
+                  · {describeDevice(event.userAgent, translator)} ·{' '}
+                  {describeAddress(event.ipPrefix)}
                 </span>
               </span>
               <span className="text-xs text-muted-foreground">
-                {formatTime(event.at, now, timezone).label}
+                {formatTime(event.at, now, translator).label}
               </span>
             </li>
           ))}

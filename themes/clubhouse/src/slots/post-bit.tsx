@@ -104,10 +104,8 @@ function AuthorBlock({
       </div>
 
       <dl className="mt-2.5 space-y-1 border-t border-border px-4 py-2.5">
-        <StatLine label="Posts">{author.postCount.toLocaleString('en')}</StatLine>
-        {author.reputation != null && (
-          <StatLine label="Rep">{author.reputation.toLocaleString('en')}</StatLine>
-        )}
+        <StatLine label="Posts">{author.postCount.label}</StatLine>
+        {author.reputation != null && <StatLine label="Rep">{author.reputation.label}</StatLine>}
         {author.joinedAt !== null && (
           <StatLine label="Joined">
             <Stamp at={author.joinedAt} />

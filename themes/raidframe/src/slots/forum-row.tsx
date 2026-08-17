@@ -42,10 +42,10 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
       </td>
 
       <td className={`w-16 px-2 py-2.5 text-right text-xs ${NUMERIC} text-foreground`}>
-        {isLink ? <span className="text-muted-foreground">—</span> : forum.threadCount}
+        {isLink ? <span className="text-muted-foreground">—</span> : forum.threadCount.label}
       </td>
       <td className={`w-16 px-2 py-2.5 text-right text-xs ${NUMERIC} text-foreground`}>
-        {isLink ? <span className="text-muted-foreground">—</span> : forum.postCount}
+        {isLink ? <span className="text-muted-foreground">—</span> : forum.postCount.label}
       </td>
 
       <td className="hidden w-60 px-3 py-2.5 text-xs text-muted-foreground sm:table-cell">

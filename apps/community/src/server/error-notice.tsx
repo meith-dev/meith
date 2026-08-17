@@ -4,6 +4,7 @@ import { logger } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 import { requireSlot } from '@meith/theme-kit'
 
+import { getTranslator } from '@/server/i18n'
 import { buildErrorNotice, CRASH_NOTICE, type ErrorNoticeCopy } from '@/view/error-notice'
 
 import { filterView } from './plugin-view'
@@ -13,11 +14,15 @@ export async function renderErrorNotice(copy: ErrorNoticeCopy): Promise<React.Re
   const requestId = currentRequestId() ?? null
   const ErrorNotice = requireSlot(await currentTheme(), 'ErrorNotice')
 
-  const model = await filterView('view.error-notice', buildErrorNotice(copy, requestId), {
-    userId: null,
-    isGuest: true,
-    requestId,
-  })
+  const model = await filterView(
+    'view.error-notice',
+    buildErrorNotice(copy, requestId, await getTranslator()),
+    {
+      userId: null,
+      isGuest: true,
+      requestId,
+    },
+  )
 
   return <ErrorNotice {...model} />
 }

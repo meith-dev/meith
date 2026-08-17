@@ -114,6 +114,14 @@ export interface TimeModel {
   readonly label: string
 }
 
+/** A counter, in both forms a template needs. See this file's header. */
+export interface CountModel {
+  /** The number itself: compare, pluralise and branch on it. Never rendered raw. */
+  readonly value: number
+  /** Preformatted in the viewer's language, e.g. "1,204" or "1.204". */
+  readonly label: string
+}
+
 /** A resolved link. Themes never build hrefs; the app owns URL shape. */
 export interface LinkModel {
   readonly label: string
@@ -217,8 +225,8 @@ export interface ForumRowModel {
   readonly href: string
   /** `link` rows navigate away and have no counters. */
   readonly type: 'category' | 'forum' | 'link'
-  readonly threadCount: number
-  readonly postCount: number
+  readonly threadCount: CountModel
+  readonly postCount: CountModel
   readonly lastPost: LastPostModel | null
   /** `false` for a guest, who has no read state. */
   readonly isUnread: boolean
@@ -231,8 +239,8 @@ export interface ThreadRowModel {
   readonly href: string
   readonly prefix: PrefixModel | null
   readonly author: UserRefModel
-  readonly replyCount: number
-  readonly viewCount: number
+  readonly replyCount: CountModel
+  readonly viewCount: CountModel
   readonly isSticky: boolean
   readonly isLocked: boolean
   readonly isUnread: boolean
@@ -303,8 +311,8 @@ export interface PostAuthorModel extends UserRefModel {
    *
    * A denormalised counter on `users`, so it costs the postbit nothing.
    */
-  readonly reputation?: number | null | undefined
-  readonly postCount: number
+  readonly reputation?: CountModel | null | undefined
+  readonly postCount: CountModel
   readonly joinedAt: TimeModel | null
   /** Pre-rendered Markdown. Trusted output of the board's own renderer. */
   readonly signatureHtml: string | null
@@ -509,9 +517,9 @@ export interface UserPanelModel {
   readonly viewer: ViewerModel
   /** Sign-in / register, or account links. Resolved by the app. */
   readonly links: readonly LinkModel[]
-  /** `0` when there is nothing to show. */
-  readonly unreadNotifications: number
-  readonly unreadMessages: number
+  /** `value` is `0` when there is nothing to show. */
+  readonly unreadNotifications: CountModel
+  readonly unreadMessages: CountModel
   /**
    * Where the two counts above lead, so a theme can make them clickable.
    *
@@ -639,9 +647,9 @@ export interface CategoryBlockModel {
 }
 
 export interface BoardStatsModel {
-  readonly threadCount: number
-  readonly postCount: number
-  readonly memberCount: number
+  readonly threadCount: CountModel
+  readonly postCount: CountModel
+  readonly memberCount: CountModel
   readonly newestMember: UserRefModel | null
   /**
    * When the totals were last rolled up, or null before the first run.
@@ -670,11 +678,13 @@ export interface OnlineMemberModel extends UserRefModel {
 }
 
 export interface WhoIsOnlineModel {
-  readonly guestCount: number
+  readonly guestCount: CountModel
   readonly members: readonly OnlineMemberModel[]
+  /** How many members are listed. Render this rather than `members.length`. */
+  readonly memberCount: CountModel
   /** Members plus guests, as this reader is permitted to count them. */
-  readonly total: number
-  readonly recordCount: number
+  readonly total: CountModel
+  readonly recordCount: CountModel
   readonly recordAt: TimeModel | null
   /** The full list, for a theme that shows only a summary here. */
   readonly fullListHref: string
@@ -693,7 +703,7 @@ export interface LatestThreadModel {
   /** The forum it was started in, resolved — a theme never builds an href. */
   readonly forum: LinkModel
   readonly author: UserRefModel
-  readonly replyCount: number
+  readonly replyCount: CountModel
   readonly startedAt: TimeModel
 }
 
@@ -916,7 +926,7 @@ export interface MemberProfileModel {
   readonly title: string | null
   readonly joinedAt: TimeModel
   readonly lastVisitAt: TimeModel | null
-  readonly postCount: number
+  readonly postCount: CountModel
   readonly signatureHtml: string | null
   /** Custom profile fields, already filtered by visibility. */
   readonly fields: readonly { readonly label: string; readonly value: string }[]
@@ -1170,7 +1180,7 @@ export interface DiscoveryRowModel {
   readonly href: string
   readonly forum: LinkModel
   readonly authorUsername: string
-  readonly replyCount: number
+  readonly replyCount: CountModel
   readonly lastPostAt: TimeModel
   /** `null` when the thread has no reply yet, so the last post is the first. */
   readonly lastPostUsername: string | null

@@ -1,4 +1,5 @@
 import type { ForumRow } from '@meith/forums'
+import type { Translator } from '@meith/i18n'
 import { type BoardVocabulary, type CompiledWordFilter, postBodyHtml } from '@meith/markdown'
 import { editedNote, type PostListingRow, type PostPage } from '@meith/posts'
 import { suppress } from '@meith/relations'
@@ -11,11 +12,12 @@ import type {
 import type { ThreadListingRow } from '@meith/threads'
 
 import { forumHref } from './board-index'
+import { count } from './count'
 import { threadRowModel } from './forum-display'
 import type { MemberIdentity } from './member-identity'
 import { memberHref } from './member-profile'
 import { postAnchor } from './post-link'
-import { formatDate, formatTime } from './time'
+import { formatDate, formatTime, untranslated } from './time'
 import { filterWords } from './word-filter'
 
 export interface PostCapabilities {
@@ -60,7 +62,7 @@ interface PostContext {
   readonly now: Date
   readonly replyHref: string | null
   readonly capabilities: PostCapabilities
-  readonly timeZone: string | undefined
+  readonly t: Translator | undefined
   readonly fields: ReadonlyMap<number, readonly { label: string; value: string }[]>
   readonly signatures: ReadonlyMap<number, string>
   readonly avatars: ReadonlyMap<number, string>
@@ -74,7 +76,7 @@ interface PostContext {
 }
 
 function post(post: PostListingRow, thread: ThreadListingRow, context: PostContext): PostBitModel {
-  const { now, replyHref, capabilities, timeZone, fields, signatures } = context
+  const { now, replyHref, capabilities, t, fields, signatures } = context
   const isOwn =
     capabilities.viewerUserId !== null && post.authorUserId === capabilities.viewerUserId
   const manageHref = `/thread/${thread.id}-${thread.slug}/edit?post=${post.id}`
@@ -112,19 +114,19 @@ function post(post: PostListingRow, thread: ThreadListingRow, context: PostConte
       title: identity?.title ?? null,
       nameClass: identity?.nameClass ?? null,
       badge: identity?.badge ?? null,
-      reputation: identity?.reputation ?? null,
-      postCount: post.authorPostCount,
-      joinedAt: post.authorJoinedAt === null ? null : formatDate(post.authorJoinedAt, timeZone),
+      reputation: identity?.reputation === undefined ? null : count(identity.reputation, t),
+      postCount: count(post.authorPostCount, t),
+      joinedAt: post.authorJoinedAt === null ? null : formatDate(post.authorJoinedAt, t),
       signatureHtml:
         hidden || post.authorUserId === null ? null : (signatures.get(post.authorUserId) ?? null),
       isOnline: false,
       fields: hidden || post.authorUserId === null ? [] : (fields.get(post.authorUserId) ?? []),
     },
     bodyHtml: hidden ? '' : filterWords(postBodyHtml(post, context.vocabulary), context.wordFilter),
-    postedAt: formatTime(post.createdAt, now, timeZone),
+    postedAt: formatTime(post.createdAt, now, t),
     editedNote: editedNote(
       { editedAt: post.editedAt, editedByUsername: post.editedByUsername, reason: post.editReason },
-      (at) => formatTime(at, now, timeZone).label,
+      (at) => formatTime(at, now, t).label,
     ),
     isFirstPost: post.isFirstPost,
     visibility: post.visibility,
@@ -174,7 +176,7 @@ export interface ThreadViewInput {
   readonly replyHref?: string | null
   readonly capabilities?: PostCapabilities
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
   readonly authorFields?: ReadonlyMap<number, readonly { label: string; value: string }[]>
   readonly signatures?: ReadonlyMap<number, string>
   readonly avatars?: ReadonlyMap<number, string>
@@ -200,8 +202,11 @@ export function revealHref(currentHref: string, postId: number, number: number):
   return `${path}${separator}reveal=${postId}#${postAnchor(number)}`
 }
 
-export function threadToolsHeading(isForumModerator: boolean): string {
-  return isForumModerator ? 'Moderator tools' : 'Thread tools'
+export function threadToolsHeading(
+  isForumModerator: boolean,
+  t: Translator = untranslated(),
+): string {
+  return t.t(isForumModerator ? 'thread.moderatorTools' : 'thread.threadTools')
 }
 
 export function revealedFrom(raw: string | readonly string[] | undefined): ReadonlySet<number> {
@@ -226,7 +231,7 @@ export interface ThreadView {
 export function buildThreadView(input: ThreadViewInput): ThreadView {
   return {
     view: {
-      thread: threadRowModel(input.thread, input.now, null, input.timeZone),
+      thread: threadRowModel(input.thread, input.now, null, input.t),
       forum: { label: input.forum.title, href: forumHref(input.forum) },
       replyHref: input.replyHref ?? null,
       markReadAction: input.markReadAction ?? null,
@@ -236,7 +241,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
         now: input.now,
         replyHref: input.replyHref ?? null,
         capabilities: input.capabilities ?? NO_CAPABILITIES,
-        timeZone: input.timeZone,
+        t: input.t,
         fields: input.authorFields ?? new Map(),
         signatures: input.signatures ?? EMPTY_SIGNATURES,
         attachments: input.attachments ?? EMPTY_ATTACHMENTS,

@@ -1,4 +1,4 @@
-import type { PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
+import type { CountModel, PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
 import { Avatar, cn } from '@meith/ui'
 
 export const PAGE = 'mx-auto w-full max-w-6xl px-3 sm:px-4'
@@ -176,10 +176,10 @@ export function isEmptyRegion(node: React.ReactNode): boolean {
   return Array.isArray(node) && node.length === 0
 }
 
-export function count(value: number): string {
-  return value.toLocaleString('en')
+export function count(value: CountModel): string {
+  return value.label
 }
 
-export function plural(value: number, one: string, many: string): string {
-  return value === 1 ? one : many
+export function plural(value: CountModel, one: string, many: string): string {
+  return value.value === 1 ? one : many
 }

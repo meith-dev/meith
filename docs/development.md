@@ -128,7 +128,8 @@ How the packages relate — the layers, what may import what, and why — is
 | `pnpm site:shots` | Re-photographs meith.dev's screenshots against the demo board. Deliberate, never on CI — see [the site's screenshots](#the-sites-screenshots). |
 
 `pnpm verify` is the one that matters. It runs, in order: the workspace and
-root checks, `release:check`, the guards and their probes, the slot checks,
+root checks, `release:check`, the guards and their probes, the message-catalog
+check, the slot checks,
 the generated-document checks (`theme:docs`, `plugin:docs`, `hooks:wired`,
 `api:docs`, `perf:docs`, `docs:index`, `site:docs`), lint,
 dependency-cruiser, all three typecheck projects, and the full test suite.
@@ -348,6 +349,7 @@ repository that nothing else reads:
 | `root:check` | A new file at the repository root. The root is an interface — every entry is registered with the reason it must live there. |
 | `release:check` | A version written anywhere that disagrees with the release version, or a published package depending on a private one. See [Releasing](./release.md). |
 | `guards` | Textual invariants — the things a grep can prove and a type cannot. `guards:probe` proves each guard still fires. |
+| `i18n:check` | A message the code names and the catalog does not carry, a message nothing reads any more, a mirrored setting label that has drifted from the catalog, or a view builder that gained a hardcoded English string. See [Languages](./internationalisation.md). |
 | `slots:check` | The server/client boundary in theme slots, in both directions. |
 | `hooks:wired` | A hook fired by name that the registry does not declare — the typo that would otherwise be a call nothing listens to. It also derives the wired/unwired list that `pnpm plugin:docs` publishes. |
 | `theme:docs:check`, `plugin:docs:check`, `api:docs:check`, `perf:docs:check` | A generated reference that has drifted from the code it describes. |

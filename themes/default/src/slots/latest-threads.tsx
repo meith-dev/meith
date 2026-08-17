@@ -39,8 +39,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
                     {thread.title}
                   </a>
                   <span className={`shrink-0 text-xs text-muted-foreground ${NUMERIC}`}>
-                    {thread.replyCount.toLocaleString('en')}{' '}
-                    {thread.replyCount === 1 ? 'reply' : 'replies'}
+                    {thread.replyCount.label} {thread.replyCount.value === 1 ? 'reply' : 'replies'}
                   </span>
                 </div>
 

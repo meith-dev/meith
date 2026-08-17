@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { normaliseLocale } from '@meith/i18n'
 
 import { foldIdentifier } from './case-fold'
 import { hashPassword, needsRehash, verifyPassword } from './crypto/password'
@@ -18,6 +19,7 @@ export interface MemberSettings {
   readonly userId: number
   readonly email: string
   readonly timezone: string
+  readonly locale: string
   readonly postsPerPage: number | null
   readonly threadsPerPage: number | null
   readonly invisible: boolean
@@ -54,6 +56,7 @@ export interface MemberSettingsRepository {
   saveOptions(input: {
     readonly userId: number
     readonly timezone: string
+    readonly locale: string
     readonly postsPerPage: number | null
     readonly threadsPerPage: number | null
     readonly invisible: boolean
@@ -83,6 +86,12 @@ export function isKnownTimezone(value: string): boolean {
 
 export function isTimezonePreference(value: string): boolean {
   return value === AUTOMATIC_TIMEZONE || isKnownTimezone(value)
+}
+
+export const AUTOMATIC_LOCALE = 'auto'
+
+export function isLocalePreference(value: string): boolean {
+  return value === AUTOMATIC_LOCALE || normaliseLocale(value) !== null
 }
 
 export class MemberSettingsService {
@@ -183,6 +192,7 @@ export class MemberSettingsService {
   async saveOptions(input: {
     readonly userId: number
     readonly timezone: string
+    readonly locale: string
     readonly postsPerPage: string
     readonly threadsPerPage: string
     readonly invisible: boolean
@@ -192,9 +202,15 @@ export class MemberSettingsService {
       throw new ValidationError('That is not a timezone this board recognises.')
     }
 
+    const locale = input.locale.trim()
+    if (!isLocalePreference(locale)) {
+      throw new ValidationError('That is not a language this board recognises.')
+    }
+
     await this.settings.saveOptions({
       userId: input.userId,
       timezone,
+      locale,
       postsPerPage: parsePageSize(input.postsPerPage, 'Posts per page'),
       threadsPerPage: parsePageSize(input.threadsPerPage, 'Threads per page'),
       invisible: input.invisible,

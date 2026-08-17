@@ -1,5 +1,7 @@
 import type { SlotModels, SlotName } from '@meith/theme-kit'
 
+const COUNT = (value: number) => ({ value, label: String(value) })
+
 const TIME = { iso: '2026-03-12T09:14:00.000Z', label: '12 Mar 2026, 09:14' }
 const OLDER = { iso: '2025-11-01T20:00:00.000Z', label: '1 Nov 2025, 20:00' }
 
@@ -38,8 +40,8 @@ const FORUM = {
   description: 'Anything that does not fit elsewhere.',
   href: '/f/3-general',
   type: 'forum' as const,
-  threadCount: 412,
-  postCount: 9130,
+  threadCount: COUNT(412),
+  postCount: COUNT(9130),
   lastPost: LAST_POST,
   isUnread: true,
   subforums: [{ label: 'Introductions', href: '/f/8-introductions' }],
@@ -51,8 +53,8 @@ const THREAD = {
   href: '/thread/91-bikeshedding',
   prefix: { label: 'Poll', token: 'thread-pinned' },
   author: AUTHOR,
-  replyCount: 27,
-  viewCount: 1840,
+  replyCount: COUNT(27),
+  viewCount: COUNT(1840),
   isSticky: true,
   isLocked: false,
   isUnread: true,
@@ -64,7 +66,7 @@ const POST_AUTHOR = {
   ...AUTHOR,
   avatarUrl: '/avatar/12.png',
   title: 'Registered',
-  postCount: 318,
+  postCount: COUNT(318),
   joinedAt: OLDER,
   signatureHtml: '<p>Sent from a rotary telephone</p>',
   isOnline: true,
@@ -151,8 +153,8 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
     model: {
       viewer: VIEWER,
       links: [{ label: 'User CP', href: '/usercp' }],
-      unreadNotifications: 3,
-      unreadMessages: 1,
+      unreadNotifications: COUNT(3),
+      unreadMessages: COUNT(1),
       children: region('log-out'),
     },
     requires: ['Wren', '/usercp', region('log-out')],
@@ -235,9 +237,9 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
 
   BoardStats: {
     model: {
-      threadCount: 412,
-      postCount: 913,
-      memberCount: 187,
+      threadCount: COUNT(412),
+      postCount: COUNT(913),
+      memberCount: COUNT(187),
       newestMember: AUTHOR,
       computedAt: TIME,
     },
@@ -246,7 +248,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
 
   WhoIsOnline: {
     model: {
-      guestCount: 14,
+      guestCount: COUNT(14),
       members: [
         {
           ...AUTHOR,
@@ -255,8 +257,9 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
           lastSeen: TIME,
         },
       ],
-      total: 15,
-      recordCount: 240,
+      memberCount: COUNT(1),
+      total: COUNT(15),
+      recordCount: COUNT(240),
       recordAt: OLDER,
       fullListHref: '/online',
     },
@@ -271,7 +274,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
           href: '/thread/91-bikeshedding',
           forum: { label: 'General discussion', href: '/f/3-general' },
           author: AUTHOR,
-          replyCount: 27,
+          replyCount: COUNT(27),
           startedAt: TIME,
         },
       ],
@@ -396,7 +399,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       title: 'Registered',
       joinedAt: OLDER,
       lastVisitAt: TIME,
-      postCount: 318,
+      postCount: COUNT(318),
       signatureHtml: '<p>Sent from a rotary telephone</p>',
       fields: [{ label: 'Location', value: 'Bristol' }],
       actions: [{ label: 'Send a message', href: '/messages/new?to=12' }],
@@ -579,7 +582,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
           href: '/thread/91-bikeshedding',
           forum: { label: 'General discussion', href: '/3-general' },
           authorUsername: 'Marlow',
-          replyCount: 0,
+          replyCount: COUNT(0),
           lastPostAt: TIME,
           lastPostUsername: null,
         },

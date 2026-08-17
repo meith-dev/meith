@@ -42,6 +42,7 @@ export type {
   BoardIndexModel,
   BoardStatsModel,
   CategoryBlockModel,
+  CountModel,
   DiscoveryRowModel,
   DiscoveryViewModel,
   EditorToolbarModel,

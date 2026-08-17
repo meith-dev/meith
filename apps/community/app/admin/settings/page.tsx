@@ -8,6 +8,7 @@ import { AdminSettingsForm } from '@/components/admin/settings-form'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { boardUrlResolution } from '@/server/board-url'
+import { getTranslator } from '@/server/i18n'
 import { assessMailReadiness } from '@/server/mail-health'
 import { getSettings } from '@/server/settings'
 import { buildAdminSettingsModel, DEFAULT_SETTING_GROUP, settingsHref } from '@/view/admin-settings'
@@ -31,6 +32,7 @@ export default async function AdminSettingsPage({
     query: query.q,
     group: query.group,
     advanced: query.advanced === '1',
+    t: await getTranslator(),
   })
 
   const mail =

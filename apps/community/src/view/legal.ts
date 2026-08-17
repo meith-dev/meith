@@ -1,29 +1,32 @@
+import type { Translator } from '@meith/i18n'
 import type { LinkModel } from '@meith/theme-kit'
+
+import { untranslated } from './time'
 
 export type LegalSlug = 'terms' | 'privacy'
 
 export interface LegalPage {
   readonly slug: LegalSlug
   readonly settingKey: 'legal.terms' | 'legal.privacy'
-  readonly title: string
+  readonly titleKey: string
   readonly href: string
-  readonly footerLabel: string
+  readonly footerLabelKey: string
 }
 
 export const LEGAL_PAGES: readonly LegalPage[] = [
   {
     slug: 'terms',
     settingKey: 'legal.terms',
-    title: 'Terms of service',
+    titleKey: 'legal.page.terms.title',
     href: '/terms',
-    footerLabel: 'Terms',
+    footerLabelKey: 'legal.page.terms.footer',
   },
   {
     slug: 'privacy',
     settingKey: 'legal.privacy',
-    title: 'Privacy policy',
+    titleKey: 'legal.page.privacy.title',
     href: '/privacy',
-    footerLabel: 'Privacy',
+    footerLabelKey: 'legal.page.privacy.footer',
   },
 ]
 
@@ -37,9 +40,12 @@ export function isPublished(body: string): boolean {
   return body.trim() !== ''
 }
 
-export function buildLegalLinks(bodyOf: (page: LegalPage) => string): readonly LinkModel[] {
+export function buildLegalLinks(
+  bodyOf: (page: LegalPage) => string,
+  t: Translator = untranslated(),
+): readonly LinkModel[] {
   return LEGAL_PAGES.filter((page) => isPublished(bodyOf(page))).map((page) => ({
-    label: page.footerLabel,
+    label: t.t(page.footerLabelKey),
     href: page.href,
   }))
 }

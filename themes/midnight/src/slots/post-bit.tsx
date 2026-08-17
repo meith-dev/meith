@@ -89,7 +89,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           <dl className="mt-2 font-mono text-xs text-muted-foreground">
             <div className="flex gap-1">
               <dt>posts</dt>
-              <dd className="text-foreground">{post.author.postCount}</dd>
+              <dd className="text-foreground">{post.author.postCount.label}</dd>
             </div>
             {post.author.joinedAt !== null && (
               <div className="flex gap-1">
@@ -102,7 +102,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             {post.author.reputation != null && (
               <div className="flex gap-1">
                 <dt>rep</dt>
-                <dd className="text-foreground">{post.author.reputation}</dd>
+                <dd className="text-foreground">{post.author.reputation.label}</dd>
               </div>
             )}
             {post.author.isOnline && <div className="text-forum-unread">online</div>}

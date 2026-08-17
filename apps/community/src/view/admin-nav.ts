@@ -1,3 +1,5 @@
+import type { Translator } from '@meith/i18n'
+
 import {
   currentProps,
   deepestHrefIn,
@@ -8,6 +10,7 @@ import {
   sectionHrefIn,
 } from './panel-nav'
 import { SETTING_GROUP_NAV } from './setting-groups'
+import { untranslated } from './time'
 
 export type {
   PanelSection as AdminSection,
@@ -17,96 +20,99 @@ export { currentProps, isUnder }
 
 export const ADMIN_OVERVIEW: PanelSection = {
   href: '/admin',
-  title: 'Overview',
+  titleKey: 'adminNav.admin.title',
   icon: 'overview',
-  blurb: 'What is waiting, the board at a glance, and the latest activity.',
+  blurbKey: 'adminNav.admin.blurb',
 }
 
 export const ADMIN_SECTIONS: PanelNav = [
   {
     href: '/admin/settings',
-    title: 'Board settings',
+    titleKey: 'adminNav.admin-settings.title',
     icon: 'settings',
-    blurb: 'Every setting this build has, grouped and searchable.',
+    blurbKey: 'adminNav.admin-settings.blurb',
     children: SETTING_GROUP_NAV,
   },
   {
     href: '/admin/forums',
-    title: 'Forums',
+    titleKey: 'adminNav.admin-forums.title',
     icon: 'forums',
-    blurb: 'The tree, each forum’s options, and the permission matrix.',
+    blurbKey: 'adminNav.admin-forums.blurb',
   },
   {
     href: '/admin/groups',
-    title: 'Groups',
+    titleKey: 'adminNav.admin-groups.title',
     icon: 'groups',
-    blurb: 'What each group allows, promotions, and mass membership changes.',
+    blurbKey: 'adminNav.admin-groups.blurb',
     children: [
-      { href: '/admin/groups/promotions', title: 'Promotions' },
-      { href: '/admin/groups/memberships', title: 'Mass membership' },
+      { href: '/admin/groups/promotions', titleKey: 'adminNav.admin-groups-promotions.title' },
+      { href: '/admin/groups/memberships', titleKey: 'adminNav.admin-groups-memberships.title' },
     ],
   },
   {
     href: '/admin/users',
-    title: 'Users',
+    titleKey: 'adminNav.admin-users.title',
     icon: 'users',
-    blurb: 'Find an account, change it, merge or prune, or mail the board.',
+    blurbKey: 'adminNav.admin-users.blurb',
     children: [
-      { href: '/admin/users/mail', title: 'Mass mail' },
-      { href: '/admin/users/prune', title: 'Prune members' },
+      { href: '/admin/users/mail', titleKey: 'adminNav.admin-users-mail.title' },
+      { href: '/admin/users/prune', titleKey: 'adminNav.admin-users-prune.title' },
     ],
   },
   {
     href: '/admin/content',
-    title: 'Content',
+    titleKey: 'adminNav.admin-content.title',
     icon: 'content',
-    blurb: 'Announcements, attachments, and the housekeeping around them.',
+    blurbKey: 'adminNav.admin-content.blurb',
     children: [
-      { href: '/admin/content/announcements', title: 'Announcements' },
-      { href: '/admin/content/attachments', title: 'Attachments' },
+      {
+        href: '/admin/content/announcements',
+        titleKey: 'adminNav.admin-content-announcements.title',
+      },
+      { href: '/admin/content/attachments', titleKey: 'adminNav.admin-content-attachments.title' },
     ],
   },
   {
     href: '/admin/antispam',
-    title: 'Anti-spam',
+    titleKey: 'adminNav.admin-antispam.title',
     icon: 'antispam',
-    blurb: 'The honeypot, the question, the limits, and first-post moderation.',
+    blurbKey: 'adminNav.admin-antispam.blurb',
   },
   {
     href: '/admin/themes',
-    title: 'Themes',
+    titleKey: 'adminNav.admin-themes.title',
     icon: 'themes',
-    blurb: 'Installed themes, their tokens, and this board’s overrides.',
+    blurbKey: 'adminNav.admin-themes.blurb',
   },
   {
     href: '/admin/plugins',
-    title: 'Plugins',
+    titleKey: 'adminNav.admin-plugins.title',
     icon: 'plugins',
-    blurb: 'What is installed, what it may do, and what has been failing.',
+    blurbKey: 'adminNav.admin-plugins.blurb',
   },
   {
     href: '/admin/api-tokens',
-    title: 'API tokens',
+    titleKey: 'adminNav.admin-api-tokens.title',
     icon: 'tokens',
-    blurb: 'Issue and revoke tokens, and see what each one may reach.',
+    blurbKey: 'adminNav.admin-api-tokens.blurb',
   },
   {
     href: '/admin/system',
-    title: 'System',
+    titleKey: 'adminNav.admin-system.title',
     icon: 'system',
-    blurb: 'Scheduled tasks, the search index, caches, and the build.',
+    blurbKey: 'adminNav.admin-system.blurb',
   },
   {
     href: '/admin/log',
-    title: 'Admin log',
+    titleKey: 'adminNav.admin-log.title',
     icon: 'log',
-    blurb: 'Every administrative and moderation action, with who and from where.',
+    blurbKey: 'adminNav.admin-log.blurb',
   },
   {
     href: '/admin/security',
-    title: 'Sign-in activity',
+    titleKey: 'adminNav.admin-security.title',
     icon: 'log',
-    blurb: 'Sign-ins, refusals, and what members changed about how they get in.',
+    blurbKey: 'adminNav.admin-security.blurb',
   },
 ]
 
@@ -126,14 +132,17 @@ export interface PluginNavSection {
   readonly pages: readonly PanelSubsection[]
 }
 
-export function adminNavWithPlugin(plugin: PluginNavSection | null): PanelNav {
+export function adminNavWithPlugin(
+  plugin: PluginNavSection | null,
+  t: Translator = untranslated(),
+): PanelNav {
   if (plugin === null || plugin.pages.length === 0) return ADMIN_NAV
 
   const section: PanelSection = {
     href: `${ADMIN_PLUGINS_HREF}/${plugin.key}`,
-    title: plugin.name,
+    titleText: plugin.name,
     icon: 'plugins',
-    blurb: `Every screen ${plugin.name} adds to the panel.`,
+    blurbText: t.t('adminNav.plugin.blurb', { name: plugin.name }),
     children: plugin.pages,
   }
 

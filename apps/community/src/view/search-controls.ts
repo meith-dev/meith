@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import type {
   SearchCursor,
   SearchGrouping,
@@ -7,6 +8,8 @@ import type {
   SearchSort,
 } from '@meith/search'
 import type { OptionModel } from '@meith/theme-kit'
+
+import { untranslated } from './time'
 
 export const SEARCH_FIELDS = {
   query: 'q',
@@ -32,38 +35,39 @@ export const CURSOR_FIELDS = { rank: 'rank', after: 'after' } as const
 
 export const SUBFORUMS_ON = 'yes'
 
-export const SORT_LABELS: Readonly<Record<SearchSort, string>> = {
-  relevance: 'Best match',
-  newest: 'Newest first',
-  oldest: 'Oldest first',
+export const SORT_LABEL_KEYS: Readonly<Record<SearchSort, string>> = {
+  relevance: 'search.sort.relevance',
+  newest: 'search.sort.newest',
+  oldest: 'search.sort.oldest',
 }
 
-export const PERIOD_LABELS: Readonly<Record<SearchPeriod, string>> = {
-  any: 'Any time',
-  day: 'Past 24 hours',
-  week: 'Past week',
-  month: 'Past month',
-  year: 'Past year',
+export const PERIOD_LABEL_KEYS: Readonly<Record<SearchPeriod, string>> = {
+  any: 'search.period.any',
+  day: 'search.period.day',
+  week: 'search.period.week',
+  month: 'search.period.month',
+  year: 'search.period.year',
 }
 
-export const MATCH_LABELS: Readonly<Record<SearchMatch, string>> = {
-  everything: 'Titles and post text',
-  titles: 'Thread titles only',
+export const MATCH_LABEL_KEYS: Readonly<Record<SearchMatch, string>> = {
+  everything: 'search.match.everything',
+  titles: 'search.match.titles',
 }
 
-export const GROUPING_LABELS: Readonly<Record<SearchGrouping, string>> = {
-  posts: 'Every matching post',
-  threads: 'One row per thread',
+export const GROUPING_LABEL_KEYS: Readonly<Record<SearchGrouping, string>> = {
+  posts: 'search.grouping.posts',
+  threads: 'search.grouping.threads',
 }
 
 export function choiceOptions<T extends string>(
   values: readonly T[],
-  labels: Readonly<Record<T, string>>,
+  keys: Readonly<Record<T, string>>,
   selected: T,
+  t: Translator = untranslated(),
 ): OptionModel[] {
   return values.map((value) => ({
     value,
-    label: labels[value],
+    label: t.t(keys[value]),
     isSelected: value === selected,
   }))
 }

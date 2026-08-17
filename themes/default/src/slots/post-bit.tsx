@@ -92,7 +92,7 @@ function AuthorBlock({
           <div className="flex gap-1 sm:justify-center">
             <dt className="sr-only">Posts</dt>
             <dd>
-              {author.postCount.toLocaleString('en')} {author.postCount === 1 ? 'post' : 'posts'}
+              {author.postCount.label} {author.postCount.value === 1 ? 'post' : 'posts'}
             </dd>
           </div>
           {author.joinedAt !== null && (
@@ -106,7 +106,7 @@ function AuthorBlock({
           {author.reputation != null && (
             <div className="flex gap-1 sm:justify-center">
               <dt className="sr-only">Reputation</dt>
-              <dd>{author.reputation.toLocaleString('en')} reputation</dd>
+              <dd>{author.reputation.label} reputation</dd>
             </div>
           )}
         </dl>

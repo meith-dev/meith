@@ -1,7 +1,8 @@
+import type { Translator } from '@meith/i18n'
 import type { NotificationPreferenceView, NotificationView } from '@meith/notifications'
 import type { TimeModel } from '@meith/theme-kit'
 
-import { formatTime } from './time'
+import { formatTime, untranslated } from './time'
 
 export interface NotificationRowView {
   readonly id: number
@@ -25,7 +26,7 @@ export function buildNotificationCentreView(input: {
   readonly unread: number
   readonly nextCursor?: string | undefined
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
 }): NotificationCentreView {
   return {
     rows: input.rows.map((row) => ({
@@ -33,7 +34,7 @@ export function buildNotificationCentreView(input: {
       subject: row.subject,
       body: row.body,
       href: row.href,
-      at: formatTime(row.updatedAt, input.now, input.timeZone),
+      at: formatTime(row.updatedAt, input.now, input.t),
       isRead: row.isRead,
       repeated: row.occurrences > 1 ? `Happened ${row.occurrences} times` : null,
     })),
@@ -51,16 +52,33 @@ export interface PreferencesView {
   readonly backHref: string
 }
 
-export function buildPreferencesView(rows: readonly NotificationPreferenceView[]): PreferencesView {
-  return { rows, backHref: '/notifications' }
+export function buildPreferencesView(
+  rows: readonly NotificationPreferenceView[],
+  translator: Translator = untranslated(),
+): PreferencesView {
+  return {
+    rows: rows.map((row) => ({
+      ...row,
+      title: translated(translator, row.titleKey, row.title),
+      description: translated(translator, row.descriptionKey, row.description),
+    })),
+    backHref: '/notifications',
+  }
 }
 
-export function notificationNotice(query: {
-  readonly read?: string | undefined
-  readonly saved?: string | undefined
-}): string | null {
-  if (query.saved !== undefined) return 'Your notification preferences were saved.'
-  if (query.read === 'all') return 'All notifications marked as read.'
-  if (query.read === 'one') return 'Marked as read.'
+function translated(translator: Translator, key: string | undefined, fallback: string): string {
+  return key !== undefined && translator.has(key) ? translator.t(key) : fallback
+}
+
+export function notificationNotice(
+  query: {
+    readonly read?: string | undefined
+    readonly saved?: string | undefined
+  },
+  t: Translator = untranslated(),
+): string | null {
+  if (query.saved !== undefined) return t.t('notice.preferencesSaved')
+  if (query.read === 'all') return t.t('notice.allRead')
+  if (query.read === 'one') return t.t('notice.markedRead')
   return null
 }

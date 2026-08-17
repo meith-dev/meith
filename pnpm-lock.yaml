@@ -121,6 +121,9 @@ importers:
       '@meith/groups':
         specifier: workspace:*
         version: link:../../packages/groups
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@meith/install':
         specifier: workspace:*
         version: link:../../packages/install
@@ -318,6 +321,9 @@ importers:
 
   packages/accounts:
     dependencies:
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       hash-wasm:
         specifier: ^4.12.0
         version: 4.12.0
@@ -549,6 +555,8 @@ importers:
 
   packages/groups: {}
 
+  packages/i18n: {}
+
   packages/import:
     dependencies:
       mysql2:
@@ -689,6 +697,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -733,6 +744,9 @@ importers:
 
   packages/theme-kit:
     dependencies:
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       react:
         specifier: ^19.2.0
         version: 19.2.0
@@ -788,6 +802,9 @@ importers:
       '@meith/plugin-kit':
         specifier: workspace:^
         version: link:../../packages/plugin-kit
+      '@meith/theme-kit':
+        specifier: workspace:^
+        version: link:../../packages/theme-kit
       react:
         specifier: ^19.2.0
         version: 19.2.0

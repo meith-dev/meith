@@ -46,8 +46,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
         <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-xs text-muted-foreground">
           {forum.type !== 'link' && (
             <span className={`${MICRO} ${NUMERIC}`}>
-              {forum.threadCount.toLocaleString('en')} threads ·{' '}
-              {forum.postCount.toLocaleString('en')} posts
+              {forum.threadCount.label} threads · {forum.postCount.label} posts
             </span>
           )}
           {forum.description !== null && <span>{forum.description}</span>}

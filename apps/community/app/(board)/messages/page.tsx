@@ -10,6 +10,7 @@ import { PanelPagination } from '@/components/shell/panel-pagination'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { messageService } from '@/server/messages'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -42,7 +43,7 @@ export default async function MessagesPage({
   const folder = parseFolder(query.folder ?? 'inbox') ?? 'inbox'
   const pageNumber = readPage(query)
 
-  const preferences = await getViewerPreferences()
+  const _preferences = await getViewerPreferences()
   const [page, counts] = await Promise.all([
     service.list({
       userId: actor.userId,
@@ -59,11 +60,11 @@ export default async function MessagesPage({
     quota: authorizer.globalLimit(actor, 'privateMessageQuota'),
     nextBefore: page.nextBefore,
     now: new Date(),
-    timeZone: preferences.timezone,
+    t: await getTranslator(),
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
-  const notice = messageNotice(query)
+  const notice = messageNotice(query, await getTranslator())
 
   return (
     <PanelPage

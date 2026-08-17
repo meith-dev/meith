@@ -7,7 +7,7 @@ import {
   BRAND_TOKENS,
   groupTokens,
   isSchemeIndependent,
-  tokenMeta,
+  tokenCopy,
 } from './theme-tokens'
 
 describe('groupTokens', () => {
@@ -20,7 +20,9 @@ describe('groupTokens', () => {
   })
 
   it('describes every one of them, so nothing lands in "Other" today', () => {
-    expect(groupTokens(tokens).map((group) => group.title)).not.toContain('Other')
+    expect(groupTokens(tokens).map((group) => group.titleKey)).not.toContain(
+      'themeToken.group.other.title',
+    )
   })
 
   it('offers only tokens the theme actually has', () => {
@@ -30,7 +32,7 @@ describe('groupTokens', () => {
 
   it('keeps an undescribed token rather than dropping it', () => {
     const groups = groupTokens([{ name: 'primary' }, { name: 'invented-by-a-theme' }])
-    const other = groups.find((group) => group.title === 'Other')
+    const other = groups.find((group) => group.titleKey === 'themeToken.group.other.title')
 
     expect(other?.tokens.map((t) => t.name)).toEqual(['invented-by-a-theme'])
   })
@@ -64,7 +66,7 @@ describe('token kinds', () => {
   })
 
   it('falls back to the token name for anything undescribed', () => {
-    expect(tokenMeta('invented').label).toBe('invented')
+    expect(tokenCopy('invented').label).toBe('invented')
   })
 })
 

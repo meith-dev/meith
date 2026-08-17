@@ -46,8 +46,7 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
           {thread.isMoved && <Badge tone="moved">Moved</Badge>}
 
           <span className={`${MICRO} ${NUMERIC}`}>
-            {thread.replyCount.toLocaleString('en')} replies ·{' '}
-            {thread.viewCount.toLocaleString('en')} views
+            {thread.replyCount.label} replies · {thread.viewCount.label} views
           </span>
         </div>
       </PageHead>

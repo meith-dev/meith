@@ -49,7 +49,7 @@ describe('buildLatestThreadsModel', () => {
       href: '/thread/91-bikeshedding',
       forum: { label: 'General', href: '/3-general' },
       author: { userId: 12, username: 'marlow', profileHref: '/member/12' },
-      replyCount: 4,
+      replyCount: { value: 4, label: '4' },
     })
   })
 

@@ -1,4 +1,5 @@
 import type { ForumListingRow } from '@meith/forums'
+import type { Translator } from '@meith/i18n'
 import type {
   ForumDisplayModel,
   ForumRowModel,
@@ -10,6 +11,7 @@ import type {
 import type { ReadState, ThreadListingRow, ThreadPage } from '@meith/threads'
 
 import { forumHref } from './board-index'
+import { count } from './count'
 import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { postLink } from './post-link'
@@ -28,7 +30,7 @@ function lastPost(
   } | null,
   thread: ThreadListingRow,
   now: Date,
-  timeZone: string | undefined,
+  t: Translator | undefined,
   identities: ReadonlyMap<number, MemberIdentity> | undefined,
 ): LastPostModel | null {
   if (!post) return null
@@ -41,13 +43,14 @@ function lastPost(
       profileHref: post.userId === null ? null : memberHref(post.userId),
       nameClass: nameClassOf(identities, post.userId),
     },
-    at: formatTime(post.at, now, timeZone),
+    at: formatTime(post.at, now, t),
   }
 }
 
 function forum(
   row: ForumListingRow,
   ownThreadsOnlyForumIds: ReadonlySet<number> | undefined,
+  t: Translator | undefined,
 ): ForumRowModel {
   const ownThreadsOnly = ownThreadsOnlyForumIds?.has(row.id) ?? false
   return {
@@ -56,8 +59,8 @@ function forum(
     description: row.description,
     href: forumHref(row),
     type: row.type,
-    threadCount: ownThreadsOnly ? 0 : row.threadCount,
-    postCount: ownThreadsOnly ? 0 : row.postCount,
+    threadCount: count(ownThreadsOnly ? 0 : row.threadCount, t),
+    postCount: count(ownThreadsOnly ? 0 : row.postCount, t),
     lastPost: null,
     isUnread: false,
     subforums: [],
@@ -68,7 +71,7 @@ export function threadRowModel(
   row: ThreadListingRow,
   now: Date,
   readState: Pick<ReadState, 'forumReadAt' | 'threadLastPostId'> | null = null,
-  timeZone?: string,
+  t?: Translator,
   identities?: ReadonlyMap<number, MemberIdentity>,
 ): ThreadRowModel {
   const last = row.lastPost
@@ -88,13 +91,13 @@ export function threadRowModel(
       profileHref: row.authorUserId === null ? null : memberHref(row.authorUserId),
       nameClass: nameClassOf(identities, row.authorUserId),
     },
-    replyCount: row.replyCount,
-    viewCount: row.viewCount,
+    replyCount: count(row.replyCount, t),
+    viewCount: count(row.viewCount, t),
     isSticky: row.isSticky,
     isLocked: row.isLocked,
     isUnread,
     isMoved: row.isMoved,
-    lastPost: lastPost(row.lastPost, row, now, timeZone, identities),
+    lastPost: lastPost(row.lastPost, row, now, t, identities),
   }
 }
 
@@ -110,7 +113,7 @@ export interface ForumDisplayInput {
   readonly readState?: Pick<ReadState, 'forumReadAt' | 'threadLastPostId'> | null
   readonly markReadAction?: string | null
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
   readonly identities?: ReadonlyMap<number, MemberIdentity>
 }
 
@@ -124,7 +127,7 @@ export interface ForumDisplayView {
 export function buildForumDisplayView(input: ForumDisplayInput): ForumDisplayView {
   return {
     display: {
-      forum: forum(input.forum, input.ownThreadsOnlyForumIds),
+      forum: forum(input.forum, input.ownThreadsOnlyForumIds, input.t),
       newThreadHref: input.newThreadHref ?? null,
       markReadAction: input.markReadAction ?? null,
     },
@@ -132,10 +135,10 @@ export function buildForumDisplayView(input: ForumDisplayInput): ForumDisplayVie
       input.subforums.length === 0
         ? null
         : {
-            forums: input.subforums.map((row) => forum(row, input.ownThreadsOnlyForumIds)),
+            forums: input.subforums.map((row) => forum(row, input.ownThreadsOnlyForumIds, input.t)),
           },
     threads: input.page.rows.map((row) =>
-      threadRowModel(row, input.now, input.readState ?? null, input.timeZone, input.identities),
+      threadRowModel(row, input.now, input.readState ?? null, input.t, input.identities),
     ),
     pagination: input.pagination ?? {
       page: input.pageNumber,

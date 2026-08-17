@@ -10,8 +10,8 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildQueueView } from '@/view/moderation-queue'
 import { offsetOf, readPage } from '@/view/pager'
 
@@ -41,7 +41,7 @@ export default async function ModerationPage({
     queue.countPending(moderated),
   ])
 
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
   const view = buildQueueView({
     items: page.items,
@@ -49,7 +49,7 @@ export default async function ModerationPage({
     nextCursor: page.nextCursor,
     moderatesAnything: moderated.length > 0,
     now: new Date(),
-    timeZone: timezone,
+    t: translator,
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')

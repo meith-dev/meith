@@ -34,7 +34,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
                     {thread.title}
                   </a>
                   <span className={`shrink-0 text-xs text-muted-foreground ${NUMERIC}`}>
-                    {thread.replyCount.toLocaleString('en')}
+                    {thread.replyCount.label}
                   </span>
                 </div>
 

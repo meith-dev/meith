@@ -17,9 +17,9 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
 
           <div className="flex flex-wrap items-center gap-3">
             <span className={`${MICRO} ${NUMERIC} normal-case`}>
-              <span className="text-foreground">{forum.threadCount}</span> threads
+              <span className="text-foreground">{forum.threadCount.label}</span> threads
               <span className="text-border">{' | '}</span>
-              <span className="text-foreground">{forum.postCount}</span> posts
+              <span className="text-foreground">{forum.postCount.label}</span> posts
             </span>
             {newThreadHref !== null && (
               <a href={newThreadHref} className={BUTTON_PRIMARY}>

@@ -6,6 +6,7 @@ import { requireSlot } from '@meith/theme-kit'
 import { NotificationPreferencesForm } from '@/components/account/notification-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { audiencesForActor } from '@/server/notification-audience'
 import { notificationService } from '@/server/notifications'
 import { currentTheme } from '@/server/theme'
@@ -30,9 +31,9 @@ export default async function NotificationPreferencesPage({
     await Promise.all(audiences.map((audience) => service.preferences(userId, audience)))
   ).flat()
 
-  const view = buildPreferencesView(rows)
+  const view = buildPreferencesView(rows, await getTranslator())
   const Notice = requireSlot(await currentTheme(), 'Notice')
-  const notice = notificationNotice(query)
+  const notice = notificationNotice(query, await getTranslator())
 
   return (
     <PanelPage

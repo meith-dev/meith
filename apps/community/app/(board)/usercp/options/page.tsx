@@ -7,9 +7,10 @@ import { OptionsForm } from '@/components/account/usercp-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { catalogs, getTranslator } from '@/server/i18n'
 import { getSettings } from '@/server/settings'
 import { currentTheme } from '@/server/theme'
-import { optionsFormValues, timezoneChoices, userCpNotice } from '@/view/usercp'
+import { localeChoices, optionsFormValues, timezoneChoices, userCpNotice } from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Your options' }
 
@@ -28,18 +29,22 @@ export default async function OptionsPage({
 
   const board = await getSettings()
   const values = optionsFormValues(settings)
-  const notice = userCpNotice(query)
+  const notice = userCpNotice(query, await getTranslator())
   const Notice = requireSlot(await currentTheme(), 'Notice')
 
   return (
-    <PanelPage title="Your options" lede="Your timezone, and how much of a thread fits on a page.">
+    <PanelPage
+      title="Your options"
+      lede="Your language and timezone, and how much of a thread fits on a page."
+    >
       {notice !== null && (
         <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/options" />
       )}
 
       <OptionsForm
         {...values}
-        timezones={timezoneChoices()}
+        timezones={timezoneChoices(await getTranslator())}
+        locales={localeChoices(catalogs.locales, await getTranslator())}
         boardPostsPerPage={board.get('display.posts_per_page')}
         boardThreadsPerPage={board.get('display.threads_per_page')}
       />

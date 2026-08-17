@@ -4,6 +4,7 @@ import { Card, CardContent, CardRows, Empty, EmptyDescription, EmptyTitle } from
 
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { buildStatsView, LEADERBOARD_SIZE } from '@/server/stats'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
@@ -18,7 +19,8 @@ const ROW = 'flex items-baseline justify-between gap-4 px-4 py-2.5 text-sm'
 export default async function StatsPage() {
   const actor = await getActor()
   const now = new Date()
-  const preferences = await getViewerPreferences()
+  const translator = await getTranslator()
+  const _preferences = await getViewerPreferences()
   const view = await buildStatsView(actor)
 
   if (view === null) {
@@ -48,7 +50,7 @@ export default async function StatsPage() {
           <>
             Totals counted{' '}
             <time dateTime={totals.computedAt.toISOString()}>
-              {formatTime(totals.computedAt, now, preferences.timezone).label}
+              {formatTime(totals.computedAt, now, translator).label}
             </time>
             . The tables below are live.
           </>
@@ -59,9 +61,9 @@ export default async function StatsPage() {
         <Card>
           <CardContent>
             <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-              <Figure label="Threads" value={totals.threadCount} />
-              <Figure label="Posts" value={totals.postCount} />
-              <Figure label="Members" value={totals.memberCount} />
+              <Figure label="Threads" value={translator.number(totals.threadCount)} />
+              <Figure label="Posts" value={translator.number(totals.postCount)} />
+              <Figure label="Members" value={translator.number(totals.memberCount)} />
               <div>
                 <dt className="text-muted-foreground">Newest member</dt>
                 <dd className="font-medium">
@@ -99,7 +101,7 @@ export default async function StatsPage() {
                     </a>
                   </span>
                   <span className="shrink-0 text-xs text-muted-foreground">
-                    {poster.postCount.toLocaleString()} posts
+                    {translator.t('stats.posts', { count: poster.postCount })}
                   </span>
                 </li>
               ))}
@@ -112,24 +114,24 @@ export default async function StatsPage() {
         id="viewed"
         heading="Most viewed threads"
         rows={mostViewed}
-        figure={(row) => `${row.viewCount.toLocaleString()} views`}
+        figure={(row) => translator.t('stats.views', { count: row.viewCount })}
       />
 
       <ThreadTable
         id="replied"
         heading="Most replied-to threads"
         rows={mostReplied}
-        figure={(row) => `${row.replyCount.toLocaleString()} replies`}
+        figure={(row) => translator.t('stats.replies', { count: row.replyCount })}
       />
     </PanelPage>
   )
 }
 
-function Figure({ label, value }: { label: string; value: number }) {
+function Figure({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value.toLocaleString()}</dd>
+      <dd className="font-medium">{value}</dd>
     </div>
   )
 }
