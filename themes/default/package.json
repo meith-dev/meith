@@ -1,6 +1,6 @@
 {
   "name": "@meith/theme-default",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Meith's default theme — every slot and every token, and the reference for what a complete theme fills.",
   "license": "LGPL-3.0-or-later",
   "repository": {
