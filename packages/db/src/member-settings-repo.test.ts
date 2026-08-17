@@ -44,6 +44,7 @@ describe('reading', () => {
       email: 'ivan@example.test',
       invisible: false,
       timezone: 'auto',
+      locale: 'auto',
       postsPerPage: null,
       threadsPerPage: null,
       location: null,
@@ -90,6 +91,7 @@ describe('saving', () => {
     await repo.saveOptions({
       userId: IVAN,
       timezone: 'Europe/London',
+      locale: 'auto',
       postsPerPage: 50,
       threadsPerPage: null,
       invisible: false,
@@ -97,6 +99,7 @@ describe('saving', () => {
 
     expect(await repo.read(IVAN)).toMatchObject({
       timezone: 'Europe/London',
+      locale: 'auto',
       postsPerPage: 50,
       threadsPerPage: null,
       invisible: false,
@@ -107,6 +110,7 @@ describe('saving', () => {
     await repo.saveOptions({
       userId: IVAN,
       timezone: 'Europe/London',
+      locale: 'auto',
       postsPerPage: 50,
       threadsPerPage: 50,
       invisible: false,

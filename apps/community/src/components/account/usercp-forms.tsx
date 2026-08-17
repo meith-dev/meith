@@ -122,6 +122,8 @@ export function DisplayGroupForm({
 export function OptionsForm({
   timezone,
   timezones,
+  locale,
+  locales,
   postsPerPage,
   threadsPerPage,
   boardPostsPerPage,
@@ -130,6 +132,8 @@ export function OptionsForm({
 }: {
   timezone: string
   timezones: readonly { value: string; label: string }[]
+  locale: string
+  locales: readonly { value: string; label: string }[]
   postsPerPage: string
   threadsPerPage: string
   boardPostsPerPage: number
@@ -154,6 +158,21 @@ export function OptionsForm({
         <span className="text-xs text-muted-foreground">
           Every date and time on the board is shown in this zone, and the footer says which one it
           is. Left automatic, it follows the device you are reading on.
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Language</span>
+        <select name="locale" defaultValue={locale} className={FIELD}>
+          {locales.map((choice) => (
+            <option key={choice.value} value={choice.value}>
+              {choice.label}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-muted-foreground">
+          The language the board writes to you in, and the one dates and numbers are formatted by.
+          Left automatic, it follows whichever language your browser asks for.
         </span>
       </label>
 

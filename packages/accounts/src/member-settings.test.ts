@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { hashPassword } from './crypto/password'
 import {
+  AUTOMATIC_LOCALE,
   AUTOMATIC_TIMEZONE,
   isKnownTimezone,
   isTimezonePreference,
@@ -26,6 +27,7 @@ class MemorySettings implements MemberSettingsRepository {
     userId: 7,
     email: 'ivan@example.test',
     timezone: 'UTC',
+    locale: 'auto',
     postsPerPage: null,
     threadsPerPage: null,
     invisible: false,
@@ -244,6 +246,7 @@ describe('the options', () => {
     await service.saveOptions({
       userId: 7,
       timezone: 'Europe/London',
+      locale: 'auto',
       postsPerPage: '',
       threadsPerPage: '',
       invisible: false,
@@ -255,6 +258,7 @@ describe('the options', () => {
     await service.saveOptions({
       userId: 7,
       timezone: AUTOMATIC_TIMEZONE,
+      locale: 'auto',
       postsPerPage: '',
       threadsPerPage: '',
       invisible: false,
@@ -267,6 +271,7 @@ describe('the options', () => {
       service.saveOptions({
         userId: 7,
         timezone: 'Middle/Earth',
+        locale: 'auto',
         postsPerPage: '',
         threadsPerPage: '',
         invisible: false,
@@ -279,6 +284,7 @@ describe('the options', () => {
       service.saveOptions({
         userId: 7,
         timezone: '+01:00',
+        locale: 'auto',
         postsPerPage: '',
         threadsPerPage: '',
         invisible: false,
@@ -286,10 +292,48 @@ describe('the options', () => {
     ).rejects.toThrow('not a timezone')
   })
 
+  it('saves a language tag, spelled the one way the catalog is keyed', async () => {
+    await service.saveOptions({
+      userId: 7,
+      timezone: 'UTC',
+      locale: 'pt-BR',
+      postsPerPage: '',
+      threadsPerPage: '',
+      invisible: false,
+    })
+    expect(settings.row.locale).toBe('pt-BR')
+  })
+
+  it('saves the automatic preference, which names no language at all', async () => {
+    await service.saveOptions({
+      userId: 7,
+      timezone: 'UTC',
+      locale: AUTOMATIC_LOCALE,
+      postsPerPage: '',
+      threadsPerPage: '',
+      invisible: false,
+    })
+    expect(settings.row.locale).toBe(AUTOMATIC_LOCALE)
+  })
+
+  it('refuses anything that is not a language tag', async () => {
+    await expect(
+      service.saveOptions({
+        userId: 7,
+        timezone: 'UTC',
+        locale: 'english',
+        postsPerPage: '',
+        threadsPerPage: '',
+        invisible: false,
+      }),
+    ).rejects.toThrow('not a language')
+  })
+
   it('stores an empty page size as "follow the board"', async () => {
     await service.saveOptions({
       userId: 7,
       timezone: 'UTC',
+      locale: 'auto',
       postsPerPage: '',
       threadsPerPage: '  ',
       invisible: false,
@@ -305,6 +349,7 @@ describe('the options', () => {
         service.saveOptions({
           userId: 7,
           timezone: 'UTC',
+          locale: 'auto',
           postsPerPage: value,
           threadsPerPage: '',
           invisible: false,

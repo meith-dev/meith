@@ -22,6 +22,7 @@
     "@meith/drivers": "workspace:*",
     "@meith/forums": "workspace:*",
     "@meith/groups": "workspace:*",
+    "@meith/i18n": "workspace:*",
     "@meith/install": "workspace:*",
     "@meith/markdown": "workspace:*",
     "@meith/messages": "workspace:*",

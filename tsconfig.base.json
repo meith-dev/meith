@@ -78,6 +78,8 @@
       "@meith/plugin-dues/*": ["plugins/dues/src/*"],
       "@meith/plugin-reference": ["plugins/reference/src/index.ts"],
       "create-meith": ["packages/create-meith/src/index.ts"],
+      "@meith/i18n": ["packages/i18n/src/index.ts"],
+      "@meith/i18n/*": ["packages/i18n/src/*"],
       "@meith/import": ["packages/import/src/index.ts"],
       "@meith/upgrade": ["packages/upgrade/src/index.ts"],
       "@meith/install": ["packages/install/src/index.ts"],

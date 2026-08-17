@@ -19,6 +19,7 @@ export {
   type ForumConfig,
   type InstalledPlugin,
   type InstalledTheme,
+  type MessageBundle,
 } from './config'
 export { timingSafeEqualString } from './crypto'
 export {

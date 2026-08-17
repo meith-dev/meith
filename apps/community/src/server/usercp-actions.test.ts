@@ -54,6 +54,7 @@ class FakeSettings implements MemberSettingsRepository {
     userId: 7,
     email: 'ivan@example.test',
     timezone: 'UTC',
+    locale: 'auto',
     postsPerPage: null,
     threadsPerPage: null,
     invisible: false,
@@ -220,13 +221,32 @@ describe('saving the options', () => {
       saveOptionsAction,
       form([
         ['timezone', 'Europe/London'],
+        ['locale', 'pt-BR'],
         ['postsPerPage', ''],
         ['threadsPerPage', ''],
       ]),
     )
 
     expect(result.redirectedTo).toBe('/usercp/options?saved=1')
-    expect(settings.options[0]).toMatchObject({ userId: 1, timezone: 'Europe/London' })
+    expect(settings.options[0]).toMatchObject({
+      userId: 1,
+      timezone: 'Europe/London',
+      locale: 'pt-BR',
+    })
+  })
+
+  it('reports a language the board does not recognise', async () => {
+    const result = await run(
+      saveOptionsAction,
+      form([
+        ['timezone', 'UTC'],
+        ['locale', 'klingon-ish'],
+        ['postsPerPage', ''],
+        ['threadsPerPage', ''],
+      ]),
+    )
+
+    expect(result.error).toContain('not a language')
   })
 
   it('reports a timezone the board does not recognise', async () => {

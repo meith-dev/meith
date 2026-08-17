@@ -1,3 +1,5 @@
+export type MessageBundle = Readonly<Record<string, Readonly<Record<string, string>>>>
+
 export interface InstalledTheme<TTheme = unknown> {
   readonly key: string
   readonly title: string
@@ -7,18 +9,21 @@ export interface InstalledTheme<TTheme = unknown> {
   }
   readonly browserThemeColor?: { readonly light: string; readonly dark: string } | undefined
   readonly theme?: TTheme | undefined
+  readonly messages?: MessageBundle | undefined
 }
 
 export interface InstalledPlugin<TPlugin = unknown> {
   readonly key: string
   readonly enabled?: boolean | undefined
   readonly plugin?: TPlugin | undefined
+  readonly messages?: MessageBundle | undefined
 }
 
 export interface ForumConfig<TTheme = unknown, TPlugin = unknown> {
   readonly themes: Readonly<Record<string, InstalledTheme<TTheme>>>
   readonly defaultTheme: string
   readonly plugins?: readonly InstalledPlugin<TPlugin>[] | undefined
+  readonly messages?: MessageBundle | undefined
 }
 
 export function defineForumConfig<TTheme, TPlugin>(

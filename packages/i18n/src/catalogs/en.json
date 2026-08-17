@@ -1,0 +1,15 @@
+{
+  "error.conflict": "That action conflicts with the current state.",
+  "error.configuration": "This server is misconfigured.",
+  "error.forbidden": "You do not have permission to do that.",
+  "error.internal": "Something went wrong on our end.",
+  "error.notFound": "That page could not be found.",
+  "error.rateLimited": "You are doing that too often. Please wait and try again.",
+  "error.validation": "The submitted data was invalid.",
+  "time.day": "{day} {month} {year}",
+  "time.hourCycle": "h23",
+  "time.past": "{day} {month} {year}",
+  "time.thisYear": "{day} {month}, {time}",
+  "time.today": "Today, {time}",
+  "time.yesterday": "Yesterday, {time}"
+}

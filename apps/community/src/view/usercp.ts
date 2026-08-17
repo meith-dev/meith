@@ -1,4 +1,10 @@
-import { AUTOMATIC_TIMEZONE, type MemberGroupChoice, type MemberSettings } from '@meith/accounts'
+import {
+  AUTOMATIC_LOCALE,
+  AUTOMATIC_TIMEZONE,
+  type MemberGroupChoice,
+  type MemberSettings,
+} from '@meith/accounts'
+import { SOURCE_LOCALE } from '@meith/i18n'
 import { maxLengthFor, type ResolvedProfileField } from '@meith/profile-fields'
 
 export interface TimezoneChoice {
@@ -16,6 +22,26 @@ export function timezoneChoices(): readonly TimezoneChoice[] {
       label: zone.replace(/_/g, ' '),
     })),
   ]
+}
+
+export const AUTOMATIC_LOCALE_LABEL = 'Automatic — whatever your browser asks for'
+
+export function localeChoices(supported: readonly string[]): readonly TimezoneChoice[] {
+  return [
+    { value: AUTOMATIC_LOCALE, label: AUTOMATIC_LOCALE_LABEL },
+    ...[...supported]
+      .map((locale) => ({ value: locale, label: localeName(locale) }))
+      .sort((a, b) => a.label.localeCompare(b.label, SOURCE_LOCALE)),
+  ]
+}
+
+export function localeName(locale: string): string {
+  try {
+    const named = new Intl.DisplayNames([locale], { type: 'language' }).of(locale)
+    return named === undefined || named === locale ? locale : `${named} (${locale})`
+  } catch {
+    return locale
+  }
 }
 
 export function availableTimezones(): readonly string[] {
@@ -96,12 +122,14 @@ export function displayGroupChoices(
 
 export function optionsFormValues(settings: MemberSettings): {
   timezone: string
+  locale: string
   postsPerPage: string
   threadsPerPage: string
   invisible: boolean
 } {
   return {
     timezone: settings.timezone,
+    locale: settings.locale,
     postsPerPage: settings.postsPerPage === null ? '' : String(settings.postsPerPage),
     threadsPerPage: settings.threadsPerPage === null ? '' : String(settings.threadsPerPage),
     invisible: settings.invisible,

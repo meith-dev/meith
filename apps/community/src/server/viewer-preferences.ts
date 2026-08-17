@@ -12,6 +12,7 @@ import { getSettings } from './settings'
 export interface ViewerPreferences {
   readonly timezone: string
   readonly timezoneIsAutomatic: boolean
+  readonly locale: string | null
   readonly postsPerPage: number
   readonly threadsPerPage: number
 }
@@ -39,6 +40,7 @@ export const getViewerPreferences = cache(async (): Promise<ViewerPreferences> =
   return {
     timezone: timezone.zone,
     timezoneIsAutomatic: timezone.isAutomatic,
+    locale: stored?.locale ?? null,
     postsPerPage: stored?.postsPerPage ?? defaults.postsPerPage,
     threadsPerPage: stored?.threadsPerPage ?? defaults.threadsPerPage,
   }
@@ -46,6 +48,7 @@ export const getViewerPreferences = cache(async (): Promise<ViewerPreferences> =
 
 async function storedSettings(): Promise<{
   readonly timezone: string
+  readonly locale: string
   readonly postsPerPage: number | null
   readonly threadsPerPage: number | null
 } | null> {
