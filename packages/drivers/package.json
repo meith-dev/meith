@@ -14,6 +14,7 @@
     "@meith/attachments": "workspace:*",
     "@meith/core": "workspace:*",
     "@meith/db": "workspace:*",
+    "@meith/i18n": "workspace:*",
     "@meith/settings": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "nodemailer": "^9.0.5"

@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
 import { rewriteDenormalisedUsernames } from './denormalised-username'
@@ -106,12 +107,12 @@ export class PostgresUserMergeRepository {
       ) as Array<Record<string, unknown>>
 
       const row = state[0] as Record<string, unknown>
-      if (Number(row.found) !== 2) throw new ValidationError('No such member.')
+      if (Number(row.found) !== 2) throw new ValidationError(msg('error.db.such-member'))
       if (Number(row.banned) > 0) {
-        throw new ValidationError('One of these accounts is banned. Lift the ban before merging.')
+        throw new ValidationError(msg('error.db.one-these-accounts-banned-lift'))
       }
       if (Number(row.posts) > 0) {
-        throw new ValidationError('There are still posts to move. Finish the run first.')
+        throw new ValidationError(msg('error.db.there-still-posts-move-finish'))
       }
 
       for (const entry of MERGE_DISCARD) {
@@ -139,7 +140,7 @@ export class PostgresUserMergeRepository {
         await tx.execute(sql`select username from users where id = ${toUserId}`),
       ) as Array<{ username: string }>
       const username = winner[0]?.username
-      if (username === undefined) throw new ValidationError('No such member.')
+      if (username === undefined) throw new ValidationError(msg('error.db.such-member'))
 
       await rewriteDenormalisedUsernames(tx, toUserId, username)
 
@@ -172,7 +173,7 @@ export class PostgresUserMergeRepository {
 
 function assertDistinct(fromUserId: number, toUserId: number): void {
   if (fromUserId === toUserId) {
-    throw new ValidationError('Choose two different accounts.')
+    throw new ValidationError(msg('error.db.choose-two-different-accounts'))
   }
 }
 

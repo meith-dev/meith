@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { decodeBase64Url, encodeBase64Url } from '../crypto/base64url'
 import { cborBytes, cborMap, decodeCbor } from './cbor'
@@ -53,7 +54,7 @@ export async function verifyRegistration(input: {
   const parsed = await parseAuthenticatorData(authData, input.relyingParty.id)
 
   if (!parsed.userPresent) {
-    throw new ValidationError('That passkey was not confirmed on the device.')
+    throw new ValidationError(msg('error.accounts.passkey-confirmed-device'))
   }
 
   const credential = parsed.credential
@@ -87,7 +88,7 @@ export async function verifyAssertion(input: {
   const parsed = await parseAuthenticatorData(authData, input.relyingParty.id)
 
   if (!parsed.userPresent) {
-    throw new ValidationError('That passkey was not confirmed on the device.')
+    throw new ValidationError(msg('error.accounts.passkey-confirmed-device'))
   }
 
   const imported = await decodeOrRefuseAsync(() => importCoseKey(decodeBase64Url(input.publicKey)))
@@ -108,9 +109,7 @@ export async function verifyAssertion(input: {
   if (!verified) throw new ValidationError(REFUSED)
 
   if (parsed.signCount > 0 && parsed.signCount <= input.storedSignCount) {
-    throw new ValidationError(
-      'That passkey replayed a counter the board has already seen, so it was refused.',
-    )
+    throw new ValidationError(msg('error.accounts.passkey-replayed-counter-board-already'))
   }
 
   return { signCount: parsed.signCount }
@@ -134,7 +133,7 @@ async function parseAuthenticatorData(
 
   const expectedRpIdHash = await sha256(new TextEncoder().encode(rpId))
   if (!sameBytes(authData.subarray(0, 32), expectedRpIdHash)) {
-    throw new ValidationError('That passkey belongs to a different site.')
+    throw new ValidationError(msg('error.accounts.passkey-belongs-different-site'))
   }
 
   const flags = authData[32]!
@@ -187,13 +186,11 @@ function assertClientData(input: {
   if (data.type !== input.expectedType) throw new ValidationError(REFUSED)
 
   if (typeof data.challenge !== 'string' || data.challenge !== input.expectedChallenge) {
-    throw new ValidationError(
-      'That sign-in attempt has expired or was started somewhere else. Try again.',
-    )
+    throw new ValidationError(msg('error.accounts.sign-in-attempt-expired-started-somewhere'))
   }
 
   if (typeof data.origin !== 'string' || data.origin !== input.expectedOrigin) {
-    throw new ValidationError('That passkey was used against a different address.')
+    throw new ValidationError(msg('error.accounts.passkey-used-against-different-address'))
   }
 }
 

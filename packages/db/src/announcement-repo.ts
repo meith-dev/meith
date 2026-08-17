@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { BodyFormat, sourceAsMarkdown } from '@meith/markdown'
 
 import type { Database } from './client'
@@ -156,7 +157,7 @@ export class PostgresAnnouncementRepository {
       `),
     ) as Array<{ id: number }>
 
-    if (rows[0] === undefined) throw new ValidationError('No such announcement.')
+    if (rows[0] === undefined) throw new ValidationError(msg('error.db.such-announcement'))
   }
 
   async delete(id: number): Promise<void> {
@@ -165,11 +166,11 @@ export class PostgresAnnouncementRepository {
 }
 
 function assertValid(input: AnnouncementInput): void {
-  if (input.title.trim() === '') throw new ValidationError('An announcement needs a title.')
+  if (input.title.trim() === '') throw new ValidationError(msg('error.db.announcement-needs-title'))
   if (input.message.trim() === '') {
-    throw new ValidationError('An announcement needs something in it.')
+    throw new ValidationError(msg('error.db.announcement-needs-something'))
   }
   if (input.endsAt !== null && input.endsAt <= input.startsAt) {
-    throw new ValidationError('An announcement cannot finish before it starts.')
+    throw new ValidationError(msg('error.db.announcement-finish-before-starts'))
   }
 }

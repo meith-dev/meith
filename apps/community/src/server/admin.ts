@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import { headers } from 'next/headers'
@@ -100,7 +101,7 @@ export async function adminPageContext(): Promise<AdminContext | null> {
 export async function requireFreshAdmin(): Promise<AdminContext> {
   const context = await requireAdmin()
   const service = adminService()
-  if (service === null) throw new ForbiddenError('No control panel on this board.')
+  if (service === null) throw new ForbiddenError(msg('error.app.control-panel-board'))
 
   service.requireFreshProof(context)
   return context

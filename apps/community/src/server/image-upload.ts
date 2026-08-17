@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import { ValidationError } from '@meith/core'
@@ -56,16 +57,13 @@ function isSvg(bytes: Uint8Array): boolean {
   if (!looksSvg) return false
 
   if (/<script|<foreignObject|\son\w+\s*=|javascript:/i.test(decoder.decode(bytes))) {
-    throw new ValidationError(
-      'That SVG contains script or an event handler, so it will not be stored. ' +
-        'Export it again without interactivity, or upload a PNG.',
-    )
+    throw new ValidationError(msg('error.app.svg-contains-script-event-handler'))
   }
   return true
 }
 
 export async function storeImage(prefix: string, name: string, file: File): Promise<string> {
-  if (file.size === 0) throw new ValidationError('Choose an image first.')
+  if (file.size === 0) throw new ValidationError(msg('error.app.choose-image-first'))
   if (file.size > MAX_IMAGE_BYTES) {
     throw new ValidationError(
       `That image is ${Math.ceil(file.size / 1024)} KiB. The limit is ` +
@@ -77,10 +75,7 @@ export async function storeImage(prefix: string, name: string, file: File): Prom
   const bytes = new Uint8Array(await file.arrayBuffer())
   const format = sniff(bytes)
   if (format === null) {
-    throw new ValidationError(
-      'That file is not a PNG, JPEG, WebP or SVG. The name is not what decides ' +
-        'this — the contents are.',
-    )
+    throw new ValidationError(msg('error.app.file-png-jpeg-webp-svg'))
   }
 
   const key = `${prefix}/${name}-${crypto.randomUUID()}.${format.extension}`

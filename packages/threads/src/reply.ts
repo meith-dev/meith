@@ -1,4 +1,5 @@
 import { RateLimitedError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { quoteBlock } from '@meith/markdown'
 
 import {
@@ -90,22 +91,22 @@ export class ReplyComposer {
     const message = input.message.trim()
 
     if (target.visibility !== 'visible') {
-      throw new ValidationError('That thread is not available.')
+      throw new ValidationError(msg('error.threads.thread-available'))
     }
     if (target.forum.type === 'link' || !target.forum.isOpen || !target.forum.allowReplies) {
-      throw new ValidationError('This forum is closed to replies.')
+      throw new ValidationError(msg('error.threads.forum-closed-replies'))
     }
     if (target.isLocked && !input.bypassesLock) {
-      throw new ValidationError('This thread is locked.')
+      throw new ValidationError(msg('error.threads.thread-locked'))
     }
 
     const restriction = input.restriction ?? UNRESTRICTED
     if (restriction.suspended) {
-      throw new ValidationError('Your posting privileges are currently suspended.')
+      throw new ValidationError(msg('error.threads.posting-privileges-currently-suspended'))
     }
 
     if (message.length < MESSAGE_MIN) {
-      throw new ValidationError('A post needs a message.')
+      throw new ValidationError(msg('error.threads.post-needs-message'))
     }
     if (message.length > this.config.maxLength) {
       throw new ValidationError(`A post may be at most ${this.config.maxLength} characters.`)

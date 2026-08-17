@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { fetchJson, readBoolean, readString } from './http'
 import type {
@@ -62,9 +63,7 @@ export function githubProvider(config: GithubProviderConfig): IdentityProvider {
 
       const accessToken = readString(token, 'access_token')
       if (accessToken === null) {
-        throw new ValidationError(
-          'GitHub refused the sign-in code. Start again from the sign-in page.',
-        )
+        throw new ValidationError(msg('error.accounts.github-refused-sign-in-code-start'))
       }
 
       const headers = {
@@ -77,7 +76,7 @@ export function githubProvider(config: GithubProviderConfig): IdentityProvider {
 
       const subject = readString(account, 'id')
       if (subject === null) {
-        throw new ValidationError('GitHub sent an account with no stable identifier.')
+        throw new ValidationError(msg('error.accounts.github-sent-account-with-stable'))
       }
 
       const verified = await verifiedEmail(fetcher, headers)

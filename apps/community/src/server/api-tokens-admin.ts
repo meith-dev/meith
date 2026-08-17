@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import { isScope, issueToken, SCOPES, type Scope } from '@meith/api'
@@ -68,16 +69,16 @@ export interface IssueTokenInput {
 
 export async function issueApiToken(input: IssueTokenInput): Promise<string> {
   const store = apiTokenStore()
-  if (store === null) throw new ValidationError('This board has no database, so it has no API.')
+  if (store === null) throw new ValidationError(msg('error.app.board-database-so-api'))
 
   const name = input.name.trim()
   if (name === '' || name.length > 80) {
-    throw new ValidationError('Give the token a name of 1–80 characters.')
+    throw new ValidationError(msg('error.app.give-token-name-1-80'))
   }
 
   const scopes = input.scopes.filter((scope): scope is Scope => isScope(scope))
   if (scopes.length === 0) {
-    throw new ValidationError('A token needs at least one scope, or it can do nothing.')
+    throw new ValidationError(msg('error.app.token-needs-at-least-one'))
   }
 
   const issued = issueToken()

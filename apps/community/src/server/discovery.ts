@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import type { Actor } from '@meith/authorization'
@@ -42,7 +43,7 @@ export async function runDiscovery(input: {
   readonly after: DiscoveryPage['nextCursor']
 }): Promise<DiscoveryPage> {
   const repo = discoveryRepository()
-  if (repo === null) throw new ForbiddenError('This board has no thread index.')
+  if (repo === null) throw new ForbiddenError(msg('error.app.board-thread-index'))
 
   const scope = await discoveryScopeFor(input.actor)
   const query = { limit: DISCOVER_PAGE, after: input.after }
@@ -53,10 +54,10 @@ export async function runDiscovery(input: {
     case 'unanswered':
       return repo.unanswered(query, scope)
     case 'mine':
-      if (input.actor.userId === null) throw new ForbiddenError('Sign in to see your threads.')
+      if (input.actor.userId === null) throw new ForbiddenError(msg('error.app.sign-see-threads'))
       return repo.startedBy(input.actor.userId, query, scope)
     case 'participated':
-      if (input.actor.userId === null) throw new ForbiddenError('Sign in to see your threads.')
+      if (input.actor.userId === null) throw new ForbiddenError(msg('error.app.sign-see-threads'))
       return repo.participatedIn(input.actor.userId, query, scope)
     // biome-ignore lint/complexity/noUselessSwitchCase: naming the view keeps the switch exhaustive against the DiscoveryView union
     case 'new':

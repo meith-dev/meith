@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import { randomBytes } from 'node:crypto'
@@ -75,7 +76,7 @@ export async function runSearch(input: RunSearchInput): Promise<RunSearchOutcome
   }
 
   const store = searchStore()
-  if (store === null) throw new ForbiddenError('This board has no search index.')
+  if (store === null) throw new ForbiddenError(msg('error.app.board-search-index'))
 
   const authors = await resolveAuthors(parseAuthorNames(input.authors))
   if (authors.kind === 'unknown') return { kind: 'unknown-author', name: authors.name }
@@ -132,13 +133,13 @@ export async function openSearch(input: {
   await requireSearchEnabled()
 
   const store = searchStore()
-  if (store === null) throw new NotFoundError('No such search.')
+  if (store === null) throw new NotFoundError(msg('error.app.such-search'))
 
   const search = await store.findByToken(input.token)
-  if (search === null) throw new NotFoundError('No such search.')
+  if (search === null) throw new NotFoundError(msg('error.app.such-search'))
 
   if (!ownsSearch(search, { userId: input.actor.userId, sessionKey: input.sessionKey })) {
-    throw new NotFoundError('No such search.')
+    throw new NotFoundError(msg('error.app.such-search'))
   }
 
   const filters = readFilters(search.filters)

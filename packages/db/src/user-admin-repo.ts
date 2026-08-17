@@ -1,6 +1,7 @@
 import { type SQL, sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
 import { rewriteDenormalisedUsernames } from './denormalised-username'
@@ -82,7 +83,7 @@ function fold(value: string): string {
 
 function assertState(state: string): AccountState {
   if (!STATES.includes(state as AccountState)) {
-    throw new ValidationError('No such account state.')
+    throw new ValidationError(msg('error.db.such-account-state'))
   }
   return state as AccountState
 }
@@ -221,8 +222,8 @@ export class PostgresUserAdminRepository {
   async updateAccount(userId: number, input: UserAccountInput): Promise<void> {
     const username = input.username.trim()
     const email = input.email.trim()
-    if (username === '') throw new ValidationError('A member needs a username.')
-    if (email === '') throw new ValidationError('A member needs an email address.')
+    if (username === '') throw new ValidationError(msg('error.db.member-needs-username'))
+    if (email === '') throw new ValidationError(msg('error.db.member-needs-email-address'))
 
     const primaryGroupId = input.primaryGroupId
 
@@ -248,7 +249,7 @@ export class PostgresUserAdminRepository {
         `),
       ) as Array<{ id: number }>
 
-      if (rows[0] === undefined) throw new ValidationError('No such member.')
+      if (rows[0] === undefined) throw new ValidationError(msg('error.db.such-member'))
 
       if (previous !== username) {
         await rewriteDenormalisedUsernames(tx, userId, username)
@@ -258,7 +259,7 @@ export class PostgresUserAdminRepository {
 
   async setState(userId: number, state: AccountState): Promise<void> {
     if (state === 'banned') {
-      throw new ValidationError('Bans are issued through the ban screen, not here.')
+      throw new ValidationError(msg('error.db.bans-issued-through-ban-screen'))
     }
 
     await withPermissionVersionBump(this.db, async (tx) => {
@@ -271,9 +272,7 @@ export class PostgresUserAdminRepository {
       ) as Array<{ id: number }>
 
       if (rows[0] === undefined) {
-        throw new ValidationError(
-          'No such member, or the member is under a ban. Lift the ban first.',
-        )
+        throw new ValidationError(msg('error.db.such-member-member-under-ban'))
       }
     })
   }
@@ -328,7 +327,7 @@ export class PostgresUserAdminRepository {
         await tx.execute(sql`select primary_group_id from users where id = ${userId}`),
       ) as Array<Record<string, unknown>>
 
-      if (rows[0] === undefined) throw new ValidationError('No such member.')
+      if (rows[0] === undefined) throw new ValidationError(msg('error.db.such-member'))
       const primary = Number(rows[0].primary_group_id)
 
       const wanted = new Set([...groupIds].filter((id) => id !== primary))

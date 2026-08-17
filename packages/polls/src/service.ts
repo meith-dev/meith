@@ -1,4 +1,5 @@
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { NewPoll, PollRepository, ThreadRating, ThreadRatingRepository } from './types'
 
@@ -10,19 +11,19 @@ export function validatePoll(input: NewPoll, now = new Date()): NewPoll {
   const question = input.question.trim()
   const options = input.options.map((option) => option.trim()).filter(Boolean)
   if (question.length === 0 || question.length > POLL_QUESTION_MAX) {
-    throw new ValidationError(`A poll question must be 1–${POLL_QUESTION_MAX} characters.`)
+    throw new ValidationError(msg('error.polls.question-length', { max: POLL_QUESTION_MAX }))
   }
   if (options.length < 2 || options.length > POLL_OPTION_MAX) {
-    throw new ValidationError(`A poll needs 2–${POLL_OPTION_MAX} options.`)
+    throw new ValidationError(msg('error.polls.option-count', { max: POLL_OPTION_MAX }))
   }
   if (options.some((option) => option.length > POLL_OPTION_LENGTH_MAX)) {
-    throw new ValidationError(`A poll option may be at most ${POLL_OPTION_LENGTH_MAX} characters.`)
+    throw new ValidationError(msg('error.polls.option-length', { max: POLL_OPTION_LENGTH_MAX }))
   }
   if (new Set(options.map((option) => option.toLowerCase())).size !== options.length) {
-    throw new ValidationError('Poll options must be distinct.')
+    throw new ValidationError(msg('error.polls.poll-options-must-distinct'))
   }
   if (input.closesAt !== null && input.closesAt <= now) {
-    throw new ValidationError('A poll must close in the future.')
+    throw new ValidationError(msg('error.polls.poll-must-close-future'))
   }
   return { question, options, closesAt: input.closesAt }
 }
@@ -43,9 +44,9 @@ export class PollService {
     readonly userId: number
     readonly mayVote: boolean
   }): Promise<void> {
-    if (!input.mayVote) throw new ForbiddenError('You may not vote in polls.')
+    if (!input.mayVote) throw new ForbiddenError(msg('error.polls.vote-polls'))
     if (!(await this.polls.vote(input)))
-      throw new ValidationError('That poll is closed or you have already voted.')
+      throw new ValidationError(msg('error.polls.poll-closed-already-voted'))
   }
 }
 
@@ -58,12 +59,12 @@ export class ThreadRatingService {
     readonly rating: number
     readonly enabled: boolean
   }): Promise<ThreadRating> {
-    if (!input.enabled) throw new ForbiddenError('Thread ratings are switched off.')
+    if (!input.enabled) throw new ForbiddenError(msg('error.polls.thread-ratings-switched-off'))
     if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5) {
-      throw new ValidationError('Choose a rating from 1 to 5.')
+      throw new ValidationError(msg('error.polls.choose-rating-from-1-5'))
     }
     const result = await this.ratings.rate(input)
-    if (result === null) throw new ValidationError('That thread does not exist.')
+    if (result === null) throw new ValidationError(msg('error.polls.thread-exist'))
     return result
   }
 }

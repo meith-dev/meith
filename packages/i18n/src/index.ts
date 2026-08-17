@@ -26,6 +26,7 @@ export {
   parseMessage,
   pluralCategory,
 } from './message'
+export { type CatalogMessage, msg } from './msg'
 export { formatDay, formatTimestamp, type TimestampLabel } from './timestamp'
 export {
   createTranslator,

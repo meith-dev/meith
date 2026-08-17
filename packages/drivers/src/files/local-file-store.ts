@@ -3,6 +3,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, normalize, resolve, sep } from 'node:path'
 
 import { type FileStore, type PutFileOptions, type StoredFile, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 export class LocalFileStore implements FileStore {
   constructor(
@@ -11,13 +12,13 @@ export class LocalFileStore implements FileStore {
   ) {}
 
   private pathFor(key: string): string {
-    if (key.includes('\0')) throw new ValidationError('Invalid file key.')
+    if (key.includes('\0')) throw new ValidationError(msg('error.drivers.invalid-file-key'))
 
     const base = resolve(this.root)
     const target = resolve(base, normalize(key))
 
     if (target !== base && !target.startsWith(base + sep)) {
-      throw new ValidationError('Invalid file key.')
+      throw new ValidationError(msg('error.drivers.invalid-file-key'))
     }
     return target
   }

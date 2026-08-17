@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { parseSelection, type SurgeryRights, ThreadSurgery } from '@meith/moderation'
 
 import type { FormState } from './auth-form-state'
@@ -35,7 +36,7 @@ export async function splitThreadAction(_prev: FormState, form: FormData): Promi
   let outcome: Awaited<ReturnType<ThreadSurgery['split']>>
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const forumId = await visibleForumOf(threadId)
 
@@ -70,7 +71,7 @@ export async function splitSelectedAction(_prev: FormState, form: FormData): Pro
   let outcome: Awaited<ReturnType<ThreadSurgery['splitPosts']>>
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const forumId = await visibleForumOf(threadId)
 
@@ -104,7 +105,7 @@ export async function mergeThreadAction(_prev: FormState, form: FormData): Promi
   let outcome: Awaited<ReturnType<ThreadSurgery['merge']>>
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const [sourceForumId, targetForumId] = await Promise.all([
       visibleForumOf(sourceThreadId),
@@ -130,11 +131,11 @@ async function visibleForumOf(threadId: number): Promise<number> {
   const actor = await getActor()
 
   const forumId = (await threads.locate(threadId))?.forumId ?? null
-  if (forumId === null) throw new ValidationError('That thread does not exist.')
+  if (forumId === null) throw new ValidationError(msg('error.app.thread-exist'))
 
   const forum = await authorizer.forumMatrix(actor, forumId)
   if (!authorizer.can(actor, 'thread.view', { forumId, forum })) {
-    throw new ValidationError('That thread does not exist.')
+    throw new ValidationError(msg('error.app.thread-exist'))
   }
   return forumId
 }

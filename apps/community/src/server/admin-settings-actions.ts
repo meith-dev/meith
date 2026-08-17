@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { CacheTags, isAppError, logger, ValidationError } from '@meith/core'
 import { getDb, PostgresSettingsRepository } from '@meith/db'
 import { drivers } from '@meith/drivers'
+import { msg } from '@meith/i18n'
 import {
   coerceFormValue,
   SETTING_DEFINITIONS,
@@ -38,7 +39,7 @@ export async function saveAdminSettingsAction(
 
     const definitions = submittedKeys(form)
     if (definitions.length === 0) {
-      throw new ValidationError('That form submitted no settings.')
+      throw new ValidationError(msg('error.app.form-submitted-settings'))
     }
 
     const updates: Record<string, unknown> = {}

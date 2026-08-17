@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { env, ForbiddenError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import {
   parseSubscriptionTarget,
   readUnsubscribeToken,
@@ -47,13 +48,11 @@ export async function subscribeAction(_prev: FormState, form: FormData): Promise
 
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const { subscriptions } = getContainer()
     if (subscriptions === null) {
-      throw new ForbiddenError(
-        'This board is running on in-memory sample data, so it has no subscriptions.',
-      )
+      throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-17'))
     }
 
     await new SubscriptionService({ subscriptions }).subscribe({
@@ -79,13 +78,11 @@ export async function unsubscribeAction(_prev: FormState, form: FormData): Promi
 
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const { subscriptions } = getContainer()
     if (subscriptions === null) {
-      throw new ForbiddenError(
-        'This board is running on in-memory sample data, so it has no subscriptions.',
-      )
+      throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-17'))
     }
 
     await new SubscriptionService({ subscriptions }).unsubscribe({
@@ -117,9 +114,7 @@ export async function unsubscribeByTokenAction(
   try {
     const { subscriptions, notifications } = getContainer()
     if (subscriptions === null || notifications === null) {
-      throw new ForbiddenError(
-        'This board is running on in-memory sample data, so it has no subscriptions.',
-      )
+      throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-17'))
     }
 
     if (claim.scope === 'email') {

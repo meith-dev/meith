@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { WarningService } from '@meith/moderation'
 
 import type { FormState } from './auth-form-state'
@@ -28,7 +29,7 @@ export async function issueWarningAction(_prev: FormState, form: FormData): Prom
   let outcome: Awaited<ReturnType<WarningService['issue']>>
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const mayWarn = authorizer.can(actor, 'user.warn')
 
@@ -76,7 +77,7 @@ export async function revokeWarningAction(_prev: FormState, form: FormData): Pro
   let standing: Awaited<ReturnType<WarningService['revoke']>>
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     standing = await new WarningService({ warnings, bans: warningBans }).revoke({
       warningId,

@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { ModerationQueue, parseSelection } from '@meith/moderation'
 
 import { recordAdminAction } from './admin'
@@ -43,19 +44,19 @@ export async function moderateQueueAction(_prev: FormState, form: FormData): Pro
   try {
     const actor = await getActor()
     if (actor.userId === null) {
-      throw new ForbiddenError('You must be logged in to moderate.')
+      throw new ForbiddenError(msg('error.app.must-logged-moderate'))
     }
 
     const moderated = new Set(await authorizer.moderatedForumIds(actor))
     if (moderated.size === 0) {
-      throw new ForbiddenError('You do not moderate any forums.')
+      throw new ForbiddenError(msg('error.app.moderate-any-forums'))
     }
 
     const selection = parseSelection(
       form.getAll('item').filter((v): v is string => typeof v === 'string'),
     )
     if (selection.length === 0) {
-      throw new ValidationError('Select at least one item.')
+      throw new ValidationError(msg('error.app.select-at-least-one-item'))
     }
 
     outcome = await new ModerationQueue({ queue: moderationQueue }).decide({
@@ -82,22 +83,22 @@ export async function setSignatureLockAction(_prev: FormState, form: FormData): 
 
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
     getContainer().authorizer.require(actor, 'user.warn')
 
     const store = getContainer().signatures
     if (store === null) {
-      throw new ForbiddenError('This board keeps no signatures.')
+      throw new ForbiddenError(msg('error.app.board-keeps-signatures'))
     }
     if (!Number.isInteger(userId) || userId <= 0) {
-      throw new ValidationError('No such member.')
+      throw new ValidationError(msg('error.app.such-member'))
     }
 
     const locked = form.get('locked') === '1'
     const reason = text('reason')
 
     if (locked && reason === '') {
-      throw new ValidationError('Say why. The member is shown this reason.')
+      throw new ValidationError(msg('error.app.say-why-member-shown-reason'))
     }
 
     await store.setLocked({ userId, locked, reason: locked ? reason : null })
@@ -123,13 +124,13 @@ export async function setAvatarLockAction(_prev: FormState, form: FormData): Pro
 
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
     getContainer().authorizer.require(actor, 'user.warn')
 
     const service = avatarService()
-    if (service === null) throw new ForbiddenError('This board keeps no avatars.')
+    if (service === null) throw new ForbiddenError(msg('error.app.board-keeps-avatars'))
     if (!Number.isInteger(userId) || userId <= 0) {
-      throw new ValidationError('No such member.')
+      throw new ValidationError(msg('error.app.such-member'))
     }
 
     const locked = form.get('locked') === '1'

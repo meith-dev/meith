@@ -1,4 +1,5 @@
 import { ConflictError, ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { foldIdentifier } from '../case-fold'
 import type {
@@ -167,7 +168,7 @@ export class FederationService {
 
     const removed = await this.identities.unlink(input.userId, input.identityId)
     if (!removed) {
-      throw new ConflictError('That sign-in was already unlinked.')
+      throw new ConflictError(msg('error.accounts.sign-in-already-unlinked'))
     }
   }
 

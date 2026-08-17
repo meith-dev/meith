@@ -343,6 +343,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
 
   packages/authorization:
     dependencies:
@@ -358,6 +361,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
 
   packages/core:
     dependencies:
@@ -408,6 +414,9 @@ importers:
       '@meith/groups':
         specifier: workspace:*
         version: link:../groups
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@meith/markdown':
         specifier: workspace:*
         version: link:../markdown
@@ -528,6 +537,9 @@ importers:
       '@meith/db':
         specifier: workspace:*
         version: link:../db
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@meith/settings':
         specifier: workspace:*
         version: link:../settings
@@ -552,6 +564,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
 
   packages/groups: {}
 
@@ -579,6 +594,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@meith/markdown':
         specifier: workspace:*
         version: link:../markdown
@@ -588,6 +606,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
 
   packages/notifications:
     dependencies:
@@ -616,30 +637,45 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
 
   packages/posts:
     dependencies:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
 
   packages/profile-fields:
     dependencies:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
 
   packages/relations:
     dependencies:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
 
   packages/reputation:
     dependencies:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
 
   packages/runtime:
     dependencies:
@@ -709,6 +745,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@meith/markdown':
         specifier: workspace:*
         version: link:../markdown
@@ -718,6 +757,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
 
   packages/tasks: {}
 
@@ -760,6 +802,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@meith/markdown':
         specifier: workspace:*
         version: link:../markdown

@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import type { Actor } from '@meith/authorization'
@@ -31,13 +32,11 @@ export async function resolveReplyTarget(
   const { authorizer, threadWrites } = getContainer()
 
   if (threadWrites === null) {
-    throw new ValidationError(
-      'This board is running on in-memory sample data, so it cannot accept posts.',
-    )
+    throw new ValidationError(msg('error.app.board-running-in-memory-sample-data-8'))
   }
 
   const target = await threadWrites.replyTarget(threadId)
-  if (!target) throw new ValidationError('That thread does not exist.')
+  if (!target) throw new ValidationError(msg('error.app.thread-exist'))
 
   const forumId = target.forum.id
   const scope = {
@@ -52,12 +51,12 @@ export async function resolveReplyTarget(
       threadAuthorId: target.authorUserId,
     })
   ) {
-    throw new ValidationError('That thread does not exist.')
+    throw new ValidationError(msg('error.app.thread-exist'))
   }
   authorizer.require(actor, 'reply.post', scope)
 
   if (actor.userId === null) {
-    throw new ForbiddenError('You must be logged in to post.')
+    throw new ForbiddenError(msg('error.app.must-logged-post'))
   }
 
   return { target, forumId, scope }
@@ -76,11 +75,11 @@ export async function submitReply(
 ): Promise<Awaited<ReturnType<ReplyComposer['create']>>> {
   const { authorizer, threadWrites, memberProfiles, warnings } = getContainer()
   if (threadWrites === null) {
-    throw new ValidationError('This board cannot accept posts.')
+    throw new ValidationError(msg('error.app.board-accept-posts'))
   }
 
   const userId = actor.userId
-  if (userId === null) throw new ForbiddenError('You must be logged in to post.')
+  if (userId === null) throw new ForbiddenError(msg('error.app.must-logged-post'))
 
   const settings = await getSettings()
   const { scope, target, forumId } = resolved
@@ -102,7 +101,7 @@ export async function submitReply(
   })
 
   const profile = await memberProfiles.findPublicById(userId)
-  if (!profile) throw new ForbiddenError('Your account can no longer post.')
+  if (!profile) throw new ForbiddenError(msg('error.app.account-longer-post'))
 
   const created = await composer.create(
     {

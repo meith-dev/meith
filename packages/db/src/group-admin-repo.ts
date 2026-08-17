@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 
 import type { PermissionSet } from '@meith/core'
 import { PERMISSION_FIELDS, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
 import { type Tx, withPermissionVersionBump } from './permission-version'
@@ -168,7 +169,7 @@ export class PostgresGroupAdminRepository {
 
       const id = rows[0]?.id
       if (id === undefined) {
-        throw new ValidationError('There is no group to copy from.')
+        throw new ValidationError(msg('error.db.there-group-copy-from'))
       }
       return Number(id)
     })
@@ -176,7 +177,7 @@ export class PostgresGroupAdminRepository {
 
   async remove(groupId: number, moveMembersTo: number): Promise<void> {
     if (groupId === moveMembersTo) {
-      throw new ValidationError('Members cannot be moved into the group being deleted.')
+      throw new ValidationError(msg('error.db.members-moved-into-group-being'))
     }
 
     await this.withVersionBump(async (tx) => {
@@ -184,11 +185,9 @@ export class PostgresGroupAdminRepository {
         await tx.execute(sql`select is_system from usergroups where id = ${groupId}`),
       ) as Array<{ is_system: boolean }>
 
-      if (rows[0] === undefined) throw new ValidationError('No such group.')
+      if (rows[0] === undefined) throw new ValidationError(msg('error.db.such-group'))
       if (rows[0].is_system === true) {
-        throw new ValidationError(
-          'That group is part of how the board works and cannot be deleted.',
-        )
+        throw new ValidationError(msg('error.db.group-part-how-board-works'))
       }
 
       await tx.execute(sql`
@@ -212,7 +211,7 @@ export class PostgresGroupAdminRepository {
     readonly limit: number
   }): Promise<MembershipChunkResult> {
     if (input.fromGroupId === input.toGroupId) {
-      throw new ValidationError('Choose two different groups.')
+      throw new ValidationError(msg('error.db.choose-two-different-groups'))
     }
 
     return this.withVersionBump(async (tx) => {

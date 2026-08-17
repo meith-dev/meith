@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { generateToken, hashToken, verifyPassword } from '@meith/accounts'
 import { ipAllowed } from '@meith/admin'
 import { ForbiddenError, logger, truncateIp, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import {
   adminAllowlist,
@@ -29,32 +30,30 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
 
   try {
     if (!ipAllowed(await remoteAddress(), await adminAllowlist())) {
-      throw new ForbiddenError('The control panel is not available from this address.')
+      throw new ForbiddenError(msg('error.app.control-panel-available-from-address'))
     }
 
     const service = adminService()
     if (service === null) {
-      throw new ForbiddenError(
-        'This board is running on in-memory sample data, so it has no control panel.',
-      )
+      throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-25'))
     }
 
     const actor = await getActor()
     const { authorizer, accountStore } = getContainer()
     if (actor.userId === null || !authorizer.can(actor, 'admincp.access')) {
-      throw new ForbiddenError('You cannot reach the control panel.')
+      throw new ForbiddenError(msg('error.app.reach-control-panel'))
     }
 
     const account = await accountStore.accounts.findById(actor.userId)
-    if (account === null) throw new ForbiddenError('You cannot reach the control panel.')
+    if (account === null) throw new ForbiddenError(msg('error.app.reach-control-panel'))
 
     const password = text(form, 'password')
-    if (password === '') throw new ValidationError('Enter your password.')
+    if (password === '') throw new ValidationError(msg('error.app.enter-password'))
 
     const ok = await verifyPassword(password, account.passwordHash)
     if (!ok) {
       await recordAdminAction({ action: 'admin.signin_failed' })
-      throw new ForbiddenError('That password is not right.')
+      throw new ForbiddenError(msg('error.app.password-right'))
     }
 
     await assertSecondFactorGiven({ userId: actor.userId, form })
@@ -109,7 +108,7 @@ async function assertSecondFactorGiven(input: {
 
   const code = text(input.form, 'code')
   if (code === '') {
-    throw new ValidationError('Enter the code from your authenticator app as well.')
+    throw new ValidationError(msg('error.app.enter-code-from-authenticator-app'))
   }
 
   const outcome = await service.verify({ userId: input.userId, code })

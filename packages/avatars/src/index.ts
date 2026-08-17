@@ -7,6 +7,7 @@ import {
 } from '@meith/attachments'
 import type { FileStore } from '@meith/core'
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { AVATAR_BOX, AVATAR_MAX_BYTES } from './limits'
 
@@ -102,12 +103,12 @@ export class AvatarService {
     readonly mayUpload: boolean
   }): Promise<void> {
     if (!input.mayUpload) {
-      throw new ForbiddenError('You may not upload an avatar.')
+      throw new ForbiddenError(msg('error.avatars.upload-avatar'))
     }
 
     const current = await this.deps.avatars.find(input.userId)
     if (current?.locked === true) {
-      throw new ForbiddenError('A moderator has locked your avatar, so it cannot be changed.')
+      throw new ForbiddenError(msg('error.avatars.moderator-locked-avatar-so-changed'))
     }
 
     const accepted = this.accept(input.file)
@@ -135,7 +136,7 @@ export class AvatarService {
     })
 
     if (accepted.type.codec === null) {
-      throw new ValidationError('An avatar must be a PNG or a JPEG.')
+      throw new ValidationError(msg('error.avatars.avatar-must-png-jpeg'))
     }
     return accepted
   }
@@ -199,7 +200,7 @@ export class AvatarService {
   async remove(userId: number): Promise<void> {
     const current = await this.deps.avatars.find(userId)
     if (current?.locked === true) {
-      throw new ForbiddenError('A moderator has locked your avatar, so it cannot be changed.')
+      throw new ForbiddenError(msg('error.avatars.moderator-locked-avatar-so-changed'))
     }
     const { replaced } = await this.deps.avatars.clear(userId)
     await this.sweepKeys(replaced)
@@ -212,7 +213,7 @@ export class AvatarService {
   }): Promise<void> {
     const reason = input.reason.trim()
     if (input.locked && reason === '') {
-      throw new ValidationError('Give a reason. The member is shown it.')
+      throw new ValidationError(msg('error.avatars.give-reason-member-shown'))
     }
     await this.deps.avatars.lock({
       userId: input.userId,

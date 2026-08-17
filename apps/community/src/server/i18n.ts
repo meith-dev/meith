@@ -74,5 +74,5 @@ export const getTranslator = cache(async (): Promise<Translator> => {
 
 export const getMessageResolver = cache(async (): Promise<MessageResolver> => {
   const translator = await getTranslator()
-  return (key) => (translator.has(key) ? translator.t(key) : undefined)
+  return (key, args) => (translator.has(key) ? translator.t(key, args) : undefined)
 })

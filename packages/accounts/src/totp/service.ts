@@ -1,4 +1,5 @@
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { hashToken } from '../crypto/tokens'
 import type {
@@ -77,13 +78,11 @@ export class TwoFactorService {
 
   async beginEnrolment(userId: number, boardName: string): Promise<Enrolment> {
     const account = await this.accounts.findById(userId)
-    if (account === null) throw new NotFoundError('That account no longer exists.')
+    if (account === null) throw new NotFoundError(msg('error.accounts.account-longer-exists'))
 
     const existing = await this.twoFactor.find(userId)
     if (existing !== null && existing.confirmedAt !== null) {
-      throw new ConflictError(
-        'Your account already asks for a code. Turn that off before setting it up again.',
-      )
+      throw new ConflictError(msg('error.accounts.account-already-asks-for-code'))
     }
 
     const secret = generateTotpSecret()
@@ -124,10 +123,10 @@ export class TwoFactorService {
   }): Promise<readonly string[]> {
     const record = await this.twoFactor.find(input.userId)
     if (record === null) {
-      throw new ConflictError('Start setting up your authenticator app again.')
+      throw new ConflictError(msg('error.accounts.start-setting-up-authenticator-app'))
     }
     if (record.confirmedAt !== null) {
-      throw new ConflictError('Your account already asks for a code.')
+      throw new ConflictError(msg('error.accounts.account-already-asks-for-code-2'))
     }
 
     const secret = await this.unseal(record.sealedSecret)
@@ -182,10 +181,7 @@ export class TwoFactorService {
 
   async disable(input: { readonly userId: number; readonly required: boolean }): Promise<void> {
     if (input.required) {
-      throw new ForbiddenError(
-        'This board asks its staff for a code, so this cannot be turned off while you ' +
-          'hold that access.',
-      )
+      throw new ForbiddenError(msg('error.accounts.board-asks-its-staff-for'))
     }
 
     await this.twoFactor.remove(input.userId)
@@ -202,10 +198,7 @@ export class TwoFactorService {
   private async unseal(sealed: string): Promise<string> {
     const secret = await openSecret(sealed, this.sealingKey)
     if (secret === null) {
-      throw new ForbiddenError(
-        'This board cannot read the secret behind your authenticator app. Its ' +
-          'AUTH_SECRET has changed, so two-factor authentication must be set up again.',
-      )
+      throw new ForbiddenError(msg('error.accounts.board-read-secret-behind-authenticator'))
     }
     return secret
   }

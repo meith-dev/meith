@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { recordAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
@@ -19,7 +20,7 @@ const toFormState = formStateReporter(
 
 async function requireViewer(): Promise<number> {
   const actor = await getActor()
-  if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+  if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
   return actor.userId
 }
 

@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 
 import type { CaptchaQuestion, RateLimitScope, RateLimitStore } from '@meith/antispam'
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -120,7 +121,7 @@ export class PostgresCaptchaQuestionRepository {
       `),
     ) as Array<{ id: number }>
 
-    if (rows[0] === undefined) throw new ValidationError('No such question.')
+    if (rows[0] === undefined) throw new ValidationError(msg('error.db.such-question'))
   }
 
   async delete(id: number): Promise<void> {
@@ -129,8 +130,8 @@ export class PostgresCaptchaQuestionRepository {
 }
 
 function assertUsable(question: string, answers: string): void {
-  if (question.trim() === '') throw new ValidationError('A question needs to be asked.')
+  if (question.trim() === '') throw new ValidationError(msg('error.db.question-needs-asked'))
   if (splitAnswers(answers).length === 0) {
-    throw new ValidationError('A question needs at least one answer, one per line.')
+    throw new ValidationError(msg('error.db.question-needs-at-least-one'))
   }
 }

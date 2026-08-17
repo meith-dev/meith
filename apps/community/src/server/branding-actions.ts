@@ -1,6 +1,7 @@
 'use server'
 
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import type { FormState } from './auth-form-state'
@@ -11,7 +12,7 @@ const toFormState = formStateReporter('branding', 'logo write failed')
 
 function scheme(form: FormData): 'light' | 'dark' {
   const value = form.get('scheme')
-  if (!isLogoScheme(value)) throw new ValidationError('No such logo.')
+  if (!isLogoScheme(value)) throw new ValidationError(msg('error.app.such-logo'))
   return value
 }
 
@@ -22,7 +23,7 @@ export async function saveLogoAction(_prev: FormState, form: FormData): Promise<
 
     const file = form.get(LOGO_FIELD)
     if (!(file instanceof File) || file.size === 0) {
-      throw new ValidationError('Choose an image first.')
+      throw new ValidationError(msg('error.app.choose-image-first'))
     }
 
     await saveLogo(target, file)

@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import {
@@ -76,18 +77,18 @@ export async function stageAttachments(
 
   const service = attachmentService()
   if (service === null) {
-    throw new ValidationError('This board cannot accept file attachments.')
+    throw new ValidationError(msg('error.app.board-accept-file-attachments'))
   }
   if (!scope.allowsAttachments) {
-    throw new ValidationError('This forum does not accept file attachments.')
+    throw new ValidationError(msg('error.app.forum-accept-file-attachments'))
   }
 
   const { authorizer } = getContainer()
   if (!authorizer.can(actor, 'attachment.upload', scope)) {
-    throw new ForbiddenError('You may not attach files in this forum.')
+    throw new ForbiddenError(msg('error.app.attach-files-forum'))
   }
   if (actor.userId === null) {
-    throw new ForbiddenError('You must be logged in to attach a file.')
+    throw new ForbiddenError(msg('error.app.must-logged-attach-file'))
   }
 
   const limited = await spendLimit({ scope: 'upload', actor, cost: files.length })

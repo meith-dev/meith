@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 export type ThreadTool =
   | 'lock'
@@ -107,7 +108,7 @@ export class ThreadTools {
     readonly destinationRights?: ThreadToolRights | undefined
   }): Promise<ThreadToolOutcome> {
     const target = await this.threads.find(input.threadId)
-    if (target === null) throw new ValidationError('That thread does not exist.')
+    if (target === null) throw new ValidationError(msg('error.moderation.thread-exist'))
 
     const at = this.now()
     const base = { threadId: target.id, slug: target.slug }
@@ -149,7 +150,7 @@ export class ThreadTools {
       case 'delete': {
         this.require(input.rights.delete, 'delete threads')
         if (target.visibility !== 'visible') {
-          throw new ValidationError('That thread is not on the board.')
+          throw new ValidationError(msg('error.moderation.thread-board'))
         }
         return {
           ...base,
@@ -167,7 +168,7 @@ export class ThreadTools {
       case 'restore': {
         this.require(input.rights.restore, 'restore threads')
         if (target.visibility !== 'deleted') {
-          throw new ValidationError('That thread is not deleted.')
+          throw new ValidationError(msg('error.moderation.thread-deleted'))
         }
         return {
           ...base,
@@ -211,19 +212,19 @@ export class ThreadTools {
     this.requireLive(target)
 
     if (input.toForumId === undefined) {
-      throw new ValidationError('Choose a forum to move it to.')
+      throw new ValidationError(msg('error.moderation.choose-forum-move'))
     }
     if (input.toForumId === target.forumId) {
-      throw new ValidationError('That thread is already in that forum.')
+      throw new ValidationError(msg('error.moderation.thread-already-forum'))
     }
 
     if (input.destinationRights?.move !== true) {
-      throw new ValidationError('You cannot move threads into that forum.')
+      throw new ValidationError(msg('error.moderation.move-threads-into-forum'))
     }
 
     const destination = await this.threads.findDestination(input.toForumId)
     if (destination === null || !keepsThreads(destination)) {
-      throw new ValidationError('That is not a forum threads can live in.')
+      throw new ValidationError(msg('error.moderation.forum-threads-live'))
     }
 
     return this.threads.move({
@@ -249,15 +250,15 @@ export class ThreadTools {
     this.requireLive(target)
 
     if (input.toForumId === undefined) {
-      throw new ValidationError('Choose a forum to copy it to.')
+      throw new ValidationError(msg('error.moderation.choose-forum-copy'))
     }
     if (input.destinationRights?.move !== true) {
-      throw new ValidationError('You cannot copy threads into that forum.')
+      throw new ValidationError(msg('error.moderation.copy-threads-into-forum'))
     }
 
     const destination = await this.threads.findDestination(input.toForumId)
     if (destination === null || !keepsThreads(destination)) {
-      throw new ValidationError('That is not a forum threads can live in.')
+      throw new ValidationError(msg('error.moderation.forum-threads-live'))
     }
 
     return this.threads.copy({
@@ -274,7 +275,7 @@ export class ThreadTools {
 
   private requireLive(target: ThreadToolTarget): void {
     if (target.visibility !== 'visible') {
-      throw new ValidationError('That thread is not on the board.')
+      throw new ValidationError(msg('error.moderation.thread-board'))
     }
   }
 }

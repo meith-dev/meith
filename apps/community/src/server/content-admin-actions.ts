@@ -10,6 +10,7 @@ import type {
   SmileyRow,
 } from '@meith/db'
 import { drivers } from '@meith/drivers'
+import { msg } from '@meith/i18n'
 import { compileSmilies, createDirectiveRegistry } from '@meith/markdown'
 
 import { recordAdminAction, requireAdmin } from './admin'
@@ -22,7 +23,8 @@ import { trimmedText } from './form-values'
 
 function id(form: FormData, name = 'id'): number {
   const value = Number(trimmedText(form, name))
-  if (!Number.isSafeInteger(value) || value <= 0) throw new ValidationError('No such row.')
+  if (!Number.isSafeInteger(value) || value <= 0)
+    throw new ValidationError(msg('error.app.such-row'))
   return value
 }
 
@@ -101,7 +103,7 @@ export async function createPrefixAction(_prev: FormState, form: FormData): Prom
 
     const order = Number(trimmedText(form, 'displayOrder') || '0')
     if (!Number.isSafeInteger(order) || order < 0) {
-      throw new ValidationError('Display order must be a whole number.')
+      throw new ValidationError(msg('error.app.display-order-must-whole-number'))
     }
 
     const prefixId = await requireContentAdmin().createPrefix({
@@ -325,9 +327,7 @@ export async function deleteAttachmentAction(_prev: FormState, form: FormData): 
 function requireAnnouncements(): PostgresAnnouncementRepository {
   const repository = announcementRepository()
   if (repository === null) {
-    throw new ValidationError(
-      'This board is running on in-memory sample data, so it stores no announcements.',
-    )
+    throw new ValidationError(msg('error.app.board-running-in-memory-sample-data-13'))
   }
   return repository
 }
@@ -337,7 +337,7 @@ function moment(form: FormData, name: string): Date | null {
   if (value === '') return null
 
   const parsed = new Date(`${value}Z`)
-  if (Number.isNaN(parsed.getTime())) throw new ValidationError('That is not a valid date.')
+  if (Number.isNaN(parsed.getTime())) throw new ValidationError(msg('error.app.valid-date'))
   return parsed
 }
 
@@ -415,9 +415,7 @@ export async function deleteAnnouncementAction(
 function requireCaptcha(): PostgresCaptchaQuestionRepository {
   const repository = captchaQuestionRepository()
   if (repository === null) {
-    throw new ValidationError(
-      'This board is running on in-memory sample data, so it stores no questions.',
-    )
+    throw new ValidationError(msg('error.app.board-running-in-memory-sample-data-14'))
   }
   return repository
 }

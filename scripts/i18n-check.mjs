@@ -147,7 +147,7 @@ const source = files.filter(
   ({ rel }) => /\.(ts|tsx)$/.test(rel) && !/\.(test|type-test)\.tsx?$/.test(rel),
 )
 
-const CALL = /\.\s*(?:t|has)\(\s*'([\w.-]+)'/g
+const CALL = /(?:\.\s*(?:t|has)|\bmsg)\(\s*'([\w.-]+)'/g
 const CARRIED = /\b(?:title|blurb|label|description|message|publicMessage)Key:\s*'([\w.-]+)'/g
 const KEY_SHAPE = /^[a-z][\w-]*(?:\.[\w-]+)+$/
 

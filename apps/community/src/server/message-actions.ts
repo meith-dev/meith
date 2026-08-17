@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { parseFolder } from '@meith/messages'
 
 import { folderHref } from '../view/messages'
@@ -24,20 +25,18 @@ async function requireMessaging(): Promise<{
   const actor = await getActor()
   const { authorizer, accountStore } = getContainer()
 
-  if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+  if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
   if (!authorizer.can(actor, 'pm.use')) {
-    throw new ForbiddenError('You cannot use private messages.')
+    throw new ForbiddenError(msg('error.app.use-private-messages'))
   }
 
   const service = messageService()
   if (service === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so it has no private messages.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-21'))
   }
 
   const account = await accountStore.accounts.findById(actor.userId)
-  if (account === null) throw new ForbiddenError('You must be logged in.')
+  if (account === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
   return { service, userId: actor.userId, username: account.username }
 }
@@ -95,7 +94,8 @@ export async function messageBulkAction(_prev: FormState, form: FormData): Promi
       query = `emptied=${await service.emptyTrash(userId)}`
     } else {
       const copyIds = selectedIds(form)
-      if (copyIds.length === 0) throw new ValidationError('Select at least one message first.')
+      if (copyIds.length === 0)
+        throw new ValidationError(msg('error.app.select-at-least-one-message'))
 
       switch (command) {
         case 'read':
@@ -114,7 +114,7 @@ export async function messageBulkAction(_prev: FormState, form: FormData): Promi
           query = `deleted=${await service.remove(userId, copyIds)}`
           break
         default:
-          throw new ValidationError('That is not something you can do to a message.')
+          throw new ValidationError(msg('error.app.something-message'))
       }
     }
   } catch (err) {

@@ -1,6 +1,7 @@
 import { type SQL, sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
 import { withPermissionVersionBump } from './permission-version'
@@ -147,8 +148,9 @@ export class PostgresUserBulkRepository {
     readonly targetGroupId: number | null
     readonly createdByUserId: number | null
   }): Promise<number> {
-    if (input.subject.trim() === '') throw new ValidationError('A message needs a subject.')
-    if (input.body.trim() === '') throw new ValidationError('A message needs a body.')
+    if (input.subject.trim() === '')
+      throw new ValidationError(msg('error.db.message-needs-subject'))
+    if (input.body.trim() === '') throw new ValidationError(msg('error.db.message-needs-body'))
 
     const rows = resultRows(
       await this.db.execute(sql`
@@ -242,7 +244,7 @@ export class PostgresUserBulkRepository {
       ) as Array<Record<string, unknown>>
 
       const mail = mails[0]
-      if (mail === undefined) throw new ValidationError('No such message.')
+      if (mail === undefined) throw new ValidationError(msg('error.db.such-message'))
       if (String(mail.status) !== 'sending') return { recipients: [], finished: true }
 
       const targetGroupId = mail.target_group_id === null ? null : Number(mail.target_group_id)

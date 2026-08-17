@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { editableFields, maxLengthFor, visibleFields } from './resolve'
 import type {
@@ -101,7 +102,8 @@ export class ProfileFieldService {
 
     return required.map((field) => {
       const raw = (input.submitted.get(field.key) ?? '').trim()
-      if (raw === '') throw new ValidationError(`${field.label} is required.`)
+      if (raw === '')
+        throw new ValidationError(msg('error.profile-fields.required', { label: field.label }))
       return { fieldId: field.id, value: validate(field, raw) }
     })
   }
@@ -122,17 +124,15 @@ export class ProfileFieldService {
   }): Promise<ProfileFieldDefinition> {
     const key = input.key.trim().toLowerCase()
     if (!/^[a-z][a-z0-9_]{1,39}$/.test(key)) {
-      throw new ValidationError(
-        'A field key must be 2–40 characters: a letter, then letters, digits or underscores.',
-      )
+      throw new ValidationError(msg('error.profile-fields.field-key-must-2-40'))
     }
 
     const label = input.label.trim()
-    if (label === '') throw new ValidationError('A field needs a label.')
+    if (label === '') throw new ValidationError(msg('error.profile-fields.field-needs-label'))
 
     const type = parseType(input.type)
     if (type === 'select' && input.options.length === 0) {
-      throw new ValidationError('A dropdown needs at least one option.')
+      throw new ValidationError(msg('error.profile-fields.dropdown-needs-at-least-one'))
     }
 
     if (await this.repository.findByKey(key)) {

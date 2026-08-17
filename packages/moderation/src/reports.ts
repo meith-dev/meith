@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 export const REPORT_TARGET_KINDS = ['post', 'thread', 'user', 'private_message'] as const
 export type ReportTargetKind = (typeof REPORT_TARGET_KINDS)[number]
@@ -131,10 +132,10 @@ export class ReportService {
   }): Promise<{ reportId: number; duplicate: boolean }> {
     const reason = input.reason.trim()
     if (reason.length < REASON_MIN) {
-      throw new ValidationError('Say what is wrong with it, briefly.')
+      throw new ValidationError(msg('error.moderation.say-what-wrong-with-briefly'))
     }
     if (reason.length > REASON_MAX) {
-      throw new ValidationError(`A reason may be at most ${REASON_MAX} characters.`)
+      throw new ValidationError(msg('error.moderation.reason-length', { max: REASON_MAX }))
     }
 
     const target = await this.reports.resolveTarget(
@@ -142,7 +143,7 @@ export class ReportService {
       input.targetId,
       input.reporterUserId,
     )
-    if (target === null) throw new ValidationError('That does not exist.')
+    if (target === null) throw new ValidationError(msg('error.moderation.exist'))
 
     const reportId = await this.reports.open({
       target,
@@ -193,7 +194,7 @@ export class ReportService {
       actorUserId: input.actorUserId,
       at: this.now(),
     })
-    if (!changed) throw new ValidationError('That report has already been closed.')
+    if (!changed) throw new ValidationError(msg('error.moderation.report-already-closed'))
   }
 
   async close(input: {
@@ -205,7 +206,7 @@ export class ReportService {
   }): Promise<void> {
     const note = input.note.trim()
     if (note.length > REASON_MAX) {
-      throw new ValidationError(`A note may be at most ${REASON_MAX} characters.`)
+      throw new ValidationError(msg('error.moderation.note-length', { max: REASON_MAX }))
     }
 
     const report = await this.requireInScope(input.reportId, input.scope)
@@ -216,7 +217,7 @@ export class ReportService {
       actorUserId: input.actorUserId,
       at: this.now(),
     })
-    if (!changed) throw new ValidationError('That report has already been closed.')
+    if (!changed) throw new ValidationError(msg('error.moderation.report-already-closed'))
 
     await this.notifyReporter(report, input.status, input.actorUserId)
   }
@@ -242,7 +243,7 @@ export class ReportService {
   private async requireInScope(reportId: number, scope: ReportScope): Promise<ReportRow> {
     const found = await this.reports.find(reportId)
     if (found === null || !inScope(found.report, scope)) {
-      throw new ValidationError('That report does not exist.')
+      throw new ValidationError(msg('error.moderation.report-exist'))
     }
     return found.report
   }

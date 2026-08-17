@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { type Action, type Actor, hasAnyModeratorRight } from '@meith/authorization'
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import {
   INLINE_TOOL_ACTIONS,
   InlineModeration,
@@ -56,16 +57,16 @@ export async function inlineModerateAction(_prev: FormState, form: FormData): Pr
   let outcome: InlineOutcome
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in to moderate.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged-moderate'))
 
     const selection = parseSelection(
       form.getAll('item').filter((v): v is string => typeof v === 'string'),
     )
-    if (selection.length === 0) throw new ValidationError('Select at least one item.')
+    if (selection.length === 0) throw new ValidationError(msg('error.app.select-at-least-one-item'))
 
     const scopeForumIds = await scopeFor(tool, actor)
     if (scopeForumIds.length === 0) {
-      throw new ForbiddenError('You cannot moderate anything here.')
+      throw new ForbiddenError(msg('error.app.moderate-anything-here'))
     }
 
     outcome = await new InlineModeration({ inline: inlineModeration }).apply({

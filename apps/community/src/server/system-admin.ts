@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import { ForbiddenError } from '@meith/core'
@@ -24,18 +25,14 @@ export function systemHealthRepository(): PostgresSystemHealthRepository | null 
 
 export function requireMaintenance(): PostgresMaintenanceRepository {
   if (getContainer().dataSource !== 'postgres') {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so there is nothing to maintain.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-6'))
   }
   return new PostgresMaintenanceRepository(getDb())
 }
 
 export function requireRecount(): PostgresCounterRecount {
   if (getContainer().dataSource !== 'postgres') {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so its counters are not stored.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-7'))
   }
   return new PostgresCounterRecount(getDb())
 }

@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import type { Actor } from '@meith/authorization'
@@ -30,9 +31,7 @@ export function searchProvider(): PostgresSearchRepository | null {
 export function requireSearch(): PostgresSearchRepository {
   const provider = searchProvider()
   if (provider === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, which is not indexed for search.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-11'))
   }
   return provider
 }

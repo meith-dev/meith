@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 
 import { ValidationError } from '@meith/core'
 import { drivers } from '@meith/drivers'
+import { msg } from '@meith/i18n'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import type { FormState } from './auth-form-state'
@@ -20,7 +21,7 @@ const MASS_MAIL_CHUNK = 500
 
 function userId(form: FormData): number {
   const id = Number(trimmedText(form, 'userId'))
-  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError('No such member.')
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError(msg('error.app.such-member'))
   return id
 }
 
@@ -41,13 +42,13 @@ export async function saveMemberAccountAction(
 
     const primaryGroupId = Number(trimmedText(form, 'primaryGroupId'))
     if (!Number.isSafeInteger(primaryGroupId) || primaryGroupId <= 0) {
-      throw new ValidationError('No such group.')
+      throw new ValidationError(msg('error.app.such-group'))
     }
 
     const displayRaw = trimmedText(form, 'displayGroupId')
     const displayGroupId = displayRaw === '' ? null : Number(displayRaw)
     if (displayGroupId !== null && (!Number.isSafeInteger(displayGroupId) || displayGroupId <= 0)) {
-      throw new ValidationError('No such display group.')
+      throw new ValidationError(msg('error.app.such-display-group'))
     }
 
     const username = trimmedText(form, 'username')
@@ -77,7 +78,7 @@ export async function setMemberStateAction(_prev: FormState, form: FormData): Pr
 
     const state = trimmedText(form, 'state')
     if (state !== 'active' && state !== 'awaiting_activation') {
-      throw new ValidationError('Choose active or awaiting activation.')
+      throw new ValidationError(msg('error.app.choose-active-awaiting-activation'))
     }
 
     await requireUserAdmin().setState(id, state)
@@ -101,7 +102,7 @@ export async function banMemberAction(_prev: FormState, form: FormData): Promise
     if (days !== '') {
       const parsed = Number(days)
       if (!Number.isSafeInteger(parsed) || parsed <= 0) {
-        throw new ValidationError('A ban lasts a whole number of days, or is permanent.')
+        throw new ValidationError(msg('error.app.ban-lasts-whole-number-days'))
       }
       expiresAt = new Date(Date.now() + parsed * 86_400_000)
     }
@@ -140,7 +141,7 @@ export async function saveSecondaryGroupsAction(
     for (const value of form.getAll('groupIds')) {
       const parsed = Number(typeof value === 'string' ? value : '')
       if (!Number.isSafeInteger(parsed) || parsed <= 0) {
-        throw new ValidationError('No such group.')
+        throw new ValidationError(msg('error.app.such-group'))
       }
       groupIds.push(parsed)
     }
@@ -166,10 +167,10 @@ export async function mergeStepAction(_prev: FormState, form: FormData): Promise
     const fromUserId = userId(form)
     const toUserId = Number(trimmedText(form, 'toUserId'))
     if (!Number.isSafeInteger(toUserId) || toUserId <= 0) {
-      throw new ValidationError('Choose an account to merge into.')
+      throw new ValidationError(msg('error.app.choose-account-merge-into'))
     }
     if (fromUserId === toUserId) {
-      throw new ValidationError('Choose two different accounts.')
+      throw new ValidationError(msg('error.app.choose-two-different-accounts'))
     }
 
     const merge = requireUserMerge()
@@ -206,13 +207,13 @@ export async function pruneMembersAction(_prev: FormState, form: FormData): Prom
 
     const before = new Date(trimmedText(form, 'before'))
     if (Number.isNaN(before.getTime())) {
-      throw new ValidationError('Choose the date members must have registered before.')
+      throw new ValidationError(msg('error.app.choose-date-members-must-registered'))
     }
 
     const inactiveRaw = trimmedText(form, 'inactive')
     const inactive = inactiveRaw === '' ? undefined : new Date(inactiveRaw)
     if (inactive !== undefined && Number.isNaN(inactive.getTime())) {
-      throw new ValidationError('That inactivity date is not a date.')
+      throw new ValidationError(msg('error.app.inactivity-date-date'))
     }
 
     const chunk = await requireUserBulk().pruneChunk(
@@ -246,7 +247,7 @@ export async function startMassMailAction(_prev: FormState, form: FormData): Pro
     const groupRaw = trimmedText(form, 'targetGroupId')
     const targetGroupId = groupRaw === '' ? null : Number(groupRaw)
     if (targetGroupId !== null && (!Number.isSafeInteger(targetGroupId) || targetGroupId <= 0)) {
-      throw new ValidationError('No such group.')
+      throw new ValidationError(msg('error.app.such-group'))
     }
 
     const bulk = requireUserBulk()
@@ -274,7 +275,7 @@ export async function continueMassMailAction(_prev: FormState, form: FormData): 
 
     const massMailId = Number(trimmedText(form, 'massMailId'))
     if (!Number.isSafeInteger(massMailId) || massMailId <= 0) {
-      throw new ValidationError('No such message.')
+      throw new ValidationError(msg('error.app.such-message'))
     }
 
     const batch = await queueMassMailBatch(requireUserBulk(), massMailId)

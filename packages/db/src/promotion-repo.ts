@@ -10,6 +10,7 @@ import type {
   PromotionRuleRepository,
 } from '@meith/groups'
 import { promotionRuleProblem } from '@meith/groups'
+import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
 import { groupPromotions, users } from './schema'
@@ -63,7 +64,7 @@ export class PostgresPromotionRepository implements PromotionRepository, Promoti
       })
       .returning({ id: groupPromotions.id })
 
-    if (row === undefined) throw new ValidationError('That rule could not be stored.')
+    if (row === undefined) throw new ValidationError(msg('error.db.rule-could-stored'))
     return row.id
   }
 
@@ -85,7 +86,7 @@ export class PostgresPromotionRepository implements PromotionRepository, Promoti
       .where(eq(groupPromotions.id, id))
       .returning({ id: groupPromotions.id })
 
-    if (rows[0] === undefined) throw new ValidationError('No such promotion rule.')
+    if (rows[0] === undefined) throw new ValidationError(msg('error.db.such-promotion-rule'))
   }
 
   async setRuleEnabled(id: number, enabled: boolean): Promise<void> {
@@ -95,7 +96,7 @@ export class PostgresPromotionRepository implements PromotionRepository, Promoti
       .where(eq(groupPromotions.id, id))
       .returning({ id: groupPromotions.id })
 
-    if (rows[0] === undefined) throw new ValidationError('No such promotion rule.')
+    if (rows[0] === undefined) throw new ValidationError(msg('error.db.such-promotion-rule'))
   }
 
   async deleteRule(id: number): Promise<void> {

@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { parseTargetKind, ReportService } from '@meith/moderation'
 
 import { limitMessage, spendLimit } from './antispam'
@@ -43,12 +44,12 @@ export async function fileReportAction(_prev: FormState, form: FormData): Promis
   try {
     const actor = await getActor()
     if (actor.userId === null) {
-      throw new ForbiddenError('You must be logged in to report anything.')
+      throw new ForbiddenError(msg('error.app.must-logged-report-anything'))
     }
     authorizer.require(actor, 'content.report')
 
     target = await reports.resolveTarget(kind, targetId, actor.userId)
-    if (target === null) throw new ValidationError('That does not exist.')
+    if (target === null) throw new ValidationError(msg('error.app.exist'))
 
     if (target.forumId !== null) {
       const matrix = await authorizer.forumMatrix(actor, target.forumId)
@@ -57,7 +58,7 @@ export async function fileReportAction(_prev: FormState, form: FormData): Promis
         threadAuthorId: target.threadAuthorUserId,
       }
       if (!authorizer.can(actor, 'thread.view', scope)) {
-        throw new ValidationError('That does not exist.')
+        throw new ValidationError(msg('error.app.exist'))
       }
     } else if (kind === 'user') {
       authorizer.require(actor, 'profile.view')
@@ -97,7 +98,7 @@ export async function assignReportAction(_prev: FormState, form: FormData): Prom
 
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     await new ReportService({ reports }).assign({
       reportId,
@@ -127,7 +128,7 @@ export async function closeReportAction(_prev: FormState, form: FormData): Promi
 
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     await new ReportService({ reports, notifier: reportNotifier() }).close({
       reportId,

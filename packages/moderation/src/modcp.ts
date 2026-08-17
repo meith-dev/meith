@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 export const MODCP_PAGE_SIZE = 25
 
@@ -118,7 +119,7 @@ export class ModeratorPanel {
     readonly matches: readonly IpMatch[]
   }> {
     if (!input.rights.access || !input.rights.ipLookup) {
-      throw new ValidationError('You cannot look up addresses.')
+      throw new ValidationError(msg('error.moderation.look-up-addresses'))
     }
 
     const prefixes = await this.repo.ipPrefixesFor(input.subjectUserId)

@@ -1,6 +1,7 @@
 'use server'
 
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import type { FormState } from './auth-form-state'
@@ -14,11 +15,11 @@ function target(form: FormData): { groupId: number; scheme: ImageScheme } {
   const raw = form.get('groupId')
   const groupId = typeof raw === 'string' ? Number(raw) : Number.NaN
   if (!Number.isSafeInteger(groupId) || groupId <= 0) {
-    throw new ValidationError('No such group.')
+    throw new ValidationError(msg('error.app.such-group'))
   }
 
   const scheme = form.get('scheme')
-  if (!isImageScheme(scheme)) throw new ValidationError('No such badge.')
+  if (!isImageScheme(scheme)) throw new ValidationError(msg('error.app.such-badge'))
 
   return { groupId, scheme }
 }
@@ -30,7 +31,7 @@ export async function saveBadgeAction(_prev: FormState, form: FormData): Promise
 
     const file = form.get(BADGE_FIELD)
     if (!(file instanceof File) || file.size === 0) {
-      throw new ValidationError('Choose an image first.')
+      throw new ValidationError(msg('error.app.choose-image-first'))
     }
 
     await saveBadge(groupId, scheme, file)

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { CacheTags, isAppError, ValidationError } from '@meith/core'
 import { parseThemeExport } from '@meith/db'
 import { drivers } from '@meith/drivers'
+import { msg } from '@meith/i18n'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import type { FormState } from './auth-form-state'
@@ -53,7 +54,7 @@ function submittedTokens(form: FormData): {
 
 function themeKey(form: FormData): string {
   const key = trimmedText(form, 'key')
-  if (themeTitle(key) === null) throw new ValidationError('No such theme.')
+  if (themeTitle(key) === null) throw new ValidationError(msg('error.app.such-theme'))
   return key
 }
 
@@ -69,7 +70,7 @@ export async function saveThemeAction(_prev: FormState, form: FormData): Promise
     const key = themeKey(form)
 
     const tokens = themeTokens(key)
-    if (tokens === null) throw new ValidationError('No such theme.')
+    if (tokens === null) throw new ValidationError(msg('error.app.such-theme'))
 
     const validated = validateTokenOverrides(tokens, submittedTokens(form))
     const customCss = trimmedText(form, 'customCss')
@@ -104,7 +105,7 @@ export async function previewThemeAction(_prev: FormState, form: FormData): Prom
     const key = themeKey(form)
 
     const tokens = themeTokens(key)
-    if (tokens === null) throw new ValidationError('No such theme.')
+    if (tokens === null) throw new ValidationError(msg('error.app.such-theme'))
 
     const submitted: Record<string, string> = {}
     for (const [field, value] of form.entries()) {
@@ -169,7 +170,7 @@ export async function importThemeAction(_prev: FormState, form: FormData): Promi
     const key = themeKey(form)
 
     const tokens = themeTokens(key)
-    if (tokens === null) throw new ValidationError('No such theme.')
+    if (tokens === null) throw new ValidationError(msg('error.app.such-theme'))
 
     const document = parseThemeExport(trimmedText(form, 'document'))
     const validated = validateTokenOverrides(tokens, document.tokenOverrides)
@@ -205,16 +206,11 @@ export async function setThemeEnabledAction(_prev: FormState, form: FormData): P
 
     if (!enabled) {
       if (isBuildTheme(key)) {
-        throw new ValidationError(
-          'This is the theme the board is built with, so it always stays available. ' +
-            'Change `defaultTheme` in community.config.ts and redeploy to swap it.',
-        )
+        throw new ValidationError(msg('error.app.theme-board-built-with-so'))
       }
       const listing = (await themeListing()).find((entry) => entry.key === key)
       if (listing?.isDefault === true) {
-        throw new ValidationError(
-          'This is the default theme. Make another theme the default first, then turn this one off.',
-        )
+        throw new ValidationError(msg('error.app.default-theme-make-another-theme'))
       }
     }
 

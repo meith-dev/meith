@@ -1,4 +1,5 @@
 import { ConflictError, ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { type BanFilterSubject, matchBanFilter } from './ban-filter'
 import { foldIdentifier } from './case-fold'
@@ -159,12 +160,12 @@ export class IdentityService {
     }
 
     if (await this.store.accounts.findByUsernameLower(usernameLower)) {
-      throw new ConflictError('That username is taken.', {
+      throw new ConflictError(msg('error.accounts.username-taken'), {
         meta: { field: REGISTER_FIELD.username },
       })
     }
     if (await this.store.accounts.findByEmailLower(emailLower)) {
-      throw new ConflictError('That email is already registered.', {
+      throw new ConflictError(msg('error.accounts.email-already-registered'), {
         meta: { field: REGISTER_FIELD.email },
       })
     }
@@ -207,11 +208,9 @@ export class IdentityService {
     await this.assertNotFiltered({ email, ip: context.ip })
 
     if (await this.store.accounts.findByEmailLower(emailLower)) {
-      throw new ConflictError(
-        'An account here already uses that address. Sign in with your password first, ' +
-          'then link the two from your account security page.',
-        { meta: { field: REGISTER_FIELD.email } },
-      )
+      throw new ConflictError(msg('error.accounts.account-here-already-uses-address'), {
+        meta: { field: REGISTER_FIELD.email },
+      })
     }
 
     const username = await this.availableUsername(input.username)
@@ -262,11 +261,9 @@ export class IdentityService {
       return candidate
     }
 
-    throw new ConflictError(
-      'Could not settle on a free username for that account. Register with a password ' +
-        'instead, then link the two from your account security page.',
-      { meta: { field: REGISTER_FIELD.username } },
-    )
+    throw new ConflictError(msg('error.accounts.could-settle-free-username-for'), {
+      meta: { field: REGISTER_FIELD.username },
+    })
   }
 
   private usernameStem(suggestion: string): string {
@@ -354,7 +351,7 @@ export class IdentityService {
       if (max <= 0) continue
       const failures = await this.store.loginAttempts.countFailuresSince(counter.key, since)
       if (failures >= max) {
-        throw new ForbiddenError('Too many failed attempts. Please wait before trying again.')
+        throw new ForbiddenError(msg('error.accounts.too-many-failed-attempts-please'))
       }
     }
 
@@ -374,7 +371,7 @@ export class IdentityService {
 
     if (!account || !ok || account.passwordHash === null) {
       await recordFailure()
-      throw new ValidationError('Incorrect username or password.')
+      throw new ValidationError(msg('error.accounts.incorrect-username-password'))
     }
 
     const refusal = await this.signInRefusal(account)
@@ -450,13 +447,11 @@ export class IdentityService {
     const redeemed = await this.store.tokens.consume(await hashToken(token), 'second_factor', at)
 
     if (redeemed === null) {
-      throw new ForbiddenError(
-        'That sign-in took too long to finish. Start again from the sign-in page.',
-      )
+      throw new ForbiddenError(msg('error.accounts.sign-in-took-too-long-finish'))
     }
 
     const account = await this.store.accounts.findById(redeemed.userId)
-    if (account === null) throw new ForbiddenError('That account no longer exists.')
+    if (account === null) throw new ForbiddenError(msg('error.accounts.account-longer-exists'))
 
     await this.assertSignInAllowed(account)
     return this.startSession(account, at, context)
@@ -482,7 +477,7 @@ export class IdentityService {
     )
 
     if (failures >= max) {
-      throw new ForbiddenError('Too many wrong codes. Please wait before trying again.')
+      throw new ForbiddenError(msg('error.accounts.too-many-wrong-codes-please'))
     }
   }
 
@@ -533,9 +528,7 @@ export class IdentityService {
 
     const match = matchBanFilter(await this.banFilters.listAll(), subject)
     if (match) {
-      throw new ForbiddenError(
-        'This account cannot be used on this board. Contact an administrator if you believe this is a mistake.',
-      )
+      throw new ForbiddenError(msg('error.accounts.account-used-board-contact-administrator'))
     }
   }
 
@@ -590,7 +583,7 @@ export class IdentityService {
       this.now(),
     )
     if (!redeemed) {
-      throw new ValidationError('This reset link is invalid or has expired.')
+      throw new ValidationError(msg('error.accounts.reset-link-invalid-expired'))
     }
 
     const encoded = await hashPassword(newPassword)
@@ -628,7 +621,7 @@ export class IdentityService {
     }
     if (!USERNAME_RE.test(username)) {
       throw new ValidationError(
-        'Username contains invalid characters.',
+        msg('error.accounts.username-contains-invalid-characters'),
         {},
         {
           meta: { field: REGISTER_FIELD.username },
@@ -636,18 +629,16 @@ export class IdentityService {
       )
     }
     if (this.config.reservedUsernames.includes(usernameLower)) {
-      throw new ConflictError(
-        'That username is reserved. Pick another — the board keeps a few names ' +
-          'for itself so an account cannot impersonate it.',
-        { meta: { field: REGISTER_FIELD.username } },
-      )
+      throw new ConflictError(msg('error.accounts.username-reserved-pick-another-board'), {
+        meta: { field: REGISTER_FIELD.username },
+      })
     }
   }
 
   private assertEmail(email: string): void {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       throw new ValidationError(
-        'Please enter a valid email address.',
+        msg('error.accounts.please-enter-valid-email-address'),
         {},
         {
           meta: { field: REGISTER_FIELD.email },

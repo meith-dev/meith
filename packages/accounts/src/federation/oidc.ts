@@ -1,4 +1,5 @@
 import { ConfigurationError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { fetchJson, readBoolean, readString } from './http'
 import { type IdTokenClaims, stringClaim, verifyIdToken } from './jwt'
@@ -84,9 +85,7 @@ export function oidcProvider(config: OidcProviderConfig): IdentityProvider {
 
       const idToken = readString(token, 'id_token')
       if (idToken === null) {
-        throw new ValidationError(
-          'The identity provider answered the code exchange without an identity token.',
-        )
+        throw new ValidationError(msg('error.accounts.identity-provider-answered-code-exchange'))
       }
 
       const claims = await verifyIdToken({
@@ -133,7 +132,7 @@ function profileFrom(claims: IdTokenClaims, userinfo: IdTokenClaims): ProviderPr
 
   const subject = stringClaim(merged, 'sub')
   if (subject === null) {
-    throw new ValidationError('The identity provider sent an account with no stable identifier.')
+    throw new ValidationError(msg('error.accounts.identity-provider-sent-account-with'))
   }
 
   return {

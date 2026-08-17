@@ -47,6 +47,8 @@ export {
   type MessageResolver,
   NotFoundError,
   type PublicErrorBody,
+  type PublicMessage,
+  type PublicMessageArgs,
   publicMessageOf,
   RateLimitedError,
   statusForError,

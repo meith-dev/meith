@@ -1,5 +1,5 @@
 import { ValidationError } from '@meith/core'
-import { normaliseLocale } from '@meith/i18n'
+import { msg, normaliseLocale } from '@meith/i18n'
 
 import { foldIdentifier } from './case-fold'
 import { hashPassword, needsRehash, verifyPassword } from './crypto/password'
@@ -131,10 +131,7 @@ export class MemberSettingsService {
     const primary = held.find((choice) => choice.isPrimary)
 
     if (primary?.isStaff === true) {
-      throw new ValidationError(
-        'Your group is the one you were appointed to, and it is shown as itself. ' +
-          'Staff cannot post under another group.',
-      )
+      throw new ValidationError(msg('error.accounts.group-one-were-appointed-shown'))
     }
 
     const raw = input.displayGroupId.trim()
@@ -144,15 +141,12 @@ export class MemberSettingsService {
     }
 
     if (!/^[1-9]\d*$/.test(raw)) {
-      throw new ValidationError('That is not a group this board has.')
+      throw new ValidationError(msg('error.accounts.group-board'))
     }
 
     const chosen = Number(raw)
     if (!held.some((choice) => choice.groupId === chosen)) {
-      throw new ValidationError(
-        'You can only be shown as a group you are in. If a membership has ' +
-          'lapsed, so has your claim on its badge.',
-      )
+      throw new ValidationError(msg('error.accounts.only-shown-as-group-if'))
     }
 
     await this.settings.saveDisplayGroup({
@@ -172,13 +166,13 @@ export class MemberSettingsService {
     const website = input.website.trim()
 
     if (location.length > LOCATION_MAX) {
-      throw new ValidationError(`Location may be at most ${LOCATION_MAX} characters.`)
+      throw new ValidationError(msg('error.accounts.location-length', { max: LOCATION_MAX }))
     }
     if (bio.length > BIO_MAX) {
-      throw new ValidationError(`About me may be at most ${BIO_MAX} characters.`)
+      throw new ValidationError(msg('error.accounts.bio-length', { max: BIO_MAX }))
     }
     if (website.length > WEBSITE_MAX) {
-      throw new ValidationError(`A website address may be at most ${WEBSITE_MAX} characters.`)
+      throw new ValidationError(msg('error.accounts.website-length', { max: WEBSITE_MAX }))
     }
 
     await this.settings.saveProfile({
@@ -199,12 +193,12 @@ export class MemberSettingsService {
   }): Promise<void> {
     const timezone = input.timezone.trim()
     if (!isTimezonePreference(timezone)) {
-      throw new ValidationError('That is not a timezone this board recognises.')
+      throw new ValidationError(msg('error.accounts.timezone-board-recognises'))
     }
 
     const locale = input.locale.trim()
     if (!isLocalePreference(locale)) {
-      throw new ValidationError('That is not a language this board recognises.')
+      throw new ValidationError(msg('error.accounts.language-board-recognises'))
     }
 
     await this.settings.saveOptions({
@@ -227,10 +221,10 @@ export class MemberSettingsService {
 
     const next = input.newPassword
     if (next.length < input.minLength) {
-      throw new ValidationError(`A password must be at least ${input.minLength} characters.`)
+      throw new ValidationError(msg('error.accounts.password-min', { min: input.minLength }))
     }
     if (next === input.currentPassword) {
-      throw new ValidationError('That is the password you are already using.')
+      throw new ValidationError(msg('error.accounts.password-already-using'))
     }
 
     const hash = await hashPassword(next)
@@ -247,17 +241,17 @@ export class MemberSettingsService {
 
     const email = input.newEmail.trim()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new ValidationError('That does not look like an e-mail address.')
+      throw new ValidationError(msg('error.accounts.look-like-e-mail-address'))
     }
 
     const emailLower = foldIdentifier(email)
     if (emailLower === account.emailLower) {
-      throw new ValidationError('That is the address you are already using.')
+      throw new ValidationError(msg('error.accounts.address-already-using'))
     }
 
     const taken = await this.accounts.findByEmailLower(emailLower)
     if (taken !== null) {
-      throw new ValidationError('That address is already in use on this board.')
+      throw new ValidationError(msg('error.accounts.address-already-use-board'))
     }
 
     const token = generateToken()
@@ -291,14 +285,14 @@ export class MemberSettingsService {
 
   private async requireVerified(userId: number, currentPassword: string) {
     const account = await this.accounts.findById(userId)
-    if (account === null) throw new ValidationError('That account does not exist.')
+    if (account === null) throw new ValidationError(msg('error.accounts.account-exist'))
 
     if (account.passwordHash === null) {
-      throw new ValidationError('This account has no password set, so it cannot be changed here.')
+      throw new ValidationError(msg('error.accounts.account-password-set-so-changed'))
     }
 
     const ok = await verifyPassword(currentPassword, account.passwordHash)
-    if (!ok) throw new ValidationError('That is not your current password.')
+    if (!ok) throw new ValidationError(msg('error.accounts.current-password'))
 
     void needsRehash
 
@@ -311,11 +305,13 @@ function parsePageSize(raw: string, label: string): number | null {
   if (value === '') return null
 
   if (!/^[1-9]\d*$/.test(value)) {
-    throw new ValidationError(`${label} must be a number.`)
+    throw new ValidationError(msg('error.accounts.page-size-number', { label }))
   }
   const size = Number(value)
   if (!Number.isSafeInteger(size) || size < PAGE_SIZE_MIN || size > PAGE_SIZE_MAX) {
-    throw new ValidationError(`${label} must be between ${PAGE_SIZE_MIN} and ${PAGE_SIZE_MAX}.`)
+    throw new ValidationError(
+      msg('error.accounts.page-size-range', { label, min: PAGE_SIZE_MIN, max: PAGE_SIZE_MAX }),
+    )
   }
   return size
 }
@@ -327,11 +323,11 @@ function normaliseWebsite(value: string): string {
   try {
     url = new URL(candidate)
   } catch {
-    throw new ValidationError('That does not look like a web address.')
+    throw new ValidationError(msg('error.accounts.look-like-web-address'))
   }
 
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw new ValidationError('A website address must start with http:// or https://.')
+    throw new ValidationError(msg('error.accounts.website-address-must-start-with'))
   }
   return url.toString()
 }

@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import type { NotificationService } from '@meith/notifications'
 
 import type { FormState } from './auth-form-state'
@@ -19,13 +20,11 @@ async function requireOwnCentre(): Promise<{
   userId: number
 }> {
   const actor = await getActor()
-  if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+  if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
   const service = notificationService()
   if (service === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so it has no notifications.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-16'))
   }
   return { service, userId: actor.userId }
 }

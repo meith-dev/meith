@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { foldIdentifier } from './case-fold'
 
@@ -33,7 +34,7 @@ export function assertUsableFilter(type: BanFilterType, pattern: string): void {
   const trimmed = pattern.trim()
 
   if (trimmed === '') {
-    throw new ValidationError('A ban filter needs a pattern.')
+    throw new ValidationError(msg('error.accounts.ban-filter-needs-pattern'))
   }
 
   if (/^\*+$/.test(trimmed)) {

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { isAppError, logger, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { apiTokenStore, issueApiToken } from './api-tokens-admin'
@@ -18,10 +19,7 @@ function expiryFrom(raw: string, now: number): Date | null {
 
   const days = /^\d+$/.test(raw) ? Number(raw) : Number.NaN
   if (!Number.isSafeInteger(days) || days <= 0) {
-    throw new ValidationError(
-      'Expires in (days) must be a whole number of days above zero. ' +
-        'Leave it empty for a token that never expires.',
-    )
+    throw new ValidationError(msg('error.app.expires-days-must-whole-number'))
   }
 
   return new Date(now + days * 86_400_000)

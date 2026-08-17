@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { recordAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
@@ -50,16 +51,16 @@ async function requireOwnAccount(): Promise<{
   readonly hasPassword: boolean
 }> {
   const actor = await getActor()
-  if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+  if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
   if (!(await memberManagedSignIns())) {
-    throw new ForbiddenError('This board manages sign-ins for its members.')
+    throw new ForbiddenError(msg('error.app.board-manages-sign-ins-for-its'))
   }
 
   await assertDemoAccountChangeable(actor.userId, 'password')
 
   const account = await getContainer().accountStore.accounts.findById(actor.userId)
-  if (account === null) throw new ForbiddenError('That account no longer exists.')
+  if (account === null) throw new ForbiddenError(msg('error.app.account-longer-exists'))
 
   return { userId: actor.userId, hasPassword: account.passwordHash !== null }
 }

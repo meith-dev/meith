@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { QueueSelection } from './queue'
 import { keepsThreads, type MoveDestination } from './thread-tools'
@@ -103,10 +104,10 @@ export class InlineModeration {
     readonly actorUserId: number
   }): Promise<InlineOutcome> {
     if (input.selection.length === 0) {
-      throw new ValidationError('Select at least one item.')
+      throw new ValidationError(msg('error.moderation.select-at-least-one-item'))
     }
     if (input.selection.length > MAX_INLINE_SELECTION) {
-      throw new ValidationError(`At most ${MAX_INLINE_SELECTION} items can be moderated at once.`)
+      throw new ValidationError(msg('error.moderation.inline-chunk', { max: MAX_INLINE_SELECTION }))
     }
 
     const unique = new Map<string, QueueSelection>()
@@ -172,15 +173,15 @@ export class InlineModeration {
     rights: InlineRightsResolver,
   ): Promise<void> {
     if (toForumId === undefined) {
-      throw new ValidationError('Choose a forum to move them to.')
+      throw new ValidationError(msg('error.moderation.choose-forum-move-them'))
     }
     const destinationRights = await rights.rightsIn(toForumId)
     if (!destinationRights.move) {
-      throw new ValidationError('You cannot move threads into that forum.')
+      throw new ValidationError(msg('error.moderation.move-threads-into-forum'))
     }
     const destination = await this.repo.findDestination(toForumId)
     if (destination === null || !keepsThreads(destination)) {
-      throw new ValidationError('That is not a forum threads can live in.')
+      throw new ValidationError(msg('error.moderation.forum-threads-live'))
     }
   }
 }

@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import type { MoveDestination, ThreadToolsRepository, ThreadToolTarget } from '@meith/moderation'
 
 import type { Database } from './client'
@@ -225,7 +226,7 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
       }>
       const source = sourceRows[0]
       if (!source) {
-        throw new ValidationError('That thread does not exist.')
+        throw new ValidationError(msg('error.db.thread-exist'))
       }
 
       const created = resultRows(

@@ -1,4 +1,5 @@
 import { RateLimitedError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { type NewPoll, validatePoll } from '@meith/polls'
 
 export interface ForumPostingRules {
@@ -129,34 +130,34 @@ export class ThreadComposer {
     const message = input.message.trim()
 
     if (forum.type === 'link') {
-      throw new ValidationError('Threads cannot be posted here.')
+      throw new ValidationError(msg('error.threads.threads-posted-here'))
     }
     if (!forum.isOpen || !forum.allowThreads) {
-      throw new ValidationError('This forum is closed to new threads.')
+      throw new ValidationError(msg('error.threads.forum-closed-new-threads'))
     }
 
     const restriction = input.restriction ?? UNRESTRICTED
     if (restriction.suspended) {
-      throw new ValidationError('Your posting privileges are currently suspended.')
+      throw new ValidationError(msg('error.threads.posting-privileges-currently-suspended'))
     }
 
     if (title.length < TITLE_MIN) {
-      throw new ValidationError(`A title needs at least ${TITLE_MIN} characters.`)
+      throw new ValidationError(msg('error.threads.title-min', { min: TITLE_MIN }))
     }
     if (title.length > TITLE_MAX) {
-      throw new ValidationError(`A title may be at most ${TITLE_MAX} characters.`)
+      throw new ValidationError(msg('error.threads.title-max', { max: TITLE_MAX }))
     }
     if (message.length < MESSAGE_MIN) {
-      throw new ValidationError('A post needs a message.')
+      throw new ValidationError(msg('error.threads.post-needs-message'))
     }
     if (message.length > this.config.maxLength) {
-      throw new ValidationError(`A post may be at most ${this.config.maxLength} characters.`)
+      throw new ValidationError(msg('error.posts.post-length', { max: this.config.maxLength }))
     }
 
     const prefixId = await this.resolvePrefix(input.prefixId, forum)
     const poll = input.poll === undefined ? undefined : validatePoll(input.poll, this.now())
     if (poll !== undefined && (input.mayPostPoll !== true || !forum.allowPolls)) {
-      throw new ValidationError('You cannot attach a poll in this forum.')
+      throw new ValidationError(msg('error.threads.attach-poll-forum'))
     }
 
     await this.enforceFlood(input, author)
@@ -189,14 +190,14 @@ export class ThreadComposer {
   ): Promise<number | null> {
     if (prefixId === null) {
       if (forum.requiresPrefix) {
-        throw new ValidationError('This forum requires a prefix.')
+        throw new ValidationError(msg('error.threads.forum-requires-prefix'))
       }
       return null
     }
 
     const allowed = await this.threads.allowedPrefixIds(forum.id)
     if (!allowed.includes(prefixId)) {
-      throw new ValidationError('That prefix cannot be used in this forum.')
+      throw new ValidationError(msg('error.threads.prefix-used-forum'))
     }
     return prefixId
   }

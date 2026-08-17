@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -54,7 +55,7 @@ export class PostgresThemeAdminRepository {
     readonly tokenOverrides: unknown
     readonly customCss: string | null
   }): Promise<void> {
-    if (input.key.trim() === '') throw new ValidationError('No such theme.')
+    if (input.key.trim() === '') throw new ValidationError(msg('error.db.such-theme'))
 
     await this.db.execute(sql`
       insert into themes (key, title, token_overrides, custom_css, updated_at)
@@ -69,7 +70,7 @@ export class PostgresThemeAdminRepository {
   }
 
   async setEnabled(key: string, enabled: boolean, title: string): Promise<void> {
-    if (key.trim() === '') throw new ValidationError('No such theme.')
+    if (key.trim() === '') throw new ValidationError(msg('error.db.such-theme'))
 
     await this.db.execute(sql`
       insert into themes (key, title, enabled, updated_at)
@@ -79,7 +80,7 @@ export class PostgresThemeAdminRepository {
   }
 
   async setDefault(key: string, title: string): Promise<void> {
-    if (key.trim() === '') throw new ValidationError('No such theme.')
+    if (key.trim() === '') throw new ValidationError(msg('error.db.such-theme'))
 
     await this.db.transaction(async (tx) => {
       await tx.execute(sql`update themes set is_default = false where is_default`)
@@ -121,28 +122,26 @@ export function parseThemeExport(raw: string): {
   try {
     parsed = JSON.parse(raw)
   } catch {
-    throw new ValidationError('That is not valid JSON.')
+    throw new ValidationError(msg('error.db.valid-json'))
   }
 
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new ValidationError('A theme file is a JSON object.')
+    throw new ValidationError(msg('error.db.theme-file-json-object'))
   }
 
   const document = parsed as Record<string, unknown>
   if (document.version !== 1 && document.version !== 2) {
-    throw new ValidationError(
-      'That theme file was written by a different version of this board and cannot be read.',
-    )
+    throw new ValidationError(msg('error.db.theme-file-written-by-different'))
   }
 
   const tokens = document.tokenOverrides
   if (typeof tokens !== 'object' || tokens === null || Array.isArray(tokens)) {
-    throw new ValidationError('A theme file needs a `tokenOverrides` object.')
+    throw new ValidationError(msg('error.db.theme-file-needs-tokenoverrides-object'))
   }
 
   const css = document.customCss
   if (css !== null && css !== undefined && typeof css !== 'string') {
-    throw new ValidationError('`customCss` must be text, or null.')
+    throw new ValidationError(msg('error.db.customcss-must-text-null'))
   }
 
   return {

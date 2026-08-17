@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import type { Action } from '@meith/authorization'
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { parseThreadTool, type ThreadToolRights, ThreadTools } from '@meith/moderation'
 
 import type { FormState } from './auth-form-state'
@@ -43,14 +44,14 @@ export async function threadToolAction(_prev: FormState, form: FormData): Promis
   let outcome: Awaited<ReturnType<ThreadTools['apply']>>
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const target = await threadTools.find(threadId)
-    if (target === null) throw new ValidationError('That thread does not exist.')
+    if (target === null) throw new ValidationError(msg('error.app.thread-exist'))
 
     const matrix = await authorizer.forumMatrix(actor, target.forumId)
     if (!authorizer.can(actor, 'thread.view', { forumId: target.forumId, forum: matrix })) {
-      throw new ValidationError('That thread does not exist.')
+      throw new ValidationError(msg('error.app.thread-exist'))
     }
 
     const threadAuthorId = (await threads.locate(threadId))?.authorUserId ?? null
