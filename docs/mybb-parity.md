@@ -167,7 +167,24 @@ collecting several posts first.
 
 **Meith** does both and, with JavaScript on, neither navigates: clicking
 **Quote** puts the quote into the quick reply already on the page, opens
-it, and puts the caret under the quote. Multiquote works the same way.
+it, and puts the caret under the quote.
+
+**Multiquote is a selection you can see.** **Multi-quote** is a toggle: it
+reports whether this post is in the selection, and a second click takes it
+out again. Above the reply box a strip names the count — "3 posts selected
+to quote" — and carries the two things you can do with it: **Add to reply**,
+which fetches the quotes and drops them in the box in the order they were
+selected, and **Clear**, which throws the selection away. Every change is
+announced to a screen reader as it happens, so the count is conveyed the
+same way it is shown. The selection lives in `sessionStorage`, so it
+survives turning the page and collects posts from more than one page of a
+thread; arriving at the full reply page spends it, exactly as clicking
+**Quote** does. Spending it and clearing it are the only two things that
+empty it.
+
+The strip is a client island, so it appears only where scripting does. With
+scripting off the **Multi-quote** button is not rendered at all and the
+**Quote** link is the whole feature, as below.
 
 **The quote comes from the server, by post id** — not read out of the page
 and turned back into markup in the browser. The server fetches the post

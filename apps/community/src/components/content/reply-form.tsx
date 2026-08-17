@@ -1,10 +1,10 @@
 "use client"
 
-import { useActionState, useEffect } from "react"
+import { useActionState } from "react"
 
 import { Alert, AlertDescription, Disclosure, cn } from "@meith/ui"
 
-import { createReplyAction, quotePostAction } from "@/server/content-actions"
+import { createReplyAction } from "@/server/content-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import type { UploadLimits } from "@meith/attachments/limits"
@@ -33,26 +33,6 @@ export function ReplyForm({
   collapsible?: boolean
 }) {
   const [state, action] = useActionState(createReplyAction, EMPTY_STATE)
-
-  useEffect(() => {
-    const field = document.getElementById("post-message")
-    const ids = (JSON.parse(sessionStorage.getItem("multiquote") ?? "[]") as unknown[])
-      .map(Number)
-      .filter((id) => Number.isSafeInteger(id) && id > 0)
-    if (!(field instanceof HTMLTextAreaElement) || ids.length === 0) return
-    sessionStorage.removeItem("multiquote")
-
-    void (async () => {
-      const quotes = (await Promise.all(ids.map((id) => quotePostAction(threadId, id)))).filter(
-        (quote): quote is string => quote !== null,
-      )
-      if (quotes.length === 0) return
-      const existing = field.value.replace(/\s+$/, "")
-      field.value = `${existing === "" ? "" : `${existing}\n\n`}${quotes.join("\n\n")}\n\n`
-      field.setSelectionRange(field.value.length, field.value.length)
-      field.dispatchEvent(new Event("input", { bubbles: true }))
-    })()
-  }, [threadId])
 
   const form = (
     <form action={action} className="flex flex-col gap-3" noValidate>

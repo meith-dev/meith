@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { quotePrefill } from '@meith/threads'
 import { requireSlot } from '@meith/theme-kit'
 
+import { MultiQuoteSelection } from '@/components/content/multiquote-selection'
 import { ReplyForm } from '@/components/content/reply-form'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
@@ -76,16 +77,19 @@ export default async function ReplyPage({
         {...view}
         regions={{
           form: locked ? null : (
-            <ReplyForm
-              threadId={target.threadId}
-              seenLastPostId={target.lastPostId}
-              prefill={prefill}
-              canSubscribe={authorizer.can(actor, 'forum.subscribe', scope)}
-              attachmentLimits={
-                canAttach(actor, scope) ? attachmentLimits(scope) : null
-              }
-              draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, target.forum.id, target.threadId)}
-            />
+            <>
+              <MultiQuoteSelection threadId={target.threadId} insertOnMount />
+              <ReplyForm
+                threadId={target.threadId}
+                seenLastPostId={target.lastPostId}
+                prefill={prefill}
+                canSubscribe={authorizer.can(actor, 'forum.subscribe', scope)}
+                attachmentLimits={
+                  canAttach(actor, scope) ? attachmentLimits(scope) : null
+                }
+                draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, target.forum.id, target.threadId)}
+              />
+            </>
           ),
           toolbar: null,
         }}
