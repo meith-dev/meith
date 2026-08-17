@@ -89,27 +89,14 @@ describe('production rules', () => {
     )
   })
 
-  it('refuses to boot a Vercel deployment writing uploads to local disk', () => {
-    expect(() =>
-      parseEnv({ ...base, FILESTORE_DRIVER: 'local', VERCEL: '1' }),
-    ).toThrow(/FILESTORE_DRIVER/)
-  })
-
-  it('says what to do about it, because the default is the broken one', () => {
-    expect(() => parseEnv({ ...base, FILESTORE_DRIVER: 'local', VERCEL: '1' })).toThrow(
-      /FILESTORE_DRIVER=s3/,
-    )
-  })
-
-  it('allows local disk everywhere else, which is where it is correct', () => {
+  it('allows local disk, which is the documented deployment', () => {
     const env = parseEnv({ ...base, FILESTORE_DRIVER: 'local' })
     expect(env.FILESTORE_DRIVER).toBe('local')
   })
 
-  it('allows an object store on Vercel, which is the whole point', () => {
+  it('allows an object store once its four settings are present', () => {
     const env = parseEnv({
       ...base,
-      VERCEL: '1',
       FILESTORE_DRIVER: 's3',
       S3_BUCKET: 'board',
       S3_REGION: 'auto',

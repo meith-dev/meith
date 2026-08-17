@@ -25,8 +25,6 @@ const envSchema = z
 
     NEXT_PHASE: z.string().optional(),
 
-    VERCEL: z.string().optional(),
-
     DATA_SOURCE: z.enum(["fixture", "postgres"]),
     DATABASE_URL: databaseUrl.optional(),
 
@@ -180,19 +178,6 @@ const envSchema = z
             message: "is required in production",
           })
         }
-      }
-
-      if (value.FILESTORE_DRIVER === "local" && value.VERCEL) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["FILESTORE_DRIVER"],
-          message:
-            "cannot be 'local' on Vercel — the filesystem is per-instance and " +
-            "ephemeral, so uploads are lost as soon as another instance serves " +
-            "the request. Set FILESTORE_DRIVER=s3 with S3_BUCKET, S3_REGION, " +
-            "S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY (S3_ENDPOINT too for R2, " +
-            "MinIO or Spaces).",
-        })
       }
     }
   })
