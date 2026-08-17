@@ -8,7 +8,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
 import { attachmentAdminRepository } from '@/server/content-admin'
-import { getViewerPreferences } from '@/server/viewer-preferences'
+import { getTranslator } from '@/server/i18n'
 import { formatBytes } from '@/view/attachments'
 import { offsetOf, readPage } from '@/view/pager'
 import { postLink } from '@/view/post-link'
@@ -58,7 +58,7 @@ export default async function AdminAttachmentsPage({
   ])
 
   const now = new Date()
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
   return (
     <PanelPage
       back={{ href: '/admin/content', label: 'Content' }}
@@ -139,7 +139,7 @@ export default async function AdminAttachmentsPage({
                   {formatBytes(row.sizeBytes)} · {row.contentType} · {row.downloadCount} download
                   {row.downloadCount === 1 ? '' : 's'} ·{' '}
                   <time dateTime={row.createdAt.toISOString()}>
-                    {formatTime(row.createdAt, now, timezone).label}
+                    {formatTime(row.createdAt, now, translator).label}
                   </time>
                 </span>
                 <span className="truncate text-xs text-muted-foreground">

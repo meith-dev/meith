@@ -4,7 +4,7 @@ import { IssueTokenForm, RevokeTokenForm } from '@/components/admin/api-token-fo
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildApiTokenView } from '@/server/api-tokens-admin'
-import { getViewerPreferences } from '@/server/viewer-preferences'
+import { getTranslator } from '@/server/i18n'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'API tokens' }
@@ -13,7 +13,7 @@ export default async function AdminApiTokensPage() {
   if ((await adminPageContext()) === null) return null
 
   const now = new Date()
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
   const view = await buildApiTokenView(now)
 
   if (view === null) {
@@ -86,7 +86,7 @@ export default async function AdminApiTokensPage() {
                     <td className="py-2 pr-3">
                       {token.lastUsedAt === null
                         ? 'never'
-                        : formatTime(token.lastUsedAt, now, timezone).label}
+                        : formatTime(token.lastUsedAt, now, translator).label}
                     </td>
                     <td className="py-2 pr-3">
                       <span

@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import type { SubscriptionMode, SubscriptionRow } from '@meith/subscriptions'
 import { MODE_LABELS, SUBSCRIPTION_MODES } from '@meith/subscriptions'
 import type { TimeModel } from '@meith/theme-kit'
@@ -26,9 +27,9 @@ export interface SubscriptionsView {
 export function buildSubscriptionsView(input: {
   readonly rows: readonly SubscriptionRow[]
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
 }): SubscriptionsView {
-  const rows = input.rows.map((row) => toRow(row, input.now, input.timeZone))
+  const rows = input.rows.map((row) => toRow(row, input.now, input.t))
 
   return {
     threads: rows.filter((row) => row.target === 'thread'),
@@ -38,7 +39,7 @@ export function buildSubscriptionsView(input: {
   }
 }
 
-function toRow(row: SubscriptionRow, now: Date, timeZone: string | undefined): SubscriptionRowView {
+function toRow(row: SubscriptionRow, now: Date, t: Translator | undefined): SubscriptionRowView {
   return {
     key: `${row.target}:${row.targetId}`,
     target: row.target,
@@ -47,7 +48,7 @@ function toRow(row: SubscriptionRow, now: Date, timeZone: string | undefined): S
     href: row.href,
     mode: row.mode,
     modeLabel: MODE_LABELS[row.mode],
-    since: formatTime(row.createdAt, now, timeZone),
+    since: formatTime(row.createdAt, now, t),
     pending:
       row.pending === 0 ? null : `${row.pending} new ${row.pending === 1 ? 'post' : 'posts'}`,
   }

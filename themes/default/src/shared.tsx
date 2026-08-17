@@ -1,4 +1,5 @@
 import type { PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
+import { formatCount } from '@meith/theme-kit'
 import { Badge, cn } from '@meith/ui'
 
 const PAGE_WIDTH = 'max-w-6xl'
@@ -91,7 +92,7 @@ export function Counts({ items, className }: { items: readonly CountItem[]; clas
           <dt className="sr-only">{item.label}</dt>
           <dd>
             <span className={cn('font-medium text-foreground', NUMERIC)}>
-              {item.value.toLocaleString('en')}
+              {formatCount(item.value)}
             </span>{' '}
             {item.value === 1 ? item.one : item.many}
           </dd>

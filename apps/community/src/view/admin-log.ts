@@ -1,4 +1,5 @@
 import type { AdminLogRow } from '@meith/admin'
+import type { Translator } from '@meith/i18n'
 import type { TimeModel } from '@meith/theme-kit'
 
 import { formatTime } from './time'
@@ -25,7 +26,7 @@ export function buildAdminLogView(input: {
   readonly actions: readonly string[]
   readonly currentAction: string
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
 }): AdminLogView {
   return {
     rows: input.rows.map((row) => ({
@@ -34,7 +35,7 @@ export function buildAdminLogView(input: {
       actor: row.username ?? (row.userId === null ? 'the system' : 'a deleted account'),
       ipPrefix: row.ipPrefix,
       detail: flatten(row.detail),
-      at: formatTime(row.createdAt, input.now, input.timeZone),
+      at: formatTime(row.createdAt, input.now, input.t),
     })),
     actions: input.actions,
     currentAction: input.currentAction,

@@ -4,6 +4,7 @@ import { compileWordFilter } from '@meith/markdown'
 import type { SearchFilterSet, SearchRefinement, SearchSummary } from '@meith/search'
 
 import { buildSearchResultsView, type SearchResultsInput } from './search-results'
+import { untranslated } from './time'
 
 const NOW = new Date('2026-03-12T12:00:00Z')
 
@@ -80,7 +81,7 @@ describe('buildSearchResultsView', () => {
   })
 
   it('formats every timestamp in the viewer’s zone', () => {
-    const model = build({ timeZone: 'Asia/Tokyo' })
+    const model = build({ t: untranslated('Asia/Tokyo') })
 
     expect(model.hits[0]?.postedAt.label).toBe('Today, 18:14')
     expect(model.searchedAt.label).toBe('Today, 21:00')

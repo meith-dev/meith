@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import type { BoardStatsModel, OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
 
 import { type MemberIdentity, nameClassOf } from './member-identity'
@@ -22,7 +23,7 @@ export interface OnlineInput {
   readonly recordCount: number
   readonly recordAt: Date | null
   readonly now: Date
-  readonly timeZone?: string | undefined
+  readonly t?: Translator | undefined
   readonly identities?: ReadonlyMap<number, MemberIdentity>
 }
 
@@ -49,7 +50,7 @@ export function buildWhoIsOnlineModel(input: OnlineInput): WhoIsOnlineModel {
     nameClass: nameClassOf(input.identities, row.userId),
     location: locationOf(row),
     isInvisible: row.invisible,
-    lastSeen: formatTime(row.lastSeenAt, input.now, input.timeZone),
+    lastSeen: formatTime(row.lastSeenAt, input.now, input.t),
   }))
 
   return {
@@ -57,8 +58,7 @@ export function buildWhoIsOnlineModel(input: OnlineInput): WhoIsOnlineModel {
     members,
     total: members.length + input.guestCount,
     recordCount: input.recordCount,
-    recordAt:
-      input.recordAt === null ? null : formatTime(input.recordAt, input.now, input.timeZone),
+    recordAt: input.recordAt === null ? null : formatTime(input.recordAt, input.now, input.t),
     fullListHref: '/online',
   }
 }
@@ -71,7 +71,7 @@ export interface StatsInput {
   readonly newestUsername: string | null
   readonly computedAt: Date | null
   readonly now: Date
-  readonly timeZone?: string | undefined
+  readonly t?: Translator | undefined
   readonly identities?: ReadonlyMap<number, MemberIdentity>
 }
 
@@ -89,7 +89,6 @@ export function buildBoardStatsModel(input: StatsInput): BoardStatsModel {
             profileHref: input.newestUserId === null ? null : memberHref(input.newestUserId),
             nameClass: nameClassOf(input.identities, input.newestUserId),
           },
-    computedAt:
-      input.computedAt === null ? null : formatTime(input.computedAt, input.now, input.timeZone),
+    computedAt: input.computedAt === null ? null : formatTime(input.computedAt, input.now, input.t),
   }
 }

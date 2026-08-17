@@ -8,6 +8,7 @@ import { RemoveRelationForm } from '@/components/account/relation-forms'
 import { PANEL_LIST } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { relationService } from '@/server/relations'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -28,7 +29,7 @@ export default async function ContactsPage({
 
   if (actor.userId === null || service === null) notFound()
 
-  const preferences = await getViewerPreferences()
+  const _preferences = await getViewerPreferences()
   const [buddies, ignored] = await Promise.all([
     service.list(actor.userId, 'buddy'),
     service.list(actor.userId, 'ignore'),
@@ -40,7 +41,7 @@ export default async function ContactsPage({
     ignored,
     limit: MAX_RELATIONS,
     now: new Date(),
-    timeZone: preferences.timezone,
+    t: await getTranslator(),
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')

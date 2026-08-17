@@ -744,6 +744,9 @@ importers:
 
   packages/theme-kit:
     dependencies:
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       react:
         specifier: ^19.2.0
         version: 19.2.0

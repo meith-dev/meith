@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { MemberProfileRecord } from '@meith/accounts'
 
 import { buildMemberProfileView, memberHref } from './member-profile'
+import { untranslated } from './time'
 
 const PROFILE: MemberProfileRecord = {
   id: 3,
@@ -31,7 +32,7 @@ describe('buildMemberProfileView', () => {
   })
 
   it('formats in the viewer’s timezone, not the board’s', () => {
-    const view = buildMemberProfileView(PROFILE, NOW, { timeZone: 'Australia/Sydney' })
+    const view = buildMemberProfileView(PROFILE, NOW, { t: untranslated('Australia/Sydney') })
 
     expect(view.lastVisitAt?.label).toBe('Today, 18:41')
     expect(view.lastVisitAt?.iso).toBe('2026-07-30T08:41:00.000Z')

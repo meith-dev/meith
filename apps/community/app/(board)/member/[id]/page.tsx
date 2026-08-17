@@ -10,6 +10,7 @@ import { avatarFor, avatarsFor } from '@/server/avatars'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
+import { getTranslator } from '@/server/i18n'
 import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
 import { visibleProfileFields } from '@/server/profile-fields'
 import { relationService } from '@/server/relations'
@@ -33,7 +34,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   const profile = await memberProfiles.findPublicById(id)
   if (!profile) notFound()
 
-  const preferences = await getViewerPreferences()
+  const _preferences = await getViewerPreferences()
   const customFields = await visibleProfileFields(id)
 
   const relations = relationService()
@@ -71,7 +72,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
           actor.userId !== null &&
           actor.userId !== id &&
           authorizer.can(actor, 'pm.use'),
-        timeZone: preferences.timezone,
+        t: await getTranslator(),
         customFields,
       }),
       regions: {

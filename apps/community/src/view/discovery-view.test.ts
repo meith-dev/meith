@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { buildDiscoveryView } from './discovery-view'
+import { untranslated } from './time'
 
 const NOW = new Date('2026-03-12T12:00:00Z')
 
@@ -52,7 +53,7 @@ describe('buildDiscoveryView', () => {
   })
 
   it('formats the last post in the viewer’s zone', () => {
-    expect(build({ timeZone: 'Asia/Tokyo' }).rows[0]?.lastPostAt.label).toBe('Today, 18:14')
+    expect(build({ t: untranslated('Asia/Tokyo') }).rows[0]?.lastPostAt.label).toBe('Today, 18:14')
   })
 
   it('says "start something" at the top of an empty list and "that is all" at the end', () => {

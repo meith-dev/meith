@@ -7,8 +7,8 @@ import { ImportThemeForm, ResetThemeForm, ThemeEditorForm } from '@/components/a
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
+import { getTranslator } from '@/server/i18n'
 import { buildThemeAdminView, themeAdminRepository } from '@/server/theme-admin'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Theme' }
@@ -23,7 +23,7 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
   const repository = themeAdminRepository()
   const exported = repository === null ? null : await repository.exportTheme(key)
   const now = new Date()
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
   return (
     <PanelPage
@@ -44,7 +44,7 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
               {' '}
               · last changed{' '}
               <time dateTime={view.updatedAt.toISOString()}>
-                {formatTime(view.updatedAt, now, timezone).label}
+                {formatTime(view.updatedAt, now, translator).label}
               </time>
             </>
           )}

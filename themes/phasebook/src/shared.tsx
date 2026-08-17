@@ -1,4 +1,5 @@
 import type { PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
+import { formatCount } from '@meith/theme-kit'
 import { Avatar, cn } from '@meith/ui'
 
 export const PAGE = 'mx-auto w-full max-w-6xl px-3 sm:px-4'
@@ -177,7 +178,7 @@ export function isEmptyRegion(node: React.ReactNode): boolean {
 }
 
 export function count(value: number): string {
-  return value.toLocaleString('en')
+  return formatCount(value)
 }
 
 export function plural(value: number, one: string, many: string): string {

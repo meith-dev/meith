@@ -14,6 +14,7 @@ export {
   THEME_API_VERSION,
   type ThemeContractReport,
 } from './api'
+export { adoptRenderLocale, formatCount, renderLocale } from './numbers'
 export {
   isSlotName,
   SLOT_NAMES,

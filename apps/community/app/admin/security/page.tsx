@@ -7,7 +7,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { boardSecurityActivity } from '@/server/auth-events'
 import { getContainer } from '@/server/container'
-import { getViewerPreferences } from '@/server/viewer-preferences'
+import { getTranslator } from '@/server/i18n'
 import { authEventLabel, describeAddress, describeDevice } from '@/view/security-activity'
 import { formatTime } from '@/view/time'
 
@@ -23,7 +23,7 @@ export default async function AdminSecurityPage({
   if ((await adminPageContext()) === null) return null
 
   const query = await searchParams
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
   const kind = (AUTH_EVENT_KINDS as readonly string[]).includes(query.kind ?? '')
     ? (query.kind as (typeof AUTH_EVENT_KINDS)[number])
@@ -95,7 +95,7 @@ export default async function AdminSecurityPage({
                 </span>
               </span>
               <span className="text-xs text-muted-foreground">
-                {formatTime(event.at, now, timezone).label}
+                {formatTime(event.at, now, translator).label}
               </span>
             </li>
           ))}

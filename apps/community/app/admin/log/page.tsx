@@ -5,7 +5,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
-import { getViewerPreferences } from '@/server/viewer-preferences'
+import { getTranslator } from '@/server/i18n'
 import { ADMIN_LOG_PAGE_SIZE, buildAdminLogView } from '@/view/admin-log'
 import { offsetOf, readPage } from '@/view/pager'
 
@@ -22,7 +22,7 @@ export default async function AdminLogPage({
   const { adminLog } = getContainer()
   if (adminLog === null) return null
 
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
   const page = readPage(query)
   const filter = query.action === undefined ? {} : { action: query.action }
 
@@ -41,7 +41,7 @@ export default async function AdminLogPage({
     actions,
     currentAction: query.action ?? '',
     now: new Date(),
-    timeZone: timezone,
+    t: translator,
   })
 
   return (

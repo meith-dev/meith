@@ -6,6 +6,7 @@ import { requireSlot } from '@meith/theme-kit'
 import { RateMemberForm, WithdrawRatingForm } from '@/components/account/reputation-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { reputationService, reputationSettings, viewerRaterLimits } from '@/server/reputation'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -44,7 +45,7 @@ export default async function ReputationPage({
   const before = Number(query.before)
   const ratedPost = Number(query.post)
   const postId = Number.isInteger(ratedPost) && ratedPost > 0 ? ratedPost : null
-  const preferences = await getViewerPreferences()
+  const _preferences = await getViewerPreferences()
 
   const [summary, history, limits] = await Promise.all([
     service.summary(id),
@@ -72,7 +73,7 @@ export default async function ReputationPage({
     maxPerDay: limits.maxPerDay,
     givenToday,
     now: new Date(),
-    timeZone: preferences.timezone,
+    t: await getTranslator(),
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')

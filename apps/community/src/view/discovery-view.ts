@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import type { DiscoveryViewModel } from '@meith/theme-kit'
 
 import { formatTime } from './time'
@@ -49,7 +50,7 @@ export function buildDiscoveryView(input: {
   readonly isFirstPage: boolean
   readonly refusalMessage?: string | null | undefined
   readonly now: Date
-  readonly timeZone?: string | undefined
+  readonly t?: Translator | undefined
 }): DiscoveryViewModel {
   const refusal = input.refusalMessage ?? null
 
@@ -69,7 +70,7 @@ export function buildDiscoveryView(input: {
       forum: { label: row.forumTitle, href: `/${row.forumId}-${row.forumSlug}` },
       authorUsername: row.authorUsername,
       replyCount: row.replyCount,
-      lastPostAt: formatTime(row.lastPostAt, input.now, input.timeZone),
+      lastPostAt: formatTime(row.lastPostAt, input.now, input.t),
       lastPostUsername: row.lastPostUsername,
     })),
     nextHref: input.nextHref,

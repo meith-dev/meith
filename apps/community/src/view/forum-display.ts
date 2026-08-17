@@ -1,4 +1,5 @@
 import type { ForumListingRow } from '@meith/forums'
+import type { Translator } from '@meith/i18n'
 import type {
   ForumDisplayModel,
   ForumRowModel,
@@ -28,7 +29,7 @@ function lastPost(
   } | null,
   thread: ThreadListingRow,
   now: Date,
-  timeZone: string | undefined,
+  t: Translator | undefined,
   identities: ReadonlyMap<number, MemberIdentity> | undefined,
 ): LastPostModel | null {
   if (!post) return null
@@ -41,7 +42,7 @@ function lastPost(
       profileHref: post.userId === null ? null : memberHref(post.userId),
       nameClass: nameClassOf(identities, post.userId),
     },
-    at: formatTime(post.at, now, timeZone),
+    at: formatTime(post.at, now, t),
   }
 }
 
@@ -68,7 +69,7 @@ export function threadRowModel(
   row: ThreadListingRow,
   now: Date,
   readState: Pick<ReadState, 'forumReadAt' | 'threadLastPostId'> | null = null,
-  timeZone?: string,
+  t?: Translator,
   identities?: ReadonlyMap<number, MemberIdentity>,
 ): ThreadRowModel {
   const last = row.lastPost
@@ -94,7 +95,7 @@ export function threadRowModel(
     isLocked: row.isLocked,
     isUnread,
     isMoved: row.isMoved,
-    lastPost: lastPost(row.lastPost, row, now, timeZone, identities),
+    lastPost: lastPost(row.lastPost, row, now, t, identities),
   }
 }
 
@@ -110,7 +111,7 @@ export interface ForumDisplayInput {
   readonly readState?: Pick<ReadState, 'forumReadAt' | 'threadLastPostId'> | null
   readonly markReadAction?: string | null
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
   readonly identities?: ReadonlyMap<number, MemberIdentity>
 }
 
@@ -135,7 +136,7 @@ export function buildForumDisplayView(input: ForumDisplayInput): ForumDisplayVie
             forums: input.subforums.map((row) => forum(row, input.ownThreadsOnlyForumIds)),
           },
     threads: input.page.rows.map((row) =>
-      threadRowModel(row, input.now, input.readState ?? null, input.timeZone, input.identities),
+      threadRowModel(row, input.now, input.readState ?? null, input.t, input.identities),
     ),
     pagination: input.pagination ?? {
       page: input.pageNumber,

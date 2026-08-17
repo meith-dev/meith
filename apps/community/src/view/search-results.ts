@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import type { CompiledWordFilter } from '@meith/markdown'
 import {
   isRefined,
@@ -31,7 +32,7 @@ import {
   SEARCH_FIELDS,
   SORT_LABELS,
 } from './search-controls'
-import { formatTime } from './time'
+import { formatTime, untranslated } from './time'
 import { filterWords } from './word-filter'
 
 export interface SearchHitRow {
@@ -57,7 +58,7 @@ export interface SearchResultsInput {
   readonly nextCursor: SearchCursor | null
   readonly pageSize: number
   readonly now: Date
-  readonly timeZone?: string | undefined
+  readonly t?: Translator | undefined
   readonly filters: SearchFilterSet
   readonly effective: SearchFilterSet
   readonly refine: SearchRefinement
@@ -73,14 +74,14 @@ export function buildSearchResultsView(input: SearchResultsInput): SearchResults
 
   return {
     terms: input.terms,
-    searchedAt: formatTime(input.createdAt, input.now, input.timeZone),
+    searchedAt: formatTime(input.createdAt, input.now, input.t),
     hits: input.hits.map((hit) => ({
       postId: hit.postId,
       threadTitle: hit.threadTitle,
       href: postLink(`/thread/${hit.threadId}-${hit.threadSlug}`, hit.postId),
       excerptHtml: filterWords(hit.excerpt, input.wordFilter),
       authorUsername: hit.authorUsername,
-      postedAt: formatTime(hit.postedAt, input.now, input.timeZone),
+      postedAt: formatTime(hit.postedAt, input.now, input.t),
     })),
     nextHref,
     nextLabel: `Next ${input.pageSize} results`,
@@ -110,7 +111,7 @@ function buildRefine(input: SearchResultsInput): SearchRefineModel {
     label: 'Filter and sort these results',
     summary: summaryLine(input),
     note: summary.isCapped
-      ? `Counting stops at ${input.countCap.toLocaleString('en')} matches, so the total and the counts below are floors.`
+      ? `Counting stops at ${number(input.t, input.countCap)} matches, so the total and the counts below are floors.`
       : null,
     sorts: SEARCH_SORTS.map((sort) => ({
       label: SORT_LABELS[sort],
@@ -245,13 +246,17 @@ function without(
   return kept.length === 0 ? undefined : kept
 }
 
+function number(translator: Translator | undefined, value: number): string {
+  return (translator ?? untranslated()).number(value)
+}
+
 function summaryLine(input: SearchResultsInput): string {
   const { total, isCapped } = input.summary
   const noun = input.effective.grouping === 'threads' ? 'thread' : 'post'
 
   if (total === 0) return `No ${noun}s matched these words.`
 
-  const counted = `${total.toLocaleString('en')} matching ${noun}${total === 1 ? '' : 's'}`
+  const counted = `${number(input.t, total)} matching ${noun}${total === 1 ? '' : 's'}`
   return isCapped ? `More than ${counted}.` : `${counted}.`
 }
 

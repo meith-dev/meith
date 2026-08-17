@@ -13,8 +13,8 @@ import {
 import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
+import { getTranslator } from '@/server/i18n'
 import { buildSystemHealthView } from '@/server/system-admin'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'System health' }
@@ -23,7 +23,7 @@ export default async function AdminSystemPage() {
   if ((await adminPageContext()) === null) return null
 
   const now = new Date()
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
   const view = await buildSystemHealthView(now)
 
   if (view === null) {
@@ -171,7 +171,7 @@ export default async function AdminSystemPage() {
                     every {task.intervalSeconds}s ·{' '}
                     {task.lastRunAt === null
                       ? 'never run'
-                      : `last ran ${formatTime(task.lastRunAt, now, timezone).label}`}
+                      : `last ran ${formatTime(task.lastRunAt, now, translator).label}`}
                     {task.consecutiveFailures > 0 &&
                       ` · ${task.consecutiveFailures} failure${
                         task.consecutiveFailures === 1 ? '' : 's'
@@ -207,7 +207,7 @@ export default async function AdminSystemPage() {
                   {run.succeeded ? 'ok' : 'failed'}
                   {run.durationMs !== null && ` · ${run.durationMs}ms`} ·{' '}
                   <time dateTime={run.ranAt.toISOString()}>
-                    {formatTime(run.ranAt, now, timezone).label}
+                    {formatTime(run.ranAt, now, translator).label}
                   </time>
                   {run.detail !== null && ` · ${run.detail}`}
                 </span>

@@ -12,8 +12,8 @@ import {
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
+import { getTranslator } from '@/server/i18n'
 import { parseUserFilter, USER_PAGE, userAdminRepository } from '@/server/user-admin'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { readPage } from '@/view/pager'
 import { formatTime } from '@/view/time'
 
@@ -45,7 +45,7 @@ export default async function AdminUsersPage({
   const filter = parseUserFilter(params)
   const [page, groups] = await Promise.all([repository.search(filter), repository.listGroups()])
   const now = new Date()
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
   const value = (key: string): string => {
     const raw = params[key]
@@ -201,7 +201,7 @@ export default async function AdminUsersPage({
                   {row.postCount === 1 ? '' : 's'}
                   {row.lastActiveAt === null
                     ? ' · never seen'
-                    : ` · last seen ${formatTime(row.lastActiveAt, now, timezone).label}`}
+                    : ` · last seen ${formatTime(row.lastActiveAt, now, translator).label}`}
                 </span>
               </span>
               <a

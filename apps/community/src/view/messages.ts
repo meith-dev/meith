@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import type { FolderCounts, MessageDetail, MessageFolder, MessageListRow } from '@meith/messages'
 import type { LinkModel, TimeModel } from '@meith/theme-kit'
 
@@ -77,7 +78,7 @@ export function buildMessageFolderView(input: {
   readonly quota: number
   readonly nextBefore: number | null
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
 }): MessageFolderView {
   const tabs: readonly FolderTab[] = (['inbox', 'sent', 'trash'] as const).map((folder) => ({
     folder,
@@ -96,7 +97,7 @@ export function buildMessageFolderView(input: {
       subject: row.subject === '' ? '(no subject)' : row.subject,
       people: peopleLabel(row),
       peopleLabel: row.folder === 'sent' ? 'To' : 'From',
-      at: formatTime(row.sentAt, input.now, input.timeZone),
+      at: formatTime(row.sentAt, input.now, input.t),
       isUnread: row.readAt === null && row.role !== 'author',
     })),
     nextHref:
@@ -148,7 +149,7 @@ export function buildMessageView(input: {
   readonly bodyHtml: string
   readonly viewerUserId: number
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
 }): MessageView {
   const { detail } = input
   const isAuthor = detail.copy.role === 'author'
@@ -161,7 +162,7 @@ export function buildMessageView(input: {
         ? null
         : participant.readAt === null
           ? 'Not read yet'
-          : `Read ${formatTime(participant.readAt, input.now, input.timeZone).label}`,
+          : `Read ${formatTime(participant.readAt, input.now, input.t).label}`,
   }))
 
   return {
@@ -169,7 +170,7 @@ export function buildMessageView(input: {
     subject: detail.message.subject === '' ? '(no subject)' : detail.message.subject,
     author:
       detail.message.authorUsername === '' ? 'A deleted member' : detail.message.authorUsername,
-    at: formatTime(detail.message.sentAt, input.now, input.timeZone),
+    at: formatTime(detail.message.sentAt, input.now, input.t),
     bodyHtml: input.bodyHtml,
     folder: detail.copy.folder,
     participants,

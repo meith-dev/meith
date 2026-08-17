@@ -8,9 +8,9 @@ import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { logoKey, logoSrc } from '@/server/branding'
+import { getTranslator } from '@/server/i18n'
 import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { themeListing } from '@/server/theme-admin'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Themes' }
@@ -21,7 +21,7 @@ export default async function AdminThemesPage() {
   const themes = await themeListing()
   const [lightKey, darkKey] = await Promise.all([logoKey('light'), logoKey('dark')])
   const now = new Date()
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
   return (
     <PanelPage
@@ -109,7 +109,7 @@ export default async function AdminThemesPage() {
                     {' '}
                     · changed{' '}
                     <time dateTime={theme.updatedAt.toISOString()}>
-                      {formatTime(theme.updatedAt, now, timezone).label}
+                      {formatTime(theme.updatedAt, now, translator).label}
                     </time>
                   </>
                 )}

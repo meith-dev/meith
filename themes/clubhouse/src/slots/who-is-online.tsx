@@ -1,4 +1,5 @@
 import type { OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
+import { formatCount } from '@meith/theme-kit'
 import { Badge } from '@meith/ui'
 
 import { LINK, MICRO, NUMERIC, Stamp, UserRef } from '../shared'
@@ -26,9 +27,9 @@ export function WhoIsOnline({
       </h2>
 
       <p className={NUMERIC}>
-        <span className="font-semibold text-foreground">{total.toLocaleString('en')}</span> online —{' '}
-        {members.length.toLocaleString('en')} {members.length === 1 ? 'member' : 'members'},{' '}
-        {guestCount.toLocaleString('en')} {guestCount === 1 ? 'guest' : 'guests'}
+        <span className="font-semibold text-foreground">{formatCount(total)}</span> online —{' '}
+        {formatCount(members.length)} {members.length === 1 ? 'member' : 'members'},{' '}
+        {formatCount(guestCount)} {guestCount === 1 ? 'guest' : 'guests'}
       </p>
 
       {members.length === 0 ? (
@@ -49,7 +50,7 @@ export function WhoIsOnline({
                 className={`inline cursor-default list-none ${LINK} [&::-webkit-details-marker]:hidden [&::marker]:content-none`}
               >
                 {' and '}
-                <span className={NUMERIC}>{rest.length.toLocaleString('en')}</span> more
+                <span className={NUMERIC}>{formatCount(rest.length)}</span> more
               </summary>
               {': '}
               {rest.map((member, index) => (
@@ -66,7 +67,7 @@ export function WhoIsOnline({
         </a>
         {recordAt !== null && (
           <span className={`ms-auto ${NUMERIC}`}>
-            Record: {recordCount.toLocaleString('en')} on <Stamp at={recordAt} />
+            Record: {formatCount(recordCount)} on <Stamp at={recordAt} />
           </span>
         )}
       </p>

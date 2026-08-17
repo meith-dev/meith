@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import { isOnline, type RelationKind, type RelationRow } from '@meith/relations'
 import type { TimeModel } from '@meith/theme-kit'
 
@@ -29,7 +30,7 @@ export function buildContactsView(input: {
   readonly ignored: readonly RelationRow[]
   readonly limit: number
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
 }): ContactsView {
   const row = (entry: RelationRow): ContactRowView => ({
     userId: entry.userId,
@@ -39,8 +40,8 @@ export function buildContactsView(input: {
     lastSeenLabel:
       entry.lastActiveAt === null
         ? null
-        : `Last seen ${formatTime(entry.lastActiveAt, input.now, input.timeZone).label}`,
-    addedAt: formatTime(entry.createdAt, input.now, input.timeZone),
+        : `Last seen ${formatTime(entry.lastActiveAt, input.now, input.t).label}`,
+    addedAt: formatTime(entry.createdAt, input.now, input.t),
     messageHref:
       entry.kind === 'buddy' ? `/messages/compose?to=${encodeURIComponent(entry.username)}` : null,
   })

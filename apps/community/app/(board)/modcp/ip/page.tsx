@@ -18,8 +18,8 @@ import {
 
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
+import { getTranslator } from '@/server/i18n'
 import { resolveModCpAccess } from '@/server/modcp'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { memberHref } from '@/view/member-profile'
 import { formatTime } from '@/view/time'
 
@@ -62,7 +62,7 @@ export default async function IpLookupPage({
         })
 
   const now = new Date()
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
   return (
     <PanelPage
@@ -141,8 +141,8 @@ export default async function IpLookupPage({
                         <>
                           {' '}
                           · last seen{' '}
-                          <time dateTime={formatTime(match.lastActiveAt, now, timezone).iso}>
-                            {formatTime(match.lastActiveAt, now, timezone).label}
+                          <time dateTime={formatTime(match.lastActiveAt, now, translator).iso}>
+                            {formatTime(match.lastActiveAt, now, translator).label}
                           </time>
                         </>
                       )}

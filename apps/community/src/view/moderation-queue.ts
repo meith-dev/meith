@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import type { QueueItem } from '@meith/moderation'
 import type { TimeModel } from '@meith/theme-kit'
 
@@ -30,10 +31,10 @@ export interface QueueViewInput {
   readonly nextCursor?: string | undefined
   readonly moderatesAnything: boolean
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
 }
 
-function row(item: QueueItem, now: Date, timeZone: string | undefined): QueueRowModel {
+function row(item: QueueItem, now: Date, t: Translator | undefined): QueueRowModel {
   const thread = `/thread/${item.threadId}-${item.threadSlug}`
   return {
     value: `${item.kind}:${item.id}`,
@@ -45,13 +46,13 @@ function row(item: QueueItem, now: Date, timeZone: string | undefined): QueueRow
     authorUsername: item.authorUsername,
     authorHref: item.authorUserId === null ? null : `/member/${item.authorUserId}`,
     excerpt: item.excerpt,
-    postedAt: formatTime(item.createdAt, now, timeZone),
+    postedAt: formatTime(item.createdAt, now, t),
   }
 }
 
 export function buildQueueView(input: QueueViewInput): QueueViewModel {
   return {
-    rows: input.items.map((item) => row(item, input.now, input.timeZone)),
+    rows: input.items.map((item) => row(item, input.now, input.t)),
     pending: input.pending,
     nextHref:
       input.nextCursor === undefined

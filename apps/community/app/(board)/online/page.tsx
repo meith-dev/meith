@@ -5,8 +5,8 @@ import { Card, CardFooter, CardRows, Empty, EmptyDescription, EmptyTitle } from 
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
+import { getTranslator } from '@/server/i18n'
 import { presenceRepository, readOnline } from '@/server/presence'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { locationOf } from '@/view/presence'
 import { formatTime } from '@/view/time'
 
@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Who's online" }
 export default async function OnlinePage() {
   const actor = await getActor()
   const now = new Date()
-  const preferences = await getViewerPreferences()
+  const translator = await getTranslator()
 
   const snapshot = await readOnline(actor, now)
   const repo = presenceRepository()
@@ -42,12 +42,13 @@ export default async function OnlinePage() {
       title="Who’s online"
       lede={
         <>
-          {snapshot.total.toLocaleString()} here in the last 15 minutes —{' '}
-          {snapshot.members.length.toLocaleString()}{' '}
-          {snapshot.members.length === 1 ? 'member' : 'members'} and{' '}
-          {snapshot.guestCount.toLocaleString()} {snapshot.guestCount === 1 ? 'guest' : 'guests'}.
+          {translator.t('presence.summary', {
+            total: snapshot.total,
+            members: snapshot.members.length,
+            guests: snapshot.guestCount,
+          })}
           {snapshot.invisibleCount > 0 &&
-            ` ${snapshot.invisibleCount.toLocaleString()} browsing invisibly.`}
+            ` ${translator.t('presence.invisible', { count: snapshot.invisibleCount })}`}
         </>
       }
     >
@@ -90,7 +91,7 @@ export default async function OnlinePage() {
                     )}
                     {' · '}
                     <time dateTime={member.lastSeenAt.toISOString()}>
-                      {formatTime(member.lastSeenAt, now, preferences.timezone).label}
+                      {formatTime(member.lastSeenAt, now, translator).label}
                     </time>
                   </span>
                 </li>
@@ -101,9 +102,9 @@ export default async function OnlinePage() {
 
         {record.at !== null && (
           <CardFooter>
-            Most ever online: {record.count.toLocaleString()} on{' '}
+            Most ever online: {translator.number(record.count)} on{' '}
             <time dateTime={record.at.toISOString()}>
-              {formatTime(record.at, now, preferences.timezone).label}
+              {formatTime(record.at, now, translator).label}
             </time>
             .
           </CardFooter>

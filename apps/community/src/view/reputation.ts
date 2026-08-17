@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import type { ReputationRow, ReputationSummary } from '@meith/reputation'
 import type { TimeModel } from '@meith/theme-kit'
 
@@ -33,7 +34,7 @@ export function buildReputationView(input: {
   readonly maxPerDay: number
   readonly givenToday: number
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
 }): ReputationView {
   return {
     summary: input.summary,
@@ -48,7 +49,7 @@ export function buildReputationView(input: {
         row.postId === null || row.threadId === null
           ? null
           : postLink(`/thread/${row.threadId}`, row.postId),
-      at: formatTime(row.createdAt, input.now, input.timeZone),
+      at: formatTime(row.createdAt, input.now, input.t),
       isMine: input.viewerUserId !== null && row.givenByUserId === input.viewerUserId,
     })),
     nextHref:

@@ -5,6 +5,7 @@ import { contentScopeFrom } from '@meith/core'
 import { getDb, type LatestScope, PostgresLatestRepository } from '@meith/db'
 import { requireSlot } from '@meith/theme-kit'
 
+import { getTranslator } from '@/server/i18n'
 import { buildLatestPostsModel, buildLatestThreadsModel } from '@/view/board-latest'
 import { distinctUserIds } from '@/view/member-identity'
 
@@ -40,6 +41,7 @@ export async function renderLatestPanels(): Promise<React.ReactNode> {
 
   const actor = await getActor()
   const now = new Date()
+  const translator = await getTranslator()
 
   let threadRows: Awaited<ReturnType<PostgresLatestRepository['threads']>>
   let postRows: Awaited<ReturnType<PostgresLatestRepository['posts']>>
@@ -53,7 +55,7 @@ export async function renderLatestPanels(): Promise<React.ReactNode> {
     return null
   }
 
-  const preferences = await getViewerPreferences()
+  const _preferences = await getViewerPreferences()
   const identities = await identitiesFor(
     distinctUserIds([
       ...threadRows.map((row) => row.authorUserId),
@@ -74,7 +76,7 @@ export async function renderLatestPanels(): Promise<React.ReactNode> {
       buildLatestThreadsModel({
         rows: threadRows,
         now,
-        timeZone: preferences.timezone,
+        t: translator,
         identities,
       }),
       context,
@@ -84,7 +86,7 @@ export async function renderLatestPanels(): Promise<React.ReactNode> {
       buildLatestPostsModel({
         rows: postRows,
         now,
-        timeZone: preferences.timezone,
+        t: translator,
         identities,
         wordFilter,
       }),

@@ -9,8 +9,8 @@ import { IssueWarningForm, RevokeWarningForm } from '@/components/moderation/war
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildWarningView, warningNotice } from '@/view/warnings'
 
 export const metadata: Metadata = { title: 'Warn a member' }
@@ -57,7 +57,7 @@ export default async function WarnPage({
   const postId =
     citedPost !== null && (await warnings.findPostAuthor(citedPost)) === userId ? citedPost : null
 
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
   const view = buildWarningView({
     member: { userId: member.id, username: member.username },
@@ -66,7 +66,7 @@ export default async function WarnPage({
     history: history.rows,
     ...(history.nextCursor === undefined ? {} : { nextCursor: history.nextCursor }),
     now: new Date(),
-    timeZone: timezone,
+    t: translator,
   })
 
   const Notice = requireSlot(await currentTheme(), 'Notice')

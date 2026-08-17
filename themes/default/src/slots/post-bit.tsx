@@ -1,4 +1,5 @@
 import type { PostBitSlotModel } from '@meith/theme-kit'
+import { formatCount } from '@meith/theme-kit'
 import { Alert, AlertDescription, AlertTitle, Avatar, Card } from '@meith/ui'
 
 import { LINK, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
@@ -92,7 +93,7 @@ function AuthorBlock({
           <div className="flex gap-1 sm:justify-center">
             <dt className="sr-only">Posts</dt>
             <dd>
-              {author.postCount.toLocaleString('en')} {author.postCount === 1 ? 'post' : 'posts'}
+              {formatCount(author.postCount)} {author.postCount === 1 ? 'post' : 'posts'}
             </dd>
           </div>
           {author.joinedAt !== null && (
@@ -106,7 +107,7 @@ function AuthorBlock({
           {author.reputation != null && (
             <div className="flex gap-1 sm:justify-center">
               <dt className="sr-only">Reputation</dt>
-              <dd>{author.reputation.toLocaleString('en')} reputation</dd>
+              <dd>{formatCount(author.reputation)} reputation</dd>
             </div>
           )}
         </dl>

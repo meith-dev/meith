@@ -11,8 +11,8 @@ import {
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
+import { getTranslator } from '@/server/i18n'
 import { buildMemberView } from '@/server/user-admin'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Member' }
@@ -28,7 +28,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
 
   const { member, activeBan } = view
   const now = new Date()
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
   return (
     <PanelPage
@@ -39,14 +39,14 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
         <>
           #{member.id} · registered{' '}
           <time dateTime={member.createdAt.toISOString()}>
-            {formatTime(member.createdAt, now, timezone).label}
+            {formatTime(member.createdAt, now, translator).label}
           </time>
           {member.lastActiveAt !== null && (
             <>
               {' '}
               · last seen{' '}
               <time dateTime={member.lastActiveAt.toISOString()}>
-                {formatTime(member.lastActiveAt, now, timezone).label}
+                {formatTime(member.lastActiveAt, now, translator).label}
               </time>
             </>
           )}
@@ -118,7 +118,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
                 <>
                   until{' '}
                   <time dateTime={activeBan.expiresAt.toISOString()}>
-                    {formatTime(activeBan.expiresAt, now, timezone).label}
+                    {formatTime(activeBan.expiresAt, now, translator).label}
                   </time>
                 </>
               )}

@@ -2,6 +2,7 @@ import 'server-only'
 
 import { env, logger } from '@meith/core'
 import { type AnnouncementRow, getDb, PostgresAnnouncementRepository } from '@meith/db'
+import type { Translator } from '@meith/i18n'
 import { type BoardVocabulary, renderMarkdown, vocabularyOptions } from '@meith/markdown'
 import type { AnnouncementModel } from '@meith/theme-kit'
 
@@ -19,7 +20,7 @@ export async function liveAnnouncements(input: {
   readonly visibleForumIds: readonly number[]
   readonly scope?: number | null
   readonly now: Date
-  readonly timeZone?: string | undefined
+  readonly t?: Translator | undefined
 }): Promise<readonly AnnouncementModel[]> {
   const repository = announcementRepository()
   if (repository === null) return []
@@ -36,7 +37,7 @@ export async function liveAnnouncements(input: {
 
     const identities = await identitiesFor(distinctUserIds(rows.map((row) => row.authorUserId)))
 
-    return rows.map((row) => toModel(row, input.now, input.timeZone, vocabulary, identities))
+    return rows.map((row) => toModel(row, input.now, input.t, vocabulary, identities))
   } catch (error) {
     logger().warn({ err: String(error) }, 'could not read announcements')
     return []
@@ -46,7 +47,7 @@ export async function liveAnnouncements(input: {
 function toModel(
   row: AnnouncementRow,
   now: Date,
-  timeZone: string | undefined,
+  translator: Translator | undefined,
   vocabulary: BoardVocabulary | undefined,
   identities: ReadonlyMap<number, MemberIdentity>,
 ): AnnouncementModel {
@@ -62,7 +63,7 @@ function toModel(
             profileHref: row.authorUserId === null ? null : `/member/${row.authorUserId}`,
             nameClass: nameClassOf(identities, row.authorUserId),
           },
-    postedAt: formatTime(row.startsAt, now, timeZone),
+    postedAt: formatTime(row.startsAt, now, translator),
     forum:
       row.forumId === null || row.forumTitle === null || row.forumSlug === null
         ? null

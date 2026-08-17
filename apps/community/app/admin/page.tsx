@@ -1,4 +1,5 @@
 import { ModerationQueue } from '@meith/moderation'
+import { formatCount } from '@meith/theme-kit'
 import {
   Alert,
   AlertDescription,
@@ -19,10 +20,10 @@ import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { readTotals } from '@/server/stats'
 import { pendingUpgradeNotice } from '@/server/upgrade-notice'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { ADMIN_SECTIONS } from '@/view/admin-nav'
 import { formatTime } from '@/view/time'
 
@@ -34,7 +35,7 @@ export default async function AdminHomePage() {
   const { adminLog, authorizer, moderationQueue, reports } = getContainer()
 
   const now = new Date()
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
 
   const [recent, upgradeNotice, totals, pending, openReports] = await Promise.all([
     adminLog === null ? Promise.resolve([]) : adminLog.list({ limit: 6 }),
@@ -63,7 +64,7 @@ export default async function AdminHomePage() {
         <>
           Signed in to the control panel since{' '}
           <time dateTime={context.session.createdAt.toISOString()}>
-            {formatTime(context.session.createdAt, now, timezone).label}
+            {formatTime(context.session.createdAt, now, translator).label}
           </time>
           {context.session.ipPrefix === null ? null : ` from ${context.session.ipPrefix}`}.
         </>
@@ -131,7 +132,7 @@ export default async function AdminHomePage() {
                   ].map((figure) => (
                     <div key={figure.label}>
                       <p className="text-2xl font-semibold text-foreground tabular-nums">
-                        {figure.value.toLocaleString('en')}
+                        {formatCount(figure.value)}
                       </p>
                       <p className="text-xs text-muted-foreground">{figure.label}</p>
                     </div>
@@ -146,7 +147,7 @@ export default async function AdminHomePage() {
                   <span>
                     Counted{' '}
                     <time dateTime={totals.computedAt.toISOString()}>
-                      {formatTime(totals.computedAt, now, timezone).label}
+                      {formatTime(totals.computedAt, now, translator).label}
                     </time>
                   </span>
                 </CardFooter>
@@ -178,7 +179,7 @@ export default async function AdminHomePage() {
                       {row.username ?? 'the system'}
                       {' · '}
                       <time dateTime={row.createdAt.toISOString()}>
-                        {formatTime(row.createdAt, now, timezone).label}
+                        {formatTime(row.createdAt, now, translator).label}
                       </time>
                     </span>
                   </li>

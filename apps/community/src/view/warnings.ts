@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import type { WarningRow, WarningStanding, WarningType } from '@meith/moderation'
 import type { TimeModel } from '@meith/theme-kit'
 
@@ -46,7 +47,7 @@ export function buildWarningView(input: {
   readonly history: readonly WarningRow[]
   readonly nextCursor?: string | undefined
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
 }): WarningView {
   return {
     member: {
@@ -68,7 +69,7 @@ export function buildWarningView(input: {
         type.expiryDays === null ? ', never expires' : `, expires after ${type.expiryDays} days`
       }`,
     })),
-    history: input.history.map((row) => warningRow(row, input.now, input.timeZone)),
+    history: input.history.map((row) => warningRow(row, input.now, input.t)),
     nextHref:
       input.nextCursor === undefined
         ? null
@@ -76,14 +77,14 @@ export function buildWarningView(input: {
   }
 }
 
-function warningRow(row: WarningRow, now: Date, timeZone: string | undefined): WarningHistoryRow {
+function warningRow(row: WarningRow, now: Date, t: Translator | undefined): WarningHistoryRow {
   const lapsed =
     row.revokedAt !== null
       ? `Revoked by ${row.revokedByUsername ?? 'a moderator'}${
           row.revokeReason ? ` — ${row.revokeReason}` : ''
         }`
       : row.expiresAt !== null && row.expiresAt <= now
-        ? `Expired ${formatTime(row.expiresAt, now, timeZone).label}`
+        ? `Expired ${formatTime(row.expiresAt, now, t).label}`
         : null
 
   return {
@@ -92,7 +93,7 @@ function warningRow(row: WarningRow, now: Date, timeZone: string | undefined): W
     points: row.points,
     reason: row.reason,
     issuedBy: row.issuedByUsername ?? 'a former moderator',
-    issuedAt: formatTime(row.createdAt, now, timeZone),
+    issuedAt: formatTime(row.createdAt, now, t),
     postId: row.postId,
     lapsed,
     revocable: lapsed === null,

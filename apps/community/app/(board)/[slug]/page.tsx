@@ -13,6 +13,7 @@ import { liveAnnouncements } from '@/server/announcements'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
+import { getTranslator } from '@/server/i18n'
 import { legacyDestination } from '@/server/legacy-redirect'
 import { moderatorTargetFor } from '@/server/modcp'
 import { filterView, viewerRef } from '@/server/plugin-view'
@@ -216,7 +217,7 @@ export default async function ForumPage({
     readState: read,
     markReadAction: read === null ? null : `/api/read/forum/${id}`,
     now: new Date(),
-    timeZone: preferences.timezone,
+    t: await getTranslator(),
     identities,
   })
 
@@ -235,7 +236,7 @@ export default async function ForumPage({
     visibleForumIds: visible,
     scope: id,
     now: new Date(),
-    timeZone: preferences.timezone,
+    t: await getTranslator(),
   })
 
   const Announcement = requireSlot(await currentTheme(), 'Announcement')

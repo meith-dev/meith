@@ -22,10 +22,10 @@ import { memberSecurityActivity } from '@/server/auth-events'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { memberManagedSignIns, passkeysEnabled, signInProviders } from '@/server/federation'
+import { getTranslator } from '@/server/i18n'
 import { currentSessionId } from '@/server/session-actions'
 import { currentTheme } from '@/server/theme'
 import { pendingEnrolment, secondFactorPosture, twoFactorState } from '@/server/two-factor'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { authEventLabel, describeAddress, describeDevice } from '@/view/security-activity'
 import { ssoNotice } from '@/view/sso-notices'
 import { formatDate, formatTime } from '@/view/time'
@@ -73,9 +73,9 @@ export default async function SecurityPage({
   const providers = await signInProviders()
   const passkeys = await passkeysEnabled()
 
-  const { timezone } = await getViewerPreferences()
+  const translator = await getTranslator()
   const on = (at: Date | null): string | null =>
-    at === null ? null : formatDate(at, timezone).label
+    at === null ? null : formatDate(at, translator).label
 
   const account = await accountStore.accounts.findById(actor.userId)
   const hasPassword = account !== null && account.passwordHash !== null
@@ -114,7 +114,7 @@ export default async function SecurityPage({
   }))
 
   const rightNow = new Date()
-  const when = (at: Date): string => formatTime(at, rightNow, timezone).label
+  const when = (at: Date): string => formatTime(at, rightNow, translator).label
 
   const thisSession = await currentSessionId()
   const sessionView: readonly SessionView[] = (

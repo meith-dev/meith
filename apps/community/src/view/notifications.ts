@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import type { NotificationPreferenceView, NotificationView } from '@meith/notifications'
 import type { TimeModel } from '@meith/theme-kit'
 
@@ -25,7 +26,7 @@ export function buildNotificationCentreView(input: {
   readonly unread: number
   readonly nextCursor?: string | undefined
   readonly now: Date
-  readonly timeZone?: string
+  readonly t?: Translator
 }): NotificationCentreView {
   return {
     rows: input.rows.map((row) => ({
@@ -33,7 +34,7 @@ export function buildNotificationCentreView(input: {
       subject: row.subject,
       body: row.body,
       href: row.href,
-      at: formatTime(row.updatedAt, input.now, input.timeZone),
+      at: formatTime(row.updatedAt, input.now, input.t),
       isRead: row.isRead,
       repeated: row.occurrences > 1 ? `Happened ${row.occurrences} times` : null,
     })),

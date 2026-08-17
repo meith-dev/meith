@@ -368,7 +368,7 @@ function numberOptions(style: string | null): Intl.NumberFormatOptions {
   if (style === 'integer') return { maximumFractionDigits: 0 }
   if (style === 'percent') return { style: 'percent' }
   if (style === 'compact') return { notation: 'compact' }
-  if (style !== null && style.startsWith('::')) return skeletonOptions(style.slice(2))
+  if (style?.startsWith('::')) return skeletonOptions(style.slice(2))
   return {}
 }
 

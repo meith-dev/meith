@@ -1,4 +1,5 @@
 import type { SubforumListModel } from '@meith/theme-kit'
+import { formatCount } from '@meith/theme-kit'
 import { Card, CardContent } from '@meith/ui'
 
 import { HEADING, LINK, MICRO, NUMERIC, PanelHead } from '../shared'
@@ -19,8 +20,7 @@ export function SubforumList({ forums }: SubforumListModel) {
               </a>
               {forum.type !== 'link' && (
                 <p className={`${MICRO} ${NUMERIC} mt-0.5`}>
-                  {forum.threadCount.toLocaleString('en')} threads ·{' '}
-                  {forum.postCount.toLocaleString('en')} posts
+                  {formatCount(forum.threadCount)} threads · {formatCount(forum.postCount)} posts
                 </p>
               )}
             </li>

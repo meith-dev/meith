@@ -1,4 +1,5 @@
 import type { MemberProfileRecord } from '@meith/accounts'
+import type { Translator } from '@meith/i18n'
 import type { MemberProfileModel } from '@meith/theme-kit'
 
 import { formatDate, formatTime } from './time'
@@ -12,7 +13,7 @@ export function buildMemberProfileView(
   now: Date,
   options: {
     readonly canWarn?: boolean
-    readonly timeZone?: string
+    readonly t?: Translator
     readonly customFields?: readonly { readonly label: string; readonly value: string }[]
     readonly canMessage?: boolean
     readonly avatarUrl?: string | null
@@ -22,7 +23,7 @@ export function buildMemberProfileView(
   const {
     canWarn = false,
     canMessage = false,
-    timeZone,
+    t,
     customFields = [],
     avatarUrl = null,
     nameClass = null,
@@ -36,9 +37,8 @@ export function buildMemberProfileView(
     },
     avatarUrl,
     title: profile.title,
-    joinedAt: formatDate(profile.createdAt, timeZone),
-    lastVisitAt:
-      profile.lastActiveAt === null ? null : formatTime(profile.lastActiveAt, now, timeZone),
+    joinedAt: formatDate(profile.createdAt, t),
+    lastVisitAt: profile.lastActiveAt === null ? null : formatTime(profile.lastActiveAt, now, t),
     postCount: profile.postCount,
     signatureHtml: null,
     fields: [
