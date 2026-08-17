@@ -232,6 +232,40 @@ export const GUARDS = [
     },
   },
   {
+    id: 'no-third-party-browser-code',
+    why:
+      'What the board imports is an allowlist: relative paths, @/, @meith/*, ' +
+      'node:*, next, react, react-dom and server-only. Everything else is a ' +
+      "third party in a member's browser, and that is not a dependency " +
+      "decision — it is a decision about somebody else's members, so it is " +
+      'made here rather than in a package.json line. This rule exists because ' +
+      'an analytics beacon was rendered into the root layout behind a ' +
+      'NODE_ENV check: invisible on every developer machine, loaded on every ' +
+      'self-hosted board in production, with no setting to turn it off. ' +
+      'dependency-cruiser will not catch the next one — it has no allowlist, ' +
+      'and the package is a declared dependency either way, so the import ' +
+      'reads as legitimate to every other mechanical check here. Tests are ' +
+      'exempt because a test ships to nobody.',
+    files: /^apps\/community\/(app|src)\/.*\.tsx?$/,
+    pattern:
+      /(?:\bfrom\s+|\bimport\s+|\bimport\s*\(\s*|\brequire\s*\(\s*)['"](?!\.|@\/|@meith\/|node:|(?:next|react|react-dom|server-only)(?:\/|['"]))[^'"\s]+['"]/,
+    allow: /\.test\.tsx?$/,
+    probe: {
+      violates: 'import { Analytics } from "@vercel/analytics/next"',
+      clean: 'import { getSettings } from "@/server/settings"',
+    },
+    alsoClean: [
+      'import { Inter } from "next/font/google"',
+      'import { renderToString } from "react-dom/server"',
+      'import { randomUUID } from "node:crypto"',
+      'import { env } from "@meith/core"',
+      "import 'server-only'",
+      'import "@/styles/globals.css"',
+      'import { threadPath } from "../thread-path"',
+      'tells "we asked for this" from "we made it up a millisecond ago"',
+    ],
+  },
+  {
     id: 'no-adhoc-local-redirect-check',
     why:
       'A redirect or return target is validated only by isSafeLocalPath ' +

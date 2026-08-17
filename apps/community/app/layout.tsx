@@ -1,4 +1,3 @@
-import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 
@@ -104,7 +103,6 @@ export default async function RootLayout({
         <CrashNoticeProvider notice={notice} requestId={currentRequestId() ?? null}>
           {children}
         </CrashNoticeProvider>
-        {env.NODE_ENV === "production" && <Analytics />}
       </body>
     </html>
   )
