@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
 test.use({ javaScriptEnabled: false })
 
@@ -25,7 +25,10 @@ async function signIn(page: Page): Promise<string> {
 }
 
 function thanks(page: Page) {
-  return page.locator('article').first().getByRole('button', { name: /Thanks|Thanked/ })
+  return page
+    .locator('article')
+    .first()
+    .getByRole('button', { name: /Thanks|Thanked/ })
 }
 
 test('a member thanks a post, and can take it back', async ({ page }) => {
@@ -56,7 +59,12 @@ test('a thanks moves the author’s reputation', async ({ page }) => {
 
   await thanks(page).click()
 
-  await expect(page.locator('article').first().getByText(/2 reputation/)).toBeVisible()
+  await expect(
+    page
+      .locator('article')
+      .first()
+      .getByText(/2 reputation/),
+  ).toBeVisible()
 })
 
 test('pressing it returns the reader to the post they pressed', async ({ page }) => {

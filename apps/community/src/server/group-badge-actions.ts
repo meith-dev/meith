@@ -3,10 +3,10 @@
 import { ValidationError } from '@meith/core'
 
 import { recordAdminAction, requireAdmin } from './admin'
+import type { FormState } from './auth-form-state'
 import { formStateReporter } from './form-state-reporter'
 import { BADGE_FIELD, removeBadge, saveBadge } from './group-badge'
-import { isImageScheme, type ImageScheme } from './image-upload'
-import type { FormState } from './auth-form-state'
+import { type ImageScheme, isImageScheme } from './image-upload'
 
 const toFormState = formStateReporter('group-badge', 'badge write failed')
 

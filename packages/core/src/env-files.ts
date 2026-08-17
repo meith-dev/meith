@@ -1,10 +1,10 @@
-import { existsSync } from "node:fs"
-import { dirname, join } from "node:path"
-import process from "node:process"
+import { existsSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import process from 'node:process'
 
-const ENV_FILES = [".env.local", ".env"] as const
+const ENV_FILES = ['.env.local', '.env'] as const
 
-const ROOT_MARKER = "pnpm-workspace.yaml"
+const ROOT_MARKER = 'pnpm-workspace.yaml'
 
 export interface LoadedEnvFiles {
   readonly root: string | undefined

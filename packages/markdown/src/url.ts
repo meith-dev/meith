@@ -1,6 +1,6 @@
 import { DEFAULT_LIMITS } from './limits'
 
-// eslint-disable-next-line no-control-regex -- URL smuggling relies on exactly these
+// biome-ignore lint/suspicious/noControlCharactersInRegex: URL smuggling relies on exactly these
 const FORBIDDEN = /[\u0000-\u0020\u007f"'<>`\\{}|^]/
 
 const ABSOLUTE = /^https?:\/\/[^/]/i

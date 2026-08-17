@@ -66,9 +66,7 @@ test('a reply that quotes one member and mentions another notifies both', async 
       .getAttribute('href')
     expect(viewHref).toMatch(/^\/thread\/\d+-.+\?post=\d+$/)
     await mentionedPage.goto(viewHref!)
-    await expect(
-      mentionedPage.getByText(`@${mentioned} should see this too`),
-    ).toBeVisible()
+    await expect(mentionedPage.getByText(`@${mentioned} should see this too`)).toBeVisible()
   } finally {
     await quotedContext.close()
     await mentionedContext.close()

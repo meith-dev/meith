@@ -110,7 +110,8 @@ export function buildMessageFolderView(input: {
 
 function peopleLabel(row: MessageListRow): string {
   const names = [...row.counterparties]
-  if (names.length === 0) return row.moreCounterparties > 0 ? `${row.moreCounterparties} people` : '—'
+  if (names.length === 0)
+    return row.moreCounterparties > 0 ? `${row.moreCounterparties} people` : '—'
 
   if (row.moreCounterparties > 0) {
     return `${names.join(', ')} and ${row.moreCounterparties} ${
@@ -166,7 +167,8 @@ export function buildMessageView(input: {
   return {
     id: detail.message.id,
     subject: detail.message.subject === '' ? '(no subject)' : detail.message.subject,
-    author: detail.message.authorUsername === '' ? 'A deleted member' : detail.message.authorUsername,
+    author:
+      detail.message.authorUsername === '' ? 'A deleted member' : detail.message.authorUsername,
     at: formatTime(detail.message.sentAt, input.now, input.timeZone),
     bodyHtml: input.bodyHtml,
     folder: detail.copy.folder,
@@ -178,9 +180,7 @@ export function buildMessageView(input: {
         : [{ label: 'Reply', href: `/messages/compose?reply=${detail.message.id}` }]),
       { label: 'Forward', href: `/messages/compose?forward=${detail.message.id}` },
     ],
-    reportHref: isAuthor
-      ? null
-      : `/report?kind=private_message&id=${detail.message.id}`,
+    reportHref: isAuthor ? null : `/report?kind=private_message&id=${detail.message.id}`,
   }
 }
 

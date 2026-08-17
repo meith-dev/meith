@@ -1,20 +1,21 @@
 import { describe, expect, it } from 'vitest'
+
 import { ValidationError } from '@meith/core'
 
 import {
   INLINE_CHUNK,
   INLINE_TOOL_ACTIONS,
   InlineModeration,
-  MAX_INLINE_SELECTION,
-  NO_INLINE_RIGHTS,
-  parseInlineTool,
   type InlineModerationRepository,
   type InlineRights,
   type InlineTarget,
   type InlineTool,
+  MAX_INLINE_SELECTION,
+  NO_INLINE_RIGHTS,
+  parseInlineTool,
 } from './inline'
-import type { MoveDestination } from './thread-tools'
 import type { QueueSelection } from './queue'
+import type { MoveDestination } from './thread-tools'
 
 const NOW = new Date('2026-07-31T12:00:00Z')
 
@@ -196,10 +197,7 @@ describe('InlineModeration', () => {
 
   it('separates thread deletion from post deletion, which are different grants', async () => {
     const inline = new FakeInline()
-    inline.rows = [
-      target({ kind: 'thread', id: 1 }),
-      target({ kind: 'post', id: 7 }),
-    ]
+    inline.rows = [target({ kind: 'thread', id: 1 }), target({ kind: 'post', id: 7 })]
 
     const outcome = await commandFor(inline).apply({
       selection: [...ids('thread', [1]), ...ids('post', [7])],
@@ -363,10 +361,7 @@ describe('InlineModeration', () => {
 
     it('skips a post ticked next to a thread-only tool rather than failing the batch', async () => {
       const inline = new FakeInline()
-      inline.rows = [
-        target({ kind: 'thread', id: 1 }),
-        target({ kind: 'post', id: 7 }),
-      ]
+      inline.rows = [target({ kind: 'thread', id: 1 }), target({ kind: 'post', id: 7 })]
 
       const outcome = await commandFor(inline).apply({
         selection: [...ids('thread', [1]), ...ids('post', [7])],
@@ -386,8 +381,7 @@ describe('InlineModeration', () => {
       inline.rows = [target({ kind: 'thread', id: 1, forumId: 4 })]
 
       const rights = {
-        rightsIn: async (forumId: number) =>
-          forumId === 5 ? { ...ALL, move: false } : ALL,
+        rightsIn: async (forumId: number) => (forumId === 5 ? { ...ALL, move: false } : ALL),
       }
 
       await expect(
@@ -528,10 +522,7 @@ describe('InlineModeration', () => {
 
   it('counts a row that lost a race between the re-read and the write as skipped', async () => {
     const inline = new FakeInline()
-    inline.rows = [
-      target({ kind: 'thread', id: 1 }),
-      target({ kind: 'thread', id: 2 }),
-    ]
+    inline.rows = [target({ kind: 'thread', id: 1 }), target({ kind: 'thread', id: 2 })]
     inline.raced = new Set([2])
 
     const outcome = await commandFor(inline).apply({

@@ -3,12 +3,7 @@ import { requireSlot } from '@meith/theme-kit'
 import { getActor } from '@/server/context'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
-import {
-  buildOffsetPager,
-  buildPager,
-  type OffsetPagerInput,
-  type PagerInput,
-} from '@/view/pager'
+import { buildOffsetPager, buildPager, type OffsetPagerInput, type PagerInput } from '@/view/pager'
 
 export type PanelPaginationProps = OffsetPagerInput | PagerInput
 
@@ -23,8 +18,6 @@ export async function PanelPagination(input: PanelPaginationProps) {
   const Pagination = requireSlot(await currentTheme(), 'Pagination')
 
   return (
-    <Pagination
-      {...await filterView('view.pagination', model, viewerRef(await getActor()))}
-    />
+    <Pagination {...(await filterView('view.pagination', model, viewerRef(await getActor())))} />
   )
 }

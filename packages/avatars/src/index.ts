@@ -1,12 +1,12 @@
-import { ForbiddenError, ValidationError } from '@meith/core'
-import type { FileStore } from '@meith/core'
 import {
-  acceptFile,
-  storageKeyFor,
   type AcceptedUpload,
+  acceptFile,
   type ImageProcessor,
   type IncomingFile,
+  storageKeyFor,
 } from '@meith/attachments'
+import type { FileStore } from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 
 import { AVATAR_BOX, AVATAR_MAX_BYTES } from './limits'
 
@@ -107,9 +107,7 @@ export class AvatarService {
 
     const current = await this.deps.avatars.find(input.userId)
     if (current?.locked === true) {
-      throw new ForbiddenError(
-        'A moderator has locked your avatar, so it cannot be changed.',
-      )
+      throw new ForbiddenError('A moderator has locked your avatar, so it cannot be changed.')
     }
 
     const accepted = this.accept(input.file)
@@ -167,7 +165,7 @@ export class AvatarService {
       return 'failed'
     }
 
-    let processed
+    let processed: Awaited<ReturnType<ImageProcessor['process']>>
     try {
       processed = await this.deps.images.process({
         bytes: source,
@@ -201,9 +199,7 @@ export class AvatarService {
   async remove(userId: number): Promise<void> {
     const current = await this.deps.avatars.find(userId)
     if (current?.locked === true) {
-      throw new ForbiddenError(
-        'A moderator has locked your avatar, so it cannot be changed.',
-      )
+      throw new ForbiddenError('A moderator has locked your avatar, so it cannot be changed.')
     }
     const { replaced } = await this.deps.avatars.clear(userId)
     await this.sweepKeys(replaced)
@@ -226,9 +222,7 @@ export class AvatarService {
   }
 
   async sweep(limit = 200): Promise<number> {
-    const cutoff = new Date(
-      this.now().getTime() - AVATAR_PROCESSING_GRACE_MINUTES * 60_000,
-    )
+    const cutoff = new Date(this.now().getTime() - AVATAR_PROCESSING_GRACE_MINUTES * 60_000)
     const stalled = await this.deps.avatars.stalled(cutoff, limit)
 
     for (const userId of stalled) {

@@ -34,12 +34,10 @@ function toRow(row: Record<string, unknown>): AnnouncementRow {
   return {
     id: Number(row.id),
     forumId: row.forum_id === null ? null : Number(row.forum_id),
-    forumTitle: row.forum_title === null || row.forum_title === undefined
-      ? null
-      : String(row.forum_title),
-    forumSlug: row.forum_slug === null || row.forum_slug === undefined
-      ? null
-      : String(row.forum_slug),
+    forumTitle:
+      row.forum_title === null || row.forum_title === undefined ? null : String(row.forum_title),
+    forumSlug:
+      row.forum_slug === null || row.forum_slug === undefined ? null : String(row.forum_slug),
     title: String(row.title),
     message: sourceAsMarkdown(String(row.message), Number(row.body_format ?? BodyFormat.Markdown)),
     authorUserId: row.author_user_id === null ? null : Number(row.author_user_id),
@@ -64,7 +62,10 @@ export class PostgresAnnouncementRepository {
     const visible = sql`${sql.raw('ARRAY[')}${
       input.visibleForumIds.length === 0
         ? sql.raw('')
-        : sql.join(input.visibleForumIds.map((id) => sql`${id}`), sql`, `)
+        : sql.join(
+            input.visibleForumIds.map((id) => sql`${id}`),
+            sql`, `,
+          )
     }${sql.raw(']::int[]')}`
 
     const rows = resultRows(

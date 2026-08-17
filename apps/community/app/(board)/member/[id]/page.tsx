@@ -3,28 +3,21 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@meith/theme-kit'
 
-import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
-
+import { RemoveRelationForm, SetRelationForm } from '@/components/account/relation-forms'
+import { AvatarLockForm, SignatureLockForm } from '@/components/moderation/signature-lock-form'
 import { BOARD_MEASURE } from '@/components/shell/measure'
+import { avatarFor, avatarsFor } from '@/server/avatars'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getViewerPreferences } from '@/server/viewer-preferences'
+import { identitiesFor } from '@/server/group-identity'
+import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
 import { visibleProfileFields } from '@/server/profile-fields'
 import { relationService } from '@/server/relations'
 import { reputationService, reputationSettings } from '@/server/reputation'
-import { reputationLabel } from '@/view/reputation'
-import {
-  AvatarLockForm,
-  SignatureLockForm,
-} from '@/components/moderation/signature-lock-form'
-import {
-  RemoveRelationForm,
-  SetRelationForm,
-} from '@/components/account/relation-forms'
 import { currentTheme } from '@/server/theme'
-import { avatarFor, avatarsFor } from '@/server/avatars'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildMemberProfileView } from '@/view/member-profile'
-import { identitiesFor } from '@/server/group-identity'
+import { reputationLabel } from '@/view/reputation'
 import { numericId } from '@/view/slug-id'
 
 export const metadata: Metadata = { title: 'Member profile' }
@@ -47,11 +40,11 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   const currentRelation =
     relations === null || actor.userId === null || actor.userId === id
       ? null
-      : ((await relations.list(actor.userId, 'buddy')).some((row) => row.userId === id)
-          ? 'buddy'
-          : (await relations.ignores(actor.userId, id))
-            ? 'ignore'
-            : 'none')
+      : (await relations.list(actor.userId, 'buddy')).some((row) => row.userId === id)
+        ? 'buddy'
+        : (await relations.ignores(actor.userId, id))
+          ? 'ignore'
+          : 'none'
 
   const reputation = reputationService()
   const repSettings = await reputationSettings()
@@ -69,25 +62,18 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   const profileModel = await filterView(
     'view.member-profile',
     {
-      ...buildMemberProfileView(
-          profile,
-          new Date(),
-          {
-            avatarUrl: (await avatarsFor([id])).get(id) ?? null,
-            nameClass: (await identitiesFor([id])).get(id)?.nameClass ?? null,
-            canWarn:
-              warnings !== null &&
-              actor.userId !== id &&
-              authorizer.can(actor, 'user.warn'),
-            canMessage:
-              messages !== null &&
-              actor.userId !== null &&
-              actor.userId !== id &&
-              authorizer.can(actor, 'pm.use'),
-            timeZone: preferences.timezone,
-            customFields,
-          },
-      ),
+      ...buildMemberProfileView(profile, new Date(), {
+        avatarUrl: (await avatarsFor([id])).get(id) ?? null,
+        nameClass: (await identitiesFor([id])).get(id)?.nameClass ?? null,
+        canWarn: warnings !== null && actor.userId !== id && authorizer.can(actor, 'user.warn'),
+        canMessage:
+          messages !== null &&
+          actor.userId !== null &&
+          actor.userId !== id &&
+          authorizer.can(actor, 'pm.use'),
+        timeZone: preferences.timezone,
+        customFields,
+      }),
       regions: {
         plugins: await pluginRegion('profile.panel', {
           viewer: viewerRef(actor),
@@ -146,9 +132,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                     userId={id}
                     username={profile.username}
                     returnTo={`/member/${id}`}
-                    label={
-                      currentRelation === 'buddy' ? 'Remove from buddy list' : 'Stop ignoring'
-                    }
+                    label={currentRelation === 'buddy' ? 'Remove from buddy list' : 'Stop ignoring'}
                   />
                 )}
                 <a

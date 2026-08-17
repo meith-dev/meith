@@ -1,4 +1,4 @@
-import type { ForumListingRow } from "@meith/forums";
+import type { ForumListingRow } from '@meith/forums'
 import type {
   ForumDisplayModel,
   ForumRowModel,
@@ -6,32 +6,32 @@ import type {
   PaginationModel,
   SubforumListModel,
   ThreadRowModel,
-} from "@meith/theme-kit";
-import type { ReadState, ThreadListingRow, ThreadPage } from "@meith/threads";
+} from '@meith/theme-kit'
+import type { ReadState, ThreadListingRow, ThreadPage } from '@meith/threads'
 
-import { forumHref } from "./board-index";
-import { nameClassOf, type MemberIdentity } from "./member-identity";
-import { memberHref } from "./member-profile";
-import { postLink } from "./post-link";
-import { formatTime } from "./time";
+import { forumHref } from './board-index'
+import { type MemberIdentity, nameClassOf } from './member-identity'
+import { memberHref } from './member-profile'
+import { postLink } from './post-link'
+import { formatTime } from './time'
 
 export function threadHref(row: ThreadListingRow): string {
-  return `/thread/${row.id}-${row.slug}`;
+  return `/thread/${row.id}-${row.slug}`
 }
 
 function lastPost(
   post: {
-    readonly postId: number;
-    readonly userId: number | null;
-    readonly username: string;
-    readonly at: Date;
+    readonly postId: number
+    readonly userId: number | null
+    readonly username: string
+    readonly at: Date
   } | null,
   thread: ThreadListingRow,
   now: Date,
   timeZone: string | undefined,
   identities: ReadonlyMap<number, MemberIdentity> | undefined,
 ): LastPostModel | null {
-  if (!post) return null;
+  if (!post) return null
   return {
     threadTitle: thread.title,
     href: postLink(threadHref(thread), post.postId),
@@ -42,14 +42,14 @@ function lastPost(
       nameClass: nameClassOf(identities, post.userId),
     },
     at: formatTime(post.at, now, timeZone),
-  };
+  }
 }
 
 function forum(
   row: ForumListingRow,
   ownThreadsOnlyForumIds: ReadonlySet<number> | undefined,
 ): ForumRowModel {
-  const ownThreadsOnly = ownThreadsOnlyForumIds?.has(row.id) ?? false;
+  const ownThreadsOnly = ownThreadsOnlyForumIds?.has(row.id) ?? false
   return {
     id: row.id,
     title: row.title,
@@ -61,22 +61,22 @@ function forum(
     lastPost: null,
     isUnread: false,
     subforums: [],
-  };
+  }
 }
 
 export function threadRowModel(
   row: ThreadListingRow,
   now: Date,
-  readState: Pick<ReadState, "forumReadAt" | "threadLastPostId"> | null = null,
+  readState: Pick<ReadState, 'forumReadAt' | 'threadLastPostId'> | null = null,
   timeZone?: string,
   identities?: ReadonlyMap<number, MemberIdentity>,
 ): ThreadRowModel {
-  const last = row.lastPost;
+  const last = row.lastPost
   const isUnread =
     last !== null &&
     readState !== null &&
     last.postId > (readState.threadLastPostId.get(row.id) ?? 0) &&
-    last.at > (readState.forumReadAt.get(row.forumId) ?? new Date(0));
+    last.at > (readState.forumReadAt.get(row.forumId) ?? new Date(0))
   return {
     id: row.id,
     title: row.title,
@@ -95,35 +95,33 @@ export function threadRowModel(
     isUnread,
     isMoved: row.isMoved,
     lastPost: lastPost(row.lastPost, row, now, timeZone, identities),
-  };
+  }
 }
 
 export interface ForumDisplayInput {
-  readonly forum: ForumListingRow;
-  readonly subforums: readonly ForumListingRow[];
-  readonly ownThreadsOnlyForumIds?: ReadonlySet<number>;
-  readonly page: ThreadPage;
-  readonly pageNumber: number;
-  readonly nextHref: string | null;
-  readonly pagination?: PaginationModel;
-  readonly newThreadHref?: string | null;
-  readonly readState?: Pick<ReadState, "forumReadAt" | "threadLastPostId"> | null;
-  readonly markReadAction?: string | null;
-  readonly now: Date;
-  readonly timeZone?: string;
-  readonly identities?: ReadonlyMap<number, MemberIdentity>;
+  readonly forum: ForumListingRow
+  readonly subforums: readonly ForumListingRow[]
+  readonly ownThreadsOnlyForumIds?: ReadonlySet<number>
+  readonly page: ThreadPage
+  readonly pageNumber: number
+  readonly nextHref: string | null
+  readonly pagination?: PaginationModel
+  readonly newThreadHref?: string | null
+  readonly readState?: Pick<ReadState, 'forumReadAt' | 'threadLastPostId'> | null
+  readonly markReadAction?: string | null
+  readonly now: Date
+  readonly timeZone?: string
+  readonly identities?: ReadonlyMap<number, MemberIdentity>
 }
 
 export interface ForumDisplayView {
-  readonly display: Omit<ForumDisplayModel, "regions">;
-  readonly subforums: SubforumListModel | null;
-  readonly threads: readonly ThreadRowModel[];
-  readonly pagination: PaginationModel;
+  readonly display: Omit<ForumDisplayModel, 'regions'>
+  readonly subforums: SubforumListModel | null
+  readonly threads: readonly ThreadRowModel[]
+  readonly pagination: PaginationModel
 }
 
-export function buildForumDisplayView(
-  input: ForumDisplayInput,
-): ForumDisplayView {
+export function buildForumDisplayView(input: ForumDisplayInput): ForumDisplayView {
   return {
     display: {
       forum: forum(input.forum, input.ownThreadsOnlyForumIds),
@@ -134,9 +132,7 @@ export function buildForumDisplayView(
       input.subforums.length === 0
         ? null
         : {
-            forums: input.subforums.map((row) =>
-              forum(row, input.ownThreadsOnlyForumIds),
-            ),
+            forums: input.subforums.map((row) => forum(row, input.ownThreadsOnlyForumIds)),
           },
     threads: input.page.rows.map((row) =>
       threadRowModel(row, input.now, input.readState ?? null, input.timeZone, input.identities),
@@ -145,9 +141,9 @@ export function buildForumDisplayView(
       page: input.pageNumber,
       pageCount: input.pageNumber,
       pageCountIsExact: false,
-      pages: [{ page: input.pageNumber, href: "", isCurrent: true }],
+      pages: [{ page: input.pageNumber, href: '', isCurrent: true }],
       previousHref: null,
       nextHref: input.nextHref,
     },
-  };
+  }
 }

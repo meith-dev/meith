@@ -1,10 +1,10 @@
 import { and, inArray, sql } from 'drizzle-orm'
 
 import type {
-  ModeratorAppointment,
   AuthorizationSource,
   ForumOverride,
   GroupDefaults,
+  ModeratorAppointment,
 } from '@meith/authorization'
 
 import type { Database } from './client'
@@ -24,9 +24,7 @@ export function parseAncestorPath(path: string): number[] {
 export class PostgresAuthorizationSource implements AuthorizationSource {
   constructor(private readonly db: Database) {}
 
-  async groupDefaults(
-    groupIds: readonly number[],
-  ): Promise<readonly GroupDefaults[]> {
+  async groupDefaults(groupIds: readonly number[]): Promise<readonly GroupDefaults[]> {
     if (groupIds.length === 0) return []
 
     const rows = await this.db
@@ -81,9 +79,7 @@ export class PostgresAuthorizationSource implements AuthorizationSource {
   }
 
   async allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>> {
-    const rows = await this.db
-      .select({ id: forums.id, path: forums.path })
-      .from(forums)
+    const rows = await this.db.select({ id: forums.id, path: forums.path }).from(forums)
 
     return new Map(rows.map((r) => [r.id, parseAncestorPath(r.path)]))
   }
@@ -139,5 +135,4 @@ export class PostgresAuthorizationSource implements AuthorizationSource {
       canSplitThreads: row.can_split_threads,
     }))
   }
-
 }

@@ -1,8 +1,8 @@
 import type { QueueItem } from '@meith/moderation'
+import type { TimeModel } from '@meith/theme-kit'
 
 import { postLink } from './post-link'
 import { formatTime } from './time'
-import type { TimeModel } from '@meith/theme-kit'
 
 export interface QueueRowModel {
   readonly value: string

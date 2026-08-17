@@ -1,6 +1,6 @@
 import type { ThreadRowSlotModel } from '@meith/theme-kit'
 
-import { Circle, MUTED_LINK, NUMERIC, Prefix, Stamp, Tag, UserRef, count, plural } from '../shared'
+import { Circle, count, MUTED_LINK, NUMERIC, Prefix, plural, Stamp, Tag, UserRef } from '../shared'
 
 export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
   return (

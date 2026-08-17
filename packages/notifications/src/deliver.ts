@@ -1,14 +1,10 @@
 import type { MailDriver } from '@meith/core'
 
-import { renderNotificationMail, type MailBrand } from './mail'
+import { type MailBrand, renderNotificationMail } from './mail'
 import { renderNotification } from './render'
 import type { NotificationRepository } from './types'
 
-export type DeliveryOutcome =
-  | 'sent'
-  | 'missing'
-  | 'declined'
-  | 'already-sent'
+export type DeliveryOutcome = 'sent' | 'missing' | 'declined' | 'already-sent'
 
 export async function deliverNotificationEmail(deps: {
   readonly notifications: NotificationRepository
@@ -38,10 +34,7 @@ export async function deliverNotificationEmail(deps: {
     ...(fromName === '' ? {} : { fromName }),
   })
 
-  await deps.notifications.markEmailSent(
-    deps.notificationId,
-    (deps.now ?? (() => new Date()))(),
-  )
+  await deps.notifications.markEmailSent(deps.notificationId, (deps.now ?? (() => new Date()))())
 
   return 'sent'
 }

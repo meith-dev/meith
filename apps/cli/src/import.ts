@@ -7,11 +7,11 @@ import {
   startImportRun,
 } from '@meith/db'
 import {
+  type Cursors,
+  type ImportReport,
   MysqlMybbSource,
   NO_PROGRESS,
   runImport,
-  type Cursors,
-  type ImportReport,
 } from '@meith/import'
 
 import { integer, optional, parseFlags, required } from './args'
@@ -97,7 +97,9 @@ function print(report: ImportReport): void {
 
   console.log('')
   if (report.finished) {
-    console.log('Import complete. Run `community task:run counters.reconcile` before opening the board.')
+    console.log(
+      'Import complete. Run `community task:run counters.reconcile` before opening the board.',
+    )
   } else {
     console.log(
       `Stopped after ${report.readThisRun.toLocaleString()} rows (the budget). ` +

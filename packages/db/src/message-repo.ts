@@ -65,8 +65,7 @@ export class PostgresMessageRepository implements MessageRepository {
     readonly before?: number | undefined
     readonly offset?: number | undefined
   }): Promise<readonly MessageListRow[]> {
-    const before =
-      input.before === undefined ? sql`` : sql`and c.id < ${input.before}`
+    const before = input.before === undefined ? sql`` : sql`and c.id < ${input.before}`
 
     const rows = resultRows(
       await this.db.execute(sql`

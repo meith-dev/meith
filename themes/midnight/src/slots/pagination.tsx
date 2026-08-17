@@ -27,7 +27,11 @@ export function Pagination({
             {entry.page}
           </span>
         ) : (
-          <a key={entry.href} href={entry.href} className="border border-border px-2 py-1 hover:bg-muted">
+          <a
+            key={entry.href}
+            href={entry.href}
+            className="border border-border px-2 py-1 hover:bg-muted"
+          >
             {entry.page}
           </a>
         ),

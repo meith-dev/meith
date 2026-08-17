@@ -1,8 +1,8 @@
-import { ForbiddenError, ValidationError } from '@meith/core'
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { ForbiddenError, ValidationError } from '@meith/core'
+
 import { ReputationService } from './service'
-import { parseRating } from './types'
 import type {
   RaterLimits,
   ReputationRepository,
@@ -10,6 +10,7 @@ import type {
   ReputationSettings,
   ReputationSummary,
 } from './types'
+import { parseRating } from './types'
 
 const TARGET = 1
 const RATER = 2
@@ -136,9 +137,9 @@ describe('giving a rating', () => {
   })
 
   it('refuses when reputation is switched off', async () => {
-    await expect(
-      give({ settings: { ...SETTINGS, enabled: false } }),
-    ).rejects.toBeInstanceOf(ForbiddenError)
+    await expect(give({ settings: { ...SETTINGS, enabled: false } })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    )
     expect(repo.given).toEqual([])
   })
 
@@ -148,9 +149,9 @@ describe('giving a rating', () => {
   })
 
   it('refuses a group without the permission', async () => {
-    await expect(
-      give({ limits: { ...LIMITS, canGive: false } }),
-    ).rejects.toBeInstanceOf(ForbiddenError)
+    await expect(give({ limits: { ...LIMITS, canGive: false } })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    )
   })
 
   it('refuses an account below the post floor', async () => {

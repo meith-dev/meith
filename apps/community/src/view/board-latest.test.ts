@@ -117,9 +117,7 @@ describe('buildLatestPostsModel', () => {
     const { posts } = buildLatestPostsModel({
       rows: [postRow()],
       now: NOW,
-      wordFilter: compileWordFilter([
-        { pattern: 'slate', replacement: 'shale', wholeWord: true },
-      ]),
+      wordFilter: compileWordFilter([{ pattern: 'slate', replacement: 'shale', wholeWord: true }]),
     })
 
     expect(posts[0]?.excerpt).toBe('The roof should be corrugated, not shale.')

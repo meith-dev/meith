@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { resendVerificationAction } from "@/server/auth-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { resendVerificationAction } from '@/server/auth-actions'
+import { EMPTY_STATE } from '@/server/auth-form-state'
 
-import { Field, FormError, FormNotice, SubmitButton } from "./form-controls"
+import { Field, FormError, FormNotice, SubmitButton } from './form-controls'
 
 export function ResendVerificationForm({ email }: { email?: string | undefined }) {
   const [state, action] = useActionState(resendVerificationAction, EMPTY_STATE)

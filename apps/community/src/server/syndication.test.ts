@@ -65,8 +65,6 @@ describe('origin', () => {
   })
 
   it('joins an already-resolved origin without resolving it again', () => {
-    expect(absoluteTo('https://board.test', '/thread/1-a')).toBe(
-      'https://board.test/thread/1-a',
-    )
+    expect(absoluteTo('https://board.test', '/thread/1-a')).toBe('https://board.test/thread/1-a')
   })
 })

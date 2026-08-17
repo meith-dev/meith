@@ -1,14 +1,20 @@
-import { definePlugin, type PluginDefinition, type PluginRequest, type PluginResponse, type PluginRuntimeContext } from '@meith/plugin-kit'
+import {
+  definePlugin,
+  type PluginDefinition,
+  type PluginRequest,
+  type PluginResponse,
+  type PluginRuntimeContext,
+} from '@meith/plugin-kit'
 
-import { parseDuesConfig, type DuesConfigInput } from './config'
+import { type DuesConfigInput, parseDuesConfig } from './config'
 import {
   buildServices,
+  type DuesServices,
   entitlementDeps,
   handleCancel,
   handleCheckout,
   handlePortal,
   handleWebhook,
-  type DuesServices,
 } from './handlers'
 import {
   handleAdminCancel,
@@ -95,7 +101,10 @@ export function dues(input: DuesConfigInput): PluginDefinition {
           const services = buildServices(config, context)
           const result = await runReconcile(entitlementDeps(services), services.stripe)
           if (
-            result.ordersSettled + result.ordersClosed + result.eventsReplayed + result.subscriptionsCorrected >
+            result.ordersSettled +
+              result.ordersClosed +
+              result.eventsReplayed +
+              result.subscriptionsCorrected >
             0
           ) {
             context.logger.info('dues: reconciled', { ...result })
@@ -117,12 +126,14 @@ export function dues(input: DuesConfigInput): PluginDefinition {
       {
         key: 'gift_received',
         title: 'Somebody gifts you a membership',
-        description: 'A member bought a membership in your name. It starts the moment the payment confirms.',
+        description:
+          'A member bought a membership in your name. It starts the moment the payment confirms.',
       },
       {
         key: 'renewal_trouble',
         title: 'A membership payment fails',
-        description: 'A renewal did not go through. Access holds during the grace window while Stripe retries.',
+        description:
+          'A renewal did not go through. Access holds during the grace window while Stripe retries.',
       },
     ],
 

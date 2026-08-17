@@ -1,7 +1,8 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
+import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   clearCacheAction,
   pruneSessionsAction,
@@ -9,10 +10,9 @@ import {
   recountAction,
   reindexSearchAction,
   retryJobAction,
-} from "@/server/system-admin-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+} from '@/server/system-admin-actions'
 
-import { FormError, SubmitButton } from "../auth/form-controls"
+import { FormError, SubmitButton } from '../auth/form-controls'
 
 function Result({ children }: { children: React.ReactNode }) {
   return (
@@ -28,11 +28,11 @@ export function PruneSessionsForm({ prunable }: { prunable: number }) {
   return (
     <form action={action} className="flex flex-col gap-2">
       <FormError message={state.error} />
-      {state.notice === "pruned" && (
-        <Result>{state.values?.removed} session rows removed.</Result>
-      )}
+      {state.notice === 'pruned' && <Result>{state.values?.removed} session rows removed.</Result>}
       <div>
-        <SubmitButton>Prune {prunable} expired session{prunable === 1 ? "" : "s"}</SubmitButton>
+        <SubmitButton>
+          Prune {prunable} expired session{prunable === 1 ? '' : 's'}
+        </SubmitButton>
       </div>
     </form>
   )
@@ -44,9 +44,7 @@ export function PruneTokensForm() {
   return (
     <form action={action} className="flex flex-col gap-2">
       <FormError message={state.error} />
-      {state.notice === "pruned" && (
-        <Result>{state.values?.removed} token rows removed.</Result>
-      )}
+      {state.notice === 'pruned' && <Result>{state.values?.removed} token rows removed.</Result>}
       <div>
         <SubmitButton>Prune expired tokens</SubmitButton>
       </div>
@@ -60,11 +58,10 @@ export function RecountForm() {
   return (
     <form action={action} className="flex flex-col gap-2">
       <FormError message={state.error} />
-      {state.notice === "ran" && (
+      {state.notice === 'ran' && (
         <Result>
-          {state.values?.corrected} counter{state.values?.corrected === "1" ? "" : "s"}{" "}
-          corrected in this batch. Press again to continue — it resumes where it
-          stopped.
+          {state.values?.corrected} counter{state.values?.corrected === '1' ? '' : 's'} corrected in
+          this batch. Press again to continue — it resumes where it stopped.
         </Result>
       )}
       <div>
@@ -80,13 +77,13 @@ export function ClearCacheForm() {
   return (
     <form action={action} className="flex flex-col gap-2">
       <FormError message={state.error} />
-      {state.notice === "cleared" && <Result>Cleared {state.values?.tag}.</Result>}
+      {state.notice === 'cleared' && <Result>Cleared {state.values?.tag}.</Result>}
 
       <input type="hidden" name="what" value="forums" />
       <p className="text-xs text-muted-foreground">
-        The forum tree is the only thing the board caches globally under a name
-        this screen can reach. Everything else is either resolved per request or
-        cleared by the write that changed it.
+        The forum tree is the only thing the board caches globally under a name this screen can
+        reach. Everything else is either resolved per request or cleared by the write that changed
+        it.
       </p>
 
       <div>
@@ -102,7 +99,7 @@ export function RetryJobForm() {
   return (
     <form action={action} className="flex flex-col gap-2" noValidate>
       <FormError message={state.error} />
-      {state.notice === "retried" && <Result>Back on the queue.</Result>}
+      {state.notice === 'retried' && <Result>Back on the queue.</Result>}
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Job id</span>
@@ -112,9 +109,8 @@ export function RetryJobForm() {
           required
         />
         <span className="text-xs text-muted-foreground">
-          One at a time. A job dead-letters after exhausting its attempts, so the
-          reason is usually still true — retrying every one puts the same
-          failures straight back.
+          One at a time. A job dead-letters after exhausting its attempts, so the reason is usually
+          still true — retrying every one puts the same failures straight back.
         </span>
       </label>
 
@@ -131,20 +127,18 @@ export function ReindexSearchForm({ pending }: { pending: number }) {
   return (
     <form action={action} className="flex flex-col gap-2">
       <FormError message={state.error} />
-      {state.notice === "finished" && (
-        <Result>
-          {state.values?.indexed} indexed. Every post on the board is searchable.
-        </Result>
+      {state.notice === 'finished' && (
+        <Result>{state.values?.indexed} indexed. Every post on the board is searchable.</Result>
       )}
-      {state.notice === "more" && (
+      {state.notice === 'more' && (
         <Result>
-          {state.values?.indexed} indexed, {state.values?.pending} still to go.
-          Press again — it resumes where it stopped.
+          {state.values?.indexed} indexed, {state.values?.pending} still to go. Press again — it
+          resumes where it stopped.
         </Result>
       )}
       <div>
         <SubmitButton>
-          {pending === 0 ? "Nothing to index" : `Index the next batch of ${pending}`}
+          {pending === 0 ? 'Nothing to index' : `Index the next batch of ${pending}`}
         </SubmitButton>
       </div>
     </form>

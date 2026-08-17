@@ -3,15 +3,9 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
-import {
-  NOT_SECRET_DESPITE_THE_NAME,
-  SECRET_ENV_KEYS,
-  looksLikeCredential,
-} from './redaction'
+import { looksLikeCredential, NOT_SECRET_DESPITE_THE_NAME, SECRET_ENV_KEYS } from './redaction'
 
-const ENV_SCHEMA = fileURLToPath(
-  new URL('../../../packages/core/src/env.ts', import.meta.url),
-)
+const ENV_SCHEMA = fileURLToPath(new URL('../../../packages/core/src/env.ts', import.meta.url))
 
 function declaredEnvKeys(): readonly string[] {
   const source = readFileSync(ENV_SCHEMA, 'utf8')

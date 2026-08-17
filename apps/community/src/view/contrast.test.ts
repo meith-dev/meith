@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import { LIGHT_TOKENS, TOKEN_NAMES } from '@meith/theme-default'
 
 import forumConfig from '../../community.config'
-
 import {
   CONTRAST_PAIRS,
   checkContrast,
@@ -73,9 +72,9 @@ describe('checkContrast', () => {
     ] as const
 
     expect(checkContrast({ foreground: BLACK, background: WHITE }, pairs)[0]?.state).toBe('pass')
-    expect(
-      checkContrast({ foreground: '#767676', background: '#8a8a8a' }, pairs)[0]?.state,
-    ).toBe('fail')
+    expect(checkContrast({ foreground: '#767676', background: '#8a8a8a' }, pairs)[0]?.state).toBe(
+      'fail',
+    )
   })
 
   it('holds a non-text pair to 3:1 and text to 4.5:1', () => {
@@ -86,9 +85,8 @@ describe('checkContrast', () => {
         ?.state,
     ).toBe('pass')
     expect(
-      checkContrast(values, [
-        { foreground: 'a', background: 'b', label: 'x', need: 'non-text' },
-      ])[0]?.state,
+      checkContrast(values, [{ foreground: 'a', background: 'b', label: 'x', need: 'non-text' }])[0]
+        ?.state,
     ).toBe('pass')
 
     const between = { a: '#949494', b: WHITE }

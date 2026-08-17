@@ -63,10 +63,7 @@ export class PostgresFeedRepository {
     if (audienceIsEmpty(scope)) return []
 
     const audience = inAudience(sql`t.forum_id`, sql`t.author_user_id`, scope)
-    const forums =
-      forumId === undefined
-        ? audience
-        : sql`t.forum_id = ${forumId} and ${audience}`
+    const forums = forumId === undefined ? audience : sql`t.forum_id = ${forumId} and ${audience}`
 
     const rows = resultRows(
       await this.db.execute(sql`

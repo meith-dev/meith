@@ -77,9 +77,7 @@ export class PostgresTaskRepository implements TaskRepository {
                -- unable to resolve timestamp-plus-interval at parse time.
                next_run_at = ${input.finishedAt}::timestamptz
                              + make_interval(secs => interval_seconds),
-               consecutive_failures = ${
-                 input.success ? sql`0` : sql`consecutive_failures + 1`
-               }
+               consecutive_failures = ${input.success ? sql`0` : sql`consecutive_failures + 1`}
          where key = ${input.taskId}
       `)
 

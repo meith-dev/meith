@@ -32,10 +32,7 @@ export function mintUnsubscribeToken(claim: UnsubscribeClaim, secret: string): s
   return `${payloadOf(claim)}.${digest(payloadOf(claim), secret)}`
 }
 
-export function readUnsubscribeToken(
-  token: string,
-  secret: string,
-): UnsubscribeClaim | null {
+export function readUnsubscribeToken(token: string, secret: string): UnsubscribeClaim | null {
   const parts = token.split('.')
   if (parts.length !== 5) return null
 

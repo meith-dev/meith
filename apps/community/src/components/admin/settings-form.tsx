@@ -1,19 +1,19 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import type { SettingFieldModel, SettingGroupModel } from "@/view/admin-settings"
-import { saveAdminSettingsAction } from "@/server/admin-settings-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { saveAdminSettingsAction } from '@/server/admin-settings-actions'
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import type { SettingFieldModel, SettingGroupModel } from '@/view/admin-settings'
 
-import { FormError, SubmitButton } from "../auth/form-controls"
-import { INPUT } from "./form-bits"
+import { FormError, SubmitButton } from '../auth/form-controls'
+import { INPUT } from './form-bits'
 
 function Control({ setting }: { setting: SettingFieldModel }) {
   const { field, key, value } = setting
 
   switch (field.kind) {
-    case "boolean":
+    case 'boolean':
       return (
         <input
           id={key}
@@ -24,7 +24,7 @@ function Control({ setting }: { setting: SettingFieldModel }) {
           className="size-4"
         />
       )
-    case "number":
+    case 'number':
       return (
         <input
           id={key}
@@ -36,11 +36,9 @@ function Control({ setting }: { setting: SettingFieldModel }) {
           className={INPUT}
         />
       )
-    case "textarea":
-      return (
-        <textarea id={key} name={key} rows={4} defaultValue={value} className={INPUT} />
-      )
-    case "select":
+    case 'textarea':
+      return <textarea id={key} name={key} rows={4} defaultValue={value} className={INPUT} />
+    case 'select':
       return (
         <select id={key} name={key} defaultValue={value} className={INPUT}>
           {field.options.map((option) => (
@@ -50,7 +48,7 @@ function Control({ setting }: { setting: SettingFieldModel }) {
           ))}
         </select>
       )
-    case "secret":
+    case 'secret':
       return (
         <div className="flex flex-col gap-1">
           <input
@@ -63,12 +61,7 @@ function Control({ setting }: { setting: SettingFieldModel }) {
           />
           {setting.clearName !== null && (
             <label className="flex items-center gap-2 text-xs text-muted-foreground">
-              <input
-                type="checkbox"
-                name={setting.clearName}
-                value="1"
-                className="size-4"
-              />
+              <input type="checkbox" name={setting.clearName} value="1" className="size-4" />
               <span>Clear the stored value and go back to the default</span>
             </label>
           )}
@@ -85,28 +78,24 @@ export function AdminSettingsForm({ groups }: { groups: readonly SettingGroupMod
   const keys = groups.flatMap((group) => group.settings.map((setting) => setting.key))
 
   if (keys.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No settings match that search.
-      </p>
-    )
+    return <p className="text-sm text-muted-foreground">No settings match that search.</p>
   }
 
   return (
     <form action={action} className="flex flex-col gap-8" noValidate>
       <FormError message={state.error} />
-      {state.notice === "saved" && (
+      {state.notice === 'saved' && (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
           Saved, and the caches those settings declare have been cleared.
         </p>
       )}
-      {state.notice === "unchanged" && (
+      {state.notice === 'unchanged' && (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
           Nothing was different, so nothing was written.
         </p>
       )}
 
-      <input type="hidden" name="keys" value={keys.join(",")} />
+      <input type="hidden" name="keys" value={keys.join(',')} />
 
       {groups.map((group) => (
         <section key={group.group} className="flex flex-col gap-4">
@@ -114,8 +103,11 @@ export function AdminSettingsForm({ groups }: { groups: readonly SettingGroupMod
           <div className="flex flex-col gap-5">
             {group.settings.map((setting) => (
               <div key={setting.key} className="flex flex-col gap-1">
-                <label htmlFor={setting.key} className="flex items-center gap-2 text-sm font-medium">
-                  {setting.field.kind === "boolean" && <Control setting={setting} />}
+                <label
+                  htmlFor={setting.key}
+                  className="flex items-center gap-2 text-sm font-medium"
+                >
+                  {setting.field.kind === 'boolean' && <Control setting={setting} />}
                   <span>{setting.label}</span>
                   {setting.advanced && (
                     <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -128,7 +120,7 @@ export function AdminSettingsForm({ groups }: { groups: readonly SettingGroupMod
                     </span>
                   )}
                 </label>
-                {setting.field.kind !== "boolean" && <Control setting={setting} />}
+                {setting.field.kind !== 'boolean' && <Control setting={setting} />}
                 <p className="text-xs text-muted-foreground">{setting.description}</p>
                 <code className="text-[10px] text-muted-foreground">{setting.key}</code>
               </div>

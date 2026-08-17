@@ -2,8 +2,8 @@ import { headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 
 import { UserCpShell } from '@/components/account/usercp-shell'
-import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
+import { getActor } from '@/server/context'
 import { PATH_HEADER } from '@/server/location-header'
 import { isSafeLocalPath } from '@/server/safe-path'
 

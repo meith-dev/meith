@@ -1,22 +1,20 @@
 import 'server-only'
 
-import { ForbiddenError, type PermissionSet } from '@meith/core'
 import {
   buildPermissionMatrix,
-  planCopyToDescendants,
   type CopyPlan,
   type ForumOverride,
   type MatrixRow,
+  planCopyToDescendants,
 } from '@meith/authorization'
+import { ForbiddenError, type PermissionSet } from '@meith/core'
+import { getDb, PostgresForumAdminRepository } from '@meith/db'
 import type { ForumRow } from '@meith/forums'
-import { PostgresForumAdminRepository, getDb } from '@meith/db'
 
 import { getContainer } from './container'
 
 export function forumAdminRepository(): PostgresForumAdminRepository | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresForumAdminRepository(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresForumAdminRepository(getDb()) : null
 }
 
 export function requireForumAdmin(): PostgresForumAdminRepository {
@@ -52,9 +50,7 @@ interface GroupRow {
   readonly permissions: PermissionSet
 }
 
-async function allGroups(
-  repository: PostgresForumAdminRepository,
-): Promise<readonly GroupRow[]> {
+async function allGroups(repository: PostgresForumAdminRepository): Promise<readonly GroupRow[]> {
   const groups = await repository.listGroups()
   const defaults = await getContainer().authorizationSource.groupDefaults(
     groups.map((group) => group.id),
@@ -81,10 +77,7 @@ export async function buildForumMatrixView(forumId: number): Promise<ForumMatrix
   const groups = await allGroups(repository)
   const descendants = all.filter((row) => row.path.startsWith(`${forum.path}.`))
 
-  const overrides = await repository.readOverrides([
-    ...chain,
-    ...descendants.map((row) => row.id),
-  ])
+  const overrides = await repository.readOverrides([...chain, ...descendants.map((row) => row.id)])
 
   return {
     forum,

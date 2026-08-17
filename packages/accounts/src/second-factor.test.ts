@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { createMemoryStore } from './memory-repos'
+import type { AccountStore, AuthConfig } from './ports'
 import { IdentityService, SECOND_FACTOR_TTL_MINUTES } from './service'
 import { rejectionMessage } from './test-support.fixture'
 import { TwoFactorService } from './totp/service'
 import { stepAt, totpCode } from './totp/totp'
-import type { AccountStore, AuthConfig } from './ports'
 
 const CONFIG: AuthConfig = {
   registrationEnabled: true,
@@ -89,9 +89,7 @@ describe('an account that asks for a code', () => {
 
     expect(outcome.account.id).toBe(userId)
     expect(outcome.token).not.toBe('')
-    expect(outcome.expiresAt).toEqual(
-      new Date(now.getTime() + SECOND_FACTOR_TTL_MINUTES * 60_000),
-    )
+    expect(outcome.expiresAt).toEqual(new Date(now.getTime() + SECOND_FACTOR_TTL_MINUTES * 60_000))
     expect(await store.sessions.listActiveForUser(userId, now)).toHaveLength(0)
   })
 
@@ -145,9 +143,9 @@ describe('an account that asks for a code', () => {
   })
 
   it('refuses a hold nobody issued', async () => {
-    expect(
-      await rejectionMessage(identity().redeemSecondFactor('not-a-real-token')),
-    ).toContain('took too long to finish')
+    expect(await rejectionMessage(identity().redeemSecondFactor('not-a-real-token'))).toContain(
+      'took too long to finish',
+    )
   })
 
   it('drops the earlier hold when the password is given again', async () => {
@@ -167,9 +165,7 @@ describe('an account that asks for a code', () => {
 
     await store.accounts.setState(userId, 'banned')
 
-    expect(await rejectionMessage(identity().redeemSecondFactor(outcome.token))).toContain(
-      'banned',
-    )
+    expect(await rejectionMessage(identity().redeemSecondFactor(outcome.token))).toContain('banned')
   })
 
   it('abandons a hold outright, which is what signing out of the half-step does', async () => {

@@ -1,14 +1,9 @@
-import {
-  IdentityService,
-  SessionService,
-  createMemoryStore,
-} from '@meith/accounts'
+import { createMemoryStore, IdentityService, SessionService } from '@meith/accounts'
 import type { MemoryAppointment, MemoryBoard } from '@meith/authorization'
 import { Authorizer, InMemoryAuthorizationSource } from '@meith/authorization'
 
 import { ABSENT_SERVICES } from './absent-services'
 import { FixtureActorSource } from './fixture-actor-source'
-
 import { FIXTURE_DATA_VERSION, SEED_BOARD } from './seed-board'
 
 export const CONTAINER_KEY = Symbol.for('@meith/forum.container')
@@ -22,9 +17,7 @@ export interface TestContainerOptions {
   readonly container?: TestContainerOverrides
 }
 
-export function installTestContainer(
-  options: TestContainerOptions = {},
-): Record<string, unknown> {
+export function installTestContainer(options: TestContainerOptions = {}): Record<string, unknown> {
   const store = createMemoryStore()
   const board: MemoryBoard = options.board ?? {
     ...SEED_BOARD,

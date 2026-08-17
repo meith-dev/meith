@@ -1,5 +1,5 @@
-import { Menu } from '@meith/ui/menu'
 import type { UserPanelModel } from '@meith/theme-kit'
+import { Menu } from '@meith/ui/menu'
 
 import { BUTTON, BUTTON_PRIMARY, MICRO } from '../shared'
 
@@ -101,11 +101,7 @@ export function UserPanel({
       >
         <span className={`${MICRO} text-foreground`}>{name}</span>
         {links.map((link) => (
-          <a
-            key={link.href}
-            href={link.href}
-            className={`${MICRO} hover:text-primary`}
-          >
+          <a key={link.href} href={link.href} className={`${MICRO} hover:text-primary`}>
             {link.label}
           </a>
         ))}

@@ -4,7 +4,9 @@ import { SETTING_DEFINITIONS, SettingsSnapshot } from '@meith/settings'
 
 import { buildAdminSettingsModel, settingsHref } from './admin-settings'
 
-function model(input: Parameters<typeof buildAdminSettingsModel>[0] | Record<string, unknown> = {}) {
+function model(
+  input: Parameters<typeof buildAdminSettingsModel>[0] | Record<string, unknown> = {},
+) {
   return buildAdminSettingsModel({
     snapshot: SettingsSnapshot.fromOverrides(new Map()),
     ...(input as object),
@@ -33,9 +35,11 @@ describe('browsing', () => {
 
   it('offers every group as a tab whatever is being shown', () => {
     const groups = new Set(SETTING_DEFINITIONS.map((definition) => definition.group))
-    expect(model({ group: 'security' }).tabs.map((tab) => tab.group).sort()).toEqual(
-      [...groups].sort(),
-    )
+    expect(
+      model({ group: 'security' })
+        .tabs.map((tab) => tab.group)
+        .sort(),
+    ).toEqual([...groups].sort())
   })
 })
 
@@ -144,9 +148,7 @@ describe('values', () => {
 
 describe('settingsHref', () => {
   it('drops the group when there is a search, because a search spans them', () => {
-    expect(settingsHref({ group: 'posting', query: 'flood' })).toBe(
-      '/admin/settings?q=flood',
-    )
+    expect(settingsHref({ group: 'posting', query: 'flood' })).toBe('/admin/settings?q=flood')
   })
 
   it('keeps the advanced flag through every other change', () => {

@@ -1,13 +1,9 @@
 import { ValidationError } from '@meith/core'
 
+import { foldIdentifier } from './case-fold'
 import { hashPassword, needsRehash, verifyPassword } from './crypto/password'
 import { generateToken, hashToken } from './crypto/tokens'
-import { foldIdentifier } from './case-fold'
-import type {
-  AccountRepository,
-  CredentialTokenRepository,
-  SessionRepository,
-} from './ports'
+import type { AccountRepository, CredentialTokenRepository, SessionRepository } from './ports'
 
 export const LOCATION_MAX = 100
 export const WEBSITE_MAX = 200
@@ -282,9 +278,7 @@ export class MemberSettingsService {
     if (account === null) throw new ValidationError('That account does not exist.')
 
     if (account.passwordHash === null) {
-      throw new ValidationError(
-        'This account has no password set, so it cannot be changed here.',
-      )
+      throw new ValidationError('This account has no password set, so it cannot be changed here.')
     }
 
     const ok = await verifyPassword(currentPassword, account.passwordHash)
@@ -305,9 +299,7 @@ function parsePageSize(raw: string, label: string): number | null {
   }
   const size = Number(value)
   if (!Number.isSafeInteger(size) || size < PAGE_SIZE_MIN || size > PAGE_SIZE_MAX) {
-    throw new ValidationError(
-      `${label} must be between ${PAGE_SIZE_MIN} and ${PAGE_SIZE_MAX}.`,
-    )
+    throw new ValidationError(`${label} must be between ${PAGE_SIZE_MIN} and ${PAGE_SIZE_MAX}.`)
   }
   return size
 }

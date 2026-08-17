@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
+
 import { ValidationError } from '@meith/core'
 
 import {
-  PostEditor,
-  editedNote,
   type EditCapabilities,
+  editedNote,
+  PostEditor,
   type PostEditRecord,
   type PostEditTarget,
   type PostVisibilityRecord,
@@ -41,11 +42,13 @@ const CAPABILITIES: EditCapabilities = {
   bypassesModeration: false,
 }
 
-function target(overrides: {
-  post?: Partial<PostEditTarget['post']>
-  thread?: Partial<PostEditTarget['thread']>
-  forum?: Partial<PostEditTarget['forum']>
-} = {}): PostEditTarget {
+function target(
+  overrides: {
+    post?: Partial<PostEditTarget['post']>
+    thread?: Partial<PostEditTarget['thread']>
+    forum?: Partial<PostEditTarget['forum']>
+  } = {},
+): PostEditTarget {
   return {
     post: {
       id: 50,
@@ -72,11 +75,7 @@ function target(overrides: {
   }
 }
 
-function editor(
-  posts: PostWriteRepository,
-  maxLength = 100,
-  editGraceSeconds = 0,
-): PostEditor {
+function editor(posts: PostWriteRepository, maxLength = 100, editGraceSeconds = 0): PostEditor {
   return new PostEditor({
     posts,
     config: { maxLength, editGraceSeconds },
@@ -285,9 +284,9 @@ describe('PostEditor.softDelete', () => {
     const posts = new RecordingPosts()
     const locked = target({ thread: { isLocked: true } })
 
-    await expect(
-      editor(posts).softDelete(7, locked, { bypassesLock: false }),
-    ).rejects.toThrow(ValidationError)
+    await expect(editor(posts).softDelete(7, locked, { bypassesLock: false })).rejects.toThrow(
+      ValidationError,
+    )
 
     await editor(posts).softDelete(7, locked, { bypassesLock: true })
     expect(posts.moves).toHaveLength(1)

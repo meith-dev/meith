@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { AVATAR_BOX, AVATAR_MAX_BYTES } from "@meith/avatars/limits"
+import { AVATAR_BOX, AVATAR_MAX_BYTES } from '@meith/avatars/limits'
 
-import { removeAvatarAction, saveAvatarAction } from "@/server/usercp-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { removeAvatarAction, saveAvatarAction } from '@/server/usercp-actions'
 
-import { FormError, SubmitButton } from "../auth/form-controls"
+import { FormError, SubmitButton } from '../auth/form-controls'
 
-const CARD = "flex flex-col gap-3 rounded-lg border border-border bg-card p-4"
+const CARD = 'flex flex-col gap-3 rounded-lg border border-border bg-card p-4'
 
 export function AvatarForm({
   currentUrl,
@@ -19,7 +19,7 @@ export function AvatarForm({
   lockedReason,
 }: {
   currentUrl: string | null
-  status: "none" | "pending" | "ready" | "failed"
+  status: 'none' | 'pending' | 'ready' | 'failed'
   failureReason: string | null
   locked: boolean
   lockedReason: string | null
@@ -35,7 +35,7 @@ export function AvatarForm({
           A moderator has stopped your avatar from being shown or changed.
           {lockedReason === null ? null : (
             <>
-              {" "}
+              {' '}
               Reason given: <span className="text-foreground">{lockedReason}</span>
             </>
           )}
@@ -49,16 +49,16 @@ export function AvatarForm({
       <div className={CARD}>
         <h2 className="text-lg font-semibold tracking-tight">Your avatar</h2>
 
-        {status === "pending" && (
+        {status === 'pending' && (
           <p className="text-sm text-muted-foreground">
-            Your new avatar is being processed. It will appear shortly — the image
-            is re-encoded before the board will show it, which is what keeps an
-            upload from carrying anything but pixels.
+            Your new avatar is being processed. It will appear shortly — the image is re-encoded
+            before the board will show it, which is what keeps an upload from carrying anything but
+            pixels.
           </p>
         )}
-        {status === "failed" && (
+        {status === 'failed' && (
           <p className="text-sm text-muted-foreground">
-            {failureReason ?? "That image could not be processed."}
+            {failureReason ?? 'That image could not be processed.'}
           </p>
         )}
 
@@ -86,10 +86,9 @@ export function AvatarForm({
             className="rounded-md border border-border bg-background px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm"
           />
           <span className="text-xs text-muted-foreground">
-            PNG or JPEG, up to {Math.round(AVATAR_MAX_BYTES / (1024 * 1024))} MB. It
-            is scaled to fit {AVATAR_BOX.width}×{AVATAR_BOX.height} and re-encoded,
-            which removes any metadata it carries — including where the photograph
-            was taken.
+            PNG or JPEG, up to {Math.round(AVATAR_MAX_BYTES / (1024 * 1024))} MB. It is scaled to
+            fit {AVATAR_BOX.width}×{AVATAR_BOX.height} and re-encoded, which removes any metadata it
+            carries — including where the photograph was taken.
           </span>
         </label>
         <div>

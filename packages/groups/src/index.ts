@@ -1,3 +1,4 @@
+export type { PromotionRepository, PromotionRuleRepository } from './ports'
 export {
   evaluatePromotions,
   type PromotionCandidate,
@@ -5,13 +6,9 @@ export {
   type PromotionOutcome,
   type PromotionRule,
 } from './promotion'
-
-export { promotionRuleProblem, type PromotionRuleInput } from './promotion-rules'
-
-export type { PromotionRepository, PromotionRuleRepository } from './ports'
-
+export { type PromotionRuleInput, promotionRuleProblem } from './promotion-rules'
 export {
-  PromotionService,
   type PromotionRunResult,
+  PromotionService,
   type PromotionServiceDeps,
 } from './service'

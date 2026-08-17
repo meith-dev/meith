@@ -2,16 +2,16 @@ import type { Metadata } from 'next'
 
 import { cn } from '@meith/ui'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { LogoUploadForm } from '@/components/admin/branding-forms'
 import { ThemeStateForms } from '@/components/admin/theme-forms'
+import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { logoKey, logoSrc } from '@/server/branding'
 import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { themeListing } from '@/server/theme-admin'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
-import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Themes' }
 
@@ -28,9 +28,9 @@ export default async function AdminThemesPage() {
       title="Themes"
       lede={
         <>
-          Every theme this build contains. Turn one on and members can pick it from the
-          appearance control at the foot of every page; the default is what a member who
-          has picked nothing sees.
+          Every theme this build contains. Turn one on and members can pick it from the appearance
+          control at the foot of every page; the default is what a member who has picked nothing
+          sees.
         </>
       }
     >
@@ -38,10 +38,9 @@ export default async function AdminThemesPage() {
         <div className="flex flex-col gap-1">
           <h2 className="font-heading text-lg font-semibold">Logo</h2>
           <p className="text-sm text-muted-foreground">
-            Shown in the header instead of the board&rsquo;s name. Two images, because one
-            that reads on a white page usually disappears on a black one — upload only the
-            light one and it is used in both. With none, the header shows the name, which
-            is what it does today.
+            Shown in the header instead of the board&rsquo;s name. Two images, because one that
+            reads on a white page usually disappears on a black one — upload only the light one and
+            it is used in both. With none, the header shows the name, which is what it does today.
           </p>
         </div>
 
@@ -67,9 +66,9 @@ export default async function AdminThemesPage() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          What a screen reader announces in place of the logo is{' '}
-          <strong>Logo alt text</strong> under Settings → Board. Left empty it becomes the
-          board&rsquo;s name, which is usually what a logo says anyway.
+          What a screen reader announces in place of the logo is <strong>Logo alt text</strong>{' '}
+          under Settings → Board. Left empty it becomes the board&rsquo;s name, which is usually
+          what a logo says anyway.
         </p>
       </section>
 
@@ -77,10 +76,7 @@ export default async function AdminThemesPage() {
 
       <ul className={PANEL_LIST}>
         {themes.map((theme) => (
-          <li
-            key={theme.key}
-            className={PANEL_ROW}
-          >
+          <li key={theme.key} className={PANEL_ROW}>
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="flex flex-wrap items-center gap-2">
                 <span className="truncate text-sm font-medium">{theme.title}</span>
@@ -132,29 +128,24 @@ export default async function AdminThemesPage() {
       </ul>
 
       <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
-        <h2 className="font-heading text-lg font-semibold">
-          What a member&rsquo;s choice changes
-        </h2>
+        <h2 className="font-heading text-lg font-semibold">What a member&rsquo;s choice changes</h2>
         <p className="text-muted-foreground">
-          <strong>The whole theme</strong> — its components as well as its colours. A
-          theme that renders forum listings as tables renders them as tables for the
-          member who picked it. The choice is a cookie, resolved on the server, so the
-          page arrives already correct: no flash, no second paint, and the control works
-          with JavaScript turned off.
+          <strong>The whole theme</strong> — its components as well as its colours. A theme that
+          renders forum listings as tables renders them as tables for the member who picked it. The
+          choice is a cookie, resolved on the server, so the page arrives already correct: no flash,
+          no second paint, and the control works with JavaScript turned off.
         </p>
         <p className="text-muted-foreground">
-          A theme that ships <em>only</em> tokens is the exception, and is a deliberate
-          one: it has no components to render, so picking it repaints the board and leaves
-          the layout alone. That is how a board offers three looks without maintaining
-          three sets of components.
+          A theme that ships <em>only</em> tokens is the exception, and is a deliberate one: it has
+          no components to render, so picking it repaints the board and leaves the layout alone.
+          That is how a board offers three looks without maintaining three sets of components.
         </p>
         <p className="text-muted-foreground">
-          What is still a deploy is which themes <em>exist</em>. A theme is code, so it
-          has to be in the build: <code className="text-xs">pnpm add</code> the package,
-          add a line to <code className="text-xs">community.config.ts</code>, redeploy.{' '}
-          <code className="text-xs">defaultTheme</code> in that file decides which theme
-          the board falls back to when its table says nothing — everything else is on this
-          page.
+          What is still a deploy is which themes <em>exist</em>. A theme is code, so it has to be in
+          the build: <code className="text-xs">pnpm add</code> the package, add a line to{' '}
+          <code className="text-xs">community.config.ts</code>, redeploy.{' '}
+          <code className="text-xs">defaultTheme</code> in that file decides which theme the board
+          falls back to when its table says nothing — everything else is on this page.
         </p>
       </section>
     </PanelPage>

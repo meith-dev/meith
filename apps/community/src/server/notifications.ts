@@ -2,12 +2,12 @@ import 'server-only'
 
 import { cache } from 'react'
 
-import { NotificationService } from '@meith/notifications'
 import type { ReportNotifierPort, WarningNotifierPort } from '@meith/moderation'
+import { NotificationService } from '@meith/notifications'
 import {
-  pluginNotificationKindSpecs,
   type PluginDefinition,
   type PluginNotificationKindSpec,
+  pluginNotificationKindSpecs,
 } from '@meith/plugin-kit'
 
 import forumConfig from '../../community.config'

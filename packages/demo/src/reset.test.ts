@@ -1,6 +1,7 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import { resetEnvForTests } from '@meith/core'
 import type { Database } from '@meith/db'
-import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { resetDemoBoard } from './reset'
 

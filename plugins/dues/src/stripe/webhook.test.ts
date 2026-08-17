@@ -36,7 +36,9 @@ describe('verifyStripeSignature', () => {
 
     expect(verifyStripeSignature(raw, past, SECRET, NOW)).toEqual({ ok: false, reason: 'stale' })
     expect(verifyStripeSignature(raw, future, SECRET, NOW)).toEqual({ ok: false, reason: 'stale' })
-    expect(verifyStripeSignature(raw, signStripePayload(raw, SECRET, ts - 299), SECRET, NOW).ok).toBe(true)
+    expect(
+      verifyStripeSignature(raw, signStripePayload(raw, SECRET, ts - 299), SECRET, NOW).ok,
+    ).toBe(true)
   })
 
   it('accepts any one of several v1 values — the secret-rotation shape', () => {

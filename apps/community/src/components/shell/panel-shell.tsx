@@ -1,5 +1,5 @@
-import { requireSlot } from '@meith/theme-kit'
 import type { LinkModel, PanelKind } from '@meith/theme-kit'
+import { requireSlot } from '@meith/theme-kit'
 
 import { getActor } from '@/server/context'
 import { filterView, viewerRef } from '@/server/plugin-view'

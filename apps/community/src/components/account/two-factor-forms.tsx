@@ -1,29 +1,29 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { Button } from "@meith/ui/button"
+import { Button } from '@meith/ui/button'
 
+import { EMPTY_STATE, type FormState } from '@/server/auth-form-state'
 import {
   abandonTwoFactorAction,
   beginTwoFactorAction,
   confirmTwoFactorAction,
   disableTwoFactorAction,
   replaceRecoveryCodesAction,
-} from "@/server/two-factor-actions"
-import { EMPTY_STATE, type FormState } from "@/server/auth-form-state"
-import { RECOVERY_CODES_FIELD } from "@/view/two-factor"
+} from '@/server/two-factor-actions'
+import { RECOVERY_CODES_FIELD } from '@/view/two-factor'
 
-import { Field, FormError } from "../auth/form-controls"
+import { Field, FormError } from '../auth/form-controls'
 
-const CARD = "flex flex-col gap-4 rounded-lg border border-border bg-card p-5"
+const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
 
 const BUTTON =
-  "inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 function RecoveryCodes({ state }: { readonly state: FormState }) {
   const codes = state.values?.[RECOVERY_CODES_FIELD]
-  if (codes === undefined || codes === "") return null
+  if (codes === undefined || codes === '') return null
 
   return (
     <div className="flex flex-col gap-2 rounded-md border border-border bg-muted p-4">
@@ -31,11 +31,11 @@ function RecoveryCodes({ state }: { readonly state: FormState }) {
         Save these somewhere safe. They are shown once and never again.
       </p>
       <p className="text-xs text-muted-foreground">
-        Each one signs you in exactly once, in place of a code, if you lose the device
-        your authenticator app is on.
+        Each one signs you in exactly once, in place of a code, if you lose the device your
+        authenticator app is on.
       </p>
       <ul className="grid grid-cols-2 gap-1 font-mono text-sm">
-        {codes.split("\n").map((code) => (
+        {codes.split('\n').map((code) => (
           <li key={code}>{code}</li>
         ))}
       </ul>
@@ -54,14 +54,12 @@ export function TwoFactorSetup({
   if (state.values?.[RECOVERY_CODES_FIELD] !== undefined || enrolment === null) {
     return (
       <section className={CARD}>
-        <h2 className="text-lg font-semibold tracking-tight">
-          Your account now asks for a code
-        </h2>
+        <h2 className="text-lg font-semibold tracking-tight">Your account now asks for a code</h2>
         <RecoveryCodes state={state} />
         <p className="text-xs text-muted-foreground">
           <a href="/usercp/security" className="underline underline-offset-4">
             Back to account security
-          </a>{" "}
+          </a>{' '}
           once you have written them down.
         </p>
       </section>
@@ -72,16 +70,14 @@ export function TwoFactorSetup({
 
   return (
     <section className={CARD}>
-      <h2 className="text-lg font-semibold tracking-tight">
-        Set up your authenticator app
-      </h2>
+      <h2 className="text-lg font-semibold tracking-tight">Set up your authenticator app</h2>
 
       <ol className="flex list-decimal flex-col gap-3 pl-5 text-sm">
         <li>
-          Open your authenticator app and add an account by hand, or follow{" "}
+          Open your authenticator app and add an account by hand, or follow{' '}
           <a href={uri} className="underline underline-offset-4">
             this link
-          </a>{" "}
+          </a>{' '}
           on the device the app is on.
         </li>
         <li>
@@ -138,13 +134,12 @@ export function TwoFactorPanel({
       <section className={CARD}>
         <h2 className="text-lg font-semibold tracking-tight">Two-factor authentication</h2>
         <p className="text-xs text-muted-foreground">
-          An authenticator app on your phone shows a six-digit code that changes every
-          thirty seconds. With it switched on, your password alone is not enough to open
-          your account — which is the point, because a password can leak without you ever
-          knowing.
+          An authenticator app on your phone shows a six-digit code that changes every thirty
+          seconds. With it switched on, your password alone is not enough to open your account —
+          which is the point, because a password can leak without you ever knowing.
           {required
-            ? " This board requires it of anyone who can reach the control panel, so you will be asked for it before you can use the panel."
-            : ""}
+            ? ' This board requires it of anyone who can reach the control panel, so you will be asked for it before you can use the panel.'
+            : ''}
         </p>
         <FormError message={beginState.error} />
         <form action={begin}>
@@ -179,11 +174,11 @@ export function TwoFactorPanel({
     <section className={CARD}>
       <h2 className="text-lg font-semibold tracking-tight">Two-factor authentication</h2>
       <p className="text-sm">
-        On. You have <strong>{recoveryCodesLeft}</strong> recovery{" "}
-        {recoveryCodesLeft === 1 ? "code" : "codes"} left.
+        On. You have <strong>{recoveryCodesLeft}</strong> recovery{' '}
+        {recoveryCodesLeft === 1 ? 'code' : 'codes'} left.
         {recoveryCodesLeft === 0
-          ? " Replace them now — without one, losing your phone means losing the account."
-          : ""}
+          ? ' Replace them now — without one, losing your phone means losing the account.'
+          : ''}
       </p>
 
       <RecoveryCodes state={replaceState} />
@@ -204,8 +199,8 @@ export function TwoFactorPanel({
 
       {required ? (
         <p className="border-t border-border pt-4 text-xs text-muted-foreground">
-          This board requires two-factor authentication of anyone who can reach the
-          control panel, so it cannot be turned off while you hold that access.
+          This board requires two-factor authentication of anyone who can reach the control panel,
+          so it cannot be turned off while you hold that access.
         </p>
       ) : (
         <form action={disable} className="flex flex-col gap-3 border-t border-border pt-4">

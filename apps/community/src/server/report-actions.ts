@@ -3,16 +3,16 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
-import { ReportService, parseTargetKind } from '@meith/moderation'
+import { parseTargetKind, ReportService } from '@meith/moderation'
 
 import { limitMessage, spendLimit } from './antispam'
-import { getActor } from './context'
+import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
+import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveIntIn } from './form-values'
 import { reportNotifier } from './notifications'
 import { resolveReportScope } from './report-scope'
-import type { FormState } from './auth-form-state'
 
 function field(form: FormData, name: string): string {
   const value = form.get(name)
@@ -21,10 +21,7 @@ function field(form: FormData, name: string): string {
 
 const toFormState = formStateReporter('report-actions', 'unexpected error in reports')
 
-export async function fileReportAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function fileReportAction(_prev: FormState, form: FormData): Promise<FormState> {
   const kind = parseTargetKind(field(form, 'kind'))
   const targetId = positiveIntIn(field(form, 'targetId'))
   const reason = field(form, 'reason')
@@ -42,7 +39,7 @@ export async function fileReportAction(
     }
   }
 
-  let target
+  let target: Awaited<ReturnType<NonNullable<typeof reports>['resolveTarget']>>
   try {
     const actor = await getActor()
     if (actor.userId === null) {
@@ -90,10 +87,7 @@ export async function fileReportAction(
   redirect(back)
 }
 
-export async function assignReportAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function assignReportAction(_prev: FormState, form: FormData): Promise<FormState> {
   const reportId = positiveIntIn(field(form, 'reportId'))
   const take = field(form, 'take') === '1'
   if (reportId === null) return { error: 'That report does not exist.' }
@@ -118,10 +112,7 @@ export async function assignReportAction(
   redirect('/moderation/reports')
 }
 
-export async function closeReportAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function closeReportAction(_prev: FormState, form: FormData): Promise<FormState> {
   const reportId = positiveIntIn(field(form, 'reportId'))
   const status = form.get('status')
   const note = field(form, 'note')

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { LEGAL_PAGES, buildLegalLinks, isPublished, legalPage } from './legal'
+import { buildLegalLinks, isPublished, LEGAL_PAGES, legalPage } from './legal'
 
 const bodies = (values: Record<string, string>) =>
   buildLegalLinks((page) => values[page.settingKey] ?? '')
@@ -37,9 +37,7 @@ describe('buildLegalLinks', () => {
   })
 
   it('leaves out a page whose body was emptied', () => {
-    expect(bodies({ 'legal.terms': 'terms' })).toEqual([
-      { label: 'Terms', href: '/terms' },
-    ])
+    expect(bodies({ 'legal.terms': 'terms' })).toEqual([{ label: 'Terms', href: '/terms' }])
   })
 
   it('links nothing when the board publishes neither', () => {

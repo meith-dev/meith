@@ -21,6 +21,11 @@ interface lives in `docker/`. Documentation lives in `docs/` and nowhere else â€
   `chore`; `!` after the type for a breaking change.
 - **`pnpm verify` passes before a PR.** It runs every invariant gate. Do not
   run `pnpm format` â€” format only the files you touched.
+- **Biome is the formatter and the linter**, configured in `biome.json`.
+  `pnpm lint` checks; `pnpm format` writes. A suppression is a
+  `biome-ignore lint/<group>/<rule>: <reason>` on the line above, never a
+  blanket disable. `docs/development.md` explains the rules that carry an
+  invariant.
 - **Versions never move in a feature change.** Releases move them
   (`docs/release.md`); `pnpm release:check` will object.
 - **The root is a registry.** A new root file goes in a folder, or is added to

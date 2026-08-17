@@ -1,5 +1,5 @@
-import { DocsNav, type NavSection } from "../../src/components/docs-nav"
-import { documentsInSection, sections } from "../../src/docs/registry"
+import { DocsNav, type NavSection } from '../../src/components/docs-nav'
+import { documentsInSection, sections } from '../../src/docs/registry'
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   const nav: NavSection[] = sections.map((section) => ({

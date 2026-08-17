@@ -2,21 +2,14 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { MOD_LOG_LABELS, ModeratorPanel } from '@meith/moderation'
-import {
-  Card,
-  CardFooter,
-  CardRows,
-  Empty,
-  EmptyDescription,
-  EmptyTitle,
-} from '@meith/ui'
+import { Card, CardFooter, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { PanelPage } from '@/components/shell/panel-page'
+import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getContainer } from '@/server/container'
 import { resolveModCpAccess } from '@/server/modcp'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
-import { PanelPagination } from '@/components/shell/panel-pagination'
 
 export const metadata: Metadata = { title: 'Moderator log' }
 
@@ -50,8 +43,7 @@ export default async function ModLogPage({
           <Empty className="py-8">
             <EmptyTitle>Nothing has been logged yet</EmptyTitle>
             <EmptyDescription>
-              Approvals, locks, moves and deletions in your forums appear here as they
-              happen.
+              Approvals, locks, moves and deletions in your forums appear here as they happen.
             </EmptyDescription>
           </Empty>
         ) : (
@@ -91,7 +83,11 @@ export default async function ModLogPage({
             path="/modcp/log"
             params={query}
             cursorParams={['after']}
-            nextCursor={page.nextCursor === undefined || page.nextCursor === null ? null : { after: String(page.nextCursor) }}
+            nextCursor={
+              page.nextCursor === undefined || page.nextCursor === null
+                ? null
+                : { after: String(page.nextCursor) }
+            }
           />
         </CardFooter>
       </Card>

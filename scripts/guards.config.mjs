@@ -10,7 +10,7 @@ export const GUARDS = [
       'test agreed with it, so both were "correct" and neither was readable. ' +
       'U+200B/200E/202E are here for the homoglyph and bidi-override tricks.',
     files: /\.(ts|tsx|mjs|json|md)$/,
-    // eslint-disable-next-line no-control-regex -- matching control characters is this guard's job
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is this guard's job
     pattern: /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u200b\u200e\u202e]/,
     probe: {
       violates: 'const sep = "\u001f"',
@@ -45,9 +45,9 @@ export const GUARDS = [
     files: /\.(ts|tsx|mjs)$/,
     pattern: /process\.env(?!\.NEXT_RUNTIME\b)/,
     allow:
-      /^(packages\/core\/src\/env\.ts|scripts\/|apps\/(cli|worker)\/|eslint\.config\.mjs|.*\.config\.(ts|mts|mjs|js|cjs)$|.*\.test\.ts|packages\/testkit\/)/,
+      /^(packages\/core\/src\/env\.ts|scripts\/|apps\/(cli|worker)\/|.*\.config\.(ts|mts|mjs|js|cjs)$|.*\.test\.ts|packages\/testkit\/)/,
     probe: {
-      violates: "const url = process.env.DATABASE_URL",
+      violates: 'const url = process.env.DATABASE_URL',
       clean: "import { env } from '@meith/core'\nconst url = env.DATABASE_URL",
     },
     alsoClean: ["if (process.env.NEXT_RUNTIME !== 'nodejs') return"],
@@ -69,7 +69,7 @@ export const GUARDS = [
   {
     id: 'no-request-state-in-cache',
     why:
-      'Reading cookies()/headers() inside a cached function bakes one user\'s data ' +
+      "Reading cookies()/headers() inside a cached function bakes one user's data " +
       'into a shared cache entry — the classic "logged in as someone else" bug. ' +
       'Pass the viewer in as an explicit cache-key argument instead.',
     files: /\.(ts|tsx)$/,
@@ -95,7 +95,7 @@ export const GUARDS = [
     pattern: /toLocale(Lower|Upper)Case\s*\(\s*\)/,
     allow: /^(packages\/accounts\/src\/case-fold\.ts|.*\.test\.ts)/,
     probe: {
-      violates: "const lower = username.toLocaleLowerCase()",
+      violates: 'const lower = username.toLocaleLowerCase()',
       clean: "const shown = city.toLocaleLowerCase('tr-TR')",
     },
   },
@@ -131,7 +131,7 @@ export const GUARDS = [
   {
     id: 'no-lazy-require-of-db',
     why:
-      "@meith/db must be imported statically, never with require(). Turbopack " +
+      '@meith/db must be imported statically, never with require(). Turbopack ' +
       'resolves it as an async module — its graph reaches postgres.js — and a ' +
       'synchronous require() of an async module yields the pending namespace ' +
       'rather than the exports, so every destructured binding is undefined and ' +
@@ -154,15 +154,14 @@ export const GUARDS = [
     why:
       'No query may name a visibility state. Every viewer-facing read takes a ' +
       'ContentScope from Authorizer.contentScope and turns it into SQL with ' +
-      "visibleIn() in packages/db/src/visibility.ts. A hand-written " +
+      'visibleIn() in packages/db/src/visibility.ts. A hand-written ' +
       "`visibility = 'visible'` is how the twentieth read path ships without one — " +
-      'or ships with `<> \'deleted\'`, which lets the moderation queue out to the ' +
+      "or ships with `<> 'deleted'`, which lets the moderation queue out to the " +
       'public while looking like a filter. The exempt files are the counter and ' +
       'write paths, where naming a state is the definition of the work rather ' +
       'than a decision about a reader.',
     files: /^(packages\/db\/src\/[^/]+\.tsx?|apps\/community\/(app|src)\/.*\.tsx?)$/,
-    pattern:
-      /\beq\(\s*\w+\.visibility\s*,|\bvisibility\b\s*(=|<>)\s*['"]|\bvisibility\b\s+in\s*\(/,
+    pattern: /\beq\(\s*\w+\.visibility\s*,|\bvisibility\b\s*(=|<>)\s*['"]|\bvisibility\b\s+in\s*\(/,
     allow:
       /^packages\/db\/src\/(visibility|visibility-counters|content-counters|counter-recount|post-writes|thread-writes|thread-tools|thread-counters|thread-surgery|inline-moderation)\.ts$|\.test\.ts$/,
     probe: {
@@ -170,6 +169,7 @@ export const GUARDS = [
       clean: '.where(and(eq(posts.threadId, id), visibleIn(posts.visibility, scope)))',
     },
     alsoClean: [
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: a probe fixture — the placeholder is what the guard must not match
       'update posts set visibility = ${record.to} where id = ${id}',
       "const states = scope.states.includes('deleted')",
     ],
@@ -186,8 +186,7 @@ export const GUARDS = [
       'so the exemption list only ever gets shorter.',
     files: /^apps\/community\/app\/.*\.tsx?$/,
     pattern: /from\s+['"]@meith\/db['"]|require\(\s*['"]@meith\/db['"]\s*\)/,
-    allow:
-      /^apps\/community\/app\/admin\/(users\/\[id\]\/merge|forums\/\[id\])\/page\.tsx$/,
+    allow: /^apps\/community\/app\/admin\/(users\/\[id\]\/merge|forums\/\[id\])\/page\.tsx$/,
     probe: {
       violates: "import { getDb } from '@meith/db'",
       clean: "import { getContainer } from '@/server/container'",

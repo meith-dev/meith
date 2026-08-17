@@ -61,8 +61,8 @@ export default async function PluginBoardPage({
       <h1 className="font-heading text-2xl font-semibold">{result.title}</h1>
       {result.node === null ? (
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-          This page failed to render. The error is in the server log, and the rest of the
-          board is unaffected.
+          This page failed to render. The error is in the server log, and the rest of the board is
+          unaffected.
         </p>
       ) : (
         result.node

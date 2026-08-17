@@ -2,13 +2,13 @@
 
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError } from '@meith/core'
 import type { Action } from '@meith/authorization'
-import { ThreadTools, parseThreadTool, type ThreadToolRights } from '@meith/moderation'
+import { ForbiddenError, ValidationError } from '@meith/core'
+import { parseThreadTool, type ThreadToolRights, ThreadTools } from '@meith/moderation'
 
-import { getActor } from './context'
-import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
+import { getContainer } from './container'
+import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
 
@@ -22,10 +22,7 @@ const TOOL_ACTIONS: Readonly<Record<keyof ThreadToolRights, Action>> = {
   restore: 'thread.restore',
 }
 
-export async function threadToolAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function threadToolAction(_prev: FormState, form: FormData): Promise<FormState> {
   const threadId = positiveInt(form, 'threadId')
   const tool = parseThreadTool(
     typeof form.get('tool') === 'string' ? (form.get('tool') as string) : undefined,
@@ -43,7 +40,7 @@ export async function threadToolAction(
     }
   }
 
-  let outcome
+  let outcome: Awaited<ReturnType<ThreadTools['apply']>>
   try {
     const actor = await getActor()
     if (actor.userId === null) throw new ForbiddenError('You must be logged in.')

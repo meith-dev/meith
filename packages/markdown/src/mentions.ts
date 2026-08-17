@@ -1,5 +1,5 @@
 import { attributedAuthor } from './attribution'
-import { parse, type ParseOptions } from './blocks'
+import { type ParseOptions, parse } from './blocks'
 import type { Block, Inline } from './nodes'
 
 function mentionsIn(nodes: readonly Inline[], out: Set<string>): void {

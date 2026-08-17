@@ -1,13 +1,7 @@
-import { CacheTags, cachedGlobal, type CacheDriver } from '@meith/core'
+import { type CacheDriver, CacheTags, cachedGlobal } from '@meith/core'
 
 import type { ForumRepository } from './ports'
-import type {
-  ForumListingRow,
-  ForumRow,
-  MovePlan,
-  MoveTarget,
-  NewForum,
-} from './types'
+import type { ForumListingRow, ForumRow, MovePlan, MoveTarget, NewForum } from './types'
 
 const TREE_KEY = ['forum-tree'] as const
 

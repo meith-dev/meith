@@ -1,7 +1,8 @@
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
+
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { compileAsset, locateAsset, moduleFile } from './locate-wasm'
@@ -56,10 +57,7 @@ describe('the plain layout', () => {
 describe('the pnpm store layout', () => {
   it('finds a file with no top-level link at all', async () => {
     const root = await tree()
-    const expected = await put(
-      root,
-      `node_modules/.pnpm/@fake+png@3.1.1/node_modules/${SPEC}`,
-    )
+    const expected = await put(root, `node_modules/.pnpm/@fake+png@3.1.1/node_modules/${SPEC}`)
 
     expect(await locateAsset(SPEC, root)).toBe(expected)
   })
@@ -76,7 +74,10 @@ describe('the pnpm store layout', () => {
 
   it('does not match a package whose name merely starts the same', async () => {
     const root = await tree()
-    await put(root, 'node_modules/.pnpm/@fake+png-extra@1.0.0/node_modules/@fake/png-extra/codec/pkg/fake_bg.wasm')
+    await put(
+      root,
+      'node_modules/.pnpm/@fake+png-extra@1.0.0/node_modules/@fake/png-extra/codec/pkg/fake_bg.wasm',
+    )
 
     await expect(locateAsset(SPEC, root)).rejects.toThrow(/Could not find/)
   })
@@ -84,11 +85,7 @@ describe('the pnpm store layout', () => {
   it('takes the highest version when two are present', async () => {
     const root = await tree()
     await put(root, `node_modules/.pnpm/@fake+png@2.0.0/node_modules/${SPEC}`, 'old')
-    const newer = await put(
-      root,
-      `node_modules/.pnpm/@fake+png@3.1.1/node_modules/${SPEC}`,
-      'new',
-    )
+    const newer = await put(root, `node_modules/.pnpm/@fake+png@3.1.1/node_modules/${SPEC}`, 'new')
 
     expect(await locateAsset(SPEC, root)).toBe(newer)
   })

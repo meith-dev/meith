@@ -160,10 +160,7 @@ export class WarningService {
     return this.warnings.listTypes()
   }
 
-  async history(
-    userId: number,
-    options: { readonly after?: string } = {},
-  ): Promise<WarningPage> {
+  async history(userId: number, options: { readonly after?: string } = {}): Promise<WarningPage> {
     return this.warnings.history(userId, {
       limit: WARNINGS_PAGE_SIZE,
       ...(options.after === undefined ? {} : { after: options.after }),

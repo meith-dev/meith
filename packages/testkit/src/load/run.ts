@@ -1,7 +1,13 @@
+import { writeFile } from 'node:fs/promises'
+import { cpus, totalmem } from 'node:os'
+
+import { desc, eq, sql } from 'drizzle-orm'
+
 import { Authorizer } from '@meith/authorization'
 import { ALL_THREAD_AUTHORS, PUBLIC_CONTENT } from '@meith/core'
 import {
   ActorBuilder,
+  type Database,
   getDb,
   PostgresAuthorizationSource,
   PostgresCounterRecount,
@@ -12,32 +18,24 @@ import {
   PostgresSearchRepository,
   PostgresThreadRepository,
   schema,
-  type Database,
 } from '@meith/db'
-import { desc, eq, sql } from 'drizzle-orm'
-import { writeFile } from 'node:fs/promises'
-import { cpus, totalmem } from 'node:os'
 
-import { FULL_SCALE, SMOKE_SCALE, seedBoard, type SeedScale } from '../seed'
+import { FULL_SCALE, type SeedScale, SMOKE_SCALE, seedBoard } from '../seed'
 import { BUDGETS } from './budgets'
-import { INDEX_PLANS, readPlan, type PlanResult } from './index-plans'
+import { INDEX_PLANS, type PlanResult, readPlan } from './index-plans'
 import {
   DEFAULT_MEASURE,
-  measure,
-  verdict,
   type Measurement,
+  measure,
   type Scenario,
   type Verdict,
+  verdict,
 } from './measure'
 
 const PHASES = ['posts', 'counters', 'search', 'analyze'] as const
 type Phase = (typeof PHASES)[number]
 
-async function seed(
-  db: Database,
-  scale: SeedScale,
-  only: Phase | 'all',
-): Promise<void> {
+async function seed(db: Database, scale: SeedScale, only: Phase | 'all'): Promise<void> {
   const started = Date.now()
   const wanted = (phase: Phase): boolean => only === 'all' || only === phase
 
@@ -46,9 +44,7 @@ async function seed(
       `Seeding ${scale.threads.toLocaleString()} threads across ${scale.forums} forums…\n`,
     )
     const board = await seedBoard(db, scale)
-    process.stdout.write(
-      `  ${board.postCount.toLocaleString()} posts in ${elapsed(started)}.\n`,
-    )
+    process.stdout.write(`  ${board.postCount.toLocaleString()} posts in ${elapsed(started)}.\n`)
   }
 
   if (wanted('counters')) {
@@ -76,13 +72,9 @@ async function seed(
 
     const progress = await search.indexProgress()
     if (progress.pending > 0) {
-      throw new Error(
-        `Search index incomplete: ${progress.pending} posts still unindexed.`,
-      )
+      throw new Error(`Search index incomplete: ${progress.pending} posts still unindexed.`)
     }
-    process.stdout.write(
-      `  ${progress.indexed.toLocaleString()} posts indexed.\n`,
-    )
+    process.stdout.write(`  ${progress.indexed.toLocaleString()} posts indexed.\n`)
   }
 
   if (wanted('analyze')) {
@@ -168,8 +160,7 @@ async function findLandmarks(db: Database): Promise<Landmarks> {
     .where(eq(schema.forums.type, 'forum'))
 
   const viewerUserId = userRows[0]?.id
-  if (viewerUserId === undefined)
-    throw new Error('No users. Run `pnpm perf seed` first.')
+  if (viewerUserId === undefined) throw new Error('No users. Run `pnpm perf seed` first.')
 
   return {
     busiestForumId,
@@ -190,16 +181,10 @@ async function findLandmarks(db: Database): Promise<Landmarks> {
 function spread<T>(items: readonly T[], count = 64): T[] {
   if (items.length <= count) return [...items]
   const step = items.length / count
-  return Array.from(
-    { length: count },
-    (_, i) => items[Math.floor(i * step)] as T,
-  )
+  return Array.from({ length: count }, (_, i) => items[Math.floor(i * step)] as T)
 }
 
-async function buildScenarios(
-  db: Database,
-  marks: Landmarks,
-): Promise<Scenario[]> {
+async function buildScenarios(db: Database, marks: Landmarks): Promise<Scenario[]> {
   const threads = new PostgresThreadRepository(db)
   const posts = new PostgresPostRepository(db)
   const forums = new PostgresForumRepository(db)
@@ -208,16 +193,12 @@ async function buildScenarios(
   const profiles = new PostgresMemberProfileRepository(db)
 
   const authorizer = new Authorizer(new PostgresAuthorizationSource(db))
-  const actor = await new ActorBuilder(db, { guestGroupId: 1 }).buildForUser(
-    marks.viewerUserId,
-  )
-  if (actor === null)
-    throw new Error('Could not build an actor for the seeded viewer.')
+  const actor = await new ActorBuilder(db, { guestGroupId: 1 }).buildForUser(marks.viewerUserId)
+  if (actor === null) throw new Error('Could not build an actor for the seeded viewer.')
 
   const scope = PUBLIC_CONTENT
   const visibleForumIds = await authorizer.forumIdsWhere(actor, 'thread.view')
-  const pick = <T>(items: readonly T[], i: number): T =>
-    items[i % items.length] as T
+  const pick = <T>(items: readonly T[], i: number): T => items[i % items.length] as T
 
   return [
     {
@@ -284,8 +265,7 @@ async function buildScenarios(
     {
       id: 'visible-forums',
       minRows: 1,
-      run: async () =>
-        (await authorizer.forumIdsWhere(actor, 'thread.view')).length,
+      run: async () => (await authorizer.forumIdsWhere(actor, 'thread.view')).length,
     },
     {
       id: 'discovery-latest',
@@ -407,12 +387,8 @@ async function explainIndexes(db: Database, marks: Landmarks): Promise<number> {
 
     await db.execute(sql.raw(`explain (analyze) ${statement}`))
 
-    const rows = resultRowsOf(
-      await db.execute(sql.raw(`explain (analyze, buffers) ${statement}`)),
-    )
-    const text = rows
-      .map((row) => String(Object.values(row)[0] ?? ''))
-      .join('\n')
+    const rows = resultRowsOf(await db.execute(sql.raw(`explain (analyze, buffers) ${statement}`)))
+    const text = rows.map((row) => String(Object.values(row)[0] ?? '')).join('\n')
 
     const { used, chosen } = readPlan(text, plan.index)
     const ms = Number(/actual time=[\d.]+\.\.([\d.]+)/.exec(text)?.[1] ?? 0)
@@ -464,10 +440,7 @@ async function explainIndexes(db: Database, marks: Landmarks): Promise<number> {
   return 0
 }
 
-const INDEX_FILE = new URL(
-  '../../../../docs/perf-indexes.json',
-  import.meta.url,
-).pathname
+const INDEX_FILE = new URL('../../../../docs/perf-indexes.json', import.meta.url).pathname
 
 function resultRowsOf(result: unknown): Record<string, unknown>[] {
   if (Array.isArray(result)) return result as Record<string, unknown>[]
@@ -483,16 +456,12 @@ async function main(): Promise<number> {
     const name = argOf('--scale') ?? 'full'
     const scale = SCALES[name]
     if (scale === undefined) {
-      process.stderr.write(
-        `Unknown scale "${name}". Use: ${Object.keys(SCALES).join(', ')}\n`,
-      )
+      process.stderr.write(`Unknown scale "${name}". Use: ${Object.keys(SCALES).join(', ')}\n`)
       return 2
     }
     const phase = (argOf('--phase') ?? 'all') as Phase | 'all'
     if (phase !== 'all' && !PHASES.includes(phase)) {
-      process.stderr.write(
-        `Unknown phase "${phase}". Use: all, ${PHASES.join(', ')}\n`,
-      )
+      process.stderr.write(`Unknown phase "${phase}". Use: all, ${PHASES.join(', ')}\n`)
       return 2
     }
 
@@ -506,16 +475,12 @@ async function main(): Promise<number> {
   }
 
   if (command !== 'measure') {
-    process.stderr.write(
-      `Unknown command "${command}". Use: seed | measure | explain\n`,
-    )
+    process.stderr.write(`Unknown command "${command}". Use: seed | measure | explain\n`)
     return 2
   }
 
   const marks = await findLandmarks(db)
-  const [counted] = await db
-    .select({ posts: sql<number>`count(*)::int` })
-    .from(schema.posts)
+  const [counted] = await db.select({ posts: sql<number>`count(*)::int` }).from(schema.posts)
   const [countedThreads] = await db
     .select({ threads: sql<number>`count(*)::int` })
     .from(schema.threads)
@@ -543,14 +508,11 @@ async function main(): Promise<number> {
 
   for (const scenario of scenarios) {
     const budget = BUDGETS.find((b) => b.id === scenario.id)
-    if (budget === undefined)
-      throw new Error(`Scenario "${scenario.id}" has no budget.`)
+    if (budget === undefined) throw new Error(`Scenario "${scenario.id}" has no budget.`)
 
     const measurement = await measure(scenario)
     if (measurement.underpowered) {
-      throw new Error(
-        `Scenario "${scenario.id}" ran too few iterations for a p95.`,
-      )
+      throw new Error(`Scenario "${scenario.id}" ran too few iterations for a p95.`)
     }
     measurements.push(measurement)
     verdicts.push(verdict(measurement, budget.p95Ms))
@@ -558,9 +520,7 @@ async function main(): Promise<number> {
 
   const unmeasured = BUDGETS.filter((b) => !verdicts.some((v) => v.id === b.id))
   if (unmeasured.length > 0) {
-    throw new Error(
-      `No scenario for: ${unmeasured.map((b) => b.id).join(', ')}`,
-    )
+    throw new Error(`No scenario for: ${unmeasured.map((b) => b.id).join(', ')}`)
   }
 
   const passed = report(verdicts)
@@ -591,10 +551,7 @@ async function main(): Promise<number> {
   return passed ? 0 : 1
 }
 
-const RESULTS_FILE = new URL(
-  '../../../../docs/perf-results.json',
-  import.meta.url,
-).pathname
+const RESULTS_FILE = new URL('../../../../docs/perf-results.json', import.meta.url).pathname
 
 function describeEnvironment(): Record<string, string | number> {
   return {

@@ -1,6 +1,6 @@
 import { generateToken, hashToken } from './crypto/tokens'
-import type { RequestContext } from './service'
 import type { AccountStore, Clock } from './ports'
+import type { RequestContext } from './service'
 
 export interface SessionServiceDeps {
   readonly store: AccountStore
@@ -44,10 +44,7 @@ export class SessionService {
     return this.mintSession(userId, this.now(), context)
   }
 
-  async startRemembered(
-    userId: number,
-    context: RequestContext = {},
-  ): Promise<RememberedLogin> {
+  async startRemembered(userId: number, context: RequestContext = {}): Promise<RememberedLogin> {
     const at = this.now()
     const familyId = generateToken()
     const rememberToken = generateToken()
@@ -68,10 +65,7 @@ export class SessionService {
     }
   }
 
-  async resume(
-    rememberToken: string,
-    context: RequestContext = {},
-  ): Promise<ResumeOutcome> {
+  async resume(rememberToken: string, context: RequestContext = {}): Promise<ResumeOutcome> {
     const at = this.now()
     const nextToken = generateToken()
     const rotation = await this.store.remember.rotate({

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { ActorBuilder } from './actor-builder'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { cacheVersions, usergroups, userGroupMemberships, users } from './schema'
+import { cacheVersions, userGroupMemberships, usergroups, users } from './schema'
 
 let h: TestDb
 
@@ -20,10 +20,7 @@ beforeEach(async () => {
   await h.db.delete(cacheVersions)
 })
 
-async function group(
-  key: string,
-  perms: Record<string, unknown> = {},
-): Promise<number> {
+async function group(key: string, perms: Record<string, unknown> = {}): Promise<number> {
   const [row] = await h.db
     .insert(usergroups)
     .values({ key, title: key, ...perms })
@@ -31,11 +28,7 @@ async function group(
   return row!.id
 }
 
-async function user(
-  username: string,
-  primaryGroupId: number,
-  state = 'active',
-): Promise<number> {
+async function user(username: string, primaryGroupId: number, state = 'active'): Promise<number> {
   const lower = username.toLowerCase()
   const [row] = await h.db
     .insert(users)
@@ -76,9 +69,7 @@ describe('ActorBuilder.buildForUser — group combination (R4.2)', () => {
       isAdministrator: true,
     })
     const uid = await user('Alice', members)
-    await h.db
-      .insert(userGroupMemberships)
-      .values({ userId: uid, groupId: staff })
+    await h.db.insert(userGroupMemberships).values({ userId: uid, groupId: staff })
 
     const builder = new ActorBuilder(h.db, { guestGroupId: members })
     const actor = await builder.buildForUser(uid)
@@ -175,9 +166,7 @@ describe('ActorBuilder — permission version', () => {
 
     expect((await builder.buildGuest()).permissionVersion).toBe(1)
 
-    await h.db
-      .insert(cacheVersions)
-      .values({ key: 'permissions', version: 7 })
+    await h.db.insert(cacheVersions).values({ key: 'permissions', version: 7 })
     expect((await builder.buildGuest()).permissionVersion).toBe(7)
   })
 })

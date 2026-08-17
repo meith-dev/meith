@@ -32,8 +32,7 @@ export async function taskRun(args: readonly string[]): Promise<number> {
   const selected = only === undefined ? tasks : tasks.filter((t) => t.id === only)
   if (only !== undefined && selected.length === 0) {
     console.error(
-      `No such task: ${only}\n` +
-        `Run \`community task:list\` to see what is registered.`,
+      `No such task: ${only}\n` + `Run \`community task:list\` to see what is registered.`,
     )
     return 1
   }
@@ -45,8 +44,7 @@ export async function taskRun(args: readonly string[]): Promise<number> {
   const skipped = outcomes.filter((o) => o.status === 'skipped')
 
   for (const outcome of [...ran, ...failed]) {
-    const detail =
-    outcome.detail === undefined ? '' : ` ${JSON.stringify(outcome.detail)}`
+    const detail = outcome.detail === undefined ? '' : ` ${JSON.stringify(outcome.detail)}`
     console.log(
       `${outcome.status === 'ran' ? 'ran    ' : 'FAILED '} ${outcome.taskId}` +
         ` (${outcome.durationMs}ms)${detail}` +

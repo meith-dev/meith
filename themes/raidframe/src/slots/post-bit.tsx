@@ -4,7 +4,11 @@ import type { PostBitSlotModel } from '@meith/theme-kit'
 
 import { HEADING, MICRO, NUMERIC, Stamp, UserRef } from '../shared'
 
-function GroupBadge({ badge }: { badge: NonNullable<PostBitSlotModel['post']['author']['badge']> }) {
+function GroupBadge({
+  badge,
+}: {
+  badge: NonNullable<PostBitSlotModel['post']['author']['badge']>
+}) {
   const image = (
     <img
       src={badge.src}
@@ -115,11 +119,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
                     aria-hidden="true"
                     className="size-1.5 bg-moderation-approved shadow-[0_0_6px_var(--color-moderation-approved)]"
                   />
-                  <span
-                    className={`${MICRO} text-moderation-approved`}
-                  >
-                    online
-                  </span>
+                  <span className={`${MICRO} text-moderation-approved`}>online</span>
                 </p>
               )}
             </div>

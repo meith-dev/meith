@@ -1,74 +1,63 @@
 export {
+  assertUsableFilter,
+  BAN_FILTER_TYPES,
+  type BanFilter,
+  type BanFilterSubject,
+  type BanFilterType,
+  matchBanFilter,
+} from './ban-filter'
+export { type BanInput, BanService, type BanServiceDeps } from './ban-service'
+export { foldIdentifier } from './case-fold'
+export {
+  decodeBase64Url,
+  decodeBase64UrlText,
+  encodeBase64Url,
+  randomBase64Url,
+} from './crypto/base64url'
+export {
+  isLegacyHash,
+  type LegacyMybbHash,
+  MYBB_PREFIX,
+  parseMybbHash,
+  verifyMybbPassword,
+} from './crypto/legacy'
+export {
+  type Argon2Params,
   CURRENT_PASSWORD_POLICY,
   hashPassword,
-  verifyPassword,
   needsRehash,
-  parseArgon2Params,
   type PasswordPolicy,
-  type Argon2Params,
+  parseArgon2Params,
+  verifyPassword,
 } from './crypto/password'
-
 export {
   generateToken,
   hashToken,
   timingSafeEqual,
 } from './crypto/tokens'
-
 export {
-  IdentityService,
-  REGISTRATION_CLOSED,
-  SECOND_FACTOR_TTL_MINUTES,
-  VERIFICATION_TTL_HOURS,
-  type ActivationOutcome,
-  type BanLookup,
-  type FederatedProvision,
-  type IdentityDeps,
-  type LoginOutcome,
-  type PendingSecondFactor,
-  type SecondFactorLookup,
-  type RegisterInput,
-  type RegisterResult,
-  type RequestContext,
-  type LoginResult,
-  type ResendVerification,
-  type ResetRequest,
-} from './service'
-
-export {
-  encodeBase64Url,
-  decodeBase64Url,
-  decodeBase64UrlText,
-  randomBase64Url,
-} from './crypto/base64url'
-
-export {
-  FederationService,
-  UNLINK_LAST_CREDENTIAL,
-  type CompleteSignInInput,
-  type FederationDeps,
-  type FederationOutcome,
-} from './federation/service'
-
-export {
-  PROVIDER_KINDS,
   configuredProviders,
   isProviderKind,
+  PROVIDER_KINDS,
+  type ProviderBuildDeps,
   parseScopes,
   providerFor,
   providerLabel,
-  type ProviderBuildDeps,
 } from './federation/catalog'
-
-export { githubProvider, type GithubProviderConfig } from './federation/github'
-
+export { type GithubProviderConfig, githubProvider } from './federation/github'
 export {
   DEFAULT_OIDC_SCOPES,
-  oidcProvider,
   type OidcProviderConfig,
+  oidcProvider,
 } from './federation/oidc'
-
-export { codeChallenge, newHandshake, type HandshakeSecrets } from './federation/pkce'
-
+export { codeChallenge, type HandshakeSecrets, newHandshake } from './federation/pkce'
+export {
+  type CompleteSignInInput,
+  type FederationDeps,
+  type FederationOutcome,
+  FederationService,
+  UNLINK_LAST_CREDENTIAL,
+} from './federation/service'
 export type {
   AuthorizeInput,
   ExchangeInput,
@@ -79,158 +68,141 @@ export type {
   ProviderKind,
   ProviderProfile,
 } from './federation/types'
-
 export {
-  CHALLENGE_BYTES,
-  PASSKEY_LABEL_MAX,
-  PASSKEY_LIMIT,
-  PasskeyService,
-  REMOVE_LAST_CREDENTIAL,
-  newChallenge,
-  passkeyLabel,
-  type PasskeyAssertionOptions,
-  type PasskeyDeps,
-  type PasskeyRegistrationOptions,
-} from './webauthn/service'
-
+  AUTOMATIC_TIMEZONE,
+  BIO_MAX,
+  EMAIL_CHANGE_TTL_MINUTES,
+  isKnownTimezone,
+  isTimezonePreference,
+  LOCATION_MAX,
+  type MemberGroupChoice,
+  type MemberSettings,
+  type MemberSettingsRepository,
+  MemberSettingsService,
+  PAGE_SIZE_MAX,
+  PAGE_SIZE_MIN,
+  WEBSITE_MAX,
+} from './member-settings'
+export { MemoryBanFilters, MemoryBans } from './memory-bans'
+export { createMemoryStore } from './memory-repos'
 export {
-  RECOVERY_CODE_COUNT,
-  REPLAYED_CODE,
-  TwoFactorService,
-  WRONG_CODE,
+  AUTH_SETTING_KEYS,
+  type AuthPolicy,
+  DEFAULT_AUTH_POLICY,
+  type ResolvedAuthSettings,
+  resolveAuthPolicy,
+  type SettingReader,
+} from './policy'
+export type {
+  AccountRecord,
+  AccountRepository,
+  AccountState,
+  AccountStore,
+  ActiveSessionRecord,
+  AuthConfig,
+  AuthEventKind,
+  AuthEventRecord,
+  AuthEventRepository,
+  BanFilterRepository,
+  BanRecord,
+  BanRepository,
+  Clock,
+  CreateBanInput,
+  CredentialPurpose,
+  CredentialTokenRepository,
+  LinkIdentityInput,
+  LoginAttemptRepository,
+  LoginBucket,
+  MemberProfileRecord,
+  MemberProfileRepository,
+  NewAccount,
+  NewAuthEvent,
+  NewPasskey,
+  PasskeyRecord,
+  PasskeyRepository,
+  RecoveryCodeRepository,
+  RememberRotation,
+  RememberTokenRepository,
+  SessionLocation,
+  SessionRecord,
+  SessionRepository,
+  TwoFactorRecord,
+  TwoFactorRepository,
+  UserIdentityRecord,
+  UserIdentityRepository,
+} from './ports'
+export { AUTH_EVENT_KINDS, REMEMBER_ROTATION_GRACE_SECONDS, withinRotationGrace } from './ports'
+export {
+  REGISTER_FIELD,
+  type RegisterField,
+  rejectedField,
+} from './register-fields'
+export {
+  type ActivationOutcome,
+  type BanLookup,
+  type FederatedProvision,
+  type IdentityDeps,
+  IdentityService,
+  type LoginOutcome,
+  type LoginResult,
+  type PendingSecondFactor,
+  REGISTRATION_CLOSED,
+  type RegisterInput,
+  type RegisterResult,
+  type RequestContext,
+  type ResendVerification,
+  type ResetRequest,
+  SECOND_FACTOR_TTL_MINUTES,
+  type SecondFactorLookup,
+  VERIFICATION_TTL_HOURS,
+} from './service'
+export {
+  type RememberedLogin,
+  type ResumeOutcome,
+  SessionService,
+  type SessionServiceDeps,
+} from './session-service'
+export { decodeBase32, encodeBase32, isBase32 } from './totp/base32'
+export { assertSealingKey, openSecret, sealSecret } from './totp/secret-box'
+export {
+  type Enrolment,
   enrolmentLookup,
   newRecoveryCode,
   normaliseRecoveryCode,
-  type Enrolment,
+  RECOVERY_CODE_COUNT,
+  REPLAYED_CODE,
   type SecondFactorOutcome,
   type TwoFactorDeps,
+  TwoFactorService,
   type TwoFactorState,
+  WRONG_CODE,
 } from './totp/service'
-
 export {
-  TOTP_DIGITS,
-  TOTP_PERIOD_SECONDS,
   generateTotpSecret,
   matchTotp,
   otpauthUri,
   stepAt,
+  TOTP_DIGITS,
+  TOTP_PERIOD_SECONDS,
   totpCode,
 } from './totp/totp'
-
-export { assertSealingKey, openSecret, sealSecret } from './totp/secret-box'
-
-export { decodeBase32, encodeBase32, isBase32 } from './totp/base32'
-
 export {
-  verifyAssertion,
-  verifyRegistration,
+  CHALLENGE_BYTES,
+  newChallenge,
+  PASSKEY_LABEL_MAX,
+  PASSKEY_LIMIT,
+  type PasskeyAssertionOptions,
+  type PasskeyDeps,
+  type PasskeyRegistrationOptions,
+  PasskeyService,
+  passkeyLabel,
+  REMOVE_LAST_CREDENTIAL,
+} from './webauthn/service'
+export {
   type AssertionResponse,
   type RegisteredCredential,
   type RegistrationResponse,
   type RelyingParty,
+  verifyAssertion,
+  verifyRegistration,
 } from './webauthn/verify'
-
-export {
-  SessionService,
-  type SessionServiceDeps,
-  type RememberedLogin,
-  type ResumeOutcome,
-} from './session-service'
-
-export {
-  REGISTER_FIELD,
-  rejectedField,
-  type RegisterField,
-} from './register-fields'
-
-export { createMemoryStore } from './memory-repos'
-
-export { foldIdentifier } from './case-fold'
-
-export {
-  AUTH_SETTING_KEYS,
-  DEFAULT_AUTH_POLICY,
-  resolveAuthPolicy,
-  type AuthPolicy,
-  type ResolvedAuthSettings,
-  type SettingReader,
-} from './policy'
-
-export {
-  BAN_FILTER_TYPES,
-  assertUsableFilter,
-  matchBanFilter,
-  type BanFilter,
-  type BanFilterSubject,
-  type BanFilterType,
-} from './ban-filter'
-
-export { BanService, type BanInput, type BanServiceDeps } from './ban-service'
-
-export { MemoryBanFilters, MemoryBans } from './memory-bans'
-
-export {
-  MemberSettingsService,
-  isKnownTimezone,
-  isTimezonePreference,
-  AUTOMATIC_TIMEZONE,
-  BIO_MAX,
-  EMAIL_CHANGE_TTL_MINUTES,
-  LOCATION_MAX,
-  PAGE_SIZE_MAX,
-  PAGE_SIZE_MIN,
-  WEBSITE_MAX,
-  type MemberGroupChoice,
-  type MemberSettings,
-  type MemberSettingsRepository,
-} from './member-settings'
-
-export { AUTH_EVENT_KINDS } from './ports'
-export { REMEMBER_ROTATION_GRACE_SECONDS, withinRotationGrace } from './ports'
-
-export type {
-  ActiveSessionRecord,
-  AuthEventKind,
-  AuthEventRecord,
-  AuthEventRepository,
-  NewAuthEvent,
-  RecoveryCodeRepository,
-  TwoFactorRecord,
-  TwoFactorRepository,
-  BanRecord,
-  BanRepository,
-  BanFilterRepository,
-  CreateBanInput,
-  LinkIdentityInput,
-  NewPasskey,
-  PasskeyRecord,
-  PasskeyRepository,
-  UserIdentityRecord,
-  UserIdentityRepository,
-  AccountRecord,
-  MemberProfileRecord,
-  MemberProfileRepository,
-  AccountState,
-  AccountStore,
-  AccountRepository,
-  SessionRepository,
-  SessionRecord,
-  SessionLocation,
-  RememberTokenRepository,
-  RememberRotation,
-  CredentialTokenRepository,
-  CredentialPurpose,
-  LoginAttemptRepository,
-  LoginBucket,
-  AuthConfig,
-  Clock,
-  NewAccount,
-} from './ports'
-
-export {
-  MYBB_PREFIX,
-  isLegacyHash,
-  parseMybbHash,
-  verifyMybbPassword,
-  type LegacyMybbHash,
-} from './crypto/legacy'

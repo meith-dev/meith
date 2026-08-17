@@ -1,19 +1,15 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from 'react'
 
-import { Alert, AlertDescription, Input } from "@meith/ui"
-import { Button } from "@meith/ui/button"
+import { Alert, AlertDescription, Input } from '@meith/ui'
+import { Button } from '@meith/ui/button'
 
-import {
-  enrolPasskey,
-  passkeyMessage,
-  passkeysAvailable,
-} from "@/components/auth/passkey-client"
+import { enrolPasskey, passkeyMessage, passkeysAvailable } from '@/components/auth/passkey-client'
 
 export function PasskeyEnrol({ limit }: { readonly limit: number }) {
   const [available, setAvailable] = useState<boolean | null>(null)
-  const [label, setLabel] = useState("")
+  const [label, setLabel] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,8 +20,8 @@ export function PasskeyEnrol({ limit }: { readonly limit: number }) {
   if (available === false) {
     return (
       <p className="text-sm text-muted-foreground">
-        This browser cannot create passkeys, so there is nothing to add here. Try one that
-        can, or keep using your password.
+        This browser cannot create passkeys, so there is nothing to add here. Try one that can, or
+        keep using your password.
       </p>
     )
   }
@@ -47,8 +43,8 @@ export function PasskeyEnrol({ limit }: { readonly limit: number }) {
           onChange={(event) => setLabel(event.target.value)}
         />
         <span className="text-xs text-muted-foreground">
-          For your own eyes, so you can tell one device from another later. Up to {limit}{" "}
-          passkeys per account.
+          For your own eyes, so you can tell one device from another later. Up to {limit} passkeys
+          per account.
         </span>
       </label>
 
@@ -62,7 +58,7 @@ export function PasskeyEnrol({ limit }: { readonly limit: number }) {
             setBusy(true)
             enrolPasskey(label)
               .then(() => {
-                window.location.assign("/usercp/security?passkey=added")
+                window.location.assign('/usercp/security?passkey=added')
               })
               .catch((problem: unknown) => {
                 setError(passkeyMessage(problem))
@@ -70,7 +66,7 @@ export function PasskeyEnrol({ limit }: { readonly limit: number }) {
               })
           }}
         >
-          {busy ? "Waiting for your device…" : "Add a passkey"}
+          {busy ? 'Waiting for your device…' : 'Add a passkey'}
         </Button>
       </div>
     </div>

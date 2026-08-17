@@ -1,6 +1,6 @@
 import type { ForumRowSlotModel } from '@meith/theme-kit'
 
-import { Circle, MUTED_LINK, NUMERIC, Stamp, UserRef, count, plural } from '../shared'
+import { Circle, count, MUTED_LINK, NUMERIC, plural, Stamp, UserRef } from '../shared'
 
 export function ForumRow({ forum }: ForumRowSlotModel) {
   const isLink = forum.type === 'link'

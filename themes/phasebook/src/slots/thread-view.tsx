@@ -1,6 +1,17 @@
 import type { ThreadViewModel } from '@meith/theme-kit'
 
-import { FEED, MUTED_LINK, NUMERIC, PAGE, PILL, PILL_PRIMARY, Prefix, Tag, count, plural } from '../shared'
+import {
+  count,
+  FEED,
+  MUTED_LINK,
+  NUMERIC,
+  PAGE,
+  PILL,
+  PILL_PRIMARY,
+  Prefix,
+  plural,
+  Tag,
+} from '../shared'
 
 export function ThreadView({ thread, forum, replyHref, markReadAction, regions }: ThreadViewModel) {
   return (

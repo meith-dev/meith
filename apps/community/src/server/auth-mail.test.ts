@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { resetEnvForTests, type OutgoingMail } from '@meith/core'
+import { type OutgoingMail, resetEnvForTests } from '@meith/core'
 
 const sent = vi.hoisted(() => ({ mail: [] as OutgoingMail[], fail: false }))
 

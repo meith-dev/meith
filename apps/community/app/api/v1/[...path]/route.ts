@@ -1,16 +1,19 @@
+import type { NextRequest } from 'next/server'
+
 import {
-  ROUTES,
   bearerFrom,
   consumeRateLimit,
   hasScope,
   idParam,
   matchRoute,
-  rateLimitHeaders,
+  ROUTES,
   type RouteSpec,
+  rateLimitHeaders,
 } from '@meith/api'
-import { sourceAsMarkdown } from '@meith/markdown'
 import { isAppError, statusForError, toPublicError } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
+import { canHoldThreads } from '@meith/forums'
+import { sourceAsMarkdown } from '@meith/markdown'
 import {
   isRunnable,
   parseSearchInput,
@@ -18,15 +21,14 @@ import {
   readMatch,
   readPeriod,
   readSort,
-  searchQueryFrom,
   type SearchCursor,
+  searchQueryFrom,
 } from '@meith/search'
 import type { ThreadCursor } from '@meith/threads'
-import type { NextRequest } from 'next/server'
 
 import { apiActor, apiToken } from '@/server/api-auth'
-import { activeWordFilter } from '@/server/content-admin'
 import { getContainer } from '@/server/container'
+import { activeWordFilter } from '@/server/content-admin'
 import { resolveReplyTarget, submitReply } from '@/server/reply-core'
 import {
   requireSearch,
@@ -35,7 +37,6 @@ import {
   searchScopeFor,
 } from '@/server/search'
 import { filterWords } from '@/view/word-filter'
-import { canHoldThreads } from '@meith/forums'
 
 export const dynamic = 'force-dynamic'
 
@@ -143,9 +144,7 @@ async function threadScope(
   threadId: number,
 ): Promise<{
   readonly scope: ReturnType<ReturnType<typeof getContainer>['authorizer']['contentScope']>
-  readonly authors: ReturnType<
-    ReturnType<typeof getContainer>['authorizer']['authorFilter']
-  >
+  readonly authors: ReturnType<ReturnType<typeof getContainer>['authorizer']['authorFilter']>
   readonly forumId: number
 } | null> {
   const { authorizer, forums, threads } = getContainer()

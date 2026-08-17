@@ -9,8 +9,9 @@ vi.mock('./settings', () => ({
   getSettings: async () => ({ get: (key: string) => stored.values[key] }),
 }))
 
-const { AUTH_CONFIG, REMEMBER_DAYS, boardAuthConfig, boardSessionConfig } =
-  await import('./auth-config')
+const { AUTH_CONFIG, REMEMBER_DAYS, boardAuthConfig, boardSessionConfig } = await import(
+  './auth-config'
+)
 
 async function onPostgres<T>(body: () => Promise<T>): Promise<T> {
   vi.stubEnv('DATA_SOURCE', 'postgres')
@@ -104,8 +105,6 @@ describe('boardAuthConfig', () => {
 
   it('falls back to the const for a value the registry did not write', async () => {
     stored.values['registration.method'] = 'whatever-somebody-put-in-the-table'
-    expect((await onPostgres(boardAuthConfig)).activationMethod).toBe(
-      AUTH_CONFIG.activationMethod,
-    )
+    expect((await onPostgres(boardAuthConfig)).activationMethod).toBe(AUTH_CONFIG.activationMethod)
   })
 })

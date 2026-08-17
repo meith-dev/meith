@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { isSlotName, SLOTS, SLOT_NAMES, type SlotName } from './slots'
+import { isSlotName, SLOT_NAMES, SLOTS, type SlotName } from './slots'
 import type { SlotModels } from './view-models'
 
 export type SlotComponent<K extends SlotName> = (typeof SLOTS)[K]['kind'] extends 'client'
@@ -126,10 +126,7 @@ export function resolveTheme(theme: ThemeDefinition): ResolvedTheme {
   }
 }
 
-export function requireSlot<K extends SlotName>(
-  theme: ResolvedTheme,
-  name: K,
-): SlotComponent<K> {
+export function requireSlot<K extends SlotName>(theme: ResolvedTheme, name: K): SlotComponent<K> {
   const component = theme.slots[name]
   if (component === undefined) {
     throw new Error(

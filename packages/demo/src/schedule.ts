@@ -1,9 +1,10 @@
-import { env } from '@meith/core'
-import { resultRows, type Database } from '@meith/db'
-import type { TaskDefinition } from '@meith/tasks'
 import { sql } from 'drizzle-orm'
 
-import { resetDemoBoard, type ResetDeps } from './reset'
+import { env } from '@meith/core'
+import { type Database, resultRows } from '@meith/db'
+import type { TaskDefinition } from '@meith/tasks'
+
+import { type ResetDeps, resetDemoBoard } from './reset'
 
 export const DEMO_RESET_TASK_ID = 'demo.reset'
 

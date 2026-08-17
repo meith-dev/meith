@@ -28,22 +28,36 @@ export function validatePoll(input: NewPoll, now = new Date()): NewPoll {
 }
 
 export class PollService {
-  constructor(private readonly polls: PollRepository, private readonly now: () => Date = () => new Date()) {}
+  constructor(
+    private readonly polls: PollRepository,
+    private readonly now: () => Date = () => new Date(),
+  ) {}
 
   async attach(threadId: number, poll: NewPoll): Promise<void> {
     await this.polls.create(threadId, validatePoll(poll, this.now()))
   }
 
-  async vote(input: { readonly pollId: number; readonly optionId: number; readonly userId: number; readonly mayVote: boolean }): Promise<void> {
+  async vote(input: {
+    readonly pollId: number
+    readonly optionId: number
+    readonly userId: number
+    readonly mayVote: boolean
+  }): Promise<void> {
     if (!input.mayVote) throw new ForbiddenError('You may not vote in polls.')
-    if (!(await this.polls.vote(input))) throw new ValidationError('That poll is closed or you have already voted.')
+    if (!(await this.polls.vote(input)))
+      throw new ValidationError('That poll is closed or you have already voted.')
   }
 }
 
 export class ThreadRatingService {
   constructor(private readonly ratings: ThreadRatingRepository) {}
 
-  async rate(input: { readonly threadId: number; readonly userId: number; readonly rating: number; readonly enabled: boolean }): Promise<ThreadRating> {
+  async rate(input: {
+    readonly threadId: number
+    readonly userId: number
+    readonly rating: number
+    readonly enabled: boolean
+  }): Promise<ThreadRating> {
     if (!input.enabled) throw new ForbiddenError('Thread ratings are switched off.')
     if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5) {
       throw new ValidationError('Choose a rating from 1 to 5.')

@@ -54,7 +54,12 @@ describe('quoteBlock', () => {
 
   it('takes a label for a quote of something that is not a post', () => {
     expect(
-      quoteBlock({ author: 'ada', sourceHref: '/messages/4', sourceLabel: 'View message', markdown: 'x' }),
+      quoteBlock({
+        author: 'ada',
+        sourceHref: '/messages/4',
+        sourceLabel: 'View message',
+        markdown: 'x',
+      }),
     ).toContain('[View message](/messages/4)')
   })
 

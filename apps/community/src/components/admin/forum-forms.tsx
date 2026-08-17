@@ -1,9 +1,11 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import type { MatrixCell, MatrixRow } from "@meith/authorization"
+import type { MatrixCell, MatrixRow } from '@meith/authorization'
 
+import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   appointModeratorAction,
   copyForumPermissionsAction,
@@ -12,27 +14,25 @@ import {
   removeModeratorAction,
   saveForumOptionsAction,
   saveForumPermissionsAction,
-} from "@/server/forum-admin-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+} from '@/server/forum-admin-actions'
 
-import { FormError, SubmitButton } from "../auth/form-controls"
-import { INPUT } from "./form-bits"
-import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { FormError, SubmitButton } from '../auth/form-controls'
+import { INPUT } from './form-bits'
 
 const TOGGLES = [
-  { name: "isOpen", label: "Open for posting" },
-  { name: "allowThreads", label: "Allow new threads" },
-  { name: "allowReplies", label: "Allow replies" },
-  { name: "allowPolls", label: "Allow polls" },
-  { name: "allowAttachments", label: "Allow attachments" },
-  { name: "requiresPrefix", label: "Require a thread prefix" },
-  { name: "moderateNewThreads", label: "Hold new threads for approval" },
-  { name: "moderateNewPosts", label: "Hold new replies for approval" },
+  { name: 'isOpen', label: 'Open for posting' },
+  { name: 'allowThreads', label: 'Allow new threads' },
+  { name: 'allowReplies', label: 'Allow replies' },
+  { name: 'allowPolls', label: 'Allow polls' },
+  { name: 'allowAttachments', label: 'Allow attachments' },
+  { name: 'requiresPrefix', label: 'Require a thread prefix' },
+  { name: 'moderateNewThreads', label: 'Hold new threads for approval' },
+  { name: 'moderateNewPosts', label: 'Hold new replies for approval' },
 ] as const
 
 export interface ForumOptionsValues {
   readonly id: number
-  readonly type: "category" | "forum" | "link"
+  readonly type: 'category' | 'forum' | 'link'
   readonly title: string
   readonly slug: string
   readonly description: string
@@ -47,7 +47,7 @@ export function ForumOptionsForm({ forum }: { forum: ForumOptionsValues }) {
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      {state.notice === "saved" && (
+      {state.notice === 'saved' && (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">Saved.</p>
       )}
       <input type="hidden" name="forumId" value={forum.id} />
@@ -61,28 +61,21 @@ export function ForumOptionsForm({ forum }: { forum: ForumOptionsValues }) {
         <span className="font-medium">Slug</span>
         <input name="slug" defaultValue={forum.slug} className={INPUT} required />
         <span className="text-xs text-muted-foreground">
-          Appears in every link to this forum. Lower-case letters, numbers and
-          single hyphens — anything else would have to be escaped, and a URL
-          nobody can paste is worse than an ugly one.
+          Appears in every link to this forum. Lower-case letters, numbers and single hyphens —
+          anything else would have to be escaped, and a URL nobody can paste is worse than an ugly
+          one.
         </span>
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Description</span>
-        <textarea
-          name="description"
-          rows={3}
-          defaultValue={forum.description}
-          className={INPUT}
-        />
+        <textarea name="description" rows={3} defaultValue={forum.description} className={INPUT} />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Link URL</span>
         <input name="linkUrl" defaultValue={forum.linkUrl} className={INPUT} />
-        <span className="text-xs text-muted-foreground">
-          Only meaningful for a link row.
-        </span>
+        <span className="text-xs text-muted-foreground">Only meaningful for a link row.</span>
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
@@ -95,8 +88,8 @@ export function ForumOptionsForm({ forum }: { forum: ForumOptionsValues }) {
           className={INPUT}
         />
         <span className="text-xs text-muted-foreground">
-          Its place among the forums beside it, counting from zero. Dragging it on the
-          tree screen writes this for you, and renumbers its siblings to match.
+          Its place among the forums beside it, counting from zero. Dragging it on the tree screen
+          writes this for you, and renumbers its siblings to match.
         </span>
       </label>
 
@@ -114,12 +107,11 @@ export function ForumOptionsForm({ forum }: { forum: ForumOptionsValues }) {
               />
               <span>{toggle.label}</span>
             </label>
-            {toggle.name === "allowThreads" && forum.type === "category" && (
+            {toggle.name === 'allowThreads' && forum.type === 'category' && (
               <span className="ml-6 text-xs text-muted-foreground">
-                A category holds forums. Turn this on and it holds threads of its own as
-                well, and its page lists them under those forums. Turning it off again
-                stops new ones and returns the page to the forums; threads already there
-                keep their addresses.
+                A category holds forums. Turn this on and it holds threads of its own as well, and
+                its page lists them under those forums. Turning it off again stops new ones and
+                returns the page to the forums; threads already there keep their addresses.
               </span>
             )}
           </div>
@@ -134,8 +126,8 @@ export function ForumOptionsForm({ forum }: { forum: ForumOptionsValues }) {
 }
 
 function effectiveValue(cell: MatrixCell): string {
-  if (cell.kind === "boolean") return cell.effective ? "allowed" : "denied"
-  if (cell.kind === "negative") return cell.effective ? "required" : "not required"
+  if (cell.kind === 'boolean') return cell.effective ? 'allowed' : 'denied'
+  if (cell.kind === 'negative') return cell.effective ? 'required' : 'not required'
   return String(cell.effective)
 }
 
@@ -144,11 +136,11 @@ function effectiveLabel(cell: MatrixCell, forumTitles: ReadonlyMap<number, strin
 
   if (cell.stored !== null) return `set here: ${value}`
   if (cell.inheritedFrom === null) return `inherited from the group's own default: ${value}`
-  return `inherited from ${forumTitles.get(cell.inheritedFrom) ?? "an ancestor"}: ${value}`
+  return `inherited from ${forumTitles.get(cell.inheritedFrom) ?? 'an ancestor'}: ${value}`
 }
 
 function CellControl({ cell }: { cell: MatrixCell }) {
-  if (cell.kind === "numeric") {
+  if (cell.kind === 'numeric') {
     return (
       <input
         type="number"
@@ -161,12 +153,12 @@ function CellControl({ cell }: { cell: MatrixCell }) {
     )
   }
 
-  const negative = cell.kind === "negative"
+  const negative = cell.kind === 'negative'
   return (
     <select name={cell.key} defaultValue={cell.control} className={INPUT}>
       <option value="inherit">Inherit</option>
-      <option value="grant">{negative ? "Required" : "Grant"}</option>
-      <option value="deny">{negative ? "Not required" : "Deny"}</option>
+      <option value="grant">{negative ? 'Required' : 'Grant'}</option>
+      <option value="deny">{negative ? 'Not required' : 'Deny'}</option>
     </select>
   )
 }
@@ -187,9 +179,7 @@ export function ForumPermissionRowForm({
       <FormError message={state.error} />
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-base font-semibold tracking-tight">{row.groupTitle}</h3>
-        {state.notice === "saved" && (
-          <span className="text-xs text-muted-foreground">Saved.</span>
-        )}
+        {state.notice === 'saved' && <span className="text-xs text-muted-foreground">Saved.</span>}
       </div>
 
       <input type="hidden" name="forumId" value={forumId} />
@@ -228,7 +218,7 @@ export function CopyPermissionsForm({
   return (
     <form action={action} className="flex flex-col gap-3">
       <FormError message={state.error} />
-      {state.notice === "copied" && (
+      {state.notice === 'copied' && (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
           Copied. Every forum beneath this one now has the same permissions.
         </p>
@@ -236,14 +226,13 @@ export function CopyPermissionsForm({
       <input type="hidden" name="forumId" value={forumId} />
       <div>
         <SubmitButton>
-          Copy to {forumCount} forum{forumCount === 1 ? "" : "s"} ({changeCount} change
-          {changeCount === 1 ? "" : "s"})
+          Copy to {forumCount} forum{forumCount === 1 ? '' : 's'} ({changeCount} change
+          {changeCount === 1 ? '' : 's'})
         </SubmitButton>
       </div>
       <p className="text-xs text-muted-foreground">
-        You will be asked for your password again if it is more than 15 minutes since
-        you last confirmed it. This rewrites forums you are not looking at and there is
-        no undo.
+        You will be asked for your password again if it is more than 15 minutes since you last
+        confirmed it. This rewrites forums you are not looking at and there is no undo.
       </p>
     </form>
   )
@@ -263,7 +252,7 @@ function ParentSelect({
       <option value="">— top level —</option>
       {parents.map((parent) => (
         <option key={parent.id} value={parent.id}>
-          {" ".repeat(parent.depth * 2)}
+          {' '.repeat(parent.depth * 2)}
           {parent.title}
         </option>
       ))}
@@ -281,7 +270,7 @@ export function CreateForumForm({
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      {state.notice === "created" && (
+      {state.notice === 'created' && (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">Created.</p>
       )}
 
@@ -343,7 +332,7 @@ export function MoveForumForm({
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      {state.notice === "moved" && (
+      {state.notice === 'moved' && (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
           Moved. Its subforums came with it.
         </p>
@@ -355,7 +344,7 @@ export function MoveForumForm({
         <ParentSelect
           name="newParentId"
           parents={parents}
-          defaultValue={currentParentId === null ? "" : String(currentParentId)}
+          defaultValue={currentParentId === null ? '' : String(currentParentId)}
         />
       </label>
 
@@ -363,25 +352,24 @@ export function MoveForumForm({
         <SubmitButton>Move forum</SubmitButton>
       </div>
       <p className="text-xs text-muted-foreground">
-        Everything beneath this forum moves with it, and inherits from wherever
-        it lands — so moving a busy forum under a private category hides its
-        whole subtree. You will be asked for your password again if it is more than
-        15 minutes since you last confirmed it.
+        Everything beneath this forum moves with it, and inherits from wherever it lands — so moving
+        a busy forum under a private category hides its whole subtree. You will be asked for your
+        password again if it is more than 15 minutes since you last confirmed it.
       </p>
     </form>
   )
 }
 
 const RIGHT_LABELS: Record<string, string> = {
-  canEditPosts: "Edit posts",
-  canSoftDeletePosts: "Delete posts",
-  canRestorePosts: "Restore posts",
-  canApproveContent: "Approve content",
-  canOpenCloseThreads: "Open and close threads",
-  canStickThreads: "Stick threads",
-  canMoveThreads: "Move threads",
-  canMergeThreads: "Merge threads",
-  canSplitThreads: "Split threads",
+  canEditPosts: 'Edit posts',
+  canSoftDeletePosts: 'Delete posts',
+  canRestorePosts: 'Restore posts',
+  canApproveContent: 'Approve content',
+  canOpenCloseThreads: 'Open and close threads',
+  canStickThreads: 'Stick threads',
+  canMoveThreads: 'Move threads',
+  canMergeThreads: 'Merge threads',
+  canSplitThreads: 'Split threads',
 }
 
 export interface ModeratorRow {
@@ -420,12 +408,12 @@ export function ModeratorsPanel({
                 <span className="text-sm font-medium">{moderator.subject}</span>
                 <span className="text-xs text-muted-foreground">
                   {rights.filter((right) => moderator.rights[right] === true).length === 0
-                    ? "No rights — can read the queue and nothing else"
+                    ? 'No rights — can read the queue and nothing else'
                     : rights
                         .filter((right) => moderator.rights[right] === true)
                         .map((right) => RIGHT_LABELS[right] ?? right)
-                        .join(", ")}
-                  {moderator.cascadeToSubforums && " · also in subforums"}
+                        .join(', ')}
+                  {moderator.cascadeToSubforums && ' · also in subforums'}
                 </span>
               </span>
               <form action={remove}>
@@ -445,9 +433,7 @@ export function ModeratorsPanel({
 
       <form action={appoint} className={PANEL_CARD}>
         <FormError message={appointState.error} />
-        {appointState.notice === "saved" && (
-          <p className="text-sm text-muted-foreground">Saved.</p>
-        )}
+        {appointState.notice === 'saved' && <p className="text-sm text-muted-foreground">Saved.</p>}
         <h3 className="text-sm font-medium">Appoint, or change what somebody may do</h3>
         <input type="hidden" name="forumId" value={forumId} />
 
@@ -469,8 +455,8 @@ export function ModeratorsPanel({
           </label>
         </div>
         <p className="text-xs text-muted-foreground">
-          One or the other. Appointing somebody who already moderates here
-          replaces what they may do.
+          One or the other. Appointing somebody who already moderates here replaces what they may
+          do.
         </p>
 
         <fieldset className="grid gap-2 sm:grid-cols-2">

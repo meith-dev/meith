@@ -1,5 +1,5 @@
-import { Card, CardContent, CardFooter } from '@meith/ui'
 import type { AnnouncementModel } from '@meith/theme-kit'
+import { Card, CardContent, CardFooter } from '@meith/ui'
 
 import { ClubBar, HEADING, MICRO, MUTED_LINK, Stamp, UserRef } from '../shared'
 

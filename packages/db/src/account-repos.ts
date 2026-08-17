@@ -1,13 +1,11 @@
 import { and, desc, eq, gt, isNull, lt, ne, or, sql } from 'drizzle-orm'
 
-import { withinRotationGrace } from '@meith/accounts'
-
 import type {
   AccountRecord,
   AccountRepository,
   AccountState,
-  ActiveSessionRecord,
   AccountStore,
+  ActiveSessionRecord,
   CredentialPurpose,
   CredentialTokenRepository,
   LoginAttemptRepository,
@@ -18,25 +16,17 @@ import type {
   SessionRecord,
   SessionRepository,
 } from '@meith/accounts'
+import { withinRotationGrace } from '@meith/accounts'
 
 import type { Database } from './client'
-import {
-  PostgresPasskeyRepository,
-  PostgresUserIdentityRepository,
-} from './identity-link-repo'
+import { PostgresPasskeyRepository, PostgresUserIdentityRepository } from './identity-link-repo'
 import { resultRows } from './result-rows'
+import { credentialTokens, loginAttempts, rememberTokens, sessions, users } from './schema'
 import {
   PostgresAuthEventRepository,
   PostgresRecoveryCodeRepository,
   PostgresTwoFactorRepository,
 } from './two-factor-repo'
-import {
-  credentialTokens,
-  loginAttempts,
-  rememberTokens,
-  sessions,
-  users,
-} from './schema'
 
 function toAccountRecord(row: {
   id: number
@@ -60,7 +50,6 @@ function toAccountRecord(row: {
     passwordAlgo: row.passwordAlgo,
     state: row.state as AccountState,
     emailVerifiedAt: row.emailVerifiedAt,
-    // eslint-disable-next-line no-restricted-properties -- reading a column to transport into the record, not a decision
     primaryGroupId: row.primaryGroupId,
   }
 }
@@ -75,7 +64,6 @@ const ACCOUNT_COLUMNS = {
   passwordAlgo: users.passwordAlgo,
   state: users.state,
   emailVerifiedAt: users.emailVerifiedAt,
-  // eslint-disable-next-line no-restricted-properties -- selecting a column to transport, not a decision
   primaryGroupId: users.primaryGroupId,
 } as const
 
@@ -83,11 +71,7 @@ export class PostgresAccountRepository implements AccountRepository {
   constructor(private readonly db: Database) {}
 
   async findById(id: number): Promise<AccountRecord | null> {
-    const rows = await this.db
-      .select(ACCOUNT_COLUMNS)
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1)
+    const rows = await this.db.select(ACCOUNT_COLUMNS).from(users).where(eq(users.id, id)).limit(1)
     return rows[0] ? toAccountRecord(rows[0]) : null
   }
 
@@ -120,7 +104,6 @@ export class PostgresAccountRepository implements AccountRepository {
         passwordHash: input.passwordHash,
         passwordAlgo: input.passwordAlgo,
         state: input.state,
-        // eslint-disable-next-line no-restricted-properties -- writing the persisted column, not a decision
         primaryGroupId: input.primaryGroupId,
         registrationIpPrefix: input.registrationIpPrefix ?? null,
       })
@@ -132,11 +115,7 @@ export class PostgresAccountRepository implements AccountRepository {
     await this.db.update(users).set({ lastIpPrefix: prefix }).where(eq(users.id, userId))
   }
 
-  async updatePassword(
-    userId: number,
-    passwordHash: string,
-    passwordAlgo: string,
-  ): Promise<void> {
+  async updatePassword(userId: number, passwordHash: string, passwordAlgo: string): Promise<void> {
     await this.db
       .update(users)
       .set({ passwordHash, passwordAlgo, passwordChangedAt: new Date() })
@@ -181,10 +160,7 @@ export class PostgresAccountRepository implements AccountRepository {
       .update(users)
       .set({ lastActiveAt: now })
       .where(
-        and(
-          eq(users.id, userId),
-          or(isNull(users.lastActiveAt), lt(users.lastActiveAt, cutoff)),
-        ),
+        and(eq(users.id, userId), or(isNull(users.lastActiveAt), lt(users.lastActiveAt, cutoff))),
       )
       .returning({ id: users.id })
     return rows.length > 0
@@ -225,10 +201,7 @@ export class PostgresSessionRepository implements SessionRepository {
     return toSessionRecord(row)
   }
 
-  async listActiveForUser(
-    userId: number,
-    now: Date,
-  ): Promise<readonly ActiveSessionRecord[]> {
+  async listActiveForUser(userId: number, now: Date): Promise<readonly ActiveSessionRecord[]> {
     return this.db
       .select({
         id: sessions.id,
@@ -240,20 +213,13 @@ export class PostgresSessionRepository implements SessionRepository {
       })
       .from(sessions)
       .where(
-        and(
-          eq(sessions.userId, userId),
-          isNull(sessions.revokedAt),
-          gt(sessions.expiresAt, now),
-        ),
+        and(eq(sessions.userId, userId), isNull(sessions.revokedAt), gt(sessions.expiresAt, now)),
       )
       .orderBy(desc(sessions.lastSeenAt))
   }
 
   async revoke(sessionId: number): Promise<void> {
-    await this.db
-      .update(sessions)
-      .set({ revokedAt: new Date() })
-      .where(eq(sessions.id, sessionId))
+    await this.db.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.id, sessionId))
   }
 
   async revokeOwned(userId: number, sessionId: number, now: Date): Promise<boolean> {
@@ -261,11 +227,7 @@ export class PostgresSessionRepository implements SessionRepository {
       .update(sessions)
       .set({ revokedAt: now })
       .where(
-        and(
-          eq(sessions.id, sessionId),
-          eq(sessions.userId, userId),
-          isNull(sessions.revokedAt),
-        ),
+        and(eq(sessions.id, sessionId), eq(sessions.userId, userId), isNull(sessions.revokedAt)),
       )
       .returning({ id: sessions.id })
     return rows.length > 0
@@ -354,9 +316,7 @@ function toSessionRecord(row: {
   }
 }
 
-export class PostgresCredentialTokenRepository
-  implements CredentialTokenRepository
-{
+export class PostgresCredentialTokenRepository implements CredentialTokenRepository {
   constructor(private readonly db: Database) {}
 
   async issue(input: {
@@ -419,10 +379,7 @@ export class PostgresCredentialTokenRepository
     return row ? { userId: row.userId, payload: row.payload } : null
   }
 
-  async revokeAllForUser(
-    userId: number,
-    purpose: CredentialPurpose,
-  ): Promise<void> {
+  async revokeAllForUser(userId: number, purpose: CredentialPurpose): Promise<void> {
     await this.db
       .update(credentialTokens)
       .set({ consumedAt: new Date() })
@@ -440,9 +397,7 @@ export class PostgresLoginAttemptRepository implements LoginAttemptRepository {
   constructor(private readonly db: Database) {}
 
   async record(bucket: string, succeeded: boolean, at: Date): Promise<void> {
-    await this.db
-      .insert(loginAttempts)
-      .values({ bucket, succeeded, occurredAt: at })
+    await this.db.insert(loginAttempts).values({ bucket, succeeded, occurredAt: at })
   }
 
   async countFailuresSince(bucket: string, since: Date): Promise<number> {

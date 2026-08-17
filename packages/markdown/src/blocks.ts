@@ -1,7 +1,7 @@
 import { NodeBudget } from './budget'
-import { NO_DIRECTIVES, type DirectiveRegistry } from './extensions'
+import { type DirectiveRegistry, NO_DIRECTIVES } from './extensions'
 import { FULL_FEATURES, type MarkdownFeatures } from './features'
-import { parseInline, type InlineContext } from './inline'
+import { type InlineContext, parseInline } from './inline'
 import { DEFAULT_LIMITS, type MarkdownLimits } from './limits'
 import type { Alignment, Block, ListItem, MarkdownDocument, TableCell } from './nodes'
 
@@ -69,7 +69,10 @@ function startsBlock(line: string, context: Context): boolean {
 }
 
 function splitRow(line: string): string[] {
-  const trimmed = line.trim().replace(/^\|/, '').replace(/(?<!\\)\|$/, '')
+  const trimmed = line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/(?<!\\)\|$/, '')
   const cells: string[] = []
   let current = ''
   for (let index = 0; index < trimmed.length; index += 1) {
@@ -124,7 +127,10 @@ export function parse(source: string, options: ParseOptions = {}): MarkdownDocum
   const blocks = parseBlocks(lines, context, 0)
 
   if (limited) {
-    blocks.push({ kind: 'paragraph', inline: [{ kind: 'text', value: source.slice(limits.maxInput) }] })
+    blocks.push({
+      kind: 'paragraph',
+      inline: [{ kind: 'text', value: source.slice(limits.maxInput) }],
+    })
   }
 
   return { blocks, truncated: limited || budget.exhausted }
@@ -308,7 +314,9 @@ function parseBlocks(lines: readonly string[], context: Context, depth: number):
     if (text !== '') {
       const inline = parseInline(text, context.inline)
       const block: Block =
-        heading === null ? { kind: 'paragraph', inline } : { kind: 'heading', level: heading, inline }
+        heading === null
+          ? { kind: 'paragraph', inline }
+          : { kind: 'heading', level: heading, inline }
       if (!add(block)) {
         surrender(index)
         break
@@ -331,7 +339,12 @@ function listMarker(line: string): Marker | null {
   const bullet = BULLET.exec(line)
   if (bullet !== null) {
     const spaces = bullet[3] === '' ? 1 : bullet[3]!.length
-    return { ordered: false, start: 1, width: bullet[1]!.length + 1 + spaces, delimiter: bullet[2]! }
+    return {
+      ordered: false,
+      start: 1,
+      width: bullet[1]!.length + 1 + spaces,
+      delimiter: bullet[2]!,
+    }
   }
   const ordered = ORDERED.exec(line)
   if (ordered !== null) {
@@ -359,7 +372,8 @@ function readList(
 
   while (index < lines.length) {
     const marker = listMarker(lines[index]!)
-    if (marker === null || marker.ordered !== first.ordered || marker.delimiter !== first.delimiter) break
+    if (marker === null || marker.ordered !== first.ordered || marker.delimiter !== first.delimiter)
+      break
 
     const itemLines: string[] = [lines[index]!.slice(marker.width)]
     index += 1
@@ -387,7 +401,8 @@ function readList(
 
     while (itemLines.length > 0 && isBlank(itemLines[itemLines.length - 1])) itemLines.pop()
     if (itemLines.some(isBlank)) loose = true
-    if (trailingBlanks > 0 && index < lines.length && listMarker(lines[index]!) !== null) loose = true
+    if (trailingBlanks > 0 && index < lines.length && listMarker(lines[index]!) !== null)
+      loose = true
 
     let checked: boolean | null = null
     const task = TASK.exec(itemLines[0] ?? '')
@@ -401,7 +416,13 @@ function readList(
   }
 
   return {
-    block: { kind: 'list', ordered: first.ordered, start: first.ordered ? first.start : 1, tight: !loose, items },
+    block: {
+      kind: 'list',
+      ordered: first.ordered,
+      start: first.ordered ? first.start : 1,
+      tight: !loose,
+      items,
+    },
     end: index,
   }
 }
@@ -422,9 +443,7 @@ function readTable(
     if (isBlank(line) || !line.includes('|')) break
     if (startsBlock(line, context)) break
     const cells = splitRow(line)
-    rows.push(
-      Array.from({ length: header.length }, (_unused, column) => cell(cells[column] ?? '')),
-    )
+    rows.push(Array.from({ length: header.length }, (_unused, column) => cell(cells[column] ?? '')))
     index += 1
     if (context.budget.spent) break
   }

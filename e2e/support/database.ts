@@ -10,6 +10,12 @@ import { hashPassword } from '@meith/accounts'
 import { DUES_MIGRATIONS } from '@meith/plugin-dues/schema'
 
 import {
+  SEED_FORUM_ROWS,
+  SEED_MEMBER_PROFILES,
+  SEED_POST_ROWS,
+  SEED_THREAD_ROWS,
+} from '../../apps/community/src/server/seed-board'
+import {
   E2E_DATABASE_URL,
   E2E_DB_PORT,
   E2E_INSTALL_DATABASE_URL,
@@ -19,13 +25,6 @@ import {
   STAFF_PASSWORD,
 } from './config'
 import { samplePng } from './png'
-
-import {
-  SEED_FORUM_ROWS,
-  SEED_MEMBER_PROFILES,
-  SEED_POST_ROWS,
-  SEED_THREAD_ROWS,
-} from '../../apps/community/src/server/seed-board'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const MIGRATIONS = path.resolve(here, '../../packages/db/migrations')
@@ -143,13 +142,15 @@ function seedSql(staffHash: string): string {
     visibility: thread.visibility,
     is_sticky: thread.isSticky,
     is_locked: thread.isLocked,
-    first_post_id: SEED_POST_ROWS.find((p) => p.threadId === thread.id && p.isFirstPost)?.id ?? null,
+    first_post_id:
+      SEED_POST_ROWS.find((p) => p.threadId === thread.id && p.isFirstPost)?.id ?? null,
     last_post_id: thread.lastPost?.postId ?? null,
     last_post_at: thread.lastPost?.at ?? null,
     last_post_user_id: thread.lastPost?.userId ?? null,
     last_post_username: thread.lastPost?.username ?? null,
-    created_at: SEED_POST_ROWS.find((p) => p.threadId === thread.id && p.isFirstPost)?.createdAt
-      ?? new Date('2026-07-29T09:00:00Z'),
+    created_at:
+      SEED_POST_ROWS.find((p) => p.threadId === thread.id && p.isFirstPost)?.createdAt ??
+      new Date('2026-07-29T09:00:00Z'),
   }))
 
   const posts = SEED_POST_ROWS.map((post) => ({
@@ -314,7 +315,8 @@ export async function startDatabase(
   }
 }
 
-const invokedDirectly = process.argv[1] !== undefined &&
+const invokedDirectly =
+  process.argv[1] !== undefined &&
   path.resolve(process.argv[1]).startsWith(path.resolve(here, 'database'))
 
 if (invokedDirectly) {
@@ -324,7 +326,7 @@ if (invokedDirectly) {
     const { stop } = await startDatabase(
       empty ? { seeded: false, port: E2E_INSTALL_DB_PORT, maxConnections: 2 } : {},
     )
-    // eslint-disable-next-line no-console -- this is a process; its output is its status
+    // biome-ignore lint/suspicious/noConsole: this is a process; its output is its status
     console.log(
       empty
         ? `e2e install database (empty) listening on ${E2E_INSTALL_DATABASE_URL}`

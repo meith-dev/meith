@@ -1,5 +1,5 @@
-import { Avatar, Card, CardContent, cn } from '@meith/ui'
 import type { MemberProfileModel } from '@meith/theme-kit'
+import { Avatar, Card, CardContent, cn } from '@meith/ui'
 
 import { BUTTON, ClubBar, HEADING, MICRO, NUMERIC, PAGE_BODY, PanelHead, Stamp } from '../shared'
 

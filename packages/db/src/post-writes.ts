@@ -10,10 +10,10 @@ import type {
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
-import { SEARCH_DOCUMENT_VERSION, indexedSubjectSql, searchVectorSql } from './search-repo'
+import { indexedSubjectSql, SEARCH_DOCUMENT_VERSION, searchVectorSql } from './search-repo'
 import { logModeratorAction } from './thread-counters'
-import { readBoardVocabulary } from './vocabulary-repo'
 import { applyVisibilityChangeCounters } from './visibility-counters'
+import { readBoardVocabulary } from './vocabulary-repo'
 
 function isCounted(visibility: string): boolean {
   return visibility === 'visible'

@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 export interface CustomFieldInput {
   readonly key: string
@@ -15,17 +15,11 @@ export function fieldInputName(key: string): string {
   return `field:${key}`
 }
 
-export function CustomField({
-  field,
-  className,
-}: {
-  field: CustomFieldInput
-  className: string
-}) {
+export function CustomField({ field, className }: { field: CustomFieldInput; className: string }) {
   const name = fieldInputName(field.key)
 
   const control =
-    field.type === "textarea" ? (
+    field.type === 'textarea' ? (
       <textarea
         name={name}
         defaultValue={field.value}
@@ -34,8 +28,13 @@ export function CustomField({
         maxLength={field.maxLength}
         required={field.required}
       />
-    ) : field.type === "select" ? (
-      <select name={name} defaultValue={field.value} className={className} required={field.required}>
+    ) : field.type === 'select' ? (
+      <select
+        name={name}
+        defaultValue={field.value}
+        className={className}
+        required={field.required}
+      >
         {field.required ? null : <option value="">—</option>}
         {field.options.map((option) => (
           <option key={option} value={option}>
@@ -43,12 +42,12 @@ export function CustomField({
           </option>
         ))}
       </select>
-    ) : field.type === "checkbox" ? (
+    ) : field.type === 'checkbox' ? (
       <input
         type="checkbox"
         name={name}
         value="yes"
-        defaultChecked={field.value !== ""}
+        defaultChecked={field.value !== ''}
         className="size-4 rounded border-border"
         required={field.required}
       />
@@ -60,11 +59,12 @@ export function CustomField({
         className={className}
         maxLength={field.maxLength}
         required={field.required}
-        inputMode={field.type === "number" ? "numeric" : field.type === "url" ? "url" : undefined}
+        inputMode={field.type === 'number' ? 'numeric' : field.type === 'url' ? 'url' : undefined}
       />
     )
 
   return (
+    // biome-ignore lint/a11y/noLabelWithoutControl: the control is built above and inserted as {control}
     <label className="flex flex-col gap-1 text-sm">
       <span className="font-medium">
         {field.label}

@@ -1,18 +1,17 @@
 import { ForbiddenError, NotFoundError, ValidationError } from '@meith/core'
 import {
+  type BoardVocabulary,
   EMPTY_VOCABULARY,
   quoteBlock,
   renderMarkdown,
   sourceAsMarkdown,
   vocabularyOptions,
-  type BoardVocabulary,
 } from '@meith/markdown'
 
 import {
   BODY_MAX,
-  MAX_RECIPIENTS,
-  SUBJECT_MAX,
   type FolderCounts,
+  MAX_RECIPIENTS,
   type MessageDetail,
   type MessageFolder,
   type MessageListRow,
@@ -21,6 +20,7 @@ import {
   type MessageRepository,
   type PrivateMessage,
   type ResolvedRecipient,
+  SUBJECT_MAX,
 } from './types'
 
 export const MESSAGES_PAGE_SIZE = 25
@@ -126,8 +126,7 @@ export class MessageService {
 
     return {
       participants: detail.participants.filter(
-        (participant) =>
-          participant.role !== 'bcc' || isAuthor || participant.userId === userId,
+        (participant) => participant.role !== 'bcc' || isAuthor || participant.userId === userId,
       ),
       me: me?.username ?? '',
     }
@@ -262,9 +261,7 @@ export class MessageService {
     }
 
     if (closed.length > 0) {
-      throw new ForbiddenError(
-        `${closed.join(', ')} cannot receive private messages.`,
-      )
+      throw new ForbiddenError(`${closed.join(', ')} cannot receive private messages.`)
     }
     if (full.length > 0) {
       throw new ForbiddenError(

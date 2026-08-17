@@ -1,42 +1,42 @@
-import {
-  requireSlot,
-  type OptionModel,
-  type SearchAdvancedModel,
-  type SearchFormModel,
-} from '@meith/theme-kit'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { isInSubtree } from '@meith/forums'
 import {
   MAX_QUERY_LENGTH,
-  SEARCH_GROUPINGS,
-  SEARCH_MATCHES,
-  SEARCH_PERIODS,
-  SEARCH_SORTS,
   readGrouping,
   readMatch,
   readPeriod,
   readSort,
+  SEARCH_GROUPINGS,
+  SEARCH_MATCHES,
+  SEARCH_PERIODS,
+  SEARCH_SORTS,
   type SearchFilterSet,
 } from '@meith/search'
+import {
+  type OptionModel,
+  requireSlot,
+  type SearchAdvancedModel,
+  type SearchFormModel,
+} from '@meith/theme-kit'
 
 import { SearchOffNotice } from '@/components/board/search-off-notice'
-import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
+import { getActor } from '@/server/context'
+import { filterView, viewerRef } from '@/server/plugin-view'
 import { SEARCH_OFF_MESSAGE, searchEnabled } from '@/server/search'
-import { MAX_AUTHOR_NAMES, runSearch, type RunSearchOutcome } from '@/server/search-page'
+import { MAX_AUTHOR_NAMES, type RunSearchOutcome, runSearch } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
 import { currentTheme } from '@/server/theme'
-import { filterView, viewerRef } from '@/server/plugin-view'
 import {
+  choiceOptions,
   GROUPING_LABELS,
   MATCH_LABELS,
   PERIOD_LABELS,
   SEARCH_FIELDS,
   SORT_LABELS,
   SUBFORUMS_ON,
-  choiceOptions,
 } from '@/view/search-controls'
 
 export const metadata: Metadata = { title: 'Search' }

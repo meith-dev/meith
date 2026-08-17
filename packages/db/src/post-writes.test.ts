@@ -1,18 +1,18 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { RENDER_VERSION } from '@meith/markdown'
 import { PUBLIC_CONTENT } from '@meith/core'
+import { RENDER_VERSION } from '@meith/markdown'
 
 import type { Database } from './client'
+import { rollUpAncestorCounters } from './content-counters'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresPostWriteRepository } from './post-writes'
+import { resultRows } from './result-rows'
+import { forums, users } from './schema'
 import { PostgresSearchRepository } from './search-repo'
 import { PostgresThreadWriteRepository } from './thread-writes'
-import { resultRows } from './result-rows'
 import { applyAncestorVisibilityChange } from './visibility-counters'
-import { rollUpAncestorCounters } from './content-counters'
-import { forums, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -278,8 +278,20 @@ describe('applyEdit', () => {
     )
 
     const found = await new PostgresSearchRepository(db).search(
-      { terms: 'hello', match: 'everything', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
-      { forumIds: [FORUM], ownThreadsOnlyForumIds: [], viewerUserId: null, content: PUBLIC_CONTENT },
+      {
+        terms: 'hello',
+        match: 'everything',
+        grouping: 'posts',
+        sort: 'relevance',
+        limit: 10,
+        after: null,
+      },
+      {
+        forumIds: [FORUM],
+        ownThreadsOnlyForumIds: [],
+        viewerUserId: null,
+        content: PUBLIC_CONTENT,
+      },
     )
     expect(found.hits.map((hit) => hit.postId)).toEqual([first])
   })
@@ -437,7 +449,9 @@ describe('applyVisibility', () => {
     await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))
     const after = await forumRow(FORUM)
 
-    expect(await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))).toBe(false)
+    expect(await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))).toBe(
+      false,
+    )
     expect(await forumRow(FORUM)).toMatchObject({ post_count: after.post_count })
   })
 
@@ -493,9 +507,10 @@ describe('applyVisibility', () => {
 
     await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))
 
-    const events = resultRows(
-      await db.execute(sql`select topic, payload from outbox`),
-    ) as Array<{ topic: string; payload: { postId: number; visible: boolean } }>
+    const events = resultRows(await db.execute(sql`select topic, payload from outbox`)) as Array<{
+      topic: string
+      payload: { postId: number; visible: boolean }
+    }>
 
     expect(events).toHaveLength(1)
     expect(events[0]).toMatchObject({
@@ -572,10 +587,7 @@ describe('the moderator log a single-post write leaves', () => {
     await repo.applyVisibility(visibility(postIds[1]!, threadId, 'visible', 'deleted', MOD))
     await repo.applyVisibility(visibility(postIds[1]!, threadId, 'deleted', 'visible', MOD))
 
-    expect((await logRows()).map((row) => row.action)).toEqual([
-      'post.delete',
-      'post.restore',
-    ])
+    expect((await logRows()).map((row) => row.action)).toEqual(['post.delete', 'post.restore'])
   })
 
   it('says nothing when a member removes their own post', async () => {

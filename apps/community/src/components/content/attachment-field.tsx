@@ -1,8 +1,9 @@
 'use client'
 
-import { ACCEPTED_EXTENSIONS, ATTACHMENT_FIELD } from '@meith/attachments/types'
-import { maxBytesFor, maxPerPostFor, type UploadLimits } from '@meith/attachments/limits'
 import { useRef } from 'react'
+
+import { maxBytesFor, maxPerPostFor, type UploadLimits } from '@meith/attachments/limits'
+import { ACCEPTED_EXTENSIONS, ATTACHMENT_FIELD } from '@meith/attachments/types'
 
 import { formatBytes } from '@/view/attachments'
 
@@ -38,8 +39,8 @@ export function AttachmentField({ limits }: { limits: UploadLimits }) {
       />
       <p id={`${ATTACHMENT_FIELD}-limits`} className="text-xs text-muted-foreground">
         Drop files here, or choose up to {perPost} file{perPost === 1 ? '' : 's'} of{' '}
-        {formatBytes(maxBytes)} each — PNG, JPEG, PDF or ZIP. Images are re-encoded,
-        which removes any metadata they carry.
+        {formatBytes(maxBytes)} each — PNG, JPEG, PDF or ZIP. Images are re-encoded, which removes
+        any metadata they carry.
       </p>
     </div>
   )

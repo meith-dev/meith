@@ -82,9 +82,7 @@ export function visibleChildren(
   section: PanelSection,
   deepest: string | null,
 ): readonly PanelSubsection[] {
-  return (section.children ?? []).filter(
-    (child) => child.record !== true || child.href === deepest,
-  )
+  return (section.children ?? []).filter((child) => child.record !== true || child.href === deepest)
 }
 
 export type PanelCounts = Readonly<Record<string, number>>

@@ -3,9 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { SEED_FORUM_ROWS, SEED_POST_ROWS, SEED_THREAD_ROWS } from './seed-board'
 
 function subtree(path: string): readonly (typeof SEED_FORUM_ROWS)[number][] {
-  return SEED_FORUM_ROWS.filter(
-    (forum) => forum.path === path || forum.path.startsWith(`${path}.`),
-  )
+  return SEED_FORUM_ROWS.filter((forum) => forum.path === path || forum.path.startsWith(`${path}.`))
 }
 
 describe('fixture board', () => {
@@ -38,9 +36,7 @@ describe('fixture board', () => {
       const threads = SEED_THREAD_ROWS.filter((thread) =>
         beneath.some((row) => row.id === thread.forumId),
       )
-      const posts = SEED_POST_ROWS.filter((post) =>
-        beneath.some((row) => row.id === post.forumId),
-      )
+      const posts = SEED_POST_ROWS.filter((post) => beneath.some((row) => row.id === post.forumId))
 
       expect(forum.threadCount, `${forum.title} thread count`).toBe(threads.length)
       expect(forum.postCount, `${forum.title} post count`).toBe(posts.length)
@@ -48,9 +44,7 @@ describe('fixture board', () => {
       const newest = [...posts].sort(
         (a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id - a.id,
       )[0]
-      expect(forum.lastPost?.postId ?? null, `${forum.title} last post`).toBe(
-        newest?.id ?? null,
-      )
+      expect(forum.lastPost?.postId ?? null, `${forum.title} last post`).toBe(newest?.id ?? null)
     }
   })
 })

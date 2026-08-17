@@ -4,8 +4,8 @@ import { useActionState } from 'react'
 
 import { cn } from '@meith/ui'
 
-import { thankForPostAction } from '@/server/reputation-actions'
 import { EMPTY_STATE } from '@/server/auth-form-state'
+import { thankForPostAction } from '@/server/reputation-actions'
 
 export function ThanksButton({
   postId,
@@ -44,7 +44,10 @@ export function ThanksButton({
         {count > 0 && (
           <span className="tabular-nums opacity-70">
             {count}
-            <span className="sr-only"> {count === 1 ? 'person has' : 'people have'} thanked this</span>
+            <span className="sr-only">
+              {' '}
+              {count === 1 ? 'person has' : 'people have'} thanked this
+            </span>
           </span>
         )}
       </button>

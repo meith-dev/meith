@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
+import { PruneForm } from '@/components/admin/user-forms'
 import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
-import { PruneForm } from '@/components/admin/user-forms'
 import { adminPageContext } from '@/server/admin'
 import { parsePruneCriteria, userBulkRepository } from '@/server/user-admin'
 
@@ -23,8 +23,7 @@ export default async function AdminPrunePage({
     return (
       <PanelPage title="Prune members">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it has no membership to
-          sweep.
+          This board is running on in-memory sample data, so it has no membership to sweep.
         </p>
       </PanelPage>
     )
@@ -46,26 +45,17 @@ export default async function AdminPrunePage({
       title="Prune members"
       lede={
         <>
-          Closes dormant accounts in batches. It will never touch anybody who has posted —
-          including posts still held for approval or already removed — anybody in a staff
-          group or any group carrying staff powers, any forum moderator, or a banned
-          account. Those are exclusions rather than options, because closing one of them
-          does damage a date filter cannot justify.
+          Closes dormant accounts in batches. It will never touch anybody who has posted — including
+          posts still held for approval or already removed — anybody in a staff group or any group
+          carrying staff powers, any forum moderator, or a banned account. Those are exclusions
+          rather than options, because closing one of them does damage a date filter cannot justify.
         </>
       }
     >
-      <form
-        method="get"
-        className={PANEL_CARD}
-      >
+      <form method="get" className={PANEL_CARD}>
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Registered before</span>
-          <input
-            type="date"
-            name="before"
-            defaultValue={value('before')}
-            className={INPUT}
-          />
+          <input type="date" name="before" defaultValue={value('before')} className={INPUT} />
           <span className="text-xs text-muted-foreground">
             Required. Without it a prune matches everybody.
           </span>
@@ -73,12 +63,7 @@ export default async function AdminPrunePage({
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Not seen since</span>
-          <input
-            type="date"
-            name="inactive"
-            defaultValue={value('inactive')}
-            className={INPUT}
-          />
+          <input type="date" name="inactive" defaultValue={value('inactive')} className={INPUT} />
           <span className="text-xs text-muted-foreground">
             Members who have never been seen at all count as inactive.
           </span>
@@ -106,13 +91,11 @@ export default async function AdminPrunePage({
       </form>
 
       {criteria === null ? (
-        <p className={PANEL_NOTE}>
-          Choose a registration date to see what a prune would reach.
-        </p>
+        <p className={PANEL_NOTE}>Choose a registration date to see what a prune would reach.</p>
       ) : preview !== null && preview.total === 0 ? (
         <p className={PANEL_NOTE}>
-          Nothing matches. Every account registered before that date has written
-          something, is staff, moderates a forum, or is banned.
+          Nothing matches. Every account registered before that date has written something, is
+          staff, moderates a forum, or is banned.
         </p>
       ) : preview !== null ? (
         <section className={PANEL_CARD}>

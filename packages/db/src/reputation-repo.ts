@@ -1,11 +1,7 @@
 import type { SQLWrapper } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 
-import type {
-  ReputationRepository,
-  ReputationRow,
-  ReputationSummary,
-} from '@meith/reputation'
+import type { ReputationRepository, ReputationRow, ReputationSummary } from '@meith/reputation'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -86,11 +82,7 @@ export class PostgresReputationRepository implements ReputationRepository {
     return this.db.transaction(async (tx) => {
       if (input.maxPerDay > 0) {
         const startOfDay = new Date(
-          Date.UTC(
-            input.at.getUTCFullYear(),
-            input.at.getUTCMonth(),
-            input.at.getUTCDate(),
-          ),
+          Date.UTC(input.at.getUTCFullYear(), input.at.getUTCMonth(), input.at.getUTCDate()),
         )
 
         const counted = resultRows(

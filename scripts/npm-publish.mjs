@@ -29,7 +29,9 @@ while (remaining.size > 0) {
     )
     .sort((a, b) => (a.name < b.name ? -1 : 1))
   if (ready.length === 0) {
-    console.error(`✗ npm publish: dependency cycle among ${[...remaining.keys()].sort().join(', ')}`)
+    console.error(
+      `✗ npm publish: dependency cycle among ${[...remaining.keys()].sort().join(', ')}`,
+    )
     process.exit(1)
   }
   const next = ready[0]

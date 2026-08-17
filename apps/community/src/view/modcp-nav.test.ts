@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { flattenNav, isUnder, visibleChildren } from './panel-nav'
 import {
-  MODCP_OVERVIEW,
   activeSectionHref,
   currentProps,
   deepestNavHref,
+  MODCP_OVERVIEW,
   modCpNav,
   modCpSections,
 } from './modcp-nav'
+import { flattenNav, isUnder, visibleChildren } from './panel-nav'
 
 const FULL = { canWarn: true, canLookUpIp: true }
 const PLAIN = { canWarn: false, canLookUpIp: false }

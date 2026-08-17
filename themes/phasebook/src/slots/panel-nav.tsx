@@ -1,5 +1,5 @@
-import { Disclosure, cn } from '@meith/ui'
 import type { PanelNavItemModel, PanelNavModel } from '@meith/theme-kit'
+import { cn, Disclosure } from '@meith/ui'
 
 import { Chip } from '../shared'
 

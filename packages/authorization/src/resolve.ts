@@ -1,8 +1,4 @@
-import {
-  FORUM_PERMISSION_FIELDS,
-  type ForumPermissions,
-  type PermissionSet,
-} from '@meith/core'
+import { FORUM_PERMISSION_FIELDS, type ForumPermissions, type PermissionSet } from '@meith/core'
 
 import { combineGroupValue } from './combine'
 import type { ForumOverride, GroupDefaults } from './types'
@@ -34,9 +30,7 @@ export function resolveForumMatrix(
   return out as ForumPermissions
 }
 
-export function indexOverrides(
-  overrides: readonly ForumOverride[],
-): Map<string, ForumOverride> {
+export function indexOverrides(overrides: readonly ForumOverride[]): Map<string, ForumOverride> {
   const map = new Map<string, ForumOverride>()
   for (const o of overrides) map.set(`${o.forumId}:${o.groupId}`, o)
   return map

@@ -1,10 +1,6 @@
 import { sql } from 'drizzle-orm'
 
-import type {
-  MemberGroupChoice,
-  MemberSettings,
-  MemberSettingsRepository,
-} from '@meith/accounts'
+import type { MemberGroupChoice, MemberSettings, MemberSettingsRepository } from '@meith/accounts'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

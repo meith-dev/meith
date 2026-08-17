@@ -1,29 +1,30 @@
-import { ValidationError } from '@meith/core'
 import { beforeEach, describe, expect, it } from 'vitest'
+
+import { ValidationError } from '@meith/core'
 
 import {
   ATTACHMENT_TYPES,
+  type AttachmentRecord,
+  type AttachmentRepository,
   AttachmentService,
-  HARD_MAX_BYTES,
-  HARD_MAX_PER_POST,
-  MAX_MEGAPIXELS,
-  ORPHAN_GRACE_MINUTES,
-  PROCESSING_GRACE_MINUTES,
   acceptFile,
   acceptFiles,
   attachmentType,
+  type CreateAttachmentInput,
   declaredDimensions,
+  HARD_MAX_BYTES,
+  HARD_MAX_PER_POST,
+  type ImageProcessor,
+  type IncomingFile,
+  MAX_MEGAPIXELS,
   maxBytesFor,
   maxPerPostFor,
+  ORPHAN_GRACE_MINUTES,
+  PROCESSING_GRACE_MINUTES,
+  type ReadyInput,
   sanitiseFilename,
   sniff,
   storageKeyFor,
-  type AttachmentRecord,
-  type AttachmentRepository,
-  type CreateAttachmentInput,
-  type IncomingFile,
-  type ImageProcessor,
-  type ReadyInput,
 } from './index'
 
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
@@ -174,7 +175,10 @@ describe('sanitiseFilename', () => {
 describe('storageKeyFor', () => {
   it('is random and unrelated to the filename', () => {
     let n = 0
-    const key = storageKeyFor('source', () => `r${(n += 1)}`)
+    const key = storageKeyFor('source', () => {
+      n += 1
+      return `r${n}`
+    })
     expect(key).toBe('attachments/r1/source')
     expect(storageKeyFor('thumb', () => 'r2')).toBe('attachments/r2/thumb')
   })
@@ -228,20 +232,22 @@ describe('acceptFile', () => {
   it('refuses one over the size limit, naming the file', () => {
     const big = new Uint8Array(200 * 1024)
     big.set(png())
-    expect(() => acceptFile({ filename: 'big.png', bytes: big }, { maxPerPost: 0, maxSizeKb: 64 })).toThrow(
-      /“big.png”[\s\S]*limit/,
-    )
+    expect(() =>
+      acceptFile({ filename: 'big.png', bytes: big }, { maxPerPost: 0, maxSizeKb: 64 }),
+    ).toThrow(/“big.png”[\s\S]*limit/)
   })
 
   it('refuses a decompression bomb, which no size limit catches', () => {
-    expect(() => acceptFile({ filename: 'bomb.png', bytes: png(30_000, 30_000) }, NO_LIMITS)).toThrow(
-      /megapixel/,
-    )
+    expect(() =>
+      acceptFile({ filename: 'bomb.png', bytes: png(30_000, 30_000) }, NO_LIMITS),
+    ).toThrow(/megapixel/)
   })
 
   it('accepts an image just inside the megapixel limit', () => {
     const side = Math.floor(Math.sqrt(MAX_MEGAPIXELS * 1_000_000)) - 1
-    expect(() => acceptFile({ filename: 'ok.png', bytes: png(side, side) }, NO_LIMITS)).not.toThrow()
+    expect(() =>
+      acceptFile({ filename: 'ok.png', bytes: png(side, side) }, NO_LIMITS),
+    ).not.toThrow()
   })
 
   it('refuses an image whose header cannot be read', () => {
@@ -266,14 +272,15 @@ describe('acceptFiles', () => {
   })
 
   it('counts what the post already has', () => {
-    expect(() => acceptFiles([four[0]!], { maxPerPost: 4, maxSizeKb: 0 }, 4)).toThrow(
-      /at most 4/,
-    )
+    expect(() => acceptFiles([four[0]!], { maxPerPost: 4, maxSizeKb: 0 }, 4)).toThrow(/at most 4/)
   })
 
   it('refuses the whole submission when one file is bad', () => {
     expect(() =>
-      acceptFiles([four[0]!, { filename: 'bad.txt', bytes: new TextEncoder().encode('hello') }], NO_LIMITS),
+      acceptFiles(
+        [four[0]!, { filename: 'bad.txt', bytes: new TextEncoder().encode('hello') }],
+        NO_LIMITS,
+      ),
     ).toThrow(ValidationError)
   })
 })
@@ -418,7 +425,10 @@ beforeEach(() => {
     attachments: repo,
     files: files as never,
     images,
-    random: () => `k${(counter += 1)}`,
+    random: () => {
+      counter += 1
+      return `k${counter}`
+    },
     now: () => NOW,
   })
 })
@@ -476,7 +486,9 @@ describe('staging', () => {
 
 describe('attaching', () => {
   it('creates a pending row for an image and forgets the key', async () => {
-    const staged = await service.stage(acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS))
+    const staged = await service.stage(
+      acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS),
+    )
     const [row] = await service.attach(staged, POST)
 
     expect(row).toMatchObject({
@@ -490,16 +502,24 @@ describe('attaching', () => {
   })
 
   it('creates a ready row for an opaque file', async () => {
-    const staged = await service.stage(acceptFiles([{ filename: 'a.pdf', bytes: pdf() }], NO_LIMITS))
+    const staged = await service.stage(
+      acceptFiles([{ filename: 'a.pdf', bytes: pdf() }], NO_LIMITS),
+    )
     const [row] = await service.attach(staged, POST)
 
-    expect(row).toMatchObject({ status: 'ready', sourceKey: null, storageKey: 'attachments/k1/file' })
+    expect(row).toMatchObject({
+      status: 'ready',
+      sourceKey: null,
+      storageKey: 'attachments/k1/file',
+    })
   })
 })
 
 describe('processing', () => {
   async function pendingImage() {
-    const staged = await service.stage(acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS))
+    const staged = await service.stage(
+      acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS),
+    )
     const [row] = await service.attach(staged, POST)
     return row!
   }
@@ -610,7 +630,9 @@ describe('the sweep', () => {
   })
 
   it('fails a row whose job never finished, and drops its source', async () => {
-    const staged = await service.stage(acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS))
+    const staged = await service.stage(
+      acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS),
+    )
     const [row] = await service.attach(staged, POST)
     repo.rows = repo.rows.map((r) => ({
       ...r,
@@ -626,7 +648,9 @@ describe('the sweep', () => {
   })
 
   it('leaves a job that is merely slow alone', async () => {
-    const staged = await service.stage(acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS))
+    const staged = await service.stage(
+      acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS),
+    )
     await service.attach(staged, POST)
 
     expect(await service.sweep()).toMatchObject({ failed: 0 })

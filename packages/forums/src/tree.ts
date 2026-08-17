@@ -59,9 +59,7 @@ function isSelfOrCyclic<T extends TreeShaped>(row: T, byId: Map<number, T>): boo
   return false
 }
 
-export function flattenTree<T extends TreeShaped>(
-  nodes: readonly ForumNode<T>[],
-): ForumNode<T>[] {
+export function flattenTree<T extends TreeShaped>(nodes: readonly ForumNode<T>[]): ForumNode<T>[] {
   const out: ForumNode<T>[] = []
   const visit = (node: ForumNode<T>): void => {
     out.push(node)

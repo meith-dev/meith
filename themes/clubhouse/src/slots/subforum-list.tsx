@@ -1,5 +1,5 @@
-import { Card, CardContent } from '@meith/ui'
 import type { SubforumListModel } from '@meith/theme-kit'
+import { Card, CardContent } from '@meith/ui'
 
 import { HEADING, LINK, MICRO, NUMERIC, PanelHead } from '../shared'
 

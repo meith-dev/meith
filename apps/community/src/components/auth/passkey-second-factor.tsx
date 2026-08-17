@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from 'react'
 
-import { Alert, AlertDescription, Separator } from "@meith/ui"
-import { Button } from "@meith/ui/button"
+import { Alert, AlertDescription, Separator } from '@meith/ui'
+import { Button } from '@meith/ui/button'
 
-import { confirmWithPasskey, passkeyMessage, passkeysAvailable } from "./passkey-client"
+import { confirmWithPasskey, passkeyMessage, passkeysAvailable } from './passkey-client'
 
 export function PasskeySecondFactor({ next }: { readonly next?: string | undefined }) {
   const [available, setAvailable] = useState(false)
@@ -51,7 +51,7 @@ export function PasskeySecondFactor({ next }: { readonly next?: string | undefin
             })
         }}
       >
-        {busy ? "Waiting for your device…" : "Confirm with a passkey instead"}
+        {busy ? 'Waiting for your device…' : 'Confirm with a passkey instead'}
       </Button>
     </div>
   )

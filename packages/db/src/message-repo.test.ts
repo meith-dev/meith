@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
-import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresMessageRepository } from './message-repo'
+import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
 
 let harness: TestDb
@@ -74,7 +74,10 @@ async function copyIdFor(messageId: number, userId: number): Promise<number> {
 
 describe('send', () => {
   it('writes the message once and a copy per participant', async () => {
-    const id = await send([{ userId: BOB, bcc: false }, { userId: CAROL, bcc: false }])
+    const id = await send([
+      { userId: BOB, bcc: false },
+      { userId: CAROL, bcc: false },
+    ])
 
     const messages = resultRows(
       await db.execute(sql`select count(*)::int as n from private_messages`),
@@ -99,7 +102,10 @@ describe('send', () => {
 
   it('rolls the whole send back when one copy cannot be written', async () => {
     await expect(
-      send([{ userId: BOB, bcc: false }, { userId: BOB, bcc: true }]),
+      send([
+        { userId: BOB, bcc: false },
+        { userId: BOB, bcc: true },
+      ]),
     ).rejects.toThrow()
 
     const messages = resultRows(
@@ -154,7 +160,10 @@ describe('reads are scoped by owner', () => {
 
 describe('the counterparty column', () => {
   it('names the other people on the message, both ways round', async () => {
-    await send([{ userId: BOB, bcc: false }, { userId: CAROL, bcc: false }])
+    await send([
+      { userId: BOB, bcc: false },
+      { userId: CAROL, bcc: false },
+    ])
 
     const [inbox] = await repo.list({ userId: BOB, folder: 'inbox', limit: 10 })
     expect(inbox?.counterparties).toEqual(['ivan', 'carol'])
@@ -164,7 +173,10 @@ describe('the counterparty column', () => {
   })
 
   it('hides a bcc recipient from another recipient, and shows them to the author', async () => {
-    await send([{ userId: BOB, bcc: false }, { userId: CAROL, bcc: true }])
+    await send([
+      { userId: BOB, bcc: false },
+      { userId: CAROL, bcc: true },
+    ])
 
     const [asBob] = await repo.list({ userId: BOB, folder: 'inbox', limit: 10 })
     expect(asBob?.counterparties).toEqual(['ivan'])
@@ -235,7 +247,10 @@ describe('writes are scoped by owner', () => {
   })
 
   it("deleting a copy leaves the message and everybody else's copy standing", async () => {
-    const id = await send([{ userId: BOB, bcc: false }, { userId: CAROL, bcc: false }])
+    const id = await send([
+      { userId: BOB, bcc: false },
+      { userId: CAROL, bcc: false },
+    ])
 
     expect(await repo.remove({ userId: BOB, copyIds: [await copyIdFor(id, BOB)] })).toBe(1)
 
@@ -260,7 +275,10 @@ describe('writes are scoped by owner', () => {
 
 describe('detail', () => {
   it('returns every participant with their read state, unfiltered', async () => {
-    const id = await send([{ userId: BOB, bcc: false }, { userId: CAROL, bcc: true }])
+    const id = await send([
+      { userId: BOB, bcc: false },
+      { userId: CAROL, bcc: true },
+    ])
     await repo.setRead({ userId: BOB, copyIds: [await copyIdFor(id, BOB)], at: AT })
 
     const detail = await repo.detail({ messageId: id, userId: BOB })

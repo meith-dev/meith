@@ -43,7 +43,10 @@ export async function resolveLegacyIds(
     await db.execute(sql`
       select legacy_id, new_id from legacy_ids
       where kind = ${kind}
-        and legacy_id in (${sql.join(legacyIds.map((id) => sql`${id}`), sql`, `)})
+        and legacy_id in (${sql.join(
+          legacyIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})
     `),
   )
 

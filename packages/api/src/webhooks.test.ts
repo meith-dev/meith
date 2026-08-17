@@ -2,16 +2,16 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DELIVERY_HEADER,
-  MAX_ATTEMPTS,
-  SIGNATURE_HEADER,
-  TIMESTAMP_HEADER,
-  WEBHOOK_TOPICS,
   deliveryHeaders,
   isWebhookTopic,
+  MAX_ATTEMPTS,
   nextRetryDelaySeconds,
+  SIGNATURE_HEADER,
   signPayload,
+  TIMESTAMP_HEADER,
   verdictFor,
   verifySignature,
+  WEBHOOK_TOPICS,
   type WebhookSubscription,
 } from './webhooks'
 

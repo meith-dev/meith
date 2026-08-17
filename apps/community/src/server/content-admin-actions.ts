@@ -1,6 +1,7 @@
 'use server'
 
-import { compileSmilies, createDirectiveRegistry } from '@meith/markdown'
+import { revalidatePath } from 'next/cache'
+
 import { CacheTags, ValidationError } from '@meith/core'
 import type {
   AnnouncementInput,
@@ -9,13 +10,13 @@ import type {
   SmileyRow,
 } from '@meith/db'
 import { drivers } from '@meith/drivers'
-import { revalidatePath } from 'next/cache'
+import { compileSmilies, createDirectiveRegistry } from '@meith/markdown'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import { announcementRepository } from './announcements'
 import { captchaQuestionRepository } from './antispam'
-import { requireAttachmentAdmin, requireContentAdmin } from './content-admin'
 import type { FormState } from './auth-form-state'
+import { requireAttachmentAdmin, requireContentAdmin } from './content-admin'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
 
@@ -36,18 +37,14 @@ async function invalidateWordFilters(): Promise<void> {
   refreshPanel('/admin/content')
 }
 
-export async function createWordFilterAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function createWordFilterAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
 
     const filterId = await requireContentAdmin().createWordFilter({
       pattern: trimmedText(form, 'pattern'),
-      replacement: typeof form.get('replacement') === 'string'
-        ? (form.get('replacement') as string)
-        : '',
+      replacement:
+        typeof form.get('replacement') === 'string' ? (form.get('replacement') as string) : '',
       wholeWord: form.get('wholeWord') !== null,
     })
 
@@ -60,19 +57,15 @@ export async function createWordFilterAction(
   }
 }
 
-export async function updateWordFilterAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function updateWordFilterAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
     const filterId = id(form)
 
     await requireContentAdmin().updateWordFilter(filterId, {
       pattern: trimmedText(form, 'pattern'),
-      replacement: typeof form.get('replacement') === 'string'
-        ? (form.get('replacement') as string)
-        : '',
+      replacement:
+        typeof form.get('replacement') === 'string' ? (form.get('replacement') as string) : '',
       wholeWord: form.get('wholeWord') !== null,
       enabled: form.get('enabled') !== null,
     })
@@ -86,10 +79,7 @@ export async function updateWordFilterAction(
   }
 }
 
-export async function deleteWordFilterAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function deleteWordFilterAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
     const filterId = id(form)
@@ -105,10 +95,7 @@ export async function deleteWordFilterAction(
   }
 }
 
-export async function createPrefixAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function createPrefixAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
 
@@ -135,10 +122,7 @@ export async function createPrefixAction(
   }
 }
 
-export async function deletePrefixAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function deletePrefixAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
     const prefixId = id(form)
@@ -172,7 +156,11 @@ function assertSmileyCompiles(
   try {
     compileSmilies([
       ...others,
-      { code: candidate.code, src: candidate.src, ...(candidate.alt === null ? {} : { alt: candidate.alt }) },
+      {
+        code: candidate.code,
+        src: candidate.src,
+        ...(candidate.alt === null ? {} : { alt: candidate.alt }),
+      },
     ])
   } catch (err) {
     throw new ValidationError(err instanceof Error ? err.message : 'That smiley is not valid.')
@@ -318,10 +306,7 @@ export async function deleteDirectiveAction(_prev: FormState, form: FormData): P
   }
 }
 
-export async function deleteAttachmentAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function deleteAttachmentAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
 

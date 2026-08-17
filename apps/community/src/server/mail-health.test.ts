@@ -45,18 +45,14 @@ describe('assessMailReadiness', () => {
   it('flags e-mail activation over the log driver outside development', async () => {
     policy.activationMethod = 'email'
 
-    const readiness = await withEnv({ driver: 'log', nodeEnv: 'test' }, () =>
-      assessMailReadiness(),
-    )
+    const readiness = await withEnv({ driver: 'log', nodeEnv: 'test' }, () => assessMailReadiness())
     expect(readiness.unactivatable).toBe(true)
   })
 
   it('flags "both" for the same reason', async () => {
     policy.activationMethod = 'both'
 
-    const readiness = await withEnv({ driver: 'log', nodeEnv: 'test' }, () =>
-      assessMailReadiness(),
-    )
+    const readiness = await withEnv({ driver: 'log', nodeEnv: 'test' }, () => assessMailReadiness())
     expect(readiness.unactivatable).toBe(true)
   })
 
@@ -72,9 +68,7 @@ describe('assessMailReadiness', () => {
   it('says nothing when no confirmation is asked for', async () => {
     policy.activationMethod = 'admin'
 
-    const readiness = await withEnv({ driver: 'log', nodeEnv: 'test' }, () =>
-      assessMailReadiness(),
-    )
+    const readiness = await withEnv({ driver: 'log', nodeEnv: 'test' }, () => assessMailReadiness())
     expect(readiness.unactivatable).toBe(false)
   })
 
@@ -100,9 +94,7 @@ describe('assessMailReadiness', () => {
   })
 
   it('leaves mail to the board when MAIL_DRIVER does not', async () => {
-    const readiness = await withEnv({ driver: 'log', nodeEnv: 'test' }, () =>
-      assessMailReadiness(),
-    )
+    const readiness = await withEnv({ driver: 'log', nodeEnv: 'test' }, () => assessMailReadiness())
     expect(readiness.source).toBe('board')
   })
 })

@@ -1,4 +1,4 @@
-import { buildTree, keepVisibleSubtrees, type ForumNode } from '@meith/forums'
+import { buildTree, type ForumNode, keepVisibleSubtrees } from '@meith/forums'
 import type { ForumJumpModel, ForumJumpOption } from '@meith/theme-kit'
 
 export interface ForumJumpRow {

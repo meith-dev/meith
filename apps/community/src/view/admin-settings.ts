@@ -1,11 +1,11 @@
 import {
   SETTING_DEFINITIONS,
-  secretClearField,
-  settingField,
   type SettingDefinition,
   type SettingField,
   type SettingGroup,
   type SettingsSnapshot,
+  secretClearField,
+  settingField,
 } from '@meith/settings'
 
 import { GROUP_LABELS, GROUP_ORDER } from './setting-groups'
@@ -100,9 +100,7 @@ export function buildAdminSettingsModel(input: {
         isDefault,
         advanced,
         clearName:
-          definition.secret === true && !isDefault
-            ? secretClearField(definition.key)
-            : null,
+          definition.secret === true && !isDefault ? secretClearField(definition.key) : null,
       })
     }
 

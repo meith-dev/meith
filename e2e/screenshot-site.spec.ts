@@ -1,10 +1,15 @@
 import { mkdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
-import { expect, test, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test'
+import {
+  type APIRequestContext,
+  type BrowserContext,
+  expect,
+  type Page,
+  test,
+} from '@playwright/test'
 
 import { SCHEME_COOKIE, THEME_COOKIE } from '../apps/community/src/view/theme-preference'
-
 import { DEMO_BASE_URL } from './support/config'
 
 function shotsDirectory(): string {

@@ -4,8 +4,8 @@ import { notFound } from 'next/navigation'
 import { postBodyHtml } from '@meith/markdown'
 
 import { PanelPage } from '@/components/shell/panel-page'
-import { activeVocabulary } from '@/server/content-admin'
 import { getContainer } from '@/server/container'
+import { activeVocabulary } from '@/server/content-admin'
 import { getActor } from '@/server/context'
 import { messageService } from '@/server/messages'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -13,11 +13,7 @@ import { buildMessageView, folderHref } from '@/view/messages'
 
 export const metadata: Metadata = { title: 'Private message' }
 
-export default async function MessagePage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+export default async function MessagePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const messageId = Number(id)
   if (!Number.isInteger(messageId) || messageId <= 0) notFound()
@@ -56,9 +52,7 @@ export default async function MessagePage({
             meta: `To: ${view.participants
               .filter((participant) => participant.role !== 'author')
               .map((participant) =>
-                participant.role === 'bcc'
-                  ? `${participant.username} (bcc)`
-                  : participant.username,
+                participant.role === 'bcc' ? `${participant.username} (bcc)` : participant.username,
               )
               .join(', ')}`,
           }
@@ -80,10 +74,7 @@ export default async function MessagePage({
           </a>
         ))}
         {view.reportHref !== null && (
-          <a
-            href={view.reportHref}
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
+          <a href={view.reportHref} className="text-sm text-muted-foreground hover:text-foreground">
             Report this message
           </a>
         )}

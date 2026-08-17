@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { PluginHost, type HostLogger } from './host'
+import { type HostLogger, PluginHost } from './host'
 import { definePlugin, type PluginDefinition, type PluginHooks } from './plugin'
 
 const VIEWER = { userId: 1, isGuest: false }
@@ -23,9 +23,9 @@ function makePlugin(key: string, hooks: PluginHooks): PluginDefinition {
 describe('filters', () => {
   it('returns the value unchanged when nothing is listening', async () => {
     const host = new PluginHost({ plugins: [] })
-    expect(await host.applyFilter('markdown.render.html', '<p>hi</p>', { ...VIEWER, source: 'post' })).toBe(
-      '<p>hi</p>',
-    )
+    expect(
+      await host.applyFilter('markdown.render.html', '<p>hi</p>', { ...VIEWER, source: 'post' }),
+    ).toBe('<p>hi</p>')
   })
 
   it('chains: each plugin sees what the last one returned', async () => {
@@ -36,7 +36,9 @@ describe('filters', () => {
       ],
     })
 
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xAB')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'xAB',
+    )
   })
 
   it('orders by priority, then by plugin key — never by registration order', async () => {
@@ -50,7 +52,9 @@ describe('filters', () => {
       ],
     })
 
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xMAZ')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'xMAZ',
+    )
   })
 
   it('awaits an async filter', async () => {
@@ -62,7 +66,9 @@ describe('filters', () => {
       ],
     })
 
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x!')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'x!',
+    )
   })
 
   it('keeps the previous value when a filter throws, and runs the rest', async () => {
@@ -79,7 +85,9 @@ describe('filters', () => {
       ],
     })
 
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xB')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'xB',
+    )
     expect(logger.errors).toHaveLength(1)
   })
 
@@ -92,7 +100,9 @@ describe('filters', () => {
       ],
     })
 
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'x',
+    )
   })
 
   it('keeps the previous value when a filter returns nothing', async () => {
@@ -100,7 +110,9 @@ describe('filters', () => {
       plugins: [makePlugin('alpha', { 'markdown.render.html': (() => undefined) as never })],
     })
 
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'x',
+    )
   })
 
   it('lets a filter suppress a nullable value with null', async () => {
@@ -183,9 +195,13 @@ describe('failure isolation and auto-disable', () => {
   it('stops calling the plugin’s other hooks once it is disabled', async () => {
     const host = new PluginHost({ plugins: [throwing('alpha')], failureThreshold: 2 })
 
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x!')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'x!',
+    )
     await fire(host, 2)
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'x',
+    )
   })
 
   it('leaves a healthy plugin running when another one is disabled', async () => {
@@ -195,7 +211,9 @@ describe('failure isolation and auto-disable', () => {
     })
 
     await fire(host, 1)
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xB')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'xB',
+    )
   })
 
   it('does not re-enable itself when the next call would have succeeded', async () => {
@@ -214,7 +232,9 @@ describe('failure isolation and auto-disable', () => {
 
     await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })
     failing = false
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'x',
+    )
   })
 
   it('an operator disabling a plugin reaches the same state', async () => {
@@ -223,7 +243,9 @@ describe('failure isolation and auto-disable', () => {
     })
 
     host.disable('alpha', 'operator')
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'x',
+    )
     expect(host.health()[0]?.disabledReason).toBe('operator')
   })
 })
@@ -312,7 +334,10 @@ describe('UI regions', () => {
       ],
     })
 
-    expect(host.renderRegion('postbit.footer', context).map((entry) => entry.node)).toEqual(['A', 'Z'])
+    expect(host.renderRegion('postbit.footer', context).map((entry) => entry.node)).toEqual([
+      'A',
+      'Z',
+    ])
   })
 
   it('drops a contribution that throws while building its node', () => {
@@ -361,7 +386,9 @@ describe('UI regions', () => {
 
   it('renders nothing for a region nobody contributes to', () => {
     const host = new PluginHost({ plugins: [] })
-    expect(host.renderRegion('admin.dashboard', { ...context, region: 'admin.dashboard' })).toEqual([])
+    expect(host.renderRegion('admin.dashboard', { ...context, region: 'admin.dashboard' })).toEqual(
+      [],
+    )
   })
 })
 

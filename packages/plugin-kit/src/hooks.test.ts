@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { HOOKS, HOOK_NAMES, hookKind, isHookName } from './hooks'
-import { PLUGIN_REGIONS, REGION_NAMES, isPluginRegion } from './regions'
+import { HOOK_NAMES, HOOKS, hookKind, isHookName } from './hooks'
+import { isPluginRegion, PLUGIN_REGIONS, REGION_NAMES } from './regions'
 
 describe('the hook registry', () => {
   it('names every hook exactly once', () => {

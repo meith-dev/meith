@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
-import type { Actor } from '@meith/authorization'
-import { REAUTH_MINUTES } from '@meith/admin'
 import type { AdminSessionRecord, AdminSessionRepository } from '@meith/admin'
+import { REAUTH_MINUTES } from '@meith/admin'
+import type { Actor } from '@meith/authorization'
+import { combinePermissionSets, InMemoryAuthorizationSource } from '@meith/authorization'
 
 const now = () => new Date()
 
@@ -49,8 +49,7 @@ vi.mock('@meith/core', async () => {
   }
 })
 
-const { adminPageContext, requireAdmin, requireFreshAdmin, resolveAdmin } =
-  await import('./admin')
+const { adminPageContext, requireAdmin, requireFreshAdmin, resolveAdmin } = await import('./admin')
 const { SEED_BOARD, SEED_GROUP } = await import('./seed-board')
 const { installTestContainer } = await import('./test-container')
 

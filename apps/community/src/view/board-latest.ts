@@ -1,4 +1,4 @@
-import { summarise, type CompiledWordFilter } from '@meith/markdown'
+import { type CompiledWordFilter, summarise } from '@meith/markdown'
 import type {
   LatestPostModel,
   LatestPostsModel,
@@ -7,7 +7,7 @@ import type {
 } from '@meith/theme-kit'
 
 import { forumHref } from './board-index'
-import { nameClassOf, type MemberIdentity } from './member-identity'
+import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { postLink } from './post-link'
 import { formatTime } from './time'
@@ -66,9 +66,7 @@ function authorOf(
   }
 }
 
-export function buildLatestThreadsModel(
-  input: LatestInput<LatestThreadRow>,
-): LatestThreadsModel {
+export function buildLatestThreadsModel(input: LatestInput<LatestThreadRow>): LatestThreadsModel {
   const threads: LatestThreadModel[] = input.rows.map((row) => ({
     title: row.title,
     href: `/thread/${row.threadId}-${row.slug}`,

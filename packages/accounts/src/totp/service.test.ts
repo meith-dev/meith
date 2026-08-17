@@ -1,16 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { createMemoryStore } from '../memory-repos'
-import { rejectionMessage } from '../test-support.fixture'
 import type { AccountStore } from '../ports'
-
+import { rejectionMessage } from '../test-support.fixture'
 import {
-  RECOVERY_CODE_COUNT,
-  TwoFactorService,
   newRecoveryCode,
   normaliseRecoveryCode,
+  RECOVERY_CODE_COUNT,
+  TwoFactorService,
 } from './service'
-import { totpCode, stepAt } from './totp'
+import { stepAt, totpCode } from './totp'
 
 const KEY = 'a-board-auth-secret-0000000000000'
 
@@ -124,9 +123,10 @@ describe('taking the second factor at sign-in', () => {
     const { secret } = await enrol()
     now = new Date(now.getTime() + 60_000)
 
-    expect(
-      await service().verify({ userId, code: await totpCode(secret, stepAt(now)) }),
-    ).toEqual({ status: 'ok', usedRecoveryCode: false })
+    expect(await service().verify({ userId, code: await totpCode(secret, stepAt(now)) })).toEqual({
+      status: 'ok',
+      usedRecoveryCode: false,
+    })
   })
 
   it('refuses the same code twice, however quickly it comes back', async () => {
@@ -145,8 +145,7 @@ describe('taking the second factor at sign-in', () => {
     await service().verify({ userId, code: await totpCode(secret, stepAt(now)) })
 
     expect(
-      (await service().verify({ userId, code: await totpCode(secret, stepAt(now) - 1) }))
-        .status,
+      (await service().verify({ userId, code: await totpCode(secret, stepAt(now) - 1) })).status,
     ).toBe('replayed')
   })
 
@@ -171,8 +170,7 @@ describe('taking the second factor at sign-in', () => {
     const { codes } = await enrol()
 
     expect(
-      (await service().verify({ userId, code: codes[0]!.replace('-', '').toLowerCase() }))
-        .status,
+      (await service().verify({ userId, code: codes[0]!.replace('-', '').toLowerCase() })).status,
     ).toBe('ok')
   })
 
@@ -216,9 +214,9 @@ describe('turning it off', () => {
   it('refuses while the board requires it of this member', async () => {
     await enrol()
 
-    expect(
-      await rejectionMessage(service().disable({ userId, required: true })),
-    ).toContain('cannot be turned off')
+    expect(await rejectionMessage(service().disable({ userId, required: true }))).toContain(
+      'cannot be turned off',
+    )
 
     expect((await service().state(userId)).enrolled).toBe(true)
   })

@@ -1,7 +1,6 @@
 import { asc, eq, gt, sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
-import { promotionRuleProblem } from '@meith/groups'
 import type {
   PromotionCandidate,
   PromotionOutcome,
@@ -10,6 +9,7 @@ import type {
   PromotionRuleInput,
   PromotionRuleRepository,
 } from '@meith/groups'
+import { promotionRuleProblem } from '@meith/groups'
 
 import type { Database } from './client'
 import { groupPromotions, users } from './schema'
@@ -25,9 +25,7 @@ function checked(input: PromotionRuleInput): PromotionRuleInput {
   return { ...input, title: input.title.trim() }
 }
 
-export class PostgresPromotionRepository
-  implements PromotionRepository, PromotionRuleRepository
-{
+export class PostgresPromotionRepository implements PromotionRepository, PromotionRuleRepository {
   constructor(private readonly db: Database) {}
 
   async listRules(): Promise<readonly PromotionRule[]> {
@@ -111,7 +109,6 @@ export class PostgresPromotionRepository
         postCount: users.postCount,
         reputation: users.reputation,
         registeredAt: users.createdAt,
-        // eslint-disable-next-line no-restricted-properties -- reading the group to decide whether a rule applies to it, not granting anything
         primaryGroupId: users.primaryGroupId,
       })
       .from(users)

@@ -1,17 +1,17 @@
 import {
+  type AuthConfig,
   DEFAULT_AUTH_POLICY,
   IdentityService,
   resolveAuthPolicy,
-  type AuthConfig,
 } from '@meith/accounts'
 import { ConfigurationError, env } from '@meith/core'
 import {
+  createPostgresAccountStore,
+  type Database,
+  getDb,
   PostgresAdminRepository,
   PostgresForumRepository,
   PostgresSettingsRepository,
-  createPostgresAccountStore,
-  getDb,
-  type Database,
 } from '@meith/db'
 import { SettingsSnapshot } from '@meith/settings'
 

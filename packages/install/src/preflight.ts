@@ -131,12 +131,7 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
   }
 
   if (probe.publicUrl !== null && probe.publicUrl !== '') {
-    checks.push(
-      ok(
-        'public-url',
-        `The board's address comes from APP_URL — ${probe.publicUrl}`,
-      ),
-    )
+    checks.push(ok('public-url', `The board's address comes from APP_URL — ${probe.publicUrl}`))
   } else {
     checks.push({
       id: 'public-url',

@@ -13,8 +13,8 @@ import { parseSubscriptionMode } from '@meith/subscriptions'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
-import { idList } from './sql-lists'
 import { toDate } from './row-values'
+import { idList } from './sql-lists'
 import { visibleIn } from './visibility'
 
 interface TableShape {
@@ -280,7 +280,10 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
       `),
     ) as RawPending[]
 
-    const highest = new Map<string, { target: SubscriptionTarget; targetId: number; lastPostId: number }>()
+    const highest = new Map<
+      string,
+      { target: SubscriptionTarget; targetId: number; lastPostId: number }
+    >()
     for (const row of rows) {
       const key = `${row.target}:${row.target_id}`
       const current = highest.get(key)

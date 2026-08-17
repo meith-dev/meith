@@ -1,4 +1,4 @@
-import { Card, CardContent, buttonVariants } from '@meith/ui'
+import { buttonVariants, Card, CardContent } from '@meith/ui'
 
 export function OfflineNotice({ message }: { message: string }) {
   return (

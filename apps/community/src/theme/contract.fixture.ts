@@ -179,7 +179,11 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
   },
 
   Notice: {
-    model: { kind: 'warning', message: 'Scheduled maintenance at 22:00.', dismissHref: '/notice/4/dismiss' },
+    model: {
+      kind: 'warning',
+      message: 'Scheduled maintenance at 22:00.',
+      dismissHref: '/notice/4/dismiss',
+    },
     requires: ['Scheduled maintenance at 22:00.'],
   },
 

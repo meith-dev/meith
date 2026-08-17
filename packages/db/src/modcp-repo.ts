@@ -1,11 +1,6 @@
-import { sql, type SQL } from 'drizzle-orm'
+import { type SQL, sql } from 'drizzle-orm'
 
-import type {
-  IpMatch,
-  ModCpRepository,
-  ModLogEntry,
-  ModLogPage,
-} from '@meith/moderation'
+import type { IpMatch, ModCpRepository, ModLogEntry, ModLogPage } from '@meith/moderation'
 import { MOD_LOG_ACTIONS } from '@meith/moderation'
 
 import type { Database } from './client'
@@ -88,9 +83,7 @@ export class PostgresModCpRepository implements ModCpRepository {
     readonly after?: string | undefined
   }): Promise<ModLogPage> {
     const cursor = input.after === undefined ? null : decodeCursor(input.after)
-    const after = cursor
-      ? sql`and (e.created_at, e.id) < (${cursor.at}, ${cursor.id})`
-      : sql``
+    const after = cursor ? sql`and (e.created_at, e.id) < (${cursor.at}, ${cursor.id})` : sql``
 
     const rows = resultRows(
       await this.db.execute(sql`

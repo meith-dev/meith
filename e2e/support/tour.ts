@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 
-import { expect, type APIRequestContext, type Page } from '@playwright/test'
+import { type APIRequestContext, expect, type Page } from '@playwright/test'
 
 import { E2E_DUES_WEBHOOK_SECRET } from './config'
 

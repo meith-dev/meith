@@ -58,9 +58,7 @@ export function audienceForumIds(audience: ThreadAudience): {
   return {
     open: audience.forumIds.filter((id) => !restricted.has(id)),
     ownThreadsOnly:
-      audience.viewerUserId === null
-        ? []
-        : audience.forumIds.filter((id) => restricted.has(id)),
+      audience.viewerUserId === null ? [] : audience.forumIds.filter((id) => restricted.has(id)),
   }
 }
 
@@ -69,10 +67,7 @@ export function audienceIsEmpty(audience: ThreadAudience): boolean {
   return open.length === 0 && ownThreadsOnly.length === 0
 }
 
-export function audienceFilterIn(
-  audience: ThreadAudience,
-  forumId: number,
-): ThreadAuthorFilter {
+export function audienceFilterIn(audience: ThreadAudience, forumId: number): ThreadAuthorFilter {
   if (!audience.forumIds.includes(forumId)) return NO_THREAD_AUTHORS
   return authorFilterFrom({
     seesOthersThreads: !audience.ownThreadsOnlyForumIds.includes(forumId),

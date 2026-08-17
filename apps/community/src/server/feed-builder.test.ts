@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { compileWordFilter } from '@meith/markdown'
 import type { FeedPost, FeedThread } from '@meith/db'
+import { compileWordFilter } from '@meith/markdown'
 
-import { renderAtom, renderRss, type FeedEntry } from '@/view/feed'
+import { type FeedEntry, renderAtom, renderRss } from '@/view/feed'
 
 vi.mock('@meith/db', () => ({ getDb: () => ({}), PostgresFeedRepository: class {} }))
 vi.mock('./container', () => ({ getContainer: () => ({ dataSource: 'postgres' }) }))
@@ -13,9 +13,7 @@ const { feedFor } = await import('./feed-builder')
 
 const NOW = new Date('2026-05-05T12:00:00Z')
 
-const FILTER = compileWordFilter([
-  { pattern: 'slate', replacement: 'shale', wholeWord: true },
-])
+const FILTER = compileWordFilter([{ pattern: 'slate', replacement: 'shale', wholeWord: true }])
 
 const THREAD: FeedThread = {
   threadId: 91,
@@ -85,8 +83,6 @@ describe('feed entries', () => {
   it('links a post entry to the post rather than the top of its thread', () => {
     const feed = feedFor('https://board.example', undefined)
 
-    expect(feed.postEntry(POST).href).toBe(
-      'https://board.example/thread/91-bikeshedding?post=4102',
-    )
+    expect(feed.postEntry(POST).href).toBe('https://board.example/thread/91-bikeshedding?post=4102')
   })
 })

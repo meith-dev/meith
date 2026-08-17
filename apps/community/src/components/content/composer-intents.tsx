@@ -1,4 +1,4 @@
-import { buttonVariants } from "@meith/ui"
+import { buttonVariants } from '@meith/ui'
 
 export function ComposerIntents() {
   return (
@@ -7,7 +7,7 @@ export function ComposerIntents() {
         type="submit"
         name="intent"
         value="preview"
-        className={buttonVariants({ variant: "outline" })}
+        className={buttonVariants({ variant: 'outline' })}
       >
         Preview
       </button>
@@ -15,7 +15,7 @@ export function ComposerIntents() {
         type="submit"
         name="intent"
         value="save_draft"
-        className={buttonVariants({ variant: "ghost" })}
+        className={buttonVariants({ variant: 'ghost' })}
       >
         Save draft
       </button>

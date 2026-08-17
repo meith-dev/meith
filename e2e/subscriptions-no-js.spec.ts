@@ -49,15 +49,11 @@ test('a follower is notified of a reply once the queue has run', async ({ browse
 
     await followerPage.goto(threadUrl)
     await followerPage.getByRole('button', { name: 'Follow', exact: true }).click()
-    await expect(
-      followerPage.getByRole('button', { name: 'Stop following' }),
-    ).toBeVisible()
+    await expect(followerPage.getByRole('button', { name: 'Stop following' })).toBeVisible()
 
     await followerPage.goto('/200-general')
     await followerPage.getByRole('button', { name: 'Follow', exact: true }).click()
-    await expect(
-      followerPage.getByRole('button', { name: 'Stop following' }),
-    ).toBeVisible()
+    await expect(followerPage.getByRole('button', { name: 'Stop following' })).toBeVisible()
 
     await followerPage.goto('/subscriptions')
     await expect(followerPage.locator('li', { hasText: title })).toBeVisible()
@@ -68,9 +64,7 @@ test('a follower is notified of a reply once the queue has run', async ({ browse
     await expect(authorPage).toHaveURL(/#post-\d+$/)
 
     await drainUntil(request, followerPage, '/notifications', async () => {
-      await expect(
-        followerPage.locator('li', { hasText: `New reply in ${title}` }),
-      ).toBeVisible()
+      await expect(followerPage.locator('li', { hasText: `New reply in ${title}` })).toBeVisible()
     })
   } finally {
     await authorContext.close()

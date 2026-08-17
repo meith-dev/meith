@@ -1,5 +1,5 @@
-import { Separator, cn } from '@meith/ui'
 import type { PostActionsSlotModel } from '@meith/theme-kit'
+import { cn, Separator } from '@meith/ui'
 
 import { BUTTON, isEmptyRegion } from '../shared'
 

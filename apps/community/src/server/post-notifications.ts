@@ -6,8 +6,8 @@ import { extractMentions, extractQuotedAuthors, vocabularyOptions } from '@meith
 
 import { postLink } from '@/view/post-link'
 
-import { activeVocabulary } from './content-admin'
 import { getContainer } from './container'
+import { activeVocabulary } from './content-admin'
 import { notificationService } from './notifications'
 
 const MAX_RECIPIENTS_PER_KIND = 10

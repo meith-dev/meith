@@ -3,11 +3,11 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { canHoldThreads } from '@meith/forums'
 import { PollService } from '@meith/polls'
 
 import { getContainer } from './container'
 import { getActor } from './context'
-import { canHoldThreads } from '@meith/forums'
 
 function id(form: FormData, name: string): number {
   const value = Number(form.get(name))

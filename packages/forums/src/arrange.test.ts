@@ -192,11 +192,7 @@ describe('projectionOf', () => {
 
 describe('applyDrop', () => {
   it('moves the forum and its descendants together', () => {
-    const moved = applyDrop(
-      OUTLINE,
-      2,
-      projectionOf(OUTLINE, 2, { parentId: 5, afterId: null }),
-    )
+    const moved = applyDrop(OUTLINE, 2, projectionOf(OUTLINE, 2, { parentId: 5, afterId: null }))
 
     expect(shape(moved)).toEqual([
       'Main',
@@ -209,11 +205,7 @@ describe('applyDrop', () => {
   })
 
   it('re-hangs the moved row on its new parent', () => {
-    const moved = applyDrop(
-      OUTLINE,
-      3,
-      projectionOf(OUTLINE, 3, { parentId: null, afterId: 5 }),
-    )
+    const moved = applyDrop(OUTLINE, 3, projectionOf(OUTLINE, 3, { parentId: null, afterId: 5 }))
     expect(moved.find((row) => row.id === 3)).toMatchObject({ parentId: null, depth: 0 })
   })
 })

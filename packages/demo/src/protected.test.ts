@@ -1,5 +1,6 @@
-import { resetEnvForTests } from '@meith/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { resetEnvForTests } from '@meith/core'
 
 import { DEMO_LOGINS } from './accounts'
 import { assertDemoAccountIsChangeable, isProtectedDemoAccount } from './protected'

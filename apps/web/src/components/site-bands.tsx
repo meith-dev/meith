@@ -1,8 +1,7 @@
-import Link from "next/link"
+import Link from 'next/link'
 
-import { closing, site } from "../content/site"
-
-import { DemoLink } from "./demo-link"
+import { closing, site } from '../content/site'
+import { DemoLink } from './demo-link'
 
 export function ClosingBand({
   heading,

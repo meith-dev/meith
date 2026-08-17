@@ -42,9 +42,9 @@ export interface ModCpRepository {
     readonly after?: string | undefined
   }): Promise<ModLogPage>
 
-  workload(forumIds: readonly number[]): Promise<
-    ReadonlyMap<number, { pending: number; openReports: number }>
-  >
+  workload(
+    forumIds: readonly number[],
+  ): Promise<ReadonlyMap<number, { pending: number; openReports: number }>>
 
   ipMatches(userId: number, limit: number): Promise<readonly IpMatch[]>
 
@@ -86,7 +86,12 @@ export class ModeratorPanel {
   }
 
   async dashboard(input: {
-    readonly forums: readonly { forumId: number; title: string; slug: string; rights: readonly string[] }[]
+    readonly forums: readonly {
+      forumId: number
+      title: string
+      slug: string
+      rights: readonly string[]
+    }[]
   }): Promise<readonly ModeratedForum[]> {
     if (input.forums.length === 0) return []
 
@@ -99,8 +104,7 @@ export class ModeratorPanel {
       }))
       .sort(
         (a, b) =>
-          b.pending + b.openReports - (a.pending + a.openReports) ||
-          a.title.localeCompare(b.title),
+          b.pending + b.openReports - (a.pending + a.openReports) || a.title.localeCompare(b.title),
       )
   }
 
@@ -118,10 +122,7 @@ export class ModeratorPanel {
     }
 
     const prefixes = await this.repo.ipPrefixesFor(input.subjectUserId)
-    const matches = await this.repo.ipMatches(
-      input.subjectUserId,
-      input.limit ?? MODCP_PAGE_SIZE,
-    )
+    const matches = await this.repo.ipMatches(input.subjectUserId, input.limit ?? MODCP_PAGE_SIZE)
 
     await this.repo.recordIpLookup({
       actorUserId: input.actorUserId,

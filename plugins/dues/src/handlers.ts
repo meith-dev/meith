@@ -1,29 +1,25 @@
-import type {
-  PluginRequest,
-  PluginResponse,
-  PluginRuntimeContext,
-} from '@meith/plugin-kit'
+import type { PluginRequest, PluginResponse, PluginRuntimeContext } from '@meith/plugin-kit'
 
 import { codeProblem, discountedPrice, normalizeCode } from './codes'
 import type { DuesConfig } from './config'
+import { applyInternalEvent, type EntitlementDeps, settlePaidOrder } from './entitlement'
 import { isLifetime, sellablePlanByKey } from './plans'
-import { applyInternalEvent, settlePaidOrder, type EntitlementDeps } from './entitlement'
 import {
   attachCheckoutSession,
+  type CodeRow,
   codeByCode,
   findStripeCustomer,
   insertOrder,
   liveMembership,
-  membershipById,
-  recordEvent,
   markEventFailed,
   markEventProcessed,
+  membershipById,
+  recordEvent,
   saveCodeCoupon,
   saveStripeCustomer,
   setMembershipStatus,
-  type CodeRow,
 } from './store'
-import { createStripeClient, StripeError, type StripeClient } from './stripe/client'
+import { createStripeClient, type StripeClient, StripeError } from './stripe/client'
 import { parseEventEnvelope, toInternalEvent } from './stripe/events'
 import { verifyStripeSignature } from './stripe/webhook'
 
@@ -151,8 +147,7 @@ export async function handleCheckout(
     if (problem !== null) return back({ error: `code-${problem}`, ...bounce })
   }
 
-  const charge =
-    code === null ? plan.priceMinor : discountedPrice(plan.priceMinor, code.percentOff)
+  const charge = code === null ? plan.priceMinor : discountedPrice(plan.priceMinor, code.percentOff)
 
   if (services.stripe === null && (plan.mode === 'auto' || charge > 0)) {
     return back({ error: 'unconfigured' })

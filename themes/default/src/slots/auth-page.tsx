@@ -39,7 +39,9 @@ export function AuthPage({ title, alert, links, regions }: AuthPageModel) {
                 {link.lead === null ? null : `${link.lead} `}
                 <a
                   href={link.href}
-                  className={link.lead === null ? MUTED_LINK : `font-medium text-foreground ${MUTED_LINK}`}
+                  className={
+                    link.lead === null ? MUTED_LINK : `font-medium text-foreground ${MUTED_LINK}`
+                  }
                 >
                   {link.label}
                 </a>

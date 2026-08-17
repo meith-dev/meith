@@ -1,4 +1,3 @@
-
 export interface Period {
   readonly years: number
   readonly months: number
@@ -38,9 +37,7 @@ export function addPeriod(from: Date, period: Period): Date {
     const dayOfMonth = out.getUTCDate()
     out.setUTCDate(1)
     out.setUTCMonth(out.getUTCMonth() + months)
-    const lastDay = new Date(
-      Date.UTC(out.getUTCFullYear(), out.getUTCMonth() + 1, 0),
-    ).getUTCDate()
+    const lastDay = new Date(Date.UTC(out.getUTCFullYear(), out.getUTCMonth() + 1, 0)).getUTCDate()
     out.setUTCDate(Math.min(dayOfMonth, lastDay))
   }
 

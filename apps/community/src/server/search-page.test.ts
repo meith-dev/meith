@@ -36,14 +36,8 @@ vi.mock('@meith/db', () => ({
   ownsSearch: () => true,
 }))
 
-const {
-  MAX_AUTHOR_NAMES,
-  openSearch,
-  parseAuthorNames,
-  readFilters,
-  readRefinement,
-  runSearch,
-} = await import('./search-page')
+const { MAX_AUTHOR_NAMES, openSearch, parseAuthorNames, readFilters, readRefinement, runSearch } =
+  await import('./search-page')
 
 const GUEST = {
   userId: null,

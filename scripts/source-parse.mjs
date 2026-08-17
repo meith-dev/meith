@@ -31,6 +31,22 @@ export function balancedList(source, from) {
   return null
 }
 
+export function flattenTypeLiteral(fragment) {
+  return fragment
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^[^\n]*?\/\/[^\n]*$/gm, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '')
+    .reduce((joined, line) => {
+      if (joined === '') return line
+      const continues = /[{([<,;|&:=?]$/.test(joined) || /^[)\]}|&>?:]|^extends\b/.test(line)
+      return `${joined}${continues ? ' ' : '; '}${line}`
+    }, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 export function joinStringLiterals(fragment) {
   let out = ''
   for (let i = 0; i < fragment.length; i++) {

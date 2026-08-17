@@ -1,31 +1,26 @@
+export { type DeliveryOutcome, deliverNotificationEmail } from './deliver'
 export {
-  NOTIFICATION_KINDS,
   configurableKindsFor,
   isNotificationKind,
-  notificationKind,
+  NOTIFICATION_KINDS,
   type NotificationAudience,
   type NotificationKind,
   type NotificationKindSpec,
+  notificationKind,
   type RegisteredNotificationKind,
 } from './kinds'
-
 export {
-  NotificationService,
+  type MailBrand,
+  type RenderedMail,
+  renderNotificationMail,
+} from './mail'
+export { type NotificationView, renderNotification } from './render'
+export {
   MAX_STAFF_FANOUT,
   NOTIFICATIONS_PAGE_SIZE,
   type NotificationPreferenceView,
+  NotificationService,
 } from './service'
-
-export { renderNotification, type NotificationView } from './render'
-
-export {
-  renderNotificationMail,
-  type MailBrand,
-  type RenderedMail,
-} from './mail'
-
-export { deliverNotificationEmail, type DeliveryOutcome } from './deliver'
-
 export type {
   DeliverableNotification,
   NotificationData,

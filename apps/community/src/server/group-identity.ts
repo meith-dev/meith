@@ -1,14 +1,15 @@
 import 'server-only'
 
-import { CacheTags } from '@meith/core'
-import {
-  PostgresGroupIdentityRepository,
-  getDb,
-  type GroupIdentity,
-  type MemberStanding,
-} from '@meith/db'
 import { unstable_cache } from 'next/cache'
 import { cache } from 'react'
+
+import { CacheTags } from '@meith/core'
+import {
+  type GroupIdentity,
+  getDb,
+  type MemberStanding,
+  PostgresGroupIdentityRepository,
+} from '@meith/db'
 
 import type { MemberIdentity } from '@/view/member-identity'
 

@@ -110,11 +110,7 @@ export class PostgresForumRepository implements ForumRepository {
   }
 
   async findById(id: number): Promise<ForumRow | null> {
-    const rows = await this.db
-      .select(FORUM_COLUMNS)
-      .from(forums)
-      .where(eq(forums.id, id))
-      .limit(1)
+    const rows = await this.db.select(FORUM_COLUMNS).from(forums).where(eq(forums.id, id)).limit(1)
     const row = rows[0]
     return row ? toForumRow(row) : null
   }
@@ -148,11 +144,7 @@ export class PostgresForumRepository implements ForumRepository {
       const path = childPath(plan.parentPath, id)
       await tx.update(forums).set({ path }).where(eq(forums.id, id))
 
-      const created = await tx
-        .select(FORUM_COLUMNS)
-        .from(forums)
-        .where(eq(forums.id, id))
-        .limit(1)
+      const created = await tx.select(FORUM_COLUMNS).from(forums).where(eq(forums.id, id)).limit(1)
       return toForumRow(created[0] as SelectedForum)
     })
   }
@@ -161,9 +153,9 @@ export class PostgresForumRepository implements ForumRepository {
     await this.db.transaction(async (tx) => {
       await tx.execute(sql`select pg_advisory_xact_lock(${FOREST_LOCK_KEY})`)
 
-      const rows = (
-        await tx.select(FORUM_COLUMNS).from(forums).orderBy(asc(forums.id))
-      ).map(toForumRow)
+      const rows = (await tx.select(FORUM_COLUMNS).from(forums).orderBy(asc(forums.id))).map(
+        toForumRow,
+      )
 
       await this.applyPlanWith(tx, planMove(rows, forumId, target))
     })

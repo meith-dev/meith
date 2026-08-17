@@ -51,10 +51,7 @@ function ancestors(from: string): string[] {
   }
 }
 
-async function candidatesUnder(
-  nodeModules: string,
-  specifier: string,
-): Promise<string[]> {
+async function candidatesUnder(nodeModules: string, specifier: string): Promise<string[]> {
   const paths = [join(nodeModules, specifier)]
 
   const prefix = storePrefix(specifier)
@@ -65,7 +62,10 @@ async function candidatesUnder(
     return paths
   }
 
-  for (const entry of entries.filter((e) => e.startsWith(prefix)).sort().reverse()) {
+  for (const entry of entries
+    .filter((e) => e.startsWith(prefix))
+    .sort()
+    .reverse()) {
     paths.push(join(nodeModules, '.pnpm', entry, 'node_modules', specifier))
   }
   return paths

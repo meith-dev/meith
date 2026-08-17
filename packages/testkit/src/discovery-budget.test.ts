@@ -1,8 +1,9 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
 import { Authorizer } from '@meith/authorization'
 import { PUBLIC_CONTENT } from '@meith/core'
 import { ActorBuilder, PostgresAuthorizationSource, PostgresDiscoveryRepository } from '@meith/db'
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { measureQueries } from './query-budget'
 import { SMOKE_SCALE, seedBoard } from './seed'
@@ -84,9 +85,7 @@ describe('discovery query budget', () => {
       }
 
       const small = await measureQueries(harness, () => repo.activeSince(EPOCH, query, scope()))
-      const large = await measureQueries(bigger, () =>
-        bigRepo.activeSince(EPOCH, query, bigScope),
-      )
+      const large = await measureQueries(bigger, () => bigRepo.activeSince(EPOCH, query, bigScope))
 
       expect(large.count).toBe(small.count)
     } finally {

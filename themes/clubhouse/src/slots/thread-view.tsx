@@ -1,5 +1,5 @@
-import { Badge, cn } from '@meith/ui'
 import type { ThreadViewModel } from '@meith/theme-kit'
+import { Badge, cn } from '@meith/ui'
 
 import { BUTTON, HEADING, MICRO, MUTED_LINK, NUMERIC, PAGE_BODY, PageHead, Prefix } from '../shared'
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { decodeImage, encodeImage, resizeToFit, type DecodedImage } from './codec'
+import { type DecodedImage, decodeImage, encodeImage, resizeToFit } from './codec'
 
 function gradient(width: number, height: number): DecodedImage {
   const data = new Uint8ClampedArray(width * height * 4)
@@ -55,9 +55,7 @@ describe('round trip', () => {
     expect(Array.from(bytes(await encodeImage(source, 'png')).slice(0, 4))).toEqual([
       0x89, 0x50, 0x4e, 0x47,
     ])
-    expect(Array.from(bytes(await encodeImage(source, 'jpeg')).slice(0, 2))).toEqual([
-      0xff, 0xd8,
-    ])
+    expect(Array.from(bytes(await encodeImage(source, 'jpeg')).slice(0, 2))).toEqual([0xff, 0xd8])
   }, 30_000)
 
   it('converts between formats', async () => {
@@ -71,7 +69,11 @@ describe('round trip', () => {
 describe('re-encoding is what makes an upload safe', () => {
   it('drops anything appended to the original file', async () => {
     const payload = new Uint8Array([
-      0x50, 0x4b, 0x03, 0x04, ...new TextEncoder().encode('MALICIOUS-PAYLOAD'),
+      0x50,
+      0x4b,
+      0x03,
+      0x04,
+      ...new TextEncoder().encode('MALICIOUS-PAYLOAD'),
     ])
     const original = bytes(await encodeImage(gradient(16, 16), 'png'))
 
@@ -90,9 +92,7 @@ describe('re-encoding is what makes an upload safe', () => {
   it('refuses bytes that are not an image of the claimed format', async () => {
     const notAnImage = new TextEncoder().encode('<?php system($_GET["c"]); ?>')
 
-    await expect(
-      decodeImage(notAnImage.buffer as ArrayBuffer, 'png'),
-    ).rejects.toBeDefined()
+    await expect(decodeImage(notAnImage.buffer as ArrayBuffer, 'png')).rejects.toBeDefined()
   }, 30_000)
 
   it('refuses a PNG decoded as a JPEG', async () => {

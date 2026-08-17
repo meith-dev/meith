@@ -32,10 +32,18 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
       <table className="w-full border-collapse border border-border text-sm">
         <thead>
           <tr className="bg-secondary text-left font-mono text-xs uppercase tracking-wide text-muted-foreground">
-            <th scope="col" className="px-3 py-1.5">Thread</th>
-            <th scope="col" className="w-16 px-2 py-1.5 text-right">Replies</th>
-            <th scope="col" className="w-16 px-2 py-1.5 text-right">Views</th>
-            <th scope="col" className="w-56 px-3 py-1.5">Last post</th>
+            <th scope="col" className="px-3 py-1.5">
+              Thread
+            </th>
+            <th scope="col" className="w-16 px-2 py-1.5 text-right">
+              Replies
+            </th>
+            <th scope="col" className="w-16 px-2 py-1.5 text-right">
+              Views
+            </th>
+            <th scope="col" className="w-56 px-3 py-1.5">
+              Last post
+            </th>
           </tr>
         </thead>
         <tbody>{regions.threads}</tbody>

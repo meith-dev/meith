@@ -1,13 +1,14 @@
+import { describe, expect, it } from 'vitest'
+
 import {
   HOOKS,
+  type HookName,
   PluginHost,
   REGION_NAMES,
   unavailablePluginData,
   unavailablePluginGrants,
   unavailablePluginUsers,
-  type HookName,
 } from '@meith/plugin-kit'
-import { describe, expect, it } from 'vitest'
 
 import { MARK, RECORDED, referencePlugin, resetRecorder } from './plugin'
 
@@ -92,7 +93,11 @@ describe('driven through a real host', () => {
     resetRecorder()
     const result = await host().applyFilter(
       'view.footer',
-      { boardTitle: 'Board', links: [{ label: 'Contact', href: '/contact' }], timezoneLabel: 'UTC' },
+      {
+        boardTitle: 'Board',
+        links: [{ label: 'Contact', href: '/contact' }],
+        timezoneLabel: 'UTC',
+      },
       viewer,
     )
 

@@ -37,9 +37,7 @@ export function isPublished(body: string): boolean {
   return body.trim() !== ''
 }
 
-export function buildLegalLinks(
-  bodyOf: (page: LegalPage) => string,
-): readonly LinkModel[] {
+export function buildLegalLinks(bodyOf: (page: LegalPage) => string): readonly LinkModel[] {
   return LEGAL_PAGES.filter((page) => isPublished(bodyOf(page))).map((page) => ({
     label: page.footerLabel,
     href: page.href,

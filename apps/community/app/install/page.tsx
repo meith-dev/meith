@@ -1,18 +1,19 @@
-import { DEFAULT_AUTH_POLICY } from '@meith/accounts'
-import {
-  INSTALL_STEPS,
-  blockers,
-  canProceed,
-  freshReport,
-  warnings,
-  type Check,
-} from '@meith/install'
-import { Alert, AlertDescription, AlertTitle, Disclosure } from '@meith/ui'
-import { env } from '@meith/core'
-import { MAIL_PRESETS, isUsableOrigin, normaliseOrigin } from '@meith/settings'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
+
+import { DEFAULT_AUTH_POLICY } from '@meith/accounts'
+import { env } from '@meith/core'
+import {
+  blockers,
+  type Check,
+  canProceed,
+  freshReport,
+  INSTALL_STEPS,
+  warnings,
+} from '@meith/install'
+import { isUsableOrigin, MAIL_PRESETS, normaliseOrigin } from '@meith/settings'
+import { Alert, AlertDescription, AlertTitle, Disclosure } from '@meith/ui'
 
 import { InstallForm } from '@/components/install/install-form'
 import { gatherPreflight, installerIsSealed, probeMail } from '@/server/install'
@@ -36,8 +37,7 @@ export default async function InstallPage() {
           Install this board
         </h1>
         <p className="text-sm text-muted-foreground">
-          This page works once. When it finishes it disables itself, and the
-          address stops existing.
+          This page works once. When it finishes it disables itself, and the address stops existing.
         </p>
       </header>
 
@@ -65,7 +65,10 @@ function Preflight({ checks }: { checks: readonly Check[] }) {
 
   return (
     <section aria-labelledby="preflight" className="flex flex-col gap-3">
-      <h2 id="preflight" className="font-heading text-lg font-semibold tracking-tight text-foreground">
+      <h2
+        id="preflight"
+        className="font-heading text-lg font-semibold tracking-tight text-foreground"
+      >
         Before installing
       </h2>
 
@@ -140,7 +143,9 @@ function Finding({ check }: { check: Check }) {
           {' · '}
         </span>
         <AlertTitle>{check.title}</AlertTitle>
-        {check.detail !== '' && <span className="mt-1 block text-muted-foreground">{check.detail}</span>}
+        {check.detail !== '' && (
+          <span className="mt-1 block text-muted-foreground">{check.detail}</span>
+        )}
       </AlertDescription>
     </Alert>
   )

@@ -1,4 +1,3 @@
-
 export type NotificationValue =
   | string
   | number
@@ -76,10 +75,7 @@ export interface NotificationRepository {
 
   emailPreferencesFor(userId: number): Promise<ReadonlyMap<string, boolean>>
 
-  saveEmailPreferences(
-    userId: number,
-    entries: ReadonlyMap<string, boolean>,
-  ): Promise<void>
+  saveEmailPreferences(userId: number, entries: ReadonlyMap<string, boolean>): Promise<void>
 
   findForDelivery(notificationId: number): Promise<DeliverableNotification | null>
 

@@ -42,9 +42,7 @@ export function buildContactsView(input: {
         : `Last seen ${formatTime(entry.lastActiveAt, input.now, input.timeZone).label}`,
     addedAt: formatTime(entry.createdAt, input.now, input.timeZone),
     messageHref:
-      entry.kind === 'buddy'
-        ? `/messages/compose?to=${encodeURIComponent(entry.username)}`
-        : null,
+      entry.kind === 'buddy' ? `/messages/compose?to=${encodeURIComponent(entry.username)}` : null,
   })
 
   const buddies = input.buddies.map(row)

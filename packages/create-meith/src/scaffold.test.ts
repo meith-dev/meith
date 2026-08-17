@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -16,12 +16,9 @@ describe('the project name', () => {
     expect(validateName('board_2')).toBeNull()
   })
 
-  it.each(['', '.', '..', 'My-Board', 'a/b', 'a\\b', '-leading'])(
-    'refuses %o',
-    (name) => {
-      expect(validateName(name)).not.toBeNull()
-    },
-  )
+  it.each(['', '.', '..', 'My-Board', 'a/b', 'a\\b', '-leading'])('refuses %o', (name) => {
+    expect(validateName(name)).not.toBeNull()
+  })
 })
 
 describe('what the scaffold writes', () => {

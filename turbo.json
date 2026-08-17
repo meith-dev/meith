@@ -1,7 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
-  "globalDependencies": ["tsconfig.base.json", ".dependency-cruiser.cjs"],
+  "globalDependencies": [
+    "tsconfig.base.json",
+    ".dependency-cruiser.cjs",
+    "biome.json",
+    "scripts/no-group-ids.grit"
+  ],
   "globalEnv": [
     "NODE_ENV",
     "DATA_SOURCE",

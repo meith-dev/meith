@@ -1,8 +1,4 @@
-import {
-  FORUM_PERMISSION_FIELDS,
-  type ForumPermissions,
-  type PermissionField,
-} from '@meith/core'
+import { FORUM_PERMISSION_FIELDS, type ForumPermissions, type PermissionField } from '@meith/core'
 
 import { resolveForumMatrix } from './resolve'
 import type { ForumOverride, GroupDefaults } from './types'
@@ -142,9 +138,7 @@ export function readMatrixCell(
   return Number.isSafeInteger(value) && value >= 0 ? value : null
 }
 
-export function matrixCellValue(
-  cell: Pick<MatrixCell, 'kind' | 'stored'>,
-): string {
+export function matrixCellValue(cell: Pick<MatrixCell, 'kind' | 'stored'>): string {
   if (cell.stored === null) return cell.kind === 'numeric' ? '' : 'inherit'
   if (cell.kind === 'numeric') return String(cell.stored)
   return cell.stored === true ? 'grant' : 'deny'

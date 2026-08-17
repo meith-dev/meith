@@ -1,13 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { RateLimiter } from '@meith/antispam'
 
+import { PostgresCaptchaQuestionRepository, PostgresRateLimitBucketStore } from './antispam-repo'
 import type { Database } from './client'
-import {
-  PostgresCaptchaQuestionRepository,
-  PostgresRateLimitBucketStore,
-} from './antispam-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
 
@@ -100,26 +97,18 @@ describe('pruning', () => {
   }
 
   it('drops old windows and keeps current ones', async () => {
-    await seed([
-      '2026-08-04T09:00:00Z',
-      '2026-08-04T10:00:00Z',
-      '2026-08-04T12:00:00Z',
-    ])
+    await seed(['2026-08-04T09:00:00Z', '2026-08-04T10:00:00Z', '2026-08-04T12:00:00Z'])
 
     expect(await store.prune(new Date('2026-08-04T11:00:00Z'))).toBe(2)
 
-    const left = resultRows(
-      await db.execute(sql`select window_start from rate_limits`),
-    ) as Array<{ window_start: string }>
+    const left = resultRows(await db.execute(sql`select window_start from rate_limits`)) as Array<{
+      window_start: string
+    }>
     expect(left).toHaveLength(1)
   })
 
   it('never deletes more than its limit in one run', async () => {
-    await seed(
-      Array.from({ length: 6 }, (_, i) =>
-        new Date(Date.UTC(2026, 7, 4, i)).toISOString(),
-      ),
-    )
+    await seed(Array.from({ length: 6 }, (_, i) => new Date(Date.UTC(2026, 7, 4, i)).toISOString()))
 
     expect(await store.prune(new Date('2026-08-05T00:00:00Z'), 2)).toBe(2)
     expect(await store.prune(new Date('2026-08-05T00:00:00Z'), 2)).toBe(2)
@@ -144,12 +133,12 @@ describe('captcha questions', () => {
   })
 
   it('refuses a question nobody could pass', async () => {
-    await expect(
-      questions.create({ question: 'Colour?', answers: '   \n  ' }),
-    ).rejects.toThrow(/at least one answer/)
-    await expect(
-      questions.create({ question: '  ', answers: 'blue' }),
-    ).rejects.toThrow(/needs to be asked/)
+    await expect(questions.create({ question: 'Colour?', answers: '   \n  ' })).rejects.toThrow(
+      /at least one answer/,
+    )
+    await expect(questions.create({ question: '  ', answers: 'blue' })).rejects.toThrow(
+      /needs to be asked/,
+    )
   })
 
   it('leaves a disabled question out of the active set', async () => {

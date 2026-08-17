@@ -1,65 +1,65 @@
 export {
+  type AttributedAuthor,
+  memberByNameHref,
+  type QuoteAttribution,
+  quoteAttribution,
+} from './attribution'
+export { bbcodeToMarkdown } from './bbcode'
+export { type ParseOptions, parse } from './blocks'
+export {
   BodyFormat,
-  RENDER_VERSION,
+  type MarkdownRenderOptions,
   postBodyHtml,
+  RENDER_VERSION,
+  type RenderablePost,
+  type RenderedBody,
   renderMarkdown,
   sourceAsMarkdown,
   vocabularyOptions,
-  type MarkdownRenderOptions,
-  type RenderablePost,
-  type RenderedBody,
 } from './body'
-export { parse, type ParseOptions } from './blocks'
-export { extractMentions, extractQuotedAuthors } from './mentions'
-export { plainText, summarise } from './plain'
-export { renderDocument, renderInline, type RenderContext } from './render'
-export { parseInline, type InlineContext } from './inline'
+export { escapeAttribute, escapeHtml } from './escape'
+export { escapeMarkdownText, plainAuthorName } from './escape-source'
 export {
-  textOf,
+  type CompiledSmilies,
+  compileSmilies,
+  createDirectiveRegistry,
+  type DirectiveDefinition,
+  type DirectiveRegistry,
+  directiveNames,
+  NO_DIRECTIVES,
+  renderSmilies,
+  type SmileyDefinition,
+} from './extensions'
+export {
+  FULL_FEATURES,
+  type MarkdownFeatures,
+  SIGNATURE_FEATURES,
+} from './features'
+export { type InlineContext, parseInline } from './inline'
+export { DEFAULT_LIMITS, type MarkdownLimits } from './limits'
+export { extractMentions, extractQuotedAuthors } from './mentions'
+export {
   type Alignment,
   type Block,
   type Inline,
   type ListItem,
   type MarkdownDocument,
   type TableCell,
+  textOf,
 } from './nodes'
-export { escapeHtml, escapeAttribute } from './escape'
-export { safeUrl, safeImageUrl, type UrlPolicy } from './url'
-export { bbcodeToMarkdown } from './bbcode'
-export { escapeMarkdownText, plainAuthorName } from './escape-source'
-export { quoteBlock, type QuoteInput } from './quote'
+export { plainText, summarise } from './plain'
+export { type QuoteInput, quoteBlock } from './quote'
+export { type RenderContext, renderDocument, renderInline } from './render'
+export { safeImageUrl, safeUrl, type UrlPolicy } from './url'
 export {
-  memberByNameHref,
-  quoteAttribution,
-  type AttributedAuthor,
-  type QuoteAttribution,
-} from './attribution'
-export {
-  applyWordFilter,
-  compileWordFilter,
-  type CompiledWordFilter,
-  type WordFilterRule,
-} from './word-filter'
-export {
-  FULL_FEATURES,
-  SIGNATURE_FEATURES,
-  type MarkdownFeatures,
-} from './features'
-export {
-  NO_DIRECTIVES,
-  compileSmilies,
-  createDirectiveRegistry,
-  directiveNames,
-  renderSmilies,
-  type CompiledSmilies,
-  type DirectiveDefinition,
-  type DirectiveRegistry,
-  type SmileyDefinition,
-} from './extensions'
-export { DEFAULT_LIMITS, type MarkdownLimits } from './limits'
-export {
-  EMPTY_VOCABULARY,
-  compileVocabulary,
   type BoardVocabulary,
+  compileVocabulary,
+  EMPTY_VOCABULARY,
   type VocabularySource,
 } from './vocabulary'
+export {
+  applyWordFilter,
+  type CompiledWordFilter,
+  compileWordFilter,
+  type WordFilterRule,
+} from './word-filter'

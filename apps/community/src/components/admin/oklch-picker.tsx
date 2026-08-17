@@ -1,23 +1,23 @@
-"use client"
+'use client'
 
-import { useId, useState } from "react"
+import { useId, useState } from 'react'
 
 import {
-  MAX_CHROMA,
   formatOklch,
+  MAX_CHROMA,
+  type Oklch,
   oklchToRgb,
   parseColour,
   rgbToHex,
-  type Oklch,
-} from "@/view/oklch"
+} from '@/view/oklch'
 
 const NEUTRAL: Oklch = { l: 0.6, c: 0, h: 0 }
 
 const TRACK =
-  "h-6 w-full cursor-pointer appearance-none rounded-md border border-border bg-cover [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-sm [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-foreground [&::-webkit-slider-thumb]:bg-background [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-sm [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-foreground [&::-moz-range-thumb]:bg-background"
+  'h-6 w-full cursor-pointer appearance-none rounded-md border border-border bg-cover [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-sm [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-foreground [&::-webkit-slider-thumb]:bg-background [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-sm [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-foreground [&::-moz-range-thumb]:bg-background'
 
 function track(stops: readonly Oklch[]): string {
-  return `linear-gradient(to right, ${stops.map((stop) => formatOklch(stop)).join(", ")})`
+  return `linear-gradient(to right, ${stops.map((stop) => formatOklch(stop)).join(', ')})`
 }
 
 function ramp(count: number, at: (t: number) => Oklch): Oklch[] {
@@ -89,9 +89,7 @@ export function OklchPicker({
 
   const opens = describes === undefined ? 'Adjust this colour' : `Adjust ${describes}`
   const hides =
-    describes === undefined
-      ? 'Hide the colour sliders'
-      : `Hide the sliders for ${describes}`
+    describes === undefined ? 'Hide the colour sliders' : `Hide the sliders for ${describes}`
 
   return (
     <div className="flex flex-col gap-2">
@@ -151,16 +149,16 @@ export function OklchPicker({
 
           {!inGamut && (
             <p role="status" className="text-xs text-muted-foreground">
-              No ordinary screen can show this colour — the swatch is the
-              closest it can manage. Lower the chroma until it stops changing.
+              No ordinary screen can show this colour — the swatch is the closest it can manage.
+              Lower the chroma until it stops changing.
             </p>
           )}
 
-          {value !== "" && (
+          {value !== '' && (
             <div>
               <button
                 type="button"
-                onClick={() => onChange("")}
+                onClick={() => onChange('')}
                 className="text-xs font-medium underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
                 Clear, and use the value it ships with

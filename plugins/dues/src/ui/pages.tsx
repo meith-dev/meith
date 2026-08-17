@@ -6,16 +6,15 @@ import type { DuesConfig } from '../config'
 import { formatMinor } from '../money'
 import { describeBilling, shopPlans } from '../plans'
 import {
+  type MembershipRow,
   membershipsFor,
+  type OrderRow,
   orderById,
   ordersBoughtBy,
-  type MembershipRow,
-  type OrderRow,
   type PlanRow,
 } from '../store'
 
-const QUIET_PANEL =
-  'rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground'
+const QUIET_PANEL = 'rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground'
 
 const CARD =
   'flex flex-col gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground ' +
@@ -53,14 +52,12 @@ const NOTICES: Record<string, string> = {
     'Stripe configuration before anything can be bought.',
   'unknown-recipient':
     'No member goes by that name. Check the spelling — the gift needs somewhere to go.',
-  'gift-not-allowed':
-    'That plan cannot be bought for someone else. Fixed-term passes can.',
+  'gift-not-allowed': 'That plan cannot be bought for someone else. Fixed-term passes can.',
   'already-member':
     'There is already an active subscription for that membership, so a second one ' +
     'would just charge twice for the same thing.',
   'try-again': 'That did not go through cleanly. Nothing was charged — try once more.',
-  'stripe-error':
-    'Stripe could not be reached, so nothing was charged. Try again shortly.',
+  'stripe-error': 'Stripe could not be reached, so nothing was charged. Try again shortly.',
   'sign-in': 'Sign in first, so the membership has an account to attach to.',
   'unknown-code': 'That discount code does not exist. Check the spelling.',
   'code-disabled': 'That discount code has been switched off.',
@@ -142,9 +139,7 @@ function HeldCard({ memberships }: { memberships: readonly MembershipRow[] }) {
         {live.map((row) => (
           <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="font-medium">{row.planKey}</span>
-            <span
-              className={row.status === 'grace' ? '' : 'text-muted-foreground'}
-            >
+            <span className={row.status === 'grace' ? '' : 'text-muted-foreground'}>
               {membershipWhen(row)}
             </span>
           </li>
@@ -183,23 +178,16 @@ function PlanCard({
         )}
         {plan.mode === 'auto' && (
           <p className="text-xs text-muted-foreground">
-            Renews automatically. Cancel any time and keep what you paid for until the
-            period ends.
+            Renews automatically. Cancel any time and keep what you paid for until the period ends.
           </p>
         )}
         {plan.mode === 'lifetime' && (
-          <p className="text-xs text-muted-foreground">
-            One payment, no renewal, no end date.
-          </p>
+          <p className="text-xs text-muted-foreground">One payment, no renewal, no end date.</p>
         )}
       </div>
 
       {viewerSignedIn ? (
-        <form
-          method="post"
-          action="/api/plugins/dues/checkout"
-          className="flex flex-col gap-3"
-        >
+        <form method="post" action="/api/plugins/dues/checkout" className="flex flex-col gap-3">
           <input type="hidden" name="plan" value={plan.key} />
           {plan.giftable && (
             <label className="flex flex-col gap-1 text-sm">
@@ -215,15 +203,8 @@ function PlanCard({
             </label>
           )}
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-muted-foreground">
-              Discount code, if you have one.
-            </span>
-            <input
-              name="code"
-              defaultValue={defaultCode}
-              autoComplete="off"
-              className={INPUT}
-            />
+            <span className="text-xs text-muted-foreground">Discount code, if you have one.</span>
+            <input name="code" defaultValue={defaultCode} autoComplete="off" className={INPUT} />
           </label>
           <div>
             <button type="submit" className={BUY_BUTTON}>
@@ -243,8 +224,8 @@ function PlanCard({
         </p>
       )}
       <p className="text-xs text-muted-foreground">
-        Payment is taken by Stripe on their own checkout page — no card number ever
-        touches this board.
+        Payment is taken by Stripe on their own checkout page — no card number ever touches this
+        board.
       </p>
     </section>
   )
@@ -267,11 +248,7 @@ export async function PlansPage({
     <div className="flex flex-col gap-6">
       <Notice query={context.query} />
       <HeldCard memberships={memberships} />
-      {plans.length === 0 && (
-        <p className={QUIET_PANEL}>
-          Nothing is on sale just now.
-        </p>
-      )}
+      {plans.length === 0 && <p className={QUIET_PANEL}>Nothing is on sale just now.</p>}
       <div className="grid gap-4 sm:grid-cols-2">
         {plans.map((plan) => (
           <PlanCard
@@ -303,8 +280,7 @@ export function GoPage({
     try {
       const url = new URL(to)
       const hostname = url.hostname.toLowerCase()
-      const loopback =
-        hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '[::1]'
+      const loopback = hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '[::1]'
       return (
         (url.protocol === 'https:' || (url.protocol === 'http:' && loopback)) &&
         allowedHosts.includes(hostname)
@@ -330,8 +306,8 @@ export function GoPage({
       <meta httpEquiv="refresh" content={`0;url=${to}`} />
       <h2 className="font-heading text-lg font-semibold">Over to Stripe…</h2>
       <p className="text-sm text-muted-foreground">
-        Payment happens on Stripe&rsquo;s own page — no card number ever touches this
-        board. You should be there already;{' '}
+        Payment happens on Stripe&rsquo;s own page — no card number ever touches this board. You
+        should be there already;{' '}
         <a href={to} className="font-medium underline underline-offset-2">
           continue by hand
         </a>{' '}
@@ -351,9 +327,7 @@ export async function ReturnPage({
   const viewerId = context.viewer.userId
   const orderId = Number(context.query.order ?? '')
   const order =
-    Number.isSafeInteger(orderId) && orderId > 0
-      ? await orderById(context.data, orderId)
-      : null
+    Number.isSafeInteger(orderId) && orderId > 0 ? await orderById(context.data, orderId) : null
 
   if (
     order === null ||
@@ -411,9 +385,8 @@ export async function ReturnPage({
     <section className={CARD}>
       <h2 className="font-heading text-lg font-semibold">Confirming your payment…</h2>
       <p className="text-sm text-muted-foreground">
-        Stripe is telling the board about your payment right now. This page does not
-        grant anything by itself — the confirmation does, and it usually lands within
-        seconds.
+        Stripe is telling the board about your payment right now. This page does not grant anything
+        by itself — the confirmation does, and it usually lands within seconds.
       </p>
       <p className="text-sm">
         <a href={`/plugins/dues/return?order=${order.id}`} className={QUIET_BUTTON}>
@@ -480,8 +453,8 @@ export async function ManagePage({
     <div className="flex flex-col gap-6">
       {context.query.cancelled === '1' && (
         <p role="status" className="rounded-lg border border-border bg-muted px-4 py-3 text-sm">
-          Renewal cancelled. You keep everything you paid for until the period ends —
-          nothing changes before then.
+          Renewal cancelled. You keep everything you paid for until the period ends — nothing
+          changes before then.
         </p>
       )}
       {MANAGE_NOTICES[context.query.error ?? ''] !== undefined && (
@@ -510,25 +483,21 @@ export async function ManagePage({
               <li key={membership.id} className="flex flex-col gap-2 py-3 text-sm">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-medium">{membership.planKey}</span>
-                  <span
-                    className={
-                      membership.status === 'grace' ? '' : 'text-muted-foreground'
-                    }
-                  >
+                  <span className={membership.status === 'grace' ? '' : 'text-muted-foreground'}>
                     {membershipWhen(membership)}
                   </span>
                 </div>
                 {membership.status === 'grace' && (
                   <p className="text-sm">
-                    A renewal payment failed. Stripe retries on its own; updating your
-                    card below usually settles it.
+                    A renewal payment failed. Stripe retries on its own; updating your card below
+                    usually settles it.
                   </p>
                 )}
                 {membership.status === 'active' && membership.renewalMode === 'auto' && (
                   <form method="post" action="/api/plugins/dues/cancel">
                     <input type="hidden" name="membership" value={membership.id} />
                     <button type="submit" className={QUIET_BUTTON}>
-                      Cancel renewal — keep access until {' '}
+                      Cancel renewal — keep access until{' '}
                       {membershipDate(membership).toLocaleDateString('en-GB', {
                         day: 'numeric',
                         month: 'long',
@@ -546,8 +515,8 @@ export async function ManagePage({
       <section className={CARD}>
         <h2 className="font-heading text-lg font-semibold">Card and receipts</h2>
         <p className="text-sm text-muted-foreground">
-          Cards, invoices and receipts live on Stripe, where the payment did. The portal
-          is theirs; it comes back here when you are done.
+          Cards, invoices and receipts live on Stripe, where the payment did. The portal is theirs;
+          it comes back here when you are done.
         </p>
         <form method="post" action="/api/plugins/dues/portal">
           <button type="submit" className={QUIET_BUTTON}>

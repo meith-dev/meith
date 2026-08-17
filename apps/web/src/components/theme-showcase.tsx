@@ -1,9 +1,9 @@
-"use client"
+'use client'
 
-import { useState } from "react"
+import { useState } from 'react'
 
-import { themes } from "../content/site"
-import { Screenshot } from "./screenshot"
+import { themes } from '../content/site'
+import { Screenshot } from './screenshot'
 
 export function ThemeShowcase() {
   const [active, setActive] = useState(0)
@@ -19,11 +19,11 @@ export function ThemeShowcase() {
         aria-label="Themes"
         className="flex flex-wrap gap-1.5"
         onKeyDown={(event) => {
-          if (event.key === "ArrowRight") {
+          if (event.key === 'ArrowRight') {
             event.preventDefault()
             move(1)
           }
-          if (event.key === "ArrowLeft") {
+          if (event.key === 'ArrowLeft') {
             event.preventDefault()
             move(-1)
           }
@@ -34,7 +34,7 @@ export function ThemeShowcase() {
           <button
             aria-controls="theme-panel"
             aria-selected={index === active}
-            className={index === active ? "tab tab-on" : "tab"}
+            className={index === active ? 'tab tab-on' : 'tab'}
             id={`theme-tab-${entry.key}`}
             key={entry.key}
             onClick={() => setActive(index)}
@@ -58,7 +58,7 @@ export function ThemeShowcase() {
         <div className="grid gap-4 sm:grid-cols-2">
           {themes.schemes.map((scheme) => (
             <figure className="flex flex-col gap-2" key={scheme.key}>
-              <Screenshot shot={scheme.key === "light" ? theme.light : theme.dark} />
+              <Screenshot shot={scheme.key === 'light' ? theme.light : theme.dark} />
               <figcaption className="eyebrow">{scheme.label}</figcaption>
             </figure>
           ))}

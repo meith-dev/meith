@@ -1,7 +1,8 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { Actor } from '@meith/authorization'
 import { emptyPermissionSet } from '@meith/core'
-import { PluginHost, type PluginDefinition } from '@meith/plugin-kit'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { type PluginDefinition, PluginHost } from '@meith/plugin-kit'
 
 const ALPHA: PluginDefinition = {
   key: 'alpha',

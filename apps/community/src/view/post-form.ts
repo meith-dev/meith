@@ -7,9 +7,7 @@ export interface PostFormInput {
   readonly errorMessage?: string | null
 }
 
-export function buildNewThreadView(
-  input: PostFormInput,
-): Omit<PostFormModel, 'regions'> {
+export function buildNewThreadView(input: PostFormInput): Omit<PostFormModel, 'regions'> {
   return {
     mode: 'thread',
     heading: `Post a new thread in ${input.forum.title}`,
@@ -24,9 +22,7 @@ export interface ReplyViewInput {
   readonly errorMessage?: string | null
 }
 
-export function buildReplyView(
-  input: ReplyViewInput,
-): Omit<PostFormModel, 'regions'> {
+export function buildReplyView(input: ReplyViewInput): Omit<PostFormModel, 'regions'> {
   return {
     mode: 'reply',
     heading: `Reply to ${input.thread.title}`,
@@ -43,9 +39,7 @@ export interface EditViewInput {
   readonly errorMessage?: string | null
 }
 
-export function buildEditView(
-  input: EditViewInput,
-): Omit<PostFormModel, 'regions'> {
+export function buildEditView(input: EditViewInput): Omit<PostFormModel, 'regions'> {
   return {
     mode: 'edit',
     heading: input.isDeleted ? 'Deleted post' : 'Edit post',

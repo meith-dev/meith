@@ -36,9 +36,7 @@ export const settings = pgTable(
     updatedByUserId: integer('updated_by_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('settings_group_idx').on(t.groupKey)],
 )
@@ -58,15 +56,9 @@ export const themes = pgTable(
 
     enabled: boolean('enabled').notNull().default(true),
 
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    uniqueIndex('themes_single_default_key')
-      .on(t.isDefault)
-      .where(sql`${t.isDefault}`),
-  ],
+  (t) => [uniqueIndex('themes_single_default_key').on(t.isDefault).where(sql`${t.isDefault}`)],
 )
 
 export const outbox = pgTable(
@@ -83,15 +75,9 @@ export const outbox = pgTable(
     attempts: smallint('attempts').notNull().default(0),
     lastError: text('last_error'),
 
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    index('outbox_pending_idx')
-      .on(t.id)
-      .where(sql`${t.dispatchedAt} is null`),
-  ],
+  (t) => [index('outbox_pending_idx').on(t.id).where(sql`${t.dispatchedAt} is null`)],
 )
 
 export const jobs = pgTable(
@@ -116,15 +102,11 @@ export const jobs = pgTable(
     lastError: text('last_error'),
     correlationId: text('correlation_id'),
 
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (t) => [
-    index('jobs_pending_idx')
-      .on(t.status, t.runAt)
-      .where(sql`${t.status} = 'pending'`),
+    index('jobs_pending_idx').on(t.status, t.runAt).where(sql`${t.status} = 'pending'`),
 
     uniqueIndex('jobs_idempotency_key')
       .on(t.idempotencyKey)
@@ -144,19 +126,13 @@ export const tasks = pgTable(
     enabled: boolean('enabled').notNull().default(true),
 
     lastRunAt: timestamp('last_run_at', { withTimezone: true }),
-    nextRunAt: timestamp('next_run_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    nextRunAt: timestamp('next_run_at', { withTimezone: true }).notNull().defaultNow(),
 
     lockedUntil: timestamp('locked_until', { withTimezone: true }),
 
     consecutiveFailures: smallint('consecutive_failures').notNull().default(0),
   },
-  (t) => [
-    index('tasks_due_idx')
-      .on(t.nextRunAt)
-      .where(sql`${t.enabled}`),
-  ],
+  (t) => [index('tasks_due_idx').on(t.nextRunAt).where(sql`${t.enabled}`)],
 )
 
 export const taskLog = pgTable(
@@ -176,9 +152,7 @@ export const taskLog = pgTable(
 export const cacheVersions = pgTable('cache_versions', {
   key: text('key').primaryKey(),
   version: integer('version').notNull().default(1),
-  bumpedAt: timestamp('bumped_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  bumpedAt: timestamp('bumped_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const adminLog = pgTable(
@@ -192,9 +166,7 @@ export const adminLog = pgTable(
     detail: jsonb('detail').notNull().default({}),
     ipPrefix: text('ip_prefix'),
     correlationId: text('correlation_id'),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('admin_log_user_idx').on(t.userId, t.createdAt.desc()),
@@ -297,7 +269,5 @@ export const captchaQuestions = pgTable('captcha_questions', {
   question: text('question').notNull(),
   answers: text('answers').notNull(),
   enabled: boolean('enabled').notNull().default(true),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })

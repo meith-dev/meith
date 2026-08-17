@@ -1,4 +1,4 @@
-import { summarise, sufficient, type Summary } from './percentile'
+import { type Summary, sufficient, summarise } from './percentile'
 
 export interface Scenario {
   readonly id: string

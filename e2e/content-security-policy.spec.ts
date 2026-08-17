@@ -3,7 +3,10 @@ import { expect, test } from '@playwright/test'
 const HEADER = 'content-security-policy'
 
 function directive(policy: string, name: string): string {
-  const found = policy.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${name} `))
+  const found = policy
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name} `))
   expect(found, `${name} in ${policy}`).toBeDefined()
   return found as string
 }
@@ -31,9 +34,7 @@ test('every page is served under a nonce policy, and nothing is refused under it
   expect(refusals).toEqual([])
 })
 
-test('the board’s own inline scripts are stamped with the request’s nonce', async ({
-  request,
-}) => {
+test('the board’s own inline scripts are stamped with the request’s nonce', async ({ request }) => {
   const response = await request.get('/')
   const nonce = /'nonce-([^']+)'/.exec(response.headers()[HEADER] ?? '')?.[1]
   expect(nonce).toBeTruthy()
@@ -56,9 +57,7 @@ test('a fresh nonce is minted for every request', async ({ page }) => {
   expect(of(first?.headers()[HEADER])).not.toBe(of(second?.headers()[HEADER]))
 })
 
-test('the policy reaches the paths the board serves outside a page render', async ({
-  request,
-}) => {
+test('the policy reaches the paths the board serves outside a page render', async ({ request }) => {
   for (const path of ['/robots.txt', '/feed.xml']) {
     const response = await request.get(path)
     expect(response.headers()[HEADER], path).toContain("object-src 'none'")

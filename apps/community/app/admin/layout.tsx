@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation'
 
 import { ADMIN_IDLE_MINUTES } from '@meith/admin'
 
-import { AdminNav } from '@/components/admin/admin-nav'
 import { AdminSignInForm, AdminSignOutForm } from '@/components/admin/admin-forms'
+import { AdminNav } from '@/components/admin/admin-nav'
 import { PanelShell } from '@/components/shell/panel-shell'
 import { askForPassword, resolveAdmin } from '@/server/admin'
 import { getActor } from '@/server/context'
@@ -67,8 +67,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       {resolved.context.needsReauth && (
         <p className="border-b border-border bg-muted px-6 py-2 text-center text-xs text-muted-foreground">
-          It has been a while since you confirmed your password. Anything destructive will
-          ask again.
+          It has been a while since you confirmed your password. Anything destructive will ask
+          again.
         </p>
       )}
 

@@ -1,11 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+
+import { directiveNames } from '@meith/markdown'
 
 import type { Database } from './client'
-import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresContentAdminRepository } from './content-admin-repo'
+import { createTestDb, type TestDb } from './pglite.fixture'
 import { readBoardVocabulary } from './vocabulary-repo'
-import { directiveNames } from '@meith/markdown'
 
 let harness: TestDb
 let db: Database
@@ -182,7 +183,11 @@ describe('the markup vocabulary', () => {
     await repo.deleteSmiley(smileyId)
     expect(await repo.vocabularyRevision()).toBe(3)
 
-    const directiveId = await repo.createDirective({ name: 'spoiler', block: true, description: null })
+    const directiveId = await repo.createDirective({
+      name: 'spoiler',
+      block: true,
+      description: null,
+    })
     expect(await repo.vocabularyRevision()).toBe(4)
 
     await repo.updateDirective(directiveId, {
@@ -199,9 +204,7 @@ describe('the markup vocabulary', () => {
 
   it('refuses a duplicate smiley code at the source', async () => {
     await repo.createSmiley({ code: ':)', src: '/smile.png', alt: null })
-    await expect(
-      repo.createSmiley({ code: ':)', src: '/other.png', alt: null }),
-    ).rejects.toThrow()
+    await expect(repo.createSmiley({ code: ':)', src: '/other.png', alt: null })).rejects.toThrow()
   })
 
   it('refuses a duplicate directive name at the source', async () => {

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { isHookName, type HOOKS, type HookName } from './hooks'
+import { type HOOKS, type HookName, isHookName } from './hooks'
 import type { HookContext, HookValue } from './payloads'
 import { isPluginRegion, type PluginRegion, type PluginRegionContext } from './regions'
 import type { PluginData, PluginGrants, PluginNotify, PluginUsers } from './runtime'
@@ -201,8 +201,7 @@ const MIGRATION_FORMS: readonly {
   { pattern: /^alter\s+table(?:\s+if\s+exists)?(?:\s+only)?\s+(\S+)/i, describe: 'alter table' },
   { pattern: /^drop\s+table(?:\s+if\s+exists)?\s+(\S+)/i, describe: 'drop table' },
   {
-    pattern:
-      /^create\s+(?:unique\s+)?index(?:\s+if\s+not\s+exists)?\s+(\S+)\s+on\s+(\S+)/i,
+    pattern: /^create\s+(?:unique\s+)?index(?:\s+if\s+not\s+exists)?\s+(\S+)\s+on\s+(\S+)/i,
     describe: 'create index',
   },
   { pattern: /^drop\s+index(?:\s+if\s+exists)?\s+(\S+)/i, describe: 'drop index' },
@@ -216,7 +215,10 @@ const MIGRATION_FORMS: readonly {
 ]
 
 function bareIdentifier(raw: string): string {
-  let name = raw.replace(/[(;,].*$/s, '').replace(/"/g, '').toLowerCase()
+  let name = raw
+    .replace(/[(;,].*$/s, '')
+    .replace(/"/g, '')
+    .toLowerCase()
   if (name.startsWith('public.')) name = name.slice('public.'.length)
   const dot = name.indexOf('.')
   return dot === -1 ? name : name.slice(0, dot)
@@ -272,7 +274,9 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
   }
   if (plugin.name.trim() === '') throw new Error(`${where}: name must not be empty.`)
   if (!/^\d+\.\d+\.\d+$/.test(plugin.version)) {
-    throw new Error(`${where}: version must be semver (major.minor.patch), got "${plugin.version}".`)
+    throw new Error(
+      `${where}: version must be semver (major.minor.patch), got "${plugin.version}".`,
+    )
   }
 
   for (const dependency of plugin.dependsOn ?? []) {
@@ -292,13 +296,19 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
       )
     }
     const handler =
-      typeof registration === 'function' ? registration : (registration as HookRegistration<HookName>)?.handler
+      typeof registration === 'function'
+        ? registration
+        : (registration as HookRegistration<HookName>)?.handler
     if (typeof handler !== 'function') {
       throw new Error(`${where}: hook "${name}" must be a function or { handler, priority }.`)
     }
   }
 
-  assertUnique(where, 'setting', (plugin.settings ?? []).map((setting) => setting.key))
+  assertUnique(
+    where,
+    'setting',
+    (plugin.settings ?? []).map((setting) => setting.key),
+  )
   for (const setting of plugin.settings ?? []) {
     if (!SETTING_KEY_PATTERN.test(setting.key)) {
       throw new Error(
@@ -352,7 +362,11 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
     }
   }
 
-  assertUnique(where, 'migration', (plugin.migrations ?? []).map((migration) => migration.id))
+  assertUnique(
+    where,
+    'migration',
+    (plugin.migrations ?? []).map((migration) => migration.id),
+  )
   const migrationIds = (plugin.migrations ?? []).map((migration) => migration.id)
   for (const id of migrationIds) {
     if (!MIGRATION_ID_PATTERN.test(id)) {
@@ -383,10 +397,16 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
     }
   }
 
-  assertUnique(where, 'task', (plugin.tasks ?? []).map((task) => task.id))
+  assertUnique(
+    where,
+    'task',
+    (plugin.tasks ?? []).map((task) => task.id),
+  )
   for (const task of plugin.tasks ?? []) {
     if (!TASK_ID_PATTERN.test(task.id)) {
-      throw new Error(`${where}: task id "${task.id}" must be lower-case letters, digits and hyphens.`)
+      throw new Error(
+        `${where}: task id "${task.id}" must be lower-case letters, digits and hyphens.`,
+      )
     }
     if (!Number.isInteger(task.intervalSeconds) || task.intervalSeconds < 60) {
       throw new Error(
@@ -397,7 +417,11 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
     }
   }
 
-  assertUnique(where, 'admin page', (plugin.adminPages ?? []).map((page) => page.path))
+  assertUnique(
+    where,
+    'admin page',
+    (plugin.adminPages ?? []).map((page) => page.path),
+  )
   for (const page of plugin.adminPages ?? []) {
     if (!PAGE_PATH_PATTERN.test(page.path)) {
       throw new Error(
@@ -470,7 +494,11 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
     }
   }
 
-  assertUnique(where, 'page', (plugin.pages ?? []).map((page) => page.path))
+  assertUnique(
+    where,
+    'page',
+    (plugin.pages ?? []).map((page) => page.path),
+  )
   for (const page of plugin.pages ?? []) {
     if (page.path !== '' && !PAGE_PATH_PATTERN.test(page.path)) {
       throw new Error(

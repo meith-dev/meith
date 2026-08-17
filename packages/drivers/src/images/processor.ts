@@ -1,9 +1,4 @@
-import {
-  MAX_IMAGE,
-  THUMBNAIL,
-  type ImageProcessor,
-  type ProcessedImage,
-} from '@meith/attachments'
+import { type ImageProcessor, MAX_IMAGE, type ProcessedImage, THUMBNAIL } from '@meith/attachments'
 
 import { decodeImage, encodeImage, resizeToFit } from './codec'
 
@@ -17,10 +12,7 @@ function toBytes(buffer: ArrayBuffer): Uint8Array {
 
 export const imageProcessor: ImageProcessor = {
   async process(input) {
-    const decoded = await decodeImage(
-      input.bytes.slice().buffer as ArrayBuffer,
-      input.codec,
-    )
+    const decoded = await decodeImage(input.bytes.slice().buffer as ArrayBuffer, input.codec)
 
     const fitted = await resizeToFit(decoded, input.fit ?? MAX_IMAGE)
     const bytes = toBytes(await encodeImage(fitted, input.codec, ATTACHMENT_QUALITY))

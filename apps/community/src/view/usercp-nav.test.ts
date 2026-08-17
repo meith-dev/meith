@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import { flattenNav, isUnder } from './panel-nav'
 import {
-  USERCP_NAV,
-  USERCP_OVERVIEW,
-  USERCP_SECTIONS,
   activeSectionHref,
   currentPanelItem,
   currentProps,
   deepestNavHref,
+  USERCP_NAV,
+  USERCP_OVERVIEW,
+  USERCP_SECTIONS,
 } from './usercp-nav'
 
 const current = (pathname: string, href: string) =>

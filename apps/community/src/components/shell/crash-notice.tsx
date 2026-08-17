@@ -1,6 +1,6 @@
 'use client'
 
-import { Component, createContext, useContext, type ReactNode } from 'react'
+import { Component, createContext, type ReactNode, useContext } from 'react'
 
 import { CRASH_NOTICE } from '@/view/error-notice'
 

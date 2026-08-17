@@ -1,6 +1,6 @@
 export function Logomark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" aria-hidden className={className}>
+    <svg viewBox="0 0 32 32" aria-hidden="true" className={className}>
       <g className="fill-accent">
         <rect x="2" y="3" width="28" height="20" rx="6" />
         <path d="M10 19 L8.4 28.6 L16.6 22.2 Z" />

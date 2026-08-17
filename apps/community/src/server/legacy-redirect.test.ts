@@ -37,16 +37,12 @@ beforeEach(() => {
 
 describe('the addresses the legacy-redirect setting promises', () => {
   it('answers a rewritten thread address', async () => {
-    expect(await legacyDestination('/Thread-Bikeshedding-91', {})).toBe(
-      '/thread/77-thread',
-    )
+    expect(await legacyDestination('/Thread-Bikeshedding-91', {})).toBe('/thread/77-thread')
     expect(lookups).toEqual([{ kind: 'thread', legacyId: 91 }])
   })
 
   it('answers a rewritten forum address, with its slug and page', async () => {
-    expect(await legacyDestination('/Forum-General-3', { page: '2' })).toBe(
-      '/77-general?page=2',
-    )
+    expect(await legacyDestination('/Forum-General-3', { page: '2' })).toBe('/77-general?page=2')
   })
 
   it('answers a rewritten post address', async () => {
@@ -55,9 +51,7 @@ describe('the addresses the legacy-redirect setting promises', () => {
   })
 
   it('still answers the script addresses', async () => {
-    expect(await legacyDestination('/showthread.php', { tid: '91' })).toBe(
-      '/thread/77-thread',
-    )
+    expect(await legacyDestination('/showthread.php', { tid: '91' })).toBe('/thread/77-thread')
     expect(await legacyDestination('/index.php', {})).toBe('/')
   })
 

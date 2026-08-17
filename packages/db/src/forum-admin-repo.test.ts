@@ -1,16 +1,14 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { FORUM_PERMISSION_FIELDS } from '@meith/core'
 import { NO_MODERATOR_RIGHTS } from '@meith/authorization'
-
-import { MODERATOR_RIGHTS } from './forum-admin-repo'
+import { FORUM_PERMISSION_FIELDS } from '@meith/core'
 
 import type { Database } from './client'
+import { MODERATOR_RIGHTS, PostgresForumAdminRepository } from './forum-admin-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresForumAdminRepository } from './forum-admin-repo'
-import { columnName } from './schema/permission-columns'
 import { resultRows } from './result-rows'
+import { columnName } from './schema/permission-columns'
 
 let harness: TestDb
 let db: Database
@@ -200,9 +198,7 @@ describe('copyToDescendants', () => {
 
     await repo.copyToDescendants(CHILD, [GRANDCHILD], [REGISTERED])
 
-    const staff = (await repo.readOverrides([GRANDCHILD])).find(
-      (o) => o.groupId === STAFF,
-    )
+    const staff = (await repo.readOverrides([GRANDCHILD])).find((o) => o.groupId === STAFF)
     expect(staff?.overrides).toEqual({ canPostThreads: true })
   })
 
@@ -246,9 +242,10 @@ describe('moderator appointments', () => {
     `)
   })
 
-  const noRights = Object.fromEntries(
-    MODERATOR_RIGHTS.map((right) => [right, false]),
-  ) as Record<(typeof MODERATOR_RIGHTS)[number], boolean>
+  const noRights = Object.fromEntries(MODERATOR_RIGHTS.map((right) => [right, false])) as Record<
+    (typeof MODERATOR_RIGHTS)[number],
+    boolean
+  >
 
   it('appoints a member and reads the appointment back with their name', async () => {
     await repo.appoint({
@@ -306,18 +303,17 @@ describe('moderator appointments', () => {
   })
 
   it('offers exactly the rights the Authorizer reads, and no others', () => {
-    expect([...MODERATOR_RIGHTS].sort()).toEqual(
-      Object.keys(NO_MODERATOR_RIGHTS).sort(),
-    )
+    expect([...MODERATOR_RIGHTS].sort()).toEqual(Object.keys(NO_MODERATOR_RIGHTS).sort())
     for (const gone of ['canHardDeletePosts', 'canManagePolls', 'canViewIps']) {
       expect(MODERATOR_RIGHTS).not.toContain(gone)
     }
   })
 
   it('round-trips every right the screen offers, and stores nothing else', async () => {
-    const everything = Object.fromEntries(
-      MODERATOR_RIGHTS.map((right) => [right, true]),
-    ) as Record<(typeof MODERATOR_RIGHTS)[number], boolean>
+    const everything = Object.fromEntries(MODERATOR_RIGHTS.map((right) => [right, true])) as Record<
+      (typeof MODERATOR_RIGHTS)[number],
+      boolean
+    >
 
     await repo.appoint({
       forumId: CHILD,

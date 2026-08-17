@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto'
 
-import { type Job, type EnqueueOptions, type QueueDriver, logger } from '@meith/core'
-import { getDb, jobs, type Database, resultRows } from '@meith/db'
 import { and, eq, isNull, lt, or, sql } from 'drizzle-orm'
+
+import { type EnqueueOptions, type Job, logger, type QueueDriver } from '@meith/core'
+import { type Database, getDb, jobs, resultRows } from '@meith/db'
 
 const LEASE_SECONDS = 300
 
@@ -40,9 +41,7 @@ export class PostgresQueue implements QueueDriver {
         const existing = await this.db
           .select({ id: jobs.id })
           .from(jobs)
-          .where(
-            and(eq(jobs.idempotencyKey, options.dedupeKey), eq(jobs.status, 'pending')),
-          )
+          .where(and(eq(jobs.idempotencyKey, options.dedupeKey), eq(jobs.status, 'pending')))
           .limit(1)
 
         return { id: String(existing[0]?.id ?? ''), deduplicated: true }
@@ -115,9 +114,7 @@ export class PostgresQueue implements QueueDriver {
         attempt: Number(r.attempts),
       }
       const correlationId = r.correlation_id
-      return typeof correlationId === 'string'
-        ? { ...job, requestId: correlationId }
-        : job
+      return typeof correlationId === 'string' ? { ...job, requestId: correlationId } : job
     })
   }
 
@@ -194,9 +191,6 @@ export class PostgresQueue implements QueueDriver {
   }
 
   static completedBefore(cutoff: Date) {
-    return and(
-      eq(jobs.status, 'done'),
-      or(isNull(jobs.completedAt), lt(jobs.completedAt, cutoff)),
-    )
+    return and(eq(jobs.status, 'done'), or(isNull(jobs.completedAt), lt(jobs.completedAt, cutoff)))
   }
 }

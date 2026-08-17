@@ -1,11 +1,11 @@
+import { ValidationError } from '@meith/core'
 import {
   BodyFormat,
   RENDER_VERSION,
-  SIGNATURE_FEATURES,
   renderMarkdown,
+  SIGNATURE_FEATURES,
   sourceAsMarkdown,
 } from '@meith/markdown'
-import { ValidationError } from '@meith/core'
 
 export const SIGNATURE_HARD_MAX = 1000
 

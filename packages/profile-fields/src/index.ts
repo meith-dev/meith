@@ -1,21 +1,19 @@
 export {
-  FIELD_TYPES,
+  editableFields,
+  type FieldAccess,
+  maxLengthFor,
+  resolveAccess,
+  visibleFields,
+} from './resolve'
+export { type ProfileFieldContext, ProfileFieldService } from './service'
+export {
   DEFAULT_MAX_LENGTH,
-  parseFieldType,
+  FIELD_TYPES,
   type FieldType,
   type ProfileFieldDefinition,
   type ProfileFieldGroupRule,
   type ProfileFieldRepository,
   type ProfileFieldValue,
+  parseFieldType,
   type ResolvedProfileField,
 } from './types'
-
-export {
-  editableFields,
-  maxLengthFor,
-  resolveAccess,
-  visibleFields,
-  type FieldAccess,
-} from './resolve'
-
-export { ProfileFieldService, type ProfileFieldContext } from './service'

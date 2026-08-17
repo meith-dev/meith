@@ -1,8 +1,9 @@
-import { Authorizer, type Actor } from '@meith/authorization'
-import { ActorBuilder, PostgresAuthorizationSource, schema } from '@meith/db'
-import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
+import { type Actor, Authorizer } from '@meith/authorization'
+import { ActorBuilder, PostgresAuthorizationSource, schema } from '@meith/db'
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 
 let harness: TestDb
 let authorizer: Authorizer
@@ -19,9 +20,33 @@ beforeAll(async () => {
 
   await db.insert(schema.forums).values([
     { id: CATEGORY, type: 'category', title: 'Category', slug: 'category', path: '1', depth: 0 },
-    { id: LOUNGE, type: 'forum', title: 'Lounge', slug: 'lounge', parentId: CATEGORY, path: '1.2', depth: 1 },
-    { id: BACK_ROOM, type: 'forum', title: 'Back room', slug: 'back-room', parentId: LOUNGE, path: '1.2.3', depth: 2 },
-    { id: VAULT, type: 'forum', title: 'Vault', slug: 'vault', parentId: BACK_ROOM, path: '1.2.3.4', depth: 3 },
+    {
+      id: LOUNGE,
+      type: 'forum',
+      title: 'Lounge',
+      slug: 'lounge',
+      parentId: CATEGORY,
+      path: '1.2',
+      depth: 1,
+    },
+    {
+      id: BACK_ROOM,
+      type: 'forum',
+      title: 'Back room',
+      slug: 'back-room',
+      parentId: LOUNGE,
+      path: '1.2.3',
+      depth: 2,
+    },
+    {
+      id: VAULT,
+      type: 'forum',
+      title: 'Vault',
+      slug: 'vault',
+      parentId: BACK_ROOM,
+      path: '1.2.3.4',
+      depth: 3,
+    },
   ])
 
   await db.insert(schema.forumPermissions).values([

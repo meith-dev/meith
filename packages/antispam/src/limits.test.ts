@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import {
   RateLimiter,
-  subjectFor,
-  windowStartFor,
   type RateLimitScope,
   type RateLimitStore,
+  subjectFor,
+  windowStartFor,
 } from './limits'
 
 function countingStore(): RateLimitStore & { calls: number } {

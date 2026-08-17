@@ -1,43 +1,35 @@
 export {
-  SETTING_DEFINITIONS,
+  type BoardUrlEnvironment,
+  type BoardUrlResolution,
+  type BoardUrlSource,
+  isUsableOrigin,
+  normaliseOrigin,
+  resolveBoardUrl,
+} from './board-url'
+export {
   SETTING_DEFINITION_BY_KEY,
+  SETTING_DEFINITIONS,
   type SettingDefinition,
   type SettingGroup,
   type SettingKey,
   type SettingValue,
 } from './definitions'
-
-export { DEFAULT_PRIVACY_POLICY, DEFAULT_TERMS_OF_SERVICE } from './legal'
-
-export {
-  SettingsSnapshot,
-  saveSettings,
-  type SaveResult,
-  type SettingsRepository,
-  type SettingsSnapshotOptions,
-} from './store'
-
 export {
   coerceFormValue,
-  secretClearField,
-  settingField,
   type SettingField,
   type SettingOption,
+  secretClearField,
+  settingField,
 } from './fields'
-
+export { DEFAULT_PRIVACY_POLICY, DEFAULT_TERMS_OF_SERVICE } from './legal'
 export {
-  MAIL_PRESETS,
-  MAIL_PRESET_BY_ID,
-  NO_MAIL,
   canSendMail,
   defaultPort,
   describeMailConfig,
-  mailConfigFromEnvironment,
-  mailConfigFromSettings,
-  mailConfigProblems,
-  resolveMailConfig,
   type HttpMailConfig,
   type LogMailConfig,
+  MAIL_PRESET_BY_ID,
+  MAIL_PRESETS,
   type MailConfig,
   type MailEnvironment,
   type MailPreset,
@@ -45,16 +37,18 @@ export {
   type MailSecurity,
   type MailSource,
   type MailTransport,
+  mailConfigFromEnvironment,
+  mailConfigFromSettings,
+  mailConfigProblems,
+  NO_MAIL,
+  resolveMailConfig,
   type SmtpMailConfig,
 } from './mail'
-
 export { isUsableIssuer } from './origin'
-
 export {
-  isUsableOrigin,
-  normaliseOrigin,
-  resolveBoardUrl,
-  type BoardUrlEnvironment,
-  type BoardUrlResolution,
-  type BoardUrlSource,
-} from './board-url'
+  type SaveResult,
+  type SettingsRepository,
+  SettingsSnapshot,
+  type SettingsSnapshotOptions,
+  saveSettings,
+} from './store'

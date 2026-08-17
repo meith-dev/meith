@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { NotificationService, MAX_STAFF_FANOUT } from './service'
+import { MAX_STAFF_FANOUT, NotificationService } from './service'
 import type {
   DeliverableNotification,
   NotificationRecord,
@@ -219,9 +219,9 @@ describe('kinds registered at runtime', () => {
       notifications: new MemoryNotifications(),
       extraKinds: [PLUGIN_KIND],
     })
-    await expect(
-      service.raise({ userId: 7, kind: 'plugin.dues.other', data: {} }),
-    ).rejects.toThrow(/Unknown notification kind/)
+    await expect(service.raise({ userId: 7, kind: 'plugin.dues.other', data: {} })).rejects.toThrow(
+      /Unknown notification kind/,
+    )
   })
 
   it('lists the registered kind on the member preferences screen and saves its toggle', async () => {

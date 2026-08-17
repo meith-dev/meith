@@ -1,7 +1,8 @@
-import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
-import { schema } from '@meith/db'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
+import { schema } from '@meith/db'
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 
 import { expectQueryBudget, measureQueries } from './query-budget'
 
@@ -25,10 +26,7 @@ describe('measureQueries', () => {
   it('counts a loop as one statement per iteration — the N+1 shape', async () => {
     const { count } = await measureQueries(harness, async () => {
       for (const id of [1, 2, 3, 4, 5]) {
-        await harness.db
-          .select()
-          .from(schema.usergroups)
-          .where(eq(schema.usergroups.id, id))
+        await harness.db.select().from(schema.usergroups).where(eq(schema.usergroups.id, id))
       }
     })
     expect(count).toBe(5)
@@ -61,10 +59,7 @@ describe('expectQueryBudget', () => {
     await expect(
       expectQueryBudget(harness, 2, async () => {
         for (const id of [1, 2, 3, 4, 5]) {
-          await harness.db
-            .select()
-            .from(schema.usergroups)
-            .where(eq(schema.usergroups.id, id))
+          await harness.db.select().from(schema.usergroups).where(eq(schema.usergroups.id, id))
         }
       }),
     ).rejects.toThrow(/Query budget exceeded: 5 statements, budget 2/)
@@ -75,10 +70,7 @@ describe('expectQueryBudget', () => {
     try {
       await expectQueryBudget(harness, 1, async () => {
         for (const id of [1, 2, 3]) {
-          await harness.db
-            .select()
-            .from(schema.usergroups)
-            .where(eq(schema.usergroups.id, id))
+          await harness.db.select().from(schema.usergroups).where(eq(schema.usergroups.id, id))
         }
       })
     } catch (error) {

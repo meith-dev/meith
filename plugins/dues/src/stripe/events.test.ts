@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseEventEnvelope, toInternalEvent, type StripeEventEnvelope } from './events'
+import { parseEventEnvelope, type StripeEventEnvelope, toInternalEvent } from './events'
 
 function envelope(type: string, object: Record<string, unknown>): StripeEventEnvelope {
   return { id: 'evt_1', type, object }
@@ -140,9 +140,10 @@ describe('subscription events', () => {
   })
 
   it('a deleted subscription maps to its own event', () => {
-    expect(
-      toInternalEvent(envelope('customer.subscription.deleted', { id: 'sub_1' })),
-    ).toEqual({ kind: 'subscription-deleted', subscriptionId: 'sub_1' })
+    expect(toInternalEvent(envelope('customer.subscription.deleted', { id: 'sub_1' }))).toEqual({
+      kind: 'subscription-deleted',
+      subscriptionId: 'sub_1',
+    })
   })
 })
 

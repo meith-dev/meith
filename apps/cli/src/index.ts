@@ -1,25 +1,15 @@
 #!/usr/bin/env node
 import process from 'node:process'
 
-import { loadEnvFiles, type LoadedEnvFiles } from '@meith/core/env-files'
+import { type LoadedEnvFiles, loadEnvFiles } from '@meith/core/env-files'
 
+import { forumCreate, settingsGet, settingsSet, userCreate, userPromote } from './commands'
 import { demoReset, demoSeed } from './demo'
 import { importCommand } from './import'
+import { profileFieldAdd, profileFieldList, profileFieldRemove } from './profile-fields'
 import { SECRET_ENV_KEYS } from './redaction'
 import { searchReindex } from './search'
 import { taskList, taskRun } from './tasks'
-import {
-  profileFieldAdd,
-  profileFieldList,
-  profileFieldRemove,
-} from './profile-fields'
-import {
-  forumCreate,
-  settingsGet,
-  settingsSet,
-  userCreate,
-  userPromote,
-} from './commands'
 
 interface Command {
   readonly name: string
@@ -30,9 +20,7 @@ interface Command {
 
 function usage(commands: readonly Command[]): string {
   const width = Math.max(...commands.map((c) => c.name.length))
-  const lines = commands.map(
-    (c) => `  ${c.name.padEnd(width)}  ${c.summary}`,
-  )
+  const lines = commands.map((c) => `  ${c.name.padEnd(width)}  ${c.summary}`)
   return [
     'community — operator CLI',
     '',
@@ -51,7 +39,7 @@ const commands: Command[] = [
     async run() {
       const { assertEnv } = await import('@meith/core')
 
-      let env
+      let env: ReturnType<typeof assertEnv>
       try {
         env = assertEnv()
       } catch (error) {
@@ -77,9 +65,7 @@ const commands: Command[] = [
             : `No .env files at ${envFiles.root} — configuration came from the environment.`,
       )
       if (env.DATA_SOURCE === 'fixture') {
-        console.log(
-          'DATA_SOURCE=fixture — in-memory sample data. Set DATABASE_URL for Postgres.',
-        )
+        console.log('DATA_SOURCE=fixture — in-memory sample data. Set DATABASE_URL for Postgres.')
       }
       return 0
     },
@@ -93,19 +79,13 @@ const commands: Command[] = [
       const env = assertEnv()
 
       if (env.DATA_SOURCE !== 'postgres') {
-        console.error(
-          'Nothing to migrate: DATA_SOURCE is "fixture". Set DATABASE_URL first.',
-        )
+        console.error('Nothing to migrate: DATA_SOURCE is "fixture". Set DATABASE_URL first.')
         return 1
       }
 
       const { runMigrations } = await import('@meith/db')
       const applied = await runMigrations()
-      console.log(
-        applied === 0
-          ? 'Already up to date.'
-          : `Applied ${applied} migration(s).`,
-      )
+      console.log(applied === 0 ? 'Already up to date.' : `Applied ${applied} migration(s).`)
       return 0
     },
   },

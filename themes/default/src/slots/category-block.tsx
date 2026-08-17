@@ -1,5 +1,5 @@
-import { Card, CardDescription, CardHeader, CardRows, CardTitle } from '@meith/ui'
 import type { CategoryBlockModel } from '@meith/theme-kit'
+import { Card, CardDescription, CardHeader, CardRows, CardTitle } from '@meith/ui'
 
 import { LINK } from '../shared'
 

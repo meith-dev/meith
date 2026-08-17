@@ -1,24 +1,24 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
-  DEFAULT_WINDOW,
-  ROUTES,
-  SCOPES,
+  type ApiTokenRecord,
+  type ApiTokenRepository,
   authenticateToken,
   bearerFrom,
   consumeRateLimit,
-  hasScope,
+  DEFAULT_WINDOW,
   hashTokenSecret,
+  hasScope,
   idParam,
   isScope,
   issueToken,
   matchRoute,
   parseToken,
+  ROUTES,
   rateLimitHeaders,
   routeKey,
+  SCOPES,
   windowStart,
-  type ApiTokenRecord,
-  type ApiTokenRepository,
 } from './index'
 
 const NOW = new Date('2026-03-12T09:14:00.000Z')
@@ -40,8 +40,7 @@ function tokenRecord(overrides: Partial<ApiTokenRecord> = {}): ApiTokenRecord {
 
 function repositoryOf(record: ApiTokenRecord | null): ApiTokenRepository {
   return {
-    findByLookup: async (lookup) =>
-      record !== null && record.lookup === lookup ? record : null,
+    findByLookup: async (lookup) => (record !== null && record.lookup === lookup ? record : null),
     touch: async () => {},
   }
 }

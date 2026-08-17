@@ -4,9 +4,10 @@ import { logger } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 import { requireSlot } from '@meith/theme-kit'
 
+import { buildErrorNotice, CRASH_NOTICE, type ErrorNoticeCopy } from '@/view/error-notice'
+
 import { filterView } from './plugin-view'
 import { currentTheme } from './theme'
-import { buildErrorNotice, CRASH_NOTICE, type ErrorNoticeCopy } from '@/view/error-notice'
 
 export async function renderErrorNotice(copy: ErrorNoticeCopy): Promise<React.ReactNode> {
   const requestId = currentRequestId() ?? null

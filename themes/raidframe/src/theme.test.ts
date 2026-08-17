@@ -1,16 +1,12 @@
+import { describe, expect, it } from 'vitest'
+
 import {
   DARK_TOKENS as DEFAULT_DARK,
   LIGHT_TOKENS as DEFAULT_LIGHT,
-  SCHEME_INDEPENDENT_TOKENS,
   defaultTheme,
+  SCHEME_INDEPENDENT_TOKENS,
 } from '@meith/theme-default'
-import {
-  assertThemeContract,
-  resolveTheme,
-  SLOT_NAMES,
-  SLOT_STABILITY,
-} from '@meith/theme-kit'
-import { describe, expect, it } from 'vitest'
+import { assertThemeContract, resolveTheme, SLOT_NAMES, SLOT_STABILITY } from '@meith/theme-kit'
 
 import { raidframeTheme } from './theme'
 import { BROWSER_THEME_COLOR, DARK_TOKENS, LIGHT_TOKENS } from './tokens'
@@ -79,8 +75,7 @@ describe('the raidframe palette', () => {
     const shared = (a: Record<string, string>, b: Record<string, string>): string[] =>
       Object.keys(a).filter(
         (name) =>
-          a[name] === b[name] &&
-          !(SCHEME_INDEPENDENT_TOKENS as readonly string[]).includes(name),
+          a[name] === b[name] && !(SCHEME_INDEPENDENT_TOKENS as readonly string[]).includes(name),
       )
 
     expect(shared(LIGHT_TOKENS, DEFAULT_LIGHT)).toEqual([])

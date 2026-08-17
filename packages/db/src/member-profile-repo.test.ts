@@ -2,9 +2,9 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
+import { PostgresMemberProfileRepository } from './member-profile-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { users } from './schema'
-import { PostgresMemberProfileRepository } from './member-profile-repo'
 
 let harness: TestDb
 let db: Database
@@ -68,19 +68,13 @@ describe('PostgresMemberProfileRepository', () => {
 
 describe('staff standing', () => {
   it('shows a staff member as their staff group, whatever they chose', async () => {
-    await db
-      .update(users)
-      .set({ primaryGroupId: 3, displayGroupId: 2 })
-      .where(eq(users.id, 50))
+    await db.update(users).set({ primaryGroupId: 3, displayGroupId: 2 }).where(eq(users.id, 50))
 
     expect(await repo.findPublicById(50)).toMatchObject({ title: 'Administrators' })
   })
 
   it('still honours an ordinary member’s choice', async () => {
-    await db
-      .update(users)
-      .set({ primaryGroupId: 2, displayGroupId: 5 })
-      .where(eq(users.id, 50))
+    await db.update(users).set({ primaryGroupId: 2, displayGroupId: 5 }).where(eq(users.id, 50))
 
     expect(await repo.findPublicById(50)).toMatchObject({ title: 'Moderators' })
   })

@@ -1,43 +1,44 @@
 import 'server-only'
 
 import {
-  IdentityService,
+  type AuthConfig,
   DEFAULT_AUTH_POLICY,
+  IdentityService,
   rejectedField,
   resolveAuthPolicy,
-  type AuthConfig,
 } from '@meith/accounts'
-import { PostgresAdminRepository, SEED_GROUP_KEY } from '@meith/db'
+import { env, GLOBAL_TAGS, logger } from '@meith/core'
 import {
-  countUsers,
   canConnect as canConnectTo,
+  countUsers,
   createPostgresAccountStore,
   getDb,
   isInstalled,
   markInstalled,
+  PostgresAdminRepository,
   PostgresForumRepository,
   PostgresSettingsRepository,
   runMigrations,
+  SEED_GROUP_KEY,
 } from '@meith/db'
-import { GLOBAL_TAGS, env, logger } from '@meith/core'
 import { currentMailConfig, drivers } from '@meith/drivers'
 import {
-  SettingsSnapshot,
+  type Check,
+  defaultForumSlug,
+  INSTALL_STEPS,
+  type InstallInput,
+  type MailProbe,
+  mailConfigFromInstallInput,
+  preflight,
+  type StepOutcome,
+} from '@meith/install'
+import {
   canSendMail,
   describeMailConfig,
   mailConfigFromEnvironment,
+  SettingsSnapshot,
   saveSettings,
 } from '@meith/settings'
-import {
-  INSTALL_STEPS,
-  defaultForumSlug,
-  mailConfigFromInstallInput,
-  preflight,
-  type Check,
-  type InstallInput,
-  type MailProbe,
-  type StepOutcome,
-} from '@meith/install'
 
 const INSTALLED_VERSION = '0.1.0'
 
@@ -196,7 +197,8 @@ async function performInstall(input: InstallInput): Promise<readonly StepOutcome
       const registered = await admin.findGroup(SEED_GROUP_KEY.registered)
       const administrator = await admin.findGroup(SEED_GROUP_KEY.administrators)
       if (registered === null || administrator === null) {
-        const missing = registered === null ? SEED_GROUP_KEY.registered : SEED_GROUP_KEY.administrators
+        const missing =
+          registered === null ? SEED_GROUP_KEY.registered : SEED_GROUP_KEY.administrators
         const present = await admin.listGroupKeys()
         throw new Error(
           `No usergroup has the key "${missing}". ` +

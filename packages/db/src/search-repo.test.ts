@@ -1,16 +1,16 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { PUBLIC_CONTENT, contentScopeFrom } from '@meith/core'
+import { contentScopeFrom, PUBLIC_CONTENT } from '@meith/core'
 import type { SearchQuery, SearchScope } from '@meith/search'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import {
-  PostgresSearchRepository,
-  SEARCH_DOCUMENT_VERSION,
   indexedSubjectSql,
+  PostgresSearchRepository,
   renderExcerptHtml,
+  SEARCH_DOCUMENT_VERSION,
   searchVectorSql,
 } from './search-repo'
 
@@ -134,10 +134,7 @@ describe('the permission filter', () => {
     await seed({ id: 1, forumId: OPEN, message: 'kestrel here' })
     await seed({ id: 2, forumId: PRIVATE, message: 'kestrel there' })
 
-    const results = await repo.search(
-      query({ forumIds: [PRIVATE] }),
-      scope({ forumIds: [OPEN] }),
-    )
+    const results = await repo.search(query({ forumIds: [PRIVATE] }), scope({ forumIds: [OPEN] }))
     expect(results.hits).toEqual([])
   })
 
@@ -395,7 +392,13 @@ describe('matching titles only', () => {
 describe('grouping by thread', () => {
   it('answers with each thread once, however many posts in it matched', async () => {
     await seed({ id: 1, threadId: 1, title: 'Kestrels', message: 'kestrel one' })
-    await seed({ id: 2, threadId: 1, title: 'Kestrels', message: 'kestrel two', isFirstPost: false })
+    await seed({
+      id: 2,
+      threadId: 1,
+      title: 'Kestrels',
+      message: 'kestrel two',
+      isFirstPost: false,
+    })
     await seed({ id: 3, threadId: 2, title: 'Elsewhere', message: 'kestrel three' })
 
     const results = await repo.search(query({ grouping: 'threads' }), scope())
@@ -403,7 +406,12 @@ describe('grouping by thread', () => {
   })
 
   it('represents a thread by its best match when sorting by relevance', async () => {
-    await seed({ id: 1, threadId: 1, title: 'Sunday', message: 'a passing kestrel, plus a great deal of other text to dilute it' })
+    await seed({
+      id: 1,
+      threadId: 1,
+      title: 'Sunday',
+      message: 'a passing kestrel, plus a great deal of other text to dilute it',
+    })
     await seed({
       id: 2,
       threadId: 1,
@@ -419,7 +427,13 @@ describe('grouping by thread', () => {
 
   it('represents a thread by its newest match when sorting by newest', async () => {
     await seed({ id: 1, threadId: 1, title: 'Kestrels', message: 'kestrel one' })
-    await seed({ id: 2, threadId: 1, title: 'Kestrels', message: 'kestrel two', isFirstPost: false })
+    await seed({
+      id: 2,
+      threadId: 1,
+      title: 'Kestrels',
+      message: 'kestrel two',
+      isFirstPost: false,
+    })
 
     const results = await repo.search(query({ grouping: 'threads', sort: 'newest' }), scope())
     expect(results.hits.map((hit) => hit.postId)).toEqual([2])
@@ -437,7 +451,10 @@ describe('grouping by thread', () => {
       })
     }
 
-    const first = await repo.search(query({ grouping: 'threads', sort: 'newest', limit: 2 }), scope())
+    const first = await repo.search(
+      query({ grouping: 'threads', sort: 'newest', limit: 2 }),
+      scope(),
+    )
     const second = await repo.search(
       query({ grouping: 'threads', sort: 'newest', limit: 2, after: first.nextCursor }),
       scope(),

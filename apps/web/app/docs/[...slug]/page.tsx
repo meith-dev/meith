@@ -1,18 +1,18 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import { notFound } from "next/navigation"
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
 
-import { CodeCopyButtons } from "../../../src/components/code-copy"
-import { MermaidDiagrams } from "../../../src/components/mermaid-diagrams"
-import { TableOfContents } from "../../../src/components/table-of-contents"
-import { site } from "../../../src/content/site"
-import { loadDocument } from "../../../src/docs/load"
-import { docHref, documents, findSection, neighbours } from "../../../src/docs/registry"
+import { CodeCopyButtons } from '../../../src/components/code-copy'
+import { MermaidDiagrams } from '../../../src/components/mermaid-diagrams'
+import { TableOfContents } from '../../../src/components/table-of-contents'
+import { site } from '../../../src/content/site'
+import { loadDocument } from '../../../src/docs/load'
+import { docHref, documents, findSection, neighbours } from '../../../src/docs/registry'
 
 export const dynamicParams = false
 
 export function generateStaticParams() {
-  return documents.map((doc) => ({ slug: doc.slug.split("/") }))
+  return documents.map((doc) => ({ slug: doc.slug.split('/') }))
 }
 
 interface PageProps {
@@ -21,7 +21,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
-  const document = await loadDocument(slug.join("/"))
+  const document = await loadDocument(slug.join('/'))
   if (!document) return {}
 
   return {
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description: document.entry.blurb,
     alternates: { canonical: `/docs/${document.entry.slug}` },
     openGraph: {
-      type: "article",
+      type: 'article',
       title: document.entry.title,
       description: document.entry.blurb,
       url: `/docs/${document.entry.slug}`,
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function DocumentPage({ params }: PageProps) {
   const { slug } = await params
-  const document = await loadDocument(slug.join("/"))
+  const document = await loadDocument(slug.join('/'))
   if (!document) notFound()
 
   const { entry, rendered, sourcePath } = document
@@ -56,31 +56,21 @@ export default async function DocumentPage({ params }: PageProps) {
               {section.title}
             </Link>
           ) : null}
-          <h1 className="display mt-2 text-huge leading-[1.06]">
-            {rendered.title ?? entry.title}
-          </h1>
+          <h1 className="display mt-2 text-huge leading-[1.06]">{rendered.title ?? entry.title}</h1>
 
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-micro text-fg-subtle">
             <a className="textlink" href={sourceUrl}>
               {sourcePath}
             </a>
-            {entry.generated ? (
-              <span className="chip">generated from the code</span>
-            ) : null}
+            {entry.generated ? <span className="chip">generated from the code</span> : null}
           </div>
         </header>
 
-        <div
-          className="doc-body mt-10"
-          dangerouslySetInnerHTML={{ __html: rendered.html }}
-        />
+        <div className="doc-body mt-10" dangerouslySetInnerHTML={{ __html: rendered.html }} />
         <CodeCopyButtons />
         <MermaidDiagrams />
 
-        <nav
-          aria-label="Nearby documents"
-          className="card-grid mt-16 sm:grid-cols-2"
-        >
+        <nav aria-label="Nearby documents" className="card-grid mt-16 sm:grid-cols-2">
           {previous ? (
             <Link href={docHref(previous.slug)}>
               <span className="eyebrow">Previous</span>

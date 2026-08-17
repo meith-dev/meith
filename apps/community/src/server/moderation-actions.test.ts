@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { Actor } from '@meith/authorization'
 import {
   Authorizer,
-  InMemoryAuthorizationSource,
   combinePermissionSets,
+  InMemoryAuthorizationSource,
 } from '@meith/authorization'
-import type { Actor } from '@meith/authorization'
 import type {
   ModerationQueueRepository,
   PendingItem,
@@ -149,10 +149,7 @@ describe('moderateQueueAction', () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
     queue.forumOf = () => 4242
 
-    const state = await moderateQueueAction(
-      EMPTY_STATE,
-      form([...SELECTION, ['forumIds', '4242']]),
-    )
+    const state = await moderateQueueAction(EMPTY_STATE, form([...SELECTION, ['forumIds', '4242']]))
 
     expect(state.error).toMatch(/do not moderate/i)
     expect(queue.applied).toHaveLength(0)
@@ -215,7 +212,10 @@ describe('moderateQueueAction', () => {
   it('refuses a decision it does not recognise', async () => {
     const state = await moderateQueueAction(
       EMPTY_STATE,
-      form([['decision', 'delete-everything'], ['item', 'thread:10']]),
+      form([
+        ['decision', 'delete-everything'],
+        ['item', 'thread:10'],
+      ]),
     )
 
     expect(state.error).toBeTruthy()
@@ -232,7 +232,11 @@ describe('moderateQueueAction', () => {
   it('drops a malformed checkbox value rather than guessing at it', async () => {
     const state = await moderateQueueAction(
       EMPTY_STATE,
-      form([['decision', 'approve'], ['item', 'post:0'], ['item', 'user:5']]),
+      form([
+        ['decision', 'approve'],
+        ['item', 'post:0'],
+        ['item', 'user:5'],
+      ]),
     )
 
     expect(state.error).toMatch(/select at least one/i)
@@ -245,11 +249,7 @@ describe('locking what a member displays', () => {
     actorRef.current = await warnerActor(2)
     installContainer({
       signatures: {
-        setLocked: async (input: {
-          userId: number
-          locked: boolean
-          reason: string | null
-        }) => {
+        setLocked: async (input: { userId: number; locked: boolean; reason: string | null }) => {
           signatureLocks.push(input)
         },
       },
@@ -260,7 +260,11 @@ describe('locking what a member displays', () => {
     await redirectOf(
       setSignatureLockAction(
         EMPTY_STATE,
-        form([['userId', '7'], ['locked', '1'], ['reason', 'advertising']]),
+        form([
+          ['userId', '7'],
+          ['locked', '1'],
+          ['reason', 'advertising'],
+        ]),
       ),
     )
 
@@ -270,7 +274,13 @@ describe('locking what a member displays', () => {
 
   it('records the release as its own action, not as the lock again', async () => {
     await redirectOf(
-      setSignatureLockAction(EMPTY_STATE, form([['userId', '7'], ['locked', '0']])),
+      setSignatureLockAction(
+        EMPTY_STATE,
+        form([
+          ['userId', '7'],
+          ['locked', '0'],
+        ]),
+      ),
     )
 
     expect(adminCalls).toEqual([{ action: 'signature.unlock', detail: { userId: 7 } }])
@@ -280,11 +290,21 @@ describe('locking what a member displays', () => {
     await redirectOf(
       setAvatarLockAction(
         EMPTY_STATE,
-        form([['userId', '7'], ['locked', '1'], ['reason', 'obscene']]),
+        form([
+          ['userId', '7'],
+          ['locked', '1'],
+          ['reason', 'obscene'],
+        ]),
       ),
     )
     await redirectOf(
-      setAvatarLockAction(EMPTY_STATE, form([['userId', '7'], ['locked', '0']])),
+      setAvatarLockAction(
+        EMPTY_STATE,
+        form([
+          ['userId', '7'],
+          ['locked', '0'],
+        ]),
+      ),
     )
 
     expect(avatarLocks).toHaveLength(2)
@@ -295,7 +315,11 @@ describe('locking what a member displays', () => {
     await redirectOf(
       setSignatureLockAction(
         EMPTY_STATE,
-        form([['userId', '7'], ['locked', '1'], ['reason', 'advertising a rival board']]),
+        form([
+          ['userId', '7'],
+          ['locked', '1'],
+          ['reason', 'advertising a rival board'],
+        ]),
       ),
     )
 
@@ -307,7 +331,11 @@ describe('locking what a member displays', () => {
 
     const state = await setSignatureLockAction(
       EMPTY_STATE,
-      form([['userId', '7'], ['locked', '1'], ['reason', 'advertising']]),
+      form([
+        ['userId', '7'],
+        ['locked', '1'],
+        ['reason', 'advertising'],
+      ]),
     )
 
     expect(state.error).toBeTruthy()
@@ -318,7 +346,10 @@ describe('locking what a member displays', () => {
   it('logs nothing when the lock was rejected for having no reason', async () => {
     const state = await setSignatureLockAction(
       EMPTY_STATE,
-      form([['userId', '7'], ['locked', '1']]),
+      form([
+        ['userId', '7'],
+        ['locked', '1'],
+      ]),
     )
 
     expect(state.error).toMatch(/say why/i)

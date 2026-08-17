@@ -1,14 +1,14 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { FORUM_PERMISSION_FIELDS, PERMISSION_FIELDS } from '@meith/core'
 
 import type { Database } from './client'
-import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresGroupAdminRepository } from './group-admin-repo'
+import { createTestDb, type TestDb } from './pglite.fixture'
+import { resultRows } from './result-rows'
 import { columnName } from './schema/permission-columns'
 import { PLUGIN_UNGRANTABLE_PERMISSIONS } from './staff-groups'
-import { resultRows } from './result-rows'
 
 let harness: TestDb
 let db: Database
@@ -124,14 +124,10 @@ describe('the columns behind the group form', () => {
   })
 
   it('does not offer canDeleteOthersPosts, which nothing could carry out', async () => {
-    expect(PERMISSION_FIELDS.map((field) => field.key)).not.toContain(
-      'canDeleteOthersPosts',
-    )
+    expect(PERMISSION_FIELDS.map((field) => field.key)).not.toContain('canDeleteOthersPosts')
     expect(PLUGIN_UNGRANTABLE_PERMISSIONS).not.toContain('canDeleteOthersPosts')
     expect(await columnsOf('usergroups')).not.toContain('can_delete_others_posts')
-    expect(await columnsOf('forum_permissions')).not.toContain(
-      'can_delete_others_posts',
-    )
+    expect(await columnsOf('forum_permissions')).not.toContain('can_delete_others_posts')
   })
 })
 
@@ -249,7 +245,9 @@ describe('remove', () => {
   it('keeps a display group the member chose for themselves', async () => {
     const id = await repo.create({ key: 'veterans', title: 'V', copyFromGroupId: REGISTERED })
     await seedMembers(1, id)
-    await db.execute(sql`insert into user_group_memberships (user_id, group_id) values (1, ${ADMINS})`)
+    await db.execute(
+      sql`insert into user_group_memberships (user_id, group_id) values (1, ${ADMINS})`,
+    )
     await setDisplayGroup(1, ADMINS)
 
     await repo.remove(id, REGISTERED)
@@ -303,13 +301,12 @@ describe('moveMembersChunk', () => {
     let cursor: number | null = 0
     let total = 0
     while (cursor !== null) {
-      const chunk: Awaited<ReturnType<typeof repo.moveMembersChunk>> =
-        await repo.moveMembersChunk({
-          fromGroupId: REGISTERED,
-          toGroupId: ADMINS,
-          afterUserId: cursor,
-          limit: 2,
-        })
+      const chunk: Awaited<ReturnType<typeof repo.moveMembersChunk>> = await repo.moveMembersChunk({
+        fromGroupId: REGISTERED,
+        toGroupId: ADMINS,
+        afterUserId: cursor,
+        limit: 2,
+      })
       total += chunk.moved
       cursor = chunk.nextCursor
     }
@@ -347,7 +344,9 @@ describe('moveMembersChunk', () => {
 
   it('keeps a display group the member chose for themselves', async () => {
     await seedMembers(2, REGISTERED)
-    await db.execute(sql`insert into user_group_memberships (user_id, group_id) values (1, ${GUESTS})`)
+    await db.execute(
+      sql`insert into user_group_memberships (user_id, group_id) values (1, ${GUESTS})`,
+    )
     await setDisplayGroup(1, GUESTS)
 
     await repo.moveMembersChunk({

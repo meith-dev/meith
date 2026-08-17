@@ -1,28 +1,24 @@
 import 'server-only'
 
 import {
-  DAY_SECONDS,
-  QuestionCaptcha,
-  RateLimiter,
-  checkHoneypot,
-  noCaptcha,
-  holdsForReview,
-  subjectFor,
   type AuthRateLimitScope,
   type CaptchaProvider,
   type Challenge,
   type ChallengeVerdict,
   type ConfiguredRateLimitScope,
+  checkHoneypot,
+  DAY_SECONDS,
   type GroupRateLimitScope,
+  holdsForReview,
+  noCaptcha,
+  QuestionCaptcha,
+  RateLimiter,
   type RateLimitOutcome,
+  subjectFor,
 } from '@meith/antispam'
 import type { Actor, NumericGlobalPermission } from '@meith/authorization'
 import { env, logger, truncateIp } from '@meith/core'
-import {
-  PostgresCaptchaQuestionRepository,
-  PostgresRateLimitBucketStore,
-  getDb,
-} from '@meith/db'
+import { getDb, PostgresCaptchaQuestionRepository, PostgresRateLimitBucketStore } from '@meith/db'
 import type { SettingsSnapshot } from '@meith/settings'
 
 import { remoteAddress } from './admin'
@@ -42,9 +38,7 @@ const HOUR = 3600
 const RESEND_PER_HOUR = 3
 
 export function rateLimitStore(): PostgresRateLimitBucketStore | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresRateLimitBucketStore(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresRateLimitBucketStore(getDb()) : null
 }
 
 export function captchaQuestionRepository(): PostgresCaptchaQuestionRepository | null {

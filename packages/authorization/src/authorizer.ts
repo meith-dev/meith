@@ -1,22 +1,16 @@
 import {
-  ForbiddenError,
-  NO_THREAD_AUDIENCE,
   authorFilterFrom,
-  contentScopeFrom,
-  unrestrictedAudience,
   type ContentScope,
+  contentScopeFrom,
+  ForbiddenError,
   type ForumPermissions,
+  NO_THREAD_AUDIENCE,
   type ThreadAudience,
   type ThreadAuthorFilter,
+  unrestrictedAudience,
 } from '@meith/core'
 
-import {
-  NO_MODERATOR_RIGHTS,
-  hasAnyModeratorRight,
-  type ModeratorRights,
-} from './types'
-
-import { resolveForumMatrix, indexOverrides } from './resolve'
+import { indexOverrides, resolveForumMatrix } from './resolve'
 import type {
   Action,
   Actor,
@@ -26,6 +20,7 @@ import type {
   Target,
   Visible,
 } from './types'
+import { hasAnyModeratorRight, type ModeratorRights, NO_MODERATOR_RIGHTS } from './types'
 
 export interface BypassEvent {
   readonly kind: 'administrator' | 'super_moderator'
@@ -159,10 +154,7 @@ export class Authorizer {
     const ownThreadsOnlyForumIds: number[] = []
     for (const target of await this.resolvedTargets(actor)) {
       visibleForumIds.push(target.forumId)
-      if (
-        this.can(actor, 'thread.view', target) &&
-        !this.can(actor, 'thread.viewOthers', target)
-      ) {
+      if (this.can(actor, 'thread.view', target) && !this.can(actor, 'thread.viewOthers', target)) {
         ownThreadsOnlyForumIds.push(target.forumId)
       }
     }
@@ -173,10 +165,7 @@ export class Authorizer {
     actor: Actor,
     right: keyof ModeratorRights = 'canApproveContent',
   ): Promise<number[]> {
-    if (
-      actor.global.isAdministrator === true ||
-      actor.global.isSuperModerator === true
-    ) {
+    if (actor.global.isAdministrator === true || actor.global.isSuperModerator === true) {
       return [...(await this.source.allForumIds())]
     }
 
@@ -197,10 +186,7 @@ export class Authorizer {
         if (!appointment[right]) continue
         if (appointment.forumId === forumId) {
           approvesByAppointment.add(forumId)
-        } else if (
-          appointment.cascadeToSubforums &&
-          chain.includes(appointment.forumId)
-        ) {
+        } else if (appointment.cascadeToSubforums && chain.includes(appointment.forumId)) {
           approvesByAppointment.add(forumId)
         }
       }
@@ -210,8 +196,7 @@ export class Authorizer {
     for (const [forumId, chain] of chains) {
       const matrix = resolveForumMatrix(chain, groups, overrides)
       if (matrix.canView !== true) continue
-      const byGroup =
-        right === 'canApproveContent' && matrix.canApproveContent === true
+      const byGroup = right === 'canApproveContent' && matrix.canApproveContent === true
       if (byGroup || approvesByAppointment.has(forumId)) moderated.push(forumId)
     }
     return moderated
@@ -232,14 +217,8 @@ export class Authorizer {
     return rows.filter((row) => mine.has(row.groupId))
   }
 
-  async moderatorRightsIn(
-    actor: Actor,
-    forumId: number,
-  ): Promise<ModeratorRights> {
-    if (
-      actor.global.isAdministrator === true ||
-      actor.global.isSuperModerator === true
-    ) {
+  async moderatorRightsIn(actor: Actor, forumId: number): Promise<ModeratorRights> {
+    if (actor.global.isAdministrator === true || actor.global.isSuperModerator === true) {
       return ALL_MODERATOR_RIGHTS
     }
     if (actor.userId === null) return NO_MODERATOR_RIGHTS
@@ -262,9 +241,7 @@ export class Authorizer {
 
   async forumIdsWhere(actor: Actor, action: Action): Promise<number[]> {
     if (!FORUM_SCOPED.has(action)) {
-      throw new Error(
-        `forumIdsWhere is only meaningful for forum-scoped actions: ${action}`,
-      )
+      throw new Error(`forumIdsWhere is only meaningful for forum-scoped actions: ${action}`)
     }
     if (actor.state === 'banned') return []
 
@@ -291,17 +268,11 @@ export class Authorizer {
 
     if (actor.global.isAdministrator === true) {
       this.logBypass('administrator', actor, 'thread.view', undefined)
-      return unrestrictedAudience(
-        [...(await this.source.allForumIds())],
-        actor.userId,
-      )
+      return unrestrictedAudience([...(await this.source.allForumIds())], actor.userId)
     }
     if (actor.global.isSuperModerator === true) {
       this.logBypass('super_moderator', actor, 'thread.view', undefined)
-      return unrestrictedAudience(
-        [...(await this.source.allForumIds())],
-        actor.userId,
-      )
+      return unrestrictedAudience([...(await this.source.allForumIds())], actor.userId)
     }
 
     const forumIds: number[] = []
@@ -328,15 +299,10 @@ export class Authorizer {
     forumId: number,
     forum: ForumPermissions,
   ): Promise<ThreadAuthorFilter> {
-    return this.authorFilter(
-      actor,
-      await this.moderatorTargetIn(actor, forumId, forum),
-    )
+    return this.authorFilter(actor, await this.moderatorTargetIn(actor, forumId, forum))
   }
 
-  private async resolvedTargets(
-    actor: Actor,
-  ): Promise<readonly ModeratedTarget[]> {
+  private async resolvedTargets(actor: Actor): Promise<readonly ModeratedTarget[]> {
     const [chains, groups, appointments] = await Promise.all([
       this.source.allAncestorChains(),
       this.source.groupDefaults(actor.groupIds),
@@ -358,8 +324,7 @@ export class Authorizer {
       for (const appointment of appointments) {
         const covers =
           appointment.forumId === forumId ||
-          (appointment.cascadeToSubforums &&
-            chain.includes(appointment.forumId))
+          (appointment.cascadeToSubforums && chain.includes(appointment.forumId))
         if (!covers) continue
         appointed = true
         moderatorRights = unionRights(moderatorRights, appointment)
@@ -401,10 +366,7 @@ export class Authorizer {
     forumId: number,
     forum: ForumPermissions,
   ): Promise<ContentScope> {
-    return this.contentScope(
-      actor,
-      await this.moderatorTargetIn(actor, forumId, forum),
-    )
+    return this.contentScope(actor, await this.moderatorTargetIn(actor, forumId, forum))
   }
 
   globalLimit(actor: Actor, key: NumericGlobalPermission): number {
@@ -439,10 +401,8 @@ export class Authorizer {
       return false
     }
 
-    const ownsContent =
-      target.ownerId != null && target.ownerId === actor.userId
-    const ownsThread =
-      target.threadAuthorId != null && target.threadAuthorId === actor.userId
+    const ownsContent = target.ownerId != null && target.ownerId === actor.userId
+    const ownsThread = target.threadAuthorId != null && target.threadAuthorId === actor.userId
 
     switch (action) {
       case 'forum.view':
@@ -457,8 +417,7 @@ export class Authorizer {
       case 'thread.viewOthers':
         return (
           forum.canViewThreads === true &&
-          (target.isForumModerator === true ||
-            forum.canViewOthersThreads === true)
+          (target.isForumModerator === true || forum.canViewOthersThreads === true)
         )
       case 'forum.search':
         return forum.canSearch === true
@@ -484,30 +443,22 @@ export class Authorizer {
         return ownsContent && forum.canDeleteOwnPosts === true
       case 'post.editOthers':
         return (
-          (target.moderatorRights?.canEditPosts === true ||
-            forum.canEditOthersPosts === true) &&
+          (target.moderatorRights?.canEditPosts === true || forum.canEditOthersPosts === true) &&
           !ownsContent
         )
       case 'post.softDelete':
         return (
-          target.moderatorRights?.canSoftDeletePosts === true ||
-          forum.canSoftDeletePosts === true
+          target.moderatorRights?.canSoftDeletePosts === true || forum.canSoftDeletePosts === true
         )
       case 'post.restore':
-        return (
-          target.moderatorRights?.canRestorePosts === true ||
-          forum.canSoftDeletePosts === true
-        )
+        return target.moderatorRights?.canRestorePosts === true || forum.canSoftDeletePosts === true
       case 'content.viewUnapproved':
-        return (
-          target.isForumModerator === true || forum.canViewUnapproved === true
-        )
+        return target.isForumModerator === true || forum.canViewUnapproved === true
       case 'content.viewDeleted':
         return target.isForumModerator === true || forum.canViewDeleted === true
       case 'content.approve':
         return (
-          target.moderatorRights?.canApproveContent === true ||
-          forum.canApproveContent === true
+          target.moderatorRights?.canApproveContent === true || forum.canApproveContent === true
         )
 
       case 'thread.lock':

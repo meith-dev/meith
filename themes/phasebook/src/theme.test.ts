@@ -1,10 +1,11 @@
+import { describe, expect, it } from 'vitest'
+
 import {
   DARK_TOKENS as DEFAULT_DARK,
   LIGHT_TOKENS as DEFAULT_LIGHT,
   defaultTheme,
 } from '@meith/theme-default'
 import { assertThemeContract, resolveTheme, SLOT_NAMES, SLOT_STABILITY } from '@meith/theme-kit'
-import { describe, expect, it } from 'vitest'
 
 import { phasebookTheme } from './theme'
 import { BROWSER_THEME_COLOR, DARK_TOKENS, LIGHT_TOKENS } from './tokens'

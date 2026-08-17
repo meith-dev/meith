@@ -4,8 +4,8 @@ import { notFound } from 'next/navigation'
 import { signatureHtml, signatureLimit } from '@meith/signatures'
 import { requireSlot } from '@meith/theme-kit'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { SignatureForm } from '@/components/account/usercp-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { signatureStore, viewerSignatureLimits } from '@/server/signatures'
 import { currentTheme } from '@/server/theme'
@@ -35,16 +35,9 @@ export default async function SignaturePage({
   const preview = signatureHtml(stored)
 
   return (
-    <PanelPage
-      title="Your signature"
-      lede="Shown under every post you have made, past and future."
-    >
+    <PanelPage title="Your signature" lede="Shown under every post you have made, past and future.">
       {notice !== null && (
-        <Notice
-          kind={notice.kind}
-          message={notice.message}
-          dismissHref="/usercp/signature"
-        />
+        <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/signature" />
       )}
 
       <SignatureForm

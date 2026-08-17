@@ -1,4 +1,4 @@
-import { sql, type SQL } from 'drizzle-orm'
+import { type SQL, sql } from 'drizzle-orm'
 import type { PgColumn } from 'drizzle-orm/pg-core'
 
 import {
@@ -10,10 +10,7 @@ import {
 
 import { idList } from './sql-lists'
 
-export function authoredBy(
-  column: PgColumn | SQL,
-  filter: ThreadAuthorFilter,
-): SQL {
+export function authoredBy(column: PgColumn | SQL, filter: ThreadAuthorFilter): SQL {
   switch (filter.kind) {
     case 'all':
       return sql`true`

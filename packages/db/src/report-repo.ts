@@ -15,10 +15,10 @@ import type {
 import type { Database } from './client'
 import { decodeCursor, encodeCursor } from './cursor'
 import { resultRows } from './result-rows'
+import { threads } from './schema'
 import { idList } from './sql-lists'
 import { logModeratorAction } from './thread-counters'
 import { visibleIn } from './visibility'
-import { threads } from './schema'
 
 interface RawReport {
   id: number
@@ -48,8 +48,7 @@ function toReport(row: RawReport): ReportRow {
     reporterUsername: row.reporter_username,
     reason: row.reason,
     status: row.status,
-    assignedToUserId:
-      row.assigned_to_user_id === null ? null : Number(row.assigned_to_user_id),
+    assignedToUserId: row.assigned_to_user_id === null ? null : Number(row.assigned_to_user_id),
     assignedToUsername: row.assigned_username,
     createdAt: new Date(row.created_at),
   }
@@ -135,8 +134,7 @@ export class PostgresReportRepository implements ReportRepository {
             id: Number(row.id),
             forumId: Number(row.forum_id),
             threadId: Number(row.id),
-            threadAuthorUserId:
-              row.author_user_id === null ? null : Number(row.author_user_id),
+            threadAuthorUserId: row.author_user_id === null ? null : Number(row.author_user_id),
             label: row.title,
           }
     }
@@ -165,8 +163,7 @@ export class PostgresReportRepository implements ReportRepository {
           id: Number(row.id),
           forumId: Number(row.forum_id),
           threadId: Number(row.thread_id),
-          threadAuthorUserId:
-            row.author_user_id === null ? null : Number(row.author_user_id),
+          threadAuthorUserId: row.author_user_id === null ? null : Number(row.author_user_id),
           label: row.title,
         }
   }
@@ -213,9 +210,7 @@ export class PostgresReportRepository implements ReportRepository {
     },
   ): Promise<ReportPage> {
     const cursor = options.after === undefined ? null : decodeCursor(options.after)
-    const after = cursor
-      ? sql`and (r.created_at, r.id) > (${cursor.at}, ${cursor.id})`
-      : sql``
+    const after = cursor ? sql`and (r.created_at, r.id) > (${cursor.at}, ${cursor.id})` : sql``
 
     const rows = resultRows(
       await this.db.execute(sql`
@@ -243,9 +238,7 @@ export class PostgresReportRepository implements ReportRepository {
     return Number(rows[0]?.open ?? 0)
   }
 
-  async find(
-    id: number,
-  ): Promise<{ report: ReportRow; events: readonly ReportEvent[] } | null> {
+  async find(id: number): Promise<{ report: ReportRow; events: readonly ReportEvent[] } | null> {
     const rows = resultRows(
       await this.db.execute(sql`${SELECT_REPORT} where r.id = ${id}`),
     ) as RawReport[]

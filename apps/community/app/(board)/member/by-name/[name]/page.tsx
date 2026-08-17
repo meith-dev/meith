@@ -9,11 +9,7 @@ import { memberHref } from '@/view/member-profile'
 
 export const metadata: Metadata = { title: 'Member profile' }
 
-export default async function MemberByNamePage({
-  params,
-}: {
-  params: Promise<{ name: string }>
-}) {
+export default async function MemberByNamePage({ params }: { params: Promise<{ name: string }> }) {
   const raw = (await params).name
   let name: string
   try {

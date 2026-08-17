@@ -1,6 +1,6 @@
-import { memberByNameHref, quoteAttribution, type QuoteAttribution } from './attribution'
+import { memberByNameHref, type QuoteAttribution, quoteAttribution } from './attribution'
 import { escapeAttribute, escapeHtml } from './escape'
-import { renderSmilies, type CompiledSmilies } from './extensions'
+import { type CompiledSmilies, renderSmilies } from './extensions'
 import type { Alignment, Block, Inline, ListItem, MarkdownDocument } from './nodes'
 import { safeImageUrl, safeUrl } from './url'
 
@@ -120,8 +120,12 @@ function renderBlocks(blocks: readonly Block[], context: RenderContext, tight = 
         break
       }
       case 'code': {
-        const language = block.language !== null && LANGUAGE.test(block.language) ? block.language : null
-        const languageClass = language === null ? '' : ` class="md-code-lang-${escapeAttribute(language.toLowerCase())}"`
+        const language =
+          block.language !== null && LANGUAGE.test(block.language) ? block.language : null
+        const languageClass =
+          language === null
+            ? ''
+            : ` class="md-code-lang-${escapeAttribute(language.toLowerCase())}"`
         html += `<pre class="md-code"><code${languageClass}>${escapeHtml(block.value)}\n</code></pre>\n`
         break
       }
@@ -130,13 +134,19 @@ function renderBlocks(blocks: readonly Block[], context: RenderContext, tight = 
         break
       case 'table': {
         const head = block.head
-          .map((cell, column) => `<th${alignmentClass(block.align[column] ?? null)}>${renderInline(cell.inline, context)}</th>`)
+          .map(
+            (cell, column) =>
+              `<th${alignmentClass(block.align[column] ?? null)}>${renderInline(cell.inline, context)}</th>`,
+          )
           .join('')
         const rows = block.rows
           .map(
             (row) =>
               `<tr>${row
-                .map((cell, column) => `<td${alignmentClass(block.align[column] ?? null)}>${renderInline(cell.inline, context)}</td>`)
+                .map(
+                  (cell, column) =>
+                    `<td${alignmentClass(block.align[column] ?? null)}>${renderInline(cell.inline, context)}</td>`,
+                )
                 .join('')}</tr>`,
           )
           .join('')

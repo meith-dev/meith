@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 
-import { BodyFormat, sourceAsMarkdown } from '@meith/markdown'
 import type { Draft, DraftRepository } from '@meith/drafts'
+import { BodyFormat, sourceAsMarkdown } from '@meith/markdown'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -10,17 +10,30 @@ export class PostgresDraftRepository implements DraftRepository {
   constructor(private readonly db: Database) {}
 
   async find(userId: number, forumId: number, threadId: number | null): Promise<Draft | null> {
-    const rows = resultRows(await this.db.execute(sql`
+    const rows = resultRows(
+      await this.db.execute(sql`
       select forum_id, thread_id, title, message, body_format, prefix_id from post_drafts
        where user_id = ${userId} and forum_id = ${forumId}
          and thread_id is not distinct from ${threadId}
-    `)) as Array<{ forum_id: number; thread_id: number | null; title: string; message: string; body_format: number; prefix_id: number | null }>
+    `),
+    ) as Array<{
+      forum_id: number
+      thread_id: number | null
+      title: string
+      message: string
+      body_format: number
+      prefix_id: number | null
+    }>
     const row = rows[0]
-    return row === undefined ? null : {
-      forumId: Number(row.forum_id), threadId: row.thread_id === null ? null : Number(row.thread_id),
-      title: row.title, message: sourceAsMarkdown(row.message, Number(row.body_format)),
-      prefixId: row.prefix_id === null ? null : Number(row.prefix_id),
-    }
+    return row === undefined
+      ? null
+      : {
+          forumId: Number(row.forum_id),
+          threadId: row.thread_id === null ? null : Number(row.thread_id),
+          title: row.title,
+          message: sourceAsMarkdown(row.message, Number(row.body_format)),
+          prefixId: row.prefix_id === null ? null : Number(row.prefix_id),
+        }
   }
 
   async save(userId: number, draft: Draft): Promise<void> {

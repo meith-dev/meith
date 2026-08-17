@@ -1,4 +1,3 @@
-
 export interface StripeClientOptions {
   readonly secretKey: string
   readonly apiVersion: string
@@ -31,7 +30,9 @@ export function encodeStripeForm(body: Record<string, unknown>): string {
   const walk = (prefix: string, value: unknown): void => {
     if (value === undefined || value === null) return
     if (Array.isArray(value)) {
-      value.forEach((entry, index) => walk(`${prefix}[${index}]`, entry))
+      value.forEach((entry, index) => {
+        walk(`${prefix}[${index}]`, entry)
+      })
       return
     }
     if (typeof value === 'object') {
@@ -68,7 +69,11 @@ export interface SubscriptionState {
 
 function str(value: unknown): string | null {
   if (typeof value === 'string') return value
-  if (typeof value === 'object' && value !== null && typeof (value as { id?: unknown }).id === 'string') {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { id?: unknown }).id === 'string'
+  ) {
     return (value as { id: string }).id
   }
   return null
@@ -89,7 +94,8 @@ export function sessionFromApi(body: Record<string, unknown>): CheckoutSessionSt
 }
 
 export function subscriptionFromApi(body: Record<string, unknown>): SubscriptionState {
-  let periodEnd: number | null = typeof body.current_period_end === 'number' ? body.current_period_end : null
+  let periodEnd: number | null =
+    typeof body.current_period_end === 'number' ? body.current_period_end : null
 
   if (periodEnd === null) {
     const items = (body.items as { data?: unknown } | undefined)?.data
@@ -179,9 +185,7 @@ export function createStripeClient(options: StripeClientOptions): StripeClient {
           headers: {
             authorization: `Bearer ${options.secretKey}`,
             'stripe-version': options.apiVersion,
-            ...(body === undefined
-              ? {}
-              : { 'content-type': 'application/x-www-form-urlencoded' }),
+            ...(body === undefined ? {} : { 'content-type': 'application/x-www-form-urlencoded' }),
             ...(idempotencyKey === undefined ? {} : { 'idempotency-key': idempotencyKey }),
           },
           ...(body === undefined ? {} : { body: encodeStripeForm(body) }),

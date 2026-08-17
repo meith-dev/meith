@@ -7,7 +7,7 @@ import {
   runMigrations,
 } from '@meith/db'
 import type { PluginDefinition } from '@meith/plugin-kit'
-import { planUpgrade, upgradeNotice, type PluginUpgrade } from '@meith/upgrade'
+import { type PluginUpgrade, planUpgrade, upgradeNotice } from '@meith/upgrade'
 
 export const CODE_VERSION = '0.7.0'
 
@@ -75,12 +75,7 @@ export async function upgrade(options: UpgradeOptions): Promise<number> {
   for (const plugin of plugins) {
     const definition = options.plugins.find((entry) => entry.key === plugin.key)
     for (const migration of definition?.migrations ?? []) {
-      const ran = await applyPluginMigration(
-        db,
-        plugin.key,
-        migration.id,
-        migration.statements,
-      )
+      const ran = await applyPluginMigration(db, plugin.key, migration.id, migration.statements)
       if (ran) options.log(`${plugin.key}: applied ${migration.id}.`)
     }
     await recordVersion(db, `plugin:${plugin.key}`, plugin.version)

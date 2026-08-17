@@ -37,9 +37,10 @@ describe('resolveTimezone', () => {
   })
 
   it('prefers a chosen zone over the browser', () => {
-    expect(
-      resolveTimezone({ stored: 'America/New_York', detected: 'Asia/Tokyo' }),
-    ).toEqual({ zone: 'America/New_York', isAutomatic: false })
+    expect(resolveTimezone({ stored: 'America/New_York', detected: 'Asia/Tokyo' })).toEqual({
+      zone: 'America/New_York',
+      isAutomatic: false,
+    })
   })
 
   it('keeps a chosen UTC as a choice, not as an absence', () => {
@@ -50,9 +51,10 @@ describe('resolveTimezone', () => {
   })
 
   it('reads the automatic preference as no choice at all', () => {
-    expect(
-      resolveTimezone({ stored: AUTOMATIC_TIMEZONE, detected: 'Asia/Tokyo' }),
-    ).toEqual({ zone: 'Asia/Tokyo', isAutomatic: true })
+    expect(resolveTimezone({ stored: AUTOMATIC_TIMEZONE, detected: 'Asia/Tokyo' })).toEqual({
+      zone: 'Asia/Tokyo',
+      isAutomatic: true,
+    })
   })
 
   it('ignores a stored zone the runtime no longer recognises', () => {

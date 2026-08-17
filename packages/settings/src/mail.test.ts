@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  MAIL_PRESETS,
   canSendMail,
   describeMailConfig,
+  MAIL_PRESETS,
+  type MailEnvironment,
   mailConfigFromEnvironment,
   mailConfigFromSettings,
   mailConfigProblems,
   resolveMailConfig,
-  type MailEnvironment,
 } from './mail'
 import { SettingsSnapshot } from './store'
 
@@ -169,9 +169,15 @@ describe('mailConfigProblems', () => {
 
 describe('describeMailConfig', () => {
   it('never contains the credential', () => {
-    expect(describeMailConfig({ ...HTTP_ENV, transport: 'http', from: 'a@b.example', endpoint: 'https://api.resend.com/emails', token: 're_secret_value' })).not.toContain(
-      're_secret_value',
-    )
+    expect(
+      describeMailConfig({
+        ...HTTP_ENV,
+        transport: 'http',
+        from: 'a@b.example',
+        endpoint: 'https://api.resend.com/emails',
+        token: 're_secret_value',
+      }),
+    ).not.toContain('re_secret_value')
 
     expect(
       describeMailConfig({
@@ -188,7 +194,12 @@ describe('describeMailConfig', () => {
 
   it('survives an endpoint that is not a URL', () => {
     expect(
-      describeMailConfig({ transport: 'http', from: 'a@b.example', endpoint: 'nonsense', token: 'k' }),
+      describeMailConfig({
+        transport: 'http',
+        from: 'a@b.example',
+        endpoint: 'nonsense',
+        token: 'k',
+      }),
     ).toContain('nonsense')
   })
 })

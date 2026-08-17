@@ -13,7 +13,10 @@ export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
         <ul className="divide-y divide-border">
           {posts.map((post) => (
             <li key={post.href} className="px-3 py-2 hover:bg-secondary/50">
-              <a href={post.href} className="block truncate text-xs text-foreground hover:text-primary">
+              <a
+                href={post.href}
+                className="block truncate text-xs text-foreground hover:text-primary"
+              >
                 {post.threadTitle}
               </a>
               <p className={`${MICRO} mt-0.5 truncate normal-case`}>

@@ -1,9 +1,10 @@
-import { ValidationError } from '@meith/core'
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { ValidationError } from '@meith/core'
+
 import { RelationService, suppress } from './service'
-import { MAX_RELATIONS, isOnline, parseRelationKind } from './types'
 import type { RelationKind, RelationRepository, RelationRow } from './types'
+import { isOnline, MAX_RELATIONS, parseRelationKind } from './types'
 
 const ME = 1
 const THEM = 2
@@ -21,12 +22,7 @@ class FakeRepository implements RelationRepository {
   async ignoredIds() {
     return this.rows.filter((row) => row.kind === 'ignore').map((row) => row.userId)
   }
-  async set(input: {
-    userId: number
-    otherUserId: number
-    kind: RelationKind
-    at: Date
-  }) {
+  async set(input: { userId: number; otherUserId: number; kind: RelationKind; at: Date }) {
     const existing = this.rows.find((row) => row.userId === input.otherUserId)
     if (existing !== undefined) {
       this.rows = this.rows.map((row) =>
@@ -102,9 +98,9 @@ describe('set', () => {
       createdAt: new Date(),
     }))
 
-    await expect(
-      service.set({ userId: ME, otherUserId: THEM, kind: 'buddy' }),
-    ).rejects.toThrow(/full/)
+    await expect(service.set({ userId: ME, otherUserId: THEM, kind: 'buddy' })).rejects.toThrow(
+      /full/,
+    )
   })
 
   it('still lets somebody already on a full list be moved between them', async () => {

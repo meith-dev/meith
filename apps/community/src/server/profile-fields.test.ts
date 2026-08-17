@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
+import type { MemberSettings, MemberSettingsRepository } from '@meith/accounts'
 import type { Actor } from '@meith/authorization'
+import { combinePermissionSets, InMemoryAuthorizationSource } from '@meith/authorization'
 import type {
   FieldType,
   ProfileFieldDefinition,
@@ -9,7 +10,6 @@ import type {
   ProfileFieldRepository,
   ProfileFieldValue,
 } from '@meith/profile-fields'
-import type { MemberSettings, MemberSettingsRepository } from '@meith/accounts'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {
@@ -32,11 +32,9 @@ vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 vi.mock('./usercp-mail', () => ({ sendEmailChangeConfirmation: async () => {} }))
 vi.mock('./session-cookies', () => ({ setSessionCookie: async () => {} }))
 
-const {
-  postbitProfileFields,
-  registrationFields,
-  visibleProfileFields,
-} = await import('./profile-fields')
+const { postbitProfileFields, registrationFields, visibleProfileFields } = await import(
+  './profile-fields'
+)
 const { saveProfileAction } = await import('./usercp-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
 const { SEED_BOARD, SEED_GROUP } = await import('./seed-board')
@@ -157,9 +155,7 @@ describe('what a viewer sees on a profile', () => {
     fields.fields = [definition()]
     fields.values.set(OWNER, [{ fieldId: 1, value: 'they/them' }])
 
-    expect(await visibleProfileFields(OWNER)).toEqual([
-      { label: 'Pronouns', value: 'they/them' },
-    ])
+    expect(await visibleProfileFields(OWNER)).toEqual([{ label: 'Pronouns', value: 'they/them' }])
   })
 
   it('hides a field restricted to a group the viewer is not in', async () => {
@@ -203,16 +199,19 @@ describe('the postbit', () => {
       { fieldId: 2, value: 'Riga' },
     ])
 
-    expect(await postbitProfileFields(OWNER)).toEqual([
-      { label: 'Pronouns', value: 'they/them' },
-    ])
+    expect(await postbitProfileFields(OWNER)).toEqual([{ label: 'Pronouns', value: 'they/them' }])
   })
 })
 
 describe('the registration form', () => {
-  it("asks for a required field the default member group may edit", async () => {
+  it('asks for a required field the default member group may edit', async () => {
     fields.fields = [
-      definition({ id: 1, key: 'referrer', label: 'How did you find us?', requiredAtRegistration: true }),
+      definition({
+        id: 1,
+        key: 'referrer',
+        label: 'How did you find us?',
+        requiredAtRegistration: true,
+      }),
       definition({ id: 2, key: 'pronouns', requiredAtRegistration: false }),
     ]
     actorRef.current = await actorFor(SEED_GROUP.guest, null)
@@ -221,13 +220,11 @@ describe('the registration form', () => {
     expect(asked.map((field) => field.key)).toEqual(['referrer'])
   })
 
-  it("resolves against the default member group, not the guest looking at the form", async () => {
+  it('resolves against the default member group, not the guest looking at the form', async () => {
     fields.fields = [
       definition({ id: 1, key: 'referrer', requiredAtRegistration: true, defaultEditable: false }),
     ]
-    fields.rules = [
-      { fieldId: 1, groupId: SEED_GROUP.registered, canView: null, canEdit: true },
-    ]
+    fields.rules = [{ fieldId: 1, groupId: SEED_GROUP.registered, canView: null, canEdit: true }]
     actorRef.current = await actorFor(SEED_GROUP.guest, null)
 
     expect((await registrationFields()).map((field) => field.key)).toEqual(['referrer'])

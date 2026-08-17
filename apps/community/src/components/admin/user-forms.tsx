@@ -1,7 +1,8 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
+import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   banMemberAction,
   continueMassMailAction,
@@ -12,11 +13,10 @@ import {
   saveSecondaryGroupsAction,
   setMemberStateAction,
   startMassMailAction,
-} from "@/server/user-admin-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+} from '@/server/user-admin-actions'
 
-import { FormError, SubmitButton } from "../auth/form-controls"
-import { INPUT, Saved } from "./form-bits"
+import { FormError, SubmitButton } from '../auth/form-controls'
+import { INPUT, Saved } from './form-bits'
 
 export interface GroupChoice {
   readonly id: number
@@ -47,7 +47,7 @@ export function MemberAccountForm({
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "saved"}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>Saved.</Saved>
       <input type="hidden" name="userId" value={member.id} />
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -58,13 +58,7 @@ export function MemberAccountForm({
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Email</span>
-          <input
-            name="email"
-            type="email"
-            defaultValue={member.email}
-            className={INPUT}
-            required
-          />
+          <input name="email" type="email" defaultValue={member.email} className={INPUT} required />
           <span className="text-xs text-muted-foreground">
             Changing this does not re-verify it, and does not tell the member.
           </span>
@@ -74,7 +68,6 @@ export function MemberAccountForm({
           <span className="font-medium">Primary group</span>
           <select
             name="primaryGroupId"
-            // eslint-disable-next-line no-restricted-properties -- rendering the stored value, not deciding access
             defaultValue={String(member.primaryGroupId)}
             className={INPUT}
           >
@@ -84,16 +77,14 @@ export function MemberAccountForm({
               </option>
             ))}
           </select>
-          <span className="text-xs text-muted-foreground">
-            Decides what they may do.
-          </span>
+          <span className="text-xs text-muted-foreground">Decides what they may do.</span>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Display group</span>
           <select
             name="displayGroupId"
-            defaultValue={member.displayGroupId === null ? "" : String(member.displayGroupId)}
+            defaultValue={member.displayGroupId === null ? '' : String(member.displayGroupId)}
             className={INPUT}
           >
             <option value="">— same as primary —</option>
@@ -116,19 +107,13 @@ export function MemberAccountForm({
   )
 }
 
-export function MemberStateForm({
-  userId,
-  state: current,
-}: {
-  userId: number
-  state: string
-}) {
+export function MemberStateForm({ userId, state: current }: { userId: number; state: string }) {
   const [state, action] = useActionState(setMemberStateAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "saved"}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>Saved.</Saved>
       <input type="hidden" name="userId" value={userId} />
 
       <label className="flex flex-col gap-1 text-sm">
@@ -155,17 +140,15 @@ export function BanMemberForm({ userId }: { userId: number }) {
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "banned"}>
-        Banned. Their sessions have been revoked.
-      </Saved>
+      <Saved when={state.notice === 'banned'}>Banned. Their sessions have been revoked.</Saved>
       <input type="hidden" name="userId" value={userId} />
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Length in days</span>
         <input type="number" name="days" min={1} className={INPUT} />
         <span className="text-xs text-muted-foreground">
-          Leave blank for a permanent ban. An expiring ban puts them back in the
-          group they are in now, not in the default one.
+          Leave blank for a permanent ban. An expiring ban puts them back in the group they are in
+          now, not in the default one.
         </span>
       </label>
 
@@ -181,8 +164,7 @@ export function BanMemberForm({ userId }: { userId: number }) {
         <span className="font-medium">Reason shown to them</span>
         <textarea name="publicReason" rows={2} className={INPUT} />
         <span className="text-xs text-muted-foreground">
-          Shown when they try to log in. Blank says only that the account is
-          banned.
+          Shown when they try to log in. Blank says only that the account is banned.
         </span>
       </label>
 
@@ -190,14 +172,12 @@ export function BanMemberForm({ userId }: { userId: number }) {
         <SubmitButton>Ban this member</SubmitButton>
       </div>
       <p className="text-xs text-muted-foreground">
-        You will be asked for your password again. This revokes their sessions
-        immediately.
+        You will be asked for your password again. This revokes their sessions immediately.
       </p>
     </form>
   )
 }
 
-// eslint-disable-next-line no-restricted-properties -- the id whose checkbox is suppressed, not a decision about it
 export function SecondaryGroupsForm({
   userId,
   groups,
@@ -214,7 +194,7 @@ export function SecondaryGroupsForm({
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "saved"}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>Saved.</Saved>
       <input type="hidden" name="userId" value={userId} />
 
       <fieldset className="flex flex-col gap-2">
@@ -264,16 +244,15 @@ export function MergeForm({
     <form action={action} className="flex flex-col gap-3">
       <FormError message={state.error} />
 
-      {state.notice === "merged" && (
+      {state.notice === 'merged' && (
         <Saved when>
-          Merged. Everything now belongs to {toUsername}, and this account has
-          been closed.
+          Merged. Everything now belongs to {toUsername}, and this account has been closed.
         </Saved>
       )}
-      {state.notice === "more" && (
+      {state.notice === 'more' && (
         <Saved when>
-          {remaining} post{remaining === "1" ? "" : "s"} still to move. Press
-          again — the run picks up where it stopped.
+          {remaining} post{remaining === '1' ? '' : 's'} still to move. Press again — the run picks
+          up where it stopped.
         </Saved>
       )}
 
@@ -282,15 +261,14 @@ export function MergeForm({
 
       <div>
         <SubmitButton>
-          {state.notice === "more"
-            ? "Move the next batch"
-            : `Merge into ${toUsername} (${posts} post${posts === 1 ? "" : "s"})`}
+          {state.notice === 'more'
+            ? 'Move the next batch'
+            : `Merge into ${toUsername} (${posts} post${posts === 1 ? '' : 's'})`}
         </SubmitButton>
       </div>
       <p className="text-xs text-muted-foreground">
-        You will be asked for your password again. There is no undo: everything
-        this account ever posted becomes {toUsername}&rsquo;s, its sessions are
-        destroyed, and the account is closed.
+        You will be asked for your password again. There is no undo: everything this account ever
+        posted becomes {toUsername}&rsquo;s, its sessions are destroyed, and the account is closed.
       </p>
     </form>
   )
@@ -302,7 +280,7 @@ export function LiftBanForm({ userId }: { userId: number }) {
   return (
     <form action={action} className="flex flex-col gap-3">
       <FormError message={state.error} />
-      <Saved when={state.notice === "lifted"}>
+      <Saved when={state.notice === 'lifted'}>
         Lifted. They are back in the group they held when they were banned.
       </Saved>
       <input type="hidden" name="userId" value={userId} />
@@ -325,17 +303,20 @@ export function PruneForm({
   total: number
 }) {
   const [state, action] = useActionState(pruneMembersAction, EMPTY_STATE)
-  const pruned = state.values?.pruned ?? "0"
-  const remaining = state.values?.remaining ?? "0"
+  const pruned = state.values?.pruned ?? '0'
+  const remaining = state.values?.remaining ?? '0'
 
   return (
     <form action={action} className="flex flex-col gap-3">
       <FormError message={state.error} />
 
-      {state.notice === "finished" && (
-        <Saved when>Finished. {pruned} account{pruned === "1" ? "" : "s"} closed in this batch, and none are left.</Saved>
+      {state.notice === 'finished' && (
+        <Saved when>
+          Finished. {pruned} account{pruned === '1' ? '' : 's'} closed in this batch, and none are
+          left.
+        </Saved>
       )}
-      {state.notice === "more" && (
+      {state.notice === 'more' && (
         <Saved when>
           {pruned} closed, {remaining} still matching. Press again to continue.
         </Saved>
@@ -347,14 +328,13 @@ export function PruneForm({
 
       <div>
         <SubmitButton>
-          Close {total > 500 ? "the first 500" : `${total}`} account
-          {total === 1 ? "" : "s"}
+          Close {total > 500 ? 'the first 500' : `${total}`} account
+          {total === 1 ? '' : 's'}
         </SubmitButton>
       </div>
       <p className="text-xs text-muted-foreground">
-        You will be asked for your password again. Accounts are closed rather
-        than deleted, so a wrong date can be undone — but they disappear from
-        the board immediately.
+        You will be asked for your password again. Accounts are closed rather than deleted, so a
+        wrong date can be undone — but they disappear from the board immediately.
       </p>
     </form>
   )
@@ -371,26 +351,24 @@ export function MassMailForm({
   const [continueState, continueAction] = useActionState(continueMassMailAction, EMPTY_STATE)
 
   const current = continueState.values?.massMailId ?? state.values?.massMailId
-  const queued = continueState.values?.queued ?? state.values?.queued ?? "0"
+  const queued = continueState.values?.queued ?? state.values?.queued ?? '0'
   const notice = continueState.notice ?? state.notice
 
   if (current !== undefined && notice !== undefined) {
     return (
       <form action={continueAction} className="flex flex-col gap-3">
         <FormError message={continueState.error} />
-        {notice === "sent" ? (
+        {notice === 'sent' ? (
           <Saved when>
-            Queued for all {queued} member{queued === "1" ? "" : "s"}. They will
-            go out as the queue drains.
+            Queued for all {queued} member{queued === '1' ? '' : 's'}. They will go out as the queue
+            drains.
           </Saved>
         ) : (
-          <Saved when>
-            {queued} queued so far, and there are more. Press again to continue.
-          </Saved>
+          <Saved when>{queued} queued so far, and there are more. Press again to continue.</Saved>
         )}
 
         <input type="hidden" name="massMailId" value={current} />
-        {notice !== "sent" && (
+        {notice !== 'sent' && (
           <div>
             <SubmitButton>Queue the next batch</SubmitButton>
           </div>
@@ -406,9 +384,7 @@ export function MassMailForm({
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Send to</span>
         <select name="targetGroupId" defaultValue="" className={INPUT}>
-          <option value="">
-            Every member with a verified address ({audience})
-          </option>
+          <option value="">Every member with a verified address ({audience})</option>
           {groups.map((group) => (
             <option key={group.id} value={group.id}>
               {group.title} ({group.audience})
@@ -416,9 +392,8 @@ export function MassMailForm({
           ))}
         </select>
         <span className="text-xs text-muted-foreground">
-          A group means members who hold it as their primary group or as an
-          additional one. The number beside each audience is how many members it
-          would reach right now.
+          A group means members who hold it as their primary group or as an additional one. The
+          number beside each audience is how many members it would reach right now.
         </span>
       </label>
 
@@ -431,8 +406,8 @@ export function MassMailForm({
         <span className="font-medium">Message</span>
         <textarea name="body" rows={10} className={INPUT} required />
         <span className="text-xs text-muted-foreground">
-          Plain text. It is sent as written — there is no template and no
-          unsubscribe link, so keep it to things every member needs to know.
+          Plain text. It is sent as written — there is no template and no unsubscribe link, so keep
+          it to things every member needs to know.
         </span>
       </label>
 
@@ -440,8 +415,8 @@ export function MassMailForm({
         <SubmitButton>Queue this message</SubmitButton>
       </div>
       <p className="text-xs text-muted-foreground">
-        You will be asked for your password again. An email cannot be unsent,
-        and a mistake reaches everybody at once.
+        You will be asked for your password again. An email cannot be unsent, and a mistake reaches
+        everybody at once.
       </p>
     </form>
   )

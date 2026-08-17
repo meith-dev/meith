@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
+
 import { ValidationError } from '@meith/core'
 
 import {
-  ThreadTools,
-  parseThreadTool,
   type MoveDestination,
+  parseThreadTool,
   type ThreadToolRights,
-  type ThreadToolTarget,
+  ThreadTools,
   type ThreadToolsRepository,
+  type ThreadToolTarget,
 } from './thread-tools'
 
 const NOW = new Date('2026-07-30T12:00:00Z')

@@ -1,7 +1,8 @@
-import { DUES_DEMO_PRICES } from '@meith/plugin-dues'
 import { describe, expect, it } from 'vitest'
 
-import { fakeStripe, type FakeStripeRequest, type FakeStripeResponse } from './stripe'
+import { DUES_DEMO_PRICES } from '@meith/plugin-dues'
+
+import { type FakeStripeRequest, type FakeStripeResponse, fakeStripe } from './stripe'
 
 const BASE = 'https://demo.example/demo/stripe'
 
@@ -143,9 +144,9 @@ describe('the fake Stripe', () => {
 
   it('answers for a seeded subscription it never saw created', () => {
     const fake = stripe()
-    expect(json(fake.handle(call('GET', '/v1/subscriptions/sub_demo_lapsed')).response).status).toBe(
-      'past_due',
-    )
+    expect(
+      json(fake.handle(call('GET', '/v1/subscriptions/sub_demo_lapsed')).response).status,
+    ).toBe('past_due')
     expect(
       json(fake.handle(call('GET', '/v1/subscriptions/sub_demo_leaving')).response)
         .cancel_at_period_end,

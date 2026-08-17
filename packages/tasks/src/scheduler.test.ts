@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { builtinTasks, type TaskWorkers } from './builtin'
-import { tick, type TaskRepository } from './scheduler'
+import { type TaskRepository, tick } from './scheduler'
 import type { TaskDefinition } from './types'
 
 interface Row {
@@ -30,8 +30,7 @@ class FakeTaskRepository implements TaskRepository {
     const row = this.rows.get(input.taskId)
     if (!row) return null
 
-    const heldByLiveInstance =
-      row.runningSince !== null && row.runningSince >= input.staleBefore
+    const heldByLiveInstance = row.runningSince !== null && row.runningSince >= input.staleBefore
     if (heldByLiveInstance) return null
 
     const due = row.lastRunAt === null || row.lastRunAt <= input.dueBefore
@@ -43,11 +42,7 @@ class FakeTaskRepository implements TaskRepository {
     return { previousLastRunAt }
   }
 
-  async release(input: {
-    taskId: string
-    success: boolean
-    error?: string
-  }): Promise<void> {
+  async release(input: { taskId: string; success: boolean; error?: string }): Promise<void> {
     const row = this.rows.get(input.taskId)
     if (row) row.runningSince = null
     this.releases.push({

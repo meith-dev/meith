@@ -1,16 +1,16 @@
-import { ValidationError } from '@meith/core'
 import type { FileStore } from '@meith/core'
+import { ValidationError } from '@meith/core'
 
 import { declaredDimensions } from './dimensions'
-import { maxBytesFor, maxPerPostFor, type UploadLimits } from './limits'
 import { sanitiseFilename, storageKeyFor } from './filename'
+import { maxBytesFor, maxPerPostFor, type UploadLimits } from './limits'
 import {
-  MAGIC_BYTES_NEEDED,
-  sniff,
   type AcceptedUpload,
   type AttachmentRecord,
   type AttachmentType,
   type IncomingFile,
+  MAGIC_BYTES_NEEDED,
+  sniff,
 } from './types'
 
 export const MAX_MEGAPIXELS = 50
@@ -35,7 +35,9 @@ export function acceptFile(file: IncomingFile, limits: UploadLimits): AcceptedUp
   }
 
   if (file.bytes.length < MAGIC_BYTES_NEEDED) {
-    throw new ValidationError(`“${shown}” is too short to be a file of any type this board accepts.`)
+    throw new ValidationError(
+      `“${shown}” is too short to be a file of any type this board accepts.`,
+    )
   }
 
   const type = sniff(file.bytes)
@@ -67,9 +69,7 @@ export function acceptFiles(
 ): readonly AcceptedUpload[] {
   const cap = maxPerPostFor(limits)
   if (existing + files.length > cap) {
-    throw new ValidationError(
-      `A post may have at most ${cap} attachment${cap === 1 ? '' : 's'}.`,
-    )
+    throw new ValidationError(`A post may have at most ${cap} attachment${cap === 1 ? '' : 's'}.`)
   }
   return files.map((file) => acceptFile(file, limits))
 }
@@ -165,9 +165,7 @@ export class AttachmentService {
     this.now = deps.now ?? (() => new Date())
   }
 
-  async stage(
-    uploads: readonly AcceptedUpload[],
-  ): Promise<readonly StagedUpload[]> {
+  async stage(uploads: readonly AcceptedUpload[]): Promise<readonly StagedUpload[]> {
     const staged: StagedUpload[] = []
     for (const upload of uploads) {
       const opaque = upload.type.handling === 'opaque'
@@ -260,9 +258,7 @@ export class AttachmentService {
       height: processed.height,
       sizeBytes: processed.bytes.length,
     })
-    await this.deps.attachments.forgetKeys(
-      thumbKey === null ? [fileKey] : [fileKey, thumbKey],
-    )
+    await this.deps.attachments.forgetKeys(thumbKey === null ? [fileKey] : [fileKey, thumbKey])
 
     await this.discard(record.sourceKey)
     return 'done'

@@ -6,10 +6,10 @@ import { ForbiddenError, ValidationError } from '@meith/core'
 import { ModerationQueue, parseSelection } from '@meith/moderation'
 
 import { recordAdminAction } from './admin'
-import { avatarService } from './avatars'
-import { getActor } from './context'
-import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
+import { avatarService } from './avatars'
+import { getContainer } from './container'
+import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 
 const toFormState = formStateReporter('moderation-actions', 'unexpected error in the queue')
@@ -26,10 +26,7 @@ function outcomeQuery(outcome: {
   return parts.join('&')
 }
 
-export async function moderateQueueAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function moderateQueueAction(_prev: FormState, form: FormData): Promise<FormState> {
   const decision = form.get('decision')
   if (decision !== 'approve' && decision !== 'reject') {
     return { error: 'Choose approve or reject.' }
@@ -42,7 +39,7 @@ export async function moderateQueueAction(
     }
   }
 
-  let outcome
+  let outcome: Awaited<ReturnType<ModerationQueue['decide']>>
   try {
     const actor = await getActor()
     if (actor.userId === null) {
@@ -74,10 +71,7 @@ export async function moderateQueueAction(
   redirect(`/moderation?${outcomeQuery(outcome)}`)
 }
 
-export async function setSignatureLockAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function setSignatureLockAction(_prev: FormState, form: FormData): Promise<FormState> {
   const text = (name: string): string => {
     const value = form.get(name)
     return typeof value === 'string' ? value.trim() : ''
@@ -118,10 +112,7 @@ export async function setSignatureLockAction(
   redirect(`${returnTo}?signature=${form.get('locked') === '1' ? 'locked' : 'unlocked'}`)
 }
 
-export async function setAvatarLockAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function setAvatarLockAction(_prev: FormState, form: FormData): Promise<FormState> {
   const text = (name: string): string => {
     const value = form.get(name)
     return typeof value === 'string' ? value.trim() : ''

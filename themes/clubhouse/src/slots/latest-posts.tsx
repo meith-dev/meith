@@ -1,5 +1,5 @@
-import { Card, CardContent, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 import type { LatestPostsModel } from '@meith/theme-kit'
+import { Card, CardContent, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { LINK, MICRO, MUTED_LINK, PanelHead, Stamp, UserRef } from '../shared'
 

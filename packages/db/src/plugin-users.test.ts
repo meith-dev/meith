@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { pluginUsers } from './plugin-users'
 import { createTestDb, type TestDb } from './pglite.fixture'
+import { pluginUsers } from './plugin-users'
 import { usergroups, users } from './schema'
 
 let h: TestDb

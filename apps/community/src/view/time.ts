@@ -45,9 +45,7 @@ function partsIn(date: Date, timeZone: string): CalendarParts {
     return partsIn(date, DEFAULT_TIMEZONE)
   }
 
-  const parts = new Map(
-    formatter.formatToParts(date).map((part) => [part.type, part.value]),
-  )
+  const parts = new Map(formatter.formatToParts(date).map((part) => [part.type, part.value]))
 
   return {
     year: Number(parts.get('year')),
@@ -62,11 +60,7 @@ function sameDay(a: CalendarParts, b: CalendarParts): boolean {
   return a.year === b.year && a.month === b.month && a.day === b.day
 }
 
-export function formatTime(
-  at: Date,
-  now: Date,
-  timeZone: string = DEFAULT_TIMEZONE,
-): TimeModel {
+export function formatTime(at: Date, now: Date, timeZone: string = DEFAULT_TIMEZONE): TimeModel {
   const iso = at.toISOString()
 
   const when = partsIn(at, timeZone)

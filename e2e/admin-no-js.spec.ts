@@ -137,9 +137,7 @@ test('an announcement written in the panel renders above the forums', async ({ p
   await expect(page.getByText(title)).toHaveCount(0)
 })
 
-test('a word filter added in the panel rewrites a post written before it', async ({
-  browser,
-}) => {
+test('a word filter added in the panel rewrites a post written before it', async ({ browser }) => {
   const adminContext = await browser.newContext()
   const memberContext = await browser.newContext()
   const adminPage = await adminContext.newPage()
@@ -215,9 +213,7 @@ test('the panel sends a guest to sign in and answers a member with a 404', async
   try {
     for (const url of ['/admin', '/admin/settings', '/admin/users', '/admin/log']) {
       await guestPage.goto(url)
-      await expect(guestPage, `guest ${url}`).toHaveURL(
-        `/login?next=${encodeURIComponent(url)}`,
-      )
+      await expect(guestPage, `guest ${url}`).toHaveURL(`/login?next=${encodeURIComponent(url)}`)
       await expect(guestPage.getByRole('button', { name: 'Sign in' })).toBeVisible()
     }
 

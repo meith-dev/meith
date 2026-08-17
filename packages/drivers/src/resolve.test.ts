@@ -1,5 +1,6 @@
-import { resetEnvForTests } from '@meith/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { resetEnvForTests } from '@meith/core'
 
 import { currentMailConfig } from './resolve'
 

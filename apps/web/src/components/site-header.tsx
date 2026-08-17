@@ -1,11 +1,11 @@
-import Link from "next/link"
+import Link from 'next/link'
 
-import { site } from "../content/site"
-import { quickstartHref } from "../docs/registry"
-import { DemoLink } from "./demo-link"
-import { DocsSearch } from "./docs-search"
-import { Logomark } from "./logomark"
-import { ThemeToggle } from "./theme-toggle"
+import { site } from '../content/site'
+import { quickstartHref } from '../docs/registry'
+import { DemoLink } from './demo-link'
+import { DocsSearch } from './docs-search'
+import { Logomark } from './logomark'
+import { ThemeToggle } from './theme-toggle'
 
 export function SiteHeader() {
   return (

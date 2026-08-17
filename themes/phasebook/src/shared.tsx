@@ -1,5 +1,5 @@
-import { Avatar, cn } from '@meith/ui'
 import type { PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
+import { Avatar, cn } from '@meith/ui'
 
 export const PAGE = 'mx-auto w-full max-w-6xl px-3 sm:px-4'
 

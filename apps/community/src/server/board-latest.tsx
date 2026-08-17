@@ -2,14 +2,14 @@ import 'server-only'
 
 import type { Actor } from '@meith/authorization'
 import { contentScopeFrom } from '@meith/core'
-import { PostgresLatestRepository, getDb, type LatestScope } from '@meith/db'
+import { getDb, type LatestScope, PostgresLatestRepository } from '@meith/db'
 import { requireSlot } from '@meith/theme-kit'
 
 import { buildLatestPostsModel, buildLatestThreadsModel } from '@/view/board-latest'
 import { distinctUserIds } from '@/view/member-identity'
 
-import { activeWordFilter } from './content-admin'
 import { getContainer } from './container'
+import { activeWordFilter } from './content-admin'
 import { getActor } from './context'
 import { identitiesFor } from './group-identity'
 import { filterView, viewerRef } from './plugin-view'
@@ -21,9 +21,7 @@ export const LATEST_ROWS = 5
 export const LATEST_REFRESH_SECONDS = 60
 
 export function latestRepository(): PostgresLatestRepository | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresLatestRepository(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresLatestRepository(getDb()) : null
 }
 
 export async function latestScopeFor(actor: Actor): Promise<LatestScope> {
@@ -43,8 +41,8 @@ export async function renderLatestPanels(): Promise<React.ReactNode> {
   const actor = await getActor()
   const now = new Date()
 
-  let threadRows
-  let postRows
+  let threadRows: Awaited<ReturnType<PostgresLatestRepository['threads']>>
+  let postRows: Awaited<ReturnType<PostgresLatestRepository['posts']>>
   try {
     const scope = await latestScopeFor(actor)
     ;[threadRows, postRows] = await Promise.all([

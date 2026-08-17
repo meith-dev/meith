@@ -5,9 +5,9 @@ import {
   assertComplete,
   defineTheme,
   hasSlot,
+  type PartialSlotImplementations,
   requireSlot,
   resolveTheme,
-  type PartialSlotImplementations,
   type SlotComponent,
   type ThemeDefinition,
 } from './theme'
@@ -43,9 +43,7 @@ describe('defineTheme', () => {
   })
 
   it('rejects an empty key or title', () => {
-    expect(() => defineTheme({ key: '  ', title: 'X', slots: {} })).toThrow(
-      /key must not be empty/,
-    )
+    expect(() => defineTheme({ key: '  ', title: 'X', slots: {} })).toThrow(/key must not be empty/)
     expect(() => defineTheme({ key: 'x', title: '', slots: {} })).toThrow(/must have a title/)
   })
 
@@ -111,9 +109,9 @@ describe('defineTheme', () => {
   it('rejects two themes sharing a key in one chain', () => {
     const parent = defineTheme({ key: 'dup', title: 'Parent', slots: {} })
 
-    expect(() =>
-      defineTheme({ key: 'dup', title: 'Child', extends: parent, slots: {} }),
-    ).toThrow(/appears twice in the extends chain/)
+    expect(() => defineTheme({ key: 'dup', title: 'Child', extends: parent, slots: {} })).toThrow(
+      /appears twice in the extends chain/,
+    )
   })
 })
 

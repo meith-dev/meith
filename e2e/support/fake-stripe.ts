@@ -78,9 +78,7 @@ function route(
   method: string,
   url: URL,
   body: string,
-):
-  | { status: number; body: string; type: string }
-  | { redirect: string } {
+): { status: number; body: string; type: string } | { redirect: string } {
   if (method === 'POST' && url.pathname === '/v1/customers') {
     counter += 1
     return json({ id: `cus_e2e_${counter}`, object: 'customer' })
@@ -153,7 +151,9 @@ function route(
   const checkout = url.pathname.match(/^\/checkout\/([^/]+)$/)
   if (method === 'GET' && checkout !== null) {
     const session = sessions.get(checkout[1] as string)
-    return session === undefined ? html('<h1>No such session</h1>', 404) : html(checkoutPage(session))
+    return session === undefined
+      ? html('<h1>No such session</h1>', 404)
+      : html(checkoutPage(session))
   }
 
   const complete = url.pathname.match(/^\/checkout\/([^/]+)\/complete$/)
@@ -168,6 +168,6 @@ function route(
 }
 
 server.listen(E2E_FAKE_STRIPE_PORT, '127.0.0.1', () => {
-  // eslint-disable-next-line no-console -- this is a process; its output is its status
+  // biome-ignore lint/suspicious/noConsole: this is a process; its output is its status
   console.log(`fake stripe listening on http://127.0.0.1:${E2E_FAKE_STRIPE_PORT}`)
 })

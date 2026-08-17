@@ -1,12 +1,12 @@
 import { sql } from 'drizzle-orm'
-import { afterAll, beforeEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { PUBLIC_CONTENT } from '@meith/core'
 
-import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresImportSink } from './import-sink'
-import { PostgresSearchRepository } from './search-repo'
+import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
+import { PostgresSearchRepository } from './search-repo'
 
 const rowsOf = async <T>(query: Parameters<TestDb['db']['execute']>[0]): Promise<T[]> =>
   resultRows<T>(await harness.db.execute(query))
@@ -111,7 +111,9 @@ describe('running it twice', () => {
     await sink.putPosts([post(4102, 91, 3, 1)])
     await sink.putPosts([{ ...post(4102, 91, 3, 1), body: 'corrected on the old board' }])
 
-    const rows = await rowsOf<{ message: string }>(sql`select message from posts where legacy_mybb_pid = 4102`)
+    const rows = await rowsOf<{ message: string }>(
+      sql`select message from posts where legacy_mybb_pid = 4102`,
+    )
 
     expect(rows[0]!.message).toBe('corrected on the old board')
   })
@@ -149,7 +151,9 @@ describe('rows whose parent is missing', () => {
     const second = await sink.putForums([forum(9, 3)])
     expect(second.inserted).toBe(1)
 
-    const rows = await rowsOf<{ path: string; depth: number }>(sql`select path, depth from forums where legacy_mybb_fid = 9`)
+    const rows = await rowsOf<{ path: string; depth: number }>(
+      sql`select path, depth from forums where legacy_mybb_fid = 9`,
+    )
 
     expect(rows[0]!.depth).toBe(1)
     expect(rows[0]!.path).toMatch(/^\d+\.\d+$/)
@@ -160,12 +164,12 @@ describe('rows whose parent is missing', () => {
     await sink.putForums([forum(3)])
     await sink.putThreads([thread(91, 3, 1)])
 
-    const result = await sink.putPosts([
-      { ...post(4102, 91, 3, 0), authorUsername: 'GhostMember' },
-    ])
+    const result = await sink.putPosts([{ ...post(4102, 91, 3, 0), authorUsername: 'GhostMember' }])
 
     expect(result.inserted).toBe(1)
-    const rows = await rowsOf<{ author_user_id: number | null; author_username: string }>(sql`select author_user_id, author_username from posts where legacy_mybb_pid = 4102`)
+    const rows = await rowsOf<{ author_user_id: number | null; author_username: string }>(
+      sql`select author_user_id, author_username from posts where legacy_mybb_pid = 4102`,
+    )
 
     expect(rows[0]).toEqual({ author_user_id: null, author_username: 'GhostMember' })
   })
@@ -212,7 +216,9 @@ describe('users', () => {
   it('carries the MyBB hash across so it can be upgraded on next sign-in', async () => {
     await sink.putUsers([user(1)])
 
-    const rows = await rowsOf<{ password_hash: string; password_algo: string }>(sql`select password_hash, password_algo from users where legacy_mybb_uid = 1`)
+    const rows = await rowsOf<{ password_hash: string; password_algo: string }>(
+      sql`select password_hash, password_algo from users where legacy_mybb_uid = 1`,
+    )
 
     expect(rows[0]!.password_hash).toMatch(/^mybb\$/)
     expect(rows[0]!.password_algo).toBe('mybb')
@@ -255,7 +261,9 @@ describe('the first post', () => {
     await seedTree()
     await sink.putPosts([{ ...post(4102, 91, 3, 1), body: '[b]bold[/b]' }])
 
-    const rows = await rowsOf<{ message: string; message_html: string | null }>(sql`select message, message_html from posts where legacy_mybb_pid = 4102`)
+    const rows = await rowsOf<{ message: string; message_html: string | null }>(
+      sql`select message, message_html from posts where legacy_mybb_pid = 4102`,
+    )
 
     expect(rows[0]).toEqual({ message: '[b]bold[/b]', message_html: null })
   })
@@ -265,7 +273,14 @@ describe('the search index after an import', () => {
   const searchFor = async (terms: string) =>
     (
       await new PostgresSearchRepository(harness.db).search(
-        { terms, match: 'everything', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
+        {
+          terms,
+          match: 'everything',
+          grouping: 'posts',
+          sort: 'relevance',
+          limit: 10,
+          after: null,
+        },
         { forumIds: [1], ownThreadsOnlyForumIds: [], viewerUserId: null, content: PUBLIC_CONTENT },
       )
     ).hits.length
@@ -300,7 +315,9 @@ describe('the legacy id map', () => {
     await seedTree()
     await sink.putPosts([post(4102, 91, 3, 1)])
 
-    const rows = await rowsOf<{ kind: string; legacy_id: number }>(sql`select kind, legacy_id from legacy_ids order by kind`)
+    const rows = await rowsOf<{ kind: string; legacy_id: number }>(
+      sql`select kind, legacy_id from legacy_ids order by kind`,
+    )
 
     expect(rows).toEqual([
       { kind: 'forum', legacy_id: 3 },
@@ -312,10 +329,14 @@ describe('the legacy id map', () => {
 
   it('points the map at the current row after a re-run', async () => {
     await seedTree()
-    const rows = await rowsOf<{ new_id: number }>(sql`select new_id from legacy_ids where kind = 'thread' and legacy_id = 91`)
+    const rows = await rowsOf<{ new_id: number }>(
+      sql`select new_id from legacy_ids where kind = 'thread' and legacy_id = 91`,
+    )
 
     await seedTree()
-    const again = await rowsOf<{ new_id: number }>(sql`select new_id from legacy_ids where kind = 'thread' and legacy_id = 91`)
+    const again = await rowsOf<{ new_id: number }>(
+      sql`select new_id from legacy_ids where kind = 'thread' and legacy_id = 91`,
+    )
 
     expect(again).toEqual(rows)
   })

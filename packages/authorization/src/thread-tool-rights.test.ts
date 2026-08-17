@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest'
 import { emptyPermissionSet, type PermissionSet } from '@meith/core'
 
 import { Authorizer } from './authorizer'
+import { combinePermissionSets } from './combine'
 import {
   InMemoryAuthorizationSource,
   type MemoryAppointment,
   type MemoryBoard,
 } from './memory-source'
-import { combinePermissionSets } from './combine'
-import { NO_MODERATOR_RIGHTS, type Action, type Actor } from './types'
+import { type Action, type Actor, NO_MODERATOR_RIGHTS } from './types'
 
 const GROUP = { registered: 2, superMod: 3, admin: 4 } as const
 const FORUM = { category: 1, general: 2, nested: 3 } as const
@@ -81,9 +81,7 @@ async function allowed(
   const authorizer = authorizerFor(moderators)
   const forum = await authorizer.forumMatrix(who, forumId)
   const moderatorRights = await authorizer.moderatorRightsIn(who, forumId)
-  return TOOLS.filter((action) =>
-    authorizer.can(who, action, { forumId, forum, moderatorRights }),
-  )
+  return TOOLS.filter((action) => authorizer.can(who, action, { forumId, forum, moderatorRights }))
 }
 
 describe('moderatorRightsIn', () => {
@@ -139,9 +137,7 @@ describe('moderatorRightsIn', () => {
       canRestorePosts: true,
     }
 
-    expect(await allowed(actor([GROUP.registered]), [canRestore])).toEqual([
-      'thread.restore',
-    ])
+    expect(await allowed(actor([GROUP.registered]), [canRestore])).toEqual(['thread.restore'])
   })
 
   it('follows the appointment down the tree only when it cascades', async () => {
@@ -155,7 +151,11 @@ describe('moderatorRightsIn', () => {
 
     expect(await allowed(actor([GROUP.registered]), [base], FORUM.nested)).toEqual([])
     expect(
-      await allowed(actor([GROUP.registered]), [{ ...base, cascadeToSubforums: true }], FORUM.nested),
+      await allowed(
+        actor([GROUP.registered]),
+        [{ ...base, cascadeToSubforums: true }],
+        FORUM.nested,
+      ),
     ).toEqual(['thread.move'])
   })
 

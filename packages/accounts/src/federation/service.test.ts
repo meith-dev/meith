@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { createMemoryStore } from '../memory-repos'
+import type { AccountStore, AuthConfig } from '../ports'
 import { IdentityService } from '../service'
 import { rejectionMessage } from '../test-support.fixture'
-import type { AccountStore, AuthConfig } from '../ports'
-
 import { FederationService } from './service'
 import type { IdentityProvider, ProviderProfile } from './types'
 
@@ -274,9 +273,7 @@ describe('meeting an account that already exists', () => {
     await store.accounts.setState(userId, 'banned')
 
     expect(
-      await rejectionMessage(
-        build().completeSignIn({ provider: PROVIDER, profile: profile() }),
-      ),
+      await rejectionMessage(build().completeSignIn({ provider: PROVIDER, profile: profile() })),
     ).toContain('banned')
   })
 })

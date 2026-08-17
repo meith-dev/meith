@@ -2,13 +2,9 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { ActorBuilder } from './actor-builder'
-import {
-  expireTimedGroupMemberships,
-  permissionsCarryPower,
-  pluginGrants,
-} from './plugin-grants'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { cacheVersions, usergroups, userGroupMemberships, users } from './schema'
+import { expireTimedGroupMemberships, permissionsCarryPower, pluginGrants } from './plugin-grants'
+import { cacheVersions, userGroupMemberships, usergroups, users } from './schema'
 
 let h: TestDb
 

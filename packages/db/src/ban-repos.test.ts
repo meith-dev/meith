@@ -1,6 +1,7 @@
-import { BanService } from '@meith/accounts'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+
+import { BanService } from '@meith/accounts'
 
 import { PostgresBanFilterRepository, PostgresBanRepository } from './ban-repos'
 import type { Database } from './client'
@@ -47,10 +48,7 @@ beforeEach(async () => {
 })
 
 async function groupOf(userId: number): Promise<number | null> {
-  const [row] = await db
-    .select({ g: users.primaryGroupId })
-    .from(users)
-    .where(eq(users.id, userId))
+  const [row] = await db.select({ g: users.primaryGroupId }).from(users).where(eq(users.id, userId))
   return row?.g ?? null
 }
 
@@ -82,9 +80,7 @@ describe('banning', () => {
   })
 
   it('rolls back entirely when the user does not exist', async () => {
-    await expect(
-      service(() => new Date()).ban({ userId: 9999 }),
-    ).rejects.toThrow()
+    await expect(service(() => new Date()).ban({ userId: 9999 })).rejects.toThrow()
 
     expect(await db.select({ id: bans.id }).from(bans)).toHaveLength(0)
   })

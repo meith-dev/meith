@@ -34,10 +34,7 @@ function actorWith(global: Partial<PermissionSet>, actor: Partial<Actor> = {}): 
   }
 }
 
-const GUEST = actorWith(
-  {},
-  { userId: null, groupIds: [1], primaryGroupId: 1, state: 'guest' },
-)
+const GUEST = actorWith({}, { userId: null, groupIds: [1], primaryGroupId: 1, state: 'guest' })
 const MEMBER = actorWith({})
 const PERMITTED = actorWith({ canViewBoardOffline: true })
 const ADMIN = actorWith({ isAdministrator: true, canAccessAdminCp: true })
@@ -173,8 +170,6 @@ describe('what the gate covers', () => {
 
   it('leaves the health endpoint open', () => {
     expect(gatingLayoutsAbove('api/health/route.ts')).toEqual([])
-    expect(readFileSync(join(APP, 'api/health/route.ts'), 'utf8')).not.toContain(
-      'board-offline',
-    )
+    expect(readFileSync(join(APP, 'api/health/route.ts'), 'utf8')).not.toContain('board-offline')
   })
 })

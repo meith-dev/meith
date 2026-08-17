@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  decodeBase64Url,
-  decodeBase64UrlText,
-  encodeBase64Url,
-  randomBase64Url,
-} from './base64url'
+import { decodeBase64Url, decodeBase64UrlText, encodeBase64Url, randomBase64Url } from './base64url'
 
 describe('base64url', () => {
   it('round-trips every byte length up to three padding cases', () => {
@@ -26,9 +21,7 @@ describe('base64url', () => {
   })
 
   it('decodes text', () => {
-    expect(decodeBase64UrlText(encodeBase64Url(new TextEncoder().encode('héllo')))).toBe(
-      'héllo',
-    )
+    expect(decodeBase64UrlText(encodeBase64Url(new TextEncoder().encode('héllo')))).toBe('héllo')
   })
 
   it('refuses input outside the alphabet', () => {

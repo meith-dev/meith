@@ -1,4 +1,4 @@
-import { sql, type SQL } from 'drizzle-orm'
+import { type SQL, sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
 
@@ -135,17 +135,13 @@ export class PostgresUserAdminRepository {
              or u.last_ip_prefix like ${pattern} escape '\\')`,
       )
     }
-    // eslint-disable-next-line no-restricted-properties -- filtering on a column, not deciding access
     if (filter.primaryGroupId !== undefined) {
-      // eslint-disable-next-line no-restricted-properties -- filtering on a column, not deciding access
       conditions.push(sql`u.primary_group_id = ${filter.primaryGroupId}`)
     }
     if (filter.state !== undefined) {
       const state = assertState(filter.state)
       conditions.push(
-        state === 'banned'
-          ? BANNED_PREDICATE
-          : sql`u.state = ${state} and not ${BANNED_PREDICATE}`,
+        state === 'banned' ? BANNED_PREDICATE : sql`u.state = ${state} and not ${BANNED_PREDICATE}`,
       )
     }
     if (filter.registeredAfter !== undefined) {
@@ -189,14 +185,11 @@ export class PostgresUserAdminRepository {
     ])
 
     const mapped = (resultRows(listed) as Array<Record<string, unknown>>).map(toSearchRow)
-    const total = Number(
-      (resultRows(counted) as Array<Record<string, unknown>>)[0]?.total ?? 0,
-    )
+    const total = Number((resultRows(counted) as Array<Record<string, unknown>>)[0]?.total ?? 0)
 
     return {
       rows: mapped,
-      nextCursor:
-        mapped.length < filter.limit ? null : (mapped[mapped.length - 1]?.id ?? null),
+      nextCursor: mapped.length < filter.limit ? null : (mapped[mapped.length - 1]?.id ?? null),
       total,
     }
   }
@@ -231,7 +224,6 @@ export class PostgresUserAdminRepository {
     if (username === '') throw new ValidationError('A member needs a username.')
     if (email === '') throw new ValidationError('A member needs an email address.')
 
-    // eslint-disable-next-line no-restricted-properties -- writing the persisted column, not deciding access
     const primaryGroupId = input.primaryGroupId
 
     await withPermissionVersionBump(this.db, async (tx) => {
@@ -368,9 +360,7 @@ export class PostgresUserAdminRepository {
 
   async listGroups(): Promise<readonly { readonly id: number; readonly title: string }[]> {
     const rows = resultRows(
-      await this.db.execute(
-        sql`select id, title from usergroups order by display_order, id`,
-      ),
+      await this.db.execute(sql`select id, title from usergroups order by display_order, id`),
     ) as Array<Record<string, unknown>>
 
     return rows.map((row) => ({ id: Number(row.id), title: String(row.title) }))

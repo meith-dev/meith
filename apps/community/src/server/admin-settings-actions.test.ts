@@ -83,10 +83,7 @@ describe('the admin gate', () => {
       Object.assign(new Error('nope'), { code: 'FORBIDDEN', publicMessage: 'nope' }),
     )
 
-    const state = await saveAdminSettingsAction(
-      {},
-      form({ keys: 'board.name', 'board.name': 'X' }),
-    )
+    const state = await saveAdminSettingsAction({}, form({ keys: 'board.name', 'board.name': 'X' }))
 
     expect(state.error).toBeDefined()
     expect(written).toEqual([])
@@ -95,10 +92,7 @@ describe('the admin gate', () => {
 
 describe('what a submission may touch', () => {
   it('is exactly what the form declared, and nothing else', async () => {
-    await saveAdminSettingsAction(
-      {},
-      form({ keys: 'board.name', 'board.name': 'A new name' }),
-    )
+    await saveAdminSettingsAction({}, form({ keys: 'board.name', 'board.name': 'A new name' }))
 
     expect([...(written[0] ?? new Map()).keys()]).toEqual(['board.name'])
     expect(deleted).toEqual([])
@@ -129,24 +123,16 @@ describe('what a submission may touch', () => {
 
 describe('caches and the audit log', () => {
   it('invalidates the settings tag and whatever the changed keys declare', async () => {
-    await saveAdminSettingsAction(
-      {},
-      form({ keys: 'board.name', 'board.name': 'A new name' }),
-    )
+    await saveAdminSettingsAction({}, form({ keys: 'board.name', 'board.name': 'A new name' }))
 
     expect(invalidated[0]).toContain('settings')
     expect(invalidated[0]).toContain('layout')
   })
 
   it('records which settings changed, and never what they became', async () => {
-    await saveAdminSettingsAction(
-      {},
-      form({ keys: 'board.name', 'board.name': 'A new name' }),
-    )
+    await saveAdminSettingsAction({}, form({ keys: 'board.name', 'board.name': 'A new name' }))
 
-    expect(adminCalls).toEqual([
-      { action: 'settings.changed', detail: { keys: ['board.name'] } },
-    ])
+    expect(adminCalls).toEqual([{ action: 'settings.changed', detail: { keys: ['board.name'] } }])
     expect(JSON.stringify(adminCalls)).not.toContain('A new name')
   })
 
@@ -164,9 +150,7 @@ describe('caches and the audit log', () => {
 
 describe('a stored secret', () => {
   beforeEach(() => {
-    snapshotRef.current = SettingsSnapshot.fromOverrides(
-      new Map([['mail.http_token', 'live-key']]),
-    )
+    snapshotRef.current = SettingsSnapshot.fromOverrides(new Map([['mail.http_token', 'live-key']]))
   })
 
   it('survives an ordinary save, because a blank box means unchanged', async () => {

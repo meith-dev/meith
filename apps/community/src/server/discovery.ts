@@ -1,12 +1,12 @@
 import 'server-only'
 
 import type { Actor } from '@meith/authorization'
-import { ForbiddenError, contentScopeFrom } from '@meith/core'
+import { contentScopeFrom, ForbiddenError } from '@meith/core'
 import {
-  PostgresDiscoveryRepository,
-  getDb,
   type DiscoveryPage,
   type DiscoveryScope,
+  getDb,
+  PostgresDiscoveryRepository,
 } from '@meith/db'
 
 import { getContainer } from './container'
@@ -21,15 +21,12 @@ export function isDiscoveryView(value: string): value is DiscoveryView {
 }
 
 export function discoveryRepository(): PostgresDiscoveryRepository | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresDiscoveryRepository(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresDiscoveryRepository(getDb()) : null
 }
 
 export async function discoveryScopeFor(actor: Actor): Promise<DiscoveryScope> {
   const { authorizer } = getContainer()
-  const staff =
-    actor.global.isAdministrator === true || actor.global.isSuperModerator === true
+  const staff = actor.global.isAdministrator === true || actor.global.isSuperModerator === true
 
   return {
     ...(await authorizer.threadAudience(actor)),
@@ -61,6 +58,7 @@ export async function runDiscovery(input: {
     case 'participated':
       if (input.actor.userId === null) throw new ForbiddenError('Sign in to see your threads.')
       return repo.participatedIn(input.actor.userId, query, scope)
+    // biome-ignore lint/complexity/noUselessSwitchCase: naming the view keeps the switch exhaustive against the DiscoveryView union
     case 'new':
     default:
       return repo.activeSince(new Date(input.now.getTime() - 86_400_000), query, scope)
@@ -76,8 +74,7 @@ export function startOfDay(now: Date, timeZone: string): Date {
       day: '2-digit',
     }).formatToParts(now)
 
-    const get = (type: string): string =>
-      parts.find((part) => part.type === type)?.value ?? '01'
+    const get = (type: string): string => parts.find((part) => part.type === type)?.value ?? '01'
 
     const local = new Date(`${get('year')}-${get('month')}-${get('day')}T00:00:00Z`)
     const offset = local.getTime() - zonedInstant(local, timeZone)

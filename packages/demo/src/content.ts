@@ -19,8 +19,8 @@
 
 import { COMMUNITY_THREADS } from './content/community'
 import { NOTICEBOARD_THREADS } from './content/noticeboard'
-import { STAFF_THREADS } from './content/staff'
 import { RUNNING_THREADS } from './content/running'
+import { STAFF_THREADS } from './content/staff'
 import { START_THREADS } from './content/start'
 import { SUPPORTERS_THREADS } from './content/supporters'
 import type { DemoThread } from './content/types'

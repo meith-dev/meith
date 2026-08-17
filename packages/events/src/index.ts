@@ -1,3 +1,13 @@
+export {
+  emit,
+  type OutboxReader,
+  type OutboxWriter,
+  type RelayDeps,
+  type RelayResult,
+  type RelayTarget,
+  relayOutbox,
+} from './outbox'
+export { EventRegistry, eventRegistry } from './registry'
 export type {
   DomainEvent,
   DomainEventMap,
@@ -5,15 +15,3 @@ export type {
   EventHandler,
   OutboxRecord,
 } from './types'
-
-export {
-  emit,
-  relayOutbox,
-  type OutboxWriter,
-  type OutboxReader,
-  type RelayTarget,
-  type RelayDeps,
-  type RelayResult,
-} from './outbox'
-
-export { EventRegistry, eventRegistry } from './registry'

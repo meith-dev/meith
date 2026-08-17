@@ -1,20 +1,21 @@
 'use server'
 
-import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
-import { drivers } from '@meith/drivers'
-import { PostgresSettingsRepository, getDb } from '@meith/db'
 import { revalidatePath } from 'next/cache'
+
+import { CacheTags, isAppError, logger, ValidationError } from '@meith/core'
+import { getDb, PostgresSettingsRepository } from '@meith/db'
+import { drivers } from '@meith/drivers'
 import {
-  SETTING_DEFINITIONS,
   coerceFormValue,
+  SETTING_DEFINITIONS,
+  type SettingDefinition,
   saveSettings,
   secretClearField,
-  type SettingDefinition,
 } from '@meith/settings'
 
 import { recordAdminAction, requireAdmin } from './admin'
-import { getSettings } from './settings'
 import type { FormState } from './auth-form-state'
+import { getSettings } from './settings'
 
 function submittedKeys(form: FormData): readonly SettingDefinition[] {
   const declared = new Set(
@@ -43,11 +44,9 @@ export async function saveAdminSettingsAction(
     const updates: Record<string, unknown> = {}
     for (const definition of definitions) {
       const raw = form.get(definition.key)
-      const value = coerceFormValue(
-        definition,
-        typeof raw === 'string' ? raw : undefined,
-        { clear: form.get(secretClearField(definition.key)) === '1' },
-      )
+      const value = coerceFormValue(definition, typeof raw === 'string' ? raw : undefined, {
+        clear: form.get(secretClearField(definition.key)) === '1',
+      })
       if (value !== undefined) updates[definition.key] = value
     }
 
@@ -58,10 +57,7 @@ export async function saveAdminSettingsAction(
     )
 
     if (result.changed.length > 0) {
-      await drivers().cache.invalidateTags([
-        CacheTags.settings(),
-        ...result.invalidates,
-      ])
+      await drivers().cache.invalidateTags([CacheTags.settings(), ...result.invalidates])
 
       revalidatePath('/admin/settings')
 

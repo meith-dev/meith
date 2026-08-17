@@ -1,8 +1,9 @@
-import { defaultTheme } from '@meith/theme-default'
-import type { OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
 import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+
+import { defaultTheme } from '@meith/theme-default'
+import type { OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
 
 const WhoIsOnline = defaultTheme.slots.WhoIsOnline as (props: WhoIsOnlineModel) => ReactNode
 

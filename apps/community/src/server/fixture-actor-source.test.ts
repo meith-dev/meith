@@ -1,5 +1,6 @@
-import { IdentityService, createMemoryStore, type AccountStore } from '@meith/accounts'
 import { beforeEach, describe, expect, it } from 'vitest'
+
+import { type AccountStore, createMemoryStore, IdentityService } from '@meith/accounts'
 
 import { AUTH_CONFIG } from './auth-config'
 import { FixtureActorSource } from './fixture-actor-source'
@@ -38,9 +39,7 @@ describe('FixtureActorSource', () => {
     expect(actor!.primaryGroupId).toBe(SEED_GROUP.registered)
     expect(actor!.state).toBe('active')
 
-    const registeredGroup = SEED_BOARD.groups.find(
-      (g) => g.groupId === SEED_GROUP.registered,
-    )!
+    const registeredGroup = SEED_BOARD.groups.find((g) => g.groupId === SEED_GROUP.registered)!
     expect(actor!.global).toEqual(registeredGroup.permissions)
   })
 

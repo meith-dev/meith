@@ -1,7 +1,6 @@
 import { InternalError, ValidationError } from '@meith/core'
 
 import { decodeBase64Url, decodeBase64UrlText } from '../crypto/base64url'
-
 import { fetchJson } from './http'
 import type { Fetcher } from './types'
 
@@ -119,9 +118,7 @@ function assertClaims(claims: IdTokenClaims, input: VerifyIdTokenInput): void {
   }
 
   if (input.nonce !== null && stringClaim(claims, 'nonce') !== input.nonce) {
-    throw new ValidationError(
-      'The identity provider sent a token for a different sign-in attempt.',
-    )
+    throw new ValidationError('The identity provider sent a token for a different sign-in attempt.')
   }
 }
 
@@ -165,14 +162,10 @@ async function importSigningKey(input: {
         false,
         ['verify'],
       )
-    } catch {
-      continue
-    }
+    } catch {}
   }
 
-  throw new InternalError(
-    'None of the identity provider signing keys could verify this token.',
-  )
+  throw new InternalError('None of the identity provider signing keys could verify this token.')
 }
 
 function parseJson(segment: string, what: string): IdTokenClaims {
@@ -183,9 +176,13 @@ function parseJson(segment: string, what: string): IdTokenClaims {
     }
     return parsed as IdTokenClaims
   } catch (cause) {
-    throw new ValidationError(`The identity provider sent a token whose ${what} is unreadable.`, {}, {
-      cause,
-    })
+    throw new ValidationError(
+      `The identity provider sent a token whose ${what} is unreadable.`,
+      {},
+      {
+        cause,
+      },
+    )
   }
 }
 

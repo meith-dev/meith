@@ -1,5 +1,5 @@
-import { Badge } from '@meith/ui'
 import type { ThreadRowSlotModel } from '@meith/theme-kit'
+import { Badge } from '@meith/ui'
 
 import { HEADING, LINK, MICRO, Prefix, ReadMark, Stamp, TABLE_ROW, Tally, UserRef } from '../shared'
 

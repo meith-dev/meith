@@ -4,8 +4,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Database } from './client'
 import { groupRowToPermissionSet } from './permissions-map'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { SEED_GROUP_KEY } from './seed-groups'
 import { usergroups } from './schema'
+import { SEED_GROUP_KEY } from './seed-groups'
 
 let harness: TestDb
 let db: Database
@@ -31,7 +31,10 @@ async function byKey(key: string) {
 
 describe('seeded usergroups', () => {
   it('creates the seven groups SEED_GROUP_KEY names', async () => {
-    const rows = await db.select({ key: usergroups.key }).from(usergroups).orderBy(asc(usergroups.id))
+    const rows = await db
+      .select({ key: usergroups.key })
+      .from(usergroups)
+      .orderBy(asc(usergroups.id))
     expect(rows.map((r) => r.key)).toEqual([
       'guests',
       'registered',

@@ -1,16 +1,8 @@
 import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core'
+import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 
-import { forumPermissionColumns } from './permission-columns'
 import { usergroups, users } from './identity'
+import { forumPermissionColumns } from './permission-columns'
 
 export const FORUM_TYPES = ['category', 'forum', 'link'] as const
 
@@ -59,20 +51,14 @@ export const forums = pgTable(
 
     legacyMybbFid: integer('legacy_mybb_fid'),
 
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('forums_parent_slug_key')
       .on(t.parentId, t.slug)
       .where(sql`${t.parentId} is not null`),
-    uniqueIndex('forums_root_slug_key')
-      .on(t.slug)
-      .where(sql`${t.parentId} is null`),
+    uniqueIndex('forums_root_slug_key').on(t.slug).where(sql`${t.parentId} is null`),
 
     index('forums_parent_order_idx').on(t.parentId, t.displayOrder),
     index('forums_path_idx').on(t.path),
@@ -94,9 +80,7 @@ export const forumPermissions = pgTable(
 
     ...forumPermissionColumns(),
 
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('forum_permissions_pkey').on(t.forumId, t.groupId),
@@ -120,27 +104,19 @@ export const forumModerators = pgTable(
       onDelete: 'cascade',
     }),
 
-    cascadeToSubforums: boolean('cascade_to_subforums')
-      .notNull()
-      .default(false),
+    cascadeToSubforums: boolean('cascade_to_subforums').notNull().default(false),
 
     canEditPosts: boolean('can_edit_posts').notNull().default(false),
-    canSoftDeletePosts: boolean('can_soft_delete_posts')
-      .notNull()
-      .default(false),
+    canSoftDeletePosts: boolean('can_soft_delete_posts').notNull().default(false),
     canRestorePosts: boolean('can_restore_posts').notNull().default(false),
     canApproveContent: boolean('can_approve_content').notNull().default(false),
-    canOpenCloseThreads: boolean('can_open_close_threads')
-      .notNull()
-      .default(false),
+    canOpenCloseThreads: boolean('can_open_close_threads').notNull().default(false),
     canStickThreads: boolean('can_stick_threads').notNull().default(false),
     canMoveThreads: boolean('can_move_threads').notNull().default(false),
     canMergeThreads: boolean('can_merge_threads').notNull().default(false),
     canSplitThreads: boolean('can_split_threads').notNull().default(false),
 
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('forum_moderators_user_key')
@@ -161,9 +137,7 @@ export const forumPasswordGrants = pgTable(
     forumId: integer('forum_id')
       .notNull()
       .references(() => forums.id, { onDelete: 'cascade' }),
-    grantedAt: timestamp('granted_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('forum_password_grants_pkey').on(t.sessionId, t.forumId)],
 )
@@ -193,9 +167,7 @@ export const forumSubscriptions = pgTable(
       .references(() => forums.id, { onDelete: 'cascade' }),
     mode: text('mode').notNull().default('instant'),
     lastNotifiedPostId: integer('last_notified_post_id').notNull().default(0),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('forum_subscriptions_pkey').on(t.userId, t.forumId),

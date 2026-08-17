@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
 import { enterAdminPanel, signUp } from './support/session'
 import { screenshotter, sendPaidWebhook } from './support/tour'
@@ -119,9 +119,7 @@ test('plans, purchases and refusals, photographed end to end', async ({ page, re
     has: buyerPage.getByRole('heading', { name: 'Day pass', exact: true }),
   })
   await dayAgain.getByRole('button', { name: 'Buy this pass' }).click()
-  await expect(
-    buyerPage.getByText(/hold this membership for good already/),
-  ).toBeVisible()
+  await expect(buyerPage.getByText(/hold this membership for good already/)).toBeVisible()
   await snap(buyerPage, 'member-already-covered')
 
   await buyerPage.goto('/plugins/dues/manage')

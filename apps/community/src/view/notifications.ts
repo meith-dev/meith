@@ -1,5 +1,5 @@
-import type { TimeModel } from '@meith/theme-kit'
 import type { NotificationPreferenceView, NotificationView } from '@meith/notifications'
+import type { TimeModel } from '@meith/theme-kit'
 
 import { formatTime } from './time'
 
@@ -35,8 +35,7 @@ export function buildNotificationCentreView(input: {
       href: row.href,
       at: formatTime(row.updatedAt, input.now, input.timeZone),
       isRead: row.isRead,
-      repeated:
-        row.occurrences > 1 ? `Happened ${row.occurrences} times` : null,
+      repeated: row.occurrences > 1 ? `Happened ${row.occurrences} times` : null,
     })),
     unread: input.unread,
     nextHref:
@@ -52,9 +51,7 @@ export interface PreferencesView {
   readonly backHref: string
 }
 
-export function buildPreferencesView(
-  rows: readonly NotificationPreferenceView[],
-): PreferencesView {
+export function buildPreferencesView(rows: readonly NotificationPreferenceView[]): PreferencesView {
   return { rows, backHref: '/notifications' }
 }
 

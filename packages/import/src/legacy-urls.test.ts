@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { legacyRedirectPath, resolveLegacyUrl, type LegacyTarget } from './legacy-urls'
+import { type LegacyTarget, legacyRedirectPath, resolveLegacyUrl } from './legacy-urls'
 
 const resolve = (url: string): LegacyTarget | null => {
   const [pathname, search = ''] = url.split('?')
@@ -11,10 +11,7 @@ describe('the script forms', () => {
   it.each([
     ['/showthread.php?tid=91', { kind: 'thread', legacyId: 91, postId: null, page: null }],
     ['/showthread.php?tid=91&page=3', { kind: 'thread', legacyId: 91, postId: null, page: 3 }],
-    [
-      '/showthread.php?tid=91&pid=4102',
-      { kind: 'thread', legacyId: 91, postId: 4102, page: null },
-    ],
+    ['/showthread.php?tid=91&pid=4102', { kind: 'thread', legacyId: 91, postId: 4102, page: null }],
     ['/forumdisplay.php?fid=3', { kind: 'forum', legacyId: 3, page: null }],
     ['/forumdisplay.php?fid=3&page=2', { kind: 'forum', legacyId: 3, page: 2 }],
     ['/member.php?uid=12', { kind: 'user', legacyId: 12 }],
@@ -102,9 +99,7 @@ describe('the redirect path', () => {
   })
 
   it('sends a forum, a post and a member to theirs', () => {
-    expect(legacyRedirectPath(resolve('/forumdisplay.php?fid=3')!, 2, 'general')).toBe(
-      '/2-general',
-    )
+    expect(legacyRedirectPath(resolve('/forumdisplay.php?fid=3')!, 2, 'general')).toBe('/2-general')
     expect(legacyRedirectPath(resolve('/showthread.php?pid=4102')!, 55, null)).toBe('/post/55')
     expect(legacyRedirectPath(resolve('/member.php?uid=12')!, 4, 'marlow')).toBe('/member/4-marlow')
   })

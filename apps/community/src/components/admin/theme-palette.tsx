@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import type { EditableToken } from "@/view/theme-draft"
+import type { EditableToken } from '@/view/theme-draft'
 
-export type CellState = "clean" | "saved" | "unsaved"
+export type CellState = 'clean' | 'saved' | 'unsaved'
 
 export interface PaletteCell {
   readonly token: EditableToken
@@ -13,13 +13,13 @@ export interface PaletteCell {
 }
 
 const STATE_NOTE: Readonly<Record<CellState, string>> = {
-  clean: "",
-  saved: "changed by this board",
-  unsaved: "changed, not saved yet",
+  clean: '',
+  saved: 'changed by this board',
+  unsaved: 'changed, not saved yet',
 }
 
 function Swatch({ cell }: { cell: PaletteCell }) {
-  if (cell.token.kind !== "colour") {
+  if (cell.token.kind !== 'colour') {
     return (
       <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted px-1">
         <span className="truncate font-mono text-[0.5625rem] text-muted-foreground">
@@ -60,12 +60,12 @@ function Cell({
       onClick={onSelect}
       className={`flex items-center gap-2 rounded-md border p-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
         expanded
-          ? "border-primary bg-accent"
-          : cell.state === "unsaved"
-            ? "border-primary"
-            : cell.state === "saved"
-              ? "border-foreground/40"
-              : "border-border hover:bg-accent hover:text-accent-foreground"
+          ? 'border-primary bg-accent'
+          : cell.state === 'unsaved'
+            ? 'border-primary'
+            : cell.state === 'saved'
+              ? 'border-foreground/40'
+              : 'border-border hover:bg-accent hover:text-accent-foreground'
       }`}
     >
       <Swatch cell={cell} />
@@ -74,10 +74,10 @@ function Cell({
         <span className="truncate font-mono text-[0.6875rem] text-muted-foreground">
           {cell.token.name}
         </span>
-        {note !== "" && (
+        {note !== '' && (
           <span
             className={`truncate text-[0.6875rem] ${
-              cell.state === "unsaved" ? "font-medium text-primary" : "text-muted-foreground"
+              cell.state === 'unsaved' ? 'font-medium text-primary' : 'text-muted-foreground'
             }`}
           >
             {note}

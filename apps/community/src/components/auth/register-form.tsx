@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { registerAction } from "@/server/auth-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { registerAction } from '@/server/auth-actions'
+import { EMPTY_STATE } from '@/server/auth-form-state'
 
-import { CustomField, type CustomFieldInput } from "../profile/custom-field"
-import { Field, FormError, SubmitButton } from "./form-controls"
+import { CustomField, type CustomFieldInput } from '../profile/custom-field'
+import { Field, FormError, SubmitButton } from './form-controls'
 
 const CONTROL =
-  "h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+  'h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40'
 
 export interface ChallengeInput {
   readonly prompt: string | null
@@ -109,11 +109,11 @@ export function RegisterForm({
             name="terms"
             value="1"
             required
-            defaultChecked={state.values?.terms === "1"}
+            defaultChecked={state.values?.terms === '1'}
             className="mt-0.5 size-4 rounded border-input accent-primary"
           />
           <span>
-            I have read and accept the{" "}
+            I have read and accept the{' '}
             <a
               href={terms.href}
               target="_blank"

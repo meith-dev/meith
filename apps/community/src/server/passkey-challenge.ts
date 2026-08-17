@@ -6,10 +6,7 @@ export function packChallenge(purpose: PasskeyPurpose, challenge: string): strin
   return `${purpose}:${challenge}`
 }
 
-export function unpackChallenge(
-  raw: string | undefined,
-  purpose: PasskeyPurpose,
-): string | null {
+export function unpackChallenge(raw: string | undefined, purpose: PasskeyPurpose): string | null {
   if (raw === undefined) return null
 
   const separator = raw.indexOf(':')

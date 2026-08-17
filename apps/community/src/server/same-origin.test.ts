@@ -43,9 +43,7 @@ describe('isSameOrigin', () => {
     expect(isSameOrigin(post({ host: 'board.example', 'sec-fetch-site': 'same-origin' }))).toBe(
       true,
     )
-    expect(isSameOrigin(post({ host: 'board.example', 'sec-fetch-site': 'same-site' }))).toBe(
-      false,
-    )
+    expect(isSameOrigin(post({ host: 'board.example', 'sec-fetch-site': 'same-site' }))).toBe(false)
     expect(isSameOrigin(post({ host: 'board.example', 'sec-fetch-site': 'cross-site' }))).toBe(
       false,
     )
@@ -83,9 +81,9 @@ describe('isTopLevelNavigation', () => {
     expect(
       isTopLevelNavigation(get({ 'sec-fetch-mode': 'no-cors', 'sec-fetch-dest': 'image' })),
     ).toBe(false)
-    expect(
-      isTopLevelNavigation(get({ 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty' })),
-    ).toBe(false)
+    expect(isTopLevelNavigation(get({ 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty' }))).toBe(
+      false,
+    )
     expect(
       isTopLevelNavigation(get({ 'sec-fetch-mode': 'navigate', 'sec-fetch-dest': 'iframe' })),
     ).toBe(false)

@@ -1,17 +1,17 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { issueWarningAction, revokeWarningAction } from "@/server/warning-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { issueWarningAction, revokeWarningAction } from '@/server/warning-actions'
 
-import { FormError } from "../auth/form-controls"
+import { FormError } from '../auth/form-controls'
 
 const FIELD =
-  "w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 const BUTTON =
-  "inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export interface WarningTypeOption {
   readonly id: number
@@ -32,7 +32,10 @@ export function IssueWarningForm({
   const [state, action] = useActionState(issueWarningAction, EMPTY_STATE)
 
   return (
-    <form action={action} className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5">
+    <form
+      action={action}
+      className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5"
+    >
       <h2 className="text-lg font-semibold tracking-tight">Warn {username}</h2>
       <FormError message={state.error} />
 
@@ -82,13 +85,7 @@ export function IssueWarningForm({
   )
 }
 
-export function RevokeWarningForm({
-  warningId,
-  userId,
-}: {
-  warningId: number
-  userId: number
-}) {
+export function RevokeWarningForm({ warningId, userId }: { warningId: number; userId: number }) {
   const [state, action] = useActionState(revokeWarningAction, EMPTY_STATE)
 
   return (

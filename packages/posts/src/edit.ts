@@ -144,9 +144,7 @@ export class PostEditor {
       throw new ValidationError('A post needs a message.')
     }
     if (message.length > this.config.maxLength) {
-      throw new ValidationError(
-        `A post may be at most ${this.config.maxLength} characters.`,
-      )
+      throw new ValidationError(`A post may be at most ${this.config.maxLength} characters.`)
     }
 
     if (message === post.message) {
@@ -161,9 +159,7 @@ export class PostEditor {
 
     const from = post.visibility
     const held =
-      from === 'visible' &&
-      capabilities.requiresApprovalOnEdit &&
-      !capabilities.bypassesModeration
+      from === 'visible' && capabilities.requiresApprovalOnEdit && !capabilities.bypassesModeration
     const to = held ? 'unapproved' : from
 
     const reason = input.reason.trim()
@@ -235,10 +231,7 @@ export class PostEditor {
     }
   }
 
-  async restore(
-    actorUserId: number,
-    target: PostEditTarget,
-  ): Promise<PostVisibilityChange> {
+  async restore(actorUserId: number, target: PostEditTarget): Promise<PostVisibilityChange> {
     const { post, thread } = target
 
     if (post.visibility !== 'deleted') {
@@ -266,11 +259,7 @@ export class PostEditor {
     }
   }
 
-  private withinGrace(
-    capabilities: EditCapabilities,
-    post: EditablePost,
-    at: Date,
-  ): boolean {
+  private withinGrace(capabilities: EditCapabilities, post: EditablePost, at: Date): boolean {
     if (!capabilities.isOwn) return false
 
     const grace = this.config.editGraceSeconds
@@ -279,15 +268,11 @@ export class PostEditor {
     return (at.getTime() - post.createdAt.getTime()) / 1000 <= grace
   }
 
-  private enforceEditWindow(
-    capabilities: EditCapabilities,
-    post: EditablePost,
-  ): void {
+  private enforceEditWindow(capabilities: EditCapabilities, post: EditablePost): void {
     if (!capabilities.isOwn || capabilities.bypassesWindow) return
     if (capabilities.editWindowMinutes <= 0) return
 
-    const elapsedMinutes =
-      (this.now().getTime() - post.createdAt.getTime()) / 60_000
+    const elapsedMinutes = (this.now().getTime() - post.createdAt.getTime()) / 60_000
     if (elapsedMinutes <= capabilities.editWindowMinutes) return
 
     throw new ValidationError(

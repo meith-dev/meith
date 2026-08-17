@@ -1,10 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresSubscriptionRepository } from './subscription-repo'
 import { resultRows } from './result-rows'
+import { PostgresSubscriptionRepository } from './subscription-repo'
 
 let harness: TestDb
 let db: Database
@@ -65,14 +65,12 @@ beforeEach(async () => {
   `)
 })
 
-async function addPost(
-  over: {
-    id: number
-    threadId?: number
-    authorId?: number | null
-    visibility?: string
-  },
-): Promise<number> {
+async function addPost(over: {
+  id: number
+  threadId?: number
+  authorId?: number | null
+  visibility?: string
+}): Promise<number> {
   await db.execute(sql`
     insert into posts (id, thread_id, forum_id, author_user_id, author_username,
                        message, visibility, created_at)
@@ -94,9 +92,7 @@ async function storedMode(target: 'thread' | 'forum', userId = IVAN): Promise<st
 async function watermark(target: 'thread' | 'forum', userId = IVAN): Promise<number> {
   const table = target === 'thread' ? sql`thread_subscriptions` : sql`forum_subscriptions`
   const rows = resultRows(
-    await db.execute(
-      sql`select last_notified_post_id from ${table} where user_id = ${userId}`,
-    ),
+    await db.execute(sql`select last_notified_post_id from ${table} where user_id = ${userId}`),
   ) as Array<{ last_notified_post_id: number }>
   return Number(rows[0]?.last_notified_post_id ?? -1)
 }
@@ -122,12 +118,24 @@ describe('subscribing', () => {
   it('changes the cadence without touching the watermark', async () => {
     await addPost({ id: 100 })
     await db.execute(sql`update threads set last_post_id = 100 where id = ${THREAD}`)
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
 
     await addPost({ id: 101 })
     await db.execute(sql`update threads set last_post_id = 101 where id = ${THREAD}`)
 
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'weekly', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'weekly',
+      at: AT,
+    })
 
     expect(await storedMode('thread')).toBe('weekly')
     expect(await watermark('thread')).toBe(100)
@@ -164,7 +172,13 @@ describe('subscribing', () => {
   })
 
   it('unsubscribes, and says whether there was anything to remove', async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
 
     expect(await repo.unsubscribe({ userId: IVAN, target: 'thread', targetId: THREAD })).toBe(true)
     expect(await repo.unsubscribe({ userId: IVAN, target: 'thread', targetId: THREAD })).toBe(false)
@@ -172,14 +186,26 @@ describe('subscribing', () => {
   })
 
   it('keeps one member’s subscription out of another’s', async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
     expect(await repo.modeFor(MOD, 'thread', THREAD)).toBeNull()
   })
 })
 
 describe('what is pending', () => {
   beforeEach(async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
   })
 
   it('finds posts newer than the watermark', async () => {
@@ -194,9 +220,7 @@ describe('what is pending', () => {
     })
 
     expect(pending.posts.map((p) => p.postId)).toEqual([100, 101])
-    expect(pending.watermarks).toEqual([
-      { target: 'thread', targetId: THREAD, lastPostId: 101 },
-    ])
+    expect(pending.watermarks).toEqual([{ target: 'thread', targetId: THREAD, lastPostId: 101 }])
   })
 
   it('never includes the subscriber’s own posts', async () => {
@@ -303,7 +327,13 @@ describe('what is pending', () => {
 
 describe('a forum subscription', () => {
   beforeEach(async () => {
-    await repo.subscribe({ userId: IVAN, target: 'forum', targetId: FORUM, mode: 'instant', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'forum',
+      targetId: FORUM,
+      mode: 'instant',
+      at: AT,
+    })
   })
 
   it('finds posts in every thread beneath it', async () => {
@@ -326,7 +356,13 @@ describe('a forum subscription', () => {
   })
 
   it('reports one post once when both a thread and its forum are followed', async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
     await addPost({ id: 100 })
 
     const pending = await repo.pendingFor({
@@ -343,7 +379,13 @@ describe('a forum subscription', () => {
 
 describe('watermarks', () => {
   beforeEach(async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
   })
 
   it('advance, and stop the same post being reported twice', async () => {
@@ -408,7 +450,13 @@ describe('watermarks', () => {
 
 describe('who is due', () => {
   it('lists members with something outstanding on that cadence', async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
     await addPost({ id: 100 })
 
     expect(await repo.usersWithPending({ mode: 'instant', dueBefore: null, limit: 10 })).toEqual([
@@ -418,14 +466,26 @@ describe('who is due', () => {
   })
 
   it('lists nobody when the only pending post is their own', async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
     await addPost({ id: 100, authorId: IVAN })
 
     expect(await repo.usersWithPending({ mode: 'instant', dueBefore: null, limit: 10 })).toEqual([])
   })
 
   it('holds a digest back until its interval has passed', async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'daily', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'daily',
+      at: AT,
+    })
     await addPost({ id: 100 })
 
     const dueBefore = new Date(AT.getTime() - 24 * 3_600_000)
@@ -436,13 +496,19 @@ describe('who is due', () => {
     expect(await repo.usersWithPending({ mode: 'daily', dueBefore, limit: 10 })).toEqual([])
 
     const tomorrow = new Date(AT.getTime() + 1)
-    expect(
-      await repo.usersWithPending({ mode: 'daily', dueBefore: tomorrow, limit: 10 }),
-    ).toEqual([IVAN])
+    expect(await repo.usersWithPending({ mode: 'daily', dueBefore: tomorrow, limit: 10 })).toEqual([
+      IVAN,
+    ])
   })
 
   it('keeps the two cadences on separate clocks', async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'daily', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'daily',
+      at: AT,
+    })
     await repo.subscribe({ userId: IVAN, target: 'forum', targetId: FORUM, mode: 'weekly', at: AT })
     await addPost({ id: 100 })
 
@@ -454,8 +520,20 @@ describe('who is due', () => {
   })
 
   it('is bounded by the limit it is given', async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
-    await repo.subscribe({ userId: MOD, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
+    await repo.subscribe({
+      userId: MOD,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
     await addPost({ id: 100, authorId: null })
 
     expect(
@@ -466,8 +544,20 @@ describe('who is due', () => {
 
 describe('the management screen', () => {
   it('lists both kinds with their pending counts', async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
-    await repo.subscribe({ userId: IVAN, target: 'forum', targetId: OTHER_FORUM, mode: 'weekly', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'forum',
+      targetId: OTHER_FORUM,
+      mode: 'weekly',
+      at: AT,
+    })
     await addPost({ id: 100 })
 
     const rows = await repo.listFor(IVAN, { visibleForumIds: ALL_FORUMS, limit: 50 })
@@ -482,7 +572,13 @@ describe('the management screen', () => {
   })
 
   it('hides a subscription whose forum the member may no longer see', async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: OTHER_THREAD, mode: 'instant', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: OTHER_THREAD,
+      mode: 'instant',
+      at: AT,
+    })
 
     const rows = await repo.listFor(IVAN, { visibleForumIds: [FORUM], limit: 50 })
 
@@ -490,7 +586,13 @@ describe('the management screen', () => {
   })
 
   it('hides a subscription to a thread that has been removed', async () => {
-    await repo.subscribe({ userId: IVAN, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
     await db.execute(sql`update threads set visibility = 'deleted' where id = ${THREAD}`)
 
     expect(await repo.listFor(IVAN, { visibleForumIds: ALL_FORUMS, limit: 50 })).toEqual([])

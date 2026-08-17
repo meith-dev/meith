@@ -1,4 +1,4 @@
-import { attachmentType, type AttachmentRecord } from '@meith/attachments/types'
+import { type AttachmentRecord, attachmentType } from '@meith/attachments/types'
 import type { PostAttachmentModel } from '@meith/theme-kit'
 
 export function formatBytes(bytes: number): string {
@@ -27,8 +27,7 @@ export function attachmentModel(record: AttachmentRecord): PostAttachmentModel |
     size: formatBytes(record.sizeBytes),
     isImage: type.inline,
     href: attachmentHref(record.id),
-    thumbnailHref:
-      type.inline && record.thumbnailKey !== null ? thumbnailHref(record.id) : null,
+    thumbnailHref: type.inline && record.thumbnailKey !== null ? thumbnailHref(record.id) : null,
     width: record.width,
     height: record.height,
   }

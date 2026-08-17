@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
-import type { Actor } from '@meith/authorization'
 import type { MemberSettings, MemberSettingsRepository } from '@meith/accounts'
+import type { Actor } from '@meith/authorization'
+import { combinePermissionSets, InMemoryAuthorizationSource } from '@meith/authorization'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {
@@ -126,7 +126,7 @@ async function run(
 
 async function install(): Promise<void> {
   const container = installTestContainer({ container: { memberSettings: settings } })
-  const store = container['accountStore'] as {
+  const store = container.accountStore as {
     accounts: {
       create(input: Record<string, unknown>): Promise<{ id: number }>
     }

@@ -1,16 +1,16 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { inlineModerateAction } from "@/server/inline-moderation-actions"
-import { splitSelectedAction } from "@/server/surgery-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
-import { BOARD_MEASURE } from "@/components/shell/measure"
+import { BOARD_MEASURE } from '@/components/shell/measure'
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { inlineModerateAction } from '@/server/inline-moderation-actions'
+import { splitSelectedAction } from '@/server/surgery-actions'
 
-import { FormError } from "../auth/form-controls"
+import { FormError } from '../auth/form-controls'
 
 const BUTTON =
-  "inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export interface InlineMoveOption {
   readonly id: number
@@ -35,7 +35,7 @@ export function InlineModerationForm({
   splitFrom,
 }: {
   formId: string
-  scope: "threads" | "posts"
+  scope: 'threads' | 'posts'
   rights: InlineToolRights
   moveTargets: readonly InlineMoveOption[]
   returnTo: string
@@ -56,16 +56,14 @@ export function InlineModerationForm({
         <FormError message={splitState.error} />
         <input type="hidden" name="returnTo" value={returnTo} />
 
-        <span className="text-xs font-medium text-muted-foreground">
-          With selected {scope}:
-        </span>
+        <span className="text-xs font-medium text-muted-foreground">With selected {scope}:</span>
 
         {rights.approve && (
           <button type="submit" name="tool" value="approve" className={BUTTON}>
             Approve
           </button>
         )}
-        {rights.lock && scope === "threads" && (
+        {rights.lock && scope === 'threads' && (
           <>
             <button type="submit" name="tool" value="lock" className={BUTTON}>
               Lock
@@ -75,7 +73,7 @@ export function InlineModerationForm({
             </button>
           </>
         )}
-        {rights.stick && scope === "threads" && (
+        {rights.stick && scope === 'threads' && (
           <>
             <button type="submit" name="tool" value="stick" className={BUTTON}>
               Pin
@@ -91,7 +89,7 @@ export function InlineModerationForm({
           </button>
         )}
 
-        {rights.move && scope === "threads" && moveTargets.length > 0 && (
+        {rights.move && scope === 'threads' && moveTargets.length > 0 && (
           <span className="flex items-center gap-2">
             <label className="flex items-center gap-2 text-xs">
               <span className="sr-only">Move to</span>
@@ -112,7 +110,7 @@ export function InlineModerationForm({
           </span>
         )}
 
-        {splitFrom != null && scope === "posts" && (
+        {splitFrom != null && scope === 'posts' && (
           <span className="flex items-center gap-2">
             <input type="hidden" name="threadId" value={splitFrom} />
             <label className="flex items-center gap-2 text-xs">

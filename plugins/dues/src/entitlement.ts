@@ -1,4 +1,4 @@
-import type { PluginGrants, PluginData, PluginNotify } from '@meith/plugin-kit'
+import type { PluginData, PluginGrants, PluginNotify } from '@meith/plugin-kit'
 
 import type { DuesConfig } from './config'
 import { moneyMatches } from './money'
@@ -11,15 +11,15 @@ import {
   insertLedger,
   insertMembership,
   liveMembership,
+  type MembershipRow,
   membershipBySubscription,
+  type OrderRow,
   orderByPaymentIntent,
   orderBySessionId,
+  type PlanRow,
   planRowByKey,
   setMembershipStatus,
   settleOrder,
-  type MembershipRow,
-  type OrderRow,
-  type PlanRow,
 } from './store'
 import type { InternalEvent } from './stripe/events'
 
@@ -48,9 +48,7 @@ async function tryNotify(
 
 function grantReason(order: OrderRow): string {
   const gift =
-    order.buyerUserId === order.recipientUserId
-      ? ''
-      : `, a gift from user ${order.buyerUserId}`
+    order.buyerUserId === order.recipientUserId ? '' : `, a gift from user ${order.buyerUserId}`
   return `dues order ${order.id}: ${order.planName}${gift}`
 }
 
@@ -69,10 +67,15 @@ export async function settlePaidOrder(
   if (order.status === 'paid') return 'already-settled'
   if (order.status === 'failed' || order.status === 'cancelled') return `order-${order.status}`
 
-  if (!moneyMatches({ amountMinor: order.amountMinor, currency: order.currency }, {
-    amountMinor: info.amountTotal,
-    currency: info.currency,
-  })) {
+  if (
+    !moneyMatches(
+      { amountMinor: order.amountMinor, currency: order.currency },
+      {
+        amountMinor: info.amountTotal,
+        currency: info.currency,
+      },
+    )
+  ) {
     await settleOrder(deps.data, order.id, {
       status: 'pending',
       needsAttention:
@@ -179,7 +182,8 @@ function settledPeriodEnd(
   if (order.billingMode === 'lifetime') return LIFETIME_END
 
   if (order.billingMode === 'fixed') {
-    const base = existing !== null && existing.currentPeriodEnd > now ? existing.currentPeriodEnd : now
+    const base =
+      existing !== null && existing.currentPeriodEnd > now ? existing.currentPeriodEnd : now
     if (isLifetime(base)) return LIFETIME_END
     const parsed =
       (plan?.periodSpec !== null && plan?.periodSpec !== undefined
@@ -240,8 +244,7 @@ export async function applyInternalEvent(
       }
       if (event.billingReason === 'subscription_create') return 'covered-by-checkout'
 
-      const periodEnd =
-        event.periodEnd ?? addBillingInterval(membership.currentPeriodEnd, 'month')
+      const periodEnd = event.periodEnd ?? addBillingInterval(membership.currentPeriodEnd, 'month')
       const graceUntil = addDays(periodEnd, deps.config.graceDays)
 
       await extendMembership(deps.data, membership.id, {
@@ -333,11 +336,7 @@ export async function applyInternalEvent(
       const order = await orderByPaymentIntent(deps.data, event.paymentIntentId)
       if (order === null) return 'unmatched-reversal'
 
-      const membership = await liveMembership(
-        deps.data,
-        order.recipientUserId,
-        order.groupKey,
-      )
+      const membership = await liveMembership(deps.data, order.recipientUserId, order.groupKey)
       if (membership !== null) {
         await setMembershipStatus(deps.data, membership.id, 'revoked')
         try {

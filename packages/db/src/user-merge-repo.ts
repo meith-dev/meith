@@ -4,16 +4,11 @@ import { ValidationError } from '@meith/core'
 
 import type { Database } from './client'
 import { rewriteDenormalisedUsernames } from './denormalised-username'
-import { withPermissionVersionBump, type Tx } from './permission-version'
+import { type Tx, withPermissionVersionBump } from './permission-version'
 import { recountReputation } from './reputation-repo'
 import { resultRows } from './result-rows'
 import { BANNED_PREDICATE } from './user-admin-repo'
-import {
-  MERGE_DEDUPE,
-  MERGE_DISCARD,
-  MERGE_REASSIGN,
-  type DedupeColumn,
-} from './user-merge-map'
+import { type DedupeColumn, MERGE_DEDUPE, MERGE_DISCARD, MERGE_REASSIGN } from './user-merge-map'
 import { recalculateWarningPoints } from './warning-repo'
 
 export interface MergePreview {
@@ -113,9 +108,7 @@ export class PostgresUserMergeRepository {
       const row = state[0] as Record<string, unknown>
       if (Number(row.found) !== 2) throw new ValidationError('No such member.')
       if (Number(row.banned) > 0) {
-        throw new ValidationError(
-          'One of these accounts is banned. Lift the ban before merging.',
-        )
+        throw new ValidationError('One of these accounts is banned. Lift the ban before merging.')
       }
       if (Number(row.posts) > 0) {
         throw new ValidationError('There are still posts to move. Finish the run first.')

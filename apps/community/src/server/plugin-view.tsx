@@ -1,14 +1,15 @@
 import 'server-only'
 
-import type { Actor } from '@meith/authorization'
-import {
-  type HookContext,
-  type HookName,
-  type HookValue,
-  type PluginRegion,
-  type PluginRegionContext,
-} from '@meith/plugin-kit'
 import { Fragment } from 'react'
+
+import type { Actor } from '@meith/authorization'
+import type {
+  HookContext,
+  HookName,
+  HookValue,
+  PluginRegion,
+  PluginRegionContext,
+} from '@meith/plugin-kit'
 
 import { pluginHost, syncOperatorDisables } from './plugin-host'
 
@@ -52,9 +53,6 @@ export async function pluginRegion(
   )
 }
 
-export async function boardRegion(
-  region: PluginRegion,
-  actor: Actor,
-): Promise<React.ReactNode> {
+export async function boardRegion(region: PluginRegion, actor: Actor): Promise<React.ReactNode> {
   return pluginRegion(region, { viewer: viewerRef(actor), subjectId: null, authorId: null })
 }

@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 
-import { ValidationError } from '@meith/core'
 import type { CaptchaQuestion, RateLimitScope, RateLimitStore } from '@meith/antispam'
+import { ValidationError } from '@meith/core'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

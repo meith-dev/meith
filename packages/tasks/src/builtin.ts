@@ -230,7 +230,7 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       id: 'warnings.expire',
       title: 'Expire warnings',
       description:
-        "Recomputes the points total of every member whose cached total still " +
+        'Recomputes the points total of every member whose cached total still ' +
         'counts a warning that has passed its expiry date, and re-evaluates the ' +
         'restriction their level implies — which is how a suspension ends when ' +
         'the warning behind it ages out. The live-warning predicate already ' +
@@ -252,9 +252,9 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         'posts that have arrived since they were last told. Runs on the ' +
         'shortest interval the scheduler has, which is what "instant" means ' +
         'here: fanning out inside the posting request would put an unbounded ' +
-        'loop — one permission check per subscriber — on the board\'s hottest ' +
+        "loop — one permission check per subscriber — on the board's hottest " +
         'write, and couple posting to the mail provider being up. Each ' +
-        "subscription carries a watermark, so a skipped tick delays a " +
+        'subscription carries a watermark, so a skipped tick delays a ' +
         'notification and never loses one.',
       intervalSeconds: 60,
       maxDurationSeconds: 45,

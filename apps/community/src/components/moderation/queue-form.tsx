@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { moderateQueueAction } from "@/server/moderation-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { moderateQueueAction } from '@/server/moderation-actions'
 
-import { FormError } from "../auth/form-controls"
+import { FormError } from '../auth/form-controls'
 
 export interface QueueFormRow {
   readonly value: string
@@ -40,19 +40,22 @@ export function QueueForm({ rows }: { rows: readonly QueueFormRow[] }) {
                 <span className="flex flex-wrap items-baseline gap-2 text-sm">
                   <span className="font-medium">{row.kindLabel}</span>
                   <span className="text-muted-foreground">in {row.forumTitle}</span>
-                  <a href={row.href} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+                  <a
+                    href={row.href}
+                    className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                  >
                     {row.threadTitle}
                   </a>
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  by{" "}
+                  by{' '}
                   {row.authorHref === null ? (
                     row.authorUsername
                   ) : (
                     <a href={row.authorHref} className="hover:text-foreground">
                       {row.authorUsername}
                     </a>
-                  )}{" "}
+                  )}{' '}
                   · <time dateTime={row.postedAt.iso}>{row.postedAt.label}</time>
                 </span>
                 <span className="whitespace-pre-wrap break-words text-sm leading-relaxed">

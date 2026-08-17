@@ -1,5 +1,5 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { ReportService } from '@meith/moderation'
 
@@ -70,11 +70,7 @@ beforeEach(async () => {
   ])
 })
 
-async function seedThread(
-  id: number,
-  forumId = FORUM,
-  visibility = 'visible',
-): Promise<number> {
+async function seedThread(id: number, forumId = FORUM, visibility = 'visible'): Promise<number> {
   const postId = id * 10
   await db.execute(sql`
     insert into threads (id, forum_id, title, slug, author_user_id, author_username,
@@ -346,9 +342,7 @@ describe('assignment and closing', () => {
 
   it('records who took it', async () => {
     const id = await open()
-    expect(await repo.assign({ reportId: id, toUserId: MOD, actorUserId: MOD, at: AT })).toBe(
-      true,
-    )
+    expect(await repo.assign({ reportId: id, toUserId: MOD, actorUserId: MOD, at: AT })).toBe(true)
 
     const found = await repo.find(id)
     expect(found!.report).toMatchObject({ assignedToUserId: MOD, assignedToUsername: 'mod' })
@@ -395,9 +389,7 @@ describe('assignment and closing', () => {
       at: AT,
     })
 
-    expect(await repo.assign({ reportId: id, toUserId: MOD, actorUserId: MOD, at: AT })).toBe(
-      false,
-    )
+    expect(await repo.assign({ reportId: id, toUserId: MOD, actorUserId: MOD, at: AT })).toBe(false)
     expect(
       await repo.close({
         reportId: id,

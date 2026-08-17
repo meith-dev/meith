@@ -1,12 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { PostgresAdminLogRepository, PostgresAdminSessionRepository } from './admin-session-repo'
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import {
-  PostgresAdminLogRepository,
-  PostgresAdminSessionRepository,
-} from './admin-session-repo'
 
 let harness: TestDb
 let db: Database
@@ -230,8 +227,9 @@ describe('the admin log', () => {
   })
 
   it('offers every action present, not just the first alphabetical page of them', async () => {
-    const names = Array.from({ length: 120 }, (_, i) =>
-      `${String.fromCharCode(97 + (i % 26))}.action_${String(i).padStart(3, '0')}`,
+    const names = Array.from(
+      { length: 120 },
+      (_, i) => `${String.fromCharCode(97 + (i % 26))}.action_${String(i).padStart(3, '0')}`,
     )
     for (const action of names) {
       await log.record({ userId: ADA, action, detail: {}, ipPrefix: null, at: AT })

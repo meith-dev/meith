@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { type APIRequestContext, expect, type Page, test } from '@playwright/test'
 
 import { enterAdminPanel } from './support/session'
 
@@ -108,7 +108,10 @@ test('a token that may read posts reads them, and search is its own scope', asyn
   expect(search.status()).toBe(200)
 })
 
-test('the API meters what a token spends, and says so in the headers', async ({ page, request }) => {
+test('the API meters what a token spends, and says so in the headers', async ({
+  page,
+  request,
+}) => {
   const token = await issueToken(page, `e2e meter ${Date.now().toString(36)}`, ['forums:read'])
   const api = bearer(request, token)
 

@@ -8,19 +8,18 @@ import { describeBilling, isLifetime, loadPlans, MAX_PLAN_DAYS } from '../plans'
 import {
   allMemberships,
   attentionCount,
+  type CodeRow,
   listCodes,
+  type MembershipRow,
   monthlyTotals,
   ordersNeedingAttention,
+  type PlanRow,
   recentEvents,
   recentLedger,
-  type CodeRow,
-  type MembershipRow,
-  type PlanRow,
 } from '../store'
 import { SUBSCRIBED_EVENT_TYPES } from '../stripe/events'
 
-const QUIET_PANEL =
-  'rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground'
+const QUIET_PANEL = 'rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground'
 
 const CARD =
   'flex flex-col gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground ' +
@@ -63,9 +62,9 @@ function Attention({ count }: { count: number }) {
   if (count === 0) return null
   return (
     <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
-      <strong>{count}</strong> record{count === 1 ? ' needs' : 's need'} attention —
-      a payment that could not become a membership, or an amount that did not match its
-      order. The members screen lists {count === 1 ? 'it' : 'them'} first.
+      <strong>{count}</strong> record{count === 1 ? ' needs' : 's need'} attention — a payment that
+      could not become a membership, or an amount that did not match its order. The members screen
+      lists {count === 1 ? 'it' : 'them'} first.
     </p>
   )
 }
@@ -97,9 +96,9 @@ export async function StatusPage({
         <section className={CARD}>
           <h2 className="font-heading text-lg font-semibold">Orders needing attention</h2>
           <p className="text-sm text-muted-foreground">
-            Money moved but the order could not settle cleanly — most often an amount
-            that did not match. Check the payment in Stripe&rsquo;s dashboard, put it
-            right there, then clear the flag here.
+            Money moved but the order could not settle cleanly — most often an amount that did not
+            match. Check the payment in Stripe&rsquo;s dashboard, put it right there, then clear the
+            flag here.
           </p>
           <ul className="flex flex-col divide-y divide-border text-sm">
             {flaggedOrders.map((order) => (
@@ -140,8 +139,8 @@ export async function StatusPage({
           </div>
         </dl>
         <p className="text-xs text-muted-foreground">
-          Keys resolve environment-first: the settings form below this page shows which
-          source is winning.
+          Keys resolve environment-first: the settings form below this page shows which source is
+          winning.
         </p>
       </section>
 
@@ -150,8 +149,8 @@ export async function StatusPage({
         <p className="text-sm text-muted-foreground">
           In the Stripe dashboard, add an endpoint at
           <code className="mx-1 text-xs">/api/plugins/dues/hook/stripe</code>
-          on this board&rsquo;s public address, subscribed to exactly these events, and
-          put its signing secret in the settings:
+          on this board&rsquo;s public address, subscribed to exactly these events, and put its
+          signing secret in the settings:
         </p>
         <p className="flex flex-wrap gap-x-3 gap-y-1">
           {SUBSCRIBED_EVENT_TYPES.map((type) => (
@@ -172,10 +171,9 @@ export async function StatusPage({
           >
             plans screen
           </a>
-          . Each grants membership of its group only while that group is marked
-          &ldquo;may be granted by plugins&rdquo; under Admin → Groups; a purchase
-          against a group that refuses shows up above as needing attention, with the
-          payment kept and the reason recorded.
+          . Each grants membership of its group only while that group is marked &ldquo;may be
+          granted by plugins&rdquo; under Admin → Groups; a purchase against a group that refuses
+          shows up above as needing attention, with the payment kept and the reason recorded.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-96 border-collapse text-sm">
@@ -189,22 +187,24 @@ export async function StatusPage({
               </tr>
             </thead>
             <tbody>
-              {plans.filter((plan) => !plan.archived).map((plan) => (
-                <tr key={plan.key} className="border-b border-border">
-                  <td className={TD}>
-                    {plan.name}
-                    {plan.hidden && (
-                      <span className="text-xs text-muted-foreground"> · hidden</span>
-                    )}
-                  </td>
-                  <td className={TD}>{formatMinor(plan.priceMinor, plan.currency)}</td>
-                  <td className={TD}>{describeBilling(plan)}</td>
-                  <td className={TD}>
-                    <code className="text-xs">{plan.groupKey}</code>
-                  </td>
-                  <td className={TD}>{plan.giftable ? 'yes' : 'no'}</td>
-                </tr>
-              ))}
+              {plans
+                .filter((plan) => !plan.archived)
+                .map((plan) => (
+                  <tr key={plan.key} className="border-b border-border">
+                    <td className={TD}>
+                      {plan.name}
+                      {plan.hidden && (
+                        <span className="text-xs text-muted-foreground"> · hidden</span>
+                      )}
+                    </td>
+                    <td className={TD}>{formatMinor(plan.priceMinor, plan.currency)}</td>
+                    <td className={TD}>{describeBilling(plan)}</td>
+                    <td className={TD}>
+                      <code className="text-xs">{plan.groupKey}</code>
+                    </td>
+                    <td className={TD}>{plan.giftable ? 'yes' : 'no'}</td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -214,8 +214,8 @@ export async function StatusPage({
         <h2 className="font-heading text-lg font-semibold">Latest webhook events</h2>
         {events.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            None yet. The first purchase, or Stripe&rsquo;s &ldquo;send test event&rdquo;
-            button, will put a row here — which is how you prove the endpoint works.
+            None yet. The first purchase, or Stripe&rsquo;s &ldquo;send test event&rdquo; button,
+            will put a row here — which is how you prove the endpoint works.
           </p>
         ) : (
           <ul className="flex flex-col divide-y divide-border text-sm">
@@ -351,15 +351,12 @@ export async function MembersPage({ context }: { context: PluginAdminPageContext
       {good !== undefined && <GoodNotice>{MEMBER_NOTICES[good]}</GoodNotice>}
       {bad !== undefined && <BadNotice>{bad}</BadNotice>}
       <p className="text-sm text-muted-foreground">
-        Every membership this plugin has sold, flagged rows first. Extending is a grant,
-        not a charge; revoking removes access on the spot without touching the money —
-        refunds happen in Stripe&rsquo;s dashboard, and the refund webhook revokes on
-        its own.
+        Every membership this plugin has sold, flagged rows first. Extending is a grant, not a
+        charge; revoking removes access on the spot without touching the money — refunds happen in
+        Stripe&rsquo;s dashboard, and the refund webhook revokes on its own.
       </p>
       {memberships.length === 0 ? (
-        <p className={QUIET_PANEL}>
-          Nothing sold yet.
-        </p>
+        <p className={QUIET_PANEL}>Nothing sold yet.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[48rem] border-collapse text-sm">
@@ -454,9 +451,9 @@ export async function LedgerPage({
           </table>
         )}
         <p className="text-xs text-muted-foreground">
-          Append-only, written as money moves: charges positive, refunds and chargebacks
-          negative. Stripe&rsquo;s dashboard is the authority; this is the board&rsquo;s
-          own copy in {config.currency.toUpperCase()}.
+          Append-only, written as money moves: charges positive, refunds and chargebacks negative.
+          Stripe&rsquo;s dashboard is the authority; this is the board&rsquo;s own copy in{' '}
+          {config.currency.toUpperCase()}.
         </p>
       </section>
 
@@ -487,7 +484,8 @@ export async function LedgerPage({
 }
 
 const CODE_ERRORS: Record<string, string> = {
-  'bad-code': 'Codes are 3 to 32 letters, digits and hyphens. Leave the box empty to have one invented.',
+  'bad-code':
+    'Codes are 3 to 32 letters, digits and hyphens. Leave the box empty to have one invented.',
   'bad-percent': 'The discount is a whole number from 1 to 100 percent.',
   'bad-plan': 'That plan does not exist on this board.',
   'bad-max': 'The redemption cap is a whole number, at least 1 — or empty for no cap.',
@@ -523,9 +521,9 @@ export async function CodesPage({
     <div className="flex flex-col gap-4">
       {created !== undefined && (
         <GoodNotice>
-          The code is live: <code className="mx-1 font-mono text-base font-semibold">{created}</code>
-          — hand it out however you like. It is shown in full below whenever you need it
-          again.
+          The code is live:{' '}
+          <code className="mx-1 font-mono text-base font-semibold">{created}</code>— hand it out
+          however you like. It is shown in full below whenever you need it again.
         </GoodNotice>
       )}
       {toggled !== undefined && (
@@ -541,9 +539,9 @@ export async function CodesPage({
       <section className={CARD}>
         <h2 className="font-heading text-lg font-semibold">Mint a code</h2>
         <p className="text-sm text-muted-foreground">
-          A code takes a percentage off at checkout: the whole price of a pass, the first
-          payment of a subscription — renewals bill in full. A 100% code on a pass skips
-          Stripe entirely, which is how you comp somebody.
+          A code takes a percentage off at checkout: the whole price of a pass, the first payment of
+          a subscription — renewals bill in full. A 100% code on a pass skips Stripe entirely, which
+          is how you comp somebody.
         </p>
         <form
           method="post"
@@ -558,14 +556,7 @@ export async function CodesPage({
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-xs text-muted-foreground">Percent off, 1–100</span>
-            <input
-              type="number"
-              name="percent"
-              min={1}
-              max={100}
-              required
-              className={INPUT}
-            />
+            <input type="number" name="percent" min={1} max={100} required className={INPUT} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-xs text-muted-foreground">Which plan it works on</span>
@@ -635,11 +626,7 @@ export async function CodesPage({
                     <td className={TD}>
                       <form method="post" action="/admin/api/plugins/dues/codes/disable">
                         <input type="hidden" name="code" value={code.id} />
-                        <input
-                          type="hidden"
-                          name="disabled"
-                          value={code.disabled ? '0' : '1'}
-                        />
+                        <input type="hidden" name="disabled" value={code.disabled ? '0' : '1'} />
                         <button type="submit" className={QUIET_BUTTON}>
                           {code.disabled ? 'Switch on' : 'Switch off'}
                         </button>
@@ -652,8 +639,8 @@ export async function CodesPage({
           </div>
         )}
         <p className="text-xs text-muted-foreground">
-          Redemptions count when a payment settles, not when a checkout starts. A code is
-          never deleted — switching it off keeps the history of what it sold.
+          Redemptions count when a payment settles, not when a checkout starts. A code is never
+          deleted — switching it off keeps the history of what it sold.
         </p>
       </section>
     </div>
@@ -719,9 +706,7 @@ function PlanFields({ plan }: { plan?: PlanRow }) {
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs text-muted-foreground">
-            Price in minor units — 500 is £5.00
-          </span>
+          <span className="text-xs text-muted-foreground">Price in minor units — 500 is £5.00</span>
           <input
             type="number"
             name="price"
@@ -780,12 +765,7 @@ function PlanFields({ plan }: { plan?: PlanRow }) {
           <span className="text-xs text-muted-foreground">
             Stripe price id — leave empty and one is minted to match
           </span>
-          <input
-            name="stripe_price"
-            placeholder="price_…"
-            autoComplete="off"
-            className={INPUT}
-          />
+          <input name="stripe_price" placeholder="price_…" autoComplete="off" className={INPUT} />
         </label>
       )}
       <div className="flex flex-wrap gap-4 text-sm">
@@ -825,10 +805,10 @@ export async function PlansAdminPage({
       {error !== undefined && <BadNotice>{error}</BadNotice>}
 
       <p className="text-sm text-muted-foreground">
-        Every purchase snapshots its plan — the name, the price, the currency, the length
-        — so editing here never rewrites what anyone already bought. A subscription price
-        change mints a new Stripe price: running subscriptions keep billing what they
-        signed up for, and only the next buyer sees the new number.
+        Every purchase snapshots its plan — the name, the price, the currency, the length — so
+        editing here never rewrites what anyone already bought. A subscription price change mints a
+        new Stripe price: running subscriptions keep billing what they signed up for, and only the
+        next buyer sees the new number.
       </p>
 
       {plans.length > 0 && (
@@ -850,7 +830,8 @@ export async function PlansAdminPage({
                 </div>
                 {plan.mode === 'auto' && (
                   <p className="text-xs text-muted-foreground">
-                    Billing against <code>{plan.stripePriceId ?? 'no price yet — not buyable'}</code>
+                    Billing against{' '}
+                    <code>{plan.stripePriceId ?? 'no price yet — not buyable'}</code>
                   </p>
                 )}
                 {!plan.archived && (
@@ -889,10 +870,10 @@ export async function PlansAdminPage({
       <section className={CARD}>
         <h2 className="font-heading text-lg font-semibold">Add a plan</h2>
         <p className="text-sm text-muted-foreground">
-          A <strong>pass</strong> is one payment for a fixed stretch — a day to two
-          years. A <strong>subscription</strong> renews by itself until cancelled.{' '}
-          <strong>Lifetime</strong> is one payment, forever. The key is the plan&rsquo;s
-          permanent name in records and cannot be changed later; everything else can.
+          A <strong>pass</strong> is one payment for a fixed stretch — a day to two years. A{' '}
+          <strong>subscription</strong> renews by itself until cancelled. <strong>Lifetime</strong>{' '}
+          is one payment, forever. The key is the plan&rsquo;s permanent name in records and cannot
+          be changed later; everything else can.
         </p>
         <form
           method="post"
@@ -921,8 +902,8 @@ export async function PlansAdminPage({
           </div>
         </form>
         <p className="text-xs text-muted-foreground">
-          Pass length and billing interval apply to the mode that uses them; the others
-          ignore them. A subscription needs Stripe configured, or a pasted price id.
+          Pass length and billing interval apply to the mode that uses them; the others ignore them.
+          A subscription needs Stripe configured, or a pasted price id.
         </p>
       </section>
     </div>

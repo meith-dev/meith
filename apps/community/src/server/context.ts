@@ -1,7 +1,7 @@
 import 'server-only'
 
-import { cache } from 'react'
 import { cookies } from 'next/headers'
+import { cache } from 'react'
 
 import type { Actor } from '@meith/authorization'
 import { env } from '@meith/core'

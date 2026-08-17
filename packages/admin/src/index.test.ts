@@ -1,17 +1,18 @@
-import { ForbiddenError, ValidationError } from '@meith/core'
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { ForbiddenError, ValidationError } from '@meith/core'
+
+import type { AdminSessionRecord, AdminSessionRepository } from './index'
 import {
   ADMIN_IDLE_MINUTES,
   ADMIN_MAX_HOURS,
   AdminService,
-  REAUTH_MINUTES,
   assertLogAction,
   ipAllowed,
   parseAllowlist,
+  REAUTH_MINUTES,
   staleProof,
 } from './index'
-import type { AdminSessionRecord, AdminSessionRepository } from './index'
 
 const NOW = new Date('2026-08-02T12:00:00Z')
 const USER = 7
@@ -58,9 +59,7 @@ class FakeSessions implements AdminSessionRepository {
   }
 
   async findLive(_tokenHash: string, now: Date) {
-    return (
-      this.rows.find((row) => row.revokedAt === null && row.expiresAt > now) ?? null
-    )
+    return this.rows.find((row) => row.revokedAt === null && row.expiresAt > now) ?? null
   }
 
   async touch(sessionId: number, _now: Date, _expiresAt: Date, windowSeconds: number) {
@@ -73,9 +72,7 @@ class FakeSessions implements AdminSessionRepository {
 
   async revoke(sessionId: number) {
     this.revoked.push(sessionId)
-    this.rows = this.rows.map((row) =>
-      row.id === sessionId ? { ...row, revokedAt: NOW } : row,
-    )
+    this.rows = this.rows.map((row) => (row.id === sessionId ? { ...row, revokedAt: NOW } : row))
   }
 
   async revokeAllForUser(userId: number) {

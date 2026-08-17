@@ -1,8 +1,4 @@
-import type {
-  ContentVisibility,
-  ForumPermissions,
-  PermissionSet,
-} from '@meith/core'
+import type { ContentVisibility, ForumPermissions, PermissionSet } from '@meith/core'
 
 export type ActorState = 'guest' | 'active' | 'banned' | 'awaiting_activation'
 

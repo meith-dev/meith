@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
-import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresMemberSettingsRepository } from './member-settings-repo'
+import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
 
 let harness: TestDb
@@ -91,13 +91,15 @@ describe('saving', () => {
       userId: IVAN,
       timezone: 'Europe/London',
       postsPerPage: 50,
-      threadsPerPage: null, invisible: false,
+      threadsPerPage: null,
+      invisible: false,
     })
 
     expect(await repo.read(IVAN)).toMatchObject({
       timezone: 'Europe/London',
       postsPerPage: 50,
-      threadsPerPage: null, invisible: false,
+      threadsPerPage: null,
+      invisible: false,
     })
   })
 
@@ -106,7 +108,8 @@ describe('saving', () => {
       userId: IVAN,
       timezone: 'Europe/London',
       postsPerPage: 50,
-      threadsPerPage: 50, invisible: false,
+      threadsPerPage: 50,
+      invisible: false,
     })
 
     expect(await repo.read(MOD)).toMatchObject({ timezone: 'auto', postsPerPage: null })

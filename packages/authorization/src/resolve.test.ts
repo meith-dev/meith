@@ -1,7 +1,8 @@
-import { emptyPermissionSet, type PermissionSet } from '@meith/core'
 import { describe, expect, it } from 'vitest'
 
-import { resolveForumMatrix, indexOverrides } from './resolve'
+import { emptyPermissionSet, type PermissionSet } from '@meith/core'
+
+import { indexOverrides, resolveForumMatrix } from './resolve'
 import type { ForumOverride, GroupDefaults } from './types'
 
 const L1 = 1

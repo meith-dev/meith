@@ -4,35 +4,31 @@ import { notFound, permanentRedirect } from 'next/navigation'
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
 import { requireSlot } from '@meith/theme-kit'
 
-import { filterView, viewerRef } from '@/server/plugin-view'
+import { FollowForm } from '@/components/account/subscription-forms'
+import { SectionPage } from '@/components/board/section-page'
 import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
 import { BOARD_MEASURE } from '@/components/shell/measure'
+import { ViewTabs } from '@/components/shell/view-tabs'
 import { liveAnnouncements } from '@/server/announcements'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { legacyDestination } from '@/server/legacy-redirect'
-import { getViewerPreferences } from '@/server/viewer-preferences'
-import { moderatorTargetFor } from '@/server/modcp'
-import { currentTheme } from '@/server/theme'
-import { decodeForumCursor } from '@/view/forum-cursor'
-import { buildOffsetPager, offsetOf } from '@/view/pager'
-import { FollowForm } from '@/components/account/subscription-forms'
-import { ViewTabs } from '@/components/shell/view-tabs'
-import { getSettings } from '@/server/settings'
-import { buildBreadcrumb } from '@/view/breadcrumb'
-import { SectionPage } from '@/components/board/section-page'
-import { buildForumDisplayView } from '@/view/forum-display'
 import { identitiesFor } from '@/server/group-identity'
+import { legacyDestination } from '@/server/legacy-redirect'
+import { moderatorTargetFor } from '@/server/modcp'
+import { filterView, viewerRef } from '@/server/plugin-view'
+import { getSettings } from '@/server/settings'
+import { currentTheme } from '@/server/theme'
+import { getViewerPreferences } from '@/server/viewer-preferences'
+import { buildBreadcrumb } from '@/view/breadcrumb'
+import { decodeForumCursor } from '@/view/forum-cursor'
+import { buildForumDisplayView } from '@/view/forum-display'
+import { forumNotice } from '@/view/forum-notice'
+import { anyInlineTool, INLINE_FORM_ID, selectionFor } from '@/view/inline-moderation'
 import { distinctUserIds } from '@/view/member-identity'
 import { canonicalPath } from '@/view/metadata'
+import { buildOffsetPager, offsetOf } from '@/view/pager'
 import { leadingId } from '@/view/slug-id'
 import { buildSubscriptionsView } from '@/view/subscriptions'
-import { forumNotice } from '@/view/forum-notice'
-import {
-  INLINE_FORM_ID,
-  anyInlineTool,
-  selectionFor,
-} from '@/view/inline-moderation'
 
 export async function generateMetadata({
   params,
@@ -62,9 +58,7 @@ export async function generateMetadata({
   }
 
   const matrix = await authorizer.forumMatrix(actor, forum.id)
-  if (
-    !authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })
-  ) {
+  if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) {
     return { title: 'Forum' }
   }
 
@@ -133,14 +127,7 @@ export default async function ForumPage({
     notFound()
 
   const actor = await getActor()
-  const {
-    forums,
-    threads,
-    authorizer,
-    readState,
-    threadWrites,
-    inlineModeration,
-  } = getContainer()
+  const { forums, threads, authorizer, readState, threadWrites, inlineModeration } = getContainer()
   const [rows, listing, read] = await Promise.all([
     forums.listListing(),
     authorizer.listingVisibility(actor),
@@ -168,8 +155,7 @@ export default async function ForumPage({
 
   if (!canHoldThreads(forum.type)) notFound()
   const matrix = await authorizer.forumMatrix(actor, id)
-  if (!authorizer.can(actor, 'thread.view', { forumId: id, forum: matrix }))
-    notFound()
+  if (!authorizer.can(actor, 'thread.view', { forumId: id, forum: matrix })) notFound()
 
   const inlineTarget = await moderatorTargetFor(actor, id, matrix)
   const scope = authorizer.contentScope(actor, inlineTarget)
@@ -195,36 +181,22 @@ export default async function ForumPage({
     authorizer.can(actor, 'thread.post', { forumId: id, forum: matrix })
 
   const inlineRights = {
-    approve:
-      inlineModeration !== null &&
-      authorizer.can(actor, 'content.approve', inlineTarget),
-    lock:
-      inlineModeration !== null &&
-      authorizer.can(actor, 'thread.lock', inlineTarget),
-    stick:
-      inlineModeration !== null &&
-      authorizer.can(actor, 'thread.stick', inlineTarget),
-    move:
-      inlineModeration !== null &&
-      authorizer.can(actor, 'thread.move', inlineTarget),
-    delete:
-      inlineModeration !== null &&
-      authorizer.can(actor, 'thread.delete', inlineTarget),
-    restore:
-      inlineModeration !== null &&
-      authorizer.can(actor, 'thread.restore', inlineTarget),
+    approve: inlineModeration !== null && authorizer.can(actor, 'content.approve', inlineTarget),
+    lock: inlineModeration !== null && authorizer.can(actor, 'thread.lock', inlineTarget),
+    stick: inlineModeration !== null && authorizer.can(actor, 'thread.stick', inlineTarget),
+    move: inlineModeration !== null && authorizer.can(actor, 'thread.move', inlineTarget),
+    delete: inlineModeration !== null && authorizer.can(actor, 'thread.delete', inlineTarget),
+    restore: inlineModeration !== null && authorizer.can(actor, 'thread.restore', inlineTarget),
   }
   const inlineOffered = anyInlineTool(inlineRights)
   const inlineMoveTargets = !inlineRights.move
     ? []
-    : (await authorizer.forumIdsWhere(actor, 'thread.move')).flatMap(
-        (forumId) => {
-          const row = rows.find((r) => r.id === forumId)
-          return row === undefined || row.type !== 'forum' || row.id === id
-            ? []
-            : [{ id: row.id, title: row.title }]
-        },
-      )
+    : (await authorizer.forumIdsWhere(actor, 'thread.move')).flatMap((forumId) => {
+        const row = rows.find((r) => r.id === forumId)
+        return row === undefined || row.type !== 'forum' || row.id === id
+          ? []
+          : [{ id: row.id, title: row.title }]
+      })
 
   const identities = await identitiesFor(
     distinctUserIds(
@@ -235,9 +207,7 @@ export default async function ForumPage({
   const view = buildForumDisplayView({
     forum,
     newThreadHref: canPost ? `/${id}-${forum.slug}/new` : null,
-    subforums: rows.filter(
-      (row) => row.parentId === id && visible.includes(row.id),
-    ),
+    subforums: rows.filter((row) => row.parentId === id && visible.includes(row.id)),
     ownThreadsOnlyForumIds,
     page: threadPage,
     pageNumber: pager.page,
@@ -292,12 +262,7 @@ export default async function ForumPage({
         'view.thread-row',
         {
           thread,
-          select: selectionFor(
-            'thread',
-            thread.id,
-            `“${thread.title}”`,
-            inlineOffered,
-          ),
+          select: selectionFor('thread', thread.id, `“${thread.title}”`, inlineOffered),
         },
         pluginContext,
       ),
@@ -309,11 +274,7 @@ export default async function ForumPage({
       ? null
       : await filterView('view.subforum-list', view.subforums, pluginContext)
 
-  const pagination = await filterView(
-    'view.pagination',
-    view.pagination,
-    viewerRef(actor),
-  )
+  const pagination = await filterView('view.pagination', view.pagination, viewerRef(actor))
 
   const orderTabs = (
     <ViewTabs
@@ -354,15 +315,17 @@ export default async function ForumPage({
             }
           : {}),
         subforums: subforums === null ? null : <SubforumList {...subforums} />,
-        threads: threadRows.map((row) => (
-          <ThreadRow key={row.thread.id} {...row} />
-        )),
+        threads: threadRows.map((row) => <ThreadRow key={row.thread.id} {...row} />),
         pagination: <Pagination {...pagination} />,
         ...(announcements.length === 0
           ? {}
           : {
               announcements: filteredAnnouncements.map((announcement, position) => (
-                <Announcement key={position} {...announcement} />
+                <Announcement
+                  // biome-ignore lint/suspicious/noArrayIndexKey: the position is the identity — this list is server-rendered in order and never reordered on the client
+                  key={position}
+                  {...announcement}
+                />
               )),
             }),
       },
@@ -381,25 +344,21 @@ export default async function ForumPage({
     <>
       <Navigation items={trail} />
       <main id="board-content" tabIndex={-1} className="flex-1">
-      {notice !== null && (
-        <div className={`${BOARD_MEASURE} pt-6`}>
-          <Notice
-            kind="info"
-            message={notice}
-            dismissHref={`/${id}-${forum.slug}`}
+        {notice !== null && (
+          <div className={`${BOARD_MEASURE} pt-6`}>
+            <Notice kind="info" message={notice} dismissHref={`/${id}-${forum.slug}`} />
+          </div>
+        )}
+        <ForumDisplay {...forumDisplayModel} />
+        {inlineOffered && (
+          <InlineModerationForm
+            formId={INLINE_FORM_ID}
+            scope="threads"
+            rights={inlineRights}
+            moveTargets={inlineMoveTargets}
+            returnTo={`/${id}-${forum.slug}`}
           />
-        </div>
-      )}
-      <ForumDisplay {...forumDisplayModel} />
-      {inlineOffered && (
-        <InlineModerationForm
-          formId={INLINE_FORM_ID}
-          scope="threads"
-          rights={inlineRights}
-          moveTargets={inlineMoveTargets}
-          returnTo={`/${id}-${forum.slug}`}
-        />
-      )}
+        )}
       </main>
     </>
   )

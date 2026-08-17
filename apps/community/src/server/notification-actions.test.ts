@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
 import type { Actor } from '@meith/authorization'
+import { combinePermissionSets, InMemoryAuthorizationSource } from '@meith/authorization'
 import type {
   DeliverableNotification,
   NotificationRepository,
@@ -204,10 +204,7 @@ describe('saving preferences', () => {
   it('lets an administrator configure the staff kinds', async () => {
     actorRef.current = await actorFor(SEED_GROUP.administrators, 9)
 
-    await run(
-      saveNotificationPreferencesAction,
-      form([['email', 'system.task_failed']]),
-    )
+    await run(saveNotificationPreferencesAction, form([['email', 'system.task_failed']]))
 
     const kinds = notifications.saved.flatMap((s) => [...s.entries.keys()])
     expect(kinds).toContain('system.task_failed')

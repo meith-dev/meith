@@ -1,16 +1,16 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { PUBLIC_CONTENT } from '@meith/core'
 
 import type { Database } from './client'
+import { rollUpAncestorCounters } from './content-counters'
 import { createTestDb, type TestDb } from './pglite.fixture'
+import { resultRows } from './result-rows'
+import { forums, users } from './schema'
 import { PostgresSearchRepository } from './search-repo'
 import { PostgresThreadToolsRepository } from './thread-tools'
 import { PostgresThreadWriteRepository } from './thread-writes'
-import { rollUpAncestorCounters } from './content-counters'
-import { resultRows } from './result-rows'
-import { forums, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -125,17 +125,15 @@ describe('lock and stick', () => {
   it('flips the flag and records who did it', async () => {
     const { threadId } = await seedThread()
 
-    expect(
-      await repo.setLocked({ threadId, locked: true, actorUserId: MOD, at: AT }),
-    ).toBe(true)
+    expect(await repo.setLocked({ threadId, locked: true, actorUserId: MOD, at: AT })).toBe(true)
 
     const found = await repo.find(threadId)
     expect(found).toMatchObject({ isLocked: true })
     expect(await auditActions()).toEqual(['thread.lock'])
 
-    const rows = resultRows(
-      await db.execute(sql`select detail from admin_log`),
-    ) as Array<{ detail: Record<string, unknown> }>
+    const rows = resultRows(await db.execute(sql`select detail from admin_log`)) as Array<{
+      detail: Record<string, unknown>
+    }>
     expect(rows[0]!.detail).toMatchObject({ threadId, forumId: LEFT, forumIds: [LEFT] })
   })
 
@@ -143,9 +141,7 @@ describe('lock and stick', () => {
     const { threadId } = await seedThread()
     await repo.setLocked({ threadId, locked: true, actorUserId: MOD, at: AT })
 
-    expect(
-      await repo.setLocked({ threadId, locked: true, actorUserId: MOD, at: AT }),
-    ).toBe(false)
+    expect(await repo.setLocked({ threadId, locked: true, actorUserId: MOD, at: AT })).toBe(false)
     expect(await auditActions()).toEqual(['thread.lock'])
   })
 
@@ -424,9 +420,10 @@ describe('moving a thread', () => {
     const { threadId } = await seedThread()
     await move(threadId, RIGHT)
 
-    const rows = resultRows(
-      await db.execute(sql`select action, detail from admin_log`),
-    ) as Array<{ action: string; detail: Record<string, unknown> }>
+    const rows = resultRows(await db.execute(sql`select action, detail from admin_log`)) as Array<{
+      action: string
+      detail: Record<string, unknown>
+    }>
 
     expect(rows[0]).toMatchObject({ action: 'thread.move' })
     expect(rows[0]!.detail).toMatchObject({
@@ -469,8 +466,20 @@ describe('copy', () => {
     const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
     const found = await new PostgresSearchRepository(db).search(
-      { terms: 'hello', match: 'everything', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
-      { forumIds: [RIGHT], ownThreadsOnlyForumIds: [], viewerUserId: null, content: PUBLIC_CONTENT },
+      {
+        terms: 'hello',
+        match: 'everything',
+        grouping: 'posts',
+        sort: 'relevance',
+        limit: 10,
+        after: null,
+      },
+      {
+        forumIds: [RIGHT],
+        ownThreadsOnlyForumIds: [],
+        viewerUserId: null,
+        content: PUBLIC_CONTENT,
+      },
     )
     expect(found.hits.map((hit) => hit.threadId)).toEqual([copy.threadId])
     expect((await new PostgresSearchRepository(db).indexProgress()).pending).toBe(0)

@@ -1,5 +1,5 @@
-import { Avatar, Card, CardContent, CardHeader, CardTitle, buttonVariants, cn } from '@meith/ui'
 import type { MemberProfileModel } from '@meith/theme-kit'
+import { Avatar, buttonVariants, Card, CardContent, CardHeader, CardTitle, cn } from '@meith/ui'
 
 import { NUMERIC, PAGE_BODY, Stamp } from '../shared'
 
@@ -24,10 +24,7 @@ export function MemberProfile({
 
             <div className="min-w-0">
               <h1
-                className={cn(
-                  'text-2xl font-semibold tracking-tight break-words',
-                  user.nameClass,
-                )}
+                className={cn('text-2xl font-semibold tracking-tight break-words', user.nameClass)}
               >
                 {user.username}
               </h1>

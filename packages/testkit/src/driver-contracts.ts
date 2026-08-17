@@ -1,9 +1,8 @@
-import type { CacheDriver, FileStore, MailDriver, QueueDriver } from '@meith/core'
 import { describe, expect, it } from 'vitest'
 
-export interface DriverFactory<T> {
-  (): Promise<T> | T
-}
+import type { CacheDriver, FileStore, MailDriver, QueueDriver } from '@meith/core'
+
+export type DriverFactory<T> = () => Promise<T> | T
 
 export function cacheDriverContract(name: string, make: DriverFactory<CacheDriver>): void {
   describe(`CacheDriver contract: ${name}`, () => {

@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import { decodeBase32, encodeBase32, isBase32 } from './base32'
 import {
-  TOTP_PERIOD_SECONDS,
   generateTotpSecret,
   matchTotp,
   otpauthUri,
   stepAt,
+  TOTP_PERIOD_SECONDS,
   totpCode,
 } from './totp'
 
@@ -109,9 +109,7 @@ describe('taking a code from a member', () => {
   })
 
   it('refuses a code from a different secret', async () => {
-    expect(
-      await matchTotp({ secret: generateTotpSecret(), code: '081804', at }),
-    ).toBeNull()
+    expect(await matchTotp({ secret: generateTotpSecret(), code: '081804', at })).toBeNull()
   })
 })
 

@@ -1,17 +1,18 @@
 import type { Metadata } from 'next'
 
-import { PanelPage } from '@/components/shell/panel-page'
+import { cn } from '@meith/ui'
+
 import { DeleteAttachmentForm } from '@/components/admin/content-forms'
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
+import { PanelPage } from '@/components/shell/panel-page'
+import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
 import { attachmentAdminRepository } from '@/server/content-admin'
-import { formatBytes } from '@/view/attachments'
-import { postLink } from '@/view/post-link'
 import { getViewerPreferences } from '@/server/viewer-preferences'
-import { formatTime } from '@/view/time'
-import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
-import { cn } from '@meith/ui'
-import { PanelPagination } from '@/components/shell/panel-pagination'
+import { formatBytes } from '@/view/attachments'
 import { offsetOf, readPage } from '@/view/pager'
+import { postLink } from '@/view/post-link'
+import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Attachments' }
 
@@ -64,10 +65,9 @@ export default async function AdminAttachmentsPage({
       title="Attachments"
       lede={
         <>
-          Every file members have uploaded. Deleting one removes it from the list under
-          its post and hands the stored bytes to the hourly sweep —{' '}
-          <strong>the post itself is untouched</strong>, because an attachment is shown
-          beside a post rather than written into it.
+          Every file members have uploaded. Deleting one removes it from the list under its post and
+          hands the stored bytes to the hourly sweep — <strong>the post itself is untouched</strong>
+          , because an attachment is shown beside a post rather than written into it.
         </>
       }
       width="wide"
@@ -95,10 +95,7 @@ export default async function AdminAttachmentsPage({
         </div>
       </dl>
 
-      <form
-        method="get"
-        className={cn(PANEL_CARD, 'flex-row flex-wrap items-end')}
-      >
+      <form method="get" className={cn(PANEL_CARD, 'flex-row flex-wrap items-end')}>
         <label className="flex min-w-48 flex-1 flex-col gap-1 text-sm">
           <span className="font-medium">Filename contains</span>
           <input
@@ -131,9 +128,7 @@ export default async function AdminAttachmentsPage({
       </form>
 
       {page.rows.length === 0 ? (
-        <p className={PANEL_NOTE}>
-          Nothing matches.
-        </p>
+        <p className={PANEL_NOTE}>Nothing matches.</p>
       ) : (
         <ul className={PANEL_LIST}>
           {page.rows.map((row) => (
@@ -141,8 +136,7 @@ export default async function AdminAttachmentsPage({
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="truncate text-sm font-medium">{row.filename}</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {formatBytes(row.sizeBytes)} · {row.contentType} · {row.downloadCount}{' '}
-                  download
+                  {formatBytes(row.sizeBytes)} · {row.contentType} · {row.downloadCount} download
                   {row.downloadCount === 1 ? '' : 's'} ·{' '}
                   <time dateTime={row.createdAt.toISOString()}>
                     {formatTime(row.createdAt, now, timezone).label}

@@ -1,15 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import { Authorizer } from './authorizer'
-import {
-  ACTORS,
-  FORUM,
-  MemoryAuthorizationSource,
-  type ActorName,
-} from './fixture'
+import { ACTORS, type ActorName, FORUM, MemoryAuthorizationSource } from './fixture'
 import { EXPECTED, PERMISSION_ACTIONS, type PermissionAction } from './matrix.fixture'
-import { NO_MODERATOR_RIGHTS } from './types'
 import type { Action, Actor, Target } from './types'
+import { NO_MODERATOR_RIGHTS } from './types'
 
 const source = new MemoryAuthorizationSource()
 
@@ -47,10 +42,7 @@ const SELF_OWNED = { self: true } as const
 const OTHER_USER_ID = 999_001
 
 function isModeratorOf(actorName: ActorName, forumName: string): boolean {
-  return (
-    actorName === 'forumModerator' &&
-    (forumName === 'public' || forumName === 'publicSub')
-  )
+  return actorName === 'forumModerator' && (forumName === 'public' || forumName === 'publicSub')
 }
 
 async function buildTarget(
@@ -103,16 +95,8 @@ describe('permission matrix', () => {
           it(`${shouldAllow ? 'allows' : 'denies'} ${action}`, async () => {
             const authorizer = new Authorizer(source)
             const actor = ACTORS[actorName]
-            const target = await buildTarget(
-              authorizer,
-              actor,
-              actorName,
-              forumName,
-              action,
-            )
-            expect(authorizer.can(actor, ACTION_OF[action], target)).toBe(
-              shouldAllow,
-            )
+            const target = await buildTarget(authorizer, actor, actorName, forumName, action)
+            expect(authorizer.can(actor, ACTION_OF[action], target)).toBe(shouldAllow)
           })
         }
       })
@@ -124,10 +108,7 @@ describe('permission matrix', () => {
     for (const actorName of actorNames) {
       expect(Object.keys(EXPECTED[actorName]!)).toHaveLength(4)
     }
-    const cells =
-      Object.keys(EXPECTED).length *
-      4 *
-      PERMISSION_ACTIONS.length
+    const cells = Object.keys(EXPECTED).length * 4 * PERMISSION_ACTIONS.length
     expect(cells).toBe(640)
   })
 

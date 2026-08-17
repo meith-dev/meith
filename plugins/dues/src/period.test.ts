@@ -70,9 +70,7 @@ describe('the smaller helpers', () => {
   })
 
   it('addDays is exact milliseconds', () => {
-    expect(addDays(new Date('2026-01-01T00:00:00Z'), 7)).toEqual(
-      new Date('2026-01-08T00:00:00Z'),
-    )
+    expect(addDays(new Date('2026-01-01T00:00:00Z'), 7)).toEqual(new Date('2026-01-08T00:00:00Z'))
   })
 
   it('ceiling over-estimates, never under', () => {

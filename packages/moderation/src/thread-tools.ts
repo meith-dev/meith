@@ -27,7 +27,9 @@ export interface MoveDestination {
 }
 
 export function keepsThreads(destination: MoveDestination): boolean {
-  return destination.type === 'forum' || (destination.type === 'category' && destination.allowThreads)
+  return (
+    destination.type === 'forum' || (destination.type === 'category' && destination.allowThreads)
+  )
 }
 
 export interface ThreadToolRights {

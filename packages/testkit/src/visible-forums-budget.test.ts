@@ -1,7 +1,8 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
 import { Authorizer } from '@meith/authorization'
 import { ActorBuilder, PostgresAuthorizationSource } from '@meith/db'
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { measureQueries } from './query-budget'
 import { SMOKE_SCALE, seedBoard } from './seed'
@@ -26,9 +27,7 @@ afterAll(async () => {
 
 describe('visibleForumIds', () => {
   it('costs a constant number of queries, not one per forum', async () => {
-    const { value, count } = await measureQueries(harness, () =>
-      authorizer.visibleForumIds(actor!),
-    )
+    const { value, count } = await measureQueries(harness, () => authorizer.visibleForumIds(actor!))
 
     expect(value.length).toBeGreaterThan(0)
     expect(count).toBeLessThanOrEqual(3)
@@ -43,9 +42,7 @@ describe('visibleForumIds', () => {
       const bigActor = await new ActorBuilder(bigger.db, { guestGroupId: 1 }).buildGuest()
 
       const small = await measureQueries(harness, () => authorizer.visibleForumIds(actor!))
-      const large = await measureQueries(bigger, () =>
-        bigAuthorizer.visibleForumIds(bigActor),
-      )
+      const large = await measureQueries(bigger, () => bigAuthorizer.visibleForumIds(bigActor))
 
       expect(large.count).toBe(small.count)
     } finally {

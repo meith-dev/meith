@@ -63,8 +63,8 @@ export default async function AdminPluginPage({
 
         {rendered.node === null ? (
           <p className={PANEL_NOTE}>
-            This page failed to render. The plugin&rsquo;s error is in the server log, and
-            the rest of the panel is unaffected.
+            This page failed to render. The plugin&rsquo;s error is in the server log, and the rest
+            of the panel is unaffected.
           </p>
         ) : (
           <section className="rounded-xl border border-border bg-surface p-4">
@@ -116,9 +116,7 @@ export default async function AdminPluginPage({
           </div>
           <div className="flex flex-wrap justify-between gap-2">
             <dt className="text-muted-foreground">Switched on here</dt>
-            <dd>
-              {plugin.operatorEnabled ? 'yes' : 'no — an administrator turned it off'}
-            </dd>
+            <dd>{plugin.operatorEnabled ? 'yes' : 'no — an administrator turned it off'}</dd>
           </div>
           <div className="flex flex-wrap justify-between gap-2">
             <dt className="text-muted-foreground">Running on this server</dt>
@@ -137,10 +135,9 @@ export default async function AdminPluginPage({
         <section className={PANEL_CARD}>
           <h2 className="font-heading text-lg font-semibold">Health</h2>
           <p className="text-sm text-muted-foreground">
-            Counted by <em>this</em> server since it started, not across the board and not
-            since the plugin was installed. On a platform that recycles instances these
-            numbers reset without warning, which is why they are a symptom to look at
-            rather than a total to trust.
+            Counted by <em>this</em> server since it started, not across the board and not since the
+            plugin was installed. On a platform that recycles instances these numbers reset without
+            warning, which is why they are a symptom to look at rather than a total to trust.
           </p>
           <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
             <div>
@@ -162,8 +159,7 @@ export default async function AdminPluginPage({
           </dl>
           {plugin.health.lastError !== null && (
             <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
-              Last failure in{' '}
-              <code className="text-xs">{plugin.health.lastError.hook}</code>:{' '}
+              Last failure in <code className="text-xs">{plugin.health.lastError.hook}</code>:{' '}
               {plugin.health.lastError.message}
             </p>
           )}
@@ -174,8 +170,8 @@ export default async function AdminPluginPage({
         <section className={PANEL_CARD}>
           <h2 className="font-heading text-lg font-semibold">Settings</h2>
           <p className="text-sm text-muted-foreground">
-            Stored under this plugin&rsquo;s own namespace, so two plugins cannot collide
-            and neither can reach a board setting.
+            Stored under this plugin&rsquo;s own namespace, so two plugins cannot collide and
+            neither can reach a board setting.
           </p>
           <PluginSettingsForm pluginKey={plugin.key} settings={visibleSettings} />
         </section>
@@ -185,11 +181,10 @@ export default async function AdminPluginPage({
         <section className={PANEL_CARD}>
           <h2 className="font-heading text-lg font-semibold">Migrations</h2>
           <p className="text-sm text-muted-foreground">
-            Applied by <code className="text-xs">community upgrade</code>, in one transaction
-            each, recorded as they run. There is no button here on purpose: schema changes
-            belong to the deploy that shipped the code expecting them, and a panel that
-            could run them out of band is a panel that can put a board&rsquo;s schema
-            ahead of its code.
+            Applied by <code className="text-xs">community upgrade</code>, in one transaction each,
+            recorded as they run. There is no button here on purpose: schema changes belong to the
+            deploy that shipped the code expecting them, and a panel that could run them out of band
+            is a panel that can put a board&rsquo;s schema ahead of its code.
           </p>
           <ul className="flex flex-col divide-y divide-border text-sm">
             {plugin.migrations.map((migration) => (
@@ -197,9 +192,7 @@ export default async function AdminPluginPage({
                 <code className="text-xs">{migration.id}</code>
                 <span
                   className={
-                    migration.applied
-                      ? 'text-xs text-muted-foreground'
-                      : 'text-xs text-destructive'
+                    migration.applied ? 'text-xs text-muted-foreground' : 'text-xs text-destructive'
                   }
                 >
                   {migration.applied ? 'applied' : 'not applied'}
@@ -209,9 +202,8 @@ export default async function AdminPluginPage({
           </ul>
           {pendingMigrations.length > 0 && (
             <p className="text-sm text-destructive">
-              Run <code className="text-xs">community upgrade</code> before relying on this
-              plugin — until then its code is running against a schema that does not have
-              what it expects.
+              Run <code className="text-xs">community upgrade</code> before relying on this plugin —
+              until then its code is running against a schema that does not have what it expects.
             </p>
           )}
         </section>
@@ -221,8 +213,8 @@ export default async function AdminPluginPage({
         <section className={PANEL_CARD}>
           <h2 className="font-heading text-lg font-semibold">Scheduled tasks</h2>
           <p className="text-sm text-muted-foreground">
-            Registered in the board&rsquo;s own task registry and run by the same tick.
-            Their runs and failures are on the{' '}
+            Registered in the board&rsquo;s own task registry and run by the same tick. Their runs
+            and failures are on the{' '}
             <a
               href="/admin/system"
               className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
@@ -235,9 +227,7 @@ export default async function AdminPluginPage({
             {plugin.tasks.map((task) => (
               <li key={task.id} className="flex justify-between gap-3 py-2">
                 <code className="text-xs">{task.registeredId}</code>
-                <span className="text-xs text-muted-foreground">
-                  every {task.intervalSeconds}s
-                </span>
+                <span className="text-xs text-muted-foreground">every {task.intervalSeconds}s</span>
               </li>
             ))}
           </ul>

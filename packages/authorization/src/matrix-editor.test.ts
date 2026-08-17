@@ -241,9 +241,7 @@ describe('planCopyToDescendants', () => {
   it('reports exactly which cells would change, and on which forum', () => {
     const plan = planCopyToDescendants({
       ...base,
-      overrides: [
-        { forumId: PARENT, groupId: REGISTERED, overrides: { canPostThreads: false } },
-      ],
+      overrides: [{ forumId: PARENT, groupId: REGISTERED, overrides: { canPostThreads: false } }],
     })
 
     expect(plan.changes).toEqual([
@@ -261,9 +259,7 @@ describe('planCopyToDescendants', () => {
   it('copies nulls too, so "copy" means identical', () => {
     const plan = planCopyToDescendants({
       ...base,
-      overrides: [
-        { forumId: CHILD, groupId: REGISTERED, overrides: { canPostThreads: false } },
-      ],
+      overrides: [{ forumId: CHILD, groupId: REGISTERED, overrides: { canPostThreads: false } }],
     })
 
     expect(plan.changes).toEqual([
@@ -289,9 +285,7 @@ describe('planCopyToDescendants', () => {
       sourceForumId: PARENT,
       descendantIds: [CHILD],
       groupIds: [REGISTERED, STAFF],
-      overrides: [
-        { forumId: CHILD, groupId: STAFF, overrides: { canPostThreads: true } },
-      ],
+      overrides: [{ forumId: CHILD, groupId: STAFF, overrides: { canPostThreads: true } }],
     })
 
     expect(plan.changes).toEqual([

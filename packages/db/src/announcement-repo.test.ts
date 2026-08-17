@@ -1,8 +1,8 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import type { Database } from './client'
 import { PostgresAnnouncementRepository } from './announcement-repo'
+import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { forums, users } from './schema'
 
@@ -42,7 +42,14 @@ beforeEach(async () => {
   })
   await db.insert(forums).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
-    { id: PUBLIC_FORUM, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
+    {
+      id: PUBLIC_FORUM,
+      title: 'General',
+      slug: 'general',
+      path: '1.4',
+      depth: 1,
+      parentId: CATEGORY,
+    },
     { id: PRIVATE_FORUM, title: 'Staff', slug: 'staff', path: '1.5', depth: 1, parentId: CATEGORY },
   ])
 })

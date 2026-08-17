@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { CacheTags, cachedGlobal, env } from '@meith/core'
-import { PostgresSettingsRepository, getDb } from '@meith/db'
+import { getDb, PostgresSettingsRepository } from '@meith/db'
 import { drivers } from '@meith/drivers'
 import { SettingsSnapshot } from '@meith/settings'
 

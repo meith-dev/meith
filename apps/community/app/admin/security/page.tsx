@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 
 import { AUTH_EVENT_KINDS } from '@meith/accounts'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { boardSecurityActivity } from '@/server/auth-events'
 import { getContainer } from '@/server/container'
@@ -48,9 +48,9 @@ export default async function AdminSecurityPage({
       title="Sign-in activity"
       lede={
         <>
-          Every authentication event on this board, newest first: who signed in, what was
-          refused, and what members changed about how they get in. Separate from the admin
-          log, which records what was done once somebody was already inside.
+          Every authentication event on this board, newest first: who signed in, what was refused,
+          and what members changed about how they get in. Separate from the admin log, which records
+          what was done once somebody was already inside.
         </>
       }
       width="wide"
@@ -114,17 +114,13 @@ export default async function AdminSecurityPage({
   )
 }
 
-async function usernamesFor(
-  ids: readonly (number | null)[],
-): Promise<ReadonlyMap<number, string>> {
+async function usernamesFor(ids: readonly (number | null)[]): Promise<ReadonlyMap<number, string>> {
   const { accountStore } = getContainer()
   const wanted = [...new Set(ids.filter((id): id is number => id !== null))]
 
   const found = await Promise.all(wanted.map((id) => accountStore.accounts.findById(id)))
 
   return new Map(
-    found
-      .filter((account) => account !== null)
-      .map((account) => [account.id, account.username]),
+    found.filter((account) => account !== null).map((account) => [account.id, account.username]),
   )
 }

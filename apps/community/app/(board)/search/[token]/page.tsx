@@ -5,23 +5,18 @@ import { isAppError } from '@meith/core'
 import { requireSlot } from '@meith/theme-kit'
 
 import { SearchOffNotice } from '@/components/board/search-off-notice'
+import { getContainer } from '@/server/container'
 import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
-import { getContainer } from '@/server/container'
+import { filterView, viewerRef } from '@/server/plugin-view'
 import { SEARCH_OFF_MESSAGE, searchEnabled } from '@/server/search'
-import {
-  openSearch,
-  readRefinement,
-  SEARCH_COUNT_CAP,
-  SEARCH_PAGE,
-} from '@/server/search-page'
+import { openSearch, readRefinement, SEARCH_COUNT_CAP, SEARCH_PAGE } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
 import { currentTheme } from '@/server/theme'
-import { filterView, viewerRef } from '@/server/plugin-view'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { buildOffsetPager, offsetOf, readPage } from '@/view/pager'
 import { CURSOR_FIELDS } from '@/view/search-controls'
 import { buildSearchResultsView, type SearchForumRef } from '@/view/search-results'
-import { buildOffsetPager, offsetOf, readPage } from '@/view/pager'
 
 export const metadata: Metadata = { title: 'Search results' }
 
@@ -46,16 +41,14 @@ export default async function SearchResultsPage({
   const rank = Number(one(CURSOR_FIELDS.rank))
   const postId = Number(one(CURSOR_FIELDS.after))
   const after =
-    Number.isFinite(rank) && Number.isSafeInteger(postId) && postId > 0
-      ? { rank, postId }
-      : null
+    Number.isFinite(rank) && Number.isSafeInteger(postId) && postId > 0 ? { rank, postId } : null
 
   const pageNumber = readPage(query)
 
   const actor = await getActor()
   const now = new Date()
 
-  let view
+  let view: Awaited<ReturnType<typeof openSearch>>
   try {
     view = await openSearch({
       actor,
@@ -110,7 +103,7 @@ export default async function SearchResultsPage({
       {...filtered}
       regions={{
         pagination: (
-          <Pagination {...await filterView('view.pagination', pager, viewerRef(actor))} />
+          <Pagination {...(await filterView('view.pagination', pager, viewerRef(actor)))} />
         ),
       }}
     />

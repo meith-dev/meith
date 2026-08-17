@@ -2,18 +2,13 @@ import 'server-only'
 
 import { cache } from 'react'
 
-import {
-  MessageService,
-  type MessageNotifierPort,
-  type MessagePolicy,
-} from '@meith/messages'
-
 import { EMPTY_VOCABULARY } from '@meith/markdown'
+import { type MessageNotifierPort, type MessagePolicy, MessageService } from '@meith/messages'
 
-import { activeVocabulary } from './content-admin'
 import { getContainer } from './container'
-import { relationService } from './relations'
+import { activeVocabulary } from './content-admin'
 import { notificationService } from './notifications'
+import { relationService } from './relations'
 
 export function messageService(): MessageService | null {
   const { messages } = getContainer()
@@ -33,9 +28,7 @@ export function messagePolicy(): MessagePolicy {
   return {
     async lookup(username) {
       const { foldIdentifier } = await import('@meith/accounts')
-      const account = await accountStore.accounts.findByUsernameLower(
-        foldIdentifier(username),
-      )
+      const account = await accountStore.accounts.findByUsernameLower(foldIdentifier(username))
       if (account === null) return null
       return { id: account.id, username: account.username }
     },

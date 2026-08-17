@@ -1,5 +1,5 @@
-import { Disclosure, cn } from '@meith/ui'
 import type { PanelNavItemModel, PanelNavModel } from '@meith/theme-kit'
+import { cn, Disclosure } from '@meith/ui'
 
 import { PanelIcon } from '../panel-icons'
 
@@ -53,8 +53,7 @@ function Item({ item, className }: { item: PanelNavItemModel; className: string 
       {...(item.current === null
         ? {}
         : {
-            'aria-current':
-              item.current === 'here' ? ('page' as const) : ('true' as const),
+            'aria-current': item.current === 'here' ? ('page' as const) : ('true' as const),
           })}
     >
       {body}
@@ -73,19 +72,14 @@ function Sections({ label, sections }: Pick<PanelNavModel, 'label' | 'sections'>
           >
             <Item
               item={section}
-              className={
-                section.current === 'here' ? HERE : section.isOpen ? OPEN : ELSEWHERE
-              }
+              className={section.current === 'here' ? HERE : section.isOpen ? OPEN : ELSEWHERE}
             />
 
             {section.isOpen && section.children.length > 0 && (
               <ul className="mt-0.5 ml-4 flex flex-col gap-0.5 border-l border-border pl-2.5">
                 {section.children.map((child) => (
                   <li key={child.href}>
-                    <Item
-                      item={child}
-                      className={child.current === 'here' ? HERE : ELSEWHERE}
-                    />
+                    <Item item={child} className={child.current === 'here' ? HERE : ELSEWHERE} />
                   </li>
                 ))}
               </ul>

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
+
 import { RateLimitedError, ValidationError } from '@meith/core'
 
 import {
-  ReplyComposer,
-  quotePrefill,
   type NewReplyRecord,
+  quotePrefill,
+  ReplyComposer,
   type ReplyTarget,
   type ReplyWriteRepository,
 } from './reply'
@@ -100,10 +101,7 @@ describe('ReplyComposer', () => {
     ['an unapproved thread', { visibility: 'unapproved' as const }],
     ['a deleted thread', { visibility: 'deleted' as const }],
     ['a closed forum', { forum: { ...TARGET.forum, isOpen: false } }],
-    [
-      'a forum that takes no replies',
-      { forum: { ...TARGET.forum, allowReplies: false } },
-    ],
+    ['a forum that takes no replies', { forum: { ...TARGET.forum, allowReplies: false } }],
   ])('refuses %s', async (_label, overrides) => {
     const posts = new RecordingReplies()
 
@@ -130,11 +128,7 @@ describe('ReplyComposer', () => {
       composer(posts).create({ ...INPUT, message: '  ' }, AUTHOR, TARGET),
     ).rejects.toThrow(ValidationError)
     await expect(
-      composer(posts, { floodSeconds: 0, maxLength: 5 }).create(
-        INPUT,
-        AUTHOR,
-        TARGET,
-      ),
+      composer(posts, { floodSeconds: 0, maxLength: 5 }).create(INPUT, AUTHOR, TARGET),
     ).rejects.toThrow(/at most 5 characters/)
   })
 
@@ -150,22 +144,20 @@ describe('ReplyComposer', () => {
 
   it('holds the reply when the permission requires approval', async () => {
     const posts = new RecordingReplies()
-    const result = await composer(posts).create(
-      { ...INPUT, requiresApproval: true },
-      AUTHOR,
-      { ...TARGET, forum: { ...TARGET.forum, moderateNewPosts: false } },
-    )
+    const result = await composer(posts).create({ ...INPUT, requiresApproval: true }, AUTHOR, {
+      ...TARGET,
+      forum: { ...TARGET.forum, moderateNewPosts: false },
+    })
 
     expect(result.visibility).toBe('unapproved')
   })
 
   it('leaves the reply visible when neither the forum nor the permission asks', async () => {
     const posts = new RecordingReplies()
-    const result = await composer(posts).create(
-      { ...INPUT, requiresApproval: false },
-      AUTHOR,
-      { ...TARGET, forum: { ...TARGET.forum, moderateNewPosts: false } },
-    )
+    const result = await composer(posts).create({ ...INPUT, requiresApproval: false }, AUTHOR, {
+      ...TARGET,
+      forum: { ...TARGET.forum, moderateNewPosts: false },
+    })
 
     expect(result.visibility).toBe('visible')
   })
@@ -185,22 +177,14 @@ describe('ReplyComposer', () => {
     const posts = new RecordingReplies(new Date(AT.getTime() - 5000))
 
     await expect(
-      composer(posts, { floodSeconds: 15, maxLength: 30_000 }).create(
-        INPUT,
-        AUTHOR,
-        TARGET,
-      ),
+      composer(posts, { floodSeconds: 15, maxLength: 30_000 }).create(INPUT, AUTHOR, TARGET),
     ).rejects.toThrow(RateLimitedError)
   })
 
   describe('the race notice', () => {
     it('reports a reply that landed while the form was open', async () => {
       const posts = new RecordingReplies()
-      const result = await composer(posts).create(
-        { ...INPUT, seenLastPostId: 30 },
-        AUTHOR,
-        TARGET,
-      )
+      const result = await composer(posts).create({ ...INPUT, seenLastPostId: 30 }, AUTHOR, TARGET)
 
       expect(result.raced).toBe(true)
       expect(posts.written).toHaveLength(1)

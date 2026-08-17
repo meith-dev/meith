@@ -5,20 +5,17 @@ import { redirect } from 'next/navigation'
 import { verifyPassword } from '@meith/accounts'
 import { ForbiddenError, ValidationError } from '@meith/core'
 
+import { RECOVERY_CODES_FIELD } from '@/view/two-factor'
+
 import { recordAuthEvent } from './auth-events'
-import { getActor } from './context'
+import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
+import { getActor } from './context'
 import { assertDemoAccountChangeable } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
 import { getSettingsUncached } from './settings'
-import { RECOVERY_CODES_FIELD } from '@/view/two-factor'
-import {
-  secondFactorPosture,
-  twoFactorOffered,
-  twoFactorService,
-} from './two-factor'
-import type { FormState } from './auth-form-state'
+import { secondFactorPosture, twoFactorOffered, twoFactorService } from './two-factor'
 
 const toFormState = formStateReporter(
   'two-factor-actions',
@@ -44,10 +41,7 @@ async function requireOwnAccount(): Promise<{
   return { userId: actor.userId, hasPassword: account.passwordHash !== null }
 }
 
-export async function beginTwoFactorAction(
-  _prev: FormState,
-  _form: FormData,
-): Promise<FormState> {
+export async function beginTwoFactorAction(_prev: FormState, _form: FormData): Promise<FormState> {
   try {
     const { userId } = await requireOwnAccount()
 
@@ -79,10 +73,7 @@ export async function abandonTwoFactorAction(
   redirect('/usercp/security')
 }
 
-export async function confirmTwoFactorAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function confirmTwoFactorAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const { userId } = await requireOwnAccount()
 
@@ -119,10 +110,7 @@ export async function replaceRecoveryCodesAction(
   }
 }
 
-export async function disableTwoFactorAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function disableTwoFactorAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const { userId, hasPassword } = await requireOwnAccount()
 
@@ -168,8 +156,6 @@ async function assertStillThem(input: {
   })
 
   if (outcome.status !== 'ok') {
-    throw new ValidationError(
-      'Enter a current code from your authenticator app to confirm this.',
-    )
+    throw new ValidationError('Enter a current code from your authenticator app to confirm this.')
   }
 }

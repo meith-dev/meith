@@ -1,24 +1,23 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { messageBulkAction, sendMessageAction } from "@/server/message-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { messageBulkAction, sendMessageAction } from '@/server/message-actions'
 
-import { MarkdownEditor } from "../content/markdown-editor"
-
-import { FormError } from "../auth/form-controls"
+import { FormError } from '../auth/form-controls'
+import { MarkdownEditor } from '../content/markdown-editor'
 
 const FIELD =
-  "w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 const BUTTON =
-  "inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 const SECONDARY =
-  "inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-const CARD = "flex flex-col gap-4 rounded-lg border border-border bg-card p-5"
+const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
 
 export function ComposeForm({
   to,
@@ -44,7 +43,7 @@ export function ComposeForm({
         <span className="font-medium">To</span>
         <input
           name="to"
-          defaultValue={values["to"] ?? to}
+          defaultValue={values.to ?? to}
           className={FIELD}
           autoComplete="off"
           required
@@ -56,7 +55,7 @@ export function ComposeForm({
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Bcc</span>
-        <input name="bcc" defaultValue={values["bcc"] ?? ""} className={FIELD} autoComplete="off" />
+        <input name="bcc" defaultValue={values.bcc ?? ''} className={FIELD} autoComplete="off" />
         <span className="text-xs text-muted-foreground">
           Optional. These names are hidden from the other recipients.
         </span>
@@ -66,7 +65,7 @@ export function ComposeForm({
         <span className="font-medium">Subject</span>
         <input
           name="subject"
-          defaultValue={values["subject"] ?? subject}
+          defaultValue={values.subject ?? subject}
           className={FIELD}
           maxLength={200}
           required
@@ -77,7 +76,7 @@ export function ComposeForm({
         id="message-body"
         required
         rows={12}
-        defaultValue={values["message"] ?? message}
+        defaultValue={values.message ?? message}
         hint="Markdown, the same as in a post."
       />
 
@@ -100,7 +99,7 @@ export function MessageActionBar({
   folder,
 }: {
   formId: string
-  folder: "inbox" | "sent" | "trash"
+  folder: 'inbox' | 'sent' | 'trash'
 }) {
   const [state, action] = useActionState(messageBulkAction, EMPTY_STATE)
 
@@ -112,7 +111,7 @@ export function MessageActionBar({
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs text-muted-foreground">With selected:</span>
 
-        {folder === "inbox" && (
+        {folder === 'inbox' && (
           <>
             <button type="submit" name="command" value="read" className={SECONDARY}>
               Mark read
@@ -123,7 +122,7 @@ export function MessageActionBar({
           </>
         )}
 
-        {folder === "trash" ? (
+        {folder === 'trash' ? (
           <>
             <button type="submit" name="command" value="restore" className={SECONDARY}>
               Restore to inbox

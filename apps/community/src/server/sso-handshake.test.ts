@@ -51,9 +51,7 @@ describe('the handshake carried across the redirect', () => {
 
   it('refuses a mode it does not know', () => {
     expect(
-      decodeHandshake(
-        encodeHandshake(handshake({ mode: 'elevate' as Handshake['mode'] })),
-      ),
+      decodeHandshake(encodeHandshake(handshake({ mode: 'elevate' as Handshake['mode'] }))),
     ).toBeNull()
   })
 
@@ -70,9 +68,7 @@ describe('the handshake carried across the redirect', () => {
   })
 
   it('keeps a return target on this board', () => {
-    expect(decodeHandshake(encodeHandshake(handshake({ next: '/usercp' })))?.next).toBe(
-      '/usercp',
-    )
+    expect(decodeHandshake(encodeHandshake(handshake({ next: '/usercp' })))?.next).toBe('/usercp')
   })
 
   it('refuses a hand-off target that is not an address a provider could live at', () => {

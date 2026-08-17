@@ -1,5 +1,4 @@
 import type { PanelNav, PanelSection } from './panel-nav'
-
 import { currentProps, deepestHrefIn, flattenNav, isUnder, sectionHrefIn } from './panel-nav'
 
 export { currentProps, isUnder }
@@ -66,8 +65,7 @@ export const USERCP_SECTIONS: PanelNav = [
     href: '/usercp/security',
     title: 'Sign-in and security',
     icon: 'security',
-    blurb:
-      'Your e-mail and password, the accounts linked to yours, and your passkeys.',
+    blurb: 'Your e-mail and password, the accounts linked to yours, and your passkeys.',
   },
 ]
 

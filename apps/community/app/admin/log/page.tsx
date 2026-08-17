@@ -1,13 +1,13 @@
 import type { Metadata } from 'next'
 
+import { PANEL_LIST } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
+import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { ADMIN_LOG_PAGE_SIZE, buildAdminLogView } from '@/view/admin-log'
-import { PanelPagination } from '@/components/shell/panel-pagination'
 import { offsetOf, readPage } from '@/view/pager'
-import { PANEL_LIST } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Admin log' }
 
@@ -84,14 +84,9 @@ export default async function AdminLogPage({
                 <code className="text-xs font-medium">{row.action}</code>
                 <span>{row.actor}</span>
                 {row.ipPrefix !== null && (
-                  <span className="text-xs text-muted-foreground">
-                    from {row.ipPrefix}
-                  </span>
+                  <span className="text-xs text-muted-foreground">from {row.ipPrefix}</span>
                 )}
-                <time
-                  dateTime={row.at.iso}
-                  className="ml-auto text-xs text-muted-foreground"
-                >
+                <time dateTime={row.at.iso} className="ml-auto text-xs text-muted-foreground">
                   {row.at.label}
                 </time>
               </div>

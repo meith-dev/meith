@@ -4,60 +4,48 @@ import { notFound, redirect } from 'next/navigation'
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
 import { requireSlot } from '@meith/theme-kit'
 
-import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
-
 import { FollowForm } from '@/components/account/subscription-forms'
-import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
-import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
-import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
-import { PollForm } from '@/components/content/poll'
-import { ThreadRatingForm } from '@/components/content/thread-rating'
-import { ReplyForm } from '@/components/content/reply-form'
 import { MultiQuoteButton } from '@/components/content/multiquote-button'
 import { MultiQuoteSelection } from '@/components/content/multiquote-selection'
-import { ThanksButton } from '@/components/content/thanks-button'
+import { PollForm } from '@/components/content/poll'
 import { QuoteInPlace } from '@/components/content/quote-in-place'
-import { attachmentLimits, canAttach } from '@/server/attachments'
-
+import { ReplyForm } from '@/components/content/reply-form'
+import { ThanksButton } from '@/components/content/thanks-button'
+import { ThreadRatingForm } from '@/components/content/thread-rating'
+import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
+import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
+import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
+import { BOARD_MEASURE } from '@/components/shell/measure'
+import { attachmentLimits, attachmentsForPosts, canAttach } from '@/server/attachments'
+import { avatarsFor } from '@/server/avatars'
 import { getContainer } from '@/server/container'
+import { activeVocabulary, activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
-import { getViewerPreferences } from '@/server/viewer-preferences'
+import { identitiesFor } from '@/server/group-identity'
+import { moderatorTargetFor } from '@/server/modcp'
+import { cspNonce } from '@/server/nonce'
+import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
 import { postbitProfileFields } from '@/server/profile-fields'
 import { viewerIgnoredIds } from '@/server/relations'
 import { reputationSettings, thanksForPosts } from '@/server/reputation'
+import { getSettings } from '@/server/settings'
 import { signaturesFor } from '@/server/signatures'
-import { moderatorTargetFor } from '@/server/modcp'
-import { cspNonce } from '@/server/nonce'
 import { currentTheme } from '@/server/theme'
+import { getViewerPreferences } from '@/server/viewer-preferences'
+import { attachmentsByPost } from '@/view/attachments'
+import { buildBreadcrumb } from '@/view/breadcrumb'
 import {
-  INLINE_FORM_ID,
   anyInlineTool,
+  INLINE_FORM_ID,
   inlineOutcomeNotice,
   selectionFor,
 } from '@/view/inline-moderation'
-import { attachmentsByPost } from '@/view/attachments'
-import { attachmentsForPosts } from '@/server/attachments'
-import { avatarsFor } from '@/server/avatars'
-import { identitiesFor } from '@/server/group-identity'
-import { activeVocabulary, activeWordFilter } from '@/server/content-admin'
-import { getSettings } from '@/server/settings'
-import { buildBreadcrumb } from '@/view/breadcrumb'
+import { cardDescription, jsonLdScript, pageLinks, threadJsonLd } from '@/view/metadata'
+import { buildOffsetPager, offsetOf } from '@/view/pager'
 import { locatedHref } from '@/view/post-link'
 import { leadingId } from '@/view/slug-id'
-import {
-  buildThreadView,
-  revealedFrom,
-  threadToolsHeading,
-} from '@/view/thread-view'
-import {
-  cardDescription,
-  jsonLdScript,
-  pageLinks,
-  threadJsonLd,
-} from '@/view/metadata'
 import { buildSubscriptionsView } from '@/view/subscriptions'
-import { BOARD_MEASURE } from '@/components/shell/measure'
-import { buildOffsetPager, offsetOf } from '@/view/pager'
+import { buildThreadView, revealedFrom, threadToolsHeading } from '@/view/thread-view'
 
 export async function generateMetadata({
   params,
@@ -177,8 +165,7 @@ export default async function ThreadPage({
   const id = leadingId(slug)
   const after = afterId(query.after)
   const page = query.page === undefined ? 1 : Number(query.page)
-  if (id === null || after === null || !Number.isSafeInteger(page) || page < 1)
-    notFound()
+  if (id === null || after === null || !Number.isSafeInteger(page) || page < 1) notFound()
 
   const actor = await getActor()
   const {
@@ -212,11 +199,7 @@ export default async function ThreadPage({
     notFound()
 
   const scope = authorizer.contentScope(actor, appointment)
-  const thread = await threads.findById(
-    id,
-    scope,
-    authorizer.authorFilter(actor, appointment),
-  )
+  const thread = await threads.findById(id, scope, authorizer.authorFilter(actor, appointment))
   if (!thread) notFound()
 
   const preferences = await getViewerPreferences()
@@ -277,8 +260,7 @@ export default async function ThreadPage({
       authorizer.can(actor, 'post.editOthers', others) ||
       authorizer.can(actor, 'content.viewUnapproved', own),
     canReport: postWrites !== null && authorizer.can(actor, 'content.report'),
-    canWarn:
-      getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
+    canWarn: getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
     canRate:
       getContainer().reputation !== null &&
       authorizer.can(actor, 'reputation.give') &&
@@ -293,28 +275,17 @@ export default async function ThreadPage({
     : new Map()
 
   const movableInto =
-    threadTools === null
-      ? []
-      : await authorizer.moderatedForumIds(actor, 'canMoveThreads')
+    threadTools === null ? [] : await authorizer.moderatedForumIds(actor, 'canMoveThreads')
   const toolTarget = { ...appointment, threadAuthorId: located.authorUserId }
   const toolRights = {
-    lock:
-      threadTools !== null && authorizer.can(actor, 'thread.lock', toolTarget),
-    stick:
-      threadTools !== null && authorizer.can(actor, 'thread.stick', toolTarget),
-    move:
-      threadTools !== null && authorizer.can(actor, 'thread.move', toolTarget),
-    delete:
-      threadTools !== null &&
-      authorizer.can(actor, 'thread.delete', toolTarget),
+    lock: threadTools !== null && authorizer.can(actor, 'thread.lock', toolTarget),
+    stick: threadTools !== null && authorizer.can(actor, 'thread.stick', toolTarget),
+    move: threadTools !== null && authorizer.can(actor, 'thread.move', toolTarget),
+    delete: threadTools !== null && authorizer.can(actor, 'thread.delete', toolTarget),
   }
   const surgeryRights = {
-    merge:
-      threadSurgery !== null &&
-      authorizer.can(actor, 'thread.merge', toolTarget),
-    split:
-      threadSurgery !== null &&
-      authorizer.can(actor, 'thread.split', toolTarget),
+    merge: threadSurgery !== null && authorizer.can(actor, 'thread.merge', toolTarget),
+    split: threadSurgery !== null && authorizer.can(actor, 'thread.split', toolTarget),
   }
   const splitPoints = !surgeryRights.split
     ? []
@@ -328,43 +299,26 @@ export default async function ThreadPage({
   const moveTargets = !toolRights.move
     ? []
     : (await forums.listListing())
-        .filter(
-          (row) =>
-            acceptsThreads(row) &&
-            row.id !== forum.id &&
-            movableInto.includes(row.id),
-        )
+        .filter((row) => acceptsThreads(row) && row.id !== forum.id && movableInto.includes(row.id))
         .map((row) => ({ id: row.id, title: row.title }))
 
   const inlineRights = {
-    approve:
-      inlineModeration !== null &&
-      authorizer.can(actor, 'content.approve', toolTarget),
+    approve: inlineModeration !== null && authorizer.can(actor, 'content.approve', toolTarget),
     lock: false,
     stick: false,
     move: false,
-    delete:
-      inlineModeration !== null &&
-      authorizer.can(actor, 'post.softDelete', toolTarget),
-    restore:
-      inlineModeration !== null &&
-      authorizer.can(actor, 'post.restore', toolTarget),
+    delete: inlineModeration !== null && authorizer.can(actor, 'post.softDelete', toolTarget),
+    restore: inlineModeration !== null && authorizer.can(actor, 'post.restore', toolTarget),
   }
   const inlineOffered = anyInlineTool(inlineRights) || surgeryRights.split
 
   const authorIds = [
     ...new Set(
-      postPage.rows
-        .map((row) => row.authorUserId)
-        .filter((id): id is number => id !== null),
+      postPage.rows.map((row) => row.authorUserId).filter((id): id is number => id !== null),
     ),
   ]
   const authorFields = new Map(
-    await Promise.all(
-      authorIds.map(
-        async (id) => [id, await postbitProfileFields(id)] as const,
-      ),
-    ),
+    await Promise.all(authorIds.map(async (id) => [id, await postbitProfileFields(id)] as const)),
   )
 
   const ignoredIds = await viewerIgnoredIds()
@@ -444,8 +398,7 @@ export default async function ThreadPage({
   const opening = postPage.rows.find((row) => row.isFirstPost) ?? null
   const jsonLd =
     opening === null
-      ?
-        null
+      ? null
       : threadJsonLd({
           title: thread.title,
           url: `/thread/${thread.id}-${thread.slug}`,
@@ -478,12 +431,7 @@ export default async function ThreadPage({
         'view.post-bit',
         {
           post,
-          select: selectionFor(
-            'post',
-            post.id,
-            `post #${post.number}`,
-            inlineOffered,
-          ),
+          select: selectionFor('post', post.id, `post #${post.number}`, inlineOffered),
           regions: {
             actions: (
               <PostActions {...actions}>
@@ -500,9 +448,7 @@ export default async function ThreadPage({
                     count={thanks.get(post.id)?.count ?? 0}
                   />
                 ) : null}
-                {post.actions.quoteHref === null ? null : (
-                  <MultiQuoteButton postId={post.id} />
-                )}
+                {post.actions.quoteHref === null ? null : <MultiQuoteButton postId={post.id} />}
               </PostActions>
             ),
             pluginBadges: await pluginRegion('postbit.badges', {
@@ -522,30 +468,21 @@ export default async function ThreadPage({
     }),
   )
 
-  const pagination = await filterView(
-    'view.pagination',
-    view.pagination,
-    viewerRef(actor),
-  )
+  const pagination = await filterView('view.pagination', view.pagination, viewerRef(actor))
   const poll = polls === null ? null : await polls.find(thread.id, actor.userId)
   const canVotePoll =
     polls !== null &&
     actor.userId !== null &&
     authorizer.can(actor, 'poll.vote', { forumId: forum.id, forum: matrix })
-  const ratingsEnabled = (await getSettings()).get(
-    'posting.thread_ratings_enabled',
-  )
-  const rating =
-    polls === null ? null : await polls.findRating(thread.id, actor.userId)
+  const ratingsEnabled = (await getSettings()).get('posting.thread_ratings_enabled')
+  const rating = polls === null ? null : await polls.findRating(thread.id, actor.userId)
   const canRateThread =
     ratingsEnabled &&
     polls !== null &&
     actor.userId !== null &&
     authorizer.can(actor, 'thread.rate', { forumId: forum.id, forum: matrix })
   const replyRules =
-    threadWrites === null || !canReply
-      ? null
-      : await threadWrites.postingRules(forum.id)
+    threadWrites === null || !canReply ? null : await threadWrites.postingRules(forum.id)
   const replyTarget = {
     forumId: forum.id,
     forum: matrix,
@@ -561,7 +498,11 @@ export default async function ThreadPage({
         prefill=""
         canSubscribe={authorizer.can(actor, 'forum.subscribe', replyTarget)}
         attachmentLimits={canAttach(actor, replyTarget) ? attachmentLimits(replyTarget) : null}
-        draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, forum.id, thread.id)}
+        draft={
+          actor.userId === null || drafts === null
+            ? null
+            : await drafts.find(actor.userId, forum.id, thread.id)
+        }
         collapsible
       />
     </>
@@ -593,9 +534,7 @@ export default async function ThreadPage({
             />
           </ThreadToolsForm>
         )}
-        {poll !== null && (
-          <PollForm poll={poll} threadId={thread.id} canVote={canVotePoll} />
-        )}
+        {poll !== null && <PollForm poll={poll} threadId={thread.id} canVote={canVotePoll} />}
       </>
     )
 
@@ -604,11 +543,7 @@ export default async function ThreadPage({
     !showRating && !followOffered ? undefined : (
       <>
         {showRating && (
-          <ThreadRatingForm
-            threadId={thread.id}
-            rating={rating}
-            canRate={canRateThread}
-          />
+          <ThreadRatingForm threadId={thread.id} rating={rating} canRate={canRateThread} />
         )}
         {followOffered && (
           <FollowForm
@@ -629,9 +564,7 @@ export default async function ThreadPage({
       ...view.view,
       regions: {
         ...(tools === undefined ? {} : { tools }),
-        posts: postModels.map((model) => (
-          <PostBit key={model.post.id} {...model} />
-        )),
+        posts: postModels.map((model) => <PostBit key={model.post.id} {...model} />),
         pagination: <Pagination {...pagination} />,
         ...(afterContent === undefined ? {} : { afterContent }),
         quickReply,
@@ -656,33 +589,33 @@ export default async function ThreadPage({
     <>
       <Navigation items={trail} />
       <main id="board-content" tabIndex={-1} className="flex-1">
-      {jsonLd !== null && (
-        <script
-          type="application/ld+json"
-          nonce={await cspNonce()}
-          dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
-        />
-      )}
-      {notice !== null && (
-        <div className={`${BOARD_MEASURE} pt-6`}>
-          <Notice
-            kind="info"
-            message={notice}
-            dismissHref={`/thread/${thread.id}-${thread.slug}`}
+        {jsonLd !== null && (
+          <script
+            type="application/ld+json"
+            nonce={await cspNonce()}
+            dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
           />
-        </div>
-      )}
-      <ThreadView {...threadViewModel} />
-      {inlineOffered && (
-        <InlineModerationForm
-          formId={INLINE_FORM_ID}
-          scope="posts"
-          rights={inlineRights}
-          moveTargets={[]}
-          returnTo={`/thread/${thread.id}-${thread.slug}`}
-          splitFrom={surgeryRights.split ? thread.id : null}
-        />
-      )}
+        )}
+        {notice !== null && (
+          <div className={`${BOARD_MEASURE} pt-6`}>
+            <Notice
+              kind="info"
+              message={notice}
+              dismissHref={`/thread/${thread.id}-${thread.slug}`}
+            />
+          </div>
+        )}
+        <ThreadView {...threadViewModel} />
+        {inlineOffered && (
+          <InlineModerationForm
+            formId={INLINE_FORM_ID}
+            scope="posts"
+            rights={inlineRights}
+            moveTargets={[]}
+            returnTo={`/thread/${thread.id}-${thread.slug}`}
+            splitFrom={surgeryRights.split ? thread.id : null}
+          />
+        )}
       </main>
     </>
   )

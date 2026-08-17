@@ -66,14 +66,14 @@ describe('the transport options', () => {
 
   it('omits auth entirely for an unauthenticated relay', () => {
     const options = transportOptions({ ...CONFIG, username: '', password: '' })
-    expect(options['auth']).toBeUndefined()
+    expect(options.auth).toBeUndefined()
   })
 
   it('bounds every stage of the conversation', () => {
     const options = transportOptions(CONFIG)
-    expect(options['connectionTimeout']).toBeGreaterThan(0)
-    expect(options['greetingTimeout']).toBeGreaterThan(0)
-    expect(options['socketTimeout']).toBeGreaterThan(0)
+    expect(options.connectionTimeout).toBeGreaterThan(0)
+    expect(options.greetingTimeout).toBeGreaterThan(0)
+    expect(options.socketTimeout).toBeGreaterThan(0)
   })
 })
 
@@ -129,13 +129,9 @@ describe('which failures are worth retrying', () => {
   })
 
   it('leaves a 4xx to the queue, because greylisting means "ask again"', async () => {
-    sendMail.mockRejectedValue(
-      Object.assign(new Error('Try again later'), { responseCode: 451 }),
-    )
+    sendMail.mockRejectedValue(Object.assign(new Error('Try again later'), { responseCode: 451 }))
 
-    const error = await new SmtpMailDriver(CONFIG)
-      .send(MESSAGE)
-      .catch((e: unknown) => e)
+    const error = await new SmtpMailDriver(CONFIG).send(MESSAGE).catch((e: unknown) => e)
 
     expect(error).toBeInstanceOf(Error)
     expect(error).not.toBeInstanceOf(ConfigurationError)
@@ -146,9 +142,7 @@ describe('which failures are worth retrying', () => {
       Object.assign(new Error('Greeting never received'), { code: 'ETIMEDOUT' }),
     )
 
-    const error = await new SmtpMailDriver(CONFIG)
-      .send(MESSAGE)
-      .catch((e: unknown) => e)
+    const error = await new SmtpMailDriver(CONFIG).send(MESSAGE).catch((e: unknown) => e)
 
     expect(error).not.toBeInstanceOf(ConfigurationError)
   })
@@ -160,9 +154,7 @@ describe('which failures are worth retrying', () => {
       }),
     )
 
-    await expect(new SmtpMailDriver(CONFIG).send(MESSAGE)).rejects.toThrow(
-      /is not verified/,
-    )
+    await expect(new SmtpMailDriver(CONFIG).send(MESSAGE)).rejects.toThrow(/is not verified/)
   })
 
   it('does not put the password in the error it hands upwards', async () => {
@@ -172,9 +164,7 @@ describe('which failures are worth retrying', () => {
       }),
     )
 
-    const error = (await new SmtpMailDriver(CONFIG)
-      .send(MESSAGE)
-      .catch((e: unknown) => e)) as Error
+    const error = (await new SmtpMailDriver(CONFIG).send(MESSAGE).catch((e: unknown) => e)) as Error
 
     expect(error.message).not.toContain('hunter2hunter2')
   })

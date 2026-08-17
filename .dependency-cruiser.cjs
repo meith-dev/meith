@@ -30,8 +30,7 @@ module.exports = {
     {
       name: 'no-circular',
       severity: 'error',
-      comment:
-        'Circular imports make initialisation order undefined and break tree-shaking.',
+      comment: 'Circular imports make initialisation order undefined and break tree-shaking.',
       from: {},
       to: { circular: true },
     },
@@ -107,17 +106,13 @@ module.exports = {
         'imports a sibling the dependency graph has no floor.',
       from: { path: '^packages/core/' },
       to: {
-        path: [
-          '^packages/(?!core/)',
-          '(^|/)node_modules/@meith/(?!core(/|$))',
-        ],
+        path: ['^packages/(?!core/)', '(^|/)node_modules/@meith/(?!core(/|$))'],
       },
     },
     {
       name: 'no-app-internals-from-packages',
       severity: 'error',
-      comment:
-        'Packages must not reach back up into apps/. Dependencies point one way.',
+      comment: 'Packages must not reach back up into apps/. Dependencies point one way.',
       from: { path: '^packages/' },
       to: { path: '^apps/' },
     },
@@ -153,8 +148,7 @@ module.exports = {
     {
       name: 'ui-is-presentation-only',
       severity: 'error',
-      comment:
-        '@meith/ui is dumb components. Data fetching lives in the app layer.',
+      comment: '@meith/ui is dumb components. Data fetching lives in the app layer.',
       from: { path: '^packages/ui/' },
       to: {
         path: [

@@ -1,4 +1,4 @@
-import type { Shot } from "../content/site"
+import type { Shot } from '../content/site'
 
 export function Screenshot({
   shot,
@@ -12,10 +12,10 @@ export function Screenshot({
   return (
     <img
       alt={shot.alt}
-      className={className === undefined ? "shot" : `shot ${className}`}
-      decoding={priority ? "sync" : "async"}
+      className={className === undefined ? 'shot' : `shot ${className}`}
+      decoding={priority ? 'sync' : 'async'}
       height={shot.height}
-      loading={priority ? "eager" : "lazy"}
+      loading={priority ? 'eager' : 'lazy'}
       src={shot.file}
       width={shot.width}
     />
@@ -33,7 +33,7 @@ export function SchemeScreenshot({
   className?: string
   priority?: boolean
 }) {
-  const shared = className === undefined ? "" : ` ${className}`
+  const shared = className === undefined ? '' : ` ${className}`
 
   return (
     <>

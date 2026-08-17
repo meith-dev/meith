@@ -41,7 +41,8 @@ export const START_THREADS: readonly DemoThread[] = [
       {
         author: 'gerry',
         hoursAfter: 51,
-        message: 'Well I can find last year\'s AGM minutes in about four seconds now, which is four seconds faster than ever before.',
+        message:
+          "Well I can find last year's AGM minutes in about four seconds now, which is four seconds faster than ever before.",
       },
     ],
   },
@@ -76,18 +77,27 @@ export const START_THREADS: readonly DemoThread[] = [
       'If you cannot get an account working, ring me and I will do it for you at the clubhouse on Thursday.',
     ].join('\n'),
     replies: [
-      { author: 'bernie', hoursAfter: 3, message: 'Thank you. The double-fixture weekend nearly finished me.' },
+      {
+        author: 'bernie',
+        hoursAfter: 3,
+        message: 'Thank you. The double-fixture weekend nearly finished me.',
+      },
       {
         author: 'marty',
         hoursAfter: 9,
         message:
           'For the seconds: team sheet goes in Events from now on, Thursday evening, same as always. If you are not on it you are not dropped, you are one of the fourteen people who did not tick available.',
       },
-      { author: 'frank', hoursAfter: 20, message: 'Sad day for the chat. Great day for anyone who ever tried to scroll it.' },
+      {
+        author: 'frank',
+        hoursAfter: 20,
+        message: 'Sad day for the chat. Great day for anyone who ever tried to scroll it.',
+      },
       {
         author: 'admin',
         hoursAfter: 33,
-        message: 'Eleven people set up accounts at the clubhouse last night, including two who told me first that they would not be able to. Keep sending them my way.',
+        message:
+          'Eleven people set up accounts at the clubhouse last night, including two who told me first that they would not be able to. Keep sending them my way.',
       },
     ],
   },
@@ -105,16 +115,36 @@ export const START_THREADS: readonly DemoThread[] = [
       'If you would rather hand me cash on a Thursday, that still works and always will. But I would love not to be counting notes in the kitchen in February again.',
     ].join('\n'),
     replies: [
-      { author: 'frank', hoursAfter: 1, message: 'Paid. Took about ninety seconds, most of which was me finding my card.' },
-      { author: 'bernie', hoursAfter: 3, message: 'Family rate is a great shout for anyone with more than one playing. Three of mine came to less than two would have last year.' },
+      {
+        author: 'frank',
+        hoursAfter: 1,
+        message: 'Paid. Took about ninety seconds, most of which was me finding my card.',
+      },
+      {
+        author: 'bernie',
+        hoursAfter: 3,
+        message:
+          'Family rate is a great shout for anyone with more than one playing. Three of mine came to less than two would have last year.',
+      },
       {
         author: 'paudie',
         hoursAfter: 7,
-        message: 'Does the social membership still get you into the AGM with a vote? Asking for a man who intends to vote.',
+        message:
+          'Does the social membership still get you into the AGM with a vote? Asking for a man who intends to vote.',
       },
       { author: 'noelle', hoursAfter: 8, quotes: 3, message: 'It does. Same as it always did.' },
-      { author: 'una', hoursAfter: 26, message: 'Paid for me and dragged two of the ladies firsts into paying while I had them in the car. Consider that a fundraising technique.' },
-      { author: 'luca', hoursAfter: 44, message: 'Paid. First time I have ever renewed anything without having to ask someone what the number was.' },
+      {
+        author: 'una',
+        hoursAfter: 26,
+        message:
+          'Paid for me and dragged two of the ladies firsts into paying while I had them in the car. Consider that a fundraising technique.',
+      },
+      {
+        author: 'luca',
+        hoursAfter: 44,
+        message:
+          'Paid. First time I have ever renewed anything without having to ask someone what the number was.',
+      },
     ],
   },
   {
@@ -131,17 +161,42 @@ export const START_THREADS: readonly DemoThread[] = [
       'I know. I hate it too. Playing on it now costs us three weeks in March.',
     ].join('\n'),
     replies: [
-      { author: 'marty', hoursAfter: 1, message: 'Right, seconds — nothing to do, no travel, I will post the rearranged date once the league office answer.' },
-      { author: 'mairead', hoursAfter: 2, message: 'U14 parents: no blitz, no lifts needed, I have messaged the other clubs. Enjoy the lie-in.' },
-      { author: 'olu', hoursAfter: 4, message: 'Five-a-side lads, I have got us the sports hall for Thursday instead. Sign-up thread is up in Events.' },
-      { author: 'deco', hoursAfter: 6, message: 'Third weekend off in six. My gloves are dry for the first time since October and I do not like it.' },
+      {
+        author: 'marty',
+        hoursAfter: 1,
+        message:
+          'Right, seconds — nothing to do, no travel, I will post the rearranged date once the league office answer.',
+      },
+      {
+        author: 'mairead',
+        hoursAfter: 2,
+        message:
+          'U14 parents: no blitz, no lifts needed, I have messaged the other clubs. Enjoy the lie-in.',
+      },
+      {
+        author: 'olu',
+        hoursAfter: 4,
+        message:
+          'Five-a-side lads, I have got us the sports hall for Thursday instead. Sign-up thread is up in Events.',
+      },
+      {
+        author: 'deco',
+        hoursAfter: 6,
+        message:
+          'Third weekend off in six. My gloves are dry for the first time since October and I do not like it.',
+      },
       {
         author: 'gerry',
         hoursAfter: 9,
         quotes: 4,
         message: 'Dry gloves are how you get to April with a pitch. I will take the abuse.',
       },
-      { author: 'siobhan', hoursAfter: 28, message: 'For what it is worth, the drainage quote is on the AGM agenda. This is the third closure this season and it is costing us more than the work would.' },
+      {
+        author: 'siobhan',
+        hoursAfter: 28,
+        message:
+          'For what it is worth, the drainage quote is on the AGM agenda. This is the third closure this season and it is costing us more than the work would.',
+      },
     ],
   },
   {
@@ -154,8 +209,14 @@ export const START_THREADS: readonly DemoThread[] = [
       question: 'Which night suits you for the AGM?',
       options: [
         { label: 'Tuesday the 14th', voters: ['paudie', 'gerry', 'noelle', 'marty', 'una'] },
-        { label: 'Thursday the 16th', voters: ['bernie', 'mairead', 'frank', 'tomas', 'zoe', 'donal', 'hana', 'jt'] },
-        { label: 'Sunday the 19th, after the game', voters: ['deco', 'oisin', 'shay', 'luca', 'cormac'] },
+        {
+          label: 'Thursday the 16th',
+          voters: ['bernie', 'mairead', 'frank', 'tomas', 'zoe', 'donal', 'hana', 'jt'],
+        },
+        {
+          label: 'Sunday the 19th, after the game',
+          voters: ['deco', 'oisin', 'shay', 'luca', 'cormac'],
+        },
         { label: 'I will read the minutes', voters: ['ken', 'sam', 'petra', 'dev', 'member'] },
       ],
       closesInDays: 4,
@@ -175,21 +236,41 @@ export const START_THREADS: readonly DemoThread[] = [
       'If either of those is a thing you might do, talk to me before the night rather than on it.',
     ].join('\n'),
     replies: [
-      { author: 'noelle', hoursAfter: 2, message: 'To be clear: I am not going anywhere, I am handing over the books. I will sit with whoever takes it for as long as they want me to.' },
+      {
+        author: 'noelle',
+        hoursAfter: 2,
+        message:
+          'To be clear: I am not going anywhere, I am handing over the books. I will sit with whoever takes it for as long as they want me to.',
+      },
       {
         author: 'vex',
         hoursAfter: 5,
         message:
           'On the gaming side — happy to come and answer anything. Fifty-odd of us now, about a dozen who have never been to the clubhouse because they live three timezones away, and we pay the same subs. Whatever shape the constitution wants us in, we will fit it.',
       },
-      { author: 'frank', hoursAfter: 8, message: 'Motion to hold it on the Thursday so I can go straight to the quiz afterwards.' },
-      { author: 'mairead', hoursAfter: 11, message: 'I will do welfare if nobody else steps up, but I am already juvenile secretary and I would be doing both badly. Somebody please.' },
+      {
+        author: 'frank',
+        hoursAfter: 8,
+        message: 'Motion to hold it on the Thursday so I can go straight to the quiz afterwards.',
+      },
+      {
+        author: 'mairead',
+        hoursAfter: 11,
+        message:
+          'I will do welfare if nobody else steps up, but I am already juvenile secretary and I would be doing both badly. Somebody please.',
+      },
       {
         author: 'bernie',
         hoursAfter: 30,
-        message: 'Ring me about the welfare one. I have the vetting from the school already and it would not be a big lift.',
+        message:
+          'Ring me about the welfare one. I have the vetting from the school already and it would not be a big lift.',
       },
-      { author: 'siobhan', hoursAfter: 31, quotes: 5, message: 'Ringing you tonight before you change your mind.' },
+      {
+        author: 'siobhan',
+        hoursAfter: 31,
+        quotes: 5,
+        message: 'Ringing you tonight before you change your mind.',
+      },
     ],
   },
   {
@@ -204,7 +285,12 @@ export const START_THREADS: readonly DemoThread[] = [
       'The gym is open the whole way through on the fob. If yours has stopped working it is the battery on the reader, not you — ring the clubhouse and somebody will let you in.',
     ].join('\n'),
     replies: [
-      { author: 'shay', hoursAfter: 14, message: 'Fob has been dead for a fortnight and I assumed I had been thrown out for something.' },
+      {
+        author: 'shay',
+        hoursAfter: 14,
+        message:
+          'Fob has been dead for a fortnight and I assumed I had been thrown out for something.',
+      },
       { author: 'gerry', hoursAfter: 20, message: 'Battery is changed. Try it tonight.' },
     ],
   },
@@ -222,9 +308,23 @@ export const START_THREADS: readonly DemoThread[] = [
       'Tomás has the size chart and the order form. Anything already paid for is honoured at the old price.',
     ].join('\n'),
     replies: [
-      { author: 'tomas', hoursAfter: 5, message: 'Order form is up in Membership and subs. Deadline is the end of the month, and I mean it this year.' },
-      { author: 'zoe', hoursAfter: 9, message: 'Eleven weeks. The U10s played half a season in bibs and thought it was brilliant, to be fair to them.' },
-      { author: 'bernie', hoursAfter: 27, message: '€4 to have a jersey before Christmas is the cheapest thing on the agenda.' },
+      {
+        author: 'tomas',
+        hoursAfter: 5,
+        message:
+          'Order form is up in Membership and subs. Deadline is the end of the month, and I mean it this year.',
+      },
+      {
+        author: 'zoe',
+        hoursAfter: 9,
+        message:
+          'Eleven weeks. The U10s played half a season in bibs and thought it was brilliant, to be fair to them.',
+      },
+      {
+        author: 'bernie',
+        hoursAfter: 27,
+        message: '€4 to have a jersey before Christmas is the cheapest thing on the agenda.',
+      },
     ],
   },
 
@@ -241,15 +341,29 @@ export const START_THREADS: readonly DemoThread[] = [
       'The answer, if it helps anyone: minutes, yes. Photos, yes. Every "hall booked Tuesday" from 2016, no.',
     ].join('\n'),
     replies: [
-      { author: 'admin', hoursAfter: 6, message: 'Welcome, and thank you — the AGM minutes going back that far have already settled two arguments.' },
-      { author: 'ken', hoursAfter: 11, message: 'Did the old links keep working? Half the parish has the hall page bookmarked.' },
+      {
+        author: 'admin',
+        hoursAfter: 6,
+        message:
+          'Welcome, and thank you — the AGM minutes going back that far have already settled two arguments.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 11,
+        message: 'Did the old links keep working? Half the parish has the hall page bookmarked.',
+      },
       {
         author: 'rosa',
         hoursAfter: 15,
         quotes: 2,
-        message: 'They do. The old addresses redirect here, which mattered more than I expected — the school newsletter has linked the hall page every September since 2014.',
+        message:
+          'They do. The old addresses redirect here, which mattered more than I expected — the school newsletter has linked the hall page every September since 2014.',
       },
-      { author: 'mira', hoursAfter: 40, message: 'She is underselling this. It was three weekends and she did it on her own.' },
+      {
+        author: 'mira',
+        hoursAfter: 40,
+        message: 'She is underselling this. It was three weekends and she did it on her own.',
+      },
     ],
   },
   {
@@ -263,10 +377,28 @@ export const START_THREADS: readonly DemoThread[] = [
       'Four months later I have played eleven games, been to two quizzes and I am on the lifts rota. Highly recommend believing signs.',
     ].join('\n'),
     replies: [
-      { author: 'marty', hoursAfter: 2, message: 'Best signing of the season and he found us himself.' },
-      { author: 'frank', hoursAfter: 5, message: 'Welcome. Fair warning: being on the lifts rota is a life sentence.' },
-      { author: 'hana', hoursAfter: 9, message: 'If you know anyone else new to the area, send them. That is genuinely how half this club works.' },
-      { author: 'luca', hoursAfter: 31, message: 'Two of the lads from my job are coming Tuesday. One of them says he is a goalkeeper, which I think means he is not.' },
+      {
+        author: 'marty',
+        hoursAfter: 2,
+        message: 'Best signing of the season and he found us himself.',
+      },
+      {
+        author: 'frank',
+        hoursAfter: 5,
+        message: 'Welcome. Fair warning: being on the lifts rota is a life sentence.',
+      },
+      {
+        author: 'hana',
+        hoursAfter: 9,
+        message:
+          'If you know anyone else new to the area, send them. That is genuinely how half this club works.',
+      },
+      {
+        author: 'luca',
+        hoursAfter: 31,
+        message:
+          'Two of the lads from my job are coming Tuesday. One of them says he is a goalkeeper, which I think means he is not.',
+      },
       { author: 'deco', hoursAfter: 34, quotes: 4, message: 'Tell him the job is taken.' },
     ],
   },
@@ -281,9 +413,23 @@ export const START_THREADS: readonly DemoThread[] = [
       'I am mostly here to know what time things start, which I appreciate is not a glamorous reason to join a forum.',
     ].join('\n'),
     replies: [
-      { author: 'mairead', hoursAfter: 4, message: 'That is exactly the reason to join it. Subscribe to the juvenile threads and it will email you when a time changes.' },
-      { author: 'bernie', hoursAfter: 30, message: 'Done, and it has already saved me a wasted trip to a pitch in Ballyquin. Sold.' },
-      { author: 'siobhan', hoursAfter: 52, message: 'Bernie has since driven roughly a third of the juvenile section to a match at some point. Give her a badge.' },
+      {
+        author: 'mairead',
+        hoursAfter: 4,
+        message:
+          'That is exactly the reason to join it. Subscribe to the juvenile threads and it will email you when a time changes.',
+      },
+      {
+        author: 'bernie',
+        hoursAfter: 30,
+        message: 'Done, and it has already saved me a wasted trip to a pitch in Ballyquin. Sold.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 52,
+        message:
+          'Bernie has since driven roughly a third of the juvenile section to a match at some point. Give her a badge.',
+      },
     ],
   },
   {
@@ -297,10 +443,30 @@ export const START_THREADS: readonly DemoThread[] = [
       'Have not been to the clubhouse. Have strong opinions about the clubhouse based on photographs.',
     ].join('\n'),
     replies: [
-      { author: 'vex', hoursAfter: 3, message: 'Welcome. Roster is in Events, sign up by Monday night and Tinker will shout at you if you no-show twice.' },
-      { author: 'tinker', hoursAfter: 4, message: 'I will shout at you once. The second time I just take you off the roster, which is worse.' },
-      { author: 'pixel', hoursAfter: 7, message: 'The clubhouse is exactly as good as it looks and the tea is worse. You would love it.' },
-      { author: 'rook', hoursAfter: 29, message: 'This is the friendliest place I have joined in years and I say that having joined a lot of them.' },
+      {
+        author: 'vex',
+        hoursAfter: 3,
+        message:
+          'Welcome. Roster is in Events, sign up by Monday night and Tinker will shout at you if you no-show twice.',
+      },
+      {
+        author: 'tinker',
+        hoursAfter: 4,
+        message:
+          'I will shout at you once. The second time I just take you off the roster, which is worse.',
+      },
+      {
+        author: 'pixel',
+        hoursAfter: 7,
+        message:
+          'The clubhouse is exactly as good as it looks and the tea is worse. You would love it.',
+      },
+      {
+        author: 'rook',
+        hoursAfter: 29,
+        message:
+          'This is the friendliest place I have joined in years and I say that having joined a lot of them.',
+      },
     ],
   },
   {
@@ -314,10 +480,19 @@ export const START_THREADS: readonly DemoThread[] = [
       'Knew four people. One of them is now the manager, which is very strange.',
     ].join('\n'),
     replies: [
-      { author: 'hana', hoursAfter: 1, message: 'Welcome home. You are centre half, I have decided.' },
+      {
+        author: 'hana',
+        hoursAfter: 1,
+        message: 'Welcome home. You are centre half, I have decided.',
+      },
       { author: 'una', hoursAfter: 2, quotes: 1, message: 'I was a winger.' },
       { author: 'hana', hoursAfter: 3, message: 'You were.' },
-      { author: 'siobhan', hoursAfter: 22, message: 'This happens more than people expect. If you played here as a teenager, come back. Nobody will make you run the line.' },
+      {
+        author: 'siobhan',
+        hoursAfter: 22,
+        message:
+          'This happens more than people expect. If you played here as a teenager, come back. Nobody will make you run the line.',
+      },
     ],
   },
   {
@@ -331,8 +506,18 @@ export const START_THREADS: readonly DemoThread[] = [
       'Rule I follow: nobody is on the stream who has not said they are fine with it, and I cut anything that gets said in the heat of a wipe. If you would rather not be in it at all, say so and you never will be.',
     ].join('\n'),
     replies: [
-      { author: 'tinker', hoursAfter: 5, message: 'Appreciated, and that rule is now in the guild post. Anyone can opt out any week without giving a reason.' },
-      { author: 'sunny', hoursAfter: 8, message: 'I am fine with being on it and would like it noted that the wipe on Tuesday was not my fault.' },
+      {
+        author: 'tinker',
+        hoursAfter: 5,
+        message:
+          'Appreciated, and that rule is now in the guild post. Anyone can opt out any week without giving a reason.',
+      },
+      {
+        author: 'sunny',
+        hoursAfter: 8,
+        message:
+          'I am fine with being on it and would like it noted that the wipe on Tuesday was not my fault.',
+      },
       { author: 'wraith', hoursAfter: 14, message: 'It was.' },
       { author: 'mango', hoursAfter: 20, message: 'It was.' },
     ],
@@ -345,7 +530,7 @@ export const START_THREADS: readonly DemoThread[] = [
     message: [
       'Searched for the Thursday five-a-side, ended up here, made an account. Have not actually played yet.',
       '',
-      'Is it competitive? I have not kicked a ball since school and I do not want to ruin anyone\'s evening.',
+      "Is it competitive? I have not kicked a ball since school and I do not want to ruin anyone's evening.",
     ].join('\n'),
     replies: [
       {
@@ -355,8 +540,18 @@ export const START_THREADS: readonly DemoThread[] = [
           'It is not. Two of the regulars are over sixty, one plays in goal because of a knee, and we have a rule that nobody keeps score after twenty minutes because we all lose track anyway. Come Thursday, €3, bring water.',
       },
       { author: 'aoife', hoursAfter: 27, message: 'Played. Was terrible. Going back next week.' },
-      { author: 'olu', hoursAfter: 30, message: 'That is the whole review of the Thursday five-a-side and I could not have put it better.' },
-      { author: 'frank', hoursAfter: 51, message: 'Welcome. I am one of the over-sixties and I would like it on the record that I scored.' },
+      {
+        author: 'olu',
+        hoursAfter: 30,
+        message:
+          'That is the whole review of the Thursday five-a-side and I could not have put it better.',
+      },
+      {
+        author: 'frank',
+        hoursAfter: 51,
+        message:
+          'Welcome. I am one of the over-sixties and I would like it on the record that I scored.',
+      },
     ],
   },
   {
@@ -382,8 +577,18 @@ export const START_THREADS: readonly DemoThread[] = [
         message:
           'Second that, and one practical thing: do not migrate the chat. Leave it running and start the board for the things worth keeping — race entries, results, minutes. The chat gets quieter on its own.',
       },
-      { author: 'siobhan', hoursAfter: 14, message: 'Come to the quiz on the 14th and I will talk your ear off about it. We made every mistake available.' },
-      { author: 'newcomer', hoursAfter: 22, message: 'That is more useful than what I asked. Thank you — I will take you up on the quiz.' },
+      {
+        author: 'siobhan',
+        hoursAfter: 14,
+        message:
+          'Come to the quiz on the 14th and I will talk your ear off about it. We made every mistake available.',
+      },
+      {
+        author: 'newcomer',
+        hoursAfter: 22,
+        message:
+          'That is more useful than what I asked. Thank you — I will take you up on the quiz.',
+      },
     ],
   },
 ]

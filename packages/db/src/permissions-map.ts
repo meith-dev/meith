@@ -1,8 +1,8 @@
 import {
-  FORUM_PERMISSION_FIELDS,
-  PERMISSION_FIELDS,
   emptyPermissionSet,
+  FORUM_PERMISSION_FIELDS,
   type ForumPermissions,
+  PERMISSION_FIELDS,
   type PermissionField,
   type PermissionSet,
 } from '@meith/core'

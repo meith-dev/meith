@@ -1,17 +1,17 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { removeRelationAction, setRelationAction } from "@/server/relation-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { removeRelationAction, setRelationAction } from '@/server/relation-actions'
 
-import { FormError } from "../auth/form-controls"
+import { FormError } from '../auth/form-controls'
 
 const LINK_BUTTON =
-  "text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 const QUIET_BUTTON =
-  "text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export function SetRelationForm({
   userId,
@@ -22,7 +22,7 @@ export function SetRelationForm({
 }: {
   userId: number
   username: string
-  kind: "buddy" | "ignore"
+  kind: 'buddy' | 'ignore'
   returnTo: string
   label: string
 }) {
@@ -35,7 +35,7 @@ export function SetRelationForm({
       <input type="hidden" name="username" value={username} />
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="returnTo" value={returnTo} />
-      <button type="submit" className={kind === "buddy" ? LINK_BUTTON : QUIET_BUTTON}>
+      <button type="submit" className={kind === 'buddy' ? LINK_BUTTON : QUIET_BUTTON}>
         {label}
       </button>
     </form>
@@ -46,7 +46,7 @@ export function RemoveRelationForm({
   userId,
   username,
   returnTo,
-  label = "Remove",
+  label = 'Remove',
 }: {
   userId: number
   username: string

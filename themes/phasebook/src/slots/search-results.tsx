@@ -21,8 +21,8 @@ export function SearchResults({
             Results for &ldquo;{terms}&rdquo;
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Searched <Stamp at={searchedAt} />. Results are checked against your access
-            every time this page is opened, so they can change.
+            Searched <Stamp at={searchedAt} />. Results are checked against your access every time
+            this page is opened, so they can change.
           </p>
         </header>
 
@@ -30,8 +30,7 @@ export function SearchResults({
 
         {hits.length === 0 ? (
           <p className="rounded-lg border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground shadow-elevation">
-            Nothing matched — or nothing you can see does. Try fewer words, or a different
-            spelling.
+            Nothing matched — or nothing you can see does. Try fewer words, or a different spelling.
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -63,11 +62,7 @@ export function SearchResults({
           ))}
 
         <section className="rounded-lg border border-border bg-card shadow-elevation">
-          <form
-            method="get"
-            action={within.action}
-            className="flex flex-col gap-3 px-4 py-4"
-          >
+          <form method="get" action={within.action} className="flex flex-col gap-3 px-4 py-4">
             {(within.hidden ?? []).map((field) => (
               <input
                 key={`${field.name}-${field.value}`}

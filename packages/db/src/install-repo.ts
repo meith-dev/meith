@@ -4,7 +4,9 @@ import type { Database } from './client'
 
 export async function isInstalled(db: Database): Promise<boolean> {
   try {
-    const rows = (await db.execute(sql`select 1 from install_state where id = 1`)) as unknown as unknown[]
+    const rows = (await db.execute(
+      sql`select 1 from install_state where id = 1`,
+    )) as unknown as unknown[]
     return rows.length > 0
   } catch {
     return false

@@ -1,8 +1,4 @@
-import {
-  AUTOMATIC_TIMEZONE,
-  type MemberGroupChoice,
-  type MemberSettings,
-} from '@meith/accounts'
+import { AUTOMATIC_TIMEZONE, type MemberGroupChoice, type MemberSettings } from '@meith/accounts'
 import { maxLengthFor, type ResolvedProfileField } from '@meith/profile-fields'
 
 export interface TimezoneChoice {
@@ -112,9 +108,7 @@ export function optionsFormValues(settings: MemberSettings): {
   }
 }
 
-export function customFieldInputs(
-  resolved: readonly ResolvedProfileField[],
-): readonly {
+export function customFieldInputs(resolved: readonly ResolvedProfileField[]): readonly {
   key: string
   label: string
   description: string | null
@@ -146,8 +140,7 @@ export function userCpNotice(query: {
   if (query.saved === 'processing') {
     return {
       kind: 'info',
-      message:
-        'Your new avatar is being processed and will appear shortly.',
+      message: 'Your new avatar is being processed and will appear shortly.',
     }
   }
   if (query.saved === 'removed') {

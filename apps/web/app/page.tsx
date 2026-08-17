@@ -1,12 +1,12 @@
-import Link from "next/link"
+import Link from 'next/link'
 
-import { DemoLink } from "../src/components/demo-link"
-import { SchemeScreenshot } from "../src/components/screenshot"
-import { SegmentCards } from "../src/components/segment-cards"
-import { ClosingBand } from "../src/components/site-bands"
-import { Terminal } from "../src/components/terminal"
-import { ThemeShowcase } from "../src/components/theme-showcase"
-import { readFacts } from "../src/content/facts"
+import { DemoLink } from '../src/components/demo-link'
+import { SchemeScreenshot } from '../src/components/screenshot'
+import { SegmentCards } from '../src/components/segment-cards'
+import { ClosingBand } from '../src/components/site-bands'
+import { Terminal } from '../src/components/terminal'
+import { ThemeShowcase } from '../src/components/theme-showcase'
+import { readFacts } from '../src/content/facts'
 import {
   alongside,
   capabilities,
@@ -22,8 +22,8 @@ import {
   shots,
   site,
   themes,
-} from "../src/content/site"
-import { docHref, quickstartHref } from "../src/docs/registry"
+} from '../src/content/site'
+import { docHref, quickstartHref } from '../src/docs/registry'
 
 export default async function LandingPage() {
   const facts = await readFacts()
@@ -103,7 +103,7 @@ export default async function LandingPage() {
                 {finding.evidence(facts)}
               </p>
               <p>
-                <Link className="textlink text-micro" href={docHref("performance")}>
+                <Link className="textlink text-micro" href={docHref('performance')}>
                   {finding.link}
                 </Link>
               </p>
@@ -127,7 +127,7 @@ export default async function LandingPage() {
           </div>
 
           <p className="mt-6">
-            <Link className="textlink text-micro" href={docHref("theme-api")}>
+            <Link className="textlink text-micro" href={docHref('theme-api')}>
               {themes.link}
             </Link>
           </p>
@@ -148,7 +148,7 @@ export default async function LandingPage() {
                 <p className="eyebrow">{column.title}</p>
                 <ul className="flex flex-wrap gap-1.5">
                   {column.items.map((item) => (
-                    <li className={index === 0 ? "tag" : "tag tag-strong"} key={item}>
+                    <li className={index === 0 ? 'tag' : 'tag tag-strong'} key={item}>
                       {item}
                     </li>
                   ))}
@@ -175,7 +175,7 @@ export default async function LandingPage() {
                 key={capability.id}
               >
                 <p className="font-mono text-micro tracking-[0.12em] text-fg-subtle">
-                  {String(index + 1).padStart(2, "0")}
+                  {String(index + 1).padStart(2, '0')}
                 </p>
                 <h3 className="text-mid leading-[1.25] font-semibold tracking-[-0.02em] text-fg">
                   {capability.title}
@@ -228,10 +228,7 @@ export default async function LandingPage() {
             <p className="text-fg-muted text-pretty">{memberships.body}</p>
             <p className="text-fg text-pretty">{memberships.emphasis}</p>
             <p>
-              <a
-                className="textlink text-micro"
-                href={`${site.repository}/tree/main/plugins/dues`}
-              >
+              <a className="textlink text-micro" href={`${site.repository}/tree/main/plugins/dues`}>
                 {memberships.link}
               </a>
             </p>

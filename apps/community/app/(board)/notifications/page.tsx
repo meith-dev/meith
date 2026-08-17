@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { NOTIFICATIONS_PAGE_SIZE } from '@meith/notifications'
 import { requireSlot } from '@meith/theme-kit'
 
 import {
@@ -8,14 +9,13 @@ import {
   MarkNotificationReadForm,
 } from '@/components/account/notification-forms'
 import { PanelPage } from '@/components/shell/panel-page'
+import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getActor } from '@/server/context'
 import { notificationService } from '@/server/notifications'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { currentTheme } from '@/server/theme'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildNotificationCentreView, notificationNotice } from '@/view/notifications'
-import { PanelPagination } from '@/components/shell/panel-pagination'
 import { offsetOf, readPage } from '@/view/pager'
-import { NOTIFICATIONS_PAGE_SIZE } from '@meith/notifications'
 
 export const metadata: Metadata = { title: 'Notifications' }
 
@@ -67,14 +67,12 @@ export default async function NotificationsPage({
       }
       actions={<MarkAllNotificationsReadForm unread={view.unread} />}
     >
-      {notice !== null && (
-        <Notice kind="info" message={notice} dismissHref="/notifications" />
-      )}
+      {notice !== null && <Notice kind="info" message={notice} dismissHref="/notifications" />}
 
       {view.rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          You have no notifications. When a moderator warns you, or a report you filed is
-          closed, it will appear here.
+          You have no notifications. When a moderator warns you, or a report you filed is closed, it
+          will appear here.
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -82,10 +80,7 @@ export default async function NotificationsPage({
             <li
               key={row.id}
               className={`rounded-lg border p-4 ${
-                row.isRead
-                  ? 'border-border bg-card'
-                  :
-                    'border-primary bg-card'
+                row.isRead ? 'border-border bg-card' : 'border-primary bg-card'
               }`}
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">

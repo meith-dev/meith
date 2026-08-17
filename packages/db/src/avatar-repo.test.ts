@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { PostgresAvatarRepository } from './avatar-repo'
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresAvatarRepository } from './avatar-repo'
 import { resultRows } from './result-rows'
 
 let harness: TestDb
@@ -236,9 +236,11 @@ describe('the object ledger', () => {
     await expect(repo.rememberKey('attachments/x/file')).resolves.toBeUndefined()
 
     const count = async () =>
-      (resultRows(
-        await db.execute(sql`select count(*)::int as n from attachment_orphans`),
-      ) as Array<{ n: number }>)[0]?.n
+      (
+        resultRows(
+          await db.execute(sql`select count(*)::int as n from attachment_orphans`),
+        ) as Array<{ n: number }>
+      )[0]?.n
 
     expect(await count()).toBe(1)
 

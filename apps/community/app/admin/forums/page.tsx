@@ -2,12 +2,12 @@ import type { Metadata } from 'next'
 
 import { outlineOf } from '@meith/forums'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { CreateForumForm } from '@/components/admin/forum-forms'
 import { ForumTree } from '@/components/admin/forum-tree'
+import { PANEL_CARD } from '@/components/shell/panel-list'
+import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
-import { PANEL_CARD } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Forums' }
 
@@ -23,9 +23,8 @@ export default async function AdminForumsPage() {
       gap="loose"
       lede={
         <>
-          The board&rsquo;s tree, in the order it renders, and the place to rearrange it.
-          A category holds forums, and threads too where it has been told to; a link is a
-          redirect row.
+          The board&rsquo;s tree, in the order it renders, and the place to rearrange it. A category
+          holds forums, and threads too where it has been told to; a link is a redirect row.
         </>
       }
     >

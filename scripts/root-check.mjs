@@ -8,7 +8,10 @@ const ALLOWED = new Map([
   ['.git', 'the repository itself'],
   ['.github', 'GitHub reads workflows and community files from this path only'],
   ['apps', 'workspace'],
-  ['docker', 'the deployment interface: the compose files, Dockerfiles, entrypoint and healthcheck'],
+  [
+    'docker',
+    'the deployment interface: the compose files, Dockerfiles, entrypoint and healthcheck',
+  ],
   ['docs', 'the documentation set — docs/README.md is its index'],
   ['e2e', 'the browser suite, rooted by playwright.config.ts'],
   ['examples', 'workspace — reference code to copy'],
@@ -18,8 +21,14 @@ const ALLOWED = new Map([
   ['tests', 'cross-package tests, rooted by vitest.config.ts'],
   ['themes', 'workspace'],
 
-  ['.dockerignore', 'must sit at the build context root to apply, and the context is the workspace'],
-  ['.env.example', 'the development .env it documents is read from the root (apps/community/next.config.mjs)'],
+  [
+    '.dockerignore',
+    'must sit at the build context root to apply, and the context is the workspace',
+  ],
+  [
+    '.env.example',
+    'the development .env it documents is read from the root (apps/community/next.config.mjs)',
+  ],
 
   ['package.json', 'the workspace root manifest'],
   ['pnpm-lock.yaml', 'pnpm'],
@@ -27,7 +36,7 @@ const ALLOWED = new Map([
   ['turbo.json', 'turbo'],
   ['tsconfig.json', 'the root typecheck project'],
   ['tsconfig.base.json', 'the shared compiler options and path aliases'],
-  ['eslint.config.mjs', 'ESLint flat config is discovered at the root'],
+  ['biome.json', 'Biome discovers its configuration by walking up to the root'],
   ['vitest.config.ts', 'vitest'],
   ['playwright.config.ts', 'playwright'],
   ['.dependency-cruiser.cjs', 'depcruise, named by the root scripts'],
@@ -68,4 +77,6 @@ if (problems.length > 0) {
   process.exit(1)
 }
 
-console.log(`✓ repository root: ${entries.length - tolerated.size - problems.length} entries, every one accounted for`)
+console.log(
+  `✓ repository root: ${entries.length - tolerated.size - problems.length} entries, every one accounted for`,
+)

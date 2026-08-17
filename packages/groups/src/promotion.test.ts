@@ -65,7 +65,9 @@ describe('criteria', () => {
   it('ANDs every stated criterion', () => {
     const r = rule({ minPostCount: 100, minReputation: 10 })
 
-    expect(evaluatePromotions([r], [user({ postCount: 100, reputation: 9 })], GUARDS, NOW)).toEqual([])
+    expect(evaluatePromotions([r], [user({ postCount: 100, reputation: 9 })], GUARDS, NOW)).toEqual(
+      [],
+    )
     expect(
       evaluatePromotions([r], [user({ postCount: 100, reputation: 10 })], GUARDS, NOW),
     ).toHaveLength(1)
@@ -87,9 +89,9 @@ describe('criteria', () => {
       fromPrimaryGroupId: AWAITING,
       toPrimaryGroupId: REGISTERED,
     })
-    expect(
-      evaluatePromotions([r], [user({ primaryGroupId: AWAITING })], GUARDS, NOW),
-    ).toHaveLength(1)
+    expect(evaluatePromotions([r], [user({ primaryGroupId: AWAITING })], GUARDS, NOW)).toHaveLength(
+      1,
+    )
   })
 
   it('only considers users in the source group', () => {
@@ -146,7 +148,12 @@ describe('safety', () => {
 describe('idempotence', () => {
   it('produces nothing for a user already in the target group', () => {
     expect(
-      evaluatePromotions([rule()], [user({ postCount: 500, primaryGroupId: VETERAN })], GUARDS, NOW),
+      evaluatePromotions(
+        [rule()],
+        [user({ postCount: 500, primaryGroupId: VETERAN })],
+        GUARDS,
+        NOW,
+      ),
     ).toEqual([])
   })
 
@@ -184,13 +191,22 @@ describe('multiple rules', () => {
       rule({ id: 9, title: 'Nine', displayOrder: 0, toPrimaryGroupId: 20 }),
       rule({ id: 4, title: 'Four', displayOrder: 0, toPrimaryGroupId: VETERAN }),
     ]
-    expect(
-      evaluatePromotions(rules, [user({ postCount: 500 })], GUARDS, NOW)[0]?.ruleTitle,
-    ).toBe('Four')
+    expect(evaluatePromotions(rules, [user({ postCount: 500 })], GUARDS, NOW)[0]?.ruleTitle).toBe(
+      'Four',
+    )
   })
 
   it('reports which rule fired, so a surprise promotion is explicable', () => {
-    const out = evaluatePromotions([rule({ id: 7, title: 'Veteran' })], [user({ postCount: 100 })], GUARDS, NOW)
-    expect(out[0]).toMatchObject({ ruleId: 7, ruleTitle: 'Veteran', fromPrimaryGroupId: REGISTERED })
+    const out = evaluatePromotions(
+      [rule({ id: 7, title: 'Veteran' })],
+      [user({ postCount: 100 })],
+      GUARDS,
+      NOW,
+    )
+    expect(out[0]).toMatchObject({
+      ruleId: 7,
+      ruleTitle: 'Veteran',
+      fromPrimaryGroupId: REGISTERED,
+    })
   })
 })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { emit, relayOutbox, type OutboxReader, type RelayTarget } from './outbox'
+import { emit, type OutboxReader, type RelayTarget, relayOutbox } from './outbox'
 import type { OutboxRecord } from './types'
 
 class FakeOutbox implements OutboxReader, RelayTarget {

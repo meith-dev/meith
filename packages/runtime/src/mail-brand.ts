@@ -1,7 +1,7 @@
 import { env, logger } from '@meith/core'
-import { PostgresSettingsRepository, PostgresThemeRepository, type Database } from '@meith/db'
+import { type Database, PostgresSettingsRepository, PostgresThemeRepository } from '@meith/db'
 import type { MailBrand } from '@meith/notifications'
-import { SettingsSnapshot, resolveBoardUrl } from '@meith/settings'
+import { resolveBoardUrl, SettingsSnapshot } from '@meith/settings'
 
 export const DEFAULT_THEME_KEY = 'default'
 
@@ -16,7 +16,7 @@ function readAccent(overrides: unknown): string | null {
   for (const key of ACCENT_KEYS) {
     const value = record[key]
     if (typeof value === 'string' && value.trim() !== '') return value.trim()
-    const light = record['light']
+    const light = record.light
     if (light !== null && typeof light === 'object') {
       const nested = (light as Record<string, unknown>)[key]
       if (typeof nested === 'string' && nested.trim() !== '') return nested.trim()

@@ -1,5 +1,6 @@
-import type { FilterHandler } from '@meith/plugin-kit'
 import { describe, expect, it } from 'vitest'
+
+import type { FilterHandler } from '@meith/plugin-kit'
 
 import { helloPlugin } from './plugin'
 

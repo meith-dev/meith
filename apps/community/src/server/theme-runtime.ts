@@ -1,14 +1,14 @@
 import 'server-only'
 
-import { CacheTags, env } from '@meith/core'
-import { PostgresThemeRepository, getDb, type ThemeRuntimeState } from '@meith/db'
-import { DARK_TOKENS as DEFAULT_DARK, LIGHT_TOKENS as DEFAULT_LIGHT } from '@meith/theme-default'
 import { unstable_cache } from 'next/cache'
 import { cache } from 'react'
 
-import forumConfig from '../../community.config'
+import { CacheTags, env } from '@meith/core'
+import { getDb, PostgresThemeRepository, type ThemeRuntimeState } from '@meith/db'
+import { DARK_TOKENS as DEFAULT_DARK, LIGHT_TOKENS as DEFAULT_LIGHT } from '@meith/theme-default'
 
-import { renderBoardStyle, type BoardTheme, type ThemeRuntimeStyle } from './theme-style'
+import forumConfig from '../../community.config'
+import { type BoardTheme, renderBoardStyle, type ThemeRuntimeStyle } from './theme-style'
 
 export interface ThemeChoice {
   readonly key: string

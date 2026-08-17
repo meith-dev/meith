@@ -205,7 +205,10 @@ function convertNode(node: Node): string {
     case 'list': {
       const ordered = node.attribute !== null && node.attribute.trim() !== ''
       const items = node.children
-        .filter((child): child is Extract<Node, { kind: 'element' }> => child.kind === 'element' && child.tag === '*')
+        .filter(
+          (child): child is Extract<Node, { kind: 'element' }> =>
+            child.kind === 'element' && child.tag === '*',
+        )
         .map((child, position) => {
           const marker = ordered ? `${position + 1}. ` : '- '
           const body = convertNodes(child.children).trim()
@@ -217,7 +220,11 @@ function convertNode(node: Node): string {
       return `\n- ${inner.trim()}`
 
     default:
-      return escapeMarkdownText(`[${node.tag}${node.attribute === null ? '' : `=${node.attribute}`}]`) + inner + escapeMarkdownText(`[/${node.tag}]`)
+      return (
+        escapeMarkdownText(`[${node.tag}${node.attribute === null ? '' : `=${node.attribute}`}]`) +
+        inner +
+        escapeMarkdownText(`[/${node.tag}]`)
+      )
   }
 }
 

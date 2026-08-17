@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
+
 import { RateLimitedError, ValidationError } from '@meith/core'
 
 import {
-  ThreadComposer,
-  threadSlug,
   type CreatedThread,
   type ForumPostingRules,
   type NewThreadRecord,
+  ThreadComposer,
   type ThreadWriteRepository,
+  threadSlug,
 } from './compose'
 
 const AT = new Date('2026-07-30T12:00:00Z')
@@ -41,9 +42,7 @@ class RecordingWrites implements ThreadWriteRepository {
     return null
   }
 
-  async listPrefixes(): Promise<
-    readonly { id: number; label: string; token: null }[]
-  > {
+  async listPrefixes(): Promise<readonly { id: number; label: string; token: null }[]> {
     return this.prefixes.map((id) => ({
       id,
       label: `Prefix ${id}`,
@@ -112,7 +111,10 @@ describe('ThreadComposer', () => {
   })
 
   it.each([
-    ['a category that was not opened to threads', { type: 'category' as const, allowThreads: false }],
+    [
+      'a category that was not opened to threads',
+      { type: 'category' as const, allowThreads: false },
+    ],
     ['a link', { type: 'link' as const }],
     ['a closed forum', { isOpen: false }],
     ['a forum that takes no threads', { allowThreads: false }],
@@ -140,23 +142,19 @@ describe('ThreadComposer', () => {
     const writes = new RecordingWrites()
     const c = composer(writes)
 
-    await expect(
-      c.create({ ...INPUT, title: 'ab' }, AUTHOR, FORUM),
-    ).rejects.toThrow(ValidationError)
-    await expect(
-      c.create({ ...INPUT, title: 'x'.repeat(121) }, AUTHOR, FORUM),
-    ).rejects.toThrow(ValidationError)
+    await expect(c.create({ ...INPUT, title: 'ab' }, AUTHOR, FORUM)).rejects.toThrow(
+      ValidationError,
+    )
+    await expect(c.create({ ...INPUT, title: 'x'.repeat(121) }, AUTHOR, FORUM)).rejects.toThrow(
+      ValidationError,
+    )
   })
 
   it('enforces the configured maximum length', async () => {
     const writes = new RecordingWrites()
 
     await expect(
-      composer(writes, { floodSeconds: 0, maxLength: 10 }).create(
-        INPUT,
-        AUTHOR,
-        FORUM,
-      ),
+      composer(writes, { floodSeconds: 0, maxLength: 10 }).create(INPUT, AUTHOR, FORUM),
     ).rejects.toThrow(/at most 10 characters/)
   })
 
@@ -197,11 +195,7 @@ describe('ThreadComposer', () => {
         closesAt: null,
       }
 
-      await composer(writes).create(
-        { ...INPUT, poll, mayPostPoll: true },
-        AUTHOR,
-        FORUM,
-      )
+      await composer(writes).create({ ...INPUT, poll, mayPostPoll: true }, AUTHOR, FORUM)
       expect(writes.written[0]!.poll).toEqual({
         question: 'Choose one',
         options: ['First', 'Second'],
@@ -209,11 +203,7 @@ describe('ThreadComposer', () => {
       })
 
       await expect(
-        composer(writes).create(
-          { ...INPUT, poll, mayPostPoll: false },
-          AUTHOR,
-          FORUM,
-        ),
+        composer(writes).create({ ...INPUT, poll, mayPostPoll: false }, AUTHOR, FORUM),
       ).rejects.toThrow(/cannot attach a poll/i)
     })
   })
@@ -232,11 +222,10 @@ describe('ThreadComposer', () => {
 
     it('lets an actor who bypasses moderation post straight through', async () => {
       const writes = new RecordingWrites()
-      const result = await composer(writes).create(
-        { ...INPUT, bypassesModeration: true },
-        AUTHOR,
-        { ...FORUM, moderateNewThreads: true },
-      )
+      const result = await composer(writes).create({ ...INPUT, bypassesModeration: true }, AUTHOR, {
+        ...FORUM,
+        moderateNewThreads: true,
+      })
 
       expect(result.visibility).toBe('visible')
     })
@@ -247,11 +236,7 @@ describe('ThreadComposer', () => {
       const writes = new RecordingWrites(new Date(AT.getTime() - 5000))
 
       await expect(
-        composer(writes, { floodSeconds: 15, maxLength: 30_000 }).create(
-          INPUT,
-          AUTHOR,
-          FORUM,
-        ),
+        composer(writes, { floodSeconds: 15, maxLength: 30_000 }).create(INPUT, AUTHOR, FORUM),
       ).rejects.toThrow(RateLimitedError)
       expect(writes.written).toEqual([])
     })
@@ -259,11 +244,7 @@ describe('ThreadComposer', () => {
     it('allows one once the interval has passed', async () => {
       const writes = new RecordingWrites(new Date(AT.getTime() - 15_000))
 
-      await composer(writes, { floodSeconds: 15, maxLength: 30_000 }).create(
-        INPUT,
-        AUTHOR,
-        FORUM,
-      )
+      await composer(writes, { floodSeconds: 15, maxLength: 30_000 }).create(INPUT, AUTHOR, FORUM)
       expect(writes.written).toHaveLength(1)
     })
 
@@ -279,11 +260,7 @@ describe('ThreadComposer', () => {
       expect(exempt.written).toHaveLength(1)
 
       const disabled = new RecordingWrites(recent)
-      await composer(disabled, { floodSeconds: 0, maxLength: 30_000 }).create(
-        INPUT,
-        AUTHOR,
-        FORUM,
-      )
+      await composer(disabled, { floodSeconds: 0, maxLength: 30_000 }).create(INPUT, AUTHOR, FORUM)
       expect(disabled.written).toHaveLength(1)
     })
 
@@ -291,11 +268,7 @@ describe('ThreadComposer', () => {
       const writes = new RecordingWrites(new Date(AT.getTime() - 12_500))
 
       await expect(
-        composer(writes, { floodSeconds: 15, maxLength: 30_000 }).create(
-          INPUT,
-          AUTHOR,
-          FORUM,
-        ),
+        composer(writes, { floodSeconds: 15, maxLength: 30_000 }).create(INPUT, AUTHOR, FORUM),
       ).rejects.toThrow(/wait 3 more seconds/)
     })
   })
@@ -378,10 +351,7 @@ describe('warning restrictions', () => {
       FORUM,
     )
 
-    expect(writes.written.map((w) => w.visibility)).toEqual([
-      'visible',
-      'visible',
-    ])
+    expect(writes.written.map((w) => w.visibility)).toEqual(['visible', 'visible'])
   })
 })
 
@@ -431,11 +401,10 @@ describe('the requiresThreadApproval permission', () => {
 describe('holding a new member’s first posts', () => {
   it('holds a post in a forum that does not moderate', async () => {
     const writes = new RecordingWrites()
-    await composer(writes).create(
-      { ...INPUT, heldAsNewMember: true },
-      AUTHOR,
-      { ...FORUM, moderateNewThreads: false },
-    )
+    await composer(writes).create({ ...INPUT, heldAsNewMember: true }, AUTHOR, {
+      ...FORUM,
+      moderateNewThreads: false,
+    })
 
     expect(writes.written[0]?.visibility).toBe('unapproved')
   })

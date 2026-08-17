@@ -3,8 +3,9 @@ import 'server-only'
 import { randomBytes } from 'node:crypto'
 
 import { foldIdentifier } from '@meith/accounts'
-import { ForbiddenError, NotFoundError } from '@meith/core'
 import type { Actor } from '@meith/authorization'
+import { ForbiddenError, NotFoundError } from '@meith/core'
+import { getDb, ownsSearch, PostgresSearchStore, SEARCH_WINDOW, type StoredSearch } from '@meith/db'
 import {
   isRefined,
   isRunnable,
@@ -14,32 +15,20 @@ import {
   readMatch,
   readPeriod,
   readSort,
-  searchQueryFrom,
-  trimRefinement,
   type SearchCursor,
   type SearchFilterSet,
   type SearchRefinement,
   type SearchResults,
   type SearchSummary,
+  searchQueryFrom,
+  trimRefinement,
 } from '@meith/search'
-import {
-  PostgresSearchStore,
-  SEARCH_WINDOW,
-  getDb,
-  ownsSearch,
-  type StoredSearch,
-} from '@meith/db'
 
 import { REFINE_FIELDS } from '@/view/search-controls'
 
 import { limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
-import {
-  requireSearch,
-  requireSearchEnabled,
-  searchMinWordLength,
-  searchScopeFor,
-} from './search'
+import { requireSearch, requireSearchEnabled, searchMinWordLength, searchScopeFor } from './search'
 import { getSettings } from './settings'
 
 export const SEARCH_PAGE = 20
@@ -49,9 +38,7 @@ export const MAX_AUTHOR_NAMES = 5
 export const SEARCH_COUNT_CAP = SEARCH_WINDOW
 
 export function searchStore(): PostgresSearchStore | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresSearchStore(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresSearchStore(getDb()) : null
 }
 
 function newToken(): string {
@@ -107,9 +94,7 @@ export async function runSearch(input: RunSearchInput): Promise<RunSearchOutcome
 
   const filters: SearchFilterSet = {
     ...input.filters,
-    ...(authors.ids.length === 0
-      ? {}
-      : { authorUserIds: authors.ids, authorNames: authors.names }),
+    ...(authors.ids.length === 0 ? {} : { authorUserIds: authors.ids, authorNames: authors.names }),
   }
 
   const stored = await store.create({
@@ -245,9 +230,7 @@ export function readRefinement(
     ...(match === undefined || readMatch(match) === 'everything'
       ? {}
       : { match: readMatch(match) }),
-    ...(period === undefined || readPeriod(period) === 'any'
-      ? {}
-      : { period: readPeriod(period) }),
+    ...(period === undefined || readPeriod(period) === 'any' ? {} : { period: readPeriod(period) }),
     ...(forumIds === undefined ? {} : { forumIds }),
     ...(authorUserIds === undefined ? {} : { authorUserIds }),
   }

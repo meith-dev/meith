@@ -1,6 +1,6 @@
 import { PanelNavRegion } from '@/components/shell/panel-nav'
-import type { PanelCounts, PanelNav as PanelNavTree } from '@/view/panel-nav'
 import { MODCP_OVERVIEW } from '@/view/modcp-nav'
+import type { PanelCounts, PanelNav as PanelNavTree } from '@/view/panel-nav'
 
 export function ModCpNav({
   nav,
@@ -10,11 +10,6 @@ export function ModCpNav({
   readonly counts: PanelCounts
 }) {
   return (
-    <PanelNavRegion
-      panel="modcp"
-      nav={nav}
-      overviewHref={MODCP_OVERVIEW.href}
-      counts={counts}
-    />
+    <PanelNavRegion panel="modcp" nav={nav} overviewHref={MODCP_OVERVIEW.href} counts={counts} />
   )
 }

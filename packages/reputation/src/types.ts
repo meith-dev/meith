@@ -8,9 +8,7 @@ export function parseRating(value: string): RatingValue | null {
   if (trimmed === '') return null
 
   const parsed = Number(trimmed)
-  return (RATING_VALUES as readonly number[]).includes(parsed)
-    ? (parsed as RatingValue)
-    : null
+  return (RATING_VALUES as readonly number[]).includes(parsed) ? (parsed as RatingValue) : null
 }
 
 export interface ReputationSettings {
@@ -57,10 +55,7 @@ export interface ReputationRepository {
     readonly at: Date
   }): Promise<boolean>
 
-  withdraw(input: {
-    readonly ratingId: number
-    readonly givenByUserId: number
-  }): Promise<boolean>
+  withdraw(input: { readonly ratingId: number; readonly givenByUserId: number }): Promise<boolean>
 
   list(input: {
     readonly userId: number

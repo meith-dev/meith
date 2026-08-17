@@ -1,12 +1,12 @@
 import { sql } from 'drizzle-orm'
 
 import {
-  parseFieldType,
+  type FieldType,
   type ProfileFieldDefinition,
   type ProfileFieldGroupRule,
   type ProfileFieldRepository,
   type ProfileFieldValue,
-  type FieldType,
+  parseFieldType,
 } from '@meith/profile-fields'
 
 import type { Database } from './client'
@@ -124,9 +124,7 @@ export class PostgresProfileFieldRepository implements ProfileFieldRepository {
         await tx.execute(sql`
           insert into profile_field_values (user_id, field_id, value, updated_at)
           values ${sql.join(
-            written.map(
-              (value) => sql`(${input.userId}, ${value.fieldId}, ${value.value}, now())`,
-            ),
+            written.map((value) => sql`(${input.userId}, ${value.fieldId}, ${value.value}, now())`),
             sql`, `,
           )}
               on conflict (user_id, field_id)

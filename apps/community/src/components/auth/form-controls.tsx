@@ -1,8 +1,9 @@
-"use client"
+'use client'
 
-import { Alert, AlertDescription, AlertTitle, Field as UiField, Input } from "@meith/ui"
-import { Button } from "@meith/ui/button"
-import { useFormStatus } from "react-dom"
+import { useFormStatus } from 'react-dom'
+
+import { Alert, AlertDescription, AlertTitle, Input, Field as UiField } from '@meith/ui'
+import { Button } from '@meith/ui/button'
 
 export function SubmitButton({
   children,
@@ -19,9 +20,9 @@ export function SubmitButton({
       variant="primary"
       size="lg"
       disabled={pending}
-      className={className ?? "w-full"}
+      className={className ?? 'w-full'}
     >
-      {pending ? "Working…" : children}
+      {pending ? 'Working…' : children}
     </Button>
   )
 }
@@ -63,7 +64,7 @@ interface FieldProps {
 export function Field({
   label,
   name,
-  type = "text",
+  type = 'text',
   autoComplete,
   required = true,
   defaultValue,

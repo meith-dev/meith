@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { BadgeUploadForm } from '@/components/admin/badge-forms'
 import {
   DeleteGroupForm,
   GroupIdentityForm,
@@ -8,20 +9,15 @@ import {
 } from '@/components/admin/group-forms'
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
-import { BadgeUploadForm } from '@/components/admin/badge-forms'
 import { adminPageContext } from '@/server/admin'
+import { buildGroupPermissionView, groupAdminRepository } from '@/server/group-admin'
 import { badgeKey, badgeSrc } from '@/server/group-badge'
 import { MAX_IMAGE_BYTES } from '@/server/image-upload'
-import { buildGroupPermissionView, groupAdminRepository } from '@/server/group-admin'
 import { boardSampleSurfaces } from '@/server/theme-admin'
 
 export const metadata: Metadata = { title: 'Group' }
 
-export default async function AdminGroupPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+export default async function AdminGroupPage({ params }: { params: Promise<{ id: string }> }) {
   if ((await adminPageContext()) === null) return null
 
   const { id } = await params
@@ -47,8 +43,7 @@ export default async function AdminGroupPage({
       title={view.group.title}
       lede={
         <>
-          <code className="text-xs">{view.group.key}</code> · {view.group.memberCount}{' '}
-          member
+          <code className="text-xs">{view.group.key}</code> · {view.group.memberCount} member
           {view.group.memberCount === 1 ? '' : 's'}
           {view.group.isSystem && ' · a system group: the board resolves it by key'}
         </>
@@ -76,9 +71,9 @@ export default async function AdminGroupPage({
       <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Badge</h2>
         <p className="text-sm text-muted-foreground">
-          A small image shown beside a member&rsquo;s name. Two of them, for the reason
-          the colours have two: an icon drawn for a white page usually disappears on a
-          black one. Upload only the light one and it is used in both.
+          A small image shown beside a member&rsquo;s name. Two of them, for the reason the colours
+          have two: an icon drawn for a white page usually disappears on a black one. Upload only
+          the light one and it is used in both.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -102,10 +97,9 @@ export default async function AdminGroupPage({
       <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Permissions</h2>
         <p className="text-sm text-muted-foreground">
-          These are this group&rsquo;s answers, not a forum&rsquo;s. A member in several
-          groups gets the most permissive of them — a tick can only ever grant, never take
-          away — except for the restrictions, where any group that lifts one lifts it
-          everywhere.
+          These are this group&rsquo;s answers, not a forum&rsquo;s. A member in several groups gets
+          the most permissive of them — a tick can only ever grant, never take away — except for the
+          restrictions, where any group that lifts one lifts it everywhere.
         </p>
         <GroupPermissionsForm groupId={view.group.id} cells={view.cells} />
       </section>
@@ -114,9 +108,8 @@ export default async function AdminGroupPage({
         <h2 className="font-heading text-lg font-semibold">Delete</h2>
         {view.group.isSystem ? (
           <p className="text-sm text-muted-foreground">
-            This group is part of how the board works — registration, bans and the control
-            panel resolve it by key — so it cannot be deleted. Its permissions are still
-            yours to change.
+            This group is part of how the board works — registration, bans and the control panel
+            resolve it by key — so it cannot be deleted. Its permissions are still yours to change.
           </p>
         ) : (
           <DeleteGroupForm

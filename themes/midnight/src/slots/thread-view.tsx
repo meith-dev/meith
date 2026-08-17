@@ -17,7 +17,10 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
         <div>
           <h1 className="font-mono text-lg font-semibold">{thread.title}</h1>
           <p className="font-mono text-xs text-muted-foreground">
-            in <a href={forum.href} className="hover:text-primary">{forum.label}</a>
+            in{' '}
+            <a href={forum.href} className="hover:text-primary">
+              {forum.label}
+            </a>
           </p>
         </div>
         {reply}

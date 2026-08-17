@@ -6,20 +6,10 @@ import { cookies, headers } from 'next/headers'
 
 import type { Actor } from '@meith/authorization'
 import { contentScopeFrom, env } from '@meith/core'
-import {
-  PostgresPresenceRepository,
-  getDb,
-  type OnlineScope,
-  type OnlineSnapshot,
-} from '@meith/db'
+import { getDb, type OnlineScope, type OnlineSnapshot, PostgresPresenceRepository } from '@meith/db'
 
 import { getContainer } from './container'
-import {
-  GUEST_COOKIE_DAYS,
-  clearedCookie,
-  guestCookieName,
-  sessionCookieName,
-} from './cookies'
+import { clearedCookie, GUEST_COOKIE_DAYS, guestCookieName, sessionCookieName } from './cookies'
 import { FRESH_GUEST_HEADER, PATH_HEADER } from './location-header'
 
 const LOCATION_WINDOW_SECONDS = 60
@@ -56,9 +46,7 @@ export async function touchCurrentLocation(): Promise<void> {
 }
 
 export function presenceRepository(): PostgresPresenceRepository | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresPresenceRepository(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresPresenceRepository(getDb()) : null
 }
 
 export async function touchLocation(location: BoardLocation): Promise<void> {
@@ -157,9 +145,7 @@ export async function retireGuestPresence(): Promise<void> {
     const token = jar.get(guestCookieName(secure))?.value
 
     if (token !== undefined && token !== '') {
-      await presenceRepository()?.dropGuest(
-        createHash('sha256').update(token).digest('hex'),
-      )
+      await presenceRepository()?.dropGuest(createHash('sha256').update(token).digest('hex'))
     }
 
     jar.set(guestCookieName(secure), '', clearedCookie(secure))
@@ -170,8 +156,7 @@ export async function retireGuestPresence(): Promise<void> {
 
 export async function onlineScopeFor(actor: Actor): Promise<OnlineScope> {
   const { authorizer } = getContainer()
-  const staff =
-    actor.global.isAdministrator === true || actor.global.isSuperModerator === true
+  const staff = actor.global.isAdministrator === true || actor.global.isSuperModerator === true
 
   return {
     ...(await authorizer.threadAudience(actor)),

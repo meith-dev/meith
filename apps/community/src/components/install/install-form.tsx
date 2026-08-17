@@ -1,5 +1,7 @@
 'use client'
 
+import { useActionState } from 'react'
+
 import {
   Alert,
   AlertDescription,
@@ -12,16 +14,16 @@ import {
   CardHeader,
   CardTitle,
   Disclosure,
-  Field as UiFieldGroup,
   NativeSelect,
+  Field as UiFieldGroup,
 } from '@meith/ui'
 import { Button } from '@meith/ui/button'
-import { useActionState } from 'react'
 
 import { Field } from '@/components/auth/form-controls'
 
 type FieldControl = Parameters<React.ComponentProps<typeof UiFieldGroup>['children']>[0]
-import { installAction, type InstallFormState } from '@/server/install-actions'
+
+import { type InstallFormState, installAction } from '@/server/install-actions'
 
 const EMPTY: InstallFormState = {}
 
@@ -103,8 +105,8 @@ export function InstallForm({
         {boardUrlIsFromEnvironment ? (
           <Alert tone="info">
             <AlertDescription>
-              The board’s address comes from <code>APP_URL</code> in this deployment’s
-              environment, which overrides anything stored on the board.
+              The board’s address comes from <code>APP_URL</code> in this deployment’s environment,
+              which overrides anything stored on the board.
             </AlertDescription>
           </Alert>
         ) : (
@@ -160,10 +162,10 @@ export function InstallForm({
         <FormSection n={3} title="Sending mail" hint="Decided by this deployment’s environment.">
           <Alert tone="info">
             <AlertDescription>
-              <code>MAIL_DRIVER</code> is set in this deployment’s environment, which
-              overrides anything stored on the board. Mail is configured there and cannot
-              be changed from this form or from the settings screen — unset it if you
-              would rather configure mail on the board.
+              <code>MAIL_DRIVER</code> is set in this deployment’s environment, which overrides
+              anything stored on the board. Mail is configured there and cannot be changed from this
+              form or from the settings screen — unset it if you would rather configure mail on the
+              board.
             </AlertDescription>
           </Alert>
         </FormSection>
@@ -230,8 +232,7 @@ function StepReport({
   steps: readonly InstallStepView[]
   report: readonly InstallStepOutcome[]
 }) {
-  const statusOf = (id: string) =>
-    report.find((outcome) => outcome.id === id)?.status ?? 'pending'
+  const statusOf = (id: string) => report.find((outcome) => outcome.id === id)?.status ?? 'pending'
   const anyFailed = report.some((outcome) => outcome.status === 'failed')
 
   return (
@@ -256,10 +257,7 @@ function StepReport({
                   </span>
                 )}
                 {status === 'failed' && (
-                  <span className="ml-2 font-mono text-xs uppercase text-destructive">
-                    {' '}
-                    failed
-                  </span>
+                  <span className="ml-2 font-mono text-xs uppercase text-destructive"> failed</span>
                 )}
                 {status === 'pending' && anyFailed && (
                   <span className="ml-2 font-mono text-xs uppercase text-muted-foreground">
@@ -316,8 +314,8 @@ function Outcome({ state }: { state: InstallFormState }) {
         )}
 
         <p className="mt-2 text-xs text-muted-foreground">
-          Passwords are never sent back to this page, so any you typed are empty
-          again — retype them.
+          Passwords are never sent back to this page, so any you typed are empty again — retype
+          them.
         </p>
       </AlertDescription>
     </Alert>
@@ -341,9 +339,8 @@ function MailSection({
       hint="Optional, and the one thing that is harder to add later than now."
     >
       <p className="text-sm text-muted-foreground">
-        A test message is sent to the address above <em>before</em> anything is
-        written, so a wrong key costs a retry rather than a board that cannot mail
-        anybody.
+        A test message is sent to the address above <em>before</em> anything is written, so a wrong
+        key costs a retry rather than a board that cannot mail anybody.
       </p>
 
       {state.errors?.mailPreset !== undefined && (

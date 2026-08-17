@@ -13,7 +13,5 @@ const FIELDS: readonly string[] = Object.values(REGISTER_FIELD)
 export function rejectedField(error: unknown): RegisterField | null {
   if (!isAppError(error)) return null
   const field = error.meta.field
-  return typeof field === 'string' && FIELDS.includes(field)
-    ? (field as RegisterField)
-    : null
+  return typeof field === 'string' && FIELDS.includes(field) ? (field as RegisterField) : null
 }

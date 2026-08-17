@@ -7,11 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import { PROTECTED_PREFIXES, proxy } from './proxy'
 import { GUEST_COOKIE } from './src/server/cookies'
-import {
-  FRESH_GUEST_HEADER,
-  PATH_HEADER,
-  QUERY_HEADER,
-} from './src/server/location-header'
+import { FRESH_GUEST_HEADER, PATH_HEADER, QUERY_HEADER } from './src/server/location-header'
 import { THEME_COOKIE } from './src/view/theme-preference'
 
 const here = path.dirname(fileURLToPath(import.meta.url))

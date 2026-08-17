@@ -1,5 +1,5 @@
-import { Badge } from '@meith/ui'
 import type { OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
+import { Badge } from '@meith/ui'
 
 import { LINK, MICRO, NUMERIC, Stamp, UserRef } from '../shared'
 

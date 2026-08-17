@@ -22,9 +22,6 @@ export function sanitiseFilename(raw: string, type: AttachmentType): string {
   return `${stem === '' ? 'file' : stem}.${extension}`
 }
 
-export function storageKeyFor(
-  purpose: 'source' | 'file' | 'thumb',
-  random: () => string,
-): string {
+export function storageKeyFor(purpose: 'source' | 'file' | 'thumb', random: () => string): string {
   return `attachments/${random()}/${purpose}`
 }

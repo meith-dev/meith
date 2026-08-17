@@ -2,10 +2,9 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { scanCallSites } from './hook-callsites.mjs'
-
 import { emitGeneratedDoc } from './generated-doc.mjs'
-import { balancedBlock, joinStringLiterals } from './source-parse.mjs'
+import { scanCallSites } from './hook-callsites.mjs'
+import { balancedBlock, flattenTypeLiteral, joinStringLiterals } from './source-parse.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 
@@ -84,7 +83,7 @@ async function readSignatures() {
     const entry = balancedBlock(block.body, match.index + match[0].length - 1)
     if (entry === null) continue
 
-    const text = entry.body.replace(/\s+/g, ' ').trim()
+    const text = flattenTypeLiteral(entry.body)
     const valueAt = text.indexOf('value:')
     const contextAt = text.indexOf('context:')
     if (valueAt === -1 || contextAt === -1) {
@@ -225,7 +224,10 @@ function render({ hooks, signatures, regions, wired }) {
   }
   push('')
 
-  return `${out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`
+  return `${out
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd()}\n`
 }
 
 const hooks = await readHooks()

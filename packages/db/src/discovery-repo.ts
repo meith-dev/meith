@@ -1,4 +1,4 @@
-import { sql, type SQL } from 'drizzle-orm'
+import { type SQL, sql } from 'drizzle-orm'
 
 import type { ContentScope } from '@meith/core'
 
@@ -125,8 +125,7 @@ export class PostgresDiscoveryRepository {
       replyCount: Number(row.reply_count),
       lastPostAt:
         row.last_post_at instanceof Date ? row.last_post_at : new Date(String(row.last_post_at)),
-      lastPostUsername:
-        row.last_post_username === null ? null : String(row.last_post_username),
+      lastPostUsername: row.last_post_username === null ? null : String(row.last_post_username),
     }))
 
     const last = mapped.at(-1)

@@ -1,7 +1,8 @@
-import { schema, type Database } from '@meith/db'
 import { eq } from 'drizzle-orm'
 
-import { createRandom, paragraphs, words, type Random } from './random'
+import { type Database, schema } from '@meith/db'
+
+import { createRandom, paragraphs, type Random, words } from './random'
 
 export interface SeedScale {
   readonly users: number
@@ -168,9 +169,7 @@ async function seedForums(
 
   for (let i = 0; i < scale.forums; i++) {
     const parentId =
-      forumIds.length > 0 && random.chance(0.25)
-        ? random.pick(forumIds)
-        : random.pick(categoryIds)
+      forumIds.length > 0 && random.chance(0.25) ? random.pick(forumIds) : random.pick(categoryIds)
 
     const parentPath = pathById.get(parentId) as string
 

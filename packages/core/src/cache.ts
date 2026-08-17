@@ -1,17 +1,17 @@
-import type { CacheDriver } from "./ports"
+import type { CacheDriver } from './ports'
 
 export const CacheTags = {
-  forumTree: () => "forum-tree",
-  settings: () => "settings",
+  forumTree: () => 'forum-tree',
+  settings: () => 'settings',
   theme: (key: string) => `theme:${key}`,
-  markdownVocabulary: () => "markdown-vocabulary",
-  prefixes: () => "prefixes",
-  wordFilters: () => "word-filters",
-  boardStats: () => "board-stats",
+  markdownVocabulary: () => 'markdown-vocabulary',
+  prefixes: () => 'prefixes',
+  wordFilters: () => 'word-filters',
+  boardStats: () => 'board-stats',
   forum: (forumId: number) => `forum:${forumId}`,
   thread: (threadId: number) => `thread:${threadId}`,
   user: (userId: number) => `user:${userId}`,
-  groups: () => "groups",
+  groups: () => 'groups',
 } as const
 
 export type CacheTag = ReturnType<(typeof CacheTags)[keyof typeof CacheTags]>

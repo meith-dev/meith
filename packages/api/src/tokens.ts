@@ -77,12 +77,7 @@ export function parseToken(presented: string): ParsedToken | null {
   return { lookup, secret }
 }
 
-export type TokenFailure =
-  | 'malformed'
-  | 'unknown'
-  | 'revoked'
-  | 'expired'
-  | 'bad-secret'
+export type TokenFailure = 'malformed' | 'unknown' | 'revoked' | 'expired' | 'bad-secret'
 
 export type TokenOutcome =
   | { readonly ok: true; readonly token: ApiTokenRecord }

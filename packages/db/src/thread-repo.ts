@@ -22,10 +22,7 @@ function afterActivity(cursor: ThreadCursor) {
   )
 
   return cursor.isSticky
-    ? or(
-        eq(threads.isSticky, false),
-        and(eq(threads.isSticky, true), olderInSameBucket),
-      )
+    ? or(eq(threads.isSticky, false), and(eq(threads.isSticky, true), olderInSameBucket))
     : and(eq(threads.isSticky, false), olderInSameBucket)
 }
 
@@ -51,10 +48,7 @@ function afterRating(cursor: ThreadCursor) {
       sameRating,
       or(
         lt(threads.ratingCount, cursor.ratingCount),
-        and(
-          eq(threads.ratingCount, cursor.ratingCount),
-          lt(threads.lastPostAt, cursor.lastPostAt),
-        ),
+        and(eq(threads.ratingCount, cursor.ratingCount), lt(threads.lastPostAt, cursor.lastPostAt)),
         and(
           eq(threads.ratingCount, cursor.ratingCount),
           eq(threads.lastPostAt, cursor.lastPostAt),
@@ -65,10 +59,7 @@ function afterRating(cursor: ThreadCursor) {
   )
 
   return cursor.isSticky
-    ? or(
-        eq(threads.isSticky, false),
-        and(eq(threads.isSticky, true), olderInSameBucket),
-      )
+    ? or(eq(threads.isSticky, false), and(eq(threads.isSticky, true), olderInSameBucket))
     : and(eq(threads.isSticky, false), olderInSameBucket)
 }
 
@@ -99,10 +90,7 @@ function rowToListing(row: {
     forumId: row.forumId,
     title: row.title,
     slug: row.slug,
-    prefix:
-      row.prefixLabel === null
-        ? null
-        : { label: row.prefixLabel, token: row.prefixToken },
+    prefix: row.prefixLabel === null ? null : { label: row.prefixLabel, token: row.prefixToken },
     authorUserId: row.authorUserId,
     authorUsername: row.authorUsername,
     replyCount: row.replyCount,
@@ -139,9 +127,7 @@ export class PostgresThreadRepository implements ThreadRepository {
       .where(eq(threads.id, threadId))
       .limit(1)
     const row = rows[0]
-    return row
-      ? { forumId: row.forumId, authorUserId: row.authorUserId }
-      : null
+    return row ? { forumId: row.forumId, authorUserId: row.authorUserId } : null
   }
 
   async findById(
@@ -229,11 +215,7 @@ export class PostgresThreadRepository implements ThreadRepository {
           visibleIn(threads.visibility, options.scope),
           authoredBy(threads.authorUserId, options.authors),
           ...(options.after
-            ? [
-                sort === 'rating'
-                  ? afterRating(options.after)
-                  : afterActivity(options.after),
-              ]
+            ? [sort === 'rating' ? afterRating(options.after) : afterActivity(options.after)]
             : []),
         ),
       )

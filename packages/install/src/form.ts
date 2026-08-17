@@ -1,13 +1,14 @@
+import { z } from 'zod'
+
 import {
-  MAIL_PRESET_BY_ID,
   defaultPort,
   isUsableOrigin,
-  mailConfigProblems,
-  normaliseOrigin,
+  MAIL_PRESET_BY_ID,
   type MailConfig,
   type MailSecurity,
+  mailConfigProblems,
+  normaliseOrigin,
 } from '@meith/settings'
-import { z } from 'zod'
 
 export const MAIL_SKIP = 'skip'
 
@@ -25,123 +26,114 @@ const mailFields = {
   mailEndpoint: z.string().trim().default(''),
 }
 
-const installInputObject = z
-  .object({
-    boardName: z
-      .string()
-      .trim()
-      .min(1, 'Give the board a name.')
-      .max(100, 'That name is too long.'),
-    username: z
-      .string()
-      .trim()
-      .min(3, 'The administrator’s name must be at least 3 characters.')
-      .max(30, 'That name is too long.'),
-    email: z.string().trim().email('That does not look like an e-mail address.'),
-    boardUrl: z
-      .string()
-      .trim()
-      .min(1, 'The board needs to know its own address.')
-      .refine(
-        isUsableOrigin,
-        'Give the absolute address, with no path — https://forum.example.',
-      )
-      .transform(normaliseOrigin),
-    password: z
-      .string()
-      .min(12, 'The administrator’s password must be at least 12 characters.')
-      .max(200, 'That password is too long.'),
-    ...mailFields,
-  })
+const installInputObject = z.object({
+  boardName: z.string().trim().min(1, 'Give the board a name.').max(100, 'That name is too long.'),
+  username: z
+    .string()
+    .trim()
+    .min(3, 'The administrator’s name must be at least 3 characters.')
+    .max(30, 'That name is too long.'),
+  email: z.string().trim().email('That does not look like an e-mail address.'),
+  boardUrl: z
+    .string()
+    .trim()
+    .min(1, 'The board needs to know its own address.')
+    .refine(isUsableOrigin, 'Give the absolute address, with no path — https://forum.example.')
+    .transform(normaliseOrigin),
+  password: z
+    .string()
+    .min(12, 'The administrator’s password must be at least 12 characters.')
+    .max(200, 'That password is too long.'),
+  ...mailFields,
+})
 
-export const installInputSchema = installInputObject
-  .superRefine((value, ctx) => {
-    if (value.mailPreset === MAIL_SKIP) return
+export const installInputSchema = installInputObject.superRefine((value, ctx) => {
+  if (value.mailPreset === MAIL_SKIP) return
 
-    const preset = MAIL_PRESET_BY_ID.get(value.mailPreset)
-    if (preset === undefined) {
+  const preset = MAIL_PRESET_BY_ID.get(value.mailPreset)
+  if (preset === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['mailPreset'],
+      message: 'Choose one of the listed options.',
+    })
+    return
+  }
+
+  if (value.mailFrom === '') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['mailFrom'],
+      message: 'Mail needs an address to come from.',
+    })
+  } else if (!z.string().email().safeParse(value.mailFrom).success) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['mailFrom'],
+      message: 'That does not look like an e-mail address.',
+    })
+  }
+
+  if (preset.transport === 'http') {
+    const endpoint = value.mailEndpoint === '' ? (preset.endpoint ?? '') : value.mailEndpoint
+    if (endpoint === '') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['mailPreset'],
-        message: 'Choose one of the listed options.',
+        path: ['mailEndpoint'],
+        message: 'This provider needs an API endpoint.',
       })
-      return
-    }
-
-    if (value.mailFrom === '') {
+    } else if (!z.string().url().safeParse(endpoint).success) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['mailFrom'],
-        message: 'Mail needs an address to come from.',
-      })
-    } else if (!z.string().email().safeParse(value.mailFrom).success) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['mailFrom'],
-        message: 'That does not look like an e-mail address.',
+        path: ['mailEndpoint'],
+        message: 'That is not a URL.',
       })
     }
-
-    if (preset.transport === 'http') {
-      const endpoint = value.mailEndpoint === '' ? (preset.endpoint ?? '') : value.mailEndpoint
-      if (endpoint === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['mailEndpoint'],
-          message: 'This provider needs an API endpoint.',
-        })
-      } else if (!z.string().url().safeParse(endpoint).success) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['mailEndpoint'],
-          message: 'That is not a URL.',
-        })
-      }
-      if (value.mailSecret === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['mailSecret'],
-          message: 'This provider needs an API key.',
-        })
-      }
-      return
-    }
-
-    if (value.mailHost === '' && (preset.host ?? '') === '') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['mailHost'],
-        message: 'Give the SMTP server’s hostname.',
-      })
-    }
-
-    if (value.mailPort !== '') {
-      const port = Number(value.mailPort)
-      if (!Number.isInteger(port) || port < 1 || port > 65535) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['mailPort'],
-          message: 'A port is a whole number between 1 and 65535.',
-        })
-      }
-    }
-
-    const username = value.mailUsername === '' ? (preset.username ?? '') : value.mailUsername
-    if (username !== '' && value.mailSecret === '') {
+    if (value.mailSecret === '') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['mailSecret'],
-        message: 'This server is being given a username, so it needs a password too.',
+        message: 'This provider needs an API key.',
       })
     }
-    if (username === '' && value.mailSecret !== '') {
+    return
+  }
+
+  if (value.mailHost === '' && (preset.host ?? '') === '') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['mailHost'],
+      message: 'Give the SMTP server’s hostname.',
+    })
+  }
+
+  if (value.mailPort !== '') {
+    const port = Number(value.mailPort)
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['mailUsername'],
-        message: 'A password was given with no username.',
+        path: ['mailPort'],
+        message: 'A port is a whole number between 1 and 65535.',
       })
     }
-  })
+  }
+
+  const username = value.mailUsername === '' ? (preset.username ?? '') : value.mailUsername
+  if (username !== '' && value.mailSecret === '') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['mailSecret'],
+      message: 'This server is being given a username, so it needs a password too.',
+    })
+  }
+  if (username === '' && value.mailSecret !== '') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['mailUsername'],
+      message: 'A password was given with no username.',
+    })
+  }
+})
 
 export type InstallInput = z.infer<typeof installInputSchema>
 
@@ -214,8 +206,7 @@ export function mailConfigFromInstallInput(input: InstallInput): MailConfig {
     host: input.mailHost === '' ? (preset.host ?? '') : input.mailHost,
     port:
       input.mailPort === ''
-        ?
-          preset.security === security && preset.port !== undefined
+        ? preset.security === security && preset.port !== undefined
           ? preset.port
           : defaultPort(security)
         : Number(input.mailPort),

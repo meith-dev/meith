@@ -1,17 +1,17 @@
 import 'server-only'
 
 import { ForbiddenError } from '@meith/core'
-import { assessScheduler, type SchedulerHealth } from '@meith/tasks'
 import {
+  type BoardVolumes,
+  getDb,
   PostgresCounterRecount,
   PostgresMaintenanceRepository,
   PostgresSearchRepository,
   PostgresSystemHealthRepository,
-  getDb,
-  type BoardVolumes,
   type RecountStateRow,
   type TaskRunRow,
 } from '@meith/db'
+import { assessScheduler, type SchedulerHealth } from '@meith/tasks'
 
 import { getContainer } from './container'
 import { assessMailReadiness, type MailReadiness } from './mail-health'
@@ -55,16 +55,15 @@ export async function buildSystemHealthView(now: Date): Promise<SystemHealthView
   if (repository === null) return null
 
   const maintenance = new PostgresMaintenanceRepository(getDb())
-  const [tasks, runs, recount, volumes, prunableSessions, searchIndex, mail] =
-    await Promise.all([
-      repository.taskHealth(),
-      repository.recentRuns(20),
-      repository.recountState(),
-      repository.volumes(),
-      maintenance.countPrunableSessions(now),
-      new PostgresSearchRepository(getDb()).indexProgress(),
-      assessMailReadiness(),
-    ])
+  const [tasks, runs, recount, volumes, prunableSessions, searchIndex, mail] = await Promise.all([
+    repository.taskHealth(),
+    repository.recentRuns(20),
+    repository.recountState(),
+    repository.volumes(),
+    maintenance.countPrunableSessions(now),
+    new PostgresSearchRepository(getDb()).indexProgress(),
+    assessMailReadiness(),
+  ])
 
   return {
     scheduler: assessScheduler(tasks, now),

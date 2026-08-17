@@ -5,13 +5,7 @@ import { MUTED_LINK } from '../shared'
 const RAIL =
   'flex flex-col gap-4 px-4 pt-4 sm:px-6 lg:sticky lg:w-60 lg:shrink-0 lg:self-start lg:py-8 lg:pr-0'
 
-export function PanelShell({
-  panel,
-  links,
-  linksLabel,
-  regions,
-  children,
-}: PanelShellModel) {
+export function PanelShell({ panel, links, linksLabel, regions, children }: PanelShellModel) {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col lg:flex-row">
       <aside className={`${RAIL} ${panel === 'admincp' ? 'lg:top-14' : 'lg:top-6'}`}>

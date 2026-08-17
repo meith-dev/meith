@@ -1,8 +1,8 @@
 import {
   definePlugin,
-  REGION_NAMES,
   type PluginRegion,
   type PluginRegionContext,
+  REGION_NAMES,
 } from '@meith/plugin-kit'
 
 export const RECORDED: {
@@ -51,7 +51,12 @@ export const referencePlugin = definePlugin({
   apiVersion: '0',
 
   settings: [
-    { key: 'greeting', label: 'Greeting', default: 'hello', description: 'Prefixed to the footer.' },
+    {
+      key: 'greeting',
+      label: 'Greeting',
+      default: 'hello',
+      description: 'Prefixed to the footer.',
+    },
     { key: 'badge_limit', label: 'Badge limit', default: 3 },
     { key: 'noisy', label: 'Log every hook', default: false, advanced: true },
     {
@@ -76,8 +81,14 @@ export const referencePlugin = definePlugin({
   ],
 
   migrations: [
-    { id: '0001_create_table', statements: ['create table if not exists plugin_reference_note (id serial primary key)'] },
-    { id: '0002_add_column', statements: ['alter table plugin_reference_note add column if not exists note text'] },
+    {
+      id: '0001_create_table',
+      statements: ['create table if not exists plugin_reference_note (id serial primary key)'],
+    },
+    {
+      id: '0002_add_column',
+      statements: ['alter table plugin_reference_note add column if not exists note text'],
+    },
   ],
 
   tasks: [

@@ -14,16 +14,13 @@ import { idList } from './sql-lists'
 import {
   applyAuthorCounts,
   applyForumChain,
+  type CounterTx,
   logModeratorAction,
   syncLedger,
   tallyThread,
-  type CounterTx,
 } from './thread-counters'
 import { PENDING_APPROVAL } from './visibility'
-import {
-  applyVisibilityChangeCounters,
-  repairForumLastPostChain,
-} from './visibility-counters'
+import { applyVisibilityChangeCounters, repairForumLastPostChain } from './visibility-counters'
 
 interface TargetRow {
   kind: 'thread' | 'post'
@@ -77,9 +74,7 @@ export class PostgresInlineModerationRepository implements InlineModerationRepos
 
   async findDestination(forumId: number): Promise<MoveDestination | null> {
     const rows = resultRows(
-      await this.db.execute(
-        sql`select id, type, allow_threads from forums where id = ${forumId}`,
-      ),
+      await this.db.execute(sql`select id, type, allow_threads from forums where id = ${forumId}`),
     ) as Array<{ id: number; type: MoveDestination['type']; allow_threads: boolean }>
     const row = rows[0]
     return row === undefined
@@ -180,9 +175,7 @@ function forumKeys(
   toForumId: number | undefined,
 ): Record<string, unknown> {
   if (toForumId === undefined) {
-    return source.length === 1
-      ? { forumId: source[0], forumIds: source }
-      : { forumIds: source }
+    return source.length === 1 ? { forumId: source[0], forumIds: source } : { forumIds: source }
   }
   const forumIds = [...new Set([...source, toForumId])]
   return source.length === 1
@@ -253,12 +246,7 @@ async function approveThread(tx: CounterTx, threadId: number): Promise<boolean> 
   return true
 }
 
-async function movePost(
-  tx: CounterTx,
-  postId: number,
-  from: string,
-  to: string,
-): Promise<boolean> {
+async function movePost(tx: CounterTx, postId: number, from: string, to: string): Promise<boolean> {
   const moved = resultRows(
     await tx.execute(sql`
       update posts set visibility = ${to}
@@ -328,7 +316,7 @@ async function moveThread(
     await tx.execute(sql`select forum_id, visibility from threads where id = ${threadId}`),
   ) as Array<{ forum_id: number; visibility: string }>
   const before = current[0]
-  if (!before || before.visibility !== 'visible') return false
+  if (before?.visibility !== 'visible') return false
 
   const fromForumId = Number(before.forum_id)
   if (fromForumId === toForumId) return false

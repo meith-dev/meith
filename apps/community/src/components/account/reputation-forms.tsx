@@ -1,19 +1,19 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { rateMemberAction, withdrawRatingAction } from "@/server/reputation-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { rateMemberAction, withdrawRatingAction } from '@/server/reputation-actions'
 
-import { FormError } from "../auth/form-controls"
+import { FormError } from '../auth/form-controls'
 
 const FIELD =
-  "w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-const CARD = "flex flex-col gap-3 rounded-lg border border-border bg-card p-5"
+const CARD = 'flex flex-col gap-3 rounded-lg border border-border bg-card p-5'
 
 const CHOICE =
-  "inline-flex h-9 items-center justify-center rounded-md border border-border px-4 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-9 items-center justify-center rounded-md border border-border px-4 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export function RateMemberForm({
   userId,
@@ -50,12 +50,10 @@ export function RateMemberForm({
       </h2>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">
-          Why{commentRequired ? "" : " (optional)"}
-        </span>
+        <span className="font-medium">Why{commentRequired ? '' : ' (optional)'}</span>
         <textarea
           name="comment"
-          defaultValue={state.values?.["comment"] ?? existingComment ?? ""}
+          defaultValue={state.values?.comment ?? existingComment ?? ''}
           className={FIELD}
           rows={3}
           maxLength={500}
@@ -68,10 +66,10 @@ export function RateMemberForm({
 
       <div className="flex flex-wrap items-center gap-2">
         <button type="submit" name="points" value="1" className={CHOICE}>
-          {allowNegative ? "Positive" : "Thanks"}
+          {allowNegative ? 'Positive' : 'Thanks'}
         </button>
         <button type="submit" name="points" value="0" className={CHOICE}>
-          {allowNegative ? "Neutral" : "Just a comment"}
+          {allowNegative ? 'Neutral' : 'Just a comment'}
         </button>
         {allowNegative && (
           <button type="submit" name="points" value="-1" className={CHOICE}>
@@ -80,9 +78,7 @@ export function RateMemberForm({
         )}
       </div>
 
-      {remainingLabel !== null && (
-        <p className="text-xs text-muted-foreground">{remainingLabel}</p>
-      )}
+      {remainingLabel !== null && <p className="text-xs text-muted-foreground">{remainingLabel}</p>}
     </form>
   )
 }

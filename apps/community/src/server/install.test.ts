@@ -1,5 +1,6 @@
-import { blockers, canProceed } from '@meith/install'
 import { describe, expect, it } from 'vitest'
+
+import { blockers, canProceed } from '@meith/install'
 
 import { gatherPreflight, installerIsSealed } from './install'
 

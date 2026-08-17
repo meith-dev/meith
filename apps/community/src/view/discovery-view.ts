@@ -78,8 +78,6 @@ export function buildDiscoveryView(input: {
       ? 'Nothing here right now. Check back later, or start a conversation of your own.'
       : 'Nothing here right now. You have reached the end of this list.',
     refusal:
-      refusal === null
-        ? null
-        : { message: refusal, signInHref: '/login', signInLabel: 'Sign in' },
+      refusal === null ? null : { message: refusal, signInHref: '/login', signInLabel: 'Sign in' },
   }
 }

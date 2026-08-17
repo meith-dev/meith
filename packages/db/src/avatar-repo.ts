@@ -44,9 +44,7 @@ const COLUMNS = sql`
 `
 
 function droppedKeys(row: { avatar_key: string | null; avatar_source_key: string | null }) {
-  return [row.avatar_key, row.avatar_source_key].filter(
-    (key): key is string => key !== null,
-  )
+  return [row.avatar_key, row.avatar_source_key].filter((key): key is string => key !== null)
 }
 
 export class PostgresAvatarRepository implements AvatarRepository {

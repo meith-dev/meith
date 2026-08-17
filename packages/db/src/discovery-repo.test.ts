@@ -1,11 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { PUBLIC_CONTENT, contentScopeFrom } from '@meith/core'
+import { contentScopeFrom, PUBLIC_CONTENT } from '@meith/core'
 
 import type { Database } from './client'
+import { type DiscoveryScope, PostgresDiscoveryRepository } from './discovery-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresDiscoveryRepository, type DiscoveryScope } from './discovery-repo'
 
 let harness: TestDb
 let db: Database
@@ -67,7 +67,12 @@ async function seedThread(thread: SeedThread): Promise<void> {
   `)
 }
 
-async function seedPost(id: number, threadId: number, authorUserId: number, visibility = 'visible') {
+async function seedPost(
+  id: number,
+  threadId: number,
+  authorUserId: number,
+  visibility = 'visible',
+) {
   await db.execute(sql`
     insert into posts (id, thread_id, forum_id, author_user_id, author_username,
                        message, visibility)
@@ -105,8 +110,7 @@ describe('the permission filter', () => {
     await seedThread({ id: 1 })
     await seedThread({ id: 2, visibility: 'deleted' })
 
-    expect((await repo.activeSince(EPOCH, query, scope())).rows.map((r) => r.threadId))
-      .toEqual([1])
+    expect((await repo.activeSince(EPOCH, query, scope())).rows.map((r) => r.threadId)).toEqual([1])
 
     const staff = contentScopeFrom({ seesUnapproved: true, seesDeleted: true })
     expect(

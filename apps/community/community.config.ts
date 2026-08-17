@@ -1,13 +1,8 @@
 import { defineForumConfig } from '@meith/core'
+import { BROWSER_THEME_COLOR, DARK_TOKENS, defaultTheme, LIGHT_TOKENS } from '@meith/theme-default'
 
-import { INSTALLED_PLUGINS } from './community.plugins'
 import { SHOWCASE_THEMES, showcaseEnabled } from './community.demo.config'
-import {
-  BROWSER_THEME_COLOR,
-  DARK_TOKENS,
-  defaultTheme,
-  LIGHT_TOKENS,
-} from '@meith/theme-default'
+import { INSTALLED_PLUGINS } from './community.plugins'
 
 export default defineForumConfig({
   themes: {

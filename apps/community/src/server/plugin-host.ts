@@ -1,8 +1,9 @@
 import 'server-only'
 
-import { logger } from '@meith/core/logger'
-import { PluginHost, operatorDisabledPlugins, type PluginDefinition } from '@meith/plugin-kit'
 import { cache } from 'react'
+
+import { logger } from '@meith/core/logger'
+import { operatorDisabledPlugins, type PluginDefinition, PluginHost } from '@meith/plugin-kit'
 
 import forumConfig from '../../community.config'
 import { getSettingOverrides } from './settings'

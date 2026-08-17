@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  INSTALL_STEPS,
   blockers,
   canProceed,
   defaultForumSlug,
@@ -9,18 +8,19 @@ import {
   fieldErrorsFromReport,
   firstFailure,
   freshReport,
-  stepTitle,
+  INSTALL_FIELDS,
+  INSTALL_STEPS,
   installed,
   installInputFromForm,
-  INSTALL_FIELDS,
   MAIL_SKIP,
   mailConfigFromInstallInput,
+  type PreflightProbe,
   parseInstallInput,
   preflight,
   SECRET_FIELDS,
+  stepTitle,
   warnings,
   withEnvironmentAnswers,
-  type PreflightProbe,
 } from './index'
 
 function ready(overrides: Partial<PreflightProbe> = {}): PreflightProbe {
@@ -221,9 +221,7 @@ describe('a step that refused an answer', () => {
   })
 
   it('contributes no field error when the step simply broke', () => {
-    const report = [
-      { id: 'migrate', status: 'failed' as const, error: 'connection refused' },
-    ]
+    const report = [{ id: 'migrate', status: 'failed' as const, error: 'connection refused' }]
     expect(fieldErrorsFromReport(report)).toEqual({})
   })
 
@@ -357,9 +355,7 @@ describe('the mail half of the form', () => {
   })
 
   it('reads a blank security select as "use the preset\u2019s", not as an error', () => {
-    expect(parseInstallInput({ ...valid, mailPreset: MAIL_SKIP, mailSecurity: '' }).ok).toBe(
-      true,
-    )
+    expect(parseInstallInput({ ...valid, mailPreset: MAIL_SKIP, mailSecurity: '' }).ok).toBe(true)
 
     const chosen = parseInstallInput({
       ...valid,
@@ -693,9 +689,7 @@ describe('the board address check', () => {
 
 describe('the tick-secret warning', () => {
   it('says which deployments it actually applies to', () => {
-    const check = preflight(ready({ hasTickSecret: false })).find(
-      (c) => c.id === 'tick-secret',
-    )
+    const check = preflight(ready({ hasTickSecret: false })).find((c) => c.id === 'tick-secret')
 
     expect(check?.level).toBe('warning')
     expect(check?.detail).toContain('worker')

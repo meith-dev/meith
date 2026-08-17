@@ -1,6 +1,17 @@
 import type { OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
 
-import { Circle, MUTED_LINK, NUMERIC, OnlineDot, Rail, Stamp, Tag, UserRef, count, plural } from '../shared'
+import {
+  Circle,
+  count,
+  MUTED_LINK,
+  NUMERIC,
+  OnlineDot,
+  plural,
+  Rail,
+  Stamp,
+  Tag,
+  UserRef,
+} from '../shared'
 
 const VISIBLE_NAMES = 8
 
@@ -52,8 +63,9 @@ export function WhoIsOnline({
       }
     >
       <p className={`px-3 text-xs text-muted-foreground ${NUMERIC}`}>
-        {count(total)} online — {count(members.length)} {plural(members.length, 'member', 'members')}
-        , {count(guestCount)} {plural(guestCount, 'guest', 'guests')}
+        {count(total)} online — {count(members.length)}{' '}
+        {plural(members.length, 'member', 'members')}, {count(guestCount)}{' '}
+        {plural(guestCount, 'guest', 'guests')}
       </p>
 
       {members.length === 0 ? (

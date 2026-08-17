@@ -270,9 +270,7 @@ export class PostgresWarningRepository implements WarningRepository {
     options: { readonly limit: number; readonly after?: string },
   ): Promise<WarningPage> {
     const cursor = options.after === undefined ? null : decodeCursor(options.after)
-    const after = cursor
-      ? sql`and (w.created_at, w.id) < (${cursor.at}, ${cursor.id})`
-      : sql``
+    const after = cursor ? sql`and (w.created_at, w.id) < (${cursor.at}, ${cursor.id})` : sql``
 
     const rows = resultRows(
       await this.db.execute(sql`

@@ -1,19 +1,18 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { Alert, AlertDescription, Disclosure, cn } from "@meith/ui"
+import type { UploadLimits } from '@meith/attachments/limits'
+import type { Draft } from '@meith/drafts'
+import { Alert, AlertDescription, cn, Disclosure } from '@meith/ui'
 
-import { createReplyAction } from "@/server/content-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { createReplyAction } from '@/server/content-actions'
 
-import type { UploadLimits } from "@meith/attachments/limits"
-import type { Draft } from "@meith/drafts"
-
-import { AttachmentField } from "./attachment-field"
-import { ComposerIntents } from "./composer-intents"
-import { MarkdownEditor } from "./markdown-editor"
-import { FormError, SubmitButton } from "../auth/form-controls"
+import { FormError, SubmitButton } from '../auth/form-controls'
+import { AttachmentField } from './attachment-field'
+import { ComposerIntents } from './composer-intents'
+import { MarkdownEditor } from './markdown-editor'
 
 export function ReplyForm({
   threadId,
@@ -38,7 +37,7 @@ export function ReplyForm({
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
 
-      {state.notice === "saved" && (
+      {state.notice === 'saved' && (
         <Alert tone="success">
           <AlertDescription>Draft saved.</AlertDescription>
         </Alert>
@@ -57,7 +56,7 @@ export function ReplyForm({
         rows={collapsible ? 6 : 12}
         required
         defaultValue={state.values?.message ?? draft?.message ?? prefill}
-        preview={state.notice === "preview" ? (state.preview ?? "") : undefined}
+        preview={state.notice === 'preview' ? (state.preview ?? '') : undefined}
       />
 
       {attachmentLimits !== null && <AttachmentField limits={attachmentLimits} />}
@@ -70,7 +69,7 @@ export function ReplyForm({
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <SubmitButton className={collapsible ? "w-auto" : "w-full sm:w-auto"}>
+        <SubmitButton className={collapsible ? 'w-auto' : 'w-full sm:w-auto'}>
           Post reply
         </SubmitButton>
         <ComposerIntents />
@@ -85,8 +84,8 @@ export function ReplyForm({
   return (
     <Disclosure
       summary="Write a reply"
-      aside={draft === null ? "Quick reply" : "Draft saved"}
-      className={cn(forceOpen && "border-ring/40")}
+      aside={draft === null ? 'Quick reply' : 'Draft saved'}
+      className={cn(forceOpen && 'border-ring/40')}
       {...(forceOpen ? { open: true } : {})}
     >
       {form}

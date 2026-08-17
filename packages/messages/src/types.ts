@@ -126,15 +126,9 @@ export interface MessageRepository {
     readonly folder: MessageFolder
   }): Promise<number>
 
-  remove(input: {
-    readonly userId: number
-    readonly copyIds: readonly number[]
-  }): Promise<number>
+  remove(input: { readonly userId: number; readonly copyIds: readonly number[] }): Promise<number>
 
-  emptyFolder(input: {
-    readonly userId: number
-    readonly folder: MessageFolder
-  }): Promise<number>
+  emptyFolder(input: { readonly userId: number; readonly folder: MessageFolder }): Promise<number>
 
   forReport(messageId: number): Promise<PrivateMessage | null>
 }

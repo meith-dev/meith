@@ -4,9 +4,9 @@ import { Card, CardFooter, CardRows, Empty, EmptyDescription, EmptyTitle } from 
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
-import { readOnline, presenceRepository } from '@/server/presence'
-import { getViewerPreferences } from '@/server/viewer-preferences'
 import { identitiesFor } from '@/server/group-identity'
+import { presenceRepository, readOnline } from '@/server/presence'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { locationOf } from '@/view/presence'
 import { formatTime } from '@/view/time'
 
@@ -45,8 +45,7 @@ export default async function OnlinePage() {
           {snapshot.total.toLocaleString()} here in the last 15 minutes —{' '}
           {snapshot.members.length.toLocaleString()}{' '}
           {snapshot.members.length === 1 ? 'member' : 'members'} and{' '}
-          {snapshot.guestCount.toLocaleString()}{' '}
-          {snapshot.guestCount === 1 ? 'guest' : 'guests'}.
+          {snapshot.guestCount.toLocaleString()} {snapshot.guestCount === 1 ? 'guest' : 'guests'}.
           {snapshot.invisibleCount > 0 &&
             ` ${snapshot.invisibleCount.toLocaleString()} browsing invisibly.`}
         </>

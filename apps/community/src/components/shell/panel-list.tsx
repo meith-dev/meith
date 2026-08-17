@@ -1,4 +1,4 @@
-import { Empty, EmptyDescription, EmptyTitle, buttonVariants, cn } from '@meith/ui'
+import { buttonVariants, cn, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 export const PANEL_LIST =
   'flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-elevation'
@@ -51,15 +51,11 @@ export function PanelRow({
           <span className="truncate text-sm font-medium text-foreground">{title}</span>
           {badges}
         </span>
-        {meta !== undefined && (
-          <span className="text-xs text-muted-foreground">{meta}</span>
-        )}
+        {meta !== undefined && <span className="text-xs text-muted-foreground">{meta}</span>}
       </span>
 
       {actions !== undefined && (
-        <span className="flex shrink-0 flex-wrap items-center gap-2 text-sm">
-          {actions}
-        </span>
+        <span className="flex shrink-0 flex-wrap items-center gap-2 text-sm">{actions}</span>
       )}
     </li>
   )

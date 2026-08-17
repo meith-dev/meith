@@ -9,9 +9,10 @@ export const DEFAULT_REPOSITORY_URL = 'https://github.com/meith-dev/meith'
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,213}$/
 
 export function validateName(name: string): string | null {
-  if (name === '' ) return 'A project name is required.'
+  if (name === '') return 'A project name is required.'
   if (name === '.' || name === '..') return 'That name would write outside the new directory.'
-  if (name.includes('/') || name.includes('\\')) return 'A project name cannot contain a path separator.'
+  if (name.includes('/') || name.includes('\\'))
+    return 'A project name cannot contain a path separator.'
   if (name !== name.toLowerCase()) return 'npm package names must be lower-case.'
   if (!NAME_PATTERN.test(name)) {
     return 'Use lower-case letters, digits, dots, hyphens and underscores, starting with a letter or digit.'
@@ -238,10 +239,5 @@ otherwise would be worse than its absence.
 }
 
 export function nextSteps(name: string): readonly string[] {
-  return [
-    `cd ${name}`,
-    'npm install',
-    'cp .env.example .env.local',
-    'npm run dev',
-  ]
+  return [`cd ${name}`, 'npm install', 'cp .env.example .env.local', 'npm run dev']
 }

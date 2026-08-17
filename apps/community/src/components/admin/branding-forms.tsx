@@ -1,22 +1,22 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { PANEL_CARD } from "@/components/shell/panel-list"
-import { removeLogoAction, saveLogoAction } from "@/server/branding-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { PANEL_CARD } from '@/components/shell/panel-list'
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { removeLogoAction, saveLogoAction } from '@/server/branding-actions'
 
-import { FormError, SubmitButton } from "../auth/form-controls"
+import { FormError, SubmitButton } from '../auth/form-controls'
 
 export interface LogoSlot {
-  readonly scheme: "light" | "dark"
+  readonly scheme: 'light' | 'dark'
   readonly label: string
   readonly hint: string
   readonly src: string | null
 }
 
 const GHOST =
-  "inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export function LogoUploadForm({ slot, maxKib }: { slot: LogoSlot; maxKib: number }) {
   const [saved, saveAction] = useActionState(saveLogoAction, EMPTY_STATE)
@@ -32,12 +32,12 @@ export function LogoUploadForm({ slot, maxKib }: { slot: LogoSlot; maxKib: numbe
       </div>
 
       <FormError message={saved.error ?? removed.error} />
-      {saved.notice === "saved" && (
+      {saved.notice === 'saved' && (
         <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
           Saved. The header is showing it now.
         </p>
       )}
-      {removed.notice === "removed" && (
+      {removed.notice === 'removed' && (
         <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
           Removed. The header is showing the board&rsquo;s name again.
         </p>
@@ -45,7 +45,7 @@ export function LogoUploadForm({ slot, maxKib }: { slot: LogoSlot; maxKib: numbe
 
       <div
         className={`flex min-h-16 items-center justify-center rounded-md border border-border bg-card p-3 ${
-          slot.scheme === "dark" ? "dark" : ""
+          slot.scheme === 'dark' ? 'dark' : ''
         }`}
       >
         {slot.src === null ? (
@@ -71,8 +71,8 @@ export function LogoUploadForm({ slot, maxKib }: { slot: LogoSlot; maxKib: numbe
           className="w-full text-xs file:mr-3 file:rounded-md file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-medium"
         />
         <p className="text-xs text-muted-foreground">
-          PNG, JPEG, WebP or SVG, up to {maxKib} KiB. The contents decide the
-          format, not the file name. An SVG containing script is refused.
+          PNG, JPEG, WebP or SVG, up to {maxKib} KiB. The contents decide the format, not the file
+          name. An SVG containing script is refused.
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <span className="min-w-32">

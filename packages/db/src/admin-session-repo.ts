@@ -79,12 +79,7 @@ export class PostgresAdminSessionRepository implements AdminSessionRepository {
     return rows[0] === undefined ? null : toSession(rows[0])
   }
 
-  async touch(
-    sessionId: number,
-    now: Date,
-    expiresAt: Date,
-    windowSeconds: number,
-  ): Promise<void> {
+  async touch(sessionId: number, now: Date, expiresAt: Date, windowSeconds: number): Promise<void> {
     const cutoff = new Date(now.getTime() - windowSeconds * 1000)
     await this.db.execute(sql`
       update admin_sessions

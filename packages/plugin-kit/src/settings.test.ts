@@ -14,7 +14,9 @@ import {
 
 const VIEWER = { userId: 1, isGuest: false }
 
-function setting(overrides: Partial<PluginSetting> & Pick<PluginSetting, 'default'>): PluginSetting {
+function setting(
+  overrides: Partial<PluginSetting> & Pick<PluginSetting, 'default'>,
+): PluginSetting {
   return { key: 'thing', label: 'Thing', ...overrides }
 }
 
@@ -152,7 +154,9 @@ describe('the host’s operator switch', () => {
     const host = new PluginHost({ plugins: [plugin] })
     host.setOperatorDisabled(['demo'])
 
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'x',
+    )
     expect(host.health()[0]).toMatchObject({
       enabled: false,
       operatorDisabled: true,
@@ -165,7 +169,9 @@ describe('the host’s operator switch', () => {
     host.setOperatorDisabled(['demo'])
     host.setOperatorDisabled([])
 
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x!')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'x!',
+    )
   })
 
   it('ignores a key naming a plugin this build does not have', () => {
@@ -180,7 +186,9 @@ describe('the host’s operator switch', () => {
     host.setOperatorDisabled(['demo'])
     host.setOperatorDisabled([])
 
-    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe(
+      'x',
+    )
     expect(host.health()[0]).toMatchObject({
       enabled: false,
       operatorDisabled: false,
@@ -247,9 +255,7 @@ describe('typed settings and the environment override', () => {
     const stored = new Map([['plugin.billing.mode', 'test']])
     expect(resolvePluginSettings(plugin, stored).mode).toBe('off')
 
-    const detail = resolvePluginSettingDetails(plugin, stored).find(
-      (d) => d.setting.key === 'mode',
-    )
+    const detail = resolvePluginSettingDetails(plugin, stored).find((d) => d.setting.key === 'mode')
     expect(detail?.source).toBe('default')
   })
 
@@ -266,8 +272,6 @@ describe('typed settings and the environment override', () => {
     expect(pluginSettingType({ key: 'a', label: 'a', default: true })).toBe('boolean')
     expect(pluginSettingType({ key: 'a', label: 'a', default: 3 })).toBe('number')
     expect(pluginSettingType({ key: 'a', label: 'a', default: 'x' })).toBe('string')
-    expect(pluginSettingType({ key: 'a', label: 'a', type: 'secret', default: '' })).toBe(
-      'secret',
-    )
+    expect(pluginSettingType({ key: 'a', label: 'a', type: 'secret', default: '' })).toBe('secret')
   })
 })

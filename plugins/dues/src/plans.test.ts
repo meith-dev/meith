@@ -111,10 +111,22 @@ describe('parsePlanForm', () => {
 
 describe('describeBilling', () => {
   const plan = (overrides: Partial<PlanRow>): PlanRow => ({
-    id: 1, key: 'p', name: 'P', description: null, groupKey: 'g',
-    priceMinor: 100, currency: 'gbp', mode: 'fixed', periodSpec: 'P90D',
-    billingInterval: null, stripePriceId: null, stripeProductId: null,
-    giftable: true, hidden: false, archived: false, createdAt: NOW,
+    id: 1,
+    key: 'p',
+    name: 'P',
+    description: null,
+    groupKey: 'g',
+    priceMinor: 100,
+    currency: 'gbp',
+    mode: 'fixed',
+    periodSpec: 'P90D',
+    billingInterval: null,
+    stripePriceId: null,
+    stripeProductId: null,
+    giftable: true,
+    hidden: false,
+    archived: false,
+    createdAt: NOW,
     ...overrides,
   })
 

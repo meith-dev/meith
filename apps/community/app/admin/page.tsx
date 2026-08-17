@@ -3,27 +3,27 @@ import {
   Alert,
   AlertDescription,
   AlertTitle,
+  buttonVariants,
   Card,
   CardContent,
   CardFooter,
   CardRows,
+  cn,
   Empty,
   EmptyDescription,
   EmptyTitle,
-  buttonVariants,
-  cn,
 } from '@meith/ui'
 
-import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { PanelSectionGrid, PanelWaitingList } from '@/components/shell/panel-overview'
+import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
-import { pendingUpgradeNotice } from '@/server/upgrade-notice'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { readTotals } from '@/server/stats'
-import { ADMIN_SECTIONS } from '@/view/admin-nav'
+import { pendingUpgradeNotice } from '@/server/upgrade-notice'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { ADMIN_SECTIONS } from '@/view/admin-nav'
 import { formatTime } from '@/view/time'
 
 export default async function AdminHomePage() {
@@ -65,8 +65,7 @@ export default async function AdminHomePage() {
           <time dateTime={context.session.createdAt.toISOString()}>
             {formatTime(context.session.createdAt, now, timezone).label}
           </time>
-          {context.session.ipPrefix === null ? null : ` from ${context.session.ipPrefix}`}
-          .
+          {context.session.ipPrefix === null ? null : ` from ${context.session.ipPrefix}`}.
         </>
       }
       gap="loose"
@@ -79,10 +78,7 @@ export default async function AdminHomePage() {
             </AlertDescription>
             <a
               href="/admin/system"
-              className={cn(
-                buttonVariants({ variant: 'outline', size: 'sm' }),
-                'shrink-0',
-              )}
+              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'shrink-0')}
             >
               System
             </a>
@@ -177,9 +173,7 @@ export default async function AdminHomePage() {
                     key={row.id}
                     className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5"
                   >
-                    <code className="font-mono text-xs text-foreground">
-                      {row.action}
-                    </code>
+                    <code className="font-mono text-xs text-foreground">{row.action}</code>
                     <span className="text-xs text-muted-foreground">
                       {row.username ?? 'the system'}
                       {' · '}

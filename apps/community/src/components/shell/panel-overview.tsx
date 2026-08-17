@@ -1,20 +1,13 @@
-import {
-  Card,
-  CardContent,
-  Empty,
-  EmptyDescription,
-  EmptyTitle,
-  buttonVariants,
-} from "@meith/ui";
+import { buttonVariants, Card, CardContent, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
-import type { PanelNav } from "@/view/panel-nav";
+import type { PanelNav } from '@/view/panel-nav'
 
 export interface WaitingItem {
-  readonly count: number;
-  readonly one: string;
-  readonly many: string;
-  readonly href: string;
-  readonly action: string;
+  readonly count: number
+  readonly one: string
+  readonly many: string
+  readonly href: string
+  readonly action: string
 }
 
 function PanelWaiting({ item }: { item: WaitingItem }) {
@@ -22,22 +15,15 @@ function PanelWaiting({ item }: { item: WaitingItem }) {
     <Card className="flex-1 border-moderation-pending/50">
       <CardContent className="flex items-center justify-between gap-4 p-4">
         <div>
-          <p className="text-2xl font-semibold tabular-nums text-foreground">
-            {item.count}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {item.count === 1 ? item.one : item.many}
-          </p>
+          <p className="text-2xl font-semibold tabular-nums text-foreground">{item.count}</p>
+          <p className="text-sm text-muted-foreground">{item.count === 1 ? item.one : item.many}</p>
         </div>
-        <a
-          href={item.href}
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
+        <a href={item.href} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
           {item.action}
         </a>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 export function PanelWaitingList({
@@ -45,11 +31,11 @@ export function PanelWaitingList({
   emptyTitle,
   emptyDescription,
 }: {
-  readonly items: readonly WaitingItem[];
-  readonly emptyTitle: string;
-  readonly emptyDescription: string;
+  readonly items: readonly WaitingItem[]
+  readonly emptyTitle: string
+  readonly emptyDescription: string
 }) {
-  const waiting = items.filter((item) => item.count > 0);
+  const waiting = items.filter((item) => item.count > 0)
 
   if (waiting.length === 0) {
     return (
@@ -59,7 +45,7 @@ export function PanelWaitingList({
           <EmptyDescription>{emptyDescription}</EmptyDescription>
         </Empty>
       </Card>
-    );
+    )
   }
 
   return (
@@ -68,7 +54,7 @@ export function PanelWaitingList({
         <PanelWaiting key={item.href} item={item} />
       ))}
     </div>
-  );
+  )
 }
 
 export function PanelSectionGrid({ sections }: { sections: PanelNav }) {
@@ -91,5 +77,5 @@ export function PanelSectionGrid({ sections }: { sections: PanelNav }) {
         </li>
       ))}
     </ul>
-  );
+  )
 }

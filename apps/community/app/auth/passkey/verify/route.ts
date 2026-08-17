@@ -1,20 +1,20 @@
-import type { NextRequest } from "next/server"
+import type { NextRequest } from 'next/server'
 
-import { logger, statusForError, toPublicError, truncateIp } from "@meith/core"
+import { logger, statusForError, toPublicError, truncateIp } from '@meith/core'
 
-import { remoteAddress } from "@/server/admin"
-import { recordAuthEvent } from "@/server/auth-events"
-import { configuredIdentity, configuredSessions } from "@/server/container"
-import { getActor } from "@/server/context"
+import { remoteAddress } from '@/server/admin'
+import { recordAuthEvent } from '@/server/auth-events'
+import { configuredIdentity, configuredSessions } from '@/server/container'
+import { getActor } from '@/server/context'
 import {
   memberManagedSignIns,
   passkeyService,
   passkeysEnabled,
   relyingParty,
-} from "@/server/federation"
-import { unpackChallenge, type PasskeyPurpose } from "@/server/passkey-challenge"
-import { isSafeLocalPath } from "@/server/safe-path"
-import { crossOriginRefusal, isSameOrigin } from "@/server/same-origin"
+} from '@/server/federation'
+import { type PasskeyPurpose, unpackChallenge } from '@/server/passkey-challenge'
+import { isSafeLocalPath } from '@/server/safe-path'
+import { crossOriginRefusal, isSameOrigin } from '@/server/same-origin'
 import {
   clearPasskeyChallengeCookie,
   clearSecondFactorCookie,
@@ -22,10 +22,10 @@ import {
   readSecondFactorToken,
   setRememberCookie,
   setSessionCookie,
-} from "@/server/session-cookies"
+} from '@/server/session-cookies'
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 interface Submission {
   readonly id?: unknown
@@ -41,81 +41,81 @@ interface Submission {
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json", "cache-control": "no-store" },
+    headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
   })
 }
 
 function problem(message: string, status: number): Response {
-  return json({ error: { code: "FORBIDDEN", message } }, status)
+  return json({ error: { code: 'FORBIDDEN', message } }, status)
 }
 
 function text(value: unknown): string | null {
-  return typeof value === "string" && value !== "" ? value : null
+  return typeof value === 'string' && value !== '' ? value : null
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
   if (!isSameOrigin(request)) return crossOriginRefusal()
 
   if (!(await passkeysEnabled())) {
-    return problem("Passkeys are not switched on for this board.", 404)
+    return problem('Passkeys are not switched on for this board.', 404)
   }
 
-  const asked = request.nextUrl.searchParams.get("for")
+  const asked = request.nextUrl.searchParams.get('for')
   const purpose: PasskeyPurpose =
-    asked === "register" || asked === "second-factor" ? asked : "authenticate"
+    asked === 'register' || asked === 'second-factor' ? asked : 'authenticate'
 
   let body: Submission
   try {
     body = (await request.json()) as Submission
   } catch {
-    return problem("That passkey response could not be read.", 400)
+    return problem('That passkey response could not be read.', 400)
   }
 
   const expectedChallenge = unpackChallenge(await readPasskeyChallengeCookie(), purpose)
   await clearPasskeyChallengeCookie()
 
   if (expectedChallenge === null) {
-    return problem("That passkey attempt has expired. Start it again.", 400)
+    return problem('That passkey attempt has expired. Start it again.', 400)
   }
 
   const clientDataJSON = text(body.clientDataJSON)
   if (clientDataJSON === null) {
-    return problem("That passkey response was incomplete.", 400)
+    return problem('That passkey response was incomplete.', 400)
   }
 
-  const log = logger({ module: "passkeys" })
+  const log = logger({ module: 'passkeys' })
 
   try {
     const service = await passkeyService()
     const party = await relyingParty()
 
-    if (purpose === "register") {
+    if (purpose === 'register') {
       const actor = await getActor()
-      if (actor.userId === null) return problem("Sign in before adding a passkey.", 403)
+      if (actor.userId === null) return problem('Sign in before adding a passkey.', 403)
       if (!(await memberManagedSignIns())) {
-        return problem("This board manages sign-ins for its members.", 403)
+        return problem('This board manages sign-ins for its members.', 403)
       }
 
       const attestationObject = text(body.attestationObject)
       if (attestationObject === null) {
-        return problem("That passkey response was incomplete.", 400)
+        return problem('That passkey response was incomplete.', 400)
       }
 
       const passkey = await service.enrol({
         userId: actor.userId,
-        label: text(body.label) ?? "",
+        label: text(body.label) ?? '',
         expectedChallenge,
         relyingParty: party,
         response: {
           clientDataJSON,
           attestationObject,
           ...(Array.isArray(body.transports)
-            ? { transports: body.transports.filter((entry) => typeof entry === "string") }
+            ? { transports: body.transports.filter((entry) => typeof entry === 'string') }
             : {}),
         },
       })
 
-      await recordAuthEvent({ userId: actor.userId, kind: "passkey_added" })
+      await recordAuthEvent({ userId: actor.userId, kind: 'passkey_added' })
       return json({ ok: true, label: passkey.label })
     }
 
@@ -124,19 +124,17 @@ export async function POST(request: NextRequest): Promise<Response> {
     const signature = text(body.signature)
 
     if (credentialId === null || authenticatorData === null || signature === null) {
-      return problem("That passkey response was incomplete.", 400)
+      return problem('That passkey response was incomplete.', 400)
     }
 
-    if (purpose === "second-factor") {
+    if (purpose === 'second-factor') {
       const held = await readSecondFactorToken()
       const identity = await configuredIdentity()
       const pending =
-        held === undefined || held === ""
-          ? null
-          : await identity.pendingSecondFactor(held)
+        held === undefined || held === '' ? null : await identity.pendingSecondFactor(held)
 
       if (pending === null || held === undefined) {
-        return problem("That sign-in took too long to finish. Start again.", 403)
+        return problem('That sign-in took too long to finish. Start again.', 403)
       }
 
       await identity.assertSecondFactorAttemptsLeft(pending.userId)
@@ -151,8 +149,8 @@ export async function POST(request: NextRequest): Promise<Response> {
 
       if (!proved) {
         await identity.recordSecondFactorFailure(pending.userId)
-        await recordAuthEvent({ userId: pending.userId, kind: "second_factor_failed" })
-        return problem("That passkey does not belong to this account.", 403)
+        await recordAuthEvent({ userId: pending.userId, kind: 'second_factor_failed' })
+        return problem('That passkey does not belong to this account.', 403)
       }
 
       await identity.clearSecondFactorFailures(pending.userId)
@@ -165,18 +163,16 @@ export async function POST(request: NextRequest): Promise<Response> {
       await setSessionCookie(login.sessionToken, login.expiresAt)
 
       if (pending.remember) {
-        const remembered = await (
-          await configuredSessions()
-        ).startRemembered(pending.userId)
+        const remembered = await (await configuredSessions()).startRemembered(pending.userId)
         await setRememberCookie(remembered.rememberToken, remembered.rememberExpiresAt)
       }
 
-      await recordAuthEvent({ userId: pending.userId, kind: "login" })
+      await recordAuthEvent({ userId: pending.userId, kind: 'login' })
 
       const target = text(body.next)
       return json({
         ok: true,
-        next: target !== null && isSafeLocalPath(target) ? target : "/",
+        next: target !== null && isSafeLocalPath(target) ? target : '/',
       })
     }
 
@@ -191,9 +187,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     await setSessionCookie(outcome.login.sessionToken, outcome.login.expiresAt)
 
     const next = text(body.next)
-    return json({ ok: true, next: next !== null && isSafeLocalPath(next) ? next : "/" })
+    return json({ ok: true, next: next !== null && isSafeLocalPath(next) ? next : '/' })
   } catch (err) {
-    log.warn({ err, purpose }, "a passkey exchange was refused")
+    log.warn({ err, purpose }, 'a passkey exchange was refused')
     return json(toPublicError(err), statusForError(err))
   }
 }

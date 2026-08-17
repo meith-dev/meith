@@ -48,7 +48,6 @@ export function planCreate(rows: readonly ForumRow[], input: NewForum): CreatePl
     parentPath,
     depth: parent === null || parent === undefined ? 0 : parent.depth + 1,
     displayOrder:
-      input.displayOrder ??
-      siblings.reduce((max, s) => Math.max(max, s.displayOrder + 1), 0),
+      input.displayOrder ?? siblings.reduce((max, s) => Math.max(max, s.displayOrder + 1), 0),
   }
 }

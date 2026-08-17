@@ -1,5 +1,6 @@
-import type { ForumListingRow } from '@meith/forums'
 import { describe, expect, it } from 'vitest'
+
+import type { ForumListingRow } from '@meith/forums'
 
 import { buildBoardIndexView, buildSectionView } from './board-index'
 
@@ -45,10 +46,7 @@ describe('buildBoardIndexView', () => {
 
     expect(result.blocks).toHaveLength(1)
     expect(result.blocks[0]!.block.category.title).toBe('Forum')
-    expect(result.blocks[0]!.forums.map((f) => f.title)).toEqual([
-      'General',
-      'Announcements',
-    ])
+    expect(result.blocks[0]!.forums.map((f) => f.title)).toEqual(['General', 'Announcements'])
   })
 
   it('shows a root-level forum as its own block', () => {

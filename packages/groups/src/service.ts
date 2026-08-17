@@ -1,9 +1,5 @@
 import type { PromotionRepository } from './ports'
-import {
-  evaluatePromotions,
-  type PromotionGuards,
-  type PromotionOutcome,
-} from './promotion'
+import { evaluatePromotions, type PromotionGuards, type PromotionOutcome } from './promotion'
 
 export interface PromotionServiceDeps {
   readonly promotions: PromotionRepository

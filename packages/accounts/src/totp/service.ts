@@ -1,6 +1,5 @@
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@meith/core'
 
-import { encodeBase32 } from './base32'
 import { hashToken } from '../crypto/tokens'
 import type {
   AccountRepository,
@@ -8,7 +7,7 @@ import type {
   RecoveryCodeRepository,
   TwoFactorRepository,
 } from '../ports'
-
+import { encodeBase32 } from './base32'
 import { openSecret, sealSecret } from './secret-box'
 import { generateTotpSecret, matchTotp, otpauthUri } from './totp'
 
@@ -181,10 +180,7 @@ export class TwoFactorService {
     return codes
   }
 
-  async disable(input: {
-    readonly userId: number
-    readonly required: boolean
-  }): Promise<void> {
+  async disable(input: { readonly userId: number; readonly required: boolean }): Promise<void> {
     if (input.required) {
       throw new ForbiddenError(
         'This board asks its staff for a code, so this cannot be turned off while you ' +

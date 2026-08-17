@@ -6,18 +6,14 @@ export interface ActivityView {
   readonly device: string
 }
 
-export function SecurityActivity({
-  events,
-}: {
-  readonly events: readonly ActivityView[]
-}) {
+export function SecurityActivity({ events }: { readonly events: readonly ActivityView[] }) {
   return (
     <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5">
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold tracking-tight">Recent security activity</h2>
         <p className="text-xs text-muted-foreground">
-          What has happened to your account’s sign-in, most recent first. If something
-          here was not you, change your password and sign out everywhere.
+          What has happened to your account’s sign-in, most recent first. If something here was not
+          you, change your password and sign out everywhere.
         </p>
       </div>
 

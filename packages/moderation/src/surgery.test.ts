@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
+
 import { ValidationError } from '@meith/core'
 
 import {
-  ThreadSurgery,
   type MergePlan,
   type SplitPlan,
   type SurgeryOutcome,
   type SurgeryRights,
   type SurgeryThread,
+  ThreadSurgery,
   type ThreadSurgeryRepository,
 } from './surgery'
 
@@ -54,7 +55,7 @@ class FakeThreads implements ThreadSurgeryRepository {
   }
 
   async visiblePostIdsIn(
-    threadId: number,
+    _threadId: number,
     postIds: readonly number[],
   ): Promise<readonly number[]> {
     return this.posts.filter((id) => postIds.includes(id))
@@ -128,44 +129,36 @@ describe('ThreadSurgery.split', () => {
 
   it('refuses to split from the opening post', async () => {
     const threads = new FakeThreads()
-    await expect(
-      surgeryFor(threads).split(splitInput({ fromPostId: 100 })),
-    ).rejects.toThrow(/Move it instead/)
+    await expect(surgeryFor(threads).split(splitInput({ fromPostId: 100 }))).rejects.toThrow(
+      /Move it instead/,
+    )
     expect(threads.splits).toEqual([])
   })
 
   it('refuses when the selection is the whole thread', async () => {
     const threads = new FakeThreads()
     threads.posts = [101, 102, 103, 104]
-    await expect(surgeryFor(threads).split(splitInput())).rejects.toThrow(
-      /Move it instead/,
-    )
+    await expect(surgeryFor(threads).split(splitInput())).rejects.toThrow(/Move it instead/)
     expect(threads.splits).toEqual([])
   })
 
   it('refuses when the post is not in the thread', async () => {
     const threads = new FakeThreads()
     threads.posts = []
-    await expect(surgeryFor(threads).split(splitInput())).rejects.toThrow(
-      /not in this thread/,
-    )
+    await expect(surgeryFor(threads).split(splitInput())).rejects.toThrow(/not in this thread/)
     expect(threads.splits).toEqual([])
   })
 
   it('refuses a thread that is not on the board', async () => {
     const threads = new FakeThreads()
     threads.threads.set(20, { ...threads.threads.get(20)!, visibility: 'deleted' })
-    await expect(surgeryFor(threads).split(splitInput())).rejects.toThrow(
-      /not on the board/,
-    )
+    await expect(surgeryFor(threads).split(splitInput())).rejects.toThrow(/not on the board/)
   })
 
   it('refuses a thread that does not exist', async () => {
     const threads = new FakeThreads()
     threads.threads.delete(20)
-    await expect(surgeryFor(threads).split(splitInput())).rejects.toThrow(
-      /does not exist/,
-    )
+    await expect(surgeryFor(threads).split(splitInput())).rejects.toThrow(/does not exist/)
   })
 
   it('trims the title and requires one', async () => {
@@ -176,9 +169,9 @@ describe('ThreadSurgery.split', () => {
     await expect(surgeryFor(threads).split(splitInput({ title: '  a ' }))).rejects.toThrow(
       /needs a title/,
     )
-    await expect(
-      surgeryFor(threads).split(splitInput({ title: 'x'.repeat(151) })),
-    ).rejects.toThrow(/at most 150/)
+    await expect(surgeryFor(threads).split(splitInput({ title: 'x'.repeat(151) }))).rejects.toThrow(
+      /at most 150/,
+    )
   })
 
   it('checks the rights before touching the repository at all', async () => {
@@ -211,17 +204,17 @@ describe('ThreadSurgery.merge', () => {
 
   it('refuses without the right at the target end', async () => {
     const threads = new FakeThreads()
-    await expect(
-      surgeryFor(threads).merge(mergeInput({ targetRights: NONE })),
-    ).rejects.toThrow(/into that forum/)
+    await expect(surgeryFor(threads).merge(mergeInput({ targetRights: NONE }))).rejects.toThrow(
+      /into that forum/,
+    )
     expect(threads.merges).toEqual([])
   })
 
   it('refuses to merge a thread into itself', async () => {
     const threads = new FakeThreads()
-    await expect(
-      surgeryFor(threads).merge(mergeInput({ targetThreadId: 21 })),
-    ).rejects.toThrow(/into itself/)
+    await expect(surgeryFor(threads).merge(mergeInput({ targetThreadId: 21 }))).rejects.toThrow(
+      /into itself/,
+    )
     expect(threads.merges).toEqual([])
   })
 
@@ -232,9 +225,7 @@ describe('ThreadSurgery.merge', () => {
 
     const hidden = new FakeThreads()
     hidden.threads.set(20, { ...hidden.threads.get(20)!, visibility: 'unapproved' })
-    await expect(surgeryFor(hidden).merge(mergeInput())).rejects.toThrow(
-      /not on the board/,
-    )
+    await expect(surgeryFor(hidden).merge(mergeInput())).rejects.toThrow(/not on the board/)
   })
 })
 

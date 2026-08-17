@@ -1,7 +1,8 @@
-import { ValidationError } from '@meith/core'
 import { describe, expect, it } from 'vitest'
 
-import { assertUsableFilter, matchBanFilter, type BanFilter } from './ban-filter'
+import { ValidationError } from '@meith/core'
+
+import { assertUsableFilter, type BanFilter, matchBanFilter } from './ban-filter'
 
 function filter(type: BanFilter['type'], pattern: string, id = 1): BanFilter {
   return { id, type, pattern }
@@ -21,7 +22,9 @@ describe('matchBanFilter', () => {
   })
 
   it('expands * to any run and ? to one character', () => {
-    expect(matchBanFilter([filter('email', '*@spam.example')], { email: 'a@spam.example' })).not.toBeNull()
+    expect(
+      matchBanFilter([filter('email', '*@spam.example')], { email: 'a@spam.example' }),
+    ).not.toBeNull()
     expect(matchBanFilter([filter('username', 'bot?')], { username: 'bot7' })).not.toBeNull()
     expect(matchBanFilter([filter('username', 'bot?')], { username: 'bot42' })).toBeNull()
   })
@@ -32,7 +35,9 @@ describe('matchBanFilter', () => {
   })
 
   it('treats regex metacharacters literally', () => {
-    expect(matchBanFilter([filter('email', '*@spam.example')], { email: 'a@spamXexample' })).toBeNull()
+    expect(
+      matchBanFilter([filter('email', '*@spam.example')], { email: 'a@spamXexample' }),
+    ).toBeNull()
     expect(matchBanFilter([filter('username', 'a+b')], { username: 'a+b' })).not.toBeNull()
     expect(matchBanFilter([filter('username', 'a+b')], { username: 'aab' })).toBeNull()
     expect(matchBanFilter([filter('username', 'x(y)')], { username: 'x(y)' })).not.toBeNull()
@@ -49,7 +54,9 @@ describe('matchBanFilter', () => {
   })
 
   it('only tests a filter against its own field', () => {
-    expect(matchBanFilter([filter('username', '*@spam.example')], { email: 'a@spam.example' })).toBeNull()
+    expect(
+      matchBanFilter([filter('username', '*@spam.example')], { email: 'a@spam.example' }),
+    ).toBeNull()
   })
 
   it('skips fields the caller did not supply', () => {

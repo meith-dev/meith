@@ -3,11 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { MODERATOR_RIGHTS } from '@meith/db'
 
-import {
-  ForumOptionsForm,
-  ModeratorsPanel,
-  MoveForumForm,
-} from '@/components/admin/forum-forms'
+import { ForumOptionsForm, ModeratorsPanel, MoveForumForm } from '@/components/admin/forum-forms'
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
@@ -16,11 +12,7 @@ import { forumAdminRepository } from '@/server/forum-admin'
 
 export const metadata: Metadata = { title: 'Forum options' }
 
-export default async function AdminForumPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+export default async function AdminForumPage({ params }: { params: Promise<{ id: string }> }) {
   if ((await adminPageContext()) === null) return null
 
   const { id } = await params
@@ -46,9 +38,8 @@ export default async function AdminForumPage({
       title={forum.title}
       lede={
         <>
-          Everything this forum is, apart from where it sits. Order is arranged on the
-          tree screen; the move below is the long way round, for a destination too far to
-          drag to.
+          Everything this forum is, apart from where it sits. Order is arranged on the tree screen;
+          the move below is the long way round, for a destination too far to drag to.
         </>
       }
       gap="loose"

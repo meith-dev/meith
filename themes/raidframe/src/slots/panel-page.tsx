@@ -24,9 +24,7 @@ export function PanelPage({
       tabIndex={-1}
       className={`flex w-full flex-col p-4 ${
         frame === 'standalone' ? 'mx-auto flex-1' : ''
-      } ${width === 'wide' ? 'max-w-none' : 'max-w-4xl'} ${
-        gap === 'loose' ? 'gap-6' : 'gap-4'
-      }`}
+      } ${width === 'wide' ? 'max-w-none' : 'max-w-4xl'} ${gap === 'loose' ? 'gap-6' : 'gap-4'}`}
     >
       <div className="border border-border bg-card shadow-elevation">
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 px-4 py-3">

@@ -1,4 +1,3 @@
-import { withinRotationGrace } from './ports'
 import type {
   AccountRecord,
   AccountRepository,
@@ -7,26 +6,27 @@ import type {
   ActiveSessionRecord,
   AuthEventRecord,
   AuthEventRepository,
-  NewAuthEvent,
-  RecoveryCodeRepository,
-  TwoFactorRecord,
-  TwoFactorRepository,
   CredentialPurpose,
   CredentialTokenRepository,
   LinkIdentityInput,
   LoginAttemptRepository,
   NewAccount,
+  NewAuthEvent,
   NewPasskey,
   PasskeyRecord,
   PasskeyRepository,
+  RecoveryCodeRepository,
   RememberRotation,
   RememberTokenRepository,
   SessionLocation,
   SessionRecord,
   SessionRepository,
+  TwoFactorRecord,
+  TwoFactorRepository,
   UserIdentityRecord,
   UserIdentityRepository,
 } from './ports'
+import { withinRotationGrace } from './ports'
 
 class MemoryAccounts implements AccountRepository {
   private readonly byId = new Map<number, AccountRecord>()
@@ -65,7 +65,6 @@ class MemoryAccounts implements AccountRepository {
       passwordAlgo: input.passwordAlgo,
       state: input.state,
       emailVerifiedAt: null,
-      // eslint-disable-next-line no-restricted-properties -- group-id transport, not a decision
       primaryGroupId: input.primaryGroupId,
     }
     this.byId.set(record.id, record)
@@ -164,10 +163,7 @@ class MemorySessions implements SessionRepository {
     return id === undefined ? null : (this.byId.get(id) ?? null)
   }
 
-  async listActiveForUser(
-    userId: number,
-    now: Date,
-  ): Promise<readonly ActiveSessionRecord[]> {
+  async listActiveForUser(userId: number, now: Date): Promise<readonly ActiveSessionRecord[]> {
     return [...this.byId.values()]
       .filter(
         (session) =>

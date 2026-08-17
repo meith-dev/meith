@@ -1,19 +1,13 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { confirmResetAction } from "@/server/auth-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { confirmResetAction } from '@/server/auth-actions'
+import { EMPTY_STATE } from '@/server/auth-form-state'
 
-import { Field, FormError, SubmitButton } from "./form-controls"
+import { Field, FormError, SubmitButton } from './form-controls'
 
-export function ResetConfirmForm({
-  token,
-  minLength,
-}: {
-  token: string
-  minLength: number
-}) {
+export function ResetConfirmForm({ token, minLength }: { token: string; minLength: number }) {
   const [state, action] = useActionState(confirmResetAction, EMPTY_STATE)
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>

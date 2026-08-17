@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   changeCounts,
   cssVariables,
+  type EditableToken,
   effectiveValues,
   fieldName,
   initialDraft,
@@ -11,7 +12,6 @@ import {
   schemesFor,
   shippedValues,
   tokenChanges,
-  type EditableToken,
 } from './theme-draft'
 
 function token(over: Partial<EditableToken> = {}): EditableToken {
@@ -86,10 +86,7 @@ describe('the three palettes', () => {
   })
 
   it('effective carries every token, not only the changed ones', () => {
-    expect(Object.keys(effectiveValues(tokens, {}, 'light')).sort()).toEqual([
-      'primary',
-      'radius',
-    ])
+    expect(Object.keys(effectiveValues(tokens, {}, 'light')).sort()).toEqual(['primary', 'radius'])
   })
 
   it('reads a scheme-independent token’s single field in both schemes', () => {

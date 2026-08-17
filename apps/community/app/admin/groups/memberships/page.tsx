@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
+import { MoveMembersForm } from '@/components/admin/group-forms'
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
-import { MoveMembersForm } from '@/components/admin/group-forms'
 import { adminPageContext } from '@/server/admin'
 import { groupAdminRepository } from '@/server/group-admin'
 
@@ -16,8 +16,7 @@ export default async function AdminMembershipsPage() {
     return (
       <PanelPage title="Mass membership change">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so its memberships cannot be
-          edited.
+          This board is running on in-memory sample data, so its memberships cannot be edited.
         </p>
       </PanelPage>
     )
@@ -31,8 +30,8 @@ export default async function AdminMembershipsPage() {
       title="Mass membership change"
       lede={
         <>
-          Moves every member of one group into another, a batch at a time. The counts
-          beside each group are how many members it holds now.
+          Moves every member of one group into another, a batch at a time. The counts beside each
+          group are how many members it holds now.
         </>
       }
     >
@@ -47,9 +46,9 @@ export default async function AdminMembershipsPage() {
       </section>
 
       <p className="text-xs text-muted-foreground">
-        This changes members&rsquo; <strong>primary</strong> group, which is what decides
-        their permissions and the badge beside their name. It is not reversible except by
-        moving them back.
+        This changes members&rsquo; <strong>primary</strong> group, which is what decides their
+        permissions and the badge beside their name. It is not reversible except by moving them
+        back.
       </p>
     </PanelPage>
   )

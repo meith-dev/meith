@@ -3,7 +3,7 @@ import 'server-only'
 import type { FeedPost, FeedThread } from '@meith/db'
 import type { CompiledWordFilter } from '@meith/markdown'
 
-import { summarise, type FeedChannel, type FeedEntry } from '@/view/feed'
+import { type FeedChannel, type FeedEntry, summarise } from '@/view/feed'
 import { postLink } from '@/view/post-link'
 import { filterWords } from '@/view/word-filter'
 
@@ -40,9 +40,7 @@ export function feedFor(
     return {
       id: tagId('post', post.postId),
       title: post.threadTitle,
-      href: absolute(
-        postLink(`/thread/${post.threadId}-${post.threadSlug}`, post.postId),
-      ),
+      href: absolute(postLink(`/thread/${post.threadId}-${post.threadSlug}`, post.postId)),
       author: post.authorUsername,
       published: post.createdAt,
       updated: post.createdAt,

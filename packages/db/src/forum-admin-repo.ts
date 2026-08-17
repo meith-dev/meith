@@ -1,11 +1,11 @@
 import { sql } from 'drizzle-orm'
 
-import { FORUM_PERMISSION_FIELDS, ValidationError } from '@meith/core'
 import type { ForumOverride } from '@meith/authorization'
+import { FORUM_PERMISSION_FIELDS, ValidationError } from '@meith/core'
 
 import type { Database } from './client'
-import { columnName } from './schema/permission-columns'
 import { resultRows } from './result-rows'
+import { columnName } from './schema/permission-columns'
 
 export interface ForumOptionsInput {
   readonly title: string
@@ -215,8 +215,7 @@ export class PostgresForumAdminRepository {
       for (const field of FORUM_PERMISSION_FIELDS) {
         const value = row[columnName(field.key)]
         if (value === null || value === undefined) continue
-        overrides[field.key] =
-          field.kind === 'numeric' ? Number(value) : value === true
+        overrides[field.key] = field.kind === 'numeric' ? Number(value) : value === true
       }
 
       return {

@@ -42,9 +42,7 @@ export class FixtureForumRepository implements ForumRepository {
   }
 
   private ordered(): ForumListingRow[] {
-    return [...this.rows].sort(
-      (a, b) => a.displayOrder - b.displayOrder || a.id - b.id,
-    )
+    return [...this.rows].sort((a, b) => a.displayOrder - b.displayOrder || a.id - b.id)
   }
 
   async create(_input: NewForum): Promise<ForumRow> {

@@ -1,11 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { SubscriptionNotifier, groupByThread } from './notifier'
-import type {
-  PendingForUser,
-  PendingPost,
-  SubscriptionRepository,
-} from './types'
+import { groupByThread, SubscriptionNotifier } from './notifier'
+import type { PendingForUser, PendingPost, SubscriptionRepository } from './types'
 
 const NOW = new Date('2026-07-31T12:00:00Z')
 
@@ -73,10 +69,7 @@ class MemorySubscriptions implements SubscriptionRepository {
     }
   }
 
-  async advanceWatermarks(input: {
-    userId: number
-    watermarks: PendingForUser['watermarks']
-  }) {
+  async advanceWatermarks(input: { userId: number; watermarks: PendingForUser['watermarks'] }) {
     this.advanced.push({ userId: input.userId, watermarks: input.watermarks })
   }
 
@@ -168,7 +161,7 @@ describe('instant', () => {
 
     await notifier('board-secret').runInstant()
 
-    expect(typeof raised[0]?.data['unsubscribe']).toBe('string')
+    expect(typeof raised[0]?.data.unsubscribe).toBe('string')
   })
 
   it('carries none when the board has no secret', async () => {
@@ -176,7 +169,7 @@ describe('instant', () => {
 
     await notifier().runInstant()
 
-    expect(raised[0]?.data['unsubscribe']).toBeNull()
+    expect(raised[0]?.data.unsubscribe).toBeNull()
   })
 
   it('advances the watermark after telling somebody', async () => {
@@ -241,8 +234,8 @@ describe('digests', () => {
     expect(notified).toBe(1)
     expect(raised).toHaveLength(1)
     expect(raised[0]?.kind).toBe('subscription.digest')
-    expect(raised[0]?.data['threadCount']).toBe(2)
-    expect(raised[0]?.data['postCount']).toBe(3)
+    expect(raised[0]?.data.threadCount).toBe(2)
+    expect(raised[0]?.data.postCount).toBe(3)
   })
 
   it('never coalesces: two periods are two digests', async () => {
@@ -265,7 +258,7 @@ describe('digests', () => {
 
   it('carries the board-wide unsubscribe scope, not a per-thread one', async () => {
     await notifier('board-secret').runDigest('daily')
-    const token = raised[0]?.data['unsubscribe']
+    const token = raised[0]?.data.unsubscribe
     expect(typeof token).toBe('string')
     expect(String(token)).toContain('.email.0.')
   })
@@ -280,8 +273,8 @@ describe('digests', () => {
 
     await notifier().runDigest('daily')
 
-    expect((raised[0]?.data['threads'] as unknown[]).length).toBe(10)
-    expect(raised[0]?.data['more']).toBe(5)
-    expect(raised[0]?.data['threadCount']).toBe(15)
+    expect((raised[0]!.data.threads as unknown[]).length).toBe(10)
+    expect(raised[0]?.data.more).toBe(5)
+    expect(raised[0]?.data.threadCount).toBe(15)
   })
 })

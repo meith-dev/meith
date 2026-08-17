@@ -1,8 +1,9 @@
-import { AsyncLocalStorage } from "node:async_hooks"
-import { randomUUID } from "node:crypto"
-import pino from "pino"
+import { AsyncLocalStorage } from 'node:async_hooks'
+import { randomUUID } from 'node:crypto'
 
-import { env } from "./env"
+import pino from 'pino'
+
+import { env } from './env'
 
 export interface RequestContext {
   requestId: string
@@ -17,12 +18,12 @@ export function truncateIp(ip: string | null | undefined): string | undefined {
   const value = ip.trim()
   if (value.length === 0) return undefined
 
-  if (value.includes(":")) {
-    const groups = value.split(":").filter((segment) => segment.length > 0)
-    return `${groups.slice(0, 3).join(":")}::/48`
+  if (value.includes(':')) {
+    const groups = value.split(':').filter((segment) => segment.length > 0)
+    return `${groups.slice(0, 3).join(':')}::/48`
   }
 
-  const octets = value.split(".")
+  const octets = value.split('.')
   if (octets.length !== 4) return undefined
   return `${octets[0]}.${octets[1]}.${octets[2]}.0/24`
 }
@@ -35,26 +36,26 @@ function buildLogger(): pino.Logger {
     base: null,
     redact: {
       paths: [
-        "password",
-        "*.password",
-        "passwordConfirm",
-        "*.passwordConfirm",
-        "password_hash",
-        "*.password_hash",
-        "token",
-        "*.token",
-        "sessionToken",
-        "*.sessionToken",
-        "cookie",
-        "*.cookie",
-        "authorization",
-        "*.authorization",
-        "secret",
-        "*.secret",
-        "req.headers.cookie",
-        "req.headers.authorization",
+        'password',
+        '*.password',
+        'passwordConfirm',
+        '*.passwordConfirm',
+        'password_hash',
+        '*.password_hash',
+        'token',
+        '*.token',
+        'sessionToken',
+        '*.sessionToken',
+        'cookie',
+        '*.cookie',
+        'authorization',
+        '*.authorization',
+        'secret',
+        '*.secret',
+        'req.headers.cookie',
+        'req.headers.authorization',
       ],
-      censor: "[redacted]",
+      censor: '[redacted]',
     },
     formatters: {
       level(label) {
@@ -102,7 +103,9 @@ export function withRequestContext<T>(context: Partial<RequestContext>, fn: () =
   return storage.run(next, fn)
 }
 
-export function stampRequestId<T extends Record<string, unknown>>(payload: T): T & { __requestId?: string } {
+export function stampRequestId<T extends Record<string, unknown>>(
+  payload: T,
+): T & { __requestId?: string } {
   const requestId = currentRequestId()
   return requestId === undefined ? payload : { ...payload, __requestId: requestId }
 }

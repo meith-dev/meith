@@ -1,13 +1,13 @@
 import 'server-only'
 
+import type { AccountStore } from '@meith/accounts'
 import {
-  combinePermissionSets,
   type Actor,
   type ActorSource,
   type ActorState,
+  combinePermissionSets,
   type GroupDefaults,
 } from '@meith/authorization'
-import type { AccountStore } from '@meith/accounts'
 import { emptyPermissionSet } from '@meith/core'
 
 import { SEED_BOARD, SEED_GROUP } from './seed-board'
@@ -39,7 +39,6 @@ export class FixtureActorSource implements ActorSource {
     const account = await this.store.accounts.findById(userId)
     if (!account) return null
 
-    // eslint-disable-next-line no-restricted-properties -- reading the user's own primary group to assemble the actor's group ladder, exactly as ActorBuilder does in @meith/db
     const primaryGroupId = account.primaryGroupId ?? SEED_GROUP.registered
     const groupIds = [primaryGroupId]
 

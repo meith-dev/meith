@@ -1,12 +1,12 @@
-import type { Metadata, Viewport } from "next"
+import type { Metadata, Viewport } from 'next'
 
-import { SiteFooter } from "../src/components/site-footer"
-import { SiteHeader } from "../src/components/site-header"
-import { chromeColour } from "../src/content/chrome"
-import { site } from "../src/content/site"
-import { THEME_STORAGE_KEY } from "../src/theme-storage"
+import { SiteFooter } from '../src/components/site-footer'
+import { SiteHeader } from '../src/components/site-header'
+import { chromeColour } from '../src/content/chrome'
+import { site } from '../src/content/site'
+import { THEME_STORAGE_KEY } from '../src/theme-storage'
 
-import "../src/styles/globals.css"
+import '../src/styles/globals.css'
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -17,21 +17,21 @@ export const metadata: Metadata = {
   description: site.description,
   applicationName: site.name,
   openGraph: {
-    type: "website",
+    type: 'website',
     siteName: site.name,
     title: site.name,
     description: site.tagline,
     url: site.url,
   },
-  twitter: { card: "summary_large_image", title: site.name, description: site.tagline },
-  alternates: { canonical: "/" },
-  icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }] },
+  twitter: { card: 'summary_large_image', title: site.name, description: site.tagline },
+  alternates: { canonical: '/' },
+  icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }] },
 }
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: chromeColour.light },
-    { media: "(prefers-color-scheme: dark)", color: chromeColour.dark },
+    { media: '(prefers-color-scheme: light)', color: chromeColour.light },
+    { media: '(prefers-color-scheme: dark)', color: chromeColour.dark },
   ],
 }
 

@@ -103,7 +103,10 @@ export function SearchForm({
   errorMessage,
   advanced,
 }: SearchFormModel) {
-  const described = [hint === null ? null : 'search-hint', errorMessage === null ? null : 'search-error']
+  const described = [
+    hint === null ? null : 'search-hint',
+    errorMessage === null ? null : 'search-error',
+  ]
     .filter((id): id is string => id !== null)
     .join(' ')
 

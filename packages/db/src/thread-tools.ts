@@ -1,12 +1,7 @@
 import { sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
-
-import type {
-  MoveDestination,
-  ThreadToolTarget,
-  ThreadToolsRepository,
-} from '@meith/moderation'
+import type { MoveDestination, ThreadToolsRepository, ThreadToolTarget } from '@meith/moderation'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -53,9 +48,7 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
 
   async findDestination(forumId: number): Promise<MoveDestination | null> {
     const rows = resultRows(
-      await this.db.execute(
-        sql`select id, type, allow_threads from forums where id = ${forumId}`,
-      ),
+      await this.db.execute(sql`select id, type, allow_threads from forums where id = ${forumId}`),
     ) as Array<{ id: number; type: MoveDestination['type']; allow_threads: boolean }>
     const row = rows[0]
     return row === undefined

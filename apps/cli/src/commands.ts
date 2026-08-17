@@ -1,16 +1,16 @@
-import {
-  SETTING_DEFINITION_BY_KEY,
-  SettingsSnapshot,
-  saveSettings,
-  type SettingDefinition,
-  type SettingKey,
-} from '@meith/settings'
+import { foldIdentifier } from '@meith/accounts'
 import { ValidationError } from '@meith/core'
 import { FORUM_TYPES, type ForumType } from '@meith/forums'
-import { foldIdentifier } from '@meith/accounts'
+import {
+  SETTING_DEFINITION_BY_KEY,
+  type SettingDefinition,
+  type SettingKey,
+  SettingsSnapshot,
+  saveSettings,
+} from '@meith/settings'
 
-import { createContext, type CliContext } from './context'
-import { integer, optional, parseFlags, required, type Flags } from './args'
+import { type Flags, integer, optional, parseFlags, required } from './args'
+import { type CliContext, createContext } from './context'
 
 async function readPassword(flags: Flags): Promise<string> {
   const inline = optional(flags, 'password')
@@ -31,7 +31,9 @@ async function readPassword(flags: Flags): Promise<string> {
 
   const chunks: Buffer[] = []
   for await (const chunk of process.stdin) chunks.push(chunk as Buffer)
-  const password = Buffer.concat(chunks).toString('utf8').replace(/\r?\n$/, '')
+  const password = Buffer.concat(chunks)
+    .toString('utf8')
+    .replace(/\r?\n$/, '')
 
   if (password === '') throw new ValidationError('The password read from stdin was empty.')
   return password
@@ -47,9 +49,7 @@ async function findGroup(ctx: CliContext, reference: string) {
   const group = await ctx.admin.findGroup(reference)
   if (!group) {
     const keys = await ctx.admin.listGroupKeys()
-    throw new ValidationError(
-      `No such group: ${reference}. Available: ${keys.join(', ')}`,
-    )
+    throw new ValidationError(`No such group: ${reference}. Available: ${keys.join(', ')}`)
   }
   return group
 }
@@ -153,9 +153,7 @@ export async function settingsSet(args: readonly string[]): Promise<number> {
   const result = await saveSettings(ctx.settings, { [key]: coerce(raw, definition) }, snapshot)
 
   console.log(
-    result.changed.length === 0
-      ? `${key} was already ${raw}. Nothing written.`
-      : `${key} = ${raw}`,
+    result.changed.length === 0 ? `${key} was already ${raw}. Nothing written.` : `${key} = ${raw}`,
   )
   return 0
 }

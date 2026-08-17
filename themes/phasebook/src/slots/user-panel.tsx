@@ -1,7 +1,7 @@
-import { Menu } from '@meith/ui/menu'
 import type { UserPanelModel } from '@meith/theme-kit'
+import { Menu } from '@meith/ui/menu'
 
-import { Circle, ICON_BUTTON, MUTED_LINK, PILL, PILL_PRIMARY, count } from '../shared'
+import { Circle, count, ICON_BUTTON, MUTED_LINK, PILL, PILL_PRIMARY } from '../shared'
 
 function BellIcon() {
   return (

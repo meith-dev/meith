@@ -1,16 +1,17 @@
 'use server'
 
-import { CacheTags, ValidationError, isAppError, logger, readPluginEnv } from '@meith/core'
-import { PostgresSettingsRepository, getDb } from '@meith/db'
-import { drivers } from '@meith/drivers'
 import { revalidatePath } from 'next/cache'
+
+import { CacheTags, isAppError, logger, readPluginEnv, ValidationError } from '@meith/core'
+import { getDb, PostgresSettingsRepository } from '@meith/db'
+import { drivers } from '@meith/drivers'
 import {
+  type PluginDefinition,
   parsePluginSetting,
   pluginEnabledKey,
   pluginSettingType,
   resolvePluginSettingDetails,
   serialisePluginSetting,
-  type PluginDefinition,
 } from '@meith/plugin-kit'
 
 import forumConfig from '../../community.config'
@@ -40,10 +41,7 @@ async function invalidateSettings(): Promise<void> {
   revalidatePath('/admin/plugins/[key]/[[...path]]', 'page')
 }
 
-export async function setPluginEnabledAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function setPluginEnabledAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const key = String(form.get('key') ?? '')
     const enabled = form.get('enabled') === '1'

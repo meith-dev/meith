@@ -5,12 +5,8 @@ import {
   type NotificationAudience,
   type RegisteredNotificationKind,
 } from './kinds'
-import { renderNotification, type NotificationView } from './render'
-import type {
-  NotificationData,
-  NotificationRepository,
-  RaiseResult,
-} from './types'
+import { type NotificationView, renderNotification } from './render'
+import type { NotificationData, NotificationRepository, RaiseResult } from './types'
 
 export const NOTIFICATIONS_PAGE_SIZE = 25
 

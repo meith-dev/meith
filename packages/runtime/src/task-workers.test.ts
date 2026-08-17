@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { MemoryQueue } from '@meith/drivers'
 import type { OutboxReader, OutboxRecord } from '@meith/events'
 
@@ -54,7 +55,9 @@ function build(rows: OutboxRecord[]) {
     ...unusedDeps,
     queue,
     outbox,
-    events: buildEventRegistry({ counters: { rollUpAncestors, applyVisibilityChange: async () => false } }),
+    events: buildEventRegistry({
+      counters: { rollUpAncestors, applyVisibilityChange: async () => false },
+    }),
   })
   return { queue, outbox, workers }
 }
@@ -93,7 +96,9 @@ describe('the outbox relay and queue drain', () => {
       ...unusedDeps,
       queue,
       outbox: new FakeOutbox([]),
-      events: buildEventRegistry({ counters: { rollUpAncestors, applyVisibilityChange: async () => false } }),
+      events: buildEventRegistry({
+        counters: { rollUpAncestors, applyVisibilityChange: async () => false },
+      }),
       recount: { run: async () => ({ corrected: 7 }) },
       threadViews: { flush: async () => 4 },
     })

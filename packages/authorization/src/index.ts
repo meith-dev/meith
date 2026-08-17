@@ -1,9 +1,21 @@
-export { Authorizer } from './authorizer'
+export { type ContentScope, PUBLIC_CONTENT } from '@meith/core'
+
 export type { AuthorizerOptions, BypassEvent } from './authorizer'
+export { Authorizer } from './authorizer'
 export { combineGroupValue, combinePermissionSets } from './combine'
+export {
+  buildPermissionMatrix,
+  type CopyChange,
+  type CopyPlan,
+  type MatrixCell,
+  type MatrixInput,
+  type MatrixRow,
+  planCopyToDescendants,
+  readMatrixCell,
+} from './matrix-editor'
+export type { MemoryAppointment, MemoryBoard } from './memory-source'
 export { InMemoryAuthorizationSource } from './memory-source'
-export type { MemoryBoard } from './memory-source'
-export { resolveForumMatrix, indexOverrides, forumSubset } from './resolve'
+export { forumSubset, indexOverrides, resolveForumMatrix } from './resolve'
 export type {
   Action,
   Actor,
@@ -19,22 +31,8 @@ export type {
   Visible,
 } from './types'
 export {
-  NO_MODERATOR_RIGHTS,
   hasAnyModeratorRight,
   type ModeratorAppointment,
   type ModeratorRights,
+  NO_MODERATOR_RIGHTS,
 } from './types'
-export type { MemoryAppointment } from './memory-source'
-
-export { PUBLIC_CONTENT, type ContentScope } from '@meith/core'
-
-export {
-  buildPermissionMatrix,
-  planCopyToDescendants,
-  readMatrixCell,
-  type CopyChange,
-  type CopyPlan,
-  type MatrixCell,
-  type MatrixInput,
-  type MatrixRow,
-} from './matrix-editor'

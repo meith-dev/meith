@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  type PanelNav,
-  type PanelSection,
   buildPanelNavModel,
   countFor,
   deepestHrefIn,
   isHere,
   isUnder,
+  type PanelNav,
+  type PanelSection,
   sectionHrefIn,
   visibleChildren,
 } from './panel-nav'
@@ -22,10 +22,7 @@ const SECTION: PanelSection = {
   ],
 }
 
-const NAV: PanelNav = [
-  { href: '/panel', title: 'Overview', blurb: 'The front door.' },
-  SECTION,
-]
+const NAV: PanelNav = [{ href: '/panel', title: 'Overview', blurb: 'The front door.' }, SECTION]
 
 describe('isUnder', () => {
   it('needs a segment boundary', () => {
@@ -44,9 +41,7 @@ describe('isUnder', () => {
   })
 
   it('leaves the other filters on an address alone', () => {
-    expect(isUnder('/panel/things?group=b&advanced=1', '/panel/things?group=b')).toBe(
-      true,
-    )
+    expect(isUnder('/panel/things?group=b&advanced=1', '/panel/things?group=b')).toBe(true)
   })
 })
 

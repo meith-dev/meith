@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildForumJumpModel, parseJumpTarget, type ForumJumpRow } from './forum-jump'
+import { buildForumJumpModel, type ForumJumpRow, parseJumpTarget } from './forum-jump'
 
-const row = (
-  id: number,
-  parentId: number | null,
-  title: string,
-  type = 'forum',
-): ForumJumpRow => ({ id, parentId, displayOrder: id, type, title, slug: `f${id}` })
+const row = (id: number, parentId: number | null, title: string, type = 'forum'): ForumJumpRow => ({
+  id,
+  parentId,
+  displayOrder: id,
+  type,
+  title,
+  slug: `f${id}`,
+})
 
 const TREE: ForumJumpRow[] = [
   row(1, null, 'General', 'category'),

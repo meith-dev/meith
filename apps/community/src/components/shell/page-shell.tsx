@@ -1,23 +1,23 @@
-import { requireSlot } from '@meith/theme-kit'
 import type { Actor } from '@meith/authorization'
 import { currentRequestId } from '@meith/core/logger'
+import { requireSlot } from '@meith/theme-kit'
 
 import { LogoutForm } from '@/components/account/logout-form'
-import { currentLogo } from '@/server/branding'
 import { ThemeSwitcher } from '@/components/shell/theme-switcher'
+import { avatarsFor } from '@/server/avatars'
+import { currentLogo } from '@/server/branding'
 import { getContainer } from '@/server/container'
 import { legalFooterLinks } from '@/server/legal'
 import { unreadMessageCount } from '@/server/messages'
-import { touchActivity } from '@/server/relations'
-import { touchCurrentLocation } from '@/server/presence'
 import { unreadNotificationCount } from '@/server/notifications'
-import { registrationOpen } from '@/server/registration'
-import { searchEnabled } from '@/server/search'
-import { getViewerPreferences } from '@/server/viewer-preferences'
-import { getSettings } from '@/server/settings'
-import { avatarsFor } from '@/server/avatars'
-import { currentTheme } from '@/server/theme'
 import { boardRegion, filterView, viewerRef } from '@/server/plugin-view'
+import { touchCurrentLocation } from '@/server/presence'
+import { registrationOpen } from '@/server/registration'
+import { touchActivity } from '@/server/relations'
+import { searchEnabled } from '@/server/search'
+import { getSettings } from '@/server/settings'
+import { currentTheme } from '@/server/theme'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildForumJumpModel } from '@/view/forum-jump'
 import {
   buildBoardNavigation,
@@ -37,13 +37,7 @@ async function buildJumpModel(actor: Actor) {
   return buildForumJumpModel({ rows, visibleForumIds: new Set(visible) })
 }
 
-export async function PageShell({
-  actor,
-  children,
-}: {
-  actor: Actor
-  children: React.ReactNode
-}) {
+export async function PageShell({ actor, children }: { actor: Actor; children: React.ReactNode }) {
   const theme = await currentTheme()
   const Shell = requireSlot(theme, 'Shell')
   const Header = requireSlot(theme, 'Header')
@@ -57,14 +51,14 @@ export async function PageShell({
   const displayName =
     actor.userId === null
       ? null
-      : ((await getContainer()
-          .memberProfiles.findPublicById(actor.userId)
-          .catch(() => null))?.username ?? null)
+      : ((
+          await getContainer()
+            .memberProfiles.findPublicById(actor.userId)
+            .catch(() => null)
+        )?.username ?? null)
 
   const ownAvatar =
-    actor.userId === null
-      ? null
-      : ((await avatarsFor([actor.userId])).get(actor.userId) ?? null)
+    actor.userId === null ? null : ((await avatarsFor([actor.userId])).get(actor.userId) ?? null)
 
   const viewer = buildViewerModel(actor, {
     displayName,
@@ -109,15 +103,12 @@ export async function PageShell({
   )
 
   const built = await buildJumpModel(actor).catch(() => null)
-  const jump =
-    built === null ? null : await filterView('view.forum-jump', built, pluginContext)
+  const jump = built === null ? null : await filterView('view.forum-jump', built, pluginContext)
 
   return (
     <Shell boardTitle={shellModel.boardTitle} viewer={shellModel.viewer}>
       <Header {...headerModel}>
-        <UserPanel {...userPanelModel}>
-          {viewer.isGuest ? null : <LogoutForm />}
-        </UserPanel>
+        <UserPanel {...userPanelModel}>{viewer.isGuest ? null : <LogoutForm />}</UserPanel>
       </Header>
 
       {await boardRegion('header.notice', actor)}

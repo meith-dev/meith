@@ -1,5 +1,5 @@
-import { Card, cn } from '@meith/ui'
 import type { BoardIndexModel } from '@meith/theme-kit'
+import { Card, cn } from '@meith/ui'
 
 import { BUTTON, PAGE_BODY } from '../shared'
 

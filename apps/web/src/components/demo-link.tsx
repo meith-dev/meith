@@ -1,14 +1,8 @@
-import type { ReactNode } from "react"
+import type { ReactNode } from 'react'
 
-import { site } from "../content/site"
+import { site } from '../content/site'
 
-export function DemoLink({
-  children,
-  className,
-}: {
-  children: ReactNode
-  className?: string
-}) {
+export function DemoLink({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <a className={className} href={site.demo} rel="noreferrer" target="_blank">
       {children}

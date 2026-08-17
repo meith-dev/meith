@@ -20,9 +20,7 @@ const TOUR_SPECS = /screenshot-[\w-]*\.spec\.ts$/
 
 const SITE_SHOT_SPECS = /screenshot-site\.spec\.ts$/
 
-const BOARD_IGNORE = process.env.CI
-  ? [INSTALL_SPECS, TOUR_SPECS]
-  : [INSTALL_SPECS, SITE_SHOT_SPECS]
+const BOARD_IGNORE = process.env.CI ? [INSTALL_SPECS, TOUR_SPECS] : [INSTALL_SPECS, SITE_SHOT_SPECS]
 
 export default defineConfig({
   testDir: './e2e',

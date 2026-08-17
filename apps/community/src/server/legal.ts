@@ -3,14 +3,8 @@ import 'server-only'
 import { renderMarkdown } from '@meith/markdown'
 import type { LinkModel } from '@meith/theme-kit'
 
+import { buildLegalLinks, isPublished, type LegalPage, legalPage, TERMS_PAGE } from '../view/legal'
 import { getSettings } from './settings'
-import {
-  TERMS_PAGE,
-  buildLegalLinks,
-  isPublished,
-  legalPage,
-  type LegalPage,
-} from '../view/legal'
 
 export interface LegalDocument {
   readonly title: string

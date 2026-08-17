@@ -1,11 +1,4 @@
-export const FIELD_TYPES = [
-  'text',
-  'textarea',
-  'select',
-  'checkbox',
-  'url',
-  'number',
-] as const
+export const FIELD_TYPES = ['text', 'textarea', 'select', 'checkbox', 'url', 'number'] as const
 
 export type FieldType = (typeof FIELD_TYPES)[number]
 

@@ -8,10 +8,7 @@ export interface FirstPostSubject {
   readonly bypassesModeration: boolean
 }
 
-export function holdsForReview(
-  subject: FirstPostSubject,
-  rule: FirstPostRule,
-): boolean {
+export function holdsForReview(subject: FirstPostSubject, rule: FirstPostRule): boolean {
   if (rule.threshold <= 0) return false
   if (subject.userId === null) return false
   if (subject.bypassesModeration) return false

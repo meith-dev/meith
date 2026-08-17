@@ -4,12 +4,7 @@ import { ancestorIds, childPath, depthOf, isInSubtree, parsePath, rehang } from 
 import { buildTree, flattenTree } from './tree'
 import type { ForumRow } from './types'
 
-function row(
-  id: number,
-  parentId: number | null,
-  displayOrder = 0,
-  path = String(id),
-): ForumRow {
+function row(id: number, parentId: number | null, displayOrder = 0, path = String(id)): ForumRow {
   return {
     id,
     parentId,

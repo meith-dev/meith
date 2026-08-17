@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { issueApiTokenAction, revokeApiTokenAction } from "@/server/api-token-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { issueApiTokenAction, revokeApiTokenAction } from '@/server/api-token-actions'
+import { EMPTY_STATE } from '@/server/auth-form-state'
 
-import { FormError, SubmitButton } from "../auth/form-controls"
+import { FormError, SubmitButton } from '../auth/form-controls'
 
 export function IssueTokenForm({ scopes }: { scopes: readonly string[] }) {
   const [state, action] = useActionState(issueApiTokenAction, EMPTY_STATE)
@@ -14,7 +14,7 @@ export function IssueTokenForm({ scopes }: { scopes: readonly string[] }) {
     <form action={action} className="flex flex-col gap-4">
       <FormError message={state.error} />
 
-      {state.notice === "issued" && state.values?.token !== undefined && (
+      {state.notice === 'issued' && state.values?.token !== undefined && (
         <div
           role="status"
           className="flex flex-col gap-2 rounded-md border border-accent bg-post-highlight px-3 py-3"
@@ -66,8 +66,8 @@ export function IssueTokenForm({ scopes }: { scopes: readonly string[] }) {
           className="w-56 rounded-sm border border-input bg-card px-2 py-1"
         />
         <span className="text-xs text-muted-foreground">
-          A whole number of days. Leave it empty for a token that never expires — anything
-          else is refused rather than read as never.
+          A whole number of days. Leave it empty for a token that never expires — anything else is
+          refused rather than read as never.
         </span>
       </label>
 

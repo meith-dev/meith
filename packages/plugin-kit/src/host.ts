@@ -53,7 +53,10 @@ const DEFAULT_PRIORITY = 100
 
 export class PluginHost {
   readonly #entries = new Map<HookName, Entry[]>()
-  readonly #contributions = new Map<PluginRegion, { pluginKey: string; priority: number; contribution: PluginContribution }[]>()
+  readonly #contributions = new Map<
+    PluginRegion,
+    { pluginKey: string; priority: number; contribution: PluginContribution }[]
+  >()
   readonly #stats = new Map<string, Stats>()
   readonly #logger: HostLogger
   readonly #failureThreshold: number
@@ -81,7 +84,9 @@ export class PluginHost {
       for (const [name, registration] of Object.entries(plugin.hooks ?? {})) {
         const hook = name as HookName
         const handler = (
-          typeof registration === 'function' ? registration : (registration as HookRegistration<HookName>).handler
+          typeof registration === 'function'
+            ? registration
+            : (registration as HookRegistration<HookName>).handler
         ) as StoredHandler
         const priority =
           typeof registration === 'function'
@@ -104,8 +109,12 @@ export class PluginHost {
       }
     }
 
-    const byPriorityThenKey = <T extends { priority: number; pluginKey: string }>(a: T, b: T): number =>
-      a.priority - b.priority || (a.pluginKey < b.pluginKey ? -1 : a.pluginKey > b.pluginKey ? 1 : 0)
+    const byPriorityThenKey = <T extends { priority: number; pluginKey: string }>(
+      a: T,
+      b: T,
+    ): number =>
+      a.priority - b.priority ||
+      (a.pluginKey < b.pluginKey ? -1 : a.pluginKey > b.pluginKey ? 1 : 0)
 
     for (const list of this.#entries.values()) list.sort(byPriorityThenKey)
     for (const list of this.#contributions.values()) list.sort(byPriorityThenKey)
@@ -130,7 +139,11 @@ export class PluginHost {
     return current
   }
 
-  async emit<K extends HookName>(name: K, value: HookValue<K>, context: HookContext<K>): Promise<void> {
+  async emit<K extends HookName>(
+    name: K,
+    value: HookValue<K>,
+    context: HookContext<K>,
+  ): Promise<void> {
     const entries = this.#entries.get(name)
     if (entries === undefined) return
 
@@ -219,7 +232,7 @@ export class PluginHost {
 
   #isEnabled(pluginKey: string): boolean {
     const stats = this.#stats.get(pluginKey)
-    return stats !== undefined && stats.enabled && !stats.operatorDisabled
+    return stats?.enabled === true && !stats.operatorDisabled
   }
 
   async #call(

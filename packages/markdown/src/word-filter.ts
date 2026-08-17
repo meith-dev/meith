@@ -18,9 +18,7 @@ export function compileWordFilter(rules: readonly WordFilterRule[]): CompiledWor
       .filter((rule) => rule.pattern !== '')
       .map((rule) => ({
         matcher: new RegExp(
-          rule.wholeWord
-            ? `\\b${escapeRegExp(rule.pattern)}\\b`
-            : escapeRegExp(rule.pattern),
+          rule.wholeWord ? `\\b${escapeRegExp(rule.pattern)}\\b` : escapeRegExp(rule.pattern),
           'gi',
         ),
         replacement: rule.replacement,

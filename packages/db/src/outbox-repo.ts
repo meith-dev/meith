@@ -46,10 +46,7 @@ export class PostgresOutboxReader implements OutboxReader {
 
   async markRelayed(ids: number[]): Promise<void> {
     if (ids.length === 0) return
-    await this.db
-      .update(outbox)
-      .set({ dispatchedAt: new Date() })
-      .where(inArray(outbox.id, ids))
+    await this.db.update(outbox).set({ dispatchedAt: new Date() }).where(inArray(outbox.id, ids))
   }
 
   async stuck(limit = 50): Promise<OutboxRecord[]> {

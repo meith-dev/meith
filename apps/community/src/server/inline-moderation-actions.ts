@@ -2,21 +2,21 @@
 
 import { redirect } from 'next/navigation'
 
-import { hasAnyModeratorRight, type Action, type Actor } from '@meith/authorization'
+import { type Action, type Actor, hasAnyModeratorRight } from '@meith/authorization'
 import { ForbiddenError, ValidationError } from '@meith/core'
 import {
   INLINE_TOOL_ACTIONS,
   InlineModeration,
-  parseInlineTool,
-  parseSelection,
   type InlineOutcome,
   type InlineRights,
   type InlineTool,
+  parseInlineTool,
+  parseSelection,
 } from '@meith/moderation'
 
-import { getActor } from './context'
-import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
+import { getContainer } from './container'
+import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
 import { isSafeLocalPath } from './safe-path'
@@ -37,10 +37,7 @@ function outcomeQuery(outcome: InlineOutcome): string {
   return parts.join('&')
 }
 
-export async function inlineModerateAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function inlineModerateAction(_prev: FormState, form: FormData): Promise<FormState> {
   const tool = parseInlineTool(
     typeof form.get('tool') === 'string' ? (form.get('tool') as string) : undefined,
   )
@@ -49,8 +46,7 @@ export async function inlineModerateAction(
   const { inlineModeration } = getContainer()
   if (inlineModeration === null) {
     return {
-      error:
-        'This board is running on in-memory sample data, so it has no moderation tools.',
+      error: 'This board is running on in-memory sample data, so it has no moderation tools.',
     }
   }
 
@@ -91,9 +87,7 @@ export async function inlineModerateAction(
 async function scopeFor(tool: InlineTool, actor: Actor): Promise<number[]> {
   const { authorizer } = getContainer()
   const sets = await Promise.all(
-    INLINE_TOOL_ACTIONS[tool].map((action) =>
-      authorizer.forumIdsWhere(actor, action as Action),
-    ),
+    INLINE_TOOL_ACTIONS[tool].map((action) => authorizer.forumIdsWhere(actor, action as Action)),
   )
   return [...new Set(sets.flat())]
 }

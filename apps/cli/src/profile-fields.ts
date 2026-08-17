@@ -1,8 +1,8 @@
 import { ValidationError } from '@meith/core'
-import { PostgresProfileFieldRepository, getDb } from '@meith/db'
+import { getDb, PostgresProfileFieldRepository } from '@meith/db'
 import { FIELD_TYPES, ProfileFieldService } from '@meith/profile-fields'
 
-import { optional, parseFlags, required, type Flags } from './args'
+import { type Flags, optional, parseFlags, required } from './args'
 import { requirePostgres } from './context'
 
 function service(): ProfileFieldService {
@@ -59,9 +59,7 @@ export async function profileFieldAdd(args: readonly string[]): Promise<number> 
 
   const type = required(flags, 'type')
   if (!(FIELD_TYPES as readonly string[]).includes(type)) {
-    throw new ValidationError(
-      `--type must be one of ${FIELD_TYPES.join(', ')}, got "${type}".`,
-    )
+    throw new ValidationError(`--type must be one of ${FIELD_TYPES.join(', ')}, got "${type}".`)
   }
 
   const rawOptions = optional(flags, 'options')
@@ -84,9 +82,7 @@ export async function profileFieldAdd(args: readonly string[]): Promise<number> 
   })
 
   console.log(`Created profile field "${field.key}" (id ${field.id}, ${field.type}).`)
-  console.log(
-    'Every group can see and edit it. Per-group overrides arrive with the ACP screen.',
-  )
+  console.log('Every group can see and edit it. Per-group overrides arrive with the ACP screen.')
   return 0
 }
 

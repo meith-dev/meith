@@ -5,19 +5,16 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError } from '@meith/core'
 import { WarningService } from '@meith/moderation'
 
-import { getActor } from './context'
+import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
+import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt, text } from './form-values'
 import { warningNotifier } from './notifications'
-import type { FormState } from './auth-form-state'
 
 const toFormState = formStateReporter('warning-actions', 'unexpected error in warnings')
 
-export async function issueWarningAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function issueWarningAction(_prev: FormState, form: FormData): Promise<FormState> {
   const userId = positiveInt(form, 'userId')
   if (userId === null) return { error: 'That member does not exist.' }
 
@@ -28,7 +25,7 @@ export async function issueWarningAction(
     }
   }
 
-  let outcome
+  let outcome: Awaited<ReturnType<WarningService['issue']>>
   try {
     const actor = await getActor()
     if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
@@ -62,10 +59,7 @@ export async function issueWarningAction(
   redirect(`/moderation/warn?user=${userId}&${query.join('&')}`)
 }
 
-export async function revokeWarningAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function revokeWarningAction(_prev: FormState, form: FormData): Promise<FormState> {
   const warningId = positiveInt(form, 'warningId')
   const userId = positiveInt(form, 'userId')
   if (warningId === null || userId === null) {
@@ -79,7 +73,7 @@ export async function revokeWarningAction(
     }
   }
 
-  let standing
+  let standing: Awaited<ReturnType<WarningService['revoke']>>
   try {
     const actor = await getActor()
     if (actor.userId === null) throw new ForbiddenError('You must be logged in.')

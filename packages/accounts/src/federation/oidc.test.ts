@@ -2,7 +2,6 @@ import { beforeAll, describe, expect, it } from 'vitest'
 
 import { encodeBase64Url } from '../crypto/base64url'
 import { rejectionMessage } from '../test-support.fixture'
-
 import { oidcProvider } from './oidc'
 import { codeChallenge } from './pkce'
 import type { Fetcher } from './types'
@@ -16,7 +15,12 @@ let publicJwk: JsonWebKey
 
 beforeAll(async () => {
   signingKey = (await crypto.subtle.generateKey(
-    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    {
+      name: 'RSASSA-PKCS1-v1_5',
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: 'SHA-256',
+    },
     true,
     ['sign', 'verify'],
   )) as CryptoKeyPair
@@ -238,9 +242,7 @@ describe('what the exchange refuses', () => {
   })
 
   it('a token that has expired', async () => {
-    expect(await refusal({ exp: Math.floor(NOW.getTime() / 1000) - 600 })).toContain(
-      'has expired',
-    )
+    expect(await refusal({ exp: Math.floor(NOW.getTime() / 1000) - 600 })).toContain('has expired')
   })
 
   it('a token with no subject to key an account on', async () => {
@@ -249,7 +251,12 @@ describe('what the exchange refuses', () => {
 
   it('a token signed by a key the provider does not publish', async () => {
     const other = (await crypto.subtle.generateKey(
-      { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      {
+        name: 'RSASSA-PKCS1-v1_5',
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: 'SHA-256',
+      },
       true,
       ['sign', 'verify'],
     )) as CryptoKeyPair

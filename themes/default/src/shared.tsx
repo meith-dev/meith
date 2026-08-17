@@ -1,5 +1,5 @@
-import { Badge, cn } from '@meith/ui'
 import type { PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
+import { Badge, cn } from '@meith/ui'
 
 const PAGE_WIDTH = 'max-w-6xl'
 

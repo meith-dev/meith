@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { emptyPermissionSet, type PermissionSet } from '@meith/core'
 import type { Actor } from '@meith/authorization'
+import { emptyPermissionSet, type PermissionSet } from '@meith/core'
 
 const state = vi.hoisted(() => ({
   dataSource: 'postgres' as 'postgres' | 'fixture',
@@ -107,23 +107,26 @@ describe('spendDailyLimit', () => {
   })
 
   it('does nothing for a guest, who has no bucket to count against', async () => {
-    expect(await spendDailyLimit({ scope: 'post_day', actor: member({ maxPostsPerDay: 1 }, null) }))
-      .toBeNull()
+    expect(
+      await spendDailyLimit({ scope: 'post_day', actor: member({ maxPostsPerDay: 1 }, null) }),
+    ).toBeNull()
     expect(state.counts.size).toBe(0)
   })
 
   it('does nothing on a board with no database behind it', async () => {
     state.dataSource = 'fixture'
 
-    expect(await spendDailyLimit({ scope: 'post_day', actor: member({ maxPostsPerDay: 1 }) }))
-      .toBeNull()
+    expect(
+      await spendDailyLimit({ scope: 'post_day', actor: member({ maxPostsPerDay: 1 }) }),
+    ).toBeNull()
   })
 
   it('lets the board keep working when the counter is unavailable', async () => {
     state.storeThrows = true
 
-    expect(await spendDailyLimit({ scope: 'post_day', actor: member({ maxPostsPerDay: 1 }) }))
-      .toBeNull()
+    expect(
+      await spendDailyLimit({ scope: 'post_day', actor: member({ maxPostsPerDay: 1 }) }),
+    ).toBeNull()
   })
 
   it('counts against a day rather than an hour', async () => {
@@ -156,13 +159,15 @@ describe('spendDailyLimit for private messages', () => {
 
 describe('dailyLimitMessage', () => {
   it('speaks in hours rather than the hundreds of minutes a day contains', () => {
-    expect(dailyLimitMessage('post_day', { allowed: false, used: 9, retryAfterSeconds: 36_000 }))
-      .toBe('You have used your allowance of posts for today. It resets in 10 hours.')
+    expect(
+      dailyLimitMessage('post_day', { allowed: false, used: 9, retryAfterSeconds: 36_000 }),
+    ).toBe('You have used your allowance of posts for today. It resets in 10 hours.')
   })
 
   it('rounds the last stretch to within the hour', () => {
-    expect(dailyLimitMessage('post_day', { allowed: false, used: 9, retryAfterSeconds: 120 }))
-      .toBe('You have used your allowance of posts for today. It resets within the hour.')
+    expect(dailyLimitMessage('post_day', { allowed: false, used: 9, retryAfterSeconds: 120 })).toBe(
+      'You have used your allowance of posts for today. It resets within the hour.',
+    )
   })
 
   it('names what ran out', () => {

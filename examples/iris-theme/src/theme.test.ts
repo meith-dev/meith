@@ -1,6 +1,7 @@
-import { TOKEN_NAMES, defaultTheme } from '@meith/theme-default'
-import { assertThemeContract, resolveTheme } from '@meith/theme-kit'
 import { describe, expect, it } from 'vitest'
+
+import { defaultTheme, TOKEN_NAMES } from '@meith/theme-default'
+import { assertThemeContract, resolveTheme } from '@meith/theme-kit'
 
 import { irisTheme } from './theme'
 import { DARK_TOKENS, LIGHT_TOKENS } from './tokens'

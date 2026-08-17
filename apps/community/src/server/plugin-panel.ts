@@ -1,10 +1,11 @@
 import 'server-only'
 
-import { pluginAdminPath, type PluginDefinition } from '@meith/plugin-kit'
+import { type PluginDefinition, pluginAdminPath } from '@meith/plugin-kit'
+
+import type { PluginPage } from '@/view/plugin-panel'
 
 import forumConfig from '../../community.config'
 import { getSettingOverrides } from './settings'
-import type { PluginPage } from '@/view/plugin-panel'
 
 export interface PluginPanelSection {
   readonly key: string
@@ -12,9 +13,7 @@ export interface PluginPanelSection {
   readonly pages: readonly PluginPage[]
 }
 
-export async function pluginPanelSection(
-  pluginKey: string,
-): Promise<PluginPanelSection | null> {
+export async function pluginPanelSection(pluginKey: string): Promise<PluginPanelSection | null> {
   const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === pluginKey)
   const definition = entry?.plugin as PluginDefinition | undefined
 

@@ -1,12 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
-import { createTestDb, type TestDb } from './pglite.fixture'
 import { DENORMALISED_USERNAME_COLUMNS } from './denormalised-username'
-import { PostgresUserMergeRepository } from './user-merge-repo'
-import { mergeMapColumns } from './user-merge-map'
+import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
+import { mergeMapColumns } from './user-merge-map'
+import { PostgresUserMergeRepository } from './user-merge-repo'
 
 let harness: TestDb
 let db: Database
@@ -158,8 +158,9 @@ describe('mergePostsChunk', () => {
       remaining = (await repo.mergePostsChunk(LOSER, WINNER, 2)).remaining
     }
 
-    expect(await count(sql`select count(*)::int as n from posts where author_user_id = ${WINNER}`))
-      .toBe(5)
+    expect(
+      await count(sql`select count(*)::int as n from posts where author_user_id = ${WINNER}`),
+    ).toBe(5)
   })
 
   it('refuses to merge an account into itself', async () => {
@@ -228,9 +229,7 @@ describe('finish', () => {
     await repo.finish(LOSER, WINNER)
 
     const rows = resultRows(
-      await db.execute(
-        sql`select thread_id, mode from thread_subscriptions order by thread_id`,
-      ),
+      await db.execute(sql`select thread_id, mode from thread_subscriptions order by thread_id`),
     ) as Array<{ thread_id: number; mode: string }>
     expect(rows).toEqual([
       { thread_id: 1, mode: 'instant' },
@@ -310,19 +309,19 @@ describe('finish', () => {
 
     await repo.finish(LOSER, WINNER)
 
-    expect(await count(
-      sql`select count(*)::int as n from threads where last_post_user_id = ${WINNER}`,
-    )).toBe(1)
-    expect(await count(
-      sql`select count(*)::int as n from forums where last_post_user_id = ${WINNER}`,
-    )).toBe(1)
+    expect(
+      await count(sql`select count(*)::int as n from threads where last_post_user_id = ${WINNER}`),
+    ).toBe(1)
+    expect(
+      await count(sql`select count(*)::int as n from forums where last_post_user_id = ${WINNER}`),
+    ).toBe(1)
 
-    expect(await count(
-      sql`select count(*)::int as n from threads where last_post_username = 'keeper'`,
-    )).toBe(1)
-    expect(await count(
-      sql`select count(*)::int as n from forums where last_post_username = 'keeper'`,
-    )).toBe(1)
+    expect(
+      await count(sql`select count(*)::int as n from threads where last_post_username = 'keeper'`),
+    ).toBe(1)
+    expect(
+      await count(sql`select count(*)::int as n from forums where last_post_username = 'keeper'`),
+    ).toBe(1)
   })
 
   it('rewrites the author name on posts the winner now owns', async () => {
@@ -452,8 +451,9 @@ describe('finish', () => {
                             where id in (${WINNER}, ${LOSER}) order by id`),
     ) as Array<{ id: number; warning_points: number }>
     expect(rows.map((row) => Number(row.warning_points))).toEqual([5, 0])
-    expect(await count(sql`select count(*)::int as n from warnings where user_id = ${WINNER}`))
-      .toBe(4)
+    expect(
+      await count(sql`select count(*)::int as n from warnings where user_id = ${WINNER}`),
+    ).toBe(4)
   })
 
   it('soft-deletes the losing account rather than dropping it', async () => {
@@ -483,8 +483,7 @@ describe('finish', () => {
   it('refuses a member that does not exist, and changes nothing', async () => {
     await seedPair()
     await expect(repo.finish(9_999, WINNER)).rejects.toThrow(/No such member/)
-    expect(await count(sql`select count(*)::int as n from users where deleted_at is null`))
-      .toBe(2)
+    expect(await count(sql`select count(*)::int as n from users where deleted_at is null`)).toBe(2)
   })
 
   it('refuses to merge an account into itself', async () => {

@@ -1,7 +1,7 @@
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 
-import { env, ConfigurationError } from '@meith/core'
+import { ConfigurationError, env } from '@meith/core'
 
 import * as schema from './schema'
 
@@ -39,9 +39,7 @@ export function getDb(): Database {
 
   const url = env.DATABASE_URL
   if (!url) {
-    throw new ConfigurationError(
-      'DATABASE_URL is required when DATA_SOURCE is "postgres".',
-    )
+    throw new ConfigurationError('DATABASE_URL is required when DATA_SOURCE is "postgres".')
   }
 
   const sql = postgres(url, connectionOptions())
@@ -61,8 +59,7 @@ function restoreDateSerialisers(client: ReturnType<typeof postgres>): void {
     client as unknown as { options: { serializers: Record<string, (v: unknown) => unknown> } }
   ).options.serializers
   for (const oid of DATE_OIDS) {
-    serialisers[oid] = (value: unknown) =>
-      value instanceof Date ? value.toISOString() : value
+    serialisers[oid] = (value: unknown) => (value instanceof Date ? value.toISOString() : value)
   }
 }
 

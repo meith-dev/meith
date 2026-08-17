@@ -1,24 +1,22 @@
+import type { ForumDisplayModel } from '@meith/theme-kit'
 import {
+  buttonVariants,
   Card,
   CardRows,
   Empty,
   EmptyAction,
   EmptyDescription,
   EmptyTitle,
-  buttonVariants,
 } from '@meith/ui'
-import type { ForumDisplayModel } from '@meith/theme-kit'
 
-import { Counts, PAGE_BODY, isEmptyRegion } from '../shared'
+import { Counts, isEmptyRegion, PAGE_BODY } from '../shared'
 
 export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: ForumDisplayModel) {
   return (
     <div className={PAGE_BODY}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-balance">
-            {forum.title}
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-balance">{forum.title}</h1>
           {forum.description !== null && (
             <p className="mt-1 max-w-prose text-sm text-muted-foreground">{forum.description}</p>
           )}

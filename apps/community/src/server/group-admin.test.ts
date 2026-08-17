@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { PERMISSION_FIELDS, emptyPermissionSet } from '@meith/core'
+import { emptyPermissionSet, PERMISSION_FIELDS } from '@meith/core'
 
 const dataSource = { current: 'postgres' as 'postgres' | 'fixture' }
 vi.mock('./container', () => ({
@@ -47,9 +47,7 @@ describe('buildGroupPermissionView', () => {
   it('gives every registry field a cell, in registry order', async () => {
     const view = await buildGroupPermissionView(2)
 
-    expect(view?.cells.map((cell) => cell.key)).toEqual(
-      PERMISSION_FIELDS.map((field) => field.key),
-    )
+    expect(view?.cells.map((cell) => cell.key)).toEqual(PERMISSION_FIELDS.map((field) => field.key))
   })
 
   it('carries the value the group actually holds', async () => {

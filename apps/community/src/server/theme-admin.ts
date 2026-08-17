@@ -1,19 +1,17 @@
 import 'server-only'
 
 import { ForbiddenError } from '@meith/core'
-import { PostgresThemeAdminRepository, getDb, type ThemeRecord } from '@meith/db'
+import { getDb, PostgresThemeAdminRepository, type ThemeRecord } from '@meith/db'
+
+import type { EditableToken } from '@/view/theme-draft'
+import { tokenMeta } from '@/view/theme-tokens'
 
 import forumConfig from '../../community.config'
-import { tokenMeta } from '@/view/theme-tokens'
-import type { EditableToken } from '@/view/theme-draft'
-
 import { getContainer } from './container'
-import { validateTokenOverrides, type TokenOverrides } from './theme-style'
+import { type TokenOverrides, validateTokenOverrides } from './theme-style'
 
 export function themeAdminRepository(): PostgresThemeAdminRepository | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresThemeAdminRepository(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresThemeAdminRepository(getDb()) : null
 }
 
 export function requireThemeAdmin(): PostgresThemeAdminRepository {
@@ -174,7 +172,9 @@ export async function boardSampleSurfaces(): Promise<{
 
   let overrides: TokenOverrides = { light: {}, dark: {} }
   if (theme !== undefined) {
-    const record = await themeAdminRepository()?.read(key).catch(() => null)
+    const record = await themeAdminRepository()
+      ?.read(key)
+      .catch(() => null)
     try {
       overrides = validateTokenOverrides(theme.tokens, record?.tokenOverrides)
     } catch {

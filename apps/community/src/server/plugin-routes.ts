@@ -3,8 +3,8 @@ import 'server-only'
 import { env, logger, resolveClientAddress } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 import {
-  DEFAULT_ROUTE_BODY_BYTES,
   createRouteRateLimiter,
+  DEFAULT_ROUTE_BODY_BYTES,
   type PluginDefinition,
   type PluginRequest,
   type PluginResponse,
@@ -16,10 +16,10 @@ import { boardUrl } from './board-url'
 import { getActor } from './context'
 import { activeDefinitions, pluginHost, syncOperatorDisables } from './plugin-host'
 import { runtimeContextFor } from './plugin-pages'
+import { viewerRef } from './plugin-view'
 import { isSafeLocalPath } from './safe-path'
 import { isSameOrigin } from './same-origin'
 import { getSettingOverrides } from './settings'
-import { viewerRef } from './plugin-view'
 
 const STRIPPED_HEADERS = new Set(['cookie', 'authorization'])
 

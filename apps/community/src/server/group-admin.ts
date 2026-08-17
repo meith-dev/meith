@@ -1,22 +1,20 @@
 import 'server-only'
 
-import { ForbiddenError, PERMISSION_FIELDS } from '@meith/core'
 import type { PermissionField, PermissionSet } from '@meith/core'
-import { PromotionService, type PromotionRunResult } from '@meith/groups'
-import { defaultPromotionGuards } from '@meith/runtime'
+import { ForbiddenError, PERMISSION_FIELDS } from '@meith/core'
 import {
+  type GroupSummaryRow,
+  getDb,
   PostgresGroupAdminRepository,
   PostgresPromotionRepository,
-  getDb,
-  type GroupSummaryRow,
 } from '@meith/db'
+import { type PromotionRunResult, PromotionService } from '@meith/groups'
+import { defaultPromotionGuards } from '@meith/runtime'
 
 import { getContainer } from './container'
 
 export function groupAdminRepository(): PostgresGroupAdminRepository | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresGroupAdminRepository(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresGroupAdminRepository(getDb()) : null
 }
 
 export function requireGroupAdmin(): PostgresGroupAdminRepository {
@@ -64,15 +62,12 @@ function permissionCells(permissions: PermissionSet): readonly GroupPermissionCe
     kind: field.kind,
     scope: field.scope,
     value:
-      (permissions as unknown as Record<string, boolean | number>)[field.key] ??
-      field.fallback,
+      (permissions as unknown as Record<string, boolean | number>)[field.key] ?? field.fallback,
   }))
 }
 
 export function promotionRuleRepository(): PostgresPromotionRepository | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresPromotionRepository(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresPromotionRepository(getDb()) : null
 }
 
 export function requirePromotionRules(): PostgresPromotionRepository {

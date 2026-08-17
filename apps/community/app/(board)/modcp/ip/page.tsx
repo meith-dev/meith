@@ -5,6 +5,7 @@ import { ModeratorPanel } from '@meith/moderation'
 import {
   Alert,
   AlertDescription,
+  buttonVariants,
   Card,
   CardContent,
   CardRows,
@@ -13,7 +14,6 @@ import {
   EmptyTitle,
   Field,
   Input,
-  buttonVariants,
 } from '@meith/ui'
 
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
@@ -50,9 +50,7 @@ export default async function IpLookupPage({
 
   const subjectId = positiveInt((await searchParams).user)
   const subject =
-    subjectId === null || warnings === null
-      ? null
-      : await warnings.findWarnable(subjectId)
+    subjectId === null || warnings === null ? null : await warnings.findWarnable(subjectId)
 
   const result =
     subject === null
@@ -71,9 +69,9 @@ export default async function IpLookupPage({
       title="Address lookup"
       lede={
         <>
-          Finds accounts that share a stored address <em>range</em> with a member. The
-          board never stores a full address, so this is evidence to follow up, not proof.
-          Every lookup is recorded in the moderator log.
+          Finds accounts that share a stored address <em>range</em> with a member. The board never
+          stores a full address, so this is evidence to follow up, not proof. Every lookup is
+          recorded in the moderator log.
         </>
       }
     >
@@ -82,12 +80,7 @@ export default async function IpLookupPage({
           <form method="get" className="flex flex-wrap items-end gap-3">
             <Field name="user" label="Member id" className="w-40">
               {(control) => (
-                <Input
-                  {...control}
-                  type="number"
-                  min={1}
-                  defaultValue={subjectId ?? ''}
-                />
+                <Input {...control} type="number" min={1} defaultValue={subjectId ?? ''} />
               )}
             </Field>
             <button type="submit" className={buttonVariants()}>
@@ -116,9 +109,8 @@ export default async function IpLookupPage({
                 {subject.username}
               </a>
               . Ranges on record: registration{' '}
-              <code className="font-mono">{result.prefixes.registration ?? 'none'}</code>,
-              last visit{' '}
-              <code className="font-mono">{result.prefixes.lastVisit ?? 'none'}</code>.
+              <code className="font-mono">{result.prefixes.registration ?? 'none'}</code>, last
+              visit <code className="font-mono">{result.prefixes.lastVisit ?? 'none'}</code>.
             </>
           }
         >

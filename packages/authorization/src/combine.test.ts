@@ -1,5 +1,6 @@
-import { emptyPermissionSet } from '@meith/core'
 import { describe, expect, it } from 'vitest'
+
+import { emptyPermissionSet } from '@meith/core'
 
 import { combineGroupValue, combinePermissionSets } from './combine'
 

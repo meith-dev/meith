@@ -20,9 +20,7 @@ test('a buddy added from a profile is listed with a message link, and removed ag
     await expect(memberPage).toHaveURL(/\/member\/\d+$/)
     await memberPage.getByRole('button', { name: 'Add to buddy list' }).click()
 
-    await expect(
-      memberPage.getByRole('button', { name: 'Remove from buddy list' }),
-    ).toBeVisible()
+    await expect(memberPage.getByRole('button', { name: 'Remove from buddy list' })).toBeVisible()
 
     await memberPage.goto('/usercp/contacts')
     const line = memberPage.locator('li', { hasText: buddy })
@@ -77,9 +75,7 @@ test('an ignored member’s posts hide behind a link, and their messages are ref
     await ignoredPage.getByLabel('Subject').fill('Hello?')
     await ignoredPage.getByLabel('Message').fill('You cannot ignore me.')
     await ignoredPage.getByRole('button', { name: 'Send message' }).click()
-    await expect(
-      ignoredPage.getByText(`${reader} cannot receive private messages.`),
-    ).toBeVisible()
+    await expect(ignoredPage.getByText(`${reader} cannot receive private messages.`)).toBeVisible()
 
     await readerPage.goto('/messages')
     await expect(readerPage.locator('li', { hasText: 'Hello?' })).toHaveCount(0)

@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  SUPPORTED_MAJOR_SPAN,
   checkUpgradeSpan,
   compareVersions,
   orderPlugins,
+  type PluginUpgrade,
   parseVersion,
   planUpgrade,
-  upgradeNotice,
-  type PluginUpgrade,
+  SUPPORTED_MAJOR_SPAN,
   type UpgradeState,
+  upgradeNotice,
 } from './index'
 
 function plugin(key: string, overrides: Partial<PluginUpgrade> = {}): PluginUpgrade {
@@ -72,10 +72,7 @@ describe('the supported span', () => {
 
 describe('dependency order', () => {
   it('puts a dependency before its dependent', () => {
-    const result = orderPlugins([
-      plugin('badges', { dependsOn: ['points'] }),
-      plugin('points'),
-    ])
+    const result = orderPlugins([plugin('badges', { dependsOn: ['points'] }), plugin('points')])
     expect(result.ok).toBe(true)
     if (result.ok) expect(result.order.map((p) => p.key)).toEqual(['points', 'badges'])
   })

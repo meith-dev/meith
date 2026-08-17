@@ -1,11 +1,12 @@
-import { tick, type TaskDefinition } from '@meith/tasks'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { type TaskDefinition, tick } from '@meith/tasks'
+
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresTaskRepository } from './task-repo'
 import { taskLog, tasks } from './schema'
+import { PostgresTaskRepository } from './task-repo'
 
 let harness: TestDb
 let db: Database

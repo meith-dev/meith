@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { renderNotificationMail, type MailBrand } from './mail'
+import { type MailBrand, renderNotificationMail } from './mail'
 import type { NotificationView } from './render'
 
 const BRAND: MailBrand = {
@@ -30,8 +30,7 @@ function render(view: Partial<NotificationView> = {}, brand: Partial<MailBrand> 
   })
 }
 
-const OWN_TAGS =
-  /<\/?(?:div|p|a|br|hr)(?:\s[^<>]*)?>/g
+const OWN_TAGS = /<\/?(?:div|p|a|br|hr)(?:\s[^<>]*)?>/g
 
 describe('safety', () => {
   it('every "<" in the output is one this package wrote', () => {
@@ -95,9 +94,7 @@ describe('the message', () => {
   })
 
   it('names the board even when it has none configured', () => {
-    expect(render({}, { boardName: '' }).subject).toBe(
-      '[the forum] You have been warned: Spamming',
-    )
+    expect(render({}, { boardName: '' }).subject).toBe('[the forum] You have been warned: Spamming')
   })
 
   it('produces a text part that stands on its own', () => {

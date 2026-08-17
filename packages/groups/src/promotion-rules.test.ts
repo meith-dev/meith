@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { promotionRuleProblem, type PromotionRuleInput } from './promotion-rules'
+import { type PromotionRuleInput, promotionRuleProblem } from './promotion-rules'
 
 const BASE: PromotionRuleInput = {
   title: 'Veteran',
@@ -34,9 +34,7 @@ describe('promotionRuleProblem', () => {
   })
 
   it('refuses a rule that promotes a group into itself', () => {
-    expect(problem({ fromPrimaryGroupId: 50, toPrimaryGroupId: 50 })).toMatch(
-      /into itself/i,
-    )
+    expect(problem({ fromPrimaryGroupId: 50, toPrimaryGroupId: 50 })).toMatch(/into itself/i)
   })
 
   it('refuses a rule with no criteria at all', () => {

@@ -1,4 +1,4 @@
-import { PostgresSearchRepository, getDb } from '@meith/db'
+import { getDb, PostgresSearchRepository } from '@meith/db'
 
 import { requirePostgres } from './context'
 

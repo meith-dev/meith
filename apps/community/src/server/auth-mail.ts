@@ -43,8 +43,7 @@ export async function sendVerificationEmail(input: {
     `An account was created for this address on ${name}. It cannot be used until the address is confirmed.`,
     '',
     link === null
-      ?
-        `Open ${name} and use the "resend confirmation" link on the sign-in page to get a working link.`
+      ? `Open ${name} and use the "resend confirmation" link on the sign-in page to get a working link.`
       : `Confirm your address: ${link}`,
     '',
     `The link is valid for ${VERIFICATION_TTL_HOURS} hours and can be used once.`,

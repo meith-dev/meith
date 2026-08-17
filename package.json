@@ -13,7 +13,7 @@
     "site:start": "pnpm --filter @meith/site start",
     "site:docs": "node scripts/site-docs.mjs",
     "site:docs:check": "node scripts/site-docs.mjs --check",
-    "lint": "eslint .",
+    "lint": "biome check .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:app": "tsc -p apps/community/tsconfig.json --noEmit",
     "typecheck:site": "tsc -p apps/web/tsconfig.json --noEmit",
@@ -23,7 +23,7 @@
     "test:e2e": "playwright test",
     "site:shots": "playwright test --config e2e/screenshot-site.config.ts",
     "community": "pnpm --filter @meith/cli start",
-    "format": "prettier --write .",
+    "format": "biome check --write .",
     "verify": "pnpm workspace:check && pnpm root:check && pnpm release:check && pnpm guards && pnpm guards:probe && pnpm slots:check && pnpm slots:probe && pnpm theme:docs:check && pnpm plugin:docs:check && pnpm hooks:wired && pnpm api:docs:check && pnpm perf:docs:check && pnpm docs:index:check && pnpm site:docs:check && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm typecheck:site && pnpm test",
     "workspace:check": "node scripts/workspace-check.mjs",
     "release:check": "node scripts/release-check.mjs",
@@ -46,19 +46,15 @@
     "perf:docs:check": "node scripts/perf-docs.mjs --check"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.8",
     "@electric-sql/pglite": "^0.5.4",
     "@electric-sql/pglite-socket": "^0.2.7",
-    "@eslint/js": "^10.0.1",
     "@playwright/test": "1.62.1",
     "@types/node": "^26.2.0",
     "@vitest/coverage-v8": "^4.1.10",
     "dependency-cruiser": "^18.1.1",
-    "eslint": "^10.8.1",
-    "globals": "^17.9.0",
-    "prettier": "^3.9.6",
     "tsx": "^4.23.11",
     "typescript": "5.7.3",
-    "typescript-eslint": "^8.66.0",
     "vitest": "^4.1.10"
   },
   "dependencies": {

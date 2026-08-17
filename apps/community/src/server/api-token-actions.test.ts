@@ -111,9 +111,7 @@ describe('the expiry field', () => {
     const state = await issueApiTokenAction({}, form({ ...NAMED, expiresInDays: '   ' }))
 
     expect(state.notice).toBe('issued')
-    expect(issued).toEqual([
-      { name: 'ci', scopes: ['forums:read'], expiresAt: null },
-    ])
+    expect(issued).toEqual([{ name: 'ci', scopes: ['forums:read'], expiresAt: null }])
   })
 
   it('reads a field that was never submitted as no expiry too', async () => {
@@ -143,17 +141,12 @@ describe('issuing', () => {
 
     expect(state.notice).toBe('issued')
     expect(state.values?.token).toMatch(/^forum_pat_/)
-    expect(adminCalls).toEqual([
-      { action: 'system.api_token_issued', detail: { name: 'ci' } },
-    ])
+    expect(adminCalls).toEqual([{ action: 'system.api_token_issued', detail: { name: 'ci' } }])
     expect(revalidated).toEqual(['/admin/api-tokens'])
   })
 
   it('passes every ticked scope through to the issuer', async () => {
-    await issueApiTokenAction(
-      {},
-      form({ name: 'ci', scopes: ['forums:read', 'posts:write'] }),
-    )
+    await issueApiTokenAction({}, form({ name: 'ci', scopes: ['forums:read', 'posts:write'] }))
 
     expect(issued[0]!.scopes).toEqual(['forums:read', 'posts:write'])
   })

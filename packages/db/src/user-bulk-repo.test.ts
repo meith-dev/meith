@@ -1,10 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresUserBulkRepository } from './user-bulk-repo'
 import { resultRows } from './result-rows'
+import { PostgresUserBulkRepository } from './user-bulk-repo'
 
 let harness: TestDb
 let db: Database

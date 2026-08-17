@@ -2,7 +2,7 @@ import type { PluginData } from '@meith/plugin-kit'
 
 import type { DuesConfig } from './config'
 import { isCurrencyCode, isValidMinorAmount } from './money'
-import { addDays, parsePeriod, periodCeilingDays, type Period } from './period'
+import { addDays, type Period, parsePeriod, periodCeilingDays } from './period'
 import {
   countPlans,
   insertPlan,
@@ -29,10 +29,7 @@ export function isLifetime(periodEnd: Date): boolean {
   return periodEnd >= LIFETIME_END
 }
 
-export async function loadPlans(
-  data: PluginData,
-  config: DuesConfig,
-): Promise<readonly PlanRow[]> {
+export async function loadPlans(data: PluginData, config: DuesConfig): Promise<readonly PlanRow[]> {
   if ((await countPlans(data)) === 0 && config.seedPlans.length > 0) {
     for (const seed of config.seedPlans) {
       await insertPlan(data, {
@@ -55,10 +52,7 @@ export async function loadPlans(
   return listPlans(data)
 }
 
-export async function shopPlans(
-  data: PluginData,
-  config: DuesConfig,
-): Promise<readonly PlanRow[]> {
+export async function shopPlans(data: PluginData, config: DuesConfig): Promise<readonly PlanRow[]> {
   return (await loadPlans(data, config)).filter((plan) => !plan.hidden && !plan.archived)
 }
 
@@ -149,7 +143,15 @@ export function parsePlanForm(form: PlanFormInput, graceDays: number): PlanParse
     const length = Number(form.length ?? '')
     const unit = form.unit ?? ''
     const letter =
-      unit === 'days' ? 'D' : unit === 'weeks' ? 'W' : unit === 'months' ? 'M' : unit === 'years' ? 'Y' : null
+      unit === 'days'
+        ? 'D'
+        : unit === 'weeks'
+          ? 'W'
+          : unit === 'months'
+            ? 'M'
+            : unit === 'years'
+              ? 'Y'
+              : null
     if (letter === null || !Number.isInteger(length) || length < 1) return bad('bad-length')
 
     periodSpec = `P${length}${letter}`

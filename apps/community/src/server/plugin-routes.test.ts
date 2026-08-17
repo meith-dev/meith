@@ -234,9 +234,7 @@ describe('resolution', () => {
 
 describe('access', () => {
   it('401s a guest on a member route, and hands a member their own id', async () => {
-    const asGuest = await dispatchPluginRoute(request('/api/plugins/alpha/mine'), 'alpha', [
-      'mine',
-    ])
+    const asGuest = await dispatchPluginRoute(request('/api/plugins/alpha/mine'), 'alpha', ['mine'])
     expect(asGuest.status).toBe(401)
 
     actor.current = { userId: 7 }
@@ -522,17 +520,13 @@ describe('what a handler may answer', () => {
   })
 
   it('allows plain http only to a declared loopback host — the test-double shape', async () => {
-    const local = await dispatchPluginRoute(request('/api/plugins/alpha/local'), 'alpha', [
-      'local',
-    ])
+    const local = await dispatchPluginRoute(request('/api/plugins/alpha/local'), 'alpha', ['local'])
     expect(local.status).toBe(307)
     expect(local.headers.get('location')).toBe('http://127.0.0.1:12111/checkout/1')
 
-    const insecure = await dispatchPluginRoute(
-      request('/api/plugins/alpha/insecure'),
-      'alpha',
-      ['insecure'],
-    )
+    const insecure = await dispatchPluginRoute(request('/api/plugins/alpha/insecure'), 'alpha', [
+      'insecure',
+    ])
     expect(insecure.status).toBe(502)
   })
 })

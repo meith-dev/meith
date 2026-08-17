@@ -2,22 +2,13 @@
 
 import { redirect } from 'next/navigation'
 
-import { SIGNATURE_FEATURES, quoteBlock, renderMarkdown, vocabularyOptions } from '@meith/markdown'
 import { ForbiddenError, ValidationError } from '@meith/core'
-import { PostEditor, type PostWriteRepository } from '@meith/posts'
-import { ThreadComposer, type AuthorRestriction } from '@meith/threads'
+import { quoteBlock, renderMarkdown, SIGNATURE_FEATURES, vocabularyOptions } from '@meith/markdown'
 import { restrictsPosting } from '@meith/moderation'
+import { PostEditor, type PostWriteRepository } from '@meith/posts'
+import { type AuthorRestriction, ThreadComposer } from '@meith/threads'
 
 import { postLink } from '../view/post-link'
-
-import { formStateReporter } from './form-state-reporter'
-import { checkbox, positiveIntIn } from './form-values'
-import { emitEvent, viewerRef } from './plugin-view'
-
-import { activeVocabulary } from './content-admin'
-
-import { attachStaged, stageAttachments, submittedFiles } from './attachments'
-import { getActor } from './context'
 import {
   dailyLimitMessage,
   holdsNewMember,
@@ -25,12 +16,18 @@ import {
   spendDailyLimit,
   spendLimit,
 } from './antispam'
-import { getContainer } from './container'
-import { notifyPostAudience } from './post-notifications'
-import { resolveReplyTarget, submitReply } from './reply-core'
-import { resolvePostScope } from './post-scope'
-import { getSettings } from './settings'
+import { attachStaged, stageAttachments, submittedFiles } from './attachments'
 import type { FormState } from './auth-form-state'
+import { getContainer } from './container'
+import { activeVocabulary } from './content-admin'
+import { getActor } from './context'
+import { formStateReporter } from './form-state-reporter'
+import { checkbox, positiveIntIn } from './form-values'
+import { emitEvent, viewerRef } from './plugin-view'
+import { notifyPostAudience } from './post-notifications'
+import { resolvePostScope } from './post-scope'
+import { resolveReplyTarget, submitReply } from './reply-core'
+import { getSettings } from './settings'
 
 export type PreviewScope = 'post' | 'signature'
 
@@ -52,10 +49,7 @@ export async function renderPreviewAction(
   )
 }
 
-export async function quotePostAction(
-  threadId: number,
-  postId: number,
-): Promise<string | null> {
+export async function quotePostAction(threadId: number, postId: number): Promise<string | null> {
   if (!Number.isSafeInteger(threadId) || !Number.isSafeInteger(postId)) return null
 
   const actor = await getActor()
@@ -91,15 +85,11 @@ function field(form: FormData, name: string): string {
 
 const toFormState = formStateReporter('content-actions', 'unexpected error writing content')
 
-export async function createThreadAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function createThreadAction(_prev: FormState, form: FormData): Promise<FormState> {
   const forumId = positiveIntIn(field(form, 'forumId'))
   const title = field(form, 'title')
   const message = field(form, 'message')
-  const prefixId =
-    field(form, 'prefixId') === '' ? null : positiveIntIn(field(form, 'prefixId'))
+  const prefixId = field(form, 'prefixId') === '' ? null : positiveIntIn(field(form, 'prefixId'))
   const subscribe = checkbox(form, 'subscribe')
   const pollQuestion = field(form, 'pollQuestion')
   const pollOptions = form
@@ -118,15 +108,14 @@ export async function createThreadAction(
 
   if (threadWrites === null) {
     return {
-      error:
-        'This board is running on in-memory sample data, so it cannot accept posts.',
+      error: 'This board is running on in-memory sample data, so it cannot accept posts.',
       values,
     }
   }
 
   const settings = await getSettings()
-  let created
-  let forum
+  let created: Awaited<ReturnType<ThreadComposer['create']>>
+  let forum: Awaited<ReturnType<NonNullable<typeof threadWrites>['postingRules']>>
   let author: Awaited<ReturnType<typeof authorProfile>>
   let staged: Awaited<ReturnType<typeof stageAttachments>>
   try {
@@ -189,16 +178,11 @@ export async function createThreadAction(
         }),
         requiresApproval: matrix.requiresThreadApproval === true,
         poll:
-          pollQuestion === '' &&
-          pollOptions.every((option) => option.trim() === '')
+          pollQuestion === '' && pollOptions.every((option) => option.trim() === '')
             ? undefined
             : { question: pollQuestion, options: pollOptions, closesAt: null },
         mayPostPoll: authorizer.can(actor, 'poll.post', target),
-        bypassesModeration: authorizer.can(
-          actor,
-          'content.viewUnapproved',
-          target,
-        ),
+        bypassesModeration: authorizer.can(actor, 'content.viewUnapproved', target),
         bypassesFlood: authorizer.can(actor, 'flood.bypass'),
         restriction: await authorRestriction(actor.userId),
       },
@@ -243,10 +227,7 @@ export async function createThreadAction(
   redirect(`/thread/${created.threadId}-${created.slug}`)
 }
 
-export async function createReplyAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function createReplyAction(_prev: FormState, form: FormData): Promise<FormState> {
   const threadId = positiveIntIn(field(form, 'threadId'))
   const message = field(form, 'message')
   const subscribe = checkbox(form, 'subscribe')
@@ -262,7 +243,7 @@ export async function createReplyAction(
   const actor = await getActor()
   const { drafts } = getContainer()
 
-  let created
+  let created: Awaited<ReturnType<typeof submitReply>>
   try {
     const resolved = await resolveReplyTarget(actor, threadId)
     const { forumId, scope } = resolved
@@ -316,10 +297,7 @@ async function postEditor(posts: PostWriteRepository): Promise<PostEditor> {
   })
 }
 
-export async function editPostAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function editPostAction(_prev: FormState, form: FormData): Promise<FormState> {
   const threadId = positiveIntIn(field(form, 'threadId'))
   const postId = positiveIntIn(field(form, 'postId'))
   const message = field(form, 'message')
@@ -337,14 +315,13 @@ export async function editPostAction(
   const { postWrites } = getContainer()
   if (postWrites === null) {
     return {
-      error:
-        'This board is running on in-memory sample data, so it cannot accept edits.',
+      error: 'This board is running on in-memory sample data, so it cannot accept edits.',
       values,
     }
   }
 
-  let edited
-  let scope
+  let edited: Awaited<ReturnType<PostEditor['edit']>>
+  let scope: Awaited<ReturnType<typeof resolvePostScope>>
   try {
     scope = await resolvePostScope(threadId, postId)
     if (scope === null) throw new ValidationError('That post does not exist.')
@@ -387,24 +364,15 @@ export async function editPostAction(
   redirect(postLink(thread, edited.postId))
 }
 
-export async function deletePostAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function deletePostAction(_prev: FormState, form: FormData): Promise<FormState> {
   return moveVisibility(form, 'deleted')
 }
 
-export async function restorePostAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function restorePostAction(_prev: FormState, form: FormData): Promise<FormState> {
   return moveVisibility(form, 'visible')
 }
 
-async function moveVisibility(
-  form: FormData,
-  to: 'deleted' | 'visible',
-): Promise<FormState> {
+async function moveVisibility(form: FormData, to: 'deleted' | 'visible'): Promise<FormState> {
   const threadId = positiveIntIn(field(form, 'threadId'))
   const postId = positiveIntIn(field(form, 'postId'))
   if (threadId === null || postId === null) {
@@ -414,12 +382,11 @@ async function moveVisibility(
   const { postWrites } = getContainer()
   if (postWrites === null) {
     return {
-      error:
-        'This board is running on in-memory sample data, so it cannot accept changes.',
+      error: 'This board is running on in-memory sample data, so it cannot accept changes.',
     }
   }
 
-  let moved
+  let moved: Awaited<ReturnType<PostEditor['softDelete' | 'restore']>>
   try {
     const scope = await resolvePostScope(threadId, postId)
     if (scope === null) throw new ValidationError('That post does not exist.')
@@ -431,14 +398,12 @@ async function moveVisibility(
 
     const editor = await postEditor(postWrites)
     if (to === 'deleted') {
-      if (!scope.mayDelete)
-        throw new ForbiddenError('You cannot delete that post.')
+      if (!scope.mayDelete) throw new ForbiddenError('You cannot delete that post.')
       moved = await editor.softDelete(actor.userId, scope.target, {
         bypassesLock: scope.bypassesLock,
       })
     } else {
-      if (!scope.mayRestore)
-        throw new ForbiddenError('You cannot restore that post.')
+      if (!scope.mayRestore) throw new ForbiddenError('You cannot restore that post.')
       moved = await editor.restore(actor.userId, scope.target)
     }
   } catch (err) {

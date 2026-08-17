@@ -1,11 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { PUBLIC_CONTENT, contentScopeFrom } from '@meith/core'
+import { contentScopeFrom, PUBLIC_CONTENT } from '@meith/core'
 
 import type { Database } from './client'
+import { type LatestScope, PostgresLatestRepository } from './latest-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresLatestRepository, type LatestScope } from './latest-repo'
 
 let harness: TestDb
 let db: Database
@@ -114,7 +114,9 @@ describe('the permission filter', () => {
     expect((await repo.threads(5, scope())).map((r) => r.threadId)).toEqual([1])
     expect((await repo.posts(5, scope())).map((r) => r.postId)).toEqual([1])
 
-    expect((await repo.threads(5, scope({ content: STAFF }))).map((r) => r.threadId)).toEqual([2, 1])
+    expect((await repo.threads(5, scope({ content: STAFF }))).map((r) => r.threadId)).toEqual([
+      2, 1,
+    ])
     expect((await repo.posts(5, scope({ content: STAFF }))).map((r) => r.postId)).toEqual([2, 1])
   })
 

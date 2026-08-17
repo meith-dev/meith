@@ -1,4 +1,4 @@
-import { ForbiddenError, env } from '@meith/core'
+import { env, ForbiddenError } from '@meith/core'
 
 import { DEMO_LOGIN_USERNAMES } from './accounts'
 

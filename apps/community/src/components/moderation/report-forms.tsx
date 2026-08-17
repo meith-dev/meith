@@ -1,25 +1,15 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { Card, CardContent, Field, Textarea } from "@meith/ui"
+import { Card, CardContent, Field, Textarea } from '@meith/ui'
 
-import {
-  assignReportAction,
-  closeReportAction,
-  fileReportAction,
-} from "@/server/report-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { assignReportAction, closeReportAction, fileReportAction } from '@/server/report-actions'
 
-import { FormError, SubmitButton } from "../auth/form-controls"
+import { FormError, SubmitButton } from '../auth/form-controls'
 
-export function ReportForm({
-  kind,
-  targetId,
-}: {
-  kind: string
-  targetId: number
-}) {
+export function ReportForm({ kind, targetId }: { kind: string; targetId: number }) {
   const [state, action] = useActionState(fileReportAction, EMPTY_STATE)
 
   return (
@@ -36,7 +26,7 @@ export function ReportForm({
             description="Say what a moderator should look at. The member you are reporting never sees this."
           >
             {(control) => (
-              <Textarea {...control} required defaultValue={state.values?.reason ?? ""} />
+              <Textarea {...control} required defaultValue={state.values?.reason ?? ''} />
             )}
           </Field>
 
@@ -49,25 +39,19 @@ export function ReportForm({
   )
 }
 
-export function AssignReportForm({
-  reportId,
-  mine,
-}: {
-  reportId: number
-  mine: boolean
-}) {
+export function AssignReportForm({ reportId, mine }: { reportId: number; mine: boolean }) {
   const [state, action] = useActionState(assignReportAction, EMPTY_STATE)
 
   return (
     <form action={action} className="inline">
       <FormError message={state.error} />
       <input type="hidden" name="reportId" value={reportId} />
-      <input type="hidden" name="take" value={mine ? "0" : "1"} />
+      <input type="hidden" name="take" value={mine ? '0' : '1'} />
       <button
         type="submit"
         className="text-xs font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        {mine ? "Put back" : "Take this"}
+        {mine ? 'Put back' : 'Take this'}
       </button>
     </form>
   )
@@ -88,7 +72,7 @@ export function CloseReportForm({ reportId }: { reportId: number }) {
           type="text"
           name="note"
           maxLength={1000}
-          defaultValue={state.values?.note ?? ""}
+          defaultValue={state.values?.note ?? ''}
           className="rounded-md border border-border bg-background px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
       </label>

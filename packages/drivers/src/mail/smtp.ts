@@ -1,6 +1,7 @@
+import nodemailer, { type Transporter } from 'nodemailer'
+
 import { ConfigurationError, logger, type MailDriver, type OutgoingMail } from '@meith/core'
 import type { SmtpMailConfig } from '@meith/settings'
-import nodemailer, { type Transporter } from 'nodemailer'
 
 import { formatSender } from './sender'
 
@@ -43,9 +44,7 @@ export class SmtpMailDriver implements MailDriver {
       port: config.port,
       secure: config.security === 'tls',
       requireTLS: config.security === 'starttls',
-      ...(config.username === ''
-        ? {}
-        : { auth: { user: config.username, pass: config.password } }),
+      ...(config.username === '' ? {} : { auth: { user: config.username, pass: config.password } }),
       connectionTimeout: CONNECTION_TIMEOUT_MS,
       greetingTimeout: GREETING_TIMEOUT_MS,
       socketTimeout: SOCKET_TIMEOUT_MS,

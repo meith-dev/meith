@@ -20,15 +20,12 @@ export default async function ResendVerificationPage({
       ) : (
         <>
           We have sent a confirmation link to{' '}
-          <strong className="font-medium text-foreground">{email}</strong>. Follow it to
-          finish setting up your account — until then you will not be able to sign in.
+          <strong className="font-medium text-foreground">{email}</strong>. Follow it to finish
+          setting up your account — until then you will not be able to sign in.
         </>
       )
     ) : (
-      <>
-        Enter the address you registered with and we will send the confirmation link
-        again.
-      </>
+      <>Enter the address you registered with and we will send the confirmation link again.</>
     )
 
   return (

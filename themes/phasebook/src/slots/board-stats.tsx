@@ -1,6 +1,6 @@
 import type { BoardStatsModel } from '@meith/theme-kit'
 
-import { NUMERIC, Rail, Stamp, UserRef, count } from '../shared'
+import { count, NUMERIC, Rail, Stamp, UserRef } from '../shared'
 
 export function BoardStats({
   threadCount,

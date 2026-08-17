@@ -58,5 +58,7 @@ test('a member edits their own post, and the note says so', async ({ page }) => 
   await page.goto(threadUrl)
   await expect(page.getByText('Second thoughts, on reflection.')).toBeVisible()
   await expect(page.getByText('First thoughts.')).toHaveCount(0)
-  await expect(page.getByText(new RegExp(`Last edited by ${username} on .*: clarity`))).toBeVisible()
+  await expect(
+    page.getByText(new RegExp(`Last edited by ${username} on .*: clarity`)),
+  ).toBeVisible()
 })

@@ -21,7 +21,10 @@ export function Notice({ kind, message, dismissHref }: NoticeModel) {
         {message}
       </p>
       {dismissHref !== null && (
-        <a href={dismissHref} className="font-mono text-xs text-muted-foreground hover:text-foreground">
+        <a
+          href={dismissHref}
+          className="font-mono text-xs text-muted-foreground hover:text-foreground"
+        >
           dismiss
         </a>
       )}

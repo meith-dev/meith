@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto'
 
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { type APIRequestContext, expect, type Page, test } from '@playwright/test'
 
 import { E2E_DUES_WEBHOOK_SECRET } from './support/config'
 import { enterAdminPanel, signInAsModerator, signUp } from './support/session'
@@ -81,9 +81,7 @@ test('a guest sees the shop window but cannot buy', async ({ page }) => {
   expect(shades.card).not.toBe(shades.page)
 
   await page.goto('/')
-  await expect(
-    page.getByRole('banner').getByRole('link', { name: 'Membership' }),
-  ).toBeVisible()
+  await expect(page.getByRole('banner').getByRole('link', { name: 'Membership' })).toBeVisible()
 })
 
 test('a member buys a 90-day pass and belongs before the receipt page reloads', async ({
@@ -101,9 +99,7 @@ test('a member buys a 90-day pass and belongs before the receipt page reloads', 
   const sessionId = await payOnFakeStripe(page)
 
   await expect(page).toHaveURL(/\/plugins\/dues\/return\?order=\d+$/)
-  await expect(
-    page.getByRole('heading', { name: 'Confirming your payment…' }),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Confirming your payment…' })).toBeVisible()
 
   await sendPaidWebhook(request, { id: sessionId, amount: 1200 })
 

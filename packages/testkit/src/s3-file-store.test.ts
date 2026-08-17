@@ -1,5 +1,6 @@
-import { S3FileStore, type S3Like } from '@meith/drivers/files/s3-file-store'
 import { describe, expect, it } from 'vitest'
+
+import { S3FileStore, type S3Like } from '@meith/drivers/files/s3-file-store'
 
 import { fileStoreContract } from './driver-contracts'
 
@@ -66,10 +67,7 @@ describe('S3FileStore specifics', () => {
   })
 
   it('builds a public URL from the configured base', () => {
-    const store = new S3FileStore(
-      { ...CONFIG, publicBaseUrl: 'https://cdn.example/' },
-      fakeS3(),
-    )
+    const store = new S3FileStore({ ...CONFIG, publicBaseUrl: 'https://cdn.example/' }, fakeS3())
     expect(store.url('a/b.png')).toBe('https://cdn.example/a/b.png')
   })
 

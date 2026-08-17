@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { distinctUserIds, nameClassOf, type MemberIdentity } from './member-identity'
+import { distinctUserIds, type MemberIdentity, nameClassOf } from './member-identity'
 
 const CLASSED: MemberIdentity = {
   groupId: 3,

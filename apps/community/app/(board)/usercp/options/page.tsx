@@ -3,10 +3,10 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@meith/theme-kit'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { OptionsForm } from '@/components/account/usercp-forms'
-import { getActor } from '@/server/context'
+import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
+import { getActor } from '@/server/context'
 import { getSettings } from '@/server/settings'
 import { currentTheme } from '@/server/theme'
 import { optionsFormValues, timezoneChoices, userCpNotice } from '@/view/usercp'
@@ -32,16 +32,9 @@ export default async function OptionsPage({
   const Notice = requireSlot(await currentTheme(), 'Notice')
 
   return (
-    <PanelPage
-      title="Your options"
-      lede="Your timezone, and how much of a thread fits on a page."
-    >
+    <PanelPage title="Your options" lede="Your timezone, and how much of a thread fits on a page.">
       {notice !== null && (
-        <Notice
-          kind={notice.kind}
-          message={notice.message}
-          dismissHref="/usercp/options"
-        />
+        <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/options" />
       )}
 
       <OptionsForm

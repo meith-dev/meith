@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { OutgoingMail } from '@meith/core'
 import type { MailConfig } from '@meith/settings'
 
-import { ConfiguredMailDriver, HttpMailDriver, createMailDriver, formatSender } from './index'
+import { ConfiguredMailDriver, createMailDriver, formatSender, HttpMailDriver } from './index'
 
 const createTransport = vi.hoisted(() =>
   vi.fn(() => ({ sendMail: vi.fn().mockResolvedValue({}), close: vi.fn() })),
@@ -24,9 +24,7 @@ describe('formatSender', () => {
   })
 
   it('quotes names that an unquoted display name may not contain', () => {
-    expect(formatSender(ADDRESS, 'Board Admin, Ltd.')).toBe(
-      `"Board Admin, Ltd." <${ADDRESS}>`,
-    )
+    expect(formatSender(ADDRESS, 'Board Admin, Ltd.')).toBe(`"Board Admin, Ltd." <${ADDRESS}>`)
   })
 
   it('escapes quotes and backslashes rather than letting them close the string', () => {
@@ -50,9 +48,7 @@ describe('formatSender', () => {
 
 describe('HttpMailDriver', () => {
   async function bodyOf(mail: OutgoingMail) {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(new Response('{}', { status: 200 }))
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
 
     try {
@@ -110,10 +106,7 @@ describe('ConfiguredMailDriver', () => {
   }
 
   it('picks up a settings change on the next message, not the next deploy', async () => {
-    const fetchMock = await sendThrough([
-      HTTP,
-      { ...HTTP, endpoint: 'https://api.moved/emails' },
-    ])
+    const fetchMock = await sendThrough([HTTP, { ...HTTP, endpoint: 'https://api.moved/emails' }])
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.example/emails')
     expect(fetchMock.mock.calls[1]?.[0]).toBe('https://api.moved/emails')

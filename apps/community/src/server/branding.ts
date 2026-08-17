@@ -1,18 +1,13 @@
 import 'server-only'
 
+import { cache } from 'react'
+
 import { CacheTags } from '@meith/core'
-import { PostgresSettingsRepository, getDb } from '@meith/db'
+import { getDb, PostgresSettingsRepository } from '@meith/db'
 import { drivers } from '@meith/drivers'
 import { saveSettings } from '@meith/settings'
 
-import { cache } from 'react'
-
-import {
-  forgetImage,
-  isImageScheme,
-  storeImage,
-  type ImageScheme,
-} from './image-upload'
+import { forgetImage, type ImageScheme, isImageScheme, storeImage } from './image-upload'
 import { getSettings } from './settings'
 import { currentColourScheme } from './theme'
 

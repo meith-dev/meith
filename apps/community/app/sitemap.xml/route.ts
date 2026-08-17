@@ -1,13 +1,13 @@
-import { renderSitemapIndex } from '@/view/feed'
 import { noFeed, xmlResponse } from '@/server/feed-routes'
 import {
-  SITEMAP_CHUNK,
   absoluteTo,
   feedRepository,
   isIndexable,
   origin,
   publicScope,
+  SITEMAP_CHUNK,
 } from '@/server/syndication'
+import { renderSitemapIndex } from '@/view/feed'
 
 export const dynamic = 'force-dynamic'
 

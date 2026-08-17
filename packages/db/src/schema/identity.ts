@@ -42,12 +42,8 @@ export const usergroups = pgTable(
 
     ...groupPermissionColumns(),
 
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('usergroups_key_key').on(t.key),
@@ -131,12 +127,8 @@ export const users = pgTable(
 
     legacyMybbUid: integer('legacy_mybb_uid'),
 
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('users_username_lower_key').on(t.usernameLower),
@@ -145,9 +137,7 @@ export const users = pgTable(
       .on(t.legacyMybbUid)
       .where(sql`${t.legacyMybbUid} is not null`),
     index('users_primary_group_idx').on(t.primaryGroupId),
-    index('users_active_created_idx')
-      .on(t.createdAt)
-      .where(sql`${t.state} = 'active'`),
+    index('users_active_created_idx').on(t.createdAt).where(sql`${t.state} = 'active'`),
     index('users_last_active_idx').on(t.lastActiveAt),
     index('users_signature_render_version_idx')
       .on(t.signatureRenderVersion, t.id)
@@ -170,17 +160,14 @@ export const userGroupMemberships = pgTable(
     grantedByUserId: integer('granted_by_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),
-    grantedAt: timestamp('granted_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
 
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     grantedByPlugin: text('granted_by_plugin'),
     grantReason: text('grant_reason'),
-    previousPrimaryGroupId: integer('previous_primary_group_id').references(
-      () => usergroups.id,
-      { onDelete: 'set null' },
-    ),
+    previousPrimaryGroupId: integer('previous_primary_group_id').references(() => usergroups.id, {
+      onDelete: 'set null',
+    }),
   },
   (t) => [
     uniqueIndex('user_group_memberships_pkey').on(t.userId, t.groupId),
@@ -215,15 +202,11 @@ export const sessions = pgTable(
 
     supersededBySessionId: integer('superseded_by_session_id'),
 
-    lastSeenAt: timestamp('last_seen_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
 
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('sessions_token_hash_key').on(t.tokenHash),
@@ -251,9 +234,7 @@ export const rememberTokens = pgTable(
     revokedReason: text('revoked_reason'),
 
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('remember_tokens_hash_key').on(t.tokenHash),
@@ -340,9 +321,7 @@ export const recoveryCodes = pgTable(
   },
   (t) => [
     uniqueIndex('recovery_codes_user_hash_key').on(t.userId, t.codeHash),
-    index('recovery_codes_unused_idx')
-      .on(t.userId)
-      .where(sql`${t.usedAt} is null`),
+    index('recovery_codes_unused_idx').on(t.userId).where(sql`${t.usedAt} is null`),
   ],
 )
 
@@ -376,9 +355,7 @@ export const loginAttempts = pgTable(
 
     bucket: text('bucket').notNull(),
     succeeded: boolean('succeeded').notNull(),
-    occurredAt: timestamp('occurred_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('login_attempts_bucket_idx').on(t.bucket, t.occurredAt)],
 )
@@ -398,9 +375,7 @@ export const credentialTokens = pgTable(
 
     consumedAt: timestamp('consumed_at', { withTimezone: true }),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('credential_tokens_hash_key').on(t.tokenHash),
@@ -425,25 +400,18 @@ export const bans = pgTable(
     reason: text('reason'),
     publicReason: text('public_reason'),
 
-    previousPrimaryGroupId: integer('previous_primary_group_id').references(
-      () => usergroups.id,
-      { onDelete: 'set null' },
-    ),
+    previousPrimaryGroupId: integer('previous_primary_group_id').references(() => usergroups.id, {
+      onDelete: 'set null',
+    }),
 
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     liftedAt: timestamp('lifted_at', { withTimezone: true }),
 
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex('bans_active_user_key')
-      .on(t.userId)
-      .where(sql`${t.liftedAt} is null`),
-    index('bans_expires_idx')
-      .on(t.expiresAt)
-      .where(sql`${t.liftedAt} is null`),
+    uniqueIndex('bans_active_user_key').on(t.userId).where(sql`${t.liftedAt} is null`),
+    index('bans_expires_idx').on(t.expiresAt).where(sql`${t.liftedAt} is null`),
   ],
 )
 
@@ -457,9 +425,7 @@ export const banFilters = pgTable(
     createdByUserId: integer('created_by_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('ban_filters_type_idx').on(t.type),
@@ -575,9 +541,7 @@ export const notifications = pgTable(
   },
   (t) => [
     index('notifications_user_idx').on(t.userId, t.createdAt.desc(), t.id.desc()),
-    index('notifications_unread_idx')
-      .on(t.userId)
-      .where(sql`${t.readAt} is null`),
+    index('notifications_unread_idx').on(t.userId).where(sql`${t.readAt} is null`),
     uniqueIndex('notifications_dedupe_idx')
       .on(t.userId, t.dedupeKey)
       .where(sql`${t.readAt} is null and ${t.dedupeKey} is not null`),
@@ -594,9 +558,7 @@ export const notificationPreferences = pgTable(
     email: boolean('email').notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    primaryKey({ name: 'notification_preferences_pkey', columns: [t.userId, t.kind] }),
-  ],
+  (t) => [primaryKey({ name: 'notification_preferences_pkey', columns: [t.userId, t.kind] })],
 )
 
 export const profileFields = pgTable(
@@ -642,9 +604,7 @@ export const profileFieldGroups = pgTable(
     canView: boolean('can_view'),
     canEdit: boolean('can_edit'),
   },
-  (t) => [
-    primaryKey({ name: 'profile_field_groups_pkey', columns: [t.fieldId, t.groupId] }),
-  ],
+  (t) => [primaryKey({ name: 'profile_field_groups_pkey', columns: [t.fieldId, t.groupId] })],
 )
 
 export const profileFieldValues = pgTable(
@@ -693,9 +653,7 @@ export const adminSessions = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     tokenHash: text('token_hash').notNull(),
     ipPrefix: text('ip_prefix'),
-    authenticatedAt: timestamp('authenticated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    authenticatedAt: timestamp('authenticated_at', { withTimezone: true }).notNull().defaultNow(),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),

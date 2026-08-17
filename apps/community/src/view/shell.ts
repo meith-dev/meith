@@ -85,9 +85,7 @@ export function buildUserPanelModel(
   const links: readonly LinkModel[] = viewer.isGuest
     ? [
         { label: 'Sign in', href: '/login' },
-        ...(options.registrationOpen === false
-          ? []
-          : [{ label: 'Register', href: '/register' }]),
+        ...(options.registrationOpen === false ? [] : [{ label: 'Register', href: '/register' }]),
       ]
     : viewer.profileHref === null
       ? []
@@ -139,9 +137,9 @@ export function buildPanelLinks(input: {
     admincp: input.canAccessAdminCp === true,
   }
 
-  return PANELS.filter(
-    (panel) => panel.key !== input.current && reachable[panel.key],
-  ).map((panel) => panel.link)
+  return PANELS.filter((panel) => panel.key !== input.current && reachable[panel.key]).map(
+    (panel) => panel.link,
+  )
 }
 
 const POWERED_BY: LinkModel = { label: 'Powered by Meith', href: 'https://meith.dev' }

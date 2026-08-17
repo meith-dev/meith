@@ -1,5 +1,5 @@
-import type { TimeModel } from '@meith/theme-kit'
 import type { WarningRow, WarningStanding, WarningType } from '@meith/moderation'
+import type { TimeModel } from '@meith/theme-kit'
 
 import { memberHref } from './member-profile'
 import { formatTime } from './time'
@@ -76,11 +76,7 @@ export function buildWarningView(input: {
   }
 }
 
-function warningRow(
-  row: WarningRow,
-  now: Date,
-  timeZone: string | undefined,
-): WarningHistoryRow {
+function warningRow(row: WarningRow, now: Date, timeZone: string | undefined): WarningHistoryRow {
   const lapsed =
     row.revokedAt !== null
       ? `Revoked by ${row.revokedByUsername ?? 'a moderator'}${

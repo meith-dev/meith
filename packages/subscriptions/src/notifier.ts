@@ -72,7 +72,11 @@ export class SubscriptionNotifier {
     this.now = deps.now ?? (() => new Date())
   }
 
-  private token(userId: number, scope: 'thread' | 'forum' | 'email', targetId: number): string | null {
+  private token(
+    userId: number,
+    scope: 'thread' | 'forum' | 'email',
+    targetId: number,
+  ): string | null {
     return this.secret === null
       ? null
       : mintUnsubscribeToken({ userId, scope, targetId }, this.secret)

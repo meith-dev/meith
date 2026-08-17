@@ -1,9 +1,4 @@
-import {
-  buildTree,
-  keepVisibleSubtrees,
-  type ForumListingRow,
-  type ForumNode,
-} from '@meith/forums'
+import { buildTree, type ForumListingRow, type ForumNode, keepVisibleSubtrees } from '@meith/forums'
 import type {
   BoardIndexModel,
   CategoryBlockModel,
@@ -12,10 +7,10 @@ import type {
   LinkModel,
 } from '@meith/theme-kit'
 
-import { formatTime } from './time'
-import { nameClassOf, type MemberIdentity } from './member-identity'
+import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { postLink } from './post-link'
+import { formatTime } from './time'
 
 export interface BoardIndexInput {
   readonly rows: readonly ForumListingRow[]
@@ -116,7 +111,9 @@ function findNode(
 }
 
 export function buildSectionView(input: SectionInput): BoardIndexBlock | null {
-  const tree = buildTree(keepVisibleSubtrees(input.rows, (row) => input.visibleForumIds.has(row.id)))
+  const tree = buildTree(
+    keepVisibleSubtrees(input.rows, (row) => input.visibleForumIds.has(row.id)),
+  )
   const node = findNode(tree, input.categoryId)
   if (node === null) return null
 
@@ -134,7 +131,9 @@ export function buildSectionView(input: SectionInput): BoardIndexBlock | null {
 }
 
 export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
-  const tree = buildTree(keepVisibleSubtrees(input.rows, (row) => input.visibleForumIds.has(row.id)))
+  const tree = buildTree(
+    keepVisibleSubtrees(input.rows, (row) => input.visibleForumIds.has(row.id)),
+  )
 
   return {
     index: {

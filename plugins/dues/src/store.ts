@@ -114,7 +114,10 @@ function membershipRow(row: Record<string, unknown>): MembershipRow {
     graceUntil: asDate(row.grace_until),
     needsAttention: asNullableString(row.needs_attention),
     stripeSubscriptionId: asNullableString(row.stripe_subscription_id),
-    lastOrderId: row.last_order_id === null || row.last_order_id === undefined ? null : Number(row.last_order_id),
+    lastOrderId:
+      row.last_order_id === null || row.last_order_id === undefined
+        ? null
+        : Number(row.last_order_id),
   }
 }
 
@@ -137,7 +140,9 @@ function ledgerRow(row: Record<string, unknown>): LedgerRow {
     kind: String(row.kind) as LedgerRow['kind'],
     userId: Number(row.user_id),
     membershipId:
-      row.membership_id === null || row.membership_id === undefined ? null : Number(row.membership_id),
+      row.membership_id === null || row.membership_id === undefined
+        ? null
+        : Number(row.membership_id),
     orderId: row.order_id === null || row.order_id === undefined ? null : Number(row.order_id),
     amountMinor: Number(row.amount_minor),
     currency: String(row.currency),
@@ -329,10 +334,7 @@ export async function liveMembership(
   return row === null ? null : membershipRow(row)
 }
 
-export async function membershipById(
-  data: PluginData,
-  id: number,
-): Promise<MembershipRow | null> {
+export async function membershipById(data: PluginData, id: number): Promise<MembershipRow | null> {
   const row = await data.one('select * from plugin_dues_membership where id = $1', [id])
   return row === null ? null : membershipRow(row)
 }
@@ -448,11 +450,7 @@ export async function setMembershipStatus(
   )
 }
 
-export async function flagMembership(
-  data: PluginData,
-  id: number,
-  reason: string,
-): Promise<void> {
+export async function flagMembership(data: PluginData, id: number, reason: string): Promise<void> {
   await data.query(
     `update plugin_dues_membership set needs_attention = $2, updated_at = now() where id = $1`,
     [id, reason],
@@ -519,10 +517,9 @@ export async function recordEvent(
   )
   if (inserted !== null) return { id: Number(inserted.id), first: true }
 
-  const existing = await data.one(
-    'select id from plugin_dues_event where stripe_event_id = $1',
-    [event.stripeEventId],
-  )
+  const existing = await data.one('select id from plugin_dues_event where stripe_event_id = $1', [
+    event.stripeEventId,
+  ])
   if (existing === null) throw new Error('event insert lost a race it cannot lose')
   return { id: Number(existing.id), first: false }
 }
@@ -613,7 +610,10 @@ export interface MonthlyTotal {
   readonly charges: number
 }
 
-export async function monthlyTotals(data: PluginData, months = 12): Promise<readonly MonthlyTotal[]> {
+export async function monthlyTotals(
+  data: PluginData,
+  months = 12,
+): Promise<readonly MonthlyTotal[]> {
   const rows = await data.query(
     `select to_char(date_trunc('month', occurred_at), 'YYYY-MM') as month,
             currency,
@@ -712,10 +712,7 @@ export interface NewCode {
   readonly createdByUserId: number
 }
 
-export async function insertCode(
-  data: PluginData,
-  code: NewCode,
-): Promise<CodeRow | null> {
+export async function insertCode(data: PluginData, code: NewCode): Promise<CodeRow | null> {
   const row = await data.one(
     `insert into plugin_dues_code
        (code, percent_off, plan_key, max_redemptions, expires_at, created_by_user_id)
@@ -735,10 +732,7 @@ export async function insertCode(
 }
 
 export async function codeByCode(data: PluginData, code: string): Promise<CodeRow | null> {
-  const row = await data.one(
-    'select * from plugin_dues_code where lower(code) = lower($1)',
-    [code],
-  )
+  const row = await data.one('select * from plugin_dues_code where lower(code) = lower($1)', [code])
   return row === null ? null : codeRow(row)
 }
 
@@ -922,16 +916,14 @@ export async function setPlanArchived(
   id: number,
   archived: boolean,
 ): Promise<void> {
-  await data.query(
-    `update plugin_dues_plan set archived = $2, updated_at = now() where id = $1`,
-    [id, archived],
-  )
+  await data.query(`update plugin_dues_plan set archived = $2, updated_at = now() where id = $1`, [
+    id,
+    archived,
+  ])
 }
 
 export async function listPlans(data: PluginData): Promise<readonly PlanRow[]> {
-  const rows = await data.query(
-    `select * from plugin_dues_plan order by archived, created_at, id`,
-  )
+  const rows = await data.query(`select * from plugin_dues_plan order by archived, created_at, id`)
   return rows.map(planRow)
 }
 

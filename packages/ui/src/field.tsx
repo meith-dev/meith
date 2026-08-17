@@ -37,6 +37,7 @@ function NativeSelect({ className, ...props }: React.ComponentProps<'select'>) {
 
 function Label({ className, ...props }: React.ComponentProps<'label'>) {
   return (
+    // biome-ignore lint/a11y/noLabelWithoutControl: the Label primitive itself — its caller supplies the control it wraps
     <label
       data-slot="label"
       className={cn('text-sm font-medium leading-none text-foreground select-none', className)}

@@ -1,11 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { PUBLIC_CONTENT, contentScopeFrom } from '@meith/core'
+import { contentScopeFrom, PUBLIC_CONTENT } from '@meith/core'
 
 import type { Database } from './client'
+import { type FeedScope, PostgresFeedRepository } from './feed-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresFeedRepository, type FeedScope } from './feed-repo'
 
 let harness: TestDb
 let db: Database
@@ -193,7 +193,12 @@ describe('recentThreads', () => {
   it('summarises the opening post, and stays one entry per thread', async () => {
     await seedThread({ id: 1, firstPostId: 10 })
     await seedPost({ id: 10, threadId: 1, message: 'the question' })
-    await seedPost({ id: 11, threadId: 1, message: 'the answer', createdAt: '2026-03-03T00:00:00Z' })
+    await seedPost({
+      id: 11,
+      threadId: 1,
+      message: 'the answer',
+      createdAt: '2026-03-03T00:00:00Z',
+    })
 
     const rows = await repo.recentThreads(50, guest())
     expect(rows).toHaveLength(1)
@@ -299,9 +304,9 @@ describe('a "your threads only" forum', () => {
 
   it('keeps the sitemap in step with the feed', async () => {
     expect(await repo.sitemapThreadCount(restricted(ANN))).toBe(1)
-    expect(
-      (await repo.sitemapThreads(0, 10, restricted(ANN))).map((row) => row.threadId),
-    ).toEqual([1])
+    expect((await repo.sitemapThreads(0, 10, restricted(ANN))).map((row) => row.threadId)).toEqual([
+      1,
+    ])
     expect(await repo.sitemapThreadCount(restricted(null))).toBe(0)
   })
 

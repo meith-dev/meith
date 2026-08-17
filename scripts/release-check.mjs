@@ -10,7 +10,9 @@ const root = JSON.parse(await readFile(join(ROOT, 'package.json'), 'utf8'))
 const version = root.version
 
 if (typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version)) {
-  console.error(`✗ release coherence: the root package.json version is "${version}", not major.minor.patch`)
+  console.error(
+    `✗ release coherence: the root package.json version is "${version}", not major.minor.patch`,
+  )
   process.exit(1)
 }
 
@@ -29,7 +31,9 @@ for (const { dir, manifest } of published) {
     for (const dep of Object.keys(manifest[field] ?? {})) {
       const target = byName.get(dep)
       if (target !== undefined && target.manifest.private === true) {
-        problems.push(`${dir} is published and depends on ${dep}, which is private — publish it or drop the dependency`)
+        problems.push(
+          `${dir} is published and depends on ${dep}, which is private — publish it or drop the dependency`,
+        )
       }
     }
   }
@@ -38,7 +42,9 @@ for (const { dir, manifest } of published) {
     problems.push(`${dir} is published without the repository licence`)
   }
   if (manifest.repository?.directory !== dir) {
-    problems.push(`${dir} is published and its repository.directory says "${manifest.repository?.directory}"`)
+    problems.push(
+      `${dir} is published and its repository.directory says "${manifest.repository?.directory}"`,
+    )
   }
   if (!Array.isArray(manifest.files) || manifest.files.length === 0) {
     problems.push(`${dir} is published without a files whitelist`)
@@ -50,8 +56,14 @@ for (const { dir, manifest } of published) {
 
 const CONSTANTS = [
   { file: 'apps/cli/src/upgrade.ts', pattern: /export const CODE_VERSION = '([^']+)'/ },
-  { file: 'apps/community/src/server/upgrade-notice.ts', pattern: /export const CODE_VERSION = '([^']+)'/ },
-  { file: 'packages/create-meith/src/bin.ts', pattern: /run\(process\.argv\.slice\(2\), '([^']+)'\)/ },
+  {
+    file: 'apps/community/src/server/upgrade-notice.ts',
+    pattern: /export const CODE_VERSION = '([^']+)'/,
+  },
+  {
+    file: 'packages/create-meith/src/bin.ts',
+    pattern: /run\(process\.argv\.slice\(2\), '([^']+)'\)/,
+  },
 ]
 
 const PLUGIN_MANIFESTS = [
@@ -63,7 +75,9 @@ for (const { file, pattern } of [...CONSTANTS, ...PLUGIN_MANIFESTS]) {
   const source = await readFile(join(ROOT, file), 'utf8')
   const match = pattern.exec(source)
   if (match === null) {
-    problems.push(`${file} no longer contains the version this check reads — update release-check.mjs with it`)
+    problems.push(
+      `${file} no longer contains the version this check reads — update release-check.mjs with it`,
+    )
   } else if (match[1] !== version) {
     problems.push(`${file} says ${match[1]}; the release is ${version}`)
   }
@@ -73,11 +87,15 @@ const compose = await readFile(join(ROOT, 'docker/compose.coolify.yml'), 'utf8')
 const pins = [...compose.matchAll(/\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:([^}]+)\}/g)]
 
 if (pins.length === 0) {
-  problems.push('docker/compose.coolify.yml no longer defaults MEITH_IMAGE to a ghcr.io/meith-dev/meith tag')
+  problems.push(
+    'docker/compose.coolify.yml no longer defaults MEITH_IMAGE to a ghcr.io/meith-dev/meith tag',
+  )
 }
 for (const pin of pins) {
   if (pin[1] !== version) {
-    problems.push(`docker/compose.coolify.yml pins ghcr.io/meith-dev/meith:${pin[1]}; the release is ${version}`)
+    problems.push(
+      `docker/compose.coolify.yml pins ghcr.io/meith-dev/meith:${pin[1]}; the release is ${version}`,
+    )
   }
 }
 
@@ -85,7 +103,9 @@ const tagIndex = process.argv.indexOf('--tag')
 if (tagIndex !== -1) {
   const tag = process.argv[tagIndex + 1] ?? ''
   if (tag !== `v${version}`) {
-    problems.push(`the tag is "${tag}" and the tree is ${version} — a release tag must be v${version}`)
+    problems.push(
+      `the tag is "${tag}" and the tree is ${version} — a release tag must be v${version}`,
+    )
   }
 }
 

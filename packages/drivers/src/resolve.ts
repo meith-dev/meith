@@ -1,20 +1,19 @@
 import {
-  ConfigurationError,
-  env,
   type CacheDriver,
+  ConfigurationError,
   type Drivers,
+  env,
   type FileStore,
   type MailDriver,
   type QueueDriver,
 } from '@meith/core'
-
-import { PostgresSettingsRepository, getDb } from '@meith/db'
+import { getDb, PostgresSettingsRepository } from '@meith/db'
 import {
-  NO_MAIL,
-  SettingsSnapshot,
+  type MailConfig,
   mailConfigFromEnvironment,
   mailConfigFromSettings,
-  type MailConfig,
+  NO_MAIL,
+  SettingsSnapshot,
 } from '@meith/settings'
 
 import { NextCacheDriver } from './cache/next-cache'
@@ -33,9 +32,7 @@ function buildQueue(): QueueDriver {
     case 'memory':
       return new MemoryQueue()
     case 'redis':
-      throw new ConfigurationError(
-        'QUEUE_DRIVER=redis is not implemented yet. Use "postgres".',
-      )
+      throw new ConfigurationError('QUEUE_DRIVER=redis is not implemented yet. Use "postgres".')
   }
 }
 

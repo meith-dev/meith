@@ -75,9 +75,7 @@ export function reputationLabel(summary: ReputationSummary): string {
     summary.negative > 0 ? `${summary.negative} negative` : null,
   ].filter((part): part is string => part !== null)
 
-  return detail.length === 0
-    ? 'No ratings yet'
-    : `${signed(summary.total)} (${detail.join(', ')})`
+  return detail.length === 0 ? 'No ratings yet' : `${signed(summary.total)} (${detail.join(', ')})`
 }
 
 export function reputationNotice(query: {

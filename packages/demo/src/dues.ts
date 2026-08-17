@@ -1,16 +1,16 @@
 import {
+  type Database,
   PostgresAdminRepository,
   PostgresGroupAdminRepository,
-  SEED_GROUP_KEY,
   pluginData,
   pluginGrants,
-  type Database,
+  SEED_GROUP_KEY,
 } from '@meith/db'
 import {
   DUES_DEMO_GROUP,
-  seedDuesDemo,
   type DuesDemoCast,
   type DuesDemoSummary,
+  seedDuesDemo,
 } from '@meith/plugin-dues'
 
 export const DUES_PLUGIN_KEY = 'dues'

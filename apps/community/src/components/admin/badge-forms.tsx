@@ -1,17 +1,17 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { cn } from "@meith/ui"
+import { cn } from '@meith/ui'
 
-import { PANEL_CARD } from "@/components/shell/panel-list"
-import { removeBadgeAction, saveBadgeAction } from "@/server/group-badge-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { PANEL_CARD } from '@/components/shell/panel-list'
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { removeBadgeAction, saveBadgeAction } from '@/server/group-badge-actions'
 
-import { FormError, SubmitButton } from "../auth/form-controls"
+import { FormError, SubmitButton } from '../auth/form-controls'
 
 const GHOST =
-  "inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export function BadgeUploadForm({
   groupId,
@@ -21,7 +21,7 @@ export function BadgeUploadForm({
   maxKib,
 }: {
   groupId: number
-  scheme: "light" | "dark"
+  scheme: 'light' | 'dark'
   label: string
   src: string | null
   maxKib: number
@@ -32,19 +32,19 @@ export function BadgeUploadForm({
   const id = `badge-${groupId}-${scheme}`
 
   return (
-    <div className={cn(PANEL_CARD, "gap-3 p-3")}>
+    <div className={cn(PANEL_CARD, 'gap-3 p-3')}>
       <h3 className="text-sm font-medium">{label}</h3>
 
       <FormError message={saved.error ?? removed.error} />
-      {(saved.notice === "saved" || removed.notice === "removed") && (
+      {(saved.notice === 'saved' || removed.notice === 'removed') && (
         <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          {saved.notice === "saved" ? "Saved." : "Removed."}
+          {saved.notice === 'saved' ? 'Saved.' : 'Removed.'}
         </p>
       )}
 
       <div
         className={`flex min-h-12 items-center justify-center rounded-md border border-border bg-card p-2 ${
-          scheme === "dark" ? "dark" : ""
+          scheme === 'dark' ? 'dark' : ''
         }`}
       >
         {src === null ? (
@@ -69,8 +69,8 @@ export function BadgeUploadForm({
           className="w-full text-xs file:mr-3 file:rounded-md file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-medium"
         />
         <p className="text-xs text-muted-foreground">
-          PNG, JPEG, WebP or SVG, up to {maxKib} KiB. The contents decide the
-          format, not the file name.
+          PNG, JPEG, WebP or SVG, up to {maxKib} KiB. The contents decide the format, not the file
+          name.
         </p>
         <div>
           <SubmitButton>Upload</SubmitButton>

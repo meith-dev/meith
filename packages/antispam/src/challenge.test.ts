@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  QuestionCaptcha,
-  checkHoneypot,
-  noCaptcha,
-  type CaptchaQuestion,
-} from './challenge'
+import { type CaptchaQuestion, checkHoneypot, noCaptcha, QuestionCaptcha } from './challenge'
 import { holdsForReview } from './first-post'
 
 const NOW = new Date('2026-08-04T12:00:30Z')
 
 function source(questions: readonly CaptchaQuestion[]) {
-  return { async list() { return questions } }
+  return {
+    async list() {
+      return questions
+    },
+  }
 }
 
 const QUESTIONS: readonly CaptchaQuestion[] = [
@@ -39,9 +38,9 @@ describe('the question captcha', () => {
   })
 
   it('ignores case, surrounding space and runs of space', async () => {
-    const captcha = new QuestionCaptcha(source([
-      { id: 1, question: 'Name the board?', answers: ['The Bike Shed'] },
-    ]))
+    const captcha = new QuestionCaptcha(
+      source([{ id: 1, question: 'Name the board?', answers: ['The Bike Shed'] }]),
+    )
     expect(await captcha.verify({ token: '1', answer: '  the   bike shed ' })).toEqual({
       ok: true,
     })
@@ -61,7 +60,11 @@ describe('the question captcha', () => {
 
   it('checks the answer against what is stored now, not against the form', async () => {
     const questions = [{ id: 1, question: 'Colour?', answers: ['blue'] }]
-    const captcha = new QuestionCaptcha({ async list() { return questions } })
+    const captcha = new QuestionCaptcha({
+      async list() {
+        return questions
+      },
+    })
 
     expect(await captcha.verify({ token: '1', answer: 'blue' })).toEqual({ ok: true })
     questions[0] = { id: 1, question: 'Colour?', answers: ['red'] }
@@ -111,9 +114,9 @@ describe('the fill-time floor', () => {
   })
 
   it('passes when there is no stamp at all', () => {
-    expect(
-      checkHoneypot({ honeypot: '', issuedAt: null, now: NOW, minimumSeconds: 3 }),
-    ).toEqual({ ok: true })
+    expect(checkHoneypot({ honeypot: '', issuedAt: null, now: NOW, minimumSeconds: 3 })).toEqual({
+      ok: true,
+    })
   })
 
   it('passes a stamp from the future rather than treating it as evidence', () => {
@@ -150,9 +153,7 @@ describe('first-post moderation', () => {
   })
 
   it('does not hold somebody the board has granted a moderation bypass', () => {
-    expect(
-      holdsForReview({ ...member, bypassesModeration: true }, { threshold: 5 }),
-    ).toBe(false)
+    expect(holdsForReview({ ...member, bypassesModeration: true }, { threshold: 5 })).toBe(false)
   })
 
   it('does not apply to a guest, who cannot reach a posting path anyway', () => {

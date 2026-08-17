@@ -1,19 +1,19 @@
 import {
-  type PanelNav,
-  type PanelSection,
-  type PanelSubsection,
   currentProps,
   deepestHrefIn,
   isUnder,
+  type PanelNav,
+  type PanelSection,
+  type PanelSubsection,
   sectionHrefIn,
 } from './panel-nav'
 import { SETTING_GROUP_NAV } from './setting-groups'
 
-export { currentProps, isUnder }
 export type {
   PanelSection as AdminSection,
   PanelSubsection as AdminSubsection,
 } from './panel-nav'
+export { currentProps, isUnder }
 
 export const ADMIN_OVERVIEW: PanelSection = {
   href: '/admin',

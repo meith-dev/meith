@@ -1,5 +1,5 @@
 import { RateLimitedError, ValidationError } from '@meith/core'
-import { validatePoll, type NewPoll } from '@meith/polls'
+import { type NewPoll, validatePoll } from '@meith/polls'
 
 export interface ForumPostingRules {
   readonly id: number
@@ -137,47 +137,32 @@ export class ThreadComposer {
 
     const restriction = input.restriction ?? UNRESTRICTED
     if (restriction.suspended) {
-      throw new ValidationError(
-        'Your posting privileges are currently suspended.',
-      )
+      throw new ValidationError('Your posting privileges are currently suspended.')
     }
 
     if (title.length < TITLE_MIN) {
-      throw new ValidationError(
-        `A title needs at least ${TITLE_MIN} characters.`,
-      )
+      throw new ValidationError(`A title needs at least ${TITLE_MIN} characters.`)
     }
     if (title.length > TITLE_MAX) {
-      throw new ValidationError(
-        `A title may be at most ${TITLE_MAX} characters.`,
-      )
+      throw new ValidationError(`A title may be at most ${TITLE_MAX} characters.`)
     }
     if (message.length < MESSAGE_MIN) {
       throw new ValidationError('A post needs a message.')
     }
     if (message.length > this.config.maxLength) {
-      throw new ValidationError(
-        `A post may be at most ${this.config.maxLength} characters.`,
-      )
+      throw new ValidationError(`A post may be at most ${this.config.maxLength} characters.`)
     }
 
     const prefixId = await this.resolvePrefix(input.prefixId, forum)
-    const poll =
-      input.poll === undefined
-        ? undefined
-        : validatePoll(input.poll, this.now())
-    if (
-      poll !== undefined &&
-      (input.mayPostPoll !== true || !forum.allowPolls)
-    ) {
+    const poll = input.poll === undefined ? undefined : validatePoll(input.poll, this.now())
+    if (poll !== undefined && (input.mayPostPoll !== true || !forum.allowPolls)) {
       throw new ValidationError('You cannot attach a poll in this forum.')
     }
 
     await this.enforceFlood(input, author)
 
     const visibility =
-      ((forum.moderateNewThreads || input.requiresApproval) &&
-        !input.bypassesModeration) ||
+      ((forum.moderateNewThreads || input.requiresApproval) && !input.bypassesModeration) ||
       input.heldAsNewMember ||
       restriction.moderated
         ? 'unapproved'
@@ -216,10 +201,7 @@ export class ThreadComposer {
     return prefixId
   }
 
-  private async enforceFlood(
-    input: ComposeThreadInput,
-    author: ThreadAuthor,
-  ): Promise<void> {
+  private async enforceFlood(input: ComposeThreadInput, author: ThreadAuthor): Promise<void> {
     if (this.config.floodSeconds <= 0 || input.bypassesFlood) return
 
     const last = await this.threads.lastPostAt(author.userId)

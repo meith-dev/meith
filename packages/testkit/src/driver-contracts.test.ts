@@ -2,6 +2,10 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll } from 'vitest'
+
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 import {
   LocalFileStore,
   LogMailDriver,
@@ -10,9 +14,6 @@ import {
   MemoryQueue,
   PostgresQueue,
 } from '@meith/drivers'
-import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
-import { sql } from 'drizzle-orm'
-import { afterAll, beforeAll } from 'vitest'
 
 import {
   cacheDriverContract,

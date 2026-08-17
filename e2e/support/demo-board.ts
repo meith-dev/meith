@@ -4,7 +4,6 @@ import { closeDb, getDb } from '@meith/db'
 import { demoResetTask } from '@meith/demo'
 
 import { installedPluginDefinitions } from '../../apps/community/community.plugins'
-
 import { DEMO_DATABASE_URL, DEMO_DB_PORT, DEMO_READY_PORT } from './config'
 import { startDatabase } from './database'
 
@@ -31,7 +30,7 @@ async function main(): Promise<void> {
   const ready = createServer()
   await new Promise<void>((resolve) => ready.listen(DEMO_READY_PORT, '127.0.0.1', resolve))
 
-  // eslint-disable-next-line no-console -- this is a process; its output is its status
+  // biome-ignore lint/suspicious/noConsole: this is a process; its output is its status
   console.log(
     `demo board listening on ${DEMO_DATABASE_URL} — ` +
       `${summary.forums} forum(s), ${summary.threads} thread(s), ${summary.posts} post(s)`,

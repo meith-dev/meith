@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { BodyFormat, RENDER_VERSION, postBodyHtml, sourceAsMarkdown } from './body'
+import { BodyFormat, postBodyHtml, RENDER_VERSION, sourceAsMarkdown } from './body'
 import { compileVocabulary } from './vocabulary'
 
 const current = {

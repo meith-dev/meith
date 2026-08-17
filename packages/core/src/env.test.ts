@@ -90,9 +90,9 @@ describe('production rules', () => {
   })
 
   it('refuses to boot a Vercel deployment writing uploads to local disk', () => {
-    expect(() =>
-      parseEnv({ ...base, FILESTORE_DRIVER: 'local', VERCEL: '1' }),
-    ).toThrow(/FILESTORE_DRIVER/)
+    expect(() => parseEnv({ ...base, FILESTORE_DRIVER: 'local', VERCEL: '1' })).toThrow(
+      /FILESTORE_DRIVER/,
+    )
   })
 
   it('says what to do about it, because the default is the broken one', () => {
@@ -134,9 +134,9 @@ describe('production rules', () => {
   })
 
   it('still applies them when NODE_ENV is production and no build is running', () => {
-    expect(() => parseEnv({ NODE_ENV: 'production', NEXT_PHASE: 'phase-production-server' })).toThrow(
-      /AUTH_SECRET/,
-    )
+    expect(() =>
+      parseEnv({ NODE_ENV: 'production', NEXT_PHASE: 'phase-production-server' }),
+    ).toThrow(/AUTH_SECRET/)
   })
 
   it('cannot be waived by NEXT_PHASE when validating for a running server', () => {
@@ -179,16 +179,14 @@ describe('demo mode', () => {
   })
 
   it('refuses to arm a demo that has no write side', () => {
-    expect(() =>
-      parseEnv({ ...base, DATA_SOURCE: 'fixture', DEMO_MODE: '1' }),
-    ).toThrow(/DEMO_MODE.*DATA_SOURCE=postgres/s)
+    expect(() => parseEnv({ ...base, DATA_SOURCE: 'fixture', DEMO_MODE: '1' })).toThrow(
+      /DEMO_MODE.*DATA_SOURCE=postgres/s,
+    )
   })
 
   it('defaults the reset interval to an hour, and bounds what may replace it', () => {
     expect(parseEnv(demo).DEMO_RESET_MINUTES).toBe(60)
     expect(parseEnv({ ...demo, DEMO_RESET_MINUTES: '15' }).DEMO_RESET_MINUTES).toBe(15)
-    expect(() => parseEnv({ ...demo, DEMO_RESET_MINUTES: '1' })).toThrow(
-      /DEMO_RESET_MINUTES/,
-    )
+    expect(() => parseEnv({ ...demo, DEMO_RESET_MINUTES: '1' })).toThrow(/DEMO_RESET_MINUTES/)
   })
 })
