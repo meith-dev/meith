@@ -92,10 +92,14 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
       return claimed
     },
 
-    async drainQueue(batchSize) {
-      const { processed } = await deps.queue.drain(batchSize, async (job) => {
-        await deps.events.dispatch(job.kind, job.payload)
-      })
+    async drainQueue(batchSize, signal) {
+      const { processed } = await deps.queue.drain(
+        batchSize,
+        async (job) => {
+          await deps.events.dispatch(job.kind, job.payload)
+        },
+        { signal },
+      )
       return processed
     },
 
@@ -173,15 +177,17 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
     ...(deps.subscriptions === undefined
       ? {}
       : {
-          async notifySubscribers(batchSize: number) {
-            const { notified } = await subscriptionNotifier(deps).runInstant(batchSize)
+          async notifySubscribers(batchSize: number, signal: AbortSignal) {
+            const { notified } = await subscriptionNotifier(deps).runInstant(batchSize, signal)
             return notified
           },
 
-          async sendDigests(batchSize: number) {
+          async sendDigests(batchSize: number, signal: AbortSignal) {
             const notifier = subscriptionNotifier(deps)
-            const daily = await notifier.runDigest('daily', batchSize)
-            const weekly = await notifier.runDigest('weekly', batchSize)
+            const daily = await notifier.runDigest('daily', batchSize, signal)
+            if (signal.aborted) return daily.notified
+
+            const weekly = await notifier.runDigest('weekly', batchSize, signal)
             return daily.notified + weekly.notified
           },
         }),

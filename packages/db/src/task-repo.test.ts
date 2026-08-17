@@ -30,11 +30,10 @@ beforeEach(async () => {
   await db.delete(tasks)
 })
 
-function claimArgs(taskId: string, now = NOW, intervalSeconds = 60) {
+function claimArgs(taskId: string, now = NOW) {
   return {
     taskId,
     now,
-    dueBefore: new Date(now.getTime() - intervalSeconds * 1000),
     staleBefore: new Date(now.getTime() - LEASE_SECONDS * 1000),
   }
 }
@@ -57,6 +56,35 @@ describe('ensureRegistered', () => {
 
     const [row] = await db.select({ i: tasks.intervalSeconds }).from(tasks)
     expect(row?.i).toBe(300)
+  })
+
+  it('leaves a task due at once, so a new registration does not wait an interval', async () => {
+    await repo.ensureRegistered([{ id: 'a', intervalSeconds: 3600 }])
+
+    const [row] = await db.select({ next: tasks.nextRunAt }).from(tasks)
+    expect(row?.next?.getTime()).toBeLessThanOrEqual(new Date('2000-01-01').getTime())
+  })
+
+  it('moves the due time when the cadence changes, rather than honouring the old one', async () => {
+    await repo.ensureRegistered([{ id: 'a', intervalSeconds: 86_400 }])
+    await repo.claim(claimArgs('a'))
+    await repo.release({ taskId: 'a', finishedAt: NOW, success: true })
+
+    await repo.ensureRegistered([{ id: 'a', intervalSeconds: 60 }])
+
+    const [row] = await db.select({ next: tasks.nextRunAt }).from(tasks)
+    expect(row?.next?.toISOString()).toBe(new Date(NOW.getTime() + 60_000).toISOString())
+  })
+
+  it('leaves the due time alone when the cadence has not changed', async () => {
+    await repo.ensureRegistered([{ id: 'a', intervalSeconds: 60 }])
+    await repo.claim(claimArgs('a'))
+    await repo.release({ taskId: 'a', finishedAt: NOW, success: true })
+
+    await repo.ensureRegistered([{ id: 'a', intervalSeconds: 60 }])
+
+    const [row] = await db.select({ next: tasks.nextRunAt }).from(tasks)
+    expect(row?.next?.toISOString()).toBe(new Date(NOW.getTime() + 60_000).toISOString())
   })
 
   it('preserves runtime state across re-registration', async () => {
@@ -114,6 +142,29 @@ describe('claim', () => {
 
     const soon = new Date(NOW.getTime() + 1000)
     expect(await repo.claim(claimArgs('a', soon))).toBeNull()
+  })
+
+  it('selects on next_run_at, the column release writes', async () => {
+    await repo.claim(claimArgs('a'))
+    await repo.release({ taskId: 'a', finishedAt: NOW, success: true })
+
+    const justBefore = new Date(NOW.getTime() + 59_000)
+    expect(await repo.claim(claimArgs('a', justBefore))).toBeNull()
+
+    const due = new Date(NOW.getTime() + 60_000)
+    expect(await repo.claim(claimArgs('a', due))).not.toBeNull()
+  })
+
+  it('measures the interval from the finish, so a slow run does not run back to back', async () => {
+    await repo.claim(claimArgs('a'))
+    const finished = new Date(NOW.getTime() + 50_000)
+    await repo.release({ taskId: 'a', finishedAt: finished, success: true })
+
+    const oneIntervalFromTheStart = new Date(NOW.getTime() + 60_000)
+    expect(await repo.claim(claimArgs('a', oneIntervalFromTheStart))).toBeNull()
+
+    const oneIntervalFromTheFinish = new Date(finished.getTime() + 60_000)
+    expect(await repo.claim(claimArgs('a', oneIntervalFromTheFinish))).not.toBeNull()
   })
 
   it('refuses to re-enter a task that is still running past its interval', async () => {

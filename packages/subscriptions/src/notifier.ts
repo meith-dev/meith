@@ -82,8 +82,8 @@ export class SubscriptionNotifier {
       : mintUnsubscribeToken({ userId, scope, targetId }, this.secret)
   }
 
-  async runInstant(limit = MAX_USERS_PER_RUN): Promise<RunOutcome> {
-    return this.run('instant', null, limit, (userId, threads) =>
+  async runInstant(limit = MAX_USERS_PER_RUN, signal?: AbortSignal): Promise<RunOutcome> {
+    return this.run('instant', null, limit, signal, (userId, threads) =>
       Promise.all(
         threads.map((thread) =>
           this.notifications.raise({
@@ -103,11 +103,15 @@ export class SubscriptionNotifier {
     )
   }
 
-  async runDigest(cadence: DigestCadence, limit = MAX_USERS_PER_RUN): Promise<RunOutcome> {
+  async runDigest(
+    cadence: DigestCadence,
+    limit = MAX_USERS_PER_RUN,
+    signal?: AbortSignal,
+  ): Promise<RunOutcome> {
     const at = this.now()
     const dueBefore = new Date(at.getTime() - CADENCE_INTERVAL_MS[cadence])
 
-    return this.run(cadence, dueBefore, limit, async (userId, threads) => {
+    return this.run(cadence, dueBefore, limit, signal, async (userId, threads) => {
       const totalPosts = threads.reduce((sum, thread) => sum + thread.posts, 0)
 
       await this.notifications.raise({
@@ -138,12 +142,17 @@ export class SubscriptionNotifier {
     mode: SubscriptionMode,
     dueBefore: Date | null,
     limit: number,
+    signal: AbortSignal | undefined,
     tell: (userId: number, threads: readonly DigestThread[]) => Promise<void>,
   ): Promise<RunOutcome> {
     const users = await this.subscriptions.usersWithPending({ mode, dueBefore, limit })
 
     let notified = 0
+    let considered = 0
     for (const userId of users) {
+      if (signal?.aborted === true) break
+      considered += 1
+
       try {
         const visibleForumIds = await this.forums.visibleForumIdsFor(userId)
         const pending = await this.subscriptions.pendingFor({
@@ -170,6 +179,6 @@ export class SubscriptionNotifier {
       }
     }
 
-    return { notified, considered: users.length }
+    return { notified, considered }
   }
 }

@@ -49,8 +49,9 @@ describe('nextDemoResetAt', () => {
   it('is one interval after the last reset', async () => {
     inDemoMode('30')
     await db.execute(sql`
-      insert into tasks (key, interval_seconds, last_run_at)
-      values (${DEMO_RESET_TASK_ID}, 1800, ${NOW})
+      insert into tasks (key, interval_seconds, last_run_at, next_run_at)
+      values (${DEMO_RESET_TASK_ID}, 1800, ${NOW},
+              ${NOW}::timestamptz + make_interval(secs => 1800))
     `)
 
     await expect(nextDemoResetAt(db)).resolves.toEqual(new Date('2026-08-10T09:30:00Z'))
@@ -73,8 +74,9 @@ describe('the reset task', () => {
         resets += 1
         await db.execute(sql`delete from tasks`)
         await db.execute(sql`
-          insert into tasks (key, interval_seconds, last_run_at)
-          values (${DEMO_RESET_TASK_ID}, 3600, ${context.now})
+          insert into tasks (key, interval_seconds, last_run_at, next_run_at)
+          values (${DEMO_RESET_TASK_ID}, 3600, ${context.now},
+                  ${context.now}::timestamptz + make_interval(secs => 3600))
         `)
         return { detail: {} }
       },

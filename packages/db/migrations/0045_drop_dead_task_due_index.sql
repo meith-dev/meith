@@ -1,0 +1,1 @@
+DROP INDEX "tasks_due_idx";

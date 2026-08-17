@@ -6,6 +6,8 @@ import type { OutboxReader, OutboxRecord } from '@meith/events'
 import { buildEventRegistry } from './event-handlers'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 
+const NOT_ABORTED = new AbortController().signal
+
 class FakeOutbox implements OutboxReader {
   readonly marked: number[] = []
   constructor(private rows: OutboxRecord[]) {}
@@ -73,15 +75,29 @@ describe('the outbox relay and queue drain', () => {
     expect(await workers.relayOutbox!(10)).toBe(1)
     expect(outbox.marked).toEqual([1])
 
-    expect(await workers.drainQueue!(10)).toBe(1)
+    expect(await workers.drainQueue!(10, NOT_ABORTED)).toBe(1)
     expect(rollUpAncestors).toHaveBeenCalledWith(30)
+  })
+
+  it('stops draining when the task budget it was given is spent', async () => {
+    const controller = new AbortController()
+    rollUpAncestors = vi.fn(async () => {
+      controller.abort()
+      return true
+    })
+
+    const { queue, workers } = build([postCreated(1, 30), postCreated(2, 31), postCreated(3, 32)])
+    await workers.relayOutbox!(10)
+
+    expect(await workers.drainQueue!(10, controller.signal)).toBe(1)
+    expect((await queue.pending()).length).toBe(2)
   })
 
   it('drops a job naming a handler this build does not have', async () => {
     const { queue, workers } = build([])
     await queue.enqueue('handler.removed.in.this.deploy', { postId: 1 })
 
-    expect(await workers.drainQueue!(10)).toBe(1)
+    expect(await workers.drainQueue!(10, NOT_ABORTED)).toBe(1)
     expect(rollUpAncestors).not.toHaveBeenCalled()
   })
 

@@ -114,6 +114,44 @@ export function queueDriverContract(name: string, make: DriverFactory<QueueDrive
       expect(new Set(seen).size).toBe(seen.length)
     })
 
+    it('stops between jobs when the caller aborts', async () => {
+      const queue = await make()
+      for (let i = 0; i < 5; i++) await queue.enqueue('test.job', { i })
+
+      const controller = new AbortController()
+      const seen: number[] = []
+
+      const result = await queue.drain(
+        5,
+        async (job) => {
+          seen.push((job.payload as { i: number }).i)
+          controller.abort()
+        },
+        { signal: controller.signal },
+      )
+
+      expect(seen).toHaveLength(1)
+      expect(result.processed).toBe(1)
+    })
+
+    it('hands back the jobs it did not reach, with their attempts intact', async () => {
+      const queue = await make()
+      for (let i = 0; i < 3; i++) await queue.enqueue('test.job', { i }, { maxAttempts: 1 })
+
+      const controller = new AbortController()
+      await queue.drain(
+        3,
+        async () => {
+          controller.abort()
+        },
+        { signal: controller.signal },
+      )
+
+      const rest = await queue.drain(3, async () => {})
+      expect(rest.processed).toBe(2)
+      expect(await queue.deadLettered(10)).toHaveLength(0)
+    })
+
     it('counts a throwing handler as failed, not processed', async () => {
       const queue = await make()
       await queue.enqueue('test.job', { n: 1 })

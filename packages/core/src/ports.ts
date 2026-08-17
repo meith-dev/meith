@@ -22,6 +22,7 @@ export interface QueueDriver {
   drain(
     limit: number,
     handler: (job: Job) => Promise<void>,
+    options?: { readonly signal?: AbortSignal },
   ): Promise<{ processed: number; failed: number }>
 
   deadLettered(limit: number): Promise<readonly Job[]>
