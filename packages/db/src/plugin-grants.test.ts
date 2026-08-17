@@ -145,7 +145,6 @@ describe('pluginGrants — refusals', () => {
       }),
     ).rejects.toThrow(/someone else/)
 
-    // And revoking it silently does nothing rather than deleting it.
     await pluginGrants(h.db, 'dues').revoke({
       userId: uid,
       groupKey: 'supporters',

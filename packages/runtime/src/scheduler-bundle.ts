@@ -141,11 +141,6 @@ export function buildSchedulerBundle(deps: {
         recount: new PostgresCounterRecount(db),
         renderBackfill: new PostgresRenderBackfill(db),
         searchIndex: new PostgresSearchRepository(db),
-        // Withheld on a demo, which registers no delivery task at all rather
-        // than registering one and refusing every row. A visitor holding the
-        // published administrator password can point a webhook at any address
-        // that resolves from this host; the board would then make the request
-        // on their behalf, on a schedule, for free.
         ...(env.DEMO_MODE ? {} : { webhooks: new PostgresWebhookRepository(db) }),
         statistics: {
           stats: new PostgresStatsRepository(db),

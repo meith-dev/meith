@@ -6,7 +6,6 @@ import type { DemoThread } from './types'
  * by somebody using them rather than by a paragraph in a document.
  */
 export const RUNNING_THREADS: readonly DemoThread[] = [
-  // ── Membership and subs ────────────────────────────────────────────────────
   {
     forum: 'membership',
     author: 'noelle',
@@ -192,7 +191,6 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── Help with the board ────────────────────────────────────────────────────
   {
     forum: 'support',
     author: 'admin',
@@ -357,7 +355,6 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── Feedback and ideas ─────────────────────────────────────────────────────
   {
     forum: 'feedback',
     author: 'donal',
@@ -463,7 +460,6 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── Moderation and rules ───────────────────────────────────────────────────
   {
     forum: 'moderation',
     author: 'siobhan',

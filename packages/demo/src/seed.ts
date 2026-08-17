@@ -396,8 +396,6 @@ async function seedThreads(
   const tools = new PostgresThreadToolsRepository(db)
   const placed: Placed[] = []
 
-  // Oldest first, so `last_post_at` on every forum ends up telling the truth
-  // about which conversation is actually the freshest.
   const ordered = [...DEMO_THREADS].sort((a, b) => b.daysAgo - a.daysAgo)
 
   for (const thread of ordered) {
@@ -450,8 +448,6 @@ async function seedThreads(
       postIds.push(postId)
     }
 
-    // Sticky and locked go through the moderation tools rather than an update,
-    // so the admin log has the entries a real board would have.
     if (thread.sticky === true) {
       await tools.setSticky({
         threadId: created.threadId,
@@ -577,9 +573,6 @@ async function seedThanks(
         postId,
         points: 1,
         comment: '',
-        // The daily cap is a member-facing rule; the seed is not a member, and
-        // spreading synthetic thanks across synthetic days to satisfy it would
-        // be pretending. Waived here and nowhere else.
         maxPerDay: 0,
         at: hoursAfter(daysBefore(now, entry.thread.daysAgo), index + 1),
       })

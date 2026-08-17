@@ -7,16 +7,6 @@ const found = new Map<string, string>()
 
 const cacheKey = (specifier: string, from: string) => `${from}\u0000${specifier}`
 
-// Where this module ended up, asked of whichever format it was compiled into.
-//
-// Next's server build, vitest and tsx are all ESM, where `import.meta.url` is
-// this file's own location and therefore the exact answer. The bundles behind
-// apps/worker and apps/cli are cjs, where esbuild rewrites `import.meta` to `{}`
-// — the `empty-import-meta` warning their build scripts now silence, because
-// this function is what the warning was warning about — and `__filename` is the
-// bundle instead. Without that second branch a cjs bundle resolved nothing here
-// and leant entirely on the walk up from `process.cwd()` below, which is only
-// right because the container happens to start the worker from /app.
 export function moduleFile(metaUrl: unknown, filename: unknown): string | undefined {
   if (typeof metaUrl === 'string' && metaUrl.startsWith('file:')) return fileURLToPath(metaUrl)
   return typeof filename === 'string' && filename !== '' ? filename : undefined

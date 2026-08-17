@@ -64,13 +64,11 @@ export type Serialisable<T> = T extends string | number | boolean | null | undef
   ? T
   : T extends readonly (infer E)[]
     ? readonly Serialisable<E>[]
-    : // Functions before objects: a function *is* an object.
-      T extends (...args: never[]) => unknown
+    : T extends (...args: never[]) => unknown
       ? never
       : T extends object
         ? { readonly [K in keyof T]: Serialisable<T[K]> }
-        : // bigint, symbol: not JSON.
-          never
+        : never
 
 /**
  * Two keys are exempt — `children` and `regions` — and nothing else.

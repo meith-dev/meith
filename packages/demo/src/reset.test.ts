@@ -91,8 +91,6 @@ describe('resetDemoBoard', () => {
     inDemoMode()
     const { db } = recordingDb()
 
-    // Both attempts fail. The reset must still surface its own error rather than
-    // throwing from inside the recovery and hiding it.
     await expect(
       resetDemoBoard({ db, migrate: () => Promise.reject(new Error('disk is gone')) }),
     ).rejects.toThrow(/disk is gone/)

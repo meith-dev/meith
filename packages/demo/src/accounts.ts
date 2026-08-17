@@ -595,9 +595,6 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     bio: null,
   },
   {
-    // Writes the spam. One post held in the moderation queue, one that got
-    // through and has been reported — so both staff screens have a real row in
-    // them, from a real account, that a visitor can act on.
     key: 'spambot',
     username: 'ticket_deals_2026',
     email: 'ticket.deals@demo.invalid',
@@ -613,9 +610,6 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     username: 'not_activated_yet',
     email: 'pending@demo.invalid',
     password: null,
-    // Sits in the awaiting-activation group so the admin panel's user filters
-    // have something to find, and so "approve this account" is a real button
-    // with a real row under it.
     group: 'awaitingActivation',
     joinedDaysAgo: 1,
     location: null,

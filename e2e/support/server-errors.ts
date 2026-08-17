@@ -1,13 +1,9 @@
 import type { FullResult, Reporter } from '@playwright/test/reporter'
 
-// Nothing asserted on what the board logged while a test drove it, so a page
-// that threw behind a correct-looking response read as a pass. Playwright routes
-// web-server output through the reporter, so this watches it and fails the run.
 const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
 
 const PREFIX = '[WebServer] '
 
-// `⨯` is how Next marks an error it did not expect to handle.
 const MARKERS = [/^⨯/, /unhandledRejection/i, /UnhandledPromiseRejection/]
 
 const CONTEXT_LINES = 3
@@ -17,9 +13,6 @@ export default class ServerErrorReporter implements Reporter {
   private context = 0
   private current: string[] | null = null
 
-  // Keyed by the error and its first frames: one page throwing on every visit
-  // is one thing to fix, not forty-six, and reporting it forty-six times over
-  // is the wall of noise this exists to answer.
   private readonly seen = new Map<string, number>()
 
   onStdOut(chunk: string | Buffer): void {

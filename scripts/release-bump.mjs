@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-// Moves the release version everywhere release-check reads it — the bump half
-// of cutting a release; docs/release.md § How a release happens.
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -35,7 +33,6 @@ for (const { dir, manifest } of await workspacePackages()) {
   manifests += 1
 }
 
-// The same places release-check reads, moved rather than checked.
 const SOURCE_CONSTANTS = [
   {
     file: 'apps/cli/src/upgrade.ts',

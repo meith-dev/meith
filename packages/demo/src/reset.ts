@@ -54,8 +54,6 @@ export async function resetDemoBoard(deps: ResetDeps): Promise<ResetResult> {
 
   log.warn('demo reset: dropping the board')
 
-  // `drizzle` goes too, or the migrator finds a full ledger and an empty
-  // database and applies nothing.
   await deps.db.execute(sql`drop schema if exists drizzle cascade`)
   await deps.db.execute(sql`drop schema if exists public cascade`)
   await deps.db.execute(sql`create schema public`)
@@ -74,9 +72,6 @@ export async function resetDemoBoard(deps: ResetDeps): Promise<ResetResult> {
     try {
       await deps.clearUploads()
     } catch (error) {
-      // An orphaned upload is litter, not a broken board: every row that
-      // referenced it is gone. Worth a line in the log, not worth failing a
-      // reset that otherwise succeeded.
       log.warn({ err: String(error) }, 'demo reset could not clear the uploads directory')
     }
   }

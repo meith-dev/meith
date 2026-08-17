@@ -165,10 +165,6 @@ export function buildOffsetPager(input: OffsetPagerInput): PaginationModel {
   const pageCount = pageCountOf(input.total, input.pageSize)
   const page = Math.max(input.page, 1)
 
-  // A page past the end is not clamped to a page that was not asked for: the
-  // rows really are empty, and saying "page 1" over an empty list reads as a
-  // board with no members. It keeps the number it was given and offers the
-  // last page that exists, which is the way back.
   const anchor = Math.min(page, pageCount)
 
   const numbers = new Set<number>([1, pageCount])

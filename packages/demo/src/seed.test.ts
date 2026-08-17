@@ -125,8 +125,6 @@ describe('the seeded board', () => {
       `),
     ) as Array<{ total: number }>
 
-    // Unapproved posts are deliberately not counted, so this is the visible
-    // total rather than every row in `posts`.
     const visible = await count('posts', sql`visibility = 'visible'`)
     expect(rows[0]?.total).toBe(visible)
   })
@@ -252,8 +250,6 @@ describe('the seeded board', () => {
   })
 
   it('hides the two restricted sections rather than locking them', async () => {
-    // Not "shows a padlock": a member who cannot read a section is never told it
-    // exists, because the forum tree is built from the forums they can see.
     const staffSection = await sectionIds('staff')
     const supportersSection = await sectionIds('supporters')
     const open = DEMO_FORUMS.length - staffSection.size - supportersSection.size
@@ -281,9 +277,6 @@ describe('the seeded board', () => {
     )
     expect(ordinary.size, 'a member sees the rest of the board').toBe(open)
 
-    // The plan grants a second group, and a second group is all it takes: the
-    // section appears for as long as the grant lasts and goes when it expires,
-    // with nobody letting anybody in by hand.
     const supporter = await seen('registered', DUES_DEMO_GROUP)
     expect(holds(supporter, supportersSection), 'a supporter is shut out of what they pay for').toBe(
       'all',
@@ -300,9 +293,6 @@ describe('the seeded board', () => {
   })
 
   it('writes the staff in as allowed rather than leaving it to be known', async () => {
-    // An administrator would see both sections anyway — they bypass the matrix.
-    // The rows exist so that the permissions screen answers the question, and so
-    // that a visitor rewriting the registered group's defaults cannot open them.
     for (const forum of DEMO_FORUMS) {
       if (forum.access === undefined) continue
 

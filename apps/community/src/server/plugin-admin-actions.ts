@@ -120,8 +120,6 @@ export async function savePluginSettingsAction(
       }
 
       if (type === 'secret') {
-        // Write-only: blank means "keep what is stored", because the form
-        // can never show the current value to re-submit.
         if (typeof raw !== 'string' || raw === '') continue
         updates.set(`plugin.${key}.${setting.key}`, raw)
         continue

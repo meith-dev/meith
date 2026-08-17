@@ -11,7 +11,6 @@ import type { DemoThread } from './types'
  * private" demonstrates the feature and nothing about why anybody wants it.
  */
 export const STAFF_THREADS: readonly DemoThread[] = [
-  // ── Committee business ─────────────────────────────────────────────────────
   {
     forum: 'committee',
     author: 'admin',
@@ -191,7 +190,6 @@ export const STAFF_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── Moderation desk ────────────────────────────────────────────────────────
   {
     forum: 'staffdesk',
     author: 'moderator',
@@ -370,7 +368,6 @@ export const STAFF_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── Welfare and safeguarding ───────────────────────────────────────────────
   {
     forum: 'welfare',
     author: 'mairead',
@@ -482,7 +479,6 @@ export const STAFF_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── Staff room ─────────────────────────────────────────────────────────────
   {
     forum: 'staffroom',
     author: 'siobhan',

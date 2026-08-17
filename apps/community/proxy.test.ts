@@ -63,7 +63,6 @@ describe('the guest cookie', () => {
     })
 
   function requestHeader(res: NextResponse, name: string): string | null {
-    // What `NextResponse.next({ request: { headers } })` hands the render.
     const overridden = res.headers.get('x-middleware-override-headers')
     if (overridden === null || !overridden.split(',').includes(name)) return null
     return res.headers.get(`x-middleware-request-${name}`)

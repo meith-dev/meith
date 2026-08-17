@@ -13,10 +13,6 @@ export default async function UserCpLayout({ children }: { children: React.React
 
   if (memberSettings === null) notFound()
 
-  // The proxy sends a visitor with no session cookie here, but a cookie that no
-  // longer resolves — a session signed out from another device — passes it and
-  // arrives as a guest. Answering that with a 404 tells the member the page is
-  // gone when what happened is that they were signed out.
   if (actor.userId === null) {
     const path = (await headers()).get(PATH_HEADER)
     const next = path !== null && isSafeLocalPath(path) ? path : '/usercp'

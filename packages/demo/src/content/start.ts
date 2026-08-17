@@ -2,7 +2,6 @@ import type { DemoThread } from './types'
 
 /** Announcements and introductions: the two forums a first visit lands in. */
 export const START_THREADS: readonly DemoThread[] = [
-  // ── Announcements ──────────────────────────────────────────────────────────
   {
     forum: 'announcements',
     author: 'admin',
@@ -229,7 +228,6 @@ export const START_THREADS: readonly DemoThread[] = [
     ],
   },
 
-  // ── Introductions ──────────────────────────────────────────────────────────
   {
     forum: 'introductions',
     author: 'rosa',

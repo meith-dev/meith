@@ -48,8 +48,6 @@ export const DEMO_THANKS: readonly DemoThanks[] = [
   { threadTitle: 'Can we do a family rate?', postIndex: 0, from: ['ellie', 'mairead', 'nia', 'zoe', 'noelle'] },
   { threadTitle: 'What was your community before it was this?', postIndex: 5, from: ['mira', 'rosa', 'vex', 'ken'] },
 
-  // The two restricted sections, so a visitor who logs in as `admin` finds
-  // reputation in there rather than a room where nobody ever thanked anybody.
   { threadTitle: 'A sponsorship approach from a betting company', postIndex: 0, from: ['mairead', 'admin', 'dara', 'vex', 'kev', 'moderator'] },
   { threadTitle: 'Drainage: three quotes, and the one I do not trust', postIndex: 0, from: ['admin', 'dara', 'kev', 'mairead'] },
   { threadTitle: 'The rule on photographs, the rule on messages, and who to ring', postIndex: 0, from: ['siobhan', 'admin', 'dara', 'vex', 'kev', 'moderator', 'tinker'] },

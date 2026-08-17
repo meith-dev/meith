@@ -91,15 +91,10 @@ export async function requireAdmin(): Promise<AdminContext> {
   )
 }
 
-// Which denials the panel answers with its door rather than a 404. The layout
-// draws that door and the page below it must agree, or one of them throws past
-// the other.
 export function askForPassword(denied: AdminDenial): boolean {
   return denied === 'signin' || denied === 'expired'
 }
 
-// The gate for a page, which Next renders alongside the layout that already
-// answered the denial. Null means the layout is showing the door.
 export async function adminPageContext(): Promise<AdminContext | null> {
   const resolved = await resolveAdmin()
   if ('context' in resolved) return resolved.context
