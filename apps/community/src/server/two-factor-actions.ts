@@ -36,7 +36,7 @@ async function requireOwnAccount(): Promise<{
     throw new ForbiddenError('This board does not offer two-factor authentication.')
   }
 
-  await assertDemoAccountChangeable(actor.userId, 'password')
+  await assertDemoAccountChangeable(actor.userId, 'sign-in method')
 
   const account = await getContainer().accountStore.accounts.findById(actor.userId)
   if (account === null) throw new ForbiddenError('That account no longer exists.')
@@ -44,23 +44,37 @@ async function requireOwnAccount(): Promise<{
   return { userId: actor.userId, hasPassword: account.passwordHash !== null }
 }
 
-export async function beginTwoFactorAction(): Promise<void> {
-  const { userId } = await requireOwnAccount()
+export async function beginTwoFactorAction(
+  _prev: FormState,
+  _form: FormData,
+): Promise<FormState> {
+  try {
+    const { userId } = await requireOwnAccount()
 
-  const service = twoFactorService()
-  if (service === null) throw new ForbiddenError('This board cannot seal a secret.')
+    const service = twoFactorService()
+    if (service === null) throw new ForbiddenError('This board cannot seal a secret.')
 
-  const name = (await getSettingsUncached()).get('board.name')
-  await service.beginEnrolment(userId, name.trim() === '' ? 'Meith' : name)
+    const name = (await getSettingsUncached()).get('board.name')
+    await service.beginEnrolment(userId, name.trim() === '' ? 'Meith' : name)
+  } catch (err) {
+    return toFormState(err)
+  }
 
   redirect('/usercp/security?factor=setup')
 }
 
-export async function abandonTwoFactorAction(): Promise<void> {
-  const { userId } = await requireOwnAccount()
+export async function abandonTwoFactorAction(
+  _prev: FormState,
+  _form: FormData,
+): Promise<FormState> {
+  try {
+    const { userId } = await requireOwnAccount()
 
-  const service = twoFactorService()
-  if (service !== null) await service.abandonEnrolment(userId)
+    const service = twoFactorService()
+    if (service !== null) await service.abandonEnrolment(userId)
+  } catch (err) {
+    return toFormState(err)
+  }
 
   redirect('/usercp/security')
 }

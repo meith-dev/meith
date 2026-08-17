@@ -1,3 +1,4 @@
+import { withinRotationGrace } from './ports'
 import type {
   AccountRecord,
   AccountRepository,
@@ -290,9 +291,13 @@ class MemoryRememberTokens implements RememberTokenRepository {
     if (!t) return { status: 'invalid' }
     if (t.expiresAt.getTime() <= input.now.getTime()) return { status: 'invalid' }
     if (t.usedAt !== null || t.revokedAt !== null) {
-      return { status: 'reuse', userId: t.userId, familyId: t.familyId }
+      if (!withinRotationGrace(t, input.now)) {
+        return { status: 'reuse', userId: t.userId, familyId: t.familyId }
+      }
+    } else {
+      this.byHash.set(input.presentedHash, { ...t, usedAt: input.now })
     }
-    this.byHash.set(input.presentedHash, { ...t, usedAt: input.now })
+
     this.byHash.set(input.nextHash, {
       familyId: t.familyId,
       userId: t.userId,

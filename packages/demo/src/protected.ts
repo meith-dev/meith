@@ -18,7 +18,7 @@ export function isProtectedDemoAccount(username: string): boolean {
   return env.DEMO_MODE && PROTECTED.has(username.trim().toLowerCase())
 }
 
-export type FrozenField = 'password' | 'email' | 'username'
+export type FrozenField = 'password' | 'email' | 'username' | 'sign-in method'
 
 export function assertDemoAccountIsChangeable(username: string, what: FrozenField): void {
   if (!isProtectedDemoAccount(username)) return

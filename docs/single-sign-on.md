@@ -90,6 +90,17 @@ in exactly once, in place of a code, for the day a phone is lost. A member
 can replace the set at any time (which retires the old set), and the page
 shows how many are left.
 
+The confirmation posts back to `/usercp/security?factor=setup`, and that
+response is the only place the fresh codes exist. The page therefore stays on
+the setup screen for as long as `?factor=setup` is in the address rather than
+swapping straight to the settled panel — otherwise a member browsing without
+JavaScript never sees the codes at all.
+
+A board can refuse the whole operation — the feature switched off between the
+page rendering and the button being pressed, or a shared demo login whose
+sign-in method is fixed. A refusal is reported on the page like any other
+form error; it never fails the request.
+
 Turning the second factor off — or replacing the recovery codes — asks for
 the password again. An account with no password (one that arrived through a
 provider, or holds only passkeys) gives a current code instead, which proves
@@ -133,6 +144,39 @@ Revocation is immediate — the session row is marked, and the next request it
 makes is refused. Device and address are recorded when a session starts, so
 sessions that predate this feature list as an unknown device until they are
 replaced.
+
+A member whose session was ended from another device still holds a cookie, so
+they reach the control panel as a guest rather than being stopped at the door.
+The panel answers that by sending them to the sign-in page with their
+destination attached, not with a 404 — the page has not gone, they have been
+signed out of it.
+
+"Sign out everywhere else" keeps the session reading the page and ends the
+rest. If the board cannot work out which session that is it refuses the whole
+operation rather than guessing, because the guess that ends everything would
+sign the member out of the page they are standing on.
+
+### Keeping a member signed in
+
+"Keep me signed in" issues a remember token alongside the session. Opening the
+board once the session has lapsed spends that token at **/auth/resume** and
+issues a fresh one — single use, so a token that turns up twice is evidence
+that a copy of it exists somewhere it should not, and the whole family plus
+every session on the account is ended.
+
+Two requests carrying the same token are not always theft, though. A browser
+restoring several tabs, a double-clicked link and a prefetch racing its own
+navigation all present the identical cookie within the same moment, and
+exactly one of them can win a single-use claim. Tokens are therefore honoured
+for **30 seconds** after their own rotation: inside that window the losers are
+issued their own fresh tokens and nobody is signed out, and outside it a
+replay is treated as theft as before. A family that has already been burned is
+refused inside the window as well — the board has made its decision about it.
+
+Because the requests race, the losing one can carry a timestamp from just
+before the winner marked the token spent. The window is measured in both
+directions for that reason; requiring the elapsed time to be positive would
+refuse the exact case the window exists to forgive.
 
 ## What has happened to an account
 

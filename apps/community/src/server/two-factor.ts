@@ -1,15 +1,12 @@
 import 'server-only'
 
-import { headers } from 'next/headers'
-
 import {
   TwoFactorService,
   type Enrolment,
   type TwoFactorState,
 } from '@meith/accounts'
-import { env, truncateIp } from '@meith/core'
+import { env } from '@meith/core'
 
-import { remoteAddress } from './admin'
 import { getActor } from './context'
 import { getContainer } from './container'
 import { getSettingsUncached } from './settings'
@@ -80,15 +77,3 @@ export async function twoFactorState(userId: number): Promise<TwoFactorState> {
   return service.state(userId)
 }
 
-export async function requestFingerprint(): Promise<{
-  readonly ipPrefix: string | null
-  readonly userAgent: string | null
-}> {
-  const incoming = await headers()
-  const agent = incoming.get('user-agent')
-
-  return {
-    ipPrefix: truncateIp(await remoteAddress()) ?? null,
-    userAgent: agent === null || agent.trim() === '' ? null : agent.slice(0, 300),
-  }
-}

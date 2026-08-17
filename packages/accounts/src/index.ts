@@ -186,6 +186,7 @@ export {
 } from './member-settings'
 
 export { AUTH_EVENT_KINDS } from './ports'
+export { REMEMBER_ROTATION_GRACE_SECONDS, withinRotationGrace } from './ports'
 
 export type {
   ActiveSessionRecord,

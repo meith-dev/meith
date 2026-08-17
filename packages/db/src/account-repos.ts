@@ -1,5 +1,7 @@
 import { and, desc, eq, gt, isNull, lt, ne, or, sql } from 'drizzle-orm'
 
+import { withinRotationGrace } from '@meith/accounts'
+
 import type {
   AccountRecord,
   AccountRepository,
@@ -514,6 +516,8 @@ export class PostgresRememberTokenRepository implements RememberTokenRepository 
         familyId: rememberTokens.familyId,
         userId: rememberTokens.userId,
         expiresAt: rememberTokens.expiresAt,
+        usedAt: rememberTokens.usedAt,
+        revokedAt: rememberTokens.revokedAt,
       })
       .from(rememberTokens)
       .where(eq(rememberTokens.tokenHash, input.presentedHash))
@@ -523,6 +527,17 @@ export class PostgresRememberTokenRepository implements RememberTokenRepository 
     if (!row || row.expiresAt.getTime() <= input.now.getTime()) {
       return { status: 'invalid' }
     }
+
+    if (withinRotationGrace(row, input.now)) {
+      await this.db.insert(rememberTokens).values({
+        tokenHash: input.nextHash,
+        familyId: row.familyId,
+        userId: row.userId,
+        expiresAt: input.nextExpiresAt,
+      })
+      return { status: 'rotated', userId: row.userId, familyId: row.familyId }
+    }
+
     return { status: 'reuse', userId: row.userId, familyId: row.familyId }
   }
 

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { truncateIp } from '@meith/core'
+import { REMEMBER_ROTATION_GRACE_SECONDS } from '@meith/accounts'
 
 import { createTestDb, type TestDb } from './pglite.fixture'
 import {
@@ -265,13 +266,42 @@ describe('Postgres account repositories', () => {
       expect((await store.remember.findByTokenHash('r1'))!.usedAt).toBeNull()
     })
 
-    it('flags reuse when a spent token is presented again', async () => {
-      await store.remember.issue({ tokenHash: 'r0', familyId: 'fam', userId, expiresAt: future() })
-      await store.remember.rotate({ presentedHash: 'r0', nextHash: 'r1', now: new Date(), nextExpiresAt: future() })
+    it('flags reuse when a spent token is presented again, later', async () => {
+      const at = new Date()
+      const afterGrace = new Date(
+        at.getTime() + (REMEMBER_ROTATION_GRACE_SECONDS + 1) * 1_000,
+      )
 
-      const replay = await store.remember.rotate({ presentedHash: 'r0', nextHash: 'rX', now: new Date(), nextExpiresAt: future() })
+      await store.remember.issue({ tokenHash: 'r0', familyId: 'fam', userId, expiresAt: future() })
+      await store.remember.rotate({ presentedHash: 'r0', nextHash: 'r1', now: at, nextExpiresAt: future() })
+
+      const replay = await store.remember.rotate({ presentedHash: 'r0', nextHash: 'rX', now: afterGrace, nextExpiresAt: future() })
       expect(replay).toEqual({ status: 'reuse', userId, familyId: 'fam' })
       expect(await store.remember.findByTokenHash('rX')).toBeNull()
+    })
+
+    it('honours a token presented twice inside the grace window', async () => {
+      const at = new Date()
+      const moments = new Date(at.getTime() + 1_000)
+
+      await store.remember.issue({ tokenHash: 'r0', familyId: 'fam', userId, expiresAt: future() })
+      await store.remember.rotate({ presentedHash: 'r0', nextHash: 'r1', now: at, nextExpiresAt: future() })
+
+      const concurrent = await store.remember.rotate({ presentedHash: 'r0', nextHash: 'r2', now: moments, nextExpiresAt: future() })
+      expect(concurrent).toEqual({ status: 'rotated', userId, familyId: 'fam' })
+      expect(await store.remember.findByTokenHash('r1')).not.toBeNull()
+      expect(await store.remember.findByTokenHash('r2')).not.toBeNull()
+    })
+
+    it('refuses a revoked family even inside the grace window', async () => {
+      const at = new Date()
+      await store.remember.issue({ tokenHash: 'r0', familyId: 'fam', userId, expiresAt: future() })
+      await store.remember.rotate({ presentedHash: 'r0', nextHash: 'r1', now: at, nextExpiresAt: future() })
+      await store.remember.revokeFamily('fam', 'token_reuse', at)
+
+      const out = await store.remember.rotate({ presentedHash: 'r0', nextHash: 'r2', now: new Date(at.getTime() + 1_000), nextExpiresAt: future() })
+      expect(out.status).toBe('reuse')
+      expect(await store.remember.findByTokenHash('r2')).toBeNull()
     })
 
     it('returns invalid for an unknown token', async () => {

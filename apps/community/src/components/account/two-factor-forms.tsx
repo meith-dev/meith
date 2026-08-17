@@ -49,6 +49,7 @@ export function TwoFactorSetup({
   readonly enrolment: { readonly secret: string; readonly uri: string } | null
 }) {
   const [state, action] = useActionState(confirmTwoFactorAction, EMPTY_STATE)
+  const [abandonState, abandon] = useActionState(abandonTwoFactorAction, EMPTY_STATE)
 
   if (state.values?.[RECOVERY_CODES_FIELD] !== undefined || enrolment === null) {
     return (
@@ -107,7 +108,8 @@ export function TwoFactorSetup({
         </div>
       </form>
 
-      <form action={abandonTwoFactorAction}>
+      <form action={abandon}>
+        <FormError message={abandonState.error} />
         <Button type="submit" variant="ghost" size="sm">
           Cancel
         </Button>
@@ -129,6 +131,7 @@ export function TwoFactorPanel({
 }) {
   const [replaceState, replace] = useActionState(replaceRecoveryCodesAction, EMPTY_STATE)
   const [disableState, disable] = useActionState(disableTwoFactorAction, EMPTY_STATE)
+  const [beginState, begin] = useActionState(beginTwoFactorAction, EMPTY_STATE)
 
   if (!enrolled) {
     return (
@@ -143,7 +146,8 @@ export function TwoFactorPanel({
             ? " This board requires it of anyone who can reach the control panel, so you will be asked for it before you can use the panel."
             : ""}
         </p>
-        <form action={beginTwoFactorAction}>
+        <FormError message={beginState.error} />
+        <form action={begin}>
           <button type="submit" className={BUTTON}>
             Set up an authenticator app
           </button>
@@ -152,9 +156,6 @@ export function TwoFactorPanel({
     )
   }
 
-  // Both forms below ask for the same proof, so each needs its own id: two
-  // controls sharing one leaves the second with no label a screen reader — or a
-  // test — can find it by.
   const proof = (which: string) =>
     hasPassword ? (
       <Field
