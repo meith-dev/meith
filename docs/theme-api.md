@@ -105,6 +105,7 @@ replacing their markup.
   total.
 - Ship its own token values, which an operator can then override without
   touching the theme.
+- Ship its own message catalog, and reword the board's messages with it.
 
 **A theme cannot:**
 
@@ -114,6 +115,36 @@ replacing their markup.
 | Decide anything about permissions | `ViewerModel.canAccessAdminCp` and its siblings are rendering hints the Authorizer has already resolved. Anything a viewer must not see is not in the model at all — CSS is not authorization |
 | Build a URL | Every href arrives resolved, so the board can change its URL shape without breaking installed themes |
 | Render another slot | Slots are flat. The page composes them and passes rendered output in `regions`; there is no way to reach the resolved theme from inside a slot |
+
+## Words and numbers
+
+A slot receives a view model and nothing else — there is no translator to
+reach for, in the same way there is no database. Anything already written for
+the reader arrives in the model, translated and formatted: a timestamp crosses
+as a `TimeModel` whose `label` is in the viewer's language and zone.
+
+Two things are yours to do.
+
+**Count with `formatCount()`** from `@meith/theme-kit`, never with
+`toLocaleString`. It groups digits by the locale the current render adopted, so
+a German board reads `1.204` where an English one reads `1,204`. The bare
+`toLocaleString()` follows the *host* instead, which makes the server and the
+browser disagree; the `no-fixed-locale-format` guard refuses both forms.
+
+**Put your own words in a catalog.** A theme that writes a heading of its own
+ships a `messages` bundle and is registered with it in `community.config.ts`:
+
+```ts
+export const clubhouseMessages = {
+  en: { 'clubhouse.lobby': 'The Lobby' },
+  de: { 'clubhouse.lobby': 'Die Lobby' },
+}
+```
+
+Because a theme's catalog is merged over the board's, the same mechanism lets a
+theme reword the board itself — registering `nav.home` renames *Home*
+everywhere, in every language you supply it for. [Languages](./internationalisation.md)
+has the message syntax and the merge order.
 
 ## Theme switching
 

@@ -99,6 +99,15 @@
       "primary": false
     },
     {
+      "slug": "internationalisation",
+      "file": "internationalisation.md",
+      "section": "running",
+      "title": "Languages",
+      "blurb": "How a page picks its language, how to add one, and how a theme or plugin ships its own words.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "demo-mode",
       "file": "demo-mode.md",
       "section": "running",

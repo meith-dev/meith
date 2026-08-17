@@ -874,6 +874,25 @@ before this existed the column held `UTC` for everybody who had never
 opened the options screen, so "chose UTC" could not be told from "never
 chose". A member who genuinely wants UTC picks it once.
 
+## Languages
+
+**A page is written in the reader's language when the board has a catalog for
+it**, and in English when it does not. The board asks three things in order and
+takes the first that names a language it can serve: the member's own choice
+under **UserCP → Options**, the browser's `Accept-Language` header, then
+**Admin CP → Settings → Display → Default language**. The answer sets
+`<html lang>` and `<html dir>`, and dates, numbers and plurals follow it.
+
+A fresh board ships English and nothing else, so every reader gets English
+whatever they ask for — the setting is there for the board that adds a catalog,
+and for the operator who wants a different fallback. Adding one is a change to
+the source tree rather than an upload, and [Languages](./internationalisation.md)
+is the whole of it. Themes and plugins can ship catalogs too, which is also how
+a board renames *Threads* to *Missions* without forking anything.
+
+Language and timezone are separate: choosing German does not move anybody's
+clock, and a member reading English in Tokyo keeps Tokyo.
+
 ## Cookies
 
 The board sets ten cookies of its own and no third-party ones:
