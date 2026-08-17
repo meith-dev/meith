@@ -51,6 +51,7 @@ export class MemoryQueue implements QueueDriver {
   async drain(
     limit: number,
     handler: (job: Job) => Promise<void>,
+    options: { readonly signal?: AbortSignal } = {},
   ): Promise<{ processed: number; failed: number }> {
     const now = Date.now()
 
@@ -66,7 +67,15 @@ export class MemoryQueue implements QueueDriver {
     let processed = 0
     let failed = 0
 
-    for (const row of claimed) {
+    for (const [index, row] of claimed.entries()) {
+      if (options.signal?.aborted === true) {
+        for (const unrun of claimed.slice(index)) {
+          unrun.status = 'pending'
+          unrun.attempts -= 1
+        }
+        break
+      }
+
       try {
         await handler({
           id: row.id,

@@ -2046,8 +2046,11 @@ Supabase and their kind.
   there for the next. The database layer is configured for this; a plugin
   issuing raw SQL should be too.
 - **`pg_dump` and migrations want the direct URL.** Both need
-  session-level state. Set `DIRECT_DATABASE_URL` for migrations when your
-  provider offers both strings.
+  session-level state. The migration runner takes a session-level advisory
+  lock so two deploys migrating at once queue instead of colliding, and a
+  transaction-mode pooler cannot hold one. Set `DIRECT_DATABASE_URL` for
+  migrations when your provider offers both strings; the runner prefers it
+  over `DATABASE_URL` whenever it is set.
 
 ## Troubleshooting
 
@@ -2071,6 +2074,15 @@ swept — and nothing errors, because nothing ran.*
    set *and* presented. A caller with the wrong secret gets a 404,
    deliberately, so an unauthorised caller cannot confirm the endpoint
    exists — from the caller's side that looks identical to a wrong URL.
+
+4. A task that is running is not a task that is late. Each one declares a
+   budget; when it is spent, the tick tells the task to stop, and the ones
+   that can (the queue drain, both subscription tasks) finish the unit they
+   are on and leave the rest for the next tick — `task overran` in the
+   worker log is that happening, and points at work arriving faster than
+   one tick can clear. The whole tick has a five-minute ceiling of its own,
+   logged as `tick overran`; the worker waits for it rather than starting
+   another on top.
 
 Notification and mass mail are delivered on this tick, so a stopped one
 is also a board that has stopped sending them — see [Mail](#mail).

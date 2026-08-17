@@ -5,7 +5,9 @@ import { type TaskRepository, tick } from './scheduler'
 import type { TaskDefinition } from './types'
 
 interface Row {
+  intervalSeconds: number
   lastRunAt: Date | null
+  nextRunAt: Date | null
   runningSince: Date | null
 }
 
@@ -13,10 +15,25 @@ class FakeTaskRepository implements TaskRepository {
   rows = new Map<string, Row>()
   releases: Array<{ taskId: string; success: boolean; error?: string }> = []
 
-  async ensureRegistered(tasks: readonly { id: string }[]): Promise<void> {
+  async ensureRegistered(tasks: readonly { id: string; intervalSeconds: number }[]): Promise<void> {
     for (const task of tasks) {
-      if (!this.rows.has(task.id)) {
-        this.rows.set(task.id, { lastRunAt: null, runningSince: null })
+      const existing = this.rows.get(task.id)
+      if (existing === undefined) {
+        this.rows.set(task.id, {
+          intervalSeconds: task.intervalSeconds,
+          lastRunAt: null,
+          nextRunAt: null,
+          runningSince: null,
+        })
+        continue
+      }
+
+      if (existing.intervalSeconds !== task.intervalSeconds) {
+        existing.nextRunAt =
+          existing.lastRunAt === null
+            ? null
+            : new Date(existing.lastRunAt.getTime() + task.intervalSeconds * 1000)
+        existing.intervalSeconds = task.intervalSeconds
       }
     }
   }
@@ -24,7 +41,6 @@ class FakeTaskRepository implements TaskRepository {
   async claim(input: {
     taskId: string
     now: Date
-    dueBefore: Date
     staleBefore: Date
   }): Promise<{ previousLastRunAt: Date | null } | null> {
     const row = this.rows.get(input.taskId)
@@ -33,7 +49,7 @@ class FakeTaskRepository implements TaskRepository {
     const heldByLiveInstance = row.runningSince !== null && row.runningSince >= input.staleBefore
     if (heldByLiveInstance) return null
 
-    const due = row.lastRunAt === null || row.lastRunAt <= input.dueBefore
+    const due = row.nextRunAt === null || row.nextRunAt <= input.now
     if (!due) return null
 
     const previousLastRunAt = row.lastRunAt
@@ -42,9 +58,17 @@ class FakeTaskRepository implements TaskRepository {
     return { previousLastRunAt }
   }
 
-  async release(input: { taskId: string; success: boolean; error?: string }): Promise<void> {
+  async release(input: {
+    taskId: string
+    finishedAt: Date
+    success: boolean
+    error?: string
+  }): Promise<void> {
     const row = this.rows.get(input.taskId)
-    if (row) row.runningSince = null
+    if (row) {
+      row.runningSince = null
+      row.nextRunAt = new Date(input.finishedAt.getTime() + row.intervalSeconds * 1000)
+    }
     this.releases.push({
       taskId: input.taskId,
       success: input.success,
@@ -143,10 +167,15 @@ describe('tick', () => {
 
   it('reclaims a task whose previous run abandoned its lock', async () => {
     const repository = new FakeTaskRepository()
-    await repository.ensureRegistered([{ id: 'test.task' }])
+    await repository.ensureRegistered([{ id: 'test.task', intervalSeconds: 60 }])
 
     const stale = new Date('2026-01-01T00:00:00Z')
-    repository.rows.set('test.task', { lastRunAt: stale, runningSince: stale })
+    repository.rows.set('test.task', {
+      intervalSeconds: 60,
+      lastRunAt: stale,
+      nextRunAt: stale,
+      runningSince: stale,
+    })
 
     const run = vi.fn(async () => ({}))
     const outcomes = await tick({
@@ -196,6 +225,137 @@ describe('tick', () => {
     await tick({ repository, tasks: [make('a'), make('b')] })
 
     expect(order).toEqual(['a:start', 'a:end', 'b:start', 'b:end'])
+  })
+
+  it('schedules the next run on the clock it was ticked with', async () => {
+    const repository = new FakeTaskRepository()
+    const now = new Date('2026-01-01T00:00:00Z')
+
+    await tick({ repository, tasks: [task({ intervalSeconds: 300 })], now })
+
+    const next = repository.rows.get('test.task')?.nextRunAt
+    expect(next!.getTime()).toBeGreaterThanOrEqual(now.getTime() + 300_000)
+    expect(next!.getTime()).toBeLessThan(now.getTime() + 310_000)
+  })
+})
+
+describe('the budget a task declares', () => {
+  it('aborts the signal the task is handed once the budget is spent', async () => {
+    const repository = new FakeTaskRepository()
+    const aborted: boolean[] = []
+
+    const run = async (context: { signal: AbortSignal }) => {
+      await new Promise((resolve) => setTimeout(resolve, 60))
+      aborted.push(context.signal.aborted)
+      return {}
+    }
+
+    await tick({ repository, tasks: [task({ run, maxDurationSeconds: 0.02 })] })
+
+    expect(aborted).toEqual([true])
+  })
+
+  it('reports the overrun, so a decorative budget cannot stay quiet', async () => {
+    const repository = new FakeTaskRepository()
+
+    const run = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 60))
+      return {}
+    }
+
+    const [outcome] = await tick({
+      repository,
+      tasks: [task({ run, maxDurationSeconds: 0.02 })],
+    })
+
+    expect(outcome).toMatchObject({ status: 'ran', overran: true })
+  })
+
+  it('leaves the signal alone for a task that finishes inside its budget', async () => {
+    const repository = new FakeTaskRepository()
+    let seen: boolean | undefined
+
+    const run = async (context: { signal: AbortSignal }) => {
+      seen = context.signal.aborted
+      return {}
+    }
+
+    const [outcome] = await tick({ repository, tasks: [task({ run })] })
+
+    expect(seen).toBe(false)
+    expect(outcome).not.toHaveProperty('overran')
+  })
+
+  it('releases the claim when a task is cut short, so the next tick can run it', async () => {
+    const repository = new FakeTaskRepository()
+
+    const run = async (context: { signal: AbortSignal }) => {
+      await new Promise((resolve) => setTimeout(resolve, 60))
+      if (context.signal.aborted) return { detail: { partial: 1 } }
+      return {}
+    }
+
+    await tick({ repository, tasks: [task({ run, maxDurationSeconds: 0.02 })] })
+
+    expect(repository.rows.get('test.task')?.runningSince).toBeNull()
+    expect(repository.releases[0]).toMatchObject({ success: true })
+  })
+})
+
+describe('a tick that is cut short', () => {
+  it('stops claiming further tasks once the tick signal aborts', async () => {
+    const repository = new FakeTaskRepository()
+    const controller = new AbortController()
+    const ran: string[] = []
+
+    const make = (id: string) =>
+      task({
+        id,
+        run: async () => {
+          ran.push(id)
+          controller.abort()
+          return {}
+        },
+      })
+
+    const outcomes = await tick({
+      repository,
+      tasks: [make('a'), make('b')],
+      signal: controller.signal,
+    })
+
+    expect(ran).toEqual(['a'])
+    expect(outcomes.map((o) => o.status)).toEqual(['ran', 'skipped'])
+  })
+
+  it('hands the tick signal to the task, so the work in flight can stop too', async () => {
+    const repository = new FakeTaskRepository()
+    const controller = new AbortController()
+    let aborted: boolean | undefined
+
+    const run = async (context: { signal: AbortSignal }) => {
+      controller.abort()
+      aborted = context.signal.aborted
+      return {}
+    }
+
+    await tick({ repository, tasks: [task({ run })], signal: controller.signal })
+
+    expect(aborted).toBe(true)
+  })
+
+  it('runs nothing at all when the signal aborted before it started', async () => {
+    const repository = new FakeTaskRepository()
+    const run = vi.fn(async () => ({}))
+
+    const outcomes = await tick({
+      repository,
+      tasks: [task({ run })],
+      signal: AbortSignal.abort(),
+    })
+
+    expect(run).not.toHaveBeenCalled()
+    expect(outcomes[0]?.status).toBe('skipped')
   })
 })
 

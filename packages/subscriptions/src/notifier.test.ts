@@ -196,6 +196,32 @@ describe('instant', () => {
     expect(outcome).toEqual({ notified: 0, considered: 1 })
   })
 
+  it('stops between members when its budget is spent', async () => {
+    const controller = new AbortController()
+    subscriptions.due = [7, 8]
+    subscriptions.pending.set(7, [post()])
+    subscriptions.pending.set(8, [post({ threadId: 11 })])
+
+    const cutShort = new SubscriptionNotifier({
+      subscriptions,
+      notifications: {
+        async raise(input) {
+          raised.push(input as Raised)
+          controller.abort()
+        },
+      },
+      forums: { visibleForumIdsFor: async () => visible },
+      unsubscribeSecret: null,
+      now: () => NOW,
+    })
+
+    const outcome = await cutShort.runInstant(50, controller.signal)
+
+    expect(outcome).toEqual({ notified: 1, considered: 1 })
+    expect(raised.map((r) => r.userId)).toEqual([7])
+    expect(subscriptions.advanced.map((a) => a.userId)).toEqual([7])
+  })
+
   it('keeps going when one member’s read fails', async () => {
     subscriptions.due = [7, 8]
     subscriptions.failFor = 7

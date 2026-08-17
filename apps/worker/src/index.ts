@@ -40,11 +40,15 @@ async function main(): Promise<number> {
 
   while (!stopping) {
     const startedAt = Date.now()
+    const deadline = new AbortController()
+    const timer = setTimeout(() => deadline.abort(), TICK_TIMEOUT_MS)
+
     try {
-      const outcomes = await withTimeout(
-        tick({ ...bundle, onError: bundle.onTaskFailure }),
-        TICK_TIMEOUT_MS,
-      )
+      const outcomes = await tick({
+        ...bundle,
+        onError: bundle.onTaskFailure,
+        signal: deadline.signal,
+      })
       const ran = outcomes.filter((o) => o.status === 'ran')
       const failed = outcomes.filter((o) => o.status === 'failed')
       if (ran.length > 0 || failed.length > 0) {
@@ -56,8 +60,19 @@ async function main(): Promise<number> {
       for (const outcome of failed) {
         log().error({ taskId: outcome.taskId, err: outcome.error }, 'task failed')
       }
+      for (const outcome of outcomes.filter((o) => o.overran === true)) {
+        log().warn({ taskId: outcome.taskId, durationMs: outcome.durationMs }, 'task overran')
+      }
+      if (deadline.signal.aborted) {
+        log().warn(
+          { timeoutMs: TICK_TIMEOUT_MS, elapsedMs: Date.now() - startedAt },
+          'tick overran',
+        )
+      }
     } catch (err) {
       log().error({ err }, 'tick failed')
+    } finally {
+      clearTimeout(timer)
     }
 
     if (stopping) break
@@ -82,20 +97,6 @@ function sleep(ms: number): Promise<void> {
       }
     }, 250)
   })
-}
-
-async function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
-  let timer: NodeJS.Timeout | undefined
-  try {
-    return await Promise.race([
-      work,
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`tick exceeded ${ms}ms`)), ms)
-      }),
-    ])
-  } finally {
-    if (timer !== undefined) clearTimeout(timer)
-  }
 }
 
 main()

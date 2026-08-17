@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { and, eq, isNull, lt, or, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 
 import { type EnqueueOptions, type Job, logger, type QueueDriver } from '@meith/core'
 import { type Database, getDb, jobs, resultRows } from '@meith/db'
@@ -56,13 +56,19 @@ export class PostgresQueue implements QueueDriver {
   async drain(
     limit: number,
     handler: (job: Job) => Promise<void>,
+    options: { readonly signal?: AbortSignal } = {},
   ): Promise<{ processed: number; failed: number }> {
     const claimed = await this.claim(limit)
 
     let processed = 0
     let failed = 0
 
-    for (const job of claimed) {
+    for (const [index, job] of claimed.entries()) {
+      if (options.signal?.aborted === true) {
+        await this.unclaim(claimed.slice(index))
+        break
+      }
+
       try {
         await handler(job)
         await this.db
@@ -116,6 +122,22 @@ export class PostgresQueue implements QueueDriver {
       const correlationId = r.correlation_id
       return typeof correlationId === 'string' ? { ...job, requestId: correlationId } : job
     })
+  }
+
+  private async unclaim(jobs_: readonly Job[]): Promise<void> {
+    if (jobs_.length === 0) return
+
+    const ids = jobs_.map((job) => Number(job.id))
+
+    await this.db
+      .update(jobs)
+      .set({
+        status: 'pending',
+        attempts: sql`${jobs.attempts} - 1`,
+        lockedUntil: null,
+        lockedBy: null,
+      })
+      .where(inArray(jobs.id, ids))
   }
 
   private async recordFailure(job: Job, error: unknown): Promise<void> {

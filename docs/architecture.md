@@ -187,6 +187,20 @@ from five places: `community migrate`, `community upgrade`, the web
 installer, the `COMMUNITY_ROLE=migrate` one-shot container, and the demo
 board's reset.
 
+**One migration runs at a time, across every deploy.** `runMigrations()`
+opens a single connection and takes a *session-level* advisory lock on it
+(`pg_advisory_lock(-2943916371013839929)` — the first eight bytes of
+`sha256("meith:migrations")`, read big-endian as a signed 64-bit integer)
+before it reads the journal, and releases it in a `finally`. Two `migrate`
+containers starting together therefore queue: the second waits, finds
+everything applied, and reports nothing done. Without it they race inside
+drizzle's own bookkeeping and one dies on a duplicate key. Session-level
+rather than transaction-level because the lock has to span every statement
+of the run, not one transaction — and that is the whole reason the runner
+prefers `DIRECT_DATABASE_URL`: a transaction-mode pooler hands out a
+different backend per transaction and cannot hold a session lock. A crashed
+migrator releases the lock the moment its connection drops.
+
 **Denormalised author names.** A member's name is stored beside the content
 that renders it (`posts.author_username`, `threads.author_username` and
 `threads.last_post_username`, `forums.last_post_username`,
@@ -378,6 +392,27 @@ mid-run. Every task is written as an idempotent catch-up operation ("flush
 what is outstanding"), never "run at 03:00", so a missed day is caught up
 rather than lost.
 
+**One column decides what is due: `tasks.next_run_at`.** The claim selects on
+it and the release writes it, as *finish* plus interval — so the interval is
+the gap between runs rather than a period a slow run eats into, and a task
+that takes longer than its own interval does not queue up behind itself.
+A task registered for the first time is written due, so a new board runs
+everything on its first tick rather than waiting an interval; changing a
+cadence moves the due time with it, rather than honouring a time computed
+under the old one. `last_run_at` is history — what `/admin/system` shows and
+what tells a task how much time it has to catch up on — and nothing schedules
+from it.
+
+**A task's `maxDurationSeconds` is enforced by the signal it is handed.**
+`tick()` aborts that signal when the budget is spent, and the tasks with a
+loop to stop in — the queue drain, and both subscription tasks — stop at the
+next unit and hand back what they did not reach: unprocessed jobs go back to
+pending with their attempt count restored, and an untold member keeps their
+watermark. The rest are a single `LIMIT`-ed statement whose cost is bounded
+by construction. A task that overruns anyway is reported as such rather than
+passing quietly, and its claim is released the moment it returns, not when
+the stale-claim window expires.
+
 Nineteen built-in tasks ride the tick: the outbox relay, queue drain and
 instant subscriptions at 60 s; the stats rollup and view-count flush at five
 minutes; the render backfill and search reindex at ten; ban, group and
@@ -394,7 +429,11 @@ The tick has two drivers: the worker process (in-process, every 60 s, keeps
 running when the web container is down) and the `TICK_SECRET`-guarded
 `GET /api/system/tick` route for deployments where an external scheduler
 drives it. Same `tick()`, same claim semantics, no coordination needed
-between them; running both is safe. The demo deployment runs on the HTTP
+between them; running both is safe. The worker holds one tick at a time: a
+tick that passes its five-minute ceiling has its signal aborted and is
+awaited, so the tasks still running stop at their next unit and release
+their claims. It is never abandoned to keep its connections while the next
+tick starts on top of it. The demo deployment runs on the HTTP
 driver alone, for the cache-locality reason above.
 
 ## The extension surfaces

@@ -4,7 +4,6 @@ export interface TaskRepository {
   claim(input: {
     taskId: string
     now: Date
-    dueBefore: Date
     staleBefore: Date
   }): Promise<{ previousLastRunAt: Date | null } | null>
 
@@ -23,6 +22,7 @@ export interface TickOutcome {
   taskId: string
   status: 'ran' | 'skipped' | 'failed'
   durationMs: number
+  overran?: true
   detail?: Record<string, unknown>
   error?: string
 }
@@ -33,6 +33,7 @@ export interface TickDeps {
   now?: Date
   staleClaimSeconds?: number
   onError?: (taskId: string, error: unknown) => void
+  signal?: AbortSignal
 }
 
 export async function tick({
@@ -41,6 +42,7 @@ export async function tick({
   now = new Date(),
   staleClaimSeconds = 900,
   onError,
+  signal,
 }: TickDeps): Promise<TickOutcome[]> {
   await repository.ensureRegistered(
     tasks.map((t) => ({ id: t.id, intervalSeconds: t.intervalSeconds })),
@@ -52,23 +54,25 @@ export async function tick({
   for (const task of tasks) {
     const startedAt = Date.now()
 
-    const claim = await repository.claim({
-      taskId: task.id,
-      now,
-      dueBefore: new Date(now.getTime() - task.intervalSeconds * 1000),
-      staleBefore,
-    })
+    if (signal?.aborted === true) {
+      outcomes.push({ taskId: task.id, status: 'skipped', durationMs: 0 })
+      continue
+    }
+
+    const claim = await repository.claim({ taskId: task.id, now, staleBefore })
 
     if (!claim) {
       outcomes.push({ taskId: task.id, status: 'skipped', durationMs: 0 })
       continue
     }
 
-    const controller = new AbortController()
+    const budget = new AbortController()
     const timeout = setTimeout(
-      () => controller.abort(new Error(`Task "${task.id}" exceeded its budget`)),
+      () => budget.abort(new Error(`Task "${task.id}" exceeded its budget`)),
       task.maxDurationSeconds * 1000,
     )
+
+    const elapsedSince = () => new Date(now.getTime() + (Date.now() - startedAt))
 
     try {
       const elapsedSeconds = claim.previousLastRunAt
@@ -79,14 +83,14 @@ export async function tick({
         now,
         lastRunAt: claim.previousLastRunAt,
         elapsedSeconds,
-        signal: controller.signal,
+        signal: signal === undefined ? budget.signal : AbortSignal.any([signal, budget.signal]),
       }
 
       const result: TaskResult = await task.run(context)
 
       await repository.release({
         taskId: task.id,
-        finishedAt: new Date(),
+        finishedAt: elapsedSince(),
         success: true,
         ...(result.detail ? { detail: result.detail } : {}),
       })
@@ -95,6 +99,7 @@ export async function tick({
         taskId: task.id,
         status: 'ran',
         durationMs: Date.now() - startedAt,
+        ...(budget.signal.aborted ? { overran: true as const } : {}),
         ...(result.detail ? { detail: result.detail } : {}),
       })
     } catch (error) {
@@ -103,7 +108,7 @@ export async function tick({
 
       await repository.release({
         taskId: task.id,
-        finishedAt: new Date(),
+        finishedAt: elapsedSince(),
         success: false,
         error: message,
       })
@@ -112,6 +117,7 @@ export async function tick({
         taskId: task.id,
         status: 'failed',
         durationMs: Date.now() - startedAt,
+        ...(budget.signal.aborted ? { overran: true as const } : {}),
         error: message,
       })
     } finally {

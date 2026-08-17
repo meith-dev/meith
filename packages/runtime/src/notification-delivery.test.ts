@@ -11,6 +11,8 @@ import {
 import { buildEventRegistry } from './event-handlers'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 
+const NOT_ABORTED = new AbortController().signal
+
 class FakeOutbox implements OutboxReader {
   readonly marked: number[] = []
   constructor(private rows: OutboxRecord[]) {}
@@ -123,7 +125,7 @@ describe('the notification mail path', () => {
     expect(await workers.relayOutbox!(10)).toBe(1)
     expect(outbox.marked).toEqual([1])
 
-    expect(await workers.drainQueue!(10)).toBe(1)
+    expect(await workers.drainQueue!(10, NOT_ABORTED)).toBe(1)
     expect(mail.sent).toHaveLength(1)
     expect(mail.sent[0]?.to).toBe('ivan@example.test')
     expect(mail.sent[0]?.subject).toBe('[Test Board] You have been warned: Spamming')
@@ -135,7 +137,7 @@ describe('the notification mail path', () => {
     const { workers, queue } = build([notificationCreated(1, 55)], false)
 
     expect(await workers.relayOutbox!(10)).toBe(1)
-    expect(await workers.drainQueue!(10)).toBe(0)
+    expect(await workers.drainQueue!(10, NOT_ABORTED)).toBe(0)
     expect(mail.sent).toHaveLength(0)
     expect((await queue.deadLettered(10)).length).toBe(0)
   })
@@ -150,7 +152,7 @@ describe('the notification mail path', () => {
 
     const { workers } = build([notificationCreated(1, 55)])
     await workers.relayOutbox!(10)
-    await workers.drainQueue!(10)
+    await workers.drainQueue!(10, NOT_ABORTED)
 
     expect(mail.sent).toHaveLength(0)
   })
