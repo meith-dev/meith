@@ -18,7 +18,7 @@ import type { SettingsSnapshot } from '@meith/settings'
 
 import { boardUrl } from './board-url'
 import { configuredIdentity, getContainer } from './container'
-import { getSettings } from './settings'
+import { getSettings, getSettingsUncached } from './settings'
 
 export const SSO_CALLBACK_PREFIX = '/auth/sso'
 
@@ -50,29 +50,35 @@ export function federationOptions(settings: SettingsSnapshot): FederationOptions
   }
 }
 
+/**
+ * Every read here goes past the settings cache, because every one of them
+ * decides whether a sign-in may start rather than what a page displays. The
+ * cached snapshot is held per module instance, so a route handler can be a
+ * minute behind the render that invalidated it — long enough for a provider an
+ * operator has just switched on to answer that it is switched off.
+ */
 export async function federationProvider(id: string): Promise<IdentityProvider | null> {
   if (!isProviderKind(id)) return null
   if (getContainer().dataSource !== 'postgres') return null
 
-  return providerFor(id, federationOptions(await getSettings()))
+  return providerFor(id, federationOptions(await getSettingsUncached()))
 }
 
 export async function signInProviders(): Promise<readonly ProviderButton[]> {
   if (getContainer().dataSource !== 'postgres') return []
 
-  return configuredProviders(federationOptions(await getSettings())).map((provider) => ({
-    id: provider.id,
-    label: provider.label,
-  }))
+  return configuredProviders(federationOptions(await getSettingsUncached())).map(
+    (provider) => ({ id: provider.id, label: provider.label }),
+  )
 }
 
 export async function passkeysEnabled(): Promise<boolean> {
   if (getContainer().dataSource !== 'postgres') return false
-  return (await getSettings()).get('federation.passkeys_enabled')
+  return (await getSettingsUncached()).get('federation.passkeys_enabled')
 }
 
 export async function memberManagedSignIns(): Promise<boolean> {
-  return (await getSettings()).get('federation.link_from_usercp')
+  return (await getSettingsUncached()).get('federation.link_from_usercp')
 }
 
 export async function federationService(): Promise<FederationService> {

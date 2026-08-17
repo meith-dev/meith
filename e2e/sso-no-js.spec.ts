@@ -78,8 +78,20 @@ test('credentials without the switch offer nothing', async ({ page }) => {
 
 test('pressing the button sends the member to the provider with a state to check', async ({
   page,
+  baseURL,
 }) => {
   await enterAdminPanel(page)
+
+  // Ask the route while the provider is off, so that whatever it caches about
+  // the settings is a "no" — then turn the provider on and press the button.
+  // A route handler reading a settings snapshot cached a minute ago answers
+  // that the provider is switched off, on a page that has just drawn its
+  // button.
+  await page.request.post('/auth/sso/github', {
+    form: {},
+    headers: { origin: baseURL ?? '' },
+  })
+
   await turnGithubOn(page)
 
   await page.route('https://github.com/**', (route) =>

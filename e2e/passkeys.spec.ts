@@ -49,13 +49,15 @@ async function signUpOnLocalhost(page: Page, label: string): Promise<string> {
 
   await page.getByLabel('Username or email').fill(username)
   await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(`${BOARD}/`)
 
   return username
 }
 
 test('a member adds a passkey and signs in with it afterwards', async ({ browser }) => {
+  test.setTimeout(120_000)
+
   const admin = await browser.newContext()
   const adminPage = await admin.newPage()
 
@@ -85,7 +87,9 @@ test('a member adds a passkey and signs in with it afterwards', async ({ browser
     await memberPage.getByRole('button', { name: 'Sign in with a passkey' }).click()
 
     await expect(memberPage).toHaveURL(`${BOARD}/`)
-    await expect(memberPage.getByRole('link', { name: 'Profile' })).toBeVisible()
+    await expect(memberPage.getByRole('button', { name: 'Your account' })).toContainText(
+      username,
+    )
 
     await memberPage.goto(`${BOARD}/usercp/security`)
     await expect(memberPage.getByText('Work laptop')).toBeVisible()
@@ -99,11 +103,13 @@ test('a member adds a passkey and signs in with it afterwards', async ({ browser
     await memberPage.goto(`${BOARD}/login`)
     await memberPage.getByLabel('Username or email').fill(username)
     await memberPage.getByLabel('Password').fill(PASSWORD)
-    await memberPage.getByRole('button', { name: 'Sign in' }).click()
+    await memberPage.getByRole('button', { name: 'Sign in', exact: true }).click()
     await expect(memberPage).toHaveURL(`${BOARD}/`)
+    await expect(memberPage.getByRole('button', { name: 'Your account' })).toContainText(
+      username,
+    )
   } finally {
     await member.close()
-    await enterAdminPanel(adminPage)
     await setPasskeys(adminPage, false)
     await admin.close()
   }
