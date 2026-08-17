@@ -149,6 +149,12 @@ two-space indent, 100 columns. The version is pinned exactly in
 `package.json` — a formatter that drifts with a minor bump reformats files
 nobody touched.
 
+It covers TypeScript, JSX, JSON and CSS — every such file in the tree
+except `docs/perf-indexes.json` and `docs/perf-results.json`, which a
+generator writes. Markdown, YAML and SQL have no formatter: Biome does not
+format them, so `docs/`, the workflows and the migrations are written by
+hand and reviewed as prose.
+
 Three rules carry an invariant rather than a preference:
 
 - **`style/noProcessEnv`.** `process.env` is read in
