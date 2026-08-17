@@ -6,6 +6,7 @@ import { currentRequestId } from '@meith/core/logger'
 import { localeDirection, SOURCE_LOCALE } from '@meith/i18n'
 import { resolveBoardUrl } from '@meith/settings'
 
+import { CopyProvider } from '@/components/shell/copy'
 import { CrashNoticeProvider } from '@/components/shell/crash-notice'
 import { DemoBanner } from '@/components/shell/demo-banner'
 import { GroupNameStyle } from '@/components/shell/group-name-style'
@@ -16,6 +17,7 @@ import { getLocale, getTranslator } from '@/server/i18n'
 import { getSettings } from '@/server/settings'
 import { currentColourScheme, currentThemeKey } from '@/server/theme'
 import { getThemeRuntimeStyle } from '@/server/theme-runtime'
+import { formChromeCopy } from '@/view/copy'
 import { crashNoticeCopy } from '@/view/error-notice'
 import { BOARD_TITLE } from '@/view/shell'
 import { colorSchemeProperty, schemeClass } from '@/view/theme-preference'
@@ -112,7 +114,9 @@ export default async function RootLayout({
           requestId={currentRequestId() ?? null}
           copy={crashNoticeCopy(await getTranslator().catch(() => untranslated()))}
         >
-          {children}
+          <CopyProvider copy={formChromeCopy(await getTranslator().catch(() => untranslated()))}>
+            {children}
+          </CopyProvider>
         </CrashNoticeProvider>
       </body>
     </html>

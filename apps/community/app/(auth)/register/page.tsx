@@ -6,14 +6,11 @@ import { SsoButtons } from '@/components/auth/sso-buttons'
 import { issueChallenge } from '@/server/antispam'
 import { boardAuthConfig } from '@/server/auth-config'
 import { signInProviders } from '@/server/federation'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { termsAcceptance } from '@/server/legal'
 import { registrationFields } from '@/server/profile-fields'
-import {
-  REGISTRATION_CLOSED_LEDE,
-  REGISTRATION_CLOSED_TITLE,
-  registrationOpen,
-} from '@/server/registration'
+import { registrationOpen } from '@/server/registration'
+import { registerFormCopy, ssoButtonModels, ssoButtonsCopy } from '@/view/auth-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.create-account') }
@@ -23,9 +20,15 @@ export default async function RegisterPage() {
   if (!(await registrationOpen())) {
     return (
       <AuthPage
-        title={REGISTRATION_CLOSED_TITLE}
-        lede={REGISTRATION_CLOSED_LEDE}
-        links={[{ label: 'Sign in', href: '/login', lead: 'Already a member?' }]}
+        title={await tr('authNotice.registrationClosed')}
+        lede={await tr('authNotice.registrationClosedLede')}
+        links={[
+          {
+            label: await tr('authLink.signIn'),
+            href: '/login',
+            lead: await tr('authLink.alreadyMember'),
+          },
+        ]}
       />
     )
   }
@@ -42,20 +45,25 @@ export default async function RegisterPage() {
     required: true,
   }))
 
+  const t = await getTranslator()
+
   return (
     <AuthPage
       title={await tr('page.create-account-2')}
       lede={await tr('page.join-discussion')}
-      links={[{ label: 'Sign in', href: '/login', lead: 'Already have an account?' }]}
+      links={[
+        {
+          label: await tr('authLink.signIn'),
+          href: '/login',
+          lead: await tr('authLink.alreadyHaveAccount'),
+        },
+      ]}
     >
       <div className="flex flex-col gap-4">
         <SsoButtons
-          providers={await signInProviders()}
-          lede={
-            'Registering this way creates an account here from the address that provider ' +
-            'holds for you, and tells them you are a member. No password is set, and you ' +
-            'can add one later.'
-          }
+          providers={ssoButtonModels(await signInProviders(), t)}
+          lede={await tr('authForm.sso.registerLede')}
+          copy={ssoButtonsCopy(t)}
         />
         <RegisterForm
           customFields={customFields}
@@ -67,6 +75,7 @@ export default async function RegisterPage() {
             honeypot: issued.honeypot,
             issuedAt: issued.issuedAt,
           }}
+          copy={registerFormCopy({ minPasswordLength, usernameMin, usernameMax }, t)}
         />
       </div>
     </AuthPage>

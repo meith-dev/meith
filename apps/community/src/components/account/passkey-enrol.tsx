@@ -7,7 +7,9 @@ import { Button } from '@meith/ui/button'
 
 import { enrolPasskey, passkeyMessage, passkeysAvailable } from '@/components/auth/passkey-client'
 
-export function PasskeyEnrol({ limit }: { readonly limit: number }) {
+import { type Copy, fromCopy } from '../shell/copy'
+
+export function PasskeyEnrol({ copy }: { readonly copy: Copy }) {
   const [available, setAvailable] = useState<boolean | null>(null)
   const [label, setLabel] = useState('')
   const [busy, setBusy] = useState(false)
@@ -20,8 +22,7 @@ export function PasskeyEnrol({ limit }: { readonly limit: number }) {
   if (available === false) {
     return (
       <p className="text-sm text-muted-foreground">
-        This browser cannot create passkeys, so there is nothing to add here. Try one that can, or
-        keep using your password.
+        {fromCopy(copy, 'accountForm.passkey.unsupported')}
       </p>
     )
   }
@@ -35,16 +36,15 @@ export function PasskeyEnrol({ limit }: { readonly limit: number }) {
       )}
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">What to call it</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.passkey.label')}</span>
         <Input
           value={label}
           maxLength={60}
-          placeholder="Work laptop"
+          placeholder={fromCopy(copy, 'accountForm.passkey.placeholder')}
           onChange={(event) => setLabel(event.target.value)}
         />
         <span className="text-xs text-muted-foreground">
-          For your own eyes, so you can tell one device from another later. Up to {limit} passkeys
-          per account.
+          {fromCopy(copy, 'accountForm.passkey.hint')}
         </span>
       </label>
 
@@ -56,17 +56,19 @@ export function PasskeyEnrol({ limit }: { readonly limit: number }) {
           onClick={() => {
             setError(null)
             setBusy(true)
-            enrolPasskey(label)
+            enrolPasskey(label, copy)
               .then(() => {
                 window.location.assign('/usercp/security?passkey=added')
               })
               .catch((problem: unknown) => {
-                setError(passkeyMessage(problem))
+                setError(passkeyMessage(problem, copy))
                 setBusy(false)
               })
           }}
         >
-          {busy ? 'Waiting for your device…' : 'Add a passkey'}
+          {busy
+            ? fromCopy(copy, 'authForm.passkey.waiting')
+            : fromCopy(copy, 'accountForm.passkey.submit')}
         </Button>
       </div>
     </div>

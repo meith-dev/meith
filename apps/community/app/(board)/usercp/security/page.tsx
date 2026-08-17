@@ -26,6 +26,7 @@ import { getTranslator, tr } from '@/server/i18n'
 import { currentSessionId } from '@/server/session-actions'
 import { currentTheme } from '@/server/theme'
 import { pendingEnrolment, secondFactorPosture, twoFactorState } from '@/server/two-factor'
+import { passkeyEnrolCopy } from '@/view/auth-copy'
 import { authEventLabel, describeAddress, describeDevice } from '@/view/security-activity'
 import { ssoNotice } from '@/view/sso-notices'
 import { formatDate, formatTime } from '@/view/time'
@@ -172,7 +173,7 @@ export default async function SecurityPage({
 
       {passkeys && (
         <PasskeyList passkeys={passkeyView} manageable={manageable}>
-          <PasskeyEnrol limit={PASSKEY_LIMIT} />
+          <PasskeyEnrol copy={passkeyEnrolCopy(PASSKEY_LIMIT, await getTranslator())} />
         </PasskeyList>
       )}
 

@@ -5,9 +5,16 @@ import { useEffect, useState } from 'react'
 import { Alert, AlertDescription } from '@meith/ui'
 import { Button } from '@meith/ui/button'
 
+import { type Copy, fromCopy } from '../shell/copy'
 import { passkeyMessage, passkeysAvailable, signInWithPasskey } from './passkey-client'
 
-export function PasskeySignIn({ next }: { readonly next?: string | undefined }) {
+export function PasskeySignIn({
+  next,
+  copy,
+}: {
+  readonly next?: string | undefined
+  readonly copy: Copy
+}) {
   const [available, setAvailable] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,17 +42,19 @@ export function PasskeySignIn({ next }: { readonly next?: string | undefined }) 
         onClick={() => {
           setError(null)
           setBusy(true)
-          signInWithPasskey(next)
+          signInWithPasskey(next, copy)
             .then((destination) => {
               window.location.assign(destination)
             })
             .catch((problem: unknown) => {
-              setError(passkeyMessage(problem))
+              setError(passkeyMessage(problem, copy))
               setBusy(false)
             })
         }}
       >
-        {busy ? 'Waiting for your device…' : 'Sign in with a passkey'}
+        {busy
+          ? fromCopy(copy, 'authForm.passkey.waiting')
+          : fromCopy(copy, 'authForm.passkey.signIn')}
       </Button>
     </div>
   )

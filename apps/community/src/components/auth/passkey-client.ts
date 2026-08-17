@@ -1,5 +1,7 @@
 'use client'
 
+import { type Copy, fromCopy } from '../shell/copy-record'
+
 export interface PasskeyProblem {
   readonly message: string
 }
@@ -24,31 +26,32 @@ export function passkeysAvailable(): boolean {
   )
 }
 
-async function readProblem(response: Response): Promise<string> {
+async function readProblem(response: Response, copy: Copy): Promise<string> {
   try {
     const body = (await response.json()) as { error?: { message?: string } }
-    return body.error?.message ?? 'That did not work. Try again.'
+    return body.error?.message ?? fromCopy(copy, 'authForm.passkey.failed')
   } catch {
-    return 'That did not work. Try again.'
+    return fromCopy(copy, 'authForm.passkey.failed')
   }
 }
 
 type Purpose = 'register' | 'authenticate' | 'second-factor'
 
-async function options(purpose: Purpose): Promise<Record<string, unknown>> {
+async function options(purpose: Purpose, copy: Copy): Promise<Record<string, unknown>> {
   const response = await fetch(`/auth/passkey/options?for=${purpose}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: '{}',
   })
 
-  if (!response.ok) throw new Error(await readProblem(response))
+  if (!response.ok) throw new Error(await readProblem(response, copy))
   return (await response.json()) as Record<string, unknown>
 }
 
 async function submit(
   purpose: Purpose,
   body: Record<string, unknown>,
+  copy: Copy,
 ): Promise<Record<string, unknown>> {
   const response = await fetch(`/auth/passkey/verify?for=${purpose}`, {
     method: 'POST',
@@ -56,12 +59,12 @@ async function submit(
     body: JSON.stringify(body),
   })
 
-  if (!response.ok) throw new Error(await readProblem(response))
+  if (!response.ok) throw new Error(await readProblem(response, copy))
   return (await response.json()) as Record<string, unknown>
 }
 
-export async function enrolPasskey(label: string): Promise<void> {
-  const issued = await options('register')
+export async function enrolPasskey(label: string, copy: Copy): Promise<void> {
+  const issued = await options('register', copy)
 
   const credential = (await navigator.credentials.create({
     publicKey: {
@@ -82,20 +85,24 @@ export async function enrolPasskey(label: string): Promise<void> {
     },
   })) as PublicKeyCredential | null
 
-  if (credential === null) throw new Error('No passkey was created.')
+  if (credential === null) throw new Error(fromCopy(copy, 'authForm.passkey.noneCreated'))
 
   const response = credential.response as AuthenticatorAttestationResponse
 
-  await submit('register', {
-    label,
-    clientDataJSON: bytesToBase64Url(response.clientDataJSON),
-    attestationObject: bytesToBase64Url(response.attestationObject),
-    transports: typeof response.getTransports === 'function' ? response.getTransports() : [],
-  })
+  await submit(
+    'register',
+    {
+      label,
+      clientDataJSON: bytesToBase64Url(response.clientDataJSON),
+      attestationObject: bytesToBase64Url(response.attestationObject),
+      transports: typeof response.getTransports === 'function' ? response.getTransports() : [],
+    },
+    copy,
+  )
 }
 
-export async function signInWithPasskey(next: string | undefined): Promise<string> {
-  return assertPasskey('authenticate', next)
+export async function signInWithPasskey(next: string | undefined, copy: Copy): Promise<string> {
+  return assertPasskey('authenticate', next, copy)
 }
 
 /**
@@ -103,15 +110,16 @@ export async function signInWithPasskey(next: string | undefined): Promise<strin
  * The board scopes the challenge to that member's own credentials, so the
  * browser offers only the keys that could finish this particular sign-in.
  */
-export async function confirmWithPasskey(next: string | undefined): Promise<string> {
-  return assertPasskey('second-factor', next)
+export async function confirmWithPasskey(next: string | undefined, copy: Copy): Promise<string> {
+  return assertPasskey('second-factor', next, copy)
 }
 
 async function assertPasskey(
   purpose: Exclude<Purpose, 'register'>,
   next: string | undefined,
+  copy: Copy,
 ): Promise<string> {
-  const issued = await options(purpose)
+  const issued = await options(purpose, copy)
 
   const allow = issued.allowCredentials as { id: string }[] | undefined
 
@@ -132,24 +140,28 @@ async function assertPasskey(
     },
   })) as PublicKeyCredential | null
 
-  if (credential === null) throw new Error('No passkey was offered.')
+  if (credential === null) throw new Error(fromCopy(copy, 'authForm.passkey.noneOffered'))
 
   const response = credential.response as AuthenticatorAssertionResponse
 
-  const outcome = await submit(purpose, {
-    id: credential.id,
-    clientDataJSON: bytesToBase64Url(response.clientDataJSON),
-    authenticatorData: bytesToBase64Url(response.authenticatorData),
-    signature: bytesToBase64Url(response.signature),
-    ...(next === undefined ? {} : { next }),
-  })
+  const outcome = await submit(
+    purpose,
+    {
+      id: credential.id,
+      clientDataJSON: bytesToBase64Url(response.clientDataJSON),
+      authenticatorData: bytesToBase64Url(response.authenticatorData),
+      signature: bytesToBase64Url(response.signature),
+      ...(next === undefined ? {} : { next }),
+    },
+    copy,
+  )
 
   return typeof outcome.next === 'string' ? outcome.next : '/'
 }
 
-export function passkeyMessage(error: unknown): string {
+export function passkeyMessage(error: unknown, copy: Copy): string {
   if (error instanceof DOMException && error.name === 'NotAllowedError') {
-    return 'That was cancelled, so nothing changed.'
+    return fromCopy(copy, 'authForm.passkey.cancelled')
   }
-  return error instanceof Error ? error.message : 'That did not work. Try again.'
+  return error instanceof Error ? error.message : fromCopy(copy, 'authForm.passkey.failed')
 }
