@@ -947,6 +947,40 @@ let it replace this one — a cached or hand-written policy will not carry
 the nonce for the request it is served with, and every page will arrive
 with its scripts refused.
 
+## What a member's browser contacts
+
+By default, nothing but the board. No script, style, font or beacon is
+fetched from anywhere else, and the board carries no analytics of any
+kind — not a hosted product, and not a self-hosted one either.
+
+The typeface shows how that is held rather than promised. The board sets
+Inter, and the font files are downloaded at build time and served from the
+board's own origin, so opening a page tells Google nothing.
+`default-src 'self'` and `connect-src 'self'` in the
+[content policy](#the-content-security-policy) hold the same line at
+runtime: something that wanted to report elsewhere could not reach it.
+
+Three things widen that, and an operator chooses each one:
+
+| What | How it is turned on |
+|---|---|
+| Images from other hosts, embedded in posts | `REMOTE_IMAGES=1` — see [remote images](#remote-images) |
+| A federated sign-in provider | Configured per provider — see [Signing in](./single-sign-on.md) |
+| Whatever a plugin loads | Installing the plugin in `community.config.ts` |
+
+**Upgrading from 0.7.0 or earlier removes a request your members were
+making without knowing.** Those versions rendered a hosted analytics
+beacon into every page whenever `NODE_ENV` was `production` — a third
+party meeting the members of every self-hosted board, with no setting that
+turned it off. It is gone, and nothing replaced it: there is no analytics
+here to opt out of.
+
+The rule is mechanical now rather than remembered. The board's own source
+may import relative paths, `@meith/*`, `node:*`, `next`, `react`,
+`react-dom` and `server-only`, and nothing else; `pnpm guards` fails on
+anything further. Adding something a browser would fetch means widening
+that allowlist on purpose, in a diff somebody reviews.
+
 ## Cross-site requests
 
 **There is no CSRF token and no per-session CSRF secret.** A board that
