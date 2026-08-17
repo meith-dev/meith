@@ -19,6 +19,7 @@ import { getContainer } from './container'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
 import { isSafeLocalPath } from './safe-path'
+import { twoFactorRequiredForStaff, twoFactorService } from './two-factor'
 import { clearAdminCookie, readAdminToken, setAdminCookie } from './session-cookies'
 import type { FormState } from './auth-form-state'
 
@@ -57,6 +58,8 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
       throw new ForbiddenError('That password is not right.')
     }
 
+    await assertSecondFactorGiven({ userId: actor.userId, form })
+
     const existing = await resolveAdmin()
     if ('context' in existing) {
       await service.markReauthenticated(existing.context.session.id)
@@ -78,6 +81,47 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
   }
 
   redirect(target)
+}
+
+const ADMIN_NEEDS_TWO_FACTOR =
+  'This board requires two-factor authentication of anyone who can reach the control ' +
+  'panel. Set up an authenticator app on your account security page first.'
+
+/**
+ * The panel's door asks for the second factor as well as the password. The
+ * panel can rewrite the whole board, so re-proving only the thing most likely
+ * to have leaked would be re-proving the wrong one.
+ */
+async function assertSecondFactorGiven(input: {
+  readonly userId: number
+  readonly form: FormData
+}): Promise<void> {
+  const service = twoFactorService()
+  if (service === null) return
+
+  const enrolled = await service.isEnrolled(input.userId)
+
+  if (!enrolled) {
+    if (await twoFactorRequiredForStaff()) {
+      throw new ForbiddenError(ADMIN_NEEDS_TWO_FACTOR)
+    }
+    return
+  }
+
+  const code = text(input.form, 'code')
+  if (code === '') {
+    throw new ValidationError('Enter the code from your authenticator app as well.')
+  }
+
+  const outcome = await service.verify({ userId: input.userId, code })
+  if (outcome.status !== 'ok') {
+    await recordAdminAction({ action: 'admin.signin_failed' })
+    throw new ForbiddenError(
+      outcome.status === 'replayed'
+        ? 'That code has been used already. Wait for the next one.'
+        : 'That code is not right.',
+    )
+  }
 }
 
 export async function adminSignOutAction(): Promise<void> {

@@ -54,6 +54,10 @@ export interface PasskeyAssertionOptions {
   readonly rpId: string
   readonly userVerification: 'preferred'
   readonly timeout: number
+  readonly allowCredentials?: readonly {
+    readonly type: 'public-key'
+    readonly id: string
+  }[]
 }
 
 const TIMEOUT_MS = 120_000
@@ -115,12 +119,21 @@ export class PasskeyService {
   assertionOptions(input: {
     readonly challenge: string
     readonly relyingParty: RelyingParty
+    readonly allowCredentials?: readonly string[]
   }): PasskeyAssertionOptions {
     return {
       challenge: input.challenge,
       rpId: input.relyingParty.id,
       userVerification: 'preferred',
       timeout: TIMEOUT_MS,
+      ...(input.allowCredentials === undefined
+        ? {}
+        : {
+            allowCredentials: input.allowCredentials.map((id) => ({
+              type: 'public-key' as const,
+              id,
+            })),
+          }),
     }
   }
 
@@ -185,6 +198,34 @@ export class PasskeyService {
     await this.passkeys.markUsed(passkey.id, verified.signCount, this.now())
 
     return { account, login }
+  }
+
+  /**
+   * The same signature check as signing in, against one named account and with
+   * no session at the end of it. A second factor has to prove the device
+   * belongs to the member who has just given their password — accepting any
+   * registered passkey would let anybody past anybody's second step.
+   */
+  async proveOwnership(input: {
+    readonly userId: number
+    readonly credentialId: string
+    readonly response: AssertionResponse
+    readonly expectedChallenge: string
+    readonly relyingParty: RelyingParty
+  }): Promise<boolean> {
+    const passkey = await this.passkeys.findByCredentialId(input.credentialId)
+    if (passkey === null || passkey.userId !== input.userId) return false
+
+    const verified = await verifyAssertion({
+      response: input.response,
+      expectedChallenge: input.expectedChallenge,
+      relyingParty: input.relyingParty,
+      publicKey: passkey.publicKey,
+      storedSignCount: passkey.signCount,
+    })
+
+    await this.passkeys.markUsed(passkey.id, verified.signCount, this.now())
+    return true
   }
 
   async remove(input: {

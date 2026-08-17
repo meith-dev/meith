@@ -4,6 +4,7 @@ import { newChallenge } from "@meith/accounts"
 import { logger, statusForError, toPublicError } from "@meith/core"
 
 import { getActor } from "@/server/context"
+import { configuredIdentity, getContainer } from "@/server/container"
 import {
   memberManagedSignIns,
   passkeyRelyingPartyName,
@@ -11,9 +12,12 @@ import {
   passkeysEnabled,
   relyingParty,
 } from "@/server/federation"
-import { packChallenge } from "@/server/passkey-challenge"
+import { packChallenge, type PasskeyPurpose } from "@/server/passkey-challenge"
 import { crossOriginRefusal, isSameOrigin } from "@/server/same-origin"
-import { setPasskeyChallengeCookie } from "@/server/session-cookies"
+import {
+  readSecondFactorToken,
+  setPasskeyChallengeCookie,
+} from "@/server/session-cookies"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -36,13 +40,41 @@ export async function POST(request: NextRequest): Promise<Response> {
     return problem("Passkeys are not switched on for this board.", 404)
   }
 
-  const purpose = request.nextUrl.searchParams.get("for") === "register"
-    ? "register"
-    : "authenticate"
+  const asked = request.nextUrl.searchParams.get("for")
+  const purpose: PasskeyPurpose =
+    asked === "register" || asked === "second-factor" ? asked : "authenticate"
 
   const challenge = newChallenge()
 
   try {
+    if (purpose === "second-factor") {
+      const held = await readSecondFactorToken()
+      const pending =
+        held === undefined || held === ""
+          ? null
+          : await (await configuredIdentity()).pendingSecondFactor(held)
+
+      if (pending === null) {
+        return problem("That sign-in took too long to finish. Start again.", 403)
+      }
+
+      const heldPasskeys = await getContainer().accountStore.passkeys.listForUser(
+        pending.userId,
+      )
+      if (heldPasskeys.length === 0) {
+        return problem("That account has no passkey to confirm with.", 403)
+      }
+
+      const options = (await passkeyService()).assertionOptions({
+        challenge,
+        relyingParty: await relyingParty(),
+        allowCredentials: heldPasskeys.map((passkey) => passkey.credentialId),
+      })
+
+      await setPasskeyChallengeCookie(packChallenge(purpose, challenge))
+      return json(options)
+    }
+
     if (purpose === "authenticate") {
       const options = (await passkeyService()).assertionOptions({
         challenge,

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server"
 import { RateLimitedError, isAppError, logger, truncateIp } from "@meith/core"
 
 import { remoteAddress } from "@/server/admin"
+import { recordAuthEvent } from "@/server/auth-events"
 import { refused, spendRegisterLimit } from "@/server/antispam"
 import { sendVerificationEmail } from "@/server/auth-mail"
 import { getActor } from "@/server/context"
@@ -94,6 +95,7 @@ export async function GET(
       if (!(await memberManagedSignIns())) return to(withReason(home, "off"))
 
       await federation.linkToViewer({ userId: actor.userId, provider, profile })
+      await recordAuthEvent({ userId: actor.userId, kind: "identity_linked" })
       return to(withReason("/usercp/security", "linked"))
     }
 
@@ -124,6 +126,7 @@ export async function GET(
     }
 
     await setSessionCookie(outcome.login.sessionToken, outcome.login.expiresAt)
+    await recordAuthEvent({ userId: outcome.account.id, kind: "login" })
     return to(handshake.next)
   } catch (err) {
     log.warn({ err, provider: requested }, "federated sign-in did not complete")

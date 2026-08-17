@@ -5,6 +5,7 @@ import {
   IdentityService,
   SessionService,
   createMemoryStore,
+  enrolmentLookup,
   type AccountStore,
   type BanLookup,
   type MemberProfileRepository,
@@ -223,6 +224,7 @@ function identityServices(
     identity: new IdentityService({
       store,
       config: AUTH_CONFIG,
+      secondFactor: enrolmentLookup(store.twoFactor),
       ...(bans === undefined ? {} : { bans }),
     }),
     sessions: new SessionService({
@@ -381,6 +383,7 @@ export async function configuredIdentity(): Promise<IdentityService> {
   return new IdentityService({
     store: accountStore,
     config: await boardAuthConfig(),
+    secondFactor: enrolmentLookup(accountStore.twoFactor),
     ...(banLookup === null ? {} : { bans: banLookup }),
   })
 }

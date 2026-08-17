@@ -711,6 +711,33 @@ export const SETTING_DEFINITIONS = [
   }),
 
   define({
+    key: 'security.two_factor_enabled',
+    group: 'security',
+    label: 'Offer two-factor authentication',
+    description:
+      'Lets a member add an authenticator app to their account from ' +
+      '/usercp/security, and asks for a code after their password from then on. ' +
+      'Needs AUTH_SECRET set, because the secret the app holds is sealed with a ' +
+      'key derived from it.',
+    schema: z.boolean(),
+    default: true,
+    invalidates: ['settings'],
+  }),
+  define({
+    key: 'security.two_factor_required_for_staff',
+    group: 'security',
+    label: 'Require it of anyone who can reach the control panel',
+    description:
+      'An account that can open the control panel is asked to set up an ' +
+      'authenticator app before it can be used, and cannot turn it off again ' +
+      'while it holds that access. The control panel can rewrite the whole ' +
+      'board, so a password on its own is a thin thing to protect it with.',
+    schema: z.boolean(),
+    default: false,
+    invalidates: ['settings'],
+  }),
+
+  define({
     key: 'federation.github_enabled',
     group: 'federation',
     label: 'Sign in with GitHub',

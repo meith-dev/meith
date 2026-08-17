@@ -1,15 +1,24 @@
-# Signing in without a password
+# Signing in
 
-A Meith board authenticates with a password by default, and nothing else is
-switched on until an operator says so. This document covers the two ways to add
-to that: **federated sign-in**, where an identity provider vouches for a member,
-and **passkeys**, where the member's own device does.
+A Meith board authenticates with a password by default. This document covers
+everything that can be added to or put in front of that: a **second factor**,
+where a code from an authenticator app is asked for after the password;
+**federated sign-in**, where an identity provider vouches for a member; and
+**passkeys**, where the member's own device does.
 
-Both are configured in **Admin → Settings → Sign-in providers**. Both are off in
-a fresh installation, and a board that leaves them off behaves exactly as it did
-before they existed.
+The second factor is configured under **Admin → Settings → Security**, the
+other two under **Admin → Settings → Sign-in providers**. Federated sign-in and
+passkeys are off in a fresh installation; the second factor is offered but
+never forced, so no member is asked for one until they set it up.
+
+It also covers the two surfaces that come with them: the record of what has
+happened to a member's sign-in, and the list of devices holding one.
 
 ## The stance
+
+A second factor and a passkey involve nobody but the member and this board. A
+federated provider is different, and the difference is the whole reason it is a
+setting rather than a default.
 
 Turning on a provider means that provider meets your members. Every sign-in
 tells GitHub, Google or your own identity server that this board exists, who
@@ -26,6 +35,115 @@ holds with that provider.
 Passkeys involve no third party at all. The credential is created against your
 board's own address, the private half never leaves the member's device, and the
 board stores a public key it can only use to check a signature.
+
+## A second factor
+
+### What it is, and what it buys
+
+An authenticator app holds a secret shared with the board and turns it into a
+six-digit code that changes every thirty seconds. Asked for after the password,
+it means a leaked password is not on its own enough to open an account — and a
+password can leak without its owner ever finding out.
+
+The board implements the ordinary standard (RFC 6238, SHA-1, six digits, a
+thirty-second period), so any authenticator app works: Aegis, Ente Auth, 1Password,
+Google Authenticator, whatever your members already have.
+
+### Turning it on for the board
+
+**Offer two-factor authentication**, in the security group, decides whether the
+surface exists at all. It is on by default, which costs a board nothing: nobody
+is asked for a code until they have set one up.
+
+It needs `AUTH_SECRET` set. The secret an authenticator app holds is a password
+equivalent — with it, anybody can mint that member's codes forever — so the
+board seals it with a key derived from `AUTH_SECRET` before it is stored. With
+no key there is nowhere safe to put the secret, and the surface hides itself
+rather than pretending.
+
+> [!WARNING]
+> Changing `AUTH_SECRET` on a board where members have set this up strands every
+> stored secret. They cannot be read back, and every affected member has to set
+> up their app again. The board says so plainly rather than reporting a wrong
+> code.
+
+**Require it of anyone who can reach the control panel** is off by default. On,
+an account with `admincp.access` is refused the panel until it has an
+authenticator app, and cannot turn one off while it holds that access. The panel
+can rewrite the whole board, and a password on its own is a thin thing to
+protect that with.
+
+### What a member does
+
+From **/usercp/security**, a member presses *Set up an authenticator app*. The
+board shows a key to type into the app, and an `otpauth://` link that opens the
+app directly on a phone. They type back the code the app shows, which proves the
+two agree, and the board hands over **ten recovery codes**.
+
+The recovery codes are shown once and stored only as hashes. Each signs in
+exactly once, in place of a code, for the day a phone is lost. A member can
+replace the set at any time — which retires the old one — and the page says how
+many are left.
+
+Turning it off asks for the password again. An account with no password — one
+that arrived through a provider or holds only passkeys — gives a current code
+instead, which proves the same possession.
+
+### What signing in looks like
+
+The password step is unchanged. When it succeeds and the account asks for a
+code, the board does not start a session: it holds the half-finished sign-in for
+ten minutes and asks for the code on a second screen. Only when that is
+satisfied does a session begin.
+
+The hold is a random token in a strict, HTTP-only cookie, backed by a row that
+is spent exactly once. It is not a session and grants nothing: an account
+banned between the two steps is refused at the second, and giving the password
+again drops any earlier hold.
+
+The second screen takes a code from the app, one of the recovery codes, or — if
+the member has a passkey — the passkey instead, which proves possession just as
+well. Wrong codes are counted against the same lockout the password uses, on
+their own counter.
+
+A code is refused if it has already been used, even within the thirty seconds it
+is otherwise valid for. Anybody who reads a code over a shoulder or out of a
+proxy log has that window to race the member with it, and this closes it.
+
+### The control panel's own door
+
+The panel has always asked for the password again on the way in. With a second
+factor set up it asks for the code too, in the same form. Re-proving only the
+half most likely to have leaked would be re-proving the wrong one.
+
+## Where a member is signed in
+
+**/usercp/security** lists every live session on the account: the device it was
+started from, the truncated address, when it started, when it was last seen, and
+which one is the browser reading the page. Any of the others can be signed out
+one at a time, or all at once.
+
+Revocation is immediate — the session row is marked, and the next request it
+makes is refused. The device and address are recorded when the session starts,
+which means sessions that predate this feature list as an unknown device until
+they are replaced.
+
+## What has happened to an account
+
+The board keeps a durable record of authentication events: sign-ins and refused
+sign-ins, sign-outs, wrong second-factor codes, recovery codes used, password
+and e-mail changes, sessions revoked, and every provider or passkey added or
+removed.
+
+A member sees their own, newest first, at the bottom of **/usercp/security**.
+An operator sees the board's, filterable by kind, at **Admin → Sign-in
+activity**. That is deliberately separate from the admin log, which records what
+was done by somebody already inside; this one records how they got in.
+
+Each entry keeps the truncated address and a shortened user-agent string, which
+is what makes "that was not me" answerable. Writing an event never blocks the
+thing it records: a sign-in that works and goes unrecorded is a gap in an audit
+trail, while a sign-in refused because the trail was unwritable is an outage.
 
 ## Federated sign-in
 
@@ -208,7 +326,11 @@ refused a passkey sign-in exactly as it is refused a password one.
   off-site.
 - The passkey challenge is held in a strict, HTTP-only cookie and is bound to
   the request it was issued for — a challenge issued for enrolment cannot be
-  answered with a sign-in.
+  answered with a sign-in, and one issued to finish a second factor is scoped to
+  that member's own credentials.
+- A half-finished sign-in is a token that grants nothing on its own: it names
+  the account waiting on its second factor and is spent exactly once, and the
+  account's standing is checked again before the session begins.
 
 ## When something goes wrong
 
@@ -223,6 +345,8 @@ module. The board never puts a provider's own words on its pages.
 | That way of signing in is not switched on | The provider was turned off, or its credentials were cleared, mid-handshake |
 | An account here already claims that identity | The provider account is linked to a different member |
 | The provider did not send enough to open an account with | No address came back — check the scopes |
+| That code is not right | The app's clock has drifted more than thirty seconds, or the code belongs to another account in the app |
+| That code has been used already | The same code was submitted twice — wait for the next one |
 
 A provider that has been switched off stops appearing and stops accepting
 callbacks. The links themselves are kept, so turning it back on restores every

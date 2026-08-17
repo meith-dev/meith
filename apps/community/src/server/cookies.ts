@@ -28,6 +28,9 @@ export const DEV_SSO_COOKIE = 'fs_sso'
 export const PASSKEY_COOKIE = '__Host-fs_passkey'
 export const DEV_PASSKEY_COOKIE = 'fs_passkey'
 
+export const SECOND_FACTOR_COOKIE = '__Host-fs_2fa'
+export const DEV_SECOND_FACTOR_COOKIE = 'fs_2fa'
+
 /** Long enough to read a consent screen, short enough that a stale one is gone. */
 export const HANDSHAKE_MINUTES = 10
 
@@ -99,6 +102,19 @@ export function ssoCookieName(secure: boolean): string {
 
 export function passkeyCookieName(secure: boolean): string {
   return secure ? PASSKEY_COOKIE : DEV_PASSKEY_COOKIE
+}
+
+export function secondFactorCookieName(secure: boolean): string {
+  return secure ? SECOND_FACTOR_COOKIE : DEV_SECOND_FACTOR_COOKIE
+}
+
+/**
+ * A sign-in that has proved its password and nothing else. Strict, because
+ * every step that finishes it starts on this board — and short, because it
+ * stands in for a password already given.
+ */
+export function secondFactorCookie(expires: Date, secure: boolean): CookieAttrs {
+  return { httpOnly: true, secure, sameSite: 'strict', path: '/', expires }
 }
 
 /**

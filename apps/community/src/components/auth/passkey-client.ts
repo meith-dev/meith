@@ -33,7 +33,9 @@ async function readProblem(response: Response): Promise<string> {
   }
 }
 
-async function options(purpose: "register" | "authenticate"): Promise<Record<string, unknown>> {
+type Purpose = "register" | "authenticate" | "second-factor"
+
+async function options(purpose: Purpose): Promise<Record<string, unknown>> {
   const response = await fetch(`/auth/passkey/options?for=${purpose}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -45,7 +47,7 @@ async function options(purpose: "register" | "authenticate"): Promise<Record<str
 }
 
 async function submit(
-  purpose: "register" | "authenticate",
+  purpose: Purpose,
   body: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
   const response = await fetch(`/auth/passkey/verify?for=${purpose}`, {
@@ -95,7 +97,25 @@ export async function enrolPasskey(label: string): Promise<void> {
 }
 
 export async function signInWithPasskey(next: string | undefined): Promise<string> {
-  const issued = await options("authenticate")
+  return assertPasskey("authenticate", next)
+}
+
+/**
+ * The same exchange, against a sign-in that has already given its password.
+ * The board scopes the challenge to that member's own credentials, so the
+ * browser offers only the keys that could finish this particular sign-in.
+ */
+export async function confirmWithPasskey(next: string | undefined): Promise<string> {
+  return assertPasskey("second-factor", next)
+}
+
+async function assertPasskey(
+  purpose: Exclude<Purpose, "register">,
+  next: string | undefined,
+): Promise<string> {
+  const issued = await options(purpose)
+
+  const allow = issued.allowCredentials as { id: string }[] | undefined
 
   const credential = (await navigator.credentials.get({
     publicKey: {
@@ -103,6 +123,14 @@ export async function signInWithPasskey(next: string | undefined): Promise<strin
       rpId: issued.rpId as string,
       userVerification: issued.userVerification as UserVerificationRequirement,
       timeout: issued.timeout as number,
+      ...(allow === undefined
+        ? {}
+        : {
+            allowCredentials: allow.map((entry) => ({
+              type: "public-key" as const,
+              id: base64UrlToBytes(entry.id),
+            })),
+          }),
     },
   })) as PublicKeyCredential | null
 
@@ -110,7 +138,7 @@ export async function signInWithPasskey(next: string | undefined): Promise<strin
 
   const response = credential.response as AuthenticatorAssertionResponse
 
-  const outcome = await submit("authenticate", {
+  const outcome = await submit(purpose, {
     id: credential.id,
     clientDataJSON: bytesToBase64Url(response.clientDataJSON),
     authenticatorData: bytesToBase64Url(response.authenticatorData),

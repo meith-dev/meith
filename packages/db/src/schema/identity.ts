@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  bigint,
   boolean,
   index,
   integer,
@@ -306,6 +307,65 @@ export const passkeys = pgTable(
   (t) => [
     uniqueIndex('passkeys_credential_id_key').on(t.credentialId),
     index('passkeys_user_idx').on(t.userId, t.id),
+  ],
+)
+
+export const userTwoFactor = pgTable('user_two_factor', {
+  userId: integer('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+
+  sealedSecret: text('sealed_secret').notNull(),
+
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+
+  lastStep: bigint('last_step', { mode: 'number' }),
+
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const recoveryCodes = pgTable(
+  'recovery_codes',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    codeHash: text('code_hash').notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('recovery_codes_user_hash_key').on(t.userId, t.codeHash),
+    index('recovery_codes_unused_idx')
+      .on(t.userId)
+      .where(sql`${t.usedAt} is null`),
+  ],
+)
+
+export const authEvents = pgTable(
+  'auth_events',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
+
+    kind: text('kind').notNull(),
+
+    ipPrefix: text('ip_prefix'),
+    userAgent: text('user_agent'),
+
+    detail: jsonb('detail').notNull().default({}),
+
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('auth_events_user_idx').on(t.userId, t.id.desc()),
+    index('auth_events_recent_idx').on(t.id.desc()),
+    index('auth_events_kind_idx').on(t.kind, t.id.desc()),
   ],
 )
 

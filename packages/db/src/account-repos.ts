@@ -1,9 +1,10 @@
-import { and, eq, gt, isNull, lt, or, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, isNull, lt, ne, or, sql } from 'drizzle-orm'
 
 import type {
   AccountRecord,
   AccountRepository,
   AccountState,
+  ActiveSessionRecord,
   AccountStore,
   CredentialPurpose,
   CredentialTokenRepository,
@@ -22,6 +23,11 @@ import {
   PostgresUserIdentityRepository,
 } from './identity-link-repo'
 import { resultRows } from './result-rows'
+import {
+  PostgresAuthEventRepository,
+  PostgresRecoveryCodeRepository,
+  PostgresTwoFactorRepository,
+} from './two-factor-repo'
 import {
   credentialTokens,
   loginAttempts,
@@ -190,6 +196,8 @@ export class PostgresSessionRepository implements SessionRepository {
     tokenHash: string
     userId: number
     expiresAt: Date
+    ipPrefix?: string | null
+    userAgent?: string | null
   }): Promise<SessionRecord> {
     const rows = await this.db
       .insert(sessions)
@@ -197,6 +205,8 @@ export class PostgresSessionRepository implements SessionRepository {
         tokenHash: input.tokenHash,
         userId: input.userId,
         expiresAt: input.expiresAt,
+        ipPrefix: input.ipPrefix ?? null,
+        userAgent: input.userAgent ?? null,
       })
       .returning(SESSION_COLUMNS)
     return toSessionRecord(rows[0]!)
@@ -213,11 +223,65 @@ export class PostgresSessionRepository implements SessionRepository {
     return toSessionRecord(row)
   }
 
+  async listActiveForUser(
+    userId: number,
+    now: Date,
+  ): Promise<readonly ActiveSessionRecord[]> {
+    return this.db
+      .select({
+        id: sessions.id,
+        createdAt: sessions.createdAt,
+        lastSeenAt: sessions.lastSeenAt,
+        expiresAt: sessions.expiresAt,
+        ipPrefix: sessions.ipPrefix,
+        userAgent: sessions.userAgent,
+      })
+      .from(sessions)
+      .where(
+        and(
+          eq(sessions.userId, userId),
+          isNull(sessions.revokedAt),
+          gt(sessions.expiresAt, now),
+        ),
+      )
+      .orderBy(desc(sessions.lastSeenAt))
+  }
+
   async revoke(sessionId: number): Promise<void> {
     await this.db
       .update(sessions)
       .set({ revokedAt: new Date() })
       .where(eq(sessions.id, sessionId))
+  }
+
+  async revokeOwned(userId: number, sessionId: number, now: Date): Promise<boolean> {
+    const rows = await this.db
+      .update(sessions)
+      .set({ revokedAt: now })
+      .where(
+        and(
+          eq(sessions.id, sessionId),
+          eq(sessions.userId, userId),
+          isNull(sessions.revokedAt),
+        ),
+      )
+      .returning({ id: sessions.id })
+    return rows.length > 0
+  }
+
+  async revokeAllForUserExcept(userId: number, sessionId: number | null): Promise<number> {
+    const rows = await this.db
+      .update(sessions)
+      .set({ revokedAt: new Date() })
+      .where(
+        and(
+          eq(sessions.userId, userId),
+          isNull(sessions.revokedAt),
+          sessionId === null ? undefined : ne(sessions.id, sessionId),
+        ),
+      )
+      .returning({ id: sessions.id })
+    return rows.length
   }
 
   async revokeAllForUser(userId: number): Promise<void> {
@@ -307,6 +371,26 @@ export class PostgresCredentialTokenRepository
       payload: input.payload ?? null,
       expiresAt: input.expiresAt,
     })
+  }
+
+  async peek(
+    tokenHash: string,
+    purpose: CredentialPurpose,
+    now: Date,
+  ): Promise<{ userId: number; payload: string | null } | null> {
+    const rows = await this.db
+      .select({ userId: credentialTokens.userId, payload: credentialTokens.payload })
+      .from(credentialTokens)
+      .where(
+        and(
+          eq(credentialTokens.tokenHash, tokenHash),
+          eq(credentialTokens.purpose, purpose),
+          isNull(credentialTokens.consumedAt),
+          gt(credentialTokens.expiresAt, now),
+        ),
+      )
+      .limit(1)
+    return rows[0] ?? null
   }
 
   async consume(
@@ -478,5 +562,8 @@ export function createPostgresAccountStore(db: Database): AccountStore {
     remember: new PostgresRememberTokenRepository(db),
     identities: new PostgresUserIdentityRepository(db),
     passkeys: new PostgresPasskeyRepository(db),
+    twoFactor: new PostgresTwoFactorRepository(db),
+    recoveryCodes: new PostgresRecoveryCodeRepository(db),
+    authEvents: new PostgresAuthEventRepository(db),
   }
 }

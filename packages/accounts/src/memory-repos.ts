@@ -3,6 +3,13 @@ import type {
   AccountRepository,
   AccountState,
   AccountStore,
+  ActiveSessionRecord,
+  AuthEventRecord,
+  AuthEventRepository,
+  NewAuthEvent,
+  RecoveryCodeRepository,
+  TwoFactorRecord,
+  TwoFactorRepository,
   CredentialPurpose,
   CredentialTokenRepository,
   LinkIdentityInput,
@@ -120,12 +127,18 @@ class MemorySessions implements SessionRepository {
   private readonly byId = new Map<number, SessionRecord>()
   private readonly byHash = new Map<string, number>()
   private readonly lastLocationWrite = new Map<number, number>()
+  private readonly devices = new Map<
+    number,
+    { ipPrefix: string | null; userAgent: string | null; createdAt: Date }
+  >()
   private seq = 0
 
   async create(input: {
     tokenHash: string
     userId: number
     expiresAt: Date
+    ipPrefix?: string | null
+    userAgent?: string | null
   }): Promise<SessionRecord> {
     const record: SessionRecord = {
       id: ++this.seq,
@@ -137,6 +150,11 @@ class MemorySessions implements SessionRepository {
     }
     this.byId.set(record.id, record)
     this.byHash.set(input.tokenHash, record.id)
+    this.devices.set(record.id, {
+      ipPrefix: input.ipPrefix ?? null,
+      userAgent: input.userAgent ?? null,
+      createdAt: record.lastSeenAt,
+    })
     return record
   }
 
@@ -145,11 +163,58 @@ class MemorySessions implements SessionRepository {
     return id === undefined ? null : (this.byId.get(id) ?? null)
   }
 
+  async listActiveForUser(
+    userId: number,
+    now: Date,
+  ): Promise<readonly ActiveSessionRecord[]> {
+    return [...this.byId.values()]
+      .filter(
+        (session) =>
+          session.userId === userId &&
+          session.revokedAt === null &&
+          session.expiresAt.getTime() > now.getTime(),
+      )
+      .map((session) => {
+        const device = this.devices.get(session.id)
+        return {
+          id: session.id,
+          createdAt: device?.createdAt ?? session.lastSeenAt,
+          lastSeenAt: session.lastSeenAt,
+          expiresAt: session.expiresAt,
+          ipPrefix: device?.ipPrefix ?? null,
+          userAgent: device?.userAgent ?? null,
+        }
+      })
+      .sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime())
+  }
+
   async revoke(sessionId: number): Promise<void> {
     const cur = this.byId.get(sessionId)
     if (cur && cur.revokedAt === null) {
       this.byId.set(sessionId, { ...cur, revokedAt: new Date() })
     }
+  }
+
+  async revokeOwned(userId: number, sessionId: number, now: Date): Promise<boolean> {
+    const cur = this.byId.get(sessionId)
+    if (!cur || cur.userId !== userId || cur.revokedAt !== null) return false
+
+    this.byId.set(sessionId, { ...cur, revokedAt: now })
+    return true
+  }
+
+  async revokeAllForUserExcept(userId: number, sessionId: number | null): Promise<number> {
+    let revoked = 0
+    const now = new Date()
+
+    for (const [id, session] of this.byId) {
+      if (session.userId !== userId || session.revokedAt !== null) continue
+      if (id === sessionId) continue
+
+      this.byId.set(id, { ...session, revokedAt: now })
+      revoked += 1
+    }
+    return revoked
   }
 
   async revokeAllForUser(userId: number): Promise<void> {
@@ -290,13 +355,25 @@ class MemoryCredentialTokens implements CredentialTokenRepository {
     purpose: CredentialPurpose,
     now: Date,
   ): Promise<{ userId: number; payload: string | null } | null> {
+    const found = await this.peek(tokenHash, purpose, now)
+    if (found === null) return null
+
+    const t = this.byHash.get(tokenHash)!
+    this.byHash.set(tokenHash, { ...t, consumedAt: now })
+    return found
+  }
+
+  async peek(
+    tokenHash: string,
+    purpose: CredentialPurpose,
+    now: Date,
+  ): Promise<{ userId: number; payload: string | null } | null> {
     const t = this.byHash.get(tokenHash)
     if (!t) return null
     if (t.purpose !== purpose) return null
     if (t.consumedAt !== null) return null
     if (t.expiresAt.getTime() <= now.getTime()) return null
 
-    this.byHash.set(tokenHash, { ...t, consumedAt: now })
     return { userId: t.userId, payload: t.payload }
   }
 
@@ -429,6 +506,114 @@ class MemoryPasskeys implements PasskeyRepository {
   }
 }
 
+class MemoryTwoFactor implements TwoFactorRepository {
+  private readonly byUser = new Map<number, TwoFactorRecord>()
+
+  async find(userId: number): Promise<TwoFactorRecord | null> {
+    return this.byUser.get(userId) ?? null
+  }
+
+  async startEnrolment(input: {
+    userId: number
+    sealedSecret: string
+    now: Date
+  }): Promise<TwoFactorRecord> {
+    const record: TwoFactorRecord = {
+      userId: input.userId,
+      sealedSecret: input.sealedSecret,
+      confirmedAt: null,
+      lastStep: null,
+      createdAt: input.now,
+    }
+    this.byUser.set(input.userId, record)
+    return record
+  }
+
+  async confirm(userId: number, step: number, now: Date): Promise<boolean> {
+    const record = this.byUser.get(userId)
+    if (record === undefined || record.confirmedAt !== null) return false
+
+    this.byUser.set(userId, { ...record, confirmedAt: now, lastStep: step })
+    return true
+  }
+
+  async spendStep(userId: number, step: number): Promise<boolean> {
+    const record = this.byUser.get(userId)
+    if (record === undefined) return false
+    if (record.lastStep !== null && step <= record.lastStep) return false
+
+    this.byUser.set(userId, { ...record, lastStep: step })
+    return true
+  }
+
+  async remove(userId: number): Promise<boolean> {
+    return this.byUser.delete(userId)
+  }
+}
+
+class MemoryRecoveryCodes implements RecoveryCodeRepository {
+  private readonly byUser = new Map<number, Map<string, Date | null>>()
+
+  async replaceAll(userId: number, hashes: readonly string[], _now: Date): Promise<void> {
+    this.byUser.set(userId, new Map(hashes.map((hash) => [hash, null])))
+  }
+
+  async spend(userId: number, hash: string, now: Date): Promise<boolean> {
+    const codes = this.byUser.get(userId)
+    if (codes === undefined) return false
+    if (!codes.has(hash) || codes.get(hash) !== null) return false
+
+    codes.set(hash, now)
+    return true
+  }
+
+  async countUnused(userId: number): Promise<number> {
+    const codes = this.byUser.get(userId)
+    if (codes === undefined) return 0
+    return [...codes.values()].filter((usedAt) => usedAt === null).length
+  }
+
+  async removeAll(userId: number): Promise<void> {
+    this.byUser.delete(userId)
+  }
+}
+
+class MemoryAuthEvents implements AuthEventRepository {
+  private readonly events: AuthEventRecord[] = []
+  private seq = 0
+
+  async record(event: NewAuthEvent): Promise<void> {
+    this.events.push({
+      id: ++this.seq,
+      userId: event.userId,
+      kind: event.kind,
+      ipPrefix: event.ipPrefix ?? null,
+      userAgent: event.userAgent ?? null,
+      detail: event.detail ?? {},
+      at: event.at,
+    })
+  }
+
+  async listForUser(userId: number, limit: number): Promise<readonly AuthEventRecord[]> {
+    return this.events
+      .filter((event) => event.userId === userId)
+      .sort((a, b) => b.id - a.id)
+      .slice(0, limit)
+  }
+
+  async listRecent(input: {
+    limit: number
+    before?: number | undefined
+    kind?: AuthEventRecord['kind'] | undefined
+  }): Promise<readonly AuthEventRecord[]> {
+    return this.events
+      .filter((event) => input.kind === undefined || event.kind === input.kind)
+      .filter((event) => input.before === undefined || event.id < input.before)
+      .sort((a, b) => b.id - a.id)
+      .slice(0, input.limit)
+  }
+}
+
 export function createMemoryStore(): AccountStore {
   return {
     accounts: new MemoryAccounts(),
@@ -438,5 +623,8 @@ export function createMemoryStore(): AccountStore {
     remember: new MemoryRememberTokens(),
     identities: new MemoryUserIdentities(),
     passkeys: new MemoryPasskeys(),
+    twoFactor: new MemoryTwoFactor(),
+    recoveryCodes: new MemoryRecoveryCodes(),
+    authEvents: new MemoryAuthEvents(),
   }
 }

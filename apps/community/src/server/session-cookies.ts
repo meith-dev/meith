@@ -14,6 +14,8 @@ import {
   passkeyCookieName,
   rememberCookieName,
   rememberCookie,
+  secondFactorCookie,
+  secondFactorCookieName,
   sessionCookieName,
   sessionCookie,
   ssoCookie,
@@ -94,6 +96,23 @@ export async function clearHandshakeCookie(): Promise<void> {
   const jar = await cookies()
   const isSecure = secure()
   jar.set(ssoCookieName(isSecure), '', clearedCookie(isSecure))
+}
+
+export async function setSecondFactorCookie(token: string, expiresAt: Date): Promise<void> {
+  const jar = await cookies()
+  const isSecure = secure()
+  jar.set(secondFactorCookieName(isSecure), token, secondFactorCookie(expiresAt, isSecure))
+}
+
+export async function readSecondFactorToken(): Promise<string | undefined> {
+  const jar = await cookies()
+  return jar.get(secondFactorCookieName(secure()))?.value
+}
+
+export async function clearSecondFactorCookie(): Promise<void> {
+  const jar = await cookies()
+  const isSecure = secure()
+  jar.set(secondFactorCookieName(isSecure), '', clearedCookie(isSecure))
 }
 
 export async function setPasskeyChallengeCookie(value: string): Promise<void> {

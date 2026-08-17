@@ -4,7 +4,13 @@ import { redirect } from 'next/navigation'
 
 import { env, logger, truncateIp } from '@meith/core'
 
-import { foldIdentifier, type AuthConfig, type LoginBucket } from '@meith/accounts'
+import {
+  REPLAYED_CODE,
+  WRONG_CODE,
+  foldIdentifier,
+  type AuthConfig,
+  type LoginBucket,
+} from '@meith/accounts'
 
 import { remoteAddress } from './admin'
 import {
@@ -16,6 +22,8 @@ import {
   spendResetLimits,
   verifyChallenge,
 } from './antispam'
+import { recordAuthEvent } from './auth-events'
+import { requestFingerprint, twoFactorService } from './two-factor'
 import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
 import { boardAuthConfig } from './auth-config'
 import { configuredIdentity, configuredSessions, getContainer } from './container'
@@ -29,9 +37,12 @@ import {
 import { isSafeLocalPath } from './safe-path'
 import type { FormState } from './auth-form-state'
 import {
+  clearSecondFactorCookie,
   clearSessionCookies,
+  readSecondFactorToken,
   readSessionToken,
   setRememberCookie,
+  setSecondFactorCookie,
   setSessionCookie,
 } from './session-cookies'
 
@@ -45,6 +56,16 @@ const toFormState = formStateReporter('auth-actions', 'unexpected error in auth 
 async function addressContext(): Promise<{ readonly ipPrefix: string | null }> {
   return { ipPrefix: truncateIp(await remoteAddress()) ?? null }
 }
+
+async function deviceContext(): Promise<{
+  readonly ipPrefix: string | null
+  readonly userAgent: string | null
+}> {
+  return requestFingerprint()
+}
+
+const SECOND_FACTOR_EXPIRED =
+  'That sign-in took too long to finish. Start again from the sign-in page.'
 
 async function loginBuckets(
   identifier: string,
@@ -189,28 +210,113 @@ export async function loginAction(
   const next = sanitizeNext(field(form, 'next'))
   const values = { identifier }
 
+  let destination = next
+
   try {
     const config = await boardAuthConfig()
     const identity = await configuredIdentity()
 
-    const result = await identity.login(
+    const outcome = await identity.login(
       identifier,
       password,
       await loginBuckets(identifier, config),
       await addressContext(),
+      { remember },
     )
-    await setSessionCookie(result.sessionToken, result.expiresAt)
 
-    if (remember) {
-      const sessions = await configuredSessions()
-      const remembered = await sessions.startRemembered(result.account.id)
-      await setRememberCookie(remembered.rememberToken, remembered.rememberExpiresAt)
+    if (outcome.status === 'second-factor') {
+      await setSecondFactorCookie(outcome.token, outcome.expiresAt)
+      destination = verifyPath(next)
+    } else {
+      await completeSignIn(outcome.login, remember)
     }
   } catch (err) {
+    await recordAuthEvent({ userId: null, kind: 'login_failed', detail: { identifier } })
     return toFormState(err, values)
   }
 
+  redirect(destination)
+}
+
+async function completeSignIn(
+  login: { account: { id: number }; sessionToken: string; expiresAt: Date },
+  remember: boolean,
+): Promise<void> {
+  await setSessionCookie(login.sessionToken, login.expiresAt)
+
+  if (remember) {
+    const sessions = await configuredSessions()
+    const remembered = await sessions.startRemembered(login.account.id, await deviceContext())
+    await setRememberCookie(remembered.rememberToken, remembered.rememberExpiresAt)
+  }
+
+  await recordAuthEvent({ userId: login.account.id, kind: 'login' })
+}
+
+function verifyPath(next: string): string {
+  return next === '/' ? '/login/verify' : `/login/verify?next=${encodeURIComponent(next)}`
+}
+
+export async function verifySecondFactorAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const code = field(form, 'code')
+  const next = sanitizeNext(field(form, 'next'))
+
+  const token = await readSecondFactorToken()
+  if (token === undefined || token === '') {
+    return { error: SECOND_FACTOR_EXPIRED }
+  }
+
+  const identity = await configuredIdentity()
+  const pending = await identity.pendingSecondFactor(token)
+  if (pending === null) {
+    await clearSecondFactorCookie()
+    return { error: SECOND_FACTOR_EXPIRED }
+  }
+
+  const service = twoFactorService()
+  if (service === null) return { error: SECOND_FACTOR_EXPIRED }
+
+  try {
+    await identity.assertSecondFactorAttemptsLeft(pending.userId)
+
+    const outcome = await service.verify({ userId: pending.userId, code })
+
+    if (outcome.status !== 'ok') {
+      await identity.recordSecondFactorFailure(pending.userId)
+      await recordAuthEvent({ userId: pending.userId, kind: 'second_factor_failed' })
+      return { error: outcome.status === 'replayed' ? REPLAYED_CODE : WRONG_CODE }
+    }
+
+    await identity.clearSecondFactorFailures(pending.userId)
+
+    const login = await identity.redeemSecondFactor(token, await deviceContext())
+    await clearSecondFactorCookie()
+    await completeSignIn(login, pending.remember)
+
+    if (outcome.usedRecoveryCode) {
+      await recordAuthEvent({ userId: pending.userId, kind: 'recovery_code_used' })
+    }
+  } catch (err) {
+    return toFormState(err)
+  }
+
   redirect(next)
+}
+
+export async function abandonSecondFactorAction(): Promise<void> {
+  const token = await readSecondFactorToken()
+
+  if (token !== undefined && token !== '') {
+    const identity = await configuredIdentity()
+    const pending = await identity.pendingSecondFactor(token)
+    if (pending !== null) await identity.abandonSecondFactor(pending.userId)
+  }
+
+  await clearSecondFactorCookie()
+  redirect('/login')
 }
 
 export async function logoutAction(): Promise<void> {
@@ -218,7 +324,11 @@ export async function logoutAction(): Promise<void> {
   if (token) {
     const { identity } = getContainer()
     try {
+      const resolved = await identity.resolveSession(token)
       await identity.logout(token)
+      if (resolved !== null) {
+        await recordAuthEvent({ userId: resolved.userId, kind: 'logout' })
+      }
     } catch (err) {
       logger({ module: 'auth-actions' }).warn(
         { err },
@@ -287,7 +397,8 @@ export async function confirmResetAction(
 
   const identity = await configuredIdentity()
   try {
-    await identity.redeemPasswordReset(token, password)
+    const { userId } = await identity.redeemPasswordReset(token, password)
+    await recordAuthEvent({ userId, kind: 'password_reset' })
   } catch (err) {
     return toFormState(err, { token })
   }

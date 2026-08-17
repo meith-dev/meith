@@ -12,6 +12,7 @@ import {
   IdentityService,
   VERIFICATION_TTL_HOURS,
   type BanLookup,
+  type LoginResult,
   type RegisterInput,
 } from './service'
 import type { AccountStore, AuthConfig } from './ports'
@@ -41,6 +42,20 @@ function fixedClock(start = new Date('2026-01-01T00:00:00Z')) {
     now = d
   }
   return clock
+}
+
+/** Every existing case here signs in outright; the second factor has its own file. */
+async function signIn(
+  service: IdentityService,
+  identifier: string,
+  password: string,
+  bucket: string,
+): Promise<LoginResult> {
+  const outcome = await service.login(identifier, password, bucket)
+  if (outcome.status !== 'signed-in') {
+    throw new Error(`expected a session, got ${outcome.status}`)
+  }
+  return outcome.login
 }
 
 function makeService(
@@ -209,7 +224,7 @@ describe('login', () => {
 
   it('issues a session token on correct credentials', async () => {
     const { service } = makeService(store)
-    const result = await service.login('alice', 'correct horse battery', 'alice')
+    const result = await signIn(service, 'alice', 'correct horse battery', 'alice')
     expect(result.sessionToken).toBeTypeOf('string')
     expect(result.sessionToken.length).toBeGreaterThan(20)
     expect(await store.sessions.findByTokenHash(result.sessionToken)).toBeNull()
@@ -342,7 +357,7 @@ describe('login', () => {
     const { service } = makeService(store)
     await service.register({ username: 'Bob', email: 'bob@example.com', password: 'correct horse battery' })
     for (let i = 0; i < 3; i++) {
-      await service.login('alice', 'wrong', 'alice').catch(() => {})
+      await signIn(service, 'alice', 'wrong', 'alice').catch(() => {})
     }
     await expect(
       service.login('bob', 'correct horse battery', 'bob'),
@@ -407,14 +422,14 @@ describe('login', () => {
     await store.accounts.updatePassword(acc.id, weak, 'argon2id')
 
     const { service } = makeService(store)
-    await service.login('alice', 'correct horse battery', 'alice')
+    await signIn(service, 'alice', 'correct horse battery', 'alice')
 
     const after = (await store.accounts.findByUsernameLower('alice'))!.passwordHash!
     expect(after).not.toBe(weak)
     expect(after).toContain('m=19456')
 
     const before2 = after
-    await service.login('alice', 'correct horse battery', 'alice')
+    await signIn(service, 'alice', 'correct horse battery', 'alice')
     const after2 = (await store.accounts.findByUsernameLower('alice'))!.passwordHash!
     expect(after2).toBe(before2)
   })
@@ -466,7 +481,7 @@ describe('password reset', () => {
 
   it('revokes all sessions when a password is reset', async () => {
     const { service } = makeService(store)
-    const login = await service.login('alice', 'correct horse battery', 'alice')
+    const login = await signIn(service, 'alice', 'correct horse battery', 'alice')
     const sessionHash = await hashToken(login.sessionToken)
     expect((await store.sessions.findByTokenHash(sessionHash))!.revokedAt).toBeNull()
 
@@ -486,7 +501,7 @@ describe('password reset', () => {
     ).rejects.toThrow(/invalid or has expired/i)
     await expect(
       service.redeemPasswordReset(second.token!, 'a brand new password'),
-    ).resolves.toBeUndefined()
+    ).resolves.toEqual({ userId: expect.any(Number) })
   })
 })
 
@@ -666,7 +681,7 @@ describe('resolveSession', () => {
 
   it('resolves a live session cookie to its user id', async () => {
     const { service } = makeService(store)
-    const login = await service.login('alice', 'correct horse battery', 'alice')
+    const login = await signIn(service, 'alice', 'correct horse battery', 'alice')
     const resolved = await service.resolveSession(login.sessionToken)
     expect(resolved).toEqual({ userId: login.account.id })
   })
@@ -678,7 +693,7 @@ describe('resolveSession', () => {
 
   it('returns null once the session is revoked (logout)', async () => {
     const { service } = makeService(store)
-    const login = await service.login('alice', 'correct horse battery', 'alice')
+    const login = await signIn(service, 'alice', 'correct horse battery', 'alice')
     await service.logout(login.sessionToken)
     expect(await service.resolveSession(login.sessionToken)).toBeNull()
   })
@@ -686,7 +701,7 @@ describe('resolveSession', () => {
   it('returns null after the session has expired', async () => {
     const clock = fixedClock()
     const { service } = makeService(store, { sessionLifetimeDays: 1 }, clock)
-    const login = await service.login('alice', 'correct horse battery', 'alice')
+    const login = await signIn(service, 'alice', 'correct horse battery', 'alice')
     expect(await service.resolveSession(login.sessionToken)).not.toBeNull()
 
     clock.advance(2 * 86_400_000)
@@ -695,7 +710,7 @@ describe('resolveSession', () => {
 
   it('returns null after a password reset kills every session', async () => {
     const { service } = makeService(store)
-    const login = await service.login('alice', 'correct horse battery', 'alice')
+    const login = await signIn(service, 'alice', 'correct horse battery', 'alice')
     const { token } = await service.requestPasswordReset('alice@example.com')
     await service.redeemPasswordReset(token!, 'a brand new password')
     expect(await service.resolveSession(login.sessionToken)).toBeNull()

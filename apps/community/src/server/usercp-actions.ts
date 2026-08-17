@@ -8,6 +8,7 @@ import { drivers } from '@meith/drivers'
 import { prepareSignature } from '@meith/signatures'
 
 import { boardAuthConfig } from './auth-config'
+import { recordAuthEvent } from './auth-events'
 import { adminService } from './admin'
 import { limitMessage, spendLimit } from './antispam'
 import { AVATAR_FIELD, canUploadAvatar, requireAvatarService } from './avatars'
@@ -128,6 +129,8 @@ export async function changePasswordAction(
 
     const admin = adminService()
     if (admin !== null) await admin.endAllFor(userId)
+
+    await recordAuthEvent({ userId, kind: 'password_changed' })
   } catch (err) {
     return toFormState(err)
   }
@@ -139,22 +142,26 @@ export async function requestEmailChangeAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
-  let pending: { token: string; email: string }
+  let pending: { token: string; email: string; userId: number }
   try {
     const { service, userId } = await requireOwnSettings()
 
     await assertDemoAccountChangeable(userId, 'email')
 
-    pending = await service.requestEmailChange({
+    pending = {
       userId,
-      currentPassword: text(form, 'currentPassword'),
-      newEmail: text(form, 'newEmail'),
-    })
+      ...(await service.requestEmailChange({
+        userId,
+        currentPassword: text(form, 'currentPassword'),
+        newEmail: text(form, 'newEmail'),
+      })),
+    }
   } catch (err) {
     return toFormState(err)
   }
 
   await sendEmailChangeConfirmation(pending).catch(() => undefined)
+  await recordAuthEvent({ userId: pending.userId, kind: 'email_change_requested' })
 
   redirect('/usercp/security?sent=1')
 }

@@ -239,6 +239,12 @@ export {
   PostgresUserIdentityRepository,
 } from './identity-link-repo'
 
+export {
+  PostgresAuthEventRepository,
+  PostgresRecoveryCodeRepository,
+  PostgresTwoFactorRepository,
+} from './two-factor-repo'
+
 export * from './schema'
 
 export {

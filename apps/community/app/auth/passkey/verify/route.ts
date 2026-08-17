@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server"
 import { logger, statusForError, toPublicError, truncateIp } from "@meith/core"
 
 import { remoteAddress } from "@/server/admin"
+import { recordAuthEvent } from "@/server/auth-events"
+import { configuredIdentity, configuredSessions } from "@/server/container"
 import { getActor } from "@/server/context"
 import {
   memberManagedSignIns,
@@ -10,12 +12,15 @@ import {
   passkeysEnabled,
   relyingParty,
 } from "@/server/federation"
-import { unpackChallenge } from "@/server/passkey-challenge"
+import { unpackChallenge, type PasskeyPurpose } from "@/server/passkey-challenge"
 import { isSafeLocalPath } from "@/server/safe-path"
 import { crossOriginRefusal, isSameOrigin } from "@/server/same-origin"
 import {
   clearPasskeyChallengeCookie,
+  clearSecondFactorCookie,
   readPasskeyChallengeCookie,
+  readSecondFactorToken,
+  setRememberCookie,
   setSessionCookie,
 } from "@/server/session-cookies"
 
@@ -55,8 +60,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     return problem("Passkeys are not switched on for this board.", 404)
   }
 
-  const purpose =
-    request.nextUrl.searchParams.get("for") === "register" ? "register" : "authenticate"
+  const asked = request.nextUrl.searchParams.get("for")
+  const purpose: PasskeyPurpose =
+    asked === "register" || asked === "second-factor" ? asked : "authenticate"
 
   let body: Submission
   try {
@@ -109,6 +115,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         },
       })
 
+      await recordAuthEvent({ userId: actor.userId, kind: "passkey_added" })
       return json({ ok: true, label: passkey.label })
     }
 
@@ -118,6 +125,59 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     if (credentialId === null || authenticatorData === null || signature === null) {
       return problem("That passkey response was incomplete.", 400)
+    }
+
+    if (purpose === "second-factor") {
+      const held = await readSecondFactorToken()
+      const identity = await configuredIdentity()
+      const pending =
+        held === undefined || held === ""
+          ? null
+          : await identity.pendingSecondFactor(held)
+
+      if (pending === null || held === undefined) {
+        return problem("That sign-in took too long to finish. Start again.", 403)
+      }
+
+      await identity.assertSecondFactorAttemptsLeft(pending.userId)
+
+      const proved = await service.proveOwnership({
+        userId: pending.userId,
+        credentialId,
+        expectedChallenge,
+        relyingParty: party,
+        response: { clientDataJSON, authenticatorData, signature },
+      })
+
+      if (!proved) {
+        await identity.recordSecondFactorFailure(pending.userId)
+        await recordAuthEvent({ userId: pending.userId, kind: "second_factor_failed" })
+        return problem("That passkey does not belong to this account.", 403)
+      }
+
+      await identity.clearSecondFactorFailures(pending.userId)
+
+      const login = await identity.redeemSecondFactor(held, {
+        ipPrefix: truncateIp(await remoteAddress()) ?? null,
+      })
+
+      await clearSecondFactorCookie()
+      await setSessionCookie(login.sessionToken, login.expiresAt)
+
+      if (pending.remember) {
+        const remembered = await (
+          await configuredSessions()
+        ).startRemembered(pending.userId)
+        await setRememberCookie(remembered.rememberToken, remembered.rememberExpiresAt)
+      }
+
+      await recordAuthEvent({ userId: pending.userId, kind: "login" })
+
+      const target = text(body.next)
+      return json({
+        ok: true,
+        next: target !== null && isSafeLocalPath(target) ? target : "/",
+      })
     }
 
     const outcome = await service.authenticate({

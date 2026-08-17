@@ -5,7 +5,12 @@ import { PASSKEY_LIMIT, providerLabel } from '@meith/accounts'
 import { requireSlot } from '@meith/theme-kit'
 
 import { PanelPage } from '@/components/shell/panel-page'
+import { ActiveSessions, type SessionView } from '@/components/account/active-sessions'
 import { PasskeyEnrol } from '@/components/account/passkey-enrol'
+import {
+  SecurityActivity,
+  type ActivityView,
+} from '@/components/account/security-activity'
 import {
   LinkedSignIns,
   PasskeyList,
@@ -13,8 +18,10 @@ import {
   type OfferedProvider,
   type PasskeyView,
 } from '@/components/account/sign-in-methods'
+import { TwoFactorPanel, TwoFactorSetup } from '@/components/account/two-factor-forms'
 import { EmailForm, PasswordForm } from '@/components/account/usercp-forms'
 import { boardAuthConfig } from '@/server/auth-config'
+import { memberSecurityActivity } from '@/server/auth-events'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
 import {
@@ -22,30 +29,42 @@ import {
   passkeysEnabled,
   signInProviders,
 } from '@/server/federation'
+import { currentSessionId } from '@/server/session-actions'
 import { currentTheme } from '@/server/theme'
+import { pendingEnrolment, secondFactorPosture, twoFactorState } from '@/server/two-factor'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { authEventLabel, describeAddress, describeDevice } from '@/view/security-activity'
 import { ssoNotice } from '@/view/sso-notices'
-import { formatDate } from '@/view/time'
+import { formatDate, formatTime } from '@/view/time'
 import { userCpNotice } from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Account security' }
 
-const PASSKEY_NOTICES: Record<string, string> = {
-  added: 'That passkey is ready. You can sign in with it from now on.',
-  removed: 'That passkey has been removed. It can no longer reach your account.',
+const NOTICES: Record<string, string> = {
+  'passkey:added': 'That passkey is ready. You can sign in with it from now on.',
+  'passkey:removed': 'That passkey has been removed. It can no longer reach your account.',
+  'factor:setup': 'Add the key below to your authenticator app, then confirm a code.',
+  'factor:off':
+    'Two-factor authentication is off. Your password is all that is asked for now.',
+  'sessions:revoked': 'That session has been signed out.',
+  'sessions:elsewhere': 'Every other session has been signed out.',
+}
+
+interface SecurityQuery {
+  changed?: string
+  sent?: string
+  confirmed?: string
+  failed?: string
+  sso?: string
+  passkey?: string
+  factor?: string
+  sessions?: string
 }
 
 export default async function SecurityPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    changed?: string
-    sent?: string
-    confirmed?: string
-    failed?: string
-    sso?: string
-    passkey?: string
-  }>
+  searchParams: Promise<SecurityQuery>
 }) {
   const query = await searchParams
   const actor = await getActor()
@@ -55,17 +74,7 @@ export default async function SecurityPage({
   const settings = await memberSettings.read(actor.userId)
   if (settings === null) notFound()
 
-  const federated = ssoNotice(query.sso)
-  const passkeyNotice =
-    query.passkey === undefined ? undefined : PASSKEY_NOTICES[query.passkey]
-
-  const notice =
-    federated !== null
-      ? federated
-      : passkeyNotice === undefined
-        ? userCpNotice(query)
-        : ({ kind: 'info', message: passkeyNotice } as const)
-
+  const notice = pageNotice(query)
   const Notice = requireSlot(await currentTheme(), 'Notice')
 
   const manageable = await memberManagedSignIns()
@@ -75,6 +84,22 @@ export default async function SecurityPage({
   const { timezone } = await getViewerPreferences()
   const on = (at: Date | null): string | null =>
     at === null ? null : formatDate(at, timezone).label
+
+  const account = await accountStore.accounts.findById(actor.userId)
+  const hasPassword = account !== null && account.passwordHash !== null
+
+  const posture = await secondFactorPosture(actor.userId)
+  const factor = posture.offered
+    ? await twoFactorState(actor.userId)
+    : { enrolled: false, pending: false, recoveryCodesLeft: 0 }
+
+  const enrolment = factor.pending ? await pendingEnrolment(actor.userId) : null
+
+  // The confirm posts back to this URL, and its response is the only place the
+  // fresh recovery codes exist. Staying on the setup screen while `?factor=setup`
+  // is in the address is what lets that response carry them to a member whose
+  // browser runs no JavaScript.
+  const settingUp = factor.pending || query.factor === 'setup'
 
   const linked = await accountStore.identities.listForUser(actor.userId)
   const labels = new Map<string, string>(
@@ -102,12 +127,37 @@ export default async function SecurityPage({
     lastUsedAt: on(passkey.lastUsedAt),
   }))
 
+  const rightNow = new Date()
+  const when = (at: Date): string => formatTime(at, rightNow, timezone).label
+
+  const thisSession = await currentSessionId()
+  const sessionView: readonly SessionView[] = (
+    await accountStore.sessions.listActiveForUser(actor.userId, rightNow)
+  ).map((session) => ({
+    id: session.id,
+    device: describeDevice(session.userAgent),
+    address: describeAddress(session.ipPrefix),
+    lastSeen: when(session.lastSeenAt),
+    startedAt: when(session.createdAt),
+    current: session.id === thisSession,
+  }))
+
+  const activity: readonly ActivityView[] = (await memberSecurityActivity(actor.userId)).map(
+    (event) => ({
+      id: event.id,
+      label: authEventLabel(event.kind),
+      at: when(event.at),
+      address: describeAddress(event.ipPrefix),
+      device: describeDevice(event.userAgent),
+    }),
+  )
+
   const anywhereToSignIn = providers.length > 0 || linked.length > 0
 
   return (
     <PanelPage
       title="Account security"
-      lede="Changing either your e-mail address or your password needs the password you have now. Everything else here is a way into your account that does not use it."
+      lede="Changing either your e-mail address or your password needs the password you have now. Everything below it is a way into your account, and a record of what has used one."
     >
       {notice !== null && (
         <Notice
@@ -120,6 +170,18 @@ export default async function SecurityPage({
       <PasswordForm minLength={(await boardAuthConfig()).minPasswordLength} />
       <EmailForm email={settings.email} />
 
+      {posture.offered &&
+        (settingUp ? (
+          <TwoFactorSetup enrolment={enrolment} />
+        ) : (
+          <TwoFactorPanel
+            enrolled={factor.enrolled}
+            required={posture.required}
+            hasPassword={hasPassword}
+            recoveryCodesLeft={factor.recoveryCodesLeft}
+          />
+        ))}
+
       {anywhereToSignIn && (
         <LinkedSignIns linked={linkedView} offered={offered} manageable={manageable} />
       )}
@@ -129,6 +191,30 @@ export default async function SecurityPage({
           <PasskeyEnrol limit={PASSKEY_LIMIT} />
         </PasskeyList>
       )}
+
+      <ActiveSessions sessions={sessionView} />
+
+      <SecurityActivity events={activity} />
     </PanelPage>
   )
+}
+
+function pageNotice(
+  query: SecurityQuery,
+): { kind: 'info' | 'warning'; message: string } | null {
+  const federated = ssoNotice(query.sso)
+  if (federated !== null) return federated
+
+  for (const [key, value] of [
+    ['passkey', query.passkey],
+    ['factor', query.factor],
+    ['sessions', query.sessions],
+  ] as const) {
+    if (value === undefined) continue
+
+    const message = NOTICES[`${key}:${value}`]
+    if (message !== undefined) return { kind: 'info', message }
+  }
+
+  return userCpNotice(query)
 }

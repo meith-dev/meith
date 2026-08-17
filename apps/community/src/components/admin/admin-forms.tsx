@@ -47,6 +47,20 @@ export function AdminSignInForm({
         />
       </label>
 
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Two-factor code</span>
+        <input
+          type="text"
+          name="code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+        />
+        <span className="text-xs text-muted-foreground">
+          Only if your account asks for one. Leave it empty otherwise.
+        </span>
+      </label>
+
       <button
         type="submit"
         className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"

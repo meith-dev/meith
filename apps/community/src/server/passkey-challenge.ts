@@ -1,6 +1,6 @@
 import 'server-only'
 
-export type PasskeyPurpose = 'register' | 'authenticate'
+export type PasskeyPurpose = 'register' | 'authenticate' | 'second-factor'
 
 export function packChallenge(purpose: PasskeyPurpose, challenge: string): string {
   return `${purpose}:${challenge}`

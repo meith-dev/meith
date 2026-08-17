@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { ForbiddenError } from '@meith/core'
 
+import { recordAuthEvent } from './auth-events'
 import { getActor } from './context'
 import { getContainer } from './container'
 import { assertDemoAccountChangeable } from './demo'
@@ -80,6 +81,8 @@ export async function unlinkIdentityAction(
       hasPassword,
       ...(await usableWaysIn(userId)),
     })
+
+    await recordAuthEvent({ userId, kind: 'identity_unlinked' })
   } catch (err) {
     return toFormState(err)
   }
@@ -104,6 +107,8 @@ export async function removePasskeyAction(
       hasPassword,
       usableProviders: (await usableWaysIn(userId)).usableProviders,
     })
+
+    await recordAuthEvent({ userId, kind: 'passkey_removed' })
   } catch (err) {
     return toFormState(err)
   }
