@@ -3,7 +3,7 @@
     "The single place the documentation set is described.",
     "",
     "The prose itself is never copied here. Every entry points at a file under",
-    "docs/ at the workspace root, which stays the one editable copy — the site",
+    "docs/ at the workspace root, which stays the one editable copy \u2014 the site",
     "reads those files at build time and renders them. Adding a document means",
     "adding it to docs/ and naming it here (or in `internal`), and nothing else.",
     "",
@@ -81,6 +81,15 @@
       "primary": false
     },
     {
+      "slug": "single-sign-on",
+      "file": "single-sign-on.md",
+      "section": "running",
+      "title": "Signing in",
+      "blurb": "Two-factor authentication, federated sign-in and passkeys: what each one means for your members, how they are configured, and the record of what has opened an account.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "performance",
       "file": "performance.md",
       "section": "running",
@@ -103,7 +112,7 @@
       "file": "self-hosting.md",
       "section": "advanced",
       "title": "Deploying by hand",
-      "blurb": "The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Advanced — the Quickstart is the route most boards should take.",
+      "blurb": "The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Advanced \u2014 the Quickstart is the route most boards should take.",
       "generated": false,
       "primary": true
     },
@@ -184,7 +193,7 @@
       "file": "nextjs-conventions.md",
       "section": "development",
       "title": "Next.js conventions",
-      "blurb": "Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request.",
+      "blurb": "Server components, caching, forms and errors \u2014 the decisions that would otherwise be re-litigated in every pull request.",
       "generated": false,
       "primary": false
     },
@@ -193,7 +202,7 @@
       "file": "release.md",
       "section": "development",
       "title": "Releasing",
-      "blurb": "How a version is cut: the lockstep version rule, what each release publishes — the image, the branch, the npm packages — and the migration policy behind the numbers.",
+      "blurb": "How a version is cut: the lockstep version rule, what each release publishes \u2014 the image, the branch, the npm packages \u2014 and the migration policy behind the numbers.",
       "generated": false,
       "primary": false
     }

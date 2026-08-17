@@ -64,9 +64,10 @@ export const USERCP_SECTIONS: PanelNav = [
   },
   {
     href: '/usercp/security',
-    title: 'E-mail and password',
+    title: 'Sign-in and security',
     icon: 'security',
-    blurb: 'Both need your current password.',
+    blurb:
+      'Your e-mail and password, the accounts linked to yours, and your passkeys.',
   },
 ]
 

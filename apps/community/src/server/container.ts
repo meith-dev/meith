@@ -5,6 +5,7 @@ import {
   IdentityService,
   SessionService,
   createMemoryStore,
+  enrolmentLookup,
   type AccountStore,
   type BanLookup,
   type MemberProfileRepository,
@@ -223,6 +224,7 @@ function identityServices(
     identity: new IdentityService({
       store,
       config: AUTH_CONFIG,
+      secondFactor: enrolmentLookup(store.twoFactor),
       ...(bans === undefined ? {} : { bans }),
     }),
     sessions: new SessionService({
@@ -360,6 +362,8 @@ export function getContainer(): Container {
     cached.attachments === undefined ||
     cached.avatars === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
+    typeof cached.accountStore?.identities?.listForUser !== 'function' ||
+    typeof cached.accountStore?.passkeys?.listForUser !== 'function' ||
     (cached.dataSource === 'fixture' &&
       cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' &&
@@ -379,6 +383,7 @@ export async function configuredIdentity(): Promise<IdentityService> {
   return new IdentityService({
     store: accountStore,
     config: await boardAuthConfig(),
+    secondFactor: enrolmentLookup(accountStore.twoFactor),
     ...(banLookup === null ? {} : { bans: banLookup }),
   })
 }

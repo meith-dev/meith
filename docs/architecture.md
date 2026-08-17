@@ -153,7 +153,7 @@ The middle of the graph is nearly flat: almost every domain package depends on
 
 | Area | Packages | What lives there |
 |---|---|---|
-| Identity | `accounts`, `groups`, `admin` | Password and token crypto, sessions, bans, group promotion rules, the ACP's second session with its own clocks and IP allowlist. |
+| Identity | `accounts`, `groups`, `admin` | Password and token crypto, sessions, bans, group promotion rules, the ACP's second session with its own clocks and IP allowlist. The second factor (TOTP, recovery codes), federated sign-in and passkeys live here too — providers behind an `IdentityProvider` port so one is data rather than a branch, and the authentication event log alongside them — see [Signing in](./single-sign-on.md). |
 | Authorization | `authorization` | The only code that knows how permissions resolve — see [the request path](#a-request-end-to-end). |
 | Structure & content | `forums`, `threads`, `posts`, `polls`, `drafts`, `attachments`, `avatars` | The forum tree (materialised paths), thread and reply composers, the post editor, and the rule that an upload is made safe by re-encoding, not by validating. |
 | Members | `profile-fields`, `messages`, `relations`, `reputation`, `signatures` | Custom profile fields, private messages, buddy/ignore, ratings, signatures rendered with a deliberately narrower Markdown feature set. |

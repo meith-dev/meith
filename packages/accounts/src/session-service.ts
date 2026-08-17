@@ -1,4 +1,5 @@
 import { generateToken, hashToken } from './crypto/tokens'
+import type { RequestContext } from './service'
 import type { AccountStore, Clock } from './ports'
 
 export interface SessionServiceDeps {
@@ -36,11 +37,17 @@ export class SessionService {
     this.now = deps.clock ?? (() => new Date())
   }
 
-  async start(userId: number): Promise<{ token: string; expiresAt: Date }> {
-    return this.mintSession(userId, this.now())
+  async start(
+    userId: number,
+    context: RequestContext = {},
+  ): Promise<{ token: string; expiresAt: Date }> {
+    return this.mintSession(userId, this.now(), context)
   }
 
-  async startRemembered(userId: number): Promise<RememberedLogin> {
+  async startRemembered(
+    userId: number,
+    context: RequestContext = {},
+  ): Promise<RememberedLogin> {
     const at = this.now()
     const familyId = generateToken()
     const rememberToken = generateToken()
@@ -51,7 +58,7 @@ export class SessionService {
       userId,
       expiresAt: rememberExpiresAt,
     })
-    const session = await this.mintSession(userId, at)
+    const session = await this.mintSession(userId, at, context)
     return {
       userId,
       sessionToken: session.token,
@@ -61,7 +68,10 @@ export class SessionService {
     }
   }
 
-  async resume(rememberToken: string): Promise<ResumeOutcome> {
+  async resume(
+    rememberToken: string,
+    context: RequestContext = {},
+  ): Promise<ResumeOutcome> {
     const at = this.now()
     const nextToken = generateToken()
     const rotation = await this.store.remember.rotate({
@@ -79,7 +89,7 @@ export class SessionService {
       return { status: 'reuse', userId: rotation.userId }
     }
 
-    const session = await this.mintSession(rotation.userId, at)
+    const session = await this.mintSession(rotation.userId, at, context)
     return {
       status: 'ok',
       login: {
@@ -95,6 +105,7 @@ export class SessionService {
   private async mintSession(
     userId: number,
     at: Date,
+    context: RequestContext = {},
   ): Promise<{ token: string; expiresAt: Date }> {
     const token = generateToken()
     const expiresAt = new Date(at.getTime() + this.sessionLifetimeDays * DAY_MS)
@@ -102,6 +113,8 @@ export class SessionService {
       tokenHash: await hashToken(token),
       userId,
       expiresAt,
+      ipPrefix: context.ipPrefix ?? null,
+      userAgent: context.userAgent ?? null,
     })
     return { token, expiresAt }
   }

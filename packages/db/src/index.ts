@@ -234,6 +234,17 @@ export {
   createPostgresAccountStore,
 } from './account-repos'
 
+export {
+  PostgresPasskeyRepository,
+  PostgresUserIdentityRepository,
+} from './identity-link-repo'
+
+export {
+  PostgresAuthEventRepository,
+  PostgresRecoveryCodeRepository,
+  PostgresTwoFactorRepository,
+} from './two-factor-repo'
+
 export * from './schema'
 
 export {

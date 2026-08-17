@@ -29,6 +29,16 @@ export interface IdentityDeps {
   readonly clock?: Clock
   readonly banFilters?: BanFilterRepository
   readonly bans?: BanLookup
+  readonly secondFactor?: SecondFactorLookup
+}
+
+/**
+ * Whether an account asks for something beyond its password. Kept as a port
+ * rather than the whole two-factor service so that the login path cannot reach
+ * the secrets it holds — it only ever needs the yes or no.
+ */
+export interface SecondFactorLookup {
+  isEnrolled(userId: number): Promise<boolean>
 }
 
 export interface BanLookup {
@@ -38,6 +48,7 @@ export interface BanLookup {
 export interface RequestContext {
   readonly ip?: string | undefined
   readonly ipPrefix?: string | null | undefined
+  readonly userAgent?: string | null | undefined
 }
 
 export interface RegisterInput {
@@ -55,6 +66,27 @@ export interface LoginResult {
   readonly account: AccountRecord
   readonly sessionToken: string
   readonly expiresAt: Date
+}
+
+/**
+ * How long a half-finished sign-in waits for its second factor. Long enough to
+ * fetch a phone from another room, short enough that a password proven on a
+ * shared machine does not stay proven.
+ */
+export const SECOND_FACTOR_TTL_MINUTES = 10
+
+export type LoginOutcome =
+  | { readonly status: 'signed-in'; readonly login: LoginResult }
+  | {
+      readonly status: 'second-factor'
+      readonly account: AccountRecord
+      readonly token: string
+      readonly expiresAt: Date
+    }
+
+export interface PendingSecondFactor {
+  readonly userId: number
+  readonly remember: boolean
 }
 
 export interface ResetRequest {
@@ -78,6 +110,18 @@ export interface ResendVerification {
 
 const USERNAME_RE = /^[\p{L}\p{N}][\p{L}\p{N} ._-]*$/u
 
+const USERNAME_CHARACTER_RE = /[\p{L}\p{N} ._-]/u
+
+const USERNAME_ATTEMPTS = 50
+
+const FALLBACK_USERNAME = 'member'
+
+export interface FederatedProvision {
+  readonly username: string
+  readonly email: string
+  readonly emailVerified: boolean
+}
+
 export const REGISTRATION_CLOSED =
   'This board is not taking new members at the moment.'
 
@@ -90,12 +134,15 @@ export class IdentityService {
 
   private readonly bans: BanLookup | undefined
 
+  private readonly secondFactor: SecondFactorLookup | undefined
+
   constructor(deps: IdentityDeps) {
     this.store = deps.store
     this.config = deps.config
     this.now = deps.clock ?? (() => new Date())
     this.banFilters = deps.banFilters
     this.bans = deps.bans
+    this.secondFactor = deps.secondFactor
   }
 
   async register(
@@ -158,6 +205,101 @@ export class IdentityService {
     return { account }
   }
 
+  async provisionFederated(
+    input: FederatedProvision,
+    context: RequestContext = {},
+  ): Promise<RegisterResult> {
+    if (!this.config.registrationEnabled) {
+      throw new ForbiddenError(REGISTRATION_CLOSED)
+    }
+
+    const email = input.email.trim()
+    const emailLower = foldIdentifier(email)
+
+    this.assertEmail(email)
+    await this.assertNotFiltered({ email, ip: context.ip })
+
+    if (await this.store.accounts.findByEmailLower(emailLower)) {
+      throw new ConflictError(
+        'An account here already uses that address. Sign in with your password first, ' +
+          'then link the two from your account security page.',
+        { meta: { field: REGISTER_FIELD.email } },
+      )
+    }
+
+    const username = await this.availableUsername(input.username)
+    await this.assertNotFiltered({ username })
+
+    const created = await this.store.accounts.create({
+      username,
+      usernameLower: foldIdentifier(username),
+      email,
+      emailLower,
+      passwordHash: null,
+      passwordAlgo: null,
+      state: this.config.activationMethod === 'none' ? 'active' : 'awaiting_activation',
+      primaryGroupId: this.config.defaultMemberGroupId,
+      registrationIpPrefix: prefixOf(context),
+    })
+
+    if (!this.verifiesEmail()) return { account: created }
+
+    if (!input.emailVerified) {
+      return {
+        account: created,
+        verificationToken: await this.issueVerification(created.id),
+      }
+    }
+
+    await this.store.accounts.markEmailVerified(
+      created.id,
+      this.now(),
+      this.config.activationMethod !== 'both',
+    )
+
+    return { account: (await this.store.accounts.findById(created.id)) ?? created }
+  }
+
+  private async availableUsername(suggestion: string): Promise<string> {
+    const base = this.usernameStem(suggestion)
+
+    for (let attempt = 0; attempt < USERNAME_ATTEMPTS; attempt += 1) {
+      const suffix = attempt === 0 ? '' : String(attempt + 1)
+      const stem = trimToLength(base, this.config.usernameMax - suffix.length)
+      const candidate = `${stem}${suffix}`
+
+      const lower = foldIdentifier(candidate)
+      if (this.config.reservedUsernames.includes(lower)) continue
+      if (await this.store.accounts.findByUsernameLower(lower)) continue
+
+      return candidate
+    }
+
+    throw new ConflictError(
+      'Could not settle on a free username for that account. Register with a password ' +
+        'instead, then link the two from your account security page.',
+      { meta: { field: REGISTER_FIELD.username } },
+    )
+  }
+
+  private usernameStem(suggestion: string): string {
+    const cleaned = [...suggestion.normalize('NFC')]
+      .filter((character) => USERNAME_CHARACTER_RE.test(character))
+      .join('')
+      .replace(/\s+/gu, ' ')
+      .trim()
+      .replace(/^[^\p{L}\p{N}]+/u, '')
+
+    const stem = trimToLength(cleaned, this.config.usernameMax)
+    if (codePointLength(stem) < this.config.usernameMin) {
+      return trimToLength(
+        FALLBACK_USERNAME.padEnd(this.config.usernameMin, '0'),
+        this.config.usernameMax,
+      )
+    }
+    return stem
+  }
+
   private verifiesEmail(): boolean {
     return (
       this.config.activationMethod === 'email' ||
@@ -216,7 +358,8 @@ export class IdentityService {
     password: string,
     buckets: string | readonly LoginBucket[],
     context: RequestContext = {},
-  ): Promise<LoginResult> {
+    options: { readonly remember?: boolean } = {},
+  ): Promise<LoginOutcome> {
     const at = this.now()
     const counters: readonly LoginBucket[] =
       typeof buckets === 'string' ? [{ key: buckets }] : buckets
@@ -254,18 +397,10 @@ export class IdentityService {
       throw new ValidationError('Incorrect username or password.')
     }
 
-    const ban = await this.bans?.findActive(account.id)
-    if (ban || account.state === 'banned') {
+    const refusal = await this.signInRefusal(account)
+    if (refusal !== null) {
       await recordFailure()
-      throw new ForbiddenError(
-        ban?.publicReason
-          ? `This account is banned: ${ban.publicReason}`
-          : 'This account is banned.',
-      )
-    }
-    if (account.state === 'awaiting_activation') {
-      await recordFailure()
-      throw new ForbiddenError('This account is not yet activated.')
+      throw new ForbiddenError(refusal)
     }
 
     await this.assertNotFiltered({ username: account.username, email: account.email })
@@ -285,7 +420,145 @@ export class IdentityService {
       await this.store.accounts.recordLastIpPrefix(account.id, prefix)
     }
 
-    return this.startSession(account, at)
+    if (await this.secondFactor?.isEnrolled(account.id)) {
+      return {
+        status: 'second-factor',
+        account,
+        ...(await this.holdForSecondFactor(account.id, options.remember === true, at)),
+      }
+    }
+
+    return { status: 'signed-in', login: await this.startSession(account, at, context) }
+  }
+
+  private async holdForSecondFactor(
+    userId: number,
+    remember: boolean,
+    at: Date,
+  ): Promise<{ token: string; expiresAt: Date }> {
+    await this.store.tokens.revokeAllForUser(userId, 'second_factor')
+
+    const token = generateToken()
+    const expiresAt = new Date(at.getTime() + SECOND_FACTOR_TTL_MINUTES * 60_000)
+
+    await this.store.tokens.issue({
+      tokenHash: await hashToken(token),
+      userId,
+      purpose: 'second_factor',
+      payload: remember ? 'remember' : null,
+      expiresAt,
+    })
+
+    return { token, expiresAt }
+  }
+
+  /**
+   * Who a half-finished sign-in belongs to, without spending it — the code can
+   * be mistyped, and a member who fumbles it should not have to start from
+   * their password again.
+   */
+  async pendingSecondFactor(token: string): Promise<PendingSecondFactor | null> {
+    const held = await this.store.tokens.peek(
+      await hashToken(token),
+      'second_factor',
+      this.now(),
+    )
+    if (held === null) return null
+
+    return { userId: held.userId, remember: held.payload === 'remember' }
+  }
+
+  /** Spends the hold and starts the session it was standing in for. */
+  async redeemSecondFactor(
+    token: string,
+    context: RequestContext = {},
+  ): Promise<LoginResult> {
+    const at = this.now()
+    const redeemed = await this.store.tokens.consume(
+      await hashToken(token),
+      'second_factor',
+      at,
+    )
+
+    if (redeemed === null) {
+      throw new ForbiddenError(
+        'That sign-in took too long to finish. Start again from the sign-in page.',
+      )
+    }
+
+    const account = await this.store.accounts.findById(redeemed.userId)
+    if (account === null) throw new ForbiddenError('That account no longer exists.')
+
+    await this.assertSignInAllowed(account)
+    return this.startSession(account, at, context)
+  }
+
+  async abandonSecondFactor(userId: number): Promise<void> {
+    await this.store.tokens.revokeAllForUser(userId, 'second_factor')
+  }
+
+  /**
+   * The second step gets its own counter. The password counters were cleared
+   * when the password proved out, and a six-digit code is worth a million
+   * guesses — far fewer than a password, and so worth far less patience.
+   */
+  async assertSecondFactorAttemptsLeft(userId: number): Promise<void> {
+    const max = this.config.maxLoginAttempts
+    if (max <= 0) return
+
+    const since = new Date(this.now().getTime() - this.config.lockoutMinutes * 60_000)
+    const failures = await this.store.loginAttempts.countFailuresSince(
+      secondFactorBucket(userId),
+      since,
+    )
+
+    if (failures >= max) {
+      throw new ForbiddenError(
+        'Too many wrong codes. Please wait before trying again.',
+      )
+    }
+  }
+
+  async recordSecondFactorFailure(userId: number): Promise<void> {
+    await this.store.loginAttempts.record(secondFactorBucket(userId), false, this.now())
+  }
+
+  async clearSecondFactorFailures(userId: number): Promise<void> {
+    await this.store.loginAttempts.clear(secondFactorBucket(userId))
+  }
+
+  private async signInRefusal(account: AccountRecord): Promise<string | null> {
+    const ban = await this.bans?.findActive(account.id)
+    if (ban || account.state === 'banned') {
+      return ban?.publicReason
+        ? `This account is banned: ${ban.publicReason}`
+        : 'This account is banned.'
+    }
+    if (account.state === 'awaiting_activation') {
+      return 'This account is not yet activated.'
+    }
+    return null
+  }
+
+  async assertSignInAllowed(account: AccountRecord): Promise<void> {
+    const refusal = await this.signInRefusal(account)
+    if (refusal !== null) throw new ForbiddenError(refusal)
+
+    await this.assertNotFiltered({ username: account.username, email: account.email })
+  }
+
+  async startSessionFor(
+    account: AccountRecord,
+    context: RequestContext = {},
+  ): Promise<LoginResult> {
+    await this.assertSignInAllowed(account)
+
+    const prefix = prefixOf(context)
+    if (prefix !== null) {
+      await this.store.accounts.recordLastIpPrefix(account.id, prefix)
+    }
+
+    return this.startSession(account, this.now(), context)
   }
 
   private async assertNotFiltered(subject: BanFilterSubject): Promise<void> {
@@ -338,7 +611,10 @@ export class IdentityService {
     return { token, userId: account.id }
   }
 
-  async redeemPasswordReset(token: string, newPassword: string): Promise<void> {
+  async redeemPasswordReset(
+    token: string,
+    newPassword: string,
+  ): Promise<{ readonly userId: number }> {
     if (newPassword.length < this.config.minPasswordLength) {
       throw new ValidationError(
         `Password must be at least ${this.config.minPasswordLength} characters.`,
@@ -357,15 +633,23 @@ export class IdentityService {
     const encoded = await hashPassword(newPassword)
     await this.store.accounts.updatePassword(redeemed.userId, encoded, PASSWORD_ALGO)
     await this.store.sessions.revokeAllForUser(redeemed.userId)
+
+    return { userId: redeemed.userId }
   }
 
-  private async startSession(account: AccountRecord, at: Date): Promise<LoginResult> {
+  private async startSession(
+    account: AccountRecord,
+    at: Date,
+    context: RequestContext = {},
+  ): Promise<LoginResult> {
     const token = generateToken()
     const expiresAt = new Date(at.getTime() + this.config.sessionLifetimeDays * 86_400_000)
     await this.store.sessions.create({
       tokenHash: await hashToken(token),
       userId: account.id,
       expiresAt,
+      ipPrefix: prefixOf(context),
+      userAgent: context.userAgent ?? null,
     })
     return { account, sessionToken: token, expiresAt }
   }
@@ -402,8 +686,16 @@ export class IdentityService {
   }
 }
 
+function secondFactorBucket(userId: number): string {
+  return `second-factor:${userId}`
+}
+
 function codePointLength(value: string): number {
   return [...value].length
+}
+
+function trimToLength(value: string, max: number): string {
+  return [...value].slice(0, Math.max(max, 1)).join('').trim()
 }
 
 function prefixOf(context: RequestContext): string | null {

@@ -48,6 +48,8 @@ export {
   type SmtpMailConfig,
 } from './mail'
 
+export { isUsableIssuer } from './origin'
+
 export {
   isUsableOrigin,
   normaliseOrigin,

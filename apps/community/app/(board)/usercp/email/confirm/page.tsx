@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 
 import { MemberSettingsService } from '@meith/accounts'
 
+import { recordAuthEvent } from '@/server/auth-events'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
 
@@ -31,6 +32,10 @@ export default async function ConfirmEmailPage({
           sessions: accountStore.sessions,
           tokens: accountStore.tokens,
         }).confirmEmailChange(token)
+
+  if (outcome !== null) {
+    await recordAuthEvent({ userId: actor.userId, kind: 'email_changed' })
+  }
 
   redirect(outcome === null ? '/usercp/security?failed=1' : '/usercp/security?confirmed=1')
 }

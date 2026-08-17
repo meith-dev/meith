@@ -26,7 +26,7 @@ export async function signUp(page: Page, label: string): Promise<string> {
 
   await page.getByLabel('Username or email').fill(username)
   await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL('/')
 
   return username
@@ -36,7 +36,7 @@ export async function signIn(page: Page, username: string, password = PASSWORD):
   await page.goto('/login')
   await page.getByLabel('Username or email').fill(username)
   await page.getByLabel('Password').fill(password)
-  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL('/')
 }
 

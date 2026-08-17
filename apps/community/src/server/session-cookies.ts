@@ -10,10 +10,16 @@ import {
   adminCookie,
   clearedAdminCookie,
   clearedCookie,
+  passkeyCookie,
+  passkeyCookieName,
   rememberCookieName,
   rememberCookie,
+  secondFactorCookie,
+  secondFactorCookieName,
   sessionCookieName,
   sessionCookie,
+  ssoCookie,
+  ssoCookieName,
 } from './cookies'
 
 function secure(): boolean {
@@ -73,4 +79,55 @@ export async function readRememberToken(): Promise<string | undefined> {
 export async function readSessionToken(): Promise<string | undefined> {
   const jar = await cookies()
   return jar.get(sessionCookieName(secure()))?.value
+}
+
+export async function setHandshakeCookie(value: string): Promise<void> {
+  const jar = await cookies()
+  const isSecure = secure()
+  jar.set(ssoCookieName(isSecure), value, ssoCookie(isSecure))
+}
+
+export async function readHandshakeCookie(): Promise<string | undefined> {
+  const jar = await cookies()
+  return jar.get(ssoCookieName(secure()))?.value
+}
+
+export async function clearHandshakeCookie(): Promise<void> {
+  const jar = await cookies()
+  const isSecure = secure()
+  jar.set(ssoCookieName(isSecure), '', clearedCookie(isSecure))
+}
+
+export async function setSecondFactorCookie(token: string, expiresAt: Date): Promise<void> {
+  const jar = await cookies()
+  const isSecure = secure()
+  jar.set(secondFactorCookieName(isSecure), token, secondFactorCookie(expiresAt, isSecure))
+}
+
+export async function readSecondFactorToken(): Promise<string | undefined> {
+  const jar = await cookies()
+  return jar.get(secondFactorCookieName(secure()))?.value
+}
+
+export async function clearSecondFactorCookie(): Promise<void> {
+  const jar = await cookies()
+  const isSecure = secure()
+  jar.set(secondFactorCookieName(isSecure), '', clearedCookie(isSecure))
+}
+
+export async function setPasskeyChallengeCookie(value: string): Promise<void> {
+  const jar = await cookies()
+  const isSecure = secure()
+  jar.set(passkeyCookieName(isSecure), value, passkeyCookie(isSecure))
+}
+
+export async function readPasskeyChallengeCookie(): Promise<string | undefined> {
+  const jar = await cookies()
+  return jar.get(passkeyCookieName(secure()))?.value
+}
+
+export async function clearPasskeyChallengeCookie(): Promise<void> {
+  const jar = await cookies()
+  const isSecure = secure()
+  jar.set(passkeyCookieName(isSecure), '', clearedCookie(isSecure))
 }

@@ -302,6 +302,20 @@
       "when": 1786865562203,
       "tag": "0042_drop_placebo_delete_others",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1786952211689,
+      "tag": "0043_federated_identity",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1786952223746,
+      "tag": "0044_second_factor",
+      "breakpoints": true
     }
   ]
 }

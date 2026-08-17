@@ -20,8 +20,8 @@ export interface NewAccount {
   readonly usernameLower: string
   readonly email: string
   readonly emailLower: string
-  readonly passwordHash: string
-  readonly passwordAlgo: string
+  readonly passwordHash: string | null
+  readonly passwordAlgo: string | null
   readonly state: AccountState
   readonly primaryGroupId: number
   readonly registrationIpPrefix?: string | null
@@ -70,14 +70,28 @@ export interface SessionLocation {
   readonly threadId: number | null
 }
 
+export interface ActiveSessionRecord {
+  readonly id: number
+  readonly createdAt: Date
+  readonly lastSeenAt: Date
+  readonly expiresAt: Date
+  readonly ipPrefix: string | null
+  readonly userAgent: string | null
+}
+
 export interface SessionRepository {
   create(input: {
     tokenHash: string
     userId: number
     expiresAt: Date
+    ipPrefix?: string | null
+    userAgent?: string | null
   }): Promise<SessionRecord>
   findByTokenHash(tokenHash: string): Promise<SessionRecord | null>
+  listActiveForUser(userId: number, now: Date): Promise<readonly ActiveSessionRecord[]>
   revoke(sessionId: number): Promise<void>
+  revokeOwned(userId: number, sessionId: number, now: Date): Promise<boolean>
+  revokeAllForUserExcept(userId: number, sessionId: number | null): Promise<number>
   revokeAllForUser(userId: number): Promise<void>
   supersede(oldSessionId: number, newSessionId: number, now: Date): Promise<void>
   touchLocation(
@@ -119,6 +133,7 @@ export type CredentialPurpose =
   | 'password_reset'
   | 'email_verification'
   | 'email_change'
+  | 'second_factor'
 
 export interface CredentialTokenRepository {
   issue(input: {
@@ -133,7 +148,153 @@ export interface CredentialTokenRepository {
     purpose: CredentialPurpose,
     now: Date,
   ): Promise<{ userId: number; payload: string | null } | null>
+  /**
+   * The same lookup without spending the token. A half-finished sign-in has to
+   * survive a mistyped code, so the token that carries it is only consumed once
+   * the second factor is actually satisfied.
+   */
+  peek(
+    tokenHash: string,
+    purpose: CredentialPurpose,
+    now: Date,
+  ): Promise<{ userId: number; payload: string | null } | null>
   revokeAllForUser(userId: number, purpose: CredentialPurpose): Promise<void>
+}
+
+export interface UserIdentityRecord {
+  readonly id: number
+  readonly userId: number
+  readonly provider: string
+  readonly subject: string
+  readonly label: string | null
+  readonly linkedAt: Date
+  readonly lastUsedAt: Date | null
+}
+
+export interface LinkIdentityInput {
+  readonly userId: number
+  readonly provider: string
+  readonly subject: string
+  readonly label: string | null
+  readonly now: Date
+}
+
+export interface UserIdentityRepository {
+  findBySubject(provider: string, subject: string): Promise<UserIdentityRecord | null>
+  listForUser(userId: number): Promise<readonly UserIdentityRecord[]>
+  link(input: LinkIdentityInput): Promise<UserIdentityRecord>
+  unlink(userId: number, identityId: number): Promise<boolean>
+  markUsed(identityId: number, now: Date): Promise<void>
+}
+
+export interface PasskeyRecord {
+  readonly id: number
+  readonly userId: number
+  readonly credentialId: string
+  readonly publicKey: string
+  readonly signCount: number
+  readonly label: string
+  readonly transports: string | null
+  readonly createdAt: Date
+  readonly lastUsedAt: Date | null
+}
+
+export interface NewPasskey {
+  readonly userId: number
+  readonly credentialId: string
+  readonly publicKey: string
+  readonly signCount: number
+  readonly label: string
+  readonly transports: string | null
+  readonly now: Date
+}
+
+export interface PasskeyRepository {
+  findByCredentialId(credentialId: string): Promise<PasskeyRecord | null>
+  listForUser(userId: number): Promise<readonly PasskeyRecord[]>
+  create(input: NewPasskey): Promise<PasskeyRecord>
+  remove(userId: number, passkeyId: number): Promise<boolean>
+  markUsed(passkeyId: number, signCount: number, now: Date): Promise<void>
+}
+
+export interface TwoFactorRecord {
+  readonly userId: number
+  readonly sealedSecret: string
+  readonly confirmedAt: Date | null
+  readonly lastStep: number | null
+  readonly createdAt: Date
+}
+
+export interface TwoFactorRepository {
+  find(userId: number): Promise<TwoFactorRecord | null>
+  startEnrolment(input: {
+    userId: number
+    sealedSecret: string
+    now: Date
+  }): Promise<TwoFactorRecord>
+  confirm(userId: number, step: number, now: Date): Promise<boolean>
+  /** False when the step has already been spent, which is a replayed code. */
+  spendStep(userId: number, step: number): Promise<boolean>
+  remove(userId: number): Promise<boolean>
+}
+
+export interface RecoveryCodeRepository {
+  replaceAll(userId: number, hashes: readonly string[], now: Date): Promise<void>
+  spend(userId: number, hash: string, now: Date): Promise<boolean>
+  countUnused(userId: number): Promise<number>
+  removeAll(userId: number): Promise<void>
+}
+
+export const AUTH_EVENT_KINDS = [
+  'login',
+  'login_failed',
+  'logout',
+  'second_factor_failed',
+  'second_factor_enabled',
+  'second_factor_disabled',
+  'recovery_code_used',
+  'recovery_codes_replaced',
+  'password_changed',
+  'password_reset',
+  'email_change_requested',
+  'email_changed',
+  'session_revoked',
+  'sessions_revoked',
+  'identity_linked',
+  'identity_unlinked',
+  'passkey_added',
+  'passkey_removed',
+] as const
+
+export type AuthEventKind = (typeof AUTH_EVENT_KINDS)[number]
+
+export interface AuthEventRecord {
+  readonly id: number
+  readonly userId: number | null
+  readonly kind: AuthEventKind
+  readonly ipPrefix: string | null
+  readonly userAgent: string | null
+  readonly detail: Readonly<Record<string, unknown>>
+  readonly at: Date
+}
+
+export interface NewAuthEvent {
+  readonly userId: number | null
+  readonly kind: AuthEventKind
+  readonly ipPrefix?: string | null
+  readonly userAgent?: string | null
+  readonly detail?: Readonly<Record<string, unknown>>
+  readonly at: Date
+}
+
+export interface AuthEventRepository {
+  record(event: NewAuthEvent): Promise<void>
+  listForUser(userId: number, limit: number): Promise<readonly AuthEventRecord[]>
+  listRecent(input: {
+    limit: number
+    before?: number | undefined
+    kind?: AuthEventKind | undefined
+  }): Promise<readonly AuthEventRecord[]>
 }
 
 export interface LoginAttemptRepository {
@@ -170,6 +331,11 @@ export interface AccountStore {
   readonly tokens: CredentialTokenRepository
   readonly loginAttempts: LoginAttemptRepository
   readonly remember: RememberTokenRepository
+  readonly identities: UserIdentityRepository
+  readonly passkeys: PasskeyRepository
+  readonly twoFactor: TwoFactorRepository
+  readonly recoveryCodes: RecoveryCodeRepository
+  readonly authEvents: AuthEventRepository
 }
 
 export interface BanRecord {

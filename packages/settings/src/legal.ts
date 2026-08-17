@@ -89,6 +89,12 @@ The board runs on servers rented from a hosting provider, and it may send mail
 through a mail provider. Those providers handle the data needed to do their job,
 and nothing further.
 
+If this board offers a "sign in with…" button, choosing it tells that provider
+you have an account here and hands this board the address and display name they
+hold for you. Nothing else passes in either direction, and no member has to use
+one: a password works the same as it always did. A passkey involves nobody but
+you and this board — the key never leaves your device.
+
 ## How long it is kept
 
 Your account and your posts are kept while your account exists. Technical logs,

@@ -101,6 +101,12 @@ export const ADMIN_SECTIONS: PanelNav = [
     icon: 'log',
     blurb: 'Every administrative and moderation action, with who and from where.',
   },
+  {
+    href: '/admin/security',
+    title: 'Sign-in activity',
+    icon: 'log',
+    blurb: 'Sign-ins, refusals, and what members changed about how they get in.',
+  },
 ]
 
 export const ADMIN_NAV: PanelNav = [ADMIN_OVERVIEW, ...ADMIN_SECTIONS]
