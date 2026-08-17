@@ -116,24 +116,20 @@ export const jobs = pgTable(
   ],
 )
 
-export const tasks = pgTable(
-  'tasks',
-  {
-    key: text('key').primaryKey(),
+export const tasks = pgTable('tasks', {
+  key: text('key').primaryKey(),
 
-    intervalSeconds: integer('interval_seconds').notNull(),
+  intervalSeconds: integer('interval_seconds').notNull(),
 
-    enabled: boolean('enabled').notNull().default(true),
+  enabled: boolean('enabled').notNull().default(true),
 
-    lastRunAt: timestamp('last_run_at', { withTimezone: true }),
-    nextRunAt: timestamp('next_run_at', { withTimezone: true }).notNull().defaultNow(),
+  lastRunAt: timestamp('last_run_at', { withTimezone: true }),
+  nextRunAt: timestamp('next_run_at', { withTimezone: true }).notNull().defaultNow(),
 
-    lockedUntil: timestamp('locked_until', { withTimezone: true }),
+  lockedUntil: timestamp('locked_until', { withTimezone: true }),
 
-    consecutiveFailures: smallint('consecutive_failures').notNull().default(0),
-  },
-  (t) => [index('tasks_due_idx').on(t.nextRunAt).where(sql`${t.enabled}`)],
-)
+  consecutiveFailures: smallint('consecutive_failures').notNull().default(0),
+})
 
 export const taskLog = pgTable(
   'task_log',

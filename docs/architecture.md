@@ -392,6 +392,27 @@ mid-run. Every task is written as an idempotent catch-up operation ("flush
 what is outstanding"), never "run at 03:00", so a missed day is caught up
 rather than lost.
 
+**One column decides what is due: `tasks.next_run_at`.** The claim selects on
+it and the release writes it, as *finish* plus interval — so the interval is
+the gap between runs rather than a period a slow run eats into, and a task
+that takes longer than its own interval does not queue up behind itself.
+A task registered for the first time is written due, so a new board runs
+everything on its first tick rather than waiting an interval; changing a
+cadence moves the due time with it, rather than honouring a time computed
+under the old one. `last_run_at` is history — what `/admin/system` shows and
+what tells a task how much time it has to catch up on — and nothing schedules
+from it.
+
+**A task's `maxDurationSeconds` is enforced by the signal it is handed.**
+`tick()` aborts that signal when the budget is spent, and the tasks with a
+loop to stop in — the queue drain, and both subscription tasks — stop at the
+next unit and hand back what they did not reach: unprocessed jobs go back to
+pending with their attempt count restored, and an untold member keeps their
+watermark. The rest are a single `LIMIT`-ed statement whose cost is bounded
+by construction. A task that overruns anyway is reported as such rather than
+passing quietly, and its claim is released the moment it returns, not when
+the stale-claim window expires.
+
 Nineteen built-in tasks ride the tick: the outbox relay, queue drain and
 instant subscriptions at 60 s; the stats rollup and view-count flush at five
 minutes; the render backfill and search reindex at ten; ban, group and
@@ -408,7 +429,11 @@ The tick has two drivers: the worker process (in-process, every 60 s, keeps
 running when the web container is down) and the `TICK_SECRET`-guarded
 `GET /api/system/tick` route for deployments where an external scheduler
 drives it. Same `tick()`, same claim semantics, no coordination needed
-between them; running both is safe. The demo deployment runs on the HTTP
+between them; running both is safe. The worker holds one tick at a time: a
+tick that passes its five-minute ceiling has its signal aborted and is
+awaited, so the tasks still running stop at their next unit and release
+their claims. It is never abandoned to keep its connections while the next
+tick starts on top of it. The demo deployment runs on the HTTP
 driver alone, for the cache-locality reason above.
 
 ## The extension surfaces

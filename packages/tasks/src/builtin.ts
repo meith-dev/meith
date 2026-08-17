@@ -8,7 +8,7 @@ export interface TaskWorkers {
     readonly retried: number
     readonly dead: number
   }>
-  drainQueue(batchSize: number): Promise<number>
+  drainQueue(batchSize: number, signal: AbortSignal): Promise<number>
   pruneSessions(): Promise<number>
   pruneExpiredTokens(): Promise<number>
   pruneRateLimits(): Promise<number>
@@ -20,8 +20,8 @@ export interface TaskWorkers {
   expireBans(batchSize: number): Promise<number>
   expireGroupMemberships(batchSize: number): Promise<number>
   expireWarnings(batchSize: number): Promise<number>
-  notifySubscribers(batchSize: number): Promise<number>
-  sendDigests(batchSize: number): Promise<number>
+  notifySubscribers(batchSize: number, signal: AbortSignal): Promise<number>
+  sendDigests(batchSize: number, signal: AbortSignal): Promise<number>
   sweepAttachments(batchSize: number): Promise<{ deleted: number; failed: number }>
   sweepAvatars(batchSize: number): Promise<number>
   rollUpStatistics(): Promise<{ memberCount: number; online: number; record: boolean }>
@@ -63,11 +63,13 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       title: 'Process queued jobs',
       description:
         'Executes due jobs. Bounded per run: a large backlog is drained across ' +
-        'several ticks rather than risking a function timeout mid-job.',
+        'several ticks rather than risking a function timeout mid-job. Stops ' +
+        'between jobs when its budget is spent, handing back the jobs it did ' +
+        'not reach.',
       intervalSeconds: 60,
       maxDurationSeconds: 45,
-      async run() {
-        const processed = await workers.drainQueue(50)
+      async run({ signal }) {
+        const processed = await workers.drainQueue(50, signal)
         return { detail: { processed } }
       },
     },
@@ -255,11 +257,12 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         "loop — one permission check per subscriber — on the board's hottest " +
         'write, and couple posting to the mail provider being up. Each ' +
         'subscription carries a watermark, so a skipped tick delays a ' +
-        'notification and never loses one.',
+        'notification and never loses one — which is also what lets it stop ' +
+        'between members when its budget is spent.',
       intervalSeconds: 60,
       maxDurationSeconds: 45,
-      async run() {
-        const notified = await workers.notifySubscribers(50)
+      async run({ signal }) {
+        const notified = await workers.notifySubscribers(50, signal)
         return { detail: { notified } }
       },
     },
@@ -277,8 +280,8 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         'same time each day.',
       intervalSeconds: 3_600,
       maxDurationSeconds: 60,
-      async run() {
-        const notified = await workers.sendDigests(50)
+      async run({ signal }) {
+        const notified = await workers.sendDigests(50, signal)
         return { detail: { notified } }
       },
     },

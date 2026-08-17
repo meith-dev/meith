@@ -6,6 +6,8 @@ import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { taskLog, tasks } from './schema'
 
+const NEVER_RUN = new Date(0)
+
 export class PostgresTaskRepository implements TaskRepository {
   constructor(private readonly db: Database) {}
 
@@ -20,18 +22,27 @@ export class PostgresTaskRepository implements TaskRepository {
         definitions.map((d) => ({
           key: d.id,
           intervalSeconds: d.intervalSeconds,
+          nextRunAt: NEVER_RUN,
         })),
       )
       .onConflictDoUpdate({
         target: tasks.key,
-        set: { intervalSeconds: sql`excluded.interval_seconds` },
+        set: {
+          intervalSeconds: sql`excluded.interval_seconds`,
+          nextRunAt: sql`
+            case when ${tasks.intervalSeconds} is distinct from excluded.interval_seconds
+                 then coalesce(${tasks.lastRunAt}, now())
+                      + make_interval(secs => excluded.interval_seconds)
+                 else ${tasks.nextRunAt}
+            end
+          `,
+        },
       })
   }
 
   async claim(input: {
     taskId: string
     now: Date
-    dueBefore: Date
     staleBefore: Date
   }): Promise<{ previousLastRunAt: Date | null } | null> {
     const leaseMs = input.now.getTime() - input.staleBefore.getTime()
@@ -48,7 +59,7 @@ export class PostgresTaskRepository implements TaskRepository {
        where t.key = p.key
          and t.enabled
          and (t.locked_until is null or t.locked_until <= ${input.now})
-         and (t.last_run_at is null or t.last_run_at <= ${input.dueBefore})
+         and t.next_run_at <= ${input.now}
       returning p.last_run_at as previous_last_run_at
     `)
 
