@@ -1,4 +1,3 @@
-import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 
@@ -98,7 +97,6 @@ export default async function RootLayout({
       <body className="font-sans antialiased">
         <DemoBanner />
         {children}
-        {env.NODE_ENV === "production" && <Analytics />}
       </body>
     </html>
   )
