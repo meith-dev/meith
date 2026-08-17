@@ -1,1 +1,1 @@
-ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'auto' NOT NULL;
+ALTER TABLE "users" ADD COLUMN "locale" text DEFAULT 'auto' NOT NULL;
