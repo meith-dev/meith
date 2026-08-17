@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import type { PluginPageContext } from '@meith/plugin-kit'
+import { renderLocale } from '@meith/theme-kit'
 
 import type { DuesConfig } from '../config'
 import { formatMinor } from '../money'
@@ -29,12 +30,12 @@ const QUIET_BUTTON =
   'inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm'
 
 function fmtDate(date: Date): ReactNode {
-  const label = date.toLocaleDateString('en-GB', {
+  const label = new Intl.DateTimeFormat(renderLocale(), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
-  })
+  }).format(date)
   return <time dateTime={date.toISOString()}>{label}</time>
 }
 
@@ -498,11 +499,11 @@ export async function ManagePage({
                     <input type="hidden" name="membership" value={membership.id} />
                     <button type="submit" className={QUIET_BUTTON}>
                       Cancel renewal — keep access until{' '}
-                      {membershipDate(membership).toLocaleDateString('en-GB', {
+                      {new Intl.DateTimeFormat(renderLocale(), {
                         day: 'numeric',
                         month: 'long',
                         timeZone: 'UTC',
-                      })}
+                      }).format(membershipDate(membership))}
                     </button>
                   </form>
                 )}

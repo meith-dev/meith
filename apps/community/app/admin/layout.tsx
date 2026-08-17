@@ -8,6 +8,7 @@ import { AdminNav } from '@/components/admin/admin-nav'
 import { PanelShell } from '@/components/shell/panel-shell'
 import { askForPassword, resolveAdmin } from '@/server/admin'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { buildPanelLinks } from '@/view/shell'
 
 export const metadata: Metadata = { title: 'Control panel' }
@@ -35,6 +36,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const actor = await getActor()
   const links = buildPanelLinks({
+    t: await getTranslator(),
     current: 'admincp',
     canAccessModCp: actor.global.canAccessModCp === true,
   })

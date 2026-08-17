@@ -355,7 +355,7 @@ function temporal(value: MessageValue): Date {
 const numberFormats = new Map<string, Intl.NumberFormat>()
 
 function numberFormat(locale: Locale, style: string | null): Intl.NumberFormat {
-  const key = `${locale}${style ?? ''}`
+  const key = `${locale}\u001f${style ?? ''}`
   const cached = numberFormats.get(key)
   if (cached !== undefined) return cached
 
@@ -399,7 +399,7 @@ function dateFormat(
   style: string | null,
   kind: 'date' | 'time',
 ): Intl.DateTimeFormat {
-  const key = `${context.locale}${context.timeZone}${kind}${style ?? ''}`
+  const key = `${context.locale}\u001f${context.timeZone}\u001f${kind}\u001f${style ?? ''}`
   const cached = dateFormats.get(key)
   if (cached !== undefined) return cached
 
@@ -422,7 +422,7 @@ function dateStyle(width: string): 'full' | 'long' | 'medium' | 'short' {
 const pluralRules = new Map<string, Intl.PluralRules>()
 
 export function pluralCategory(locale: Locale, value: number, ordinal = false): string {
-  const key = `${locale}${ordinal ? 'ordinal' : 'cardinal'}`
+  const key = `${locale}\u001f${ordinal ? 'ordinal' : 'cardinal'}`
   let rules = pluralRules.get(key)
 
   if (rules === undefined) {

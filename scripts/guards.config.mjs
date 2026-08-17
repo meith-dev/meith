@@ -265,6 +265,34 @@ export const GUARDS = [
     ],
   },
   {
+    id: 'no-fixed-locale-format',
+    why:
+      'Naming a locale at a formatting call site pins that string to one language ' +
+      "for every reader of every board. Format through the viewer's Translator " +
+      '(@meith/i18n) instead — t.number(), t.parts(), or an ICU message with a ' +
+      '{n, number} placeholder — or through formatCount() in a theme, which reads ' +
+      'the locale adopted for the render. This rule exists because 31 call sites ' +
+      "shipped as .toLocaleString('en'): a German board grouped its post counts " +
+      'with commas, and nothing failed, because a hardcoded locale is always ' +
+      'internally consistent. The bare no-argument forms are worse still — they ' +
+      'follow the *host*, so the same board renders differently depending on which ' +
+      'machine served the page, and a client component disagrees with the server ' +
+      'that rendered it. packages/i18n is exempt because deciding what a locale ' +
+      'means is its job, and apps/web is a single-language marketing site.',
+    files: /^(apps\/community|packages|themes|plugins|examples)\/.*\.(ts|tsx)$/,
+    pattern: /\.toLocale(String|DateString|TimeString)\s*\(/,
+    allow: /^(packages\/(i18n|testkit)\/|.*\.test\.tsx?$)/,
+    probe: {
+      violates: "<span>{forum.postCount.toLocaleString('en')}</span>",
+      clean: '<span>{formatCount(forum.postCount)}</span>',
+    },
+    alsoClean: [
+      'const shown = translator.number(forum.postCount)',
+      "const label = t.t('stats.posts', { count })",
+      "value.toLocaleLowerCase('tr-TR')",
+    ],
+  },
+  {
     id: 'no-adhoc-local-redirect-check',
     why:
       'A redirect or return target is validated only by isSafeLocalPath ' +

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { ModCpNav } from '@/components/moderation/modcp-nav'
 import { PanelShell } from '@/components/shell/panel-shell'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { modCpCounts, resolveModCpAccess } from '@/server/modcp'
 import { modCpNav } from '@/view/modcp-nav'
 import { buildPanelLinks } from '@/view/shell'
@@ -15,6 +16,7 @@ export async function ModCpShell({ children }: { children: React.ReactNode }) {
 
   const actor = await getActor()
   const links = buildPanelLinks({
+    t: await getTranslator(),
     current: 'modcp',
     canAccessAdminCp: actor.global.canAccessAdminCp === true,
   })

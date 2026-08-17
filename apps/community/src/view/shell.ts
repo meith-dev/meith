@@ -1,4 +1,5 @@
 import type { Actor } from '@meith/authorization'
+import type { Translator } from '@meith/i18n'
 import type {
   FooterModel,
   HeaderModel,
@@ -9,7 +10,7 @@ import type {
 } from '@meith/theme-kit'
 
 import { memberHref } from './member-profile'
-import { timezoneLabel } from './time'
+import { timezoneLabel, untranslated } from './time'
 
 export const BOARD_TITLE = 'Meith'
 
@@ -54,15 +55,17 @@ export function buildHeaderModel(
 
 export function buildBoardNavigation(
   viewer: ViewerModel,
-  options: { searchEnabled?: boolean } = {},
+  options: { searchEnabled?: boolean; t?: Translator } = {},
 ): readonly LinkModel[] {
+  const t = options.t ?? untranslated()
+
   return [
-    { label: 'Home', href: '/' },
-    { label: 'New posts', href: '/discover/new' },
-    { label: 'Unanswered', href: '/discover/unanswered' },
-    ...(viewer.isGuest ? [] : [{ label: 'My posts', href: '/discover/participated' }]),
-    ...(options.searchEnabled === false ? [] : [{ label: 'Search', href: '/search' }]),
-    { label: "Who's online", href: '/online' },
+    { label: t.t('nav.home'), href: '/' },
+    { label: t.t('nav.newPosts'), href: '/discover/new' },
+    { label: t.t('nav.unanswered'), href: '/discover/unanswered' },
+    ...(viewer.isGuest ? [] : [{ label: t.t('nav.myPosts'), href: '/discover/participated' }]),
+    ...(options.searchEnabled === false ? [] : [{ label: t.t('nav.search'), href: '/search' }]),
+    { label: t.t('nav.online'), href: '/online' },
   ]
 }
 
@@ -80,29 +83,34 @@ export function buildUserPanelModel(
     unreadNotifications?: number
     unreadMessages?: number
     registrationOpen?: boolean
+    t?: Translator
   } = {},
 ): UserPanelModel {
+  const t = options.t ?? untranslated()
+
   const links: readonly LinkModel[] = viewer.isGuest
     ? [
-        { label: 'Sign in', href: '/login' },
-        ...(options.registrationOpen === false ? [] : [{ label: 'Register', href: '/register' }]),
+        { label: t.t('nav.signIn'), href: '/login' },
+        ...(options.registrationOpen === false
+          ? []
+          : [{ label: t.t('nav.register'), href: '/register' }]),
       ]
     : viewer.profileHref === null
       ? []
       : [
-          { label: 'Profile', href: viewer.profileHref, group: ACCOUNT_GROUP },
-          { label: 'Your control panel', href: '/usercp', group: ACCOUNT_GROUP },
-          { label: 'Notifications', href: NOTIFICATIONS_HREF, group: ACCOUNT_GROUP },
-          { label: 'Messages', href: MESSAGES_HREF, group: ACCOUNT_GROUP },
-          { label: 'Subscriptions', href: '/subscriptions', group: ACCOUNT_GROUP },
+          { label: t.t('nav.profile'), href: viewer.profileHref, group: ACCOUNT_GROUP },
+          { label: t.t('nav.userCp'), href: '/usercp', group: ACCOUNT_GROUP },
+          { label: t.t('nav.notifications'), href: NOTIFICATIONS_HREF, group: ACCOUNT_GROUP },
+          { label: t.t('nav.messages'), href: MESSAGES_HREF, group: ACCOUNT_GROUP },
+          { label: t.t('nav.subscriptions'), href: '/subscriptions', group: ACCOUNT_GROUP },
           ...(viewer.canAccessAdminCp
-            ? [{ label: 'Admin CP', href: '/admin', group: STAFF_GROUP }]
+            ? [{ label: t.t('nav.adminCp'), href: '/admin', group: STAFF_GROUP }]
             : []),
           ...(viewer.canAccessModCp
             ? [
-                { label: 'Moderator CP', href: '/modcp', group: STAFF_GROUP },
-                { label: 'Moderation queue', href: '/moderation', group: STAFF_GROUP },
-                { label: 'Reports', href: '/moderation/reports', group: STAFF_GROUP },
+                { label: t.t('nav.modCp'), href: '/modcp', group: STAFF_GROUP },
+                { label: t.t('nav.moderationQueue'), href: '/moderation', group: STAFF_GROUP },
+                { label: t.t('nav.reports'), href: '/moderation/reports', group: STAFF_GROUP },
               ]
             : []),
         ]
@@ -120,17 +128,23 @@ export function buildUserPanelModel(
 
 export type PanelKey = 'usercp' | 'modcp' | 'admincp'
 
-const PANELS: readonly { readonly key: PanelKey; readonly link: LinkModel }[] = [
-  { key: 'usercp', link: { label: 'Your control panel', href: '/usercp' } },
-  { key: 'modcp', link: { label: 'Moderator CP', href: '/modcp' } },
-  { key: 'admincp', link: { label: 'Admin CP', href: '/admin' } },
+const PANELS: readonly {
+  readonly key: PanelKey
+  readonly messageKey: string
+  readonly href: string
+}[] = [
+  { key: 'usercp', messageKey: 'nav.userCp', href: '/usercp' },
+  { key: 'modcp', messageKey: 'nav.modCp', href: '/modcp' },
+  { key: 'admincp', messageKey: 'nav.adminCp', href: '/admin' },
 ]
 
 export function buildPanelLinks(input: {
   readonly current: PanelKey
   readonly canAccessModCp?: boolean
   readonly canAccessAdminCp?: boolean
+  readonly t?: Translator
 }): readonly LinkModel[] {
+  const t = input.t ?? untranslated()
   const reachable: Record<PanelKey, boolean> = {
     usercp: true,
     modcp: input.canAccessModCp === true,
@@ -138,21 +152,20 @@ export function buildPanelLinks(input: {
   }
 
   return PANELS.filter((panel) => panel.key !== input.current && reachable[panel.key]).map(
-    (panel) => panel.link,
+    (panel) => ({ label: t.t(panel.messageKey), href: panel.href }),
   )
 }
-
-const POWERED_BY: LinkModel = { label: 'Powered by Meith', href: 'https://meith.dev' }
 
 export function buildFooterModel(
   links: readonly LinkModel[] = [],
   boardTitle: string = BOARD_TITLE,
   zone: string = TIMEZONE_LABEL,
+  translator: Translator = untranslated(),
 ): FooterModel {
   return {
     boardTitle,
     links,
     timezoneLabel: timezoneLabel(zone),
-    poweredBy: POWERED_BY,
+    poweredBy: { label: translator.t('nav.poweredBy'), href: 'https://meith.dev' },
   }
 }

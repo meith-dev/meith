@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { Actor } from '@meith/authorization'
 import { emptyPermissionSet } from '@meith/core'
+import { createTranslator, EN_CATALOG } from '@meith/i18n'
 
 import {
   BOARD_TITLE,
@@ -271,6 +272,27 @@ describe('ViewerModel.username', () => {
   it('is null when the caller has no name to give, rather than inventing one', () => {
     expect(buildViewerModel(member).username).toBeNull()
     expect(buildViewerModel(guest).username).toBeNull()
+  })
+})
+
+describe('the navigation in another language', () => {
+  const german = createTranslator({
+    locale: 'de',
+    catalog: { ...EN_CATALOG, 'nav.home': 'Startseite', 'nav.search': 'Suche' },
+  })
+
+  it('labels the links from the catalog and leaves the hrefs alone', () => {
+    const links = buildBoardNavigation(buildViewerModel(member), { t: german })
+
+    expect(links.map((link) => link.label)).toContain('Startseite')
+    expect(links.map((link) => link.label)).toContain('Suche')
+    expect(links.map((link) => link.href)).toContain('/')
+  })
+
+  it('falls back to English for a message the translation is missing', () => {
+    const links = buildBoardNavigation(buildViewerModel(member), { t: german })
+
+    expect(links.map((link) => link.label)).toContain('Unanswered')
   })
 })
 

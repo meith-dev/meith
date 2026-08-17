@@ -1,5 +1,6 @@
 import { PanelShell } from '@/components/shell/panel-shell'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { unreadMessageCount } from '@/server/messages'
 import { unreadNotificationCount } from '@/server/notifications'
 import { buildPanelLinks } from '@/view/shell'
@@ -15,6 +16,7 @@ export async function UserCpShell({ children }: { children: React.ReactNode }) {
   ])
 
   const links = buildPanelLinks({
+    t: await getTranslator(),
     current: 'usercp',
     canAccessModCp: actor.global.canAccessModCp === true,
     canAccessAdminCp: actor.global.canAccessAdminCp === true,
