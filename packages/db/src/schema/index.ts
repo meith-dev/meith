@@ -1,10 +1,10 @@
-export * from './identity'
-export * from './structure'
 export * from './content'
-export * from './platform'
+export * from './identity'
 export * from './messages'
 export {
   columnName,
-  groupPermissionColumns,
   forumPermissionColumns,
+  groupPermissionColumns,
 } from './permission-columns'
+export * from './platform'
+export * from './structure'

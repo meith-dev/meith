@@ -174,11 +174,7 @@ export async function createAuthenticator(input: {
         null,
       )
 
-      const json = clientData(
-        request.type ?? 'webauthn.get',
-        request.challenge,
-        request.origin,
-      )
+      const json = clientData(request.type ?? 'webauthn.get', request.challenge, request.origin)
 
       const clientDataHash = new Uint8Array(
         await crypto.subtle.digest('SHA-256', decodeBase64Url(json)),
@@ -206,7 +202,9 @@ export async function createAuthenticator(input: {
   }
 }
 
-function generateParams(algorithm: FixtureAlgorithm): EcKeyGenParams | RsaHashedKeyGenParams | Algorithm {
+function generateParams(
+  algorithm: FixtureAlgorithm,
+): EcKeyGenParams | RsaHashedKeyGenParams | Algorithm {
   if (algorithm === 'ES256') return { name: 'ECDSA', namedCurve: 'P-256' }
   if (algorithm === 'EdDSA') return { name: 'Ed25519' }
   return {
@@ -223,10 +221,7 @@ function signParams(algorithm: FixtureAlgorithm): EcdsaParams | Algorithm {
   return { name: 'RSASSA-PKCS1-v1_5' }
 }
 
-function coseEntries(
-  algorithm: FixtureAlgorithm,
-  jwk: JsonWebKey,
-): Map<number, unknown> {
+function coseEntries(algorithm: FixtureAlgorithm, jwk: JsonWebKey): Map<number, unknown> {
   if (algorithm === 'ES256') {
     return new Map<number, unknown>([
       [1, 2],
@@ -259,12 +254,7 @@ export function derFromRaw(raw: Uint8Array): Uint8Array {
   const r = trim(raw.slice(0, half))
   const s = trim(raw.slice(half))
 
-  const body = concat(
-    Uint8Array.from([0x02, r.length]),
-    r,
-    Uint8Array.from([0x02, s.length]),
-    s,
-  )
+  const body = concat(Uint8Array.from([0x02, r.length]), r, Uint8Array.from([0x02, s.length]), s)
 
   return concat(Uint8Array.from([0x30, body.length]), body)
 }

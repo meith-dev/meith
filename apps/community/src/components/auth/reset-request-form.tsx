@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { requestResetAction } from "@/server/auth-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { requestResetAction } from '@/server/auth-actions'
+import { EMPTY_STATE } from '@/server/auth-form-state'
 
-import { Field, FormError, FormNotice, SubmitButton } from "./form-controls"
+import { Field, FormError, FormNotice, SubmitButton } from './form-controls'
 
 export function ResetRequestForm() {
   const [state, action] = useActionState(requestResetAction, EMPTY_STATE)

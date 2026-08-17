@@ -1,4 +1,4 @@
-import { sql, type SQL } from 'drizzle-orm'
+import { type SQL, sql } from 'drizzle-orm'
 import type { PgColumn } from 'drizzle-orm/pg-core'
 
 import type { ContentScope } from '@meith/core'

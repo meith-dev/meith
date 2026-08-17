@@ -100,12 +100,8 @@
           "name": "ban_filters_created_by_user_id_users_id_fk",
           "tableFrom": "ban_filters",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -226,12 +222,8 @@
           "name": "bans_user_id_users_id_fk",
           "tableFrom": "bans",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -239,12 +231,8 @@
           "name": "bans_banned_by_user_id_users_id_fk",
           "tableFrom": "bans",
           "tableTo": "users",
-          "columnsFrom": [
-            "banned_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["banned_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -252,12 +240,8 @@
           "name": "bans_previous_primary_group_id_usergroups_id_fk",
           "tableFrom": "bans",
           "tableTo": "usergroups",
-          "columnsFrom": [
-            "previous_primary_group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["previous_primary_group_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -391,12 +375,8 @@
           "name": "credential_tokens_user_id_users_id_fk",
           "tableFrom": "credential_tokens",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -521,12 +501,8 @@
           "name": "group_promotions_from_primary_group_id_usergroups_id_fk",
           "tableFrom": "group_promotions",
           "tableTo": "usergroups",
-          "columnsFrom": [
-            "from_primary_group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["from_primary_group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -534,12 +510,8 @@
           "name": "group_promotions_to_primary_group_id_usergroups_id_fk",
           "tableFrom": "group_promotions",
           "tableTo": "usergroups",
-          "columnsFrom": [
-            "to_primary_group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["to_primary_group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -759,12 +731,8 @@
           "name": "remember_tokens_user_id_users_id_fk",
           "tableFrom": "remember_tokens",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -938,12 +906,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1049,12 +1013,8 @@
           "name": "user_group_memberships_user_id_users_id_fk",
           "tableFrom": "user_group_memberships",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1062,12 +1022,8 @@
           "name": "user_group_memberships_group_id_usergroups_id_fk",
           "tableFrom": "user_group_memberships",
           "tableTo": "usergroups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1075,12 +1031,8 @@
           "name": "user_group_memberships_granted_by_user_id_users_id_fk",
           "tableFrom": "user_group_memberships",
           "tableTo": "users",
-          "columnsFrom": [
-            "granted_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["granted_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1784,12 +1736,8 @@
           "name": "users_primary_group_id_usergroups_id_fk",
           "tableFrom": "users",
           "tableTo": "usergroups",
-          "columnsFrom": [
-            "primary_group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["primary_group_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1797,12 +1745,8 @@
           "name": "users_display_group_id_usergroups_id_fk",
           "tableFrom": "users",
           "tableTo": "usergroups",
-          "columnsFrom": [
-            "display_group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["display_group_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2119,12 +2063,8 @@
           "name": "warnings_user_id_users_id_fk",
           "tableFrom": "warnings",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2132,12 +2072,8 @@
           "name": "warnings_issued_by_user_id_users_id_fk",
           "tableFrom": "warnings",
           "tableTo": "users",
-          "columnsFrom": [
-            "issued_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["issued_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2145,12 +2081,8 @@
           "name": "warnings_type_id_warning_types_id_fk",
           "tableFrom": "warnings",
           "tableTo": "warning_types",
-          "columnsFrom": [
-            "type_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["type_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2158,12 +2090,8 @@
           "name": "warnings_revoked_by_user_id_users_id_fk",
           "tableFrom": "warnings",
           "tableTo": "users",
-          "columnsFrom": [
-            "revoked_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["revoked_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2393,12 +2321,8 @@
           "name": "forum_moderators_forum_id_forums_id_fk",
           "tableFrom": "forum_moderators",
           "tableTo": "forums",
-          "columnsFrom": [
-            "forum_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["forum_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2406,12 +2330,8 @@
           "name": "forum_moderators_user_id_users_id_fk",
           "tableFrom": "forum_moderators",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2419,12 +2339,8 @@
           "name": "forum_moderators_group_id_usergroups_id_fk",
           "tableFrom": "forum_moderators",
           "tableTo": "usergroups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2487,12 +2403,8 @@
           "name": "forum_password_grants_forum_id_forums_id_fk",
           "tableFrom": "forum_password_grants",
           "tableTo": "forums",
-          "columnsFrom": [
-            "forum_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["forum_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2732,12 +2644,8 @@
           "name": "forum_permissions_forum_id_forums_id_fk",
           "tableFrom": "forum_permissions",
           "tableTo": "forums",
-          "columnsFrom": [
-            "forum_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["forum_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2745,12 +2653,8 @@
           "name": "forum_permissions_group_id_usergroups_id_fk",
           "tableFrom": "forum_permissions",
           "tableTo": "usergroups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2835,12 +2739,8 @@
           "name": "forum_subscriptions_user_id_users_id_fk",
           "tableFrom": "forum_subscriptions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2848,12 +2748,8 @@
           "name": "forum_subscriptions_forum_id_forums_id_fk",
           "tableFrom": "forum_subscriptions",
           "tableTo": "forums",
-          "columnsFrom": [
-            "forum_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["forum_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3233,12 +3129,8 @@
           "name": "forums_read_user_id_users_id_fk",
           "tableFrom": "forums_read",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3246,12 +3138,8 @@
           "name": "forums_read_forum_id_forums_id_fk",
           "tableFrom": "forums_read",
           "tableTo": "forums",
-          "columnsFrom": [
-            "forum_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["forum_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3355,12 +3243,8 @@
           "name": "post_revisions_post_id_posts_id_fk",
           "tableFrom": "post_revisions",
           "tableTo": "posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["post_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3368,12 +3252,8 @@
           "name": "post_revisions_edited_by_user_id_users_id_fk",
           "tableFrom": "post_revisions",
           "tableTo": "users",
-          "columnsFrom": [
-            "edited_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["edited_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3664,12 +3544,8 @@
           "name": "posts_thread_id_threads_id_fk",
           "tableFrom": "posts",
           "tableTo": "threads",
-          "columnsFrom": [
-            "thread_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["thread_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3677,12 +3553,8 @@
           "name": "posts_forum_id_forums_id_fk",
           "tableFrom": "posts",
           "tableTo": "forums",
-          "columnsFrom": [
-            "forum_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["forum_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3690,12 +3562,8 @@
           "name": "posts_author_user_id_users_id_fk",
           "tableFrom": "posts",
           "tableTo": "users",
-          "columnsFrom": [
-            "author_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3703,12 +3571,8 @@
           "name": "posts_edited_by_user_id_users_id_fk",
           "tableFrom": "posts",
           "tableTo": "users",
-          "columnsFrom": [
-            "edited_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["edited_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3800,12 +3664,8 @@
           "name": "report_events_report_id_reports_id_fk",
           "tableFrom": "report_events",
           "tableTo": "reports",
-          "columnsFrom": [
-            "report_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["report_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3813,12 +3673,8 @@
           "name": "report_events_actor_user_id_users_id_fk",
           "tableFrom": "report_events",
           "tableTo": "users",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4006,12 +3862,8 @@
           "name": "reports_forum_id_forums_id_fk",
           "tableFrom": "reports",
           "tableTo": "forums",
-          "columnsFrom": [
-            "forum_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["forum_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -4019,12 +3871,8 @@
           "name": "reports_thread_id_threads_id_fk",
           "tableFrom": "reports",
           "tableTo": "threads",
-          "columnsFrom": [
-            "thread_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["thread_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -4032,12 +3880,8 @@
           "name": "reports_reporter_user_id_users_id_fk",
           "tableFrom": "reports",
           "tableTo": "users",
-          "columnsFrom": [
-            "reporter_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reporter_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -4045,12 +3889,8 @@
           "name": "reports_assigned_to_user_id_users_id_fk",
           "tableFrom": "reports",
           "tableTo": "users",
-          "columnsFrom": [
-            "assigned_to_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["assigned_to_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -4058,12 +3898,8 @@
           "name": "reports_resolved_by_user_id_users_id_fk",
           "tableFrom": "reports",
           "tableTo": "users",
-          "columnsFrom": [
-            "resolved_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resolved_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4226,12 +4062,8 @@
           "name": "thread_subscriptions_user_id_users_id_fk",
           "tableFrom": "thread_subscriptions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4239,12 +4071,8 @@
           "name": "thread_subscriptions_thread_id_threads_id_fk",
           "tableFrom": "thread_subscriptions",
           "tableTo": "threads",
-          "columnsFrom": [
-            "thread_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["thread_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4302,12 +4130,8 @@
           "name": "thread_view_buffer_thread_id_threads_id_fk",
           "tableFrom": "thread_view_buffer",
           "tableTo": "threads",
-          "columnsFrom": [
-            "thread_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["thread_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4567,12 +4391,8 @@
           "name": "threads_forum_id_forums_id_fk",
           "tableFrom": "threads",
           "tableTo": "forums",
-          "columnsFrom": [
-            "forum_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["forum_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4580,12 +4400,8 @@
           "name": "threads_prefix_id_thread_prefixes_id_fk",
           "tableFrom": "threads",
           "tableTo": "thread_prefixes",
-          "columnsFrom": [
-            "prefix_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["prefix_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -4593,12 +4409,8 @@
           "name": "threads_author_user_id_users_id_fk",
           "tableFrom": "threads",
           "tableTo": "users",
-          "columnsFrom": [
-            "author_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4682,12 +4494,8 @@
           "name": "threads_read_user_id_users_id_fk",
           "tableFrom": "threads_read",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4695,12 +4503,8 @@
           "name": "threads_read_thread_id_threads_id_fk",
           "tableFrom": "threads_read",
           "tableTo": "threads",
-          "columnsFrom": [
-            "thread_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["thread_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4820,12 +4624,8 @@
           "name": "admin_log_user_id_users_id_fk",
           "tableFrom": "admin_log",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -5337,12 +5137,8 @@
           "name": "settings_updated_by_user_id_users_id_fk",
           "tableFrom": "settings",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }

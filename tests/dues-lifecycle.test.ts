@@ -8,13 +8,9 @@ import {
   pluginUsers,
 } from '@meith/db'
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
-import type {
-  PluginRequest,
-  PluginRuntimeContext,
-} from '@meith/plugin-kit'
+import type { PluginRequest, PluginRuntimeContext } from '@meith/plugin-kit'
 
 import { parseDuesConfig } from '../plugins/dues/src/config'
-import { DUES_MIGRATIONS } from '../plugins/dues/src/schema'
 import {
   buildServices,
   entitlementDeps,
@@ -34,7 +30,7 @@ import {
   handleAdminRevoke,
 } from '../plugins/dues/src/handlers-admin'
 import { GRANT_WINDOW_DAYS } from '../plugins/dues/src/plans'
-import { runReconcile, runSweep } from '../plugins/dues/src/tasks'
+import { DUES_MIGRATIONS } from '../plugins/dues/src/schema'
 import {
   allMemberships,
   codeByCode,
@@ -55,6 +51,7 @@ import type {
   SubscriptionState,
 } from '../plugins/dues/src/stripe/client'
 import { signStripePayload } from '../plugins/dues/src/stripe/webhook'
+import { runReconcile, runSweep } from '../plugins/dues/src/tasks'
 
 const WEBHOOK_SECRET = 'whsec_lifecycle_suite'
 
@@ -261,10 +258,7 @@ async function actorGroups(userId: number): Promise<Set<number>> {
 }
 
 async function primaryGroup(userId: number): Promise<number> {
-  const result = await h.client.query(
-    'select primary_group_id from users where id = $1',
-    [userId],
-  )
+  const result = await h.client.query('select primary_group_id from users where id = $1', [userId])
   return Number((result.rows as Array<{ primary_group_id: number }>)[0]!.primary_group_id)
 }
 
@@ -385,8 +379,7 @@ describe('buying a pass for yourself', () => {
 
     const memberships = await membershipsFor(context.data, alice)
     expect(memberships).toHaveLength(1)
-    const days =
-      (memberships[0]!.currentPeriodEnd.getTime() - Date.now()) / 86_400_000
+    const days = (memberships[0]!.currentPeriodEnd.getTime() - Date.now()) / 86_400_000
     expect(days).toBeGreaterThan(89)
     expect(days).toBeLessThan(91)
     expect(
@@ -477,9 +470,7 @@ describe('buying a pass for yourself', () => {
       paidSessionEvent(sessionId, { amount_total: 700 }),
     )
 
-    expect((response as { body: { outcome: string } }).body.outcome).toBe(
-      'paid-but-grant-refused',
-    )
+    expect((response as { body: { outcome: string } }).body.outcome).toBe('paid-but-grant-refused')
     const order = await orderById(context.data, orderId)
     expect(order?.status).toBe('paid')
 
@@ -608,9 +599,7 @@ describe('subscriptions', () => {
     expect(live?.status).toBe('grace')
     expect((await actorGroups(alice)).has(supportersGroup)).toBe(true)
 
-    expect(notified).toEqual([
-      expect.objectContaining({ userId: alice, kind: 'renewal_trouble' }),
-    ])
+    expect(notified).toEqual([expect.objectContaining({ userId: alice, kind: 'renewal_trouble' })])
   })
 
   it('cancel keeps the paid period: closing, not gone', async () => {
@@ -706,10 +695,7 @@ describe('the safety net', () => {
 
   it('an expired checkout closes the order and the sweep expires a lapsed membership', async () => {
     const { orderId, sessionId } = await checkout(alice, 'pass-90')
-    await handleWebhook(
-      services(),
-      webhookRequest('checkout.session.expired', { id: sessionId }),
-    )
+    await handleWebhook(services(), webhookRequest('checkout.session.expired', { id: sessionId }))
     expect((await orderById(context.data, orderId))?.status).toBe('cancelled')
 
     const second = await checkout(bob, 'pass-90')
@@ -805,9 +791,7 @@ describe('discount codes', () => {
     expect(stripe.coupons).toEqual([
       { percentOff: 50, name: 'Dues code SUBHALF', reference: String(code!.id) },
     ])
-    expect(stripe.checkoutInputs.at(-1)!.discounts).toEqual([
-      { coupon: `coupon_${code!.id}` },
-    ])
+    expect(stripe.checkoutInputs.at(-1)!.discounts).toEqual([{ coupon: `coupon_${code!.id}` }])
 
     const order = await orderBySessionId(context.data, [...stripe.sessions.keys()].at(-1)!)
     expect(order).toMatchObject({ amountMinor: 250, discountMinor: 250 })
@@ -818,17 +802,29 @@ describe('discount codes', () => {
 
   it('every way a code refuses, before any money moves', async () => {
     await insertCode(context.data, {
-      code: 'GONE', percentOff: 10, planKey: null,
-      maxRedemptions: 1, expiresAt: null, createdByUserId: alice,
+      code: 'GONE',
+      percentOff: 10,
+      planKey: null,
+      maxRedemptions: 1,
+      expiresAt: null,
+      createdByUserId: alice,
     })
     await exec(`update plugin_dues_code set redeemed_count = 1 where code = 'GONE'`)
     await insertCode(context.data, {
-      code: 'PAST', percentOff: 10, planKey: null,
-      maxRedemptions: null, expiresAt: new Date(Date.now() - 1000), createdByUserId: alice,
+      code: 'PAST',
+      percentOff: 10,
+      planKey: null,
+      maxRedemptions: null,
+      expiresAt: new Date(Date.now() - 1000),
+      createdByUserId: alice,
     })
     await insertCode(context.data, {
-      code: 'MONTHLY', percentOff: 10, planKey: 'supporter-month',
-      maxRedemptions: null, expiresAt: null, createdByUserId: alice,
+      code: 'MONTHLY',
+      percentOff: 10,
+      planKey: 'supporter-month',
+      maxRedemptions: null,
+      expiresAt: null,
+      createdByUserId: alice,
     })
 
     const attempt = async (code: string) =>
@@ -874,9 +870,7 @@ describe('discount codes', () => {
   it('minting refuses nonsense and duplicates without touching the table', async () => {
     expect(await mint({ code: 'OKAY', percent: '0' })).toContain('error=bad-percent')
     expect(await mint({ code: '!!', percent: '10' })).toContain('error=bad-code')
-    expect(await mint({ code: 'OKAY', percent: '10', plan: 'no-such' })).toContain(
-      'error=bad-plan',
-    )
+    expect(await mint({ code: 'OKAY', percent: '10', plan: 'no-such' })).toContain('error=bad-plan')
     expect(await mint({ code: 'OKAY', percent: '10', max: '0' })).toContain('error=bad-max')
     expect(await mint({ code: 'OKAY', percent: '10', expires: '2001-01-01' })).toContain(
       'error=bad-expiry',
@@ -1038,17 +1032,20 @@ describe('the plan manager', () => {
   it('an admin invents a day pass and a member holds it for exactly a day', async () => {
     expect(
       await plan({
-        key: 'day-pass', name: 'Day pass', group: 'supporters',
-        price: '100', currency: 'gbp', mode: 'fixed', length: '1', unit: 'days',
+        key: 'day-pass',
+        name: 'Day pass',
+        group: 'supporters',
+        price: '100',
+        currency: 'gbp',
+        mode: 'fixed',
+        length: '1',
+        unit: 'days',
         giftable: 'on',
       }),
     ).toContain('created=day-pass')
 
     const { sessionId } = await checkout(bob, 'day-pass')
-    await handleWebhook(
-      services(),
-      paidSessionEvent(sessionId, { amount_total: 100 }),
-    )
+    await handleWebhook(services(), paidSessionEvent(sessionId, { amount_total: 100 }))
 
     expect((await actorGroups(bob)).has(supportersGroup)).toBe(true)
     const [membership] = await membershipsFor(context.data, bob)
@@ -1058,16 +1055,19 @@ describe('the plan manager', () => {
   })
 
   it('price and currency are the admin’s to change; the next buyer sees them', async () => {
-    const seeded = await planRowByKey(
-      context.data,
-      ((await checkout(alice, 'pass-90')) && 'pass-90'),
-    )
+    const seeded = await planRowByKey(context.data, (await checkout(alice, 'pass-90')) && 'pass-90')
 
     const updated = await handleAdminPlanUpdate(
       services(),
       adminRequest(alice, 'plans/update', {
-        id: String(seeded!.id), name: '90-day pass', group: 'supporters',
-        price: '1500', currency: 'usd', length: '90', unit: 'days', giftable: 'on',
+        id: String(seeded!.id),
+        name: '90-day pass',
+        group: 'supporters',
+        price: '1500',
+        currency: 'usd',
+        length: '90',
+        unit: 'days',
+        giftable: 'on',
       }),
     )
     expect((updated as { to: string }).to).toContain('updated=pass-90')
@@ -1089,8 +1089,13 @@ describe('the plan manager', () => {
 
   it('lifetime is one payment forever, carried by a grant window the sweep renews', async () => {
     await plan({
-      key: 'forever', name: 'Forever', group: 'supporters',
-      price: '9900', currency: 'gbp', mode: 'lifetime', giftable: 'on',
+      key: 'forever',
+      name: 'Forever',
+      group: 'supporters',
+      price: '9900',
+      currency: 'gbp',
+      mode: 'lifetime',
+      giftable: 'on',
     })
 
     const { sessionId } = await checkout(alice, 'forever')
@@ -1120,8 +1125,13 @@ describe('the plan manager', () => {
   it('a subscription plan minted from the form gets a real Stripe price; pasting skips the mint', async () => {
     expect(
       await plan({
-        key: 'gold-month', name: 'Gold', group: 'supporters',
-        price: '900', currency: 'gbp', mode: 'auto', interval: 'month',
+        key: 'gold-month',
+        name: 'Gold',
+        group: 'supporters',
+        price: '900',
+        currency: 'gbp',
+        mode: 'auto',
+        interval: 'month',
       }),
     ).toContain('created=gold-month')
 
@@ -1137,20 +1147,29 @@ describe('the plan manager', () => {
     expect(input.line_items[0]!.price).toBe(minted!.stripePriceId)
 
     await plan({
-      key: 'pasted', name: 'Pasted', group: 'supporters',
-      price: '900', currency: 'gbp', mode: 'auto', interval: 'year',
+      key: 'pasted',
+      name: 'Pasted',
+      group: 'supporters',
+      price: '900',
+      currency: 'gbp',
+      mode: 'auto',
+      interval: 'year',
       stripe_price: 'price_dashboard_1',
     })
     expect(stripe.products).toHaveLength(1)
-    expect((await planRowByKey(context.data, 'pasted'))!.stripePriceId).toBe(
-      'price_dashboard_1',
-    )
+    expect((await planRowByKey(context.data, 'pasted'))!.stripePriceId).toBe('price_dashboard_1')
   })
 
   it('the form refuses what cannot work, before anything is saved', async () => {
     const base = {
-      key: 'p1', name: 'P', group: 'supporters',
-      price: '100', currency: 'gbp', mode: 'fixed', length: '30', unit: 'days',
+      key: 'p1',
+      name: 'P',
+      group: 'supporters',
+      price: '100',
+      currency: 'gbp',
+      mode: 'fixed',
+      length: '30',
+      unit: 'days',
     }
     expect(await plan({ ...base, length: '3', unit: 'years' })).toContain('error=too-long')
     expect(await plan({ ...base, price: '0' })).toContain('error=bad-price')
@@ -1170,8 +1189,12 @@ describe('the plan manager', () => {
     )
 
     await plan({
-      key: 'forever2', name: 'Forever', group: 'supporters',
-      price: '9900', currency: 'gbp', mode: 'lifetime',
+      key: 'forever2',
+      name: 'Forever',
+      group: 'supporters',
+      price: '9900',
+      currency: 'gbp',
+      mode: 'lifetime',
     })
     const refused = await handleCheckout(services(), request(alice, { plan: 'forever2' }))
     expect((refused as { to: string }).to).toContain('error=cancel-first')

@@ -103,7 +103,9 @@ describe('theme runtime style', () => {
 
   it('rejects unknown tokens and declaration injection', () => {
     expect(() => validateTokenOverrides(tokens, { invented: '#123456' })).toThrow(/not declared/)
-    expect(() => validateTokenOverrides(tokens, { primary: '#123456; color:red' })).toThrow(/unsafe/)
+    expect(() => validateTokenOverrides(tokens, { primary: '#123456; color:red' })).toThrow(
+      /unsafe/,
+    )
   })
 
   it('derives browser chrome colours from the effective background', () => {

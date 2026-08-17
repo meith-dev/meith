@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { PostgresAttachmentRepository } from './attachment-repo'
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresAttachmentRepository } from './attachment-repo'
 import { resultRows } from './result-rows'
 
 let harness: TestDb

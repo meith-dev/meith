@@ -1,5 +1,5 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
 import {
@@ -12,9 +12,9 @@ import {
   expireTimedGroupMemberships,
   pluginGrants,
 } from './plugin-grants'
-import { PostgresUserAdminRepository, likeFragment } from './user-admin-repo'
 import { resultRows } from './result-rows'
 import { toNullableDate } from './row-values'
+import { likeFragment, PostgresUserAdminRepository } from './user-admin-repo'
 
 let harness: TestDb
 let db: Database
@@ -167,8 +167,7 @@ describe('search', () => {
     await seed({ id: 1, username: 'ann', lastIp: '198.51.100.0' })
     await seed({ id: 2, username: 'elsewhere', lastIp: '10.198.51.0' })
 
-    expect((await repo.search({ ...ALL, ipPrefix: '198.51' })).rows.map((r) => r.id))
-      .toEqual([1])
+    expect((await repo.search({ ...ALL, ipPrefix: '198.51' })).rows.map((r) => r.id)).toEqual([1])
   })
 
   it('filters by group, by state and by post count', async () => {
@@ -176,13 +175,14 @@ describe('search', () => {
     await seed({ id: 2, username: 'bob', state: 'awaiting_activation' })
     await seed({ id: 3, username: 'carol', postCount: 5 })
 
-    expect((await repo.search({ ...ALL, primaryGroupId: ADMINS })).rows.map((r) => r.id))
-      .toEqual([1])
-    expect((await repo.search({ ...ALL, state: 'awaiting_activation' })).rows.map((r) => r.id))
-      .toEqual([2])
+    expect((await repo.search({ ...ALL, primaryGroupId: ADMINS })).rows.map((r) => r.id)).toEqual([
+      1,
+    ])
+    expect(
+      (await repo.search({ ...ALL, state: 'awaiting_activation' })).rows.map((r) => r.id),
+    ).toEqual([2])
     expect((await repo.search({ ...ALL, minPostCount: 10 })).rows.map((r) => r.id)).toEqual([1])
-    expect((await repo.search({ ...ALL, maxPostCount: 5 })).rows.map((r) => r.id))
-      .toEqual([2, 3])
+    expect((await repo.search({ ...ALL, maxPostCount: 5 })).rows.map((r) => r.id)).toEqual([2, 3])
   })
 
   it('finds a member banned the way the board bans them, and marks the row', async () => {
@@ -215,10 +215,12 @@ describe('search', () => {
     await seed({ id: 2, username: 'bob', createdAt: new Date('2026-06-01T00:00:00Z') })
 
     const boundary = new Date('2026-06-01T00:00:00Z')
-    expect((await repo.search({ ...ALL, registeredBefore: boundary })).rows.map((r) => r.id))
-      .toEqual([1])
-    expect((await repo.search({ ...ALL, registeredAfter: boundary })).rows.map((r) => r.id))
-      .toEqual([2])
+    expect(
+      (await repo.search({ ...ALL, registeredBefore: boundary })).rows.map((r) => r.id),
+    ).toEqual([1])
+    expect(
+      (await repo.search({ ...ALL, registeredAfter: boundary })).rows.map((r) => r.id),
+    ).toEqual([2])
   })
 
   it('hides soft-deleted members unless asked for them', async () => {
@@ -226,8 +228,9 @@ describe('search', () => {
     await seed({ id: 2, username: 'gone', deletedAt: new Date('2026-05-01T00:00:00Z') })
 
     expect((await repo.search(ALL)).rows.map((row) => row.id)).toEqual([1])
-    expect((await repo.search({ ...ALL, includeDeleted: true })).rows.map((row) => row.id))
-      .toEqual([1, 2])
+    expect((await repo.search({ ...ALL, includeDeleted: true })).rows.map((row) => row.id)).toEqual(
+      [1, 2],
+    )
   })
 
   it('pages by keyset and reports a null cursor on the last page', async () => {
@@ -324,9 +327,9 @@ describe('updateAccount', () => {
     await expect(
       repo.updateAccount(1, { ...base, username: '  ', email: 'a@b.test' }),
     ).rejects.toThrow(/needs a username/)
-    await expect(
-      repo.updateAccount(1, { ...base, username: 'ann', email: '  ' }),
-    ).rejects.toThrow(/needs an email/)
+    await expect(repo.updateAccount(1, { ...base, username: 'ann', email: '  ' })).rejects.toThrow(
+      /needs an email/,
+    )
   })
 
   it('refuses a member that does not exist', async () => {
@@ -424,10 +427,7 @@ describe('updateAccount and the denormalised author names', () => {
     })
   }
 
-  async function names(
-    entry: DenormalisedUsernameColumn,
-    userId: number,
-  ): Promise<string[]> {
+  async function names(entry: DenormalisedUsernameColumn, userId: number): Promise<string[]> {
     const rows = resultRows(
       await db.execute(sql`
         select ${sql.raw(entry.column)} as name
@@ -680,9 +680,7 @@ describe('secondary groups', () => {
   })
 
   it('refuses a member that does not exist', async () => {
-    await expect(repo.setSecondaryGroups(9_999, [ADMINS], null)).rejects.toThrow(
-      /No such member/,
-    )
+    await expect(repo.setSecondaryGroups(9_999, [ADMINS], null)).rejects.toThrow(/No such member/)
   })
 
   it('leaves a plugin-granted membership and its metadata alone when it stays ticked', async () => {

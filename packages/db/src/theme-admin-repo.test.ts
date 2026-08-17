@@ -1,10 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresThemeAdminRepository, parseThemeExport } from './theme-admin-repo'
 import { resultRows } from './result-rows'
+import { PostgresThemeAdminRepository, parseThemeExport } from './theme-admin-repo'
 
 let harness: TestDb
 let db: Database
@@ -25,9 +25,9 @@ beforeEach(async () => {
 })
 
 async function rowCount(): Promise<number> {
-  const rows = resultRows(
-    await db.execute(sql`select count(*)::int as n from themes`),
-  ) as Array<{ n: number }>
+  const rows = resultRows(await db.execute(sql`select count(*)::int as n from themes`)) as Array<{
+    n: number
+  }>
   return Number(rows[0]?.n ?? 0)
 }
 
@@ -235,9 +235,9 @@ describe('parseThemeExport', () => {
 
   it('refuses a document with no token object', () => {
     expect(() => parseThemeExport(JSON.stringify({ version: 1 }))).toThrow(/tokenOverrides/)
-    expect(() =>
-      parseThemeExport(JSON.stringify({ version: 1, tokenOverrides: 'red' })),
-    ).toThrow(/tokenOverrides/)
+    expect(() => parseThemeExport(JSON.stringify({ version: 1, tokenOverrides: 'red' }))).toThrow(
+      /tokenOverrides/,
+    )
   })
 
   it('refuses custom CSS that is not text', () => {
@@ -248,14 +248,20 @@ describe('parseThemeExport', () => {
 
   it('ignores the key in the file, so a look can be copied between themes', () => {
     const parsed = parseThemeExport(
-      JSON.stringify({ version: 1, key: 'somebody-elses', tokenOverrides: { primary: '#fff' }, customCss: null }),
+      JSON.stringify({
+        version: 1,
+        key: 'somebody-elses',
+        tokenOverrides: { primary: '#fff' },
+        customCss: null,
+      }),
     )
     expect(parsed.tokenOverrides).toEqual({ primary: '#fff' })
   })
 
   it('reads a missing customCss as null rather than undefined', () => {
-    expect(parseThemeExport(JSON.stringify({ version: 1, tokenOverrides: {} })).customCss)
-      .toBeNull()
+    expect(
+      parseThemeExport(JSON.stringify({ version: 1, tokenOverrides: {} })).customCss,
+    ).toBeNull()
   })
 
   it('reads both document versions', () => {

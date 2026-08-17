@@ -1,10 +1,10 @@
 import { ALL_THREAD_AUTHORS, PUBLIC_CONTENT } from '@meith/core'
+import { canHoldThreads } from '@meith/forums'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { crossOriginRefusal, isSameOrigin } from '@/server/same-origin'
 import { seeOther } from '@/server/see-other'
-import { canHoldThreads } from '@meith/forums'
 
 function idFrom(value: string | null): number | null {
   if (value === null || !/^[1-9]\d*$/.test(value)) return null
@@ -20,7 +20,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const postId = idFrom(url.searchParams.get('post'))
   const actor = await getActor()
   const { forums, posts, threads, authorizer, readState } = getContainer()
-  if (threadId === null || postId === null || actor.userId === null || readState === null) return seeOther('/')
+  if (threadId === null || postId === null || actor.userId === null || readState === null)
+    return seeOther('/')
 
   const thread = await threads.findById(threadId, PUBLIC_CONTENT, ALL_THREAD_AUTHORS)
   if (!thread) return seeOther('/')

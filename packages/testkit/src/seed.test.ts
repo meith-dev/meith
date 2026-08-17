@@ -1,10 +1,11 @@
-import { schema } from '@meith/db'
 import { eq } from 'drizzle-orm'
-import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { schema } from '@meith/db'
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
+
 import { createRandom } from './random'
-import { SMOKE_SCALE, seedBoard, type SeededBoard } from './seed'
+import { type SeededBoard, SMOKE_SCALE, seedBoard } from './seed'
 
 let harness: TestDb
 let board: SeededBoard

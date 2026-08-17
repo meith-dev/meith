@@ -19,7 +19,9 @@ export function BoardStats({
       </h2>
 
       {computedAt === null ? (
-        <span>The board&rsquo;s totals are rolled up on a schedule, and the first run has not happened.</span>
+        <span>
+          The board&rsquo;s totals are rolled up on a schedule, and the first run has not happened.
+        </span>
       ) : (
         <>
           {[

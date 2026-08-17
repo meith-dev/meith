@@ -94,12 +94,7 @@ export async function deliverWebhooks(
     }
 
     if (verdict === 'dead') {
-      await store.markDead(
-        row.id,
-        status,
-        failure || `HTTP ${status}`,
-        now,
-      )
+      await store.markDead(row.id, status, failure || `HTTP ${status}`, now)
       dead++
       log().warn(
         { webhookId: row.webhookId, deliveryId: row.deliveryId, status, attempts: row.attempts },

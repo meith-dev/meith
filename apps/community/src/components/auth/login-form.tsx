@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { loginAction } from "@/server/auth-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { loginAction } from '@/server/auth-actions'
+import { EMPTY_STATE } from '@/server/auth-form-state'
 
-import { Field, FormError, FormNotice, SubmitButton } from "./form-controls"
+import { Field, FormError, FormNotice, SubmitButton } from './form-controls'
 
 interface LoginFormProps {
   next?: string | undefined

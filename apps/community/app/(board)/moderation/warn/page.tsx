@@ -5,11 +5,8 @@ import { WarningService } from '@meith/moderation'
 import { requireSlot } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
+import { IssueWarningForm, RevokeWarningForm } from '@/components/moderation/warning-forms'
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
-import {
-  IssueWarningForm,
-  RevokeWarningForm,
-} from '@/components/moderation/warning-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
@@ -58,9 +55,7 @@ export default async function WarnPage({
 
   const citedPost = positiveInt(query.post)
   const postId =
-    citedPost !== null && (await warnings.findPostAuthor(citedPost)) === userId
-      ? citedPost
-      : null
+    citedPost !== null && (await warnings.findPostAuthor(citedPost)) === userId ? citedPost : null
 
   const { timezone } = await getViewerPreferences()
 
@@ -131,22 +126,16 @@ export default async function WarnPage({
                     <time dateTime={row.issuedAt.iso}>{row.issuedAt.label}</time>
                   </span>
                 </div>
-                <p className="mt-2 whitespace-pre-wrap break-words text-sm">
-                  {row.reason}
-                </p>
+                <p className="mt-2 whitespace-pre-wrap break-words text-sm">{row.reason}</p>
                 {row.postId !== null && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    About post #{row.postId}
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">About post #{row.postId}</p>
                 )}
                 {row.lapsed === null ? (
                   <div className="mt-3">
                     <RevokeWarningForm warningId={row.id} userId={view.member.userId} />
                   </div>
                 ) : (
-                  <p className="mt-2 text-xs italic text-muted-foreground">
-                    {row.lapsed}
-                  </p>
+                  <p className="mt-2 text-xs italic text-muted-foreground">{row.lapsed}</p>
                 )}
               </li>
             ))}

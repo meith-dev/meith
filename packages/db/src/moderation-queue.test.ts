@@ -1,11 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { ModerationQueue } from '@meith/moderation'
 
 import type { Database } from './client'
-import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresModerationQueueRepository } from './moderation-queue'
+import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
 import { forums, users } from './schema'
 
@@ -379,9 +379,9 @@ describe('the audit trail', () => {
       at: AT,
     })
 
-    const rows = resultRows(
-      await db.execute(sql`select detail from admin_log`),
-    ) as Array<{ detail: { forumIds: number[]; forumId?: number } }>
+    const rows = resultRows(await db.execute(sql`select detail from admin_log`)) as Array<{
+      detail: { forumIds: number[]; forumId?: number }
+    }>
 
     expect(new Set(rows[0]!.detail.forumIds)).toEqual(new Set([FORUM, OTHER]))
     expect(rows[0]!.detail.forumId).toBeUndefined()

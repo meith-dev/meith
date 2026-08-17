@@ -31,7 +31,7 @@ describe('the site Coolify compose file', () => {
 describe('the site image', () => {
   it('builds the standalone output the runtime stage copies', () => {
     expect(dockerfile).toContain('ENV SITE_STANDALONE=1')
-    expect(nextConfig).toContain('process.env.SITE_STANDALONE === "1"')
+    expect(nextConfig).toContain("process.env.SITE_STANDALONE === '1'")
     expect(dockerfile).toContain('/repo/apps/web/.next/standalone')
   })
 

@@ -1,10 +1,10 @@
 import {
-  NO_DIRECTIVES,
+  type CompiledSmilies,
   compileSmilies,
   createDirectiveRegistry,
-  type CompiledSmilies,
   type DirectiveDefinition,
   type DirectiveRegistry,
+  NO_DIRECTIVES,
   type SmileyDefinition,
 } from './extensions'
 

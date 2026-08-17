@@ -56,8 +56,7 @@ export const SLOTS = {
   ForumRow: {
     kind: 'server',
     purpose:
-      'One forum in a listing: title, description, counters, last post, ' +
-      'subforum links.',
+      'One forum in a listing: title, description, counters, last post, ' + 'subforum links.',
   },
   BoardStats: {
     kind: 'server',

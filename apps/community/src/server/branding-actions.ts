@@ -3,8 +3,8 @@
 import { ValidationError } from '@meith/core'
 
 import { recordAdminAction, requireAdmin } from './admin'
-import { LOGO_FIELD, isLogoScheme, removeLogo, saveLogo } from './branding'
 import type { FormState } from './auth-form-state'
+import { isLogoScheme, LOGO_FIELD, removeLogo, saveLogo } from './branding'
 import { formStateReporter } from './form-state-reporter'
 
 const toFormState = formStateReporter('branding', 'logo write failed')

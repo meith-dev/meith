@@ -4,7 +4,7 @@ import { Card, CardContent, CardRows, Empty, EmptyDescription, EmptyTitle } from
 
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
-import { LEADERBOARD_SIZE, buildStatsView } from '@/server/stats'
+import { buildStatsView, LEADERBOARD_SIZE } from '@/server/stats'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { formatTime } from '@/view/time'
 
@@ -42,19 +42,17 @@ export default async function StatsPage() {
       gap="loose"
       title="Board statistics"
       lede={
-        <>
-          {totals.computedAt === null ? (
-            'The totals below have not been counted yet — they are rolled up on a schedule.'
-          ) : (
-            <>
-              Totals counted{' '}
-              <time dateTime={totals.computedAt.toISOString()}>
-                {formatTime(totals.computedAt, now, preferences.timezone).label}
-              </time>
-              . The tables below are live.
-            </>
-          )}
-        </>
+        totals.computedAt === null ? (
+          'The totals below have not been counted yet — they are rolled up on a schedule.'
+        ) : (
+          <>
+            Totals counted{' '}
+            <time dateTime={totals.computedAt.toISOString()}>
+              {formatTime(totals.computedAt, now, preferences.timezone).label}
+            </time>
+            . The tables below are live.
+          </>
+        )
       }
     >
       <PanelSection id="totals-heading" title="Totals">

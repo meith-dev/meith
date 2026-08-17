@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 
 import { cn } from '@meith/ui'
 
+import { MassMailForm } from '@/components/admin/user-forms'
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
-import { MassMailForm } from '@/components/admin/user-forms'
 import { adminPageContext } from '@/server/admin'
 import { userAdminRepository, userBulkRepository } from '@/server/user-admin'
 
@@ -45,9 +45,9 @@ export default async function AdminMassMailPage() {
       title="Mass mail"
       lede={
         <>
-          Sends one message to every member of a group. It goes only to addresses the
-          board has <strong>verified</strong> — an unverified address is as often a typo,
-          or somebody else&rsquo;s mailbox, as it is the member&rsquo;s.
+          Sends one message to every member of a group. It goes only to addresses the board has{' '}
+          <strong>verified</strong> — an unverified address is as often a typo, or somebody
+          else&rsquo;s mailbox, as it is the member&rsquo;s.
         </>
       }
     >
@@ -59,16 +59,16 @@ export default async function AdminMassMailPage() {
         <p>Before you press it:</p>
         <ul className="flex list-disc flex-col gap-1 pl-4">
           <li>
-            Nothing is sent immediately. Messages are queued and go out as the scheduled
-            tick drains them.
+            Nothing is sent immediately. Messages are queued and go out as the scheduled tick drains
+            them.
           </li>
           <li>
-            There is no unsubscribe link and no per-member opt-out, so this is for things
-            every member needs to know rather than for anything promotional.
+            There is no unsubscribe link and no per-member opt-out, so this is for things every
+            member needs to know rather than for anything promotional.
           </li>
           <li>
-            A campaign that stops half way is continued, never restarted — restarting
-            would mail everybody a second time.
+            A campaign that stops half way is continued, never restarted — restarting would mail
+            everybody a second time.
           </li>
           <li>An email cannot be unsent.</li>
         </ul>

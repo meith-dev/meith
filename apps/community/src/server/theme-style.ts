@@ -59,10 +59,7 @@ function isSchemeShaped(raw: Record<string, unknown>): boolean {
   )
 }
 
-function validateScheme(
-  tokens: ThemeTokens,
-  raw: Record<string, unknown>,
-): Record<string, string> {
+function validateScheme(tokens: ThemeTokens, raw: Record<string, unknown>): Record<string, string> {
   const overrides: Record<string, string> = {}
   for (const [name, value] of Object.entries(raw)) {
     if (!(name in tokens.light) || !(name in tokens.dark)) {
@@ -277,7 +274,6 @@ export function renderGroupNameStyle(groups: readonly GroupNameColour[]): string
   }
 
   return (
-    scheme((group) => group.light, 'light', 'dark') +
-    scheme((group) => group.dark, 'dark', 'light')
+    scheme((group) => group.light, 'light', 'dark') + scheme((group) => group.dark, 'dark', 'light')
   )
 }

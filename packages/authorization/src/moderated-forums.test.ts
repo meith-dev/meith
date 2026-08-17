@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { emptyPermissionSet, type PermissionSet } from '@meith/core'
 
 import { Authorizer } from './authorizer'
+import { combinePermissionSets } from './combine'
 import {
   InMemoryAuthorizationSource,
   type MemoryAppointment,
   type MemoryBoard,
 } from './memory-source'
-import { combinePermissionSets } from './combine'
 import type { Actor } from './types'
 
 const GROUP = { registered: 2, staff: 3, admin: 4 } as const
@@ -65,10 +65,7 @@ const APPOINTMENT: MemoryAppointment = {
   canSplitThreads: true,
 }
 
-async function moderated(
-  moderators: readonly MemoryAppointment[],
-  who: Actor,
-): Promise<number[]> {
+async function moderated(moderators: readonly MemoryAppointment[], who: Actor): Promise<number[]> {
   const authorizer = new Authorizer(new InMemoryAuthorizationSource(board(moderators)))
   return (await authorizer.moderatedForumIds(who)).sort((a, b) => a - b)
 }
@@ -124,10 +121,7 @@ describe('moderatedForumIds', () => {
 
   it('ignores an appointment that does not grant approval', async () => {
     expect(
-      await moderated(
-        [{ ...APPOINTMENT, canApproveContent: false }],
-        actor([GROUP.registered]),
-      ),
+      await moderated([{ ...APPOINTMENT, canApproveContent: false }], actor([GROUP.registered])),
     ).toEqual([])
   })
 

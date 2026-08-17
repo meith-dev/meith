@@ -2,10 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { randomBase64Url } from '../crypto/base64url'
 import { createMemoryStore } from '../memory-repos'
+import type { AccountStore, AuthConfig } from '../ports'
 import { IdentityService } from '../service'
 import { rejectionMessage } from '../test-support.fixture'
-import type { AccountStore, AuthConfig } from '../ports'
-
 import { createAuthenticator, type FixtureAuthenticator } from './authenticator.fixture'
 import { PASSKEY_LIMIT, PasskeyService, passkeyLabel } from './service'
 
@@ -254,9 +253,7 @@ describe('removing a passkey', () => {
     const [held] = await store.passkeys.listForUser(userId)
 
     expect(
-      await rejectionMessage(
-        service().remove({ userId, passkeyId: held!.id, hasPassword: false }),
-      ),
+      await rejectionMessage(service().remove({ userId, passkeyId: held!.id, hasPassword: false })),
     ).toContain('only way you have left to sign in')
   })
 

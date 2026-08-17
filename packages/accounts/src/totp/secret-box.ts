@@ -30,10 +30,7 @@ export async function sealSecret(plaintext: string, passphrase: string): Promise
   return `${VERSION}.${encodeBase64Url(iv)}.${encodeBase64Url(sealed)}`
 }
 
-export async function openSecret(
-  sealed: string,
-  passphrase: string,
-): Promise<string | null> {
+export async function openSecret(sealed: string, passphrase: string): Promise<string | null> {
   const parts = sealed.split('.')
   if (parts.length !== 3 || parts[0] !== VERSION) return null
 

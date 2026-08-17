@@ -1,14 +1,14 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { threadToolAction } from "@/server/thread-tool-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { threadToolAction } from '@/server/thread-tool-actions'
 
-import { FormError } from "../auth/form-controls"
+import { FormError } from '../auth/form-controls'
 
 const BUTTON =
-  "inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 function ToolButton({
   threadId,
@@ -31,9 +31,7 @@ function ToolButton({
       <button
         type="submit"
         className={
-          destructive === true
-            ? `${BUTTON} border-destructive/40 text-destructive`
-            : BUTTON
+          destructive === true ? `${BUTTON} border-destructive/40 text-destructive` : BUTTON
         }
       >
         {label}
@@ -53,7 +51,7 @@ export function ThreadToolsForm({
   isSticky,
   rights,
   moveTargets,
-  heading = "Moderator tools",
+  heading = 'Moderator tools',
   children,
 }: {
   threadId: number
@@ -76,15 +74,15 @@ export function ThreadToolsForm({
       {rights.lock && (
         <ToolButton
           threadId={threadId}
-          tool={isLocked ? "unlock" : "lock"}
-          label={isLocked ? "Unlock" : "Lock"}
+          tool={isLocked ? 'unlock' : 'lock'}
+          label={isLocked ? 'Unlock' : 'Lock'}
         />
       )}
       {rights.stick && (
         <ToolButton
           threadId={threadId}
-          tool={isSticky ? "unstick" : "stick"}
-          label={isSticky ? "Unpin" : "Pin"}
+          tool={isSticky ? 'unstick' : 'stick'}
+          label={isSticky ? 'Unpin' : 'Pin'}
         />
       )}
       {rights.delete && (

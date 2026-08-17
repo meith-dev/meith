@@ -1,15 +1,11 @@
+import { MonitorIcon, MoonIcon, SunIcon } from '@/components/shell/appearance-icons'
 import { BOARD_MEASURE } from '@/components/shell/measure'
-import {
-  MonitorIcon,
-  MoonIcon,
-  SunIcon,
-} from '@/components/shell/appearance-icons'
 import { setAppearanceAction } from '@/server/appearance-actions'
 import { currentColourScheme, currentThemeKey } from '@/server/theme'
 import { getBoardThemeStyle } from '@/server/theme-runtime'
 import {
-  COLOUR_SCHEMES,
   COLOUR_SCHEME_LABEL,
+  COLOUR_SCHEMES,
   type ColourSchemePreference,
 } from '@/view/theme-preference'
 
@@ -31,28 +27,19 @@ export async function ThemeSwitcher() {
 
   return (
     <div className="border-t border-border bg-card text-card-foreground">
-      <div className={`${BOARD_MEASURE} flex flex-wrap items-center justify-end gap-x-4 gap-y-2 py-2`}>
+      <div
+        className={`${BOARD_MEASURE} flex flex-wrap items-center justify-end gap-x-4 gap-y-2 py-2`}
+      >
         <section
           aria-label="Appearance"
           className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2"
         >
           {choices.length > 1 && (
-            <form
-              action={setAppearanceAction}
-              className="flex items-center gap-2"
-            >
-              <label
-                htmlFor="appearance-theme"
-                className="text-xs text-muted-foreground"
-              >
+            <form action={setAppearanceAction} className="flex items-center gap-2">
+              <label htmlFor="appearance-theme" className="text-xs text-muted-foreground">
                 Theme
               </label>
-              <select
-                id="appearance-theme"
-                name="theme"
-                defaultValue={theme}
-                className={CONTROL}
-              >
+              <select id="appearance-theme" name="theme" defaultValue={theme} className={CONTROL}>
                 {choices.map((choice) => (
                   <option key={choice.key} value={choice.key}>
                     {choice.title}

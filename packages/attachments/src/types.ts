@@ -57,8 +57,7 @@ export function sniff(bytes: Uint8Array): AttachmentType | undefined {
   return ATTACHMENT_TYPES.find((type) =>
     type.magic.some(
       (signature) =>
-        bytes.length >= signature.length &&
-        signature.every((byte, at) => bytes[at] === byte),
+        bytes.length >= signature.length && signature.every((byte, at) => bytes[at] === byte),
     ),
   )
 }

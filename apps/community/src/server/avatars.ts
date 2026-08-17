@@ -1,17 +1,18 @@
 import 'server-only'
 
-import { ForbiddenError } from '@meith/core'
+import { cache } from 'react'
+
 import type { Actor } from '@meith/authorization'
 import {
   AvatarService,
-  NO_AVATAR,
   avatarUrl,
   avatarVisible,
+  NO_AVATAR,
   type StoredAvatar,
 } from '@meith/avatars'
-import { imageProcessor } from '@meith/drivers/images'
+import { ForbiddenError } from '@meith/core'
 import { drivers } from '@meith/drivers'
-import { cache } from 'react'
+import { imageProcessor } from '@meith/drivers/images'
 
 import { getContainer } from './container'
 
@@ -51,11 +52,7 @@ export const avatarsFor = cache(
 
 export function canUploadAvatar(actor: Actor): boolean {
   const { authorizer } = getContainer()
-  return (
-    avatarService() !== null &&
-    actor.userId !== null &&
-    authorizer.can(actor, 'avatar.upload')
-  )
+  return avatarService() !== null && actor.userId !== null && authorizer.can(actor, 'avatar.upload')
 }
 
 export async function resolveAvatar(

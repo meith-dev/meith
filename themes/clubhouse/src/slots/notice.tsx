@@ -1,5 +1,5 @@
-import { Alert, AlertDescription, AlertTitle } from '@meith/ui'
 import type { NoticeModel } from '@meith/theme-kit'
+import { Alert, AlertDescription, AlertTitle } from '@meith/ui'
 
 import { MICRO, MUTED_LINK } from '../shared'
 

@@ -2,15 +2,14 @@
 
 import { redirect } from 'next/navigation'
 
-import { env, logger, truncateIp } from '@meith/core'
-
 import {
+  type AuthConfig,
+  foldIdentifier,
+  type LoginBucket,
   REPLAYED_CODE,
   WRONG_CODE,
-  foldIdentifier,
-  type AuthConfig,
-  type LoginBucket,
 } from '@meith/accounts'
+import { env, logger, truncateIp } from '@meith/core'
 
 import { remoteAddress } from './admin'
 import {
@@ -22,21 +21,16 @@ import {
   spendResetLimits,
   verifyChallenge,
 } from './antispam'
-import { recordAuthEvent } from './auth-events'
-import { requestFingerprint } from './request-fingerprint'
-import { twoFactorService } from './two-factor'
-import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
 import { boardAuthConfig } from './auth-config'
+import { recordAuthEvent } from './auth-events'
+import type { FormState } from './auth-form-state'
+import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
 import { configuredIdentity, configuredSessions, getContainer } from './container'
 import { formStateReporter } from './form-state-reporter'
 import { termsAcceptance } from './legal'
-import {
-  profileFieldService,
-  registrationFieldContext,
-  submittedFields,
-} from './profile-fields'
+import { profileFieldService, registrationFieldContext, submittedFields } from './profile-fields'
+import { requestFingerprint } from './request-fingerprint'
 import { isSafeLocalPath } from './safe-path'
-import type { FormState } from './auth-form-state'
 import {
   clearSecondFactorCookie,
   clearSessionCookies,
@@ -46,6 +40,7 @@ import {
   setSecondFactorCookie,
   setSessionCookie,
 } from './session-cookies'
+import { twoFactorService } from './two-factor'
 
 function field(form: FormData, name: string): string {
   const v = form.get(name)
@@ -87,17 +82,10 @@ async function loginBuckets(
     return [{ key: `login:${account}@${address}` }, wide]
   }
 
-  return [
-    { key: `login:${account}@${address}` },
-    wide,
-    { key: `login@${prefix}`, max: perAddress },
-  ]
+  return [{ key: `login:${account}@${address}` }, wide, { key: `login@${prefix}`, max: perAddress }]
 }
 
-export async function registerAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function registerAction(_prev: FormState, form: FormData): Promise<FormState> {
   const username = field(form, 'username')
   const email = field(form, 'email')
   const password = field(form, 'password')
@@ -130,10 +118,7 @@ export async function registerAction(
         ? []
         : await fields.validateRegistration({ submitted: submittedFields(form), context })
 
-    const result = await identity.register(
-      { username, email, password },
-      await addressContext(),
-    )
+    const result = await identity.register({ username, email, password }, await addressContext())
 
     if (fields !== null) await fields.applyRegistration(result.account.id, fieldValues)
 
@@ -170,8 +155,7 @@ export async function resendVerificationAction(
   const email = field(form, 'email')
   const values = { email }
 
-  const notice =
-    'If that address has an account waiting to be confirmed, a new link has been sent.'
+  const notice = 'If that address has an account waiting to be confirmed, a new link has been sent.'
 
   try {
     const limit = await spendResendLimit(foldIdentifier(email))
@@ -188,10 +172,7 @@ export async function resendVerificationAction(
           username: resent.account.username,
         })
       } catch (err) {
-        logger({ module: 'auth-actions' }).error(
-          { err },
-          'could not resend a verification e-mail',
-        )
+        logger({ module: 'auth-actions' }).error({ err }, 'could not resend a verification e-mail')
       }
     }
 
@@ -201,10 +182,7 @@ export async function resendVerificationAction(
   }
 }
 
-export async function loginAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function loginAction(_prev: FormState, form: FormData): Promise<FormState> {
   const identifier = field(form, 'identifier')
   const password = field(form, 'password')
   const remember = form.get('remember') === 'on'
@@ -341,15 +319,11 @@ export async function logoutAction(): Promise<void> {
   redirect('/login')
 }
 
-export async function requestResetAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function requestResetAction(_prev: FormState, form: FormData): Promise<FormState> {
   const email = field(form, 'email')
   const { identity } = getContainer()
 
-  const notice =
-    'If an account exists for that email, a password reset link has been sent.'
+  const notice = 'If an account exists for that email, a password reset link has been sent.'
 
   try {
     const limits = await spendResetLimits(foldIdentifier(email))
@@ -384,10 +358,7 @@ export async function requestResetAction(
   }
 }
 
-export async function confirmResetAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function confirmResetAction(_prev: FormState, form: FormData): Promise<FormState> {
   const token = field(form, 'token')
   const password = field(form, 'password')
   const confirm = field(form, 'confirm')

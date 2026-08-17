@@ -1,18 +1,18 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { Button } from "@meith/ui/button"
+import { Button } from '@meith/ui/button'
 
-import { removePasskeyAction, unlinkIdentityAction } from "@/server/federation-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { removePasskeyAction, unlinkIdentityAction } from '@/server/federation-actions'
 
-import { FormError } from "../auth/form-controls"
+import { FormError } from '../auth/form-controls'
 
-const CARD = "flex flex-col gap-4 rounded-lg border border-border bg-card p-5"
+const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
 
 const ROW =
-  "flex flex-wrap items-center justify-between gap-3 rounded-md border border-border px-3 py-2"
+  'flex flex-wrap items-center justify-between gap-3 rounded-md border border-border px-3 py-2'
 
 export interface LinkedIdentityView {
   readonly id: number
@@ -51,17 +51,15 @@ export function LinkedSignIns({
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold tracking-tight">Linked sign-ins</h2>
         <p className="text-xs text-muted-foreground">
-          Anything listed here can open your account without your password. Unlink one and
-          it stops being a way in immediately.
+          Anything listed here can open your account without your password. Unlink one and it stops
+          being a way in immediately.
         </p>
       </div>
 
       <FormError message={state.error} />
 
       {linked.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Nothing is linked to your account yet.
-        </p>
+        <p className="text-sm text-muted-foreground">Nothing is linked to your account yet.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {linked.map((identity) => (
@@ -70,16 +68,13 @@ export function LinkedSignIns({
                 <span className="font-medium">
                   {identity.label}
                   {identity.detail === null ? null : (
-                    <span className="font-normal text-muted-foreground">
-                      {" "}
-                      — {identity.detail}
-                    </span>
+                    <span className="font-normal text-muted-foreground"> — {identity.detail}</span>
                   )}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   Linked {identity.linkedAt}
                   {identity.lastUsedAt === null
-                    ? ", never used since"
+                    ? ', never used since'
                     : `, last used ${identity.lastUsedAt}`}
                 </span>
               </span>
@@ -132,8 +127,8 @@ export function PasskeyList({
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold tracking-tight">Passkeys</h2>
         <p className="text-xs text-muted-foreground">
-          A passkey signs you in with the fingerprint, face or security key your device
-          already uses. It never leaves that device, and there is no password to phish.
+          A passkey signs you in with the fingerprint, face or security key your device already
+          uses. It never leaves that device, and there is no password to phish.
         </p>
       </div>
 
@@ -150,7 +145,7 @@ export function PasskeyList({
                 <span className="text-xs text-muted-foreground">
                   Added {passkey.createdAt}
                   {passkey.lastUsedAt === null
-                    ? ", never used"
+                    ? ', never used'
                     : `, last used ${passkey.lastUsedAt}`}
                 </span>
               </span>

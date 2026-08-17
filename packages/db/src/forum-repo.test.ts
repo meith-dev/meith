@@ -1,6 +1,7 @@
-import { buildTree, planMove } from '@meith/forums'
 import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+
+import { buildTree, planMove } from '@meith/forums'
 
 import type { Database } from './client'
 import { PostgresForumRepository } from './forum-repo'
@@ -13,12 +14,66 @@ let repo: PostgresForumRepository
 
 async function seedTree(): Promise<void> {
   await db.insert(forums).values([
-    { id: 1, type: 'category', title: 'Category one', slug: 'cat-one', path: '1', depth: 0, displayOrder: 0, allowThreads: false },
-    { id: 2, type: 'category', title: 'Category two', slug: 'cat-two', path: '2', depth: 0, displayOrder: 1, allowThreads: false },
-    { id: 4, type: 'forum', title: 'General', slug: 'general', parentId: 1, path: '1.4', depth: 1, displayOrder: 0 },
-    { id: 9, type: 'forum', title: 'Off-topic', slug: 'off-topic', parentId: 4, path: '1.4.9', depth: 2, displayOrder: 0 },
-    { id: 12, type: 'forum', title: 'Deep', slug: 'deep', parentId: 9, path: '1.4.9.12', depth: 3, displayOrder: 0 },
-    { id: 40, type: 'forum', title: 'Forty', slug: 'forty', parentId: 1, path: '1.40', depth: 1, displayOrder: 1 },
+    {
+      id: 1,
+      type: 'category',
+      title: 'Category one',
+      slug: 'cat-one',
+      path: '1',
+      depth: 0,
+      displayOrder: 0,
+      allowThreads: false,
+    },
+    {
+      id: 2,
+      type: 'category',
+      title: 'Category two',
+      slug: 'cat-two',
+      path: '2',
+      depth: 0,
+      displayOrder: 1,
+      allowThreads: false,
+    },
+    {
+      id: 4,
+      type: 'forum',
+      title: 'General',
+      slug: 'general',
+      parentId: 1,
+      path: '1.4',
+      depth: 1,
+      displayOrder: 0,
+    },
+    {
+      id: 9,
+      type: 'forum',
+      title: 'Off-topic',
+      slug: 'off-topic',
+      parentId: 4,
+      path: '1.4.9',
+      depth: 2,
+      displayOrder: 0,
+    },
+    {
+      id: 12,
+      type: 'forum',
+      title: 'Deep',
+      slug: 'deep',
+      parentId: 9,
+      path: '1.4.9.12',
+      depth: 3,
+      displayOrder: 0,
+    },
+    {
+      id: 40,
+      type: 'forum',
+      title: 'Forty',
+      slug: 'forty',
+      parentId: 1,
+      path: '1.40',
+      depth: 1,
+      displayOrder: 1,
+    },
   ])
 
   await db.execute(
@@ -26,7 +81,9 @@ async function seedTree(): Promise<void> {
   )
 }
 
-async function pathsById(): Promise<Map<number, { path: string; depth: number; parentId: number | null }>> {
+async function pathsById(): Promise<
+  Map<number, { path: string; depth: number; parentId: number | null }>
+> {
   const rows = await db
     .select({ id: forums.id, path: forums.path, depth: forums.depth, parentId: forums.parentId })
     .from(forums)
@@ -182,7 +239,12 @@ describe('create', () => {
   })
 
   it('creates a root forum', async () => {
-    const created = await repo.create({ type: 'category', title: 'Meta', slug: 'meta', parentId: null })
+    const created = await repo.create({
+      type: 'category',
+      title: 'Meta',
+      slug: 'meta',
+      parentId: null,
+    })
     expect(created.path).toBe(String(created.id))
     expect(created.depth).toBe(0)
   })
@@ -226,7 +288,12 @@ describe('create', () => {
   })
 
   it('produces a forum that is immediately movable', async () => {
-    const created = await repo.create({ type: 'forum', title: 'Support', slug: 'support', parentId: 1 })
+    const created = await repo.create({
+      type: 'forum',
+      title: 'Support',
+      slug: 'support',
+      parentId: 1,
+    })
     await repo.move(created.id, { newParentId: 2 })
     expect((await pathsById()).get(created.id)?.path).toBe(`2.${created.id}`)
   })
@@ -235,11 +302,14 @@ describe('create', () => {
 describe('create', () => {
   it('opens a new forum to threads and leaves a new category closed', async () => {
     const forum = await repo.create({ type: 'forum', title: 'Talk', slug: 'talk', parentId: 1 })
-    const category = await repo.create({ type: 'category', title: 'Side', slug: 'side', parentId: null })
+    const category = await repo.create({
+      type: 'category',
+      title: 'Side',
+      slug: 'side',
+      parentId: null,
+    })
 
-    const rows = await db
-      .select({ id: forums.id, allowThreads: forums.allowThreads })
-      .from(forums)
+    const rows = await db.select({ id: forums.id, allowThreads: forums.allowThreads }).from(forums)
     const flags = new Map(rows.map((row) => [row.id, row.allowThreads]))
 
     expect(flags.get(forum.id)).toBe(true)

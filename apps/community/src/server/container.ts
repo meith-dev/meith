@@ -1,112 +1,111 @@
 import 'server-only'
 
 import {
-  BanService,
-  IdentityService,
-  SessionService,
-  createMemoryStore,
-  enrolmentLookup,
   type AccountStore,
   type BanLookup,
+  BanService,
+  createMemoryStore,
+  enrolmentLookup,
+  IdentityService,
   type MemberProfileRepository,
   type MemberSettingsRepository,
+  SessionService,
 } from '@meith/accounts'
+import type { AdminLogRepository, AdminSessionRepository } from '@meith/admin'
+import type { AttachmentRepository } from '@meith/attachments'
 import {
-  Authorizer,
-  InMemoryAuthorizationSource,
   type ActorSource,
   type AuthorizationSource,
+  Authorizer,
   type BypassEvent,
+  InMemoryAuthorizationSource,
 } from '@meith/authorization'
-import type { AttachmentRepository } from '@meith/attachments'
 import type { AvatarRepository } from '@meith/avatars'
 import { env, logger } from '@meith/core'
+import {
+  ActorBuilder,
+  createPostgresAccountStore,
+  getDb,
+  PostgresAdminLogRepository,
+  PostgresAdminSessionRepository,
+  PostgresAttachmentRepository,
+  PostgresAuthorizationSource,
+  PostgresAvatarRepository,
+  PostgresBanRepository,
+  PostgresDraftRepository,
+  PostgresForumRepository,
+  PostgresInlineModerationRepository,
+  PostgresMemberProfileRepository,
+  PostgresMemberSettingsRepository,
+  PostgresMessageRepository,
+  PostgresModCpRepository,
+  PostgresModerationQueueRepository,
+  PostgresNotificationRepository,
+  PostgresPollRepository,
+  PostgresPostRepository,
+  PostgresPostWriteRepository,
+  PostgresProfileFieldRepository,
+  PostgresReadStateRepository,
+  PostgresRelationRepository,
+  PostgresReportRepository,
+  PostgresReputationRepository,
+  PostgresSignatureRepository,
+  PostgresSubscriptionRepository,
+  PostgresThreadRepository,
+  PostgresThreadSurgeryRepository,
+  PostgresThreadToolsRepository,
+  PostgresThreadViewBuffer,
+  PostgresThreadWriteRepository,
+  PostgresWarningRepository,
+} from '@meith/db'
+import { demoResetTask } from '@meith/demo'
+import type { DraftRepository } from '@meith/drafts'
+import { drivers } from '@meith/drivers'
+import { imageProcessor } from '@meith/drivers/images'
 import { CachedForumRepository, type ForumRepository } from '@meith/forums'
+import type { MessageRepository } from '@meith/messages'
 import type {
   InlineModerationRepository,
+  ModCpRepository,
   ModerationQueueRepository,
   ReportRepository,
-  ThreadToolsRepository,
-  ModCpRepository,
   ThreadSurgeryRepository,
+  ThreadToolsRepository,
   WarningBanPort,
   WarningRepository,
 } from '@meith/moderation'
 import type { NotificationRepository } from '@meith/notifications'
-import type { PostRepository, PostWriteRepository } from '@meith/posts'
-import type { MessageRepository } from '@meith/messages'
-import type { RelationRepository } from '@meith/relations'
-import type { AdminLogRepository, AdminSessionRepository } from '@meith/admin'
-import type { ReputationRepository } from '@meith/reputation'
 import type { PollRepository, ThreadRatingRepository } from '@meith/polls'
-import type { DraftRepository } from '@meith/drafts'
+import type { PostRepository, PostWriteRepository } from '@meith/posts'
 import type { ProfileFieldRepository } from '@meith/profile-fields'
+import type { RelationRepository } from '@meith/relations'
+import type { ReputationRepository } from '@meith/reputation'
+import { buildSchedulerBundle } from '@meith/runtime'
 import type { SubscriptionRepository } from '@meith/subscriptions'
+import type { TaskDefinition, TaskRepository } from '@meith/tasks'
 import type {
   ReadStateRepository,
   ReplyWriteRepository,
   ThreadRepository,
   ThreadWriteRepository,
 } from '@meith/threads'
-import type { TaskDefinition, TaskRepository } from '@meith/tasks'
-import { imageProcessor } from '@meith/drivers/images'
-import { demoResetTask } from '@meith/demo'
-import { buildSchedulerBundle } from '@meith/runtime'
-import {
-  getDb,
-  PostgresAuthorizationSource,
-  ActorBuilder,
-  createPostgresAccountStore,
-  PostgresBanRepository,
-  PostgresForumRepository,
-  PostgresThreadRepository,
-  PostgresThreadWriteRepository,
-  PostgresPostWriteRepository,
-  PostgresModerationQueueRepository,
-  PostgresReportRepository,
-  PostgresThreadToolsRepository,
-  PostgresThreadSurgeryRepository,
-  PostgresInlineModerationRepository,
-  PostgresWarningRepository,
-  PostgresNotificationRepository,
-  PostgresSubscriptionRepository,
-  PostgresMemberSettingsRepository,
-  PostgresMessageRepository,
-  PostgresRelationRepository,
-  PostgresReputationRepository,
-  PostgresPollRepository,
-  PostgresDraftRepository,
-  PostgresSignatureRepository,
-  PostgresAdminLogRepository,
-  PostgresAdminSessionRepository,
-  PostgresAttachmentRepository,
-  PostgresAvatarRepository,
-  PostgresProfileFieldRepository,
-  PostgresModCpRepository,
-  PostgresPostRepository,
-  PostgresReadStateRepository,
-  PostgresMemberProfileRepository,
-  PostgresThreadViewBuffer,
-} from '@meith/db'
-import { drivers } from '@meith/drivers'
 
 import forumConfig from '../../community.config'
-
+import { ABSENT_SERVICES } from './absent-services'
 import {
   AUTH_CONFIG,
-  REMEMBER_DAYS,
-  SESSION_LIFETIME_DAYS,
   boardAuthConfig,
   boardSessionConfig,
+  REMEMBER_DAYS,
+  SESSION_LIFETIME_DAYS,
 } from './auth-config'
+import { clearUploadedFiles } from './demo-uploads'
 import { FixtureActorSource } from './fixture-actor-source'
 import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
 import { FixturePostRepository } from './fixture-post-repo'
 import { FixtureThreadRepository } from './fixture-thread-repo'
-import { clearUploadedFiles } from './demo-uploads'
 import { activeDefinitions } from './plugin-host'
-import { ABSENT_SERVICES } from './absent-services'
 import { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_GROUP } from './seed-board'
 
 export interface Container {
@@ -364,10 +363,8 @@ export function getContainer(): Container {
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     typeof cached.accountStore?.identities?.listForUser !== 'function' ||
     typeof cached.accountStore?.passkeys?.listForUser !== 'function' ||
-    (cached.dataSource === 'fixture' &&
-      cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
-    (cached.dataSource === 'postgres' &&
-      typeof cached.readState?.forUser !== 'function')
+    (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
+    (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')
   ) {
     g[GLOBAL_KEY] = build()
   }

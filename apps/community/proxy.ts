@@ -1,23 +1,19 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 
 import { env } from '@meith/core/env'
 
+import { contentSecurityPolicy, newNonce, readsAsAsset } from './src/server/content-security-policy'
 import {
   DEV_GUEST_COOKIE,
   DEV_REMEMBER_COOKIE,
   DEV_SESSION_COOKIE,
   GUEST_COOKIE,
   GUEST_COOKIE_DAYS,
-  REMEMBER_COOKIE,
-  SESSION_COOKIE,
   guestCookie,
   guestCookieName,
+  REMEMBER_COOKIE,
+  SESSION_COOKIE,
 } from './src/server/cookies'
-import {
-  contentSecurityPolicy,
-  newNonce,
-  readsAsAsset,
-} from './src/server/content-security-policy'
 import {
   FRESH_GUEST_HEADER,
   NONCE_HEADER,
@@ -91,9 +87,7 @@ function withPath(req: NextRequest, policy: Policy): NextResponse {
 }
 
 function isProtected(pathname: string): boolean {
-  return PROTECTED_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  )
+  return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
 
 function themeRedirect(req: NextRequest): NextResponse | null {
@@ -155,9 +149,7 @@ export function proxy(req: NextRequest): NextResponse {
     }),
   }
 
-  const res = readsAsAsset(req.nextUrl.pathname)
-    ? NextResponse.next()
-    : triage(req, policy)
+  const res = readsAsAsset(req.nextUrl.pathname) ? NextResponse.next() : triage(req, policy)
 
   res.headers.set(CSP_HEADER, policy.value)
   return res

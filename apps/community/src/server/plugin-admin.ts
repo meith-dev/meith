@@ -3,15 +3,15 @@ import 'server-only'
 import { env, logger, readPluginEnv } from '@meith/core'
 import { appliedPluginMigrations, getDb } from '@meith/db'
 import {
-  pluginAdminPath,
-  pluginSettingType,
-  pluginTaskId,
-  resolvePluginSettingDetails,
   type PluginDefinition,
   type PluginHealth,
   type PluginSettingSource,
   type PluginSettingType,
   type PluginSettingValue,
+  pluginAdminPath,
+  pluginSettingType,
+  pluginTaskId,
+  resolvePluginSettingDetails,
 } from '@meith/plugin-kit'
 
 import forumConfig from '../../community.config'
@@ -83,10 +83,12 @@ export interface PluginInventory {
 
 function definitionsByKey(): ReadonlyMap<string, PluginDefinition | undefined> {
   return new Map(
-    (forumConfig.plugins ?? []).map((entry) => [entry.key, entry.plugin as PluginDefinition | undefined]),
+    (forumConfig.plugins ?? []).map((entry) => [
+      entry.key,
+      entry.plugin as PluginDefinition | undefined,
+    ]),
   )
 }
-
 
 async function appliedByPlugin(
   keys: readonly string[],
@@ -164,22 +166,28 @@ export async function pluginInventory(): Promise<PluginInventory> {
         }
       }),
 
-      migrations: (definition?.migrations ?? []).map((migration): PluginMigrationRow => ({
-        id: migration.id,
-        applied: (applied?.get(entry.key) ?? []).includes(migration.id),
-      })),
+      migrations: (definition?.migrations ?? []).map(
+        (migration): PluginMigrationRow => ({
+          id: migration.id,
+          applied: (applied?.get(entry.key) ?? []).includes(migration.id),
+        }),
+      ),
 
-      tasks: (definition?.tasks ?? []).map((task): PluginTaskRow => ({
-        id: task.id,
-        registeredId: pluginTaskId(entry.key, task.id),
-        intervalSeconds: task.intervalSeconds,
-      })),
+      tasks: (definition?.tasks ?? []).map(
+        (task): PluginTaskRow => ({
+          id: task.id,
+          registeredId: pluginTaskId(entry.key, task.id),
+          intervalSeconds: task.intervalSeconds,
+        }),
+      ),
 
-      pages: (definition?.adminPages ?? []).map((page): PluginPageRow => ({
-        path: page.path,
-        title: page.title,
-        href: pluginAdminPath(entry.key, page.path),
-      })),
+      pages: (definition?.adminPages ?? []).map(
+        (page): PluginPageRow => ({
+          path: page.path,
+          title: page.title,
+          href: pluginAdminPath(entry.key, page.path),
+        }),
+      ),
     }
   })
 

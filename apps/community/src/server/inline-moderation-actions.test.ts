@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { Actor } from '@meith/authorization'
 import {
-  InMemoryAuthorizationSource,
   combinePermissionSets,
+  InMemoryAuthorizationSource,
   type MemoryAppointment,
 } from '@meith/authorization'
-import type { Actor } from '@meith/authorization'
 import type {
   InlineModerationRepository,
   InlineTarget,
@@ -40,7 +40,11 @@ const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
 
 class FakeInline implements InlineModerationRepository {
   rows: InlineTarget[] = []
-  destination: MoveDestination | null = { id: SEED_FORUM.announcements, type: 'forum', allowThreads: true }
+  destination: MoveDestination | null = {
+    id: SEED_FORUM.announcements,
+    type: 'forum',
+    allowThreads: true,
+  }
   readonly applied: Array<{ tool: InlineTool; threadIds: number[]; postIds: number[] }> = []
   scopes: number[][] = []
 
@@ -75,9 +79,7 @@ class FakeInline implements InlineModerationRepository {
 
 let inline: FakeInline
 
-function target(
-  over: Partial<InlineTarget> & Pick<InlineTarget, 'kind' | 'id'>,
-): InlineTarget {
+function target(over: Partial<InlineTarget> & Pick<InlineTarget, 'kind' | 'id'>): InlineTarget {
   return {
     forumId: SEED_FORUM.general,
     visibility: 'visible',
@@ -88,10 +90,7 @@ function target(
   }
 }
 
-function appointment(
-  forumId: number,
-  rights: Partial<MemoryAppointment>,
-): MemoryAppointment {
+function appointment(forumId: number, rights: Partial<MemoryAppointment>): MemoryAppointment {
   return {
     userId: 3,
     forumId,
@@ -145,10 +144,7 @@ async function redirectOf(run: Promise<unknown>): Promise<string> {
 
 beforeEach(async () => {
   inline = new FakeInline()
-  inline.rows = [
-    target({ kind: 'thread', id: 20 }),
-    target({ kind: 'thread', id: 21 }),
-  ]
+  inline.rows = [target({ kind: 'thread', id: 20 }), target({ kind: 'thread', id: 21 })]
   actorRef.current = await actorFor(SEED_GROUP.superModerators, 2)
   installContainer()
 })
@@ -175,11 +171,7 @@ describe('inlineModerateAction', () => {
     const where = await redirectOf(
       inlineModerateAction(
         EMPTY_STATE,
-        form({ tool: 'lock', returnTo: '/2-general' }, [
-          'thread:20',
-          'thread:21',
-          'thread:99',
-        ]),
+        form({ tool: 'lock', returnTo: '/2-general' }, ['thread:20', 'thread:21', 'thread:99']),
       ),
     )
 
@@ -192,10 +184,7 @@ describe('inlineModerateAction', () => {
       [SEED_GROUP.registered, 3],
     ] as const) {
       actorRef.current = await actorFor(group, id)
-      const state = await inlineModerateAction(
-        EMPTY_STATE,
-        form({ tool: 'lock' }, ['thread:20']),
-      )
+      const state = await inlineModerateAction(EMPTY_STATE, form({ tool: 'lock' }, ['thread:20']))
       expect(state.error).toBeTruthy()
     }
     expect(inline.applied).toEqual([])
@@ -236,15 +225,10 @@ describe('inlineModerateAction', () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
     installContainer([appointment(SEED_FORUM.general, { canOpenCloseThreads: true })])
 
-    await redirectOf(
-      inlineModerateAction(EMPTY_STATE, form({ tool: 'lock' }, ['thread:20'])),
-    )
+    await redirectOf(inlineModerateAction(EMPTY_STATE, form({ tool: 'lock' }, ['thread:20'])))
     expect(inline.scopes[0]).toEqual([SEED_FORUM.general])
 
-    const state = await inlineModerateAction(
-      EMPTY_STATE,
-      form({ tool: 'stick' }, ['thread:20']),
-    )
+    const state = await inlineModerateAction(EMPTY_STATE, form({ tool: 'stick' }, ['thread:20']))
     expect(state.error).toMatch(/cannot moderate/i)
     expect(inline.applied).toHaveLength(1)
   })
@@ -343,9 +327,7 @@ describe('inlineModerateAction', () => {
   describe('the return path', () => {
     it('falls back to the board root when none was given', async () => {
       expect(
-        await redirectOf(
-          inlineModerateAction(EMPTY_STATE, form({ tool: 'lock' }, ['thread:20'])),
-        ),
+        await redirectOf(inlineModerateAction(EMPTY_STATE, form({ tool: 'lock' }, ['thread:20']))),
       ).toBe('/?did=lock&n=1')
     })
 
@@ -379,10 +361,7 @@ describe('inlineModerateAction', () => {
       ...((globalThis as Record<symbol, unknown>)[CONTAINER_KEY] as object),
       inlineModeration: null,
     }
-    const state = await inlineModerateAction(
-      EMPTY_STATE,
-      form({ tool: 'lock' }, ['thread:20']),
-    )
+    const state = await inlineModerateAction(EMPTY_STATE, form({ tool: 'lock' }, ['thread:20']))
     expect(state.error).toMatch(/sample data/i)
   })
 })

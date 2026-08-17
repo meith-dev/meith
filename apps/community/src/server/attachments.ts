@@ -1,20 +1,20 @@
 import 'server-only'
 
-import { ForbiddenError, ValidationError } from '@meith/core'
-import type { ForumPermissions } from '@meith/core'
-import type { Actor } from '@meith/authorization'
 import {
   ATTACHMENT_FIELD,
+  type AttachmentRecord,
   AttachmentService,
   acceptFiles,
   attachmentType,
-  type AttachmentRecord,
   type IncomingFile,
   type StagedUpload,
   type UploadLimits,
 } from '@meith/attachments'
-import { imageProcessor } from '@meith/drivers/images'
+import type { Actor } from '@meith/authorization'
+import type { ForumPermissions } from '@meith/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import { drivers } from '@meith/drivers'
+import { imageProcessor } from '@meith/drivers/images'
 
 import { limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
@@ -161,8 +161,7 @@ export async function resolveDownload(
     return null
   if (!authorizer.can(actor, 'attachment.download', scope)) return null
 
-  const hidden =
-    found.postVisibility !== 'visible' || found.threadVisibility !== 'visible'
+  const hidden = found.postVisibility !== 'visible' || found.threadVisibility !== 'visible'
   if (hidden && !authorizer.can(actor, 'content.viewUnapproved', scope)) return null
 
   const type = attachmentType(record.contentType)

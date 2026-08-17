@@ -51,7 +51,10 @@ export function SearchResults({
           <ul className="divide-y divide-border">
             {hits.map((hit) => (
               <li key={hit.postId} className="flex flex-col gap-1 px-4 py-3 hover:bg-secondary/50">
-                <a href={hit.href} className="text-sm font-medium text-foreground hover:text-primary">
+                <a
+                  href={hit.href}
+                  className="text-sm font-medium text-foreground hover:text-primary"
+                >
                   {hit.threadTitle}
                 </a>
                 <p

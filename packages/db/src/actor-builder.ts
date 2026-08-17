@@ -1,17 +1,12 @@
 import { eq, inArray } from 'drizzle-orm'
 
-import { combinePermissionSets } from '@meith/authorization'
 import type { Actor, ActorSource, ActorState } from '@meith/authorization'
+import { combinePermissionSets } from '@meith/authorization'
 import { emptyPermissionSet } from '@meith/core'
 
 import type { Database } from './client'
 import { groupRowToPermissionSet } from './permissions-map'
-import {
-  cacheVersions,
-  usergroups,
-  userGroupMemberships,
-  users,
-} from './schema'
+import { cacheVersions, userGroupMemberships, usergroups, users } from './schema'
 
 function mapState(dbState: string): ActorState | 'deleted' {
   switch (dbState) {
@@ -55,7 +50,6 @@ export class ActorBuilder implements ActorSource {
       .select({
         id: users.id,
         state: users.state,
-        // eslint-disable-next-line no-restricted-properties -- group-id transport, not a decision
         primaryGroupId: users.primaryGroupId,
       })
       .from(users)
@@ -82,7 +76,6 @@ export class ActorBuilder implements ActorSource {
       (r) => r.expiresAt === null || r.expiresAt.getTime() > now.getTime(),
     )
 
-    // eslint-disable-next-line no-restricted-properties -- reading the user's own primary group to assemble the actor's group ladder, not an authz decision
     const held = user.primaryGroupId
     const lapsed = membershipRows.find(
       (r) =>

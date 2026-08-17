@@ -1,28 +1,28 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useId, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
-import { cn } from "@meith/ui"
+import { cn } from '@meith/ui'
 
-import { renderPreviewAction, type PreviewScope } from "@/server/content-actions"
+import { type PreviewScope, renderPreviewAction } from '@/server/content-actions'
 
 import {
+  type Edit,
   fenceEdit,
+  type LineMarker,
   linkEdit,
   listContinuation,
   pasteAsLink,
-  toggleWrap,
   togglePrefix,
-  type Edit,
-  type LineMarker,
+  toggleWrap,
   type WrapSyntax,
-} from "./markdown-syntax"
+} from './markdown-syntax'
 
 type Command =
-  | { readonly kind: "wrap"; readonly syntax: WrapSyntax }
-  | { readonly kind: "prefix"; readonly marker: LineMarker }
-  | { readonly kind: "link" }
-  | { readonly kind: "fence" }
+  | { readonly kind: 'wrap'; readonly syntax: WrapSyntax }
+  | { readonly kind: 'prefix'; readonly marker: LineMarker }
+  | { readonly kind: 'link' }
+  | { readonly kind: 'fence' }
 
 interface Tool {
   readonly label: string
@@ -33,47 +33,47 @@ interface Tool {
 
 const TOOLS: readonly Tool[] = [
   {
-    label: "Bold",
-    glyph: "B",
-    shortcut: "b",
-    command: { kind: "wrap", syntax: { marker: "*", length: 2, placeholder: "bold text" } },
+    label: 'Bold',
+    glyph: 'B',
+    shortcut: 'b',
+    command: { kind: 'wrap', syntax: { marker: '*', length: 2, placeholder: 'bold text' } },
   },
   {
-    label: "Italic",
-    glyph: "I",
-    shortcut: "i",
-    command: { kind: "wrap", syntax: { marker: "*", length: 1, placeholder: "italic text" } },
+    label: 'Italic',
+    glyph: 'I',
+    shortcut: 'i',
+    command: { kind: 'wrap', syntax: { marker: '*', length: 1, placeholder: 'italic text' } },
   },
   {
-    label: "Strikethrough",
-    glyph: "S",
-    command: { kind: "wrap", syntax: { marker: "~", length: 2, placeholder: "struck out" } },
+    label: 'Strikethrough',
+    glyph: 'S',
+    command: { kind: 'wrap', syntax: { marker: '~', length: 2, placeholder: 'struck out' } },
   },
-  { label: "Link", glyph: "Link", shortcut: "k", command: { kind: "link" } },
-  { label: "Quote", glyph: "“”", command: { kind: "prefix", marker: "> " } },
-  { label: "Code", glyph: "</>", command: { kind: "fence" } },
-  { label: "Bulleted list", glyph: "•", command: { kind: "prefix", marker: "- " } },
+  { label: 'Link', glyph: 'Link', shortcut: 'k', command: { kind: 'link' } },
+  { label: 'Quote', glyph: '“”', command: { kind: 'prefix', marker: '> ' } },
+  { label: 'Code', glyph: '</>', command: { kind: 'fence' } },
+  { label: 'Bulleted list', glyph: '•', command: { kind: 'prefix', marker: '- ' } },
   {
-    label: "Numbered list",
-    glyph: "1.",
-    command: { kind: "prefix", marker: (index: number) => `${index + 1}. ` },
+    label: 'Numbered list',
+    glyph: '1.',
+    command: { kind: 'prefix', marker: (index: number) => `${index + 1}. ` },
   },
-  { label: "Heading", glyph: "H", command: { kind: "prefix", marker: "## " } },
+  { label: 'Heading', glyph: 'H', command: { kind: 'prefix', marker: '## ' } },
 ]
 
 function apply(field: HTMLTextAreaElement, edit: Edit): void {
-  field.setRangeText(edit.text, edit.from, edit.to, "end")
+  field.setRangeText(edit.text, edit.from, edit.to, 'end')
   field.setSelectionRange(edit.selectionStart, edit.selectionEnd)
   field.focus()
-  field.dispatchEvent(new Event("input", { bubbles: true }))
+  field.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
 function run(field: HTMLTextAreaElement, command: Command): void {
   const { value, selectionStart: start, selectionEnd: end } = field
 
-  if (command.kind === "wrap") apply(field, toggleWrap(value, start, end, command.syntax))
-  else if (command.kind === "prefix") apply(field, togglePrefix(value, start, end, command.marker))
-  else if (command.kind === "link") apply(field, linkEdit(value, start, end))
+  if (command.kind === 'wrap') apply(field, toggleWrap(value, start, end, command.syntax))
+  else if (command.kind === 'prefix') apply(field, togglePrefix(value, start, end, command.marker))
+  else if (command.kind === 'link') apply(field, linkEdit(value, start, end))
   else apply(field, fenceEdit(value, start, end))
 }
 
@@ -91,16 +91,16 @@ export interface MarkdownEditorProps {
 }
 
 export function MarkdownEditor({
-  id = "post-message",
-  name = "message",
-  label = "Message",
+  id = 'post-message',
+  name = 'message',
+  label = 'Message',
   rows = 12,
   required = false,
   defaultValue,
   maxLength,
   preview,
   hint,
-  scope = "post",
+  scope = 'post',
 }: MarkdownEditorProps) {
   const field = useRef<HTMLTextAreaElement>(null)
   const panelId = useId()
@@ -108,14 +108,14 @@ export function MarkdownEditor({
   const [enhanced, setEnhanced] = useState(false)
   useEffect(() => setEnhanced(true), [])
 
-  const [tab, setTab] = useState<"write" | "preview">(preview === undefined ? "write" : "preview")
+  const [tab, setTab] = useState<'write' | 'preview'>(preview === undefined ? 'write' : 'preview')
   const [rendered, setRendered] = useState<string | null>(preview ?? null)
-  const [previewState, setPreviewState] = useState<"idle" | "loading" | "failed">("idle")
+  const [previewState, setPreviewState] = useState<'idle' | 'loading' | 'failed'>('idle')
 
   const fit = useCallback(() => {
     const element = field.current
     if (element === null) return
-    element.style.height = "auto"
+    element.style.height = 'auto'
     element.style.height = `${element.scrollHeight}px`
   }, [])
 
@@ -126,25 +126,25 @@ export function MarkdownEditor({
   useEffect(() => {
     if (preview === undefined) return
     setRendered(preview)
-    setTab("preview")
+    setTab('preview')
   }, [preview])
 
   async function showPreview(): Promise<void> {
-    setTab("preview")
-    const source = field.current?.value ?? ""
-    setPreviewState("loading")
+    setTab('preview')
+    const source = field.current?.value ?? ''
+    setPreviewState('loading')
     try {
       setRendered(await renderPreviewAction(source, scope))
-      setPreviewState("idle")
+      setPreviewState('idle')
     } catch {
-      setPreviewState("failed")
+      setPreviewState('failed')
     }
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>): void {
     const element = event.currentTarget
 
-    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       element.form?.requestSubmit()
       event.preventDefault()
       return
@@ -159,7 +159,7 @@ export function MarkdownEditor({
       return
     }
 
-    if (event.key !== "Enter" || event.shiftKey) return
+    if (event.key !== 'Enter' || event.shiftKey) return
 
     const edit = listContinuation(element.value, element.selectionStart)
     if (edit === null) return
@@ -174,7 +174,7 @@ export function MarkdownEditor({
       element.value,
       element.selectionStart,
       element.selectionEnd,
-      event.clipboardData.getData("text/plain"),
+      event.clipboardData.getData('text/plain'),
     )
     if (edit === null) return
 
@@ -183,20 +183,20 @@ export function MarkdownEditor({
   }
 
   function onTabKey(event: React.KeyboardEvent<HTMLDivElement>): void {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
     event.preventDefault()
-    if (tab === "write") void showPreview()
-    else setTab("write")
+    if (tab === 'write') void showPreview()
+    else setTab('write')
   }
 
-  const writing = !enhanced || tab === "write"
+  const writing = !enhanced || tab === 'write'
 
   const tabClass = (active: boolean): string =>
     cn(
-      "rounded-t-md border border-b-0 px-3 py-1.5 text-sm font-medium",
+      'rounded-t-md border border-b-0 px-3 py-1.5 text-sm font-medium',
       active
-        ? "border-border bg-card text-foreground"
-        : "border-transparent text-muted-foreground hover:text-foreground",
+        ? 'border-border bg-card text-foreground'
+        : 'border-transparent text-muted-foreground hover:text-foreground',
     )
 
   return (
@@ -207,16 +207,21 @@ export function MarkdownEditor({
         </label>
 
         {enhanced && (
-          <div role="tablist" aria-label="Write or preview" className="flex gap-1" onKeyDown={onTabKey}>
+          <div
+            role="tablist"
+            aria-label="Write or preview"
+            className="flex gap-1"
+            onKeyDown={onTabKey}
+          >
             <button
               type="button"
               role="tab"
               id={`${panelId}-write-tab`}
-              aria-selected={tab === "write"}
+              aria-selected={tab === 'write'}
               aria-controls={`${panelId}-write`}
-              tabIndex={tab === "write" ? 0 : -1}
-              onClick={() => setTab("write")}
-              className={tabClass(tab === "write")}
+              tabIndex={tab === 'write' ? 0 : -1}
+              onClick={() => setTab('write')}
+              className={tabClass(tab === 'write')}
             >
               Write
             </button>
@@ -224,11 +229,11 @@ export function MarkdownEditor({
               type="button"
               role="tab"
               id={`${panelId}-preview-tab`}
-              aria-selected={tab === "preview"}
+              aria-selected={tab === 'preview'}
               aria-controls={`${panelId}-preview`}
-              tabIndex={tab === "preview" ? 0 : -1}
+              tabIndex={tab === 'preview' ? 0 : -1}
               onClick={() => void showPreview()}
-              className={tabClass(tab === "preview")}
+              className={tabClass(tab === 'preview')}
             >
               Preview
             </button>
@@ -236,7 +241,7 @@ export function MarkdownEditor({
         )}
       </div>
 
-      {enhanced && tab === "write" && (
+      {enhanced && tab === 'write' && (
         <div
           role="group"
           aria-label="Formatting"
@@ -257,7 +262,9 @@ export function MarkdownEditor({
                   : `${tool.label} (Ctrl+${tool.shortcut.toUpperCase()})`
               }
               aria-label={tool.label}
-              {...(tool.shortcut === undefined ? {} : { "aria-keyshortcuts": `Control+${tool.shortcut}` })}
+              {...(tool.shortcut === undefined
+                ? {}
+                : { 'aria-keyshortcuts': `Control+${tool.shortcut}` })}
               className="min-w-8 rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <span aria-hidden="true">{tool.glyph}</span>
@@ -267,7 +274,9 @@ export function MarkdownEditor({
       )}
 
       <div
-        {...(enhanced ? { role: "tabpanel", id: `${panelId}-write`, "aria-labelledby": `${panelId}-write-tab` } : {})}
+        {...(enhanced
+          ? { role: 'tabpanel', id: `${panelId}-write`, 'aria-labelledby': `${panelId}-write-tab` }
+          : {})}
         hidden={!writing}
       >
         <textarea
@@ -285,7 +294,7 @@ export function MarkdownEditor({
         />
       </div>
 
-      {enhanced && tab === "preview" && (
+      {enhanced && tab === 'preview' && (
         <div
           role="tabpanel"
           id={`${panelId}-preview`}
@@ -293,14 +302,16 @@ export function MarkdownEditor({
           aria-live="polite"
           className="min-h-32 rounded-md border border-border bg-card px-3 py-2"
         >
-          {previewState === "loading" && <p className="text-sm text-muted-foreground">Rendering…</p>}
-          {previewState === "failed" && (
+          {previewState === 'loading' && (
+            <p className="text-sm text-muted-foreground">Rendering…</p>
+          )}
+          {previewState === 'failed' && (
             <p className="text-sm text-destructive">
               The preview could not be rendered. Your post is untouched — switch back to Write.
             </p>
           )}
-          {previewState === "idle" &&
-            (rendered === null || rendered === "" ? (
+          {previewState === 'idle' &&
+            (rendered === null || rendered === '' ? (
               <p className="text-sm text-muted-foreground">Nothing to preview yet.</p>
             ) : (
               <div className="prose-md text-sm" dangerouslySetInnerHTML={{ __html: rendered }} />
@@ -316,19 +327,19 @@ export function MarkdownEditor({
 
 function FormattingHelp({ scope }: { scope: PreviewScope }) {
   const inline: readonly (readonly [string, string])[] = [
-    ["**bold**", "bold"],
-    ["*italic*", "italic"],
-    ["~~struck~~", "struck out"],
-    ["[text](https://…)", "a link"],
-    ["`code`", "code, inline"],
+    ['**bold**', 'bold'],
+    ['*italic*', 'italic'],
+    ['~~struck~~', 'struck out'],
+    ['[text](https://…)', 'a link'],
+    ['`code`', 'code, inline'],
   ]
   const blocks: readonly (readonly [string, string])[] = [
-    ["```", "a code block, closed by another ```"],
-    ["> quoted", "a quote"],
-    ["- item", "a list; 1. for a numbered one"],
-    ["## Heading", "a heading"],
+    ['```', 'a code block, closed by another ```'],
+    ['> quoted', 'a quote'],
+    ['- item', 'a list; 1. for a numbered one'],
+    ['## Heading', 'a heading'],
   ]
-  const rows = scope === "signature" ? inline : [...inline, ...blocks]
+  const rows = scope === 'signature' ? inline : [...inline, ...blocks]
 
   return (
     <details className="text-xs text-muted-foreground">

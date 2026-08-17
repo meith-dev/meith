@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { FAILING_THRESHOLD, STALE_INTERVALS, assessScheduler, assessTask } from './health'
+import { assessScheduler, assessTask, FAILING_THRESHOLD, STALE_INTERVALS } from './health'
 
 const NOW = new Date('2026-08-02T12:00:00Z')
 
@@ -35,10 +35,10 @@ describe('assessTask', () => {
   it('judges a slow task by its own cadence, not by the clock', () => {
     const hourAgo = new Date(NOW.getTime() - 3_600_000)
 
-    expect(assessTask(task({ intervalSeconds: 86_400, lastRunAt: hourAgo }), NOW).status)
-      .toBe('healthy')
-    expect(assessTask(task({ intervalSeconds: 300, lastRunAt: hourAgo }), NOW).status)
-      .toBe('stale')
+    expect(assessTask(task({ intervalSeconds: 86_400, lastRunAt: hourAgo }), NOW).status).toBe(
+      'healthy',
+    )
+    expect(assessTask(task({ intervalSeconds: 300, lastRunAt: hourAgo }), NOW).status).toBe('stale')
   })
 
   it('does not warn on a single missed tick', () => {

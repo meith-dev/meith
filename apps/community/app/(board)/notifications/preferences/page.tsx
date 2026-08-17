@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@meith/theme-kit'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { NotificationPreferencesForm } from '@/components/account/notification-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { audiencesForActor } from '@/server/notification-audience'
 import { notificationService } from '@/server/notifications'

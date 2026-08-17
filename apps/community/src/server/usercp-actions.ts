@@ -7,21 +7,21 @@ import { ForbiddenError, ValidationError } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import { prepareSignature } from '@meith/signatures'
 
-import { boardAuthConfig } from './auth-config'
-import { recordAuthEvent } from './auth-events'
 import { adminService } from './admin'
 import { limitMessage, spendLimit } from './antispam'
+import { boardAuthConfig } from './auth-config'
+import { recordAuthEvent } from './auth-events'
+import type { FormState } from './auth-form-state'
 import { AVATAR_FIELD, canUploadAvatar, requireAvatarService } from './avatars'
-import { getActor } from './context'
 import { configuredSessions, getContainer } from './container'
+import { getActor } from './context'
 import { assertDemoAccountChangeable } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
+import { setSessionCookie } from './session-cookies'
 import { signatureStore, viewerSignatureLimits } from './signatures'
 import { sendEmailChangeConfirmation } from './usercp-mail'
-import { setSessionCookie } from './session-cookies'
-import type { FormState } from './auth-form-state'
 
 const toFormState = formStateReporter('usercp-actions', 'unexpected error in the UserCP')
 
@@ -72,10 +72,7 @@ export async function saveProfileAction(_prev: FormState, form: FormData): Promi
   redirect('/usercp/profile?saved=1')
 }
 
-export async function saveDisplayGroupAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function saveDisplayGroupAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const { service, userId } = await requireOwnSettings()
     await service.saveDisplayGroup({ userId, displayGroupId: text(form, 'displayGroupId') })
@@ -103,10 +100,7 @@ export async function saveOptionsAction(_prev: FormState, form: FormData): Promi
   redirect('/usercp/options?saved=1')
 }
 
-export async function changePasswordAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function changePasswordAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const { service, userId } = await requireOwnSettings()
 

@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { sql } from 'drizzle-orm'
-
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { isScope } from '@meith/api'
 
@@ -14,9 +14,9 @@ import { resultRows } from './result-rows'
 function migrationSql(): string {
   const here = path.dirname(fileURLToPath(import.meta.url))
   const dir = path.resolve(here, '..', 'migrations')
-  const journal = JSON.parse(
-    readFileSync(path.join(dir, 'meta', '_journal.json'), 'utf8'),
-  ) as { entries: { idx: number; tag: string }[] }
+  const journal = JSON.parse(readFileSync(path.join(dir, 'meta', '_journal.json'), 'utf8')) as {
+    entries: { idx: number; tag: string }[]
+  }
 
   return [...journal.entries]
     .sort((a, b) => a.idx - b.idx)

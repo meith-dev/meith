@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 
 import { signUp } from './support/session'
 
@@ -74,7 +74,7 @@ test('each Mark read control completes its redirect, and the page arrives change
   page.on('response', (response) => {
     if (response.url().includes('/api/read/')) {
       expect(response.status(), response.url()).toBe(303)
-      locations.push(response.headers()['location'] ?? '')
+      locations.push(response.headers().location ?? '')
     }
   })
 
@@ -119,7 +119,7 @@ test('read markers are not offered to a guest, and the routes refuse one', async
   for (const url of ['/api/read/all', '/api/read/forum/200', '/api/read/thread/4']) {
     const response = await request.post(url, { maxRedirects: 0, headers: SAME_ORIGIN })
     expect(response.status(), url).toBe(303)
-    expect(new URL(response.headers()['location'] ?? '', BOARD).pathname).toBe('/')
+    expect(new URL(response.headers().location ?? '', BOARD).pathname).toBe('/')
   }
 })
 
@@ -143,19 +143,23 @@ test('marking a forum that is not there is a redirect, not an error', async ({ b
   try {
     await signUp(page, 'marksbad')
 
-    for (const url of ['/api/read/forum/999999', '/api/read/forum/abc', '/api/read/thread/999999']) {
+    for (const url of [
+      '/api/read/forum/999999',
+      '/api/read/forum/abc',
+      '/api/read/thread/999999',
+    ]) {
       const response = await page.request.post(url, { maxRedirects: 0, headers: SAME_ORIGIN })
       expect(response.status(), url).toBe(303)
-      expect(
-        new URL(response.headers()['location'] ?? '', BOARD).pathname,
-        url,
-      ).toBe('/')
+      expect(new URL(response.headers().location ?? '', BOARD).pathname, url).toBe('/')
     }
 
-    const category = await page.request.post('/api/read/forum/10', { maxRedirects: 0, headers: SAME_ORIGIN })
+    const category = await page.request.post('/api/read/forum/10', {
+      maxRedirects: 0,
+      headers: SAME_ORIGIN,
+    })
     expect(category.status()).toBe(303)
     expect(
-      new URL(category.headers()['location'] ?? '', BOARD).pathname,
+      new URL(category.headers().location ?? '', BOARD).pathname,
       'a category can hold threads now, so marking it read lands on its page',
     ).toBe('/10-main')
   } finally {

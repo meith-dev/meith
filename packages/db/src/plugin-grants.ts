@@ -1,5 +1,4 @@
-import { and, eq } from 'drizzle-orm'
-import { sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
 import type { PluginGrantRow, PluginGrants } from '@meith/plugin-kit'
@@ -8,7 +7,7 @@ import type { Database } from './client'
 import { bumpPermissionVersion } from './permission-version'
 import { groupRowToPermissionSet } from './permissions-map'
 import { resultRows } from './result-rows'
-import { usergroups, userGroupMemberships, users } from './schema'
+import { userGroupMemberships, usergroups, users } from './schema'
 import { permissionsCarryPower } from './staff-groups'
 
 export {
@@ -38,16 +37,13 @@ export async function isStaffGroup(tx: Tx, groupId: number): Promise<boolean> {
   if (row === undefined) return false
 
   return (
-    row.is_staff_group === true ||
-    permissionsCarryPower(groupRowToPermissionSet(camelise(row)))
+    row.is_staff_group === true || permissionsCarryPower(groupRowToPermissionSet(camelise(row)))
   )
 }
 
 async function promotePrimary(tx: Tx, userId: number, groupId: number): Promise<void> {
   const userRows = resultRows(
-    await tx.execute(
-      sql`select primary_group_id from users where id = ${userId} for update`,
-    ),
+    await tx.execute(sql`select primary_group_id from users where id = ${userId} for update`),
   ) as Array<{ primary_group_id: number }>
 
   const current = userRows[0]
@@ -337,10 +333,7 @@ export function pluginGrants(
   }
 }
 
-export async function expireTimedGroupMemberships(
-  db: Database,
-  limit: number,
-): Promise<number> {
+export async function expireTimedGroupMemberships(db: Database, limit: number): Promise<number> {
   return db.transaction(async (tx) => {
     const result = await tx.execute(sql`
       delete from user_group_memberships

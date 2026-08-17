@@ -1,7 +1,7 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 
 import { STAFF, STAFF_PASSWORD } from './support/config'
-import { PASSWORD, enterAdminPanel, signIn, signUp } from './support/session'
+import { enterAdminPanel, PASSWORD, signIn, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
@@ -16,9 +16,7 @@ async function fieldValues(page: Page, name: string): Promise<string[]> {
 }
 
 function composer(page: Page, verb: string): Locator {
-  return page
-    .locator('form')
-    .filter({ has: page.getByRole('button', { name: verb, exact: true }) })
+  return page.locator('form').filter({ has: page.getByRole('button', { name: verb, exact: true }) })
 }
 
 async function selectStartingWith(select: Locator, prefix: string): Promise<void> {
@@ -43,9 +41,7 @@ async function removeRow(page: Page, field: string, value: string): Promise<void
   await row.getByRole('button', { name: 'Remove', exact: true }).click()
 }
 
-test('every section in the rail opens, and marks itself as where you are', async ({
-  page,
-}) => {
+test('every section in the rail opens, and marks itself as where you are', async ({ page }) => {
   await enterAdminPanel(page)
 
   const sections = [
@@ -88,9 +84,7 @@ test('every section in the rail opens, and marks itself as where you are', async
   }
 })
 
-test('saving one settings group leaves the settings it is not showing alone', async ({
-  page,
-}) => {
+test('saving one settings group leaves the settings it is not showing alone', async ({ page }) => {
   await enterAdminPanel(page)
 
   await page.goto('/admin/settings?group=antispam')
@@ -188,9 +182,7 @@ test('a forum’s options and its permissions decide what the board does', async
   await expect(page.getByRole('link', { name: 'Off Topic' })).toBeVisible()
 })
 
-test('a moderator appointed in the panel is listed with what they may do', async ({
-  page,
-}) => {
+test('a moderator appointed in the panel is listed with what they may do', async ({ page }) => {
   await enterAdminPanel(page)
 
   await page.goto('/admin/forums')
@@ -288,9 +280,7 @@ test('a group is created by copying another, and deleted by rehoming its members
   await expect(page.locator('li').filter({ hasText: title })).toHaveCount(0)
 })
 
-test('a system group offers no delete, because the board resolves it by key', async ({
-  page,
-}) => {
+test('a system group offers no delete, because the board resolves it by key', async ({ page }) => {
   await enterAdminPanel(page)
 
   await page.goto('/admin/groups')
@@ -433,9 +423,7 @@ test('a merge moves everything to the account that is kept and closes the other'
     await page.getByRole('button', { name: 'Find' }).click()
 
     await expect(page.getByRole('heading', { name: `Keep ${kept}` })).toBeVisible()
-    await expect(
-      page.getByText(new RegExp(`would move from ${gone} to ${kept}`)),
-    ).toBeVisible()
+    await expect(page.getByText(new RegExp(`would move from ${gone} to ${kept}`))).toBeVisible()
 
     await page.getByRole('button', { name: new RegExp(`^Merge into ${kept}`) }).click()
     await expect(page.getByText(/Merged\. Everything now belongs to/)).toBeVisible()
@@ -454,9 +442,7 @@ test('a merge moves everything to the account that is kept and closes the other'
   }
 })
 
-test('pruning is a dry run until it is confirmed, and mass mail queues', async ({
-  page,
-}) => {
+test('pruning is a dry run until it is confirmed, and mass mail queues', async ({ page }) => {
   await enterAdminPanel(page)
 
   await page.goto('/admin/users/prune')
@@ -554,9 +540,12 @@ test('a prefix, a smiley and a directive added in the panel reach the board', as
       await expect(memberPage.getByRole('img', { name: 'a probe' })).toBeVisible({
         timeout: 2_000,
       })
-      await expect(memberPage.locator(`span.md-directive-${directive}`)).toHaveText('a hidden ending', {
-        timeout: 2_000,
-      })
+      await expect(memberPage.locator(`span.md-directive-${directive}`)).toHaveText(
+        'a hidden ending',
+        {
+          timeout: 2_000,
+        },
+      )
     }).toPass({ timeout: 30_000, intervals: [500, 1_000, 2_000] })
   } finally {
     await page.goto('/admin/content')
@@ -733,9 +722,7 @@ test('a theme turned off leaves the switcher, and a token override reaches the b
   )
 })
 
-test('the plugins screen names what is installed and how installing works', async ({
-  page,
-}) => {
+test('the plugins screen names what is installed and how installing works', async ({ page }) => {
   await enterAdminPanel(page)
   await page.goto('/admin/plugins')
 
@@ -802,9 +789,7 @@ test('the overview counts the board it is looking at', async ({ page, request })
   await expect(totals).toContainText('Counted')
 })
 
-test('the admin log records what the other sections did, and who did it', async ({
-  page,
-}) => {
+test('the admin log records what the other sections did, and who did it', async ({ page }) => {
   await enterAdminPanel(page)
 
   const key = mint('logged_')

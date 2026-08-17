@@ -3,11 +3,7 @@ import { ConflictError, ValidationError } from '@meith/core'
 import { childPath, depthOf, isInSubtree, rehang } from './path'
 import type { ForumRow, MovePlan, MoveTarget, PathUpdate } from './types'
 
-export function planMove(
-  rows: readonly ForumRow[],
-  forumId: number,
-  target: MoveTarget,
-): MovePlan {
+export function planMove(rows: readonly ForumRow[], forumId: number, target: MoveTarget): MovePlan {
   const byId = new Map(rows.map((r) => [r.id, r]))
 
   const forum = byId.get(forumId)
@@ -31,9 +27,7 @@ export function planMove(
     }
 
     if (newParent.type === 'link') {
-      throw new ValidationError(
-        `"${newParent.title}" is a link and cannot contain forums.`,
-      )
+      throw new ValidationError(`"${newParent.title}" is a link and cannot contain forums.`)
     }
   }
 

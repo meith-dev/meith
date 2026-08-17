@@ -2,7 +2,6 @@ import { beforeAll, describe, expect, it } from 'vitest'
 
 import { randomBase64Url } from '../crypto/base64url'
 import { rejectionMessage } from '../test-support.fixture'
-
 import { createAuthenticator, type FixtureAuthenticator } from './authenticator.fixture'
 import { verifyAssertion, verifyRegistration } from './verify'
 

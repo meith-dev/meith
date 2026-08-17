@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { type Browser, expect, type Page, test } from '@playwright/test'
 
 import { enterAdminPanel, signInAsModerator, signUp } from './support/session'
 
@@ -144,17 +144,17 @@ test('an appointment grants the rights it names, and only those', async ({ brows
         'an appointment to split threads must not offer to delete posts',
       ).toHaveCount(0)
 
-      await expect(
-        splitter.locator(`a[href*="/edit?post="]`),
-        'nor to edit them',
-      ).toHaveCount(0)
+      await expect(splitter.locator(`a[href*="/edit?post="]`), 'nor to edit them').toHaveCount(0)
 
       await splitter.getByLabel('Select post #2 for moderation').check()
       await splitter
         .locator('form#inline-moderation')
         .getByRole('textbox', { name: 'Title for the new thread' })
         .fill(`Proof the checkbox works ${Date.now()}`)
-      await splitter.locator('form#inline-moderation').getByRole('button', { name: 'Split out' }).click()
+      await splitter
+        .locator('form#inline-moderation')
+        .getByRole('button', { name: 'Split out' })
+        .click()
       await expect(
         splitter.getByRole('heading', { name: /^Proof the checkbox works/ }),
         'the right they were given still works',
@@ -176,9 +176,7 @@ test('an appointment grants the rights it names, and only those', async ({ brows
       await editor.getByRole('button', { name: 'Save changes' }).click()
 
       await editor.goto(url)
-      await expect(
-        editor.getByText('Edited by the moderator who was appointed to.'),
-      ).toBeVisible()
+      await expect(editor.getByText('Edited by the moderator who was appointed to.')).toBeVisible()
     })
 
     await author.goto(url)

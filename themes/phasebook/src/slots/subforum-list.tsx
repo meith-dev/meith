@@ -1,6 +1,6 @@
 import type { SubforumListModel } from '@meith/theme-kit'
 
-import { NUMERIC, count, plural } from '../shared'
+import { count, NUMERIC, plural } from '../shared'
 
 export function SubforumList({ forums }: SubforumListModel) {
   if (forums.length === 0) return null

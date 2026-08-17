@@ -1,21 +1,21 @@
-import { ForbiddenError, ValidationError } from '@meith/core'
 import { argon2id } from 'hash-wasm'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { rejectionMessage } from './test-support.fixture'
+import { ForbiddenError, ValidationError } from '@meith/core'
 
 import { hashToken } from './crypto/tokens'
-import { createMemoryStore } from './memory-repos'
 import { MemoryBanFilters } from './memory-bans'
-import { rejectedField, type RegisterField } from './register-fields'
+import { createMemoryStore } from './memory-repos'
+import type { AccountStore, AuthConfig } from './ports'
+import { type RegisterField, rejectedField } from './register-fields'
 import {
-  IdentityService,
-  VERIFICATION_TTL_HOURS,
   type BanLookup,
+  IdentityService,
   type LoginResult,
   type RegisterInput,
+  VERIFICATION_TTL_HOURS,
 } from './service'
-import type { AccountStore, AuthConfig } from './ports'
+import { rejectionMessage } from './test-support.fixture'
 
 const BASE_CONFIG: AuthConfig = {
   registrationEnabled: true,
@@ -120,16 +120,28 @@ describe('register', () => {
 
   it('rejects a duplicate username case-insensitively', async () => {
     const { service } = makeService(store)
-    await service.register({ username: 'Carol', email: 'c@example.com', password: 'correct horse battery' })
+    await service.register({
+      username: 'Carol',
+      email: 'c@example.com',
+      password: 'correct horse battery',
+    })
     await expect(
-      service.register({ username: 'CAROL', email: 'other@example.com', password: 'correct horse battery' }),
+      service.register({
+        username: 'CAROL',
+        email: 'other@example.com',
+        password: 'correct horse battery',
+      }),
     ).rejects.toThrow(/taken/i)
   })
 
   it('rejects a reserved username', async () => {
     const { service } = makeService(store)
     await expect(
-      service.register({ username: 'admin', email: 'a@example.com', password: 'correct horse battery' }),
+      service.register({
+        username: 'admin',
+        email: 'a@example.com',
+        password: 'correct horse battery',
+      }),
     ).rejects.toThrow(/reserved/i)
   })
 
@@ -172,11 +184,31 @@ describe('register', () => {
 
   describe('names the field it refused', () => {
     const cases: readonly [string, RegisterInput, RegisterField][] = [
-      ['a reserved name', { username: 'admin', email: 'a@example.com', password: 'correct horse battery' }, 'username'],
-      ['a name of the wrong length', { username: 'ab', email: 'a@example.com', password: 'correct horse battery' }, 'username'],
-      ['a name with invalid characters', { username: 'a b/c', email: 'a@example.com', password: 'correct horse battery' }, 'username'],
-      ['a malformed address', { username: 'Erin', email: 'not-an-address', password: 'correct horse battery' }, 'email'],
-      ['a short password', { username: 'Erin', email: 'e@example.com', password: 'short' }, 'password'],
+      [
+        'a reserved name',
+        { username: 'admin', email: 'a@example.com', password: 'correct horse battery' },
+        'username',
+      ],
+      [
+        'a name of the wrong length',
+        { username: 'ab', email: 'a@example.com', password: 'correct horse battery' },
+        'username',
+      ],
+      [
+        'a name with invalid characters',
+        { username: 'a b/c', email: 'a@example.com', password: 'correct horse battery' },
+        'username',
+      ],
+      [
+        'a malformed address',
+        { username: 'Erin', email: 'not-an-address', password: 'correct horse battery' },
+        'email',
+      ],
+      [
+        'a short password',
+        { username: 'Erin', email: 'e@example.com', password: 'short' },
+        'password',
+      ],
     ]
 
     for (const [what, input, field] of cases) {
@@ -189,10 +221,18 @@ describe('register', () => {
 
     it('blames the taken name, and the taken address', async () => {
       const { service } = makeService(store)
-      await service.register({ username: 'Frank', email: 'f@example.com', password: 'correct horse battery' })
+      await service.register({
+        username: 'Frank',
+        email: 'f@example.com',
+        password: 'correct horse battery',
+      })
 
       const takenName = await service
-        .register({ username: 'FRANK', email: 'other@example.com', password: 'correct horse battery' })
+        .register({
+          username: 'FRANK',
+          email: 'other@example.com',
+          password: 'correct horse battery',
+        })
         .catch((err: unknown) => err)
       expect(rejectedField(takenName)).toBe('username')
 
@@ -228,7 +268,9 @@ describe('login', () => {
     expect(result.sessionToken).toBeTypeOf('string')
     expect(result.sessionToken.length).toBeGreaterThan(20)
     expect(await store.sessions.findByTokenHash(result.sessionToken)).toBeNull()
-    expect(await store.sessions.findByTokenHash(await hashToken(result.sessionToken))).not.toBeNull()
+    expect(
+      await store.sessions.findByTokenHash(await hashToken(result.sessionToken)),
+    ).not.toBeNull()
   })
 
   it('accepts login by email as well as username', async () => {
@@ -259,14 +301,12 @@ describe('login', () => {
     for (let i = 0; i < 3; i++) {
       await expect(service.login('alice', 'wrong', 'alice')).rejects.toThrow(/incorrect/i)
     }
-    await expect(
-      service.login('alice', 'correct horse battery', 'alice'),
-    ).rejects.toThrow(/too many/i)
+    await expect(service.login('alice', 'correct horse battery', 'alice')).rejects.toThrow(
+      /too many/i,
+    )
 
     clock.advance(16 * 60_000)
-    await expect(
-      service.login('alice', 'correct horse battery', 'alice'),
-    ).resolves.toBeTruthy()
+    await expect(service.login('alice', 'correct horse battery', 'alice')).resolves.toBeTruthy()
   })
 
   it('a stranger filling their own bucket cannot lock the account owner out', async () => {
@@ -277,13 +317,11 @@ describe('login', () => {
     for (let i = 0; i < 3; i++) {
       await expect(service.login('alice', 'wrong', attacker)).rejects.toThrow(/incorrect/i)
     }
-    await expect(
-      service.login('alice', 'correct horse battery', attacker),
-    ).rejects.toThrow(/too many/i)
+    await expect(service.login('alice', 'correct horse battery', attacker)).rejects.toThrow(
+      /too many/i,
+    )
 
-    await expect(
-      service.login('alice', 'correct horse battery', owner),
-    ).resolves.toBeTruthy()
+    await expect(service.login('alice', 'correct horse battery', owner)).resolves.toBeTruthy()
   })
 
   it('the account-wide backstop still stops a guess spread across addresses', async () => {
@@ -313,9 +351,9 @@ describe('login', () => {
       await expect(service.login(account, 'wrong', from(account))).rejects.toThrow(/incorrect/i)
     }
 
-    await expect(
-      service.login('alice', 'correct horse battery', from('alice')),
-    ).rejects.toThrow(/too many/i)
+    await expect(service.login('alice', 'correct horse battery', from('alice'))).rejects.toThrow(
+      /too many/i,
+    )
   })
 
   it('a success clears the address-only counter too', async () => {
@@ -348,29 +386,29 @@ describe('login', () => {
     for (let i = 0; i < 2; i++) {
       await expect(service.login('alice', 'wrong', buckets)).rejects.toThrow(/incorrect/i)
     }
-    await expect(
-      service.login('alice', 'correct horse battery', buckets),
-    ).resolves.toBeTruthy()
+    await expect(service.login('alice', 'correct horse battery', buckets)).resolves.toBeTruthy()
   })
 
   it('a locked bucket does not lock a different account', async () => {
     const { service } = makeService(store)
-    await service.register({ username: 'Bob', email: 'bob@example.com', password: 'correct horse battery' })
+    await service.register({
+      username: 'Bob',
+      email: 'bob@example.com',
+      password: 'correct horse battery',
+    })
     for (let i = 0; i < 3; i++) {
       await signIn(service, 'alice', 'wrong', 'alice').catch(() => {})
     }
-    await expect(
-      service.login('bob', 'correct horse battery', 'bob'),
-    ).resolves.toBeTruthy()
+    await expect(service.login('bob', 'correct horse battery', 'bob')).resolves.toBeTruthy()
   })
 
   it('refuses a banned account', async () => {
     const acc = await store.accounts.findByUsernameLower('alice')
     await store.accounts.setState(acc!.id, 'banned')
     const { service } = makeService(store)
-    await expect(
-      service.login('alice', 'correct horse battery', 'alice'),
-    ).rejects.toThrow(/banned/i)
+    await expect(service.login('alice', 'correct horse battery', 'alice')).rejects.toThrow(
+      /banned/i,
+    )
   })
 
   it('refuses an account with an unlifted ban, and tells them the public reason', async () => {
@@ -390,9 +428,10 @@ describe('login', () => {
           : null,
     })
 
-    const message = await service
-      .login('alice', 'correct horse battery', 'alice')
-      .then(() => '', (error: Error) => error.message)
+    const message = await service.login('alice', 'correct horse battery', 'alice').then(
+      () => '',
+      (error: Error) => error.message,
+    )
 
     expect(message).toContain('Posting nonsense in every thread.')
     expect(message).not.toContain('banned last week')
@@ -403,9 +442,7 @@ describe('login', () => {
       findActive: async () => null,
     })
 
-    await expect(
-      service.login('alice', 'correct horse battery', 'alice'),
-    ).resolves.toBeTruthy()
+    await expect(service.login('alice', 'correct horse battery', 'alice')).resolves.toBeTruthy()
   })
 
   it('upgrades a stale-cost hash on successful login, and leaves a current one alone', async () => {
@@ -463,9 +500,9 @@ describe('password reset', () => {
     await expect(service.login('alice', 'correct horse battery', 'a')).rejects.toThrow()
     await expect(service.login('alice', 'a brand new password', 'a2')).resolves.toBeTruthy()
 
-    await expect(
-      service.redeemPasswordReset(token!, 'yet another password'),
-    ).rejects.toThrow(/invalid or has expired/i)
+    await expect(service.redeemPasswordReset(token!, 'yet another password')).rejects.toThrow(
+      /invalid or has expired/i,
+    )
   })
 
   it('rejects an expired token', async () => {
@@ -474,9 +511,9 @@ describe('password reset', () => {
     const { token } = await service.requestPasswordReset('alice@example.com')
 
     clock.advance(31 * 60_000)
-    await expect(
-      service.redeemPasswordReset(token!, 'a brand new password'),
-    ).rejects.toThrow(/invalid or has expired/i)
+    await expect(service.redeemPasswordReset(token!, 'a brand new password')).rejects.toThrow(
+      /invalid or has expired/i,
+    )
   })
 
   it('revokes all sessions when a password is reset', async () => {
@@ -496,9 +533,9 @@ describe('password reset', () => {
     const first = await service.requestPasswordReset('alice@example.com')
     const second = await service.requestPasswordReset('alice@example.com')
 
-    await expect(
-      service.redeemPasswordReset(first.token!, 'a brand new password'),
-    ).rejects.toThrow(/invalid or has expired/i)
+    await expect(service.redeemPasswordReset(first.token!, 'a brand new password')).rejects.toThrow(
+      /invalid or has expired/i,
+    )
     await expect(
       service.redeemPasswordReset(second.token!, 'a brand new password'),
     ).resolves.toEqual({ userId: expect.any(Number) })
@@ -508,10 +545,7 @@ describe('password reset', () => {
 describe('activation', () => {
   let store: AccountStore
 
-  async function registerAwaiting(
-    method: 'email' | 'both' = 'email',
-    clock = fixedClock(),
-  ) {
+  async function registerAwaiting(method: 'email' | 'both' = 'email', clock = fixedClock()) {
     const { service } = makeService(store, { activationMethod: method }, clock)
     const { account, verificationToken } = await service.register({
       username: 'Alice',
@@ -528,18 +562,16 @@ describe('activation', () => {
   it('activates a waiting account and lets it sign in', async () => {
     const { service, token, account } = await registerAwaiting()
 
-    await expect(
-      service.login('alice', 'correct horse battery', 'alice'),
-    ).rejects.toThrow(/not yet activated/i)
+    await expect(service.login('alice', 'correct horse battery', 'alice')).rejects.toThrow(
+      /not yet activated/i,
+    )
 
     expect(await service.activateAccount(token)).toBe('activated')
 
     const after = (await store.accounts.findById(account.id))!
     expect(after.state).toBe('active')
     expect(after.emailVerifiedAt).not.toBeNull()
-    await expect(
-      service.login('alice', 'correct horse battery', 'alice2'),
-    ).resolves.toBeTruthy()
+    await expect(service.login('alice', 'correct horse battery', 'alice2')).resolves.toBeTruthy()
   })
 
   it('refuses the same token twice', async () => {
@@ -556,9 +588,9 @@ describe('activation', () => {
 
     expect(await service.activateAccount(token)).toBe('banned')
     expect((await store.accounts.findById(account.id))!.state).toBe('banned')
-    await expect(
-      service.login('alice', 'correct horse battery', 'alice'),
-    ).rejects.toThrow(/banned/i)
+    await expect(service.login('alice', 'correct horse battery', 'alice')).rejects.toThrow(
+      /banned/i,
+    )
   })
 
   it('reports an account somebody already activated', async () => {
@@ -584,9 +616,9 @@ describe('activation', () => {
     const after = (await store.accounts.findById(account.id))!
     expect(after.state).toBe('awaiting_activation')
     expect(after.emailVerifiedAt).not.toBeNull()
-    await expect(
-      service.login('alice', 'correct horse battery', 'alice'),
-    ).rejects.toThrow(/not yet activated/i)
+    await expect(service.login('alice', 'correct horse battery', 'alice')).rejects.toThrow(
+      /not yet activated/i,
+    )
   })
 
   it('treats a token for a vanished account as invalid', async () => {
@@ -746,9 +778,9 @@ describe('ban filters block registration and login', () => {
     const filters = new MemoryBanFilters()
     filters.add('ip', '192.0.2.*')
 
-    await expect(
-      serviceWith(filters).register(CREDS, { ip: '192.0.2.44' }),
-    ).rejects.toThrow(ForbiddenError)
+    await expect(serviceWith(filters).register(CREDS, { ip: '192.0.2.44' })).rejects.toThrow(
+      ForbiddenError,
+    )
   })
 
   it('lets an unfiltered registration through', async () => {
@@ -763,15 +795,13 @@ describe('ban filters block registration and login', () => {
     const service = serviceWith(filters)
 
     await service.register(CREDS)
-    await expect(
-      service.login(CREDS.username, CREDS.password, 'bucket'),
-    ).resolves.toBeDefined()
+    await expect(service.login(CREDS.username, CREDS.password, 'bucket')).resolves.toBeDefined()
 
     filters.add('email', '*@spam.example')
 
-    await expect(
-      service.login(CREDS.username, CREDS.password, 'bucket2'),
-    ).rejects.toThrow(ForbiddenError)
+    await expect(service.login(CREDS.username, CREDS.password, 'bucket2')).rejects.toThrow(
+      ForbiddenError,
+    )
   })
 
   it('blocks a filtered IP at login before spending any hashing budget', async () => {
@@ -800,8 +830,7 @@ describe('ban filters block registration and login', () => {
     const filters = new MemoryBanFilters()
     filters.add('email', '*@spam.example')
 
-    const message = await rejectionMessage(serviceWith(filters)
-      .register(CREDS))
+    const message = await rejectionMessage(serviceWith(filters).register(CREDS))
 
     expect(message).not.toContain('spam.example')
     expect(message).not.toContain('email')
@@ -857,9 +886,7 @@ describe('the address ranges an account is recorded against', () => {
     await service.register(CREDS)
     await service.login('ivan', CREDS.password, 'ivan')
 
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ registrationIpPrefix: null }),
-    )
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ registrationIpPrefix: null }))
     expect(record).not.toHaveBeenCalled()
   })
 

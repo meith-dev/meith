@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  FORUM_PERMISSION_FIELDS,
-  PERMISSION_FIELDS,
-  emptyPermissionSet,
-} from '@meith/core'
+import { emptyPermissionSet, FORUM_PERMISSION_FIELDS, PERMISSION_FIELDS } from '@meith/core'
 
 import { forumRowToOverride, groupRowToPermissionSet } from './permissions-map'
 

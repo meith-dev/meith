@@ -1,5 +1,5 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { eq, sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
 import { PostgresCounterRecount, type RecountRun } from './counter-recount'
@@ -72,13 +72,42 @@ beforeEach(async () => {
   ])
 
   await db.insert(posts).values([
-    { id: 30, threadId: 20, forumId: FORUM, authorUserId: 1, authorUsername: 'ada', message: 'a', isFirstPost: true, createdAt: AT },
-    { id: 31, threadId: 20, forumId: FORUM, authorUserId: 1, authorUsername: 'ada', message: 'b', createdAt: new Date(AT.getTime() + 1000) },
-    { id: 32, threadId: 21, forumId: SUBFORUM, authorUserId: 1, authorUsername: 'ada', message: 'c', isFirstPost: true, createdAt: new Date(AT.getTime() + 2000) },
+    {
+      id: 30,
+      threadId: 20,
+      forumId: FORUM,
+      authorUserId: 1,
+      authorUsername: 'ada',
+      message: 'a',
+      isFirstPost: true,
+      createdAt: AT,
+    },
+    {
+      id: 31,
+      threadId: 20,
+      forumId: FORUM,
+      authorUserId: 1,
+      authorUsername: 'ada',
+      message: 'b',
+      createdAt: new Date(AT.getTime() + 1000),
+    },
+    {
+      id: 32,
+      threadId: 21,
+      forumId: SUBFORUM,
+      authorUserId: 1,
+      authorUsername: 'ada',
+      message: 'c',
+      isFirstPost: true,
+      createdAt: new Date(AT.getTime() + 2000),
+    },
   ])
 })
 
-async function fullSweep(batchSize = 500, maxRuns = 60): Promise<{ corrected: number; runs: RecountRun[] }> {
+async function fullSweep(
+  batchSize = 500,
+  maxRuns = 60,
+): Promise<{ corrected: number; runs: RecountRun[] }> {
   const runs: RecountRun[] = []
   let corrected = 0
   for (let i = 0; i < maxRuns; i++) {

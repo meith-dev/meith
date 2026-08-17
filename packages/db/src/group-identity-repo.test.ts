@@ -2,8 +2,8 @@ import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
-import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresGroupIdentityRepository } from './group-identity-repo'
+import { createTestDb, type TestDb } from './pglite.fixture'
 import { users } from './schema'
 
 let harness: TestDb

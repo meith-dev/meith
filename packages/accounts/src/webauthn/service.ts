@@ -1,7 +1,6 @@
 import { ConflictError, ForbiddenError, NotFoundError } from '@meith/core'
 
 import { encodeBase64Url, randomBase64Url } from '../crypto/base64url'
-import type { IdentityService, LoginResult, RequestContext } from '../service'
 import type {
   AccountRecord,
   AccountRepository,
@@ -10,10 +9,10 @@ import type {
   PasskeyRepository,
   UserIdentityRepository,
 } from '../ports'
-
+import type { IdentityService, LoginResult, RequestContext } from '../service'
 import { SUPPORTED_ALGORITHMS } from './cose'
-import { verifyAssertion, verifyRegistration, type RelyingParty } from './verify'
 import type { AssertionResponse, RegistrationResponse } from './verify'
+import { type RelyingParty, verifyAssertion, verifyRegistration } from './verify'
 
 export const PASSKEY_LABEL_MAX = 60
 

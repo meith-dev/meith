@@ -135,10 +135,8 @@ export function fakeStripe(options: FakeStripeOptions): FakeStripe {
           id: next('cs'),
           mode: form.get('mode') === 'subscription' ? 'subscription' : 'payment',
           amountMinor:
-            listed?.unitAmount ??
-            Number(form.get('line_items[0][price_data][unit_amount]') ?? '0'),
-          currency:
-            listed?.currency ?? form.get('line_items[0][price_data][currency]') ?? 'gbp',
+            listed?.unitAmount ?? Number(form.get('line_items[0][price_data][unit_amount]') ?? '0'),
+          currency: listed?.currency ?? form.get('line_items[0][price_data][currency]') ?? 'gbp',
           successUrl: form.get('success_url') ?? base,
           cancelUrl: form.get('cancel_url') ?? base,
           productName:

@@ -32,8 +32,7 @@ export class PostgresSearchStore {
         ? sql`user_id = ${input.userId}`
         : input.sessionKey !== null
           ? sql`session_key = ${input.sessionKey}`
-          :
-            sql`false`
+          : sql`false`
 
     const rows = resultRows(
       await this.db.execute(sql`

@@ -1,5 +1,6 @@
-import type { CacheDriver, CacheSetOptions } from '@meith/core'
 import { revalidateTag } from 'next/cache'
+
+import type { CacheDriver, CacheSetOptions } from '@meith/core'
 
 import { MemoryCache } from './memory-cache'
 

@@ -1,5 +1,5 @@
-import { Alert, AlertDescription, AlertTitle, Avatar, Card } from '@meith/ui'
 import type { PostBitSlotModel } from '@meith/theme-kit'
+import { Alert, AlertDescription, AlertTitle, Avatar, Card } from '@meith/ui'
 
 import { HEADING, LINK, MICRO, MICRO_BARE, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
 

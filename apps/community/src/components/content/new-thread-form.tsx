@@ -1,19 +1,18 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { createThreadAction } from "@/server/content-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import type { UploadLimits } from '@meith/attachments/limits'
+import type { Draft } from '@meith/drafts'
+import { Disclosure } from '@meith/ui'
 
-import type { UploadLimits } from "@meith/attachments/limits"
-import type { Draft } from "@meith/drafts"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { createThreadAction } from '@/server/content-actions'
 
-import { Disclosure } from "@meith/ui"
-
-import { AttachmentField } from "./attachment-field"
-import { ComposerIntents } from "./composer-intents"
-import { MarkdownEditor } from "./markdown-editor"
-import { Field, FormError, SubmitButton } from "../auth/form-controls"
+import { Field, FormError, SubmitButton } from '../auth/form-controls'
+import { AttachmentField } from './attachment-field'
+import { ComposerIntents } from './composer-intents'
+import { MarkdownEditor } from './markdown-editor'
 
 export interface PrefixOption {
   readonly id: number
@@ -40,12 +39,12 @@ export function NewThreadForm({
   const [state, action] = useActionState(createThreadAction, EMPTY_STATE)
 
   const hasPollDraft =
-    (state.values?.pollQuestion ?? "") !== "" || (state.values?.pollOption ?? "") !== ""
+    (state.values?.pollQuestion ?? '') !== '' || (state.values?.pollOption ?? '') !== ''
 
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      {state.notice === "saved" && <p role="status">Draft saved.</p>}
+      {state.notice === 'saved' && <p role="status">Draft saved.</p>}
       <input type="hidden" name="forumId" value={forumId} />
 
       <Field
@@ -59,13 +58,13 @@ export function NewThreadForm({
 
       {prefixes.length > 0 && (
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Prefix{requiresPrefix ? "" : " (optional)"}</span>
+          <span className="font-medium">Prefix{requiresPrefix ? '' : ' (optional)'}</span>
           <select
             name="prefixId"
-            defaultValue={state.values?.prefixId ?? draft?.prefixId?.toString() ?? ""}
+            defaultValue={state.values?.prefixId ?? draft?.prefixId?.toString() ?? ''}
             className="h-10 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
-            <option value="">{requiresPrefix ? "Choose a prefix…" : "None"}</option>
+            <option value="">{requiresPrefix ? 'Choose a prefix…' : 'None'}</option>
             {prefixes.map((prefix) => (
               <option key={prefix.id} value={prefix.id}>
                 {prefix.label}
@@ -78,7 +77,7 @@ export function NewThreadForm({
       <MarkdownEditor
         required
         defaultValue={state.values?.message ?? draft?.message}
-        preview={state.notice === "preview" ? (state.preview ?? "") : undefined}
+        preview={state.notice === 'preview' ? (state.preview ?? '') : undefined}
       />
 
       {attachmentLimits !== null && <AttachmentField limits={attachmentLimits} />}

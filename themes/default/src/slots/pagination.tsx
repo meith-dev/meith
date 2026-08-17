@@ -1,5 +1,5 @@
-import { buttonVariants, cn } from '@meith/ui'
 import type { PaginationModel } from '@meith/theme-kit'
+import { buttonVariants, cn } from '@meith/ui'
 
 import { NUMERIC } from '../shared'
 

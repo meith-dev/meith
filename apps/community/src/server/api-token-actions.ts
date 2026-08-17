@@ -1,11 +1,11 @@
 'use server'
 
-import { ValidationError, isAppError, logger } from '@meith/core'
 import { revalidatePath } from 'next/cache'
 
-import { requireAdmin, requireFreshAdmin } from './admin'
+import { isAppError, logger, ValidationError } from '@meith/core'
+
+import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { apiTokenStore, issueApiToken } from './api-tokens-admin'
-import { recordAdminAction } from './admin'
 import type { FormState } from './auth-form-state'
 
 function field(form: FormData, name: string): string {
@@ -37,10 +37,7 @@ function toState(err: unknown): FormState {
   return { error: 'Something went wrong. Please try again.' }
 }
 
-export async function issueApiTokenAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function issueApiTokenAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const admin = await requireFreshAdmin()
 
@@ -66,10 +63,7 @@ export async function issueApiTokenAction(
   }
 }
 
-export async function revokeApiTokenAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function revokeApiTokenAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
 

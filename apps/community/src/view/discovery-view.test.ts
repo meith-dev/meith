@@ -37,9 +37,11 @@ describe('buildDiscoveryView', () => {
   })
 
   it('marks exactly one tab as current', () => {
-    expect(build().tabs.filter((tab) => tab.isCurrent).map((tab) => tab.href)).toEqual([
-      '/discover/unanswered',
-    ])
+    expect(
+      build()
+        .tabs.filter((tab) => tab.isCurrent)
+        .map((tab) => tab.href),
+    ).toEqual(['/discover/unanswered'])
   })
 
   it('resolves the thread and its forum, so a theme builds no hrefs', () => {

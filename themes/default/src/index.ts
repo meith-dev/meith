@@ -1,10 +1,9 @@
+export { defaultTheme } from './theme'
 export {
-  TOKEN_NAMES,
-  SCHEME_INDEPENDENT_TOKENS,
-  LIGHT_TOKENS,
-  DARK_TOKENS,
   BROWSER_THEME_COLOR,
+  DARK_TOKENS,
+  LIGHT_TOKENS,
+  SCHEME_INDEPENDENT_TOKENS,
+  TOKEN_NAMES,
   type TokenName,
 } from './tokens'
-
-export { defaultTheme } from './theme'

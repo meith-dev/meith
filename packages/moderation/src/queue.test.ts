@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
+
 import { ValidationError } from '@meith/core'
 
 import {
   MAX_CHUNK,
   ModerationQueue,
-  parseSelection,
   type ModerationQueueRepository,
   type PendingItem,
+  parseSelection,
   type QueuePage,
   type QueueSelection,
 } from './queue'

@@ -198,7 +198,12 @@ export class PostgresContentAdminRepository {
 
   async updateSmiley(
     id: number,
-    input: { readonly code: string; readonly src: string; readonly alt: string | null; readonly enabled: boolean },
+    input: {
+      readonly code: string
+      readonly src: string
+      readonly alt: string | null
+      readonly enabled: boolean
+    },
   ): Promise<void> {
     const rows = resultRows(
       await this.db.execute(sql`

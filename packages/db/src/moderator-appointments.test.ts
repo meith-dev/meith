@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { sql } from 'drizzle-orm'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+
+import { PostgresAuthorizationSource } from './authorization-source'
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresAuthorizationSource } from './authorization-source'
 import { resultRows } from './result-rows'
 import { forums, users } from './schema'
 
@@ -42,9 +43,9 @@ beforeEach(async () => {
     passwordAlgo: 'argon2id',
     primaryGroupId: 2,
   })
-  await db.insert(forums).values([
-    { id: FORUM, title: 'General', slug: 'general', path: '4', depth: 0 },
-  ])
+  await db
+    .insert(forums)
+    .values([{ id: FORUM, title: 'General', slug: 'general', path: '4', depth: 0 }])
 })
 
 describe('moderatorAppointments', () => {
@@ -145,9 +146,7 @@ describe('the 0040 upgrade path for appointments that predate the restore right'
       values (${FORUM}, ${MODERATOR}, true)
     `)
 
-    expect(await rightsAfterBackfill()).toEqual([
-      { userId: MODERATOR, canRestorePosts: true },
-    ])
+    expect(await rightsAfterBackfill()).toEqual([{ userId: MODERATOR, canRestorePosts: true }])
   })
 
   it('leaves an appointment that never held soft delete alone', async () => {
@@ -157,9 +156,7 @@ describe('the 0040 upgrade path for appointments that predate the restore right'
       values (${FORUM}, 3, false, true)
     `)
 
-    expect(await rightsAfterBackfill()).toEqual([
-      { userId: 3, canRestorePosts: false },
-    ])
+    expect(await rightsAfterBackfill()).toEqual([{ userId: 3, canRestorePosts: false }])
   })
 
   it('is idempotent, and does not take a restore right away', async () => {
@@ -170,8 +167,6 @@ describe('the 0040 upgrade path for appointments that predate the restore right'
     `)
 
     await rightsAfterBackfill()
-    expect(await rightsAfterBackfill()).toEqual([
-      { userId: 2, canRestorePosts: true },
-    ])
+    expect(await rightsAfterBackfill()).toEqual([{ userId: 2, canRestorePosts: true }])
   })
 })

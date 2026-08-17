@@ -6,8 +6,8 @@ import {
   discountedPrice,
   generateCode,
   normalizeCode,
-  validCodeShape,
   type UsableCode,
+  validCodeShape,
 } from './codes'
 
 describe('generateCode', () => {

@@ -43,9 +43,7 @@ export function subtreeOf(path: string): { exact: string; prefix: string } {
 
 export function rehang(descendantPath: string, oldRoot: string, newRoot: string): string {
   if (!isInSubtree(descendantPath, oldRoot)) {
-    throw new ValidationError(
-      `${descendantPath} is not inside ${oldRoot}; refusing to rehang it`,
-    )
+    throw new ValidationError(`${descendantPath} is not inside ${oldRoot}; refusing to rehang it`)
   }
   return `${newRoot}${descendantPath.slice(oldRoot.length)}`
 }

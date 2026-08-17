@@ -1,15 +1,16 @@
-import { ForbiddenError, ValidationError } from '@meith/core'
 import { beforeEach, describe, expect, it } from 'vitest'
+
+import { ForbiddenError, ValidationError } from '@meith/core'
 
 import {
   AVATAR_BOX,
   AVATAR_MAX_BYTES,
   AVATAR_PROCESSING_GRACE_MINUTES,
+  type AvatarRepository,
   AvatarService,
-  NO_AVATAR,
   avatarUrl,
   avatarVisible,
-  type AvatarRepository,
+  NO_AVATAR,
   type StoredAvatar,
 } from './index'
 
@@ -107,8 +108,7 @@ class FakeRepo implements AvatarRepository {
   async stalled(before: Date, limit: number) {
     return [...this.rows]
       .filter(
-        ([, row]) =>
-          row.status === 'pending' && row.updatedAt !== null && row.updatedAt < before,
+        ([, row]) => row.status === 'pending' && row.updatedAt !== null && row.updatedAt < before,
       )
       .slice(0, limit)
       .map(([id]) => id)
@@ -171,7 +171,10 @@ beforeEach(() => {
     avatars: repo,
     files: files as never,
     images,
-    random: () => `k${(counter += 1)}`,
+    random: () => {
+      counter += 1
+      return `k${counter}`
+    },
     now: () => NOW,
   })
 })
@@ -204,7 +207,11 @@ describe('avatarUrl', () => {
 
 describe('uploading', () => {
   it('stores the original privately and marks the row pending', async () => {
-    await service.upload({ userId: ADA, file: { filename: 'me.png', bytes: png() }, mayUpload: true })
+    await service.upload({
+      userId: ADA,
+      file: { filename: 'me.png', bytes: png() },
+      mayUpload: true,
+    })
 
     expect(await repo.find(ADA)).toMatchObject({
       status: 'pending',
@@ -250,7 +257,11 @@ describe('uploading', () => {
     repo.rows.set(ADA, stored({ status: 'ready', key: 'attachments/old/file' }))
     files.objects.set('attachments/old/file', { bytes: new Uint8Array([1]), visibility: 'private' })
 
-    await service.upload({ userId: ADA, file: { filename: 'me.png', bytes: png() }, mayUpload: true })
+    await service.upload({
+      userId: ADA,
+      file: { filename: 'me.png', bytes: png() },
+      mayUpload: true,
+    })
 
     expect(files.objects.has('attachments/old/file')).toBe(false)
     expect(files.objects.has('attachments/k1/source')).toBe(true)
@@ -259,7 +270,11 @@ describe('uploading', () => {
 
 describe('processing', () => {
   async function pending() {
-    await service.upload({ userId: ADA, file: { filename: 'me.png', bytes: png() }, mayUpload: true })
+    await service.upload({
+      userId: ADA,
+      file: { filename: 'me.png', bytes: png() },
+      mayUpload: true,
+    })
   }
 
   it('serves the encoder’s output and drops the uploaded bytes', async () => {
@@ -343,9 +358,9 @@ describe('removing', () => {
 
 describe('the moderator lock', () => {
   it('requires a reason to lock, and clears it to unlock', async () => {
-    await expect(
-      service.setLock({ userId: ADA, locked: true, reason: '   ' }),
-    ).rejects.toThrow(ValidationError)
+    await expect(service.setLock({ userId: ADA, locked: true, reason: '   ' })).rejects.toThrow(
+      ValidationError,
+    )
 
     await service.setLock({ userId: ADA, locked: true, reason: ' not suitable ' })
     expect(repo.locks.at(-1)).toEqual({ userId: ADA, locked: true, reason: 'not suitable' })
@@ -367,7 +382,11 @@ describe('the moderator lock', () => {
 
 describe('the sweep', () => {
   it('fails an upload whose job never finished, and drops its bytes', async () => {
-    await service.upload({ userId: ADA, file: { filename: 'me.png', bytes: png() }, mayUpload: true })
+    await service.upload({
+      userId: ADA,
+      file: { filename: 'me.png', bytes: png() },
+      mayUpload: true,
+    })
     repo.rows.set(ADA, {
       ...(await repo.find(ADA))!,
       updatedAt: new Date(NOW.getTime() - (AVATAR_PROCESSING_GRACE_MINUTES + 1) * 60_000),
@@ -379,7 +398,11 @@ describe('the sweep', () => {
   })
 
   it('leaves a job that is merely slow alone', async () => {
-    await service.upload({ userId: ADA, file: { filename: 'me.png', bytes: png() }, mayUpload: true })
+    await service.upload({
+      userId: ADA,
+      file: { filename: 'me.png', bytes: png() },
+      mayUpload: true,
+    })
 
     expect(await service.sweep()).toBe(0)
     expect((await repo.find(ADA))?.status).toBe('pending')

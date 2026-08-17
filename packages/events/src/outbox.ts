@@ -1,11 +1,13 @@
 import type { DomainEvent, DomainEventName, OutboxRecord } from './types'
 
 export interface OutboxWriter {
-  insertOutbox(rows: Array<{
-    name: string
-    payload: unknown
-    dedupeKey: string | null
-  }>): Promise<void>
+  insertOutbox(
+    rows: Array<{
+      name: string
+      payload: unknown
+      dedupeKey: string | null
+    }>,
+  ): Promise<void>
 }
 
 export async function emit(tx: OutboxWriter, ...events: DomainEvent[]): Promise<void> {
@@ -26,11 +28,13 @@ export interface OutboxReader {
 }
 
 export interface RelayTarget {
-  enqueue(jobs: Array<{
-    name: string
-    payload: unknown
-    idempotencyKey: string
-  }>): Promise<void>
+  enqueue(
+    jobs: Array<{
+      name: string
+      payload: unknown
+      idempotencyKey: string
+    }>,
+  ): Promise<void>
 }
 
 export interface RelayDeps {

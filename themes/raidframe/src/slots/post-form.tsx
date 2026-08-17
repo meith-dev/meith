@@ -25,7 +25,9 @@ export function PostForm({
       <section className="border border-border bg-card shadow-elevation">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div>
-            <p className={MICRO}>{mode === 'edit' ? 'edit' : mode === 'reply' ? 'reply' : 'new thread'}</p>
+            <p className={MICRO}>
+              {mode === 'edit' ? 'edit' : mode === 'reply' ? 'reply' : 'new thread'}
+            </p>
             <h1 className={`${HEADING} text-lg text-foreground`}>{heading}</h1>
           </div>
           <a href={cancelHref} className={BUTTON}>

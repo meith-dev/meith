@@ -83,18 +83,13 @@ export function parseAllowlist(raw: string | undefined): readonly string[] {
     .filter((entry) => entry !== '')
 }
 
-export function ipAllowed(
-  remoteAddress: string | null,
-  allowlist: readonly string[],
-): boolean {
+export function ipAllowed(remoteAddress: string | null, allowlist: readonly string[]): boolean {
   if (allowlist.length === 0) return true
   if (remoteAddress === null || remoteAddress.trim() === '') return false
 
   const address = remoteAddress.trim().toLowerCase()
   return allowlist.some((entry) =>
-    entry.endsWith('.') || entry.endsWith(':')
-      ? address.startsWith(entry)
-      : address === entry,
+    entry.endsWith('.') || entry.endsWith(':') ? address.startsWith(entry) : address === entry,
   )
 }
 

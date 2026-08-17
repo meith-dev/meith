@@ -33,9 +33,7 @@ const channel = (entries: ReturnType<typeof entry>[]) => ({
 
 describe('xmlEscape', () => {
   it('escapes all five predefined entities', () => {
-    expect(xmlEscape(`a & b < c > d " e ' f`)).toBe(
-      'a &amp; b &lt; c &gt; d &quot; e &apos; f',
-    )
+    expect(xmlEscape(`a & b < c > d " e ' f`)).toBe('a &amp; b &lt; c &gt; d &quot; e &apos; f')
   })
 
   it('escapes the ampersand first, so nothing is double-escaped', () => {

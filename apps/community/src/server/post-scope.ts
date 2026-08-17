@@ -2,8 +2,8 @@ import 'server-only'
 
 import type { EditCapabilities, PostWriteRepository } from '@meith/posts'
 
-import { getActor } from './context'
 import { getContainer } from './container'
+import { getActor } from './context'
 import { moderatorTargetFor } from './modcp'
 
 export interface PostManageScope {
@@ -34,8 +34,7 @@ export async function resolvePostScope(
   }
   if (!authorizer.can(actor, 'thread.view', scope)) return null
 
-  const isOwn =
-    actor.userId !== null && target.post.authorUserId === actor.userId
+  const isOwn = actor.userId !== null && target.post.authorUserId === actor.userId
   const editsOthers = authorizer.can(actor, 'post.editOthers', scope)
   const moderates = authorizer.can(actor, 'content.viewUnapproved', scope)
   const softDeletes = authorizer.can(actor, 'post.softDelete', scope)
@@ -44,9 +43,7 @@ export async function resolvePostScope(
     target,
     isOwn,
     mayEdit: isOwn ? authorizer.can(actor, 'post.editOwn', scope) : editsOthers,
-    mayDelete: isOwn
-      ? authorizer.can(actor, 'post.deleteOwn', scope) || softDeletes
-      : softDeletes,
+    mayDelete: isOwn ? authorizer.can(actor, 'post.deleteOwn', scope) || softDeletes : softDeletes,
     mayRestore:
       authorizer.can(actor, 'post.restore', scope) &&
       authorizer.can(actor, 'content.viewDeleted', scope),

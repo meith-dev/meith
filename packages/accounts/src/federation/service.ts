@@ -1,7 +1,6 @@
 import { ConflictError, ForbiddenError, ValidationError } from '@meith/core'
 
 import { foldIdentifier } from '../case-fold'
-import type { IdentityService, LoginResult, RequestContext } from '../service'
 import type {
   AccountRecord,
   AccountRepository,
@@ -9,7 +8,7 @@ import type {
   UserIdentityRecord,
   UserIdentityRepository,
 } from '../ports'
-
+import type { IdentityService, LoginResult, RequestContext } from '../service'
 import type { IdentityProvider, ProviderProfile } from './types'
 
 export interface FederationDeps {
@@ -57,10 +56,7 @@ export class FederationService {
 
   async completeSignIn(input: CompleteSignInInput): Promise<FederationOutcome> {
     const context = input.context ?? {}
-    const linked = await this.identities.findBySubject(
-      input.provider.id,
-      input.profile.subject,
-    )
+    const linked = await this.identities.findBySubject(input.provider.id, input.profile.subject)
 
     if (linked !== null) {
       const account = await this.accounts.findById(linked.userId)
@@ -142,10 +138,7 @@ export class FederationService {
     readonly provider: IdentityProvider
     readonly profile: ProviderProfile
   }): Promise<UserIdentityRecord> {
-    const linked = await this.identities.findBySubject(
-      input.provider.id,
-      input.profile.subject,
-    )
+    const linked = await this.identities.findBySubject(input.provider.id, input.profile.subject)
 
     if (linked !== null && linked.userId !== input.userId) {
       throw new ConflictError(
@@ -165,8 +158,7 @@ export class FederationService {
   }): Promise<void> {
     const remaining = (await this.identities.listForUser(input.userId)).filter(
       (identity) =>
-        identity.id !== input.identityId &&
-        input.usableProviders.includes(identity.provider),
+        identity.id !== input.identityId && input.usableProviders.includes(identity.provider),
     )
 
     if (!input.hasPassword && input.usablePasskeys === 0 && remaining.length === 0) {

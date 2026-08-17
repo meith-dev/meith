@@ -1,50 +1,41 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { EMPTY_STATE } from "@/server/auth-form-state"
-import {
-  savePluginSettingsAction,
-  setPluginEnabledAction,
-} from "@/server/plugin-admin-actions"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { savePluginSettingsAction, setPluginEnabledAction } from '@/server/plugin-admin-actions'
 
-import { FormError, SubmitButton } from "../auth/form-controls"
-import { INPUT } from "./form-bits"
+import { FormError, SubmitButton } from '../auth/form-controls'
+import { INPUT } from './form-bits'
 
 export interface PluginSettingField {
   readonly key: string
   readonly label: string
   readonly description: string | null
   readonly advanced: boolean
-  readonly kind: "string" | "secret" | "number" | "boolean" | "select"
+  readonly kind: 'string' | 'secret' | 'number' | 'boolean' | 'select'
   readonly default: string | number | boolean
   readonly value: string | number | boolean
-  readonly source: "environment" | "board" | "default"
+  readonly source: 'environment' | 'board' | 'default'
   readonly set: boolean
   readonly options: readonly { readonly value: string; readonly label: string }[]
   readonly envName: string | null
   readonly problem: string | null
 }
 
-export function PluginEnableForm({
-  pluginKey,
-  enabled,
-}: {
-  pluginKey: string
-  enabled: boolean
-}) {
+export function PluginEnableForm({ pluginKey, enabled }: { pluginKey: string; enabled: boolean }) {
   const [state, action] = useActionState(setPluginEnabledAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-2">
       <FormError message={state.error} />
       <input type="hidden" name="key" value={pluginKey} />
-      <input type="hidden" name="enabled" value={enabled ? "0" : "1"} />
+      <input type="hidden" name="enabled" value={enabled ? '0' : '1'} />
       <button
         type="submit"
         className="inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm"
       >
-        {enabled ? "Disable" : "Enable"}
+        {enabled ? 'Disable' : 'Enable'}
       </button>
     </form>
   )
@@ -62,7 +53,7 @@ export function PluginSettingsForm({
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      {state.notice === "saved" && (
+      {state.notice === 'saved' && (
         <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
           Saved. The plugin reads these on its next call.
         </p>
@@ -72,11 +63,11 @@ export function PluginSettingsForm({
 
       <div className="flex flex-col divide-y divide-border">
         {settings.map((setting) => {
-          const fromEnvironment = setting.source === "environment"
+          const fromEnvironment = setting.source === 'environment'
 
           return (
             <div key={setting.key} className="flex flex-col gap-1 py-3">
-              {setting.kind === "boolean" ? (
+              {setting.kind === 'boolean' ? (
                 <label className="flex items-start gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -93,7 +84,7 @@ export function PluginSettingsForm({
                     )}
                   </span>
                 </label>
-              ) : setting.kind === "select" ? (
+              ) : setting.kind === 'select' ? (
                 <label className="flex flex-col gap-1 text-sm">
                   <span className="font-medium">{setting.label}</span>
                   <select
@@ -112,7 +103,7 @@ export function PluginSettingsForm({
                     <span className="text-xs text-muted-foreground">{setting.description}</span>
                   )}
                 </label>
-              ) : setting.kind === "secret" ? (
+              ) : setting.kind === 'secret' ? (
                 <label className="flex flex-col gap-1 text-sm">
                   <span className="font-medium">{setting.label}</span>
                   <input
@@ -122,10 +113,10 @@ export function PluginSettingsForm({
                     defaultValue=""
                     placeholder={
                       fromEnvironment
-                        ? "set by the environment"
+                        ? 'set by the environment'
                         : setting.set
-                          ? "set — leave blank to keep it"
-                          : "not set"
+                          ? 'set — leave blank to keep it'
+                          : 'not set'
                     }
                     disabled={fromEnvironment}
                     className={INPUT}
@@ -139,7 +130,7 @@ export function PluginSettingsForm({
                   <span className="font-medium">{setting.label}</span>
                   <input
                     name={`setting.${setting.key}`}
-                    type={setting.kind === "number" ? "number" : "text"}
+                    type={setting.kind === 'number' ? 'number' : 'text'}
                     defaultValue={String(setting.value)}
                     disabled={fromEnvironment}
                     className={INPUT}
@@ -157,34 +148,36 @@ export function PluginSettingsForm({
               )}
 
               <span className="text-xs text-muted-foreground">
-                <code className="text-xs">plugin.{pluginKey}.{setting.key}</code>
+                <code className="text-xs">
+                  plugin.{pluginKey}.{setting.key}
+                </code>
                 {fromEnvironment && setting.envName !== null && (
                   <>
-                    {" · set by "}
+                    {' · set by '}
                     <code className="text-xs">{setting.envName}</code>
-                    {" in the environment — this box is inert"}
+                    {' in the environment — this box is inert'}
                   </>
                 )}
                 {!fromEnvironment && setting.envName !== null && (
                   <>
-                    {" · "}
+                    {' · '}
                     <code className="text-xs">{setting.envName}</code>
-                    {" overrides this when set"}
+                    {' overrides this when set'}
                   </>
                 )}
-                {setting.kind !== "secret" && (
+                {setting.kind !== 'secret' && (
                   <>
-                    {" · ships as "}
-                    {typeof setting.default === "boolean"
+                    {' · ships as '}
+                    {typeof setting.default === 'boolean'
                       ? setting.default
-                        ? "on"
-                        : "off"
-                      : String(setting.default) === ""
-                        ? "empty"
+                        ? 'on'
+                        : 'off'
+                      : String(setting.default) === ''
+                        ? 'empty'
                         : String(setting.default)}
                   </>
                 )}
-                {setting.advanced && " · advanced"}
+                {setting.advanced && ' · advanced'}
               </span>
             </div>
           )

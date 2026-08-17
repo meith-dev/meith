@@ -3,17 +3,10 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@meith/theme-kit'
 
-import {
-  RateMemberForm,
-  WithdrawRatingForm,
-} from '@/components/account/reputation-forms'
+import { RateMemberForm, WithdrawRatingForm } from '@/components/account/reputation-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import {
-  reputationService,
-  reputationSettings,
-  viewerRaterLimits,
-} from '@/server/reputation'
+import { reputationService, reputationSettings, viewerRaterLimits } from '@/server/reputation'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildReputationView, reputationLabel, reputationNotice } from '@/view/reputation'
@@ -98,7 +91,10 @@ export default async function ReputationPage({
             {profile.username}&rsquo;s reputation
           </h1>
           <p className="text-sm text-muted-foreground">{reputationLabel(view.summary)}</p>
-          <a href={`/member/${id}`} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+          <a
+            href={`/member/${id}`}
+            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+          >
             Back to their profile
           </a>
         </div>
@@ -138,7 +134,10 @@ export default async function ReputationPage({
                   {row.givenByHref === null ? (
                     <span className="font-medium">{row.givenBy}</span>
                   ) : (
-                    <a href={row.givenByHref} className="font-medium text-foreground hover:underline underline-offset-2">
+                    <a
+                      href={row.givenByHref}
+                      className="font-medium text-foreground hover:underline underline-offset-2"
+                    >
                       {row.givenBy}
                     </a>
                   )}
@@ -146,7 +145,10 @@ export default async function ReputationPage({
                     {row.at.label}
                   </time>
                   {row.postHref !== null && (
-                    <a href={row.postHref} className="text-xs font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+                    <a
+                      href={row.postHref}
+                      className="text-xs font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                    >
                       on a post
                     </a>
                   )}
@@ -168,7 +170,10 @@ export default async function ReputationPage({
         )}
 
         {view.nextHref !== null && (
-          <a href={view.nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+          <a
+            href={view.nextHref}
+            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+          >
             Older ratings
           </a>
         )}

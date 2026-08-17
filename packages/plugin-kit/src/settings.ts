@@ -31,10 +31,7 @@ export function serialisePluginSetting(value: PluginSettingValue): string {
   return String(value)
 }
 
-export function parsePluginSetting(
-  setting: PluginSetting,
-  raw: string,
-): PluginSettingValue | null {
+export function parsePluginSetting(setting: PluginSetting, raw: string): PluginSettingValue | null {
   if (typeof setting.default === 'boolean') {
     if (raw === '1' || raw === 'true') return true
     if (raw === '0' || raw === 'false') return false
@@ -114,9 +111,7 @@ export function resolvePluginSettingDetails(
   return (plugin.settings ?? []).map((setting) => resolveOne(plugin, setting, overrides, env))
 }
 
-export function operatorDisabledPlugins(
-  overrides: ReadonlyMap<string, string>,
-): readonly string[] {
+export function operatorDisabledPlugins(overrides: ReadonlyMap<string, string>): readonly string[] {
   const disabled: string[] = []
 
   for (const [key, value] of overrides) {

@@ -26,18 +26,14 @@ describe('contentSecurityPolicy', () => {
 
   it('allows eval only where React’s development build needs it', () => {
     expect(contentSecurityPolicy({ nonce: 'n', development: true })).toContain("'unsafe-eval'")
-    expect(contentSecurityPolicy({ nonce: 'n', development: false })).not.toContain(
-      "'unsafe-eval'",
-    )
+    expect(contentSecurityPolicy({ nonce: 'n', development: false })).not.toContain("'unsafe-eval'")
   })
 
   it('confines images to the board unless it has opted out', () => {
-    expect(directive(contentSecurityPolicy({ nonce: 'n' }), 'img-src')).toBe(
-      "img-src 'self' data:",
+    expect(directive(contentSecurityPolicy({ nonce: 'n' }), 'img-src')).toBe("img-src 'self' data:")
+    expect(directive(contentSecurityPolicy({ nonce: 'n', remoteImages: true }), 'img-src')).toBe(
+      "img-src 'self' data: https:",
     )
-    expect(
-      directive(contentSecurityPolicy({ nonce: 'n', remoteImages: true }), 'img-src'),
-    ).toBe("img-src 'self' data: https:")
   })
 
   it('keeps the rest of the header set it inherited', () => {

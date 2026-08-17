@@ -1,1 +1,1 @@
-export { referencePlugin, RECORDED, MARK, resetRecorder } from './plugin'
+export { MARK, RECORDED, referencePlugin, resetRecorder } from './plugin'

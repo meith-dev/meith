@@ -1,10 +1,10 @@
-import { ForbiddenError, ValidationError } from '@meith/core'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { rejectionMessage } from './test-support.fixture'
+import { ForbiddenError, ValidationError } from '@meith/core'
 
 import { BanService } from './ban-service'
 import { MemoryBans } from './memory-bans'
+import { rejectionMessage } from './test-support.fixture'
 
 const MODERATOR_GROUP = 5
 const REGISTERED_GROUP = 2

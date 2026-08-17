@@ -1,12 +1,12 @@
+import { applyInternalEvent, type EntitlementDeps, settlePaidOrder } from './entitlement'
 import { addDays } from './period'
 import { clampGrantUntil, TOP_UP_WHEN_WITHIN_DAYS } from './plans'
-import { applyInternalEvent, settlePaidOrder, type EntitlementDeps } from './entitlement'
 import {
   expireDueMemberships,
   extendMembership,
   longLiveMemberships,
-  markEventProcessed,
   markEventFailed,
+  markEventProcessed,
   membershipsPastPeriod,
   pendingOrdersOlderThan,
   setMembershipStatus,

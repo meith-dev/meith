@@ -1,6 +1,6 @@
-import { votePollAction } from '@/server/poll-actions'
-
 import type { Poll } from '@meith/polls'
+
+import { votePollAction } from '@/server/poll-actions'
 
 export function PollForm({
   poll,
@@ -13,10 +13,7 @@ export function PollForm({
 }) {
   const total = poll.options.reduce((sum, option) => sum + option.votes, 0)
   return (
-    <section
-      aria-label="Poll"
-      className="mt-4 rounded-md border border-border p-4"
-    >
+    <section aria-label="Poll" className="mt-4 rounded-md border border-border p-4">
       <h2 className="font-medium">{poll.question}</h2>
       <form action={votePollAction} className="mt-3 flex flex-col gap-2">
         <input type="hidden" name="threadId" value={threadId} />

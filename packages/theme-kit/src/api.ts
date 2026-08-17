@@ -1,4 +1,4 @@
-import { SLOT_NAMES, isSlotName, type SlotName } from './slots'
+import { isSlotName, SLOT_NAMES, type SlotName } from './slots'
 
 export const THEME_API_VERSION = '0.13'
 
@@ -120,9 +120,7 @@ export function assertDeprecationPolicy(
       }
       scheduledSlots.add(entry.name)
     } else if (!/^[A-Z]\w*\.\w+$/.test(entry.name)) {
-      throw new Error(
-        `theme-kit: deprecation for ${where} must name a field as Model.field.`,
-      )
+      throw new Error(`theme-kit: deprecation for ${where} must name a field as Model.field.`)
     }
 
     const since = parseApiVersion(entry.since)

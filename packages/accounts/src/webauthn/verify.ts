@@ -1,7 +1,6 @@
 import { ValidationError } from '@meith/core'
 
 import { decodeBase64Url, encodeBase64Url } from '../crypto/base64url'
-
 import { cborBytes, cborMap, decodeCbor } from './cbor'
 import { importCoseKey, rawSignatureFromDer } from './cose'
 
@@ -91,9 +90,7 @@ export async function verifyAssertion(input: {
     throw new ValidationError('That passkey was not confirmed on the device.')
   }
 
-  const imported = await decodeOrRefuseAsync(() =>
-    importCoseKey(decodeBase64Url(input.publicKey)),
-  )
+  const imported = await decodeOrRefuseAsync(() => importCoseKey(decodeBase64Url(input.publicKey)))
 
   const clientDataHash = await sha256(decodeBase64Url(input.response.clientDataJSON))
   const signed = concat(authData, clientDataHash)
@@ -141,11 +138,7 @@ async function parseAuthenticatorData(
   }
 
   const flags = authData[32]!
-  const signCount = new DataView(
-    authData.buffer,
-    authData.byteOffset + 33,
-    4,
-  ).getUint32(0)
+  const signCount = new DataView(authData.buffer, authData.byteOffset + 33, 4).getUint32(0)
 
   if ((flags & FLAG_ATTESTED_CREDENTIAL) === 0) {
     return {
@@ -221,9 +214,7 @@ async function decodeOrRefuseAsync<T>(read: () => Promise<T>): Promise<T> {
 }
 
 async function sha256(bytes: Uint8Array): Promise<Uint8Array> {
-  return new Uint8Array(
-    await crypto.subtle.digest('SHA-256', bytes as unknown as BufferSource),
-  )
+  return new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as unknown as BufferSource))
 }
 
 function concat(left: Uint8Array, right: Uint8Array): Uint8Array {

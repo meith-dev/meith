@@ -1,5 +1,5 @@
 import { isCurrencyCode, isValidMinorAmount } from './money'
-import { parsePeriod, periodCeilingDays, type Period } from './period'
+import { type Period, parsePeriod, periodCeilingDays } from './period'
 
 export interface DuesPlanInput {
   readonly key: string
@@ -114,9 +114,7 @@ export function parseDuesConfig(input: DuesConfigInput): DuesConfig {
 
     const parsed = parsePeriod(plan.billing.period)
     if (parsed === null) {
-      refuse(
-        `${where}: "${plan.billing.period}" is not an ISO-8601 period like P90D, P1M or P1Y.`,
-      )
+      refuse(`${where}: "${plan.billing.period}" is not an ISO-8601 period like P90D, P1M or P1Y.`)
     }
     if (periodCeilingDays(parsed) + graceDays > MAX_GRANTABLE_DAYS) {
       refuse(

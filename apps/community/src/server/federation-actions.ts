@@ -5,8 +5,9 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError } from '@meith/core'
 
 import { recordAuthEvent } from './auth-events'
-import { getActor } from './context'
+import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
+import { getActor } from './context'
 import { assertDemoAccountChangeable } from './demo'
 import {
   federationService,
@@ -17,7 +18,6 @@ import {
 } from './federation'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
-import type { FormState } from './auth-form-state'
 
 const toFormState = formStateReporter(
   'federation-actions',
@@ -64,10 +64,7 @@ async function requireOwnAccount(): Promise<{
   return { userId: actor.userId, hasPassword: account.passwordHash !== null }
 }
 
-export async function unlinkIdentityAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function unlinkIdentityAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const { userId, hasPassword } = await requireOwnAccount()
     const identityId = Number(text(form, 'identityId'))
@@ -90,10 +87,7 @@ export async function unlinkIdentityAction(
   redirect('/usercp/security?sso=unlinked')
 }
 
-export async function removePasskeyAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function removePasskeyAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const { userId, hasPassword } = await requireOwnAccount()
     const passkeyId = Number(text(form, 'passkeyId'))

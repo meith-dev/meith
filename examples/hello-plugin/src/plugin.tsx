@@ -50,9 +50,9 @@ export const helloPlugin = definePlugin({
         <div className="flex flex-col gap-2 text-sm">
           <p>{String(context.settings.greeting)}</p>
           <p className="text-muted-foreground">
-            This page is rendered by the plugin itself. Edit the greeting on the
-            plugin&rsquo;s settings screen and reload to see the resolved value
-            arrive in <code className="text-xs">context.settings</code>.
+            This page is rendered by the plugin itself. Edit the greeting on the plugin&rsquo;s
+            settings screen and reload to see the resolved value arrive in{' '}
+            <code className="text-xs">context.settings</code>.
           </p>
         </div>
       ),
@@ -84,7 +84,6 @@ export const helloPlugin = definePlugin({
       ],
     }),
 
-    'post.created': () => {
-    },
+    'post.created': () => {},
   },
 })

@@ -16,12 +16,7 @@ describe('buildBreadcrumb', () => {
   it('runs root first and ends at the forum', () => {
     const trail = buildBreadcrumb({ forums: FORUMS, forumId: 9 })
     expect(labels(trail)).toEqual(['Home', 'Main', 'General', 'Off topic'])
-    expect(trail.map((item) => item.href)).toEqual([
-      '/',
-      '/1-main',
-      '/4-general',
-      '/9-off-topic',
-    ])
+    expect(trail.map((item) => item.href)).toEqual(['/', '/1-main', '/4-general', '/9-off-topic'])
   })
 
   it('appends an unlinked leaf for a thread', () => {

@@ -5,12 +5,12 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError } from '@meith/core'
 import type { NotificationService } from '@meith/notifications'
 
+import type { FormState } from './auth-form-state'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
 import { audiencesForActor } from './notification-audience'
 import { notificationService } from './notifications'
-import type { FormState } from './auth-form-state'
 
 const toFormState = formStateReporter('notification-actions', 'unexpected error in notifications')
 

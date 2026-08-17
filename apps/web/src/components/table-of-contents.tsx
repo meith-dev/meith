@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from 'react'
 
 export interface TocHeading {
   readonly id: string
@@ -32,7 +32,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
         const first = headings.find((heading) => visible.has(heading.id))
         if (first) setActiveId(first.id)
       },
-      { rootMargin: "-96px 0px -67% 0px", threshold: 0 },
+      { rootMargin: '-96px 0px -67% 0px', threshold: 0 },
     )
 
     for (const element of elements) observer.observe(element)
@@ -78,13 +78,13 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
             <li key={heading.id}>
               <a
                 href={`#${heading.id}`}
-                aria-current={active ? "location" : undefined}
+                aria-current={active ? 'location' : undefined}
                 className={`-ml-px block border-l py-1 text-micro leading-snug transition-colors ${
-                  heading.depth === 3 ? "pl-6" : "pl-3"
+                  heading.depth === 3 ? 'pl-6' : 'pl-3'
                 } ${
                   active
-                    ? "border-accent text-accent"
-                    : "border-transparent text-fg-subtle hover:border-border-strong hover:text-fg"
+                    ? 'border-accent text-accent'
+                    : 'border-transparent text-fg-subtle hover:border-border-strong hover:text-fg'
                 }`}
               >
                 {heading.text}

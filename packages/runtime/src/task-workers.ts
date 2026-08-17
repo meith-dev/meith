@@ -1,17 +1,17 @@
-import type { TaskWorkers } from '@meith/tasks'
-import { BanService, type BanRepository } from '@meith/accounts'
-import { SubscriptionNotifier, type SubscriptionRepository, type VisibleForumSource } from '@meith/subscriptions'
-import type { NotificationService } from '@meith/notifications'
-import { WarningService, type WarningRepository } from '@meith/moderation'
-import { PromotionService, type PromotionGuards } from '@meith/groups'
-import {
-  relayOutbox as runOutboxRelay,
-  type EventRegistry,
-  type OutboxReader,
-} from '@meith/events'
-import type { QueueDriver } from '@meith/core'
+import { type BanRepository, BanService } from '@meith/accounts'
 import type { AttachmentService } from '@meith/attachments'
 import type { AvatarService } from '@meith/avatars'
+import type { QueueDriver } from '@meith/core'
+import { type EventRegistry, type OutboxReader, relayOutbox as runOutboxRelay } from '@meith/events'
+import { type PromotionGuards, PromotionService } from '@meith/groups'
+import { type WarningRepository, WarningService } from '@meith/moderation'
+import type { NotificationService } from '@meith/notifications'
+import {
+  SubscriptionNotifier,
+  type SubscriptionRepository,
+  type VisibleForumSource,
+} from '@meith/subscriptions'
+import type { TaskWorkers } from '@meith/tasks'
 
 import { SEED_GROUP } from './groups'
 import { deliverWebhooks, type WebhookDeliveryStore } from './webhook-delivery'
@@ -236,13 +236,15 @@ function subscriptionNotifier(deps: TaskWorkerDeps): SubscriptionNotifier {
   })
 }
 
-function banPort(bans: BanService): { ban: (input: {
-  userId: number
-  bannedByUserId: number
-  reason: string
-  publicReason: string
-  expiresAt?: Date | undefined
-}) => Promise<void> } {
+function banPort(bans: BanService): {
+  ban: (input: {
+    userId: number
+    bannedByUserId: number
+    reason: string
+    publicReason: string
+    expiresAt?: Date | undefined
+  }) => Promise<void>
+} {
   return {
     async ban(input) {
       await bans.ban(input)

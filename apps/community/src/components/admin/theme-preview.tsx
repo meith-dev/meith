@@ -1,29 +1,29 @@
-"use client"
+'use client'
 
-import { useId, useState } from "react"
+import { useId, useState } from 'react'
 
 export const PREVIEW_SCENES = [
   {
-    key: "forums",
-    title: "Forum list",
-    blurb: "Categories, forum rows and their read state — the board’s front page.",
+    key: 'forums',
+    title: 'Forum list',
+    blurb: 'Categories, forum rows and their read state — the board’s front page.',
   },
   {
-    key: "thread",
-    title: "A thread",
-    blurb: "Posts, member names by group, and the tints behind a highlighted or held post.",
+    key: 'thread',
+    title: 'A thread',
+    blurb: 'Posts, member names by group, and the tints behind a highlighted or held post.',
   },
   {
-    key: "controls",
-    title: "Controls",
-    blurb: "Buttons, fields, badges and the moderation queue’s three states.",
+    key: 'controls',
+    title: 'Controls',
+    blurb: 'Buttons, fields, badges and the moderation queue’s three states.',
   },
 ] as const
 
-export type PreviewScene = (typeof PREVIEW_SCENES)[number]["key"]
+export type PreviewScene = (typeof PREVIEW_SCENES)[number]['key']
 
 const CHIP =
-  "inline-flex h-8 items-center justify-center rounded-md border px-3 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-8 items-center justify-center rounded-md border px-3 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 function ForumsScene() {
   return (
@@ -53,7 +53,7 @@ function ForumsScene() {
                 Announcements
               </span>
               <span className="text-xs text-muted-foreground">
-                Last post by{" "}
+                Last post by{' '}
                 <span data-token="group-admin" className="font-medium text-group-admin">
                   ada
                 </span>
@@ -71,7 +71,7 @@ function ForumsScene() {
                 Introductions
               </span>
               <span className="text-xs text-muted-foreground">
-                Last post by{" "}
+                Last post by{' '}
                 <span data-token="group-mod" className="font-medium text-group-mod">
                   grace
                 </span>
@@ -117,7 +117,7 @@ function ThreadScene() {
   return (
     <div className="flex flex-col gap-3">
       <p data-token="muted-foreground" className="text-xs text-muted-foreground">
-        Kestrel Board → General discussion →{" "}
+        Kestrel Board → General discussion →{' '}
         <span data-token="foreground" className="text-foreground">
           Where should the pier go?
         </span>
@@ -139,7 +139,10 @@ function ThreadScene() {
         </span>
       </div>
 
-      <article data-token="post-highlight" className="rounded-md bg-post-highlight p-3 shadow-elevation">
+      <article
+        data-token="post-highlight"
+        className="rounded-md bg-post-highlight p-3 shadow-elevation"
+      >
         <p className="flex flex-wrap items-baseline gap-2 text-xs">
           <span data-token="group-supermod" className="font-semibold text-group-supermod">
             grace
@@ -165,10 +168,14 @@ function ThreadScene() {
           <span className="text-muted-foreground">Administrator · 5,391 posts · a moment ago</span>
         </p>
         <p className="mt-2 text-sm">
-          Your own posts carry a gentle tint so you can find yourself in a long thread. An{" "}
-          <a data-token="primary" href="#preview" className="font-medium underline underline-offset-2">
+          Your own posts carry a gentle tint so you can find yourself in a long thread. An{' '}
+          <a
+            data-token="primary"
+            href="#preview"
+            className="font-medium underline underline-offset-2"
+          >
             ordinary link
-          </a>{" "}
+          </a>{' '}
           sits in the flow of a sentence.
         </p>
       </article>
@@ -219,7 +226,10 @@ function ControlsScene() {
         </span>
       </div>
 
-      <div data-token="card" className="flex flex-col gap-1 rounded-md bg-card p-3 shadow-elevation">
+      <div
+        data-token="card"
+        className="flex flex-col gap-1 rounded-md bg-card p-3 shadow-elevation"
+      >
         <span className="text-xs font-medium">Thread title</span>
         <span data-token="ring" className="rounded-md outline-2 outline-offset-2 outline-ring">
           <span
@@ -268,8 +278,8 @@ function ControlsScene() {
 }
 
 function Scene({ scene }: { scene: PreviewScene }) {
-  if (scene === "forums") return <ForumsScene />
-  if (scene === "thread") return <ThreadScene />
+  if (scene === 'forums') return <ForumsScene />
+  if (scene === 'thread') return <ThreadScene />
   return <ControlsScene />
 }
 
@@ -288,9 +298,9 @@ function SampleFrame({
 }) {
   const pick = (event: React.MouseEvent<HTMLElement>): void => {
     if (onPick === undefined) return
-    const tagged = (event.target as HTMLElement).closest<HTMLElement>("[data-token]")
+    const tagged = (event.target as HTMLElement).closest<HTMLElement>('[data-token]')
     const token = tagged?.dataset.token
-    if (token === undefined || token === "") return
+    if (token === undefined || token === '') return
     event.preventDefault()
     onPick(token)
   }
@@ -303,11 +313,11 @@ function SampleFrame({
         style={palette}
         onClick={onPick === undefined ? undefined : pick}
         className={`flex flex-col gap-3 rounded-lg border border-border bg-background p-3 text-foreground ${
-          dark === true ? "dark" : ""
+          dark === true ? 'dark' : ''
         } ${
           onPick === undefined
-            ? ""
-            : "[&_[data-token]]:cursor-pointer [&_[data-token]:hover]:outline-2 [&_[data-token]:hover]:outline-offset-2 [&_[data-token]:hover]:outline-ring"
+            ? ''
+            : '[&_[data-token]]:cursor-pointer [&_[data-token]:hover]:outline-2 [&_[data-token]:hover]:outline-offset-2 [&_[data-token]:hover]:outline-ring'
         }`}
       >
         <Scene scene={scene} />
@@ -327,7 +337,7 @@ export function ThemePreview({
   hydrated: boolean
   onPick?: ((token: string) => void) | undefined
 }) {
-  const [scene, setScene] = useState<PreviewScene>("forums")
+  const [scene, setScene] = useState<PreviewScene>('forums')
   const groupId = useId()
 
   const shown = hydrated ? PREVIEW_SCENES.filter((entry) => entry.key === scene) : PREVIEW_SCENES
@@ -337,23 +347,25 @@ export function ThemePreview({
       <div className="flex flex-col gap-1">
         <h3 className="text-base font-semibold tracking-tight">Live sample</h3>
         <p className="text-xs text-muted-foreground">
-          Painted from the form as you type — nothing here has been saved. Both schemes are
-          shown because they are one decision: a colour that works on white often disappears
-          on black. Custom CSS is not painted here; “Preview without saving” includes it.
+          Painted from the form as you type — nothing here has been saved. Both schemes are shown
+          because they are one decision: a colour that works on white often disappears on black.
+          Custom CSS is not painted here; “Preview without saving” includes it.
         </p>
         {hydrated && onPick !== undefined && (
           <p className="text-xs text-muted-foreground">
-            <strong className="font-medium text-foreground">
-              Click anything in the sample
-            </strong>{" "}
-            to open the token that paints it — the swatches beside it do the same thing from
-            the keyboard.
+            <strong className="font-medium text-foreground">Click anything in the sample</strong> to
+            open the token that paints it — the swatches beside it do the same thing from the
+            keyboard.
           </p>
         )}
       </div>
 
       {hydrated && (
-        <div role="group" aria-label="Which part of the board to sample" className="flex flex-wrap gap-2">
+        <div
+          role="group"
+          aria-label="Which part of the board to sample"
+          className="flex flex-wrap gap-2"
+        >
           {PREVIEW_SCENES.map((entry) => (
             <button
               key={entry.key}
@@ -362,8 +374,8 @@ export function ThemePreview({
               onClick={() => setScene(entry.key)}
               className={`${CHIP} ${
                 scene === entry.key
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border hover:bg-accent hover:text-accent-foreground"
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border hover:bg-accent hover:text-accent-foreground'
               }`}
             >
               {entry.title}
@@ -387,7 +399,7 @@ export function ThemePreview({
   )
 }
 
-export function ValidatedSample({ scene = "forums" }: { scene?: PreviewScene }) {
+export function ValidatedSample({ scene = 'forums' }: { scene?: PreviewScene }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row">
       <SampleFrame label="Light" palette={{}} scene={scene} />

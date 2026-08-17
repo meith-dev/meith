@@ -1,5 +1,5 @@
-import { Badge } from '@meith/ui'
 import type { OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
+import { Badge } from '@meith/ui'
 
 import { LINK, NUMERIC, Stamp, UserRef } from '../shared'
 
@@ -53,11 +53,7 @@ export function WhoIsOnline({
               </summary>
               {': '}
               {rest.map((member, index) => (
-                <Name
-                  key={member.userId ?? member.username}
-                  member={member}
-                  first={index === 0}
-                />
+                <Name key={member.userId ?? member.username} member={member} first={index === 0} />
               ))}
             </details>
           )}

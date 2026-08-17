@@ -20,9 +20,7 @@ export async function fetchJson(
   }
 
   if (!response.ok) {
-    throw new InternalError(
-      `The identity provider refused to ${what} (HTTP ${response.status}).`,
-    )
+    throw new InternalError(`The identity provider refused to ${what} (HTTP ${response.status}).`)
   }
 
   try {

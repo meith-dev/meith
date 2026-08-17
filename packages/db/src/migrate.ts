@@ -1,9 +1,10 @@
-import { migrate } from 'drizzle-orm/postgres-js/migrator'
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
 import { existsSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { drizzle } from 'drizzle-orm/postgres-js'
+import { migrate } from 'drizzle-orm/postgres-js/migrator'
+import postgres from 'postgres'
 
 import { ConfigurationError, env, logger } from '@meith/core'
 
@@ -62,15 +63,11 @@ function migrationsFolder(): string {
   )
 }
 
-export async function runMigrations(options: {
-  readonly folder?: string
-} = {}): Promise<number> {
+export async function runMigrations(options: { readonly folder?: string } = {}): Promise<number> {
   const url = env.DIRECT_DATABASE_URL ?? env.DATABASE_URL
 
   if (!url) {
-    throw new ConfigurationError(
-      'Cannot migrate without DATABASE_URL (or DIRECT_DATABASE_URL).',
-    )
+    throw new ConfigurationError('Cannot migrate without DATABASE_URL (or DIRECT_DATABASE_URL).')
   }
 
   const sql = postgres(url, { max: 1, prepare: false, onnotice: () => {} })

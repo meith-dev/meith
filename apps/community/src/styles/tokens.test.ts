@@ -11,13 +11,11 @@ import {
   SCHEME_INDEPENDENT_TOKENS,
   TOKEN_NAMES,
 } from '@meith/theme-default'
+
 import { colorToHex } from '../server/theme-style'
 import { isSchemeIndependent } from '../view/theme-tokens'
 
-const CSS = readFileSync(
-  resolve(dirname(fileURLToPath(import.meta.url)), 'globals.css'),
-  'utf8',
-)
+const CSS = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'globals.css'), 'utf8')
 
 function declaredTokens(selector: string): Map<string, string> {
   const block = new RegExp(`^${selector.replace('.', '\\.')}\\s*\\{(.*?)^\\}`, 'ms').exec(CSS)

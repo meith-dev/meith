@@ -4,16 +4,16 @@ import { notFound } from 'next/navigation'
 import { SubscriptionService } from '@meith/subscriptions'
 import { requireSlot } from '@meith/theme-kit'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { SubscriptionRowForm } from '@/components/account/subscription-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import {
   buildSubscriptionsView,
-  subscriptionNotice,
   type SubscriptionRowView,
+  subscriptionNotice,
 } from '@/view/subscriptions'
 
 export const metadata: Metadata = { title: 'Subscriptions' }
@@ -30,10 +30,7 @@ export default async function SubscriptionsPage({
   if (actor.userId === null || subscriptions === null) notFound()
 
   const visibleForumIds = await authorizer.visibleForumIds(actor)
-  const rows = await new SubscriptionService({ subscriptions }).list(
-    actor.userId,
-    visibleForumIds,
-  )
+  const rows = await new SubscriptionService({ subscriptions }).list(actor.userId, visibleForumIds)
 
   const { timezone } = await getViewerPreferences()
 
@@ -57,14 +54,12 @@ export default async function SubscriptionsPage({
         </>
       }
     >
-      {notice !== null && (
-        <Notice kind="info" message={notice} dismissHref="/subscriptions" />
-      )}
+      {notice !== null && <Notice kind="info" message={notice} dismissHref="/subscriptions" />}
 
       {view.total === 0 ? (
         <p className="text-sm text-muted-foreground">
-          You are not following anything yet. Use the “Follow” control on a thread or a
-          forum, or tick the box when you post.
+          You are not following anything yet. Use the “Follow” control on a thread or a forum, or
+          tick the box when you post.
         </p>
       ) : (
         <>

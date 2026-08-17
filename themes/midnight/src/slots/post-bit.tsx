@@ -2,7 +2,11 @@ import type { PostBitSlotModel } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-function GroupBadge({ badge }: { badge: NonNullable<PostBitSlotModel['post']['author']['badge']> }) {
+function GroupBadge({
+  badge,
+}: {
+  badge: NonNullable<PostBitSlotModel['post']['author']['badge']>
+}) {
   const image = (
     <img
       src={badge.src}

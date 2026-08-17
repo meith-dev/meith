@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  INLINE_FORM_ID,
-  NO_INLINE_TOOLS,
   anyInlineTool,
+  INLINE_FORM_ID,
   inlineOutcomeNotice,
+  NO_INLINE_TOOLS,
   selectionFor,
 } from './inline-moderation'
 

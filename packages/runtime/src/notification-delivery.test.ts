@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+
 import { MemoryMailDriver, MemoryQueue } from '@meith/drivers'
 import type { OutboxReader, OutboxRecord } from '@meith/events'
 import {
-  deliverNotificationEmail,
   type DeliverableNotification,
+  deliverNotificationEmail,
   type NotificationRepository,
 } from '@meith/notifications'
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseDuesConfig, type DuesConfigInput } from './config'
+import { type DuesConfigInput, parseDuesConfig } from './config'
 
 const FIXED = {
   key: 'pass-90',
@@ -39,9 +39,9 @@ describe('parseDuesConfig', () => {
   })
 
   it('refuses a giftable auto plan outright', () => {
-    expect(() =>
-      parseDuesConfig(config({ plans: [{ ...AUTO, giftable: true }] })),
-    ).toThrow(/cannot be a gift/)
+    expect(() => parseDuesConfig(config({ plans: [{ ...AUTO, giftable: true }] }))).toThrow(
+      /cannot be a gift/,
+    )
   })
 
   it.each([
@@ -61,7 +61,10 @@ describe('parseDuesConfig', () => {
     [{ ...FIXED, price: 0 }, /minor units/],
     [{ ...FIXED, billing: { mode: 'fixed', period: 'ninety days' } }, /ISO-8601/],
     [{ ...FIXED, billing: { mode: 'fixed', period: 'P3Y' } }, /two years/],
-    [{ ...AUTO, billing: { mode: 'auto', interval: 'month', stripePriceId: 'plan_1' } }, /price id/],
+    [
+      { ...AUTO, billing: { mode: 'auto', interval: 'month', stripePriceId: 'plan_1' } },
+      /price id/,
+    ],
   ])('refuses the plan %o', (plan, message) => {
     expect(() => parseDuesConfig(config({ plans: [plan as never] }))).toThrow(message)
   })
@@ -93,8 +96,8 @@ describe('parseDuesConfig', () => {
 
   it('validates extra redirect hosts as bare hosts', () => {
     expect(() => parseDuesConfig(config({ extraRedirectHosts: ['ok.example'] }))).not.toThrow()
-    expect(() =>
-      parseDuesConfig(config({ extraRedirectHosts: ['https://bad.example'] })),
-    ).toThrow(/host name/)
+    expect(() => parseDuesConfig(config({ extraRedirectHosts: ['https://bad.example'] }))).toThrow(
+      /host name/,
+    )
   })
 })

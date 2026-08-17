@@ -1,5 +1,5 @@
-import { cn } from '@meith/ui'
 import type { PanelPageModel, PanelSectionModel } from '@meith/theme-kit'
+import { cn } from '@meith/ui'
 
 import { MUTED_LINK, PAGE, pageAt } from '../shared'
 

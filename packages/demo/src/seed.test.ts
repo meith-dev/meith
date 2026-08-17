@@ -1,20 +1,21 @@
+import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
 import { verifyPassword } from '@meith/accounts'
 import { Authorizer, combinePermissionSets } from '@meith/authorization'
 import { PUBLIC_CONTENT } from '@meith/core'
 import {
+  type Database,
   PostgresAuthorizationSource,
   PostgresSearchRepository,
   resultRows,
-  type Database,
 } from '@meith/db'
-import { DUES_DEMO_GROUP } from '@meith/plugin-dues'
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
-import { sql } from 'drizzle-orm'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { DUES_DEMO_GROUP } from '@meith/plugin-dues'
 
 import { DEMO_ACCOUNTS, DEMO_LOGINS } from './accounts'
 import { DEMO_FORUMS, DEMO_PREFIXES, DEMO_THREADS } from './content'
-import { seedDemoBoard, type SeedSummary } from './seed'
+import { type SeedSummary, seedDemoBoard } from './seed'
 
 let harness: TestDb
 let db: Database
@@ -203,7 +204,9 @@ describe('the seeded board', () => {
     expect(quoting.length).toBeGreaterThan(0)
 
     const rows = resultRows(
-      await db.execute(sql`select message, message_html as html from posts where message like '> **[%'`),
+      await db.execute(
+        sql`select message, message_html as html from posts where message like '> **[%'`,
+      ),
     ) as Array<{ message: string; html: string }>
     expect(rows).toHaveLength(quoting.length)
 
@@ -219,7 +222,10 @@ describe('the seeded board', () => {
       const profile = /\[([^\]]+)\]\(\/member\/by-name\/([^)]+)\)/.exec(row.message)
       expect(profile).not.toBeNull()
       expect(
-        await count('users', sql`username_lower = ${decodeURIComponent(profile![2]!).toLowerCase()}`),
+        await count(
+          'users',
+          sql`username_lower = ${decodeURIComponent(profile![2]!).toLowerCase()}`,
+        ),
       ).toBe(1)
 
       expect(row.html).toContain('class="md-quote-source"')
@@ -278,9 +284,10 @@ describe('the seeded board', () => {
     expect(ordinary.size, 'a member sees the rest of the board').toBe(open)
 
     const supporter = await seen('registered', DUES_DEMO_GROUP)
-    expect(holds(supporter, supportersSection), 'a supporter is shut out of what they pay for').toBe(
-      'all',
-    )
+    expect(
+      holds(supporter, supportersSection),
+      'a supporter is shut out of what they pay for',
+    ).toBe('all')
     expect(holds(supporter, staffSection), 'paying gets a member into the committee room').toBe(
       'none',
     )

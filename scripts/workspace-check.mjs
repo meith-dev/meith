@@ -15,7 +15,9 @@ for (const { dir, manifest } of await workspaceEntries()) {
   if (manifest === null) {
     try {
       await readdir(join(ROOT, dir, 'src'))
-      problems.push(`${dir} has src/ but no package.json — pnpm will not see it as a workspace package`)
+      problems.push(
+        `${dir} has src/ but no package.json — pnpm will not see it as a workspace package`,
+      )
     } catch {
       /* ignore */
     }
@@ -52,7 +54,9 @@ for (const [alias, targets] of Object.entries(base.compilerOptions?.paths ?? {})
 
   const dir = target.split('/').slice(0, 2).join('/')
   if (!directories.includes(dir)) {
-    problems.push(`tsconfig.base.json maps ${alias} to ${target}, which is not a workspace directory`)
+    problems.push(
+      `tsconfig.base.json maps ${alias} to ${target}, which is not a workspace directory`,
+    )
     continue
   }
   if (![...byName.values()].some((entry) => entry.dir === dir)) {

@@ -147,7 +147,7 @@ the limits.
 | `thread.split` | event | — | `{ readonly sourceThreadId: number; readonly newThreadId: number; readonly postCount: number }` | `ModerationRef` |
 | `thread.locked` | event | — | `ThreadRef & { isLocked: boolean }` | `ModerationRef` |
 | `thread.stickied` | event | — | `ThreadRef & { isSticky: boolean }` | `ModerationRef` |
-| `attachment.upload.validate` | filter | — | `ValidationMessages` | `{ readonly filename: string readonly bytes: number /** What the *bytes* say it is, not what the name claims. */ readonly detectedMimeType: string readonly uploaderId: number }` |
+| `attachment.upload.validate` | filter | — | `ValidationMessages` | `{ readonly filename: string; readonly bytes: number; readonly detectedMimeType: string; readonly uploaderId: number }` |
 | `attachment.uploaded` | event | — | `{ readonly attachmentId: number; readonly postId: number \| null; readonly bytes: number }` | `ViewerRef` |
 | `attachment.deleted` | event | — | `{ readonly attachmentId: number }` | `ViewerRef` |
 | `poll.created` | event | — | `ThreadRef & { pollId: number; optionCount: number }` | `ViewerRef` |
@@ -181,11 +181,11 @@ the limits.
 
 | Hook | Kind | Wired | Value | Context |
 |---|---|---|---|---|
-| `report.created` | event | — | `{ readonly reportId: number readonly target: 'post' \| 'thread' \| 'user' \| 'pm' readonly targetId: number readonly reporterId: number }` | `RequestRef` |
+| `report.created` | event | — | `{ readonly reportId: number; readonly target: 'post' \| 'thread' \| 'user' \| 'pm'; readonly targetId: number; readonly reporterId: number }` | `RequestRef` |
 | `report.resolved` | event | — | `{ readonly reportId: number; readonly resolution: 'actioned' \| 'rejected' }` | `ModerationRef` |
 | `approval.queued` | event | — | `{ readonly kind: 'thread' \| 'post' \| 'attachment'; readonly id: number }` | `ViewerRef` |
-| `approval.decided` | event | — | `{ readonly kind: 'thread' \| 'post' \| 'attachment' readonly id: number readonly approved: boolean }` | `ModerationRef` |
-| `warning.issued` | event | — | `{ readonly warningId: number readonly userId: number readonly points: number readonly expiresAt: string \| null }` | `ModerationRef` |
+| `approval.decided` | event | — | `{ readonly kind: 'thread' \| 'post' \| 'attachment'; readonly id: number; readonly approved: boolean }` | `ModerationRef` |
+| `warning.issued` | event | — | `{ readonly warningId: number; readonly userId: number; readonly points: number; readonly expiresAt: string \| null }` | `ModerationRef` |
 | `warning.revoked` | event | — | `{ readonly warningId: number; readonly userId: number }` | `ModerationRef` |
 | `moderation.logged` | event | — | `{ readonly action: string; readonly targetId: number \| null }` | `ModerationRef` |
 
@@ -204,7 +204,7 @@ the limits.
 | `user.register.validate` | filter | — | `ValidationMessages` | `{ readonly username: string; readonly email: string; readonly ipPrefix: string \| null }` |
 | `user.registered` | event | — | `UserRef & { username: string; requiresActivation: boolean }` | `RequestRef` |
 | `user.activated` | event | — | `UserRef` | `RequestRef` |
-| `user.login.attempted` | event | — | `{ readonly username: string readonly outcome: 'ok' \| 'bad-credentials' \| 'locked-out' \| 'banned' /** Truncated. Never a full address. */ readonly ipPrefix: string \| null }` | `RequestRef` |
+| `user.login.attempted` | event | — | `{ readonly username: string; readonly outcome: 'ok' \| 'bad-credentials' \| 'locked-out' \| 'banned'; readonly ipPrefix: string \| null }` | `RequestRef` |
 | `user.logged-in` | event | — | `UserRef` | `RequestRef` |
 | `user.logged-out` | event | — | `UserRef & { reason: 'requested' \| 'revoked' }` | `RequestRef` |
 | `user.banned` | event | — | `UserRef & { expiresAt: string \| null }` | `ModerationRef` |
@@ -231,13 +231,13 @@ the limits.
 
 | Hook | Kind | Wired | Value | Context |
 |---|---|---|---|---|
-| `notification.create.before` | filter | — | `{ readonly userId: number readonly kind: string readonly subjectText: string readonly href: string } \| null` | `RequestRef` |
+| `notification.create.before` | filter | — | `{ readonly userId: number; readonly kind: string; readonly subjectText: string; readonly href: string } \| null` | `RequestRef` |
 | `notification.created` | event | — | `{ readonly notificationId: number; readonly userId: number }` | `RequestRef` |
-| `mail.send.before` | filter | — | `{ readonly to: string readonly subject: string readonly textBody: string readonly htmlBody: string \| null } \| null` | `{ readonly template: string }` |
+| `mail.send.before` | filter | — | `{ readonly to: string; readonly subject: string; readonly textBody: string; readonly htmlBody: string \| null } \| null` | `{ readonly template: string }` |
 | `mail.sent` | event | — | `{ readonly to: string; readonly template: string }` | `RequestRef` |
-| `pm.send.before` | filter | — | `{ readonly senderId: number readonly recipientIds: readonly number[] readonly subject: string readonly body: string } \| null` | `RequestRef` |
+| `pm.send.before` | filter | — | `{ readonly senderId: number; readonly recipientIds: readonly number[]; readonly subject: string; readonly body: string } \| null` | `RequestRef` |
 | `pm.sent` | event | — | `{ readonly messageId: number; readonly recipientIds: readonly number[] }` | `RequestRef` |
-| `subscription.changed` | event | — | `{ readonly userId: number readonly target: 'thread' \| 'forum' readonly targetId: number readonly subscribed: boolean }` | `RequestRef` |
+| `subscription.changed` | event | — | `{ readonly userId: number; readonly target: 'thread' \| 'forum'; readonly targetId: number; readonly subscribed: boolean }` | `RequestRef` |
 | `reputation.changed` | event | — | `{ readonly userId: number; readonly delta: number; readonly total: number }` | `ViewerRef` |
 
 - **`notification.create.before`** — A notification about to be created. Returning `null` suppresses it.
@@ -255,9 +255,9 @@ the limits.
 |---|---|---|---|---|
 | `search.query.before` | filter | — | `string` | `ViewerRef` |
 | `search.results` | filter | — | `readonly { readonly postId: number; readonly threadId: number; readonly rank: number }[]` | `ViewerRef & { terms: string }` |
-| `feed.items` | filter | — | `readonly { readonly title: string readonly href: string readonly publishedAt: string readonly summary: string }[] /** Always a guest: a feed is cached under a shared URL. */` | `{ readonly feed: 'board' \| 'forum' \| 'thread' }` |
+| `feed.items` | filter | — | `readonly { readonly title: string; readonly href: string; readonly publishedAt: string; readonly summary: string }[]` | `{ readonly feed: 'board' \| 'forum' \| 'thread' }` |
 | `sitemap.entries` | filter | — | `readonly { readonly href: string; readonly lastModified: string \| null }[]` | `{ readonly chunk: number }` |
-| `metadata.page` | filter | — | `{ readonly title: string readonly description: string \| null readonly canonical: string readonly imageUrl: string \| null }` | `{ readonly route: string }` |
+| `metadata.page` | filter | — | `{ readonly title: string; readonly description: string \| null; readonly canonical: string; readonly imageUrl: string \| null }` | `{ readonly route: string }` |
 
 - **`search.query.before`** — The parsed search terms, before the query runs. The scope is not filterable.
 - **`search.results`** — A page of results, already permission-filtered in SQL. A plugin may reorder or drop; adding a row here would add one the viewer may not see.

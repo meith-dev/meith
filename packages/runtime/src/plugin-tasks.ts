@@ -1,20 +1,20 @@
 import { logger, readPluginEnv } from '@meith/core'
 import {
+  type Database,
   PostgresNotificationRepository,
   PostgresSettingsRepository,
   pluginData,
   pluginGrants,
   pluginUsers,
-  type Database,
 } from '@meith/db'
 import { NotificationService } from '@meith/notifications'
 import {
+  type PluginDefinition,
   pluginEnabledKey,
   pluginNotificationKindSpecs,
   pluginNotify,
   pluginTaskId,
   resolvePluginSettings,
-  type PluginDefinition,
 } from '@meith/plugin-kit'
 import type { TaskDefinition } from '@meith/tasks'
 

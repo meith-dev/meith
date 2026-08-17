@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 
 export interface LiveRegionProps {
   readonly children: ReactNode
@@ -20,6 +20,7 @@ export function LiveRegion({ children, refresh, seconds, label }: LiveRegionProp
 
   useEffect(() => setEnhanced(true), [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: children is the reset trigger — a new server render clears the stale client copy
   useEffect(() => setFresh(null), [children])
 
   useEffect(() => {
@@ -36,8 +37,7 @@ export function LiveRegion({ children, refresh, seconds, label }: LiveRegionProp
         .then((node) => {
           if (live) setFresh(node)
         })
-        .catch(() => {
-        })
+        .catch(() => {})
     }
 
     const timer = window.setInterval(poll, seconds * 1000)
@@ -59,9 +59,7 @@ export function LiveRegion({ children, refresh, seconds, label }: LiveRegionProp
 
       {enhanced && (
         <p className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-1 text-xs text-muted-foreground">
-          <span>
-            {paused ? `${label} paused` : `${label} updates every ${seconds} seconds`}
-          </span>
+          <span>{paused ? `${label} paused` : `${label} updates every ${seconds} seconds`}</span>
           <button
             type="button"
             onClick={() => setPaused((was) => !was)}

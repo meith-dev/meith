@@ -2,16 +2,15 @@ import { describe, expect, it } from 'vitest'
 
 import { applyWordFilter, compileWordFilter } from './word-filter'
 
-const filter = (
-  ...rules: Array<{ pattern: string; replacement: string; wholeWord?: boolean }>
-) =>
-  compileWordFilter(
-    rules.map((rule) => ({ ...rule, wholeWord: rule.wholeWord ?? true })),
-  )
+const filter = (...rules: Array<{ pattern: string; replacement: string; wholeWord?: boolean }>) =>
+  compileWordFilter(rules.map((rule) => ({ ...rule, wholeWord: rule.wholeWord ?? true })))
 
 describe('applyWordFilter', () => {
   it('replaces a word in text', () => {
-    const result = applyWordFilter('<p>a badword here</p>', filter({ pattern: 'badword', replacement: '***' }))
+    const result = applyWordFilter(
+      '<p>a badword here</p>',
+      filter({ pattern: 'badword', replacement: '***' }),
+    )
     expect(result).toBe('<p>a *** here</p>')
   })
 
@@ -30,7 +29,10 @@ describe('applyWordFilter', () => {
   })
 
   it('is case-insensitive but keeps the replacement as written', () => {
-    const result = applyWordFilter('BadWord badword BADWORD', filter({ pattern: 'badword', replacement: 'ok' }))
+    const result = applyWordFilter(
+      'BadWord badword BADWORD',
+      filter({ pattern: 'badword', replacement: 'ok' }),
+    )
     expect(result).toBe('ok ok ok')
   })
 
@@ -59,8 +61,9 @@ describe('applyWordFilter', () => {
   })
 
   it('can remove a word entirely', () => {
-    expect(applyWordFilter('say nothing here', filter({ pattern: 'nothing', replacement: '' })))
-      .toBe('say  here')
+    expect(
+      applyWordFilter('say nothing here', filter({ pattern: 'nothing', replacement: '' })),
+    ).toBe('say  here')
   })
 
   it('is a no-op with no rules', () => {
@@ -83,8 +86,9 @@ describe('applyWordFilter', () => {
 
   it('copies an unterminated tag through rather than corrupting it', () => {
     const html = '<p>ok</p><a href="ok'
-    expect(applyWordFilter(html, filter({ pattern: 'ok', replacement: 'X' })))
-      .toBe('<p>X</p><a href="ok')
+    expect(applyWordFilter(html, filter({ pattern: 'ok', replacement: 'X' }))).toBe(
+      '<p>X</p><a href="ok',
+    )
   })
 
   it('leaves the input alone, so nothing stored is changed', () => {

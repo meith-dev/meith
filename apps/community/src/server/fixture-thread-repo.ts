@@ -17,15 +17,11 @@ type ThreadOrderKey = Pick<
   'id' | 'isSticky' | 'lastPostAt' | 'ratingTotal' | 'ratingCount'
 >
 
-function compare(
-  a: ThreadOrderKey,
-  b: ThreadOrderKey,
-  sort: ThreadSort,
-): number {
+function compare(a: ThreadOrderKey, b: ThreadOrderKey, sort: ThreadSort): number {
   const rating =
     sort === 'rating'
-      ? b.ratingTotal / (b.ratingCount || 1) -
-          a.ratingTotal / (a.ratingCount || 1) || b.ratingCount - a.ratingCount
+      ? b.ratingTotal / (b.ratingCount || 1) - a.ratingTotal / (a.ratingCount || 1) ||
+        b.ratingCount - a.ratingCount
       : 0
   return (
     Number(b.isSticky) - Number(a.isSticky) ||
@@ -35,24 +31,16 @@ function compare(
   )
 }
 
-function after(
-  row: ThreadListingRow,
-  cursor: ThreadCursor,
-  sort: ThreadSort,
-): boolean {
+function after(row: ThreadListingRow, cursor: ThreadCursor, sort: ThreadSort): boolean {
   return compare(row, cursor, sort) > 0
 }
 
 export class FixtureThreadRepository implements ThreadRepository {
-  constructor(
-    private readonly rows: readonly ThreadListingRow[] = SEED_THREAD_ROWS,
-  ) {}
+  constructor(private readonly rows: readonly ThreadListingRow[] = SEED_THREAD_ROWS) {}
 
   async locate(threadId: number): Promise<ThreadLocation | null> {
     const row = this.rows.find((entry) => entry.id === threadId)
-    return row === undefined
-      ? null
-      : { forumId: row.forumId, authorUserId: row.authorUserId }
+    return row === undefined ? null : { forumId: row.forumId, authorUserId: row.authorUserId }
   }
 
   async findById(

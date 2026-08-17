@@ -1,5 +1,6 @@
-import { assertThemeContract, resolveTheme, SLOT_STABILITY, SLOT_NAMES } from '@meith/theme-kit'
 import { describe, expect, it } from 'vitest'
+
+import { assertThemeContract, resolveTheme, SLOT_NAMES, SLOT_STABILITY } from '@meith/theme-kit'
 
 import { defaultTheme } from './theme'
 

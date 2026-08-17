@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { encodeCbor } from './authenticator.fixture'
-import { cborBytes, cborMap, decodeCbor, type CborValue } from './cbor'
+import { type CborValue, cborBytes, cborMap, decodeCbor } from './cbor'
 
 function roundTrip(value: unknown): CborValue {
   return decodeCbor(encodeCbor(value)).value

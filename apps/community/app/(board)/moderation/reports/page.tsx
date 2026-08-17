@@ -5,18 +5,18 @@ import { REPORTS_PAGE_SIZE, ReportService } from '@meith/moderation'
 import { requireSlot } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { AssignReportForm, CloseReportForm } from '@/components/moderation/report-forms'
+import { PanelPage } from '@/components/shell/panel-page'
+import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { messageService } from '@/server/messages'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { offsetOf, readPage } from '@/view/pager'
 import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
-import { PanelPagination } from '@/components/shell/panel-pagination'
-import { offsetOf, readPage } from '@/view/pager'
 
 export const metadata: Metadata = { title: 'Reports' }
 
@@ -57,9 +57,7 @@ export default async function ReportsPage({
       title="Reports"
       lede={open === 1 ? '1 report still open.' : `${open} reports still open.`}
     >
-      {notice !== null && (
-        <Notice kind="info" message={notice} dismissHref="/moderation/reports" />
-      )}
+      {notice !== null && <Notice kind="info" message={notice} dismissHref="/moderation/reports" />}
 
       {page.rows.length === 0 && (
         <Card>
@@ -166,9 +164,7 @@ export default async function ReportsPage({
 async function reportedPrivateMessages(
   rows: readonly { kind: string; targetId: number }[],
 ): Promise<ReadonlyMap<number, { authorUsername: string; message: string }>> {
-  const ids = rows
-    .filter((row) => row.kind === 'private_message')
-    .map((row) => row.targetId)
+  const ids = rows.filter((row) => row.kind === 'private_message').map((row) => row.targetId)
   if (ids.length === 0) return new Map()
 
   const service = messageService()

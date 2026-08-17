@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from 'vitest'
 
-import { findScenario, readFacts } from "./facts"
-import { extensible, finding } from "./site"
+import { findScenario, readFacts } from './facts'
+import { extensible, finding } from './site'
 
-describe("the figures the landing page quotes", () => {
-  it("finds all four of them in the generated references", async () => {
+describe('the figures the landing page quotes', () => {
+  it('finds all four of them in the generated references', async () => {
     const facts = await readFacts()
 
     expect(facts.theme.version).toMatch(/^\d+(\.\d+)*$/)
@@ -26,12 +26,12 @@ describe("the figures the landing page quotes", () => {
     expect(facts.performance.measured).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
-  it("reads a budget, a measurement and a percentage for every scenario", async () => {
+  it('reads a budget, a measurement and a percentage for every scenario', async () => {
     const { performance } = await readFacts()
 
     expect(performance.scenarios.length).toBeGreaterThan(0)
     for (const scenario of performance.scenarios) {
-      expect(scenario.page).not.toBe("")
+      expect(scenario.page).not.toBe('')
       expect(scenario.budgetMs).toBeGreaterThan(0)
       expect(scenario.p95Ms).toBeGreaterThan(0)
       const expected = (scenario.p95Ms / scenario.budgetMs) * 100
@@ -39,19 +39,19 @@ describe("the figures the landing page quotes", () => {
     }
   })
 
-  it("says how a scenario the page names went missing", async () => {
+  it('says how a scenario the page names went missing', async () => {
     const facts = await readFacts()
 
-    expect(() => findScenario(facts.performance, "Something nobody measures")).toThrow(
+    expect(() => findScenario(facts.performance, 'Something nobody measures')).toThrow(
       /no longer measures/,
     )
   })
 
-  it("gives the search band its measurement, with real numbers in it", async () => {
+  it('gives the search band its measurement, with real numbers in it', async () => {
     const facts = await readFacts()
     const sentence = finding.evidence(facts)
 
-    expect(sentence).not.toContain("NaN")
+    expect(sentence).not.toContain('NaN')
     expect(sentence).toMatch(/\d+(\.\d+)? ms/)
   })
 
@@ -62,13 +62,13 @@ describe("the figures the landing page quotes", () => {
    * matching its document returns `NaN`, and `String(NaN)` is a perfectly
    * valid-looking thing to render.
    */
-  it("counts the extensible strip out of the generated references", async () => {
+  it('counts the extensible strip out of the generated references', async () => {
     const facts = await readFacts()
 
     for (const entry of extensible.counts(facts)) {
-      expect(entry.label).not.toBe("")
-      expect(entry.value).not.toContain("NaN")
-      expect(entry.value).not.toBe("0")
+      expect(entry.label).not.toBe('')
+      expect(entry.value).not.toContain('NaN')
+      expect(entry.value).not.toBe('0')
     }
   })
 })

@@ -3,9 +3,9 @@ import 'server-only'
 import type { Actor } from '@meith/authorization'
 import { contentScopeFrom } from '@meith/core'
 import {
-  PostgresStatsRepository,
-  getDb,
   type BoardTotals,
+  getDb,
+  PostgresStatsRepository,
   type StatsScope,
   type TopPoster,
   type TopThread,
@@ -21,8 +21,7 @@ export function statsRepository(): PostgresStatsRepository | null {
 
 export async function statsScopeFor(actor: Actor): Promise<StatsScope> {
   const { authorizer } = getContainer()
-  const staff =
-    actor.global.isAdministrator === true || actor.global.isSuperModerator === true
+  const staff = actor.global.isAdministrator === true || actor.global.isSuperModerator === true
 
   return {
     ...(await authorizer.threadAudience(actor)),

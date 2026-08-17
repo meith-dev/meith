@@ -1,14 +1,10 @@
 import 'server-only'
 
-import {
-  TwoFactorService,
-  type Enrolment,
-  type TwoFactorState,
-} from '@meith/accounts'
+import { type Enrolment, TwoFactorService, type TwoFactorState } from '@meith/accounts'
 import { env } from '@meith/core'
 
-import { getActor } from './context'
 import { getContainer } from './container'
+import { getActor } from './context'
 import { getSettingsUncached } from './settings'
 
 export interface SecondFactorPosture {
@@ -48,9 +44,7 @@ export async function twoFactorRequiredForStaff(): Promise<boolean> {
 }
 
 /** Whether this member must hold a second factor, and may not drop it. */
-export async function secondFactorPosture(
-  userId: number | null,
-): Promise<SecondFactorPosture> {
+export async function secondFactorPosture(userId: number | null): Promise<SecondFactorPosture> {
   const offered = await twoFactorOffered()
   if (!offered || userId === null) return { offered, required: false }
 
@@ -76,4 +70,3 @@ export async function twoFactorState(userId: number): Promise<TwoFactorState> {
 
   return service.state(userId)
 }
-

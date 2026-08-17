@@ -19,9 +19,7 @@ export const MODE_LABELS: Readonly<Record<SubscriptionMode, string>> = {
 }
 
 export function parseSubscriptionMode(value: string): SubscriptionMode | null {
-  return SUBSCRIPTION_MODES.includes(value as SubscriptionMode)
-    ? (value as SubscriptionMode)
-    : null
+  return SUBSCRIPTION_MODES.includes(value as SubscriptionMode) ? (value as SubscriptionMode) : null
 }
 
 export function isDigestCadence(value: string): value is DigestCadence {

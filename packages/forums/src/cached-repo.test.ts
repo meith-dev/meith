@@ -1,5 +1,6 @@
-import { CacheTags, type CacheDriver, type CacheSetOptions } from '@meith/core'
 import { describe, expect, it, vi } from 'vitest'
+
+import { type CacheDriver, type CacheSetOptions, CacheTags } from '@meith/core'
 
 import { CachedForumRepository, TREE_TTL_SECONDS } from './cached-repo'
 import type { ForumRepository } from './ports'
@@ -58,16 +59,16 @@ function row(id: number): ForumRow {
   }
 }
 
-function innerRepo(
-  rows: ForumRow[],
-): ForumRepository & {
+function innerRepo(rows: ForumRow[]): ForumRepository & {
   listAll: ReturnType<typeof vi.fn>
   listListing: ReturnType<typeof vi.fn>
 } {
   const listAll = vi.fn().mockImplementation(() => Promise.resolve([...rows]))
-  const listListing = vi.fn().mockImplementation(() =>
-    Promise.resolve(rows.map((r) => ({ ...r, threadCount: 0, postCount: 0, lastPost: null }))),
-  )
+  const listListing = vi
+    .fn()
+    .mockImplementation(() =>
+      Promise.resolve(rows.map((r) => ({ ...r, threadCount: 0, postCount: 0, lastPost: null }))),
+    )
   const repo: ForumRepository = {
     listAll: listAll as unknown as ForumRepository['listAll'],
     listListing: listListing as unknown as ForumRepository['listListing'],

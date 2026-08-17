@@ -35,7 +35,10 @@ export class PostgresReadStateRepository implements ReadStateRepository {
           and(
             visibleIn(threads.visibility, PUBLIC_CONTENT),
             sql`${threads.lastPostId} is not null`,
-            or(isNull(threadsRead.lastReadPostId), gt(threads.lastPostId, threadsRead.lastReadPostId)),
+            or(
+              isNull(threadsRead.lastReadPostId),
+              gt(threads.lastPostId, threadsRead.lastReadPostId),
+            ),
             or(isNull(forumsRead.readAt), gt(threads.lastPostAt, forumsRead.readAt)),
           ),
         ),

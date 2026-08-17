@@ -8,11 +8,12 @@ export interface Dimensions {
 function readUint32BE(bytes: Uint8Array, at: number): number | undefined {
   if (at + 4 > bytes.length) return undefined
   return (
-    ((bytes[at] as number) << 24) |
-    ((bytes[at + 1] as number) << 16) |
-    ((bytes[at + 2] as number) << 8) |
-    (bytes[at + 3] as number)
-  ) >>> 0
+    (((bytes[at] as number) << 24) |
+      ((bytes[at + 1] as number) << 16) |
+      ((bytes[at + 2] as number) << 8) |
+      (bytes[at + 3] as number)) >>>
+    0
+  )
 }
 
 function readUint16BE(bytes: Uint8Array, at: number): number | undefined {

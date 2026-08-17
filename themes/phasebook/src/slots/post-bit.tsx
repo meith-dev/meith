@@ -1,17 +1,17 @@
-import { cn } from '@meith/ui'
 import type { PostBitSlotModel } from '@meith/theme-kit'
+import { cn } from '@meith/ui'
 
 import {
   Circle,
+  count,
   LINK,
   MUTED_LINK,
   NUMERIC,
   OnlineDot,
+  plural,
   Stamp,
   Tag,
   UserRef,
-  count,
-  plural,
 } from '../shared'
 
 type Post = PostBitSlotModel['post']
@@ -176,7 +176,9 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           )}
         </div>
 
-        <p className={`shrink-0 text-right text-xs leading-relaxed text-muted-foreground ${NUMERIC}`}>
+        <p
+          className={`shrink-0 text-right text-xs leading-relaxed text-muted-foreground ${NUMERIC}`}
+        >
           {count(author.postCount)} {plural(author.postCount, 'post', 'posts')}
           {author.reputation != null && (
             <>

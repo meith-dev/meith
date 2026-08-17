@@ -1,6 +1,6 @@
-import Link from "next/link"
+import Link from 'next/link'
 
-import { segmentHref, segments } from "../content/segments"
+import { segmentHref, segments } from '../content/segments'
 
 /*
  * The router on the general page, and the "somewhere else to go" at the foot

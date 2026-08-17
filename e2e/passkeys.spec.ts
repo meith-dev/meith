@@ -1,6 +1,6 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
-import { PASSWORD, enterAdminPanel } from './support/session'
+import { enterAdminPanel, PASSWORD } from './support/session'
 
 /**
  * The board is reached as `localhost` here and nowhere else in the suite: a
@@ -87,9 +87,7 @@ test('a member adds a passkey and signs in with it afterwards', async ({ browser
     await memberPage.getByRole('button', { name: 'Sign in with a passkey' }).click()
 
     await expect(memberPage).toHaveURL(`${BOARD}/`)
-    await expect(memberPage.getByRole('button', { name: 'Your account' })).toContainText(
-      username,
-    )
+    await expect(memberPage.getByRole('button', { name: 'Your account' })).toContainText(username)
 
     await memberPage.goto(`${BOARD}/usercp/security`)
     await expect(memberPage.getByText('Work laptop')).toBeVisible()
@@ -105,9 +103,7 @@ test('a member adds a passkey and signs in with it afterwards', async ({ browser
     await memberPage.getByLabel('Password').fill(PASSWORD)
     await memberPage.getByRole('button', { name: 'Sign in', exact: true }).click()
     await expect(memberPage).toHaveURL(`${BOARD}/`)
-    await expect(memberPage.getByRole('button', { name: 'Your account' })).toContainText(
-      username,
-    )
+    await expect(memberPage.getByRole('button', { name: 'Your account' })).toContainText(username)
   } finally {
     await member.close()
     await setPasskeys(adminPage, false)

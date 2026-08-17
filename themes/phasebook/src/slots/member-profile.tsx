@@ -1,7 +1,7 @@
-import { cn } from '@meith/ui'
 import type { MemberProfileModel } from '@meith/theme-kit'
+import { cn } from '@meith/ui'
 
-import { Circle, FEED, NUMERIC, PAGE, PILL, PILL_PRIMARY, Stamp, count } from '../shared'
+import { Circle, count, FEED, NUMERIC, PAGE, PILL, PILL_PRIMARY, Stamp } from '../shared'
 
 export function MemberProfile({
   user,
@@ -63,9 +63,7 @@ export function MemberProfile({
 
           <dl className="grid grid-cols-3 gap-2 border-t border-border px-4 py-3 text-center">
             <div>
-              <dd className={`text-lg font-bold text-foreground ${NUMERIC}`}>
-                {count(postCount)}
-              </dd>
+              <dd className={`text-lg font-bold text-foreground ${NUMERIC}`}>{count(postCount)}</dd>
               <dt className="text-xs text-muted-foreground">Posts</dt>
             </div>
             <div>

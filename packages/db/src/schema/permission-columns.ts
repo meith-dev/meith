@@ -1,10 +1,6 @@
 import { boolean, integer } from 'drizzle-orm/pg-core'
 
-import {
-  PERMISSION_FIELDS,
-  type PermissionField,
-  type PermissionScope,
-} from '@meith/core'
+import { PERMISSION_FIELDS, type PermissionField, type PermissionScope } from '@meith/core'
 
 export function columnName(key: string): string {
   return key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)

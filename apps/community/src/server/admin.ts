@@ -4,20 +4,15 @@ import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
 
-import { AdminService, ipAllowed, parseAllowlist, type AdminContext } from '@meith/admin'
 import { hashToken } from '@meith/accounts'
-import { ForbiddenError, env, logger, resolveClientAddress, truncateIp } from '@meith/core'
+import { type AdminContext, AdminService, ipAllowed, parseAllowlist } from '@meith/admin'
+import { env, ForbiddenError, logger, resolveClientAddress, truncateIp } from '@meith/core'
 
 import { getContainer } from './container'
 import { getActor } from './context'
 import { readAdminToken } from './session-cookies'
 
-export type AdminDenial =
-  | 'address'
-  | 'permission'
-  | 'signin'
-  | 'expired'
-  | 'unavailable'
+export type AdminDenial = 'address' | 'permission' | 'signin' | 'expired' | 'unavailable'
 
 export function adminService(): AdminService | null {
   const { adminSessions } = getContainer()
@@ -45,8 +40,8 @@ export async function remoteAddress(): Promise<string | null> {
   )
 }
 
-export const adminAllowlist = cache(async (): Promise<readonly string[]> =>
-  parseAllowlist(env.ADMIN_IP_ALLOWLIST),
+export const adminAllowlist = cache(
+  async (): Promise<readonly string[]> => parseAllowlist(env.ADMIN_IP_ALLOWLIST),
 )
 
 export const resolveAdmin = cache(
@@ -86,8 +81,7 @@ export async function requireAdmin(): Promise<AdminContext> {
         ? 'This board is running on in-memory sample data, so it has no control panel.'
         : resolved.denied === 'permission'
           ? 'You cannot reach the control panel.'
-          :
-            'Sign in to the control panel and try that again.',
+          : 'Sign in to the control panel and try that again.',
   )
 }
 

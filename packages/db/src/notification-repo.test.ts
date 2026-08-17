@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
-import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresNotificationRepository } from './notification-repo'
+import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
 import { users } from './schema'
 
@@ -68,9 +68,9 @@ function raise(over: Partial<Parameters<PostgresNotificationRepository['raise']>
 }
 
 async function outboxTopics(): Promise<string[]> {
-  const rows = resultRows(
-    await db.execute(sql`select topic from outbox order by id`),
-  ) as Array<{ topic: string }>
+  const rows = resultRows(await db.execute(sql`select topic from outbox order by id`)) as Array<{
+    topic: string
+  }>
   return rows.map((r) => r.topic)
 }
 
@@ -167,7 +167,7 @@ describe('reading and paging', () => {
 
   it('returns the newest first', async () => {
     const page = await repo.listFor(IVAN, { limit: 10 })
-    expect(page.rows.map((r) => r.data['n'])).toEqual([4, 3, 2, 1, 0])
+    expect(page.rows.map((r) => r.data.n)).toEqual([4, 3, 2, 1, 0])
   })
 
   it('pages backwards through the keyset without repeating a row', async () => {
@@ -177,9 +177,9 @@ describe('reading and paging', () => {
     const second = await repo.listFor(IVAN, { limit: 2, after: first.nextCursor! })
     const third = await repo.listFor(IVAN, { limit: 2, after: second.nextCursor! })
 
-    expect(first.rows.map((r) => r.data['n'])).toEqual([4, 3])
-    expect(second.rows.map((r) => r.data['n'])).toEqual([2, 1])
-    expect(third.rows.map((r) => r.data['n'])).toEqual([0])
+    expect(first.rows.map((r) => r.data.n)).toEqual([4, 3])
+    expect(second.rows.map((r) => r.data.n)).toEqual([2, 1])
+    expect(third.rows.map((r) => r.data.n)).toEqual([0])
     expect(third.nextCursor).toBeUndefined()
   })
 

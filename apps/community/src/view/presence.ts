@@ -1,10 +1,6 @@
-import type {
-  BoardStatsModel,
-  OnlineMemberModel,
-  WhoIsOnlineModel,
-} from '@meith/theme-kit'
+import type { BoardStatsModel, OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
 
-import { nameClassOf, type MemberIdentity } from './member-identity'
+import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { formatTime } from './time'
 

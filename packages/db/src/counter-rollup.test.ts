@@ -1,5 +1,5 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { eq, sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
 import { applyCreatedContentCounters, rollUpAncestorCounters } from './content-counters'
@@ -52,7 +52,14 @@ beforeEach(async () => {
     { id: SUBFORUM, title: 'Sub', slug: 'sub', path: '1.4.9', depth: 2, parentId: FORUM },
     { id: DEEP, title: 'Deep', slug: 'deep', path: '1.4.9.12', depth: 3, parentId: SUBFORUM },
     { id: DECOY, title: 'Decoy', slug: 'decoy', path: '1.40', depth: 1, parentId: CATEGORY },
-    { id: DECOY_CHILD, title: 'Decoy sub', slug: 'decoy-sub', path: '1.40.41', depth: 2, parentId: DECOY },
+    {
+      id: DECOY_CHILD,
+      title: 'Decoy sub',
+      slug: 'decoy-sub',
+      path: '1.40.41',
+      depth: 2,
+      parentId: DECOY,
+    },
   ])
 
   await db.insert(threads).values([

@@ -92,10 +92,7 @@ const TEMPLATES: Readonly<
     const author = str(data, 'lastAuthor')
 
     return {
-      subject:
-        posts === 1
-          ? `New reply in ${title}`
-          : `${posts} new replies in ${title}`,
+      subject: posts === 1 ? `New reply in ${title}` : `${posts} new replies in ${title}`,
       body:
         author === ''
           ? 'There is something new to read.'
@@ -197,11 +194,9 @@ export function renderNotification(record: NotificationRecord): NotificationView
           }
 
   const subject =
-    record.occurrences > 1
-      ? `${rendered.subject} (${record.occurrences} times)`
-      : rendered.subject
+    record.occurrences > 1 ? `${rendered.subject} (${record.occurrences} times)` : rendered.subject
 
-  const unsubscribe = record.data['unsubscribe']
+  const unsubscribe = record.data.unsubscribe
 
   return {
     id: record.id,

@@ -1,25 +1,24 @@
-import type { Metadata } from "next"
+import type { Metadata } from 'next'
 
-import { requireSlot } from "@meith/theme-kit"
+import { requireSlot } from '@meith/theme-kit'
 
-import { boardRegion, filterView, viewerRef } from "@/server/plugin-view"
+import { LiveRegion } from '@/components/board/live-region'
+import { liveAnnouncements } from '@/server/announcements'
+import { LATEST_REFRESH_SECONDS, renderLatestPanels } from '@/server/board-latest'
+import { refreshLatestPanels } from '@/server/board-latest-actions'
+import { getContainer } from '@/server/container'
+import { getActor } from '@/server/context'
+import { identitiesFor } from '@/server/group-identity'
+import { boardRegion, filterView, viewerRef } from '@/server/plugin-view'
+import { presenceRepository, readOnline } from '@/server/presence'
+import { readTotals } from '@/server/stats'
+import { currentTheme } from '@/server/theme'
+import { getViewerPreferences } from '@/server/viewer-preferences'
+import { buildBoardIndexView } from '@/view/board-index'
+import { distinctUserIds } from '@/view/member-identity'
+import { buildBoardStatsModel, buildWhoIsOnlineModel } from '@/view/presence'
 
-import { liveAnnouncements } from "@/server/announcements"
-import { LATEST_REFRESH_SECONDS, renderLatestPanels } from "@/server/board-latest"
-import { refreshLatestPanels } from "@/server/board-latest-actions"
-import { LiveRegion } from "@/components/board/live-region"
-import { getContainer } from "@/server/container"
-import { getActor } from "@/server/context"
-import { getViewerPreferences } from "@/server/viewer-preferences"
-import { currentTheme } from "@/server/theme"
-import { buildBoardIndexView } from "@/view/board-index"
-import { identitiesFor } from "@/server/group-identity"
-import { distinctUserIds } from "@/view/member-identity"
-import { presenceRepository, readOnline } from "@/server/presence"
-import { readTotals } from "@/server/stats"
-import { buildBoardStatsModel, buildWhoIsOnlineModel } from "@/view/presence"
-
-export const metadata: Metadata = { title: "Forums" }
+export const metadata: Metadata = { title: 'Forums' }
 
 export default async function BoardIndexPage() {
   const actor = await getActor()
@@ -28,7 +27,9 @@ export default async function BoardIndexPage() {
   const [rows, listing, read, preferences] = await Promise.all([
     forums.listListing(),
     authorizer.listingVisibility(actor),
-    actor.userId === null || readState === null ? Promise.resolve(null) : readState.forUser(actor.userId),
+    actor.userId === null || readState === null
+      ? Promise.resolve(null)
+      : readState.forUser(actor.userId),
     getViewerPreferences(),
   ])
 
@@ -65,12 +66,12 @@ export default async function BoardIndexPage() {
     timeZone: preferences.timezone,
   })
 
-  const Announcement = requireSlot(await currentTheme(), "Announcement")
-  const BoardIndex = requireSlot(await currentTheme(), "BoardIndex")
-  const CategoryBlock = requireSlot(await currentTheme(), "CategoryBlock")
-  const ForumRow = requireSlot(await currentTheme(), "ForumRow")
-  const BoardStats = requireSlot(await currentTheme(), "BoardStats")
-  const WhoIsOnline = requireSlot(await currentTheme(), "WhoIsOnline")
+  const Announcement = requireSlot(await currentTheme(), 'Announcement')
+  const BoardIndex = requireSlot(await currentTheme(), 'BoardIndex')
+  const CategoryBlock = requireSlot(await currentTheme(), 'CategoryBlock')
+  const ForumRow = requireSlot(await currentTheme(), 'ForumRow')
+  const BoardStats = requireSlot(await currentTheme(), 'BoardStats')
+  const WhoIsOnline = requireSlot(await currentTheme(), 'WhoIsOnline')
 
   const pluginContext = viewerRef(actor)
 
@@ -149,7 +150,11 @@ export default async function BoardIndexPage() {
           ? {}
           : {
               announcements: filteredAnnouncements.map((announcement, position) => (
-                <Announcement key={position} {...announcement} />
+                <Announcement
+                  // biome-ignore lint/suspicious/noArrayIndexKey: the position is the identity — this list is server-rendered in order and never reordered on the client
+                  key={position}
+                  {...announcement}
+                />
               )),
             }),
       },

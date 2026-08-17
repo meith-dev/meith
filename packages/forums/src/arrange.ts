@@ -62,8 +62,7 @@ export function subtreeOfOutline(
 
   const root = outline[start] as ForumOutlineRow
   let end = start + 1
-  while (end < outline.length && (outline[end] as ForumOutlineRow).depth > root.depth)
-    end += 1
+  while (end < outline.length && (outline[end] as ForumOutlineRow).depth > root.depth) end += 1
 
   return outline.slice(start, end)
 }
@@ -140,8 +139,7 @@ export function projectDrop(
   const previous = rows[at - 1]
   const next = rows[at]
 
-  if (previous === undefined)
-    return { index: at, depth: 0, parentId: null, afterId: null }
+  if (previous === undefined) return { index: at, depth: 0, parentId: null, afterId: null }
 
   const deepest = canHoldForums(previous.type) ? previous.depth + 1 : previous.depth
   const shallowest = next?.depth ?? 0

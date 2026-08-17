@@ -1,15 +1,15 @@
 import 'server-only'
 
-import { renderMarkdown, vocabularyOptions, type BoardVocabulary } from '@meith/markdown'
 import { env, logger } from '@meith/core'
-import { PostgresAnnouncementRepository, getDb, type AnnouncementRow } from '@meith/db'
+import { type AnnouncementRow, getDb, PostgresAnnouncementRepository } from '@meith/db'
+import { type BoardVocabulary, renderMarkdown, vocabularyOptions } from '@meith/markdown'
 import type { AnnouncementModel } from '@meith/theme-kit'
 
+import { forumHref } from '../view/board-index'
+import { distinctUserIds, type MemberIdentity, nameClassOf } from '../view/member-identity'
+import { formatTime } from '../view/time'
 import { activeVocabulary } from './content-admin'
 import { identitiesFor } from './group-identity'
-import { forumHref } from '../view/board-index'
-import { distinctUserIds, nameClassOf, type MemberIdentity } from '../view/member-identity'
-import { formatTime } from '../view/time'
 
 export function announcementRepository(): PostgresAnnouncementRepository | null {
   return env.DATA_SOURCE === 'postgres' ? new PostgresAnnouncementRepository(getDb()) : null
@@ -34,9 +34,7 @@ export async function liveAnnouncements(input: {
       activeVocabulary(),
     ])
 
-    const identities = await identitiesFor(
-      distinctUserIds(rows.map((row) => row.authorUserId)),
-    )
+    const identities = await identitiesFor(distinctUserIds(rows.map((row) => row.authorUserId)))
 
     return rows.map((row) => toModel(row, input.now, input.timeZone, vocabulary, identities))
   } catch (error) {

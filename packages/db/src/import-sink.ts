@@ -118,8 +118,14 @@ export class PostgresImportSink {
     }>(
       await this.db.execute(sql`
       select username_lower, email_lower, legacy_mybb_uid from users
-      where username_lower in (${sql.join(rows.map((r) => sql`${r.username.toLowerCase()}`), sql`, `)})
-         or email_lower in (${sql.join(rows.map((r) => sql`${r.email.toLowerCase()}`), sql`, `)})
+      where username_lower in (${sql.join(
+        rows.map((r) => sql`${r.username.toLowerCase()}`),
+        sql`, `,
+      )})
+         or email_lower in (${sql.join(
+           rows.map((r) => sql`${r.email.toLowerCase()}`),
+           sql`, `,
+         )})
     `),
     )
 
@@ -246,8 +252,16 @@ export class PostgresImportSink {
   async putThreads(rows: readonly ImportedThreadRow[]): Promise<WriteResult> {
     if (rows.length === 0) return empty
 
-    const forums = await resolveLegacyIds(this.db, 'forum', parentIds(rows.map((r) => r.legacyForumId)))
-    const authors = await resolveLegacyIds(this.db, 'user', parentIds(rows.map((r) => r.legacyAuthorId)))
+    const forums = await resolveLegacyIds(
+      this.db,
+      'forum',
+      parentIds(rows.map((r) => r.legacyForumId)),
+    )
+    const authors = await resolveLegacyIds(
+      this.db,
+      'user',
+      parentIds(rows.map((r) => r.legacyAuthorId)),
+    )
 
     const skipped: Skip[] = []
     const writable: { row: ImportedThreadRow; forumId: number; authorId: number | null }[] = []
@@ -306,19 +320,39 @@ export class PostgresImportSink {
   async putPosts(rows: readonly ImportedPostRow[]): Promise<WriteResult> {
     if (rows.length === 0) return empty
 
-    const threads = await resolveLegacyIds(this.db, 'thread', parentIds(rows.map((r) => r.legacyThreadId)))
-    const forums = await resolveLegacyIds(this.db, 'forum', parentIds(rows.map((r) => r.legacyForumId)))
-    const authors = await resolveLegacyIds(this.db, 'user', parentIds(rows.map((r) => r.legacyAuthorId)))
+    const threads = await resolveLegacyIds(
+      this.db,
+      'thread',
+      parentIds(rows.map((r) => r.legacyThreadId)),
+    )
+    const forums = await resolveLegacyIds(
+      this.db,
+      'forum',
+      parentIds(rows.map((r) => r.legacyForumId)),
+    )
+    const authors = await resolveLegacyIds(
+      this.db,
+      'user',
+      parentIds(rows.map((r) => r.legacyAuthorId)),
+    )
 
     const skipped: Skip[] = []
-    const writable: { row: ImportedPostRow; threadId: number; forumId: number; authorId: number | null }[] = []
+    const writable: {
+      row: ImportedPostRow
+      threadId: number
+      forumId: number
+      authorId: number | null
+    }[] = []
 
     for (const row of rows) {
       const threadId = threads.get(row.legacyThreadId)
       const forumId = forums.get(row.legacyForumId)
 
       if (threadId === undefined) {
-        skipped.push({ legacyId: row.legacyId, reason: `thread ${row.legacyThreadId} not imported` })
+        skipped.push({
+          legacyId: row.legacyId,
+          reason: `thread ${row.legacyThreadId} not imported`,
+        })
         continue
       }
       if (forumId === undefined) {
@@ -402,7 +436,10 @@ export class PostgresImportSink {
         select id, thread_id,
                row_number() over (partition by thread_id order by created_at asc, id asc) = 1 as first
           from posts
-         where thread_id in (${sql.join(threadIds.map((id) => sql`${id}`), sql`, `)})
+         where thread_id in (${sql.join(
+           threadIds.map((id) => sql`${id}`),
+           sql`, `,
+         )})
       )
       update posts set is_first_post = ranked.first
         from ranked

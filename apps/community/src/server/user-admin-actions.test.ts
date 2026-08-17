@@ -36,7 +36,11 @@ vi.mock('@meith/drivers', () => ({
         payload: Record<string, unknown>,
         options?: { dedupeKey?: string },
       ) {
-        enqueued.push({ kind, payload, ...(options?.dedupeKey === undefined ? {} : { dedupeKey: options.dedupeKey }) })
+        enqueued.push({
+          kind,
+          payload,
+          ...(options?.dedupeKey === undefined ? {} : { dedupeKey: options.dedupeKey }),
+        })
         return { id: 'job', deduplicated: false }
       },
     },
@@ -158,7 +162,10 @@ beforeEach(() => {
 
 describe('the admin gate', () => {
   it('is asked for on every write', async () => {
-    await saveMemberAccountAction({}, form({ userId: '7', username: 'a', email: 'a@b.test', primaryGroupId: '2' }))
+    await saveMemberAccountAction(
+      {},
+      form({ userId: '7', username: 'a', email: 'a@b.test', primaryGroupId: '2' }),
+    )
     await setMemberStateAction({}, form({ userId: '7', state: 'active' }))
     await liftBanAction({}, form({ userId: '7' }))
     expect(requireAdminMock).toHaveBeenCalledTimes(3)
@@ -211,7 +218,13 @@ describe('saveMemberAccountAction', () => {
   it('reads a blank display group as null, meaning "same as primary"', async () => {
     await saveMemberAccountAction(
       {},
-      form({ userId: '7', username: 'a', email: 'a@b.test', primaryGroupId: '2', displayGroupId: '' }),
+      form({
+        userId: '7',
+        username: 'a',
+        email: 'a@b.test',
+        primaryGroupId: '2',
+        displayGroupId: '',
+      }),
     )
     expect(accounts[0]?.input.displayGroupId).toBeNull()
   })
@@ -410,8 +423,9 @@ describe('pruneMembersAction', () => {
 
     expect(prunes[0]?.limit).toBe(500)
     expect(prunes[0]?.criteria).toMatchObject({ onlyAwaitingActivation: true })
-    expect((prunes[0]?.criteria.registeredBefore as Date).toISOString())
-      .toBe('2025-01-01T00:00:00.000Z')
+    expect((prunes[0]!.criteria.registeredBefore as Date).toISOString()).toBe(
+      '2025-01-01T00:00:00.000Z',
+    )
     expect(state.notice).toBe('finished')
   })
 
@@ -422,10 +436,7 @@ describe('pruneMembersAction', () => {
   })
 
   it('refuses an inactivity date that is not a date', async () => {
-    const state = await pruneMembersAction(
-      {},
-      form({ before: '2025-01-01', inactive: 'ages ago' }),
-    )
+    const state = await pruneMembersAction({}, form({ before: '2025-01-01', inactive: 'ages ago' }))
     expect(state.error).toBeDefined()
     expect(prunes).toEqual([])
   })
@@ -531,7 +542,10 @@ describe('mass mail', () => {
 
 describe('the screens the write is read back from', () => {
   it('are refreshed by every write, so the row read back is the row written', async () => {
-    await saveMemberAccountAction({}, form({ userId: '7', username: 'ann', email: 'a@b.test', primaryGroupId: '2' }))
+    await saveMemberAccountAction(
+      {},
+      form({ userId: '7', username: 'ann', email: 'a@b.test', primaryGroupId: '2' }),
+    )
     expect(revalidated).toEqual(['/admin/users', '/admin/users/[id]'])
   })
 

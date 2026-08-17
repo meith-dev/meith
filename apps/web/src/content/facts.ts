@@ -1,8 +1,9 @@
-import { readFile } from "node:fs/promises"
-import { join } from "node:path"
-import { cache } from "react"
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
-import { DOCS_DIRECTORY } from "../workspace"
+import { cache } from 'react'
+
+import { DOCS_DIRECTORY } from '../workspace'
 
 export interface ThemeFacts {
   readonly version: string
@@ -48,35 +49,40 @@ export interface Facts {
   readonly performance: PerformanceFacts
 }
 
-function capture(file: string, source: string, pattern: RegExp, expected: string): RegExpMatchArray {
+function capture(
+  file: string,
+  source: string,
+  pattern: RegExp,
+  expected: string,
+): RegExpMatchArray {
   const match = source.match(pattern)
   if (!match) {
     throw new Error(
       `docs/${file} no longer states ${expected}, so the landing page cannot quote it.\n` +
         `Expected to match: ${pattern}\n` +
-        "This file is generated from the code. If the wording changed on purpose, " +
-        "update the pattern in apps/web/src/content/facts.ts to match it.",
+        'This file is generated from the code. If the wording changed on purpose, ' +
+        'update the pattern in apps/web/src/content/facts.ts to match it.',
     )
   }
   return match
 }
 
 function count(text: string): number {
-  return Number(text.replaceAll(",", ""))
+  return Number(text.replaceAll(',', ''))
 }
 
 async function read(file: string): Promise<string> {
-  return readFile(join(DOCS_DIRECTORY, file), "utf8")
+  return readFile(join(DOCS_DIRECTORY, file), 'utf8')
 }
 
 async function themeFacts(): Promise<ThemeFacts> {
-  const file = "theme-slots.md"
+  const file = 'theme-slots.md'
   const source = await read(file)
-  const [, version = "", slots = "", stable = "", provisional = "", deprecated = ""] = capture(
+  const [, version = '', slots = '', stable = '', provisional = '', deprecated = ''] = capture(
     file,
     source,
     /\*\*theme-kit v([\d.]+)\.\*\*\s+(\d+)\s+slots:\s*(\d+)\s+stable,\s*(\d+)\s+provisional,\s*(\d+)\s+deprecated/,
-    "its slot count (“**theme-kit v0.8.** 27 slots: 25 stable, 2 provisional, 0 deprecated.”)",
+    'its slot count (“**theme-kit v0.8.** 27 slots: 25 stable, 2 provisional, 0 deprecated.”)',
   )
 
   return {
@@ -89,13 +95,13 @@ async function themeFacts(): Promise<ThemeFacts> {
 }
 
 async function pluginFacts(): Promise<PluginFacts> {
-  const file = "plugin-hooks.md"
+  const file = 'plugin-hooks.md'
   const source = await read(file)
-  const [, hooks = "", filters = "", events = "", regions = "", wired = ""] = capture(
+  const [, hooks = '', filters = '', events = '', regions = '', wired = ''] = capture(
     file,
     source,
     /\*\*(\d+)\s+hooks\*\*\s*[—–-]\s*(\d+)\s+filters,\s*(\d+)\s+events\s*[—–-]\s*and\s+(\d+)\s+UI regions\.\s*\*\*(\d+)\s+are wired\*\*/,
-    "its hook count (“**93 hooks** — 48 filters, 45 events — and 6 UI regions. **23 are wired**”)",
+    'its hook count (“**93 hooks** — 48 filters, 45 events — and 6 UI regions. **23 are wired**”)',
   )
 
   return {
@@ -108,40 +114,44 @@ async function pluginFacts(): Promise<PluginFacts> {
 }
 
 async function apiFacts(): Promise<ApiFacts> {
-  const file = "rest-api.md"
+  const file = 'rest-api.md'
   const source = await read(file)
-  const [, endpoints = "", scopes = "", basePath = ""] = capture(
+  const [, endpoints = '', scopes = '', basePath = ''] = capture(
     file,
     source,
     /(\d+)\s+endpoints,\s*(\d+)\s+scopes\.\s*Base path:\s*`([^`]+)`/,
-    "its endpoint count (“7 endpoints, 8 scopes. Base path: `/api/v1`.”)",
+    'its endpoint count (“7 endpoints, 8 scopes. Base path: `/api/v1`.”)',
   )
 
   return { endpoints: count(endpoints), scopes: count(scopes), basePath }
 }
 
 async function performanceFacts(): Promise<PerformanceFacts> {
-  const file = "performance.md"
+  const file = 'performance.md'
   const source = await read(file)
 
   const row = (label: string, expected: string) =>
-    capture(file, source, new RegExp(`^\\|\\s*${label}\\s*\\|\\s*([\\d,]+)`, "m"), expected)[1] ?? ""
+    capture(file, source, new RegExp(`^\\|\\s*${label}\\s*\\|\\s*([\\d,]+)`, 'm'), expected)[1] ??
+    ''
 
-  const posts = row("Posts", "the size of the board it was measured against (“| Posts | 2,343,847 |”)")
-  const threads = row("Threads", "its thread count (“| Threads | 100,030 |”)")
-  const longest = row("Longest thread", "its longest thread (“| Longest thread | 14,741 posts |”)")
-  const [, measured = ""] = capture(
+  const posts = row(
+    'Posts',
+    'the size of the board it was measured against (“| Posts | 2,343,847 |”)',
+  )
+  const threads = row('Threads', 'its thread count (“| Threads | 100,030 |”)')
+  const longest = row('Longest thread', 'its longest thread (“| Longest thread | 14,741 posts |”)')
+  const [, measured = ''] = capture(
     file,
     source,
     /^\|\s*Measured\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|/m,
-    "the date of the recorded run (“| Measured | 2026-08-04 |”)",
+    'the date of the recorded run (“| Measured | 2026-08-04 |”)',
   )
 
   const scenarios: Scenario[] = []
   const rows = source.matchAll(
     /^\|\s*([^|]+?)\s*\|\s*([\d.]+)\s*ms\s*\|[^|]*\|\s*([\d.]+)\s*ms\s*\|[^|]*\|[^|]*\|\s*(\d+)%\s*\|/gm,
   )
-  for (const [, page = "", budget = "", p95 = "", used = ""] of rows) {
+  for (const [, page = '', budget = '', p95 = '', used = ''] of rows) {
     scenarios.push({
       page,
       budgetMs: Number(budget),
@@ -153,9 +163,9 @@ async function performanceFacts(): Promise<PerformanceFacts> {
   if (scenarios.length === 0) {
     throw new Error(
       `docs/${file} has no rows in the shape “| Thread, page 1 | 50 ms | target | 3.3 ms | … | 7% |”, ` +
-        "so the landing page has no measurements to show.\n" +
-        "This file is generated by `pnpm perf:docs`. If the table changed shape, update the " +
-        "pattern in apps/web/src/content/facts.ts to match it.",
+        'so the landing page has no measurements to show.\n' +
+        'This file is generated by `pnpm perf:docs`. If the table changed shape, update the ' +
+        'pattern in apps/web/src/content/facts.ts to match it.',
     )
   }
 
@@ -184,8 +194,8 @@ export function findScenario(performance: PerformanceFacts, page: string): Scena
   if (!scenario) {
     throw new Error(
       `docs/performance.md no longer measures “${page}”, which the landing page shows.\n` +
-        `It measures: ${performance.scenarios.map((entry) => entry.page).join(", ")}.\n` +
-        "Name a scenario that exists, in apps/web/src/content/site.ts.",
+        `It measures: ${performance.scenarios.map((entry) => entry.page).join(', ')}.\n` +
+        'Name a scenario that exists, in apps/web/src/content/site.ts.',
     )
   }
   return scenario

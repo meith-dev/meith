@@ -7,13 +7,7 @@ export interface TaskHealthInput {
   readonly consecutiveFailures: number
 }
 
-export type TaskHealthStatus =
-  | 'healthy'
-  | 'late'
-  | 'stale'
-  | 'failing'
-  | 'disabled'
-  | 'never-run'
+export type TaskHealthStatus = 'healthy' | 'late' | 'stale' | 'failing' | 'disabled' | 'never-run'
 
 export interface TaskHealth extends TaskHealthInput {
   readonly status: TaskHealthStatus
@@ -53,10 +47,7 @@ export interface SchedulerHealth {
   readonly failing: number
 }
 
-export function assessScheduler(
-  tasks: readonly TaskHealthInput[],
-  now: Date,
-): SchedulerHealth {
+export function assessScheduler(tasks: readonly TaskHealthInput[], now: Date): SchedulerHealth {
   const assessed = tasks.map((task) => assessTask(task, now))
   const enabled = assessed.filter((task) => task.status !== 'disabled')
 

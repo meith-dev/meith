@@ -69,9 +69,7 @@ describe('super-moderator bypass isolation', () => {
     const auth = new Authorizer(source, { onBypass })
 
     const denied = { ...emptyPermissionSet(), canView: true, canPostThreads: false }
-    expect(
-      auth.can(superMod, 'thread.post', { forumId: 1, forum: denied }),
-    ).toBe(true)
+    expect(auth.can(superMod, 'thread.post', { forumId: 1, forum: denied })).toBe(true)
     expect(onBypass).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'super_moderator', action: 'thread.post' }),
     )
@@ -159,18 +157,12 @@ describe('applicableGroupRows', () => {
 
   it('returns only the rows whose group the actor is in', () => {
     const actor = actorWith({}, { groupIds: [2, 7] })
-    expect(new Authorizer(source).applicableGroupRows(actor, rows)).toEqual([
-      rows[0],
-      rows[2],
-    ])
+    expect(new Authorizer(source).applicableGroupRows(actor, rows)).toEqual([rows[0], rows[2]])
   })
 
   it('matches every group, not only the primary one', () => {
     const actor = actorWith({}, { groupIds: [2, 4], primaryGroupId: 2 })
-    expect(new Authorizer(source).applicableGroupRows(actor, rows)).toEqual([
-      rows[0],
-      rows[1],
-    ])
+    expect(new Authorizer(source).applicableGroupRows(actor, rows)).toEqual([rows[0], rows[1]])
   })
 
   it('returns nothing when no row names one of the actor’s groups', () => {

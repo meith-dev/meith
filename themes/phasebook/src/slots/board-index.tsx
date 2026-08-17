@@ -1,6 +1,6 @@
 import type { BoardIndexModel } from '@meith/theme-kit'
 
-import { FEED, PAGE, PILL_QUIET, isEmptyRegion } from '../shared'
+import { FEED, isEmptyRegion, PAGE, PILL_QUIET } from '../shared'
 
 export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
   const hasRail = [regions.latest, regions.online, regions.stats].some(

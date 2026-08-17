@@ -3,11 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { cn } from '@meith/ui'
 
-import {
-  ImportThemeForm,
-  ResetThemeForm,
-  ThemeEditorForm,
-} from '@/components/admin/theme-forms'
+import { ImportThemeForm, ResetThemeForm, ThemeEditorForm } from '@/components/admin/theme-forms'
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
@@ -17,11 +13,7 @@ import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Theme' }
 
-export default async function AdminThemePage({
-  params,
-}: {
-  params: Promise<{ key: string }>
-}) {
+export default async function AdminThemePage({ params }: { params: Promise<{ key: string }> }) {
   if ((await adminPageContext()) === null) return null
 
   const { key } = await params
@@ -76,8 +68,8 @@ export default async function AdminThemePage({
       <section className={cn(PANEL_CARD, 'max-w-3xl')}>
         <h2 className="font-heading text-lg font-semibold">Export</h2>
         <p className="text-sm text-muted-foreground">
-          Everything this board has changed, as a document another board can import. It
-          carries no timestamp and no board identity — only the overrides themselves.
+          Everything this board has changed, as a document another board can import. It carries no
+          timestamp and no board identity — only the overrides themselves.
         </p>
         <textarea
           readOnly
@@ -97,8 +89,8 @@ export default async function AdminThemePage({
         {view.customised ? (
           <>
             <p className="text-sm text-muted-foreground">
-              Removes every override, putting the board back to exactly what the theme
-              ships. Take a copy of the export above first if you might want it back.
+              Removes every override, putting the board back to exactly what the theme ships. Take a
+              copy of the export above first if you might want it back.
             </p>
             <ResetThemeForm themeKey={view.key} />
           </>

@@ -5,12 +5,12 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { parseRelationKind } from '@meith/relations'
 
+import type { FormState } from './auth-form-state'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
 import { isStaff, relationService } from './relations'
 import { isSafeLocalPath } from './safe-path'
-import type { FormState } from './auth-form-state'
 
 const toFormState = formStateReporter('relation-actions', 'unexpected error in a relation action')
 

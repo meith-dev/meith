@@ -11,7 +11,10 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
         <div className="flex items-baseline gap-2">
           <ReadPip unread={forum.isUnread} className="mt-1.5" />
           <div className="min-w-0">
-            <a href={forum.href} className={`${HEADING} text-sm text-foreground hover:text-primary`}>
+            <a
+              href={forum.href}
+              className={`${HEADING} text-sm text-foreground hover:text-primary`}
+            >
               {forum.title}
             </a>
             {forum.isUnread && <span className="sr-only">(new posts)</span>}
@@ -50,7 +53,10 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
           <span className={MICRO}>{isLink ? '' : 'no posts yet'}</span>
         ) : (
           <>
-            <a href={forum.lastPost.href} className="block truncate text-foreground hover:text-primary">
+            <a
+              href={forum.lastPost.href}
+              className="block truncate text-foreground hover:text-primary"
+            >
               {forum.lastPost.threadTitle}
             </a>
             <span className={`${MICRO} mt-0.5 block normal-case`}>

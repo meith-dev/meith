@@ -1,7 +1,8 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
+import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   createAnnouncementAction,
   createCaptchaQuestionAction,
@@ -21,11 +22,10 @@ import {
   updateDirectiveAction,
   updateSmileyAction,
   updateWordFilterAction,
-} from "@/server/content-admin-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+} from '@/server/content-admin-actions'
 
-import { FormError, SubmitButton } from "../auth/form-controls"
-import { INPUT, Saved } from "./form-bits"
+import { FormError, SubmitButton } from '../auth/form-controls'
+import { INPUT, Saved } from './form-bits'
 
 export interface WordFilterValues {
   readonly id: number
@@ -42,7 +42,7 @@ export function WordFilterRowForm({ filter }: { filter: WordFilterValues }) {
   return (
     <div className="flex flex-col gap-2 py-3">
       <FormError message={state.error ?? removeState.error} />
-      <Saved when={state.notice === "saved"}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>Saved.</Saved>
 
       <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
         <input type="hidden" name="id" value={filter.id} />
@@ -100,7 +100,7 @@ export function NewWordFilterForm() {
   return (
     <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "saved"}>Added.</Saved>
+      <Saved when={state.notice === 'saved'}>Added.</Saved>
 
       <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
         <span className="font-medium">Match</span>
@@ -153,7 +153,7 @@ export function NewPrefixForm() {
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "saved"}>Added.</Saved>
+      <Saved when={state.notice === 'saved'}>Added.</Saved>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
@@ -178,8 +178,7 @@ export function NewPrefixForm() {
           <span className="font-medium">Only in this branch</span>
           <input name="forumPathPrefix" className={INPUT} />
           <span className="text-xs text-muted-foreground">
-            A forum path, to scope the prefix to one branch of the tree. Blank
-            offers it everywhere.
+            A forum path, to scope the prefix to one branch of the tree. Blank offers it everywhere.
           </span>
         </label>
       </div>
@@ -206,7 +205,7 @@ export function SmileyRowForm({ smiley }: { smiley: SmileyValues }) {
   return (
     <div className="flex flex-col gap-2 py-3">
       <FormError message={state.error ?? removeState.error} />
-      <Saved when={state.notice === "saved"}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>Saved.</Saved>
 
       <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
         <input type="hidden" name="id" value={smiley.id} />
@@ -229,7 +228,7 @@ export function SmileyRowForm({ smiley }: { smiley: SmileyValues }) {
 
         <label className="flex w-32 flex-col gap-1 text-sm">
           <span className="font-medium">Alt text</span>
-          <input name="alt" defaultValue={smiley.alt ?? ""} className={INPUT} />
+          <input name="alt" defaultValue={smiley.alt ?? ''} className={INPUT} />
         </label>
 
         <label className="flex items-center gap-2 text-sm">
@@ -264,7 +263,7 @@ export function NewSmileyForm() {
   return (
     <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "saved"}>Added.</Saved>
+      <Saved when={state.notice === 'saved'}>Added.</Saved>
 
       <label className="flex w-28 flex-col gap-1 text-sm">
         <span className="font-medium">Code</span>
@@ -304,7 +303,7 @@ export function DirectiveRowForm({ directive }: { directive: DirectiveValues }) 
   return (
     <div className="flex flex-col gap-2 py-3">
       <FormError message={state.error ?? removeState.error} />
-      <Saved when={state.notice === "saved"}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>Saved.</Saved>
 
       <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
         <input type="hidden" name="id" value={directive.id} />
@@ -316,7 +315,7 @@ export function DirectiveRowForm({ directive }: { directive: DirectiveValues }) 
 
         <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
           <span className="font-medium">Note</span>
-          <input name="description" defaultValue={directive.description ?? ""} className={INPUT} />
+          <input name="description" defaultValue={directive.description ?? ''} className={INPUT} />
         </label>
 
         <label className="flex items-center gap-2 text-sm">
@@ -362,13 +361,13 @@ export function NewDirectiveForm() {
   return (
     <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "saved"}>Added.</Saved>
+      <Saved when={state.notice === 'saved'}>Added.</Saved>
 
       <label className="flex w-36 flex-col gap-1 text-sm">
         <span className="font-medium">Name</span>
         <input name="name" className={INPUT} placeholder="spoiler" required />
         <span className="text-xs text-muted-foreground">
-          1–16 letters or digits. Written <code>:::spoiler</code> as a block, or{" "}
+          1–16 letters or digits. Written <code>:::spoiler</code> as a block, or{' '}
           <code>:spoiler[…]</code> inline.
         </span>
       </label>
@@ -444,8 +443,8 @@ function AnnouncementFields({
           required
         />
         <span className="text-xs text-muted-foreground">
-          Markdown, rendered the same way a post is — including this board&rsquo;s
-          smilies and directives.
+          Markdown, rendered the same way a post is — including this board&rsquo;s smilies and
+          directives.
         </span>
       </label>
 
@@ -453,7 +452,9 @@ function AnnouncementFields({
         <span className="font-medium">Where</span>
         <select
           name="forumId"
-          defaultValue={values?.forumId === null || values === undefined ? '' : String(values.forumId)}
+          defaultValue={
+            values?.forumId === null || values === undefined ? '' : String(values.forumId)
+          }
           className={INPUT}
         >
           <option value="">The whole board</option>
@@ -464,8 +465,8 @@ function AnnouncementFields({
           ))}
         </select>
         <span className="text-xs text-muted-foreground">
-          A forum&rsquo;s announcement is shown to whoever can see that forum. A
-          board-wide one is shown on the index and on every forum.
+          A forum&rsquo;s announcement is shown to whoever can see that forum. A board-wide one is
+          shown on the index and on every forum.
         </span>
       </label>
 
@@ -575,8 +576,7 @@ export interface CaptchaQuestionValues {
   readonly enabled: boolean
 }
 
-const ANSWERS_HINT =
-  'One per line. Any of them is accepted, ignoring case and extra spaces.'
+const ANSWERS_HINT = 'One per line. Any of them is accepted, ignoring case and extra spaces.'
 
 export function CaptchaQuestionRowForm({ question }: { question: CaptchaQuestionValues }) {
   const [state, action] = useActionState(updateCaptchaQuestionAction, EMPTY_STATE)

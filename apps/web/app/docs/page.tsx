@@ -1,20 +1,15 @@
-import type { Metadata } from "next"
-import Link from "next/link"
+import type { Metadata } from 'next'
+import Link from 'next/link'
 
-import { site } from "../../src/content/site"
-import {
-  docHref,
-  documentsInSection,
-  internalDocuments,
-  sections,
-} from "../../src/docs/registry"
+import { site } from '../../src/content/site'
+import { docHref, documentsInSection, internalDocuments, sections } from '../../src/docs/registry'
 
 export const metadata: Metadata = {
-  title: "Documentation",
+  title: 'Documentation',
   description:
-    "Every document Meith publishes, organised by what you are trying to do: run a board, " +
-    "write a theme or a plugin, call the API, or move a community off MyBB.",
-  alternates: { canonical: "/docs" },
+    'Every document Meith publishes, organised by what you are trying to do: run a board, ' +
+    'write a theme or a plugin, call the API, or move a community off MyBB.',
+  alternates: { canonical: '/docs' },
 }
 
 export default function DocsIndexPage() {
@@ -25,10 +20,10 @@ export default function DocsIndexPage() {
         Each document has one audience and one job.
       </h1>
       <p className="mt-5 text-mid leading-[1.45] text-fg-muted text-pretty">
-        Four of these are generated from the code they describe, and{" "}
-        <code className="font-mono text-[0.9em]">pnpm verify</code> fails when one of them is
-        stale. A reference read by somebody who cannot see the source is worse than no reference
-        when it is wrong.
+        Four of these are generated from the code they describe, and{' '}
+        <code className="font-mono text-[0.9em]">pnpm verify</code> fails when one of them is stale.
+        A reference read by somebody who cannot see the source is worse than no reference when it is
+        wrong.
       </p>
 
       <div className="mt-14 flex flex-col gap-14">
@@ -80,7 +75,7 @@ export default function DocsIndexPage() {
                 href={`${site.repository}/blob/main/docs/${doc.file}`}
               >
                 docs/{doc.file}
-              </a>{" "}
+              </a>{' '}
               — {doc.reason}
             </li>
           ))}
@@ -88,10 +83,10 @@ export default function DocsIndexPage() {
       </section>
 
       <p className="mt-10 text-micro text-fg-subtle">
-        Every page here is rendered from the Markdown in{" "}
+        Every page here is rendered from the Markdown in{' '}
         <a className="textlink font-mono" href={`${site.repository}/tree/main/docs`}>
           docs/
-        </a>{" "}
+        </a>{' '}
         at build time. There is no second copy to fall behind, and a document is corrected by
         editing that file.
       </p>

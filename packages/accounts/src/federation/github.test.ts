@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import { rejectionMessage } from '../test-support.fixture'
-
 import { githubProvider } from './github'
 import type { Fetcher } from './types'
 

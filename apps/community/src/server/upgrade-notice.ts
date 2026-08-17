@@ -2,7 +2,7 @@ import 'server-only'
 
 import { env, logger } from '@meith/core'
 import { appliedPluginMigrations, getDb, readVersion } from '@meith/db'
-import { planUpgrade, upgradeNotice, type UpgradeState } from '@meith/upgrade'
+import { planUpgrade, type UpgradeState, upgradeNotice } from '@meith/upgrade'
 
 import { activeDefinitions } from './plugin-host'
 

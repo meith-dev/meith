@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  mintUnsubscribeToken,
-  readUnsubscribeToken,
-  type UnsubscribeClaim,
-} from './tokens'
+import { mintUnsubscribeToken, readUnsubscribeToken, type UnsubscribeClaim } from './tokens'
 
 const SECRET = 'a-board-secret-that-is-long-enough-32'
 const OTHER = 'a-different-board-secret-32-chars!!!'

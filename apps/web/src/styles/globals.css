@@ -66,9 +66,11 @@
   --glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --grid-line: color-mix(in srgb, var(--fg) 6%, transparent);
 
-  --lift: 0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent),
+  --lift:
+    0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent),
     0 12px 32px -16px color-mix(in srgb, var(--fg) 22%, transparent);
-  --lift-lg: 0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent),
+  --lift-lg:
+    0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent),
     0 32px 64px -28px color-mix(in srgb, var(--fg) 35%, transparent);
 
   --radius-card: 0.75rem;
@@ -96,7 +98,8 @@
    * audience frequently has it installed, and the system grotesque underneath
    * it is the same shape.
    */
-  --sans: "Inter var", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+  --sans:
+    "Inter var", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, "JetBrains Mono", "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -145,9 +148,11 @@
   --glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --grid-line: color-mix(in srgb, var(--fg) 6%, transparent);
 
-  --lift: 0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent),
+  --lift:
+    0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent),
     0 12px 32px -16px color-mix(in srgb, var(--fg) 22%, transparent);
-  --lift-lg: 0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent),
+  --lift-lg:
+    0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent),
     0 32px 64px -28px color-mix(in srgb, var(--fg) 35%, transparent);
 }
 
@@ -300,7 +305,9 @@ body {
   text-decoration-color: color-mix(in srgb, var(--accent) 60%, transparent);
   text-underline-offset: 0.3em;
   text-decoration-thickness: 1.5px;
-  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    text-decoration-color 0.15s ease;
 }
 
 .textlink:hover {
@@ -346,7 +353,8 @@ body {
   position: absolute;
   inset: 0;
   z-index: -10;
-  background-image: linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
   background-size: 3.5rem 3.5rem;
   -webkit-mask-image: radial-gradient(ellipse 80% 65% at 20% 0%, #000 10%, transparent 70%);
@@ -393,7 +401,10 @@ body {
   color: var(--fg);
   background: var(--raised);
   box-shadow: var(--lift);
-  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease,
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease,
     box-shadow 0.15s ease;
 }
 
@@ -412,7 +423,8 @@ body {
   border-color: var(--accent);
   color: var(--accent-contrast);
   font-weight: 560;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--accent) 30%, transparent),
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--accent) 30%, transparent),
     0 12px 28px -14px color-mix(in srgb, var(--accent) 75%, transparent);
 }
 
@@ -552,7 +564,10 @@ body {
   background: var(--raised);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
 /*
@@ -566,12 +581,12 @@ body {
   transform: translateY(-2px);
 }
 
-.card-grid > a:hover .card-arrow {
-  color: var(--accent);
-}
-
 .card-arrow {
   transition: color 0.15s ease;
+}
+
+.card-grid > a:hover .card-arrow {
+  color: var(--accent);
 }
 
 /*
@@ -1017,7 +1032,10 @@ body {
    * tabbing onto something they cannot see.
    */
   opacity: 0;
-  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .doc-code:hover .doc-code-copy,
@@ -1151,7 +1169,6 @@ body {
   border-radius: var(--radius-control);
 }
 
-
 .shot {
   display: block;
   width: 100%;
@@ -1222,7 +1239,10 @@ body {
   font-size: var(--text-micro);
   font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .tab:hover {

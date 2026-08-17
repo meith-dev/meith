@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { env } from '@meith/core'
-import { resolveBoardUrl, type BoardUrlResolution } from '@meith/settings'
+import { type BoardUrlResolution, resolveBoardUrl } from '@meith/settings'
 
 import { getSettings } from './settings'
 

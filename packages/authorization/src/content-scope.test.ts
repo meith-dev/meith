@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { PUBLIC_CONTENT, emptyPermissionSet, type PermissionSet } from '@meith/core'
+import { emptyPermissionSet, type PermissionSet, PUBLIC_CONTENT } from '@meith/core'
 
 import { Authorizer } from './authorizer'
+import { combinePermissionSets } from './combine'
 import {
   InMemoryAuthorizationSource,
   type MemoryAppointment,
   type MemoryBoard,
 } from './memory-source'
-import { combinePermissionSets } from './combine'
 import type { Actor } from './types'
 
 const GROUP = { registered: 2, superMod: 3, admin: 4 } as const
@@ -114,18 +114,14 @@ describe('contentScopeIn', () => {
   })
 
   it('widens for an appointment carrying any right at all, not only approval', async () => {
-    const scope = await scopeIn(actor([GROUP.registered]), [
-      appointment({ canSplitThreads: true }),
-    ])
+    const scope = await scopeIn(actor([GROUP.registered]), [appointment({ canSplitThreads: true })])
 
     expect(scope.seesUnapproved).toBe(true)
     expect(scope.seesDeleted).toBe(true)
   })
 
   it('leaves an ordinary member on the public scope', async () => {
-    expect(await scopeIn(actor([GROUP.registered]), APPOINTED.map(byGroup))).toEqual(
-      PUBLIC_CONTENT,
-    )
+    expect(await scopeIn(actor([GROUP.registered]), APPOINTED.map(byGroup))).toEqual(PUBLIC_CONTENT)
     expect(await scopeIn(actor([GROUP.registered]), [])).toEqual(PUBLIC_CONTENT)
   })
 

@@ -1,7 +1,7 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
 import { STAFF_PASSWORD } from './support/config'
-import { PASSWORD, enterAdminPanel } from './support/session'
+import { enterAdminPanel, PASSWORD } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
@@ -40,12 +40,8 @@ test('a board that asks for the address to be proven will not let the account in
     const email = `${username}@example.test`
     await register(visitor, username)
 
-    await expect(visitor).toHaveURL(
-      `/verify/resend?email=${encodeURIComponent(email)}&sent=1`,
-    )
-    await expect(
-      visitor.getByRole('heading', { name: 'Confirm your account' }),
-    ).toBeVisible()
+    await expect(visitor).toHaveURL(`/verify/resend?email=${encodeURIComponent(email)}&sent=1`)
+    await expect(visitor.getByRole('heading', { name: 'Confirm your account' })).toBeVisible()
     await expect(visitor.getByText(email)).toBeVisible()
     await expect(visitor.getByText(/until then you will not be able to sign in/)).toBeVisible()
 

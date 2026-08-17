@@ -1,7 +1,7 @@
 import { ConfigurationError, ValidationError } from '@meith/core'
 
 import { fetchJson, readBoolean, readString } from './http'
-import { stringClaim, verifyIdToken, type IdTokenClaims } from './jwt'
+import { type IdTokenClaims, stringClaim, verifyIdToken } from './jwt'
 import { codeChallenge } from './pkce'
 import type {
   AuthorizeInput,
@@ -133,16 +133,13 @@ function profileFrom(claims: IdTokenClaims, userinfo: IdTokenClaims): ProviderPr
 
   const subject = stringClaim(merged, 'sub')
   if (subject === null) {
-    throw new ValidationError(
-      'The identity provider sent an account with no stable identifier.',
-    )
+    throw new ValidationError('The identity provider sent an account with no stable identifier.')
   }
 
   return {
     subject,
     email: stringClaim(merged, 'email') ?? stringClaim(userinfo, 'email'),
-    emailVerified:
-      readBoolean(merged, 'email_verified') || readBoolean(userinfo, 'email_verified'),
+    emailVerified: readBoolean(merged, 'email_verified') || readBoolean(userinfo, 'email_verified'),
     username:
       stringClaim(merged, 'preferred_username') ??
       stringClaim(merged, 'nickname') ??

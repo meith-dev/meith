@@ -1,8 +1,8 @@
-import { requireSlot } from '@meith/theme-kit'
 import type { PanelKind } from '@meith/theme-kit'
+import { requireSlot } from '@meith/theme-kit'
 
-import { currentLocation } from '@/server/current-location'
 import { getActor } from '@/server/context'
+import { currentLocation } from '@/server/current-location'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 import { buildPanelNavModel, type PanelCounts, type PanelNav } from '@/view/panel-nav'
@@ -27,5 +27,5 @@ export async function PanelNavRegion(props: PanelNavProps) {
     counts: props.counts,
   })
 
-  return <Nav {...await filterView('view.panel-nav', model, viewerRef(await getActor()))} />
+  return <Nav {...(await filterView('view.panel-nav', model, viewerRef(await getActor())))} />
 }

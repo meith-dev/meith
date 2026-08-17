@@ -1,9 +1,9 @@
 import 'server-only'
 
 import type { Actor } from '@meith/authorization'
-import { ForbiddenError, contentScopeFrom } from '@meith/core'
+import { contentScopeFrom, ForbiddenError } from '@meith/core'
+import { getDb, PostgresSearchRepository } from '@meith/db'
 import type { SearchScope } from '@meith/search'
-import { PostgresSearchRepository, getDb } from '@meith/db'
 
 import { getContainer } from './container'
 import { getSettings } from './settings'
@@ -24,9 +24,7 @@ export async function searchMinWordLength(): Promise<number> {
 }
 
 export function searchProvider(): PostgresSearchRepository | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresSearchRepository(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresSearchRepository(getDb()) : null
 }
 
 export function requireSearch(): PostgresSearchRepository {
@@ -42,8 +40,7 @@ export function requireSearch(): PostgresSearchRepository {
 export async function searchScopeFor(actor: Actor): Promise<SearchScope> {
   const { authorizer } = getContainer()
 
-  const staff =
-    actor.global.isAdministrator === true || actor.global.isSuperModerator === true
+  const staff = actor.global.isAdministrator === true || actor.global.isSuperModerator === true
 
   return {
     ...(await authorizer.threadAudience(actor)),

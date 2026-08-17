@@ -5,12 +5,12 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError } from '@meith/core'
 
 import { recordAuthEvent } from './auth-events'
-import { getActor } from './context'
+import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
+import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
 import { readSessionToken } from './session-cookies'
-import type { FormState } from './auth-form-state'
 
 const toFormState = formStateReporter(
   'session-actions',
@@ -32,10 +32,7 @@ export async function currentSessionId(): Promise<number | null> {
   return located?.sessionId ?? null
 }
 
-export async function revokeSessionAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function revokeSessionAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const userId = await requireViewer()
     const sessionId = positiveInt(form, 'sessionId')

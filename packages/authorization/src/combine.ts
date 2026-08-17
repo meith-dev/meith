@@ -1,6 +1,6 @@
 import {
-  PERMISSION_FIELDS,
   emptyPermissionSet,
+  PERMISSION_FIELDS,
   type PermissionField,
   type PermissionSet,
 } from '@meith/core'
@@ -28,9 +28,7 @@ export function combineGroupValue(
   }
 }
 
-export function combinePermissionSets(
-  sets: readonly PermissionSet[],
-): PermissionSet {
+export function combinePermissionSets(sets: readonly PermissionSet[]): PermissionSet {
   if (sets.length === 0) return emptyPermissionSet()
   if (sets.length === 1) return { ...sets[0]! }
 

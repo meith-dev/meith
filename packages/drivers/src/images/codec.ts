@@ -47,10 +47,7 @@ export interface DecodedImage {
 
 export type ImageFormat = 'png' | 'jpeg'
 
-export async function decodeImage(
-  bytes: ArrayBuffer,
-  format: ImageFormat,
-): Promise<DecodedImage> {
+export async function decodeImage(bytes: ArrayBuffer, format: ImageFormat): Promise<DecodedImage> {
   await initialise()
   return format === 'png' ? decodePng(bytes) : decodeJpeg(bytes)
 }

@@ -1,6 +1,7 @@
+import { beforeEach, describe, expect, it } from 'vitest'
+
 import { ForbiddenError, NotFoundError, ValidationError } from '@meith/core'
 import { BodyFormat } from '@meith/markdown'
-import { beforeEach, describe, expect, it } from 'vitest'
 
 import { MessageService } from './service'
 import type {
@@ -305,15 +306,15 @@ describe('sending', () => {
   })
 
   it('names every unknown recipient at once rather than one per submit', async () => {
-    await expect(sendTo('bob, nobody, alsonobody')).rejects.toThrow(
-      /nobody, alsonobody/,
-    )
+    await expect(sendTo('bob, nobody, alsonobody')).rejects.toThrow(/nobody, alsonobody/)
     expect(repo.messages).toEqual([])
   })
 
   it('treats one name twice as one recipient', async () => {
     const id = await sendTo('bob, Bob, BOB')
-    expect(repo.copies.filter((copy) => copy.messageId === id && copy.ownerUserId === BOB)).toHaveLength(1)
+    expect(
+      repo.copies.filter((copy) => copy.messageId === id && copy.ownerUserId === BOB),
+    ).toHaveLength(1)
   })
 
   it('keeps a name in To when it appears in both To and Bcc', async () => {
@@ -602,9 +603,9 @@ describe('reply and forward', () => {
 
   it('refuses to prefill from a message the member does not hold', async () => {
     const id = await sendTo('bob')
-    await expect(
-      service.replyDraft({ messageId: id, userId: CAROL }),
-    ).rejects.toBeInstanceOf(NotFoundError)
+    await expect(service.replyDraft({ messageId: id, userId: CAROL })).rejects.toBeInstanceOf(
+      NotFoundError,
+    )
   })
 })
 

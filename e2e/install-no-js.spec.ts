@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
 test.use({ javaScriptEnabled: false })
 
@@ -7,14 +7,17 @@ const ADMIN = 'boardowner'
 const PASSWORD = 'correct horse battery staple'
 
 async function headingStyle(page: Page, selector: string) {
-  return page.locator(selector).first().evaluate((node) => {
-    const style = getComputedStyle(node)
-    return {
-      family: style.fontFamily.split(',')[0]?.trim(),
-      size: style.fontSize,
-      weight: style.fontWeight,
-    }
-  })
+  return page
+    .locator(selector)
+    .first()
+    .evaluate((node) => {
+      const style = getComputedStyle(node)
+      return {
+        family: style.fontFamily.split(',')[0]?.trim(),
+        size: style.fontSize,
+        weight: style.fontWeight,
+      }
+    })
 }
 
 test('a board is installed from an empty database, with no scripting', async ({ page }) => {
@@ -40,8 +43,9 @@ test('a board is installed from an empty database, with no scripting', async ({ 
 
   await expect(page.locator('#boardUrl')).toHaveValue(/^http:\/\/127\.0\.0\.1:\d+$/)
 
-  await expect(page.locator('#username-description, #field-username-description'))
-    .toContainText('admin')
+  await expect(page.locator('#username-description, #field-username-description')).toContainText(
+    'admin',
+  )
 
   await page.locator('#boardName').fill(BOARD)
   await page.locator('#username').fill('admin')

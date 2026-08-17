@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  pluginNotificationKindSpecs,
-  pluginNotify,
-  type PluginNotifyBackend,
-} from './runtime'
+import { type PluginNotifyBackend, pluginNotificationKindSpecs, pluginNotify } from './runtime'
 
 const KINDS = [
   { key: 'gift_received', title: 'A gift arrives', description: 'Somebody bought you in.' },
@@ -91,15 +87,15 @@ describe('pluginNotify', () => {
     const { raised, port } = backend()
     const notify = pluginNotify('dues', KINDS, port)
 
-    await expect(
-      notify.send({ userId: 7, kind: 'made_up', subject: 'x' }),
-    ).rejects.toThrow(/not declared/)
-    await expect(
-      notify.send({ userId: 0, kind: 'gift_received', subject: 'x' }),
-    ).rejects.toThrow(/user id/)
-    await expect(
-      notify.send({ userId: 7, kind: 'gift_received', subject: '   ' }),
-    ).rejects.toThrow(/subject/)
+    await expect(notify.send({ userId: 7, kind: 'made_up', subject: 'x' })).rejects.toThrow(
+      /not declared/,
+    )
+    await expect(notify.send({ userId: 0, kind: 'gift_received', subject: 'x' })).rejects.toThrow(
+      /user id/,
+    )
+    await expect(notify.send({ userId: 7, kind: 'gift_received', subject: '   ' })).rejects.toThrow(
+      /subject/,
+    )
     await expect(
       notify.send({ userId: 7, kind: 'gift_received', subject: 'x'.repeat(201) }),
     ).rejects.toThrow(/subject/)

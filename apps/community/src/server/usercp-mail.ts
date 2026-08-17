@@ -18,9 +18,7 @@ export async function sendEmailChangeConfirmation(input: {
 
   const origin = await boardUrl()
   const link =
-    origin === ''
-      ? null
-      : `${origin}${CONFIRM_PATH}?token=${encodeURIComponent(input.token)}`
+    origin === '' ? null : `${origin}${CONFIRM_PATH}?token=${encodeURIComponent(input.token)}`
 
   const lines = [
     'Hello,',

@@ -1,18 +1,18 @@
-import {
-  SLOT_STABILITY,
-  SLOT_NAMES,
-  assertThemeContract,
-  requireSlot,
-  resolveTheme,
-  type SlotName,
-  type ThemeDefinition,
-} from '@meith/theme-kit'
 import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import forumConfig from '../../community.config'
+import {
+  assertThemeContract,
+  requireSlot,
+  resolveTheme,
+  SLOT_NAMES,
+  SLOT_STABILITY,
+  type SlotName,
+  type ThemeDefinition,
+} from '@meith/theme-kit'
 
+import forumConfig from '../../community.config'
 import { SLOT_FIXTURES } from './contract.fixture'
 
 const themes: readonly { key: string; definition: ThemeDefinition }[] = Object.values(

@@ -1,18 +1,16 @@
 import { sql } from 'drizzle-orm'
 
 import {
-  EMPTY_VOCABULARY,
-  compileVocabulary,
   type BoardVocabulary,
+  compileVocabulary,
+  EMPTY_VOCABULARY,
   type VocabularySource,
 } from '@meith/markdown'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 
-export async function readVocabularySource(
-  db: Database,
-): Promise<VocabularySource | null> {
+export async function readVocabularySource(db: Database): Promise<VocabularySource | null> {
   return db.transaction(async (tx) => {
     const revision = resultRows(
       await tx.execute(sql`select version from cache_versions where key = 'markdown_vocabulary'`),
@@ -25,7 +23,9 @@ export async function readVocabularySource(
     ) as Array<Record<string, unknown>>
 
     const directives = resultRows(
-      await tx.execute(sql`select name, block from custom_directives where enabled = true order by name`),
+      await tx.execute(
+        sql`select name, block from custom_directives where enabled = true order by name`,
+      ),
     ) as Array<Record<string, unknown>>
 
     return {

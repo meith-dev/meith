@@ -1,25 +1,29 @@
 import { sql } from 'drizzle-orm'
-import { expectQueryBudget } from '@meith/testkit'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+
+import { expectQueryBudget } from '@meith/testkit'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { forums, posts, threads, users } from './schema'
 import { PostgresReadStateRepository } from './read-state-repo'
+import { forums, posts, threads, users } from './schema'
 
 let harness: TestDb
 let db: Database
 let repo: PostgresReadStateRepository
 
 async function seed(threadCount: number): Promise<void> {
-  await db.insert(users).values({
-    id: 50,
-    username: 'ada',
-    usernameLower: 'ada',
-    email: 'ada@example.com',
-    emailLower: 'ada@example.com',
-    primaryGroupId: 2,
-  }).onConflictDoNothing()
+  await db
+    .insert(users)
+    .values({
+      id: 50,
+      username: 'ada',
+      usernameLower: 'ada',
+      email: 'ada@example.com',
+      emailLower: 'ada@example.com',
+      primaryGroupId: 2,
+    })
+    .onConflictDoNothing()
   await db.insert(forums).values({
     id: 1,
     type: 'forum',

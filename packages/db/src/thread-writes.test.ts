@@ -1,13 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { eq, sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { PUBLIC_CONTENT } from '@meith/core'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
+import { forums, outbox, posts, threadSubscriptions, threads, users } from './schema'
 import { PostgresSearchRepository } from './search-repo'
 import { PostgresThreadWriteRepository } from './thread-writes'
-import { forums, outbox, posts, threads, threadSubscriptions, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -101,9 +101,7 @@ describe('PostgresThreadWriteRepository.create', () => {
     const created = await repo.create({ ...RECORD, subscribe: true })
 
     const rows = await db.select().from(threadSubscriptions)
-    expect(rows).toEqual([
-      expect.objectContaining({ userId: 1, threadId: created.threadId }),
-    ])
+    expect(rows).toEqual([expect.objectContaining({ userId: 1, threadId: created.threadId })])
   })
 
   it('holds an unapproved thread out of every counter, and emits nothing', async () => {
@@ -308,7 +306,14 @@ describe('PostgresThreadWriteRepository and the search index', () => {
   const find = async (terms: string) =>
     (
       await search().search(
-        { terms, match: 'everything', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
+        {
+          terms,
+          match: 'everything',
+          grouping: 'posts',
+          sort: 'relevance',
+          limit: 10,
+          after: null,
+        },
         scope,
       )
     ).hits.map((hit) => hit.postId)

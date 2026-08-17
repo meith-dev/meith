@@ -6,7 +6,8 @@ const TAB =
   'inline-flex items-center border px-3 py-1.5 font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] whitespace-nowrap'
 
 const CURRENT = 'border-primary bg-primary text-primary-foreground'
-const OTHER = 'border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-primary'
+const OTHER =
+  'border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-primary'
 
 function Tabs({ label, tabs }: { label: string; tabs: readonly TabModel[] }) {
   if (tabs.length === 0) return null

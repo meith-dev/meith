@@ -1,5 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 import type { LatestThreadsModel } from '@meith/theme-kit'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Empty,
+  EmptyDescription,
+  EmptyTitle,
+} from '@meith/ui'
 
 import { LINK, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
 
@@ -16,9 +24,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
       {threads.length === 0 ? (
         <Empty className="py-6">
           <EmptyTitle>Nothing started yet</EmptyTitle>
-          <EmptyDescription>
-            The newest threads you can see will appear here.
-          </EmptyDescription>
+          <EmptyDescription>The newest threads you can see will appear here.</EmptyDescription>
         </Empty>
       ) : (
         <CardContent className="px-0 py-0">

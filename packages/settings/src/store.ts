@@ -1,6 +1,7 @@
 import { ValidationError } from '@meith/core'
-import { SETTING_DEFINITION_BY_KEY, SETTING_DEFINITIONS } from './definitions'
+
 import type { SettingDefinition, SettingKey, SettingValue } from './definitions'
+import { SETTING_DEFINITION_BY_KEY, SETTING_DEFINITIONS } from './definitions'
 
 export interface SettingsRepository {
   loadAll(): Promise<ReadonlyMap<string, string>>
@@ -19,10 +20,7 @@ function serialise(value: unknown): string {
   return JSON.stringify(value)
 }
 
-function coerce(
-  definition: SettingDefinition<unknown>,
-  raw: string,
-): unknown {
+function coerce(definition: SettingDefinition<unknown>, raw: string): unknown {
   const expected = definition.default
 
   let candidate: unknown = raw
@@ -59,10 +57,7 @@ export class SettingsSnapshot {
       }
 
       try {
-        resolved.set(
-          definition.key,
-          coerce(definition as SettingDefinition<unknown>, raw),
-        )
+        resolved.set(definition.key, coerce(definition as SettingDefinition<unknown>, raw))
       } catch (error) {
         options.onInvalid?.(
           definition.key,

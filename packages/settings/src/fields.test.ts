@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { SETTING_DEFINITIONS, SETTING_DEFINITION_BY_KEY } from './definitions'
-import { coerceFormValue, secretClearField, settingField } from './fields'
 import type { SettingDefinition } from './definitions'
+import { SETTING_DEFINITION_BY_KEY, SETTING_DEFINITIONS } from './definitions'
+import { coerceFormValue, secretClearField, settingField } from './fields'
 
 function definition(key: string): SettingDefinition {
   const found = SETTING_DEFINITION_BY_KEY.get(key)

@@ -1,10 +1,11 @@
+import { canHoldThreads } from '@meith/forums'
+
+import { getContainer } from '@/server/container'
 import { activeWordFilter } from '@/server/content-admin'
 import { feedFor } from '@/server/feed-builder'
 import { feedResponse, noFeed, offlineFeed } from '@/server/feed-routes'
-import { getContainer } from '@/server/container'
 import { FEED_LIMIT, feedRepository, origin, publicScope } from '@/server/syndication'
 import { leadingId } from '@/view/slug-id'
-import { canHoldThreads } from '@meith/forums'
 
 export const dynamic = 'force-dynamic'
 

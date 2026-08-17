@@ -86,8 +86,7 @@ export function parseHex(value: string): Rgb | null {
   if (match === null) return null
 
   const digits = match[1]!
-  const full =
-    digits.length === 3 ? [...digits].map((digit) => digit + digit).join('') : digits
+  const full = digits.length === 3 ? [...digits].map((digit) => digit + digit).join('') : digits
 
   return {
     r: parseInt(full.slice(0, 2), 16) / 255,
@@ -112,8 +111,7 @@ export function parseColour(value: string): Oklch | null {
   return { l, c, h }
 }
 
-const round = (value: number, places: number): number =>
-  Number(value.toFixed(places))
+const round = (value: number, places: number): number => Number(value.toFixed(places))
 
 export function formatOklch({ l, c, h }: Oklch): string {
   return `oklch(${round(clamp01(l), 3)} ${round(Math.max(0, c), 3)} ${round(

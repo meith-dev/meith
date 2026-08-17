@@ -1,17 +1,18 @@
-import { readFile } from "node:fs/promises"
-import { dirname, join, normalize } from "node:path"
-import { cache } from "react"
+import { readFile } from 'node:fs/promises'
+import { dirname, join, normalize } from 'node:path'
 
-import { renderMarkdown, type RenderedMarkdown, type ResolvedLink } from "../markdown/render"
-import { site } from "../content/site"
-import { DOCS_DIRECTORY } from "../workspace"
+import { cache } from 'react'
+
+import { site } from '../content/site'
+import { type RenderedMarkdown, type ResolvedLink, renderMarkdown } from '../markdown/render'
+import { DOCS_DIRECTORY } from '../workspace'
 import {
+  type DocEntry,
   documents,
   findDocument,
   findDocumentByFile,
   isInternalFile,
-  type DocEntry,
-} from "./registry"
+} from './registry'
 
 function repositoryHref(pathFromRoot: string, anchor: string): string {
   return `${site.repository}/blob/main/${pathFromRoot}${anchor}`
@@ -21,25 +22,25 @@ export function linkResolver(file: string): (href: string) => ResolvedLink {
   const directory = dirname(file)
 
   return (href: string): ResolvedLink => {
-    if (href.startsWith("#")) return { href, external: false }
-    if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//")) {
+    if (href.startsWith('#')) return { href, external: false }
+    if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith('//')) {
       return { href, external: true }
     }
 
-    const [rawPath = "", rawAnchor] = href.split("#")
-    const anchor = rawAnchor === undefined ? "" : `#${rawAnchor}`
-    const target = normalize(directory === "." ? rawPath : join(directory, rawPath))
+    const [rawPath = '', rawAnchor] = href.split('#')
+    const anchor = rawAnchor === undefined ? '' : `#${rawAnchor}`
+    const target = normalize(directory === '.' ? rawPath : join(directory, rawPath))
 
-    if (target.startsWith("../")) {
-      return { href: repositoryHref(target.replace(/^(\.\.\/)+/, ""), anchor), external: true }
+    if (target.startsWith('../')) {
+      return { href: repositoryHref(target.replace(/^(\.\.\/)+/, ''), anchor), external: true }
     }
 
-    if (target === "README.md") return { href: `/docs${anchor}`, external: false }
+    if (target === 'README.md') return { href: `/docs${anchor}`, external: false }
 
     const published = findDocumentByFile(target)
     if (published) return { href: `/docs/${published.slug}${anchor}`, external: false }
 
-    if (isInternalFile(target) || target.endsWith(".md")) {
+    if (isInternalFile(target) || target.endsWith('.md')) {
       return { href: repositoryHref(`docs/${target}`, anchor), external: true }
     }
 
@@ -58,7 +59,7 @@ export const loadDocument = cache(async (slug: string): Promise<LoadedDocument |
   if (!entry) return null
 
   const absolute = join(DOCS_DIRECTORY, entry.file)
-  const markdown = await readFile(absolute, "utf8")
+  const markdown = await readFile(absolute, 'utf8')
 
   return {
     entry,
@@ -75,5 +76,5 @@ export const loadAllDocuments = cache(async (): Promise<readonly LoadedDocument[
 export const readDocumentSource = cache(async (slug: string): Promise<string | null> => {
   const entry = findDocument(slug)
   if (!entry) return null
-  return readFile(join(DOCS_DIRECTORY, entry.file), "utf8")
+  return readFile(join(DOCS_DIRECTORY, entry.file), 'utf8')
 })

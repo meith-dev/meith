@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
 
-test('the skip link is the first keyboard target and reaches the main landmark', async ({ page }) => {
+test('the skip link is the first keyboard target and reaches the main landmark', async ({
+  page,
+}) => {
   await page.goto('/')
   await page.keyboard.press('Tab')
 
@@ -11,9 +13,7 @@ test('the skip link is the first keyboard target and reaches the main landmark',
   await expect(page.locator('#board-content')).toBeFocused()
 })
 
-test('a tab row scrolls sideways only, and gives a focus ring room to draw', async ({
-  page,
-}) => {
+test('a tab row scrolls sideways only, and gives a focus ring room to draw', async ({ page }) => {
   await page.goto('/100-announcements')
 
   const overflow = await page.evaluate(() =>

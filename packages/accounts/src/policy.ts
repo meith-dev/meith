@@ -75,11 +75,9 @@ export function resolveAuthPolicy(
   const enabled = read(AUTH_SETTING_KEYS.registrationEnabled)
 
   return {
-    registrationEnabled:
-      typeof enabled === 'boolean' ? enabled : base.registrationEnabled,
+    registrationEnabled: typeof enabled === 'boolean' ? enabled : base.registrationEnabled,
     activationMethod:
-      typeof method === 'string' &&
-      (ACTIVATION_METHODS as readonly string[]).includes(method)
+      typeof method === 'string' && (ACTIVATION_METHODS as readonly string[]).includes(method)
         ? (method as AuthConfig['activationMethod'])
         : base.activationMethod,
     minPasswordLength:
@@ -91,8 +89,7 @@ export function resolveAuthPolicy(
     maxAccountLoginAttempts:
       countingInteger(read(AUTH_SETTING_KEYS.maxAccountLoginAttempts)) ??
       base.maxAccountLoginAttempts,
-    lockoutMinutes:
-      positiveInteger(read(AUTH_SETTING_KEYS.lockoutMinutes)) ?? base.lockoutMinutes,
+    lockoutMinutes: positiveInteger(read(AUTH_SETTING_KEYS.lockoutMinutes)) ?? base.lockoutMinutes,
     sessionLifetimeDays:
       positiveInteger(read(AUTH_SETTING_KEYS.sessionLifetimeDays)) ?? base.sessionLifetimeDays,
   }

@@ -1,4 +1,3 @@
-
 export interface PluginGrantRow {
   readonly groupKey: string
   readonly expiresAt: Date
@@ -169,7 +168,10 @@ export function pluginNotify(
         )
       }
 
-      if (input.href !== undefined && (!input.href.startsWith('/') || input.href.startsWith('//'))) {
+      if (
+        input.href !== undefined &&
+        (!input.href.startsWith('/') || input.href.startsWith('//'))
+      ) {
         throw new Error(
           `plugin "${pluginKey}": a notification links within the board — the href must ` +
             'start with a single "/".',

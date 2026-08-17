@@ -13,7 +13,10 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
         <ul className="divide-y divide-border">
           {threads.map((thread) => (
             <li key={thread.href} className="px-3 py-2 hover:bg-secondary/50">
-              <a href={thread.href} className="block truncate text-xs text-foreground hover:text-primary">
+              <a
+                href={thread.href}
+                className="block truncate text-xs text-foreground hover:text-primary"
+              >
                 {thread.title}
               </a>
               <p className={`${MICRO} mt-0.5 truncate normal-case`}>

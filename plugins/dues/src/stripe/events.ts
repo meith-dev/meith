@@ -1,4 +1,3 @@
-
 export interface StripeEventEnvelope {
   readonly id: string
   readonly type: string
@@ -68,9 +67,7 @@ function invoiceSubscriptionId(invoice: Record<string, unknown>): string | null 
   const direct = idOf(invoice.subscription)
   if (direct !== null) return direct
 
-  const parent = invoice.parent as
-    | { subscription_details?: { subscription?: unknown } }
-    | undefined
+  const parent = invoice.parent as { subscription_details?: { subscription?: unknown } } | undefined
   return idOf(parent?.subscription_details?.subscription)
 }
 
@@ -79,7 +76,7 @@ function invoicePeriodEnd(invoice: Record<string, unknown>): Date | null {
   let latest: number | null = null
   if (Array.isArray(lines)) {
     for (const line of lines) {
-      const end = ((line as { period?: { end?: unknown } }).period ?? {}).end
+      const end = (line as { period?: { end?: unknown } }).period?.end
       if (typeof end === 'number' && (latest === null || end > latest)) latest = end
     }
   }

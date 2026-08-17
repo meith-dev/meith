@@ -71,4 +71,3 @@ describe('parseUserFilter', () => {
     expect(parseUserFilter({ username: ['ann', 'bob'] }).username).toBe('ann')
   })
 })
-

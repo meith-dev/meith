@@ -1,5 +1,5 @@
 import { quoteAttribution } from './attribution'
-import { parse, type ParseOptions } from './blocks'
+import { type ParseOptions, parse } from './blocks'
 import type { Block, Inline } from './nodes'
 
 function fromInline(nodes: readonly Inline[]): string {
@@ -51,7 +51,8 @@ function fromBlocks(blocks: readonly Block[]): string[] {
         break
       case 'table':
         parts.push(block.head.map((cell) => fromInline(cell.inline)).join(' '))
-        for (const row of block.rows) parts.push(row.map((cell) => fromInline(cell.inline)).join(' '))
+        for (const row of block.rows)
+          parts.push(row.map((cell) => fromInline(cell.inline)).join(' '))
         break
       case 'rule':
         break
@@ -61,10 +62,7 @@ function fromBlocks(blocks: readonly Block[]): string[] {
 }
 
 export function plainText(source: string, options: ParseOptions = {}): string {
-  return fromBlocks(parse(source, options).blocks)
-    .join(' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return fromBlocks(parse(source, options).blocks).join(' ').replace(/\s+/g, ' ').trim()
 }
 
 export function summarise(source: string | null, limit = 300): string {

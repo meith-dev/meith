@@ -171,9 +171,7 @@ describe('saveGroupPermissionsAction', () => {
     await saveGroupPermissionsAction({}, form({ groupId: '2' }))
 
     const written = saved[0]?.permissions ?? {}
-    expect(Object.keys(written).sort()).toEqual(
-      PERMISSION_FIELDS.map((field) => field.key).sort(),
-    )
+    expect(Object.keys(written).sort()).toEqual(PERMISSION_FIELDS.map((field) => field.key).sort())
     expect(written[boolean!.key]).toBe(false)
   })
 
@@ -204,10 +202,7 @@ describe('saveGroupPermissionsAction', () => {
 
   it('refuses a negative numeric', async () => {
     const numeric = PERMISSION_FIELDS.find((field) => field.kind === 'numeric')!
-    const state = await saveGroupPermissionsAction(
-      {},
-      form({ groupId: '2', [numeric.key]: '-1' }),
-    )
+    const state = await saveGroupPermissionsAction({}, form({ groupId: '2', [numeric.key]: '-1' }))
 
     expect(state.error).toBeDefined()
     expect(saved).toEqual([])
@@ -229,10 +224,7 @@ describe('saveGroupPermissionsAction', () => {
 
 describe('saveGroupIdentityAction', () => {
   it('refreshes them for a rename too', async () => {
-    await saveGroupIdentityAction(
-      {},
-      form({ groupId: '2', title: 'Members', displayOrder: '5' }),
-    )
+    await saveGroupIdentityAction({}, form({ groupId: '2', title: 'Members', displayOrder: '5' }))
 
     expect(identities[0]?.input).toMatchObject({ title: 'Members', displayOrder: 5 })
     expect(revalidated).toEqual(['/admin/groups', '/admin/groups/[id]'])
@@ -291,10 +283,7 @@ describe('createGroupAction', () => {
   })
 
   it('refreshes the listing the new group belongs in', async () => {
-    await createGroupAction(
-      {},
-      form({ key: 'veterans', title: 'Veterans', copyFromGroupId: '2' }),
-    )
+    await createGroupAction({}, form({ key: 'veterans', title: 'Veterans', copyFromGroupId: '2' }))
 
     expect(revalidated).toContain('/admin/groups')
   })
@@ -391,11 +380,7 @@ describe('applyPromotionsAction', () => {
   it('refreshes the preview it just invalidated', async () => {
     await applyPromotionsAction({}, form({}))
 
-    expect(revalidated).toEqual([
-      '/admin/groups',
-      '/admin/groups/[id]',
-      '/admin/groups/promotions',
-    ])
+    expect(revalidated).toEqual(['/admin/groups', '/admin/groups/[id]', '/admin/groups/promotions'])
   })
 })
 
@@ -443,10 +428,7 @@ describe('promotion rules', () => {
   })
 
   it('reads a blank criterion as no constraint, and a blank order as zero', async () => {
-    await createPromotionRuleAction(
-      {},
-      form({ ...RULE, displayOrder: '', minDaysRegistered: '' }),
-    )
+    await createPromotionRuleAction({}, form({ ...RULE, displayOrder: '', minDaysRegistered: '' }))
 
     expect(rulesCreated[0]).toEqual({
       title: 'Veteran',
@@ -469,9 +451,7 @@ describe('promotion rules', () => {
 
     expect(state.notice).toBe('created')
     expect(revalidated).toEqual(['/admin/groups/promotions'])
-    expect(adminCalls).toEqual([
-      { action: 'group.promotion_rule_added', detail: { ruleId: 11 } },
-    ])
+    expect(adminCalls).toEqual([{ action: 'group.promotion_rule_added', detail: { ruleId: 11 } }])
   })
 
   it('logs an edit against the rule it edited', async () => {
@@ -479,9 +459,7 @@ describe('promotion rules', () => {
 
     expect(state.notice).toBe('saved')
     expect(rulesUpdated[0]?.id).toBe(4)
-    expect(adminCalls).toEqual([
-      { action: 'group.promotion_rule_changed', detail: { ruleId: 4 } },
-    ])
+    expect(adminCalls).toEqual([{ action: 'group.promotion_rule_changed', detail: { ruleId: 4 } }])
   })
 
   it('logs which way a toggle went', async () => {
@@ -502,9 +480,7 @@ describe('promotion rules', () => {
     const state = await deletePromotionRuleAction({}, form({ id: '4' }))
 
     expect(state.notice).toBe('deleted')
-    expect(adminCalls).toEqual([
-      { action: 'group.promotion_rule_removed', detail: { ruleId: 4 } },
-    ])
+    expect(adminCalls).toEqual([{ action: 'group.promotion_rule_removed', detail: { ruleId: 4 } }])
   })
 
   it('refuses a rule id that is not a rule id, before touching the store', async () => {

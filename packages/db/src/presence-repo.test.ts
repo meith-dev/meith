@@ -1,16 +1,16 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { PUBLIC_CONTENT, contentScopeFrom } from '@meith/core'
+import { contentScopeFrom, PUBLIC_CONTENT } from '@meith/core'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { resultRows } from './result-rows'
 import {
   ONLINE_WINDOW_MINUTES,
-  PostgresPresenceRepository,
   type OnlineScope,
+  PostgresPresenceRepository,
 } from './presence-repo'
+import { resultRows } from './result-rows'
 
 let harness: TestDb
 let db: Database
@@ -273,7 +273,10 @@ describe('recording a guest', () => {
   it('throttles the write, so clicking about does not cost an update a page', async () => {
     await repo.touchGuest(guest())
     await repo.touchGuest(
-      guest({ now: new Date(NOW.getTime() + 5_000), location: { path: '/later', forumId: null, threadId: null } }),
+      guest({
+        now: new Date(NOW.getTime() + 5_000),
+        location: { path: '/later', forumId: null, threadId: null },
+      }),
     )
 
     const rows = resultRows(

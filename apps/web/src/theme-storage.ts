@@ -1,1 +1,1 @@
-export const THEME_STORAGE_KEY = "meith-theme"
+export const THEME_STORAGE_KEY = 'meith-theme'

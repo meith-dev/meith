@@ -7,7 +7,9 @@ import { ROOT, workspacePackages } from './workspace-packages.mjs'
 const version = process.argv[2] ?? ''
 
 if (!/^\d+\.\d+\.\d+$/.test(version)) {
-  console.error(`✗ release bump: "${version}" is not a version. Pass major.minor.patch, with no leading v.`)
+  console.error(
+    `✗ release bump: "${version}" is not a version. Pass major.minor.patch, with no leading v.`,
+  )
   process.exit(1)
 }
 
@@ -19,7 +21,9 @@ const current = rootManifest.version
 const [a, b, c] = parse(version)
 const [x, y, z] = parse(current)
 if ((a - x || b - y || c - z) <= 0) {
-  console.error(`✗ release bump: the tree is at ${current}, and ${version} does not move it forward.`)
+  console.error(
+    `✗ release bump: the tree is at ${current}, and ${version} does not move it forward.`,
+  )
   process.exit(1)
 }
 
@@ -71,7 +75,9 @@ for (const { file, pattern } of REWRITES) {
   const source = await readFile(path, 'utf8')
   const rewritten = source.replace(pattern, `$1${version}$2`)
   if (rewritten === source) {
-    console.error(`✗ release bump: ${file} no longer contains the version this script moves — update release-bump.mjs with it`)
+    console.error(
+      `✗ release bump: ${file} no longer contains the version this script moves — update release-bump.mjs with it`,
+    )
     process.exit(1)
   }
   await writeFile(path, rewritten)

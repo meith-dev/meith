@@ -27,7 +27,7 @@ location.reload();
 }
 
 export async function TimezoneProbe() {
-  let preferences
+  let preferences: Awaited<ReturnType<typeof getViewerPreferences>>
   try {
     preferences = await getViewerPreferences()
   } catch {

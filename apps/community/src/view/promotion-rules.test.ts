@@ -38,8 +38,9 @@ describe('promotionRuleFormValues', () => {
   })
 
   it('renders "any group" as a blank source', () => {
-    expect(promotionRuleFormValues({ ...RULE, fromPrimaryGroupId: null }).fromPrimaryGroupId)
-      .toBe('')
+    expect(promotionRuleFormValues({ ...RULE, fromPrimaryGroupId: null }).fromPrimaryGroupId).toBe(
+      '',
+    )
   })
 
   it('carries the identity the form posts back', () => {

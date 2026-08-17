@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
-import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresModCpRepository } from './modcp-repo'
+import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
 import { forums, users } from './schema'
 
@@ -88,9 +88,7 @@ describe('the moderator log', () => {
   it('hides an entry in a forum this actor does not moderate', async () => {
     await logRow('thread.lock', { threadId: 7, forumId: THEIRS }, OTHER_MOD)
 
-    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
-      [],
-    )
+    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual([])
   })
 
   it('shows this actor"s own entry wherever it happened', async () => {
@@ -106,9 +104,7 @@ describe('the moderator log', () => {
     await logRow('permission.bypass', { forumId: MINE }, MOD)
     await logRow('user.promote', { userId: IVAN }, MOD)
 
-    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
-      [],
-    )
+    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual([])
   })
 
   it('shows a move to both ends" moderators', async () => {
@@ -133,8 +129,7 @@ describe('the moderator log', () => {
       OTHER_MOD,
     )
 
-    const entry = (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 }))
-      .entries[0]!
+    const entry = (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries[0]!
     expect(entry.forumTitle).toBe('Mine')
     expect(entry.detail).toContainEqual({ label: 'From forum', value: String(THEIRS) })
     expect(entry.detail).toContainEqual({ label: 'To forum', value: String(MINE) })
@@ -150,9 +145,9 @@ describe('the moderator log', () => {
     expect(
       (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
     ).toHaveLength(1)
-    expect(
-      (await repo.log({ forumIds: [THEIRS], actorUserId: IVAN, limit: 10 })).entries,
-    ).toEqual([])
+    expect((await repo.log({ forumIds: [THEIRS], actorUserId: IVAN, limit: 10 })).entries).toEqual(
+      [],
+    )
   })
 
   it('shows a merge to both forums, and not to one that merely shares an id with a thread', async () => {
@@ -172,9 +167,9 @@ describe('the moderator log', () => {
     expect(
       (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
     ).toHaveLength(1)
-    expect(
-      (await repo.log({ forumIds: [THEIRS], actorUserId: IVAN, limit: 10 })).entries,
-    ).toEqual([])
+    expect((await repo.log({ forumIds: [THEIRS], actorUserId: IVAN, limit: 10 })).entries).toEqual(
+      [],
+    )
   })
 
   it('shows an approval to everyone who moderates the forum it happened in', async () => {
@@ -215,9 +210,7 @@ describe('the moderator log', () => {
   it('leaves an old split row with the actor who wrote it rather than guessing a forum', async () => {
     await logRow('thread.split', { from: THEIRS, to: 9, posts: 2 }, OTHER_MOD)
 
-    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
-      [],
-    )
+    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual([])
     expect((await repo.log({ forumIds: [THEIRS], actorUserId: MOD, limit: 10 })).entries).toEqual(
       [],
     )
@@ -229,8 +222,7 @@ describe('the moderator log', () => {
   it('renders no forum for an old split row, and no forum-shaped detail either', async () => {
     await logRow('thread.split', { from: THEIRS, to: 9, posts: 2 }, MOD)
 
-    const entry = (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 }))
-      .entries[0]!
+    const entry = (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries[0]!
     expect(entry.forumId).toBeNull()
     expect(entry.forumTitle).toBeNull()
     expect(entry.detail.map((d) => d.label)).toEqual(['Posts affected'])
@@ -269,8 +261,7 @@ describe('the moderator log', () => {
   it('shows a closed report to everyone who moderates the forum it was filed in', async () => {
     await logRow('report.resolve', { reportId: 3, forumId: MINE, forumIds: [MINE] }, OTHER_MOD)
 
-    const entry = (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 }))
-      .entries[0]!
+    const entry = (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries[0]!
     expect(entry.action).toBe('report.resolve')
     expect(entry.forumTitle).toBe('Mine')
     expect(entry.detail).toContainEqual({ label: 'Report', value: '3' })
@@ -286,17 +277,15 @@ describe('the moderator log', () => {
     expect(
       (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries,
     ).toHaveLength(1)
-    expect(
-      (await repo.log({ forumIds: [THEIRS], actorUserId: IVAN, limit: 10 })).entries,
-    ).toEqual([])
+    expect((await repo.log({ forumIds: [THEIRS], actorUserId: IVAN, limit: 10 })).entries).toEqual(
+      [],
+    )
   })
 
   it('shows a signature lock to the moderator who set it and to nobody else', async () => {
     await logRow('signature.lock', { userId: IVAN }, OTHER_MOD)
 
-    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
-      [],
-    )
+    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual([])
     const own = await repo.log({ forumIds: [], actorUserId: OTHER_MOD, limit: 10 })
     expect(own.entries[0]).toMatchObject({ action: 'signature.lock' })
     expect(own.entries[0]!.detail).toContainEqual({ label: 'Member', value: String(IVAN) })
@@ -305,9 +294,7 @@ describe('the moderator log', () => {
   it('shows a forum-less entry only to the moderator who wrote it', async () => {
     await logRow('warning.issue', { userId: IVAN, points: 2 }, OTHER_MOD)
 
-    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual(
-      [],
-    )
+    expect((await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries).toEqual([])
     expect(
       (await repo.log({ forumIds: [MINE], actorUserId: OTHER_MOD, limit: 10 })).entries,
     ).toHaveLength(1)
@@ -320,8 +307,7 @@ describe('the moderator log', () => {
       internalCursor: 'abc',
     })
 
-    const entry = (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 }))
-      .entries[0]!
+    const entry = (await repo.log({ forumIds: [MINE], actorUserId: MOD, limit: 10 })).entries[0]!
     const labels = entry.detail.map((d) => d.label)
     expect(labels).toContain('Threads')
     expect(labels).toContain('Applied to')
@@ -378,9 +364,7 @@ describe('the dashboard workload', () => {
       insert into reports (target_kind, target_id, forum_id, reporter_user_id, reason, status)
       values ('post', 1, ${MINE}, ${IVAN}, 'spam', 'resolved')
     `)
-    expect(await repo.workload([MINE])).toEqual(
-      new Map([[MINE, { pending: 0, openReports: 0 }]]),
-    )
+    expect(await repo.workload([MINE])).toEqual(new Map([[MINE, { pending: 0, openReports: 0 }]]))
   })
 
   it('asks nothing at all for an empty forum list', async () => {

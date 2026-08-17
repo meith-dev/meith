@@ -1,20 +1,16 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
-import { Card, CardContent, CardFooter, Input, buttonVariants, cn } from '@meith/ui'
+import { buttonVariants, Card, CardContent, CardFooter, cn, Input } from '@meith/ui'
 
-import { PanelPage } from '@/components/shell/panel-page'
-import { AdminSettingsForm } from '@/components/admin/settings-form'
 import { MailTestCard } from '@/components/admin/mail-test-card'
+import { AdminSettingsForm } from '@/components/admin/settings-form'
+import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { boardUrlResolution } from '@/server/board-url'
 import { assessMailReadiness } from '@/server/mail-health'
 import { getSettings } from '@/server/settings'
-import {
-  DEFAULT_SETTING_GROUP,
-  buildAdminSettingsModel,
-  settingsHref,
-} from '@/view/admin-settings'
+import { buildAdminSettingsModel, DEFAULT_SETTING_GROUP, settingsHref } from '@/view/admin-settings'
 
 export const metadata: Metadata = { title: 'Board settings' }
 
@@ -28,9 +24,7 @@ export default async function AdminSettingsPage({
   const query = await searchParams
 
   if (query.group === undefined && query.q === undefined) {
-    redirect(
-      settingsHref({ group: DEFAULT_SETTING_GROUP, advanced: query.advanced === '1' }),
-    )
+    redirect(settingsHref({ group: DEFAULT_SETTING_GROUP, advanced: query.advanced === '1' }))
   }
   const model = buildAdminSettingsModel({
     snapshot: await getSettings(),
@@ -51,9 +45,8 @@ export default async function AdminSettingsPage({
       title="Board settings"
       lede={
         <>
-          Every setting this build has, with what it does. A value equal to its default is
-          not stored, so changing a default in a later release reaches a board that never
-          touched it.
+          Every setting this build has, with what it does. A value equal to its default is not
+          stored, so changing a default in a later release reaches a board that never touched it.
         </>
       }
     >
@@ -87,9 +80,7 @@ export default async function AdminSettingsPage({
                 'shrink-0',
               )}
             >
-              {model.showAdvanced
-                ? 'Hide advanced'
-                : `Show ${model.hiddenAdvanced} advanced`}
+              {model.showAdvanced ? 'Hide advanced' : `Show ${model.hiddenAdvanced} advanced`}
             </a>
           )}
         </CardContent>
@@ -107,10 +98,9 @@ export default async function AdminSettingsPage({
       {address?.source === 'environment' && (
         <section className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
           <p>
-            The board’s address is <code>{address.url}</code>, from{' '}
-            <code>APP_URL</code> in this deployment’s environment. It overrides the
-            “Board address” field below, which is stored but not read until{' '}
-            <code>APP_URL</code> is unset and the board redeployed.
+            The board’s address is <code>{address.url}</code>, from <code>APP_URL</code> in this
+            deployment’s environment. It overrides the “Board address” field below, which is stored
+            but not read until <code>APP_URL</code> is unset and the board redeployed.
           </p>
         </section>
       )}
@@ -124,10 +114,9 @@ export default async function AdminSettingsPage({
             This board does not know its own address
           </h2>
           <p className="text-sm">
-            Every link the board sends is built from it, so password resets and
-            confirmations arrive carrying no link at all — they are polite and useless.
-            Feeds and canonical URLs fall back to a localhost address. Set “Board
-            address” below.
+            Every link the board sends is built from it, so password resets and confirmations arrive
+            carrying no link at all — they are polite and useless. Feeds and canonical URLs fall
+            back to a localhost address. Set “Board address” below.
           </p>
         </section>
       )}
@@ -150,28 +139,26 @@ export default async function AdminSettingsPage({
           </h2>
           <p className="text-sm">
             The activation method is{' '}
-            <strong className="font-medium">{mail.activationMethod}</strong>, so a new
-            account waits for a confirmation link — but this board sends no mail:{' '}
-            {mail.summary.toLowerCase()}. Every account created while this is true is
-            stuck: it cannot sign in, and the link that would release it never arrives.
+            <strong className="font-medium">{mail.activationMethod}</strong>, so a new account waits
+            for a confirmation link — but this board sends no mail: {mail.summary.toLowerCase()}.
+            Every account created while this is true is stuck: it cannot sign in, and the link that
+            would release it never arrives.
           </p>
           <p className="text-sm">
-            Either set the activation method to{' '}
-            <strong className="font-medium">none</strong> or{' '}
+            Either set the activation method to <strong className="font-medium">none</strong> or{' '}
             <strong className="font-medium">admin</strong>, or{' '}
             {mail.source === 'environment' ? (
               <>
-                complete the <code>MAIL_*</code> variables in this deployment’s
-                environment and redeploy — <code>MAIL_DRIVER</code> is set, so it
-                overrides the mail settings screen.
+                complete the <code>MAIL_*</code> variables in this deployment’s environment and
+                redeploy — <code>MAIL_DRIVER</code> is set, so it overrides the mail settings
+                screen.
               </>
             ) : (
               <>
                 <a href={settingsHref({ group: 'mail' })} className="underline">
                   configure mail
                 </a>
-                , which takes effect without a redeploy and has a button to prove it
-                works.
+                , which takes effect without a redeploy and has a button to prove it works.
               </>
             )}
           </p>

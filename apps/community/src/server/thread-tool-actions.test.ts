@@ -2,14 +2,14 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { Actor } from '@meith/authorization'
 import {
   Authorizer,
-  InMemoryAuthorizationSource,
   combinePermissionSets,
+  InMemoryAuthorizationSource,
   type MemoryAppointment,
 } from '@meith/authorization'
-import type { Actor } from '@meith/authorization'
-import type { MoveDestination, ThreadToolTarget, ThreadToolsRepository } from '@meith/moderation'
+import type { MoveDestination, ThreadToolsRepository, ThreadToolTarget } from '@meith/moderation'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {
@@ -90,10 +90,7 @@ class FakeTools implements ThreadToolsRepository {
 
 let tools: FakeTools
 
-function appointment(
-  forumId: number,
-  rights: Partial<MemoryAppointment>,
-): MemoryAppointment {
+function appointment(forumId: number, rights: Partial<MemoryAppointment>): MemoryAppointment {
   return {
     userId: 3,
     forumId,
@@ -275,10 +272,7 @@ describe('threadToolAction', () => {
   })
 
   it('refuses a tool it does not recognise', async () => {
-    const state = await threadToolAction(
-      EMPTY_STATE,
-      form({ threadId: '20', tool: 'incinerate' }),
-    )
+    const state = await threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'incinerate' }))
     expect(state.error).toBeTruthy()
     expect(tools.calls).toEqual([])
   })
@@ -436,7 +430,10 @@ describe('deleting a thread you started', () => {
 })
 
 describe('the panel an author sees', () => {
-  function render(rights: Parameters<typeof ThreadToolsForm>[0]['rights'], heading?: string): string {
+  function render(
+    rights: Parameters<typeof ThreadToolsForm>[0]['rights'],
+    heading?: string,
+  ): string {
     return renderToStaticMarkup(
       createElement(ThreadToolsForm, {
         threadId: 20,
@@ -471,9 +468,7 @@ describe('the panel an author sees', () => {
   it('still reads Moderator tools for an appointee, and by default', () => {
     const everything = { lock: true, stick: true, move: true, delete: true }
 
-    expect(render(everything, threadToolsHeading(true))).toContain(
-      'aria-label="Moderator tools"',
-    )
+    expect(render(everything, threadToolsHeading(true))).toContain('aria-label="Moderator tools"')
     expect(render(everything)).toContain('aria-label="Moderator tools"')
   })
 })

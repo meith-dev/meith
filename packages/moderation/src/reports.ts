@@ -151,9 +151,7 @@ export class ReportService {
       at: this.now(),
     })
 
-    return reportId === null
-      ? { reportId: 0, duplicate: true }
-      : { reportId, duplicate: false }
+    return reportId === null ? { reportId: 0, duplicate: true } : { reportId, duplicate: false }
   }
 
   async listOpen(
@@ -251,9 +249,7 @@ export class ReportService {
 }
 
 export function inScope(report: ReportRow, scope: ReportScope): boolean {
-  return report.forumId === null
-    ? scope.global
-    : scope.forumIds.includes(report.forumId)
+  return report.forumId === null ? scope.global : scope.forumIds.includes(report.forumId)
 }
 
 export function parseTargetKind(value: string | undefined): ReportTargetKind | null {

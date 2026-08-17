@@ -1,7 +1,4 @@
-import {
-  emptyPermissionSet,
-  type PermissionSet,
-} from '@meith/core'
+import { emptyPermissionSet, type PermissionSet } from '@meith/core'
 
 import { combinePermissionSets } from './combine'
 import type {
@@ -12,9 +9,7 @@ import type {
   ModeratorAppointment,
 } from './types'
 
-export function makePermissionSet(
-  overrides: Partial<PermissionSet>,
-): PermissionSet {
+export function makePermissionSet(overrides: Partial<PermissionSet>): PermissionSet {
   return { ...emptyPermissionSet(), ...overrides }
 }
 
@@ -158,9 +153,7 @@ export class MemoryAuthorizationSource implements AuthorizationSource {
     return new Map(ids.map((id) => [id, CHAINS[id] ?? []]))
   }
 
-  async moderatorAppointments(
-    userId: number | null,
-  ): Promise<readonly ModeratorAppointment[]> {
+  async moderatorAppointments(userId: number | null): Promise<readonly ModeratorAppointment[]> {
     if (userId !== ACTORS.forumModerator.userId) return []
     return [
       {
@@ -181,8 +174,7 @@ export class MemoryAuthorizationSource implements AuthorizationSource {
 }
 
 function actor(
-  partial: Pick<Actor, 'userId' | 'groupIds' | 'state'> &
-    Partial<Pick<Actor, 'primaryGroupId'>>,
+  partial: Pick<Actor, 'userId' | 'groupIds' | 'state'> & Partial<Pick<Actor, 'primaryGroupId'>>,
 ): Actor {
   return {
     userId: partial.userId,
@@ -195,9 +187,7 @@ function actor(
 }
 
 function combineForActor(groupIds: readonly number[]): PermissionSet {
-  const sets = groupIds
-    .filter((id) => id in GROUP_DEFAULTS)
-    .map((id) => GROUP_DEFAULTS[id]!)
+  const sets = groupIds.filter((id) => id in GROUP_DEFAULTS).map((id) => GROUP_DEFAULTS[id]!)
   return combinePermissionSets(sets)
 }
 

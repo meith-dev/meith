@@ -1,30 +1,28 @@
-import type { Metadata } from "next"
+import type { Metadata } from 'next'
 
-import type { AuthLinkModel } from "@meith/theme-kit"
+import type { AuthLinkModel } from '@meith/theme-kit'
 
-import { AuthPage } from "@/components/auth/auth-page"
-import { LoginForm } from "@/components/auth/login-form"
-import { PasskeySignIn } from "@/components/auth/passkey-sign-in"
-import { SsoButtons } from "@/components/auth/sso-buttons"
-import { passkeysEnabled, signInProviders } from "@/server/federation"
-import { registrationOpen } from "@/server/registration"
-import { ssoNotice } from "@/view/sso-notices"
+import { AuthPage } from '@/components/auth/auth-page'
+import { LoginForm } from '@/components/auth/login-form'
+import { PasskeySignIn } from '@/components/auth/passkey-sign-in'
+import { SsoButtons } from '@/components/auth/sso-buttons'
+import { passkeysEnabled, signInProviders } from '@/server/federation'
+import { registrationOpen } from '@/server/registration'
+import { ssoNotice } from '@/view/sso-notices'
 
-export const metadata: Metadata = { title: "Sign in" }
+export const metadata: Metadata = { title: 'Sign in' }
 
 const NOTICES: Record<string, string> = {
-  installed:
-    "Your board is installed. Sign in with the administrator account you just created.",
-  registered: "Account created. You can sign in now.",
-  reset: "Your password has been changed. Sign in with your new password.",
-  activated: "Your address is confirmed. You can sign in now.",
+  installed: 'Your board is installed. Sign in with the administrator account you just created.',
+  registered: 'Account created. You can sign in now.',
+  reset: 'Your password has been changed. Sign in with your new password.',
+  activated: 'Your address is confirmed. You can sign in now.',
   confirmed:
-    "Your address is confirmed. An administrator will review your account before you can sign in.",
-  already: "That account is already active. Sign in below.",
+    'Your address is confirmed. An administrator will review your account before you can sign in.',
+  already: 'That account is already active. Sign in below.',
 }
 
-const VERIFY_FAILED =
-  "That confirmation link is no longer valid. Ask for a new one below."
+const VERIFY_FAILED = 'That confirmation link is no longer valid. Ask for a new one below.'
 
 export default async function LoginPage({
   searchParams,
@@ -58,21 +56,21 @@ export default async function LoginPage({
               : undefined
 
   const links: AuthLinkModel[] = [
-    { label: "Forgot your password?", href: "/reset", lead: null },
-    { label: "Need a new confirmation link?", href: "/verify/resend", lead: null },
+    { label: 'Forgot your password?', href: '/reset', lead: null },
+    { label: 'Need a new confirmation link?', href: '/verify/resend', lead: null },
   ]
 
   if (await registrationOpen()) {
-    links.push({ label: "Create an account", href: "/register", lead: "New here?" })
+    links.push({ label: 'Create an account', href: '/register', lead: 'New here?' })
   }
 
   const providers = await signInProviders()
   const passkeys = await passkeysEnabled()
 
   const alert =
-    params.verify === "failed"
+    params.verify === 'failed'
       ? VERIFY_FAILED
-      : federated?.kind === "warning"
+      : federated?.kind === 'warning'
         ? federated.message
         : null
 
@@ -82,7 +80,7 @@ export default async function LoginPage({
         <SsoButtons providers={providers} next={params.next} />
         <LoginForm
           next={params.next}
-          notice={federated?.kind === "info" ? federated.message : notice}
+          notice={federated?.kind === 'info' ? federated.message : notice}
         />
         {passkeys ? <PasskeySignIn next={params.next} /> : null}
       </div>

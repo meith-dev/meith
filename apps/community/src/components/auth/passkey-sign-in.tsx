@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from 'react'
 
-import { Alert, AlertDescription } from "@meith/ui"
-import { Button } from "@meith/ui/button"
+import { Alert, AlertDescription } from '@meith/ui'
+import { Button } from '@meith/ui/button'
 
-import { passkeyMessage, passkeysAvailable, signInWithPasskey } from "./passkey-client"
+import { passkeyMessage, passkeysAvailable, signInWithPasskey } from './passkey-client'
 
 export function PasskeySignIn({ next }: { readonly next?: string | undefined }) {
   const [available, setAvailable] = useState(false)
@@ -45,7 +45,7 @@ export function PasskeySignIn({ next }: { readonly next?: string | undefined }) 
             })
         }}
       >
-        {busy ? "Waiting for your device…" : "Sign in with a passkey"}
+        {busy ? 'Waiting for your device…' : 'Sign in with a passkey'}
       </Button>
     </div>
   )

@@ -1,14 +1,14 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import { notFound } from "next/navigation"
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
 
-import { DemoLink } from "../../../src/components/demo-link"
-import { SchemeScreenshot } from "../../../src/components/screenshot"
-import { SegmentCards } from "../../../src/components/segment-cards"
-import { ClosingBand } from "../../../src/components/site-bands"
-import { findSegment, origin, segmentHref, segments } from "../../../src/content/segments"
-import { site, themeShots } from "../../../src/content/site"
-import { docHref, quickstartHref } from "../../../src/docs/registry"
+import { DemoLink } from '../../../src/components/demo-link'
+import { SchemeScreenshot } from '../../../src/components/screenshot'
+import { SegmentCards } from '../../../src/components/segment-cards'
+import { ClosingBand } from '../../../src/components/site-bands'
+import { findSegment, origin, segmentHref, segments } from '../../../src/content/segments'
+import { site, themeShots } from '../../../src/content/site'
+import { docHref, quickstartHref } from '../../../src/docs/registry'
 
 export function generateStaticParams() {
   return segments.map((segment) => ({ segment: segment.slug }))
@@ -32,14 +32,14 @@ export async function generateMetadata({
     description: segment.meta.description,
     alternates: { canonical },
     openGraph: {
-      type: "website",
+      type: 'website',
       siteName: site.name,
       title: segment.meta.title,
       description: segment.meta.description,
       url: `${site.url}${canonical}`,
     },
     twitter: {
-      card: "summary_large_image",
+      card: 'summary_large_image',
       title: segment.meta.title,
       description: segment.meta.description,
     },
@@ -154,7 +154,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
 
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
               {segment.feature.links.map((link) =>
-                "doc" in link ? (
+                'doc' in link ? (
                   <Link className="textlink text-micro" href={docHref(link.doc)} key={link.label}>
                     {link.label}
                   </Link>
@@ -182,7 +182,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
             <Link className="textlink text-micro" href="/">
               What Meith is, in five hundred words
             </Link>
-            <Link className="textlink text-micro" href={docHref("mybb-parity")}>
+            <Link className="textlink text-micro" href={docHref('mybb-parity')}>
               {origin.link}
             </Link>
           </div>

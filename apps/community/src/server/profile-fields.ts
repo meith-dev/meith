@@ -2,11 +2,7 @@ import 'server-only'
 
 import { cache } from 'react'
 
-import {
-  ProfileFieldService,
-  maxLengthFor,
-  type ProfileFieldContext,
-} from '@meith/profile-fields'
+import { maxLengthFor, type ProfileFieldContext, ProfileFieldService } from '@meith/profile-fields'
 
 import { AUTH_CONFIG } from './auth-config'
 import { getContainer } from './container'
@@ -48,15 +44,19 @@ export async function registrationFieldContext(): Promise<ProfileFieldContext | 
   const rules = await service.listGroupRules()
 
   return {
-    applicable: authorizer.applicableGroupRowsForGroups(
-      [AUTH_CONFIG.defaultMemberGroupId],
-      rules,
-    ),
+    applicable: authorizer.applicableGroupRowsForGroups([AUTH_CONFIG.defaultMemberGroupId], rules),
   }
 }
 
 export async function registrationFields(): Promise<
-  readonly { key: string; label: string; description: string | null; type: string | null; options: readonly string[]; maxLength: number }[]
+  readonly {
+    key: string
+    label: string
+    description: string | null
+    type: string | null
+    options: readonly string[]
+    maxLength: number
+  }[]
 > {
   const service = profileFieldService()
   if (service === null) return []

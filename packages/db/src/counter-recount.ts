@@ -108,11 +108,7 @@ export class PostgresCounterRecount {
     return { ids, maxId: ids.length === 0 ? cursor : Math.max(...ids) }
   }
 
-  private async correct(
-    phase: RecountPhase,
-    cursor: number,
-    batchSize: number,
-  ): Promise<number> {
+  private async correct(phase: RecountPhase, cursor: number, batchSize: number): Promise<number> {
     if (phase === 'threads') return this.correctThreads(cursor, batchSize)
     if (phase === 'forums') return this.correctForums(cursor, batchSize)
     return this.correctUsers(cursor, batchSize)

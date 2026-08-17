@@ -1,4 +1,4 @@
-import { sql, type SQL } from 'drizzle-orm'
+import { type SQL, sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
 
@@ -111,7 +111,8 @@ export class PostgresUserBulkRepository {
         id: Number(row.id),
         username: String(row.username),
         email: String(row.email),
-        createdAt: row.created_at instanceof Date ? row.created_at : new Date(String(row.created_at)),
+        createdAt:
+          row.created_at instanceof Date ? row.created_at : new Date(String(row.created_at)),
       })),
     }
   }
@@ -244,8 +245,7 @@ export class PostgresUserBulkRepository {
       if (mail === undefined) throw new ValidationError('No such message.')
       if (String(mail.status) !== 'sending') return { recipients: [], finished: true }
 
-      const targetGroupId =
-        mail.target_group_id === null ? null : Number(mail.target_group_id)
+      const targetGroupId = mail.target_group_id === null ? null : Number(mail.target_group_id)
       const after = Number(mail.last_user_id)
 
       const rows = resultRows(

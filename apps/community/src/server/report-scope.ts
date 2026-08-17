@@ -2,8 +2,8 @@ import 'server-only'
 
 import type { ReportScope } from '@meith/moderation'
 
-import { getActor } from './context'
 import { getContainer } from './container'
+import { getActor } from './context'
 
 export async function resolveReportScope(): Promise<ReportScope> {
   const actor = await getActor()

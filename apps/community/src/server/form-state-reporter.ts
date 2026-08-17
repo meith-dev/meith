@@ -2,10 +2,7 @@ import { isAppError, logger } from '@meith/core'
 
 import type { FormState } from './auth-form-state'
 
-export type FormStateReporter = (
-  err: unknown,
-  values?: Record<string, string>,
-) => FormState
+export type FormStateReporter = (err: unknown, values?: Record<string, string>) => FormState
 
 export function formStateReporter(module: string, message: string): FormStateReporter {
   return (err, values) => {

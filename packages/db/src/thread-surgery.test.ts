@@ -1,13 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
-import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresThreadSurgeryRepository } from './thread-surgery'
-import { PostgresThreadWriteRepository } from './thread-writes'
 import { rollUpAncestorCounters } from './content-counters'
+import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
 import { forums, users } from './schema'
+import { PostgresThreadSurgeryRepository } from './thread-surgery'
+import { PostgresThreadWriteRepository } from './thread-writes'
 
 let harness: TestDb
 let db: Database
@@ -160,10 +160,7 @@ describe('splitting', () => {
 
     expect(outcome.posts).toBe(2)
     expect((await postsOf(threadId)).map((p) => p.id)).toEqual([postIds[0], postIds[1]])
-    expect((await postsOf(outcome.threadId)).map((p) => p.id)).toEqual([
-      postIds[2],
-      postIds[3],
-    ])
+    expect((await postsOf(outcome.threadId)).map((p) => p.id)).toEqual([postIds[2], postIds[3]])
   })
 
   it('marks the new thread"s earliest post as its opening one, and only that one', async () => {
@@ -258,9 +255,10 @@ describe('splitting', () => {
       at: AT,
     })
 
-    const rows = resultRows(
-      await db.execute(sql`select action, detail from admin_log`),
-    ) as Array<{ action: string; detail: Record<string, unknown> }>
+    const rows = resultRows(await db.execute(sql`select action, detail from admin_log`)) as Array<{
+      action: string
+      detail: Record<string, unknown>
+    }>
     expect(rows[0]).toMatchObject({ action: 'thread.split' })
     expect(rows[0]!.detail).toMatchObject({
       threadId,
@@ -281,9 +279,7 @@ describe('splitting', () => {
 
   it('will not take a hidden post as the cut point', async () => {
     const { threadId, postIds } = await seedThread(LEFT, 'Original', 3)
-    await db.execute(
-      sql`update posts set visibility = 'unapproved' where id = ${postIds[2]!}`,
-    )
+    await db.execute(sql`update posts set visibility = 'unapproved' where id = ${postIds[2]!}`)
 
     expect(await repo.postsFrom(threadId, postIds[2]!)).toEqual([])
     expect(await repo.postsFrom(threadId, postIds[3]!)).toEqual([postIds[3]])
@@ -465,9 +461,10 @@ describe('merging', () => {
       at: AT,
     })
 
-    const rows = resultRows(
-      await db.execute(sql`select action, detail from admin_log`),
-    ) as Array<{ action: string; detail: Record<string, unknown> }>
+    const rows = resultRows(await db.execute(sql`select action, detail from admin_log`)) as Array<{
+      action: string
+      detail: Record<string, unknown>
+    }>
     expect(rows[0]).toMatchObject({ action: 'thread.merge' })
     expect(rows[0]!.detail).toMatchObject({
       threadId: source.threadId,
@@ -496,16 +493,12 @@ describe('visiblePostIdsIn', () => {
 
   it('drops an id that does not exist', async () => {
     const { threadId, postIds } = await seedThread(LEFT, 'Mine', 1)
-    expect(await repo.visiblePostIdsIn(threadId, [postIds[0]!, 999_999])).toEqual([
-      postIds[0]!,
-    ])
+    expect(await repo.visiblePostIdsIn(threadId, [postIds[0]!, 999_999])).toEqual([postIds[0]!])
   })
 
   it('drops a post that is not visible', async () => {
     const { threadId, postIds } = await seedThread(LEFT, 'Mine', 1)
-    await db.execute(
-      sql`update posts set visibility = 'deleted' where id = ${postIds[1]!}`,
-    )
+    await db.execute(sql`update posts set visibility = 'deleted' where id = ${postIds[1]!}`)
 
     expect(await repo.visiblePostIdsIn(threadId, postIds)).toEqual([postIds[0]!])
   })

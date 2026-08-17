@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  FixtureMybbSource,
-  KINDS,
-  NO_PROGRESS,
   compareCounters,
+  FixtureMybbSource,
   fromUnixSeconds,
+  type ImportSink,
+  KINDS,
+  type MybbPost,
+  type MybbThread,
   mapForum,
   mapPost,
   mapThread,
   mapUser,
+  NO_PROGRESS,
   runImport,
   visibilityOf,
-  type ImportSink,
-  type MybbPost,
-  type MybbThread,
   type WriteResult,
 } from './index'
 
@@ -93,9 +93,39 @@ const post = (pid: number, overrides: Partial<MybbPost> = {}): MybbPost => ({
 const BOARD = {
   users: [user(1), user(2), user(3)],
   forums: [
-    { fid: 1, name: 'Forum', description: '', type: 'c', pid: 0, disporder: 1, linkto: '', threads: 0, posts: 0 },
-    { fid: 2, name: 'General', description: 'Chat', type: 'f', pid: 1, disporder: 1, linkto: '', threads: 2, posts: 3 },
-    { fid: 3, name: 'Our wiki', description: '', type: 'l', pid: 1, disporder: 2, linkto: 'https://wiki.test', threads: 0, posts: 0 },
+    {
+      fid: 1,
+      name: 'Forum',
+      description: '',
+      type: 'c',
+      pid: 0,
+      disporder: 1,
+      linkto: '',
+      threads: 0,
+      posts: 0,
+    },
+    {
+      fid: 2,
+      name: 'General',
+      description: 'Chat',
+      type: 'f',
+      pid: 1,
+      disporder: 1,
+      linkto: '',
+      threads: 2,
+      posts: 3,
+    },
+    {
+      fid: 3,
+      name: 'Our wiki',
+      description: '',
+      type: 'l',
+      pid: 1,
+      disporder: 2,
+      linkto: 'https://wiki.test',
+      threads: 0,
+      posts: 0,
+    },
   ],
   threads: [thread(1), thread(2, { replies: 0 })],
   posts: [post(1), post(2, { pid: 2 }), post(3, { pid: 3, tid: 2 })],
@@ -260,7 +290,11 @@ describe('the fixture round trip', () => {
 
   it('resumes from nothing when given no cursors', async () => {
     const sink = new MemorySink()
-    const report = await runImport({ source: new FixtureMybbSource(BOARD), sink, from: NO_PROGRESS })
+    const report = await runImport({
+      source: new FixtureMybbSource(BOARD),
+      sink,
+      from: NO_PROGRESS,
+    })
     expect(report.finished).toBe(true)
   })
 

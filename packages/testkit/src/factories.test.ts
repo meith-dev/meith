@@ -1,7 +1,7 @@
-import { schema } from '@meith/db'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { schema } from '@meith/db'
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 
 import { createFactories } from './factories'

@@ -3,8 +3,8 @@
 import { useActionState } from 'react'
 
 import { PANEL_CARD } from '@/components/shell/panel-list'
-import { sendTestMailAction } from '@/server/mail-test-actions'
 import { EMPTY_STATE, type FormState } from '@/server/auth-form-state'
+import { sendTestMailAction } from '@/server/mail-test-actions'
 
 export function MailTestCard({
   summary,
@@ -29,8 +29,7 @@ export function MailTestCard({
           {!sends && (
             <span className="text-muted-foreground">
               {' '}
-              — so password resets, registration confirmations and notification e-mail
-              reach nobody.
+              — so password resets, registration confirmations and notification e-mail reach nobody.
             </span>
           )}
         </p>
@@ -38,9 +37,9 @@ export function MailTestCard({
 
       {fromEnvironment && (
         <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
-          <code>MAIL_DRIVER</code> is set in this deployment’s environment, which
-          overrides everything below. The fields on this screen are stored but not used
-          until <code>MAIL_DRIVER</code> is unset and the board redeployed.
+          <code>MAIL_DRIVER</code> is set in this deployment’s environment, which overrides
+          everything below. The fields on this screen are stored but not used until{' '}
+          <code>MAIL_DRIVER</code> is unset and the board redeployed.
         </p>
       )}
 
@@ -54,10 +53,7 @@ export function MailTestCard({
       )}
 
       {state.notice !== undefined && (
-        <p
-          role="status"
-          className="rounded-md border border-border bg-muted px-3 py-2 text-sm"
-        >
+        <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
           {state.notice}
         </p>
       )}
@@ -74,9 +70,8 @@ export function MailTestCard({
         </div>
         <p className="text-xs text-muted-foreground">
           Goes to the address on your own account, through the configuration the board has{' '}
-          <em>saved</em> — so save any changes below first, or you will be testing the old
-          one. A provider that rejects the message says why, and that message is shown
-          here verbatim.
+          <em>saved</em> — so save any changes below first, or you will be testing the old one. A
+          provider that rejects the message says why, and that message is shown here verbatim.
         </p>
       </form>
     </section>

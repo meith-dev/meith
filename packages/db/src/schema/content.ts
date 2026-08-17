@@ -12,8 +12,8 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
-import { forums } from './structure'
 import { users } from './identity'
+import { forums } from './structure'
 
 export const VISIBILITY = ['visible', 'unapproved', 'deleted'] as const
 export type Visibility = (typeof VISIBILITY)[number]
@@ -32,9 +32,7 @@ export const threadPrefixes = pgTable(
     token: text('token'),
     displayOrder: integer('display_order').notNull().default(0),
     forumPathPrefix: text('forum_path_prefix'),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('thread_prefixes_order_idx').on(t.displayOrder)],
 )
@@ -75,31 +73,21 @@ export const threads = pgTable(
     lastPostId: integer('last_post_id'),
     lastPostUserId: integer('last_post_user_id'),
     lastPostUsername: text('last_post_username'),
-    lastPostAt: timestamp('last_post_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    lastPostAt: timestamp('last_post_at', { withTimezone: true }).notNull().defaultNow(),
 
     movedToThreadId: integer('moved_to_thread_id'),
 
     legacyMybbTid: integer('legacy_mybb_tid'),
 
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('threads_forum_listing_idx')
       .on(t.forumId, t.isSticky.desc(), t.lastPostAt.desc())
       .where(sql`${t.visibility} = 'visible'`),
 
-    index('threads_forum_listing_all_idx').on(
-      t.forumId,
-      t.isSticky.desc(),
-      t.lastPostAt.desc(),
-    ),
+    index('threads_forum_listing_all_idx').on(t.forumId, t.isSticky.desc(), t.lastPostAt.desc()),
 
     index('threads_author_idx').on(t.authorUserId, t.createdAt.desc()),
     uniqueIndex('threads_legacy_mybb_tid_key')
@@ -152,14 +140,10 @@ export const posts = pgTable(
 
     legacyMybbPid: integer('legacy_mybb_pid'),
 
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index('posts_thread_visible_idx')
-      .on(t.threadId, t.id)
-      .where(sql`${t.visibility} = 'visible'`),
+    index('posts_thread_visible_idx').on(t.threadId, t.id).where(sql`${t.visibility} = 'visible'`),
 
     index('posts_thread_all_idx').on(t.threadId, t.id),
 
@@ -194,13 +178,9 @@ export const postRevisions = pgTable(
       onDelete: 'set null',
     }),
     editReason: text('edit_reason'),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    uniqueIndex('post_revisions_post_revision_key').on(t.postId, t.revision),
-  ],
+  (t) => [uniqueIndex('post_revisions_post_revision_key').on(t.postId, t.revision)],
 )
 
 export const threadsRead = pgTable(
@@ -228,9 +208,7 @@ export const threadViewBuffer = pgTable(
       .primaryKey()
       .references(() => threads.id, { onDelete: 'cascade' }),
     pending: integer('pending').notNull().default(0),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('thread_view_buffer_updated_idx').on(t.updatedAt)],
 )
@@ -246,9 +224,7 @@ export const threadSubscriptions = pgTable(
       .references(() => threads.id, { onDelete: 'cascade' }),
     mode: text('mode').notNull().default('instant'),
     lastNotifiedPostId: integer('last_notified_post_id').notNull().default(0),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('thread_subscriptions_pkey').on(t.userId, t.threadId),
@@ -265,13 +241,9 @@ export const digestRuns = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     cadence: text('cadence').notNull(),
-    lastSentAt: timestamp('last_sent_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    lastSentAt: timestamp('last_sent_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    primaryKey({ name: 'digest_runs_pkey', columns: [t.userId, t.cadence] }),
-  ],
+  (t) => [primaryKey({ name: 'digest_runs_pkey', columns: [t.userId, t.cadence] })],
 )
 
 export const REPORT_TARGET_KINDS = ['post', 'thread', 'user'] as const
@@ -302,32 +274,20 @@ export const reports = pgTable(
     reason: text('reason').notNull(),
 
     status: text('status').notNull().default('open'),
-    assignedToUserId: integer('assigned_to_user_id').references(
-      () => users.id,
-      {
-        onDelete: 'set null',
-      },
-    ),
+    assignedToUserId: integer('assigned_to_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
 
-    resolvedByUserId: integer('resolved_by_user_id').references(
-      () => users.id,
-      {
-        onDelete: 'set null',
-      },
-    ),
+    resolvedByUserId: integer('resolved_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
 
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index('reports_open_idx')
-      .on(t.forumId, t.createdAt)
-      .where(sql`${t.status} = 'open'`),
+    index('reports_open_idx').on(t.forumId, t.createdAt).where(sql`${t.status} = 'open'`),
     index('reports_open_global_idx')
       .on(t.createdAt)
       .where(sql`${t.status} = 'open' and ${t.forumId} is null`),
@@ -349,9 +309,7 @@ export const reportEvents = pgTable(
     }),
     kind: text('kind').notNull(),
     note: text('note'),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('report_events_report_idx').on(t.reportId, t.createdAt)],
 )
@@ -371,12 +329,8 @@ export const reputation = pgTable(
     }),
     points: smallint('points').notNull().default(1),
     comment: text('comment').notNull().default(''),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('reputation_profile_unique')
@@ -414,17 +368,13 @@ export const attachments = pgTable(
     status: text('status').notNull().default('pending'),
     failureReason: text('failure_reason'),
     downloadCount: integer('download_count').notNull().default(0),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     readyAt: timestamp('ready_at', { withTimezone: true }),
   },
   (t) => [
     index('attachments_post_idx').on(t.postId),
     index('attachments_uploader_idx').on(t.uploaderUserId),
-    index('attachments_pending_idx')
-      .on(t.createdAt)
-      .where(sql`${t.status} = 'pending'`),
+    index('attachments_pending_idx').on(t.createdAt).where(sql`${t.status} = 'pending'`),
     uniqueIndex('attachments_storage_key_key')
       .on(t.storageKey)
       .where(sql`${t.storageKey} is not null`),
@@ -438,9 +388,7 @@ export const attachmentOrphans = pgTable(
   'attachment_orphans',
   {
     storageKey: text('storage_key').primaryKey(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('attachment_orphans_age_idx').on(t.createdAt)],
 )
@@ -451,9 +399,7 @@ export const wordFilters = pgTable('word_filters', {
   replacement: text('replacement').notNull().default(''),
   wholeWord: boolean('whole_word').notNull().default(true),
   enabled: boolean('enabled').notNull().default(true),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const smilies = pgTable(
@@ -464,9 +410,7 @@ export const smilies = pgTable(
     src: text('src').notNull(),
     alt: text('alt'),
     enabled: boolean('enabled').notNull().default(true),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('smilies_code_key').on(t.code)],
 )
@@ -479,9 +423,7 @@ export const customDirectives = pgTable(
     block: boolean('block').notNull().default(false),
     description: text('description'),
     enabled: boolean('enabled').notNull().default(true),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('custom_directives_name_key').on(t.name)],
 )
@@ -501,9 +443,7 @@ export const announcements = pgTable(
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull().defaultNow(),
     endsAt: timestamp('ends_at', { withTimezone: true }),
     enabled: boolean('enabled').notNull().default(true),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('announcements_live_idx').on(t.startsAt.desc()).where(sql`${t.enabled}`),

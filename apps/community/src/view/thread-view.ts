@@ -1,24 +1,20 @@
-import {
-  postBodyHtml,
-  type BoardVocabulary,
-  type CompiledWordFilter,
-} from '@meith/markdown'
-import { suppress } from '@meith/relations'
 import type { ForumRow } from '@meith/forums'
+import { type BoardVocabulary, type CompiledWordFilter, postBodyHtml } from '@meith/markdown'
+import { editedNote, type PostListingRow, type PostPage } from '@meith/posts'
+import { suppress } from '@meith/relations'
 import type {
   PaginationModel,
   PostAttachmentModel,
   PostBitModel,
   ThreadViewModel,
 } from '@meith/theme-kit'
-import { editedNote, type PostListingRow, type PostPage } from '@meith/posts'
 import type { ThreadListingRow } from '@meith/threads'
 
 import { forumHref } from './board-index'
 import { threadRowModel } from './forum-display'
+import type { MemberIdentity } from './member-identity'
 import { memberHref } from './member-profile'
 import { postAnchor } from './post-link'
-import type { MemberIdentity } from './member-identity'
 import { formatDate, formatTime } from './time'
 import { filterWords } from './word-filter'
 
@@ -77,11 +73,7 @@ interface PostContext {
   readonly attachments: ReadonlyMap<number, readonly PostAttachmentModel[]>
 }
 
-function post(
-  post: PostListingRow,
-  thread: ThreadListingRow,
-  context: PostContext,
-): PostBitModel {
+function post(post: PostListingRow, thread: ThreadListingRow, context: PostContext): PostBitModel {
   const { now, replyHref, capabilities, timeZone, fields, signatures } = context
   const isOwn =
     capabilities.viewerUserId !== null && post.authorUserId === capabilities.viewerUserId
@@ -122,19 +114,13 @@ function post(
       badge: identity?.badge ?? null,
       reputation: identity?.reputation ?? null,
       postCount: post.authorPostCount,
-      joinedAt:
-        post.authorJoinedAt === null ? null : formatDate(post.authorJoinedAt, timeZone),
+      joinedAt: post.authorJoinedAt === null ? null : formatDate(post.authorJoinedAt, timeZone),
       signatureHtml:
-        hidden || post.authorUserId === null
-          ? null
-          : (signatures.get(post.authorUserId) ?? null),
+        hidden || post.authorUserId === null ? null : (signatures.get(post.authorUserId) ?? null),
       isOnline: false,
-      fields:
-        hidden || post.authorUserId === null ? [] : (fields.get(post.authorUserId) ?? []),
+      fields: hidden || post.authorUserId === null ? [] : (fields.get(post.authorUserId) ?? []),
     },
-    bodyHtml: hidden
-      ? ''
-      : filterWords(postBodyHtml(post, context.vocabulary), context.wordFilter),
+    bodyHtml: hidden ? '' : filterWords(postBodyHtml(post, context.vocabulary), context.wordFilter),
     postedAt: formatTime(post.createdAt, now, timeZone),
     editedNote: editedNote(
       { editedAt: post.editedAt, editedByUsername: post.editedByUsername, reason: post.editReason },
@@ -155,8 +141,7 @@ function post(
           ? null
           : `${replyHref}?quote=${post.id}`,
       editHref: mayEdit ? manageHref : null,
-      restoreHref:
-        post.visibility === 'deleted' && capabilities.restore ? manageHref : null,
+      restoreHref: post.visibility === 'deleted' && capabilities.restore ? manageHref : null,
       reportHref:
         capabilities.canReport && !isOwn && post.visibility === 'visible'
           ? `/report?kind=post&id=${post.id}`
@@ -170,7 +155,7 @@ function post(
         !isOwn &&
         post.authorUserId !== null &&
         !hidden &&
-        (capabilities.ratingNeedsForm !== false)
+        capabilities.ratingNeedsForm !== false
           ? `/member/${post.authorUserId}/reputation?post=${post.id}`
           : null,
       moderateHref: null,

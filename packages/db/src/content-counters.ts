@@ -79,10 +79,7 @@ export async function applyCreatedContentCounters(
   `)
 }
 
-export async function rollUpAncestorCounters(
-  db: Database,
-  postId: number,
-): Promise<boolean> {
+export async function rollUpAncestorCounters(db: Database, postId: number): Promise<boolean> {
   return db.transaction(async (tx) => {
     const claimed = await tx.execute(sql`
       insert into content_counter_rollups (post_id)

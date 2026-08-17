@@ -6,7 +6,12 @@ import {
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
-import { ConfigurationError, type FileStore, type PutFileOptions, type StoredFile } from '@meith/core'
+import {
+  ConfigurationError,
+  type FileStore,
+  type PutFileOptions,
+  type StoredFile,
+} from '@meith/core'
 
 export interface S3FileStoreConfig {
   readonly bucket: string
@@ -31,7 +36,7 @@ function assertUsableKey(key: string): void {
   if (key.split('/').some((segment) => segment === '..' || segment === '.')) {
     throw new ConfigurationError(`Object key must not contain relative segments: ${key}`)
   }
-  // eslint-disable-next-line no-control-regex -- rejecting control characters is the point
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: rejecting control characters is the point
   if (/[\u0000-\u001f\u007f]/.test(key)) {
     throw new ConfigurationError('Object key must not contain control characters.')
   }
@@ -60,10 +65,7 @@ export class S3FileStore implements FileStore {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
       },
-      ...(config.endpoint === undefined
-        ? {}
-        :
-          { endpoint: config.endpoint, forcePathStyle: true }),
+      ...(config.endpoint === undefined ? {} : { endpoint: config.endpoint, forcePathStyle: true }),
     })
 
     this.sender = sender ?? this.signingClient
@@ -130,9 +132,7 @@ export class S3FileStore implements FileStore {
     assertUsableKey(key)
 
     try {
-      await this.sender.send(
-        new DeleteObjectCommand({ Bucket: this.config.bucket, Key: key }),
-      )
+      await this.sender.send(new DeleteObjectCommand({ Bucket: this.config.bucket, Key: key }))
     } catch (error) {
       if (isNotFound(error)) return
       throw error

@@ -1,8 +1,9 @@
 import { and, asc, eq, isNotNull, isNull, lte, sql } from 'drizzle-orm'
 
-import type { BanFilter, BanFilterType } from '@meith/accounts'
 import type {
+  BanFilter,
   BanFilterRepository,
+  BanFilterType,
   BanRecord,
   BanRepository,
   CreateBanInput,
@@ -54,7 +55,6 @@ export class PostgresBanRepository implements BanRepository {
     return this.db.transaction(async (tx) => {
       const [target] = await tx
         .select({
-          // eslint-disable-next-line no-restricted-properties -- capturing the group being left, not deciding access
           primaryGroupId: users.primaryGroupId,
         })
         .from(users)
@@ -70,7 +70,6 @@ export class PostgresBanRepository implements BanRepository {
           bannedByUserId: input.bannedByUserId,
           reason: input.reason,
           publicReason: input.publicReason,
-          // eslint-disable-next-line no-restricted-properties -- remembering the group, not deciding access
           previousPrimaryGroupId: target.primaryGroupId,
           expiresAt: input.expiresAt,
           createdAt: input.now,
@@ -109,9 +108,7 @@ export class PostgresBanRepository implements BanRepository {
       const due = await tx
         .select(BAN_COLUMNS)
         .from(bans)
-        .where(
-          and(isNull(bans.liftedAt), isNotNull(bans.expiresAt), lte(bans.expiresAt, now)),
-        )
+        .where(and(isNull(bans.liftedAt), isNotNull(bans.expiresAt), lte(bans.expiresAt, now)))
         .orderBy(asc(bans.expiresAt))
         .limit(limit)
         .for('update', { skipLocked: true })

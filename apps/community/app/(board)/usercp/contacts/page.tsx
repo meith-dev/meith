@@ -4,14 +4,14 @@ import { notFound } from 'next/navigation'
 import { MAX_RELATIONS } from '@meith/relations'
 import { requireSlot } from '@meith/theme-kit'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { RemoveRelationForm } from '@/components/account/relation-forms'
+import { PANEL_LIST } from '@/components/shell/panel-list'
+import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { relationService } from '@/server/relations'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
-import { buildContactsView, contactsNotice, type ContactRowView } from '@/view/contacts'
-import { PANEL_LIST } from '@/components/shell/panel-list'
+import { buildContactsView, type ContactRowView, contactsNotice } from '@/view/contacts'
 
 export const metadata: Metadata = { title: 'Buddies and ignored members' }
 
@@ -79,9 +79,8 @@ export default async function ContactsPage({
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-lg font-semibold">Ignored</h2>
         <p className="text-sm text-muted-foreground">
-          Their posts are hidden behind a link rather than removed, so a thread still
-          reads in order and its numbering is the same for everybody. They cannot send you
-          private messages.
+          Their posts are hidden behind a link rather than removed, so a thread still reads in order
+          and its numbering is the same for everybody. They cannot send you private messages.
         </p>
 
         {view.ignored.length === 0 ? (
@@ -125,11 +124,7 @@ function ContactLine({ row }: { row: ContactRowView }) {
             Message
           </a>
         )}
-        <RemoveRelationForm
-          userId={row.userId}
-          username={row.username}
-          returnTo={RETURN_TO}
-        />
+        <RemoveRelationForm userId={row.userId} username={row.username} returnTo={RETURN_TO} />
       </span>
     </li>
   )

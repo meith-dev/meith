@@ -1,13 +1,14 @@
-import { requireSlot, resolveTheme, type ThemeDefinition } from '@meith/theme-kit'
 import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import ErrorPage from '../../app/error'
-import forumConfig from '../../community.config'
+import { requireSlot, resolveTheme, type ThemeDefinition } from '@meith/theme-kit'
 
 import { CrashNoticeProvider } from '@/components/shell/crash-notice'
 import { buildErrorNotice, CRASH_NOTICE } from '@/view/error-notice'
+
+import ErrorPage from '../../app/error'
+import forumConfig from '../../community.config'
 
 const REQUEST_ID = 'req-8f21'
 
@@ -21,9 +22,7 @@ const themes: readonly { key: string; definition: ThemeDefinition }[] = Object.v
   }))
 
 async function themedNotice(definition: ThemeDefinition): Promise<ReactNode> {
-  const Slot = requireSlot(resolveTheme(definition), 'ErrorNotice') as (
-    props: object,
-  ) => ReactNode
+  const Slot = requireSlot(resolveTheme(definition), 'ErrorNotice') as (props: object) => ReactNode
   return Slot(buildErrorNotice(CRASH_NOTICE, REQUEST_ID))
 }
 
@@ -32,6 +31,7 @@ function renderErrorPage(notice: ReactNode): string {
     createElement(CrashNoticeProvider, {
       notice,
       requestId: REQUEST_ID,
+      // biome-ignore lint/correctness/noChildrenProp: CrashNoticeValue declares children, so the props form is the only one that typechecks
       children: createElement(ErrorPage),
     }),
   )

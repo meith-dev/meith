@@ -457,7 +457,10 @@
    * user-supplied and unbounded, and a two-line title with one orphaned word is
    * the commonest way a dense listing looks broken — in any theme.
    */
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     text-wrap: balance;
   }
 
@@ -497,7 +500,9 @@
    * do with how large the movement is.
    */
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
@@ -624,11 +629,19 @@
   line-height: 1.3;
 }
 
-.prose-md h2 { font-size: 1.35em; }
-.prose-md h3 { font-size: 1.2em; }
-.prose-md h4 { font-size: 1.05em; }
+.prose-md h2 {
+  font-size: 1.35em;
+}
+.prose-md h3 {
+  font-size: 1.2em;
+}
+.prose-md h4 {
+  font-size: 1.05em;
+}
 .prose-md h5,
-.prose-md h6 { font-size: 1em; }
+.prose-md h6 {
+  font-size: 1em;
+}
 
 /* Inline images and smilies sit on the text baseline, not below it. */
 .md-smiley {
@@ -782,9 +795,15 @@ ol.md-list {
   font-weight: 600;
 }
 
-.md-align-left { text-align: start; }
-.md-align-center { text-align: center; }
-.md-align-right { text-align: end; }
+.md-align-left {
+  text-align: start;
+}
+.md-align-center {
+  text-align: center;
+}
+.md-align-right {
+  text-align: end;
+}
 
 /*
  * A board's own directives (F71). The renderer gives each one a class and
@@ -795,4 +814,3 @@ ol.md-list {
 div.md-directive {
   margin-block: 0.85em;
 }
-

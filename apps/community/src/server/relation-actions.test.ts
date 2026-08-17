@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
 import type { Actor } from '@meith/authorization'
+import { combinePermissionSets, InMemoryAuthorizationSource } from '@meith/authorization'
 import type { RelationKind, RelationRepository, RelationRow } from '@meith/relations'
 
 const { RedirectError } = vi.hoisted(() => {
@@ -110,7 +110,7 @@ async function run(
 
 async function install(group: number = SEED_GROUP.registered): Promise<void> {
   const container = installTestContainer({ container: { relations } })
-  const store = container['accountStore'] as {
+  const store = container.accountStore as {
     accounts: { create(input: Record<string, unknown>): Promise<{ id: number }> }
   }
 

@@ -1,4 +1,4 @@
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { resetEnvForTests } from '@meith/core'
 
@@ -17,8 +17,7 @@ const { jar, RedirectError } = vi.hoisted(() => {
 vi.mock('next/headers', () => ({
   headers: async () => new Map([['x-forwarded-for', '203.0.113.7']]),
   cookies: async () => ({
-    get: (name: string) =>
-      jar.has(name) ? { name, value: jar.get(name) as string } : undefined,
+    get: (name: string) => (jar.has(name) ? { name, value: jar.get(name) as string } : undefined),
     set: (name: string, value: string) => {
       jar.set(name, value)
     },
@@ -178,9 +177,7 @@ beforeEach(() => {
 
 describe('registerAction', () => {
   it('creates the account and sends the user to login', async () => {
-    expect(await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))).toBe(
-      '/login?registered=1',
-    )
+    expect(await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))).toBe('/login?registered=1')
   })
 
   it('refuses a form POSTed straight at it while registration is closed', async () => {
@@ -191,9 +188,7 @@ describe('registerAction', () => {
     expect(state.error).toMatch(/not taking new members/i)
 
     policy.registrationEnabled = true
-    expect(await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))).toBe(
-      '/login?registered=1',
-    )
+    expect(await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))).toBe('/login?registered=1')
   })
 
   it('rejects a duplicate username differing only by case', async () => {
@@ -207,10 +202,7 @@ describe('registerAction', () => {
   })
 
   it('echoes back what was typed, but never the password', async () => {
-    const state = await registerAction(
-      EMPTY_STATE,
-      form({ ...CREDS, username: 'x' }),
-    )
+    const state = await registerAction(EMPTY_STATE, form({ ...CREDS, username: 'x' }))
     expect(state.error).toBeTruthy()
     expect(JSON.stringify(state)).not.toContain(CREDS.password)
   })
@@ -242,17 +234,15 @@ describe('registerAction', () => {
     await registerAction(EMPTY_STATE, form(CREDS))
 
     limiter.refuseRegistration = false
-    expect(await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))).toBe(
-      '/login?registered=1',
-    )
+    expect(await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))).toBe('/login?registered=1')
   })
 
   it('creates the account when the board publishes no terms', async () => {
     legal.terms = ''
 
-    expect(
-      await redirectOf(registerAction(EMPTY_STATE, form({ ...CREDS, terms: '' }))),
-    ).toBe('/login?registered=1')
+    expect(await redirectOf(registerAction(EMPTY_STATE, form({ ...CREDS, terms: '' })))).toBe(
+      '/login?registered=1',
+    )
   })
 })
 
@@ -432,9 +422,7 @@ describe('the address range an account is recorded against', () => {
 
     await registerUser()
 
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ registrationIpPrefix: RANGE }),
-    )
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ registrationIpPrefix: RANGE }))
     expect(JSON.stringify(create.mock.calls)).not.toContain(ADDRESS)
   })
 
@@ -465,10 +453,7 @@ describe('password reset', () => {
     await registerUser()
 
     const known = await requestResetAction(EMPTY_STATE, form({ email: CREDS.email }))
-    const unknown = await requestResetAction(
-      EMPTY_STATE,
-      form({ email: 'nobody@example.com' }),
-    )
+    const unknown = await requestResetAction(EMPTY_STATE, form({ email: 'nobody@example.com' }))
     expect(known.notice).toBe(unknown.notice)
     expect(known.error).toBeUndefined()
   })

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { renderMarkdown, vocabularyOptions } from './body'
 import { compileSmilies, createDirectiveRegistry, directiveNames } from './extensions'
-import { EMPTY_VOCABULARY, compileVocabulary } from './vocabulary'
+import { compileVocabulary, EMPTY_VOCABULARY } from './vocabulary'
 
 describe('directives', () => {
   it('renders a block one as a div and an inline one as a span', () => {

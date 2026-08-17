@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { Actor } from '@meith/authorization'
 import {
-  InMemoryAuthorizationSource,
   combinePermissionSets,
+  InMemoryAuthorizationSource,
   type MemoryAppointment,
 } from '@meith/authorization'
-import type { Actor } from '@meith/authorization'
 import type {
   MergePlan,
   SplitPlan,
@@ -33,7 +33,7 @@ const actorRef: { current: Actor | null } = { current: null }
 vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
 const { mergeThreadAction, splitThreadAction, splitSelectedAction } = await import(
-  './surgery-actions',
+  './surgery-actions'
 )
 const { EMPTY_STATE } = await import('./auth-form-state')
 const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
@@ -86,10 +86,7 @@ let forumOf: Record<number, number>
 let authorOf: Record<number, number>
 let surgery: FakeSurgery
 
-function appointment(
-  forumId: number,
-  rights: Partial<MemoryAppointment>,
-): MemoryAppointment {
+function appointment(forumId: number, rights: Partial<MemoryAppointment>): MemoryAppointment {
   return {
     userId: 3,
     forumId,
@@ -128,10 +125,7 @@ function installContainer(
   })
 }
 
-function form(
-  entries: Record<string, string>,
-  items: readonly string[] = [],
-): FormData {
+function form(entries: Record<string, string>, items: readonly string[] = []): FormData {
   const f = new FormData()
   for (const [k, v] of Object.entries(entries)) f.set(k, v)
   for (const item of items) f.append('item', item)
@@ -325,10 +319,7 @@ describe('splitSelectedAction', () => {
     const where = await redirectOf(
       splitSelectedAction(
         EMPTY_STATE,
-        form({ threadId: String(SOURCE), title: 'A new conversation' }, [
-          'post:101',
-          'post:102',
-        ]),
+        form({ threadId: String(SOURCE), title: 'A new conversation' }, ['post:101', 'post:102']),
       ),
     )
 
@@ -340,10 +331,7 @@ describe('splitSelectedAction', () => {
     await redirectOf(
       splitSelectedAction(
         EMPTY_STATE,
-        form({ threadId: String(SOURCE), title: 'A new conversation' }, [
-          'thread:20',
-          'post:101',
-        ]),
+        form({ threadId: String(SOURCE), title: 'A new conversation' }, ['thread:20', 'post:101']),
       ),
     )
     expect(surgery.splits[0]).toMatchObject({ postIds: [101] })
@@ -354,10 +342,7 @@ describe('splitSelectedAction', () => {
     const where = await redirectOf(
       splitSelectedAction(
         EMPTY_STATE,
-        form({ threadId: String(SOURCE), title: 'A new conversation' }, [
-          'post:101',
-          'post:999',
-        ]),
+        form({ threadId: String(SOURCE), title: 'A new conversation' }, ['post:101', 'post:999']),
       ),
     )
     expect(where).toContain('dropped=1')

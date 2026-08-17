@@ -1,9 +1,10 @@
-import { GLOBAL_TAGS, env, logger, type CacheDriver } from '@meith/core'
-import { runMigrations, type Database } from '@meith/db'
-import type { PluginDefinition } from '@meith/plugin-kit'
 import { sql } from 'drizzle-orm'
 
-import { seedDemoBoard, type SeedSummary } from './seed'
+import { type CacheDriver, env, GLOBAL_TAGS, logger } from '@meith/core'
+import { type Database, runMigrations } from '@meith/db'
+import type { PluginDefinition } from '@meith/plugin-kit'
+
+import { type SeedSummary, seedDemoBoard } from './seed'
 
 export interface ResetDeps {
   readonly db: Database
@@ -104,10 +105,7 @@ export async function resetDemoBoard(deps: ResetDeps): Promise<ResetResult> {
  * interval — and a board that fixes itself on the next tick instead of one that
  * waits for somebody to notice.
  */
-async function recoverSchema(
-  deps: ResetDeps,
-  migrate: () => Promise<number>,
-): Promise<void> {
+async function recoverSchema(deps: ResetDeps, migrate: () => Promise<number>): Promise<void> {
   const log = logger({ module: 'demo' })
 
   try {

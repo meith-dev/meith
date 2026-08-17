@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { IssueTokenForm, RevokeTokenForm } from '@/components/admin/api-token-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildApiTokenView } from '@/server/api-tokens-admin'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -31,9 +31,9 @@ export default async function AdminApiTokensPage() {
       title="API tokens"
       lede={
         <>
-          Bearer tokens for <code className="font-mono text-xs">/api/v1</code>. Every
-          request is still checked against its owner’s permissions — a scope narrows a
-          token, it never widens the account.
+          Bearer tokens for <code className="font-mono text-xs">/api/v1</code>. Every request is
+          still checked against its owner’s permissions — a scope narrows a token, it never widens
+          the account.
         </>
       }
       gap="loose"
@@ -82,9 +82,7 @@ export default async function AdminApiTokensPage() {
                     <td className="py-2 pr-3">{token.name}</td>
                     <td className="py-2 pr-3">{token.username}</td>
                     <td className="py-2 pr-3 font-mono text-xs">{token.lookup}</td>
-                    <td className="py-2 pr-3 font-mono text-xs">
-                      {token.scopes.join(' ')}
-                    </td>
+                    <td className="py-2 pr-3 font-mono text-xs">{token.scopes.join(' ')}</td>
                     <td className="py-2 pr-3">
                       {token.lastUsedAt === null
                         ? 'never'
@@ -104,9 +102,7 @@ export default async function AdminApiTokensPage() {
                       </span>
                     </td>
                     <td className="py-2">
-                      {token.state === 'revoked' ? null : (
-                        <RevokeTokenForm tokenId={token.id} />
-                      )}
+                      {token.state === 'revoked' ? null : <RevokeTokenForm tokenId={token.id} />}
                     </td>
                   </tr>
                 ))}

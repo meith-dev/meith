@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { PUBLIC_CONTENT, type ContentScope } from '@meith/core'
+import { type ContentScope, PUBLIC_CONTENT } from '@meith/core'
 import type {
   PostListingRow,
   PostLocation,
@@ -44,9 +44,7 @@ export class FixturePostRepository implements PostRepository {
   ): Promise<PostLocation | null> {
     const size = Math.max(1, Math.trunc(options.pageSize))
     const thread = this.rows
-      .filter(
-        (row) => row.threadId === threadId && options.scope.states.includes(row.visibility),
-      )
+      .filter((row) => row.threadId === threadId && options.scope.states.includes(row.visibility))
       .sort((a, b) => a.id - b.id)
 
     const index = thread.findIndex((row) => row.id === postId)

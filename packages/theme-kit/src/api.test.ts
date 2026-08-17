@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  DEPRECATIONS,
-  SLOT_STABILITY,
-  THEME_API_VERSION,
   assertDeprecationPolicy,
   assertThemeContract,
   checkThemeContract,
   compareApiVersions,
+  DEPRECATIONS,
+  type Deprecation,
   deprecationsFor,
   parseApiVersion,
   requiredSlots,
-  type Deprecation,
+  SLOT_STABILITY,
   type Stability,
+  THEME_API_VERSION,
 } from './api'
 import { SLOT_NAMES, type SlotName } from './slots'
 
@@ -87,11 +87,7 @@ describe('version parsing', () => {
 describe('the deprecation policy', () => {
   it('accepts a coherent schedule', () => {
     expect(() =>
-      assertDeprecationPolicy(
-        [deprecation()],
-        stabilityWith({ WhoIsOnline: 'deprecated' }),
-        '1.3',
-      ),
+      assertDeprecationPolicy([deprecation()], stabilityWith({ WhoIsOnline: 'deprecated' }), '1.3'),
     ).not.toThrow()
   })
 
@@ -139,11 +135,7 @@ describe('the deprecation policy', () => {
 
   it('refuses a removal that has fallen due', () => {
     expect(() =>
-      assertDeprecationPolicy(
-        [deprecation()],
-        stabilityWith({ WhoIsOnline: 'deprecated' }),
-        '2.0',
-      ),
+      assertDeprecationPolicy([deprecation()], stabilityWith({ WhoIsOnline: 'deprecated' }), '2.0'),
     ).toThrow(/scheduled for removal in 2\.0 and this build is 2\.0/)
   })
 
@@ -190,9 +182,7 @@ describe('measuring a theme against the contract', () => {
   })
 
   it('names what is missing, in registry order', () => {
-    const filled = requiredSlots().filter(
-      (name) => name !== 'PostBit' && name !== 'MemberProfile',
-    )
+    const filled = requiredSlots().filter((name) => name !== 'PostBit' && name !== 'MemberProfile')
     const report = checkThemeContract(themeFilling(filled))
     expect(report.satisfies).toBe(false)
     expect(report.missing).toEqual(['PostBit', 'MemberProfile'])

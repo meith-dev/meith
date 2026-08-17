@@ -86,10 +86,7 @@ export class PostgresRelationRepository implements RelationRepository {
     `)
   }
 
-  async remove(input: {
-    readonly userId: number
-    readonly otherUserId: number
-  }): Promise<boolean> {
+  async remove(input: { readonly userId: number; readonly otherUserId: number }): Promise<boolean> {
     const rows = resultRows(
       await this.db.execute(sql`
         delete from user_relations

@@ -2,11 +2,11 @@ import type { Metadata } from 'next'
 
 import { cn } from '@meith/ui'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { PluginEnableForm } from '@/components/admin/plugin-forms'
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
+import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { hookListeners, pluginInventory } from '@/server/plugin-admin'
-import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Plugins' }
 
@@ -21,29 +21,21 @@ export default async function AdminPluginsPage() {
       title="Plugins"
       lede={
         <>
-          Everything installable is named in{' '}
-          <code className="text-xs">community.config.ts</code> so the bundler can see it and
-          the compiler can check it. Nothing is discovered by scanning a directory at
-          request time.
+          Everything installable is named in <code className="text-xs">community.config.ts</code> so
+          the bundler can see it and the compiler can check it. Nothing is discovered by scanning a
+          directory at request time.
         </>
       }
     >
       {plugins.length === 0 ? (
-        <p className={PANEL_NOTE}>
-          No plugins are configured on this board.
-        </p>
+        <p className={PANEL_NOTE}>No plugins are configured on this board.</p>
       ) : (
         <ul className={PANEL_LIST}>
           {plugins.map((plugin) => {
-            const pending = plugin.migrations.filter(
-              (migration) => !migration.applied,
-            ).length
+            const pending = plugin.migrations.filter((migration) => !migration.applied).length
 
             return (
-              <li
-                key={plugin.key}
-                className={PANEL_ROW}
-              >
+              <li key={plugin.key} className={PANEL_ROW}>
                 <span className="flex min-w-0 flex-col gap-1">
                   <span className="truncate text-sm font-medium">
                     {plugin.name ?? plugin.key}
@@ -63,8 +55,8 @@ export default async function AdminPluginsPage() {
                     </span>
                   ) : !plugin.configuredEnabled ? (
                     <span className="text-xs text-muted-foreground">
-                      Disabled in <code className="text-xs">community.config.ts</code>.
-                      Turning it back on is a change to that file and a redeploy.
+                      Disabled in <code className="text-xs">community.config.ts</code>. Turning it
+                      back on is a change to that file and a redeploy.
                     </span>
                   ) : !plugin.operatorEnabled ? (
                     <span className="text-xs text-muted-foreground">
@@ -72,8 +64,7 @@ export default async function AdminPluginsPage() {
                     </span>
                   ) : plugin.health?.disabledReason != null ? (
                     <span className="text-xs text-destructive">
-                      Stopped by this server after repeated failures:{' '}
-                      {plugin.health.disabledReason}
+                      Stopped by this server after repeated failures: {plugin.health.disabledReason}
                     </span>
                   ) : null}
 
@@ -107,10 +98,7 @@ export default async function AdminPluginsPage() {
                     Details
                   </a>
                   {plugin.configuredEnabled && plugin.hasDefinition && (
-                    <PluginEnableForm
-                      pluginKey={plugin.key}
-                      enabled={plugin.operatorEnabled}
-                    />
+                    <PluginEnableForm pluginKey={plugin.key} enabled={plugin.operatorEnabled} />
                   )}
                 </span>
               </li>
@@ -121,9 +109,9 @@ export default async function AdminPluginsPage() {
 
       {!migrationsKnown && (
         <p className={PANEL_NOTE}>
-          This board could not be asked which plugin migrations have run, so the rows
-          above do not say. On a board running on sample data there is no such table; on a
-          real one, that is worth looking into.
+          This board could not be asked which plugin migrations have run, so the rows above do not
+          say. On a board running on sample data there is no such table; on a real one, that is
+          worth looking into.
         </p>
       )}
 
@@ -131,19 +119,16 @@ export default async function AdminPluginsPage() {
         <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
           <h2 className="font-heading text-lg font-semibold">Hooks in use</h2>
           <p className="text-muted-foreground">
-            Only hooks something is listening on. The full list of every extension point
-            is in the generated reference, and reproducing all ninety-one here would bury
-            these. Plugins are listed in the order they run — priority first, then key —
-            so where two of them change the same value, the last one named has the final
-            say.
+            Only hooks something is listening on. The full list of every extension point is in the
+            generated reference, and reproducing all ninety-one here would bury these. Plugins are
+            listed in the order they run — priority first, then key — so where two of them change
+            the same value, the last one named has the final say.
           </p>
           <ul className="flex flex-col divide-y divide-border">
             {listeners.map((row) => (
               <li key={row.hook} className="flex flex-wrap items-baseline gap-2 py-2">
                 <code className="text-xs">{row.hook}</code>
-                <span className="text-xs text-muted-foreground">
-                  {row.plugins.join(' → ')}
-                </span>
+                <span className="text-xs text-muted-foreground">{row.plugins.join(' → ')}</span>
               </li>
             ))}
           </ul>
@@ -156,19 +141,19 @@ export default async function AdminPluginsPage() {
           A plugin is code, so it has to be in the build before it can run:{' '}
           <code className="text-xs">pnpm add</code> the package, add it to the{' '}
           <code className="text-xs">plugins</code> array in{' '}
-          <code className="text-xs">community.config.ts</code>, and redeploy. The same three
-          steps a theme takes, and for the same reason — a serverless bundle contains only
-          what the bundler saw.
+          <code className="text-xs">community.config.ts</code>, and redeploy. The same three steps a
+          theme takes, and for the same reason — a serverless bundle contains only what the bundler
+          saw.
         </p>
         <p className="text-muted-foreground">
-          A duplicate key is refused when the configuration loads rather than at first
-          use, so a board that boots has a registry that makes sense.
+          A duplicate key is refused when the configuration loads rather than at first use, so a
+          board that boots has a registry that makes sense.
         </p>
         <p className="text-muted-foreground">
           There is no uninstall button, and that is deliberate: removing a plugin is{' '}
-          <code className="text-xs">pnpm remove</code>, a line out of that file, and a
-          redeploy. A button that dropped a plugin&rsquo;s rows and left its code running
-          would leave the board in a state neither installing nor removing produces.
+          <code className="text-xs">pnpm remove</code>, a line out of that file, and a redeploy. A
+          button that dropped a plugin&rsquo;s rows and left its code running would leave the board
+          in a state neither installing nor removing produces.
         </p>
       </section>
     </PanelPage>

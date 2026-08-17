@@ -1,12 +1,7 @@
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type * as Antispam from './antispam'
-
-import {
-  InMemoryAuthorizationSource,
-  combinePermissionSets,
-} from '@meith/authorization'
 import type { Actor } from '@meith/authorization'
+import { combinePermissionSets, InMemoryAuthorizationSource } from '@meith/authorization'
 import type {
   PostEditRecord,
   PostEditTarget,
@@ -22,6 +17,8 @@ import type {
   ReplyWriteRepository,
   ThreadWriteRepository,
 } from '@meith/threads'
+
+import type * as Antispam from './antispam'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {
@@ -108,9 +105,7 @@ class FakeWrites implements ThreadWriteRepository, ReplyWriteRepository {
 
   async replyTarget(threadId: number): Promise<ReplyTarget | null> {
     if (threadId === 4242) return null
-    const forum = (await this.postingRules(
-      this.thread.forum?.id ?? SEED_FORUM.general,
-    ))!
+    const forum = (await this.postingRules(this.thread.forum?.id ?? SEED_FORUM.general))!
     return {
       threadId,
       slug: 'hello',
@@ -192,17 +187,29 @@ class FakeAttachments {
       createdAt: new Date(),
     }
   }
-  async findById() { return null }
-  async findForDownload() { return null }
-  async listForPosts() { return [] }
-  async countForPost() { return 0 }
+  async findById() {
+    return null
+  }
+  async findForDownload() {
+    return null
+  }
+  async listForPosts() {
+    return []
+  }
+  async countForPost() {
+    return 0
+  }
   async markReady() {}
   async markFailed() {}
   async recordDownload() {}
-  async stalled() { return [] }
+  async stalled() {
+    return []
+  }
   async rememberKey() {}
   async forgetKeys() {}
-  async staleKeys() { return [] }
+  async staleKeys() {
+    return []
+  }
 }
 
 const PNG = new Uint8Array(64)
@@ -214,15 +221,16 @@ new DataView(PNG.buffer).setUint32(20, 10)
 
 class FakeDrafts {
   readonly saved: Array<{ userId: number; draft: unknown }> = []
-  async save(userId: number, draft: unknown): Promise<void> { this.saved.push({ userId, draft }) }
+  async save(userId: number, draft: unknown): Promise<void> {
+    this.saved.push({ userId, draft })
+  }
   async remove(): Promise<void> {}
-  async find(): Promise<null> { return null }
+  async find(): Promise<null> {
+    return null
+  }
 }
 
-function installContainer(
-  overrides: Record<string, unknown> = {},
-  board = SEED_BOARD,
-): void {
+function installContainer(overrides: Record<string, unknown> = {}, board = SEED_BOARD): void {
   installTestContainer({
     board,
     container: {
@@ -293,10 +301,14 @@ describe('createThreadAction', () => {
     const drafts = new FakeDrafts()
     installContainer({ drafts })
 
-    await expect(createThreadAction(EMPTY_STATE, form({ ...VALID, intent: 'save_draft' })))
-      .resolves.toMatchObject({ notice: 'saved' })
+    await expect(
+      createThreadAction(EMPTY_STATE, form({ ...VALID, intent: 'save_draft' })),
+    ).resolves.toMatchObject({ notice: 'saved' })
     expect(writes.written).toEqual([])
-    expect(drafts.saved[0]).toMatchObject({ userId: 1, draft: { title: VALID.title, message: VALID.message } })
+    expect(drafts.saved[0]).toMatchObject({
+      userId: 1,
+      draft: { title: VALID.title, message: VALID.message },
+    })
   })
 
   it('creates the thread and redirects to it', async () => {
@@ -354,10 +366,7 @@ describe('createThreadAction', () => {
       },
     )
 
-    const state = await createThreadAction(
-      EMPTY_STATE,
-      form({ ...VALID, forumId: String(hidden) }),
-    )
+    const state = await createThreadAction(EMPTY_STATE, form({ ...VALID, forumId: String(hidden) }))
 
     expect(state.error).toBe('That forum does not exist.')
     expect(writes.written).toEqual([])
@@ -379,10 +388,7 @@ describe('createThreadAction', () => {
   })
 
   it('returns the domain error and keeps what was typed', async () => {
-    const state = await createThreadAction(
-      EMPTY_STATE,
-      form({ ...VALID, title: 'ab' }),
-    )
+    const state = await createThreadAction(EMPTY_STATE, form({ ...VALID, title: 'ab' }))
 
     expect(state.error).toMatch(/at least 3 characters/)
     expect(state.values?.message).toBe('With a message in it.')
@@ -400,10 +406,7 @@ describe('createThreadAction', () => {
   })
 
   it('previews without writing anything', async () => {
-    const state = await createThreadAction(
-      EMPTY_STATE,
-      form({ ...VALID, intent: 'preview' }),
-    )
+    const state = await createThreadAction(EMPTY_STATE, form({ ...VALID, intent: 'preview' }))
 
     expect(state.notice).toBe('preview')
     expect(state.values?.message).toBe('With a message in it.')
@@ -464,10 +467,14 @@ describe('createReplyAction', () => {
     const drafts = new FakeDrafts()
     installContainer({ drafts })
 
-    await expect(createReplyAction(EMPTY_STATE, form({ ...REPLY, intent: 'save_draft' })))
-      .resolves.toMatchObject({ notice: 'saved' })
+    await expect(
+      createReplyAction(EMPTY_STATE, form({ ...REPLY, intent: 'save_draft' })),
+    ).resolves.toMatchObject({ notice: 'saved' })
     expect(writes.replies).toEqual([])
-    expect(drafts.saved[0]).toMatchObject({ userId: 1, draft: { threadId: Number(REPLY.threadId), message: REPLY.message } })
+    expect(drafts.saved[0]).toMatchObject({
+      userId: 1,
+      draft: { threadId: Number(REPLY.threadId), message: REPLY.message },
+    })
   })
 
   const REPLY = { threadId: '20', message: 'Quite so.', seenLastPostId: '31' }
@@ -528,10 +535,7 @@ describe('createReplyAction', () => {
   })
 
   it('previews without writing anything', async () => {
-    const state = await createReplyAction(
-      EMPTY_STATE,
-      form({ ...REPLY, intent: 'preview' }),
-    )
+    const state = await createReplyAction(EMPTY_STATE, form({ ...REPLY, intent: 'preview' }))
 
     expect(state.notice).toBe('preview')
     expect(writes.replies).toEqual([])
@@ -688,10 +692,7 @@ describe('post actions', () => {
     })
 
     it('does not find a post that is not in the given thread', async () => {
-      const state = await editPostAction(
-        EMPTY_STATE,
-        form({ ...EDIT, threadId: '21' }),
-      )
+      const state = await editPostAction(EMPTY_STATE, form({ ...EDIT, threadId: '21' }))
       expect(state.error).toMatch(/does not exist/i)
       expect(postWrites.edits).toHaveLength(0)
     })

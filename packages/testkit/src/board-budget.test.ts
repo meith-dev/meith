@@ -1,7 +1,8 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
 import { PostgresForumRepository, schema } from '@meith/db'
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 import { buildTree, flattenTree } from '@meith/forums'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { expectQueryBudget, measureQueries } from './query-budget'
 import { SMOKE_SCALE, seedBoard } from './seed'
@@ -59,9 +60,7 @@ describe('moving a forum', () => {
 
     expect(movable).toBeDefined()
 
-    await expectQueryBudget(harness, 8, () =>
-      repo.move(movable!.id, { newParentId: category!.id }),
-    )
+    await expectQueryBudget(harness, 8, () => repo.move(movable!.id, { newParentId: category!.id }))
   })
 })
 

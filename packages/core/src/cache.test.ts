@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { CacheTags, cachedGlobal, globalCacheKey } from './cache'
 import type { CacheDriver, CacheSetOptions } from './ports'
 
-function fakeCache(): CacheDriver & { entries: Map<string, { value: unknown; tags: readonly string[] }> } {
+function fakeCache(): CacheDriver & {
+  entries: Map<string, { value: unknown; tags: readonly string[] }>
+} {
   const entries = new Map<string, { value: unknown; tags: readonly string[] }>()
   return {
     entries,
@@ -71,9 +73,9 @@ describe('cachedGlobal', () => {
 
   it('refuses to cache anything untagged', async () => {
     const cache = fakeCache()
-    await expect(
-      cachedGlobal(cache, { key: ['x'], tags: [] }, async () => 1),
-    ).rejects.toThrow(/at least one tag/)
+    await expect(cachedGlobal(cache, { key: ['x'], tags: [] }, async () => 1)).rejects.toThrow(
+      /at least one tag/,
+    )
   })
 
   it('does not store undefined, which the driver reads back as a miss', async () => {

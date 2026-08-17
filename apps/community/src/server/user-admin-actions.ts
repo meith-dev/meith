@@ -1,15 +1,16 @@
 'use server'
 
-import { ValidationError } from '@meith/core'
-import { drivers } from '@meith/drivers'
 import { revalidatePath } from 'next/cache'
 
+import { ValidationError } from '@meith/core'
+import { drivers } from '@meith/drivers'
+
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
+import type { FormState } from './auth-form-state'
 import { assertDemoIdentityUnchanged } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
 import { banService, requireUserAdmin, requireUserBulk, requireUserMerge } from './user-admin'
-import type { FormState } from './auth-form-state'
 
 const MERGE_CHUNK = 500
 
@@ -69,10 +70,7 @@ export async function saveMemberAccountAction(
   }
 }
 
-export async function setMemberStateAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function setMemberStateAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
     const id = userId(form)
@@ -93,10 +91,7 @@ export async function setMemberStateAction(
   }
 }
 
-export async function banMemberAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function banMemberAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const context = await requireFreshAdmin()
     const id = userId(form)
@@ -205,10 +200,7 @@ export async function mergeStepAction(_prev: FormState, form: FormData): Promise
   }
 }
 
-export async function pruneMembersAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function pruneMembersAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireFreshAdmin()
 
@@ -247,10 +239,7 @@ export async function pruneMembersAction(
   }
 }
 
-export async function startMassMailAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function startMassMailAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const context = await requireFreshAdmin()
 
@@ -279,10 +268,7 @@ export async function startMassMailAction(
   }
 }
 
-export async function continueMassMailAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function continueMassMailAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireFreshAdmin()
 

@@ -1,4 +1,4 @@
-import type { TaskDefinition, TaskContext, TaskResult } from './types'
+import type { TaskContext, TaskDefinition, TaskResult } from './types'
 
 export interface TaskRepository {
   claim(input: {

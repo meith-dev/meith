@@ -2,9 +2,9 @@ import { ConfigurationError, logger, type MailDriver, type OutgoingMail } from '
 import {
   canSendMail,
   describeMailConfig,
-  mailConfigProblems,
   type HttpMailConfig,
   type MailConfig,
+  mailConfigProblems,
 } from '@meith/settings'
 
 import { formatSender } from './sender'

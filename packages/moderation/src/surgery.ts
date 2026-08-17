@@ -32,10 +32,7 @@ export interface ThreadSurgeryRepository {
 
   postsFrom(threadId: number, fromPostId: number): Promise<readonly number[]>
 
-  visiblePostIdsIn(
-    threadId: number,
-    postIds: readonly number[],
-  ): Promise<readonly number[]>
+  visiblePostIdsIn(threadId: number, postIds: readonly number[]): Promise<readonly number[]>
 
   split(plan: SplitPlan & { actorUserId: number; at: Date }): Promise<SurgeryOutcome>
 
@@ -70,9 +67,7 @@ export class ThreadSurgery {
     const title = this.requireTitle(input.title)
 
     if (source.firstPostId !== null && input.fromPostId === source.firstPostId) {
-      throw new ValidationError(
-        'That is the whole thread. Move it instead of splitting it.',
-      )
+      throw new ValidationError('That is the whole thread. Move it instead of splitting it.')
     }
 
     const postIds = await this.threads.postsFrom(input.threadId, input.fromPostId)
@@ -80,9 +75,7 @@ export class ThreadSurgery {
       throw new ValidationError('That post is not in this thread.')
     }
     if (postIds.length >= source.visiblePosts) {
-      throw new ValidationError(
-        'That is the whole thread. Move it instead of splitting it.',
-      )
+      throw new ValidationError('That is the whole thread. Move it instead of splitting it.')
     }
 
     return this.threads.split({
@@ -122,9 +115,7 @@ export class ThreadSurgery {
       )
     }
     if (eligible.length >= source.visiblePosts) {
-      throw new ValidationError(
-        'That is the whole thread. Move it instead of splitting it.',
-      )
+      throw new ValidationError('That is the whole thread. Move it instead of splitting it.')
     }
 
     const outcome = await this.threads.split({

@@ -1,5 +1,5 @@
 import { bbcodeToMarkdown } from './bbcode'
-import { parse, type ParseOptions } from './blocks'
+import { type ParseOptions, parse } from './blocks'
 import type { CompiledSmilies } from './extensions'
 import { renderDocument } from './render'
 import type { BoardVocabulary } from './vocabulary'
@@ -36,7 +36,9 @@ export function renderMarkdown(source: string, options: MarkdownRenderOptions = 
 }
 
 export function sourceAsMarkdown(source: string, format: number | undefined): string {
-  return (format ?? BodyFormat.Markdown) === BodyFormat.LegacyBBCode ? bbcodeToMarkdown(source) : source
+  return (format ?? BodyFormat.Markdown) === BodyFormat.LegacyBBCode
+    ? bbcodeToMarkdown(source)
+    : source
 }
 
 export interface RenderablePost {

@@ -1,8 +1,8 @@
 import type {
-  ModeratorAppointment,
   AuthorizationSource,
   ForumOverride,
   GroupDefaults,
+  ModeratorAppointment,
 } from './types'
 
 export interface MemoryBoard {
@@ -24,9 +24,7 @@ export class InMemoryAuthorizationSource implements AuthorizationSource {
     this.groupsById = new Map(board.groups.map((g) => [g.groupId, g]))
   }
 
-  async groupDefaults(
-    groupIds: readonly number[],
-  ): Promise<readonly GroupDefaults[]> {
+  async groupDefaults(groupIds: readonly number[]): Promise<readonly GroupDefaults[]> {
     const out: GroupDefaults[] = []
     for (const id of groupIds) {
       const g = this.groupsById.get(id)
@@ -45,9 +43,7 @@ export class InMemoryAuthorizationSource implements AuthorizationSource {
   ): Promise<readonly ForumOverride[]> {
     const fset = new Set(forumIds)
     const gset = new Set(groupIds)
-    return this.board.overrides.filter(
-      (o) => fset.has(o.forumId) && gset.has(o.groupId),
-    )
+    return this.board.overrides.filter((o) => fset.has(o.forumId) && gset.has(o.groupId))
   }
 
   async allForumIds(): Promise<readonly number[]> {
@@ -55,9 +51,7 @@ export class InMemoryAuthorizationSource implements AuthorizationSource {
   }
 
   async allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>> {
-    return new Map(
-      Object.entries(this.board.chains).map(([id, chain]) => [Number(id), chain]),
-    )
+    return new Map(Object.entries(this.board.chains).map(([id, chain]) => [Number(id), chain]))
   }
 
   async moderatorAppointments(

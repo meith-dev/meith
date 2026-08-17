@@ -20,19 +20,21 @@ export interface EventHandlerDeps {
 }
 
 export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
-  const registry = new EventRegistry().register({
-    id: 'counters.rollup',
-    event: 'post.created',
-    async handle(payload) {
-      await deps.counters.rollUpAncestors(payload.postId)
-    },
-  }).register({
-    id: 'counters.visibility',
-    event: 'post.visibility_changed',
-    async handle(payload) {
-      await deps.counters.applyVisibilityChange(payload.postId)
-    },
-  })
+  const registry = new EventRegistry()
+    .register({
+      id: 'counters.rollup',
+      event: 'post.created',
+      async handle(payload) {
+        await deps.counters.rollUpAncestors(payload.postId)
+      },
+    })
+    .register({
+      id: 'counters.visibility',
+      event: 'post.visibility_changed',
+      async handle(payload) {
+        await deps.counters.applyVisibilityChange(payload.postId)
+      },
+    })
 
   if (deps.attachments !== undefined) {
     registry.register({

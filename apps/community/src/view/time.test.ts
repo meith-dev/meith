@@ -6,29 +6,21 @@ const NOW = new Date('2026-07-30T12:00:00Z')
 
 describe('formatTime', () => {
   it('always carries the exact instant as ISO', () => {
-    expect(formatTime(new Date('2026-07-30T09:14:00Z'), NOW).iso).toBe(
-      '2026-07-30T09:14:00.000Z',
-    )
+    expect(formatTime(new Date('2026-07-30T09:14:00Z'), NOW).iso).toBe('2026-07-30T09:14:00.000Z')
   })
 
   it('names today and yesterday', () => {
     expect(formatTime(new Date('2026-07-30T09:14:00Z'), NOW).label).toBe('Today, 09:14')
-    expect(formatTime(new Date('2026-07-29T23:59:00Z'), NOW).label).toBe(
-      'Yesterday, 23:59',
-    )
+    expect(formatTime(new Date('2026-07-29T23:59:00Z'), NOW).label).toBe('Yesterday, 23:59')
   })
 
   it('changes day at midnight, not 24 hours back', () => {
     expect(formatTime(new Date('2026-07-30T00:01:00Z'), NOW).label).toBe('Today, 00:01')
-    expect(formatTime(new Date('2026-07-29T23:59:00Z'), NOW).label).toBe(
-      'Yesterday, 23:59',
-    )
+    expect(formatTime(new Date('2026-07-29T23:59:00Z'), NOW).label).toBe('Yesterday, 23:59')
   })
 
   it('gives older dates in the current year a day and month', () => {
-    expect(formatTime(new Date('2026-03-12T08:05:00Z'), NOW).label).toBe(
-      '12 Mar, 08:05',
-    )
+    expect(formatTime(new Date('2026-03-12T08:05:00Z'), NOW).label).toBe('12 Mar, 08:05')
   })
 
   it('keeps the year for anything older', () => {
@@ -42,9 +34,7 @@ describe('formatTime', () => {
   it('handles yesterday across a year boundary', () => {
     const newYear = new Date('2027-01-01T10:00:00Z')
 
-    expect(formatTime(new Date('2026-12-31T22:00:00Z'), newYear).label).toBe(
-      'Yesterday, 22:00',
-    )
+    expect(formatTime(new Date('2026-12-31T22:00:00Z'), newYear).label).toBe('Yesterday, 22:00')
   })
 
   it('is independent of the host timezone', () => {

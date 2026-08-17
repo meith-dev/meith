@@ -22,7 +22,11 @@ export interface Poll {
 export interface PollRepository {
   create(threadId: number, poll: NewPoll): Promise<void>
   find(threadId: number, voterUserId: number | null): Promise<Poll | null>
-  vote(input: { readonly pollId: number; readonly optionId: number; readonly userId: number }): Promise<boolean>
+  vote(input: {
+    readonly pollId: number
+    readonly optionId: number
+    readonly userId: number
+  }): Promise<boolean>
 }
 
 export interface ThreadRating {
@@ -32,6 +36,10 @@ export interface ThreadRating {
 }
 
 export interface ThreadRatingRepository {
-  rate(input: { readonly threadId: number; readonly userId: number; readonly rating: number }): Promise<ThreadRating | null>
+  rate(input: {
+    readonly threadId: number
+    readonly userId: number
+    readonly rating: number
+  }): Promise<ThreadRating | null>
   findRating(threadId: number, userId: number | null): Promise<ThreadRating | null>
 }

@@ -119,8 +119,14 @@ describe('the written content', () => {
   it('keeps replies in the order they were written', () => {
     for (const thread of DEMO_THREADS) {
       const hours = (thread.replies ?? []).map((reply) => reply.hoursAfter)
-      expect([...hours].sort((a, b) => a - b), `"${thread.title}" replies`).toEqual(hours)
-      expect(hours.every((hour) => hour > 0), `"${thread.title}" has a reply at zero`).toBe(true)
+      expect(
+        [...hours].sort((a, b) => a - b),
+        `"${thread.title}" replies`,
+      ).toEqual(hours)
+      expect(
+        hours.every((hour) => hour > 0),
+        `"${thread.title}" has a reply at zero`,
+      ).toBe(true)
     }
   })
 

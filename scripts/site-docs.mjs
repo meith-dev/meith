@@ -44,7 +44,9 @@ for (const file of files) {
 
 for (const [file, doc] of published) {
   if (!files.includes(file)) {
-    problems.push(`${MANIFEST} publishes docs/${file} as "${doc.slug}", and that file does not exist.`)
+    problems.push(
+      `${MANIFEST} publishes docs/${file} as "${doc.slug}", and that file does not exist.`,
+    )
   }
 }
 for (const file of internal.keys()) {
@@ -64,7 +66,9 @@ for (const doc of manifest.documents) {
   slugs.add(doc.slug)
 
   if (!sections.has(doc.section)) {
-    problems.push(`${MANIFEST}: "${doc.slug}" is in section "${doc.section}", which is not declared.`)
+    problems.push(
+      `${MANIFEST}: "${doc.slug}" is in section "${doc.section}", which is not declared.`,
+    )
   }
   for (const field of ['title', 'blurb']) {
     if (typeof doc[field] !== 'string' || doc[field].trim() === '') {

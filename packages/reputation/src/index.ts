@@ -1,7 +1,8 @@
+export { type GiveInput, REPUTATION_PAGE_SIZE, ReputationService } from './service'
 export {
   COMMENT_MAX,
-  RATING_VALUES,
   parseRating,
+  RATING_VALUES,
   type RaterLimits,
   type RatingValue,
   type ReputationRepository,
@@ -9,5 +10,3 @@ export {
   type ReputationSettings,
   type ReputationSummary,
 } from './types'
-
-export { ReputationService, REPUTATION_PAGE_SIZE, type GiveInput } from './service'

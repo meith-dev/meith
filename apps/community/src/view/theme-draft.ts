@@ -95,11 +95,7 @@ export function cssVariables(values: Readonly<Record<string, string>>): Record<s
   return style
 }
 
-export type ChangeState =
-  | 'saved'
-  | 'added'
-  | 'edited'
-  | 'cleared'
+export type ChangeState = 'saved' | 'added' | 'edited' | 'cleared'
 
 export interface TokenChange {
   readonly token: EditableToken
@@ -167,7 +163,5 @@ export function matchesQuery(token: EditableToken, query: string): boolean {
   const needle = query.trim().toLowerCase()
   if (needle === '') return true
 
-  return [token.name, token.label, token.hint].some((field) =>
-    field.toLowerCase().includes(needle),
-  )
+  return [token.name, token.label, token.hint].some((field) => field.toLowerCase().includes(needle))
 }

@@ -1,4 +1,4 @@
-import manifest from "../../content/docs.manifest.json"
+import manifest from '../../content/docs.manifest.json'
 
 export interface DocSection {
   readonly id: string
@@ -72,7 +72,7 @@ export function docHref(slug: string, anchor?: string): string {
  * if the running section is ever renamed.
  */
 export function quickstartHref(): string {
-  const running = findSection("running")
+  const running = findSection('running')
   const quickstart = running ? documentsInSection(running.id).find((doc) => doc.primary) : undefined
-  return quickstart ? docHref(quickstart.slug) : "/docs"
+  return quickstart ? docHref(quickstart.slug) : '/docs'
 }

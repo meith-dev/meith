@@ -78,9 +78,9 @@ describe('which providers a board offers', () => {
     }
 
     expect(providerFor('oidc', options)?.label).toBe('Acme staff login')
-    expect(
-      providerFor('oidc', { ...options, oidc: { ...options.oidc, label: '' } })?.label,
-    ).toBe('Single sign-on')
+    expect(providerFor('oidc', { ...options, oidc: { ...options.oidc, label: '' } })?.label).toBe(
+      'Single sign-on',
+    )
   })
 
   it('knows which provider names exist', () => {

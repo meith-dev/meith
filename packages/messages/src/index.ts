@@ -1,11 +1,16 @@
 export {
+  type Draft,
+  MESSAGES_PAGE_SIZE,
+  MessageService,
+  type SendInput,
+  splitNames,
+} from './service'
+export {
+  BODY_MAX,
+  type FolderCounts,
+  MAX_RECIPIENTS,
   MESSAGE_FOLDERS,
   MESSAGE_ROLES,
-  MAX_RECIPIENTS,
-  SUBJECT_MAX,
-  BODY_MAX,
-  parseFolder,
-  type FolderCounts,
   type MessageCopy,
   type MessageDetail,
   type MessageFolder,
@@ -16,13 +21,7 @@ export {
   type MessageRepository,
   type MessageRole,
   type PrivateMessage,
+  parseFolder,
   type ResolvedRecipient,
+  SUBJECT_MAX,
 } from './types'
-
-export {
-  MessageService,
-  MESSAGES_PAGE_SIZE,
-  splitNames,
-  type Draft,
-  type SendInput,
-} from './service'

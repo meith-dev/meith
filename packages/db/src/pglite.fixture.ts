@@ -1,8 +1,9 @@
-import { PGlite } from '@electric-sql/pglite'
-import { drizzle } from 'drizzle-orm/pglite'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import { PGlite } from '@electric-sql/pglite'
+import { drizzle } from 'drizzle-orm/pglite'
 
 import type { Database } from './client'
 import * as schema from './schema'
@@ -34,9 +35,9 @@ function migrationSql(): string {
   const here = path.dirname(fileURLToPath(import.meta.url))
   const dir = path.resolve(here, '..', 'migrations')
 
-  const journal = JSON.parse(
-    readFileSync(path.join(dir, 'meta', '_journal.json'), 'utf8'),
-  ) as { entries: { idx: number; tag: string }[] }
+  const journal = JSON.parse(readFileSync(path.join(dir, 'meta', '_journal.json'), 'utf8')) as {
+    entries: { idx: number; tag: string }[]
+  }
 
   return [...journal.entries]
     .sort((a, b) => a.idx - b.idx)

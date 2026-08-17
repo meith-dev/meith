@@ -5,10 +5,10 @@ import { currentMailConfig } from '@meith/drivers'
 import { canSendMail, describeMailConfig } from '@meith/settings'
 
 import { recordAdminAction, requireAdmin } from './admin'
+import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { sendTestMail } from './mail-test'
 import { getSettings } from './settings'
-import type { FormState } from './auth-form-state'
 
 export async function sendTestMailAction(
   _previous: FormState,

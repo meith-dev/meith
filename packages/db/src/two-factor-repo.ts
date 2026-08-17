@@ -101,19 +101,15 @@ export class PostgresTwoFactorRepository implements TwoFactorRepository {
 export class PostgresRecoveryCodeRepository implements RecoveryCodeRepository {
   constructor(private readonly db: Database) {}
 
-  async replaceAll(
-    userId: number,
-    hashes: readonly string[],
-    now: Date,
-  ): Promise<void> {
+  async replaceAll(userId: number, hashes: readonly string[], now: Date): Promise<void> {
     await this.db.transaction(async (tx) => {
       await tx.delete(recoveryCodes).where(eq(recoveryCodes.userId, userId))
 
       if (hashes.length === 0) return
 
-      await tx.insert(recoveryCodes).values(
-        hashes.map((codeHash) => ({ userId, codeHash, createdAt: now })),
-      )
+      await tx
+        .insert(recoveryCodes)
+        .values(hashes.map((codeHash) => ({ userId, codeHash, createdAt: now })))
     })
   }
 
@@ -221,4 +217,3 @@ export class PostgresAuthEventRepository implements AuthEventRepository {
     return rows.map(toEvent)
   }
 }
-

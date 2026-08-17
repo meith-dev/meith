@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { SIGNATURE_FEATURES } from './features'
-import { renderMarkdown } from './body'
 import { parse } from './blocks'
+import { renderMarkdown } from './body'
+import { SIGNATURE_FEATURES } from './features'
 
 const html = (source: string): string => renderMarkdown(source).html
 
@@ -34,9 +34,7 @@ describe('headings', () => {
 
 describe('code', () => {
   it('escapes a fenced body and keeps its newlines', () => {
-    expect(html('```\na < b\n```')).toBe(
-      '<pre class="md-code"><code>a &lt; b\n</code></pre>',
-    )
+    expect(html('```\na < b\n```')).toBe('<pre class="md-code"><code>a &lt; b\n</code></pre>')
   })
 
   it('names the language as a class rather than trusting the info string', () => {
@@ -74,9 +72,7 @@ describe('quotes', () => {
 
 describe('lists', () => {
   it('renders a tight list without paragraphs inside its items', () => {
-    expect(html('- one\n- two')).toBe(
-      '<ul class="md-list"><li>one</li><li>two</li></ul>',
-    )
+    expect(html('- one\n- two')).toBe('<ul class="md-list"><li>one</li><li>two</li></ul>')
   })
 
   it('renders a loose list with them, because the author left the blank line', () => {

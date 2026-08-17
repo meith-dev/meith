@@ -100,10 +100,7 @@ export function trimRefinement(
   filters: SearchFilterSet,
 ): SearchRefinement {
   const same = (a: readonly number[] | undefined, b: readonly number[] | undefined): boolean =>
-    a !== undefined &&
-    b !== undefined &&
-    a.length === b.length &&
-    a.every((id) => b.includes(id))
+    a !== undefined && b !== undefined && a.length === b.length && a.every((id) => b.includes(id))
 
   return {
     ...(refine.sort === undefined || refine.sort === filters.sort ? {} : { sort: refine.sort }),
@@ -125,10 +122,7 @@ export function trimRefinement(
   }
 }
 
-export function narrowFilters(
-  filters: SearchFilterSet,
-  refine: SearchRefinement,
-): SearchFilterSet {
+export function narrowFilters(filters: SearchFilterSet, refine: SearchRefinement): SearchFilterSet {
   const forumIds = narrowerIds(filters.forumIds, refine.forumIds)
   const authorUserIds = narrowerIds(filters.authorUserIds, refine.authorUserIds)
 

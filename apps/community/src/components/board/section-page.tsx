@@ -3,13 +3,13 @@ import 'server-only'
 import type { ForumListingRow } from '@meith/forums'
 import { requireSlot } from '@meith/theme-kit'
 
-import { filterView, viewerRef } from '@/server/plugin-view'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
+import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
-import { buildBreadcrumb } from '@/view/breadcrumb'
 import { buildSectionView } from '@/view/board-index'
+import { buildBreadcrumb } from '@/view/breadcrumb'
 import { distinctUserIds } from '@/view/member-identity'
 
 export async function SectionPage({
@@ -46,9 +46,7 @@ export async function SectionPage({
 
   const pluginContext = viewerRef(actor)
   const forums = await Promise.all(
-    (section?.forums ?? []).map((forum) =>
-      filterView('view.forum-row', { forum }, pluginContext),
-    ),
+    (section?.forums ?? []).map((forum) => filterView('view.forum-row', { forum }, pluginContext)),
   )
 
   const theme = await currentTheme()

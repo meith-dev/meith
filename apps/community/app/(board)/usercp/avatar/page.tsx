@@ -4,8 +4,8 @@ import { notFound } from 'next/navigation'
 import { avatarUrl } from '@meith/avatars'
 import { requireSlot } from '@meith/theme-kit'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { AvatarForm } from '@/components/account/avatar-form'
+import { PanelPage } from '@/components/shell/panel-page'
 import { avatarFor, canUploadAvatar } from '@/server/avatars'
 import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
@@ -28,16 +28,9 @@ export default async function AvatarPage({
   const notice = userCpNotice(query)
 
   return (
-    <PanelPage
-      title="Your avatar"
-      lede="Shown beside every post you make, and on your profile."
-    >
+    <PanelPage title="Your avatar" lede="Shown beside every post you make, and on your profile.">
       {notice !== null && (
-        <Notice
-          kind={notice.kind}
-          message={notice.message}
-          dismissHref="/usercp/avatar"
-        />
+        <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/avatar" />
       )}
 
       <AvatarForm

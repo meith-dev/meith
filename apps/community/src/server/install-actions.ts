@@ -1,21 +1,22 @@
 'use server'
 
+import { redirect } from 'next/navigation'
+
 import { env } from '@meith/core'
 import {
-  ECHOED_FIELDS,
-  MAIL_SKIP,
   canProceed,
+  ECHOED_FIELDS,
   fieldErrorsFromReport,
   firstFailure,
   installInputFromForm,
+  MAIL_SKIP,
   mailConfigFromInstallInput,
   parseInstallInput,
+  type StepOutcome,
   stepTitle,
   withEnvironmentAnswers,
-  type StepOutcome,
 } from '@meith/install'
 import { mailConfigFromEnvironment } from '@meith/settings'
-import { redirect } from 'next/navigation'
 
 import { gatherPreflight, installerIsSealed, runInstall } from './install'
 import { sendTestMail } from './mail-test'

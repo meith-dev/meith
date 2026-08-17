@@ -1,7 +1,4 @@
-import {
-  DARK_TOKENS as DEFAULT_DARK,
-  LIGHT_TOKENS as DEFAULT_LIGHT,
-} from '@meith/theme-default'
+import { DARK_TOKENS as DEFAULT_DARK, LIGHT_TOKENS as DEFAULT_LIGHT } from '@meith/theme-default'
 
 export const LIGHT_TOKENS: Record<string, string> = {
   ...DEFAULT_LIGHT,

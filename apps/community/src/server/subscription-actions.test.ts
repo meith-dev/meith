@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type * as CoreModule from '@meith/core'
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
 import type { Actor } from '@meith/authorization'
+import { combinePermissionSets, InMemoryAuthorizationSource } from '@meith/authorization'
+import type * as CoreModule from '@meith/core'
+import type {
+  SubscriptionMode,
+  SubscriptionRepository,
+  SubscriptionTarget,
+} from '@meith/subscriptions'
 import { mintUnsubscribeToken } from '@meith/subscriptions'
-import type { SubscriptionMode, SubscriptionRepository, SubscriptionTarget } from '@meith/subscriptions'
 
 const { SECRET, RedirectError } = vi.hoisted(() => {
   const SECRET = 'test-auth-secret-test-auth-secret'
@@ -30,17 +34,16 @@ vi.mock('@meith/core', async () => {
   return { ...actual, env: { ...actual.env, AUTH_SECRET: SECRET, DATA_SOURCE: 'fixture' } }
 })
 
-const {
-  subscribeAction,
-  unsubscribeAction,
-  unsubscribeByTokenAction,
-} = await import('./subscription-actions')
+const { subscribeAction, unsubscribeAction, unsubscribeByTokenAction } = await import(
+  './subscription-actions'
+)
 const { EMPTY_STATE } = await import('./auth-form-state')
 const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 const { installTestContainer } = await import('./test-container')
 
 class FakeSubscriptions implements SubscriptionRepository {
-  readonly subscribed: Array<{ userId: number; target: string; targetId: number; mode: string }> = []
+  readonly subscribed: Array<{ userId: number; target: string; targetId: number; mode: string }> =
+    []
   readonly removed: Array<{ userId: number; target: string; targetId: number }> = []
 
   async subscribe(input: {
@@ -132,15 +135,24 @@ function install(forumId: number | null = SEED_FORUM.general, hidden = false) {
       subscriptions,
       notifications,
       threads: {
-        locate: async () =>
-          forumId === null ? null : { forumId, authorUserId: null },
-        findById: async () => ({ id: forumId ?? 0, type: 'forum', title: 'A forum', slug: 'a-forum' }),
+        locate: async () => (forumId === null ? null : { forumId, authorUserId: null }),
+        findById: async () => ({
+          id: forumId ?? 0,
+          type: 'forum',
+          title: 'A forum',
+          slug: 'a-forum',
+        }),
         listForum: async () => ({ rows: [], nextCursor: null }),
       },
       forums: {
         listAll: async () => [],
         listListing: async () => [],
-        findById: async () => ({ id: forumId ?? 0, type: 'forum', title: 'A forum', slug: 'a-forum' }),
+        findById: async () => ({
+          id: forumId ?? 0,
+          type: 'forum',
+          title: 'A forum',
+          slug: 'a-forum',
+        }),
       },
     },
   })
@@ -285,10 +297,7 @@ describe('the no-login unsubscribe', () => {
   })
 
   it('acts on a valid token with nobody signed in', async () => {
-    const token = mintUnsubscribeToken(
-      { userId: 42, scope: 'thread', targetId: 20 },
-      SECRET,
-    )
+    const token = mintUnsubscribeToken({ userId: 42, scope: 'thread', targetId: 20 }, SECRET)
 
     const result = await run(unsubscribeByTokenAction, form([['token', token]]))
 

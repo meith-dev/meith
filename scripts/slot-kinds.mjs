@@ -4,15 +4,7 @@ import { dirname, join, relative, resolve } from 'node:path'
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 
-const SKIP_DIRS = new Set([
-  'node_modules',
-  '.next',
-  '.git',
-  'dist',
-  'build',
-  '.turbo',
-  'coverage',
-])
+const SKIP_DIRS = new Set(['node_modules', '.next', '.git', 'dist', 'build', '.turbo', 'coverage'])
 
 let readSource = (path) => readFile(path, 'utf8')
 
@@ -364,7 +356,7 @@ async function probe(kinds) {
     failures.push('INERT: a real directive following a comment was not recognised.')
   }
 
-  const afterNested = slotEntries(" Header: { a: 1 } ? A : B, PostBit ").map((e) => e.slot)
+  const afterNested = slotEntries(' Header: { a: 1 } ? A : B, PostBit ').map((e) => e.slot)
   if (!afterNested.includes('PostBit')) {
     failures.push('INERT: a slot listed after a nested object literal was lost by the parser.')
   }

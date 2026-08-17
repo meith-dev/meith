@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { hashToken } from './crypto/tokens'
 import { createMemoryStore } from './memory-repos'
-import { REMEMBER_ROTATION_GRACE_SECONDS, type AccountStore } from './ports'
+import { type AccountStore, REMEMBER_ROTATION_GRACE_SECONDS } from './ports'
 import { SessionService } from './session-service'
 
 function makeService(store: AccountStore, clock?: () => Date) {
@@ -37,9 +37,7 @@ describe('SessionService remember-me', () => {
     expect(login.userId).toBe(42)
     expect(login.sessionToken).toBeTypeOf('string')
     expect(login.rememberToken).toBeTypeOf('string')
-    expect(
-      await store.sessions.findByTokenHash(await hashToken(login.sessionToken)),
-    ).not.toBeNull()
+    expect(await store.sessions.findByTokenHash(await hashToken(login.sessionToken))).not.toBeNull()
     expect(await store.remember.findByTokenHash(login.rememberToken)).toBeNull()
     expect(
       await store.remember.findByTokenHash(await hashToken(login.rememberToken)),
@@ -80,9 +78,7 @@ describe('SessionService remember-me', () => {
     expect(afterReuse.status).not.toBe('ok')
     expect(afterReuse.status).toBe('reuse')
 
-    const session = await store.sessions.findByTokenHash(
-      await hashToken(good.login.sessionToken),
-    )
+    const session = await store.sessions.findByTokenHash(await hashToken(good.login.sessionToken))
     expect(session!.revokedAt).not.toBeNull()
   })
 

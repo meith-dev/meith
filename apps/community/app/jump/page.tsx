@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 
-import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
+import { getActor } from '@/server/context'
 import { JUMP_FIELD, parseJumpTarget } from '@/view/forum-jump'
 
 export default async function JumpPage({

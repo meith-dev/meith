@@ -1,8 +1,8 @@
 import { githubProvider } from './github'
 import { DEFAULT_OIDC_SCOPES, oidcProvider } from './oidc'
 import type {
-  Fetcher,
   FederationOptions,
+  Fetcher,
   IdentityProvider,
   OidcCredentials,
   ProviderCredentials,

@@ -1,6 +1,11 @@
+import { sql } from 'drizzle-orm'
+
 import { hashPassword } from '@meith/accounts'
 import { logger } from '@meith/core'
 import {
+  applyPluginMigration,
+  type Database,
+  markInstalled,
   PostgresAdminRepository,
   PostgresContentAdminRepository,
   PostgresForumAdminRepository,
@@ -13,20 +18,15 @@ import {
   PostgresSettingsRepository,
   PostgresThreadToolsRepository,
   PostgresThreadWriteRepository,
-  SEED_GROUP_KEY,
-  applyPluginMigration,
-  markInstalled,
   recordVersion,
   resultRows,
-  type Database,
+  SEED_GROUP_KEY,
 } from '@meith/db'
 import { quoteBlock, renderMarkdown, vocabularyOptions } from '@meith/markdown'
 import type { PluginDefinition } from '@meith/plugin-kit'
 import { threadSlug } from '@meith/threads'
-import { sql } from 'drizzle-orm'
 
 import { DEMO_ACCOUNTS, type DemoAccount, type DemoGroupKey } from './accounts'
-import { DUES_PLUGIN_KEY, SUPPORTERS_GROUP_KEY, ensureSupportersGroup, seedDuesDemoBoard } from './dues'
 import {
   DEMO_FORUMS,
   DEMO_MESSAGES,
@@ -38,6 +38,12 @@ import {
   type DemoReply,
   type DemoThread,
 } from './content'
+import {
+  DUES_PLUGIN_KEY,
+  ensureSupportersGroup,
+  SUPPORTERS_GROUP_KEY,
+  seedDuesDemoBoard,
+} from './dues'
 
 const DEMO_VERSION = '0.1.0-demo'
 
@@ -56,9 +62,7 @@ const GROUP_KEY: Record<DemoGroupKey, string> = {
  * bright enough to read at midnight, and the pair keeps the same hue so the
  * hierarchy is the same hierarchy in both.
  */
-const GROUP_COLOUR: Readonly<
-  Record<string, { readonly light: string; readonly dark: string }>
-> = {
+const GROUP_COLOUR: Readonly<Record<string, { readonly light: string; readonly dark: string }>> = {
   [SEED_GROUP_KEY.administrators]: { light: '#b91c1c', dark: '#f87171' },
   [SEED_GROUP_KEY.superModerators]: { light: '#1e3a8a', dark: '#60a5fa' },
   [SEED_GROUP_KEY.moderators]: { light: '#0284c7', dark: '#7dd3fc' },
@@ -97,11 +101,7 @@ const CLOSED_TO: Readonly<Record<DemoForumAccess, readonly string[]>> = {
  * registered group's defaults, and the staff sections stay staff sections.
  */
 const OPEN_TO: Readonly<Record<DemoForumAccess, readonly string[]>> = {
-  staff: [
-    SEED_GROUP_KEY.administrators,
-    SEED_GROUP_KEY.superModerators,
-    SEED_GROUP_KEY.moderators,
-  ],
+  staff: [SEED_GROUP_KEY.administrators, SEED_GROUP_KEY.superModerators, SEED_GROUP_KEY.moderators],
   supporters: [
     SEED_GROUP_KEY.administrators,
     SEED_GROUP_KEY.superModerators,
@@ -310,7 +310,9 @@ async function seedForums(db: Database): Promise<ReadonlyMap<string, SeededForum
   for (const [index, forum] of DEMO_FORUMS.entries()) {
     const parentId = forum.parent === null ? null : (created.get(forum.parent)?.id ?? null)
     if (forum.parent !== null && parentId === null) {
-      throw new Error(`Demo forum "${forum.key}" names a parent "${forum.parent}" declared after it.`)
+      throw new Error(
+        `Demo forum "${forum.key}" names a parent "${forum.parent}" declared after it.`,
+      )
     }
 
     const row = await forums.create({
@@ -366,7 +368,9 @@ async function seedPrefixes(
   for (const [index, prefix] of DEMO_PREFIXES.entries()) {
     const scope = prefix.scope === null ? null : forums.get(prefix.scope)
     if (prefix.scope !== null && scope === undefined) {
-      throw new Error(`Demo prefix "${prefix.key}" is scoped to "${prefix.scope}", which is not a forum.`)
+      throw new Error(
+        `Demo prefix "${prefix.key}" is scoped to "${prefix.scope}", which is not a forum.`,
+      )
     }
 
     ids.set(
@@ -402,14 +406,19 @@ async function seedThreads(
     const author = requireUser(input.userIds, thread.author)
     const forumId = input.forumIds.get(thread.forum)
     if (forumId === undefined) {
-      throw new Error(`Demo thread "${thread.title}" is in forum "${thread.forum}", which is not declared.`)
+      throw new Error(
+        `Demo thread "${thread.title}" is in forum "${thread.forum}", which is not declared.`,
+      )
     }
 
     const openedAt = daysBefore(input.now, thread.daysAgo)
     const slug = threadSlug(thread.title)
-    const prefixId = thread.prefix === undefined ? null : (input.prefixIds.get(thread.prefix) ?? null)
+    const prefixId =
+      thread.prefix === undefined ? null : (input.prefixIds.get(thread.prefix) ?? null)
     if (thread.prefix !== undefined && prefixId === null) {
-      throw new Error(`Demo thread "${thread.title}" carries a prefix "${thread.prefix}" that is not declared.`)
+      throw new Error(
+        `Demo thread "${thread.title}" carries a prefix "${thread.prefix}" that is not declared.`,
+      )
     }
 
     const created = await writes.create({
@@ -586,9 +595,7 @@ function postAuthor(
   userIds: ReadonlyMap<string, number>,
 ): number {
   const key =
-    postIndex === 0
-      ? entry.thread.author
-      : (entry.thread.replies ?? [])[postIndex - 1]?.author
+    postIndex === 0 ? entry.thread.author : (entry.thread.replies ?? [])[postIndex - 1]?.author
   if (key === undefined) {
     throw new Error(`Post ${postIndex} of "${entry.thread.title}" has no author.`)
   }

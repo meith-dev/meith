@@ -11,15 +11,15 @@ import {
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH
 
 const DEMO_ENV = {
-  DATA_SOURCE: "postgres",
+  DATA_SOURCE: 'postgres',
   DATABASE_URL: DEMO_DATABASE_URL,
-  DATABASE_POOL_MAX: "1",
-  QUEUE_DRIVER: "postgres",
-  CACHE_DRIVER: "memory",
-  FILESTORE_DRIVER: "local",
+  DATABASE_POOL_MAX: '1',
+  QUEUE_DRIVER: 'postgres',
+  CACHE_DRIVER: 'memory',
+  FILESTORE_DRIVER: 'local',
   UPLOADS_DIR: DEMO_UPLOADS_DIR,
-  DEMO_MODE: "1",
-  SHOWCASE_THEMES: "1",
+  DEMO_MODE: '1',
+  SHOWCASE_THEMES: '1',
 } as const
 
 export default defineConfig({

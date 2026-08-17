@@ -1,6 +1,6 @@
 import type { LatestThreadsModel } from '@meith/theme-kit'
 
-import { Circle, MUTED_LINK, NUMERIC, Rail, Stamp, UserRef, count, plural } from '../shared'
+import { Circle, count, MUTED_LINK, NUMERIC, plural, Rail, Stamp, UserRef } from '../shared'
 
 export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
   return (
@@ -20,7 +20,10 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
       ) : (
         <ul className="px-1 pt-1 pb-1">
           {threads.map((thread) => (
-            <li key={thread.href} className="rounded-lg px-2 py-1.5 transition-colors hover:bg-accent">
+            <li
+              key={thread.href}
+              className="rounded-lg px-2 py-1.5 transition-colors hover:bg-accent"
+            >
               <div className="flex items-start gap-2.5">
                 <Circle name={thread.author.username} size={32} className="mt-0.5" />
 

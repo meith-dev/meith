@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { type Browser, expect, type Page, test } from '@playwright/test'
 
 import { signInAsModerator, signUp } from './support/session'
 
@@ -229,8 +229,7 @@ test('the moderator log records what was done, where, and by whom', async ({ bro
     const generalId = '200'
 
     const heading = (label: string) => modPage.getByText(label, { exact: true })
-    const logEntry = (label: string) =>
-      modPage.locator('li').filter({ has: heading(label) })
+    const logEntry = (label: string) => modPage.locator('li').filter({ has: heading(label) })
 
     await modPage.goto(threadUrl)
     await modPage.getByRole('button', { name: 'Lock', exact: true }).click()

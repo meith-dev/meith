@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { hashPassword } from './crypto/password'
 import {
   AUTOMATIC_TIMEZONE,
-  MemberSettingsService,
   isKnownTimezone,
   isTimezonePreference,
   type MemberGroupChoice,
   type MemberSettings,
   type MemberSettingsRepository,
+  MemberSettingsService,
 } from './member-settings'
 import type {
   AccountRecord,
@@ -223,15 +223,15 @@ describe('the display group', () => {
   })
 
   it('refuses a group the member is not in', async () => {
-    await expect(
-      service.saveDisplayGroup({ userId: 7, displayGroupId: '9' }),
-    ).rejects.toThrow('a group you are in')
+    await expect(service.saveDisplayGroup({ userId: 7, displayGroupId: '9' })).rejects.toThrow(
+      'a group you are in',
+    )
   })
 
   it('refuses anything that is not a group id', async () => {
-    await expect(
-      service.saveDisplayGroup({ userId: 7, displayGroupId: 'gold' }),
-    ).rejects.toThrow('not a group')
+    await expect(service.saveDisplayGroup({ userId: 7, displayGroupId: 'gold' })).rejects.toThrow(
+      'not a group',
+    )
   })
 
   it('lists the groups a member holds', async () => {
@@ -245,7 +245,8 @@ describe('the options', () => {
       userId: 7,
       timezone: 'Europe/London',
       postsPerPage: '',
-      threadsPerPage: '', invisible: false,
+      threadsPerPage: '',
+      invisible: false,
     })
     expect(settings.row.timezone).toBe('Europe/London')
   })
@@ -255,7 +256,8 @@ describe('the options', () => {
       userId: 7,
       timezone: AUTOMATIC_TIMEZONE,
       postsPerPage: '',
-      threadsPerPage: '', invisible: false,
+      threadsPerPage: '',
+      invisible: false,
     })
     expect(settings.row.timezone).toBe(AUTOMATIC_TIMEZONE)
   })
@@ -266,7 +268,8 @@ describe('the options', () => {
         userId: 7,
         timezone: 'Middle/Earth',
         postsPerPage: '',
-        threadsPerPage: '', invisible: false,
+        threadsPerPage: '',
+        invisible: false,
       }),
     ).rejects.toThrow('not a timezone')
   })
@@ -277,7 +280,8 @@ describe('the options', () => {
         userId: 7,
         timezone: '+01:00',
         postsPerPage: '',
-        threadsPerPage: '', invisible: false,
+        threadsPerPage: '',
+        invisible: false,
       }),
     ).rejects.toThrow('not a timezone')
   })
@@ -287,7 +291,8 @@ describe('the options', () => {
       userId: 7,
       timezone: 'UTC',
       postsPerPage: '',
-      threadsPerPage: '  ', invisible: false,
+      threadsPerPage: '  ',
+      invisible: false,
     })
 
     expect(settings.row.postsPerPage).toBeNull()
@@ -301,7 +306,8 @@ describe('the options', () => {
           userId: 7,
           timezone: 'UTC',
           postsPerPage: value,
-          threadsPerPage: '', invisible: false,
+          threadsPerPage: '',
+          invisible: false,
         }),
       ).rejects.toThrow(/Posts per page/)
     }

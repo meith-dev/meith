@@ -1,9 +1,10 @@
-import { ValidationError } from '@meith/core'
-import { BodyFormat, RENDER_VERSION } from '@meith/markdown'
 import { describe, expect, it } from 'vitest'
 
-import { SIGNATURE_HARD_MAX, prepareSignature, signatureHtml, signatureLimit } from './index'
+import { ValidationError } from '@meith/core'
+import { BodyFormat, RENDER_VERSION } from '@meith/markdown'
+
 import type { SignatureLimits, StoredSignature } from './index'
+import { prepareSignature, SIGNATURE_HARD_MAX, signatureHtml, signatureLimit } from './index'
 
 const ALLOWED: SignatureLimits = { canUse: true, maxLength: 200 }
 

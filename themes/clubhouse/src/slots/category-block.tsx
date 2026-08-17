@@ -1,5 +1,5 @@
-import { Card, CardRows } from '@meith/ui'
 import type { CategoryBlockModel } from '@meith/theme-kit'
+import { Card, CardRows } from '@meith/ui'
 
 import { ColumnHeads, PanelHead } from '../shared'
 

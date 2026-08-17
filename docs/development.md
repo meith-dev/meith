@@ -122,7 +122,7 @@ How the packages relate — the layers, what may import what, and why — is
 | `pnpm community <command>` | The operator CLI against your `.env`. `--help` lists everything. |
 | `pnpm test` | The whole unit suite. `pnpm test:watch` while you work. |
 | `pnpm typecheck` | The workspace. `typecheck:app` and `typecheck:site` cover the two Next projects. |
-| `pnpm lint` | ESLint. |
+| `pnpm lint` | Biome: formatting, lint rules and import order, in one pass. `pnpm format` writes the fixes. |
 | `pnpm verify` | **The full static gate.** Run it before opening a pull request — see below. |
 | `pnpm test:e2e` | Playwright: the no-JavaScript paths, the staff panels, and the accessibility checks. It starts its own database and dev servers — nothing to install. |
 | `pnpm site:shots` | Re-photographs meith.dev's screenshots against the demo board. Deliberate, never on CI — see [the site's screenshots](#the-sites-screenshots). |
@@ -136,10 +136,75 @@ It is a superset of what CI's `static` job runs, so if it passes locally,
 that job will pass too. CI's other jobs build the image and drive a
 browser.
 
+## Formatting and lint
+
+One tool does both: [Biome](https://biomejs.dev/), configured in `biome.json`
+at the root. `pnpm lint` checks formatting, the lint rules and import order
+and changes nothing; `pnpm format` writes the fixes. The same command backs
+the `lint` script in `apps/community` and `apps/web`, and `pnpm verify` runs
+it, so a badly formatted file fails CI the same way a lint error does.
+
+The formatter is not configurable per file: single quotes, no semicolons,
+two-space indent, 100 columns. The version is pinned exactly in
+`package.json` — a formatter that drifts with a minor bump reformats files
+nobody touched.
+
+It covers TypeScript, JSX, JSON and CSS — every such file in the tree
+except `docs/perf-indexes.json` and `docs/perf-results.json`, which a
+generator writes. Markdown, YAML and SQL have no formatter: Biome does not
+format them, so `docs/`, the workflows and the migrations are written by
+hand and reviewed as prose.
+
+Three rules carry an invariant rather than a preference:
+
+- **`style/noProcessEnv`.** `process.env` is read in
+  `packages/core/src/env.ts` and nowhere else, so every variable is
+  validated once at boot. `scripts/`, `apps/cli`, `apps/worker`, config
+  files and tests are exempt in `biome.json`; the sanctioned reader carries
+  a `biome-ignore` with its reason. `pnpm guards` enforces the same rule
+  textually, which is what catches a read in a file Biome does not parse.
+- **`scripts/no-group-ids.grit`.** A Biome plugin, registered in
+  `biome.json`, that fails on any read of `.groupIds` or `.primaryGroupId`.
+  Group IDs must not leak outside `@meith/authorization` — ask the
+  Authorizer `can(actor, action, target)` instead of branching on group
+  membership. Biome cannot suppress a plugin diagnostic on one line, so the
+  modules that legitimately carry a group id as data — the repositories that
+  read and write the column, and the admin forms that render it — are named
+  by path in the plugin itself.
+- **`suspicious/noConsole`.** The board logs through `logger()`. Processes
+  that *are* their output — the CLI, the worker, the scripts, the e2e
+  harness — are exempt.
+
+Everything else is Biome's recommended set. Where a recommended rule is off
+in `biome.json` it is because the codebase means the other thing:
+
+- `noNonNullAssertion` and `useTemplate` are style preferences it does not
+  share — the second would rewrite `'mybb$$' + 'a'.repeat(32)` into
+  something less readable than it started.
+- `noDangerouslySetInnerHtml` would fire on every rendered post body,
+  signature and announcement. Rendered HTML comes from `@meith/markdown`
+  and nowhere else, which is where that safety argument is settled.
+- `noImgElement` would ask for `next/image` on a board that has to run
+  without an image optimiser.
+- `noImportantStyles` fires on the `prefers-reduced-motion` block, where
+  `!important` is the point.
+- `useSemanticElements`, `noStaticElementInteractions` and
+  `useKeyWithClickEvents` want markup changes to the theme editor, the
+  attachment dropzone and the docs search — worth doing, and not as a side
+  effect of a formatter change.
+
+A suppression is always a `biome-ignore` with a reason, never a blanket
+disable:
+
+```ts
+// biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is the point
+```
+
 > [!IMPORTANT]
-> **Do not run `pnpm format`.** It reformats the entire tree — over a
-> thousand files — and buries whatever you were actually changing. Format
-> the files you touched, or let your editor do it on save.
+> **Do not run `pnpm format` in a feature change.** It is safe — the output
+> is deterministic — but a whole-tree rewrite buries whatever you were
+> actually changing. Format the files you touched, or let your editor do it
+> on save.
 
 ## The database in tests
 

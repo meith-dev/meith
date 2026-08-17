@@ -1,9 +1,9 @@
-import type { Metadata } from "next"
-import Link from "next/link"
+import type { Metadata } from 'next'
+import Link from 'next/link'
 
-import { SegmentCards } from "../../src/components/segment-cards"
-import { chooser, site } from "../../src/content/site"
-import { quickstartHref } from "../../src/docs/registry"
+import { SegmentCards } from '../../src/components/segment-cards'
+import { chooser, site } from '../../src/content/site'
+import { quickstartHref } from '../../src/docs/registry'
 
 /*
  * The hub the header points at, and the parent of every segment page. It is
@@ -13,12 +13,12 @@ import { quickstartHref } from "../../src/docs/registry"
 export const metadata: Metadata = {
   title: { absolute: `Who Meith is for — clubs, neighbourhoods, communities and clans` },
   description:
-    "Meith is community software for people who already have a community: sports clubs, " +
+    'Meith is community software for people who already have a community: sports clubs, ' +
     "residents' associations, Discord and Slack communities, Facebook groups and gaming " +
-    "clans. Each one gets a page of its own.",
-  alternates: { canonical: "/for" },
+    'clans. Each one gets a page of its own.',
+  alternates: { canonical: '/for' },
   openGraph: {
-    type: "website",
+    type: 'website',
     siteName: site.name,
     title: `Who ${site.name} is for`,
     description: site.tagline,
@@ -55,14 +55,14 @@ export default function SegmentIndexPage() {
           <SegmentCards />
 
           <p className="mt-10 max-w-[38rem] text-micro leading-[1.65] text-fg-subtle text-pretty">
-            None of them quite you? The{" "}
+            None of them quite you? The{' '}
             <Link className="textlink" href="/">
               general case
-            </Link>{" "}
-            is the same software with the specifics taken out, and the{" "}
+            </Link>{' '}
+            is the same software with the specifics taken out, and the{' '}
             <Link className="textlink" href={quickstartHref()}>
               quickstart
-            </Link>{" "}
+            </Link>{' '}
             does not care what kind of community you are.
           </p>
         </div>

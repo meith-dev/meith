@@ -7,12 +7,12 @@ import { parseRating } from '@meith/reputation'
 
 import { postLink } from '@/view/post-link'
 
+import type { FormState } from './auth-form-state'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
 import { reputationService, reputationSettings, viewerRaterLimits } from './reputation'
 import { isSafeLocalPath } from './safe-path'
-import type { FormState } from './auth-form-state'
 
 const toFormState = formStateReporter('reputation-actions', 'unexpected error rating somebody')
 

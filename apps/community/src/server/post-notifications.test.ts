@@ -30,7 +30,7 @@ beforeEach(() => {
 })
 
 async function member(username: string): Promise<number> {
-  const store = container['accountStore'] as {
+  const store = container.accountStore as {
     accounts: {
       create(input: Record<string, unknown>): Promise<{ id: number }>
     }
@@ -129,8 +129,6 @@ describe('notifyPostAudience', () => {
   it('swallows a failing store: the post exists, so this must not throw', async () => {
     await member('wren')
     notifications.failing = true
-    await expect(
-      notifyPostAudience(notice({ message: 'hi @wren' })),
-    ).resolves.toBeUndefined()
+    await expect(notifyPostAudience(notice({ message: 'hi @wren' }))).resolves.toBeUndefined()
   })
 })

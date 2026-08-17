@@ -43,8 +43,7 @@ export const NOTIFICATION_KINDS = [
     id: 'subscription.digest',
     title: 'Your daily or weekly digest is ready',
     description:
-      'A summary of what arrived in the threads and forums you follow on a ' +
-      'digest cadence.',
+      'A summary of what arrived in the threads and forums you follow on a ' + 'digest cadence.',
     audience: 'member',
     emailByDefault: true,
     emailConfigurable: true,

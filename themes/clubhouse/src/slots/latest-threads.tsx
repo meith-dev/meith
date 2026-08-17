@@ -1,5 +1,5 @@
-import { Card, CardContent, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 import type { LatestThreadsModel } from '@meith/theme-kit'
+import { Card, CardContent, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { LINK, MICRO, MUTED_LINK, NUMERIC, PanelHead, Stamp, UserRef } from '../shared'
 

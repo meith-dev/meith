@@ -1,5 +1,5 @@
-import { Separator, buttonVariants } from '@meith/ui'
 import type { PostActionsSlotModel } from '@meith/theme-kit'
+import { buttonVariants, Separator } from '@meith/ui'
 
 interface Action {
   readonly href: string

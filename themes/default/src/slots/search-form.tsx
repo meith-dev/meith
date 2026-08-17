@@ -1,16 +1,16 @@
+import type { OptionModel, SearchAdvancedModel, SearchFormModel } from '@meith/theme-kit'
 import {
   Alert,
   AlertDescription,
   AlertTitle,
+  buttonVariants,
   Card,
   CardContent,
   Disclosure,
   Field,
   Input,
   NativeSelect,
-  buttonVariants,
 } from '@meith/ui'
-import type { OptionModel, SearchAdvancedModel, SearchFormModel } from '@meith/theme-kit'
 
 export function SearchForm({
   action,

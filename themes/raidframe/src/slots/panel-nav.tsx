@@ -2,12 +2,12 @@ import type { PanelNavItemModel, PanelNavModel } from '@meith/theme-kit'
 
 import { MICRO, NUMERIC, RULE } from '../shared'
 
-const ITEM =
-  'flex items-baseline gap-2 border-l-2 px-2.5 py-1.5 text-[0.8125rem] tracking-[0.02em]'
+const ITEM = 'flex items-baseline gap-2 border-l-2 px-2.5 py-1.5 text-[0.8125rem] tracking-[0.02em]'
 
 const HERE = 'border-l-primary bg-secondary font-semibold text-foreground'
 const OPEN = 'border-l-primary/40 font-semibold text-foreground'
-const ELSEWHERE = 'border-l-transparent text-muted-foreground hover:border-l-border hover:text-primary'
+const ELSEWHERE =
+  'border-l-transparent text-muted-foreground hover:border-l-border hover:text-primary'
 
 function Count({ count }: { count: number }) {
   return (

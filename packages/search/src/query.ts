@@ -12,12 +12,10 @@ export function parseSearchInput(
   minTermLength: number = MIN_TERM_LENGTH,
 ): ParsedSearchInput {
   const shortest =
-    Number.isInteger(minTermLength) && minTermLength >= 1
-      ? minTermLength
-      : MIN_TERM_LENGTH
+    Number.isInteger(minTermLength) && minTermLength >= 1 ? minTermLength : MIN_TERM_LENGTH
 
   const cleaned = raw
-    // eslint-disable-next-line no-control-regex -- matching control characters is the point: they are what is being removed
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is the point: they are what is being removed
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()

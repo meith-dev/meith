@@ -36,19 +36,20 @@ function runAfter(value: string, at: number, marker: string): number {
   return count
 }
 
-export function toggleWrap(
-  value: string,
-  start: number,
-  end: number,
-  syntax: WrapSyntax,
-): Edit {
+export function toggleWrap(value: string, start: number, end: number, syntax: WrapSyntax): Edit {
   const { marker, length, placeholder } = syntax
   const rail = marker.repeat(length)
   const selected = value.slice(start, end)
 
   if (selected.length > length * 2 && selected.startsWith(rail) && selected.endsWith(rail)) {
     const inner = selected.slice(length, -length)
-    return { from: start, to: end, text: inner, selectionStart: start, selectionEnd: start + inner.length }
+    return {
+      from: start,
+      to: end,
+      text: inner,
+      selectionStart: start,
+      selectionEnd: start + inner.length,
+    }
   }
 
   const outside = Math.min(runBefore(value, start, marker), runAfter(value, end, marker))
@@ -77,12 +78,13 @@ export function toggleWrap(
 export function togglePrefix(value: string, start: number, end: number, marker: LineMarker): Edit {
   const { from, to } = lineRange(value, start, end)
   const lines = value.slice(from, to).split('\n')
-  const markerFor = (index: number): string =>
-    typeof marker === 'string' ? marker : marker(index)
+  const markerFor = (index: number): string => (typeof marker === 'string' ? marker : marker(index))
 
   const marked = lines.every((line, index) => line.startsWith(markerFor(index)))
   const text = lines
-    .map((line, index) => (marked ? line.slice(markerFor(index).length) : `${markerFor(index)}${line}`))
+    .map((line, index) =>
+      marked ? line.slice(markerFor(index).length) : `${markerFor(index)}${line}`,
+    )
     .join('\n')
 
   return { from, to, text, selectionStart: from, selectionEnd: from + text.length }
@@ -156,7 +158,12 @@ export function listContinuation(value: string, caret: number): Edit | null {
   }
 }
 
-export function pasteAsLink(value: string, start: number, end: number, pasted: string): Edit | null {
+export function pasteAsLink(
+  value: string,
+  start: number,
+  end: number,
+  pasted: string,
+): Edit | null {
   const url = pasted.trim()
   if (start === end || !URL_ONLY.test(url)) return null
 

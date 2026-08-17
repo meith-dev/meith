@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest'
+
 import { ValidationError } from '@meith/core'
 
 import {
-  WarningService,
+  type PostingRestriction,
   parseWarningAction,
   restrictsPosting,
-  type PostingRestriction,
   type WarningLevel,
   type WarningPage,
   type WarningRepository,
+  WarningService,
   type WarningType,
 } from './warnings'
 
@@ -149,16 +150,16 @@ describe('issuing', () => {
 
   it('refuses a type that does not exist', async () => {
     const warnings = new FakeWarnings()
-    await expect(
-      serviceFor(warnings).issue({ ...ISSUE, typeId: 999 }),
-    ).rejects.toBeInstanceOf(ValidationError)
+    await expect(serviceFor(warnings).issue({ ...ISSUE, typeId: 999 })).rejects.toBeInstanceOf(
+      ValidationError,
+    )
   })
 
   it('refuses without the permission, and refuses a deleted account', async () => {
     const warnings = new FakeWarnings()
-    await expect(
-      serviceFor(warnings).issue({ ...ISSUE, mayWarn: false }),
-    ).rejects.toBeInstanceOf(ValidationError)
+    await expect(serviceFor(warnings).issue({ ...ISSUE, mayWarn: false })).rejects.toBeInstanceOf(
+      ValidationError,
+    )
 
     warnings.warnable = null
     await expect(serviceFor(warnings).issue(ISSUE)).rejects.toBeInstanceOf(ValidationError)
@@ -174,9 +175,9 @@ describe('issuing', () => {
 
   it('needs a reason', async () => {
     const warnings = new FakeWarnings()
-    await expect(
-      serviceFor(warnings).issue({ ...ISSUE, reason: '   ' }),
-    ).rejects.toBeInstanceOf(ValidationError)
+    await expect(serviceFor(warnings).issue({ ...ISSUE, reason: '   ' })).rejects.toBeInstanceOf(
+      ValidationError,
+    )
   })
 })
 

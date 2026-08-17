@@ -1,5 +1,10 @@
 export type LegacyTarget =
-  | { readonly kind: 'thread'; readonly legacyId: number; readonly postId: number | null; readonly page: number | null }
+  | {
+      readonly kind: 'thread'
+      readonly legacyId: number
+      readonly postId: number | null
+      readonly page: number | null
+    }
   | { readonly kind: 'forum'; readonly legacyId: number; readonly page: number | null }
   | { readonly kind: 'post'; readonly legacyId: number }
   | { readonly kind: 'user'; readonly legacyId: number }

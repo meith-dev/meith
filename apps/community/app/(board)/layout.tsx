@@ -1,7 +1,7 @@
-import { OfflineNotice } from "@/components/shell/offline-notice"
-import { PageShell } from "@/components/shell/page-shell"
-import { boardOffline } from "@/server/board-offline"
-import { getActor } from "@/server/context"
+import { OfflineNotice } from '@/components/shell/offline-notice'
+import { PageShell } from '@/components/shell/page-shell'
+import { boardOffline } from '@/server/board-offline'
+import { getActor } from '@/server/context'
 
 export default async function BoardLayout({ children }: { children: React.ReactNode }) {
   const offline = await boardOffline()

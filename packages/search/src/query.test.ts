@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { MAX_QUERY_LENGTH, MIN_TERM_LENGTH, isRunnable, parseSearchInput } from './query'
+import { isRunnable, MAX_QUERY_LENGTH, MIN_TERM_LENGTH, parseSearchInput } from './query'
 
 describe('parseSearchInput', () => {
   it('passes ordinary words through', () => {

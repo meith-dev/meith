@@ -1,7 +1,7 @@
-import { Card, CardRows, Empty, EmptyDescription, cn } from '@meith/ui'
 import type { DiscoveryViewModel, TabModel } from '@meith/theme-kit'
+import { Card, CardRows, cn, Empty, EmptyDescription } from '@meith/ui'
 
-import { LINK, NUMERIC, Stamp, pageAt } from '../shared'
+import { LINK, NUMERIC, pageAt, Stamp } from '../shared'
 
 const TAB =
   'inline-flex h-9 items-center rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -58,10 +58,7 @@ export function DiscoveryView({
       <Tabs label={tabsLabel} tabs={tabs} />
 
       {refusal !== null ? (
-        <p
-          role="alert"
-          className="rounded-md border border-border bg-muted px-3 py-2 text-sm"
-        >
+        <p role="alert" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
           {refusal.message}{' '}
           <a href={refusal.signInHref} className={`font-medium text-foreground ${LINK}`}>
             {refusal.signInLabel}

@@ -1,163 +1,175 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from 'vitest'
 
-import { renderMarkdown } from "./render"
-import { createSlugger, slugify } from "./slug"
+import { renderMarkdown } from './render'
+import { createSlugger, slugify } from './slug'
 
 const identity = { resolveLink: (href: string) => ({ href, external: false }) }
 
-describe("slugify", () => {
-  it("matches the ids GitHub generates", () => {
-    expect(slugify("Connection pooling")).toBe("connection-pooling")
-    expect(slugify("Backup and restore")).toBe("backup-and-restore")
-    expect(slugify("Shell")).toBe("shell")
-    expect(slugify("If it fails halfway")).toBe("if-it-fails-halfway")
+describe('slugify', () => {
+  it('matches the ids GitHub generates', () => {
+    expect(slugify('Connection pooling')).toBe('connection-pooling')
+    expect(slugify('Backup and restore')).toBe('backup-and-restore')
+    expect(slugify('Shell')).toBe('shell')
+    expect(slugify('If it fails halfway')).toBe('if-it-fails-halfway')
   })
 
-  it("drops punctuation and keeps letters that carry accents", () => {
-    expect(slugify("What's the p95?")).toBe("whats-the-p95")
-    expect(slugify("Ar scáth a chéile")).toBe("ar-scáth-a-chéile")
+  it('drops punctuation and keeps letters that carry accents', () => {
+    expect(slugify("What's the p95?")).toBe('whats-the-p95')
+    expect(slugify('Ar scáth a chéile')).toBe('ar-scáth-a-chéile')
   })
 
-  it("numbers repeats in document order", () => {
+  it('numbers repeats in document order', () => {
     const slug = createSlugger()
-    expect(slug("Notes")).toBe("notes")
-    expect(slug("Notes")).toBe("notes-1")
-    expect(slug("Notes")).toBe("notes-2")
+    expect(slug('Notes')).toBe('notes')
+    expect(slug('Notes')).toBe('notes-1')
+    expect(slug('Notes')).toBe('notes-2')
   })
 })
 
-describe("renderMarkdown", () => {
-  it("lifts the title out of the body", async () => {
-    const { title, html } = await renderMarkdown("# Running a board\n\nText.\n", identity)
+describe('renderMarkdown', () => {
+  it('lifts the title out of the body', async () => {
+    const { title, html } = await renderMarkdown('# Running a board\n\nText.\n', identity)
 
-    expect(title).toBe("Running a board")
-    expect(html).not.toContain("<h1")
-    expect(html).toContain("Text.")
+    expect(title).toBe('Running a board')
+    expect(html).not.toContain('<h1')
+    expect(html).toContain('Text.')
   })
 
-  it("gives every heading an id the contents rail agrees with", async () => {
+  it('gives every heading an id the contents rail agrees with', async () => {
     const { html, headings } = await renderMarkdown(
-      "# T\n\n## Connection pooling\n\nBody.\n\n### Notes\n\nMore.\n",
+      '# T\n\n## Connection pooling\n\nBody.\n\n### Notes\n\nMore.\n',
       identity,
     )
 
     expect(headings).toEqual([
-      { id: "connection-pooling", text: "Connection pooling", depth: 2 },
-      { id: "notes", text: "Notes", depth: 3 },
+      { id: 'connection-pooling', text: 'Connection pooling', depth: 2 },
+      { id: 'notes', text: 'Notes', depth: 3 },
     ])
     expect(html).toContain('id="connection-pooling"')
     expect(html).toContain('href="#notes"')
   })
 
-  it("indexes deeper headings but keeps them out of the rail", async () => {
-    const { headings, sections } = await renderMarkdown("# T\n\n## Two\n\na\n\n#### Four\n\nb\n", identity)
-
-    expect(headings.map((heading) => heading.depth)).toEqual([2])
-    expect(sections.map((section) => section.heading)).toEqual(["Two", "Four"])
-  })
-
-  it("escapes raw HTML instead of emitting it", async () => {
-    const { html } = await renderMarkdown('# T\n\nMoved: <title>\n\n<img src="x" onerror="go()">\n', identity)
-
-    expect(html).toContain("&lt;title&gt;")
-    expect(html).not.toContain("<title>")
-    expect(html).not.toContain("<img")
-    expect(html).toContain("onerror=&quot;go()&quot;")
-  })
-
-  it("drops the generated-file comment", async () => {
-    const { html } = await renderMarkdown(
-      "# Performance\n\n<!--\n  GENERATED FILE — do not edit.\n-->\n\nBudgets.\n",
+  it('indexes deeper headings but keeps them out of the rail', async () => {
+    const { headings, sections } = await renderMarkdown(
+      '# T\n\n## Two\n\na\n\n#### Four\n\nb\n',
       identity,
     )
 
-    expect(html).not.toContain("GENERATED FILE")
-    expect(html).toContain("Budgets.")
+    expect(headings.map((heading) => heading.depth)).toEqual([2])
+    expect(sections.map((section) => section.heading)).toEqual(['Two', 'Four'])
   })
 
-  it("wraps tables so the page does not scroll sideways", async () => {
-    const { html } = await renderMarkdown("# T\n\n| A | B |\n|---|---|\n| 1 | 2 |\n", identity)
+  it('escapes raw HTML instead of emitting it', async () => {
+    const { html } = await renderMarkdown(
+      '# T\n\nMoved: <title>\n\n<img src="x" onerror="go()">\n',
+      identity,
+    )
+
+    expect(html).toContain('&lt;title&gt;')
+    expect(html).not.toContain('<title>')
+    expect(html).not.toContain('<img')
+    expect(html).toContain('onerror=&quot;go()&quot;')
+  })
+
+  it('drops the generated-file comment', async () => {
+    const { html } = await renderMarkdown(
+      '# Performance\n\n<!--\n  GENERATED FILE — do not edit.\n-->\n\nBudgets.\n',
+      identity,
+    )
+
+    expect(html).not.toContain('GENERATED FILE')
+    expect(html).toContain('Budgets.')
+  })
+
+  it('wraps tables so the page does not scroll sideways', async () => {
+    const { html } = await renderMarkdown('# T\n\n| A | B |\n|---|---|\n| 1 | 2 |\n', identity)
 
     expect(html).toContain('<div class="doc-table"')
-    expect(html).toContain("<table>")
+    expect(html).toContain('<table>')
   })
 
-  it("labels a fenced block and highlights it", async () => {
-    const { html } = await renderMarkdown("# T\n\n```sh\nnpm run dev\n```\n", identity)
+  it('labels a fenced block and highlights it', async () => {
+    const { html } = await renderMarkdown('# T\n\n```sh\nnpm run dev\n```\n', identity)
 
     expect(html).toContain('data-lang="shell"')
     expect(html).toContain('data-code="npm run dev"')
-    expect(html).toContain("--shiki-light")
+    expect(html).toContain('--shiki-light')
   })
 
-  it("turns a mermaid fence into a diagram figure that carries its source", async () => {
-    const { html } = await renderMarkdown("# T\n\n```mermaid\ngraph LR\n  A --> B\n```\n", identity)
+  it('turns a mermaid fence into a diagram figure that carries its source', async () => {
+    const { html } = await renderMarkdown('# T\n\n```mermaid\ngraph LR\n  A --> B\n```\n', identity)
 
     expect(html).toContain('<figure class="doc-diagram" data-diagram="mermaid">')
     expect(html).toContain('data-code="graph LR')
-    expect(html).toContain("A --&gt; B")
+    expect(html).toContain('A --&gt; B')
     expect(html).not.toContain('data-lang="mermaid"')
     expect(html).not.toContain('class="doc-code"')
   })
 
-  it("leaves a fence with no language alone", async () => {
-    const { html } = await renderMarkdown("# T\n\n```\n2 + 2 < 5\n```\n", identity)
+  it('leaves a fence with no language alone', async () => {
+    const { html } = await renderMarkdown('# T\n\n```\n2 + 2 < 5\n```\n', identity)
 
-    expect(html).not.toContain("data-lang")
-    expect(html).toContain("2 + 2 &lt; 5")
+    expect(html).not.toContain('data-lang')
+    expect(html).toContain('2 + 2 &lt; 5')
   })
 
-  it("turns a GitHub alert into a callout", async () => {
+  it('turns a GitHub alert into a callout', async () => {
     const { html, sections } = await renderMarkdown(
-      "# T\n\n## S\n\n> [!WARNING]\n> Sealing the installer is irreversible.\n",
+      '# T\n\n## S\n\n> [!WARNING]\n> Sealing the installer is irreversible.\n',
       identity,
     )
 
     expect(html).toContain('<aside class="doc-callout" data-kind="warning">')
-    expect(html).toContain("Warning")
-    expect(html).toContain("Sealing the installer is irreversible.")
-    expect(sections[0]?.text).toBe("Sealing the installer is irreversible.")
-    expect(sections[0]?.text).not.toContain("[!WARNING]")
+    expect(html).toContain('Warning')
+    expect(html).toContain('Sealing the installer is irreversible.')
+    expect(sections[0]?.text).toBe('Sealing the installer is irreversible.')
+    expect(sections[0]?.text).not.toContain('[!WARNING]')
   })
 
-  it("leaves an ordinary blockquote as a blockquote", async () => {
-    const { html } = await renderMarkdown("# T\n\n> Just a quote.\n", identity)
+  it('leaves an ordinary blockquote as a blockquote', async () => {
+    const { html } = await renderMarkdown('# T\n\n> Just a quote.\n', identity)
 
-    expect(html).toContain("<blockquote>")
-    expect(html).not.toContain("doc-callout")
+    expect(html).toContain('<blockquote>')
+    expect(html).not.toContain('doc-callout')
   })
 
-  it("hands every link to the resolver", async () => {
+  it('hands every link to the resolver', async () => {
     const seen: string[] = []
-    const { html } = await renderMarkdown("# T\n\n[a](./operating.md#permissions) [b](https://x.test)\n", {
-      resolveLink: (href) => {
-        seen.push(href)
-        return { href: `/resolved${href}`, external: href.startsWith("http") }
+    const { html } = await renderMarkdown(
+      '# T\n\n[a](./operating.md#permissions) [b](https://x.test)\n',
+      {
+        resolveLink: (href) => {
+          seen.push(href)
+          return { href: `/resolved${href}`, external: href.startsWith('http') }
+        },
       },
-    })
+    )
 
-    expect(seen).toEqual(["./operating.md#permissions", "https://x.test"])
+    expect(seen).toEqual(['./operating.md#permissions', 'https://x.test'])
     expect(html).toContain('href="/resolved./operating.md#permissions"')
     expect(html).toContain('rel="noreferrer"')
   })
 
-  it("cuts the document at its headings for the search index", async () => {
+  it('cuts the document at its headings for the search index', async () => {
     const { sections } = await renderMarkdown(
-      "# T\n\nPreamble.\n\n## One\n\nFirst body.\n\n## Two\n\nSecond body.\n",
+      '# T\n\nPreamble.\n\n## One\n\nFirst body.\n\n## Two\n\nSecond body.\n',
       identity,
     )
 
     expect(sections).toEqual([
-      { id: "", heading: "T", depth: 1, text: "Preamble." },
-      { id: "one", heading: "One", depth: 2, text: "First body." },
-      { id: "two", heading: "Two", depth: 2, text: "Second body." },
+      { id: '', heading: 'T', depth: 1, text: 'Preamble.' },
+      { id: 'one', heading: 'One', depth: 2, text: 'First body.' },
+      { id: 'two', heading: 'Two', depth: 2, text: 'Second body.' },
     ])
   })
 
-  it("keeps fenced code out of the indexed text", async () => {
-    const { sections } = await renderMarkdown("# T\n\n## One\n\nProse.\n\n```sh\nsecret-command\n```\n", identity)
+  it('keeps fenced code out of the indexed text', async () => {
+    const { sections } = await renderMarkdown(
+      '# T\n\n## One\n\nProse.\n\n```sh\nsecret-command\n```\n',
+      identity,
+    )
 
     expect(sections).toHaveLength(1)
-    expect(sections[0]?.text).toBe("Prose.")
+    expect(sections[0]?.text).toBe('Prose.')
   })
 })

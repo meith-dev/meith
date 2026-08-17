@@ -53,9 +53,7 @@ function toRecord(row: RawAttachment): AttachmentRecord {
     thumbnailKey: row.thumbnail_key,
     width: row.width === null ? null : Number(row.width),
     height: row.height === null ? null : Number(row.height),
-    status: (['pending', 'ready', 'failed'] as const).includes(
-      row.status as AttachmentStatus,
-    )
+    status: (['pending', 'ready', 'failed'] as const).includes(row.status as AttachmentStatus)
       ? (row.status as AttachmentStatus)
       : 'failed',
     failureReason: row.failure_reason,

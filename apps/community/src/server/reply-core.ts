@@ -1,11 +1,10 @@
 import 'server-only'
 
-import { ForbiddenError, ValidationError } from '@meith/core'
 import type { Actor } from '@meith/authorization'
-import { ReplyComposer, type AuthorRestriction, type ReplyTarget } from '@meith/threads'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import { restrictsPosting } from '@meith/moderation'
+import { type AuthorRestriction, ReplyComposer, type ReplyTarget } from '@meith/threads'
 
-import type { AttachmentScope } from './attachments'
 import {
   dailyLimitMessage,
   holdsNewMember,
@@ -13,8 +12,9 @@ import {
   spendDailyLimit,
   spendLimit,
 } from './antispam'
-import { emitEvent, viewerRef } from './plugin-view'
+import type { AttachmentScope } from './attachments'
 import { getContainer } from './container'
+import { emitEvent, viewerRef } from './plugin-view'
 import { notifyPostAudience } from './post-notifications'
 import { getSettings } from './settings'
 

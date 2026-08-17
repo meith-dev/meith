@@ -4,8 +4,8 @@ import { notFound, redirect } from 'next/navigation'
 import { MemberSettingsService } from '@meith/accounts'
 
 import { recordAuthEvent } from '@/server/auth-events'
-import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
+import { getActor } from '@/server/context'
 
 export const metadata: Metadata = { title: 'Confirm your e-mail address' }
 

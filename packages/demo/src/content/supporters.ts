@@ -28,11 +28,35 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'The section appears and disappears on its own — if you stop the plan, it goes, and if you start it again, it comes back. Nobody has to remember to let you in, and nobody keeps a list of who stopped.',
     ].join('\n'),
     replies: [
-      { author: 'rosa', hoursAfter: 9, message: 'The "no say the rest of the club does not have" line is why I signed up. A room is fine. A vote would not have been.' },
-      { author: 'tomas', hoursAfter: 26, message: 'Seeing the kit before it is public is genuinely the best of it and it costs the club nothing.' },
-      { author: 'ken', hoursAfter: 50, message: 'I got in here as a gift from Tomás and I have no idea how to say thank you without it being awkward, so: thanks.' },
-      { author: 'mira', hoursAfter: 200, message: 'Two years in. It is a fiver. The jerseys exist. That is the whole review.' },
-      { author: 'olu', hoursAfter: 400, message: 'Reading this back a year later and the line that has aged best is the one about nobody keeping a list of who stopped. I stopped for three months and nobody ever mentioned it.' },
+      {
+        author: 'rosa',
+        hoursAfter: 9,
+        message:
+          'The "no say the rest of the club does not have" line is why I signed up. A room is fine. A vote would not have been.',
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 26,
+        message:
+          'Seeing the kit before it is public is genuinely the best of it and it costs the club nothing.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 50,
+        message:
+          'I got in here as a gift from Tomás and I have no idea how to say thank you without it being awkward, so: thanks.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 200,
+        message: 'Two years in. It is a fiver. The jerseys exist. That is the whole review.',
+      },
+      {
+        author: 'olu',
+        hoursAfter: 400,
+        message:
+          'Reading this back a year later and the line that has aged best is the one about nobody keeping a list of who stopped. I stopped for three months and nobody ever mentioned it.',
+      },
     ],
   },
   {
@@ -46,12 +70,41 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'Rosa, community centre committee, in here since it started, and my €5 a month is the least useful thing I do for this club and the easiest.',
     ].join('\n'),
     replies: [
-      { author: 'mira', hoursAfter: 4, message: 'Mira. Tidy Towns, the flower rota, and I do not go to a single match. The pitch is still the middle of the village.' },
-      { author: 'dev', hoursAfter: 9, message: 'Devinder, I take the photos. Signed up because the club paid for a lens repair once and never asked for anything back.' },
-      { author: 'olu', hoursAfter: 20, message: 'Olu, Thursday five-a-side. In here because the U10s needed jerseys and I could afford five euro.' },
-      { author: 'sam', hoursAfter: 26, message: 'Sam. Dog. In here mostly for the dog\'s sake, he has strong feelings about the pitch.' },
-      { author: 'ken', hoursAfter: 30, message: 'Ken, board games night. My membership was a present and I have kept it going myself since, which is the correct outcome for a present.' },
-      { author: 'tomas', hoursAfter: 50, message: 'Tomás. I bought Ken\'s and I would like it noted that it worked.' },
+      {
+        author: 'mira',
+        hoursAfter: 4,
+        message:
+          'Mira. Tidy Towns, the flower rota, and I do not go to a single match. The pitch is still the middle of the village.',
+      },
+      {
+        author: 'dev',
+        hoursAfter: 9,
+        message:
+          'Devinder, I take the photos. Signed up because the club paid for a lens repair once and never asked for anything back.',
+      },
+      {
+        author: 'olu',
+        hoursAfter: 20,
+        message:
+          'Olu, Thursday five-a-side. In here because the U10s needed jerseys and I could afford five euro.',
+      },
+      {
+        author: 'sam',
+        hoursAfter: 26,
+        message:
+          "Sam. Dog. In here mostly for the dog's sake, he has strong feelings about the pitch.",
+      },
+      {
+        author: 'ken',
+        hoursAfter: 30,
+        message:
+          'Ken, board games night. My membership was a present and I have kept it going myself since, which is the correct outcome for a present.',
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 50,
+        message: "Tomás. I bought Ken's and I would like it noted that it worked.",
+      },
     ],
   },
   {
@@ -65,12 +118,42 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'Not a complaint. I would just like to hear from people whether they feel it does anything, because if the answer is "not really" the club should hear that too.',
     ].join('\n'),
     replies: [
-      { author: 'olu', hoursAfter: 4, message: 'Honestly? The room is a nice-to-have. The reason I pay is that the U10s have jerseys and I can see the line in the accounts that says so.' },
-      { author: 'rosa', hoursAfter: 9, message: 'Same. It is a standing order I never think about and it does more than the €5 would do anywhere else in my month.' },
-      { author: 'sam', hoursAfter: 20, message: 'I stopped for three months when work got tight and nobody said a word to me about it, which is exactly how it should be handled.' },
-      { author: 'admin', hoursAfter: 26, message: 'Nobody knows who has stopped except the treasurer and the software. There is no list on a wall and there never will be.' },
-      { author: 'dev', hoursAfter: 44, message: 'That is the answer I was hoping for. Renewed, without thinking about it, on purpose this time.' },
-      { author: 'mira', hoursAfter: 74, message: 'The one thing I would change is the name. "Supporters" makes it sound like a fan club and it is closer to a standing order with a photograph of a hat.' },
+      {
+        author: 'olu',
+        hoursAfter: 4,
+        message:
+          'Honestly? The room is a nice-to-have. The reason I pay is that the U10s have jerseys and I can see the line in the accounts that says so.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 9,
+        message:
+          'Same. It is a standing order I never think about and it does more than the €5 would do anywhere else in my month.',
+      },
+      {
+        author: 'sam',
+        hoursAfter: 20,
+        message:
+          'I stopped for three months when work got tight and nobody said a word to me about it, which is exactly how it should be handled.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 26,
+        message:
+          'Nobody knows who has stopped except the treasurer and the software. There is no list on a wall and there never will be.',
+      },
+      {
+        author: 'dev',
+        hoursAfter: 44,
+        message:
+          'That is the answer I was hoping for. Renewed, without thinking about it, on purpose this time.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 74,
+        message:
+          'The one thing I would change is the name. "Supporters" makes it sound like a fan club and it is closer to a standing order with a photograph of a hat.',
+      },
     ],
   },
   {
@@ -84,11 +167,36 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'I would like to buy one for somebody, and I would like it to go to somebody who would not buy it themselves rather than to a friend of mine. Is there a way to do that without it being a charity thing that embarrasses everybody?',
     ].join('\n'),
     replies: [
-      { author: 'admin', hoursAfter: 5, message: 'There is: buy it, tell me, and it goes to the top of the list I keep for exactly this. The recipient is told a member bought it and nothing else.' },
-      { author: 'rosa', hoursAfter: 11, message: 'That list has been going for two years and I only found out it existed a minute ago, which is how you know it is being run properly.' },
-      { author: 'tomas', hoursAfter: 20, message: 'This is a much better use of the idea than what I did, which was ambush a friend.' },
-      { author: 'ken', hoursAfter: 26, quotes: 3, message: 'The ambush worked. I am simply not brave enough to do it back.' },
-      { author: 'olu', hoursAfter: 50, message: 'Put me down for one a year as well. Two a year on that list is four people over two seasons.' },
+      {
+        author: 'admin',
+        hoursAfter: 5,
+        message:
+          'There is: buy it, tell me, and it goes to the top of the list I keep for exactly this. The recipient is told a member bought it and nothing else.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 11,
+        message:
+          'That list has been going for two years and I only found out it existed a minute ago, which is how you know it is being run properly.',
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 20,
+        message:
+          'This is a much better use of the idea than what I did, which was ambush a friend.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 26,
+        quotes: 3,
+        message: 'The ambush worked. I am simply not brave enough to do it back.',
+      },
+      {
+        author: 'olu',
+        hoursAfter: 50,
+        message:
+          'Put me down for one a year as well. Two a year on that list is four people over two seasons.',
+      },
     ],
   },
   {
@@ -112,11 +220,37 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'Not a fundraiser. Nobody is asked for a cent on the night. It exists because thirty-one people pay into this every month and about nine of them have ever met each other.',
     ].join('\n'),
     replies: [
-      { author: 'rosa', hoursAfter: 5, message: 'Yes, and the accounts on a screen is the bit that makes it different from a social. People ask better questions with a number in front of them.' },
-      { author: 'admin', hoursAfter: 9, message: 'I voted no and I will still organise it if it wins, which I think is how a committee is supposed to work.' },
-      { author: 'vex', hoursAfter: 20, message: 'Two of ours would fly for it, which is mad, and four more would join a call. Do both — the call costs nothing.' },
-      { author: 'ken', hoursAfter: 30, message: 'Do it the night before the AGM and half the awkward AGM questions get asked over food instead.' },
-      { author: 'tomas', hoursAfter: 74, quotes: 4, message: 'That is the best idea in the thread and it is going to the committee as if it were mine. Sorry Ken.' },
+      {
+        author: 'rosa',
+        hoursAfter: 5,
+        message:
+          'Yes, and the accounts on a screen is the bit that makes it different from a social. People ask better questions with a number in front of them.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 9,
+        message:
+          'I voted no and I will still organise it if it wins, which I think is how a committee is supposed to work.',
+      },
+      {
+        author: 'vex',
+        hoursAfter: 20,
+        message:
+          'Two of ours would fly for it, which is mad, and four more would join a call. Do both — the call costs nothing.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 30,
+        message:
+          'Do it the night before the AGM and half the awkward AGM questions get asked over food instead.',
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 74,
+        quotes: 4,
+        message:
+          'That is the best idea in the thread and it is going to the committee as if it were mine. Sorry Ken.',
+      },
     ],
   },
   {
@@ -130,11 +264,35 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'Rather than the money going into the general pot, could one thing a year be entirely ours and be said to be? "The U10 jerseys are paid for by the supporters" is a sentence a lot of people would like to be able to say.',
     ].join('\n'),
     replies: [
-      { author: 'olu', hoursAfter: 4, message: 'Strongly yes. Naming the thing is worth more than the thing.' },
-      { author: 'siobhan', hoursAfter: 9, message: 'It already effectively is — the jerseys line in the last three quarters has come out of this. Saying so plainly costs nothing and I should have thought of it.' },
-      { author: 'mira', hoursAfter: 20, message: 'Do not put it on the jersey though. A crest and a sponsor is enough on a nine-year-old.' },
-      { author: 'ken', hoursAfter: 26, quotes: 3, message: 'Agreed, absolutely not on the jersey. In the announcement and in the accounts.' },
-      { author: 'dev', hoursAfter: 44, message: 'I will photograph the U10s in them for whatever announcement goes out. With the photo permissions, obviously.' },
+      {
+        author: 'olu',
+        hoursAfter: 4,
+        message: 'Strongly yes. Naming the thing is worth more than the thing.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 9,
+        message:
+          'It already effectively is — the jerseys line in the last three quarters has come out of this. Saying so plainly costs nothing and I should have thought of it.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 20,
+        message:
+          'Do not put it on the jersey though. A crest and a sponsor is enough on a nine-year-old.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 26,
+        quotes: 3,
+        message: 'Agreed, absolutely not on the jersey. In the announcement and in the accounts.',
+      },
+      {
+        author: 'dev',
+        hoursAfter: 44,
+        message:
+          'I will photograph the U10s in them for whatever announcement goes out. With the photo permissions, obviously.',
+      },
     ],
   },
   {
@@ -148,11 +306,35 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'Every quarterly post in the next forum came from her spreadsheets. Every one of them was right. Six years of counting notes at a kitchen table so that the rest of us could argue about drainage from a comfortable position.',
     ].join('\n'),
     replies: [
-      { author: 'rosa', hoursAfter: 3, message: 'Somebody should tell her, though. There is a version of this where she stands down thinking nobody noticed.' },
-      { author: 'mira', hoursAfter: 8, message: 'The supporters could pay for a proper thing at the AGM. Not a plaque. Something she would use.' },
-      { author: 'siobhan', hoursAfter: 14, message: 'The committee is already doing something and I am not saying what in a room with thirty-one people in it.' },
-      { author: 'olu', hoursAfter: 20, quotes: 3, message: 'Fair. Consider this thread a sealed envelope.' },
-      { author: 'ken', hoursAfter: 30, message: 'Sealed envelope with thirty-one recipients. This is a village, Siobhán.' },
+      {
+        author: 'rosa',
+        hoursAfter: 3,
+        message:
+          'Somebody should tell her, though. There is a version of this where she stands down thinking nobody noticed.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 8,
+        message:
+          'The supporters could pay for a proper thing at the AGM. Not a plaque. Something she would use.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 14,
+        message:
+          'The committee is already doing something and I am not saying what in a room with thirty-one people in it.',
+      },
+      {
+        author: 'olu',
+        hoursAfter: 20,
+        quotes: 3,
+        message: 'Fair. Consider this thread a sealed envelope.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 30,
+        message: 'Sealed envelope with thirty-one recipients. This is a village, Siobhán.',
+      },
     ],
   },
 
@@ -170,8 +352,18 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'These go to the whole club a week after they go here. The week is the only privilege in this section and it exists so questions get asked while there is still time to answer them properly.',
     ].join('\n'),
     replies: [
-      { author: 'mira', hoursAfter: 20, message: 'The no-administration-line rule is the one that matters. Every set of club accounts I have ever seen has one and it is always the biggest number.' },
-      { author: 'rosa', hoursAfter: 44, message: 'Ours is genuinely zero. The stamps come out of the chair\'s pocket and always have, which is its own problem for another thread.' },
+      {
+        author: 'mira',
+        hoursAfter: 20,
+        message:
+          'The no-administration-line rule is the one that matters. Every set of club accounts I have ever seen has one and it is always the biggest number.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 44,
+        message:
+          "Ours is genuinely zero. The stamps come out of the chair's pocket and always have, which is its own problem for another thread.",
+      },
     ],
   },
   {
@@ -187,10 +379,29 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'Saying it here because it was my call and it was wrong. Money that sits does nothing; money that buys jerseys buys jerseys.',
     ].join('\n'),
     replies: [
-      { author: 'ken', hoursAfter: 9, message: 'The willingness to write that down is worth more to me than the €1,090.' },
-      { author: 'olu', hoursAfter: 20, message: 'Sensible-looking and wrong is the hardest kind of mistake to notice. Fair play for noticing it.' },
-      { author: 'mira', hoursAfter: 30, message: 'Rule out of it: spend it on the thing in front of you unless somebody has an invoice for the bigger thing.' },
-      { author: 'siobhan', hoursAfter: 50, quotes: 3, message: 'That is going in the treasurer handover notes, word for word.' },
+      {
+        author: 'ken',
+        hoursAfter: 9,
+        message: 'The willingness to write that down is worth more to me than the €1,090.',
+      },
+      {
+        author: 'olu',
+        hoursAfter: 20,
+        message:
+          'Sensible-looking and wrong is the hardest kind of mistake to notice. Fair play for noticing it.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 30,
+        message:
+          'Rule out of it: spend it on the thing in front of you unless somebody has an invoice for the bigger thing.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 50,
+        quotes: 3,
+        message: 'That is going in the treasurer handover notes, word for word.',
+      },
     ],
   },
   {
@@ -210,10 +421,29 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'The first aid restock was not planned. Jt asked, it was ninety euro, and nobody was going to make him wait a quarter for it.',
     ].join('\n'),
     replies: [
-      { author: 'dev', hoursAfter: 6, message: 'The unplanned ninety is exactly what a fund like this should be for.' },
-      { author: 'sam', hoursAfter: 14, message: 'What happens to the €195? Does it roll or does it get swallowed?' },
-      { author: 'siobhan', hoursAfter: 20, quotes: 2, message: 'It rolls, and it is on the top line of the next post as brought forward. Nothing here is ever swallowed.' },
-      { author: 'rosa', hoursAfter: 30, message: 'Four lines, a total and a thing somebody needed on a Tuesday. This is the whole reason I pay.' },
+      {
+        author: 'dev',
+        hoursAfter: 6,
+        message: 'The unplanned ninety is exactly what a fund like this should be for.',
+      },
+      {
+        author: 'sam',
+        hoursAfter: 14,
+        message: 'What happens to the €195? Does it roll or does it get swallowed?',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 20,
+        quotes: 2,
+        message:
+          'It rolls, and it is on the top line of the next post as brought forward. Nothing here is ever swallowed.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 30,
+        message:
+          'Four lines, a total and a thing somebody needed on a Tuesday. This is the whole reason I pay.',
+      },
     ],
   },
   {
@@ -229,12 +459,42 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'The plan could carry the reconditioned one across two quarters if the room is willing to have no jerseys line for six months. That is a real trade and I am not going to make it without asking.',
     ].join('\n'),
     replies: [
-      { author: 'olu', hoursAfter: 5, message: 'Jerseys can wait a quarter. A pitch that is not cut cancels everything, including the jerseys.' },
-      { author: 'ken', hoursAfter: 11, message: 'Agreed, and Gerry cutting a pitch with a fourteen-year-old mower is a fourteen-year-old mower being held together by Gerry.' },
-      { author: 'mira', hoursAfter: 20, message: 'Yes from me. Ask the dealer whether they will take the old one, mind — even €200 is a month.' },
-      { author: 'dev', hoursAfter: 26, message: 'Yes. And say it plainly in the club announcement so the juvenile parents know why there is no new set this season.' },
-      { author: 'admin', hoursAfter: 74, message: 'Reconditioned one bought, dealer took the old one for €250, and it comes in at €1,500 across two quarters. Jerseys resume in the autumn.' },
-      { author: 'rosa', hoursAfter: 90, message: 'A decision taken in a thread, in a week, by the people paying for it. Whatever this software cost, that is what it is for.' },
+      {
+        author: 'olu',
+        hoursAfter: 5,
+        message:
+          'Jerseys can wait a quarter. A pitch that is not cut cancels everything, including the jerseys.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 11,
+        message:
+          'Agreed, and Gerry cutting a pitch with a fourteen-year-old mower is a fourteen-year-old mower being held together by Gerry.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 20,
+        message:
+          'Yes from me. Ask the dealer whether they will take the old one, mind — even €200 is a month.',
+      },
+      {
+        author: 'dev',
+        hoursAfter: 26,
+        message:
+          'Yes. And say it plainly in the club announcement so the juvenile parents know why there is no new set this season.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 74,
+        message:
+          'Reconditioned one bought, dealer took the old one for €250, and it comes in at €1,500 across two quarters. Jerseys resume in the autumn.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 90,
+        message:
+          'A decision taken in a thread, in a week, by the people paying for it. Whatever this software cost, that is what it is for.',
+      },
     ],
   },
   {
@@ -253,11 +513,37 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'That is all of it. The same figures go to the AGM in a fortnight, and you are seeing them first because that is the deal.',
     ].join('\n'),
     replies: [
-      { author: 'olu', hoursAfter: 6, message: 'Four lines and a total. Every club in the country should do this and about four of them do.' },
-      { author: 'dev', hoursAfter: 14, message: 'The €275 carried forward is my favourite number in the post. It means it is actually being spent on the thing.' },
-      { author: 'ken', hoursAfter: 30, message: 'Would it be worth putting a version of this on the open board? Not the room-first bit, the "here is what it bought" bit.' },
-      { author: 'siobhan', hoursAfter: 44, quotes: 3, message: 'Yes, and I will. A week later, so the room keeps its head start, but the club should see it.' },
-      { author: 'sam', hoursAfter: 70, message: 'It went up on the open board on Tuesday and two people have joined the plan since. Cause and effect, I suspect.' },
+      {
+        author: 'olu',
+        hoursAfter: 6,
+        message:
+          'Four lines and a total. Every club in the country should do this and about four of them do.',
+      },
+      {
+        author: 'dev',
+        hoursAfter: 14,
+        message:
+          'The €275 carried forward is my favourite number in the post. It means it is actually being spent on the thing.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 30,
+        message:
+          'Would it be worth putting a version of this on the open board? Not the room-first bit, the "here is what it bought" bit.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 44,
+        quotes: 3,
+        message:
+          'Yes, and I will. A week later, so the room keeps its head start, but the club should see it.',
+      },
+      {
+        author: 'sam',
+        hoursAfter: 70,
+        message:
+          'It went up on the open board on Tuesday and two people have joined the plan since. Cause and effect, I suspect.',
+      },
     ],
   },
   {
@@ -271,10 +557,31 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'Asking here rather than at the meeting because here it is a question and there it sounds like an accusation.',
     ].join('\n'),
     replies: [
-      { author: 'siobhan', hoursAfter: 4, message: 'Because the gaming section went on the policy and the broker rated it as a new activity. It has since been redeclared as a social activity and it comes back down by €570.' },
-      { author: 'admin', hoursAfter: 8, message: 'Which means the pack in your hands is already out of date by €570 in the right direction. Corrected version goes to the club with the note in it.' },
-      { author: 'dev', hoursAfter: 14, quotes: 2, message: 'That is a better outcome than the answer I was expecting, which was "insurance went up".' },
-      { author: 'rosa', hoursAfter: 26, message: 'And that is the whole argument for the week\'s head start. One question, a fortnight before the meeting, and the pack got better.' },
+      {
+        author: 'siobhan',
+        hoursAfter: 4,
+        message:
+          'Because the gaming section went on the policy and the broker rated it as a new activity. It has since been redeclared as a social activity and it comes back down by €570.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 8,
+        message:
+          'Which means the pack in your hands is already out of date by €570 in the right direction. Corrected version goes to the club with the note in it.',
+      },
+      {
+        author: 'dev',
+        hoursAfter: 14,
+        quotes: 2,
+        message:
+          'That is a better outcome than the answer I was expecting, which was "insurance went up".',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 26,
+        message:
+          "And that is the whole argument for the week's head start. One question, a fortnight before the meeting, and the pack got better.",
+      },
     ],
   },
 
@@ -289,10 +596,31 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'Nothing is happening. There is no money, there is no planning application and there is no timeline. It is a drawing and I am showing it to you because it is lovely and because in five years somebody will need to know it exists.',
     ].join('\n'),
     replies: [
-      { author: 'rosa', hoursAfter: 9, message: 'The accessible toilet should not wait for an extension. That is a thing on its own and it is overdue.' },
-      { author: 'siobhan', hoursAfter: 20, quotes: 1, message: 'You are right and it is going on the AGM agenda as a separate item. It is about €6,000 and it should have been done a decade ago.' },
-      { author: 'ken', hoursAfter: 30, message: 'The room that is not the back room would take the games night from nineteen people to thirty, for what that is worth.' },
-      { author: 'mira', hoursAfter: 50, message: 'Print it and put it on the clubhouse wall. Things on walls become things that happen.' },
+      {
+        author: 'rosa',
+        hoursAfter: 9,
+        message:
+          'The accessible toilet should not wait for an extension. That is a thing on its own and it is overdue.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 20,
+        quotes: 1,
+        message:
+          'You are right and it is going on the AGM agenda as a separate item. It is about €6,000 and it should have been done a decade ago.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 30,
+        message:
+          'The room that is not the back room would take the games night from nineteen people to thirty, for what that is worth.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 50,
+        message:
+          'Print it and put it on the clubhouse wall. Things on walls become things that happen.',
+      },
     ],
   },
   {
@@ -305,14 +633,40 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       '',
       'It is genuinely good. It is modern, it works small, and it would look excellent on a phone.',
       '',
-      'It is also not our crest, which was drawn by somebody\'s uncle in 1976 and is slightly wrong in a way everybody in this parish would notice immediately. So: no. But it deserves to have been seen by more than me.',
+      "It is also not our crest, which was drawn by somebody's uncle in 1976 and is slightly wrong in a way everybody in this parish would notice immediately. So: no. But it deserves to have been seen by more than me.",
     ].join('\n'),
     replies: [
-      { author: 'ken', hoursAfter: 6, message: 'It is better and it is wrong. Both things are completely true and I am glad we are not doing it.' },
-      { author: 'rosa', hoursAfter: 14, message: 'The 2008 jersey change nearly caused a schism over a hoop. A crest would finish us.' },
-      { author: 'mira', hoursAfter: 26, message: 'Could he tidy ours instead? Same crest, same everything, just drawn properly so it does not go to mush at small sizes.' },
-      { author: 'tomas', hoursAfter: 44, quotes: 3, message: 'That is a much better ask and I would never have thought of it. Going back to him with exactly that.' },
-      { author: 'tomas', hoursAfter: 700, message: 'He did it. Same crest, cleaned up, and you would not know unless you put them side by side. It is on the new kit.' },
+      {
+        author: 'ken',
+        hoursAfter: 6,
+        message:
+          'It is better and it is wrong. Both things are completely true and I am glad we are not doing it.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 14,
+        message:
+          'The 2008 jersey change nearly caused a schism over a hoop. A crest would finish us.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 26,
+        message:
+          'Could he tidy ours instead? Same crest, same everything, just drawn properly so it does not go to mush at small sizes.',
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 44,
+        quotes: 3,
+        message:
+          'That is a much better ask and I would never have thought of it. Going back to him with exactly that.',
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 700,
+        message:
+          'He did it. Same crest, cleaned up, and you would not know unless you put them side by side. It is on the new kit.',
+      },
     ],
   },
   {
@@ -326,11 +680,36 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'The one worth knowing: we are away to Ballyquin in the second game of the season and home to them on the last day. Somebody in the league office has a sense of humour.',
     ].join('\n'),
     replies: [
-      { author: 'sam', hoursAfter: 5, message: 'Last day at home against Ballyquin. Book the bar staff now.' },
-      { author: 'olu', hoursAfter: 11, message: 'Three home games in April is the bit that worries me. If the pitch is not drained by then that is three postponements.' },
-      { author: 'dara', hoursAfter: 20, quotes: 2, message: 'Which is now in my note to the committee about the drainage, credited to you. Thanks.' },
-      { author: 'dev', hoursAfter: 30, message: 'I will do a proper fixture graphic for the announcement rather than the wall of text we did last year.' },
-      { author: 'rosa', hoursAfter: 74, message: 'Public on Friday, and the graphic went further in a day than the wall of text did in a month.' },
+      {
+        author: 'sam',
+        hoursAfter: 5,
+        message: 'Last day at home against Ballyquin. Book the bar staff now.',
+      },
+      {
+        author: 'olu',
+        hoursAfter: 11,
+        message:
+          'Three home games in April is the bit that worries me. If the pitch is not drained by then that is three postponements.',
+      },
+      {
+        author: 'dara',
+        hoursAfter: 20,
+        quotes: 2,
+        message:
+          'Which is now in my note to the committee about the drainage, credited to you. Thanks.',
+      },
+      {
+        author: 'dev',
+        hoursAfter: 30,
+        message:
+          'I will do a proper fixture graphic for the announcement rather than the wall of text we did last year.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 74,
+        message:
+          'Public on Friday, and the graphic went further in a day than the wall of text did in a month.',
+      },
     ],
   },
   {
@@ -346,12 +725,43 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'Say what you think in here and I will bring it to the committee before it goes near the club.',
     ].join('\n'),
     replies: [
-      { author: 'ken', hoursAfter: 5, message: 'Third. Not close. The anniversary crest will be the reason people who have not bought a jersey in ten years buy one.' },
-      { author: 'mira', hoursAfter: 11, message: 'Third, and put the year on the back of the collar where only the person wearing it sees it.' },
-      { author: 'tomas', hoursAfter: 14, quotes: 2, message: 'That is a lovely idea and it costs about eighty cent a jersey. Taking it to the committee as if I thought of it.' },
-      { author: 'siobhan', hoursAfter: 26, message: 'Committee will approve the third one. The 2008 conversation is not being reopened by me or anybody else.' },
-      { author: 'rosa', hoursAfter: 50, message: 'Nineteen replies in here and not one row. The main board would have had six pages by now.' },
-      { author: 'dev', hoursAfter: 74, message: 'When it is public I will shoot it properly on somebody who is not a mannequin. Last year\'s photo was a jersey on a chair.' },
+      {
+        author: 'ken',
+        hoursAfter: 5,
+        message:
+          'Third. Not close. The anniversary crest will be the reason people who have not bought a jersey in ten years buy one.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 11,
+        message:
+          'Third, and put the year on the back of the collar where only the person wearing it sees it.',
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 14,
+        quotes: 2,
+        message:
+          'That is a lovely idea and it costs about eighty cent a jersey. Taking it to the committee as if I thought of it.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 26,
+        message:
+          'Committee will approve the third one. The 2008 conversation is not being reopened by me or anybody else.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 50,
+        message:
+          'Nineteen replies in here and not one row. The main board would have had six pages by now.',
+      },
+      {
+        author: 'dev',
+        hoursAfter: 74,
+        message:
+          "When it is public I will shoot it properly on somebody who is not a mannequin. Last year's photo was a jersey on a chair.",
+      },
     ],
   },
   {
@@ -368,12 +778,43 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       '- An open day with the pitch, the gaming setup and the games night all running at once, which will either be wonderful or a shambles.',
     ].join('\n'),
     replies: [
-      { author: 'rosa', hoursAfter: 6, message: 'The book is doable. Forty photographs scanned already and three of the four unnamed faces in the 1996 one are now named.' },
-      { author: 'ken', hoursAfter: 14, message: 'Open day: put the gaming setup in the back room and the games night beside it. Parents drop children at one and end up at the other.' },
-      { author: 'mira', hoursAfter: 26, message: 'Cheap dinner, and do it in the clubhouse rather than a hotel. €45 a head was the reason my mother did not go to the last one.' },
-      { author: 'dev', hoursAfter: 30, message: 'I will do portraits of the older members on the day if anybody wants one. Free, obviously.' },
-      { author: 'siobhan', hoursAfter: 50, quotes: 4, message: 'That is the single best idea in this thread and it was not on my list at all. Thank you.' },
-      { author: 'tomas', hoursAfter: 90, message: 'Anniversary crest on the jersey lines up with the open day. That is a year of things that all point at each other.' },
+      {
+        author: 'rosa',
+        hoursAfter: 6,
+        message:
+          'The book is doable. Forty photographs scanned already and three of the four unnamed faces in the 1996 one are now named.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 14,
+        message:
+          'Open day: put the gaming setup in the back room and the games night beside it. Parents drop children at one and end up at the other.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 26,
+        message:
+          'Cheap dinner, and do it in the clubhouse rather than a hotel. €45 a head was the reason my mother did not go to the last one.',
+      },
+      {
+        author: 'dev',
+        hoursAfter: 30,
+        message:
+          'I will do portraits of the older members on the day if anybody wants one. Free, obviously.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 50,
+        quotes: 4,
+        message:
+          'That is the single best idea in this thread and it was not on my list at all. Thank you.',
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 90,
+        message:
+          'Anniversary crest on the jersey lines up with the open day. That is a year of things that all point at each other.',
+      },
     ],
   },
   {
@@ -387,10 +828,30 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'If something in the accounts does not make sense, ask me in here where it is a question rather than in the room on the night where it sounds like an accusation. That is genuinely why you get them early.',
     ].join('\n'),
     replies: [
-      { author: 'dev', hoursAfter: 5, message: 'Asked mine in the accounts forum rather than here — the insurance line. Answered inside four hours.' },
-      { author: 'olu', hoursAfter: 20, message: 'The drainage quote reads well. Putting the failed €1,900 patch on the same page as the €14,000 is the right call, even though it does not flatter anybody.' },
-      { author: 'rosa', hoursAfter: 30, message: 'Two of us reading these a week early has already caught a missing note and a wrong number. That is worth more than the room being a perk.' },
-      { author: 'ken', hoursAfter: 44, message: 'Constitution wording is clear. One typo in paragraph four, which I have messaged you rather than posted, because I am not a monster.' },
+      {
+        author: 'dev',
+        hoursAfter: 5,
+        message:
+          'Asked mine in the accounts forum rather than here — the insurance line. Answered inside four hours.',
+      },
+      {
+        author: 'olu',
+        hoursAfter: 20,
+        message:
+          'The drainage quote reads well. Putting the failed €1,900 patch on the same page as the €14,000 is the right call, even though it does not flatter anybody.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 30,
+        message:
+          'Two of us reading these a week early has already caught a missing note and a wrong number. That is worth more than the room being a perk.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 44,
+        message:
+          'Constitution wording is clear. One typo in paragraph four, which I have messaged you rather than posted, because I am not a monster.',
+      },
     ],
   },
 
@@ -408,9 +869,24 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'If your number comes up and you would rather it went back into the fund, that is entirely your business and it happens more often than you would think.',
     ].join('\n'),
     replies: [
-      { author: 'ken', hoursAfter: 20, message: 'An actual hat is doing a lot of work in making this feel like a club rather than a subscription.' },
-      { author: 'mira', hoursAfter: 44, message: 'It is Gerry\'s hat. It has been Gerry\'s hat for two years and nobody has ever asked him for it back.' },
-      { author: 'olu', hoursAfter: 200, message: 'The video is thirty seconds long and I watch it every month. I have never won anything.' },
+      {
+        author: 'ken',
+        hoursAfter: 20,
+        message:
+          'An actual hat is doing a lot of work in making this feel like a club rather than a subscription.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 44,
+        message:
+          "It is Gerry's hat. It has been Gerry's hat for two years and nobody has ever asked him for it back.",
+      },
+      {
+        author: 'olu',
+        hoursAfter: 200,
+        message:
+          'The video is thirty seconds long and I watch it every month. I have never won anything.',
+      },
     ],
   },
   {
@@ -423,7 +899,10 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       options: [
         { label: 'Monthly, as it is', voters: ['rosa', 'ken', 'sam', 'dev', 'olu'] },
         { label: 'Quarterly, four times the prize', voters: ['mira', 'tomas'] },
-        { label: 'Monthly, but smaller, with the difference to the pitch', voters: ['admin', 'siobhan'] },
+        {
+          label: 'Monthly, but smaller, with the difference to the pitch',
+          voters: ['admin', 'siobhan'],
+        },
       ],
       closesInDays: null,
     },
@@ -433,10 +912,29 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'I can also see the argument that the monthly one is the thing that makes this feel alive, and that a bigger prize makes it feel like a lottery rather than a club.',
     ].join('\n'),
     replies: [
-      { author: 'ken', hoursAfter: 8, message: 'Monthly. Twelve small moments beats four big ones for something whose whole job is to make thirty-one people feel like a group.' },
-      { author: 'sam', hoursAfter: 20, message: 'Monthly, and honestly the video is the prize. The €270 is a bonus for one person.' },
-      { author: 'admin', hoursAfter: 30, message: 'I voted for smaller-and-monthly and I am comfortably outvoted, which is fine. It stays as it is.' },
-      { author: 'mira', hoursAfter: 50, message: 'Asked and answered. Monthly, in the hat, forever.' },
+      {
+        author: 'ken',
+        hoursAfter: 8,
+        message:
+          'Monthly. Twelve small moments beats four big ones for something whose whole job is to make thirty-one people feel like a group.',
+      },
+      {
+        author: 'sam',
+        hoursAfter: 20,
+        message:
+          'Monthly, and honestly the video is the prize. The €270 is a bonus for one person.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 30,
+        message:
+          'I voted for smaller-and-monthly and I am comfortably outvoted, which is fine. It stays as it is.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 50,
+        message: 'Asked and answered. Monthly, in the hat, forever.',
+      },
     ],
   },
   {
@@ -450,10 +948,30 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'He was in Australia. He is delighted. The €260 is on its way and I am putting a note on the joining form asking people to keep their email up to date.',
     ].join('\n'),
     replies: [
-      { author: 'sam', hoursAfter: 9, message: 'Nine days of Rosa ringing a man in Australia is the most club thing that has ever happened.' },
-      { author: 'olu', hoursAfter: 20, message: 'Does the prize roll over if nobody ever claims it? Genuine question for the rules.' },
-      { author: 'rosa', hoursAfter: 26, quotes: 2, message: 'After sixty days it goes back into the fund. That is now written on the joining form, because it was not written anywhere before you asked.' },
-      { author: 'ken', hoursAfter: 44, message: 'A rule that only exists once somebody asks is the most honest kind of rule.' },
+      {
+        author: 'sam',
+        hoursAfter: 9,
+        message:
+          'Nine days of Rosa ringing a man in Australia is the most club thing that has ever happened.',
+      },
+      {
+        author: 'olu',
+        hoursAfter: 20,
+        message:
+          'Does the prize roll over if nobody ever claims it? Genuine question for the rules.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 26,
+        quotes: 2,
+        message:
+          'After sixty days it goes back into the fund. That is now written on the joining form, because it was not written anywhere before you asked.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 44,
+        message: 'A rule that only exists once somebody asks is the most honest kind of rule.',
+      },
     ],
   },
   {
@@ -467,10 +985,29 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'Forty-one is Devinder, who has photographed every draw for a year and has now won one, which several people have described as suspicious.',
     ].join('\n'),
     replies: [
-      { author: 'dev', hoursAfter: 2, message: 'I was holding the camera. Rosa held the hat. I am prepared to submit to an inquiry.' },
-      { author: 'ken', hoursAfter: 6, message: 'The inquiry has concluded. The photographer did it.' },
-      { author: 'dev', hoursAfter: 20, message: 'Spending it on a lens I have wanted for two years, so the club gets it back in photographs eventually.' },
-      { author: 'mira', hoursAfter: 30, message: 'That is the third winner in a row who has spent it on the club in some form. We are a very strange group of people.' },
+      {
+        author: 'dev',
+        hoursAfter: 2,
+        message:
+          'I was holding the camera. Rosa held the hat. I am prepared to submit to an inquiry.',
+      },
+      {
+        author: 'ken',
+        hoursAfter: 6,
+        message: 'The inquiry has concluded. The photographer did it.',
+      },
+      {
+        author: 'dev',
+        hoursAfter: 20,
+        message:
+          'Spending it on a lens I have wanted for two years, so the club gets it back in photographs eventually.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 30,
+        message:
+          'That is the third winner in a row who has spent it on the club in some form. We are a very strange group of people.',
+      },
     ],
   },
   {
@@ -485,10 +1022,29 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
     ].join('\n'),
     replies: [
       { author: 'mira', hoursAfter: 3, message: 'Of course he did.' },
-      { author: 'tomas', hoursAfter: 9, message: 'Somebody buy that man something he cannot refuse. A jacket. He has worn the same one since 2015.' },
-      { author: 'admin', hoursAfter: 20, message: 'Committee is buying him a jacket and he is not being consulted about it.' },
-      { author: 'sam', hoursAfter: 30, message: 'The anonymous €500 in the accounts last year was him as well, by the way. I was standing there.' },
-      { author: 'rosa', hoursAfter: 50, message: 'It was drawn out of his own hat. He drew his own number out of his own hat and gave the money back.' },
+      {
+        author: 'tomas',
+        hoursAfter: 9,
+        message:
+          'Somebody buy that man something he cannot refuse. A jacket. He has worn the same one since 2015.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 20,
+        message: 'Committee is buying him a jacket and he is not being consulted about it.',
+      },
+      {
+        author: 'sam',
+        hoursAfter: 30,
+        message:
+          'The anonymous €500 in the accounts last year was him as well, by the way. I was standing there.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 50,
+        message:
+          'It was drawn out of his own hat. He drew his own number out of his own hat and gave the money back.',
+      },
     ],
   },
   {
@@ -502,11 +1058,33 @@ export const SUPPORTERS_THREADS: readonly DemoThread[] = [
       'Photograph of the hat attached, as requested by about six of you, along with a photograph of Gerry pretending he does not care that it is his hat.',
     ].join('\n'),
     replies: [
-      { author: 'ken', hoursAfter: 2, message: 'Tomás bought me this membership as a joke and it has now paid for itself four times over. I am buying somebody else\'s.' },
-      { author: 'tomas', hoursAfter: 4, message: 'This is the greatest return on twelve euro in the history of the parish.' },
-      { author: 'olu', hoursAfter: 9, message: 'The hat is worse than I imagined and I had imagined it fairly badly.' },
-      { author: 'dev', hoursAfter: 20, message: 'That is the best photograph on this board and I did not take it.' },
-      { author: 'rosa', hoursAfter: 30, message: 'Ken has put his winnings on the gift list, so somebody who has never paid a cent is about to be in here for two years. That is the whole thing working.' },
+      {
+        author: 'ken',
+        hoursAfter: 2,
+        message:
+          "Tomás bought me this membership as a joke and it has now paid for itself four times over. I am buying somebody else's.",
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 4,
+        message: 'This is the greatest return on twelve euro in the history of the parish.',
+      },
+      {
+        author: 'olu',
+        hoursAfter: 9,
+        message: 'The hat is worse than I imagined and I had imagined it fairly badly.',
+      },
+      {
+        author: 'dev',
+        hoursAfter: 20,
+        message: 'That is the best photograph on this board and I did not take it.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 30,
+        message:
+          'Ken has put his winnings on the gift list, so somebody who has never paid a cent is about to be in here for two years. That is the whole thing working.',
+      },
     ],
   },
 ]

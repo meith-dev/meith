@@ -95,10 +95,7 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
       : []
   }
 
-  async visiblePostIdsIn(
-    threadId: number,
-    postIds: readonly number[],
-  ): Promise<readonly number[]> {
+  async visiblePostIdsIn(threadId: number, postIds: readonly number[]): Promise<readonly number[]> {
     if (postIds.length === 0) return []
     const list = sql.join(
       postIds.map((id) => sql`${id}`),
@@ -114,9 +111,7 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
     return rows.map((row) => Number(row.id))
   }
 
-  async split(
-    plan: SplitPlan & { actorUserId: number; at: Date },
-  ): Promise<SurgeryOutcome> {
+  async split(plan: SplitPlan & { actorUserId: number; at: Date }): Promise<SurgeryOutcome> {
     return this.db.transaction(async (tx) => {
       const source = resultRows(
         await tx.execute(sql`
@@ -197,9 +192,7 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
     })
   }
 
-  async merge(
-    plan: MergePlan & { actorUserId: number; at: Date },
-  ): Promise<SurgeryOutcome> {
+  async merge(plan: MergePlan & { actorUserId: number; at: Date }): Promise<SurgeryOutcome> {
     return this.db.transaction(async (tx) => {
       const rows = resultRows(
         await tx.execute(sql`

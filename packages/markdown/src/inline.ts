@@ -59,11 +59,9 @@ function flanking(
   const after = end >= source.length ? undefined : source[end]
 
   const leftFlanking =
-    !isWhitespace(after) &&
-    (!isPunctuation(after) || isWhitespace(before) || isPunctuation(before))
+    !isWhitespace(after) && (!isPunctuation(after) || isWhitespace(before) || isPunctuation(before))
   const rightFlanking =
-    !isWhitespace(before) &&
-    (!isPunctuation(before) || isWhitespace(after) || isPunctuation(after))
+    !isWhitespace(before) && (!isPunctuation(before) || isWhitespace(after) || isPunctuation(after))
 
   if (char === '_') {
     return {
@@ -134,7 +132,7 @@ function readDestination(source: string, from: number): Destination | null {
       }
       index += 1
     }
-    url = unescape(source.slice(start, index))
+    url = unescapeBackslashes(source.slice(start, index))
   }
 
   while (index < source.length && /\s/.test(source[index]!)) index += 1
@@ -145,7 +143,7 @@ function readDestination(source: string, from: number): Destination | null {
     const closer = opener === '(' ? ')' : opener
     const close = source.indexOf(closer, index + 1)
     if (close === -1) return null
-    title = unescape(source.slice(index + 1, close))
+    title = unescapeBackslashes(source.slice(index + 1, close))
     index = close + 1
     while (index < source.length && /\s/.test(source[index]!)) index += 1
   }
@@ -154,7 +152,7 @@ function readDestination(source: string, from: number): Destination | null {
   return { url: url.trim(), title, end: index + 1 }
 }
 
-function unescape(value: string): string {
+function unescapeBackslashes(value: string): string {
   return value.replace(/\\(.)/gs, (whole, character: string) =>
     ESCAPABLE.test(character) ? character : whole,
   )
@@ -183,11 +181,7 @@ function trimBareUrl(url: string): string {
   return url.slice(0, end)
 }
 
-export function parseInline(
-  source: string,
-  context: InlineContext,
-  allowLinks = true,
-): Inline[] {
+export function parseInline(source: string, context: InlineContext, allowLinks = true): Inline[] {
   const items: Item[] = []
   let buffer = ''
   let index = 0
@@ -249,7 +243,12 @@ export function parseInline(
       }
       if (close !== -1) {
         let value = source.slice(index + run.length, close).replace(/\n/g, ' ')
-        if (value.length > 2 && value.startsWith(' ') && value.endsWith(' ') && value.trim() !== '') {
+        if (
+          value.length > 2 &&
+          value.startsWith(' ') &&
+          value.endsWith(' ') &&
+          value.trim() !== ''
+        ) {
           value = value.slice(1, -1)
         }
         flush()
@@ -268,7 +267,15 @@ export function parseInline(
       const email = AUTOLINK_EMAIL.exec(rest)
       if (scheme !== null) {
         flush()
-        if (!push({ kind: 'link', href: scheme[1]!, title: null, children: [{ kind: 'text', value: scheme[1]! }] })) break
+        if (
+          !push({
+            kind: 'link',
+            href: scheme[1]!,
+            title: null,
+            children: [{ kind: 'text', value: scheme[1]! }],
+          })
+        )
+          break
         index += scheme[0].length
         continue
       }
@@ -317,7 +324,8 @@ export function parseInline(
       if (destination !== null) {
         const children = parseInline(source.slice(index + 1, close), context, false)
         flush()
-        if (!push({ kind: 'link', href: destination.url, title: destination.title, children })) break
+        if (!push({ kind: 'link', href: destination.url, title: destination.title, children }))
+          break
         index = destination.end
         continue
       }
@@ -373,7 +381,10 @@ export function parseInline(
       continue
     }
 
-    if ((character === '*' || character === '_' || character === '~') && context.features.emphasis) {
+    if (
+      (character === '*' || character === '_' || character === '~') &&
+      context.features.emphasis
+    ) {
       let end = index
       while (end < source.length && source[end] === character) end += 1
       const run = source.slice(index, end)
@@ -404,7 +415,10 @@ export function parseInline(
           if (url.length > 0 && url.length <= context.limits.maxUrlLength) {
             flush()
             const href = url.toLowerCase().startsWith('www.') ? `https://${url}` : url
-            if (!push({ kind: 'link', href, title: null, children: [{ kind: 'text', value: url }] })) break
+            if (
+              !push({ kind: 'link', href, title: null, children: [{ kind: 'text', value: url }] })
+            )
+              break
             index += url.length
             continue
           }

@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { type Browser, expect, type Page, test } from '@playwright/test'
 
 import { signInAsModerator, signUp } from './support/session'
 
@@ -6,11 +6,7 @@ test.use({ javaScriptEnabled: false })
 
 const GENERAL = '/200-general'
 
-async function threadWith(
-  page: Page,
-  subject: string,
-  bodies: readonly string[],
-): Promise<string> {
+async function threadWith(page: Page, subject: string, bodies: readonly string[]): Promise<string> {
   await page.goto(GENERAL)
   await page.getByRole('link', { name: 'New thread' }).click()
   await page.getByLabel('Subject').fill(subject)
@@ -47,9 +43,7 @@ async function twoSeats(browser: Browser, label: string) {
   }
 }
 
-test('a moderator splits a thread at a post, and lands on the new one', async ({
-  browser,
-}) => {
+test('a moderator splits a thread at a post, and lands on the new one', async ({ browser }) => {
   const { member, mod, close } = await twoSeats(browser, 'split')
 
   try {
@@ -77,16 +71,12 @@ test('a moderator splits a thread at a post, and lands on the new one', async ({
 
     const splitUrl = mod.url().split('?')[0]!
 
-    await expect(
-      mod.getByText('And here it turns into something else entirely.'),
-    ).toBeVisible()
+    await expect(mod.getByText('And here it turns into something else entirely.')).toBeVisible()
 
     await member.goto(url)
     await expect(member.getByText('The subject everybody came for.')).toBeVisible()
     await expect(member.getByText('Still about the subject.')).toBeVisible()
-    await expect(
-      member.getByText('And here it turns into something else entirely.'),
-    ).toHaveCount(0)
+    await expect(member.getByText('And here it turns into something else entirely.')).toHaveCount(0)
 
     await member.goto(GENERAL)
     await expect(member.getByRole('link', { name: subject })).toBeVisible()
@@ -138,9 +128,7 @@ test('the inline bar splits exactly the posts a moderator ticked', async ({ brow
   }
 })
 
-test('a merged thread stops existing, and its posts are in the other one', async ({
-  browser,
-}) => {
+test('a merged thread stops existing, and its posts are in the other one', async ({ browser }) => {
   const { member, mod, close } = await twoSeats(browser, 'merge')
 
   try {

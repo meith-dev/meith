@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { signatureHtml, type SignatureLimits } from '@meith/signatures'
+import { type SignatureLimits, signatureHtml } from '@meith/signatures'
 
 import { getContainer } from './container'
 import { getActor } from './context'

@@ -1,13 +1,13 @@
 import { sql } from 'drizzle-orm'
 
-import { PERMISSION_FIELDS, ValidationError } from '@meith/core'
 import type { PermissionSet } from '@meith/core'
+import { PERMISSION_FIELDS, ValidationError } from '@meith/core'
 
 import type { Database } from './client'
-import { columnName } from './schema/permission-columns'
+import { type Tx, withPermissionVersionBump } from './permission-version'
 import { groupRowToPermissionSet } from './permissions-map'
-import { withPermissionVersionBump, type Tx } from './permission-version'
 import { resultRows } from './result-rows'
+import { columnName } from './schema/permission-columns'
 import { keptDisplayGroupSql } from './staff-groups'
 
 export interface GroupSummaryRow {
@@ -132,7 +132,8 @@ export class PostgresGroupAdminRepository {
     permissions: Readonly<Record<string, boolean | number>>,
   ): Promise<void> {
     const assignments = PERMISSION_FIELDS.map(
-      (field) => sql`${sql.raw(columnName(field.key))} = ${permissions[field.key] ?? field.fallback}`,
+      (field) =>
+        sql`${sql.raw(columnName(field.key))} = ${permissions[field.key] ?? field.fallback}`,
     )
 
     await this.withVersionBump(async (tx) => {

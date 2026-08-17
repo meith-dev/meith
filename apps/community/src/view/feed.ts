@@ -27,7 +27,7 @@ export function xmlEscape(value: string): string {
 }
 
 function stripControl(value: string): string {
-  // eslint-disable-next-line no-control-regex -- the point is the control range
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: the point is the control range
   return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
 }
 

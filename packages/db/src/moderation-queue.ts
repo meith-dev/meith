@@ -32,15 +32,12 @@ interface QueueRow {
 }
 
 function encodeCursor(row: QueueItem): string {
-  return Buffer.from(
-    `${row.createdAt.toISOString()}|${row.kind}|${row.id}`,
-    'utf8',
-  ).toString('base64url')
+  return Buffer.from(`${row.createdAt.toISOString()}|${row.kind}|${row.id}`, 'utf8').toString(
+    'base64url',
+  )
 }
 
-function decodeCursor(
-  value: string,
-): { at: Date; kind: string; id: number } | null {
+function decodeCursor(value: string): { at: Date; kind: string; id: number } | null {
   try {
     const [at, kind, id] = Buffer.from(value, 'base64url').toString('utf8').split('|')
     if (at === undefined || kind === undefined || id === undefined) return null
@@ -218,8 +215,7 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
               postId: Number(post[0].id),
               threadId: Number(thread.id),
               forumId: Number(thread.forum_id),
-              authorId:
-                thread.author_user_id === null ? null : Number(thread.author_user_id),
+              authorId: thread.author_user_id === null ? null : Number(thread.author_user_id),
               isFirstPost: true,
               delta: 1,
             })

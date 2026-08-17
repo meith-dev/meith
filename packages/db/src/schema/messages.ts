@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  type AnyPgColumn,
   boolean,
   index,
   integer,
@@ -8,7 +9,6 @@ import {
   text,
   timestamp,
   unique,
-  type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 
 import { users } from './identity'

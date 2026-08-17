@@ -1,8 +1,9 @@
+import { canHoldThreads } from '@meith/forums'
+
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { crossOriginRefusal, isSameOrigin } from '@/server/same-origin'
 import { seeOther } from '@/server/see-other'
-import { canHoldThreads } from '@meith/forums'
 
 function idFrom(value: string): number | null {
   if (!/^[1-9]\d*$/.test(value)) return null

@@ -1,7 +1,7 @@
-import { cn } from '@meith/ui'
 import type { DiscoveryViewModel, TabModel } from '@meith/theme-kit'
+import { cn } from '@meith/ui'
 
-import { Chip, FEED, LINK, PAGE, PILL, Stamp, count, plural } from '../shared'
+import { Chip, count, FEED, LINK, PAGE, PILL, plural, Stamp } from '../shared'
 
 function Tabs({ label, tabs }: { label: string; tabs: readonly TabModel[] }) {
   if (tabs.length === 0) return null

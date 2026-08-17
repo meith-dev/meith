@@ -22,10 +22,7 @@ function depthDelta(line) {
 }
 
 function flattenDoc(lines) {
-  return lines
-    .join(' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return lines.join(' ').replace(/\s+/g, ' ').trim()
 }
 
 function stripDocMarkers(line) {
@@ -412,7 +409,10 @@ function render({ slots, freeze, models, slotModels }) {
     push('')
   }
 
-  return `${out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`
+  return `${out
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd()}\n`
 }
 
 const slots = await readSlots()

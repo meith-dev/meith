@@ -2,17 +2,12 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { isAppError } from '@meith/core'
-import { requireSlot, type DiscoveryViewModel } from '@meith/theme-kit'
+import { type DiscoveryViewModel, requireSlot } from '@meith/theme-kit'
 
 import { getActor } from '@/server/context'
-import {
-  DISCOVER_PAGE,
-  DISCOVERY_VIEWS,
-  isDiscoveryView,
-  runDiscovery,
-} from '@/server/discovery'
-import { currentTheme } from '@/server/theme'
+import { DISCOVER_PAGE, DISCOVERY_VIEWS, isDiscoveryView, runDiscovery } from '@/server/discovery'
 import { filterView, viewerRef } from '@/server/plugin-view'
+import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildDiscoveryView, DISCOVERY_LABELS } from '@/view/discovery-view'
 
@@ -66,7 +61,7 @@ export default async function DiscoverPage({
     timeZone: preferences.timezone,
   } as const
 
-  let page
+  let page: Awaited<ReturnType<typeof runDiscovery>>
   try {
     page = await runDiscovery({
       actor,
@@ -79,14 +74,14 @@ export default async function DiscoverPage({
     if (isAppError(err)) {
       return (
         <DiscoveryView
-          {...await themed(
+          {...(await themed(
             buildDiscoveryView({
               ...common,
               rows: [],
               nextHref: null,
               refusalMessage: err.message,
             }),
-          )}
+          ))}
         />
       )
     }
@@ -95,7 +90,7 @@ export default async function DiscoverPage({
 
   return (
     <DiscoveryView
-      {...await themed(
+      {...(await themed(
         buildDiscoveryView({
           ...common,
           rows: page.rows,
@@ -106,7 +101,7 @@ export default async function DiscoverPage({
                   page.nextCursor.at.toISOString(),
                 )}&after=${page.nextCursor.threadId}`,
         }),
-      )}
+      ))}
     />
   )
 }

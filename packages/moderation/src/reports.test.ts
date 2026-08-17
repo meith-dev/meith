@@ -1,12 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import type { ReportEvent, ReportRepository, ReportRow, ReportScope } from './reports'
 import { ReportService } from './reports'
-import type {
-  ReportEvent,
-  ReportRepository,
-  ReportRow,
-  ReportScope,
-} from './reports'
 
 const NOW = new Date('2026-07-31T12:00:00Z')
 const SCOPE: ReportScope = { forumIds: [10], global: true }

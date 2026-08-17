@@ -1,15 +1,16 @@
 'use server'
 
-import { NotFoundError, ValidationError } from '@meith/core'
-import { drivers } from '@meith/drivers'
 import { revalidatePath } from 'next/cache'
 
+import { NotFoundError, ValidationError } from '@meith/core'
+import { drivers } from '@meith/drivers'
+
 import { recordAdminAction, requireAdmin } from './admin'
+import type { FormState } from './auth-form-state'
 import { clearableTag } from './cache-targets'
 import { formStateReporter } from './form-state-reporter'
 import { requireSearch } from './search'
 import { requireMaintenance, requireRecount } from './system-admin'
-import type { FormState } from './auth-form-state'
 
 const SWEEP_LIMIT = 5_000
 
@@ -87,10 +88,7 @@ export async function reindexSearchAction(): Promise<FormState> {
   }
 }
 
-export async function clearCacheAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function clearCacheAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
 

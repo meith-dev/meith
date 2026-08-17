@@ -25,9 +25,7 @@ function read(): readonly number[] {
   try {
     const parsed: unknown = JSON.parse(raw ?? '[]')
     if (!Array.isArray(parsed)) return []
-    return [
-      ...new Set(parsed.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0)),
-    ]
+    return [...new Set(parsed.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))]
   } catch {
     return []
   }

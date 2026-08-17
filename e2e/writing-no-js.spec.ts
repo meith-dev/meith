@@ -1,8 +1,7 @@
 import { expect, test } from '@playwright/test'
 
-import { drainUntil, signUp } from './support/session'
-
 import { samplePng } from './support/png'
+import { drainUntil, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
@@ -34,7 +33,10 @@ test('a member posts a thread and a reply, and both land in the database', async
   await expect(page.getByRole('link', { name: title })).toBeVisible()
 })
 
-test('an image attachment is not served until it has been re-encoded', async ({ page, request }) => {
+test('an image attachment is not served until it has been re-encoded', async ({
+  page,
+  request,
+}) => {
   test.setTimeout(150_000)
 
   await signUp(page, 'uploader')
@@ -99,7 +101,10 @@ test('a file the board will not accept is refused, and nothing is posted', async
   await expect(page.getByRole('link', { name: title })).toHaveCount(0)
 })
 
-test('an attachment in a thread a guest may not read is refused by URL', async ({ page, request }) => {
+test('an attachment in a thread a guest may not read is refused by URL', async ({
+  page,
+  request,
+}) => {
   const anonymous = await request.get('/attachment/999999')
   expect(anonymous.status()).toBe(404)
 

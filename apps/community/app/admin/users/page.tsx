@@ -1,14 +1,21 @@
 import type { Metadata } from 'next'
 
-import { PanelPage } from '@/components/shell/panel-page'
-import { adminPageContext } from '@/server/admin'
-import { getViewerPreferences } from '@/server/viewer-preferences'
-import { formatTime } from '@/view/time'
-import { USER_PAGE, parseUserFilter, userAdminRepository } from '@/server/user-admin'
-import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW, PanelActionLink } from '@/components/shell/panel-list'
 import { buttonVariants, cn } from '@meith/ui'
+
+import {
+  PANEL_CARD,
+  PANEL_LIST,
+  PANEL_NOTE,
+  PANEL_ROW,
+  PanelActionLink,
+} from '@/components/shell/panel-list'
+import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
+import { adminPageContext } from '@/server/admin'
+import { parseUserFilter, USER_PAGE, userAdminRepository } from '@/server/user-admin'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { readPage } from '@/view/pager'
+import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Members' }
 
@@ -27,8 +34,8 @@ export default async function AdminUsersPage({
     return (
       <PanelPage title="Members" width="wide">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so its members cannot be
-          searched or edited.
+          This board is running on in-memory sample data, so its members cannot be searched or
+          edited.
         </p>
       </PanelPage>
     )
@@ -36,10 +43,7 @@ export default async function AdminUsersPage({
 
   const params = await searchParams
   const filter = parseUserFilter(params)
-  const [page, groups] = await Promise.all([
-    repository.search(filter),
-    repository.listGroups(),
-  ])
+  const [page, groups] = await Promise.all([repository.search(filter), repository.listGroups()])
   const now = new Date()
   const { timezone } = await getViewerPreferences()
 
@@ -54,9 +58,8 @@ export default async function AdminUsersPage({
       title="Members"
       lede={
         <>
-          Every criterion is combined, and every one is optional — an empty search is
-          everybody. The filter is in the address bar, so this page can be bookmarked or
-          handed to somebody else.
+          Every criterion is combined, and every one is optional — an empty search is everybody. The
+          filter is in the address bar, so this page can be bookmarked or handed to somebody else.
         </>
       }
       width="wide"
@@ -66,10 +69,7 @@ export default async function AdminUsersPage({
         <PanelActionLink href="/admin/users/mail">Mass mail</PanelActionLink>
       </nav>
 
-      <form
-        method="get"
-        className={PANEL_CARD}
-      >
+      <form method="get" className={PANEL_CARD}>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <label className="col-span-2 flex flex-col gap-1 text-sm sm:col-span-1">
             <span className="font-medium">Username contains</span>
@@ -113,22 +113,12 @@ export default async function AdminUsersPage({
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Registered before</span>
-            <input
-              type="date"
-              name="before"
-              defaultValue={value('before')}
-              className={INPUT}
-            />
+            <input type="date" name="before" defaultValue={value('before')} className={INPUT} />
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Registered after</span>
-            <input
-              type="date"
-              name="after"
-              defaultValue={value('after')}
-              className={INPUT}
-            />
+            <input type="date" name="after" defaultValue={value('after')} className={INPUT} />
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
@@ -183,23 +173,18 @@ export default async function AdminUsersPage({
 
       {page.rows.length === 0 ? (
         <p className={PANEL_NOTE}>
-          No members match. An empty result from a filled-in filter is a real answer —
-          check the spelling before widening it.
+          No members match. An empty result from a filled-in filter is a real answer — check the
+          spelling before widening it.
         </p>
       ) : (
         <ul className={PANEL_LIST}>
           {page.rows.map((row) => (
-            <li
-              key={row.id}
-              className={PANEL_ROW}
-            >
+            <li key={row.id} className={PANEL_ROW}>
               <span className="flex min-w-0 flex-col">
                 <span className="truncate text-sm font-medium">
                   {row.username}
                   {row.isBanned ? (
-                    <span className="ml-2 text-xs font-normal text-muted-foreground">
-                      banned
-                    </span>
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">banned</span>
                   ) : (
                     row.state !== 'active' && (
                       <span className="ml-2 text-xs font-normal text-muted-foreground">
@@ -208,9 +193,7 @@ export default async function AdminUsersPage({
                     )
                   )}
                   {row.deletedAt !== null && (
-                    <span className="ml-2 text-xs font-normal text-muted-foreground">
-                      deleted
-                    </span>
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">deleted</span>
                   )}
                 </span>
                 <span className="truncate text-xs text-muted-foreground">

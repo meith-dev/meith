@@ -1,5 +1,5 @@
-import { Card, CardContent, buttonVariants } from '@meith/ui'
 import type { RedirectNoticeModel } from '@meith/theme-kit'
+import { buttonVariants, Card, CardContent } from '@meith/ui'
 
 export function RedirectNotice({ message, targetHref, delaySeconds }: RedirectNoticeModel) {
   return (

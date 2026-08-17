@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { quotePrefill } from '@meith/threads'
 import { requireSlot } from '@meith/theme-kit'
+import { quotePrefill } from '@meith/threads'
 
 import { MultiQuoteSelection } from '@/components/content/multiquote-selection'
 import { ReplyForm } from '@/components/content/reply-form'
@@ -10,8 +10,8 @@ import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
-import { postLink } from '@/view/post-link'
 import { buildReplyView } from '@/view/post-form'
+import { postLink } from '@/view/post-link'
 import { leadingId } from '@/view/slug-id'
 
 export const metadata: Metadata = { title: 'Reply' }
@@ -38,7 +38,7 @@ export default async function ReplyPage({
   if (threadWrites === null) notFound()
 
   const target = await threadWrites.replyTarget(id)
-  if (!target || target.visibility !== 'visible') notFound()
+  if (target?.visibility !== 'visible') notFound()
 
   const scope = {
     forumId: target.forum.id,
@@ -84,10 +84,12 @@ export default async function ReplyPage({
                 seenLastPostId={target.lastPostId}
                 prefill={prefill}
                 canSubscribe={authorizer.can(actor, 'forum.subscribe', scope)}
-                attachmentLimits={
-                  canAttach(actor, scope) ? attachmentLimits(scope) : null
+                attachmentLimits={canAttach(actor, scope) ? attachmentLimits(scope) : null}
+                draft={
+                  actor.userId === null || drafts === null
+                    ? null
+                    : await drafts.find(actor.userId, target.forum.id, target.threadId)
                 }
-                draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, target.forum.id, target.threadId)}
               />
             </>
           ),

@@ -4,8 +4,8 @@ import {
   DEV_REMEMBER_COOKIE,
   DEV_SESSION_COOKIE,
   REMEMBER_COOKIE,
-  SESSION_COOKIE,
   rememberCookieName,
+  SESSION_COOKIE,
   sessionCookieName,
 } from './cookies'
 

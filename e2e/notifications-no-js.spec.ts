@@ -36,9 +36,7 @@ test('a notification is marked read, singly and then all at once', async ({ brow
     await expect(rowAfter).toBeVisible()
     await expect(rowAfter.getByText('New')).toHaveCount(0)
 
-    await expect(
-      namedPage.getByRole('button', { name: 'Mark all as read' }),
-    ).toHaveCount(0)
+    await expect(namedPage.getByRole('button', { name: 'Mark all as read' })).toHaveCount(0)
   } finally {
     await posterContext.close()
     await namedContext.close()

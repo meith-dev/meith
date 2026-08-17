@@ -23,7 +23,11 @@ export interface TableCell {
 
 export type Block =
   | { readonly kind: 'paragraph'; readonly inline: readonly Inline[] }
-  | { readonly kind: 'heading'; readonly level: 1 | 2 | 3 | 4 | 5 | 6; readonly inline: readonly Inline[] }
+  | {
+      readonly kind: 'heading'
+      readonly level: 1 | 2 | 3 | 4 | 5 | 6
+      readonly inline: readonly Inline[]
+    }
   | { readonly kind: 'quote'; readonly children: readonly Block[] }
   | {
       readonly kind: 'list'

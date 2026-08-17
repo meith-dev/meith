@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { BodyFormat, RENDER_VERSION } from '@meith/markdown'
 import type { ForumRow } from '@meith/forums'
+import { BodyFormat, RENDER_VERSION } from '@meith/markdown'
 import type { PostListingRow } from '@meith/posts'
 import type { ThreadListingRow } from '@meith/threads'
 
@@ -84,9 +84,7 @@ describe('buildThreadView', () => {
   })
 })
 
-function bodyOf(
-  post: Partial<PostListingRow> & Pick<PostListingRow, 'message'>,
-): string {
+function bodyOf(post: Partial<PostListingRow> & Pick<PostListingRow, 'message'>): string {
   const view = buildThreadView({
     thread,
     forum,
@@ -124,9 +122,7 @@ function bodyOf(
 
 describe('the post body', () => {
   it('renders the Markdown source when the post carries no stored render', () => {
-    expect(bodyOf({ message: 'a **bold** claim' })).toBe(
-      '<p>a <strong>bold</strong> claim</p>',
-    )
+    expect(bodyOf({ message: 'a **bold** claim' })).toBe('<p>a <strong>bold</strong> claim</p>')
   })
 
   it('converts a body still stored as BBCode, and ignores its render', () => {
@@ -174,10 +170,7 @@ describe('post affordances', () => {
     canReport: true,
   }
 
-  function actionsFor(
-    post: Partial<PostListingRow>,
-    capabilities: Partial<typeof MEMBER> = {},
-  ) {
+  function actionsFor(post: Partial<PostListingRow>, capabilities: Partial<typeof MEMBER> = {}) {
     const view = buildThreadView({
       thread,
       forum,
@@ -225,9 +218,9 @@ describe('post affordances', () => {
   })
 
   it('offers Edit on somebody else"s to a moderator', () => {
-    expect(
-      actionsFor({ authorUserId: 99 }, { editOthers: true }).actions.editHref,
-    ).toBe('/thread/3-hello/edit?post=4')
+    expect(actionsFor({ authorUserId: 99 }, { editOthers: true }).actions.editHref).toBe(
+      '/thread/3-hello/edit?post=4',
+    )
   })
 
   it('offers nothing to a guest', () => {
@@ -271,12 +264,9 @@ describe('post affordances', () => {
 
   it('hides Edit once the window has closed, and keeps it for a moderator', () => {
     const stale = { createdAt: new Date('2026-07-30T08:00:00Z') }
+    expect(actionsFor(stale, { editWindowMinutes: 30 }).actions.editHref).toBeNull()
     expect(
-      actionsFor(stale, { editWindowMinutes: 30 }).actions.editHref,
-    ).toBeNull()
-    expect(
-      actionsFor(stale, { editWindowMinutes: 30, bypassesWindow: true }).actions
-        .editHref,
+      actionsFor(stale, { editWindowMinutes: 30, bypassesWindow: true }).actions.editHref,
     ).toBe('/thread/3-hello/edit?post=4')
   })
 
@@ -289,13 +279,8 @@ describe('post affordances', () => {
   })
 
   it('does not offer to quote a post nobody else can see', () => {
-    expect(
-      actionsFor({ visibility: 'deleted' }, { softDelete: true }).actions
-        .quoteHref,
-    ).toBeNull()
-    expect(actionsFor({}).actions.quoteHref).toBe(
-      '/thread/3-hello/reply?quote=4',
-    )
+    expect(actionsFor({ visibility: 'deleted' }, { softDelete: true }).actions.quoteHref).toBeNull()
+    expect(actionsFor({}).actions.quoteHref).toBe('/thread/3-hello/reply?quote=4')
   })
 
   it('carries the edit notice through to the theme', () => {
@@ -448,12 +433,9 @@ describe('ignored posts', () => {
   })
 
   it('keeps the post in the page, with its number', () => {
-    const view = build(
-      [row({ id: 4, number: 1 }), row({ id: 5, number: 2, authorUserId: 8 })],
-      {
-        ignoredIds: new Set([9]),
-      },
-    )
+    const view = build([row({ id: 4, number: 1 }), row({ id: 5, number: 2, authorUserId: 8 })], {
+      ignoredIds: new Set([9]),
+    })
 
     expect(view.posts).toHaveLength(2)
     expect(view.posts.map((post) => post.number)).toEqual([1, 2])
@@ -509,7 +491,7 @@ describe('revealedFrom', () => {
   })
 })
 
-describe('the author\'s group standing', () => {
+describe("the author's group standing", () => {
   const IDENTITY: MemberIdentity = {
     groupId: 3,
     title: 'Moderator',

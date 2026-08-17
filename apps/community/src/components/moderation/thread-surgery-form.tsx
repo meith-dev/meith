@@ -1,16 +1,16 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { mergeThreadAction, splitThreadAction } from "@/server/surgery-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { mergeThreadAction, splitThreadAction } from '@/server/surgery-actions'
 
-import { FormError } from "../auth/form-controls"
+import { FormError } from '../auth/form-controls'
 
 const BUTTON =
-  "inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 const FIELD =
-  "h-8 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'h-8 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export interface SplitPoint {
   readonly id: number
@@ -80,10 +80,7 @@ export function ThreadSurgeryForm({
               className={`${FIELD} w-40`}
             />
           </label>
-          <button
-            type="submit"
-            className={`${BUTTON} border-destructive/40 text-destructive`}
-          >
+          <button type="submit" className={`${BUTTON} border-destructive/40 text-destructive`}>
             Merge away
           </button>
         </form>

@@ -1,5 +1,5 @@
-import { Alert, AlertDescription, AlertTitle, Avatar, Card } from '@meith/ui'
 import type { PostBitSlotModel } from '@meith/theme-kit'
+import { Alert, AlertDescription, AlertTitle, Avatar, Card } from '@meith/ui'
 
 import { LINK, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
 
@@ -27,7 +27,11 @@ function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['vi
   )
 }
 
-function GroupBadge({ badge }: { badge: NonNullable<PostBitSlotModel['post']['author']['badge']> }) {
+function GroupBadge({
+  badge,
+}: {
+  badge: NonNullable<PostBitSlotModel['post']['author']['badge']>
+}) {
   const image = (
     <img
       src={badge.src}

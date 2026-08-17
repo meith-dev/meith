@@ -1,10 +1,11 @@
+import type { UserPanelModel } from '@meith/theme-kit'
 import { Avatar, Badge, buttonVariants } from '@meith/ui'
 import { Menu } from '@meith/ui/menu'
-import type { UserPanelModel } from '@meith/theme-kit'
 
 import { MUTED_LINK } from '../shared'
 
-const COUNT_LINK = 'rounded-full outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring'
+const COUNT_LINK =
+  'rounded-full outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring'
 
 export function UserPanel({
   viewer,

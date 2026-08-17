@@ -182,6 +182,7 @@ function render({ routes, scopes }) {
     '| `x-forum-timestamp` | Unix seconds, and part of the signed material. |',
     '| `x-forum-signature` | `sha256=<hex>` of `HMAC(secret, "<timestamp>.<body>")`. |',
     '',
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: prose about the signed material, not an interpolation
     'Verify by recomputing the HMAC over `` `${timestamp}.${rawBody}` `` and comparing in',
     'constant time — **and reject anything older than five minutes**. The timestamp is',
     'inside the signed material precisely so it cannot be edited; checking the',
@@ -196,7 +197,10 @@ function render({ routes, scopes }) {
     '',
   )
 
-  return `${out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`
+  return `${out
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd()}\n`
 }
 
 const routes = await readRoutes()

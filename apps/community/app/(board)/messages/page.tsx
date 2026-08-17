@@ -1,21 +1,20 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { parseFolder } from '@meith/messages'
+import { MESSAGES_PAGE_SIZE, parseFolder } from '@meith/messages'
 import { requireSlot } from '@meith/theme-kit'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { MessageActionBar } from '@/components/messages/message-forms'
-import { getContainer } from '@/server/container'
+import { PanelPage } from '@/components/shell/panel-page'
+import { PanelPagination } from '@/components/shell/panel-pagination'
 import { ViewTabs } from '@/components/shell/view-tabs'
+import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { messageService } from '@/server/messages'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
-import { MESSAGE_FORM_ID, buildMessageFolderView, messageNotice } from '@/view/messages'
-import { PanelPagination } from '@/components/shell/panel-pagination'
+import { buildMessageFolderView, MESSAGE_FORM_ID, messageNotice } from '@/view/messages'
 import { offsetOf, readPage } from '@/view/pager'
-import { MESSAGES_PAGE_SIZE } from '@meith/messages'
 
 export const metadata: Metadata = { title: 'Private messages' }
 
@@ -99,13 +98,12 @@ export default async function MessagesPage({
 
       {view.quota.isFull ? (
         <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          Your message store is full, so you cannot send or receive anything until you
-          delete some. Emptying the trash frees space — messages in it still count.
+          Your message store is full, so you cannot send or receive anything until you delete some.
+          Emptying the trash frees space — messages in it still count.
         </p>
       ) : view.quota.isNearlyFull ? (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-          Your message store is nearly full. Deleting messages and emptying the trash
-          frees space.
+          Your message store is nearly full. Deleting messages and emptying the trash frees space.
         </p>
       ) : null}
 
@@ -154,10 +152,7 @@ export default async function MessagesPage({
                   </span>
                 </div>
 
-                <time
-                  dateTime={row.at.iso}
-                  className="shrink-0 text-xs text-muted-foreground"
-                >
+                <time dateTime={row.at.iso} className="shrink-0 text-xs text-muted-foreground">
                   {row.at.label}
                 </time>
               </li>

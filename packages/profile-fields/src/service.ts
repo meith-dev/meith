@@ -106,10 +106,7 @@ export class ProfileFieldService {
     })
   }
 
-  async applyRegistration(
-    userId: number,
-    values: readonly ProfileFieldValue[],
-  ): Promise<void> {
+  async applyRegistration(userId: number, values: readonly ProfileFieldValue[]): Promise<void> {
     if (values.length === 0) return
     await this.repository.saveValues({ userId, values })
   }

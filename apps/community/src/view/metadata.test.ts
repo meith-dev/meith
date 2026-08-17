@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  canonicalPath,
-  cardDescription,
-  jsonLdScript,
-  pageLinks,
-  threadJsonLd,
-} from './metadata'
+import { canonicalPath, cardDescription, jsonLdScript, pageLinks, threadJsonLd } from './metadata'
 
 const PATH = '/thread/12-hello'
 

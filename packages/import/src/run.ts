@@ -1,5 +1,5 @@
-import { mapForum, mapPost, mapThread, mapUser } from './map'
 import type { ImportedForum, ImportedPost, ImportedThread, ImportedUser } from './map'
+import { mapForum, mapPost, mapThread, mapUser } from './map'
 import type { MybbSource } from './source'
 
 export const KINDS = ['users', 'forums', 'threads', 'posts'] as const

@@ -1,6 +1,5 @@
 import { sql } from 'drizzle-orm'
 
-import { notificationKind } from '@meith/notifications'
 import type {
   DeliverableNotification,
   NotificationData,
@@ -10,6 +9,7 @@ import type {
   RaiseInput,
   RaiseResult,
 } from '@meith/notifications'
+import { notificationKind } from '@meith/notifications'
 
 import type { Database } from './client'
 import { decodeCursor, encodeCursor } from './cursor'
@@ -126,9 +126,7 @@ export class PostgresNotificationRepository implements NotificationRepository {
     },
   ): Promise<NotificationPage> {
     const cursor = options.after === undefined ? null : decodeCursor(options.after)
-    const after = cursor
-      ? sql`and (n.created_at, n.id) < (${cursor.at}, ${cursor.id})`
-      : sql``
+    const after = cursor ? sql`and (n.created_at, n.id) < (${cursor.at}, ${cursor.id})` : sql``
 
     const rows = resultRows(
       await this.db.execute(sql`
@@ -201,16 +199,11 @@ export class PostgresNotificationRepository implements NotificationRepository {
     return new Map(rows.map((row) => [row.kind, row.email === true]))
   }
 
-  async saveEmailPreferences(
-    userId: number,
-    entries: ReadonlyMap<string, boolean>,
-  ): Promise<void> {
+  async saveEmailPreferences(userId: number, entries: ReadonlyMap<string, boolean>): Promise<void> {
     if (entries.size === 0) return
 
     const values = sql.join(
-      [...entries].map(
-        ([kind, email]) => sql`(${userId}, ${kind}, ${email}, now())`,
-      ),
+      [...entries].map(([kind, email]) => sql`(${userId}, ${kind}, ${email}, now())`),
       sql`, `,
     )
 

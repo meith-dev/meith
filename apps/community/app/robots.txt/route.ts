@@ -4,7 +4,16 @@ export const dynamic = 'force-dynamic'
 
 const COMPUTED = ['/search', '/discover', '/online', '/stats']
 
-const PRIVATE = ['/usercp', '/messages', '/notifications', '/subscriptions', '/modcp', '/moderation', '/admin', '/api']
+const PRIVATE = [
+  '/usercp',
+  '/messages',
+  '/notifications',
+  '/subscriptions',
+  '/modcp',
+  '/moderation',
+  '/admin',
+  '/api',
+]
 
 export async function GET(): Promise<Response> {
   const body = (await isIndexable())

@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { bindPluginSql, pluginData } from './plugin-data'
 import { createTestDb, type TestDb } from './pglite.fixture'
+import { bindPluginSql, pluginData } from './plugin-data'
 import { resultRows } from './result-rows'
 
 let h: TestDb
@@ -53,9 +53,7 @@ describe('one', () => {
     expect(await data.one('select note from plugin_example_note')).toBeNull()
 
     await data.query('insert into plugin_example_note (note) values ($1), ($2)', ['a', 'b'])
-    const row = await data.one<{ note: string }>(
-      'select note from plugin_example_note order by id',
-    )
+    const row = await data.one<{ note: string }>('select note from plugin_example_note order by id')
     expect(row).toEqual({ note: 'a' })
   })
 })

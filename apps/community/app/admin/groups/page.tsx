@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { CreateGroupForm } from '@/components/admin/group-forms'
+import { PANEL_CARD, PANEL_LIST, PANEL_ROW, PanelActionLink } from '@/components/shell/panel-list'
+import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { groupAdminRepository } from '@/server/group-admin'
-import { PANEL_CARD, PANEL_LIST, PANEL_ROW, PanelActionLink } from '@/components/shell/panel-list'
 
 export const metadata: Metadata = { title: 'Groups' }
 
@@ -29,8 +29,8 @@ export default async function AdminGroupsPage() {
       title="Groups"
       lede={
         <>
-          A group is a set of permissions and the members who hold it. What a group allows
-          here is the <em>default</em> for every forum — a forum may override it, and{' '}
+          A group is a set of permissions and the members who hold it. What a group allows here is
+          the <em>default</em> for every forum — a forum may override it, and{' '}
           <a
             href="/admin/forums"
             className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
@@ -43,22 +43,15 @@ export default async function AdminGroupsPage() {
     >
       <ul className={PANEL_LIST}>
         {groups.map((group) => (
-          <li
-            key={group.id}
-            className={PANEL_ROW}
-          >
+          <li key={group.id} className={PANEL_ROW}>
             <span className="flex min-w-0 flex-col">
               <span className="truncate text-sm font-medium">
                 {group.title}
                 {group.isSystem && (
-                  <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    system
-                  </span>
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">system</span>
                 )}
                 {group.isStaffGroup && (
-                  <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    staff
-                  </span>
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">staff</span>
                 )}
               </span>
               <span className="truncate text-xs text-muted-foreground">

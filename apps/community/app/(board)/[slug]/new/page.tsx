@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { canHoldThreads } from '@meith/forums'
 import { requireSlot } from '@meith/theme-kit'
 
 import { NewThreadForm } from '@/components/content/new-thread-form'
@@ -10,15 +11,10 @@ import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
 import { buildNewThreadView } from '@/view/post-form'
 import { leadingId } from '@/view/slug-id'
-import { canHoldThreads } from '@meith/forums'
 
 export const metadata: Metadata = { title: 'New thread' }
 
-export default async function NewThreadPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
+export default async function NewThreadPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const id = leadingId(slug)
   if (id === null) notFound()
@@ -46,9 +42,7 @@ export default async function NewThreadPage({
   const view = buildNewThreadView({
     forum: { id: forum.id, title: forum.title, slug: forum.slug },
     errorMessage:
-      rules.isOpen && rules.allowThreads
-        ? null
-        : 'This forum is closed to new threads.',
+      rules.isOpen && rules.allowThreads ? null : 'This forum is closed to new threads.',
   })
 
   const PostForm = requireSlot(await currentTheme(), 'PostForm')
@@ -67,11 +61,13 @@ export default async function NewThreadPage({
                 canSubscribe={authorizer.can(actor, 'forum.subscribe', target)}
                 canPostPoll={authorizer.can(actor, 'poll.post', target)}
                 attachmentLimits={
-                  canAttach(actor, attachTarget)
-                    ? attachmentLimits(attachTarget)
-                    : null
+                  canAttach(actor, attachTarget) ? attachmentLimits(attachTarget) : null
                 }
-                draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, id, null)}
+                draft={
+                  actor.userId === null || drafts === null
+                    ? null
+                    : await drafts.find(actor.userId, id, null)
+                }
               />
             ) : null,
           toolbar: null,

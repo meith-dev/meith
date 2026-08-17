@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext } from '@playwright/test'
+import { type APIRequestContext, expect, test } from '@playwright/test'
 
 const FEEDS = [
   { url: '/feed.xml', of: 'the board' },
@@ -51,9 +51,9 @@ test('every feed id is a tag URI over the thread id, so a rename cannot move it'
   }
 
   const again = await xml(request, '/feed.xml')
-  expect([...again.matchAll(/<guid isPermaLink="false">([^<]+)<\/guid>/g)].map((m) => m[1])).toEqual(
-    guids,
-  )
+  expect(
+    [...again.matchAll(/<guid isPermaLink="false">([^<]+)<\/guid>/g)].map((m) => m[1]),
+  ).toEqual(guids)
 })
 
 test('the sitemap index names chunks that answer', async ({ request }) => {

@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
-import { likeFragment } from './user-admin-repo'
 import { resultRows } from './result-rows'
+import { likeFragment } from './user-admin-repo'
 
 export interface AttachmentAdminRow {
   readonly id: number
@@ -51,9 +51,7 @@ export class PostgresAttachmentAdminRepository {
     const conditions = [sql`true`]
 
     if (filter.filename !== undefined && filter.filename !== '') {
-      conditions.push(
-        sql`a.filename ilike ${`%${likeFragment(filter.filename)}%`} escape '\\'`,
-      )
+      conditions.push(sql`a.filename ilike ${`%${likeFragment(filter.filename)}%`} escape '\\'`)
     }
     if (filter.status !== undefined && STATUSES.has(filter.status)) {
       conditions.push(sql`a.status = ${filter.status}`)
@@ -104,9 +102,7 @@ export class PostgresAttachmentAdminRepository {
       }),
     )
 
-    const total = Number(
-      (resultRows(counted) as Array<Record<string, unknown>>)[0]?.total ?? 0,
-    )
+    const total = Number((resultRows(counted) as Array<Record<string, unknown>>)[0]?.total ?? 0)
 
     return {
       rows: page,
@@ -148,8 +144,9 @@ export class PostgresAttachmentAdminRepository {
       const row = rows[0]
       if (row === undefined) return false
 
-      const keys = [row.storage_key, row.source_key, row.thumbnail_key]
-        .filter((key): key is string => typeof key === 'string' && key !== '')
+      const keys = [row.storage_key, row.source_key, row.thumbnail_key].filter(
+        (key): key is string => typeof key === 'string' && key !== '',
+      )
 
       for (const key of keys) {
         await tx.execute(sql`

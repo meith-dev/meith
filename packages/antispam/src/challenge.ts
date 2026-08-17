@@ -38,8 +38,7 @@ export class QuestionCaptcha implements CaptchaProvider {
 
   constructor(
     private readonly source: QuestionSource,
-    private readonly pick: (count: number) => number = (count) =>
-      Math.floor(Math.random() * count),
+    private readonly pick: (count: number) => number = (count) => Math.floor(Math.random() * count),
   ) {}
 
   async issue(): Promise<Challenge | null> {

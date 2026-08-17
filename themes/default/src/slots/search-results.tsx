@@ -1,20 +1,20 @@
+import type { OptionModel, SearchRefineModel, SearchResultsModel } from '@meith/theme-kit'
 import {
+  buttonVariants,
   Card,
   CardContent,
   CardFooter,
   CardRows,
+  cn,
   Empty,
   EmptyDescription,
   EmptyTitle,
   Field,
   Input,
   NativeSelect,
-  buttonVariants,
-  cn,
 } from '@meith/ui'
-import type { OptionModel, SearchRefineModel, SearchResultsModel } from '@meith/theme-kit'
 
-import { LINK, Stamp, pageAt } from '../shared'
+import { LINK, pageAt, Stamp } from '../shared'
 
 export function SearchResults({
   terms,
@@ -34,12 +34,10 @@ export function SearchResults({
       className={`${pageAt('max-w-3xl')} flex flex-1 flex-col gap-6 py-8`}
     >
       <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">
-          Results for &ldquo;{terms}&rdquo;
-        </h1>
+        <h1 className="font-heading text-2xl font-semibold">Results for &ldquo;{terms}&rdquo;</h1>
         <p className="text-sm text-muted-foreground">
-          Searched <Stamp at={searchedAt} />. Results are checked against your access
-          every time this page is opened, so they can change.
+          Searched <Stamp at={searchedAt} />. Results are checked against your access every time
+          this page is opened, so they can change.
         </p>
       </div>
 
@@ -99,12 +97,7 @@ export function SearchResults({
 
             <Field name={within.field} label={within.label} description={within.hint}>
               {(control) => (
-                <Input
-                  {...control}
-                  defaultValue={within.value}
-                  type="search"
-                  autoComplete="off"
-                />
+                <Input {...control} defaultValue={within.value} type="search" autoComplete="off" />
               )}
             </Field>
 

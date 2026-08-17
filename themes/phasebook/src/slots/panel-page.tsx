@@ -1,5 +1,5 @@
-import { cn } from '@meith/ui'
 import type { PanelPageModel, PanelSectionModel } from '@meith/theme-kit'
+import { cn } from '@meith/ui'
 
 import { MUTED_LINK } from '../shared'
 
@@ -29,9 +29,7 @@ export function PanelPage({ title, back, frame, width, gap, regions, children }:
               </a>
             )}
 
-            <h1 className="text-xl leading-tight font-bold tracking-tight text-balance">
-              {title}
-            </h1>
+            <h1 className="text-xl leading-tight font-bold tracking-tight text-balance">{title}</h1>
 
             {regions.lede !== undefined && (
               <p className="text-sm text-muted-foreground">{regions.lede}</p>
@@ -57,10 +55,7 @@ export function PanelSection({ title, headingId, regions, children }: PanelSecti
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 px-1">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <h2
-            id={headingId}
-            className="text-[0.9375rem] font-semibold text-muted-foreground"
-          >
+          <h2 id={headingId} className="text-[0.9375rem] font-semibold text-muted-foreground">
             {title}
           </h2>
           {regions.description !== undefined && (

@@ -3,14 +3,14 @@ import 'server-only'
 import { headers } from 'next/headers'
 
 import {
-  FederationService,
-  PasskeyService,
   configuredProviders,
-  isProviderKind,
-  providerFor,
   type FederationOptions,
+  FederationService,
   type IdentityProvider,
+  isProviderKind,
+  PasskeyService,
   type ProviderKind,
+  providerFor,
   type RelyingParty,
 } from '@meith/accounts'
 import { env } from '@meith/core'
@@ -67,9 +67,10 @@ export async function federationProvider(id: string): Promise<IdentityProvider |
 export async function signInProviders(): Promise<readonly ProviderButton[]> {
   if (getContainer().dataSource !== 'postgres') return []
 
-  return configuredProviders(federationOptions(await getSettingsUncached())).map(
-    (provider) => ({ id: provider.id, label: provider.label }),
-  )
+  return configuredProviders(federationOptions(await getSettingsUncached())).map((provider) => ({
+    id: provider.id,
+    label: provider.label,
+  }))
 }
 
 export async function passkeysEnabled(): Promise<boolean> {
@@ -131,8 +132,7 @@ async function requestOrigin(): Promise<string> {
   }
 
   const scheme =
-    incoming.get('x-forwarded-proto') ??
-    (env.NODE_ENV === 'development' ? 'http' : 'https')
+    incoming.get('x-forwarded-proto') ?? (env.NODE_ENV === 'development' ? 'http' : 'https')
 
   return `${scheme.split(',')[0]!.trim()}://${host.trim()}`
 }

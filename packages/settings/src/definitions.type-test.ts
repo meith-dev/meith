@@ -52,4 +52,4 @@ const WRONG_SHAPE: SettingValue<'board.offline'> = 'yes'
 const TYPO: SettingValue<'board.nmae'> = ''
 
 export type { SettingKey }
-export { NAME, OFFLINE, PER_PAGE, MODE, KEY, UNKNOWN_KEY, WRONG_TYPE, WRONG_SHAPE, TYPO }
+export { KEY, MODE, NAME, OFFLINE, PER_PAGE, TYPO, UNKNOWN_KEY, WRONG_SHAPE, WRONG_TYPE }

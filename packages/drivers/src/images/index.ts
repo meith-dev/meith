@@ -1,9 +1,9 @@
 export {
+  type DecodedImage,
   decodeImage,
   encodeImage,
-  resizeToFit,
-  type DecodedImage,
   type ImageFormat,
+  resizeToFit,
 } from './codec'
-export { locateAsset, compileAsset } from './locate-wasm'
+export { compileAsset, locateAsset } from './locate-wasm'
 export { imageProcessor } from './processor'

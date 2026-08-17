@@ -1,5 +1,5 @@
-import { Card, CardContent, CardFooter, buttonVariants } from '@meith/ui'
 import type { ErrorNoticeModel } from '@meith/theme-kit'
+import { buttonVariants, Card, CardContent, CardFooter } from '@meith/ui'
 
 import { NUMERIC } from '../shared'
 
@@ -10,9 +10,7 @@ export function ErrorNotice({ status, title, message, homeHref, requestId }: Err
         <p className={`text-xs font-medium tracking-wide text-destructive uppercase ${NUMERIC}`}>
           Error {status}
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">
-          {title}
-        </h1>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">{title}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{message}</p>
 
         <a href={homeHref} className={`mt-5 ${buttonVariants({ variant: 'primary' })}`}>

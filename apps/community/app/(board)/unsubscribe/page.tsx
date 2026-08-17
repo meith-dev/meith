@@ -20,8 +20,7 @@ export default async function UnsubscribePage({
 
   const token = query.token ?? ''
   const secret = env.AUTH_SECRET
-  const claim =
-    token === '' || secret === undefined ? null : readUnsubscribeToken(token, secret)
+  const claim = token === '' || secret === undefined ? null : readUnsubscribeToken(token, secret)
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
 
@@ -35,7 +34,10 @@ export default async function UnsubscribePage({
             <Notice kind="info" message={done} dismissHref="/" />
             <p className="text-sm text-muted-foreground">
               You can change any of this later from{' '}
-              <a href="/subscriptions" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+              <a
+                href="/subscriptions"
+                className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+              >
                 your subscriptions
               </a>
               .
@@ -43,10 +45,12 @@ export default async function UnsubscribePage({
           </>
         ) : claim === null ? (
           <p className="text-sm text-muted-foreground">
-            That link is not valid — it may have been truncated by a mail client,
-            or the board’s settings may have changed since it was sent. You can
-            still manage everything from{' '}
-            <a href="/subscriptions" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+            That link is not valid — it may have been truncated by a mail client, or the board’s
+            settings may have changed since it was sent. You can still manage everything from{' '}
+            <a
+              href="/subscriptions"
+              className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+            >
               your subscriptions
             </a>{' '}
             after signing in.

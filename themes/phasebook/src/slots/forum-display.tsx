@@ -2,13 +2,13 @@ import type { ForumDisplayModel } from '@meith/theme-kit'
 
 import {
   Circle,
+  count,
   FEED,
+  isEmptyRegion,
   NUMERIC,
   PAGE,
   PILL,
   PILL_PRIMARY,
-  count,
-  isEmptyRegion,
   plural,
 } from '../shared'
 

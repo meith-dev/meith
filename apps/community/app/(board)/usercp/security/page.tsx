@@ -4,31 +4,24 @@ import { notFound } from 'next/navigation'
 import { PASSKEY_LIMIT, providerLabel } from '@meith/accounts'
 import { requireSlot } from '@meith/theme-kit'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { ActiveSessions, type SessionView } from '@/components/account/active-sessions'
 import { PasskeyEnrol } from '@/components/account/passkey-enrol'
+import { type ActivityView, SecurityActivity } from '@/components/account/security-activity'
 import {
-  SecurityActivity,
-  type ActivityView,
-} from '@/components/account/security-activity'
-import {
-  LinkedSignIns,
-  PasskeyList,
   type LinkedIdentityView,
+  LinkedSignIns,
   type OfferedProvider,
+  PasskeyList,
   type PasskeyView,
 } from '@/components/account/sign-in-methods'
 import { TwoFactorPanel, TwoFactorSetup } from '@/components/account/two-factor-forms'
 import { EmailForm, PasswordForm } from '@/components/account/usercp-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { boardAuthConfig } from '@/server/auth-config'
 import { memberSecurityActivity } from '@/server/auth-events'
-import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
-import {
-  memberManagedSignIns,
-  passkeysEnabled,
-  signInProviders,
-} from '@/server/federation'
+import { getActor } from '@/server/context'
+import { memberManagedSignIns, passkeysEnabled, signInProviders } from '@/server/federation'
 import { currentSessionId } from '@/server/session-actions'
 import { currentTheme } from '@/server/theme'
 import { pendingEnrolment, secondFactorPosture, twoFactorState } from '@/server/two-factor'
@@ -44,8 +37,7 @@ const NOTICES: Record<string, string> = {
   'passkey:added': 'That passkey is ready. You can sign in with it from now on.',
   'passkey:removed': 'That passkey has been removed. It can no longer reach your account.',
   'factor:setup': 'Add the key below to your authenticator app, then confirm a code.',
-  'factor:off':
-    'Two-factor authentication is off. Your password is all that is asked for now.',
+  'factor:off': 'Two-factor authentication is off. Your password is all that is asked for now.',
   'sessions:revoked': 'That session has been signed out.',
   'sessions:elsewhere': 'Every other session has been signed out.',
 }
@@ -98,9 +90,7 @@ export default async function SecurityPage({
   const settingUp = factor.pending || query.factor === 'setup'
 
   const linked = await accountStore.identities.listForUser(actor.userId)
-  const labels = new Map<string, string>(
-    providers.map((provider) => [provider.id, provider.label]),
-  )
+  const labels = new Map<string, string>(providers.map((provider) => [provider.id, provider.label]))
 
   const linkedView: readonly LinkedIdentityView[] = linked.map((identity) => ({
     id: identity.id,
@@ -156,11 +146,7 @@ export default async function SecurityPage({
       lede="Changing either your e-mail address or your password needs the password you have now. Everything below it is a way into your account, and a record of what has used one."
     >
       {notice !== null && (
-        <Notice
-          kind={notice.kind}
-          message={notice.message}
-          dismissHref="/usercp/security"
-        />
+        <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/security" />
       )}
 
       <PasswordForm minLength={(await boardAuthConfig()).minPasswordLength} />
@@ -195,9 +181,7 @@ export default async function SecurityPage({
   )
 }
 
-function pageNotice(
-  query: SecurityQuery,
-): { kind: 'info' | 'warning'; message: string } | null {
+function pageNotice(query: SecurityQuery): { kind: 'info' | 'warning'; message: string } | null {
   const federated = ssoNotice(query.sso)
   if (federated !== null) return federated
 

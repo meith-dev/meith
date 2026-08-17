@@ -2,7 +2,6 @@ import { sql } from 'drizzle-orm'
 
 import { BodyFormat, renderMarkdown, vocabularyOptions } from '@meith/markdown'
 import type { NewPoll } from '@meith/polls'
-
 import type {
   CreatedThread,
   ForumPostingTarget,
@@ -19,9 +18,7 @@ import { resultRows } from './result-rows'
 import { SEARCH_DOCUMENT_VERSION, searchVectorSql } from './search-repo'
 import { readBoardVocabulary } from './vocabulary-repo'
 
-export class PostgresThreadWriteRepository
-  implements ThreadWriteRepository, ReplyWriteRepository
-{
+export class PostgresThreadWriteRepository implements ThreadWriteRepository, ReplyWriteRepository {
   constructor(private readonly db: Database) {}
 
   async postingRules(forumId: number): Promise<ForumPostingTarget | null> {
@@ -111,8 +108,7 @@ export class PostgresThreadWriteRepository
       ) as Array<{ id: number }>
       const postId = Number(postRows[0]!.id)
 
-      if (record.poll !== undefined)
-        await createPoll(tx as Database, threadId, record.poll)
+      if (record.poll !== undefined) await createPoll(tx as Database, threadId, record.poll)
 
       if (record.visibility === 'visible') {
         await applyCreatedContentCounters(tx, {
@@ -320,11 +316,7 @@ export class PostgresThreadWriteRepository
   }
 }
 
-async function createPoll(
-  tx: Database,
-  threadId: number,
-  poll: NewPoll,
-): Promise<void> {
+async function createPoll(tx: Database, threadId: number, poll: NewPoll): Promise<void> {
   const rows = resultRows(
     await tx.execute(sql`
       insert into polls (thread_id, question, closes_at)

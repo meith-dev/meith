@@ -2,17 +2,13 @@ import 'server-only'
 
 import { cache } from 'react'
 
-import {
-  type Actor,
-  type ModeratedTarget,
-  type ModeratorRights,
-} from '@meith/authorization'
+import type { Actor, ModeratedTarget, ModeratorRights } from '@meith/authorization'
+import { canHoldThreads } from '@meith/forums'
 import { ModerationQueue } from '@meith/moderation'
 
-import { getActor } from './context'
 import { getContainer } from './container'
+import { getActor } from './context'
 import { hasReportScope, resolveReportScope } from './report-scope'
-import { canHoldThreads } from '@meith/forums'
 
 export interface ModCpAccess {
   readonly actor: Actor
@@ -40,8 +36,7 @@ export const resolveModCpAccess = cache(
       forumIds,
       hasGroupAccess,
       canWarn: getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
-      canLookUpIp:
-        actor.global.isAdministrator === true || actor.global.isSuperModerator === true,
+      canLookUpIp: actor.global.isAdministrator === true || actor.global.isSuperModerator === true,
     }
   },
 )
@@ -120,9 +115,7 @@ export async function moderatedForumRights(
 export async function moderatorTargetFor(
   actor: Actor,
   forumId: number,
-  forum: Awaited<
-    ReturnType<ReturnType<typeof getContainer>['authorizer']['forumMatrix']>
-  >,
+  forum: Awaited<ReturnType<ReturnType<typeof getContainer>['authorizer']['forumMatrix']>>,
 ): Promise<ModeratedTarget> {
   return getContainer().authorizer.moderatorTargetIn(actor, forumId, forum)
 }

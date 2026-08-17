@@ -1,102 +1,101 @@
-"use client"
+'use client'
 
-import { startTransition, useActionState, useEffect, useRef, useState } from "react"
+import { startTransition, useActionState, useEffect, useRef, useState } from 'react'
 
 import {
   applyDrop,
   availableNudges,
+  type DropTarget,
+  type ForumOutlineRow,
   isWhereItIs,
+  type Nudge,
   nudgeTarget,
   projectDrop,
   projectionOf,
   subtreeOfOutline,
   withoutSubtree,
-  type DropTarget,
-  type ForumOutlineRow,
-  type Nudge,
-} from "@meith/forums/arrange"
-import { buttonVariants, cn } from "@meith/ui"
+} from '@meith/forums/arrange'
+import { buttonVariants, cn } from '@meith/ui'
 
-import { EMPTY_STATE } from "@/server/auth-form-state"
-import { arrangeForumAction } from "@/server/forum-admin-actions"
+import { PANEL_LIST } from '@/components/shell/panel-list'
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { arrangeForumAction } from '@/server/forum-admin-actions'
 
-import { FormError } from "../auth/form-controls"
-import { PANEL_LIST } from "@/components/shell/panel-list"
+import { FormError } from '../auth/form-controls'
 
 const INDENT_PX = 24
 
 const NUDGE_LABELS: Record<Nudge, string> = {
-  up: "up",
-  down: "down",
-  in: "in, under the forum above it",
-  out: "out of its parent",
+  up: 'up',
+  down: 'down',
+  in: 'in, under the forum above it',
+  out: 'out of its parent',
 }
 
 const ICON = {
-  "aria-hidden": true,
-  viewBox: "0 0 16 16",
-  fill: "none",
-  stroke: "currentColor",
+  viewBox: '0 0 16 16',
+  fill: 'none',
+  stroke: 'currentColor',
   strokeWidth: 1.5,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
-  className: "size-3.5 shrink-0",
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  className: 'size-3.5 shrink-0',
 } as const
 
 function GripIcon() {
   return (
-    <svg {...ICON} className="size-4 shrink-0">
+    <svg {...ICON} aria-hidden="true" className="size-4 shrink-0">
       <path d="M6 3h.01M6 8h.01M6 13h.01M10 3h.01M10 8h.01M10 13h.01" strokeWidth={2} />
     </svg>
   )
 }
 
 function NudgeIcon({ nudge }: { nudge: Nudge }) {
-  if (nudge === "up") {
+  if (nudge === 'up') {
     return (
-      <svg {...ICON}>
+      <svg {...ICON} aria-hidden="true">
         <path d="M8 13V3M4 7l4-4 4 4" />
       </svg>
     )
   }
-  if (nudge === "down") {
+  if (nudge === 'down') {
     return (
-      <svg {...ICON}>
+      <svg {...ICON} aria-hidden="true">
         <path d="M8 3v10M4 9l4 4 4-4" />
       </svg>
     )
   }
-  if (nudge === "in") {
+  if (nudge === 'in') {
     return (
-      <svg {...ICON}>
+      <svg {...ICON} aria-hidden="true">
         <path d="M3 8h8M8 5l3 3-3 3M14 3v10" />
       </svg>
     )
   }
   return (
-    <svg {...ICON}>
+    <svg {...ICON} aria-hidden="true">
       <path d="M13 8H5M8 5 5 8l3 3M2 3v10" />
     </svg>
   )
 }
 
-function KindIcon({ type }: { type: ForumOutlineRow["type"] }) {
-  if (type === "category") {
+function KindIcon({ type }: { type: ForumOutlineRow['type'] }) {
+  if (type === 'category') {
     return (
-      <svg {...ICON}>
+      <svg {...ICON} aria-hidden="true">
         <path d="M1.5 4.5A1.5 1.5 0 0 1 3 3h3l1.5 2H13a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 13 13H3a1.5 1.5 0 0 1-1.5-1.5Z" />
       </svg>
     )
   }
-  if (type === "link") {
+  if (type === 'link') {
     return (
-      <svg {...ICON}>
+      <svg {...ICON} aria-hidden="true">
         <path d="M6.5 9.5a2.5 2.5 0 0 0 3.5 0l2-2a2.5 2.5 0 0 0-3.5-3.5l-.75.75M9.5 6.5a2.5 2.5 0 0 0-3.5 0l-2 2a2.5 2.5 0 0 0 3.5 3.5l.75-.75" />
       </svg>
     )
   }
   return (
-    <svg {...ICON}>
+    <svg {...ICON} aria-hidden="true">
       <path d="M2.5 4A1.5 1.5 0 0 1 4 2.5h8A1.5 1.5 0 0 1 13.5 4v8A1.5 1.5 0 0 1 12 13.5H4A1.5 1.5 0 0 1 2.5 12ZM5 6h6M5 9h4" />
     </svg>
   )
@@ -142,8 +141,8 @@ function sentence(
   const parent = outline.find((entry) => entry.id === target.parentId)
   const after = outline.find((entry) => entry.id === target.afterId)
 
-  const where = parent === undefined ? "at the top level" : `inside ${parent.title}`
-  const order = after === undefined ? "first" : `after ${after.title}`
+  const where = parent === undefined ? 'at the top level' : `inside ${parent.title}`
+  const order = after === undefined ? 'first' : `after ${after.title}`
 
   return `${row.title}: ${where}, ${order}.`
 }
@@ -156,7 +155,7 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
   const [failed, setFailed] = useState(state.error)
   const [drag, setDrag] = useState<Drag | null>(null)
   const [moving, setMoving] = useState<number | null>(null)
-  const [said, setSaid] = useState("")
+  const [said, setSaid] = useState('')
   const [hydrated, setHydrated] = useState(false)
 
   const elements = useRef(new Map<number, HTMLElement>())
@@ -178,8 +177,7 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
 
   useEffect(() => setHydrated(true), [])
 
-  const dragged =
-    drag === null ? null : (outline.find((row) => row.id === drag.id) ?? null)
+  const dragged = drag === null ? null : (outline.find((row) => row.id === drag.id) ?? null)
   const rest = dragged === null ? outline : withoutSubtree(outline, dragged.id)
 
   const projection =
@@ -197,8 +195,7 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
       : new Set(subtreeOfOutline(outline, dragged.id).map((row) => row.id))
 
   const markerBefore = projection === null ? null : (rest[projection.index]?.id ?? null)
-  const markerAfter =
-    projection === null || markerBefore !== null ? null : rest.at(-1)?.id
+  const markerAfter = projection === null || markerBefore !== null ? null : rest.at(-1)?.id
 
   const preview = (row: ForumOutlineRow, target: DropTarget): boolean => {
     if (isWhereItIs(outline, row.id, target)) return false
@@ -213,9 +210,9 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
     if (!preview(row, target)) return
 
     const form = new FormData()
-    form.set("forumId", String(row.id))
-    form.set("parentId", target.parentId === null ? "" : String(target.parentId))
-    form.set("afterId", target.afterId === null ? "" : String(target.afterId))
+    form.set('forumId', String(row.id))
+    form.set('parentId', target.parentId === null ? '' : String(target.parentId))
+    form.set('afterId', target.afterId === null ? '' : String(target.afterId))
 
     startTransition(() => action(form))
   }
@@ -231,7 +228,7 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
   }
 
   const start = (row: ForumOutlineRow, event: React.PointerEvent<HTMLElement>): void => {
-    if (event.button !== 0 && event.pointerType === "mouse") return
+    if (event.button !== 0 && event.pointerType === 'mouse') return
     event.preventDefault()
 
     measured.current = measure(elements.current, withoutSubtree(outline, row.id))
@@ -270,14 +267,14 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
 
   const keys = (row: ForumOutlineRow, event: React.KeyboardEvent<HTMLElement>): void => {
     const direction: Nudge | null =
-      event.key === "ArrowUp"
-        ? "up"
-        : event.key === "ArrowDown"
-          ? "down"
-          : event.key === "ArrowRight"
-            ? "in"
-            : event.key === "ArrowLeft"
-              ? "out"
+      event.key === 'ArrowUp'
+        ? 'up'
+        : event.key === 'ArrowDown'
+          ? 'down'
+          : event.key === 'ArrowRight'
+            ? 'in'
+            : event.key === 'ArrowLeft'
+              ? 'out'
               : null
 
     if (direction === null) return
@@ -293,8 +290,8 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
         </h2>
         <p className="text-xs text-muted-foreground">
           {hydrated
-            ? "Drag a row by its handle to move it, sideways to nest it. The arrows do the same from the keyboard."
-            : "Use the arrows to move a forum up, down, in or out."}
+            ? 'Drag a row by its handle to move it, sideways to nest it. The arrows do the same from the keyboard.'
+            : 'Use the arrows to move a forum up, down, in or out.'}
         </p>
       </div>
 
@@ -317,27 +314,27 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
                 else elements.current.set(row.id, element)
               }}
               className={cn(
-                "group relative flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 transition-opacity hover:bg-muted/40",
-                lifted.has(row.id) && "opacity-40",
-                held && "bg-muted",
-                moving === row.id && pending && "opacity-60",
+                'group relative flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 transition-opacity hover:bg-muted/40',
+                lifted.has(row.id) && 'opacity-40',
+                held && 'bg-muted',
+                moving === row.id && pending && 'opacity-60',
               )}
             >
-              {projection !== null &&
-                (markerBefore === row.id || markerAfter === row.id) && (
-                  <span
-                    aria-hidden
-                    style={{ left: `${projection.depth * INDENT_PX + 12}px` }}
-                    className={cn(
-                      "pointer-events-none absolute right-3 z-10 h-0.5 rounded-full bg-primary",
-                      markerBefore === row.id ? "-top-px" : "-bottom-px",
-                    )}
-                  />
-                )}
+              {projection !== null && (markerBefore === row.id || markerAfter === row.id) && (
+                <span
+                  aria-hidden
+                  style={{ left: `${projection.depth * INDENT_PX + 12}px` }}
+                  className={cn(
+                    'pointer-events-none absolute right-3 z-10 h-0.5 rounded-full bg-primary',
+                    markerBefore === row.id ? '-top-px' : '-bottom-px',
+                  )}
+                />
+              )}
 
               <span className="flex min-w-0 flex-1 basis-full items-center gap-2 self-stretch sm:basis-0">
                 {Array.from({ length: row.depth }, (_, level) => (
                   <span
+                    // biome-ignore lint/suspicious/noArrayIndexKey: one indentation spacer per depth level — the index is the depth
                     key={level}
                     aria-hidden
                     style={{ width: `${INDENT_PX - 8}px` }}
@@ -356,10 +353,10 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
                     aria-label={`Move ${row.title}`}
                     aria-describedby="forum-tree-help"
                     className={cn(
-                      buttonVariants({ variant: "ghost", size: "icon" }),
-                      "size-7 cursor-grab touch-none text-muted-foreground/60",
-                      "group-hover:text-muted-foreground focus-visible:text-foreground",
-                      held && "cursor-grabbing bg-muted text-foreground",
+                      buttonVariants({ variant: 'ghost', size: 'icon' }),
+                      'size-7 cursor-grab touch-none text-muted-foreground/60',
+                      'group-hover:text-muted-foreground focus-visible:text-foreground',
+                      held && 'cursor-grabbing bg-muted text-foreground',
                     )}
                   >
                     <GripIcon />
@@ -383,7 +380,7 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
                 className="flex shrink-0 items-center rounded-md border border-border bg-card"
               >
                 <input type="hidden" name="forumId" value={row.id} />
-                {(["up", "down", "in", "out"] as const).map((direction) => (
+                {(['up', 'down', 'in', 'out'] as const).map((direction) => (
                   <button
                     key={direction}
                     type="submit"
@@ -395,8 +392,8 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
                     }}
                     aria-label={`Move ${row.title} ${NUDGE_LABELS[direction]}`}
                     className={cn(
-                      buttonVariants({ variant: "ghost", size: "icon" }),
-                      "size-8 rounded-none border-0 border-l border-border first:border-l-0 text-muted-foreground",
+                      buttonVariants({ variant: 'ghost', size: 'icon' }),
+                      'size-8 rounded-none border-0 border-l border-border first:border-l-0 text-muted-foreground',
                     )}
                   >
                     <NudgeIcon nudge={direction} />
@@ -426,9 +423,9 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
       </ol>
 
       <p id="forum-tree-help" className="text-xs text-muted-foreground">
-        Moving a forum takes its subforums with it, and they inherit from wherever they
-        land. Re-parenting asks for your password again if it is more than fifteen minutes
-        since you last confirmed it; reordering under the same parent does not.
+        Moving a forum takes its subforums with it, and they inherit from wherever they land.
+        Re-parenting asks for your password again if it is more than fifteen minutes since you last
+        confirmed it; reordering under the same parent does not.
       </p>
 
       {drag !== null && dragged !== null && (

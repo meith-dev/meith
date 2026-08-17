@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MIN_TERM_LENGTH } from '@meith/search'
 import { SettingsSnapshot } from '@meith/settings'

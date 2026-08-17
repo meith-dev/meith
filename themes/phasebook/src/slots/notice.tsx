@@ -1,5 +1,5 @@
-import { cn } from '@meith/ui'
 import type { NoticeModel } from '@meith/theme-kit'
+import { cn } from '@meith/ui'
 
 const KIND = {
   info: {

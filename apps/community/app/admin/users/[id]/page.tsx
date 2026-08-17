@@ -17,11 +17,7 @@ import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Member' }
 
-export default async function AdminMemberPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+export default async function AdminMemberPage({ params }: { params: Promise<{ id: string }> }) {
   if ((await adminPageContext()) === null) return null
 
   const { id } = await params
@@ -59,9 +55,9 @@ export default async function AdminMemberPage({
       }
       meta={
         <>
-          {member.postCount} post{member.postCount === 1 ? '' : 's'} ·{' '}
-          {member.threadCount} thread{member.threadCount === 1 ? '' : 's'} ·{' '}
-          {member.reputation} reputation · {member.warningPoints} warning point
+          {member.postCount} post{member.postCount === 1 ? '' : 's'} · {member.threadCount} thread
+          {member.threadCount === 1 ? '' : 's'} · {member.reputation} reputation ·{' '}
+          {member.warningPoints} warning point
           {member.warningPoints === 1 ? '' : 's'} ·{' '}
           {member.emailVerifiedAt === null ? 'email unverified' : 'email verified'}
         </>
@@ -74,7 +70,6 @@ export default async function AdminMemberPage({
             id: member.id,
             username: member.username,
             email: member.email,
-            // eslint-disable-next-line no-restricted-properties -- transporting the column into a form
             primaryGroupId: member.primaryGroupId,
             displayGroupId: member.displayGroupId,
           }}
@@ -85,15 +80,14 @@ export default async function AdminMemberPage({
       <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Additional groups</h2>
         <p className="text-sm text-muted-foreground">
-          Groups held <em>as well as</em> the primary one. They grant in exactly the same
-          way — a member gets the most permissive answer across all of them — so an extra
-          group can only ever add.
+          Groups held <em>as well as</em> the primary one. They grant in exactly the same way — a
+          member gets the most permissive answer across all of them — so an extra group can only
+          ever add.
         </p>
         <SecondaryGroupsForm
           userId={member.id}
           groups={view.groups}
           selected={view.secondaryGroupIds}
-          // eslint-disable-next-line no-restricted-properties -- transporting the column into a form
           primaryGroupId={member.primaryGroupId}
         />
       </section>
@@ -102,8 +96,8 @@ export default async function AdminMemberPage({
         <h2 className="font-heading text-lg font-semibold">State</h2>
         {activeBan !== null || member.state === 'banned' ? (
           <p className="text-sm text-muted-foreground">
-            This member is banned. Lift the ban below to change their state — flipping the
-            column here would leave the ban record active.
+            This member is banned. Lift the ban below to change their state — flipping the column
+            here would leave the ban record active.
           </p>
         ) : (
           <MemberStateForm userId={member.id} state={member.state} />
@@ -131,9 +125,7 @@ export default async function AdminMemberPage({
               .
             </p>
             {activeBan.reason !== null && (
-              <p className="text-sm text-muted-foreground">
-                Staff note: {activeBan.reason}
-              </p>
+              <p className="text-sm text-muted-foreground">Staff note: {activeBan.reason}</p>
             )}
             {activeBan.publicReason !== null && (
               <p className="text-sm text-muted-foreground">
@@ -148,8 +140,8 @@ export default async function AdminMemberPage({
       <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Merge</h2>
         <p className="text-sm text-muted-foreground">
-          Fold this account into another one — for a member who registered twice, or a
-          duplicate made by an importer.
+          Fold this account into another one — for a member who registered twice, or a duplicate
+          made by an importer.
         </p>
         <p>
           <a
@@ -164,10 +156,9 @@ export default async function AdminMemberPage({
       <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Network</h2>
         <p className="text-sm text-muted-foreground">
-          Registered from{' '}
-          {member.registrationIpPrefix ?? 'an address that was not recorded'}
-          {member.lastIpPrefix !== null && `, last seen from ${member.lastIpPrefix}`}.
-          Only a prefix is stored, so these are networks rather than machines.
+          Registered from {member.registrationIpPrefix ?? 'an address that was not recorded'}
+          {member.lastIpPrefix !== null && `, last seen from ${member.lastIpPrefix}`}. Only a prefix
+          is stored, so these are networks rather than machines.
         </p>
 
         {view.sharedNetwork.length === 0 ? (
@@ -178,8 +169,8 @@ export default async function AdminMemberPage({
           <>
             <p className="text-sm">
               {view.sharedNetwork.length} other account
-              {view.sharedNetwork.length === 1 ? '' : 's'} on the same network. A
-              household, an office and a campus all look like this.
+              {view.sharedNetwork.length === 1 ? '' : 's'} on the same network. A household, an
+              office and a campus all look like this.
             </p>
             <ul className="flex flex-col gap-1 text-sm">
               {view.sharedNetwork.map((row) => (

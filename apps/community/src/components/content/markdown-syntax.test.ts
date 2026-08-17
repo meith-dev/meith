@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest'
 import { renderMarkdown } from '@meith/markdown'
 
 import {
+  type Edit,
   fenceEdit,
   linkEdit,
   listContinuation,
   pasteAsLink,
-  toggleWrap,
   togglePrefix,
-  type Edit,
+  toggleWrap,
 } from './markdown-syntax'
 
 const BOLD = { marker: '*', length: 2, placeholder: 'bold text' }
@@ -125,7 +125,9 @@ describe('links', () => {
 
   it('leaves an ordinary paste alone', () => {
     expect(press('‹words›', (v, s, e) => pasteAsLink(v, s, e, 'not a url'))).toBeNull()
-    expect(press('nothing selected‹›', (v, s, e) => pasteAsLink(v, s, e, 'https://x.test'))).toBeNull()
+    expect(
+      press('nothing selected‹›', (v, s, e) => pasteAsLink(v, s, e, 'https://x.test')),
+    ).toBeNull()
   })
 })
 

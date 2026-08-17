@@ -1,15 +1,16 @@
-import type { Actor } from '@meith/authorization'
-import { emptyPermissionSet } from '@meith/core'
 import { describe, expect, it } from 'vitest'
 
+import type { Actor } from '@meith/authorization'
+import { emptyPermissionSet } from '@meith/core'
+
 import {
+  BOARD_TITLE,
   buildBoardNavigation,
   buildFooterModel,
   buildHeaderModel,
   buildPanelLinks,
   buildUserPanelModel,
   buildViewerModel,
-  BOARD_TITLE,
   TIMEZONE_LABEL,
 } from './shell'
 
@@ -96,9 +97,7 @@ describe('buildUserPanelModel', () => {
     const plain = buildUserPanelModel(buildViewerModel(member))
     expect(plain.links.map((l) => l.href)).not.toContain('/admin')
 
-    const admin = buildUserPanelModel(
-      buildViewerModel(member, { canAccessAdminCp: true }),
-    )
+    const admin = buildUserPanelModel(buildViewerModel(member, { canAccessAdminCp: true }))
     expect(admin.links.map((l) => l.href)).toContain('/admin')
   })
 
@@ -148,9 +147,7 @@ describe('buildUserPanelModel', () => {
   })
 
   it('offers a guest no admin panel, whatever the flag says', () => {
-    const panel = buildUserPanelModel(
-      buildViewerModel(guest, { canAccessAdminCp: true }),
-    )
+    const panel = buildUserPanelModel(buildViewerModel(guest, { canAccessAdminCp: true }))
 
     expect(panel.links.map((l) => l.href)).not.toContain('/admin')
   })
@@ -192,9 +189,7 @@ describe('buildUserPanelModel', () => {
 
 describe('buildPanelLinks', () => {
   it('never links a panel back to itself', () => {
-    expect(
-      buildPanelLinks({ current: 'usercp' }).map((link) => link.href),
-    ).not.toContain('/usercp')
+    expect(buildPanelLinks({ current: 'usercp' }).map((link) => link.href)).not.toContain('/usercp')
   })
 
   it('offers a plain member nothing but the panel they are in', () => {
@@ -221,9 +216,9 @@ describe('buildPanelLinks', () => {
   })
 
   it('withholds the admin panel from a moderator who may not reach it', () => {
-    expect(
-      buildPanelLinks({ current: 'modcp', canAccessModCp: true }).map((l) => l.href),
-    ).toEqual(['/usercp'])
+    expect(buildPanelLinks({ current: 'modcp', canAccessModCp: true }).map((l) => l.href)).toEqual([
+      '/usercp',
+    ])
   })
 
   it('offers the other two panels from the admin panel', () => {
@@ -261,7 +256,9 @@ describe('the board title', () => {
   })
 
   it('uses the resolved name in the header and the footer alike', () => {
-    expect(buildHeaderModel(buildViewerModel(guest), [], 'Ada"s Board').boardTitle).toBe('Ada"s Board')
+    expect(buildHeaderModel(buildViewerModel(guest), [], 'Ada"s Board').boardTitle).toBe(
+      'Ada"s Board',
+    )
     expect(buildFooterModel([], 'Ada"s Board').boardTitle).toBe('Ada"s Board')
   })
 })

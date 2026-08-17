@@ -29,7 +29,6 @@ export class PostgresAdminRepository {
       .select({
         id: users.id,
         username: users.username,
-        // eslint-disable-next-line no-restricted-properties -- administering group assignment, not deciding access
         primaryGroupId: users.primaryGroupId,
       })
       .from(users)

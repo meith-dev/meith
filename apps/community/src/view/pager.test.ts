@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  TRAIL_LIMIT,
-  buildOffsetPager,
-  buildPager,
-  offsetOf,
-  readPage,
-  readTrail,
-} from './pager'
+import { buildOffsetPager, buildPager, offsetOf, readPage, readTrail, TRAIL_LIMIT } from './pager'
 
 const BASE = { path: '/admin/users', cursorParams: ['after_id'], pageSize: 50 }
 

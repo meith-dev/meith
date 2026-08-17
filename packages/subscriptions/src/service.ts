@@ -1,10 +1,6 @@
 import { ValidationError } from '@meith/core'
 
-import {
-  parseSubscriptionMode,
-  type SubscriptionMode,
-  type SubscriptionTarget,
-} from './modes'
+import { parseSubscriptionMode, type SubscriptionMode, type SubscriptionTarget } from './modes'
 import type { SubscriptionRepository, SubscriptionRow } from './types'
 
 export const SUBSCRIPTIONS_PAGE_SIZE = 200

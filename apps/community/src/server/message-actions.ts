@@ -5,14 +5,14 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { parseFolder } from '@meith/messages'
 
+import { folderHref } from '../view/messages'
 import { dailyLimitMessage, limitMessage, spendDailyLimit, spendLimit } from './antispam'
-import { getActor } from './context'
+import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
+import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
 import { messageService } from './messages'
-import { folderHref } from '../view/messages'
-import type { FormState } from './auth-form-state'
 
 const toFormState = formStateReporter('message-actions', 'unexpected error in a message action')
 

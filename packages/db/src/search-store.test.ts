@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresSearchStore, ownsSearch } from './search-store'
+import { ownsSearch, PostgresSearchStore } from './search-store'
 
 let harness: TestDb
 let db: Database
@@ -83,10 +83,12 @@ describe('create', () => {
   it('throttles guests by session key rather than lumping them together', async () => {
     await store.create(input({ userId: null, sessionKey: 's1', floodSeconds: 60 }))
 
-    expect(await store.create(input({ userId: null, sessionKey: 's1', floodSeconds: 60 })))
-      .toBeNull()
-    expect(await store.create(input({ userId: null, sessionKey: 's2', floodSeconds: 60 })))
-      .not.toBeNull()
+    expect(
+      await store.create(input({ userId: null, sessionKey: 's1', floodSeconds: 60 })),
+    ).toBeNull()
+    expect(
+      await store.create(input({ userId: null, sessionKey: 's2', floodSeconds: 60 })),
+    ).not.toBeNull()
   })
 
   it('lets a search through once the interval has passed', async () => {
@@ -166,16 +168,20 @@ describe('ownsSearch', () => {
   })
 
   it('lets a search that belongs to nobody be opened with its token', async () => {
-    expect(ownsSearch({ userId: null, sessionKey: null }, { userId: null, sessionKey: null }))
-      .toBe(true)
-    expect(ownsSearch({ userId: null, sessionKey: null }, { userId: ANN, sessionKey: 's1' }))
-      .toBe(true)
+    expect(ownsSearch({ userId: null, sessionKey: null }, { userId: null, sessionKey: null })).toBe(
+      true,
+    )
+    expect(ownsSearch({ userId: null, sessionKey: null }, { userId: ANN, sessionKey: 's1' })).toBe(
+      true,
+    )
   })
 
   it('still ties an owned search to its owner', async () => {
-    expect(ownsSearch({ userId: ANN, sessionKey: null }, { userId: null, sessionKey: null }))
-      .toBe(false)
-    expect(ownsSearch({ userId: null, sessionKey: 's5' }, { userId: null, sessionKey: null }))
-      .toBe(false)
+    expect(ownsSearch({ userId: ANN, sessionKey: null }, { userId: null, sessionKey: null })).toBe(
+      false,
+    )
+    expect(ownsSearch({ userId: null, sessionKey: 's5' }, { userId: null, sessionKey: null })).toBe(
+      false,
+    )
   })
 })

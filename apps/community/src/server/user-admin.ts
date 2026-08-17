@@ -1,31 +1,30 @@
 import 'server-only'
 
+import type { BanRecord } from '@meith/accounts'
 import { BanService } from '@meith/accounts'
 import { ForbiddenError } from '@meith/core'
-import type { BanRecord } from '@meith/accounts'
-import { SEED_GROUP } from '@meith/runtime'
 import {
+  type AccountState,
+  getDb,
   PostgresBanRepository,
   PostgresUserAdminRepository,
   PostgresUserBulkRepository,
   PostgresUserMergeRepository,
-  getDb,
-  type AccountState,
   type PruneCriteria,
   type UserDetail,
   type UserSearchFilter,
   type UserSearchRow,
 } from '@meith/db'
+import { SEED_GROUP } from '@meith/runtime'
+
+import { offsetOf, readPage } from '@/view/pager'
 
 import { getContainer } from './container'
-import { offsetOf, readPage } from '@/view/pager'
 
 export const USER_PAGE = 50
 
 export function userAdminRepository(): PostgresUserAdminRepository | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresUserAdminRepository(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresUserAdminRepository(getDb()) : null
 }
 
 export function requireUserAdmin(): PostgresUserAdminRepository {
@@ -60,9 +59,7 @@ export function requireUserMerge(): PostgresUserMergeRepository {
 }
 
 export function banRepository(): PostgresBanRepository | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresBanRepository(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresBanRepository(getDb()) : null
 }
 
 export function parseUserFilter(
@@ -90,9 +87,7 @@ export function parseUserFilter(
 
   const state = one('state')
   const stateFilter: AccountState | undefined =
-    state === 'active' || state === 'awaiting_activation' || state === 'banned'
-      ? state
-      : undefined
+    state === 'active' || state === 'awaiting_activation' || state === 'banned' ? state : undefined
 
   return {
     ...(one('username') === undefined ? {} : { username: one('username') }),
@@ -147,9 +142,7 @@ export function requireUserBulk(): PostgresUserBulkRepository {
 }
 
 export function userBulkRepository(): PostgresUserBulkRepository | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresUserBulkRepository(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresUserBulkRepository(getDb()) : null
 }
 
 export function parsePruneCriteria(

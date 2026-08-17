@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { useEffect } from "react"
+import { useEffect } from 'react'
 
-import { quotePostAction } from "@/server/content-actions"
+import { quotePostAction } from '@/server/content-actions'
 
-import { composerField, insertQuotes } from "./composer-field"
+import { composerField, insertQuotes } from './composer-field'
 
 function quotedPostId(href: string): number | null {
   const match = /[?&]quote=(\d+)(?:&|$)/.exec(href)
@@ -19,10 +19,10 @@ export function QuoteInPlace({ threadId }: { threadId: number }) {
       if (event.defaultPrevented || event.button !== 0) return
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
 
-      const link = (event.target as Element | null)?.closest?.("a[href]")
+      const link = (event.target as Element | null)?.closest?.('a[href]')
       if (!(link instanceof HTMLAnchorElement)) return
 
-      const postId = quotedPostId(link.getAttribute("href") ?? "")
+      const postId = quotedPostId(link.getAttribute('href') ?? '')
       if (postId === null) return
 
       const field = composerField()
@@ -43,8 +43,8 @@ export function QuoteInPlace({ threadId }: { threadId: number }) {
     }
 
     const handler = (event: MouseEvent): void => void onClick(event)
-    document.addEventListener("click", handler)
-    return () => document.removeEventListener("click", handler)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
   }, [threadId])
 
   return null

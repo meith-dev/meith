@@ -2,29 +2,26 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { CacheTags, ValidationError } from '@meith/core'
-import { FORUM_PERMISSION_FIELDS } from '@meith/core'
 import { readMatrixCell } from '@meith/authorization'
+import { CacheTags, FORUM_PERMISSION_FIELDS, ValidationError } from '@meith/core'
+import { MODERATOR_RIGHTS } from '@meith/db'
 import { drivers } from '@meith/drivers'
-
 import {
+  type DropTarget,
+  type ForumOutlineRow,
   isNudge,
   isWhereItIs,
   moveTargetOf,
   nudgeTarget,
   outlineOf,
-  type DropTarget,
-  type ForumOutlineRow,
 } from '@meith/forums'
 
-import { MODERATOR_RIGHTS } from '@meith/db'
-
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
+import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { formStateReporter } from './form-state-reporter'
 import { checkbox, trimmedText } from './form-values'
 import { requireForumAdmin } from './forum-admin'
-import type { FormState } from './auth-form-state'
 
 function forumId(form: FormData): number {
   const id = Number(trimmedText(form, 'forumId'))
@@ -45,10 +42,7 @@ function refreshForumPermissionScreens(): void {
   revalidatePath('/admin/forums/[id]/permissions', 'page')
 }
 
-export async function saveForumOptionsAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function saveForumOptionsAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
     const id = forumId(form)
@@ -154,10 +148,7 @@ export async function copyForumPermissionsAction(
   }
 }
 
-export async function createForumAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function createForumAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
     const { forums } = getContainer()
@@ -202,10 +193,7 @@ export async function createForumAction(
   }
 }
 
-export async function moveForumAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function moveForumAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireFreshAdmin()
     const id = forumId(form)
@@ -234,11 +222,7 @@ export async function moveForumAction(
   }
 }
 
-function dropTarget(
-  form: FormData,
-  outline: readonly ForumOutlineRow[],
-  id: number,
-): DropTarget {
+function dropTarget(form: FormData, outline: readonly ForumOutlineRow[], id: number): DropTarget {
   const nudge = trimmedText(form, 'nudge')
 
   if (nudge !== '') {
@@ -266,10 +250,7 @@ function dropTarget(
   return { parentId, afterId }
 }
 
-export async function arrangeForumAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function arrangeForumAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
     const id = forumId(form)
@@ -300,10 +281,7 @@ export async function arrangeForumAction(
   }
 }
 
-export async function appointModeratorAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function appointModeratorAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
     const id = forumId(form)
@@ -354,10 +332,7 @@ export async function appointModeratorAction(
   }
 }
 
-export async function removeModeratorAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function removeModeratorAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
     const id = forumId(form)

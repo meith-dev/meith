@@ -3,11 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@meith/theme-kit'
 
-import {
-  DeletePostForm,
-  EditPostForm,
-  RestorePostForm,
-} from '@/components/content/edit-post-form'
+import { DeletePostForm, EditPostForm, RestorePostForm } from '@/components/content/edit-post-form'
 import { resolvePostScope } from '@/server/post-scope'
 import { currentTheme } from '@/server/theme'
 import { buildEditView } from '@/view/post-form'

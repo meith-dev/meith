@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { adminSignInAction, adminSignOutAction } from "@/server/admin-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { adminSignInAction, adminSignOutAction } from '@/server/admin-actions'
+import { EMPTY_STATE } from '@/server/auth-form-state'
 
-import { FormError } from "../auth/form-controls"
+import { FormError } from '../auth/form-controls'
 
 export function AdminSignInForm({
   next,
@@ -13,7 +13,7 @@ export function AdminSignInForm({
   idleMinutes,
 }: {
   next: string
-  reason: "expired" | "reauth" | null
+  reason: 'expired' | 'reauth' | null
   idleMinutes: number
 }) {
   const [state, action] = useActionState(adminSignInAction, EMPTY_STATE)
@@ -26,11 +26,11 @@ export function AdminSignInForm({
       <h1 className="text-xl font-semibold tracking-tight">Control panel</h1>
 
       <p className="text-sm text-muted-foreground">
-        {reason === "reauth"
-          ? "Confirm your password to continue. Some actions ask again even while you are signed in."
-          : reason === "expired"
-            ? "Your control panel session has expired."
-            : "Confirm your password. This is separate from your board session."}
+        {reason === 'reauth'
+          ? 'Confirm your password to continue. Some actions ask again even while you are signed in.'
+          : reason === 'expired'
+            ? 'Your control panel session has expired.'
+            : 'Confirm your password. This is separate from your board session.'}
       </p>
 
       <FormError message={state.error} />
@@ -69,8 +69,8 @@ export function AdminSignInForm({
       </button>
 
       <p className="text-xs text-muted-foreground">
-        The panel signs you out after {idleMinutes} minutes of inactivity. Your
-        board session is not affected.
+        The panel signs you out after {idleMinutes} minutes of inactivity. Your board session is not
+        affected.
       </p>
     </form>
   )

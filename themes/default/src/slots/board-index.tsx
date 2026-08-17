@@ -1,5 +1,5 @@
-import { buttonVariants } from '@meith/ui'
 import type { BoardIndexModel } from '@meith/theme-kit'
+import { buttonVariants } from '@meith/ui'
 
 import { PAGE_BODY } from '../shared'
 

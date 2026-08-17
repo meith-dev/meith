@@ -1,5 +1,5 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { compileVocabulary, renderMarkdown } from '@meith/markdown'
 
@@ -69,7 +69,8 @@ describe('readVocabularySource', () => {
     })
     expect(rendered.html).toContain('md-directive-spoiler')
 
-    expect(renderMarkdown('Ends :nosuch[badly].', { directives: vocabulary.directives }).html)
-      .toContain(':nosuch[badly]')
+    expect(
+      renderMarkdown('Ends :nosuch[badly].', { directives: vocabulary.directives }).html,
+    ).toContain(':nosuch[badly]')
   })
 })

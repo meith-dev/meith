@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { renderAtom, renderRss, type FeedChannel } from '@/view/feed'
+import { type FeedChannel, renderAtom, renderRss } from '@/view/feed'
 
 import { boardOffline } from './board-offline'
 import { activeWordFilter } from './content-admin'

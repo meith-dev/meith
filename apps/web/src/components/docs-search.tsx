@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 interface SearchEntry {
   readonly href: string
@@ -33,7 +33,7 @@ function score(entry: SearchEntry, terms: readonly string[]): number {
 export function DocsSearch() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [query, setQuery] = useState("")
+  const [query, setQuery] = useState('')
   const [entries, setEntries] = useState<readonly SearchEntry[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [active, setActive] = useState(0)
@@ -42,7 +42,7 @@ export function DocsSearch() {
   const load = useCallback(async () => {
     if (entries || failed) return
     try {
-      const response = await fetch("/docs/search-index.json")
+      const response = await fetch('/docs/search-index.json')
       if (!response.ok) throw new Error(`search index: ${response.status}`)
       const index: { entries: SearchEntry[] } = await response.json()
       setEntries(index.entries)
@@ -53,14 +53,14 @@ export function DocsSearch() {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
         setOpen((wasOpen) => !wasOpen)
       }
-      if (event.key === "Escape") setOpen(false)
+      if (event.key === 'Escape') setOpen(false)
     }
-    addEventListener("keydown", onKeyDown)
-    return () => removeEventListener("keydown", onKeyDown)
+    addEventListener('keydown', onKeyDown)
+    return () => removeEventListener('keydown', onKeyDown)
   }, [])
 
   useEffect(() => {
@@ -68,7 +68,7 @@ export function DocsSearch() {
     void load()
     inputRef.current?.focus()
     const previous = document.body.style.overflow
-    document.body.style.overflow = "hidden"
+    document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = previous
     }
@@ -86,12 +86,13 @@ export function DocsSearch() {
       .map((result) => result.entry)
   }, [entries, query])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: query is the reset trigger — a new query starts the selection at the first result
   useEffect(() => setActive(0), [query])
 
   function go(entry: SearchEntry | undefined) {
     if (!entry) return
     setOpen(false)
-    setQuery("")
+    setQuery('')
     router.push(entry.href)
   }
 
@@ -130,13 +131,13 @@ export function DocsSearch() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "ArrowDown") {
+                  if (event.key === 'ArrowDown') {
                     event.preventDefault()
                     setActive((index) => Math.min(index + 1, results.length - 1))
-                  } else if (event.key === "ArrowUp") {
+                  } else if (event.key === 'ArrowUp') {
                     event.preventDefault()
                     setActive((index) => Math.max(index - 1, 0))
-                  } else if (event.key === "Enter") {
+                  } else if (event.key === 'Enter') {
                     event.preventDefault()
                     go(results[active])
                   }
@@ -151,19 +152,19 @@ export function DocsSearch() {
             <div className="overflow-y-auto">
               {failed ? (
                 <p className="px-4 py-6 text-micro text-fg-subtle">
-                  The search index could not be loaded. Every document is listed on the{" "}
+                  The search index could not be loaded. Every document is listed on the{' '}
                   <a className="textlink" href="/docs">
                     documentation index
                   </a>
                   .
                 </p>
-              ) : query.trim() === "" ? (
+              ) : query.trim() === '' ? (
                 <p className="px-4 py-6 text-micro text-fg-subtle">
                   Type to search every published document. Results are sections, not pages.
                 </p>
               ) : results.length === 0 ? (
                 <p className="px-4 py-6 text-micro text-fg-subtle">
-                  Nothing matches “{query}”. {entries ? "" : "The index is still loading."}
+                  Nothing matches “{query}”. {entries ? '' : 'The index is still loading.'}
                 </p>
               ) : (
                 <ul>
@@ -174,7 +175,7 @@ export function DocsSearch() {
                         onMouseEnter={() => setActive(index)}
                         onClick={() => go(entry)}
                         className={`flex w-full flex-col gap-1 border-b border-border px-4 py-3 text-left transition-colors ${
-                          index === active ? "bg-surface" : ""
+                          index === active ? 'bg-surface' : ''
                         }`}
                       >
                         <span className="flex items-baseline gap-2">
@@ -183,7 +184,9 @@ export function DocsSearch() {
                             {entry.document}
                           </span>
                         </span>
-                        <span className="line-clamp-2 text-micro text-fg-muted">{entry.snippet}</span>
+                        <span className="line-clamp-2 text-micro text-fg-muted">
+                          {entry.snippet}
+                        </span>
                       </button>
                     </li>
                   ))}

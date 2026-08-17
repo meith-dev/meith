@@ -279,7 +279,11 @@ describe('saveThemeAction', () => {
   })
 
   it('refuses custom CSS that stops being CSS', async () => {
-    for (const css of ['@import url(evil.css);', 'a{background:url(http://x/y)}', '</style><script>']) {
+    for (const css of [
+      '@import url(evil.css);',
+      'a{background:url(http://x/y)}',
+      '</style><script>',
+    ]) {
       const state = await saveThemeAction({}, form({ key: 'default', customCss: css }))
       expect(state.error, css).toBeDefined()
     }
@@ -442,10 +446,14 @@ describe('setThemeEnabledAction', () => {
 
     const state = await setThemeEnabledAction({}, form({ key: 'midnight', enabled: 'false' }))
 
-    LISTING.splice(0, LISTING.length, ...[
-      { key: 'default', isDefault: true, enabled: true, isBuildTheme: true },
-      { key: 'midnight', isDefault: false, enabled: true, isBuildTheme: false },
-    ])
+    LISTING.splice(
+      0,
+      LISTING.length,
+      ...[
+        { key: 'default', isDefault: true, enabled: true, isBuildTheme: true },
+        { key: 'midnight', isDefault: false, enabled: true, isBuildTheme: false },
+      ],
+    )
 
     expect(state.error).toMatch(/default/)
     expect(enabling).toEqual([])

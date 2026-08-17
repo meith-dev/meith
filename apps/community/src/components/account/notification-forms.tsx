@@ -1,21 +1,21 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
+import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   markAllNotificationsReadAction,
   markNotificationReadAction,
   saveNotificationPreferencesAction,
-} from "@/server/notification-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+} from '@/server/notification-actions'
 
-import { FormError } from "../auth/form-controls"
+import { FormError } from '../auth/form-controls'
 
 const BUTTON =
-  "inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 const LINK_BUTTON =
-  "text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export function MarkNotificationReadForm({ notificationId }: { notificationId: number }) {
   const [state, action] = useActionState(markNotificationReadAction, EMPTY_STATE)
@@ -57,7 +57,10 @@ export function NotificationPreferencesForm({ rows }: { rows: readonly Preferenc
   const [state, action] = useActionState(saveNotificationPreferencesAction, EMPTY_STATE)
 
   return (
-    <form action={action} className="flex flex-col gap-5 rounded-lg border border-border bg-card p-5">
+    <form
+      action={action}
+      className="flex flex-col gap-5 rounded-lg border border-border bg-card p-5"
+    >
       <FormError message={state.error} />
 
       <fieldset className="flex flex-col gap-4">
@@ -81,8 +84,8 @@ export function NotificationPreferencesForm({ rows }: { rows: readonly Preferenc
       </fieldset>
 
       <p className="text-xs text-muted-foreground">
-        Everything is always recorded in your notifications, whether or not you
-        receive an e-mail about it.
+        Everything is always recorded in your notifications, whether or not you receive an e-mail
+        about it.
       </p>
 
       <div>

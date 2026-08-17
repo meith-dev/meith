@@ -1,4 +1,4 @@
-import { summarise, type CompiledWordFilter } from '@meith/markdown'
+import { type CompiledWordFilter, summarise } from '@meith/markdown'
 
 import { filterWords } from './word-filter'
 

@@ -1,10 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+
+import type { PollOption } from '@meith/polls'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import type { PollOption } from '@meith/polls'
-
 import { PostgresPollRepository } from './poll-repo'
 import { resultRows } from './result-rows'
 
@@ -28,9 +28,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from threads`)
   await db.execute(sql`delete from users where id in (901, 902)`)
   await db.execute(sql`delete from forums where id = 900`)
-  const groups = await db.execute(
-    sql`select id from usergroups where key = 'registered'`,
-  )
+  const groups = await db.execute(sql`select id from usergroups where key = 'registered'`)
   const groupId = Number(resultRows<{ id: number }>(groups)[0]!.id)
   await db.execute(sql`insert into users (id, username, username_lower, email, email_lower, primary_group_id)
     values (901, 'one', 'one', 'one@example.test', 'one@example.test', ${groupId}),
@@ -76,15 +74,21 @@ describe('polls', () => {
 
 describe('thread ratings', () => {
   it('keeps one rating per member and updates the aggregate when that rating changes', async () => {
-    expect(
-      await polls.rate({ threadId: 900, userId: 901, rating: 2 }),
-    ).toMatchObject({ average: 2, count: 1, mine: 2 })
-    expect(
-      await polls.rate({ threadId: 900, userId: 902, rating: 4 }),
-    ).toMatchObject({ average: 3, count: 2, mine: 4 })
-    expect(
-      await polls.rate({ threadId: 900, userId: 901, rating: 5 }),
-    ).toMatchObject({ average: 4.5, count: 2, mine: 5 })
+    expect(await polls.rate({ threadId: 900, userId: 901, rating: 2 })).toMatchObject({
+      average: 2,
+      count: 1,
+      mine: 2,
+    })
+    expect(await polls.rate({ threadId: 900, userId: 902, rating: 4 })).toMatchObject({
+      average: 3,
+      count: 2,
+      mine: 4,
+    })
+    expect(await polls.rate({ threadId: 900, userId: 901, rating: 5 })).toMatchObject({
+      average: 4.5,
+      count: 2,
+      mine: 5,
+    })
     expect(await polls.findRating(900, 901)).toMatchObject({
       average: 4.5,
       count: 2,

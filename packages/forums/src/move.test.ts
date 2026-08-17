@@ -1,5 +1,6 @@
-import { ConflictError, ValidationError } from '@meith/core'
 import { describe, expect, it } from 'vitest'
+
+import { ConflictError, ValidationError } from '@meith/core'
 
 import { planMove } from './move'
 import { buildTree, flattenTree } from './tree'

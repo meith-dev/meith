@@ -1,5 +1,6 @@
-import type { PluginHealth } from '@meith/plugin-kit'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { PluginHealth } from '@meith/plugin-kit'
 
 import type * as PluginHostModule from './plugin-host'
 

@@ -47,7 +47,9 @@ export type OrderFailure =
 
 export function orderPlugins(
   plugins: readonly PluginUpgrade[],
-): { readonly ok: true; readonly order: readonly PluginUpgrade[] } | { readonly ok: false; readonly failure: OrderFailure } {
+):
+  | { readonly ok: true; readonly order: readonly PluginUpgrade[] }
+  | { readonly ok: false; readonly failure: OrderFailure } {
   const byKey = new Map(plugins.map((plugin) => [plugin.key, plugin]))
 
   for (const plugin of plugins) {

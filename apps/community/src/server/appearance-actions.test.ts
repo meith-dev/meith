@@ -16,7 +16,10 @@ vi.mock('next/headers', () => ({
   }),
 }))
 
-const choices = [{ key: 'default', title: 'Default' }, { key: 'midnight', title: 'Midnight' }]
+const choices = [
+  { key: 'default', title: 'Default' },
+  { key: 'midnight', title: 'Midnight' },
+]
 vi.mock('./theme-runtime', () => ({
   getBoardThemeStyle: async () => ({ choices, defaultKey: 'default' }),
 }))

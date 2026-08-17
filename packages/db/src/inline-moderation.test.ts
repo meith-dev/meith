@@ -1,13 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
-import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresInlineModerationRepository } from './inline-moderation'
-import { PostgresThreadWriteRepository } from './thread-writes'
 import { rollUpAncestorCounters } from './content-counters'
+import { PostgresInlineModerationRepository } from './inline-moderation'
+import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
 import { forums, users } from './schema'
+import { PostgresThreadWriteRepository } from './thread-writes'
 
 let harness: TestDb
 let db: Database
@@ -493,9 +493,9 @@ describe('bulk move', () => {
       at: AT,
     })
 
-    const rows = resultRows(
-      await db.execute(sql`select detail from admin_log`),
-    ) as Array<{ detail: Record<string, unknown> }>
+    const rows = resultRows(await db.execute(sql`select detail from admin_log`)) as Array<{
+      detail: Record<string, unknown>
+    }>
     expect(rows[0]!.detail).toMatchObject({
       fromForumId: LEFT,
       toForumId: RIGHT,

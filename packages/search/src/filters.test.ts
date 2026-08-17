@@ -2,17 +2,17 @@ import { describe, expect, it } from 'vitest'
 
 import {
   isRefined,
-  narrowFilters,
   narrowerIds,
   narrowerMatch,
   narrowerPeriod,
+  narrowFilters,
   periodStart,
   readGrouping,
   readMatch,
   readPeriod,
   readSort,
-  trimRefinement,
   type SearchFilterSet,
+  trimRefinement,
 } from './filters'
 
 const RAN: SearchFilterSet = {

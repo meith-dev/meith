@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
 import { stepAt, totpCode } from '@meith/accounts'
 
@@ -75,9 +75,7 @@ test('a member turns on a code, and is asked for it next time they sign in', asy
   }
 })
 
-test('the password alone gets nowhere, and the half-step can be abandoned', async ({
-  browser,
-}) => {
+test('the password alone gets nowhere, and the half-step can be abandoned', async ({ browser }) => {
   const context = await browser.newContext()
   const page = await context.newPage()
 
@@ -146,9 +144,7 @@ test('a recovery code signs a member in once and is then spent', async ({ browse
   }
 })
 
-test('turning it off asks for the password, and puts the account back', async ({
-  browser,
-}) => {
+test('turning it off asks for the password, and puts the account back', async ({ browser }) => {
   const context = await browser.newContext()
   const page = await context.newPage()
 
@@ -158,15 +154,11 @@ test('turning it off asks for the password, and puts the account back', async ({
 
     await page.goto('/usercp/security')
     await page.getByLabel('Your password').last().fill('not-my-password')
-    await page
-      .getByRole('button', { name: 'Turn off two-factor authentication' })
-      .click()
+    await page.getByRole('button', { name: 'Turn off two-factor authentication' }).click()
     await expect(page.getByText(/not your current password/)).toBeVisible()
 
     await page.getByLabel('Your password').last().fill(PASSWORD)
-    await page
-      .getByRole('button', { name: 'Turn off two-factor authentication' })
-      .click()
+    await page.getByRole('button', { name: 'Turn off two-factor authentication' }).click()
 
     await expect(page.getByText(/Two-factor authentication is off/)).toBeVisible()
 
@@ -199,9 +191,7 @@ test('a member sees where they are signed in and can sign one out', async ({ bro
     await expect(secondPage).toHaveURL('/')
 
     await firstPage.goto('/usercp/security')
-    await expect(
-      firstPage.getByRole('heading', { name: 'Where you are signed in' }),
-    ).toBeVisible()
+    await expect(firstPage.getByRole('heading', { name: 'Where you are signed in' })).toBeVisible()
     await expect(firstPage.getByText('— this device')).toBeVisible()
 
     await firstPage.getByRole('button', { name: 'Sign out', exact: true }).first().click()
@@ -211,9 +201,7 @@ test('a member sees where they are signed in and can sign one out', async ({ bro
     await expect(secondPage).toHaveURL(/\/login\?next=/)
 
     await firstPage.goto('/usercp/security')
-    await expect(
-      firstPage.getByRole('heading', { name: 'Where you are signed in' }),
-    ).toBeVisible()
+    await expect(firstPage.getByRole('heading', { name: 'Where you are signed in' })).toBeVisible()
   } finally {
     await second.close()
     await first.close()
@@ -224,9 +212,7 @@ test('the security log records what happened to the account', async ({ page }) =
   await signUp(page, 'activity')
 
   await page.goto('/usercp/security')
-  await expect(
-    page.getByRole('heading', { name: 'Recent security activity' }),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Recent security activity' })).toBeVisible()
   await expect(page.getByText('Signed in').first()).toBeVisible()
 
   await enrol(page)

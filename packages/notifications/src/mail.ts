@@ -42,11 +42,7 @@ export function renderNotificationMail(input: {
 
   const subject = `[${boardName}] ${view.subject}`
 
-  const textLines = [
-    `Hello ${recipientName},`,
-    '',
-    view.subject,
-  ]
+  const textLines = [`Hello ${recipientName},`, '', view.subject]
   if (view.body !== '') textLines.push('', view.body)
   if (target !== null) textLines.push('', target)
   textLines.push(
@@ -54,9 +50,9 @@ export function renderNotificationMail(input: {
     '--',
     preferences === null
       ? `You are receiving this because you have an account on ${boardName}. ` +
-        'Change which e-mails you receive from your notification preferences.'
+          'Change which e-mails you receive from your notification preferences.'
       : `You are receiving this because you have an account on ${boardName}.\n` +
-        `Change which e-mails you receive: ${preferences}`,
+          `Change which e-mails you receive: ${preferences}`,
   )
   if (unsubscribe !== null) {
     textLines.push(`Unsubscribe without signing in: ${unsubscribe}`)

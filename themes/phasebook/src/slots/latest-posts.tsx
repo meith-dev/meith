@@ -20,7 +20,10 @@ export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
       ) : (
         <ul className="px-1 pt-1 pb-1">
           {posts.map((post) => (
-            <li key={post.href} className="rounded-lg px-2 py-1.5 transition-colors hover:bg-accent">
+            <li
+              key={post.href}
+              className="rounded-lg px-2 py-1.5 transition-colors hover:bg-accent"
+            >
               <div className="flex items-start gap-2.5">
                 <Circle name={post.author.username} size={32} className="mt-0.5" />
 

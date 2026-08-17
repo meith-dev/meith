@@ -1,5 +1,5 @@
-import { Alert, AlertDescription, AlertTitle, Card } from '@meith/ui'
 import type { PostFormModel } from '@meith/theme-kit'
+import { Alert, AlertDescription, AlertTitle, Card } from '@meith/ui'
 
 import { MUTED_LINK, pageAt } from '../shared'
 

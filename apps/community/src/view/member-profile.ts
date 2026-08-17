@@ -38,9 +38,7 @@ export function buildMemberProfileView(
     title: profile.title,
     joinedAt: formatDate(profile.createdAt, timeZone),
     lastVisitAt:
-      profile.lastActiveAt === null
-        ? null
-        : formatTime(profile.lastActiveAt, now, timeZone),
+      profile.lastActiveAt === null ? null : formatTime(profile.lastActiveAt, now, timeZone),
     postCount: profile.postCount,
     signatureHtml: null,
     fields: [

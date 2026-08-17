@@ -1,4 +1,4 @@
-import { sql, type SQL } from 'drizzle-orm'
+import { type SQL, sql } from 'drizzle-orm'
 
 import { columnName } from './schema/permission-columns'
 
@@ -22,12 +22,15 @@ export function permissionsCarryPower(
 }
 
 export function isStaffGroupSql(groupAlias: string): SQL {
-  const columns = PLUGIN_UNGRANTABLE_PERMISSIONS.map(
-    (key) => sql.raw(`${groupAlias}.${columnName(key)}`),
+  const columns = PLUGIN_UNGRANTABLE_PERMISSIONS.map((key) =>
+    sql.raw(`${groupAlias}.${columnName(key)}`),
   )
 
   return sql.join(
-    [sql`${sql.raw(`${groupAlias}.is_staff_group`)} = true`, ...columns.map((c) => sql`${c} = true`)],
+    [
+      sql`${sql.raw(`${groupAlias}.is_staff_group`)} = true`,
+      ...columns.map((c) => sql`${c} = true`),
+    ],
     sql` or `,
   )
 }

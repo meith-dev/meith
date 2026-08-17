@@ -55,10 +55,7 @@ export function describeDevice(userAgent: string | null): string {
   return browser === null ? platform : `${browser} on ${platform}`
 }
 
-function firstMatch(
-  value: string,
-  table: readonly (readonly [RegExp, string])[],
-): string | null {
+function firstMatch(value: string, table: readonly (readonly [RegExp, string])[]): string | null {
   for (const [pattern, label] of table) {
     if (pattern.test(value)) return label
   }

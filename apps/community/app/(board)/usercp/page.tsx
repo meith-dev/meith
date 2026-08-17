@@ -3,10 +3,10 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@meith/theme-kit'
 
-import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { PanelSectionGrid, PanelWaitingList } from '@/components/shell/panel-overview'
-import { getActor } from '@/server/context'
+import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
+import { getActor } from '@/server/context'
 import { unreadMessageCount } from '@/server/messages'
 import { unreadNotificationCount } from '@/server/notifications'
 import { currentTheme } from '@/server/theme'

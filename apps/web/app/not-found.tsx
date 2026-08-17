@@ -1,6 +1,6 @@
-import Link from "next/link"
+import Link from 'next/link'
 
-import { docHref, documentsInSection, sections } from "../src/docs/registry"
+import { docHref, documentsInSection, sections } from '../src/docs/registry'
 
 export default function NotFound() {
   return (

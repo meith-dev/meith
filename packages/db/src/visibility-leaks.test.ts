@@ -1,20 +1,20 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import {
   ALL_THREAD_AUTHORS,
-  PUBLIC_CONTENT,
-  contentScopeFrom,
   type ContentScope,
   type ContentVisibility,
+  contentScopeFrom,
+  PUBLIC_CONTENT,
 } from '@meith/core'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresPostRepository } from './post-repo'
 import { PostgresReadStateRepository } from './read-state-repo'
-import { PostgresThreadRepository } from './thread-repo'
 import { forums, users } from './schema'
+import { PostgresThreadRepository } from './thread-repo'
 
 let harness: TestDb
 let db: Database
@@ -131,9 +131,7 @@ const PATHS: ReadonlyArray<{
     name: 'threads.findById',
     async run(scope) {
       const found = await Promise.all(
-        Object.values(THREAD).map((id) =>
-          threads.findById(id, scope, ALL_THREAD_AUTHORS),
-        ),
+        Object.values(THREAD).map((id) => threads.findById(id, scope, ALL_THREAD_AUTHORS)),
       )
       return found.flatMap((row) => (row === null ? [] : [row.visibility]))
     },
@@ -239,9 +237,7 @@ describe('nothing widens a read except the scope', () => {
       limit: 50,
       scope: PUBLIC_CONTENT,
     })
-    expect(forMember.rows.map((row) => [row.id, row.number])).toEqual([
-      [POST.deleted + 1, 2],
-    ])
+    expect(forMember.rows.map((row) => [row.id, row.number])).toEqual([[POST.deleted + 1, 2]])
   })
 
   it('does not let a cursor page past the filter', async () => {

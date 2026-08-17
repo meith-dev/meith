@@ -14,10 +14,7 @@ export async function LegalDocument({ slug }: { slug: LegalSlug }) {
     <PanelPage frame="standalone" title={document.title}>
       <Card>
         <CardContent className="p-4">
-          <div
-            className="prose-md"
-            dangerouslySetInnerHTML={{ __html: document.bodyHtml }}
-          />
+          <div className="prose-md" dangerouslySetInnerHTML={{ __html: document.bodyHtml }} />
         </CardContent>
       </Card>
     </PanelPage>

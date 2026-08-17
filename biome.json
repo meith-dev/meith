@@ -1,0 +1,159 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.next*",
+      "!**/dist",
+      "!**/drizzle",
+      "!apps/*/public",
+      "!docs/perf-indexes.json",
+      "!docs/perf-results.json",
+      "!pnpm-lock.yaml"
+    ]
+  },
+  "plugins": ["./scripts/no-group-ids.grit"],
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "semicolons": "asNeeded",
+      "trailingCommas": "all",
+      "arrowParentheses": "always",
+      "bracketSpacing": true
+    }
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": [
+              [":BUN:", ":NODE:"],
+              ":BLANK_LINE:",
+              [":PACKAGE:", "!@meith/**"],
+              ":BLANK_LINE:",
+              "@meith/**",
+              ":BLANK_LINE:",
+              "@/**",
+              ":BLANK_LINE:",
+              [":PATH:", "./**", "../**"]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "a11y": {
+        "noLabelWithoutControl": {
+          "level": "error",
+          "options": {
+            "inputComponents": [
+              "CellControl",
+              "GroupSelect",
+              "Input",
+              "OklchPicker",
+              "ParentSelect",
+              "PermissionControl"
+            ]
+          }
+        },
+        "noStaticElementInteractions": "off",
+        "useKeyWithClickEvents": "off",
+        "useSemanticElements": "off"
+      },
+      "complexity": {
+        "noImportantStyles": "off"
+      },
+      "correctness": {
+        "noUnusedFunctionParameters": "error",
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error"
+      },
+      "performance": {
+        "noImgElement": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "off",
+        "noProcessEnv": "error",
+        "useConst": "error",
+        "useTemplate": "off"
+      },
+      "suspicious": {
+        "noConsole": {
+          "level": "error",
+          "options": { "allow": ["warn", "error"] }
+        },
+        "noDoubleEquals": {
+          "level": "error",
+          "options": { "ignoreNull": true }
+        },
+        "noExplicitAny": "warn",
+        "noVar": "error"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "scripts/**",
+        "apps/cli/**",
+        "apps/worker/**",
+        "packages/create-meith/**",
+        "packages/testkit/**",
+        "**/*.config.ts",
+        "**/*.config.mts",
+        "**/*.config.mjs",
+        "**/*.config.js",
+        "**/*.config.cjs",
+        "**/*.test.ts",
+        "**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": { "noProcessEnv": "off" },
+          "suspicious": { "noConsole": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["packages/testkit/**", "**/*.test.ts", "**/*.test.tsx"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noExplicitAny": "off" }
+        }
+      }
+    }
+  ]
+}

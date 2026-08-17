@@ -1,5 +1,5 @@
-import { cn } from '@meith/ui'
 import type { PaginationModel } from '@meith/theme-kit'
+import { cn } from '@meith/ui'
 
 import { NUMERIC, PILL } from '../shared'
 

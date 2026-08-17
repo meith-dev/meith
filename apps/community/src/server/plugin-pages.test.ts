@@ -30,8 +30,9 @@ vi.mock(import('@meith/core'), async (importOriginal) => ({
   })) as never,
 }))
 
-const { renderPluginAdminPage, renderPluginBoardPage, pluginBoardPageTitle } =
-  await import('./plugin-pages')
+const { renderPluginAdminPage, renderPluginBoardPage, pluginBoardPageTitle } = await import(
+  './plugin-pages'
+)
 
 let handed: unknown = null
 
@@ -182,7 +183,11 @@ describe('board pages', () => {
       ...overridesToApply,
     })
 
-  const member = { viewer: { userId: 7, isGuest: false }, query: { a: '1' }, boardUrl: 'https://b.example' }
+  const member = {
+    viewer: { userId: 7, isGuest: false },
+    query: { a: '1' },
+    boardUrl: 'https://b.example',
+  }
   const guest = { viewer: { userId: null, isGuest: true }, query: {}, boardUrl: '' }
 
   beforeEach(() => {

@@ -1,21 +1,20 @@
 import 'server-only'
 
-import { CacheTags } from '@meith/core'
-import { PostgresGroupAdminRepository, getDb } from '@meith/db'
-import { drivers } from '@meith/drivers'
 import { cache } from 'react'
 
+import { CacheTags } from '@meith/core'
+import { getDb, PostgresGroupAdminRepository } from '@meith/db'
+import { drivers } from '@meith/drivers'
+
 import { getContainer } from './container'
-import { forgetImage, storeImage, type ImageScheme } from './image-upload'
+import { forgetImage, type ImageScheme, storeImage } from './image-upload'
 
 export const BADGE_FIELD = 'badge'
 
 const KEY_SHAPE = /^group\/(\d+)\/badge-(light|dark)-[a-f0-9-]{36}\.(png|jpg|webp|svg)$/
 
 function repository(): PostgresGroupAdminRepository | null {
-  return getContainer().dataSource === 'postgres'
-    ? new PostgresGroupAdminRepository(getDb())
-    : null
+  return getContainer().dataSource === 'postgres' ? new PostgresGroupAdminRepository(getDb()) : null
 }
 
 export function badgeSrc(groupId: number, scheme: ImageScheme, key: string): string {
@@ -35,11 +34,7 @@ export const badgeKey = cache(
   },
 )
 
-export async function saveBadge(
-  groupId: number,
-  scheme: ImageScheme,
-  file: File,
-): Promise<void> {
+export async function saveBadge(groupId: number, scheme: ImageScheme, file: File): Promise<void> {
   const repo = requireGroups()
   const key = await storeImage(`group/${groupId}`, `badge-${scheme}`, file)
 

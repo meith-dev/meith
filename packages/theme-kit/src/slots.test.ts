@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { SLOTS, SLOT_NAMES, isSlotName, slotKind } from './slots'
+import { isSlotName, SLOT_NAMES, SLOTS, slotKind } from './slots'
 
 describe('the slot registry', () => {
   it('names every slot exactly once', () => {

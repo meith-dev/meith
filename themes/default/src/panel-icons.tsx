@@ -1,7 +1,6 @@
 import type { PanelNavIcon } from '@meith/theme-kit'
 
 const SHARED = {
-  'aria-hidden': true,
   viewBox: '0 0 16 16',
   fill: 'none',
   stroke: 'currentColor',
@@ -57,7 +56,7 @@ export function PanelIcon({ icon }: { icon: PanelNavIcon }) {
   if (path === undefined) return null
 
   return (
-    <svg {...SHARED}>
+    <svg {...SHARED} aria-hidden="true">
       <path d={path} />
     </svg>
   )

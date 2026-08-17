@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
 test.use({ javaScriptEnabled: false })
 
@@ -35,9 +35,7 @@ test('the colour follows the reader into dark mode, chosen or inherited', async 
   page,
   context,
 }) => {
-  await context.addCookies([
-    { name: 'meith_scheme', value: 'dark', url: 'http://127.0.0.1:3001' },
-  ])
+  await context.addCookies([{ name: 'meith_scheme', value: 'dark', url: 'http://127.0.0.1:3001' }])
   await page.goto(THREAD)
 
   await expect(page.locator('html')).toHaveClass(/(^|\s)dark(\s|$)/)

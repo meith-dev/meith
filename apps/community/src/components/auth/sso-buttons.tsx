@@ -1,6 +1,6 @@
-import { Separator, buttonVariants } from "@meith/ui"
+import { buttonVariants, Separator } from '@meith/ui'
 
-import type { ProviderButton } from "@/server/federation"
+import type { ProviderButton } from '@/server/federation'
 
 export function SsoButtons({
   providers,
@@ -21,7 +21,7 @@ export function SsoButtons({
             {next ? <input type="hidden" name="next" value={next} /> : null}
             <button
               type="submit"
-              className={buttonVariants({ variant: "outline", size: "lg", className: "w-full" })}
+              className={buttonVariants({ variant: 'outline', size: 'lg', className: 'w-full' })}
             >
               Continue with {provider.label}
             </button>
@@ -31,8 +31,8 @@ export function SsoButtons({
 
       <p className="text-xs text-muted-foreground">
         {lede ??
-          "Signing in this way tells that provider you are a member here, and the board " +
-            "learns the address they hold for you. Nothing else passes between them."}
+          'Signing in this way tells that provider you are a member here, and the board ' +
+            'learns the address they hold for you. Nothing else passes between them.'}
       </p>
 
       <div className="flex items-center gap-3">

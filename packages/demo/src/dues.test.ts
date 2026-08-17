@@ -1,11 +1,12 @@
-import { pluginData, resultRows, type Database } from '@meith/db'
-import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
-import { dues, DUES_DEMO_GROUP, DUES_DEMO_PLANS } from '@meith/plugin-dues'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { type Database, pluginData, resultRows } from '@meith/db'
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
+import { DUES_DEMO_GROUP, DUES_DEMO_PLANS, dues } from '@meith/plugin-dues'
+
 import { DUES_PLUGIN_KEY } from './dues'
-import { seedDemoBoard, type SeedSummary } from './seed'
+import { type SeedSummary, seedDemoBoard } from './seed'
 
 let harness: TestDb
 let db: Database
@@ -30,9 +31,7 @@ async function rows<T>(text: string): Promise<T[]> {
 }
 
 async function count(table: string, where = 'true'): Promise<number> {
-  const found = await rows<{ n: number }>(
-    `select count(*)::int as n from ${table} where ${where}`,
-  )
+  const found = await rows<{ n: number }>(`select count(*)::int as n from ${table} where ${where}`)
   return found[0]?.n ?? 0
 }
 
@@ -79,10 +78,7 @@ describe('the dues shop on the demo board', () => {
   })
 
   it('puts every live membership in the group it bought', async () => {
-    const live = await count(
-      'plugin_dues_membership',
-      `status in ('active', 'grace', 'closing')`,
-    )
+    const live = await count('plugin_dues_membership', `status in ('active', 'grace', 'closing')`)
     const granted = await count(
       'user_group_memberships m join usergroups g on g.id = m.group_id',
       `g.key = '${DUES_DEMO_GROUP}' and m.granted_by_plugin = '${DUES_PLUGIN_KEY}'`,
@@ -95,9 +91,7 @@ describe('the dues shop on the demo board', () => {
       `select user_id from plugin_dues_membership where status = 'revoked'`,
     )
     expect(refunded).toHaveLength(1)
-    expect(
-      await count('user_group_memberships', `user_id = ${refunded[0]!.user_id}`),
-    ).toBe(0)
+    expect(await count('user_group_memberships', `user_id = ${refunded[0]!.user_id}`)).toBe(0)
   })
 
   it('never grants a membership that has already expired', async () => {
@@ -143,7 +137,9 @@ describe('the dues shop on the demo board', () => {
   })
 
   it('dates the shop’s history behind the reset, not on it', async () => {
-    expect(await count('plugin_dues_order', `created_at > timestamptz '${NOW.toISOString()}'`)).toBe(0)
+    expect(
+      await count('plugin_dues_order', `created_at > timestamptz '${NOW.toISOString()}'`),
+    ).toBe(0)
     const oldest = await rows<{ at: Date | string }>(
       `select min(created_at) as at from plugin_dues_order`,
     )
@@ -156,9 +152,7 @@ describe('the dues shop on the demo board', () => {
   })
 
   it('gives one member a gift somebody else paid for', async () => {
-    expect(
-      await count('plugin_dues_order', 'buyer_user_id <> recipient_user_id'),
-    ).toBe(1)
+    expect(await count('plugin_dues_order', 'buyer_user_id <> recipient_user_id')).toBe(1)
   })
 
   it('serves the plans page from the tables, not from the config', async () => {

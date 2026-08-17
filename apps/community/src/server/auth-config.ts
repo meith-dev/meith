@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { DEFAULT_AUTH_POLICY, resolveAuthPolicy, type AuthConfig } from '@meith/accounts'
+import { type AuthConfig, DEFAULT_AUTH_POLICY, resolveAuthPolicy } from '@meith/accounts'
 import { env } from '@meith/core'
 
 import { SEED_GROUP } from './seed-board'

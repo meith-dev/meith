@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
+
 import { ValidationError } from '@meith/core'
 
 import {
-  MODCP_PAGE_SIZE,
+  type IpMatch,
   MOD_LOG_ACTIONS,
   MOD_LOG_LABELS,
-  ModeratorPanel,
-  type IpMatch,
+  MODCP_PAGE_SIZE,
   type ModCpRepository,
+  ModeratorPanel,
   type ModLogPage,
 } from './modcp'
 
@@ -18,8 +19,7 @@ class FakeModCp implements ModCpRepository {
   matches: IpMatch[] = []
   prefixes = { registration: '203.0.113.', lastVisit: '198.51.100.' }
 
-  readonly logCalls: Array<{ forumIds: readonly number[]; actorUserId: number; limit: number }> =
-    []
+  readonly logCalls: Array<{ forumIds: readonly number[]; actorUserId: number; limit: number }> = []
   readonly lookups: Array<{ actorUserId: number; subjectUserId: number; matches: number }> = []
 
   async log(input: {
@@ -90,11 +90,7 @@ describe('the dashboard', () => {
 
     const dashboard = await panelFor(modcp).dashboard({ forums: FORUMS })
 
-    expect(dashboard.map((f) => f.title)).toEqual([
-      'Busy place',
-      'Also quiet',
-      'Quiet corner',
-    ])
+    expect(dashboard.map((f) => f.title)).toEqual(['Busy place', 'Also quiet', 'Quiet corner'])
   })
 
   it('carries the rights the caller resolved, untouched', async () => {
@@ -123,9 +119,7 @@ describe('the address lookup', () => {
 
   it('returns the matches and the ranges it searched', async () => {
     const modcp = new FakeModCp()
-    modcp.matches = [
-      { userId: 7, username: 'other', matchedOn: 'both', lastActiveAt: NOW },
-    ]
+    modcp.matches = [{ userId: 7, username: 'other', matchedOn: 'both', lastActiveAt: NOW }]
 
     const result = await panelFor(modcp).lookUpIp({
       subjectUserId: 5,

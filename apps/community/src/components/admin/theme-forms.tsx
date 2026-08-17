@@ -1,21 +1,24 @@
-"use client"
+'use client'
 
-import { useActionState, useEffect, useState } from "react"
+import { useActionState, useEffect, useState } from 'react'
 
+import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   importThemeAction,
   resetThemeAction,
   setDefaultThemeAction,
   setThemeEnabledAction,
   themeEditorAction,
-} from "@/server/theme-admin-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
-import { contrastChecksFor, formatRatio, type ContrastCheck } from "@/view/contrast"
+} from '@/server/theme-admin-actions'
+import { type ContrastCheck, contrastChecksFor, formatRatio } from '@/view/contrast'
 import {
   changeCounts,
   cssVariables,
+  type Draft,
   draftValue,
+  type EditableToken,
   effectiveValues,
+  type FieldScheme,
   fieldName,
   initialDraft,
   matchesQuery,
@@ -23,28 +26,24 @@ import {
   schemesFor,
   shippedValue,
   tokenChanges,
-  type Draft,
-  type EditableToken,
-  type FieldScheme,
-} from "@/view/theme-draft"
-import { BRAND_PRESETS, groupTokens } from "@/view/theme-tokens"
+} from '@/view/theme-draft'
+import { BRAND_PRESETS, groupTokens } from '@/view/theme-tokens'
 
-import { ChangeSummary, LegibilityReport } from "./theme-changes"
-import { OklchPicker } from "./oklch-picker"
-import { PaletteGrid, type CellState } from "./theme-palette"
-import { ThemePreview, ValidatedSample } from "./theme-preview"
-
-import { FormError, SubmitButton } from "../auth/form-controls"
-import { Saved } from "./form-bits"
+import { FormError, SubmitButton } from '../auth/form-controls'
+import { Saved } from './form-bits'
+import { OklchPicker } from './oklch-picker'
+import { ChangeSummary, LegibilityReport } from './theme-changes'
+import { type CellState, PaletteGrid } from './theme-palette'
+import { ThemePreview, ValidatedSample } from './theme-preview'
 
 const INPUT =
-  "w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 const GHOST_BUTTON =
-  "inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 const LINK =
-  "text-xs font-medium underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'text-xs font-medium underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export type TokenValue = EditableToken
 
@@ -55,13 +54,13 @@ function useHydrated(): boolean {
 }
 
 function schemeLabel(scheme: FieldScheme): string {
-  return scheme === "both" ? "Both schemes" : scheme === "dark" ? "Dark" : "Light"
+  return scheme === 'both' ? 'Both schemes' : scheme === 'dark' ? 'Dark' : 'Light'
 }
 
 function ContrastNotes({ checks }: { checks: readonly ContrastCheck[] }) {
-  const failing = checks.filter((check) => check.state === "fail")
+  const failing = checks.filter((check) => check.state === 'fail')
   const tightest = [...checks]
-    .filter((check) => check.state === "pass")
+    .filter((check) => check.state === 'pass')
     .sort((a, b) => (a.ratio ?? 0) - (b.ratio ?? 0))[0]
 
   const shown = failing.length > 0 ? failing : tightest === undefined ? [] : [tightest]
@@ -73,15 +72,15 @@ function ContrastNotes({ checks }: { checks: readonly ContrastCheck[] }) {
         <li
           key={`${check.pair.foreground}/${check.pair.background}`}
           className={`text-[0.6875rem] ${
-            check.state === "fail" ? "font-medium text-destructive" : "text-muted-foreground"
+            check.state === 'fail' ? 'font-medium text-destructive' : 'text-muted-foreground'
           }`}
         >
-          {check.state === "fail" ? "Too little contrast: " : "Contrast: "}
-          {check.pair.label} —{" "}
+          {check.state === 'fail' ? 'Too little contrast: ' : 'Contrast: '}
+          {check.pair.label} —{' '}
           <span className="font-mono tabular-nums">
-            {check.ratio === null ? "—" : formatRatio(check.ratio)}
+            {check.ratio === null ? '—' : formatRatio(check.ratio)}
           </span>
-          {check.state === "fail" && ` (needs ${check.required}:1)`}
+          {check.state === 'fail' && ` (needs ${check.required}:1)`}
         </li>
       ))}
     </ul>
@@ -103,7 +102,7 @@ function TokenRow({
   onChange: (name: string, value: string) => void
   onClose?: (() => void) | undefined
 }) {
-  const overridden = schemesFor(token).some((scheme) => draftValue(draft, token, scheme) !== "")
+  const overridden = schemesFor(token).some((scheme) => draftValue(draft, token, scheme) !== '')
   const dirty = schemesFor(token).some(
     (scheme) => draftValue(draft, token, scheme) !== savedValue(token, scheme),
   )
@@ -125,20 +124,21 @@ function TokenRow({
         </span>
         <span className="font-mono text-xs text-muted-foreground">{token.name}</span>
       </div>
-      {token.hint !== "" && <p className="text-xs text-muted-foreground">{token.hint}</p>}
+      {token.hint !== '' && <p className="text-xs text-muted-foreground">{token.hint}</p>}
 
       <div className="flex flex-col gap-3 @md:flex-row">
         {schemesFor(token).map((scheme) => {
           const name = fieldName(token.name, scheme)
-          const value = draft[name] ?? ""
+          const value = draft[name] ?? ''
           const shipped = shippedValue(token, scheme)
-          const palette = scheme === "dark" ? values.dark : values.light
+          const palette = scheme === 'dark' ? values.dark : values.light
 
           return (
             <div key={scheme} className="flex min-w-0 flex-1 flex-col gap-1">
+              {/* biome-ignore lint/a11y/noLabelWithoutControl: the control is OklchPicker, or the text input on the other side of the branch */}
               <label className="flex min-w-0 flex-col gap-1">
                 <span className="text-xs text-muted-foreground">{schemeLabel(scheme)}</span>
-                {token.kind === "colour" ? (
+                {token.kind === 'colour' ? (
                   <OklchPicker
                     name={name}
                     describes={`${token.label}, ${schemeLabel(scheme).toLowerCase()}`}
@@ -158,11 +158,11 @@ function TokenRow({
               </label>
 
               <p className="truncate font-mono text-[0.6875rem] text-muted-foreground">
-                {value === "" ? "Theme’s own: " : "Replaces: "}
+                {value === '' ? 'Theme’s own: ' : 'Replaces: '}
                 {shipped}
               </p>
 
-              {token.kind === "colour" && (
+              {token.kind === 'colour' && (
                 <ContrastNotes checks={contrastChecksFor(token.name, palette)} />
               )}
             </div>
@@ -172,13 +172,13 @@ function TokenRow({
 
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-xs text-muted-foreground">
-          {overridden ? "Overridden by this board." : "Using the theme’s own value."}
+          {overridden ? 'Overridden by this board.' : 'Using the theme’s own value.'}
         </span>
         {overridden && (
           <button
             type="button"
             onClick={() => {
-              for (const scheme of schemesFor(token)) onChange(fieldName(token.name, scheme), "")
+              for (const scheme of schemesFor(token)) onChange(fieldName(token.name, scheme), '')
             }}
             className={LINK}
           >
@@ -211,7 +211,7 @@ export function ThemeEditorForm({
 
   const [draft, setDraft] = useState<Draft>(() => initialDraft(tokens, state.values))
   const [css, setCss] = useState(state.values?.customCss ?? customCss)
-  const [query, setQuery] = useState("")
+  const [query, setQuery] = useState('')
   const [changedOnly, setChangedOnly] = useState(false)
 
   const groups = groupTokens(tokens)
@@ -225,10 +225,10 @@ export function ThemeEditorForm({
     setDraft((current) => {
       const next = { ...current }
       for (const [name, value] of Object.entries(preset.light)) {
-        next[fieldName(name, "light")] = value
+        next[fieldName(name, 'light')] = value
       }
       for (const [name, value] of Object.entries(preset.dark)) {
-        next[fieldName(name, "dark")] = value
+        next[fieldName(name, 'dark')] = value
       }
       return next
     })
@@ -239,11 +239,11 @@ export function ThemeEditorForm({
   const unsaved = counts.unsaved + (customCssChanged ? 1 : 0)
 
   const values = {
-    light: effectiveValues(tokens, draft, "light"),
-    dark: effectiveValues(tokens, draft, "dark"),
+    light: effectiveValues(tokens, draft, 'light'),
+    dark: effectiveValues(tokens, draft, 'dark'),
   }
 
-  const changedNames = new Set(changes.filter((c) => c.draft !== "").map((c) => c.token.name))
+  const changedNames = new Set(changes.filter((c) => c.draft !== '').map((c) => c.token.name))
   const visible = (token: EditableToken): boolean =>
     (!hydrated || matchesQuery(token, query)) &&
     (!hydrated || !changedOnly || changedNames.has(token.name))
@@ -253,17 +253,17 @@ export function ThemeEditorForm({
   const cellState = (token: EditableToken): CellState => {
     const fields = schemesFor(token)
     if (fields.some((scheme) => draftValue(draft, token, scheme) !== savedValue(token, scheme))) {
-      return "unsaved"
+      return 'unsaved'
     }
-    return fields.some((scheme) => draftValue(draft, token, scheme) !== "") ? "saved" : "clean"
+    return fields.some((scheme) => draftValue(draft, token, scheme) !== '') ? 'saved' : 'clean'
   }
 
   const select = (name: string): void => {
     setSelected(name)
     requestAnimationFrame(() => {
       const row = document.getElementById(`token-${name}`)
-      row?.scrollIntoView({ block: "nearest" })
-      row?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true })
+      row?.scrollIntoView({ block: 'nearest' })
+      row?.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true })
     })
   }
 
@@ -279,7 +279,7 @@ export function ThemeEditorForm({
     <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] xl:items-start">
       <div className="@container flex min-w-0 flex-col gap-6">
         <FormError message={state.error} />
-        <Saved when={state.notice === "saved"}>
+        <Saved when={state.notice === 'saved'}>
           Saved. The board is rendering these values now.
         </Saved>
 
@@ -289,11 +289,11 @@ export function ThemeEditorForm({
           <fieldset className="flex flex-col gap-3">
             <legend className="text-sm font-medium">Brand palettes</legend>
             <p className="text-xs text-muted-foreground">
-              Sets the accent, its hover step, the text on it and the focus ring, for both
-              schemes at once — the four tokens that brand a board whose palette is otherwise
-              colourless. The board ships with <span className="font-medium">Meith green</span>;
-              pressing it again puts back the shipped accent after trying another. Nothing is
-              saved until you press Save.
+              Sets the accent, its hover step, the text on it and the focus ring, for both schemes
+              at once — the four tokens that brand a board whose palette is otherwise colourless.
+              The board ships with <span className="font-medium">Meith green</span>; pressing it
+              again puts back the shipped accent after trying another. Nothing is saved until you
+              press Save.
             </p>
             <div className="flex flex-wrap gap-2">
               {BRAND_PRESETS.map((preset) => (
@@ -336,13 +336,11 @@ export function ThemeEditorForm({
                       onChange={(event) => setChangedOnly(event.target.checked)}
                       className="size-4 accent-primary"
                     />
-                    Only the {counts.tokens} token{counts.tokens === 1 ? "" : "s"} this board has
+                    Only the {counts.tokens} token{counts.tokens === 1 ? '' : 's'} this board has
                     changed
                   </label>
                 ) : (
-                  <span className="text-xs text-muted-foreground">
-                    Nothing is overridden yet.
-                  </span>
+                  <span className="text-xs text-muted-foreground">Nothing is overridden yet.</span>
                 )}
                 <span className="text-xs text-muted-foreground">
                   {shown} of {tokens.length} shown
@@ -367,7 +365,7 @@ export function ThemeEditorForm({
                     {changed > 0 && (
                       <span className="mr-2 font-medium text-primary">{changed} changed</span>
                     )}
-                    {group.tokens.length} token{group.tokens.length === 1 ? "" : "s"}
+                    {group.tokens.length} token{group.tokens.length === 1 ? '' : 's'}
                   </span>
                 </legend>
 
@@ -377,8 +375,8 @@ export function ThemeEditorForm({
                   <PaletteGrid
                     cells={group.tokens.map((token) => ({
                       token,
-                      light: values.light[token.name] ?? "",
-                      dark: values.dark[token.name] ?? "",
+                      light: values.light[token.name] ?? '',
+                      dark: values.dark[token.name] ?? '',
                       state: cellState(token),
                       visible: visible(token),
                     }))}
@@ -414,22 +412,21 @@ export function ThemeEditorForm({
               className={INPUT}
             />
             <span className="text-xs text-muted-foreground">
-              Appended after the theme&rsquo;s own styles. <code>@import</code>, <code>url(</code>{" "}
+              Appended after the theme&rsquo;s own styles. <code>@import</code>, <code>url(</code>{' '}
               and a closing style tag are refused — those are how a stylesheet stops being a
-              stylesheet.{" "}
+              stylesheet.{' '}
               {isDefault ? (
                 <>
-                  This is the board&rsquo;s default theme, so what you write here goes into the
-                  page unscoped: it applies to every member, including one who has picked
-                  another theme. Rules meant for this theme alone belong on a theme that is
-                  not the default.
+                  This is the board&rsquo;s default theme, so what you write here goes into the page
+                  unscoped: it applies to every member, including one who has picked another theme.
+                  Rules meant for this theme alone belong on a theme that is not the default.
                 </>
               ) : (
                 <>
-                  This theme is not the board default, so what you write here is nested under
-                  its own selector and stops applying the moment a member picks a different
-                  theme; a rule aimed at <code>:root</code> will not match there, so target{" "}
-                  <code>body</code> or a class instead.
+                  This theme is not the board default, so what you write here is nested under its
+                  own selector and stops applying the moment a member picks a different theme; a
+                  rule aimed at <code>:root</code> will not match there, so target <code>body</code>{' '}
+                  or a class instead.
                 </>
               )}
             </span>
@@ -438,7 +435,7 @@ export function ThemeEditorForm({
           <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t border-border bg-background px-1 py-3">
             <span className="min-w-40">
               <SubmitButton>
-                {unsaved === 0 ? "Save" : `Save ${unsaved} change${unsaved === 1 ? "" : "s"}`}
+                {unsaved === 0 ? 'Save' : `Save ${unsaved} change${unsaved === 1 ? '' : 's'}`}
               </SubmitButton>
             </span>
             <button
@@ -451,8 +448,8 @@ export function ThemeEditorForm({
             </button>
             <span className="text-xs text-muted-foreground">
               {unsaved === 0
-                ? "Nothing to save — the board is painting what is in this form."
-                : `${unsaved} unsaved change${unsaved === 1 ? "" : "s"}. Nothing reaches the board until you save.`}
+                ? 'Nothing to save — the board is painting what is in this form.'
+                : `${unsaved} unsaved change${unsaved === 1 ? '' : 's'}. Nothing reaches the board until you save.`}
             </span>
           </div>
         </form>
@@ -470,8 +467,8 @@ export function ThemeEditorForm({
           <section className="flex flex-col gap-3">
             <h3 className="text-base font-semibold tracking-tight">Validated preview</h3>
             <p className="text-xs text-muted-foreground">
-              Rendered by the board from values it has validated exactly as a save would, custom
-              CSS included.
+              Rendered by the board from values it has validated exactly as a save would, custom CSS
+              included.
             </p>
             <style dangerouslySetInnerHTML={{ __html: state.preview }} />
             <ValidatedSample />
@@ -483,7 +480,7 @@ export function ThemeEditorForm({
           customCssChanged={customCssChanged}
           hydrated={hydrated}
           onUndo={(change) => undo(change.token.name, change.scheme, change.saved)}
-          onClear={(change) => undo(change.token.name, change.scheme, "")}
+          onClear={(change) => undo(change.token.name, change.scheme, '')}
           onDiscardAll={discardAll}
         />
 
@@ -499,7 +496,7 @@ export function ResetThemeForm({ themeKey }: { themeKey: string }) {
   return (
     <form action={action} className="flex flex-col gap-3">
       <FormError message={state.error} />
-      <Saved when={state.notice === "reset"}>
+      <Saved when={state.notice === 'reset'}>
         Reset. The board looks exactly as the theme ships.
       </Saved>
       <input type="hidden" name="key" value={themeKey} />
@@ -516,7 +513,7 @@ export function ImportThemeForm({ themeKey }: { themeKey: string }) {
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "imported"}>
+      <Saved when={state.notice === 'imported'}>
         Imported. Every override in the file is now this board&rsquo;s.
       </Saved>
       <input type="hidden" name="key" value={themeKey} />
@@ -561,11 +558,7 @@ export function ThemeStateForms({
         {!isDefault && enabled && (
           <form action={defaultAction}>
             <input type="hidden" name="key" value={themeKey} />
-            <button
-              type="submit"
-              aria-label={`Make ${title} the default`}
-              className={GHOST_BUTTON}
-            >
+            <button type="submit" aria-label={`Make ${title} the default`} className={GHOST_BUTTON}>
               Make default
             </button>
           </form>
@@ -574,13 +567,13 @@ export function ThemeStateForms({
         {!isBuildTheme && !isDefault && (
           <form action={enabledAction}>
             <input type="hidden" name="key" value={themeKey} />
-            <input type="hidden" name="enabled" value={enabled ? "false" : "true"} />
+            <input type="hidden" name="enabled" value={enabled ? 'false' : 'true'} />
             <button
               type="submit"
               aria-label={enabled ? `Turn ${title} off` : `Turn ${title} on`}
               className={GHOST_BUTTON}
             >
-              {enabled ? "Turn off" : "Turn on"}
+              {enabled ? 'Turn off' : 'Turn on'}
             </button>
           </form>
         )}

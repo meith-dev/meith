@@ -1,21 +1,18 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { Button } from "@meith/ui/button"
+import { Button } from '@meith/ui/button'
 
-import {
-  revokeOtherSessionsAction,
-  revokeSessionAction,
-} from "@/server/session-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { revokeOtherSessionsAction, revokeSessionAction } from '@/server/session-actions'
 
-import { FormError } from "../auth/form-controls"
+import { FormError } from '../auth/form-controls'
 
-const CARD = "flex flex-col gap-4 rounded-lg border border-border bg-card p-5"
+const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
 
 const ROW =
-  "flex flex-wrap items-center justify-between gap-3 rounded-md border border-border px-3 py-2"
+  'flex flex-wrap items-center justify-between gap-3 rounded-md border border-border px-3 py-2'
 
 export interface SessionView {
   readonly id: number
@@ -37,8 +34,8 @@ export function ActiveSessions({ sessions }: { readonly sessions: readonly Sessi
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold tracking-tight">Where you are signed in</h2>
         <p className="text-xs text-muted-foreground">
-          Every device holding a live sign-in to your account. Signing one out takes
-          effect at once, and whoever holds it has to sign in again.
+          Every device holding a live sign-in to your account. Signing one out takes effect at once,
+          and whoever holds it has to sign in again.
         </p>
       </div>
 
@@ -51,15 +48,11 @@ export function ActiveSessions({ sessions }: { readonly sessions: readonly Sessi
               <span className="font-medium">
                 {session.device}
                 {session.current ? (
-                  <span className="font-normal text-muted-foreground">
-                    {" "}
-                    — this device
-                  </span>
+                  <span className="font-normal text-muted-foreground"> — this device</span>
                 ) : null}
               </span>
               <span className="text-xs text-muted-foreground">
-                {session.address} · started {session.startedAt} · last seen{" "}
-                {session.lastSeen}
+                {session.address} · started {session.startedAt} · last seen {session.lastSeen}
               </span>
             </span>
 

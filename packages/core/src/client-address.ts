@@ -8,7 +8,7 @@ export interface ForwardingHeaders {
 export function forwardedChain(value: string | null | undefined): readonly string[] {
   if (!value) return []
   return value
-    .split(",")
+    .split(',')
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0)
 }

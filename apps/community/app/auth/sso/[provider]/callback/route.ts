@@ -1,39 +1,39 @@
-import type { NextRequest } from "next/server"
+import type { NextRequest } from 'next/server'
 
-import { RateLimitedError, isAppError, logger, truncateIp } from "@meith/core"
+import { isAppError, logger, RateLimitedError, truncateIp } from '@meith/core'
 
-import { remoteAddress } from "@/server/admin"
-import { recordAuthEvent } from "@/server/auth-events"
-import { refused, spendRegisterLimit } from "@/server/antispam"
-import { sendVerificationEmail } from "@/server/auth-mail"
-import { getActor } from "@/server/context"
+import { remoteAddress } from '@/server/admin'
+import { refused, spendRegisterLimit } from '@/server/antispam'
+import { recordAuthEvent } from '@/server/auth-events'
+import { sendVerificationEmail } from '@/server/auth-mail'
+import { getActor } from '@/server/context'
 import {
   callbackUrl,
   federationProvider,
   federationService,
   memberManagedSignIns,
-} from "@/server/federation"
-import { isTopLevelNavigation } from "@/server/same-origin"
+} from '@/server/federation'
+import { isTopLevelNavigation } from '@/server/same-origin'
 import {
   clearHandshakeCookie,
   readHandshakeCookie,
   setSessionCookie,
-} from "@/server/session-cookies"
-import { decodeHandshake } from "@/server/sso-handshake"
-import { ssoOutcomeCode } from "@/view/sso-notices"
+} from '@/server/session-cookies'
+import { decodeHandshake } from '@/server/sso-handshake'
+import { ssoOutcomeCode } from '@/view/sso-notices'
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 function to(path: string): Response {
   return new Response(null, {
     status: 303,
-    headers: { location: path, "cache-control": "no-store" },
+    headers: { location: path, 'cache-control': 'no-store' },
   })
 }
 
 function withReason(path: string, reason: string): string {
-  return `${path}${path.includes("?") ? "&" : "?"}sso=${reason}`
+  return `${path}${path.includes('?') ? '&' : '?'}sso=${reason}`
 }
 
 export async function GET(
@@ -41,43 +41,40 @@ export async function GET(
   context: { params: Promise<{ provider: string }> },
 ): Promise<Response> {
   if (!isTopLevelNavigation(request)) {
-    return new Response(
-      "A sign-in is completed by opening the board, not by a subresource.",
-      {
-        status: 403,
-        headers: {
-          "content-type": "text/plain; charset=utf-8",
-          "cache-control": "no-store",
-        },
+    return new Response('A sign-in is completed by opening the board, not by a subresource.', {
+      status: 403,
+      headers: {
+        'content-type': 'text/plain; charset=utf-8',
+        'cache-control': 'no-store',
       },
-    )
+    })
   }
 
   const { provider: requested } = await context.params
   const handshake = decodeHandshake(await readHandshakeCookie())
   await clearHandshakeCookie()
 
-  const home = handshake?.mode === "link" ? "/usercp/security" : "/login"
+  const home = handshake?.mode === 'link' ? '/usercp/security' : '/login'
 
   if (handshake === null || handshake.provider !== requested) {
-    return to(withReason(home, "expired"))
+    return to(withReason(home, 'expired'))
   }
 
   const query = request.nextUrl.searchParams
 
-  if (query.get("error") !== null) return to(withReason(home, "refused"))
+  if (query.get('error') !== null) return to(withReason(home, 'refused'))
 
-  const state = query.get("state")
-  const code = query.get("code")
+  const state = query.get('state')
+  const code = query.get('code')
 
   if (state === null || state !== handshake.state || code === null) {
-    return to(withReason(home, "expired"))
+    return to(withReason(home, 'expired'))
   }
 
   const provider = await federationProvider(requested)
-  if (provider === null) return to(withReason(home, "off"))
+  if (provider === null) return to(withReason(home, 'off'))
 
-  const log = logger({ module: "sso" })
+  const log = logger({ module: 'sso' })
 
   try {
     const profile = await provider.exchange({
@@ -89,14 +86,14 @@ export async function GET(
 
     const federation = await federationService()
 
-    if (handshake.mode === "link") {
+    if (handshake.mode === 'link') {
       const actor = await getActor()
-      if (actor.userId === null) return to("/login?next=%2Fusercp%2Fsecurity")
-      if (!(await memberManagedSignIns())) return to(withReason(home, "off"))
+      if (actor.userId === null) return to('/login?next=%2Fusercp%2Fsecurity')
+      if (!(await memberManagedSignIns())) return to(withReason(home, 'off'))
 
       await federation.linkToViewer({ userId: actor.userId, provider, profile })
-      await recordAuthEvent({ userId: actor.userId, kind: "identity_linked" })
-      return to(withReason("/usercp/security", "linked"))
+      await recordAuthEvent({ userId: actor.userId, kind: 'identity_linked' })
+      return to(withReason('/usercp/security', 'linked'))
     }
 
     const outcome = await federation.completeSignIn({
@@ -109,8 +106,8 @@ export async function GET(
       },
     })
 
-    if (outcome.status === "pending") {
-      if (outcome.verificationToken === null) return to(withReason(home, "approval"))
+    if (outcome.status === 'pending') {
+      if (outcome.verificationToken === null) return to(withReason(home, 'approval'))
 
       try {
         await sendVerificationEmail({
@@ -119,17 +116,17 @@ export async function GET(
           username: outcome.account.username,
         })
       } catch (err) {
-        log.error({ err }, "could not send a verification e-mail after a federated sign-up")
+        log.error({ err }, 'could not send a verification e-mail after a federated sign-up')
       }
 
       return to(`/verify/resend?email=${encodeURIComponent(outcome.account.email)}&sent=1`)
     }
 
     await setSessionCookie(outcome.login.sessionToken, outcome.login.expiresAt)
-    await recordAuthEvent({ userId: outcome.account.id, kind: "login" })
+    await recordAuthEvent({ userId: outcome.account.id, kind: 'login' })
     return to(handshake.next)
   } catch (err) {
-    log.warn({ err, provider: requested }, "federated sign-in did not complete")
+    log.warn({ err, provider: requested }, 'federated sign-in did not complete')
     return to(withReason(home, ssoOutcomeCode(isAppError(err) ? err.code : null)))
   }
 }

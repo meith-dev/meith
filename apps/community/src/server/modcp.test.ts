@@ -1,17 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import {
-  InMemoryAuthorizationSource,
-  combinePermissionSets,
   type Actor,
+  combinePermissionSets,
+  InMemoryAuthorizationSource,
   type MemoryAppointment,
 } from '@meith/authorization'
 
 const { moderatedForumRights } = await import('./modcp')
 const { installTestContainer, appointment } = await import('./test-container')
-const { SEED_BOARD, SEED_FORUM, SEED_FORUM_ROWS, SEED_GROUP } = await import(
-  './seed-board'
-)
+const { SEED_BOARD, SEED_FORUM, SEED_FORUM_ROWS, SEED_GROUP } = await import('./seed-board')
 
 async function member(): Promise<Actor> {
   const source = new InMemoryAuthorizationSource(SEED_BOARD)
@@ -26,9 +24,7 @@ async function member(): Promise<Actor> {
   }
 }
 
-async function labelsFor(
-  rights: Partial<MemoryAppointment>,
-): Promise<readonly string[]> {
+async function labelsFor(rights: Partial<MemoryAppointment>): Promise<readonly string[]> {
   installTestContainer({
     moderators: [appointment(SEED_FORUM.general, rights)],
     container: { forums: { listListing: async () => SEED_FORUM_ROWS } },
@@ -55,14 +51,13 @@ describe('what “My forums” says somebody holds', () => {
   it('names deleting and restoring separately, because they are separate grants', async () => {
     expect(await labelsFor({ canSoftDeletePosts: true })).toEqual(['Delete posts'])
     expect(await labelsFor({ canRestorePosts: true })).toEqual(['Restore posts'])
-    expect(
-      await labelsFor({ canSoftDeletePosts: true, canRestorePosts: true }),
-    ).toEqual(['Delete posts', 'Restore posts'])
+    expect(await labelsFor({ canSoftDeletePosts: true, canRestorePosts: true })).toEqual([
+      'Delete posts',
+      'Restore posts',
+    ])
   })
 
   it('says nothing about a right the appointment does not carry', async () => {
-    expect(await labelsFor({ canOpenCloseThreads: true })).toEqual([
-      'Lock and unlock',
-    ])
+    expect(await labelsFor({ canOpenCloseThreads: true })).toEqual(['Lock and unlock'])
   })
 })

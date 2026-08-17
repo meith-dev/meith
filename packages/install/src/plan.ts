@@ -14,8 +14,7 @@ export const INSTALL_STEPS: readonly InstallStep[] = [
     id: 'settings',
     title: 'Record the board’s name and mail settings',
     detail:
-      'The only settings the installer writes. Everything else has a default and ' +
-      'a screen.',
+      'The only settings the installer writes. Everything else has a default and ' + 'a screen.',
   },
   {
     id: 'admin',
@@ -43,9 +42,7 @@ export interface StepOutcome {
   readonly field?: string
 }
 
-export function fieldErrorsFromReport(
-  report: readonly StepOutcome[],
-): Record<string, string> {
+export function fieldErrorsFromReport(report: readonly StepOutcome[]): Record<string, string> {
   const failure = firstFailure(report)
   if (failure === null || failure.field === undefined) return {}
   return { [failure.field]: failure.error ?? 'That answer was refused.' }

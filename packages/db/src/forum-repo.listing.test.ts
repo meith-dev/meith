@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
-import { expectQueryBudget } from '@meith/testkit'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+
+import { expectQueryBudget } from '@meith/testkit'
 
 import type { Database } from './client'
 import { PostgresForumRepository } from './forum-repo'
@@ -133,9 +134,36 @@ describe('listListing', () => {
   it('costs one query regardless of depth', async () => {
     await db.insert(forums).values([
       { id: 1, type: 'category', title: 'C', slug: 'c', path: '1', depth: 0, displayOrder: 0 },
-      { id: 2, type: 'forum', title: 'A', slug: 'a', parentId: 1, path: '1.2', depth: 1, displayOrder: 0 },
-      { id: 3, type: 'forum', title: 'B', slug: 'b', parentId: 2, path: '1.2.3', depth: 2, displayOrder: 0 },
-      { id: 4, type: 'forum', title: 'D', slug: 'd', parentId: 3, path: '1.2.3.4', depth: 3, displayOrder: 0 },
+      {
+        id: 2,
+        type: 'forum',
+        title: 'A',
+        slug: 'a',
+        parentId: 1,
+        path: '1.2',
+        depth: 1,
+        displayOrder: 0,
+      },
+      {
+        id: 3,
+        type: 'forum',
+        title: 'B',
+        slug: 'b',
+        parentId: 2,
+        path: '1.2.3',
+        depth: 2,
+        displayOrder: 0,
+      },
+      {
+        id: 4,
+        type: 'forum',
+        title: 'D',
+        slug: 'd',
+        parentId: 3,
+        path: '1.2.3.4',
+        depth: 3,
+        displayOrder: 0,
+      },
     ])
 
     await expectQueryBudget(harness, 1, () => repo.listListing())

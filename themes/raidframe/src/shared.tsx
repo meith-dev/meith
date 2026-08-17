@@ -22,8 +22,7 @@ export const BUTTON_PRIMARY =
 export const CHIP =
   'inline-flex items-center gap-1 border border-border bg-surface px-1.5 py-0.5 font-mono text-[0.625rem] font-semibold uppercase tracking-[0.12em]'
 
-export const RULE =
-  'h-px w-full bg-gradient-to-r from-primary/70 via-primary/15 to-transparent'
+export const RULE = 'h-px w-full bg-gradient-to-r from-primary/70 via-primary/15 to-transparent'
 
 export function Frame({
   children,

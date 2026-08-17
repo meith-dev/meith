@@ -1,27 +1,19 @@
-import {
-  ConflictError,
-  ForbiddenError,
-  ValidationError,
-} from '@meith/core'
+import { ConflictError, ForbiddenError, ValidationError } from '@meith/core'
 
-import {
-  hashPassword,
-  needsRehash,
-  verifyPassword,
-} from './crypto/password'
-import { generateToken, hashToken } from './crypto/tokens'
-import { REGISTER_FIELD } from './register-fields'
-import { matchBanFilter, type BanFilterSubject } from './ban-filter'
+import { type BanFilterSubject, matchBanFilter } from './ban-filter'
 import { foldIdentifier } from './case-fold'
+import { hashPassword, needsRehash, verifyPassword } from './crypto/password'
+import { generateToken, hashToken } from './crypto/tokens'
 import type {
+  AccountRecord,
   AccountStore,
   AuthConfig,
   BanFilterRepository,
   BanRecord,
   Clock,
-  AccountRecord,
   LoginBucket,
 } from './ports'
+import { REGISTER_FIELD } from './register-fields'
 
 export interface IdentityDeps {
   readonly store: AccountStore
@@ -122,8 +114,7 @@ export interface FederatedProvision {
   readonly emailVerified: boolean
 }
 
-export const REGISTRATION_CLOSED =
-  'This board is not taking new members at the moment.'
+export const REGISTRATION_CLOSED = 'This board is not taking new members at the moment.'
 
 export class IdentityService {
   private readonly store: AccountStore
@@ -145,10 +136,7 @@ export class IdentityService {
     this.secondFactor = deps.secondFactor
   }
 
-  async register(
-    input: RegisterInput,
-    context: RequestContext = {},
-  ): Promise<RegisterResult> {
+  async register(input: RegisterInput, context: RequestContext = {}): Promise<RegisterResult> {
     if (!this.config.registrationEnabled) {
       throw new ForbiddenError(REGISTRATION_CLOSED)
     }
@@ -183,8 +171,7 @@ export class IdentityService {
 
     const encoded = await hashPassword(input.password)
 
-    const state =
-      this.config.activationMethod === 'none' ? 'active' : 'awaiting_activation'
+    const state = this.config.activationMethod === 'none' ? 'active' : 'awaiting_activation'
 
     const account = await this.store.accounts.create({
       username,
@@ -301,10 +288,7 @@ export class IdentityService {
   }
 
   private verifiesEmail(): boolean {
-    return (
-      this.config.activationMethod === 'email' ||
-      this.config.activationMethod === 'both'
-    )
+    return this.config.activationMethod === 'email' || this.config.activationMethod === 'both'
   }
 
   private async issueVerification(userId: number): Promise<string> {
@@ -313,9 +297,7 @@ export class IdentityService {
       tokenHash: await hashToken(token),
       userId,
       purpose: 'email_verification',
-      expiresAt: new Date(
-        this.now().getTime() + VERIFICATION_TTL_HOURS * 60 * 60 * 1000,
-      ),
+      expiresAt: new Date(this.now().getTime() + VERIFICATION_TTL_HOURS * 60 * 60 * 1000),
     })
     return token
   }
@@ -372,9 +354,7 @@ export class IdentityService {
       if (max <= 0) continue
       const failures = await this.store.loginAttempts.countFailuresSince(counter.key, since)
       if (failures >= max) {
-        throw new ForbiddenError(
-          'Too many failed attempts. Please wait before trying again.',
-        )
+        throw new ForbiddenError('Too many failed attempts. Please wait before trying again.')
       }
     }
 
@@ -458,27 +438,16 @@ export class IdentityService {
    * their password again.
    */
   async pendingSecondFactor(token: string): Promise<PendingSecondFactor | null> {
-    const held = await this.store.tokens.peek(
-      await hashToken(token),
-      'second_factor',
-      this.now(),
-    )
+    const held = await this.store.tokens.peek(await hashToken(token), 'second_factor', this.now())
     if (held === null) return null
 
     return { userId: held.userId, remember: held.payload === 'remember' }
   }
 
   /** Spends the hold and starts the session it was standing in for. */
-  async redeemSecondFactor(
-    token: string,
-    context: RequestContext = {},
-  ): Promise<LoginResult> {
+  async redeemSecondFactor(token: string, context: RequestContext = {}): Promise<LoginResult> {
     const at = this.now()
-    const redeemed = await this.store.tokens.consume(
-      await hashToken(token),
-      'second_factor',
-      at,
-    )
+    const redeemed = await this.store.tokens.consume(await hashToken(token), 'second_factor', at)
 
     if (redeemed === null) {
       throw new ForbiddenError(
@@ -513,9 +482,7 @@ export class IdentityService {
     )
 
     if (failures >= max) {
-      throw new ForbiddenError(
-        'Too many wrong codes. Please wait before trying again.',
-      )
+      throw new ForbiddenError('Too many wrong codes. Please wait before trying again.')
     }
   }
 
@@ -583,9 +550,7 @@ export class IdentityService {
     return { userId: located.userId }
   }
 
-  async locateSession(
-    sessionToken: string,
-  ): Promise<{ sessionId: number; userId: number } | null> {
+  async locateSession(sessionToken: string): Promise<{ sessionId: number; userId: number } | null> {
     const session = await this.store.sessions.findByTokenHash(await hashToken(sessionToken))
     if (!session) return null
     if (session.revokedAt !== null) return null
@@ -604,9 +569,7 @@ export class IdentityService {
       tokenHash: await hashToken(token),
       userId: account.id,
       purpose: 'password_reset',
-      expiresAt: new Date(
-        this.now().getTime() + this.config.resetTokenTtlMinutes * 60_000,
-      ),
+      expiresAt: new Date(this.now().getTime() + this.config.resetTokenTtlMinutes * 60_000),
     })
     return { token, userId: account.id }
   }
@@ -664,9 +627,13 @@ export class IdentityService {
       )
     }
     if (!USERNAME_RE.test(username)) {
-      throw new ValidationError('Username contains invalid characters.', {}, {
-        meta: { field: REGISTER_FIELD.username },
-      })
+      throw new ValidationError(
+        'Username contains invalid characters.',
+        {},
+        {
+          meta: { field: REGISTER_FIELD.username },
+        },
+      )
     }
     if (this.config.reservedUsernames.includes(usernameLower)) {
       throw new ConflictError(
@@ -679,9 +646,13 @@ export class IdentityService {
 
   private assertEmail(email: string): void {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      throw new ValidationError('Please enter a valid email address.', {}, {
-        meta: { field: REGISTER_FIELD.email },
-      })
+      throw new ValidationError(
+        'Please enter a valid email address.',
+        {},
+        {
+          meta: { field: REGISTER_FIELD.email },
+        },
+      )
     }
   }
 }

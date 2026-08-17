@@ -1,5 +1,5 @@
-import { Label, NativeSelect, buttonVariants } from '@meith/ui'
 import type { ForumJumpModel } from '@meith/theme-kit'
+import { buttonVariants, Label, NativeSelect } from '@meith/ui'
 
 import { PAGE } from '../shared'
 

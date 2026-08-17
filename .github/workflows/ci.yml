@@ -115,7 +115,7 @@ jobs:
       - name: Published documentation set is accounted for
         run: pnpm site:docs:check
 
-      - name: Lint
+      - name: Lint and formatting
         run: pnpm lint
 
       - name: Architecture boundaries

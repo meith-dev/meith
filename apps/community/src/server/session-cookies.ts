@@ -4,7 +4,6 @@ import { cookies } from 'next/headers'
 
 import { env } from '@meith/core'
 
-import { retireGuestPresence } from './presence'
 import {
   ADMIN_COOKIE,
   adminCookie,
@@ -12,24 +11,22 @@ import {
   clearedCookie,
   passkeyCookie,
   passkeyCookieName,
-  rememberCookieName,
   rememberCookie,
+  rememberCookieName,
   secondFactorCookie,
   secondFactorCookieName,
-  sessionCookieName,
   sessionCookie,
+  sessionCookieName,
   ssoCookie,
   ssoCookieName,
 } from './cookies'
+import { retireGuestPresence } from './presence'
 
 function secure(): boolean {
   return env.NODE_ENV !== 'development'
 }
 
-export async function setSessionCookie(
-  token: string,
-  expiresAt: Date,
-): Promise<void> {
+export async function setSessionCookie(token: string, expiresAt: Date): Promise<void> {
   const jar = await cookies()
   const isSecure = secure()
   jar.set(sessionCookieName(isSecure), token, sessionCookie(expiresAt, isSecure))
@@ -37,10 +34,7 @@ export async function setSessionCookie(
   await retireGuestPresence()
 }
 
-export async function setRememberCookie(
-  token: string,
-  expiresAt: Date,
-): Promise<void> {
+export async function setRememberCookie(token: string, expiresAt: Date): Promise<void> {
   const jar = await cookies()
   const isSecure = secure()
   jar.set(rememberCookieName(isSecure), token, rememberCookie(expiresAt, isSecure))

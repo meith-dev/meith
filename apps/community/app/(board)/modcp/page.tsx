@@ -4,14 +4,14 @@ import { notFound } from 'next/navigation'
 import { ModeratorPanel } from '@meith/moderation'
 import { Card, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
-import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import {
   PanelSectionGrid,
   PanelWaitingList,
   type WaitingItem,
 } from '@/components/shell/panel-overview'
+import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
-import { moderatedForumRights, modCpCounts, resolveModCpAccess } from '@/server/modcp'
+import { modCpCounts, moderatedForumRights, resolveModCpAccess } from '@/server/modcp'
 import { modCpSections } from '@/view/modcp-nav'
 
 export const metadata: Metadata = { title: 'Moderator control panel' }
@@ -70,8 +70,8 @@ export default async function ModCpPage() {
             <Empty className="py-8">
               <EmptyTitle>No forum appointments</EmptyTitle>
               <EmptyDescription>
-                You hold moderator permissions but are not assigned to any forum. Your
-                group permissions still apply wherever they grant something.
+                You hold moderator permissions but are not assigned to any forum. Your group
+                permissions still apply wherever they grant something.
               </EmptyDescription>
             </Empty>
           ) : (

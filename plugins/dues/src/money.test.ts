@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatMinor, isCurrencyCode, isValidMinorAmount, isZeroDecimal, moneyMatches } from './money'
+import {
+  formatMinor,
+  isCurrencyCode,
+  isValidMinorAmount,
+  isZeroDecimal,
+  moneyMatches,
+} from './money'
 
 describe('formatMinor', () => {
   it('formats decimal currencies from minor units', () => {

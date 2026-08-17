@@ -70,10 +70,7 @@ const MOD_READONLY: readonly PermissionAction[] = [
   'subscribe',
 ]
 
-export type ExpectedMatrix = Record<
-  string,
-  Record<string, readonly PermissionAction[]>
->
+export type ExpectedMatrix = Record<string, Record<string, readonly PermissionAction[]>>
 
 export const EXPECTED: ExpectedMatrix = {
   guest: {

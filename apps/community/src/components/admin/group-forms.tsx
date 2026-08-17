@@ -1,7 +1,8 @@
-"use client"
+'use client'
 
-import { useActionState, useState } from "react"
+import { useActionState, useState } from 'react'
 
+import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   applyPromotionsAction,
   createGroupAction,
@@ -13,13 +14,11 @@ import {
   saveGroupPermissionsAction,
   setPromotionRuleEnabledAction,
   updatePromotionRuleAction,
-} from "@/server/group-admin-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+} from '@/server/group-admin-actions'
 
-import { OklchPicker } from "./oklch-picker"
-
-import { FormError, SubmitButton } from "../auth/form-controls"
-import { INPUT, Saved } from "./form-bits"
+import { FormError, SubmitButton } from '../auth/form-controls'
+import { INPUT, Saved } from './form-bits'
+import { OklchPicker } from './oklch-picker'
 
 export interface GroupOption {
   readonly id: number
@@ -33,7 +32,7 @@ function GroupSelect({
   defaultValue,
   exclude,
   required = true,
-  placeholder = "— choose a group —",
+  placeholder = '— choose a group —',
 }: {
   name: string
   groups: readonly GroupOption[]
@@ -43,12 +42,7 @@ function GroupSelect({
   placeholder?: string
 }) {
   return (
-    <select
-      name={name}
-      defaultValue={defaultValue ?? ""}
-      className={INPUT}
-      required={required}
-    >
+    <select name={name} defaultValue={defaultValue ?? ''} className={INPUT} required={required}>
       <option value="">{placeholder}</option>
       {groups
         .filter((group) => group.id !== exclude)
@@ -92,7 +86,7 @@ export function GroupIdentityForm({
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "saved"}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>Saved.</Saved>
       <input type="hidden" name="groupId" value={group.id} />
 
       <label className="flex flex-col gap-1 text-sm">
@@ -102,12 +96,7 @@ export function GroupIdentityForm({
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Description</span>
-        <textarea
-          name="description"
-          rows={2}
-          defaultValue={group.description}
-          className={INPUT}
-        />
+        <textarea name="description" rows={2} defaultValue={group.description} className={INPUT} />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
@@ -124,18 +113,16 @@ export function GroupIdentityForm({
       <fieldset className="flex flex-col gap-3">
         <legend className="text-sm font-medium">Name colour</legend>
         <p className="text-xs text-muted-foreground">
-          Shown wherever a member of this group is named — postbits, thread
-          listings, the online list. Leave a picker empty and their name is the
-          ordinary text colour, which is what every name does by default.
+          Shown wherever a member of this group is named — postbits, thread listings, the online
+          list. Leave a picker empty and their name is the ordinary text colour, which is what every
+          name does by default.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          {(
-            [
-              ['light', 'Light', light, setLight, surfaces.light] as const,
-              ['dark', 'Dark', dark, setDark, surfaces.dark] as const,
-            ]
-          ).map(([scheme, label, value, set, surface]) => (
+          {[
+            ['light', 'Light', light, setLight, surfaces.light] as const,
+            ['dark', 'Dark', dark, setDark, surfaces.dark] as const,
+          ].map(([scheme, label, value, set, surface]) => (
             <div key={scheme} className="flex flex-col gap-2">
               <span className="text-xs text-muted-foreground">{label}</span>
               <OklchPicker
@@ -182,14 +169,14 @@ export function GroupIdentityForm({
           <span>May be granted by plugins</span>
         </span>
         <span className="text-xs text-muted-foreground">
-          Lets an installed plugin put members in this group for a limited time — a paid
-          pass, a trial. Refused for system and staff groups, and for any group whose
-          permissions carry administrative or moderation power. Membership a plugin
-          grants always expires. A plugin may ask for the group to become the
-          member&rsquo;s primary one, which is what a plugin selling membership normally
-          wants: the group they were primary in becomes a secondary membership and comes
-          back the moment the grant is revoked or lapses. A staff member&rsquo;s primary
-          group is never displaced — staff is appointed, and a purchase cannot move it.
+          Lets an installed plugin put members in this group for a limited time — a paid pass, a
+          trial. Refused for system and staff groups, and for any group whose permissions carry
+          administrative or moderation power. Membership a plugin grants always expires. A plugin
+          may ask for the group to become the member&rsquo;s primary one, which is what a plugin
+          selling membership normally wants: the group they were primary in becomes a secondary
+          membership and comes back the moment the grant is revoked or lapses. A staff
+          member&rsquo;s primary group is never displaced — staff is appointed, and a purchase
+          cannot move it.
         </span>
       </label>
 
@@ -203,13 +190,13 @@ export function GroupIdentityForm({
 export interface PermissionCellValues {
   readonly key: string
   readonly description: string
-  readonly kind: "boolean" | "numeric" | "negative"
-  readonly scope: "global" | "forum"
+  readonly kind: 'boolean' | 'numeric' | 'negative'
+  readonly scope: 'global' | 'forum'
   readonly value: boolean | number
 }
 
 function PermissionControl({ cell }: { cell: PermissionCellValues }) {
-  if (cell.kind === "numeric") {
+  if (cell.kind === 'numeric') {
     return (
       <input
         type="number"
@@ -244,29 +231,30 @@ export function GroupPermissionsForm({
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "saved"}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>Saved.</Saved>
       <input type="hidden" name="groupId" value={groupId} />
 
       <div className="flex flex-col divide-y divide-border">
         {cells.map((cell) => (
+          // biome-ignore lint/a11y/noLabelWithoutControl: PermissionControl is the control, rendered behind the numeric-cell branch
           <label key={cell.key} className="flex items-start gap-3 py-3 text-sm">
-            {cell.kind === "numeric" ? null : <PermissionControl cell={cell} />}
+            {cell.kind === 'numeric' ? null : <PermissionControl cell={cell} />}
             <span className="flex min-w-0 flex-col gap-1">
               <span className="font-medium">
                 <code className="text-xs">{cell.key}</code>
-                {cell.kind === "negative" && (
+                {cell.kind === 'negative' && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
                     ticked = restricted
                   </span>
                 )}
-                {cell.scope === "forum" && (
+                {cell.scope === 'forum' && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
                     default for every forum
                   </span>
                 )}
               </span>
               <span className="text-xs text-muted-foreground">{cell.description}</span>
-              {cell.kind === "numeric" && (
+              {cell.kind === 'numeric' && (
                 <span className="max-w-xs">
                   <PermissionControl cell={cell} />
                 </span>
@@ -289,7 +277,7 @@ export function CreateGroupForm({ groups }: { groups: readonly GroupOption[] }) 
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "created"}>Created.</Saved>
+      <Saved when={state.notice === 'created'}>Created.</Saved>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
@@ -301,8 +289,8 @@ export function CreateGroupForm({ groups }: { groups: readonly GroupOption[] }) 
           <span className="font-medium">Key</span>
           <input name="key" className={INPUT} required />
           <span className="text-xs text-muted-foreground">
-            How code refers to the group. Lower-case letters, numbers and
-            underscores; it cannot be changed afterwards.
+            How code refers to the group. Lower-case letters, numbers and underscores; it cannot be
+            changed afterwards.
           </span>
         </label>
 
@@ -310,8 +298,8 @@ export function CreateGroupForm({ groups }: { groups: readonly GroupOption[] }) 
           <span className="font-medium">Copy permissions from</span>
           <GroupSelect name="copyFromGroupId" groups={groups} />
           <span className="text-xs text-muted-foreground">
-            Required. Starting from the defaults would deny everything, which
-            makes a group whose members cannot see the board.
+            Required. Starting from the defaults would deny everything, which makes a group whose
+            members cannot see the board.
           </span>
         </label>
       </div>
@@ -335,7 +323,7 @@ export function DeleteGroupForm({
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "deleted"}>
+      <Saved when={state.notice === 'deleted'}>
         Deleted. Its members are in the group you chose.
       </Saved>
       <input type="hidden" name="groupId" value={groupId} />
@@ -344,8 +332,7 @@ export function DeleteGroupForm({
         <span className="font-medium">Move its members to</span>
         <GroupSelect name="moveMembersTo" groups={groups} exclude={groupId} />
         <span className="text-xs text-muted-foreground">
-          Required — every member has a primary group, so there is nowhere for
-          them to be left.
+          Required — every member has a primary group, so there is nowhere for them to be left.
         </span>
       </label>
 
@@ -353,8 +340,8 @@ export function DeleteGroupForm({
         <SubmitButton>Delete this group</SubmitButton>
       </div>
       <p className="text-xs text-muted-foreground">
-        You will be asked for your password again. This changes what every
-        member it holds is allowed to do, and there is no undo.
+        You will be asked for your password again. This changes what every member it holds is
+        allowed to do, and there is no undo.
       </p>
     </form>
   )
@@ -363,28 +350,28 @@ export function DeleteGroupForm({
 export function MoveMembersForm({ groups }: { groups: readonly GroupOption[] }) {
   const [state, action] = useActionState(moveMembersAction, EMPTY_STATE)
 
-  const cursor = state.values?.afterUserId ?? "0"
-  const movedSoFar = state.values?.movedSoFar ?? "0"
-  const running = state.notice === "more"
+  const cursor = state.values?.afterUserId ?? '0'
+  const movedSoFar = state.values?.movedSoFar ?? '0'
+  const running = state.notice === 'more'
 
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
 
-      {state.notice === "finished" && (
+      {state.notice === 'finished' && (
         <Saved when>
-          Finished. {movedSoFar} member{movedSoFar === "1" ? "" : "s"} moved.
+          Finished. {movedSoFar} member{movedSoFar === '1' ? '' : 's'} moved.
         </Saved>
       )}
       {running && (
         <Saved when>
-          {movedSoFar} moved so far — there are more. Press again to continue;
-          the run picks up where it stopped.
+          {movedSoFar} moved so far — there are more. Press again to continue; the run picks up
+          where it stopped.
         </Saved>
       )}
 
-      <input type="hidden" name="afterUserId" value={running ? cursor : "0"} />
-      <input type="hidden" name="movedSoFar" value={running ? movedSoFar : "0"} />
+      <input type="hidden" name="afterUserId" value={running ? cursor : '0'} />
+      <input type="hidden" name="movedSoFar" value={running ? movedSoFar : '0'} />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
@@ -398,20 +385,16 @@ export function MoveMembersForm({ groups }: { groups: readonly GroupOption[] }) 
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">To</span>
-          <GroupSelect
-            name="toGroupId"
-            groups={groups}
-            defaultValue={state.values?.toGroupId}
-          />
+          <GroupSelect name="toGroupId" groups={groups} defaultValue={state.values?.toGroupId} />
         </label>
       </div>
 
       <div>
-        <SubmitButton>{running ? "Move the next batch" : "Start moving"}</SubmitButton>
+        <SubmitButton>{running ? 'Move the next batch' : 'Start moving'}</SubmitButton>
       </div>
       <p className="text-xs text-muted-foreground">
-        Moves up to 500 members per press, so the board stays responsive while a
-        long run works through. You will be asked for your password again.
+        Moves up to 500 members per press, so the board stays responsive while a long run works
+        through. You will be asked for your password again.
       </p>
     </form>
   )
@@ -443,7 +426,7 @@ function PromotionRuleFields({
           <span className="font-medium">Title</span>
           <input
             name="title"
-            defaultValue={rule?.title ?? ""}
+            defaultValue={rule?.title ?? ''}
             className={INPUT}
             placeholder="Veteran"
             required
@@ -459,7 +442,7 @@ function PromotionRuleFields({
             type="number"
             name="displayOrder"
             min={0}
-            defaultValue={rule?.displayOrder ?? "0"}
+            defaultValue={rule?.displayOrder ?? '0'}
             className={INPUT}
           />
           <span className="text-xs text-muted-foreground">
@@ -497,8 +480,8 @@ function PromotionRuleFields({
       <fieldset className="flex flex-col gap-3">
         <legend className="text-sm font-medium">They must have at least</legend>
         <p className="text-xs text-muted-foreground">
-          Blank means the rule does not look at that number. At least one has to be
-          filled in — a rule with none matches every member it examines.
+          Blank means the rule does not look at that number. At least one has to be filled in — a
+          rule with none matches every member it examines.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-3">
@@ -508,7 +491,7 @@ function PromotionRuleFields({
               type="number"
               name="minPostCount"
               min={0}
-              defaultValue={rule?.minPostCount ?? ""}
+              defaultValue={rule?.minPostCount ?? ''}
               className={INPUT}
             />
           </label>
@@ -519,7 +502,7 @@ function PromotionRuleFields({
               type="number"
               name="minReputation"
               min={0}
-              defaultValue={rule?.minReputation ?? ""}
+              defaultValue={rule?.minReputation ?? ''}
               className={INPUT}
             />
           </label>
@@ -530,7 +513,7 @@ function PromotionRuleFields({
               type="number"
               name="minDaysRegistered"
               min={0}
-              defaultValue={rule?.minDaysRegistered ?? ""}
+              defaultValue={rule?.minDaysRegistered ?? ''}
               className={INPUT}
             />
           </label>
@@ -548,20 +531,17 @@ export function PromotionRuleRowForm({
   groups: readonly GroupOption[]
 }) {
   const [state, action] = useActionState(updatePromotionRuleAction, EMPTY_STATE)
-  const [toggleState, toggleAction] = useActionState(
-    setPromotionRuleEnabledAction,
-    EMPTY_STATE,
-  )
+  const [toggleState, toggleAction] = useActionState(setPromotionRuleEnabledAction, EMPTY_STATE)
   const [removeState, removeAction] = useActionState(deletePromotionRuleAction, EMPTY_STATE)
 
   return (
     <div className="flex flex-col gap-3 py-4">
       <FormError message={state.error ?? toggleState.error ?? removeState.error} />
-      <Saved when={state.notice === "saved"}>Saved.</Saved>
-      <Saved when={toggleState.notice === "enabled"}>
+      <Saved when={state.notice === 'saved'}>Saved.</Saved>
+      <Saved when={toggleState.notice === 'enabled'}>
         Enabled. The scheduled task will apply it.
       </Saved>
-      <Saved when={toggleState.notice === "disabled"}>
+      <Saved when={toggleState.notice === 'disabled'}>
         Disabled. It stays here and is skipped.
       </Saved>
 
@@ -579,7 +559,7 @@ export function PromotionRuleRowForm({
           <input type="hidden" name="id" value={rule.id} />
           {!rule.enabled && <input type="hidden" name="enabled" value="1" />}
           <button type="submit" className="text-xs text-muted-foreground hover:underline">
-            {rule.enabled ? "Disable this rule" : "Enable this rule"}
+            {rule.enabled ? 'Disable this rule' : 'Enable this rule'}
           </button>
         </form>
 
@@ -591,8 +571,8 @@ export function PromotionRuleRowForm({
         </form>
       </div>
       <p className="text-xs text-muted-foreground">
-        Removing asks for your password again. Disabling does not, and is the
-        reversible way to stop a rule.
+        Removing asks for your password again. Disabling does not, and is the reversible way to stop
+        a rule.
       </p>
     </div>
   )
@@ -604,7 +584,7 @@ export function NewPromotionRuleForm({ groups }: { groups: readonly GroupOption[
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === "created"}>Added. It is enabled straight away.</Saved>
+      <Saved when={state.notice === 'created'}>Added. It is enabled straight away.</Saved>
 
       <PromotionRuleFields groups={groups} />
 
@@ -617,27 +597,26 @@ export function NewPromotionRuleForm({ groups }: { groups: readonly GroupOption[
 
 export function ApplyPromotionsForm({ count }: { count: number }) {
   const [state, action] = useActionState(applyPromotionsAction, EMPTY_STATE)
-  const promoted = state.notice?.startsWith("promoted:") === true
-    ? state.notice.slice("promoted:".length)
-    : null
+  const promoted =
+    state.notice?.startsWith('promoted:') === true ? state.notice.slice('promoted:'.length) : null
 
   return (
     <form action={action} className="flex flex-col gap-3">
       <FormError message={state.error} />
       {promoted !== null && (
         <Saved when>
-          Done. {promoted} member{promoted === "1" ? "" : "s"} promoted.
+          Done. {promoted} member{promoted === '1' ? '' : 's'} promoted.
         </Saved>
       )}
 
       <div>
         <SubmitButton>
-          Promote {count} member{count === 1 ? "" : "s"}
+          Promote {count} member{count === 1 ? '' : 's'}
         </SubmitButton>
       </div>
       <p className="text-xs text-muted-foreground">
-        Runs the same evaluation you are looking at, and writes its outcomes.
-        You will be asked for your password again.
+        Runs the same evaluation you are looking at, and writes its outcomes. You will be asked for
+        your password again.
       </p>
     </form>
   )

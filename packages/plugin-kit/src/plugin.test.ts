@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import {
   definePlugin,
+  type PluginDefinition,
   pluginAdminPath,
   pluginSettingKey,
   pluginTaskId,
-  type PluginDefinition,
 } from './plugin'
 
 function plugin(overrides: Partial<PluginDefinition> = {}): PluginDefinition {
@@ -38,7 +38,9 @@ describe('definePlugin', () => {
   })
 
   it('refuses a hook whose handler is not a function', () => {
-    expect(() => plugin({ hooks: { 'post.created': 'nope' } as never })).toThrow(/must be a function/)
+    expect(() => plugin({ hooks: { 'post.created': 'nope' } as never })).toThrow(
+      /must be a function/,
+    )
   })
 
   it('accepts both the bare handler and the { handler, priority } form', () => {

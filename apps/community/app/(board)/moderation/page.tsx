@@ -5,14 +5,14 @@ import { ModerationQueue, QUEUE_PAGE_SIZE } from '@meith/moderation'
 import { requireSlot } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { QueueForm } from '@/components/moderation/queue-form'
+import { PanelPage } from '@/components/shell/panel-page'
+import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildQueueView } from '@/view/moderation-queue'
-import { PanelPagination } from '@/components/shell/panel-pagination'
 import { offsetOf, readPage } from '@/view/pager'
 
 export const metadata: Metadata = { title: 'Moderation queue' }
@@ -76,9 +76,7 @@ export default async function ModerationPage({
           : `${view.pending} items awaiting approval.`
       }
     >
-      {notice !== null && (
-        <Notice kind="info" message={notice} dismissHref="/moderation" />
-      )}
+      {notice !== null && <Notice kind="info" message={notice} dismissHref="/moderation" />}
 
       {view.emptyReason !== null && (
         <Card>

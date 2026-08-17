@@ -165,9 +165,7 @@ describe('adminNavWithPlugin', () => {
   })
 
   it('opens the plugin rather than Plugins while you are inside it', () => {
-    expect(activeSectionHref('/admin/plugins/dues/plans', navWithDues)).toBe(
-      '/admin/plugins/dues',
-    )
+    expect(activeSectionHref('/admin/plugins/dues/plans', navWithDues)).toBe('/admin/plugins/dues')
     expect(activeSectionHref('/admin/plugins', navWithDues)).toBe(ADMIN_PLUGINS_HREF)
   })
 

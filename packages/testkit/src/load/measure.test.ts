@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_MEASURE, measure, verdict, type Scenario } from './measure'
+import { DEFAULT_MEASURE, measure, type Scenario, verdict } from './measure'
 
 const quick = { iterations: 20, warmup: 2 }
 
@@ -12,8 +12,17 @@ describe('measure', () => {
   it('discards the warm-up iterations from the sample', async () => {
     const seen: number[] = []
     const result = await measure(
-      scenario({ id: 'warmup', run: async (i) => (seen.push(i), 1) }),
-      { iterations: 10, warmup: 3 },
+      scenario({
+        id: 'warmup',
+        run: async (i) => {
+          seen.push(i)
+          return 1
+        },
+      }),
+      {
+        iterations: 10,
+        warmup: 3,
+      },
     )
 
     expect(seen).toHaveLength(13)
@@ -22,7 +31,16 @@ describe('measure', () => {
 
   it('passes a distinct iteration number to every call', async () => {
     const seen: number[] = []
-    await measure(scenario({ id: 'seq', run: async (i) => (seen.push(i), 1) }), quick)
+    await measure(
+      scenario({
+        id: 'seq',
+        run: async (i) => {
+          seen.push(i)
+          return 1
+        },
+      }),
+      quick,
+    )
 
     expect(new Set(seen).size).toBe(seen.length)
   })
@@ -59,8 +77,17 @@ describe('measure', () => {
 
   it('actually times the work rather than reporting zero', async () => {
     const result = await measure(
-      scenario({ id: 'slow', run: async () => (await sleep(5), 1) }),
-      { iterations: 5, warmup: 1 },
+      scenario({
+        id: 'slow',
+        run: async () => {
+          await sleep(5)
+          return 1
+        },
+      }),
+      {
+        iterations: 5,
+        warmup: 1,
+      },
     )
 
     expect(result.summary.min).toBeGreaterThanOrEqual(4)

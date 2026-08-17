@@ -15,9 +15,7 @@ function date(value: Date | string | null): Date | null {
   return value === null ? null : value instanceof Date ? value : new Date(value)
 }
 
-export class PostgresPollRepository
-  implements PollRepository, ThreadRatingRepository
-{
+export class PostgresPollRepository implements PollRepository, ThreadRatingRepository {
   constructor(private readonly db: Database) {}
 
   async create(threadId: number, poll: NewPoll): Promise<void> {
@@ -40,10 +38,7 @@ export class PostgresPollRepository
     })
   }
 
-  async find(
-    threadId: number,
-    voterUserId: number | null,
-  ): Promise<Poll | null> {
+  async find(threadId: number, voterUserId: number | null): Promise<Poll | null> {
     const polls = resultRows(
       await this.db.execute(sql`
         select id, question, closes_at from polls where thread_id = ${threadId}
@@ -84,8 +79,7 @@ export class PostgresPollRepository
         label: row.label,
         votes: Number(row.vote_count),
       })),
-      votedOptionId:
-        voteRows[0] === undefined ? null : Number(voteRows[0].option_id),
+      votedOptionId: voteRows[0] === undefined ? null : Number(voteRows[0].option_id),
     }
   }
 
@@ -120,9 +114,7 @@ export class PostgresPollRepository
   }): Promise<ThreadRating | null> {
     return this.db.transaction(async (tx) => {
       const locked = resultRows(
-        await tx.execute(
-          sql`select id from threads where id = ${input.threadId} for update`,
-        ),
+        await tx.execute(sql`select id from threads where id = ${input.threadId} for update`),
       )
       if (locked.length === 0) return null
       const previous = resultRows(
@@ -153,10 +145,7 @@ export class PostgresPollRepository
     })
   }
 
-  async findRating(
-    threadId: number,
-    userId: number | null,
-  ): Promise<ThreadRating | null> {
+  async findRating(threadId: number, userId: number | null): Promise<ThreadRating | null> {
     const rows = resultRows(
       await this.db.execute(sql`
         select t.rating_total, t.rating_count, r.rating as mine
@@ -171,10 +160,7 @@ export class PostgresPollRepository
     const row = rows[0]
     if (row === undefined) return null
     return {
-      average:
-        row.rating_count === 0
-          ? 0
-          : Number(row.rating_total) / Number(row.rating_count),
+      average: row.rating_count === 0 ? 0 : Number(row.rating_total) / Number(row.rating_count),
       count: Number(row.rating_count),
       mine: row.mine === null ? null : Number(row.mine),
     }

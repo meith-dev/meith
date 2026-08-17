@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
-import type { Actor } from '@meith/authorization'
 import type { RateLimitOutcome } from '@meith/antispam'
+import type { Actor } from '@meith/authorization'
+import { combinePermissionSets, InMemoryAuthorizationSource } from '@meith/authorization'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {

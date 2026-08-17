@@ -4,7 +4,9 @@ import { enterAdminPanel, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
-test('the fixture board, registration, and login work without JavaScript', async ({ page }, testInfo) => {
+test('the fixture board, registration, and login work without JavaScript', async ({
+  page,
+}, testInfo) => {
   const username = `e2e_member_${testInfo.workerIndex}_${Date.now()}`
   const password = 'long-enough-password'
 
@@ -41,10 +43,7 @@ test('a quoted reply renders as a quote block, not as its own markup', async ({ 
   await expect(quote).toContainText('Show us the place where you make things.')
   await expect(page.locator('#post-2')).not.toContainText('> **admin')
 
-  await expect(quote.locator('a.md-quote-author')).toHaveAttribute(
-    'href',
-    '/member/by-name/admin',
-  )
+  await expect(quote.locator('a.md-quote-author')).toHaveAttribute('href', '/member/by-name/admin')
   await expect(quote.locator('a.md-quote-source')).toHaveAttribute(
     'href',
     '/thread/21-show-us-your-desk-setup?post=121',
@@ -134,9 +133,9 @@ test('the index rail renders, and only its pause control needs JavaScript', asyn
 
   await expect(rail.getByRole('heading', { name: 'Latest threads' })).toBeVisible()
   await expect(rail.getByRole('heading', { name: 'Latest posts' })).toBeVisible()
-  await expect(rail.locator('section', { hasText: 'Latest threads' }).locator('li')).not.toHaveCount(
-    0,
-  )
+  await expect(
+    rail.locator('section', { hasText: 'Latest threads' }).locator('li'),
+  ).not.toHaveCount(0)
 
   await expect(page.getByRole('region', { name: 'Board statistics' })).toBeAttached()
   await expect(page.getByRole('region', { name: 'Who’s online' })).toBeAttached()
@@ -171,7 +170,9 @@ test('a category takes threads once an admin turns them on', async ({ browser })
     await reader.goto('/10-main')
     await expect(reader.getByText('No threads here yet')).toHaveCount(0)
     await expect(reader.getByRole('link', { name: 'New thread' })).toHaveCount(0)
-    await expect(reader.getByRole('link', { name: 'General Discussion', exact: true })).toBeVisible()
+    await expect(
+      reader.getByRole('link', { name: 'General Discussion', exact: true }),
+    ).toBeVisible()
 
     await enterAdminPanel(admin)
     await allowThreads(true)
@@ -179,7 +180,9 @@ test('a category takes threads once an admin turns them on', async ({ browser })
     await reader.goto('/10-main')
     await expect(reader.getByText('No threads here yet')).toBeVisible()
     await expect(reader.getByRole('link', { name: 'New thread' })).toBeVisible()
-    await expect(reader.getByRole('link', { name: 'General Discussion', exact: true })).toBeVisible()
+    await expect(
+      reader.getByRole('link', { name: 'General Discussion', exact: true }),
+    ).toBeVisible()
 
     await allowThreads(false)
     await reader.goto('/10-main')

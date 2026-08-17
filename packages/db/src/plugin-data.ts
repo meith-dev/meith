@@ -1,4 +1,4 @@
-import { sql, type SQL } from 'drizzle-orm'
+import { type SQL, sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
 import type { PluginData } from '@meith/plugin-kit'

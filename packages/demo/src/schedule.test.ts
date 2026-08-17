@@ -1,10 +1,11 @@
-import { resetEnvForTests } from '@meith/core'
-import type { Database } from '@meith/db'
-import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
-import { tick } from '@meith/tasks'
-import { PostgresTaskRepository } from '@meith/db'
 import { sql } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { resetEnvForTests } from '@meith/core'
+import type { Database } from '@meith/db'
+import { PostgresTaskRepository } from '@meith/db'
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
+import { tick } from '@meith/tasks'
 
 import { DEMO_RESET_TASK_ID, demoResetTask, nextDemoResetAt } from './schedule'
 

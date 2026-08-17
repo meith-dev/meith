@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { renderMarkdown } from './body'
+import { renderMarkdown, vocabularyOptions } from './body'
 import { compileVocabulary } from './vocabulary'
-import { vocabularyOptions } from './body'
 
 const html = (source: string): string => renderMarkdown(source).html
 
@@ -63,9 +62,7 @@ describe('what may become an href', () => {
   })
 
   it('marks every member link nofollow ugc noopener noreferrer', () => {
-    expect(html('[x](https://ok.example)')).toContain(
-      'rel="nofollow ugc noopener noreferrer"',
-    )
+    expect(html('[x](https://ok.example)')).toContain('rel="nofollow ugc noopener noreferrer"')
   })
 
   it('refuses a data: image, which is a script context in some browsers', () => {

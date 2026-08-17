@@ -3,8 +3,8 @@ import 'server-only'
 import { drivers } from '@meith/drivers'
 
 import { resolveDownload } from './attachments'
-import { getActor } from './context'
 import { getContainer } from './container'
+import { getActor } from './context'
 
 function notFound(): Response {
   return new Response('Not found', { status: 404 })
@@ -15,10 +15,7 @@ function contentDisposition(filename: string): string {
   return `attachment; filename="${safe}"`
 }
 
-export async function serveAttachment(
-  rawId: string,
-  want: 'file' | 'thumb',
-): Promise<Response> {
+export async function serveAttachment(rawId: string, want: 'file' | 'thumb'): Promise<Response> {
   if (!/^[1-9]\d*$/.test(rawId)) return notFound()
 
   const actor = await getActor()

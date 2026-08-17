@@ -263,7 +263,10 @@ function render({ budgets, results, indexes, plans }) {
     out.push('')
   }
 
-  return `${out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`
+  return `${out
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd()}\n`
 }
 
 const budgets = await readBudgets()

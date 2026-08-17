@@ -3,10 +3,10 @@
 import { cookies } from 'next/headers'
 
 import {
+  isColourScheme,
   PREFERENCE_COOKIE_MAX_AGE,
   SCHEME_COOKIE,
   THEME_COOKIE,
-  isColourScheme,
 } from '@/view/theme-preference'
 
 import { redirectToCurrentPath } from './redirect-back'

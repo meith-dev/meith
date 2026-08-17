@@ -1,9 +1,9 @@
 import {
-  type PanelNav,
-  type PanelSection,
   currentProps,
   deepestHrefIn,
   isUnder,
+  type PanelNav,
+  type PanelSection,
   sectionHrefIn,
 } from './panel-nav'
 
@@ -67,16 +67,10 @@ export function modCpNav(access: ModCpNavAccess): PanelNav {
   return [MODCP_OVERVIEW, ...modCpSections(access)]
 }
 
-export function activeSectionHref(
-  access: ModCpNavAccess,
-  pathname: string,
-): string | null {
+export function activeSectionHref(access: ModCpNavAccess, pathname: string): string | null {
   return sectionHrefIn(modCpNav(access), pathname)
 }
 
-export function deepestNavHref(
-  access: ModCpNavAccess,
-  pathname: string,
-): string | null {
+export function deepestNavHref(access: ModCpNavAccess, pathname: string): string | null {
   return deepestHrefIn(modCpNav(access), pathname)
 }

@@ -1,7 +1,7 @@
 import { ValidationError } from '@meith/core'
 
-import { keepsThreads, type MoveDestination } from './thread-tools'
 import type { QueueSelection } from './queue'
+import { keepsThreads, type MoveDestination } from './thread-tools'
 
 export type InlineTool =
   | 'approve'
@@ -106,9 +106,7 @@ export class InlineModeration {
       throw new ValidationError('Select at least one item.')
     }
     if (input.selection.length > MAX_INLINE_SELECTION) {
-      throw new ValidationError(
-        `At most ${MAX_INLINE_SELECTION} items can be moderated at once.`,
-      )
+      throw new ValidationError(`At most ${MAX_INLINE_SELECTION} items can be moderated at once.`)
     }
 
     const unique = new Map<string, QueueSelection>()
@@ -187,11 +185,7 @@ export class InlineModeration {
   }
 }
 
-function holdsRight(
-  tool: InlineTool,
-  kind: QueueSelection['kind'],
-  rights: InlineRights,
-): boolean {
+function holdsRight(tool: InlineTool, kind: QueueSelection['kind'], rights: InlineRights): boolean {
   if (THREAD_ONLY.has(tool) && kind === 'post') return true
 
   switch (tool) {

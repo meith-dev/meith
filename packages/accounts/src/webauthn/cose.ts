@@ -1,6 +1,5 @@
 import { encodeBase64Url } from '../crypto/base64url'
-
-import { cborMap, decodeCbor, type CborValue } from './cbor'
+import { type CborValue, cborMap, decodeCbor } from './cbor'
 
 export type CoseAlgorithm = -7 | -8 | -257
 

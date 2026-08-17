@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export interface NavSection {
   readonly id: string
@@ -21,7 +21,7 @@ export function DocsNav({ sections }: DocsNavProps) {
       <Link
         href="/docs"
         className={`mb-6 block font-mono text-[0.75rem] tracking-[0.12em] uppercase transition-colors ${
-          pathname === "/docs" ? "text-accent" : "text-fg-subtle hover:text-fg"
+          pathname === '/docs' ? 'text-accent' : 'text-fg-subtle hover:text-fg'
         }`}
       >
         All documents
@@ -39,11 +39,11 @@ export function DocsNav({ sections }: DocsNavProps) {
                   <li key={doc.slug}>
                     <Link
                       href={href}
-                      aria-current={active ? "page" : undefined}
+                      aria-current={active ? 'page' : undefined}
                       className={`-ml-px block border-l py-1 pl-3 text-micro leading-snug transition-colors ${
                         active
-                          ? "border-accent text-accent"
-                          : "border-transparent text-fg-muted hover:border-border-strong hover:text-fg"
+                          ? 'border-accent text-accent'
+                          : 'border-transparent text-fg-muted hover:border-border-strong hover:text-fg'
                       }`}
                     >
                       {doc.title}

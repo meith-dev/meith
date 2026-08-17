@@ -2,7 +2,7 @@ import 'server-only'
 
 import { isAppError, logger } from '@meith/core'
 import { createMailDriver } from '@meith/drivers'
-import { type MailConfig, describeMailConfig } from '@meith/settings'
+import { describeMailConfig, type MailConfig } from '@meith/settings'
 
 export interface MailTestResult {
   readonly ok: boolean

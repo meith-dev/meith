@@ -1,12 +1,13 @@
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+
 import { PUBLIC_CONTENT } from '@meith/core'
 import { expectQueryBudget } from '@meith/testkit'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { forums, posts, threads } from './schema'
 import { PostgresPostRepository } from './post-repo'
+import { forums, posts, threads } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -73,23 +74,37 @@ describe('PostgresPostRepository.listThread', () => {
     })
 
     const first = await repo.listThread(1, { limit: 2, scope: PUBLIC_CONTENT })
-    const second = await repo.listThread(1, { afterId: first.nextAfterId!, limit: 2, scope: PUBLIC_CONTENT })
+    const second = await repo.listThread(1, {
+      afterId: first.nextAfterId!,
+      limit: 2,
+      scope: PUBLIC_CONTENT,
+    })
 
-    expect(first.rows.map((post) => [post.id, post.number])).toEqual([[1, 1], [2, 2]])
-    expect(second.rows.map((post) => [post.id, post.number])).toEqual([[3, 3], [4, 4]])
+    expect(first.rows.map((post) => [post.id, post.number])).toEqual([
+      [1, 1],
+      [2, 2],
+    ])
+    expect(second.rows.map((post) => [post.id, post.number])).toEqual([
+      [3, 3],
+      [4, 4],
+    ])
     expect(await repo.findVisibleById(1, 1)).toBe(1)
     expect(await repo.findVisibleById(1, 99)).toBeNull()
   })
 
   it('costs one statement at both small and larger thread sizes', async () => {
     await seed(3)
-    await expectQueryBudget(harness, 1, () => repo.listThread(1, { limit: 20, scope: PUBLIC_CONTENT }))
+    await expectQueryBudget(harness, 1, () =>
+      repo.listThread(1, { limit: 20, scope: PUBLIC_CONTENT }),
+    )
 
     await db.execute(sql`delete from posts`)
     await db.execute(sql`delete from threads`)
     await db.execute(sql`delete from forums`)
     await seed(50)
-    const page = await expectQueryBudget(harness, 1, () => repo.listThread(1, { limit: 20, scope: PUBLIC_CONTENT }))
+    const page = await expectQueryBudget(harness, 1, () =>
+      repo.listThread(1, { limit: 20, scope: PUBLIC_CONTENT }),
+    )
 
     expect(page.rows).toHaveLength(20)
     expect(page.nextAfterId).toBe(20)

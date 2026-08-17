@@ -20,7 +20,13 @@ const row = (overrides: Partial<OnlineRow> = {}): OnlineRow => ({
 describe('locationOf', () => {
   it('names the thread when the reader may see it', () => {
     const where = locationOf(
-      row({ forumId: 1, forumTitle: 'Open', threadId: 9, threadTitle: 'Hello', threadSlug: 'hello' }),
+      row({
+        forumId: 1,
+        forumTitle: 'Open',
+        threadId: 9,
+        threadTitle: 'Hello',
+        threadSlug: 'hello',
+      }),
     )
 
     expect(where).toEqual({ label: 'Reading Hello', href: '/thread/9-hello' })

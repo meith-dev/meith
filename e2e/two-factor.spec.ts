@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
 import { stepAt, totpCode } from '@meith/accounts'
 
@@ -67,9 +67,7 @@ test('the whole second-factor lifecycle survives being hydrated', async ({ page 
   expect(problems).toEqual([])
 })
 
-test('a refused set-up says so on the page instead of failing the request', async ({
-  browser,
-}) => {
+test('a refused set-up says so on the page instead of failing the request', async ({ browser }) => {
   const staff = await browser.newContext()
   const staffPage = await staff.newPage()
 
@@ -88,9 +86,7 @@ test('a refused set-up says so on the page instead of failing the request', asyn
     await expect(staffPage.getByText(/Saved|saved/).first()).toBeVisible()
 
     await page.goto('/usercp/security')
-    await expect(
-      page.getByRole('button', { name: 'Set up an authenticator app' }),
-    ).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Set up an authenticator app' })).toHaveCount(0)
 
     expect(problems).toEqual([])
   } finally {

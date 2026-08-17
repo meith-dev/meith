@@ -1,6 +1,6 @@
-import type { TimeModel } from '@meith/theme-kit'
 import type { SubscriptionMode, SubscriptionRow } from '@meith/subscriptions'
 import { MODE_LABELS, SUBSCRIPTION_MODES } from '@meith/subscriptions'
+import type { TimeModel } from '@meith/theme-kit'
 
 import { formatTime } from './time'
 
@@ -38,11 +38,7 @@ export function buildSubscriptionsView(input: {
   }
 }
 
-function toRow(
-  row: SubscriptionRow,
-  now: Date,
-  timeZone: string | undefined,
-): SubscriptionRowView {
+function toRow(row: SubscriptionRow, now: Date, timeZone: string | undefined): SubscriptionRowView {
   return {
     key: `${row.target}:${row.targetId}`,
     target: row.target,
@@ -53,9 +49,7 @@ function toRow(
     modeLabel: MODE_LABELS[row.mode],
     since: formatTime(row.createdAt, now, timeZone),
     pending:
-      row.pending === 0
-        ? null
-        : `${row.pending} new ${row.pending === 1 ? 'post' : 'posts'}`,
+      row.pending === 0 ? null : `${row.pending} new ${row.pending === 1 ? 'post' : 'posts'}`,
   }
 }
 

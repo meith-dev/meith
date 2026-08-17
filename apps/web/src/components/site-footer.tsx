@@ -1,15 +1,15 @@
-import Link from "next/link"
+import Link from 'next/link'
 
-import { footer, licence, licenceHref, site } from "../content/site"
-import { version } from "../content/version"
+import { footer, licence, licenceHref, site } from '../content/site'
+import { version } from '../content/version'
 import {
+  type DocEntry,
+  type DocSection,
   docHref,
   documentsInSection,
   sections,
-  type DocEntry,
-  type DocSection,
-} from "../docs/registry"
-import { Logomark } from "./logomark"
+} from '../docs/registry'
+import { Logomark } from './logomark'
 
 export function SiteFooter() {
   const primaries = sections
@@ -95,13 +95,13 @@ export function SiteFooter() {
             <p className="text-micro leading-[1.6] text-fg-subtle text-pretty">
               <b className="font-mono font-normal text-fg-muted">
                 {site.name} {version}
-              </b>{" "}
+              </b>{' '}
               — {footer.note}
             </p>
 
             <span className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
               {footer.links.map((link) =>
-                "doc" in link ? (
+                'doc' in link ? (
                   <Link
                     className="text-micro text-fg-muted transition-colors hover:text-fg"
                     href={docHref(link.doc)}

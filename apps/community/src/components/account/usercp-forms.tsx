@@ -1,7 +1,8 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
+import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   changePasswordAction,
   requestEmailChangeAction,
@@ -9,23 +10,21 @@ import {
   saveOptionsAction,
   saveProfileAction,
   saveSignatureAction,
-} from "@/server/usercp-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+} from '@/server/usercp-actions'
 
-import { MarkdownEditor } from "../content/markdown-editor"
-
-import { FormError } from "../auth/form-controls"
-import { CustomField, type CustomFieldInput } from "../profile/custom-field"
+import { FormError } from '../auth/form-controls'
+import { MarkdownEditor } from '../content/markdown-editor'
+import { CustomField, type CustomFieldInput } from '../profile/custom-field'
 
 export type { CustomFieldInput }
 
 const FIELD =
-  "w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 const BUTTON =
-  "inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-const CARD = "flex flex-col gap-4 rounded-lg border border-border bg-card p-5"
+const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
 
 export function ProfileForm({
   location,
@@ -105,10 +104,9 @@ export function DisplayGroupForm({
           ))}
         </select>
         <span className="text-xs text-muted-foreground">
-          Every group you are in is here, and the one you pick decides the title,
-          colour and badge beside your posts. A group you hold only until a date
-          drops off this list when it lapses, and your name goes back to your
-          main group.
+          Every group you are in is here, and the one you pick decides the title, colour and badge
+          beside your posts. A group you hold only until a date drops off this list when it lapses,
+          and your name goes back to your main group.
         </span>
       </label>
 
@@ -154,9 +152,8 @@ export function OptionsForm({
           ))}
         </select>
         <span className="text-xs text-muted-foreground">
-          Every date and time on the board is shown in this zone, and the footer
-          says which one it is. Left automatic, it follows the device you are
-          reading on.
+          Every date and time on the board is shown in this zone, and the footer says which one it
+          is. Left automatic, it follows the device you are reading on.
         </span>
       </label>
 
@@ -183,23 +180,17 @@ export function OptionsForm({
       </label>
 
       <p className="text-xs text-muted-foreground">
-        Leave a page size empty to follow the board’s setting, so it keeps up
-        when an administrator changes it.
+        Leave a page size empty to follow the board’s setting, so it keeps up when an administrator
+        changes it.
       </p>
 
       <label className="flex items-start gap-2 text-sm">
-        <input
-          type="checkbox"
-          name="invisible"
-          defaultChecked={invisible}
-          className="mt-1"
-        />
+        <input type="checkbox" name="invisible" defaultChecked={invisible} className="mt-1" />
         <span className="flex flex-col gap-1">
           <span className="font-medium">Browse invisibly</span>
           <span className="text-xs text-muted-foreground">
-            You will not appear in the online list, and you will not be counted
-            in it either. Your posts are unaffected, and moderators can still
-            see that you are here.
+            You will not appear in the online list, and you will not be counted in it either. Your
+            posts are unaffected, and moderators can still see that you are here.
           </span>
         </span>
       </label>
@@ -294,13 +285,7 @@ export function EmailForm({ email }: { email: string }) {
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">New e-mail address</span>
-        <input
-          type="email"
-          name="newEmail"
-          className={FIELD}
-          autoComplete="email"
-          required
-        />
+        <input type="email" name="newEmail" className={FIELD} autoComplete="email" required />
       </label>
 
       <p className="text-xs text-muted-foreground">
@@ -337,12 +322,12 @@ export function SignatureForm({
           A moderator has stopped your signature from being shown or changed.
           {lockedReason === null ? null : (
             <>
-              {" "}
+              {' '}
               Reason given: <span className="text-foreground">{lockedReason}</span>
             </>
           )}
         </p>
-        {signature !== "" && (
+        {signature !== '' && (
           <pre className="whitespace-pre-wrap break-words rounded-md border border-border bg-muted p-3 text-xs">
             {signature}
           </pre>

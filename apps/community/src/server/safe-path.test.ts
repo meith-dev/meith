@@ -27,7 +27,7 @@ describe('isSafeLocalPath', () => {
 
   it('rejects control characters that could smuggle a header', () => {
     expect(isSafeLocalPath('/ok\r\nLocation: https://evil.com')).toBe(false)
-    expect(isSafeLocalPath("/ok here")).toBe(false)
+    expect(isSafeLocalPath('/ok here')).toBe(false)
   })
 
   it('rejects anything that does not start with a single slash', () => {

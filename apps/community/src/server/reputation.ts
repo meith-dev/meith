@@ -54,9 +54,7 @@ export async function thanksForPosts(
     service.thanksForPosts(postIds).catch(() => new Map<number, number>()),
     actor.userId === null
       ? Promise.resolve(new Map())
-      : service
-          .existingForPosts({ givenByUserId: actor.userId, postIds })
-          .catch(() => new Map()),
+      : service.existingForPosts({ givenByUserId: actor.userId, postIds }).catch(() => new Map()),
   ])
 
   return new Map(

@@ -63,13 +63,8 @@ vi.mock('./system-admin', () => ({
   }),
 }))
 
-const {
-  clearCacheAction,
-  pruneSessionsAction,
-  pruneTokensAction,
-  recountAction,
-  retryJobAction,
-} = await import('./system-admin-actions')
+const { clearCacheAction, pruneSessionsAction, pruneTokensAction, recountAction, retryJobAction } =
+  await import('./system-admin-actions')
 
 function form(fields: Record<string, string>): FormData {
   const data = new FormData()
@@ -174,9 +169,7 @@ describe('retryJobAction', () => {
 
     expect(state.notice).toBe('retried')
     expect(retried).toEqual(['job-9'])
-    expect(adminCalls).toEqual([
-      { action: 'system.job_retried', detail: { jobId: 'job-9' } },
-    ])
+    expect(adminCalls).toEqual([{ action: 'system.job_retried', detail: { jobId: 'job-9' } }])
   })
 
   it('says so, and logs nothing, when the id matched no dead job', async () => {

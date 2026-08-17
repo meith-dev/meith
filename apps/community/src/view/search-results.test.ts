@@ -69,9 +69,7 @@ describe('buildSearchResultsView', () => {
 
   it('applies the board word filter to the excerpt, marks and all', () => {
     const model = build({
-      wordFilter: compileWordFilter([
-        { pattern: 'teak', replacement: 'oak', wholeWord: true },
-      ]),
+      wordFilter: compileWordFilter([{ pattern: 'teak', replacement: 'oak', wholeWord: true }]),
     })
 
     expect(model.hits[0]?.excerptHtml).toBe('the <b>oak</b> one')
@@ -141,8 +139,9 @@ describe('buildSearchResultsView', () => {
 
 describe('the refine panel', () => {
   it('is absent when a search found nothing and nothing is filtering it', () => {
-    expect(build({ summary: { total: 0, isCapped: false, forums: [], authors: [] } }).refine)
-      .toBeUndefined()
+    expect(
+      build({ summary: { total: 0, isCapped: false, forums: [], authors: [] } }).refine,
+    ).toBeUndefined()
   })
 
   it('stays when a filter is what emptied the page, so it can be taken off', () => {

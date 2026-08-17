@@ -3,12 +3,17 @@ import 'server-only'
 import { cookies } from 'next/headers'
 import { cache } from 'react'
 
-import { assertThemeContract, resolveTheme, type ResolvedTheme } from '@meith/theme-kit'
+import { assertThemeContract, type ResolvedTheme, resolveTheme } from '@meith/theme-kit'
+
+import {
+  type ColourSchemePreference,
+  isColourScheme,
+  SCHEME_COOKIE,
+  THEME_COOKIE,
+} from '@/view/theme-preference'
 
 import forumConfig from '../../community.config'
-
 import { getBoardThemeStyle } from './theme-runtime'
-import { SCHEME_COOKIE, THEME_COOKIE, isColourScheme, type ColourSchemePreference } from '@/view/theme-preference'
 
 const RESOLVED: ReadonlyMap<string, ResolvedTheme> = new Map(
   Object.values(forumConfig.themes)

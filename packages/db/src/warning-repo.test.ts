@@ -1,11 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { PostgresWarningRepository } from './warning-repo'
 import { resultRows } from './result-rows'
 import { users } from './schema'
+import { PostgresWarningRepository } from './warning-repo'
 
 let harness: TestDb
 let db: Database
@@ -88,9 +88,7 @@ describe('the seeded configuration', () => {
   })
 
   it('drops a level whose action this build does not recognise', async () => {
-    await db.execute(
-      sql`insert into warning_levels (points, action) values (20, 'delete_account')`,
-    )
+    await db.execute(sql`insert into warning_levels (points, action) values (20, 'delete_account')`)
     expect((await repo.listLevels()).map((l) => l.points)).toEqual([4, 7, 10])
   })
 
@@ -108,9 +106,10 @@ describe('issuing', () => {
     expect(written.points).toBe(2)
     expect(await cachedPoints()).toBe(2)
 
-    const rows = resultRows(
-      await db.execute(sql`select action, detail from admin_log`),
-    ) as Array<{ action: string; detail: Record<string, unknown> }>
+    const rows = resultRows(await db.execute(sql`select action, detail from admin_log`)) as Array<{
+      action: string
+      detail: Record<string, unknown>
+    }>
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ action: 'warning.issue' })
     expect(rows[0]!.detail).toMatchObject({ warningId: written.warningId, total: 2 })
@@ -174,9 +173,7 @@ describe('revoking', () => {
   })
 
   it('reports a warning that never existed the same way', async () => {
-    expect(
-      await repo.revoke({ warningId: 999, actorUserId: MOD, reason: '', at: AT }),
-    ).toBeNull()
+    expect(await repo.revoke({ warningId: 999, actorUserId: MOD, reason: '', at: AT })).toBeNull()
   })
 
   it('keeps the withdrawal on the record rather than deleting the row', async () => {

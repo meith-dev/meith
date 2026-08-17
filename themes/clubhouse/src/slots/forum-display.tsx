@@ -1,15 +1,15 @@
-import { Card, CardRows, Empty, EmptyAction, EmptyDescription, EmptyTitle, cn } from '@meith/ui'
 import type { ForumDisplayModel } from '@meith/theme-kit'
+import { Card, CardRows, cn, Empty, EmptyAction, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import {
   BUTTON,
   ColumnHeads,
   HEADING,
+  isEmptyRegion,
   MICRO,
   NUMERIC,
   PAGE_BODY,
   PageHead,
-  isEmptyRegion,
 } from '../shared'
 
 export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: ForumDisplayModel) {

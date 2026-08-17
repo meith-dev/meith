@@ -185,8 +185,7 @@ export function buildOffsetPager(input: OffsetPagerInput): PaginationModel {
         href: numberedHref(input, number),
         isCurrent: number === page,
       })),
-    previousHref:
-      page === 1 ? null : numberedHref(input, page > pageCount ? pageCount : page - 1),
+    previousHref: page === 1 ? null : numberedHref(input, page > pageCount ? pageCount : page - 1),
     nextHref: page >= pageCount ? null : numberedHref(input, page + 1),
   }
 }

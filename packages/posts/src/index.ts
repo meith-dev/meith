@@ -1,18 +1,17 @@
-export type { PostRepository } from './ports'
-export type { PostListingRow, PostLocation, PostPage, QuotablePost } from './types'
-
 export {
-  PostEditor,
+  type EditablePost,
+  type EditCapabilities,
+  type EditedPost,
+  type EditPostInput,
   editedNote,
   MESSAGE_MIN,
-  type EditCapabilities,
-  type EditablePost,
-  type EditPostInput,
-  type EditedPost,
+  PostEditor,
+  type PostEditorConfig,
   type PostEditRecord,
   type PostEditTarget,
-  type PostEditorConfig,
   type PostVisibilityChange,
   type PostVisibilityRecord,
   type PostWriteRepository,
 } from './edit'
+export type { PostRepository } from './ports'
+export type { PostListingRow, PostLocation, PostPage, QuotablePost } from './types'

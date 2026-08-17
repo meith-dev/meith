@@ -1,12 +1,12 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
+import { useActionState } from 'react'
 
-import { deletePostAction, editPostAction, restorePostAction } from "@/server/content-actions"
-import { EMPTY_STATE } from "@/server/auth-form-state"
+import { EMPTY_STATE } from '@/server/auth-form-state'
+import { deletePostAction, editPostAction, restorePostAction } from '@/server/content-actions'
 
-import { FormError, SubmitButton } from "../auth/form-controls"
-import { MarkdownEditor } from "./markdown-editor"
+import { FormError, SubmitButton } from '../auth/form-controls'
+import { MarkdownEditor } from './markdown-editor'
 
 export function EditPostForm({
   threadId,
@@ -30,7 +30,7 @@ export function EditPostForm({
       <MarkdownEditor
         required
         defaultValue={state.values?.message ?? message}
-        preview={state.notice === "preview" ? (state.preview ?? "") : undefined}
+        preview={state.notice === 'preview' ? (state.preview ?? '') : undefined}
       />
 
       <label className="flex flex-col gap-1 text-sm">
@@ -39,7 +39,7 @@ export function EditPostForm({
           type="text"
           name="reason"
           maxLength={200}
-          defaultValue={state.values?.reason ?? reason ?? ""}
+          defaultValue={state.values?.reason ?? reason ?? ''}
           className="rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
       </label>

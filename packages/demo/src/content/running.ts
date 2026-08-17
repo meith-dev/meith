@@ -26,10 +26,29 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'Nobody has ever been turned away for not being able to pay. If that is you, message me and it is dealt with quietly and nobody else knows.',
     ].join('\n'),
     replies: [
-      { author: 'bernie', hoursAfter: 5, message: 'That last line should be in bold and on the front page. It is the single most important sentence this club has written down.' },
-      { author: 'siobhan', hoursAfter: 9, message: 'It has been true for fifty years and written down for one. That is on us.' },
-      { author: 'luca', hoursAfter: 26, message: 'Joining a club in a country you have just moved to and not knowing what any of it costs is genuinely stressful. This post would have saved me a fortnight of wondering.' },
-      { author: 'member', hoursAfter: 74, message: 'What is the actual difference between Supporters and just paying more? Is it a badge?' },
+      {
+        author: 'bernie',
+        hoursAfter: 5,
+        message:
+          'That last line should be in bold and on the front page. It is the single most important sentence this club has written down.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 9,
+        message: 'It has been true for fifty years and written down for one. That is on us.',
+      },
+      {
+        author: 'luca',
+        hoursAfter: 26,
+        message:
+          'Joining a club in a country you have just moved to and not knowing what any of it costs is genuinely stressful. This post would have saved me a fortnight of wondering.',
+      },
+      {
+        author: 'member',
+        hoursAfter: 74,
+        message:
+          'What is the actual difference between Supporters and just paying more? Is it a badge?',
+      },
       {
         author: 'noelle',
         hoursAfter: 80,
@@ -51,11 +70,34 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
     ].join('\n'),
     replies: [
       { author: 'shay', hoursAfter: 4, message: 'Took the bigger one. Learned my lesson in 2023.' },
-      { author: 'zoe', hoursAfter: 9, message: 'Nineteen U10s, nineteen forms, all in by Friday. I have made it a competition and they do not know.' },
-      { author: 'oisin', hoursAfter: 20, message: 'Can I get the same number as last year or is that a whole thing?' },
-      { author: 'tomas', hoursAfter: 22, quotes: 3, message: 'It is not a whole thing. It is a spreadsheet and you are on it. Nine, as always.' },
-      { author: 'paudie', hoursAfter: 50, message: 'Ordered a medium out of hope. Will report back in shame.' },
-      { author: 'tomas', hoursAfter: 200, message: 'Order in, and eleven people ordered too small. Same eleven as last year, near enough.' },
+      {
+        author: 'zoe',
+        hoursAfter: 9,
+        message:
+          'Nineteen U10s, nineteen forms, all in by Friday. I have made it a competition and they do not know.',
+      },
+      {
+        author: 'oisin',
+        hoursAfter: 20,
+        message: 'Can I get the same number as last year or is that a whole thing?',
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 22,
+        quotes: 3,
+        message: 'It is not a whole thing. It is a spreadsheet and you are on it. Nine, as always.',
+      },
+      {
+        author: 'paudie',
+        hoursAfter: 50,
+        message: 'Ordered a medium out of hope. Will report back in shame.',
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 200,
+        message:
+          'Order in, and eleven people ordered too small. Same eleven as last year, near enough.',
+      },
     ],
   },
   {
@@ -67,24 +109,60 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       question: 'Should a family rate replace per-child juvenile subs?',
       options: [
         { label: 'Yes, and cap it at two children', voters: ['noelle', 'zoe', 'donal'] },
-        { label: 'Yes, uncapped for a household', voters: ['bernie', 'mairead', 'ellie', 'nia', 'siobhan', 'hana', 'jt'] },
+        {
+          label: 'Yes, uncapped for a household',
+          voters: ['bernie', 'mairead', 'ellie', 'nia', 'siobhan', 'hana', 'jt'],
+        },
         { label: 'No, keep it per child', voters: ['frank'] },
-        { label: 'No strong view, whatever the treasurer says', voters: ['paudie', 'gerry', 'tomas', 'marty', 'ken', 'member'] },
+        {
+          label: 'No strong view, whatever the treasurer says',
+          voters: ['paudie', 'gerry', 'tomas', 'marty', 'ken', 'member'],
+        },
       ],
       closesInDays: null,
     },
     message: [
-      'Three children playing costs me more than my own membership, my husband\'s and the two of us going to everything for a year.',
+      "Three children playing costs me more than my own membership, my husband's and the two of us going to everything for a year.",
       '',
-      'I am not pleading poverty and we will pay it. I am saying that the family down the road with three children looked at the number and did not join, and that is the club\'s loss more than theirs.',
+      "I am not pleading poverty and we will pay it. I am saying that the family down the road with three children looked at the number and did not join, and that is the club's loss more than theirs.",
     ].join('\n'),
     replies: [
-      { author: 'noelle', hoursAfter: 6, message: 'The maths, honestly: a household cap costs us about €1,400 a year at current numbers. It is not nothing and it is not fatal.' },
-      { author: 'frank', hoursAfter: 11, message: 'I voted no and I will say why rather than sulking: the same argument gets made for the social membership every year and we cannot discount everything. Happy to be outvoted.' },
-      { author: 'siobhan', hoursAfter: 20, message: 'That is exactly how to disagree with something. Noted, and it will get said at the AGM by me rather than being a rumour.' },
-      { author: 'mairead', hoursAfter: 30, message: 'Four families in the juvenile section have more than two playing. Four. This is not a flood.' },
-      { author: 'ellie', hoursAfter: 74, message: 'We are one of the four and we joined in spite of the price rather than because it was fine.' },
-      { author: 'noelle', hoursAfter: 700, message: 'Passed at the AGM, uncapped, in for this season. Eleven households on it already and two of them are new members.' },
+      {
+        author: 'noelle',
+        hoursAfter: 6,
+        message:
+          'The maths, honestly: a household cap costs us about €1,400 a year at current numbers. It is not nothing and it is not fatal.',
+      },
+      {
+        author: 'frank',
+        hoursAfter: 11,
+        message:
+          'I voted no and I will say why rather than sulking: the same argument gets made for the social membership every year and we cannot discount everything. Happy to be outvoted.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 20,
+        message:
+          'That is exactly how to disagree with something. Noted, and it will get said at the AGM by me rather than being a rumour.',
+      },
+      {
+        author: 'mairead',
+        hoursAfter: 30,
+        message:
+          'Four families in the juvenile section have more than two playing. Four. This is not a flood.',
+      },
+      {
+        author: 'ellie',
+        hoursAfter: 74,
+        message:
+          'We are one of the four and we joined in spite of the price rather than because it was fine.',
+      },
+      {
+        author: 'noelle',
+        hoursAfter: 700,
+        message:
+          'Passed at the AGM, uncapped, in for this season. Eleven households on it already and two of them are new members.',
+      },
     ],
   },
   {
@@ -106,12 +184,41 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'Sitting at **€6,200**, and the full drainage job is €14,000. That is the whole picture and it is why the AGM matters this year.',
     ].join('\n'),
     replies: [
-      { author: 'gerry', hoursAfter: 3, message: 'The €1,900 patch was my call and it did not work. Worth saying out loud so nobody repeats it.' },
-      { author: 'frank', hoursAfter: 8, message: 'A committee that posts a failed €1,900 spend in public is a committee I will keep giving money to.' },
-      { author: 'noelle', hoursAfter: 14, message: 'Every figure in that post comes off the same account and I will show the statements to anybody who asks, at any time.' },
-      { author: 'tomas', hoursAfter: 26, message: 'The grant application closes in April and would cover half of the fourteen. I am doing it with Noelle and we could use a third pair of eyes.' },
-      { author: 'rosa', hoursAfter: 30, message: 'I have written eleven of these for the community centre. Send it to me before you submit it.' },
-      { author: 'siobhan', hoursAfter: 50, message: 'And that reply is worth more than the anonymous €500. Thank you.' },
+      {
+        author: 'gerry',
+        hoursAfter: 3,
+        message:
+          'The €1,900 patch was my call and it did not work. Worth saying out loud so nobody repeats it.',
+      },
+      {
+        author: 'frank',
+        hoursAfter: 8,
+        message:
+          'A committee that posts a failed €1,900 spend in public is a committee I will keep giving money to.',
+      },
+      {
+        author: 'noelle',
+        hoursAfter: 14,
+        message:
+          'Every figure in that post comes off the same account and I will show the statements to anybody who asks, at any time.',
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 26,
+        message:
+          'The grant application closes in April and would cover half of the fourteen. I am doing it with Noelle and we could use a third pair of eyes.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 30,
+        message:
+          'I have written eleven of these for the community centre. Send it to me before you submit it.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 50,
+        message: 'And that reply is worth more than the anonymous €500. Thank you.',
+      },
     ],
   },
   {
@@ -122,15 +229,35 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
     message: [
       'The garage has taken the shirt front for another two seasons, which is the eleventh year and they have never once asked for anything in return.',
       '',
-      'Still available: shorts, the juvenile set, the sideline board, and the seconds\' shirt. Prices are on the sheet in the clubhouse and they are negotiable, especially for anything that keeps a local business going.',
+      "Still available: shorts, the juvenile set, the sideline board, and the seconds' shirt. Prices are on the sheet in the clubhouse and they are negotiable, especially for anything that keeps a local business going.",
       '',
       'If you work somewhere that might, ask them. It is a much easier conversation from an employee than from me.',
     ].join('\n'),
     replies: [
-      { author: 'luca', hoursAfter: 9, message: 'My employer does community sponsorship and nobody has ever asked them. I will bring it to them Monday.' },
-      { author: 'hana', hoursAfter: 20, message: 'The hairdresser did the ladies set for two years and got more business out of it than she expected. Worth mentioning to anyone hesitating.' },
-      { author: 'luca', hoursAfter: 200, message: 'They said yes. Seconds\' shirt, two seasons, and they are sending someone to the awards night.' },
-      { author: 'tomas', hoursAfter: 210, message: 'Eleven years of me asking and the new lad gets one in a fortnight. Delighted and mildly insulted.' },
+      {
+        author: 'luca',
+        hoursAfter: 9,
+        message:
+          'My employer does community sponsorship and nobody has ever asked them. I will bring it to them Monday.',
+      },
+      {
+        author: 'hana',
+        hoursAfter: 20,
+        message:
+          'The hairdresser did the ladies set for two years and got more business out of it than she expected. Worth mentioning to anyone hesitating.',
+      },
+      {
+        author: 'luca',
+        hoursAfter: 200,
+        message:
+          "They said yes. Seconds' shirt, two seasons, and they are sending someone to the awards night.",
+      },
+      {
+        author: 'tomas',
+        hoursAfter: 210,
+        message:
+          'Eleven years of me asking and the new lad gets one in a fortnight. Delighted and mildly insulted.',
+      },
     ],
   },
   {
@@ -150,9 +277,24 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
         message:
           'You are donating, with a badge attached. Concretely: your name is a different colour, there is a badge beside it, and the money is ring-fenced for the juvenile section. That is the whole of it — no forums you cannot otherwise see, no queue you skip.',
       },
-      { author: 'admin', hoursAfter: 4, message: 'And it stops on its own when you stop paying, without anybody having to remember to take it off you. That was the part that made it worth doing at all.' },
-      { author: 'member', hoursAfter: 9, message: 'That is a straight answer, thank you. I will do it when the subs come round in January.' },
-      { author: 'frank', hoursAfter: 26, message: 'Do. Everybody I know who signed up said it was only for the badge and then quietly kept paying for two years.' },
+      {
+        author: 'admin',
+        hoursAfter: 4,
+        message:
+          'And it stops on its own when you stop paying, without anybody having to remember to take it off you. That was the part that made it worth doing at all.',
+      },
+      {
+        author: 'member',
+        hoursAfter: 9,
+        message:
+          'That is a straight answer, thank you. I will do it when the subs come round in January.',
+      },
+      {
+        author: 'frank',
+        hoursAfter: 26,
+        message:
+          'Do. Everybody I know who signed up said it was only for the badge and then quietly kept paying for two years.',
+      },
     ],
   },
   {
@@ -167,9 +309,25 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
     ].join('\n'),
     replies: [
       { author: 'paudie', hoursAfter: 1, message: 'I got three.' },
-      { author: 'admin', hoursAfter: 2, quotes: 1, message: 'You got three because you are also in the juvenile parents list. That one is on the list, not on me, and I have fixed it.' },
-      { author: 'petra', hoursAfter: 9, message: 'Two emails from a club that is chasing €40 is not a scandal. Two emails from anywhere else and I would have unsubscribed.' },
-      { author: 'noelle', hoursAfter: 20, message: 'Renewals are at 84% which is the highest we have ever been at this point in the year, so the emails are doing their job even when they do it twice.' },
+      {
+        author: 'admin',
+        hoursAfter: 2,
+        quotes: 1,
+        message:
+          'You got three because you are also in the juvenile parents list. That one is on the list, not on me, and I have fixed it.',
+      },
+      {
+        author: 'petra',
+        hoursAfter: 9,
+        message:
+          'Two emails from a club that is chasing €40 is not a scandal. Two emails from anywhere else and I would have unsubscribed.',
+      },
+      {
+        author: 'noelle',
+        hoursAfter: 20,
+        message:
+          'Renewals are at 84% which is the highest we have ever been at this point in the year, so the emails are doing their job even when they do it twice.',
+      },
     ],
   },
   {
@@ -185,9 +343,24 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'And if you stopped because something happened here that put you off, I would genuinely like to know, and you can message me or Siobhán and it goes no further.',
     ].join('\n'),
     replies: [
-      { author: 'siobhan', hoursAfter: 4, message: 'That third one is not a formality. Two people told us last year and both of them were right, and one of the things they raised is why the match thread rules exist now.' },
-      { author: 'frank', hoursAfter: 11, message: 'Renewed three lads from the over-35s by forwarding this to them. None of them had realised the social one existed.' },
-      { author: 'noelle', hoursAfter: 74, message: 'Nine of the thirty-one renewed in a week and one of them is back playing. Worth writing.' },
+      {
+        author: 'siobhan',
+        hoursAfter: 4,
+        message:
+          'That third one is not a formality. Two people told us last year and both of them were right, and one of the things they raised is why the match thread rules exist now.',
+      },
+      {
+        author: 'frank',
+        hoursAfter: 11,
+        message:
+          'Renewed three lads from the over-35s by forwarding this to them. None of them had realised the social one existed.',
+      },
+      {
+        author: 'noelle',
+        hoursAfter: 74,
+        message:
+          'Nine of the thirty-one renewed in a week and one of them is back playing. Worth writing.',
+      },
     ],
   },
 
@@ -205,10 +378,31 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'Same secret on both, redeployed, gone. Writing it down because it took me two evenings and the symptom points nowhere near the cause.',
     ].join('\n'),
     replies: [
-      { author: 'paudie', hoursAfter: 3, message: 'I thought I was doing something wrong and had stopped mentioning it. That is the real cost of a bug like that.' },
-      { author: 'rosa', hoursAfter: 9, message: 'Same, and I had started keeping the tab open all day so I would not have to log in again.' },
-      { author: 'admin', hoursAfter: 11, quotes: 2, message: 'That is exactly the behaviour that hides it — the people it affects stop reporting it and work around it. Please always tell me, even when you assume it is you.' },
-      { author: 'vex', hoursAfter: 30, message: 'Two containers on match day is a nice problem for a club board to have, in fairness.' },
+      {
+        author: 'paudie',
+        hoursAfter: 3,
+        message:
+          'I thought I was doing something wrong and had stopped mentioning it. That is the real cost of a bug like that.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 9,
+        message:
+          'Same, and I had started keeping the tab open all day so I would not have to log in again.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 11,
+        quotes: 2,
+        message:
+          'That is exactly the behaviour that hides it — the people it affects stop reporting it and work around it. Please always tell me, even when you assume it is you.',
+      },
+      {
+        author: 'vex',
+        hoursAfter: 30,
+        message:
+          'Two containers on match day is a nice problem for a club board to have, in fairness.',
+      },
     ],
   },
   {
@@ -229,9 +423,24 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
         message:
           'That will be me. I moved the board to the new server on Sunday and restored from a dump, and the search index does not always come across in one — the posts are all there, the thing that makes them findable is not.\n\nRunning the reindex now. It works through the whole board in the background, so it will start finding things again gradually rather than all at once.',
       },
-      { author: 'rosa', hoursAfter: 3, message: 'Shoebox thread is back. So are the minutes from 2019, which I could not find last week either and had assumed I had imagined.' },
-      { author: 'admin', hoursAfter: 5, message: 'Ninety thousand posts in about twelve minutes. Everything is findable again, including the things you had given up on.' },
-      { author: 'mira', hoursAfter: 26, message: 'Worth knowing that search covers the old parish notices too. I found a 2017 hall booking argument that I would rather have left buried.' },
+      {
+        author: 'rosa',
+        hoursAfter: 3,
+        message:
+          'Shoebox thread is back. So are the minutes from 2019, which I could not find last week either and had assumed I had imagined.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 5,
+        message:
+          'Ninety thousand posts in about twelve minutes. Everything is findable again, including the things you had given up on.',
+      },
+      {
+        author: 'mira',
+        hoursAfter: 26,
+        message:
+          'Worth knowing that search covers the old parish notices too. I found a 2017 hall booking argument that I would rather have left buried.',
+      },
     ],
   },
   {
@@ -244,12 +453,37 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'Same password. Works on the laptop every time, fails on the phone every time. I have typed it slowly. I have typed it very slowly.',
     ].join('\n'),
     replies: [
-      { author: 'moderator', hoursAfter: 1, message: 'Is the phone putting a capital on the first letter? It does that in the username box and the username is not the problem, the capital is.' },
+      {
+        author: 'moderator',
+        hoursAfter: 1,
+        message:
+          'Is the phone putting a capital on the first letter? It does that in the username box and the username is not the problem, the capital is.',
+      },
       { author: 'paudie', hoursAfter: 2, message: 'It is putting a capital on it.' },
-      { author: 'paudie', hoursAfter: 2, message: 'I am in. Twenty-five years of technology and I am beaten by an automatic capital letter.' },
-      { author: 'moderator', hoursAfter: 4, quotes: 2, message: 'You are the fourth. It is the single most common thing anyone asks me here.' },
-      { author: 'admin', hoursAfter: 20, message: 'Fourth is enough. Names are matched without case now, so the capital does not matter any more.' },
-      { author: 'frank', hoursAfter: 30, message: 'A support thread that ends with the software changing is a good day for everybody.' },
+      {
+        author: 'paudie',
+        hoursAfter: 2,
+        message:
+          'I am in. Twenty-five years of technology and I am beaten by an automatic capital letter.',
+      },
+      {
+        author: 'moderator',
+        hoursAfter: 4,
+        quotes: 2,
+        message: 'You are the fourth. It is the single most common thing anyone asks me here.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 20,
+        message:
+          'Fourth is enough. Names are matched without case now, so the capital does not matter any more.',
+      },
+      {
+        author: 'frank',
+        hoursAfter: 30,
+        message:
+          'A support thread that ends with the software changing is a good day for everybody.',
+      },
     ],
   },
   {
@@ -267,9 +501,23 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
         message:
           'There is not, and there will not be. What there is: add it to your home screen from the browser menu and it opens like one, full screen, no address bar. That gets you 95% of an app for none of the maintenance.',
       },
-      { author: 'cormac', hoursAfter: 6, message: 'Did that. It is an app now as far as I am concerned.' },
-      { author: 'bernie', hoursAfter: 20, message: 'Somebody should put those five words in the pinned post because I did not know you could do that.' },
-      { author: 'admin', hoursAfter: 26, quotes: 3, message: 'Added, with a screenshot for both kinds of phone.' },
+      {
+        author: 'cormac',
+        hoursAfter: 6,
+        message: 'Did that. It is an app now as far as I am concerned.',
+      },
+      {
+        author: 'bernie',
+        hoursAfter: 20,
+        message:
+          'Somebody should put those five words in the pinned post because I did not know you could do that.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 26,
+        quotes: 3,
+        message: 'Added, with a screenshot for both kinds of phone.',
+      },
     ],
   },
   {
@@ -283,11 +531,34 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'Have I turned something off by accident?',
     ].join('\n'),
     replies: [
-      { author: 'moderator', hoursAfter: 2, message: 'Check the subscription on the thread first — it is at the top of the thread and it will say "watching" or "not watching". A reply from a phone sometimes gets sent with the box unticked.' },
-      { author: 'bernie', hoursAfter: 3, message: 'It says not watching. I did not do that on purpose.' },
-      { author: 'admin', hoursAfter: 5, message: 'You did, though not knowingly — replying with "subscribe" unticked replaces the old setting. It is a bad default and I have changed it: replying now leaves an existing subscription alone.' },
-      { author: 'bernie', hoursAfter: 9, message: 'Back to normal, and I now know what that box does after a year of ignoring it.' },
-      { author: 'mairead', hoursAfter: 26, message: 'Two other parents have said the same thing this month. That change will save me a lot of "did you not see the thread".' },
+      {
+        author: 'moderator',
+        hoursAfter: 2,
+        message:
+          'Check the subscription on the thread first — it is at the top of the thread and it will say "watching" or "not watching". A reply from a phone sometimes gets sent with the box unticked.',
+      },
+      {
+        author: 'bernie',
+        hoursAfter: 3,
+        message: 'It says not watching. I did not do that on purpose.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 5,
+        message:
+          'You did, though not knowingly — replying with "subscribe" unticked replaces the old setting. It is a bad default and I have changed it: replying now leaves an existing subscription alone.',
+      },
+      {
+        author: 'bernie',
+        hoursAfter: 9,
+        message: 'Back to normal, and I now know what that box does after a year of ignoring it.',
+      },
+      {
+        author: 'mairead',
+        hoursAfter: 26,
+        message:
+          'Two other parents have said the same thing this month. That change will save me a lot of "did you not see the thread".',
+      },
     ],
   },
   {
@@ -301,10 +572,29 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'I do want the ones about my own account and the fixture cancellations. Is that a setting or is it all or nothing?',
     ].join('\n'),
     replies: [
-      { author: 'moderator', hoursAfter: 2, message: 'It is a setting, in your account under notifications, and it splits about six ways. Turn off thread replies, leave the account and announcement ones on.' },
-      { author: 'sam', hoursAfter: 4, message: 'Found it. Six switches and I have flicked four. Perfect.' },
-      { author: 'petra', hoursAfter: 20, message: 'I did the opposite last month — turned everything on and it is far too much. Somewhere in the middle is the answer and it took me a while to find it.' },
-      { author: 'admin', hoursAfter: 30, message: 'The middle is going to be the default for new accounts from now on. Nobody\'s first week should be forty emails.' },
+      {
+        author: 'moderator',
+        hoursAfter: 2,
+        message:
+          'It is a setting, in your account under notifications, and it splits about six ways. Turn off thread replies, leave the account and announcement ones on.',
+      },
+      {
+        author: 'sam',
+        hoursAfter: 4,
+        message: 'Found it. Six switches and I have flicked four. Perfect.',
+      },
+      {
+        author: 'petra',
+        hoursAfter: 20,
+        message:
+          'I did the opposite last month — turned everything on and it is far too much. Somewhere in the middle is the answer and it took me a while to find it.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 30,
+        message:
+          "The middle is going to be the default for new accounts from now on. Nobody's first week should be forty emails.",
+      },
     ],
   },
   {
@@ -325,10 +615,31 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
         message:
           'Photos are resized in the background rather than while you wait — that is why a hundred of them do not lock the page up. So this is almost always the background worker not running rather than the upload failing. Checking the tasks screen now.',
       },
-      { author: 'admin', hoursAfter: 3, message: 'The worker is not in the new setup at all. It never got copied across in the move. That is entirely my fault and nothing is lost — everything queued is still queued.' },
-      { author: 'dev', hoursAfter: 4, message: 'All sixty appeared within a minute of each other just now. That was alarming and then delightful.' },
-      { author: 'admin', hoursAfter: 9, quotes: 2, message: 'That is the queue draining. The reminder emails and the membership expiries run on the same thing, which explains two other small mysteries this week.' },
-      { author: 'noelle', hoursAfter: 20, message: 'It explains why three renewals did not expire on time. I had assumed I had done something wrong.' },
+      {
+        author: 'admin',
+        hoursAfter: 3,
+        message:
+          'The worker is not in the new setup at all. It never got copied across in the move. That is entirely my fault and nothing is lost — everything queued is still queued.',
+      },
+      {
+        author: 'dev',
+        hoursAfter: 4,
+        message:
+          'All sixty appeared within a minute of each other just now. That was alarming and then delightful.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 9,
+        quotes: 2,
+        message:
+          'That is the queue draining. The reminder emails and the membership expiries run on the same thing, which explains two other small mysteries this week.',
+      },
+      {
+        author: 'noelle',
+        hoursAfter: 20,
+        message:
+          'It explains why three renewals did not expire on time. I had assumed I had done something wrong.',
+      },
     ],
   },
   {
@@ -348,10 +659,29 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
         message:
           'It is a thing. Permissions resolve per group per forum, so you make a group with "post threads" off and "post replies" on, put them in it, and apply it to that one forum. They will not notice anywhere else on the board.',
       },
-      { author: 'kev', hoursAfter: 4, message: 'Did not know it went per forum. That is exactly the shape of the problem.' },
-      { author: 'moderator', hoursAfter: 6, message: 'Talk to them first though. Nine times out of ten "you are posting a lot, could you do one thread" works and nobody has to be quietly restricted.' },
-      { author: 'kev', hoursAfter: 20, message: 'Talked to them. They had no idea and were mortified. One thread now, updated as things sell. No permissions needed.' },
-      { author: 'admin', hoursAfter: 26, quotes: 3, message: 'That is the right order to do it in and I should have said so first.' },
+      {
+        author: 'kev',
+        hoursAfter: 4,
+        message: 'Did not know it went per forum. That is exactly the shape of the problem.',
+      },
+      {
+        author: 'moderator',
+        hoursAfter: 6,
+        message:
+          'Talk to them first though. Nine times out of ten "you are posting a lot, could you do one thread" works and nobody has to be quietly restricted.',
+      },
+      {
+        author: 'kev',
+        hoursAfter: 20,
+        message:
+          'Talked to them. They had no idea and were mortified. One thread now, updated as things sell. No permissions needed.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 26,
+        quotes: 3,
+        message: 'That is the right order to do it in and I should have said so first.',
+      },
     ],
   },
 
@@ -366,9 +696,23 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'It loaded. That is the whole feedback. I have used club websites that would not have loaded on the wifi at home and this one came up in a field.',
     ].join('\n'),
     replies: [
-      { author: 'admin', hoursAfter: 4, message: 'That is the thing I care most about and almost nobody ever mentions, so thank you. Pages are plain HTML first and the clever bits come after — which is why it works on one bar.' },
-      { author: 'mairead', hoursAfter: 9, message: 'Twelve. It was 12. And I know because I checked it in the same field.' },
-      { author: 'zoe', hoursAfter: 26, message: 'The old site needed the app to do anything and the app needed a signal. Two seasons of standing on a wall holding a phone in the air.' },
+      {
+        author: 'admin',
+        hoursAfter: 4,
+        message:
+          'That is the thing I care most about and almost nobody ever mentions, so thank you. Pages are plain HTML first and the clever bits come after — which is why it works on one bar.',
+      },
+      {
+        author: 'mairead',
+        hoursAfter: 9,
+        message: 'Twelve. It was 12. And I know because I checked it in the same field.',
+      },
+      {
+        author: 'zoe',
+        hoursAfter: 26,
+        message:
+          'The old site needed the app to do anything and the app needed a signal. Two seasons of standing on a wall holding a phone in the air.',
+      },
     ],
   },
   {
@@ -382,11 +726,35 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'Also, and I say this with love: the default look is fine, but a club with green and white on the crest could have green and white on the site.',
     ].join('\n'),
     replies: [
-      { author: 'admin', hoursAfter: 3, message: 'There is a picker at the bottom of every page and it takes a click, no account needed. Try the dark one now and tell me if the greens are wrong on your screen.' },
-      { author: 'pixel', hoursAfter: 5, message: 'Found it. Four options. Two of them are genuinely lovely and one of them looks like a raid interface, which I did not expect from a club website.' },
-      { author: 'wraith', hoursAfter: 9, message: 'The raid one is the only one I will use and I will hear nothing about it.' },
-      { author: 'siobhan', hoursAfter: 20, message: 'And the club colours are in the crest at the top, which is the compromise I am happy with. The whole site in green and white was tried in 2011 and it was unreadable.' },
-      { author: 'bram', hoursAfter: 30, message: 'The picker sticking without an account is the good bit. My mother reads the fixtures on here and will never make an account, and she has it on the big-text one.' },
+      {
+        author: 'admin',
+        hoursAfter: 3,
+        message:
+          'There is a picker at the bottom of every page and it takes a click, no account needed. Try the dark one now and tell me if the greens are wrong on your screen.',
+      },
+      {
+        author: 'pixel',
+        hoursAfter: 5,
+        message:
+          'Found it. Four options. Two of them are genuinely lovely and one of them looks like a raid interface, which I did not expect from a club website.',
+      },
+      {
+        author: 'wraith',
+        hoursAfter: 9,
+        message: 'The raid one is the only one I will use and I will hear nothing about it.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 20,
+        message:
+          'And the club colours are in the crest at the top, which is the compromise I am happy with. The whole site in green and white was tried in 2011 and it was unreadable.',
+      },
+      {
+        author: 'bram',
+        hoursAfter: 30,
+        message:
+          'The picker sticking without an account is the good bit. My mother reads the fixtures on here and will never make an account, and she has it on the big-text one.',
+      },
     ],
   },
   {
@@ -400,11 +768,35 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'A month at a glance would save me the twelve messages I get every Friday.',
     ].join('\n'),
     replies: [
-      { author: 'admin', hoursAfter: 5, message: 'Fair, and it is not there. What is there today: subscribe to a team\'s threads and the emails arrive as things change. That is not a calendar and I am not pretending it is.' },
-      { author: 'bernie', hoursAfter: 9, message: 'Seconding hard. Three children, three teams, and I keep a paper calendar on the fridge because of this exact thing.' },
-      { author: 'nova', hoursAfter: 14, message: 'Same on our side for a completely different reason — the ranked block and the raid night are fixed times and new people cannot see them at a glance anywhere.' },
-      { author: 'admin', hoursAfter: 26, message: 'That is two very different groups asking for the same screen, which is usually the sign it is worth building. On the list, honestly rather than politely.' },
-      { author: 'mairead', hoursAfter: 50, message: 'Honestly rather than politely is all I ask of any committee.' },
+      {
+        author: 'admin',
+        hoursAfter: 5,
+        message:
+          "Fair, and it is not there. What is there today: subscribe to a team's threads and the emails arrive as things change. That is not a calendar and I am not pretending it is.",
+      },
+      {
+        author: 'bernie',
+        hoursAfter: 9,
+        message:
+          'Seconding hard. Three children, three teams, and I keep a paper calendar on the fridge because of this exact thing.',
+      },
+      {
+        author: 'nova',
+        hoursAfter: 14,
+        message:
+          'Same on our side for a completely different reason — the ranked block and the raid night are fixed times and new people cannot see them at a glance anywhere.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 26,
+        message:
+          'That is two very different groups asking for the same screen, which is usually the sign it is worth building. On the list, honestly rather than politely.',
+      },
+      {
+        author: 'mairead',
+        hoursAfter: 50,
+        message: 'Honestly rather than politely is all I ask of any committee.',
+      },
     ],
   },
   {
@@ -418,10 +810,24 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'A grey "Called off" prefix would do the job and would be visible from the forum list without opening anything.',
     ].join('\n'),
     replies: [
-      { author: 'admin', hoursAfter: 4, message: 'Prefixes are a screen in the admin panel, so this is about a minute of work rather than a feature. Adding it tonight, scoped to Events so it does not clutter the rest of the board.' },
-      { author: 'marty', hoursAfter: 8, message: 'Can it be a loud colour rather than grey? The whole point is that people see it at a glance from the phone in the car park.' },
+      {
+        author: 'admin',
+        hoursAfter: 4,
+        message:
+          'Prefixes are a screen in the admin panel, so this is about a minute of work rather than a feature. Adding it tonight, scoped to Events so it does not clutter the rest of the board.',
+      },
+      {
+        author: 'marty',
+        hoursAfter: 8,
+        message:
+          'Can it be a loud colour rather than grey? The whole point is that people see it at a glance from the phone in the car park.',
+      },
       { author: 'dara', hoursAfter: 9, quotes: 2, message: 'Fine. Loud it is. I withdraw grey.' },
-      { author: 'gerry', hoursAfter: 26, message: 'I will be the one using it most and I would like it in red, thank you.' },
+      {
+        author: 'gerry',
+        hoursAfter: 26,
+        message: 'I will be the one using it most and I would like it in red, thank you.',
+      },
     ],
   },
   {
@@ -435,10 +841,30 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'If a sign-up thread could lock itself at a time I set when I post it, that solves it without me having to remember to lock fourteen threads.',
     ].join('\n'),
     replies: [
-      { author: 'tinker', hoursAfter: 3, message: 'Same for the raid roster. I lock it manually on Monday nights and I have forgotten twice.' },
-      { author: 'olu', hoursAfter: 8, message: 'And the five-a-side. Three of us are describing one feature, which I think is the point of this forum.' },
-      { author: 'admin', hoursAfter: 14, message: 'It does not exist. What does: locking a thread is one click for a moderator, and all three of you are moderators of your own corner already. Not a solution, an admission.' },
-      { author: 'nova', hoursAfter: 20, message: 'An honest "no, and here is the workaround" is worth more than a maybe. Locking manually it is.' },
+      {
+        author: 'tinker',
+        hoursAfter: 3,
+        message:
+          'Same for the raid roster. I lock it manually on Monday nights and I have forgotten twice.',
+      },
+      {
+        author: 'olu',
+        hoursAfter: 8,
+        message:
+          'And the five-a-side. Three of us are describing one feature, which I think is the point of this forum.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 14,
+        message:
+          'It does not exist. What does: locking a thread is one click for a moderator, and all three of you are moderators of your own corner already. Not a solution, an admission.',
+      },
+      {
+        author: 'nova',
+        hoursAfter: 20,
+        message:
+          'An honest "no, and here is the workaround" is worth more than a maybe. Locking manually it is.',
+      },
     ],
   },
   {
@@ -452,11 +878,37 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'Not a complaint about the order. A question about what a first-time visitor sees.',
     ].join('\n'),
     replies: [
-      { author: 'admin', hoursAfter: 3, message: 'The order is a number on each forum in the admin panel and I can change it in ten seconds. The question is whether Announcements stops getting read if it moves down.' },
-      { author: 'siobhan', hoursAfter: 6, message: 'It will stop getting read. That is not a guess — it is what happened on the old site when the notices went below the fold.' },
-      { author: 'kev', hoursAfter: 11, message: 'Compromise: leave the order alone and make the front page show the newest posts across everything. Then the busy forum is at the top by being busy.' },
-      { author: 'admin', hoursAfter: 20, quotes: 3, message: 'That already exists, it is just not the landing page. Making it the landing page for logged-in members and leaving the forum list for everybody else. Trying it for a fortnight.' },
-      { author: 'olu', hoursAfter: 30, message: 'Two days in and the Thursday sign-up has four more people than usual. Small thing, real difference.' },
+      {
+        author: 'admin',
+        hoursAfter: 3,
+        message:
+          'The order is a number on each forum in the admin panel and I can change it in ten seconds. The question is whether Announcements stops getting read if it moves down.',
+      },
+      {
+        author: 'siobhan',
+        hoursAfter: 6,
+        message:
+          'It will stop getting read. That is not a guess — it is what happened on the old site when the notices went below the fold.',
+      },
+      {
+        author: 'kev',
+        hoursAfter: 11,
+        message:
+          'Compromise: leave the order alone and make the front page show the newest posts across everything. Then the busy forum is at the top by being busy.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 20,
+        quotes: 3,
+        message:
+          'That already exists, it is just not the landing page. Making it the landing page for logged-in members and leaving the forum list for everybody else. Trying it for a fortnight.',
+      },
+      {
+        author: 'olu',
+        hoursAfter: 30,
+        message:
+          'Two days in and the Thursday sign-up has four more people than usual. Small thing, real difference.',
+      },
     ],
   },
 
@@ -478,9 +930,24 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'If you think we got something wrong, say so. There is a report button on every post and it comes to all of us, not just the person you are annoyed with.',
     ].join('\n'),
     replies: [
-      { author: 'frank', hoursAfter: 9, message: 'The bit about complaints staying up is the one that matters and it is the one most clubs would quietly leave out.' },
-      { author: 'rosa', hoursAfter: 20, message: 'It has been tested twice since this was posted and held both times, which is the only reason anybody believes it.' },
-      { author: 'moderator', hoursAfter: 44, message: 'Worth adding: a report is not an accusation. Half of what I get is "this is probably fine but you should see it", and that is exactly the right use of it.' },
+      {
+        author: 'frank',
+        hoursAfter: 9,
+        message:
+          'The bit about complaints staying up is the one that matters and it is the one most clubs would quietly leave out.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 20,
+        message:
+          'It has been tested twice since this was posted and held both times, which is the only reason anybody believes it.',
+      },
+      {
+        author: 'moderator',
+        hoursAfter: 44,
+        message:
+          'Worth adding: a report is not an accusation. Half of what I get is "this is probably fine but you should see it", and that is exactly the right use of it.',
+      },
     ],
   },
   {
@@ -505,7 +972,7 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
   {
     forum: 'moderation',
     author: 'dara',
-    title: 'Why every new account\'s first post is held',
+    title: "Why every new account's first post is held",
     daysAgo: 92,
     message: [
       'A new member posted on Saturday, saw "waiting for approval", and messaged me thinking they had done something wrong.',
@@ -515,10 +982,30 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'It exists because it is the single most effective thing we do against spam. The bots that get through registration still cannot get a link onto the board, because a person reads the first thing they write.',
     ].join('\n'),
     replies: [
-      { author: 'moderator', hoursAfter: 3, message: 'And the wording on the screen is now much friendlier than it was, because that member was the third person to think they were in trouble.' },
-      { author: 'admin', hoursAfter: 26, message: 'It costs the staff about four clicks a week. It has stopped, at a rough count, three hundred spam posts.' },
-      { author: 'kev', hoursAfter: 50, message: 'The queue is the least glamorous screen on the board and it is the one that keeps this place readable.' },
-      { author: 'rook', hoursAfter: 800, message: 'Mine was held and approved in about twenty minutes, and the message explained why. No complaints at all.' },
+      {
+        author: 'moderator',
+        hoursAfter: 3,
+        message:
+          'And the wording on the screen is now much friendlier than it was, because that member was the third person to think they were in trouble.',
+      },
+      {
+        author: 'admin',
+        hoursAfter: 26,
+        message:
+          'It costs the staff about four clicks a week. It has stopped, at a rough count, three hundred spam posts.',
+      },
+      {
+        author: 'kev',
+        hoursAfter: 50,
+        message:
+          'The queue is the least glamorous screen on the board and it is the one that keeps this place readable.',
+      },
+      {
+        author: 'rook',
+        hoursAfter: 800,
+        message:
+          'Mine was held and approved in about twenty minutes, and the message explained why. No complaints at all.',
+      },
     ],
   },
   {
@@ -538,11 +1025,37 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
       'Cost to real people: two members emailed to say the question was confusing. Both got in the same evening.',
     ].join('\n'),
     replies: [
-      { author: 'siobhan', hoursAfter: 4, message: 'The "never looked spammed" part is underrated. A board that looks unmoderated attracts more of it and puts off the members you want.' },
-      { author: 'rosa', hoursAfter: 9, message: 'The community centre board got the same wave. Question worked for us too — ours asks what is across the road from the hall.' },
-      { author: 'vex', hoursAfter: 15, message: 'Do not make the question too clever. Ours was too clever for a fortnight and three real people failed it.' },
-      { author: 'kev', hoursAfter: 20, message: 'What do we do about the one that got through last week into Buy, sell and swap? It is reported and still sitting there.' },
-      { author: 'moderator', hoursAfter: 26, quotes: 4, message: 'It is in the queue and I have deliberately left it for whoever is on next, so they can see what one looks like before it disappears.' },
+      {
+        author: 'siobhan',
+        hoursAfter: 4,
+        message:
+          'The "never looked spammed" part is underrated. A board that looks unmoderated attracts more of it and puts off the members you want.',
+      },
+      {
+        author: 'rosa',
+        hoursAfter: 9,
+        message:
+          'The community centre board got the same wave. Question worked for us too — ours asks what is across the road from the hall.',
+      },
+      {
+        author: 'vex',
+        hoursAfter: 15,
+        message:
+          'Do not make the question too clever. Ours was too clever for a fortnight and three real people failed it.',
+      },
+      {
+        author: 'kev',
+        hoursAfter: 20,
+        message:
+          'What do we do about the one that got through last week into Buy, sell and swap? It is reported and still sitting there.',
+      },
+      {
+        author: 'moderator',
+        hoursAfter: 26,
+        quotes: 4,
+        message:
+          'It is in the queue and I have deliberately left it for whoever is on next, so they can see what one looks like before it disappears.',
+      },
     ],
   },
   {
@@ -551,19 +1064,50 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
     title: 'Match threads get heated. Where is the line?',
     daysAgo: 46,
     message: [
-      'Saturday\'s thread had four posts about the referee that I would not want the referee to read, and one about an opposition player by name that I took down.',
+      "Saturday's thread had four posts about the referee that I would not want the referee to read, and one about an opposition player by name that I took down.",
       '',
       'I am fairly sure I got the second one right and much less sure about the first four. Nobody swore. Nobody was personal about anybody in this club.',
       '',
       'Where do people think the line is, before I have to decide it on my own at eleven at night?',
     ].join('\n'),
     replies: [
-      { author: 'siobhan', hoursAfter: 2, message: 'Named opposition player, especially an under-18, is over it every single time. You were right.' },
-      { author: 'marty', hoursAfter: 5, message: 'On referees: they are volunteers who get abused for a living and half of them are members of clubs like ours. "The referee had a shocker" is fine. Anything about the person is not.' },
-      { author: 'paudie', hoursAfter: 9, message: 'I wrote one of the four. Reading it back I would not have said it to his face, which is probably the whole test.' },
-      { author: 'deco', hoursAfter: 14, quotes: 3, message: 'That is the best rule anybody has put in this thread. Would you say it to their face at the club bar afterwards.' },
-      { author: 'moderator', hoursAfter: 20, message: 'Taking that as the line and putting it in the pinned post. It is one sentence and everyone will remember it.' },
-      { author: 'dara', hoursAfter: 44, message: 'And I will keep writing the match reports so there is somewhere sensible for the frustration to go. Half of it is people with nowhere to put a bad Saturday.' },
+      {
+        author: 'siobhan',
+        hoursAfter: 2,
+        message:
+          'Named opposition player, especially an under-18, is over it every single time. You were right.',
+      },
+      {
+        author: 'marty',
+        hoursAfter: 5,
+        message:
+          'On referees: they are volunteers who get abused for a living and half of them are members of clubs like ours. "The referee had a shocker" is fine. Anything about the person is not.',
+      },
+      {
+        author: 'paudie',
+        hoursAfter: 9,
+        message:
+          'I wrote one of the four. Reading it back I would not have said it to his face, which is probably the whole test.',
+      },
+      {
+        author: 'deco',
+        hoursAfter: 14,
+        quotes: 3,
+        message:
+          'That is the best rule anybody has put in this thread. Would you say it to their face at the club bar afterwards.',
+      },
+      {
+        author: 'moderator',
+        hoursAfter: 20,
+        message:
+          'Taking that as the line and putting it in the pinned post. It is one sentence and everyone will remember it.',
+      },
+      {
+        author: 'dara',
+        hoursAfter: 44,
+        message:
+          'And I will keep writing the match reports so there is somewhere sensible for the frustration to go. Half of it is people with nowhere to put a bad Saturday.',
+      },
     ],
   },
   {
@@ -587,12 +1131,28 @@ export const RUNNING_THREADS: readonly DemoThread[] = [
         author: 'vex',
         hoursAfter: 6,
         quotes: 1,
-        message: 'And the fourth?\n\nAsking seriously — the failure case is the one nobody writes down, and it is the one I would want to know about before trying it.',
+        message:
+          'And the fourth?\n\nAsking seriously — the failure case is the one nobody writes down, and it is the one I would want to know about before trying it.',
       },
-      { author: 'siobhan', hoursAfter: 8, message: 'The fourth left in a temper and said a few things about me in the shop. The board was better for it and I would still do it again. It is not free.' },
+      {
+        author: 'siobhan',
+        hoursAfter: 8,
+        message:
+          'The fourth left in a temper and said a few things about me in the shop. The board was better for it and I would still do it again. It is not free.',
+      },
       { author: 'moderator', hoursAfter: 26, message: 'Sent one this morning. Will report back.' },
-      { author: 'moderator', hoursAfter: 74, message: 'Reporting back: went well. They were mortified, which I felt bad about, and have visibly pulled back without going quiet. Recommended, with the warning attached.' },
-      { author: 'kev', hoursAfter: 90, message: 'The same conversation works for the six-threads-a-day thing. It is remarkable how often the answer is "nobody has ever told them".' },
+      {
+        author: 'moderator',
+        hoursAfter: 74,
+        message:
+          'Reporting back: went well. They were mortified, which I felt bad about, and have visibly pulled back without going quiet. Recommended, with the warning attached.',
+      },
+      {
+        author: 'kev',
+        hoursAfter: 90,
+        message:
+          'The same conversation works for the six-threads-a-day thing. It is remarkable how often the answer is "nobody has ever told them".',
+      },
     ],
   },
 ]

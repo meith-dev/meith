@@ -3,7 +3,7 @@
 import { Button as ButtonPrimitive } from '@base-ui/react/button'
 
 import { cn } from './utils'
-import { buttonVariants, type ButtonVariants } from './variants'
+import { type ButtonVariants, buttonVariants } from './variants'
 
 export type ButtonProps = ButtonPrimitive.Props & ButtonVariants
 

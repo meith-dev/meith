@@ -2,11 +2,11 @@ import { RateLimitedError, ValidationError } from '@meith/core'
 import { quoteBlock } from '@meith/markdown'
 
 import {
-  MESSAGE_MIN,
-  UNRESTRICTED,
   type AuthorRestriction,
   type ForumPostingTarget,
+  MESSAGE_MIN,
   type ThreadAuthor,
+  UNRESTRICTED,
 } from './compose'
 
 export interface ReplyTarget {
@@ -108,16 +108,13 @@ export class ReplyComposer {
       throw new ValidationError('A post needs a message.')
     }
     if (message.length > this.config.maxLength) {
-      throw new ValidationError(
-        `A post may be at most ${this.config.maxLength} characters.`,
-      )
+      throw new ValidationError(`A post may be at most ${this.config.maxLength} characters.`)
     }
 
     await this.enforceFlood(input, author)
 
     const visibility =
-      ((target.forum.moderateNewPosts || input.requiresApproval) &&
-        !input.bypassesModeration) ||
+      ((target.forum.moderateNewPosts || input.requiresApproval) && !input.bypassesModeration) ||
       input.heldAsNewMember ||
       restriction.moderated
         ? 'unapproved'
@@ -150,10 +147,7 @@ export class ReplyComposer {
     }
   }
 
-  private async enforceFlood(
-    input: ComposeReplyInput,
-    author: ThreadAuthor,
-  ): Promise<void> {
+  private async enforceFlood(input: ComposeReplyInput, author: ThreadAuthor): Promise<void> {
     if (this.config.floodSeconds <= 0 || input.bypassesFlood) return
 
     const last = await this.posts.lastPostAt(author.userId)

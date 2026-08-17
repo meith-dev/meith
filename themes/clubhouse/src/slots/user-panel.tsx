@@ -1,6 +1,6 @@
+import type { LinkModel, UserPanelModel } from '@meith/theme-kit'
 import { Avatar, cn } from '@meith/ui'
 import { Menu } from '@meith/ui/menu'
-import type { LinkModel, UserPanelModel } from '@meith/theme-kit'
 
 import { BUTTON, MUTED_LINK } from '../shared'
 

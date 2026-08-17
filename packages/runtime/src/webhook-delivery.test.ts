@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifySignature } from '@meith/api'
 
-import { deliverWebhooks, type ClaimedDelivery, type WebhookDeliveryStore } from './webhook-delivery'
+import {
+  type ClaimedDelivery,
+  deliverWebhooks,
+  type WebhookDeliveryStore,
+} from './webhook-delivery'
 
 const NOW = new Date('2026-03-01T12:00:00.000Z')
 

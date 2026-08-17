@@ -1,5 +1,6 @@
-import { ValidationError } from '@meith/core'
 import { beforeEach, describe, expect, it } from 'vitest'
+
+import { ValidationError } from '@meith/core'
 
 import { ProfileFieldService } from './service'
 import type {

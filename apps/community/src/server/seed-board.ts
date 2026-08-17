@@ -1,14 +1,10 @@
-import { BodyFormat } from '@meith/markdown'
-import {
-  emptyPermissionSet,
-  type ForumPermissions,
-  type PermissionSet,
-} from '@meith/core'
+import type { MemberProfileRecord } from '@meith/accounts'
 import type { GroupDefaults, MemoryBoard } from '@meith/authorization'
+import { emptyPermissionSet, type ForumPermissions, type PermissionSet } from '@meith/core'
 import type { ForumListingRow } from '@meith/forums'
+import { BodyFormat } from '@meith/markdown'
 import type { PostListingRow } from '@meith/posts'
 import type { ThreadListingRow } from '@meith/threads'
-import type { MemberProfileRecord } from '@meith/accounts'
 
 export const SEED_GROUP = {
   guest: 1,
@@ -96,16 +92,9 @@ export const SEED_BOARD: MemoryBoard = {
   groups: GROUPS,
   chains: {
     [SEED_FORUM.main]: [SEED_FORUM.main],
-    [SEED_FORUM.announcements]: [
-      SEED_FORUM.announcements,
-      SEED_FORUM.main,
-    ],
+    [SEED_FORUM.announcements]: [SEED_FORUM.announcements, SEED_FORUM.main],
     [SEED_FORUM.general]: [SEED_FORUM.general, SEED_FORUM.main],
-    [SEED_FORUM.generalOffTopic]: [
-      SEED_FORUM.generalOffTopic,
-      SEED_FORUM.general,
-      SEED_FORUM.main,
-    ],
+    [SEED_FORUM.generalOffTopic]: [SEED_FORUM.generalOffTopic, SEED_FORUM.general, SEED_FORUM.main],
   },
   overrides: [
     {

@@ -1,11 +1,14 @@
 import type { Metadata } from 'next'
 
-import { PanelPage } from '@/components/shell/panel-page'
+import { cn } from '@meith/ui'
+
 import {
   ApplyPromotionsForm,
   NewPromotionRuleForm,
   PromotionRuleRowForm,
 } from '@/components/admin/group-forms'
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE } from '@/components/shell/panel-list'
+import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import {
   groupAdminRepository,
@@ -13,8 +16,6 @@ import {
   promotionRuleRepository,
 } from '@/server/group-admin'
 import { promotionRuleFormValues, promotionRuleSummary } from '@/view/promotion-rules'
-import { PANEL_CARD, PANEL_LIST, PANEL_NOTE } from '@/components/shell/panel-list'
-import { cn } from '@meith/ui'
 
 export const metadata: Metadata = { title: 'Promotions' }
 
@@ -54,9 +55,9 @@ export default async function AdminPromotionsPage() {
       title="Promotions"
       lede={
         <>
-          A promotion rule moves a member into a group once they have earned it. The rules
-          are here, and beneath them is what they would do right now — the same evaluation
-          the scheduled task runs, with the writing turned off.
+          A promotion rule moves a member into a group once they have earned it. The rules are here,
+          and beneath them is what they would do right now — the same evaluation the scheduled task
+          runs, with the writing turned off.
         </>
       }
       gap="loose"
@@ -66,8 +67,8 @@ export default async function AdminPromotionsPage() {
 
         {stored.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No rule is configured, so nothing is ever promoted. Add one below and this
-            page will show who it would move.
+            No rule is configured, so nothing is ever promoted. Add one below and this page will
+            show who it would move.
           </p>
         ) : (
           <div className="flex flex-col divide-y divide-border">
@@ -77,10 +78,7 @@ export default async function AdminPromotionsPage() {
                   {promotionRuleSummary(rule, title)}
                   {rule.enabled ? '' : ' · disabled'}
                 </p>
-                <PromotionRuleRowForm
-                  rule={promotionRuleFormValues(rule)}
-                  groups={options}
-                />
+                <PromotionRuleRowForm rule={promotionRuleFormValues(rule)} groups={options} />
               </div>
             ))}
           </div>
@@ -114,8 +112,8 @@ export default async function AdminPromotionsPage() {
                 >
                   <span className="font-medium">member {outcome.userId}</span>
                   <span className="text-muted-foreground">
-                    {title(outcome.fromPrimaryGroupId)} → {title(outcome.toPrimaryGroupId)}{' '}
-                    · {outcome.ruleTitle}
+                    {title(outcome.fromPrimaryGroupId)} → {title(outcome.toPrimaryGroupId)} ·{' '}
+                    {outcome.ruleTitle}
                   </span>
                 </li>
               ))}
@@ -130,10 +128,10 @@ export default async function AdminPromotionsPage() {
       </section>
 
       <p className="text-xs text-muted-foreground">
-        A promotion never lifts a ban, never demotes, and never re-applies to somebody
-        already in the target group. Banned members and staff are skipped entirely,
-        whatever the rules say. An enabled rule is also applied without anybody pressing
-        anything, by the <code>promotions.apply</code> task, every six hours.
+        A promotion never lifts a ban, never demotes, and never re-applies to somebody already in
+        the target group. Banned members and staff are skipped entirely, whatever the rules say. An
+        enabled rule is also applied without anybody pressing anything, by the{' '}
+        <code>promotions.apply</code> task, every six hours.
       </p>
     </PanelPage>
   )

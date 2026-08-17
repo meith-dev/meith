@@ -12,10 +12,7 @@ export interface ThreadTally {
   readonly threadAuthorId: number | null
 }
 
-export async function tallyThread(
-  tx: CounterTx,
-  threadId: number,
-): Promise<ThreadTally> {
+export async function tallyThread(tx: CounterTx, threadId: number): Promise<ThreadTally> {
   const rows = resultRows(
     await tx.execute(sql`
       select p.author_user_id, count(*)::int as n
@@ -36,8 +33,7 @@ export async function tallyThread(
         ? []
         : [{ userId: Number(row.author_user_id), posts: Number(row.n) }],
     ),
-    threadAuthorId:
-      owner[0]?.author_user_id == null ? null : Number(owner[0].author_user_id),
+    threadAuthorId: owner[0]?.author_user_id == null ? null : Number(owner[0].author_user_id),
   }
 }
 
@@ -80,11 +76,7 @@ export async function applyAuthorCounts(
   }
 }
 
-export async function syncLedger(
-  tx: CounterTx,
-  threadId: number,
-  counted: boolean,
-): Promise<void> {
+export async function syncLedger(tx: CounterTx, threadId: number, counted: boolean): Promise<void> {
   if (counted) {
     await tx.execute(sql`
       insert into content_counter_rollups (post_id)

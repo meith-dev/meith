@@ -1,19 +1,20 @@
 import 'server-only'
 
+import { unstable_cache } from 'next/cache'
+
 import { CacheTags, ForbiddenError } from '@meith/core'
 import {
-  compileVocabulary,
-  compileWordFilter,
-  type BoardVocabulary,
-  type CompiledWordFilter,
-} from '@meith/markdown'
-import {
+  getDb,
   PostgresAttachmentAdminRepository,
   PostgresContentAdminRepository,
-  getDb,
   readVocabularySource,
 } from '@meith/db'
-import { unstable_cache } from 'next/cache'
+import {
+  type BoardVocabulary,
+  type CompiledWordFilter,
+  compileVocabulary,
+  compileWordFilter,
+} from '@meith/markdown'
 
 import { getContainer } from './container'
 

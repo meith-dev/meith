@@ -66,10 +66,13 @@ export const SETTING_DEFINITIONS = [
       'job or a mail template knows the request that caused it. Left empty, mail ' +
       'still arrives and carries no link. Setting APP_URL in the environment ' +
       'overrides this and makes the box below inert.',
-    schema: z.string().trim().refine(
-      (value) => value === '' || isUsableOrigin(value),
-      'Give an absolute http(s) address with no path — https://forum.example.',
-    ),
+    schema: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value === '' || isUsableOrigin(value),
+        'Give an absolute http(s) address with no path — https://forum.example.',
+      ),
     default: '',
     invalidates: ['settings', 'layout'],
   }),
@@ -214,7 +217,7 @@ export const SETTING_DEFINITIONS = [
     description:
       'Seconds after posting during which an author fixing their own post ' +
       'leaves no "edited by" notice on it. 0 always shows the notice. A ' +
-      'moderator editing somebody else\'s post is never silent, however soon ' +
+      "moderator editing somebody else's post is never silent, however soon " +
       'it happens, and the revision history records every edit either way — ' +
       'this hides the line under the post, nothing else.',
     schema: z.number().int().min(0).max(86_400),
@@ -355,19 +358,20 @@ export const SETTING_DEFINITIONS = [
       'provider has verified — a sender the provider does not recognise is ' +
       'rejected outright, and the rejection is not retried because it would ' +
       'fail identically every time.',
-    schema: z.string().trim().refine(
-      (value) => value === '' || z.string().email().safeParse(value).success,
-      'That does not look like an e-mail address.',
-    ),
+    schema: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value === '' || z.string().email().safeParse(value).success,
+        'That does not look like an e-mail address.',
+      ),
     default: '',
   }),
   define({
     key: 'mail.from_name',
     group: 'mail',
     label: 'Sender name',
-    description:
-      'Display name shown beside the sender address. Empty sends the bare ' +
-      'address.',
+    description: 'Display name shown beside the sender address. Empty sends the bare ' + 'address.',
     schema: z.string().max(100),
     default: '',
   }),
@@ -380,10 +384,13 @@ export const SETTING_DEFINITIONS = [
       'field names with a Bearer token, so this works for Resend and for ' +
       'anything that copies it — and not for Postmark or Mailgun, whose SMTP ' +
       'hosts are the way in.',
-    schema: z.string().trim().refine(
-      (value) => value === '' || z.string().url().safeParse(value).success,
-      'That is not a URL.',
-    ),
+    schema: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value === '' || z.string().url().safeParse(value).success,
+        'That is not a URL.',
+      ),
     default: '',
   }),
   define({
@@ -840,10 +847,13 @@ export const SETTING_DEFINITIONS = [
       'The issuer, with no trailing slash and no path of its own — the board asks ' +
       'it for /.well-known/openid-configuration and reads every endpoint from ' +
       'there, so nothing else needs configuring.',
-    schema: z.string().trim().refine(
-      (value) => value === '' || isUsableIssuer(value),
-      'Give the absolute https address of the issuer — https://login.example.com.',
-    ),
+    schema: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value === '' || isUsableIssuer(value),
+        'Give the absolute https address of the issuer — https://login.example.com.',
+      ),
     default: '',
     invalidates: ['settings', 'layout'],
   }),
@@ -945,10 +955,9 @@ export const SETTING_DEFINITIONS = [
 
 export type SettingKey = (typeof SETTING_DEFINITIONS)[number]['key']
 
-export const SETTING_DEFINITION_BY_KEY = new Map<
-  string,
-  SettingDefinition<unknown>
->(SETTING_DEFINITIONS.map((d) => [d.key, d as SettingDefinition<unknown>]))
+export const SETTING_DEFINITION_BY_KEY = new Map<string, SettingDefinition<unknown>>(
+  SETTING_DEFINITIONS.map((d) => [d.key, d as SettingDefinition<unknown>]),
+)
 
 export type SettingValue<K extends SettingKey> = Extract<
   (typeof SETTING_DEFINITIONS)[number],

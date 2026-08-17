@@ -1,9 +1,10 @@
 import 'server-only'
 
+import { notFound, permanentRedirect } from 'next/navigation'
+
 import { env } from '@meith/core'
 import { getDb, resolveLegacyId } from '@meith/db'
-import { legacyRedirectPath, resolveLegacyUrl, type LegacyTarget } from '@meith/import'
-import { notFound, permanentRedirect } from 'next/navigation'
+import { type LegacyTarget, legacyRedirectPath, resolveLegacyUrl } from '@meith/import'
 
 import { getContainer } from './container'
 import { getSettings } from './settings'

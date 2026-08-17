@@ -7,11 +7,11 @@ import { permissionsCarryPower } from '@meith/db'
 import type { PromotionRuleInput } from '@meith/groups'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
+import type { FormState } from './auth-form-state'
 import { formStateReporter } from './form-state-reporter'
 import { checkbox, trimmedText } from './form-values'
 import { promotionService, requireGroupAdmin, requirePromotionRules } from './group-admin'
 import { assertSafeCssValue } from './theme-style'
-import type { FormState } from './auth-form-state'
 
 const CHUNK = 500
 
@@ -156,10 +156,7 @@ export async function saveGroupPermissionsAction(
   }
 }
 
-export async function createGroupAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function createGroupAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
 
@@ -196,10 +193,7 @@ export async function createGroupAction(
   }
 }
 
-export async function deleteGroupAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function deleteGroupAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireFreshAdmin()
     const id = groupId(form)
@@ -219,10 +213,7 @@ export async function deleteGroupAction(
   }
 }
 
-export async function moveMembersAction(
-  _prev: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function moveMembersAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireFreshAdmin()
     const from = groupId(form, 'fromGroupId')
@@ -341,10 +332,7 @@ export async function deletePromotionRuleAction(
   }
 }
 
-export async function applyPromotionsAction(
-  _prev: FormState,
-  _form: FormData,
-): Promise<FormState> {
+export async function applyPromotionsAction(_prev: FormState, _form: FormData): Promise<FormState> {
   try {
     await requireFreshAdmin()
 

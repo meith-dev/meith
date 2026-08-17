@@ -1,15 +1,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { truncateIp } from '@meith/core'
-import { REMEMBER_ROTATION_GRACE_SECONDS } from '@meith/accounts'
-
-import { createTestDb, type TestDb } from './pglite.fixture'
-import {
-  createPostgresAccountStore,
-} from './account-repos'
-import { PostgresModCpRepository } from './modcp-repo'
-import { credentialTokens, loginAttempts, rememberTokens, sessions, usergroups } from './schema'
 import type { AccountStore } from '@meith/accounts'
+import { REMEMBER_ROTATION_GRACE_SECONDS } from '@meith/accounts'
+import { truncateIp } from '@meith/core'
+
+import { createPostgresAccountStore } from './account-repos'
+import { PostgresModCpRepository } from './modcp-repo'
+import { createTestDb, type TestDb } from './pglite.fixture'
+import { credentialTokens, loginAttempts, rememberTokens, sessions, usergroups } from './schema'
 
 describe('Postgres account repositories', () => {
   let h: TestDb
@@ -188,7 +186,11 @@ describe('Postgres account repositories', () => {
     })
 
     it('revokeAllForUser only stamps live sessions (audit trail stays honest)', async () => {
-      await store.sessions.create({ tokenHash: 's1', userId, expiresAt: new Date(Date.now() + 60_000) })
+      await store.sessions.create({
+        tokenHash: 's1',
+        userId,
+        expiresAt: new Date(Date.now() + 60_000),
+      })
       await store.sessions.revokeAllForUser(userId)
       const firstStamp = (await store.sessions.findByTokenHash('s1'))!.revokedAt
       expect(firstStamp).not.toBeNull()
@@ -200,8 +202,16 @@ describe('Postgres account repositories', () => {
     })
 
     it('supersede links old→new and revokes the old row in one write', async () => {
-      const oldS = await store.sessions.create({ tokenHash: 'old', userId, expiresAt: new Date(Date.now() + 60_000) })
-      const newS = await store.sessions.create({ tokenHash: 'new', userId, expiresAt: new Date(Date.now() + 60_000) })
+      const oldS = await store.sessions.create({
+        tokenHash: 'old',
+        userId,
+        expiresAt: new Date(Date.now() + 60_000),
+      })
+      const newS = await store.sessions.create({
+        tokenHash: 'new',
+        userId,
+        expiresAt: new Date(Date.now() + 60_000),
+      })
       const now = new Date()
       await store.sessions.supersede(oldS.id, newS.id, now)
 
@@ -234,7 +244,11 @@ describe('Postgres account repositories', () => {
     })
 
     it('touchLocation writes once, then skips inside the throttle window', async () => {
-      const s = await store.sessions.create({ tokenHash: 'loc', userId, expiresAt: new Date(Date.now() + 60_000) })
+      const s = await store.sessions.create({
+        tokenHash: 'loc',
+        userId,
+        expiresAt: new Date(Date.now() + 60_000),
+      })
       const t0 = new Date()
       const loc = { path: '/f/1', forumId: 1, threadId: null }
 
@@ -242,10 +256,20 @@ describe('Postgres account repositories', () => {
       const wrote1 = await store.sessions.touchLocation(s.id, loc, later, 60)
       expect(wrote1).toBe(true)
 
-      const wrote2 = await store.sessions.touchLocation(s.id, { path: '/f/2', forumId: 2, threadId: null }, new Date(later.getTime() + 10_000), 60)
+      const wrote2 = await store.sessions.touchLocation(
+        s.id,
+        { path: '/f/2', forumId: 2, threadId: null },
+        new Date(later.getTime() + 10_000),
+        60,
+      )
       expect(wrote2).toBe(false)
 
-      const wrote3 = await store.sessions.touchLocation(s.id, loc, new Date(later.getTime() + 61_000), 60)
+      const wrote3 = await store.sessions.touchLocation(
+        s.id,
+        loc,
+        new Date(later.getTime() + 61_000),
+        60,
+      )
       expect(wrote3).toBe(true)
     })
   })
@@ -268,14 +292,22 @@ describe('Postgres account repositories', () => {
 
     it('flags reuse when a spent token is presented again, later', async () => {
       const at = new Date()
-      const afterGrace = new Date(
-        at.getTime() + (REMEMBER_ROTATION_GRACE_SECONDS + 1) * 1_000,
-      )
+      const afterGrace = new Date(at.getTime() + (REMEMBER_ROTATION_GRACE_SECONDS + 1) * 1_000)
 
       await store.remember.issue({ tokenHash: 'r0', familyId: 'fam', userId, expiresAt: future() })
-      await store.remember.rotate({ presentedHash: 'r0', nextHash: 'r1', now: at, nextExpiresAt: future() })
+      await store.remember.rotate({
+        presentedHash: 'r0',
+        nextHash: 'r1',
+        now: at,
+        nextExpiresAt: future(),
+      })
 
-      const replay = await store.remember.rotate({ presentedHash: 'r0', nextHash: 'rX', now: afterGrace, nextExpiresAt: future() })
+      const replay = await store.remember.rotate({
+        presentedHash: 'r0',
+        nextHash: 'rX',
+        now: afterGrace,
+        nextExpiresAt: future(),
+      })
       expect(replay).toEqual({ status: 'reuse', userId, familyId: 'fam' })
       expect(await store.remember.findByTokenHash('rX')).toBeNull()
     })
@@ -285,9 +317,19 @@ describe('Postgres account repositories', () => {
       const moments = new Date(at.getTime() + 1_000)
 
       await store.remember.issue({ tokenHash: 'r0', familyId: 'fam', userId, expiresAt: future() })
-      await store.remember.rotate({ presentedHash: 'r0', nextHash: 'r1', now: at, nextExpiresAt: future() })
+      await store.remember.rotate({
+        presentedHash: 'r0',
+        nextHash: 'r1',
+        now: at,
+        nextExpiresAt: future(),
+      })
 
-      const concurrent = await store.remember.rotate({ presentedHash: 'r0', nextHash: 'r2', now: moments, nextExpiresAt: future() })
+      const concurrent = await store.remember.rotate({
+        presentedHash: 'r0',
+        nextHash: 'r2',
+        now: moments,
+        nextExpiresAt: future(),
+      })
       expect(concurrent).toEqual({ status: 'rotated', userId, familyId: 'fam' })
       expect(await store.remember.findByTokenHash('r1')).not.toBeNull()
       expect(await store.remember.findByTokenHash('r2')).not.toBeNull()
@@ -296,23 +338,43 @@ describe('Postgres account repositories', () => {
     it('refuses a revoked family even inside the grace window', async () => {
       const at = new Date()
       await store.remember.issue({ tokenHash: 'r0', familyId: 'fam', userId, expiresAt: future() })
-      await store.remember.rotate({ presentedHash: 'r0', nextHash: 'r1', now: at, nextExpiresAt: future() })
+      await store.remember.rotate({
+        presentedHash: 'r0',
+        nextHash: 'r1',
+        now: at,
+        nextExpiresAt: future(),
+      })
       await store.remember.revokeFamily('fam', 'token_reuse', at)
 
-      const out = await store.remember.rotate({ presentedHash: 'r0', nextHash: 'r2', now: new Date(at.getTime() + 1_000), nextExpiresAt: future() })
+      const out = await store.remember.rotate({
+        presentedHash: 'r0',
+        nextHash: 'r2',
+        now: new Date(at.getTime() + 1_000),
+        nextExpiresAt: future(),
+      })
       expect(out.status).toBe('reuse')
       expect(await store.remember.findByTokenHash('r2')).toBeNull()
     })
 
     it('returns invalid for an unknown token', async () => {
-      const out = await store.remember.rotate({ presentedHash: 'ghost', nextHash: 'n', now: new Date(), nextExpiresAt: future() })
+      const out = await store.remember.rotate({
+        presentedHash: 'ghost',
+        nextHash: 'n',
+        now: new Date(),
+        nextExpiresAt: future(),
+      })
       expect(out).toEqual({ status: 'invalid' })
     })
 
     it('revokeFamily makes every token in the family flag reuse on rotate', async () => {
       await store.remember.issue({ tokenHash: 'r0', familyId: 'fam', userId, expiresAt: future() })
       await store.remember.revokeFamily('fam', 'token_reuse', new Date())
-      const out = await store.remember.rotate({ presentedHash: 'r0', nextHash: 'n', now: new Date(), nextExpiresAt: future() })
+      const out = await store.remember.rotate({
+        presentedHash: 'r0',
+        nextHash: 'n',
+        now: new Date(),
+        nextExpiresAt: future(),
+      })
       expect(out.status).toBe('reuse')
     })
   })

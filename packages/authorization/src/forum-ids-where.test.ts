@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { emptyPermissionSet, type PermissionSet } from '@meith/core'
 
 import { Authorizer, type BypassEvent } from './authorizer'
+import { combinePermissionSets } from './combine'
 import {
   InMemoryAuthorizationSource,
   type MemoryAppointment,
   type MemoryBoard,
 } from './memory-source'
-import { combinePermissionSets } from './combine'
 import type { Action, Actor } from './types'
 
 const GROUP = { registered: 2, staff: 3, admin: 4, superMod: 5 } as const

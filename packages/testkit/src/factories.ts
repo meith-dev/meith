@@ -1,5 +1,6 @@
-import { schema, type Database } from '@meith/db'
 import { eq, sql } from 'drizzle-orm'
+
+import { type Database, schema } from '@meith/db'
 
 export type FactoryUser = typeof schema.users.$inferSelect
 export type FactoryForum = typeof schema.forums.$inferSelect
@@ -45,7 +46,8 @@ export function createFactories(db: Database) {
       .limit(1)
       .then((rows) => {
         const id = rows[0]?.id
-        if (id === undefined) throw new Error('createFactories: migrations have not seeded registered')
+        if (id === undefined)
+          throw new Error('createFactories: migrations have not seeded registered')
         return id
       })
     return registeredGroup
@@ -93,7 +95,8 @@ export function createFactories(db: Database) {
       .set({ path })
       .where(eq(schema.forums.id, created.id))
       .returning()
-    if (withPath === undefined) throw new Error('createFactories: forum path update returned no row')
+    if (withPath === undefined)
+      throw new Error('createFactories: forum path update returned no row')
     return withPath
   }
 

@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   createStripeClient,
   encodeStripeForm,
-  sessionFromApi,
   StripeError,
+  sessionFromApi,
   subscriptionFromApi,
 } from './client'
 
@@ -12,9 +12,7 @@ describe('encodeStripeForm', () => {
   it('encodes nesting in bracket notation and arrays by index', () => {
     const encoded = encodeStripeForm({
       mode: 'payment',
-      line_items: [
-        { quantity: 1, price_data: { currency: 'gbp', unit_amount: 500 } },
-      ],
+      line_items: [{ quantity: 1, price_data: { currency: 'gbp', unit_amount: 500 } }],
       metadata: { dues_order_id: '42' },
     })
 
@@ -32,9 +30,10 @@ describe('encodeStripeForm', () => {
   })
 })
 
-function fetchScript(
-  responses: Array<{ status: number; body: unknown }>,
-): { fetchImpl: typeof fetch; calls: Array<{ url: string; init: RequestInit }> } {
+function fetchScript(responses: Array<{ status: number; body: unknown }>): {
+  fetchImpl: typeof fetch
+  calls: Array<{ url: string; init: RequestInit }>
+} {
   const calls: Array<{ url: string; init: RequestInit }> = []
   const fetchImpl = (async (url: RequestInfo | URL, init?: RequestInit) => {
     calls.push({ url: String(url), init: init ?? {} })
@@ -102,7 +101,9 @@ describe('failure and retry', () => {
     const script = fetchScript([
       {
         status: 402,
-        body: { error: { message: 'Your card was declined.', code: 'card_declined', type: 'card_error' } },
+        body: {
+          error: { message: 'Your card was declined.', code: 'card_declined', type: 'card_error' },
+        },
       },
     ])
 
@@ -165,10 +166,7 @@ describe('response parsing across API versions', () => {
       status: 'active',
       cancel_at_period_end: true,
       items: {
-        data: [
-          { current_period_end: 1_760_000_000 },
-          { current_period_end: 1_760_100_000 },
-        ],
+        data: [{ current_period_end: 1_760_000_000 }, { current_period_end: 1_760_100_000 }],
       },
     })
     expect(basil.currentPeriodEnd).toEqual(new Date(1_760_100_000 * 1000))

@@ -1,9 +1,6 @@
 import type { SettingsSnapshot } from './store'
 
-export type MailSecurity =
-  | 'tls'
-  | 'starttls'
-  | 'none'
+export type MailSecurity = 'tls' | 'starttls' | 'none'
 
 export type MailTransport = 'log' | 'http' | 'smtp'
 
@@ -44,9 +41,7 @@ export interface MailEnvironment {
   readonly MAIL_SMTP_PASSWORD?: string | undefined
 }
 
-export type MailSource =
-  | 'environment'
-  | 'board'
+export type MailSource = 'environment' | 'board'
 
 export interface MailResolution {
   readonly config: MailConfig

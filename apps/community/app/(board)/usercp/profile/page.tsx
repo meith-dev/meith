@@ -3,10 +3,10 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@meith/theme-kit'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { DisplayGroupForm, ProfileForm } from '@/components/account/usercp-forms'
-import { getActor } from '@/server/context'
+import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
+import { getActor } from '@/server/context'
 import { profileFieldService, viewerFieldContext } from '@/server/profile-fields'
 import { currentTheme } from '@/server/theme'
 import {
@@ -63,11 +63,7 @@ export default async function ProfileSettingsPage({
       }
     >
       {notice !== null && (
-        <Notice
-          kind={notice.kind}
-          message={notice.message}
-          dismissHref="/usercp/profile"
-        />
+        <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/profile" />
       )}
 
       <ProfileForm {...values} customFields={customFields} />

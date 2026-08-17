@@ -1,45 +1,45 @@
-"use client"
+'use client'
 
 export interface PasskeyProblem {
   readonly message: string
 }
 
 function base64UrlToBytes(value: string): Uint8Array {
-  const padded = value.replace(/-/g, "+").replace(/_/g, "/")
-  const binary = atob(padded.padEnd(Math.ceil(padded.length / 4) * 4, "="))
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/')
+  const binary = atob(padded.padEnd(Math.ceil(padded.length / 4) * 4, '='))
   return Uint8Array.from(binary, (character) => character.charCodeAt(0))
 }
 
 function bytesToBase64Url(buffer: ArrayBuffer): string {
-  let binary = ""
+  let binary = ''
   for (const byte of new Uint8Array(buffer)) binary += String.fromCharCode(byte)
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
 export function passkeysAvailable(): boolean {
   return (
-    typeof window !== "undefined" &&
-    typeof window.PublicKeyCredential === "function" &&
-    typeof navigator.credentials?.create === "function"
+    typeof window !== 'undefined' &&
+    typeof window.PublicKeyCredential === 'function' &&
+    typeof navigator.credentials?.create === 'function'
   )
 }
 
 async function readProblem(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as { error?: { message?: string } }
-    return body.error?.message ?? "That did not work. Try again."
+    return body.error?.message ?? 'That did not work. Try again.'
   } catch {
-    return "That did not work. Try again."
+    return 'That did not work. Try again.'
   }
 }
 
-type Purpose = "register" | "authenticate" | "second-factor"
+type Purpose = 'register' | 'authenticate' | 'second-factor'
 
 async function options(purpose: Purpose): Promise<Record<string, unknown>> {
   const response = await fetch(`/auth/passkey/options?for=${purpose}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: "{}",
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{}',
   })
 
   if (!response.ok) throw new Error(await readProblem(response))
@@ -51,8 +51,8 @@ async function submit(
   body: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
   const response = await fetch(`/auth/passkey/verify?for=${purpose}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })
 
@@ -61,7 +61,7 @@ async function submit(
 }
 
 export async function enrolPasskey(label: string): Promise<void> {
-  const issued = await options("register")
+  const issued = await options('register')
 
   const credential = (await navigator.credentials.create({
     publicKey: {
@@ -73,31 +73,29 @@ export async function enrolPasskey(label: string): Promise<void> {
       },
       pubKeyCredParams: issued.pubKeyCredParams as PublicKeyCredentialParameters[],
       excludeCredentials: (issued.excludeCredentials as { id: string }[]).map((entry) => ({
-        type: "public-key" as const,
+        type: 'public-key' as const,
         id: base64UrlToBytes(entry.id),
       })),
-      authenticatorSelection:
-        issued.authenticatorSelection as AuthenticatorSelectionCriteria,
+      authenticatorSelection: issued.authenticatorSelection as AuthenticatorSelectionCriteria,
       timeout: issued.timeout as number,
-      attestation: "none",
+      attestation: 'none',
     },
   })) as PublicKeyCredential | null
 
-  if (credential === null) throw new Error("No passkey was created.")
+  if (credential === null) throw new Error('No passkey was created.')
 
   const response = credential.response as AuthenticatorAttestationResponse
 
-  await submit("register", {
+  await submit('register', {
     label,
     clientDataJSON: bytesToBase64Url(response.clientDataJSON),
     attestationObject: bytesToBase64Url(response.attestationObject),
-    transports:
-      typeof response.getTransports === "function" ? response.getTransports() : [],
+    transports: typeof response.getTransports === 'function' ? response.getTransports() : [],
   })
 }
 
 export async function signInWithPasskey(next: string | undefined): Promise<string> {
-  return assertPasskey("authenticate", next)
+  return assertPasskey('authenticate', next)
 }
 
 /**
@@ -106,11 +104,11 @@ export async function signInWithPasskey(next: string | undefined): Promise<strin
  * browser offers only the keys that could finish this particular sign-in.
  */
 export async function confirmWithPasskey(next: string | undefined): Promise<string> {
-  return assertPasskey("second-factor", next)
+  return assertPasskey('second-factor', next)
 }
 
 async function assertPasskey(
-  purpose: Exclude<Purpose, "register">,
+  purpose: Exclude<Purpose, 'register'>,
   next: string | undefined,
 ): Promise<string> {
   const issued = await options(purpose)
@@ -127,14 +125,14 @@ async function assertPasskey(
         ? {}
         : {
             allowCredentials: allow.map((entry) => ({
-              type: "public-key" as const,
+              type: 'public-key' as const,
               id: base64UrlToBytes(entry.id),
             })),
           }),
     },
   })) as PublicKeyCredential | null
 
-  if (credential === null) throw new Error("No passkey was offered.")
+  if (credential === null) throw new Error('No passkey was offered.')
 
   const response = credential.response as AuthenticatorAssertionResponse
 
@@ -146,12 +144,12 @@ async function assertPasskey(
     ...(next === undefined ? {} : { next }),
   })
 
-  return typeof outcome.next === "string" ? outcome.next : "/"
+  return typeof outcome.next === 'string' ? outcome.next : '/'
 }
 
 export function passkeyMessage(error: unknown): string {
-  if (error instanceof DOMException && error.name === "NotAllowedError") {
-    return "That was cancelled, so nothing changed."
+  if (error instanceof DOMException && error.name === 'NotAllowedError') {
+    return 'That was cancelled, so nothing changed.'
   }
-  return error instanceof Error ? error.message : "That did not work. Try again."
+  return error instanceof Error ? error.message : 'That did not work. Try again.'
 }

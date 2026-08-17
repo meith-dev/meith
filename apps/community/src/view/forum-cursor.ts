@@ -1,13 +1,9 @@
 import type { ThreadCursor } from '@meith/threads'
 
-export function decodeForumCursor(
-  value: string | undefined,
-): ThreadCursor | null | undefined {
+export function decodeForumCursor(value: string | undefined): ThreadCursor | null | undefined {
   if (value === undefined) return undefined
   try {
-    const parsed: unknown = JSON.parse(
-      Buffer.from(value, 'base64url').toString('utf8'),
-    )
+    const parsed: unknown = JSON.parse(Buffer.from(value, 'base64url').toString('utf8'))
     if (
       typeof parsed !== 'object' ||
       parsed === null ||

@@ -1,12 +1,14 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { canHoldThreads } from '@meith/forums'
 import { ThreadRatingService } from '@meith/polls'
+
 import { getContainer } from './container'
 import { getActor } from './context'
 import { getSettings } from './settings'
-import { canHoldThreads } from '@meith/forums'
 
 const number = (form: FormData, name: string) => {
   const value = Number(form.get(name))

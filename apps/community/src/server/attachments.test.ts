@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
-import type { Actor } from '@meith/authorization'
 import type { AttachmentForDownload, AttachmentRecord } from '@meith/attachments'
+import type { Actor } from '@meith/authorization'
+import { combinePermissionSets, InMemoryAuthorizationSource } from '@meith/authorization'
 
 const actorRef: { current: Actor | null } = { current: null }
 vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
@@ -44,13 +44,8 @@ vi.mock('@meith/drivers/images', () => ({
   },
 }))
 
-const {
-  attachmentLimits,
-  canAttach,
-  resolveDownload,
-  stageAttachments,
-  submittedFiles,
-} = await import('./attachments')
+const { attachmentLimits, canAttach, resolveDownload, stageAttachments, submittedFiles } =
+  await import('./attachments')
 const { SEED_BOARD, SEED_GROUP, SEED_FORUM } = await import('./seed-board')
 const { installTestContainer } = await import('./test-container')
 
@@ -142,10 +137,7 @@ async function actorFor(groupId: number, userId: number | null): Promise<Actor> 
   }
 }
 
-async function scope(
-  actor: Actor,
-  { forumId = PUBLIC_FORUM, allowsAttachments = true } = {},
-) {
+async function scope(actor: Actor, { forumId = PUBLIC_FORUM, allowsAttachments = true } = {}) {
   const installed = (
     globalThis as Record<
       symbol,
@@ -187,9 +179,7 @@ describe('the composer control', () => {
 
   it('is absent in a forum that does not take attachments, permission or not', async () => {
     const actor = actorRef.current!
-    expect(
-      canAttach(actor, await scope(actor, { allowsAttachments: false })),
-    ).toBe(false)
+    expect(canAttach(actor, await scope(actor, { allowsAttachments: false }))).toBe(false)
   })
 })
 

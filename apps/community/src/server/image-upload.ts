@@ -47,7 +47,10 @@ export function sniff(bytes: Uint8Array): ImageFormat | null {
 
 function isSvg(bytes: Uint8Array): boolean {
   const decoder = new TextDecoder('utf-8', { fatal: false })
-  const head = decoder.decode(bytes.slice(0, 4096)).replace(/^\uFEFF/, '').trimStart()
+  const head = decoder
+    .decode(bytes.slice(0, 4096))
+    .replace(/^\uFEFF/, '')
+    .trimStart()
 
   const looksSvg = head.startsWith('<svg') || /^<\?xml[\s\S]{0,512}?<svg/i.test(head)
   if (!looksSvg) return false
@@ -91,7 +94,9 @@ export async function storeImage(prefix: string, name: string, file: File): Prom
 
 export async function forgetImage(key: string | null): Promise<void> {
   if (key === null || key === '') return
-  await drivers().files.delete(key).catch(() => {})
+  await drivers()
+    .files.delete(key)
+    .catch(() => {})
 }
 
 export function contentTypeFor(key: string): string {

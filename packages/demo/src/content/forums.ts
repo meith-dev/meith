@@ -32,7 +32,8 @@ export const DEMO_FORUMS: readonly DemoForum[] = [
     type: 'forum',
     title: 'Committee business',
     slug: 'committee-business',
-    description: 'Agendas, minutes, money before it is decided, and the things that need a decision before they need a thread.',
+    description:
+      'Agendas, minutes, money before it is decided, and the things that need a decision before they need a thread.',
     parent: 'cat-committee',
     access: 'staff',
   },
@@ -41,7 +42,8 @@ export const DEMO_FORUMS: readonly DemoForum[] = [
     type: 'forum',
     title: 'Moderation desk',
     slug: 'moderation-desk',
-    description: 'The queue, the reports, and the members who need a conversation rather than a warning.',
+    description:
+      'The queue, the reports, and the members who need a conversation rather than a warning.',
     parent: 'cat-committee',
     access: 'staff',
   },
@@ -50,7 +52,8 @@ export const DEMO_FORUMS: readonly DemoForum[] = [
     type: 'forum',
     title: 'Welfare and safeguarding',
     slug: 'welfare-and-safeguarding',
-    description: 'Vetting, training, and anything involving a child. Nothing in here leaves the room without the welfare officer.',
+    description:
+      'Vetting, training, and anything involving a child. Nothing in here leaves the room without the welfare officer.',
     parent: 'cat-committee',
     access: 'staff',
   },
@@ -77,7 +80,8 @@ export const DEMO_FORUMS: readonly DemoForum[] = [
     type: 'forum',
     title: "Supporters' lounge",
     slug: 'supporters-lounge',
-    description: 'The main room for members on the plan. No agenda, no committee, and no vote the rest of the club does not have.',
+    description:
+      'The main room for members on the plan. No agenda, no committee, and no vote the rest of the club does not have.',
     parent: 'cat-supporters',
     access: 'supporters',
   },
@@ -86,7 +90,8 @@ export const DEMO_FORUMS: readonly DemoForum[] = [
     type: 'forum',
     title: 'Where the money goes',
     slug: 'where-the-money-goes',
-    description: 'Every euro the plan brings in, itemised, a week before the rest of the club sees it.',
+    description:
+      'Every euro the plan brings in, itemised, a week before the rest of the club sees it.',
     parent: 'cat-supporters',
     access: 'supporters',
   },
@@ -95,7 +100,8 @@ export const DEMO_FORUMS: readonly DemoForum[] = [
     type: 'forum',
     title: 'First look',
     slug: 'first-look',
-    description: 'Kit designs, fixtures, plans and AGM papers, early enough that saying something about them still changes them.',
+    description:
+      'Kit designs, fixtures, plans and AGM papers, early enough that saying something about them still changes them.',
     parent: 'cat-supporters',
     access: 'supporters',
   },
@@ -104,7 +110,8 @@ export const DEMO_FORUMS: readonly DemoForum[] = [
     type: 'forum',
     title: "The supporters' draw",
     slug: 'supporters-draw',
-    description: 'Drawn on the first of the month. One number, one winner, and a photograph of the hat.',
+    description:
+      'Drawn on the first of the month. One number, one winner, and a photograph of the hat.',
     parent: 'cat-supporters',
     access: 'supporters',
   },
@@ -115,7 +122,8 @@ export const DEMO_FORUMS: readonly DemoForum[] = [
     type: 'forum',
     title: 'Announcements',
     slug: 'announcements',
-    description: 'Notices, closures, changes of plan, and anything the committee needs everyone to have read.',
+    description:
+      'Notices, closures, changes of plan, and anything the committee needs everyone to have read.',
     parent: 'cat-start',
   },
   {
@@ -163,7 +171,8 @@ export const DEMO_FORUMS: readonly DemoForum[] = [
     type: 'forum',
     title: 'Noticeboard',
     slug: 'noticeboard',
-    description: 'Lifts, lost property, volunteers wanted, and the small stuff that still needs saying.',
+    description:
+      'Lifts, lost property, volunteers wanted, and the small stuff that still needs saying.',
     parent: 'cat-community',
   },
   {

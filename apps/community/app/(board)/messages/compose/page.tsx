@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { PanelPage } from '@/components/shell/panel-page'
 import { ComposeForm } from '@/components/messages/message-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { messageService } from '@/server/messages'
@@ -27,13 +27,9 @@ export default async function ComposePage({
 
   const draft =
     reply !== null
-      ? await service
-          .replyDraft({ messageId: reply, userId: actor.userId })
-          .catch(() => null)
+      ? await service.replyDraft({ messageId: reply, userId: actor.userId }).catch(() => null)
       : forward !== null
-        ? await service
-            .forwardDraft({ messageId: forward, userId: actor.userId })
-            .catch(() => null)
+        ? await service.forwardDraft({ messageId: forward, userId: actor.userId }).catch(() => null)
         : null
 
   return (

@@ -1,16 +1,16 @@
+import type { CompiledWordFilter } from '@meith/markdown'
 import {
+  isRefined,
+  narrowerPeriod,
   SEARCH_GROUPINGS,
   SEARCH_MATCHES,
   SEARCH_PERIODS,
   SEARCH_SORTS,
-  isRefined,
-  narrowerPeriod,
   type SearchCursor,
   type SearchFilterSet,
   type SearchRefinement,
   type SearchSummary,
 } from '@meith/search'
-import type { CompiledWordFilter } from '@meith/markdown'
 import type {
   HiddenFieldModel,
   OptionModel,
@@ -22,14 +22,14 @@ import type {
 
 import { postLink } from './post-link'
 import {
+  choiceOptions,
   GROUPING_LABELS,
   MATCH_LABELS,
   PERIOD_LABELS,
   REFINE_FIELDS,
+  resultsHref,
   SEARCH_FIELDS,
   SORT_LABELS,
-  choiceOptions,
-  resultsHref,
 } from './search-controls'
 import { formatTime } from './time'
 import { filterWords } from './word-filter'
@@ -150,9 +150,7 @@ function buildRefine(input: SearchResultsInput): SearchRefineModel {
     submitLabel: 'Apply filters',
     applied,
     clearHref:
-      applied.length === 0
-        ? null
-        : href(refine.sort === undefined ? {} : { sort: refine.sort }),
+      applied.length === 0 ? null : href(refine.sort === undefined ? {} : { sort: refine.sort }),
   }
 }
 
@@ -178,9 +176,7 @@ function forumChoice(input: SearchResultsInput): SearchChoiceModel {
 function authorChoice(input: SearchResultsInput): SearchChoiceModel {
   const chosen = input.refine.authorUserIds ?? []
 
-  const options: OptionModel[] = [
-    { value: '', label: 'Anybody', isSelected: chosen.length === 0 },
-  ]
+  const options: OptionModel[] = [{ value: '', label: 'Anybody', isSelected: chosen.length === 0 }]
 
   for (const facet of input.summary.authors) {
     options.push({

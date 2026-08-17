@@ -1,6 +1,7 @@
-import { PromotionService, type PromotionGuards } from '@meith/groups'
 import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+
+import { type PromotionGuards, PromotionService } from '@meith/groups'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
@@ -78,10 +79,7 @@ async function groupOf(userId: number): Promise<number | null> {
 }
 
 async function displayGroupOf(userId: number): Promise<number | null> {
-  const [row] = await db
-    .select({ g: users.displayGroupId })
-    .from(users)
-    .where(eq(users.id, userId))
+  const [row] = await db.select({ g: users.displayGroupId }).from(users).where(eq(users.id, userId))
   return row?.g ?? null
 }
 
@@ -362,9 +360,7 @@ describe('rule writes', () => {
 
   it('refuses an edit or a toggle of a rule that is not there', async () => {
     await expect(repo.updateRule(9_999, INPUT)).rejects.toThrow(/no such promotion rule/i)
-    await expect(repo.setRuleEnabled(9_999, false)).rejects.toThrow(
-      /no such promotion rule/i,
-    )
+    await expect(repo.setRuleEnabled(9_999, false)).rejects.toThrow(/no such promotion rule/i)
   })
 
   it('refuses a rule that promotes a group into itself', async () => {
@@ -391,9 +387,9 @@ describe('rule writes', () => {
   it('refuses an edit that would make a stored rule invalid, leaving it as it was', async () => {
     const id = await repo.createRule(INPUT)
 
-    await expect(
-      repo.updateRule(id, { ...INPUT, toPrimaryGroupId: REGISTERED }),
-    ).rejects.toThrow(/into itself/i)
+    await expect(repo.updateRule(id, { ...INPUT, toPrimaryGroupId: REGISTERED })).rejects.toThrow(
+      /into itself/i,
+    )
 
     expect((await repo.listRules())[0]?.toPrimaryGroupId).toBe(VETERAN)
   })

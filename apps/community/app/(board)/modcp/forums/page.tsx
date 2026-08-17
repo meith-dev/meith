@@ -24,8 +24,8 @@ export default async function ModCpForumsPage() {
           <Empty className="py-8">
             <EmptyTitle>No forum appointments</EmptyTitle>
             <EmptyDescription>
-              You are not assigned to any forum. Your group permissions still apply
-              wherever they grant something.
+              You are not assigned to any forum. Your group permissions still apply wherever they
+              grant something.
             </EmptyDescription>
           </Empty>
         ) : (

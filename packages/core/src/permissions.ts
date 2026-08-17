@@ -1,8 +1,6 @@
 export type PermissionKind = 'boolean' | 'numeric' | 'negative'
 
-export type PermissionScope =
-  | 'global'
-  | 'forum'
+export type PermissionScope = 'global' | 'forum'
 
 export interface PermissionField {
   readonly key: string
@@ -366,17 +364,16 @@ export const PERMISSION_FIELDS = [
 
 export type PermissionKey = (typeof PERMISSION_FIELDS)[number]['key']
 
-export const FORUM_PERMISSION_FIELDS = PERMISSION_FIELDS.filter(
-  (f) => f.scope === 'forum',
-)
+export const FORUM_PERMISSION_FIELDS = PERMISSION_FIELDS.filter((f) => f.scope === 'forum')
 
 export type ForumPermissionKey = Extract<
   (typeof PERMISSION_FIELDS)[number],
   { scope: 'forum' }
 >['key']
 
-export const PERMISSION_FIELD_BY_KEY: Record<string, PermissionField> =
-  Object.fromEntries(PERMISSION_FIELDS.map((f) => [f.key, f]))
+export const PERMISSION_FIELD_BY_KEY: Record<string, PermissionField> = Object.fromEntries(
+  PERMISSION_FIELDS.map((f) => [f.key, f]),
+)
 
 export type PermissionSet = {
   [K in PermissionKey]: Extract<
