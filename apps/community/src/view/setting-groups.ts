@@ -32,8 +32,8 @@ export const DEFAULT_SETTING_GROUP: SettingGroup = GROUP_ORDER[0]!
 
 export const SETTING_GROUP_NAV: readonly {
   readonly href: string
-  readonly title: string
+  readonly titleKey: string
 }[] = GROUP_ORDER.map((group) => ({
   href: `/admin/settings?group=${group}`,
-  title: GROUP_LABELS[group],
+  titleKey: `setting.group.${group}`,
 }))

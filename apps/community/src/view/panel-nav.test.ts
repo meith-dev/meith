@@ -14,15 +14,18 @@ import {
 
 const SECTION: PanelSection = {
   href: '/panel/things',
-  title: 'Things',
-  blurb: 'Some things.',
+  titleText: 'Things',
+  blurbText: 'Some things.',
   children: [
-    { href: '/panel/things/new', title: 'New thing' },
-    { href: '/panel/things/edit', title: 'One thing', record: true },
+    { href: '/panel/things/new', titleText: 'New thing' },
+    { href: '/panel/things/edit', titleText: 'One thing', record: true },
   ],
 }
 
-const NAV: PanelNav = [{ href: '/panel', title: 'Overview', blurb: 'The front door.' }, SECTION]
+const NAV: PanelNav = [
+  { href: '/panel', titleText: 'Overview', blurbText: 'The front door.' },
+  SECTION,
+]
 
 describe('isUnder', () => {
   it('needs a segment boundary', () => {

@@ -7,9 +7,11 @@ import { PanelSectionGrid, PanelWaitingList } from '@/components/shell/panel-ove
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { unreadMessageCount } from '@/server/messages'
 import { unreadNotificationCount } from '@/server/notifications'
 import { currentTheme } from '@/server/theme'
+import { panelSectionCopy } from '@/view/panel-nav'
 import { USERCP_SECTIONS } from '@/view/usercp-nav'
 
 export const metadata: Metadata = { title: 'Your control panel' }
@@ -62,7 +64,7 @@ export default async function UserCpPage() {
       </PanelSection>
 
       <PanelSection id="sections-heading" title="Sections">
-        <PanelSectionGrid sections={USERCP_SECTIONS} />
+        <PanelSectionGrid sections={panelSectionCopy(USERCP_SECTIONS, await getTranslator())} />
       </PanelSection>
     </PanelPage>
   )

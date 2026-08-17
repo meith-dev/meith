@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { EN_CATALOG } from '@meith/i18n'
+
 import { flattenNav, isUnder } from './panel-nav'
 import {
   activeSectionHref,
@@ -105,6 +107,8 @@ describe('the tree itself', () => {
   })
 
   it('gives every section a sentence, because the index prints one', () => {
-    for (const section of USERCP_NAV) expect(section.blurb.length).toBeGreaterThan(0)
+    for (const section of USERCP_NAV) {
+      expect(EN_CATALOG[section.blurbKey!]?.length ?? 0).toBeGreaterThan(0)
+    }
   })
 })

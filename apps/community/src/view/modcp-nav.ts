@@ -16,47 +16,47 @@ export interface ModCpNavAccess {
 
 export const MODCP_OVERVIEW: PanelSection = {
   href: '/modcp',
-  title: 'Overview',
+  titleKey: 'modCpNav.modcp.title',
   icon: 'overview',
-  blurb: 'What is waiting across the forums you moderate, and where you may act.',
+  blurbKey: 'modCpNav.modcp.blurb',
 }
 
 export function modCpSections(access: ModCpNavAccess): PanelNav {
   return [
     {
       href: '/moderation',
-      title: 'Approval queue',
+      titleKey: 'modCpNav.moderation.title',
       icon: 'queue',
-      blurb: 'Posts and threads held for approval in the forums you moderate.',
+      blurbKey: 'modCpNav.moderation.blurb',
       children: access.canWarn
-        ? [{ href: '/moderation/warn', title: 'Warn a member', record: true }]
+        ? [{ href: '/moderation/warn', titleKey: 'modCpNav.moderation-warn.title', record: true }]
         : [],
     },
     {
       href: '/moderation/reports',
-      title: 'Reports',
+      titleKey: 'modCpNav.moderation-reports.title',
       icon: 'reports',
-      blurb: 'What members have reported, who has picked it up, and what came of it.',
+      blurbKey: 'modCpNav.moderation-reports.blurb',
     },
     {
       href: '/modcp/forums',
-      title: 'My forums',
+      titleKey: 'modCpNav.modcp-forums.title',
       icon: 'forums',
-      blurb: 'Where you are appointed, and exactly what you may do in each.',
+      blurbKey: 'modCpNav.modcp-forums.blurb',
     },
     {
       href: '/modcp/log',
-      title: 'Moderator log',
+      titleKey: 'modCpNav.modcp-log.title',
       icon: 'log',
-      blurb: 'What has been done in your forums, by whom, and when.',
+      blurbKey: 'modCpNav.modcp-log.blurb',
     },
     ...(access.canLookUpIp
       ? ([
           {
             href: '/modcp/ip',
-            title: 'Address lookup',
+            titleKey: 'modCpNav.modcp-ip.title',
             icon: 'ip',
-            blurb: 'Who else has posted from an address. Every lookup is logged.',
+            blurbKey: 'modCpNav.modcp-ip.blurb',
           },
         ] satisfies PanelNav)
       : []),

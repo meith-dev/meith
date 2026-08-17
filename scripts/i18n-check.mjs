@@ -143,16 +143,19 @@ if (messages === null || keys === null) {
 }
 
 const files = await repoFiles()
-const source = files.filter(({ rel }) => /\.(ts|tsx)$/.test(rel))
+const source = files.filter(
+  ({ rel }) => /\.(ts|tsx)$/.test(rel) && !/\.(test|type-test)\.tsx?$/.test(rel),
+)
 
 const CALL = /\.\s*(?:t|has)\(\s*'([\w.-]+)'/g
-const KEY_PREFIX = /^(error|nav|notification|presence|setting|stats|time)\./
+const CARRIED = /\b(?:title|blurb|label|description|message|publicMessage)Key:\s*'([\w.-]+)'/g
+const KEY_SHAPE = /^[a-z][\w-]*(?:\.[\w-]+)+$/
 
 for (const { abs, rel } of source) {
   const text = await readFile(abs, 'utf8')
-  for (const match of text.matchAll(CALL)) {
+  for (const match of [...text.matchAll(CALL), ...text.matchAll(CARRIED)]) {
     const key = match[1]
-    if (!KEY_PREFIX.test(key)) continue
+    if (!KEY_SHAPE.test(key)) continue
 
     used.add(key)
     if (catalog[key] === undefined) {
@@ -173,9 +176,12 @@ if (orphans.length > 0) {
   )
 }
 
-const PROSE_SURFACE = /^apps\/community\/src\/view\/[^/]+\.ts$/
+const PROSE_SURFACE =
+  /^(apps\/community\/(app|src)\/|themes\/[^/]+\/src\/|plugins\/[^/]+\/src\/|packages\/(?!i18n\/|testkit\/)[^/]+\/src\/).*\.tsx?$/
 
-function proseLiterals(text) {
+const PROSE_EXEMPT = /\.(test|type-test|fixture)\.tsx?$|\.d\.ts$/
+
+function proseLiterals(text, rel) {
   const stripped = text
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
@@ -185,6 +191,13 @@ function proseLiterals(text) {
   for (const match of stripped.matchAll(new RegExp(STRING, 'g'))) {
     const value = match[0].slice(1, -1)
     if (isProse(value)) found.push(value)
+  }
+
+  if (!rel.endsWith('.tsx')) return found
+
+  for (const match of stripped.matchAll(/>\s*([A-Z][^<>{}]{4,}?)\s*</g)) {
+    const value = match[1].replace(/\s+/g, ' ').trim()
+    if (/\s/.test(value)) found.push(value)
   }
   return found
 }
@@ -199,9 +212,9 @@ function isProse(value) {
 
 const measured = {}
 for (const { abs, rel } of files) {
-  if (!PROSE_SURFACE.test(rel) || rel.endsWith('.test.ts')) continue
+  if (!PROSE_SURFACE.test(rel) || PROSE_EXEMPT.test(rel)) continue
 
-  const count = proseLiterals(await readFile(abs, 'utf8')).length
+  const count = proseLiterals(await readFile(abs, 'utf8'), rel).length
   if (count > 0) measured[rel] = count
 }
 

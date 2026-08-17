@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { EN_CATALOG } from '@meith/i18n'
+
 import {
   activeSectionHref,
   currentProps,
@@ -30,7 +32,9 @@ describe('modCpSections', () => {
   })
 
   it('gives every section a sentence, because the index prints one', () => {
-    for (const section of modCpNav(FULL)) expect(section.blurb.length).toBeGreaterThan(0)
+    for (const section of modCpNav(FULL)) {
+      expect(EN_CATALOG[section.blurbKey!]?.length ?? 0).toBeGreaterThan(0)
+    }
   })
 })
 

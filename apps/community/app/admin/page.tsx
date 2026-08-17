@@ -24,6 +24,7 @@ import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { readTotals } from '@/server/stats'
 import { pendingUpgradeNotice } from '@/server/upgrade-notice'
 import { ADMIN_SECTIONS } from '@/view/admin-nav'
+import { panelSectionCopy } from '@/view/panel-nav'
 import { formatTime } from '@/view/time'
 
 export default async function AdminHomePage() {
@@ -198,7 +199,7 @@ export default async function AdminHomePage() {
       </PanelSection>
 
       <PanelSection id="sections-heading" title="Sections">
-        <PanelSectionGrid sections={ADMIN_SECTIONS} />
+        <PanelSectionGrid sections={panelSectionCopy(ADMIN_SECTIONS, translator)} />
       </PanelSection>
     </PanelPage>
   )
