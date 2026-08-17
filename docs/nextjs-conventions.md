@@ -139,7 +139,47 @@ wants explaining.
 
 **Anything crossing into a client component must be plain serialisable
 data.** No class instances, no `Date` inside a nested object you have not
-checked, no functions other than Server Actions.
+checked, no functions other than Server Actions. Already-rendered markup is
+the exception the framework itself makes: a `ReactNode` produced by a
+Server Component travels as a prop, which is what lets a client boundary
+show server-rendered output it could never have built.
+
+### The error page renders through the theme
+
+`app/error.tsx` is a client component and therefore cannot resolve a theme:
+no `cookies()`, no `await`, no slot lookup. It gets the themed markup handed
+to it instead.
+
+`renderErrorNotice()` in `src/server/error-notice.tsx` resolves the active
+theme's `ErrorNotice` slot, runs the model through `view.error-notice`, and
+returns the rendered node. `not-found.tsx` calls it directly, because a
+Server Component can. The crash page cannot, so the root layout calls
+`crashNotice()` — the same work with the crash copy, swallowing a failure
+instead of throwing — and wraps the tree in `CrashNoticeProvider`, which
+sits above the error boundary. When the boundary catches, it reads markup a
+Server Component already produced and puts it on the page. Two error pages,
+one slot, same copy path.
+
+Three things follow:
+
+- **The notice is prepared on every request**, because by the time the
+  boundary runs, the request that needs it has already failed. The cost is
+  one slot render and one filter pass over a plain model — `ErrorNotice` is
+  specified to need no database read of its own, which is what keeps paying
+  it on every page affordable.
+- **A theme that cannot render its own error does not take the page with
+  it.** `crashNotice()` returns `null` rather than throwing, and
+  `CrashNotice` falls back to a plain bordered notice carrying the same copy
+  and the same request id. A crash page that crashes is worse than a plain
+  one.
+- **The request id belongs to the render that prepared the notice.** On a
+  full page load that is the request that failed. After a client-side
+  navigation the layout is not re-rendered, so the id is the one from the
+  load that put the frame there.
+
+The crash page has no "try again" button. Recovery is a client-only
+affordance, the slot is what the theme owns, and a themed page with one
+unthemed control on it is the problem this arrangement exists to solve.
 
 ---
 
