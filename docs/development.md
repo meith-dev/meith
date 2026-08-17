@@ -213,10 +213,12 @@ asserting on real SQL — all of it runs against PGlite, a real Postgres
 compiled to WebAssembly, booted in-process per suite with the checked-in
 migration SQL applied.
 
-One suite is the exception: `packages/db/src/client.pg.test.ts` needs a
-real Postgres *server*, because PGlite bypasses the client driver and has
-accepted writes every real server rejected. It skips unless
-`TEST_DATABASE_URL` is set:
+Two suites are the exception — the `*.pg.test.ts` files, which need a real
+Postgres *server*. `packages/db/src/client.pg.test.ts` is there because
+PGlite bypasses the client driver and has accepted writes every real server
+rejected; `packages/db/src/migrate.pg.test.ts` is there because PGlite
+serves one backend and the thing under test is two connections contending
+for a lock. Both skip unless `TEST_DATABASE_URL` is set:
 
 ```sh
 docker compose -f docker/compose.dev.yml up -d
@@ -224,7 +226,7 @@ TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/community_test 
 ```
 
 CI's `migrations` job sets it, so "it passed locally" covers everything
-except that one seam — and CI covers the seam.
+except those seams — and CI covers them.
 
 ## The browser suite
 

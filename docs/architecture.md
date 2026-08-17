@@ -187,6 +187,20 @@ from five places: `community migrate`, `community upgrade`, the web
 installer, the `COMMUNITY_ROLE=migrate` one-shot container, and the demo
 board's reset.
 
+**One migration runs at a time, across every deploy.** `runMigrations()`
+opens a single connection and takes a *session-level* advisory lock on it
+(`pg_advisory_lock(-2943916371013839929)` — the first eight bytes of
+`sha256("meith:migrations")`, read big-endian as a signed 64-bit integer)
+before it reads the journal, and releases it in a `finally`. Two `migrate`
+containers starting together therefore queue: the second waits, finds
+everything applied, and reports nothing done. Without it they race inside
+drizzle's own bookkeeping and one dies on a duplicate key. Session-level
+rather than transaction-level because the lock has to span every statement
+of the run, not one transaction — and that is the whole reason the runner
+prefers `DIRECT_DATABASE_URL`: a transaction-mode pooler hands out a
+different backend per transaction and cannot hold a session lock. A crashed
+migrator releases the lock the moment its connection drops.
+
 **Denormalised author names.** A member's name is stored beside the content
 that renders it (`posts.author_username`, `threads.author_username` and
 `threads.last_post_username`, `forums.last_post_username`,
