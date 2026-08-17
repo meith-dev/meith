@@ -9,6 +9,8 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getTranslator } from '@/server/i18n'
 import { buildThemeAdminView, themeAdminRepository } from '@/server/theme-admin'
+import { contrastCopy } from '@/view/contrast'
+import { tokenGroupCopy } from '@/view/theme-tokens'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Theme' }
@@ -58,6 +60,10 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
     >
       <section className={PANEL_CARD}>
         <ThemeEditorForm
+          copy={{
+            ...tokenGroupCopy(await getTranslator()),
+            ...contrastCopy(await getTranslator()),
+          }}
           themeKey={view.key}
           tokens={view.tokens}
           customCss={view.customCss}

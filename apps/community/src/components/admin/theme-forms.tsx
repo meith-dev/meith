@@ -57,7 +57,13 @@ function schemeLabel(scheme: FieldScheme): string {
   return scheme === 'both' ? 'Both schemes' : scheme === 'dark' ? 'Dark' : 'Light'
 }
 
-function ContrastNotes({ checks }: { checks: readonly ContrastCheck[] }) {
+function ContrastNotes({
+  checks,
+  copy,
+}: {
+  checks: readonly ContrastCheck[]
+  copy: Readonly<Record<string, string>>
+}) {
   const failing = checks.filter((check) => check.state === 'fail')
   const tightest = [...checks]
     .filter((check) => check.state === 'pass')
@@ -76,7 +82,7 @@ function ContrastNotes({ checks }: { checks: readonly ContrastCheck[] }) {
           }`}
         >
           {check.state === 'fail' ? 'Too little contrast: ' : 'Contrast: '}
-          {check.pair.label} —{' '}
+          {copy[check.pair.labelKey]} —{' '}
           <span className="font-mono tabular-nums">
             {check.ratio === null ? '—' : formatRatio(check.ratio)}
           </span>
@@ -88,6 +94,7 @@ function ContrastNotes({ checks }: { checks: readonly ContrastCheck[] }) {
 }
 
 function TokenRow({
+  copy,
   token,
   draft,
   values,
@@ -95,6 +102,7 @@ function TokenRow({
   onChange,
   onClose,
 }: {
+  copy: Readonly<Record<string, string>>
   token: EditableToken
   draft: Draft
   values: { light: Record<string, string>; dark: Record<string, string> }
@@ -163,7 +171,7 @@ function TokenRow({
               </p>
 
               {token.kind === 'colour' && (
-                <ContrastNotes checks={contrastChecksFor(token.name, palette)} />
+                <ContrastNotes checks={contrastChecksFor(token.name, palette)} copy={copy} />
               )}
             </div>
           )
@@ -200,11 +208,13 @@ export function ThemeEditorForm({
   tokens,
   customCss,
   isDefault,
+  copy,
 }: {
   themeKey: string
   tokens: readonly EditableToken[]
   customCss: string
   isDefault: boolean
+  copy: Readonly<Record<string, string>>
 }) {
   const [state, action] = useActionState(themeEditorAction, EMPTY_STATE)
   const hydrated = useHydrated()
@@ -308,7 +318,7 @@ export function ThemeEditorForm({
                     className="mr-2 inline-block size-3 rounded-full border border-border"
                     style={{ background: preset.light.primary }}
                   />
-                  {preset.title}
+                  {copy[preset.titleKey]}
                 </button>
               ))}
             </div>
@@ -355,12 +365,12 @@ export function ThemeEditorForm({
 
             return (
               <fieldset
-                key={group.title}
+                key={group.titleKey}
                 hidden={hydrated && matches === 0}
                 className="flex flex-col gap-2 rounded-md border border-border p-3"
               >
                 <legend className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-1">
-                  <span className="text-sm font-medium">{group.title}</span>
+                  <span className="text-sm font-medium">{copy[group.titleKey]}</span>
                   <span className="text-xs text-muted-foreground">
                     {changed > 0 && (
                       <span className="mr-2 font-medium text-primary">{changed} changed</span>
@@ -369,7 +379,7 @@ export function ThemeEditorForm({
                   </span>
                 </legend>
 
-                <p className="text-xs text-muted-foreground">{group.blurb}</p>
+                <p className="text-xs text-muted-foreground">{copy[group.blurbKey]}</p>
 
                 {hydrated && (
                   <PaletteGrid
@@ -389,6 +399,7 @@ export function ThemeEditorForm({
                   {group.tokens.map((token) => (
                     <TokenRow
                       key={token.name}
+                      copy={copy}
                       token={token}
                       draft={draft}
                       values={values}
@@ -484,7 +495,7 @@ export function ThemeEditorForm({
           onDiscardAll={discardAll}
         />
 
-        <LegibilityReport tokens={tokens} draft={draft} />
+        <LegibilityReport tokens={tokens} draft={draft} copy={copy} />
       </aside>
     </div>
   )

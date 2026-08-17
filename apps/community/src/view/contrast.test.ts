@@ -48,7 +48,7 @@ describe('checkContrast', () => {
         {
           foreground: 'primary-foreground',
           background: 'primary',
-          label: 'A button',
+          labelKey: 'contrast.test',
           need: 'text',
         },
       ],
@@ -60,7 +60,7 @@ describe('checkContrast', () => {
 
   it('reports a pair the theme has no values for as unknown', () => {
     const [check] = checkContrast({}, [
-      { foreground: 'ring', background: 'card', label: 'Focus', need: 'non-text' },
+      { foreground: 'ring', background: 'card', labelKey: 'contrast.test', need: 'non-text' },
     ])
 
     expect(check?.state).toBe('unknown')
@@ -68,7 +68,12 @@ describe('checkContrast', () => {
 
   it('fails a pair below its threshold and passes one above it', () => {
     const pairs = [
-      { foreground: 'foreground', background: 'background', label: 'Text', need: 'text' },
+      {
+        foreground: 'foreground',
+        background: 'background',
+        labelKey: 'contrast.test',
+        need: 'text',
+      },
     ] as const
 
     expect(checkContrast({ foreground: BLACK, background: WHITE }, pairs)[0]?.state).toBe('pass')
@@ -81,22 +86,25 @@ describe('checkContrast', () => {
     const values = { a: '#767676', b: WHITE }
 
     expect(
-      checkContrast(values, [{ foreground: 'a', background: 'b', label: 'x', need: 'text' }])[0]
-        ?.state,
+      checkContrast(values, [
+        { foreground: 'a', background: 'b', labelKey: 'contrast.test', need: 'text' },
+      ])[0]?.state,
     ).toBe('pass')
     expect(
-      checkContrast(values, [{ foreground: 'a', background: 'b', label: 'x', need: 'non-text' }])[0]
-        ?.state,
+      checkContrast(values, [
+        { foreground: 'a', background: 'b', labelKey: 'contrast.test', need: 'non-text' },
+      ])[0]?.state,
     ).toBe('pass')
 
     const between = { a: '#949494', b: WHITE }
     expect(
-      checkContrast(between, [{ foreground: 'a', background: 'b', label: 'x', need: 'text' }])[0]
-        ?.state,
+      checkContrast(between, [
+        { foreground: 'a', background: 'b', labelKey: 'contrast.test', need: 'text' },
+      ])[0]?.state,
     ).toBe('fail')
     expect(
       checkContrast(between, [
-        { foreground: 'a', background: 'b', label: 'x', need: 'non-text' },
+        { foreground: 'a', background: 'b', labelKey: 'contrast.test', need: 'non-text' },
       ])[0]?.state,
     ).toBe('pass')
   })

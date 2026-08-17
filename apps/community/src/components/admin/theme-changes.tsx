@@ -180,11 +180,19 @@ function ratioLine(check: ContrastCheck): string {
     : `${formatRatio(check.ratio)} — needs ${check.required}:1`
 }
 
-function Failure({ check, inherited }: { check: ContrastCheck; inherited: boolean }) {
+function Failure({
+  check,
+  inherited,
+  copy,
+}: {
+  check: ContrastCheck
+  inherited: boolean
+  copy: Readonly<Record<string, string>>
+}) {
   return (
     <li className="flex flex-col gap-0.5 px-3 py-2">
       <span className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <span className="text-xs font-medium">{check.pair.label}</span>
+        <span className="text-xs font-medium">{copy[check.pair.labelKey]}</span>
         <span className="font-mono text-[0.6875rem] tabular-nums">{ratioLine(check)}</span>
       </span>
       <span className="font-mono text-[0.6875rem] text-muted-foreground">
@@ -205,10 +213,12 @@ function SchemeReport({
   label,
   draftChecks,
   savedChecks,
+  copy,
 }: {
   label: string
   draftChecks: readonly ContrastCheck[]
   savedChecks: readonly ContrastCheck[]
+  copy: Readonly<Record<string, string>>
 }) {
   const failing = draftChecks.filter((check) => check.state === 'fail')
   const unknown = draftChecks.filter((check) => check.state === 'unknown')
@@ -241,6 +251,7 @@ function SchemeReport({
               key={`${check.pair.foreground}/${check.pair.background}`}
               check={check}
               inherited={wasFailing.has(`${check.pair.foreground}/${check.pair.background}`)}
+              copy={copy}
             />
           ))}
         </ul>
@@ -256,7 +267,7 @@ function SchemeReport({
               key={`${check.pair.foreground}/${check.pair.background}`}
               className="flex flex-wrap items-baseline justify-between gap-x-3"
             >
-              <span className="text-muted-foreground">{check.pair.label}</span>
+              <span className="text-muted-foreground">{copy[check.pair.labelKey]}</span>
               <span className="font-mono tabular-nums">
                 {check.ratio === null
                   ? '—'
@@ -273,9 +284,11 @@ function SchemeReport({
 export function LegibilityReport({
   tokens,
   draft,
+  copy,
 }: {
   tokens: readonly EditableToken[]
   draft: Draft
+  copy: Readonly<Record<string, string>>
 }) {
   const reports = SCHEMES.map((scheme: Scheme) => ({
     scheme,
@@ -302,6 +315,7 @@ export function LegibilityReport({
           label={report.scheme === 'dark' ? 'Dark' : 'Light'}
           draftChecks={report.draftChecks}
           savedChecks={report.savedChecks}
+          copy={copy}
         />
       ))}
     </section>

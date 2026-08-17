@@ -1,4 +1,7 @@
+import type { Translator } from '@meith/i18n'
+
 import { oklchToRgb, parseColour, relativeLuminance } from './oklch'
+import { untranslated } from './time'
 
 export type ContrastNeed = 'text' | 'large-text' | 'non-text'
 
@@ -11,7 +14,7 @@ export const REQUIRED_RATIO: Readonly<Record<ContrastNeed, number>> = {
 export interface ContrastPair {
   readonly foreground: string
   readonly background: string
-  readonly label: string
+  readonly labelKey: string
   readonly need: ContrastNeed
 }
 
@@ -19,164 +22,189 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   {
     foreground: 'foreground',
     background: 'background',
-    label: 'Body text on the page',
+    labelKey: 'contrast.foreground-on-background',
     need: 'text',
   },
   {
     foreground: 'foreground',
     background: 'surface',
-    label: 'Text on a band — the header, a table heading',
+    labelKey: 'contrast.foreground-on-surface',
     need: 'text',
   },
   {
     foreground: 'card-foreground',
     background: 'card',
-    label: 'Text in a panel — a post, a forum row',
+    labelKey: 'contrast.card-foreground-on-card',
     need: 'text',
   },
   {
     foreground: 'muted-foreground',
     background: 'card',
-    label: 'Timestamps and counts in a panel',
+    labelKey: 'contrast.muted-foreground-on-card',
     need: 'text',
   },
   {
     foreground: 'muted-foreground',
     background: 'background',
-    label: 'Timestamps and counts on the page',
+    labelKey: 'contrast.muted-foreground-on-background',
     need: 'text',
   },
   {
     foreground: 'primary-foreground',
     background: 'primary',
-    label: 'The label on a primary button',
+    labelKey: 'contrast.primary-foreground-on-primary',
     need: 'text',
   },
   {
     foreground: 'primary-foreground',
     background: 'primary-hover',
-    label: 'The label on a hovered primary button',
+    labelKey: 'contrast.primary-foreground-on-primary-hover',
     need: 'text',
   },
   {
     foreground: 'secondary-foreground',
     background: 'secondary',
-    label: 'The label on a secondary button',
+    labelKey: 'contrast.secondary-foreground-on-secondary',
     need: 'text',
   },
   {
     foreground: 'destructive-foreground',
     background: 'destructive',
-    label: 'The label on “Delete”',
+    labelKey: 'contrast.destructive-foreground-on-destructive',
     need: 'text',
   },
   {
     foreground: 'accent-foreground',
     background: 'accent',
-    label: 'Text on a hovered row or menu item',
+    labelKey: 'contrast.accent-foreground-on-accent',
     need: 'text',
   },
 
   {
     foreground: 'card-foreground',
     background: 'post-highlight',
-    label: 'A linked-to post’s text',
+    labelKey: 'contrast.card-foreground-on-post-highlight',
     need: 'text',
   },
   {
     foreground: 'card-foreground',
     background: 'post-own',
-    label: 'Your own post’s text',
+    labelKey: 'contrast.card-foreground-on-post-own',
     need: 'text',
   },
   {
     foreground: 'card-foreground',
     background: 'post-unapproved',
-    label: 'A held post’s text',
+    labelKey: 'contrast.card-foreground-on-post-unapproved',
     need: 'text',
   },
 
   {
     foreground: 'forum-unread',
     background: 'card',
-    label: 'A forum with new posts, in its row',
+    labelKey: 'contrast.forum-unread-on-card',
     need: 'text',
   },
-  { foreground: 'forum-read', background: 'card', label: 'A forum with nothing new', need: 'text' },
-  { foreground: 'forum-locked', background: 'card', label: 'A closed forum', need: 'text' },
+  {
+    foreground: 'forum-read',
+    background: 'card',
+    labelKey: 'contrast.forum-read-on-card',
+    need: 'text',
+  },
+  {
+    foreground: 'forum-locked',
+    background: 'card',
+    labelKey: 'contrast.forum-locked-on-card',
+    need: 'text',
+  },
   {
     foreground: 'thread-pinned',
     background: 'card',
-    label: 'A pinned thread’s title',
+    labelKey: 'contrast.thread-pinned-on-card',
     need: 'text',
   },
   {
     foreground: 'thread-locked',
     background: 'card',
-    label: 'A locked thread’s title',
+    labelKey: 'contrast.thread-locked-on-card',
     need: 'text',
   },
-  { foreground: 'thread-moved', background: 'card', label: 'A moved thread’s stub', need: 'text' },
+  {
+    foreground: 'thread-moved',
+    background: 'card',
+    labelKey: 'contrast.thread-moved-on-card',
+    need: 'text',
+  },
   {
     foreground: 'thread-unapproved',
     background: 'card',
-    label: 'A thread awaiting approval',
+    labelKey: 'contrast.thread-unapproved-on-card',
     need: 'text',
   },
   {
     foreground: 'thread-deleted',
     background: 'card',
-    label: 'A deleted thread, to staff',
+    labelKey: 'contrast.thread-deleted-on-card',
     need: 'text',
   },
 
   {
     foreground: 'moderation-pending',
     background: 'card',
-    label: 'A report waiting for a decision',
+    labelKey: 'contrast.moderation-pending-on-card',
     need: 'text',
   },
   {
     foreground: 'moderation-approved',
     background: 'card',
-    label: 'An approved report',
+    labelKey: 'contrast.moderation-approved-on-card',
     need: 'text',
   },
   {
     foreground: 'moderation-rejected',
     background: 'card',
-    label: 'A rejected report',
+    labelKey: 'contrast.moderation-rejected-on-card',
     need: 'text',
   },
 
   {
     foreground: 'group-admin',
     background: 'card',
-    label: 'An administrator’s name beside a post',
+    labelKey: 'contrast.group-admin-on-card',
     need: 'text',
   },
   {
     foreground: 'group-supermod',
     background: 'card',
-    label: 'A super moderator’s name',
+    labelKey: 'contrast.group-supermod-on-card',
     need: 'text',
   },
-  { foreground: 'group-mod', background: 'card', label: 'A moderator’s name', need: 'text' },
-  { foreground: 'group-banned', background: 'card', label: 'A banned member’s name', need: 'text' },
+  {
+    foreground: 'group-mod',
+    background: 'card',
+    labelKey: 'contrast.group-mod-on-card',
+    need: 'text',
+  },
+  {
+    foreground: 'group-banned',
+    background: 'card',
+    labelKey: 'contrast.group-banned-on-card',
+    need: 'text',
+  },
 
   {
     foreground: 'ring',
     background: 'background',
-    label: 'The focus outline on the page',
+    labelKey: 'contrast.ring-on-background',
     need: 'non-text',
   },
   {
     foreground: 'ring',
     background: 'card',
-    label: 'The focus outline in a panel',
+    labelKey: 'contrast.ring-on-card',
     need: 'non-text',
   },
-  { foreground: 'input', background: 'card', label: 'A field’s edge in a panel', need: 'non-text' },
+  { foreground: 'input', background: 'card', labelKey: 'contrast.input-on-card', need: 'non-text' },
 ]
 
 export type ContrastState = 'pass' | 'fail' | 'unknown'
@@ -238,6 +266,12 @@ export function contrastChecksFor(
     values,
     CONTRAST_PAIRS.filter((pair) => pair.foreground === token || pair.background === token),
   )
+}
+
+export function contrastCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
+  const copy: Record<string, string> = {}
+  for (const pair of CONTRAST_PAIRS) copy[pair.labelKey] = t.t(pair.labelKey)
+  return copy
 }
 
 export function formatRatio(ratio: number): string {
