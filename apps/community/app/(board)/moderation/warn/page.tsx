@@ -106,10 +106,8 @@ export default async function WarnPage({
         {view.history.length === 0 ? (
           <Card>
             <Empty className="py-8">
-              <EmptyTitle>Never warned</EmptyTitle>
-              <EmptyDescription>
-                This member has no warning on record — nothing issued, and nothing lapsed.
-              </EmptyDescription>
+              <EmptyTitle>{await tr('page.never-warned')}</EmptyTitle>
+              <EmptyDescription>{await tr('page.this-member-has-no-warning')}</EmptyDescription>
             </Empty>
           </Card>
         ) : (
@@ -149,7 +147,7 @@ export default async function WarnPage({
             href={view.nextHref}
             className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Older warnings
+            {await tr('page.older-warnings')}
           </a>
         )}
       </PanelSection>

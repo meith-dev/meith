@@ -30,7 +30,7 @@ export default async function AdminContentPage() {
     return (
       <PanelPage title={await tr('page.content')}>
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so its content settings are not stored.
+          {await tr('page.this-board-running-in-memory-sample-3')}
         </p>
       </PanelPage>
     )
@@ -55,7 +55,7 @@ export default async function AdminContentPage() {
       gap="loose"
     >
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Word filters</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.word-filters')}</h2>
         <p className="text-sm text-muted-foreground">
           Applied when a post is shown, never to what is stored — so removing a filter brings the
           word back everywhere, immediately, and a pattern you regret does no lasting damage. A
@@ -65,13 +65,15 @@ export default async function AdminContentPage() {
         </p>
         <p className="text-xs text-muted-foreground">
           Matching is case-insensitive and always literal text — never a pattern language — because
-          this runs on every post the board renders. <strong>Whole words</strong> is on by default:
-          a filter on a fragment silently mangles place names and surnames, and the member it
-          happens to has no idea why their post looks wrong.
+          this runs on every post the board renders. <strong>{await tr('page.whole-words')}</strong>{' '}
+          is on by default: a filter on a fragment silently mangles place names and surnames, and
+          the member it happens to has no idea why their post looks wrong.
         </p>
 
         {filters.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No filters. Posts show as written.</p>
+          <p className="text-sm text-muted-foreground">
+            {await tr('page.no-filters-posts-show-as')}
+          </p>
         ) : (
           <div className="flex flex-col divide-y divide-border">
             {filters.map((filter) => (
@@ -86,7 +88,7 @@ export default async function AdminContentPage() {
       </section>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Thread prefixes</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.thread-prefixes')}</h2>
         <p className="text-sm text-muted-foreground">
           Labels a member can put in front of a thread title. Removing one takes it off the threads
           that used it and leaves them otherwise untouched — which is why a prefix you mistyped is
@@ -95,7 +97,7 @@ export default async function AdminContentPage() {
 
         {prefixes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            None configured, so the composer offers no prefixes.
+            {await tr('page.none-configured-so-composer-offers')}
           </p>
         ) : (
           <ul className="flex flex-col divide-y divide-border">
@@ -131,7 +133,7 @@ export default async function AdminContentPage() {
           href="/admin/content/announcements"
           className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
         >
-          Announcements →
+          {await tr('page.announcements-b')}
         </a>
       </section>
 
@@ -146,7 +148,7 @@ export default async function AdminContentPage() {
           href="/admin/content/attachments"
           className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
         >
-          Attachments →
+          {await tr('page.attachments-b')}
         </a>
       </section>
 
@@ -184,7 +186,7 @@ export default async function AdminContentPage() {
       </section>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Custom directives</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.custom-directives')}</h2>
         <p className="text-sm text-muted-foreground">
           Markdown&rsquo;s extension point, and this board&rsquo;s own additions to it. A directive
           chooses a <strong>name</strong> and whether it is inline or block. That is the whole form,

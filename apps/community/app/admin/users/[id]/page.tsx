@@ -80,7 +80,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
       </section>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Additional groups</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.additional-groups')}</h2>
         <p className="text-sm text-muted-foreground">
           Groups held <em>as well as</em> the primary one. They grant in exactly the same way — a
           member gets the most permissive answer across all of them — so an extra group can only
@@ -165,7 +165,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
 
         {view.sharedNetwork.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No other account has been seen on the same network.
+            {await tr('page.no-other-account-has-been')}
           </p>
         ) : (
           <>

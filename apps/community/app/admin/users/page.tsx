@@ -67,27 +67,29 @@ export default async function AdminUsersPage({
       width="wide"
     >
       <nav className="flex flex-wrap gap-2">
-        <PanelActionLink href="/admin/users/prune">Prune dormant accounts</PanelActionLink>
-        <PanelActionLink href="/admin/users/mail">Mass mail</PanelActionLink>
+        <PanelActionLink href="/admin/users/prune">
+          {await tr('page.prune-dormant-accounts')}
+        </PanelActionLink>
+        <PanelActionLink href="/admin/users/mail">{await tr('page.mass-mail')}</PanelActionLink>
       </nav>
 
       <form method="get" className={PANEL_CARD}>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <label className="col-span-2 flex flex-col gap-1 text-sm sm:col-span-1">
-            <span className="font-medium">Username contains</span>
+            <span className="font-medium">{await tr('page.username-contains')}</span>
             <input name="username" defaultValue={value('username')} className={INPUT} />
           </label>
 
           <label className="col-span-2 flex flex-col gap-1 text-sm sm:col-span-1">
-            <span className="font-medium">Email contains</span>
+            <span className="font-medium">{await tr('page.email-contains')}</span>
             <input name="email" defaultValue={value('email')} className={INPUT} />
           </label>
 
           <label className="col-span-2 flex flex-col gap-1 text-sm sm:col-span-1">
-            <span className="font-medium">IP starts with</span>
+            <span className="font-medium">{await tr('page.ip-starts-with')}</span>
             <input name="ip" defaultValue={value('ip')} className={INPUT} />
             <span className="text-xs text-muted-foreground">
-              Only a prefix is ever stored, so this is a network.
+              {await tr('page.only-prefix-ever-stored-so')}
             </span>
           </label>
 
@@ -108,23 +110,23 @@ export default async function AdminUsersPage({
             <select name="state" defaultValue={value('state')} className={INPUT}>
               <option value="">— any —</option>
               <option value="active">Active</option>
-              <option value="awaiting_activation">Awaiting activation</option>
+              <option value="awaiting_activation">{await tr('page.awaiting-activation')}</option>
               <option value="banned">Banned</option>
             </select>
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Registered before</span>
+            <span className="font-medium">{await tr('page.registered-before')}</span>
             <input type="date" name="before" defaultValue={value('before')} className={INPUT} />
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Registered after</span>
+            <span className="font-medium">{await tr('page.registered-after')}</span>
             <input type="date" name="after" defaultValue={value('after')} className={INPUT} />
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Posts at least</span>
+            <span className="font-medium">{await tr('page.posts-at-least')}</span>
             <input
               type="number"
               name="minPosts"
@@ -135,7 +137,7 @@ export default async function AdminUsersPage({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Posts at most</span>
+            <span className="font-medium">{await tr('page.posts-at-most')}</span>
             <input
               type="number"
               name="maxPosts"
@@ -154,7 +156,7 @@ export default async function AdminUsersPage({
             defaultChecked={value('deleted') !== ''}
             className="size-4"
           />
-          <span>Include deleted accounts</span>
+          <span>{await tr('page.include-deleted-accounts')}</span>
         </label>
 
         <div className="flex gap-3">

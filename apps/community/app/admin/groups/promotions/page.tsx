@@ -33,7 +33,7 @@ export default async function AdminPromotionsPage() {
     return (
       <PanelPage title={await tr('page.promotions')}>
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so promotions cannot run.
+          {await tr('page.this-board-running-in-memory-sample-8')}
         </p>
       </PanelPage>
     )
@@ -89,12 +89,14 @@ export default async function AdminPromotionsPage() {
       </section>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Add a rule</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.add-rule')}</h2>
         <NewPromotionRuleForm groups={options} />
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">What would happen now</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {await tr('page.what-would-happen-now')}
+        </h2>
         <p className="text-sm text-muted-foreground">
           {result.examined} member{result.examined === 1 ? '' : 's'} examined.
         </p>
@@ -123,7 +125,7 @@ export default async function AdminPromotionsPage() {
             </ul>
 
             <section className={PANEL_CARD}>
-              <h3 className="font-heading text-lg font-semibold">Run it</h3>
+              <h3 className="font-heading text-lg font-semibold">{await tr('page.run-it')}</h3>
               <ApplyPromotionsForm count={result.outcomes.length} />
             </section>
           </>

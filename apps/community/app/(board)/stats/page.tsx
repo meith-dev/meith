@@ -30,8 +30,8 @@ export default async function StatsPage() {
       <PanelPage frame="standalone" title={await tr('page.board-statistics')}>
         <Card>
           <Empty>
-            <EmptyTitle>Nothing is counted here</EmptyTitle>
-            <EmptyDescription>This board keeps no statistics.</EmptyDescription>
+            <EmptyTitle>{await tr('page.nothing-counted-here')}</EmptyTitle>
+            <EmptyDescription>{await tr('page.this-board-keeps-no-statistics')}</EmptyDescription>
           </Empty>
         </Card>
       </PanelPage>
@@ -67,7 +67,7 @@ export default async function StatsPage() {
               <Figure label="Posts" value={translator.number(totals.postCount)} />
               <Figure label="Members" value={translator.number(totals.memberCount)} />
               <div>
-                <dt className="text-muted-foreground">Newest member</dt>
+                <dt className="text-muted-foreground">{await tr('page.newest-member')}</dt>
                 <dd className="font-medium">
                   {totals.newestUsername === null ? (
                     '—'
@@ -89,8 +89,8 @@ export default async function StatsPage() {
         <Card>
           {topPosters.length === 0 ? (
             <Empty>
-              <EmptyTitle>No posts yet</EmptyTitle>
-              <EmptyDescription>Nobody has posted yet.</EmptyDescription>
+              <EmptyTitle>{await tr('page.no-posts-yet')}</EmptyTitle>
+              <EmptyDescription>{await tr('page.nobody-has-posted-yet')}</EmptyDescription>
             </Empty>
           ) : (
             <CardRows>
@@ -138,7 +138,7 @@ function Figure({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ThreadTable({
+async function ThreadTable({
   id,
   heading,
   rows,
@@ -162,8 +162,8 @@ function ThreadTable({
       <Card>
         {rows.length === 0 ? (
           <Empty>
-            <EmptyTitle>No threads yet</EmptyTitle>
-            <EmptyDescription>Nothing to show yet.</EmptyDescription>
+            <EmptyTitle>{await tr('page.no-threads-yet')}</EmptyTitle>
+            <EmptyDescription>{await tr('page.nothing-show-yet')}</EmptyDescription>
           </Empty>
         ) : (
           <CardRows>

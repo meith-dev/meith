@@ -68,13 +68,13 @@ export default async function AdminThemesPage() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          What a screen reader announces in place of the logo is <strong>Logo alt text</strong>{' '}
-          under Settings → Board. Left empty it becomes the board&rsquo;s name, which is usually
-          what a logo says anyway.
+          What a screen reader announces in place of the logo is{' '}
+          <strong>{await tr('page.logo-alt-text')}</strong> under Settings → Board. Left empty it
+          becomes the board&rsquo;s name, which is usually what a logo says anyway.
         </p>
       </section>
 
-      <h2 className="font-heading text-lg font-semibold">Installed themes</h2>
+      <h2 className="font-heading text-lg font-semibold">{await tr('page.installed-themes')}</h2>
 
       <ul className={PANEL_LIST}>
         {themes.map((theme) => (
@@ -132,10 +132,10 @@ export default async function AdminThemesPage() {
       <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
         <h2 className="font-heading text-lg font-semibold">What a member&rsquo;s choice changes</h2>
         <p className="text-muted-foreground">
-          <strong>The whole theme</strong> — its components as well as its colours. A theme that
-          renders forum listings as tables renders them as tables for the member who picked it. The
-          choice is a cookie, resolved on the server, so the page arrives already correct: no flash,
-          no second paint, and the control works with JavaScript turned off.
+          <strong>{await tr('page.whole-theme')}</strong> — its components as well as its colours. A
+          theme that renders forum listings as tables renders them as tables for the member who
+          picked it. The choice is a cookie, resolved on the server, so the page arrives already
+          correct: no flash, no second paint, and the control works with JavaScript turned off.
         </p>
         <p className="text-muted-foreground">
           A theme that ships <em>only</em> tokens is the exception, and is a deliberate one: it has

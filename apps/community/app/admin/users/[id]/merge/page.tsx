@@ -69,7 +69,7 @@ export default async function AdminMergePage({
     >
       <form method="get" className={PANEL_CARD}>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Keep which account?</span>
+          <span className="font-medium">{await tr('page.keep-which-account')}</span>
           <input name="into" defaultValue={into} className={INPUT} placeholder="Username" />
         </label>
         <div>
@@ -116,7 +116,7 @@ export default async function AdminMergePage({
       )}
 
       <div className={cn(PANEL_CARD, 'gap-2 text-xs text-muted-foreground')}>
-        <p>What a merge does, in full:</p>
+        <p>{await tr('page.what-merge-does-full')}</p>
         <ul className="flex list-disc flex-col gap-1 pl-4">
           <li>
             Every post, thread, message, attachment, warning and report moves, including the names
@@ -134,7 +134,7 @@ export default async function AdminMergePage({
             Ratings and relations between the two accounts are removed, because after a merge they
             would say somebody rated or ignored themselves.
           </li>
-          <li>The losing account is closed, not deleted. Its username stays taken.</li>
+          <li>{await tr('page.losing-account-closed-not-deleted')}</li>
         </ul>
       </div>
     </PanelPage>

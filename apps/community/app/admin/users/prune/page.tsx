@@ -26,7 +26,7 @@ export default async function AdminPrunePage({
     return (
       <PanelPage title={await tr('page.prune-members')}>
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it has no membership to sweep.
+          {await tr('page.this-board-running-in-memory-sample-2')}
         </p>
       </PanelPage>
     )
@@ -57,18 +57,18 @@ export default async function AdminPrunePage({
     >
       <form method="get" className={PANEL_CARD}>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Registered before</span>
+          <span className="font-medium">{await tr('page.registered-before')}</span>
           <input type="date" name="before" defaultValue={value('before')} className={INPUT} />
           <span className="text-xs text-muted-foreground">
-            Required. Without it a prune matches everybody.
+            {await tr('page.required-without-it-prune-matches')}
           </span>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Not seen since</span>
+          <span className="font-medium">{await tr('page.not-seen-since')}</span>
           <input type="date" name="inactive" defaultValue={value('inactive')} className={INPUT} />
           <span className="text-xs text-muted-foreground">
-            Members who have never been seen at all count as inactive.
+            {await tr('page.members-who-have-never-been')}
           </span>
         </label>
 
@@ -80,7 +80,7 @@ export default async function AdminPrunePage({
             defaultChecked={value('awaiting') !== ''}
             className="size-4"
           />
-          <span>Only accounts still awaiting activation</span>
+          <span>{await tr('page.only-accounts-still-awaiting-activation')}</span>
         </label>
 
         <div>
@@ -88,13 +88,13 @@ export default async function AdminPrunePage({
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            Show me
+            {await tr('page.show-me')}
           </button>
         </div>
       </form>
 
       {criteria === null ? (
-        <p className={PANEL_NOTE}>Choose a registration date to see what a prune would reach.</p>
+        <p className={PANEL_NOTE}>{await tr('page.choose-registration-date-see-what')}</p>
       ) : preview !== null && preview.total === 0 ? (
         <p className={PANEL_NOTE}>
           Nothing matches. Every account registered before that date has written something, is

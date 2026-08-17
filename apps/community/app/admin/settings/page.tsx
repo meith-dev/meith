@@ -58,7 +58,7 @@ export default async function AdminSettingsPage({
         <CardContent className="flex flex-wrap items-center gap-3 p-3">
           <form method="get" className="flex min-w-64 flex-1 items-center gap-2">
             <label className="flex-1">
-              <span className="sr-only">Search settings</span>
+              <span className="sr-only">{await tr('page.search-settings')}</span>
               <Input
                 type="search"
                 name="q"
@@ -115,7 +115,7 @@ export default async function AdminSettingsPage({
           className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
         >
           <h2 className="font-heading text-lg font-semibold text-destructive">
-            This board does not know its own address
+            {await tr('page.this-board-does-not-know')}
           </h2>
           <p className="text-sm">
             Every link the board sends is built from it, so password resets and confirmations arrive
@@ -139,7 +139,7 @@ export default async function AdminSettingsPage({
           className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
         >
           <h2 className="font-heading text-lg font-semibold text-destructive">
-            Nobody can finish registering
+            {await tr('page.nobody-can-finish-registering')}
           </h2>
           <p className="text-sm">
             The activation method is{' '}

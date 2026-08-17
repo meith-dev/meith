@@ -62,7 +62,7 @@ export default async function NotificationsPage({
             href={view.preferencesHref}
             className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Choose which of these you receive by e-mail
+            {await tr('page.choose-which-these-receive-by')}
           </a>
           .
         </>

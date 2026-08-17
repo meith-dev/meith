@@ -75,7 +75,7 @@ export default async function AdminHomePage() {
         {upgradeNotice !== null && (
           <Alert tone="warning">
             <AlertDescription>
-              <AlertTitle>Upgrade pending.</AlertTitle> {upgradeNotice}
+              <AlertTitle>{await tr('page.upgrade-pending')}</AlertTitle> {upgradeNotice}
             </AlertDescription>
             <a
               href="/admin/system"
@@ -117,9 +117,9 @@ export default async function AdminHomePage() {
           <Card>
             {totals.computedAt === null ? (
               <Empty className="py-8">
-                <EmptyTitle>Not counted yet</EmptyTitle>
+                <EmptyTitle>{await tr('page.not-counted-yet')}</EmptyTitle>
                 <EmptyDescription>
-                  The totals are rolled up by a scheduled task, and it has not run.
+                  {await tr('page.totals-rolled-up-by-scheduled')}
                 </EmptyDescription>
               </Empty>
             ) : (
@@ -161,9 +161,9 @@ export default async function AdminHomePage() {
         <Card>
           {recent.length === 0 ? (
             <Empty className="py-8">
-              <EmptyTitle>Nothing logged yet</EmptyTitle>
+              <EmptyTitle>{await tr('page.nothing-logged-yet')}</EmptyTitle>
               <EmptyDescription>
-                Administrative and moderation actions appear here as they happen.
+                {await tr('page.administrative-moderation-actions-appear-here')}
               </EmptyDescription>
             </Empty>
           ) : (
@@ -190,7 +190,7 @@ export default async function AdminHomePage() {
                   href="/admin/log"
                   className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                 >
-                  The whole log
+                  {await tr('page.whole-log')}
                 </a>
               </CardFooter>
             </>

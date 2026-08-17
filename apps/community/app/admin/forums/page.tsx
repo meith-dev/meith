@@ -34,7 +34,7 @@ export default async function AdminForumsPage() {
       <ForumTree rows={outline} />
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Add a forum</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.add-forum')}</h2>
         <CreateForumForm
           parents={outline
             .filter((row) => row.type !== 'link')

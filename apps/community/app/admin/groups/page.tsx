@@ -19,7 +19,7 @@ export default async function AdminGroupsPage() {
     return (
       <PanelPage title={await tr('page.groups')}>
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so its groups cannot be edited.
+          {await tr('page.this-board-running-in-memory-sample-6')}
         </p>
       </PanelPage>
     )
@@ -76,11 +76,13 @@ export default async function AdminGroupsPage() {
 
       <nav className="flex flex-wrap gap-2">
         <PanelActionLink href="/admin/groups/promotions">Promotions</PanelActionLink>
-        <PanelActionLink href="/admin/groups/memberships">Mass membership change</PanelActionLink>
+        <PanelActionLink href="/admin/groups/memberships">
+          {await tr('page.mass-membership-change')}
+        </PanelActionLink>
       </nav>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Add a group</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.add-group')}</h2>
         <CreateGroupForm
           groups={groups.map((group) => ({
             id: group.id,

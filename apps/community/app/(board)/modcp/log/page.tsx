@@ -43,9 +43,9 @@ export default async function ModLogPage({
       <Card>
         {page.entries.length === 0 ? (
           <Empty className="py-8">
-            <EmptyTitle>Nothing has been logged yet</EmptyTitle>
+            <EmptyTitle>{await tr('page.nothing-has-been-logged-yet')}</EmptyTitle>
             <EmptyDescription>
-              Approvals, locks, moves and deletions in your forums appear here as they happen.
+              {await tr('page.approvals-locks-moves-deletions-forums')}
             </EmptyDescription>
           </Empty>
         ) : (

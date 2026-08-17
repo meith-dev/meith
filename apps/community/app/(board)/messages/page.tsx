@@ -76,7 +76,7 @@ export default async function MessagesPage({
           href={view.composeHref}
           className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
         >
-          Write a message
+          {await tr('page.write-message')}
         </a>
       }
     >
@@ -106,7 +106,7 @@ export default async function MessagesPage({
         </p>
       ) : view.quota.isNearlyFull ? (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-          Your message store is nearly full. Deleting messages and emptying the trash frees space.
+          {await tr('page.message-store-nearly-full-deleting')}
         </p>
       ) : null}
 

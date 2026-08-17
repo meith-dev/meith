@@ -19,7 +19,7 @@ export default async function AdminMembershipsPage() {
     return (
       <PanelPage title={await tr('page.mass-membership-change')}>
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so its memberships cannot be edited.
+          {await tr('page.this-board-running-in-memory-sample-7')}
         </p>
       </PanelPage>
     )

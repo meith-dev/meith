@@ -55,7 +55,7 @@ export default async function SignaturePage({
 
       {preview !== null && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium">How it looks</h2>
+          <h2 className="text-sm font-medium">{await tr('page.how-it-looks')}</h2>
           <div
             className="rounded-lg border border-border bg-card p-4 text-sm"
             dangerouslySetInnerHTML={{ __html: preview }}

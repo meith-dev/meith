@@ -26,8 +26,8 @@ export default async function OnlinePage() {
       <PanelPage frame="standalone" title={await tr('page.who-s-online')}>
         <Card>
           <Empty>
-            <EmptyTitle>Nobody is counted here</EmptyTitle>
-            <EmptyDescription>This board is not tracking who is online.</EmptyDescription>
+            <EmptyTitle>{await tr('page.nobody-counted-here')}</EmptyTitle>
+            <EmptyDescription>{await tr('page.this-board-not-tracking-who')}</EmptyDescription>
           </Empty>
         </Card>
       </PanelPage>
@@ -55,8 +55,8 @@ export default async function OnlinePage() {
       <Card>
         {snapshot.members.length === 0 ? (
           <Empty>
-            <EmptyTitle>Nobody is here</EmptyTitle>
-            <EmptyDescription>No members are online right now.</EmptyDescription>
+            <EmptyTitle>{await tr('page.nobody-here')}</EmptyTitle>
+            <EmptyDescription>{await tr('page.no-members-online-right-now')}</EmptyDescription>
           </Empty>
         ) : (
           <CardRows>

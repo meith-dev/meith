@@ -59,7 +59,7 @@ export default async function AdminMassMailPage() {
       </section>
 
       <div className={cn(PANEL_CARD, 'gap-2 text-xs text-muted-foreground')}>
-        <p>Before you press it:</p>
+        <p>{await tr('page.before-press-it')}</p>
         <ul className="flex list-disc flex-col gap-1 pl-4">
           <li>
             Nothing is sent immediately. Messages are queued and go out as the scheduled tick drains
@@ -73,7 +73,7 @@ export default async function AdminMassMailPage() {
             A campaign that stops half way is continued, never restarted — restarting would mail
             everybody a second time.
           </li>
-          <li>An email cannot be unsent.</li>
+          <li>{await tr('page.email-cannot-be-unsent')}</li>
         </ul>
       </div>
     </PanelPage>

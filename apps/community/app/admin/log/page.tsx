@@ -49,7 +49,7 @@ export default async function AdminLogPage({
   return (
     <PanelPage
       title={await tr('page.admin-log')}
-      lede={<>Every administrative and moderation action, newest first.</>}
+      lede={<>{await tr('page.every-administrative-moderation-action-newest')}</>}
       width="wide"
     >
       <form method="get" className="flex flex-wrap items-end gap-2">
@@ -77,7 +77,7 @@ export default async function AdminLogPage({
       </form>
 
       {view.rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nothing logged.</p>
+        <p className="text-sm text-muted-foreground">{await tr('page.nothing-logged')}</p>
       ) : (
         <ul className={PANEL_LIST}>
           {view.rows.map((row) => (

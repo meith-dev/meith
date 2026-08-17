@@ -34,7 +34,7 @@ export default async function AdminAntispamPage() {
             href="/admin/settings?group=antispam"
             className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Settings → Anti-spam
+            {await tr('page.settings-anti-spam')}
           </a>
           . This screen holds the questions, and what each control is actually worth.
         </>
@@ -43,7 +43,7 @@ export default async function AdminAntispamPage() {
     >
       {mode === 'question' && usable.length === 0 && (
         <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
-          <strong>The challenge is switched on and there is nothing to ask.</strong> Registration is
+          <strong>{await tr('page.challenge-switched-there-nothing-ask')}</strong> Registration is
           currently open to everybody. Add a question below — until then this setting is doing
           nothing, which is deliberate: refusing every applicant because the list is empty would be
           worse.
@@ -51,12 +51,14 @@ export default async function AdminAntispamPage() {
       )}
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Registration questions</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {await tr('page.registration-questions')}
+        </h2>
         <p className="text-sm text-muted-foreground">
           Asked on the registration form when the challenge is set to{' '}
-          <strong>Ask a question</strong>. One is chosen at random per visitor. Pick something a
-          regular here knows and a script does not — the name of a section, an in-joke, the
-          board&rsquo;s own subject.
+          <strong>{await tr('page.ask-question')}</strong>. One is chosen at random per visitor.
+          Pick something a regular here knows and a script does not — the name of a section, an
+          in-joke, the board&rsquo;s own subject.
         </p>
         <p className="text-xs text-muted-foreground">
           Answers are stored as you type them and are <strong>not secret</strong>: the question is
@@ -66,12 +68,14 @@ export default async function AdminAntispamPage() {
 
         {repository === null ? (
           <p className="text-sm text-muted-foreground">
-            This board is running on in-memory sample data, so it stores no questions.
+            {await tr('page.this-board-running-in-memory-sample-9')}
           </p>
         ) : (
           <>
             {questions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">None yet. The challenge asks nothing.</p>
+              <p className="text-sm text-muted-foreground">
+                {await tr('page.none-yet-challenge-asks-nothing')}
+              </p>
             ) : (
               <div className="flex flex-col divide-y divide-border">
                 {questions.map((question) => (
@@ -88,10 +92,12 @@ export default async function AdminAntispamPage() {
       </section>
 
       <section className={cn(PANEL_CARD, 'text-sm')}>
-        <h2 className="font-heading text-lg font-semibold">What each control is worth</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {await tr('page.what-each-control-worth')}
+        </h2>
         <dl className="flex flex-col gap-3 text-muted-foreground">
           <div>
-            <dt className="font-medium text-foreground">Hidden-field trap</dt>
+            <dt className="font-medium text-foreground">{await tr('page.hidden-field-trap')}</dt>
             <dd>
               Free, on by default, and catches the bots that fill every field in a form. A bot that
               reads your CSS defeats it. There is no reason to turn it off — a real visitor never
@@ -99,7 +105,7 @@ export default async function AdminAntispamPage() {
             </dd>
           </div>
           <div>
-            <dt className="font-medium text-foreground">Minimum fill time</dt>
+            <dt className="font-medium text-foreground">{await tr('page.minimum-fill-time')}</dt>
             <dd>
               Catches instant submissions. Keep it at a few seconds: a password manager filling a
               form in two is a real person, and this is the control most likely to turn away
@@ -107,7 +113,7 @@ export default async function AdminAntispamPage() {
             </dd>
           </div>
           <div>
-            <dt className="font-medium text-foreground">A question</dt>
+            <dt className="font-medium text-foreground">{await tr('page.question')}</dt>
             <dd>
               Stops scripted registration and does not stop somebody paid to answer it. It is also
               the only control here that costs every legitimate applicant a moment, so switch it on
@@ -130,7 +136,7 @@ export default async function AdminAntispamPage() {
             </dd>
           </div>
           <div>
-            <dt className="font-medium text-foreground">The hourly limits</dt>
+            <dt className="font-medium text-foreground">{await tr('page.hourly-limits')}</dt>
             <dd>
               A ceiling on how much anybody can do in an hour, counted in the database so every
               server shares one allowance. They are a<em> different</em> control from the posting
@@ -143,7 +149,9 @@ export default async function AdminAntispamPage() {
       </section>
 
       <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
-        <h2 className="font-heading text-lg font-semibold">Using a hosted captcha</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {await tr('page.using-hosted-captcha')}
+        </h2>
         <p className="text-muted-foreground">
           Not offered here, and not because it would be hard. A hosted captcha means every
           visitor&rsquo;s browser contacting a third party before they can join, which is a decision

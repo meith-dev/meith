@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { Badge, Card, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { PanelPage } from '@/components/shell/panel-page'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { moderatedForumRights, resolveModCpAccess } from '@/server/modcp'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -12,20 +12,18 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ModCpForumsPage() {
+  const t = await getTranslator()
   const access = await resolveModCpAccess()
   if (access === null) notFound()
 
   const forums = await moderatedForumRights(access)
 
   return (
-    <PanelPage
-      title={await tr('page.my-forums')}
-      lede={await tr('page.where-appointed-exactly-what-may')}
-    >
+    <PanelPage title={t.t('page.my-forums')} lede={t.t('page.where-appointed-exactly-what-may')}>
       <Card>
         {forums.length === 0 ? (
           <Empty className="py-8">
-            <EmptyTitle>No forum appointments</EmptyTitle>
+            <EmptyTitle>{t.t('page.no-forum-appointments')}</EmptyTitle>
             <EmptyDescription>
               You are not assigned to any forum. Your group permissions still apply wherever they
               grant something.
@@ -43,7 +41,7 @@ export default async function ModCpForumsPage() {
                 </a>
                 {forum.rights.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    No granular rights here — your group permissions apply.
+                    {t.t('page.no-granular-rights-here-group')}
                   </p>
                 ) : (
                   <ul className="flex flex-wrap gap-1.5">

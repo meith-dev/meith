@@ -53,13 +53,15 @@ export default async function ForumPermissionsPage({
       </div>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Copy to subforums</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.copy-subforums')}</h2>
 
         {view.descendants.length === 0 ? (
-          <p className="text-sm text-muted-foreground">This forum has nothing beneath it.</p>
+          <p className="text-sm text-muted-foreground">
+            {await tr('page.this-forum-has-nothing-beneath')}
+          </p>
         ) : plan.changes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Every forum beneath this one already matches it. There is nothing to copy.
+            {await tr('page.every-forum-beneath-this-one')}
           </p>
         ) : (
           <>

@@ -108,7 +108,7 @@ export default async function AdminPluginPage({
         <h2 className="font-heading text-lg font-semibold">Status</h2>
         <dl className="flex flex-col gap-2 text-sm">
           <div className="flex flex-wrap justify-between gap-2">
-            <dt className="text-muted-foreground">In this build</dt>
+            <dt className="text-muted-foreground">{await tr('page.this-build')}</dt>
             <dd>
               {plugin.hasDefinition
                 ? plugin.configuredEnabled
@@ -118,11 +118,11 @@ export default async function AdminPluginPage({
             </dd>
           </div>
           <div className="flex flex-wrap justify-between gap-2">
-            <dt className="text-muted-foreground">Switched on here</dt>
+            <dt className="text-muted-foreground">{await tr('page.switched-here')}</dt>
             <dd>{plugin.operatorEnabled ? 'yes' : 'no — an administrator turned it off'}</dd>
           </div>
           <div className="flex flex-wrap justify-between gap-2">
-            <dt className="text-muted-foreground">Running on this server</dt>
+            <dt className="text-muted-foreground">{await tr('page.running-this-server')}</dt>
             <dd>{plugin.running ? 'yes' : (plugin.health?.disabledReason ?? 'no')}</dd>
           </div>
         </dl>
@@ -152,11 +152,11 @@ export default async function AdminPluginPage({
               <dd className="text-lg">{plugin.health.failures}</dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Slow calls</dt>
+              <dt className="text-xs text-muted-foreground">{await tr('page.slow-calls')}</dt>
               <dd className="text-lg">{plugin.health.slowCalls}</dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Total time</dt>
+              <dt className="text-xs text-muted-foreground">{await tr('page.total-time')}</dt>
               <dd className="text-lg">{plugin.health.totalMs} ms</dd>
             </div>
           </dl>
@@ -214,7 +214,7 @@ export default async function AdminPluginPage({
 
       {plugin.tasks.length > 0 && (
         <section className={PANEL_CARD}>
-          <h2 className="font-heading text-lg font-semibold">Scheduled tasks</h2>
+          <h2 className="font-heading text-lg font-semibold">{await tr('page.scheduled-tasks')}</h2>
           <p className="text-sm text-muted-foreground">
             Registered in the board&rsquo;s own task registry and run by the same tick. Their runs
             and failures are on the{' '}
@@ -239,7 +239,9 @@ export default async function AdminPluginPage({
 
       {(plugin.hooks.length > 0 || plugin.regions.length > 0) && (
         <section className={PANEL_CARD}>
-          <h2 className="font-heading text-lg font-semibold">What it attaches to</h2>
+          <h2 className="font-heading text-lg font-semibold">
+            {await tr('page.what-it-attaches')}
+          </h2>
           {plugin.hooks.length > 0 && (
             <div className="flex flex-col gap-1">
               <h3 className="text-sm font-medium">Hooks</h3>

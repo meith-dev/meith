@@ -82,7 +82,7 @@ export default async function AdminSecurityPage({
       </form>
 
       {page.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nothing recorded yet.</p>
+        <p className="text-sm text-muted-foreground">{await tr('page.nothing-recorded-yet')}</p>
       ) : (
         <ul className={PANEL_LIST}>
           {page.map((event) => (
@@ -110,7 +110,7 @@ export default async function AdminSecurityPage({
           href={`/admin/security?before=${more}${kind === undefined ? '' : `&kind=${kind}`}`}
           className="text-sm underline underline-offset-4"
         >
-          Older activity
+          {await tr('page.older-activity')}
         </a>
       )}
     </PanelPage>

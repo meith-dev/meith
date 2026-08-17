@@ -64,10 +64,8 @@ export default async function ReportsPage({
       {page.rows.length === 0 && (
         <Card>
           <Empty className="py-8">
-            <EmptyTitle>Nothing outstanding</EmptyTitle>
-            <EmptyDescription>
-              Every report in the forums you moderate has been resolved or dismissed.
-            </EmptyDescription>
+            <EmptyTitle>{await tr('page.nothing-outstanding')}</EmptyTitle>
+            <EmptyDescription>{await tr('page.every-report-forums-moderate-has')}</EmptyDescription>
           </Empty>
         </Card>
       )}

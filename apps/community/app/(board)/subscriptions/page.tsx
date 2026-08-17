@@ -50,7 +50,7 @@ export default async function SubscriptionsPage({
             href="/notifications/preferences"
             className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Whether any of it also arrives by e-mail
+            {await tr('page.whether-any-it-also-arrives')}
           </a>{' '}
           is a separate setting.
         </>

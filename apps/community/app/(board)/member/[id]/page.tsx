@@ -108,7 +108,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                   href={`/member/${id}/reputation`}
                   className="ms-auto font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                 >
-                  See all ratings
+                  {await tr('page.see-all-ratings')}
                 </a>
               </div>
             )}
@@ -144,7 +144,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                   href="/usercp/contacts"
                   className="ms-auto text-sm text-muted-foreground hover:text-foreground"
                 >
-                  Your lists
+                  {await tr('page.lists')}
                 </a>
               </div>
             )}

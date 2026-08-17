@@ -86,7 +86,7 @@ export default async function IpLookupPage({
               )}
             </Field>
             <button type="submit" className={buttonVariants()}>
-              Look up
+              {await tr('page.look-up')}
             </button>
           </form>
         </CardContent>
@@ -94,7 +94,7 @@ export default async function IpLookupPage({
 
       {subjectId !== null && subject === null && (
         <Alert tone="warning">
-          <AlertDescription>No such member.</AlertDescription>
+          <AlertDescription>{await tr('page.no-such-member')}</AlertDescription>
         </Alert>
       )}
 
@@ -119,9 +119,9 @@ export default async function IpLookupPage({
           <Card>
             {result.matches.length === 0 ? (
               <Empty className="py-8">
-                <EmptyTitle>No shared range</EmptyTitle>
+                <EmptyTitle>{await tr('page.no-shared-range')}</EmptyTitle>
                 <EmptyDescription>
-                  No other account shares a recorded range with this member.
+                  {await tr('page.no-other-account-shares-recorded')}
                 </EmptyDescription>
               </Empty>
             ) : (

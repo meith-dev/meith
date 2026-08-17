@@ -44,7 +44,7 @@ export default async function AdminSystemPage() {
   return (
     <PanelPage
       title={await tr('page.system-health')}
-      lede={<>What the board does on a schedule, and whether it is doing it.</>}
+      lede={<>{await tr('page.what-board-does-schedule-whether')}</>}
       gap="loose"
     >
       {scheduler.schedulerStopped && (
@@ -53,7 +53,7 @@ export default async function AdminSystemPage() {
           className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
         >
           <h2 className="font-heading text-lg font-semibold text-destructive">
-            The scheduler is not running
+            {await tr('page.scheduler-not-running')}
           </h2>
           <p className="text-sm">
             Every task is overdue, which means the tick is not firing at all. While this is true:{' '}
@@ -96,7 +96,7 @@ export default async function AdminSystemPage() {
           className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
         >
           <h2 className="font-heading text-lg font-semibold text-destructive">
-            No new member can activate their account
+            {await tr('page.no-new-member-can-activate')}
           </h2>
           <p className="text-sm">
             Registration is set to <strong>{mail.activationMethod}</strong>, so every new account
@@ -156,7 +156,7 @@ export default async function AdminSystemPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Scheduled tasks</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.scheduled-tasks')}</h2>
         {scheduler.tasks.length === 0 ? (
           <p className={PANEL_NOTE}>
             No tasks are registered. A build registers a task only when it has a worker that can
@@ -196,9 +196,9 @@ export default async function AdminSystemPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Recent runs</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.recent-runs')}</h2>
         {view.runs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nothing has run yet.</p>
+          <p className="text-sm text-muted-foreground">{await tr('page.nothing-has-run-yet')}</p>
         ) : (
           <ul className="flex flex-col gap-1 text-sm">
             {view.runs.map((run, index) => (
@@ -258,7 +258,7 @@ export default async function AdminSystemPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Search index</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.search-index')}</h2>
         <p className="text-sm text-muted-foreground">
           A post is indexed when it is written or edited, so this is only ever a backfill — an
           existing board adopting search, or one whose index was invalidated. It resumes by

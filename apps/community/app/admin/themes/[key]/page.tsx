@@ -104,7 +104,7 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
           </>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Nothing to reset — this theme is already exactly as it ships.
+            {await tr('page.nothing-reset-this-theme-already')}
           </p>
         )}
       </section>

@@ -102,7 +102,7 @@ export default async function ReputationPage({
             href={`/member/${id}`}
             className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Back to their profile
+            {await tr('page.back-their-profile')}
           </a>
         </div>
 
@@ -121,7 +121,9 @@ export default async function ReputationPage({
         )}
 
         {view.rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nobody has rated them yet.</p>
+          <p className="text-sm text-muted-foreground">
+            {await tr('page.nobody-has-rated-them-yet')}
+          </p>
         ) : (
           <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
             {view.rows.map((row) => (
@@ -181,7 +183,7 @@ export default async function ReputationPage({
             href={view.nextHref}
             className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Older ratings
+            {await tr('page.older-ratings')}
           </a>
         )}
       </div>

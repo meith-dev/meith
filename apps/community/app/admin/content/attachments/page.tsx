@@ -32,7 +32,7 @@ export default async function AdminAttachmentsPage({
     return (
       <PanelPage title={await tr('page.attachments')} width="wide">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it stores no files.
+          {await tr('page.this-board-running-in-memory-sample-4')}
         </p>
       </PanelPage>
     )
@@ -84,7 +84,7 @@ export default async function AdminAttachmentsPage({
           <dd className="text-lg">{formatBytes(totals.bytes)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Awaiting processing</dt>
+          <dt className="text-xs text-muted-foreground">{await tr('page.awaiting-processing')}</dt>
           <dd className={totals.pending > 0 ? 'text-lg text-destructive' : 'text-lg'}>
             {totals.pending}
           </dd>
@@ -99,7 +99,7 @@ export default async function AdminAttachmentsPage({
 
       <form method="get" className={cn(PANEL_CARD, 'flex-row flex-wrap items-end')}>
         <label className="flex min-w-48 flex-1 flex-col gap-1 text-sm">
-          <span className="font-medium">Filename contains</span>
+          <span className="font-medium">{await tr('page.filename-contains')}</span>
           <input
             name="filename"
             defaultValue={filename ?? ''}
@@ -116,7 +116,7 @@ export default async function AdminAttachmentsPage({
           >
             <option value="">Any</option>
             <option value="ready">Ready</option>
-            <option value="pending">Awaiting processing</option>
+            <option value="pending">{await tr('page.awaiting-processing')}</option>
             <option value="failed">Failed</option>
           </select>
         </label>
@@ -130,7 +130,7 @@ export default async function AdminAttachmentsPage({
       </form>
 
       {page.rows.length === 0 ? (
-        <p className={PANEL_NOTE}>Nothing matches.</p>
+        <p className={PANEL_NOTE}>{await tr('page.nothing-matches')}</p>
       ) : (
         <ul className={PANEL_LIST}>
           {page.rows.map((row) => (

@@ -19,7 +19,7 @@ export default async function ResendVerificationPage({
   const lede =
     params.sent === '1' ? (
       email === '' ? (
-        <>We have sent a confirmation link. Follow it to finish setting up your account.</>
+        <>{await tr('page.we-have-sent-confirmation-link')}</>
       ) : (
         <>
           We have sent a confirmation link to{' '}
@@ -28,7 +28,7 @@ export default async function ResendVerificationPage({
         </>
       )
     ) : (
-      <>Enter the address you registered with and we will send the confirmation link again.</>
+      <>{await tr('page.enter-address-registered-with-we')}</>
     )
 
   return (

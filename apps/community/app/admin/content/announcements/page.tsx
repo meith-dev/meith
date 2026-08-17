@@ -27,7 +27,7 @@ export default async function AdminAnnouncementsPage() {
     return (
       <PanelPage title={await tr('page.announcements')}>
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it stores no announcements.
+          {await tr('page.this-board-running-in-memory-sample-5')}
         </p>
       </PanelPage>
     )
@@ -61,7 +61,7 @@ export default async function AdminAnnouncementsPage() {
       gap="loose"
     >
       {rows.length === 0 ? (
-        <p className={PANEL_NOTE}>None. The board shows no announcements.</p>
+        <p className={PANEL_NOTE}>{await tr('page.none-board-shows-no-announcements')}</p>
       ) : (
         <section className={cn(PANEL_LIST, 'px-4')}>
           {rows.map((row) => {
@@ -103,7 +103,7 @@ export default async function AdminAnnouncementsPage() {
       )}
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">New announcement</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.new-announcement')}</h2>
         <NewAnnouncementForm forums={choices} />
       </section>
     </PanelPage>

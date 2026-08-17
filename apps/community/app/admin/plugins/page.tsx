@@ -6,7 +6,7 @@ import { PluginEnableForm } from '@/components/admin/plugin-forms'
 import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { hookListeners, pluginInventory } from '@/server/plugin-admin'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,6 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AdminPluginsPage() {
+  const t = await getTranslator()
   if ((await adminPageContext()) === null) return null
 
   const { plugins, migrationsKnown } = await pluginInventory()
@@ -21,7 +22,7 @@ export default async function AdminPluginsPage() {
 
   return (
     <PanelPage
-      title={await tr('page.plugins')}
+      title={t.t('page.plugins')}
       lede={
         <>
           Everything installable is named in <code className="text-xs">community.config.ts</code> so
@@ -31,7 +32,7 @@ export default async function AdminPluginsPage() {
       }
     >
       {plugins.length === 0 ? (
-        <p className={PANEL_NOTE}>No plugins are configured on this board.</p>
+        <p className={PANEL_NOTE}>{t.t('page.no-plugins-configured-this-board')}</p>
       ) : (
         <ul className={PANEL_LIST}>
           {plugins.map((plugin) => {
@@ -54,7 +55,7 @@ export default async function AdminPluginsPage() {
 
                   {!plugin.hasDefinition ? (
                     <span className="text-xs text-muted-foreground">
-                      Registered without a definition — a key, and no code.
+                      {t.t('page.registered-without-definition-key-no')}
                     </span>
                   ) : !plugin.configuredEnabled ? (
                     <span className="text-xs text-muted-foreground">
@@ -63,7 +64,7 @@ export default async function AdminPluginsPage() {
                     </span>
                   ) : !plugin.operatorEnabled ? (
                     <span className="text-xs text-muted-foreground">
-                      Switched off here. Its hooks are not called on any instance.
+                      {t.t('page.switched-off-here-its-hooks')}
                     </span>
                   ) : plugin.health?.disabledReason != null ? (
                     <span className="text-xs text-destructive">
@@ -120,7 +121,7 @@ export default async function AdminPluginsPage() {
 
       {listeners.length > 0 && (
         <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
-          <h2 className="font-heading text-lg font-semibold">Hooks in use</h2>
+          <h2 className="font-heading text-lg font-semibold">{t.t('page.hooks-use')}</h2>
           <p className="text-muted-foreground">
             Only hooks something is listening on. The full list of every extension point is in the
             generated reference, and reproducing all ninety-one here would bury these. Plugins are
@@ -139,7 +140,7 @@ export default async function AdminPluginsPage() {
       )}
 
       <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
-        <h2 className="font-heading text-lg font-semibold">Installing a plugin</h2>
+        <h2 className="font-heading text-lg font-semibold">{t.t('page.installing-plugin')}</h2>
         <p className="text-muted-foreground">
           A plugin is code, so it has to be in the build before it can run:{' '}
           <code className="text-xs">pnpm add</code> the package, add it to the{' '}

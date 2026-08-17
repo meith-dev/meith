@@ -16,7 +16,7 @@ import { isUsableOrigin, MAIL_PRESETS, normaliseOrigin } from '@meith/settings'
 import { Alert, AlertDescription, AlertTitle, Disclosure } from '@meith/ui'
 
 import { InstallForm } from '@/components/install/install-form'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { gatherPreflight, installerIsSealed, probeMail } from '@/server/install'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -26,6 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = 'force-dynamic'
 
 export default async function InstallPage() {
+  const t = await getTranslator()
   if (await installerIsSealed()) notFound()
 
   const checks = await gatherPreflight()
@@ -37,11 +38,9 @@ export default async function InstallPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-2">
         <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-          Install this board
+          {t.t('page.install-this-board')}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          This page works once. When it finishes it disables itself, and the address stops existing.
-        </p>
+        <p className="text-sm text-muted-foreground">{t.t('page.this-page-works-once-when')}</p>
       </header>
 
       <Preflight checks={checks} />
@@ -61,7 +60,8 @@ export default async function InstallPage() {
   )
 }
 
-function Preflight({ checks }: { checks: readonly Check[] }) {
+async function Preflight({ checks }: { checks: readonly Check[] }) {
+  const t = await getTranslator()
   const stopping = blockers(checks)
   const warned = warnings(checks)
   const passed = checks.filter((check) => check.level === 'ok')
@@ -72,7 +72,7 @@ function Preflight({ checks }: { checks: readonly Check[] }) {
         id="preflight"
         className="font-heading text-lg font-semibold tracking-tight text-foreground"
       >
-        Before installing
+        {t.t('page.before-installing')}
       </h2>
 
       {stopping.length > 0 && (

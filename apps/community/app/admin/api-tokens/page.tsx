@@ -22,7 +22,7 @@ export default async function AdminApiTokensPage() {
     return (
       <PanelPage title={await tr('page.api-tokens')}>
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it has no API.
+          {await tr('page.this-board-running-in-memory-sample-b')}
         </p>
       </PanelPage>
     )
@@ -41,15 +41,17 @@ export default async function AdminApiTokensPage() {
       gap="loose"
     >
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Issue a token</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.issue-token')}</h2>
         <IssueTokenForm scopes={view.scopes} />
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Existing tokens</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.existing-tokens')}</h2>
 
         {view.tokens.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No tokens have been issued.</p>
+          <p className="text-sm text-muted-foreground">
+            {await tr('page.no-tokens-have-been-issued')}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
@@ -68,7 +70,7 @@ export default async function AdminApiTokensPage() {
                     Scopes
                   </th>
                   <th scope="col" className="py-2 pr-3 font-medium">
-                    Last used
+                    {await tr('page.last-used')}
                   </th>
                   <th scope="col" className="py-2 pr-3 font-medium">
                     State
