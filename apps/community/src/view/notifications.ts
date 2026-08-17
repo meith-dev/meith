@@ -2,7 +2,7 @@ import type { Translator } from '@meith/i18n'
 import type { NotificationPreferenceView, NotificationView } from '@meith/notifications'
 import type { TimeModel } from '@meith/theme-kit'
 
-import { formatTime } from './time'
+import { formatTime, untranslated } from './time'
 
 export interface NotificationRowView {
   readonly id: number
@@ -52,8 +52,22 @@ export interface PreferencesView {
   readonly backHref: string
 }
 
-export function buildPreferencesView(rows: readonly NotificationPreferenceView[]): PreferencesView {
-  return { rows, backHref: '/notifications' }
+export function buildPreferencesView(
+  rows: readonly NotificationPreferenceView[],
+  translator: Translator = untranslated(),
+): PreferencesView {
+  return {
+    rows: rows.map((row) => ({
+      ...row,
+      title: translated(translator, row.titleKey, row.title),
+      description: translated(translator, row.descriptionKey, row.description),
+    })),
+    backHref: '/notifications',
+  }
+}
+
+function translated(translator: Translator, key: string | undefined, fallback: string): string {
+  return key !== undefined && translator.has(key) ? translator.t(key) : fallback
 }
 
 export function notificationNotice(query: {

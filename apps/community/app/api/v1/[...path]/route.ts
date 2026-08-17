@@ -29,6 +29,7 @@ import type { ThreadCursor } from '@meith/threads'
 import { apiActor, apiToken } from '@/server/api-auth'
 import { getContainer } from '@/server/container'
 import { activeWordFilter } from '@/server/content-admin'
+import { getMessageResolver } from '@/server/i18n'
 import { resolveReplyTarget, submitReply } from '@/server/reply-core'
 import {
   requireSearch,
@@ -108,7 +109,7 @@ async function handle(request: NextRequest, method: 'GET' | 'POST'): Promise<Res
     return json(result.body, result.status, headers)
   } catch (err) {
     if (isAppError(err)) {
-      const { error } = toPublicError(err)
+      const { error } = toPublicError(err, await getMessageResolver())
       return fail(statusForError(err), error.code, error.message, headers)
     }
     throw err

@@ -1,3 +1,4 @@
+import type { Translator } from '@meith/i18n'
 import {
   SETTING_DEFINITIONS,
   type SettingDefinition,
@@ -9,6 +10,7 @@ import {
 } from '@meith/settings'
 
 import { GROUP_LABELS, GROUP_ORDER } from './setting-groups'
+import { untranslated } from './time'
 
 export { DEFAULT_SETTING_GROUP, SETTING_GROUP_NAV } from './setting-groups'
 
@@ -40,14 +42,34 @@ export interface AdminSettingsModel {
   readonly total: number
 }
 
-function matches(definition: SettingDefinition, query: string): boolean {
+function matches(definition: SettingDefinition, copy: SettingCopy, query: string): boolean {
   if (query === '') return true
   const needle = query.toLowerCase()
   return (
     definition.key.toLowerCase().includes(needle) ||
-    definition.label.toLowerCase().includes(needle) ||
-    definition.description.toLowerCase().includes(needle)
+    copy.label.toLowerCase().includes(needle) ||
+    copy.description.toLowerCase().includes(needle)
   )
+}
+
+interface SettingCopy {
+  readonly label: string
+  readonly description: string
+}
+
+export function settingCopy(definition: SettingDefinition, translator: Translator): SettingCopy {
+  const label = `setting.${definition.key}.label`
+  const description = `setting.${definition.key}.description`
+
+  return {
+    label: translator.has(label) ? translator.t(label) : definition.label,
+    description: translator.has(description) ? translator.t(description) : definition.description,
+  }
+}
+
+export function settingGroupLabel(group: SettingGroup, translator: Translator): string {
+  const key = `setting.group.${group}`
+  return translator.has(key) ? translator.t(key) : GROUP_LABELS[group]
 }
 
 function formValue(definition: SettingDefinition, current: unknown): string {
@@ -61,7 +83,9 @@ export function buildAdminSettingsModel(input: {
   readonly query?: string | undefined
   readonly group?: string | undefined
   readonly advanced?: boolean | undefined
+  readonly t?: Translator | undefined
 }): AdminSettingsModel {
+  const translator = input.t ?? untranslated()
   const query = (input.query ?? '').trim()
   const showAdvanced = input.advanced === true
   const searching = query !== ''
@@ -78,7 +102,8 @@ export function buildAdminSettingsModel(input: {
     const settings: SettingFieldModel[] = []
     for (const definition of SETTING_DEFINITIONS) {
       if (definition.group !== group) continue
-      if (!matches(definition, query)) continue
+      const copy = settingCopy(definition, translator)
+      if (!matches(definition, copy, query)) continue
 
       if (definition.ui?.managed === true) continue
 
@@ -92,8 +117,8 @@ export function buildAdminSettingsModel(input: {
       const isDefault = Object.is(current, definition.default)
       settings.push({
         key: definition.key,
-        label: definition.label,
-        description: definition.description,
+        label: copy.label,
+        description: copy.description,
         field: settingField(definition),
         value: formValue(definition, current),
         checked: current === true,
@@ -105,13 +130,13 @@ export function buildAdminSettingsModel(input: {
     }
 
     if (settings.length > 0) {
-      groups.push({ group, label: GROUP_LABELS[group], settings })
+      groups.push({ group, label: settingGroupLabel(group, translator), settings })
     }
   }
 
   return {
     groups,
-    tabs: GROUP_ORDER.map((group) => ({ group, label: GROUP_LABELS[group] })),
+    tabs: GROUP_ORDER.map((group) => ({ group, label: settingGroupLabel(group, translator) })),
     query,
     activeGroup,
     showAdvanced,

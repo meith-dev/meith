@@ -21,7 +21,7 @@ import { validateCustomCss, validateTokenOverrides } from './theme-style'
 
 const reportFailure = formStateReporter('theme-admin', 'theme write failed')
 
-function toFormState(err: unknown): FormState {
+async function toFormState(err: unknown): Promise<FormState> {
   if (!isAppError(err) && err instanceof Error && err.message.startsWith('Theme ')) {
     return { error: err.message }
   }

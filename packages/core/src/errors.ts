@@ -7,22 +7,60 @@ export type ErrorCode =
   | 'INTERNAL'
   | 'CONFIGURATION'
 
+export const ERROR_MESSAGE_KEYS = {
+  VALIDATION: 'error.validation',
+  FORBIDDEN: 'error.forbidden',
+  NOT_FOUND: 'error.notFound',
+  CONFLICT: 'error.conflict',
+  RATE_LIMITED: 'error.rateLimited',
+  INTERNAL: 'error.internal',
+  CONFIGURATION: 'error.configuration',
+} as const satisfies Record<ErrorCode, string>
+
+export const ERROR_MESSAGES = {
+  VALIDATION: 'The submitted data was invalid.',
+  FORBIDDEN: 'You do not have permission to do that.',
+  NOT_FOUND: 'That page could not be found.',
+  CONFLICT: 'That action conflicts with the current state.',
+  RATE_LIMITED: 'You are doing that too often. Please wait and try again.',
+  INTERNAL: 'Something went wrong on our end.',
+  CONFIGURATION: 'This server is misconfigured.',
+} as const satisfies Record<ErrorCode, string>
+
+export type MessageResolver = (key: string) => string | undefined
+
 export abstract class AppError extends Error {
   abstract readonly code: ErrorCode
 
   readonly publicMessage: string
 
+  readonly publicMessageKey: string | null
+
   readonly meta: Readonly<Record<string, unknown>>
 
   constructor(
     message: string,
-    options?: { publicMessage?: string; meta?: Record<string, unknown>; cause?: unknown },
+    options?: {
+      publicMessage?: string
+      publicMessageKey?: string | null
+      meta?: Record<string, unknown>
+      cause?: unknown
+    },
   ) {
     super(message, options?.cause === undefined ? undefined : { cause: options.cause })
     this.name = new.target.name
     this.publicMessage = options?.publicMessage ?? message
+    this.publicMessageKey = options?.publicMessageKey ?? null
     this.meta = Object.freeze({ ...options?.meta })
   }
+}
+
+export function publicMessageOf(value: unknown, resolve?: MessageResolver): string {
+  if (!isAppError(value)) {
+    return resolve?.(ERROR_MESSAGE_KEYS.INTERNAL) ?? ERROR_MESSAGES.INTERNAL
+  }
+  if (value.publicMessageKey === null) return value.publicMessage
+  return resolve?.(value.publicMessageKey) ?? value.publicMessage
 }
 
 export class ValidationError extends AppError {
@@ -30,11 +68,16 @@ export class ValidationError extends AppError {
   readonly fieldErrors: Readonly<Record<string, string[]>>
 
   constructor(
-    message = 'The submitted data was invalid.',
+    message?: string,
     fieldErrors: Record<string, string[]> = {},
     options?: { meta?: Record<string, unknown>; cause?: unknown },
   ) {
-    super(message, { publicMessage: message, ...options })
+    const text = message ?? ERROR_MESSAGES.VALIDATION
+    super(text, {
+      publicMessage: text,
+      publicMessageKey: message === undefined ? ERROR_MESSAGE_KEYS.VALIDATION : null,
+      ...options,
+    })
     this.fieldErrors = Object.freeze(fieldErrors)
   }
 }
@@ -43,11 +86,13 @@ export class ForbiddenError extends AppError {
   override readonly code = 'FORBIDDEN' as const
 
   constructor(
-    message = 'You do not have permission to do that.',
+    message?: string,
     options?: { action?: string; meta?: Record<string, unknown>; cause?: unknown },
   ) {
-    super(message, {
-      publicMessage: message,
+    const text = message ?? ERROR_MESSAGES.FORBIDDEN
+    super(text, {
+      publicMessage: text,
+      publicMessageKey: message === undefined ? ERROR_MESSAGE_KEYS.FORBIDDEN : null,
       meta: {
         ...options?.meta,
         ...(options?.action === undefined ? {} : { action: options.action }),
@@ -60,22 +105,26 @@ export class ForbiddenError extends AppError {
 export class NotFoundError extends AppError {
   override readonly code = 'NOT_FOUND' as const
 
-  constructor(
-    message = 'That page could not be found.',
-    options?: { meta?: Record<string, unknown>; cause?: unknown },
-  ) {
-    super(message, { publicMessage: message, ...options })
+  constructor(message?: string, options?: { meta?: Record<string, unknown>; cause?: unknown }) {
+    const text = message ?? ERROR_MESSAGES.NOT_FOUND
+    super(text, {
+      publicMessage: text,
+      publicMessageKey: message === undefined ? ERROR_MESSAGE_KEYS.NOT_FOUND : null,
+      ...options,
+    })
   }
 }
 
 export class ConflictError extends AppError {
   override readonly code = 'CONFLICT' as const
 
-  constructor(
-    message = 'That action conflicts with the current state.',
-    options?: { meta?: Record<string, unknown>; cause?: unknown },
-  ) {
-    super(message, { publicMessage: message, ...options })
+  constructor(message?: string, options?: { meta?: Record<string, unknown>; cause?: unknown }) {
+    const text = message ?? ERROR_MESSAGES.CONFLICT
+    super(text, {
+      publicMessage: text,
+      publicMessageKey: message === undefined ? ERROR_MESSAGE_KEYS.CONFLICT : null,
+      ...options,
+    })
   }
 }
 
@@ -85,10 +134,15 @@ export class RateLimitedError extends AppError {
 
   constructor(
     retryAfterSeconds: number,
-    message = 'You are doing that too often. Please wait and try again.',
+    message?: string,
     options?: { meta?: Record<string, unknown>; cause?: unknown },
   ) {
-    super(message, { publicMessage: message, ...options })
+    const text = message ?? ERROR_MESSAGES.RATE_LIMITED
+    super(text, {
+      publicMessage: text,
+      publicMessageKey: message === undefined ? ERROR_MESSAGE_KEYS.RATE_LIMITED : null,
+      ...options,
+    })
     this.retryAfterSeconds = retryAfterSeconds
   }
 }
@@ -97,7 +151,11 @@ export class InternalError extends AppError {
   override readonly code = 'INTERNAL' as const
 
   constructor(message: string, options?: { meta?: Record<string, unknown>; cause?: unknown }) {
-    super(message, { publicMessage: 'Something went wrong on our end.', ...options })
+    super(message, {
+      publicMessage: ERROR_MESSAGES.INTERNAL,
+      publicMessageKey: ERROR_MESSAGE_KEYS.INTERNAL,
+      ...options,
+    })
   }
 }
 
@@ -105,7 +163,11 @@ export class ConfigurationError extends AppError {
   override readonly code = 'CONFIGURATION' as const
 
   constructor(message: string, options?: { meta?: Record<string, unknown>; cause?: unknown }) {
-    super(message, { publicMessage: 'This server is misconfigured.', ...options })
+    super(message, {
+      publicMessage: ERROR_MESSAGES.CONFIGURATION,
+      publicMessageKey: ERROR_MESSAGE_KEYS.CONFIGURATION,
+      ...options,
+    })
   }
 }
 
@@ -131,18 +193,18 @@ export interface PublicErrorBody {
   error: { code: ErrorCode; message: string; fieldErrors?: Record<string, string[]> }
 }
 
-export function toPublicError(value: unknown): PublicErrorBody {
+export function toPublicError(value: unknown, resolve?: MessageResolver): PublicErrorBody {
   if (value instanceof ValidationError) {
     return {
       error: {
         code: value.code,
-        message: value.publicMessage,
+        message: publicMessageOf(value, resolve),
         fieldErrors: { ...value.fieldErrors },
       },
     }
   }
   if (isAppError(value)) {
-    return { error: { code: value.code, message: value.publicMessage } }
+    return { error: { code: value.code, message: publicMessageOf(value, resolve) } }
   }
-  return { error: { code: 'INTERNAL', message: 'Something went wrong on our end.' } }
+  return { error: { code: 'INTERNAL', message: publicMessageOf(value, resolve) } }
 }

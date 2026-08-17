@@ -3,6 +3,7 @@ import 'server-only'
 import { headers } from 'next/headers'
 import { cache } from 'react'
 
+import type { MessageResolver } from '@meith/core'
 import {
   BOARD_CATALOG,
   createCatalogRegistry,
@@ -69,4 +70,9 @@ export const getTranslator = cache(async (): Promise<Translator> => {
     catalog: catalogs.catalogFor(locale),
     ...(preferences === null ? {} : { timeZone: preferences.timezone }),
   })
+})
+
+export const getMessageResolver = cache(async (): Promise<MessageResolver> => {
+  const translator = await getTranslator()
+  return (key) => (translator.has(key) ? translator.t(key) : undefined)
 })
