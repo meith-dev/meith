@@ -3,7 +3,7 @@
     "The single place the documentation set is described.",
     "",
     "The prose itself is never copied here. Every entry points at a file under",
-    "docs/ at the workspace root, which stays the one editable copy \u2014 the site",
+    "docs/ at the workspace root, which stays the one editable copy — the site",
     "reads those files at build time and renders them. Adding a document means",
     "adding it to docs/ and naming it here (or in `internal`), and nothing else.",
     "",
@@ -19,17 +19,17 @@
     {
       "id": "running",
       "title": "Running a board",
-      "blurb": "From a bare server to a board that has been up long enough to go wrong."
+      "blurb": "Setting a board up, and everything about running one day to day."
     },
     {
       "id": "advanced",
       "title": "Advanced deployment",
-      "blurb": "The same board without the panel: the compose file, a reverse proxy you run, and what you take on for it."
+      "blurb": "The same board without the panel: Docker Compose, a .env you write, and a reverse proxy you run."
     },
     {
       "id": "themes",
       "title": "Themes",
-      "blurb": "The frozen v1 slot contract, and every slot a theme may fill."
+      "blurb": "The frozen theme contract, and every slot a theme may fill."
     },
     {
       "id": "plugins",
@@ -44,12 +44,12 @@
     {
       "id": "migrating",
       "title": "Migrating from MyBB",
-      "blurb": "Where a Meith board behaves differently from the one you are leaving, and why."
+      "blurb": "Where a Meith board deliberately behaves differently from MyBB, and why."
     },
     {
       "id": "development",
       "title": "Development",
-      "blurb": "Running it on your own machine, the workspace, and the conventions this codebase holds to."
+      "blurb": "Running Meith on your own machine, the workspace layout, and the conventions the codebase holds to."
     }
   ],
   "documents": [
@@ -58,7 +58,7 @@
       "file": "quickstart.md",
       "section": "running",
       "title": "Quickstart",
-      "blurb": "From nothing to a board people can reach, on your own server with Coolify. About twenty minutes, and the deploy pulls the released image rather than building anything.",
+      "blurb": "From nothing to a board on your own domain, with Coolify, in about twenty minutes. The deploy pulls the released image rather than building anything.",
       "generated": false,
       "primary": true
     },
@@ -67,7 +67,7 @@
       "file": "operating.md",
       "section": "running",
       "title": "Running a board",
-      "blurb": "The operator handbook. Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen.",
+      "blurb": "The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting.",
       "generated": false,
       "primary": false
     },
@@ -76,7 +76,7 @@
       "file": "upgrading.md",
       "section": "running",
       "title": "Upgrading a board",
-      "blurb": "How to take a board from one version to the next, how far you can jump, and what to do when a migration fails halfway.",
+      "blurb": "Moving a board between versions: the upgrade command, how far you can jump, and the behaviour changes each release brings.",
       "generated": false,
       "primary": false
     },
@@ -85,7 +85,7 @@
       "file": "single-sign-on.md",
       "section": "running",
       "title": "Signing in",
-      "blurb": "Two-factor authentication, federated sign-in and passkeys: what each one means for your members, how they are configured, and the record of what has opened an account.",
+      "blurb": "Two-factor authentication, federated sign-in and passkeys: what each means for your members, how to configure them, and the record of what has opened an account.",
       "generated": false,
       "primary": false
     },
@@ -103,7 +103,7 @@
       "file": "demo-mode.md",
       "section": "running",
       "title": "Demo mode",
-      "blurb": "A public board with its password printed on it, seeded with content, that deletes everything and rebuilds itself on a timer. What runs at demo.meith.dev.",
+      "blurb": "The self-resetting public demo board that runs at demo.meith.dev — what it changes, and how to run one yourself.",
       "generated": false,
       "primary": false
     },
@@ -112,7 +112,7 @@
       "file": "self-hosting.md",
       "section": "advanced",
       "title": "Deploying by hand",
-      "blurb": "The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Advanced \u2014 the Quickstart is the route most boards should take.",
+      "blurb": "The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead.",
       "generated": false,
       "primary": true
     },
@@ -120,8 +120,8 @@
       "slug": "theme-api",
       "file": "theme-api.md",
       "section": "themes",
-      "title": "The theme API, v1",
-      "blurb": "What the freeze covers, what a theme may do, and how to write one.",
+      "title": "The theme API",
+      "blurb": "How to write a theme, what a theme may do, and what the API freeze covers.",
       "generated": false,
       "primary": true
     },
@@ -130,7 +130,7 @@
       "file": "theme-slots.md",
       "section": "themes",
       "title": "Theme slots and view models",
-      "blurb": "Every slot and every view model, generated from the theme registry.",
+      "blurb": "Every slot and every view model, generated from the slot registry.",
       "generated": true,
       "primary": false
     },
@@ -138,7 +138,7 @@
       "slug": "plugin-api",
       "file": "plugin-api.md",
       "section": "plugins",
-      "title": "The plugin API, v1",
+      "title": "The plugin API",
       "blurb": "What a plugin is, what it may and may not do, and how a failure is contained.",
       "generated": false,
       "primary": true
@@ -166,7 +166,7 @@
       "file": "mybb-parity.md",
       "section": "migrating",
       "title": "MyBB parity decisions",
-      "blurb": "Every place this board behaves differently from MyBB, with the reason. Read it before promising anyone a like-for-like move.",
+      "blurb": "Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move.",
       "generated": false,
       "primary": true
     },
@@ -184,7 +184,7 @@
       "file": "architecture.md",
       "section": "development",
       "title": "Architecture",
-      "blurb": "How it fits together: the processes, the layers, the path a request takes, and the seams everything else hangs off.",
+      "blurb": "How Meith fits together: the processes, the layers, the path a request takes, and the extension seams.",
       "generated": false,
       "primary": false
     },
@@ -193,7 +193,7 @@
       "file": "nextjs-conventions.md",
       "section": "development",
       "title": "Next.js conventions",
-      "blurb": "Server components, caching, forms and errors \u2014 the decisions that would otherwise be re-litigated in every pull request.",
+      "blurb": "Server components, Server Actions, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request.",
       "generated": false,
       "primary": false
     },
@@ -202,7 +202,7 @@
       "file": "release.md",
       "section": "development",
       "title": "Releasing",
-      "blurb": "How a version is cut: the lockstep version rule, what each release publishes \u2014 the image, the branch, the npm packages \u2014 and the migration policy behind the numbers.",
+      "blurb": "How a version is cut, what each release publishes — the image, the branch, the npm packages — and the version policy behind the numbers.",
       "generated": false,
       "primary": false
     }

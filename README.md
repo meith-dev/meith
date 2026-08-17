@@ -3,90 +3,84 @@
 **Community software for people who want to build something together.**
 [meith.dev](https://meith.dev)
 
-The internet used to feel like a neighborhood, but today, it often feels like a
-fragmented crowd. We wanted to build a platform that brought the neighborhood
-back.
+The internet used to feel like a neighborhood; today it often feels like a
+fragmented crowd. Meith is a platform for bringing the neighborhood back.
 
-We named our software Meith after the ancient Irish concept of **meitheal**: a
-group of people coming together to help one another with a shared task. In a
-true meitheal, expertise is shared freely, heavy lifting is distributed, and the
-community grows stronger through cooperation. Meith provides the digital
-infrastructure for modern communities to do exactly that. Whether your users are
-trying to fill a regional networking gap, build open-source software, or share a
-niche hobby, Meith gives them the space to gather and grow.
+The name comes from the Irish concept of **meitheal**: a group of people
+coming together to help one another with a shared task. In a meitheal,
+expertise is shared freely, heavy lifting is distributed, and the community
+grows stronger through cooperation. Meith is the digital infrastructure for
+communities to do exactly that — whether they are filling a regional
+networking gap, building open-source software, or sharing a niche hobby.
 
 ## Getting started
 
-**On your own server**, with nothing between you and the board. The
-[Quickstart](./docs/quickstart.md) goes from a fresh Ubuntu box to a board on
-your own domain, over HTTPS, in about twenty minutes.
+Meith runs on **your own server**, with nothing between you and the board.
+There are two supported routes:
 
-**[Coolify](https://coolify.io) is the short way**, and it is still entirely
-your own server — a panel you install on the same machine, not a service you
-sign up to:
+**With Coolify — the guided route.** [Coolify](https://coolify.io) is a
+panel you install on your own machine, not a service you sign up to:
 
 ```sh
 curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
 ```
 
-Then point it at this repository — the `release` branch — and
-[`docker/compose.coolify.yml`](./docker/compose.coolify.yml). It pulls the
-released image rather than building anything, generates both secrets and the
-database password, issues the certificate, tells the board its own URL, and
-follows releases — never bare pushes — on redeploy. Nothing is typed in.
+Point it at this repository — the `release` branch and
+[`docker/compose.coolify.yml`](./docker/compose.coolify.yml) — and it pulls
+the released image rather than building anything, generates the secrets and
+the database password, issues the certificate, and tells the board its own
+URL. Nothing is typed in. The [Quickstart](./docs/quickstart.md) walks
+through it: a fresh Ubuntu box to a board on your own domain, over HTTPS,
+in about twenty minutes.
 
-**Or the compose file directly**, if you already run a proxy:
+**With Docker Compose — the advanced route**, if you already run a reverse
+proxy. Clone the repository, check out the newest release, write a
+five-line `.env` beside [`docker/compose.yml`](./docker/compose.yml), and
+`docker compose up -d --build`. [Deploying by hand](./docs/self-hosting.md)
+is the walkthrough: the `.env`, the proxy, and what you take on for it.
 
-```sh
-git clone https://github.com/meith-dev/meith.git && cd meith/docker
-git checkout "$(git describe --tags --abbrev=0)"   # the newest release
-cp ../.env.example .env       # three secrets, generated not typed — the file says how
-docker compose up -d --build
-```
+Either way you get the same four containers — Postgres, a one-shot
+migration the others wait on, the web server, and the worker that runs the
+background tick. Put a certificate in front, open `/install`, and that is
+a board. Day two, on either route, is
+[Running a board](./docs/operating.md).
 
-The same four containers either way — Postgres, a one-shot migration that the
-other two wait on, the web server, and the worker that runs the background
-tick. Coolify pulls them as the released image;
-[`docker/compose.yml`](./docker/compose.yml) builds the same image from the
-checkout. Certificate in front, open `/install`, and that is a board.
-
-That route is the advanced one — [Deploying by hand](./docs/self-hosting.md)
-covers the `.env`, the proxy and what you take on for it. Day two, either way,
-is [Running a board](./docs/operating.md).
-
-Those are the only deployment routes this project supports, and that is a
-decision rather than an omission. A board asks three things of wherever it runs — a
-scheduler that goes off every minute, a disk that survives a restart, and a
-process that outlives a request. A plain server gives you all three without
-being asked; a serverless host gives you none, and the third has no workaround
-at any price.
+These are the only deployment routes this project supports, and that is a
+decision rather than an omission. A board asks three things of wherever it
+runs: a scheduler that fires every minute, a disk that survives a restart,
+and a process that outlives a request. A plain server gives you all three
+without being asked; a serverless host gives you none, and the third has no
+workaround at any price.
 
 ## What you get
 
-- **A real permission model.** 46 permission fields — 27 resolved per actor per
-  forum, 19 board-wide — not a three-tier guess. Search, feeds and the API all
-  answer to it, so there is no path that reads around the rules.
-- **Themes that cannot break the board.** A frozen slot contract, documented
-  and generated from the registry, so a theme is replaceable rather than a fork.
-- **Plugins with contained failures.** Hooks with typed payloads; a plugin that
-  throws does not take a page down with it.
-- **Postgres full-text search**, weighted so a thread's subject beats a passing
-  mention, and paged on a keyset so results never repeat or skip.
-- **Spam controls that fail open.** A honeypot, a fill-time floor, questions you
-  write yourself, held first posts, and hourly limits counted in the database so
-  every instance shares one allowance. No hosted captcha, so no third party meets
-  your members before you do.
-- **A migration path from MyBB** — resumable, so a large board can be imported
-  across several sessions.
+- **A real permission model.** 45 permission fields — 26 resolved per
+  member per forum, 19 board-wide — not a three-tier guess. Search, feeds
+  and the API all answer to the same resolver, so there is no path that
+  reads around the rules.
+- **Themes that cannot break the board.** A frozen slot contract,
+  documented and generated from the registry, so a theme is replaceable
+  rather than a fork.
+- **Plugins with contained failures.** Hooks with typed payloads; a plugin
+  that throws does not take a page down with it.
+- **Postgres full-text search**, weighted so a thread's subject beats a
+  passing mention, and paged on a keyset so results never repeat or skip.
+- **Spam controls that fail open.** A honeypot, a fill-time floor,
+  questions you write yourself, held first posts, and hourly limits counted
+  in the database so every instance shares one allowance. No hosted
+  captcha, so no third party meets your members before you do.
+- **A migration path from MyBB** — resumable, so a large board can be
+  imported across several sessions, with members keeping their passwords.
 - **An operator CLI** for everything you should not need a browser for:
-  migrations, users, settings, scheduled tasks, search reindexing.
+  migrations, users, settings, scheduled tasks, the importer, search
+  reindexing.
 
 ## Documentation
 
-Every document lives in [`docs/`](./docs/README.md) and nowhere else. The site at
-[meith.dev/docs](https://meith.dev/docs) renders those same files — it holds no
-copy of any of them — so a correction is one edit, in the repository, and both
-places have it.
+Every document lives in [`docs/`](./docs/README.md) and nowhere else. The
+site at [meith.dev/docs](https://meith.dev/docs) renders those same files —
+it holds no copy of any of them — so a correction is one edit, in the
+repository, and both places have it.
 
 The table below is written from `apps/web/content/docs.manifest.json` by
 `pnpm site:docs`. Describe a document there; do not edit these rows.
@@ -95,28 +89,28 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 
 | Section | Document | What it answers |
 |---|---|---|
-| Running a board | [`quickstart.md`](./docs/quickstart.md) | From nothing to a board people can reach, on your own server with Coolify. About twenty minutes, and the deploy pulls the released image rather than building anything. |
-| Running a board | [`operating.md`](./docs/operating.md) | The operator handbook. Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
-| Running a board | [`upgrading.md`](./docs/upgrading.md) | How to take a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
-| Running a board | [`single-sign-on.md`](./docs/single-sign-on.md) | Two-factor authentication, federated sign-in and passkeys: what each one means for your members, how they are configured, and the record of what has opened an account. |
+| Running a board | [`quickstart.md`](./docs/quickstart.md) | From nothing to a board on your own domain, with Coolify, in about twenty minutes. The deploy pulls the released image rather than building anything. |
+| Running a board | [`operating.md`](./docs/operating.md) | The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting. |
+| Running a board | [`upgrading.md`](./docs/upgrading.md) | Moving a board between versions: the upgrade command, how far you can jump, and the behaviour changes each release brings. |
+| Running a board | [`single-sign-on.md`](./docs/single-sign-on.md) | Two-factor authentication, federated sign-in and passkeys: what each means for your members, how to configure them, and the record of what has opened an account. |
 | Running a board | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
-| Running a board | [`demo-mode.md`](./docs/demo-mode.md) | A public board with its password printed on it, seeded with content, that deletes everything and rebuilds itself on a timer. What runs at demo.meith.dev. |
-| Advanced deployment | [`self-hosting.md`](./docs/self-hosting.md) | The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Advanced — the Quickstart is the route most boards should take. |
-| Themes | [`theme-api.md`](./docs/theme-api.md) | What the freeze covers, what a theme may do, and how to write one. |
-| Themes | [`theme-slots.md`](./docs/theme-slots.md) | Every slot and every view model, generated from the theme registry. *(generated)* |
+| Running a board | [`demo-mode.md`](./docs/demo-mode.md) | The self-resetting public demo board that runs at demo.meith.dev — what it changes, and how to run one yourself. |
+| Advanced deployment | [`self-hosting.md`](./docs/self-hosting.md) | The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead. |
+| Themes | [`theme-api.md`](./docs/theme-api.md) | How to write a theme, what a theme may do, and what the API freeze covers. |
+| Themes | [`theme-slots.md`](./docs/theme-slots.md) | Every slot and every view model, generated from the slot registry. *(generated)* |
 | Plugins | [`plugin-api.md`](./docs/plugin-api.md) | What a plugin is, what it may and may not do, and how a failure is contained. |
 | Plugins | [`plugin-hooks.md`](./docs/plugin-hooks.md) | Every hook and payload, generated from the hook registry. *(generated)* |
 | The API | [`rest-api.md`](./docs/rest-api.md) | Every endpoint, scope and rate limit, generated from the route registry. *(generated)* |
-| Migrating from MyBB | [`mybb-parity.md`](./docs/mybb-parity.md) | Every place this board behaves differently from MyBB, with the reason. Read it before promising anyone a like-for-like move. |
+| Migrating from MyBB | [`mybb-parity.md`](./docs/mybb-parity.md) | Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move. |
 | Development | [`development.md`](./docs/development.md) | Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request. |
-| Development | [`architecture.md`](./docs/architecture.md) | How it fits together: the processes, the layers, the path a request takes, and the seams everything else hangs off. |
-| Development | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |
-| Development | [`release.md`](./docs/release.md) | How a version is cut: the lockstep version rule, what each release publishes — the image, the branch, the npm packages — and the migration policy behind the numbers. |
+| Development | [`architecture.md`](./docs/architecture.md) | How Meith fits together: the processes, the layers, the path a request takes, and the extension seams. |
+| Development | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, Server Actions, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |
+| Development | [`release.md`](./docs/release.md) | How a version is cut, what each release publishes — the image, the branch, the npm packages — and the version policy behind the numbers. |
 
 <!-- docs:table end -->
 
-[`docs/README.md`](./docs/README.md) is the same set, read from the repository
-rather than the site.
+[`docs/README.md`](./docs/README.md) is the same set, indexed for reading
+from the repository rather than the site.
 
 ## Development
 
@@ -128,15 +122,17 @@ pnpm dev
 ```
 
 That is a working board on <http://localhost:3000> with **no database** — a
-deterministic in-memory sample board, enough to read every page and try a theme.
-Posting needs Postgres, which is one more command.
-[Development](./docs/development.md) is the full walkthrough: the dev database,
-the commands, the gates, and what to do before opening a pull request.
+deterministic in-memory sample board, enough to read every page and try a
+theme. Posting needs Postgres, which is one more command.
+[Development](./docs/development.md) is the full walkthrough: the dev
+database, the commands, the checks, and what to do before opening a pull
+request.
 
-`pnpm verify` runs what CI's `static` job runs — the invariant guards, the
-generated-doc checks, lint, dependency rules, all three typecheck projects and
-the full test suite. CI's other jobs build the image and drive a browser; the
-static job is the one a pull request fails first.
+`pnpm verify` is the gate to run before a pull request: the invariant
+guards, the generated-doc checks, lint, dependency rules, all three
+typecheck projects and the full test suite. If it passes locally, CI's
+`static` job — the one a pull request fails first — will pass too; CI's
+other jobs build the image and drive a browser.
 
 Four applications share the workspace:
 
@@ -146,37 +142,40 @@ Four applications share the workspace:
 | [`apps/web`](./apps/web) | `@meith/site` | meith.dev — the landing page and the documentation. `pnpm site:dev`, on port 3100. |
 | [`apps/worker`](./apps/worker), [`apps/cli`](./apps/cli) | `@meith/worker`, `@meith/cli` | Background work, and the operator CLI. |
 
-`apps/web` renders `docs/*.md` at build time. It does not copy them, and there is
-no second place to update when a document changes.
+`apps/web` renders `docs/*.md` at build time. It does not copy them, and
+there is no second place to update when a document changes.
 
 ## Licence
 
-Meith is free software under the **GNU Lesser General Public License, version 3
-or later** — [`LICENSE.md`](./LICENSE.md).
+Meith is free software under the **GNU Lesser General Public License,
+version 3 or later** — [`LICENSE.md`](./LICENSE.md).
 
-LGPLv3 is not a standalone licence: it is a set of additional permissions layered
-on top of the GNU GPL, which it incorporates by reference. That text is
-[`COPYING`](./COPYING), and the two files together are the terms.
+LGPLv3 is not a standalone licence: it is a set of additional permissions
+layered on top of the GNU GPL, which it incorporates by reference. That
+text is [`COPYING`](./COPYING), and the two files together are the terms.
 
-What it means in practice — a summary with no legal effect of its own, and not
-legal advice:
+What it means in practice — a summary with no legal effect of its own, and
+not legal advice:
 
-- **Run a board on it, for anything, including commercially.** Nothing asks you
-  to publish your configuration, your members' data, or a word anybody wrote on
-  your board. Running the software is not distributing it.
-- **Write a theme or a plugin, and licence that however you like.** A theme fills
-  the frozen slot contract; a plugin listens on typed hooks. Both use an
-  interface Meith provides rather than becoming part of Meith, which is the case
-  the *Lesser* GPL exists to allow. Yours is not obliged to be LGPL because the
-  board it runs in is.
-- **Change Meith itself, and those changes carry the same licence** to whoever
-  you hand the modified version to, along with the source and a note of what you
-  changed. That is the copyleft, and it is the whole of what is asked in return.
-- **There is no warranty.** Sections 15 and 16 of `COPYING` say so at length.
+- **Run a board on it, for anything, including commercially.** Nothing
+  asks you to publish your configuration, your members' data, or a word
+  anybody wrote on your board. Running the software is not distributing
+  it.
+- **Write a theme or a plugin, and licence it however you like.** A theme
+  fills the frozen slot contract; a plugin listens on typed hooks. Both
+  use an interface Meith provides rather than becoming part of Meith,
+  which is the case the *Lesser* GPL exists to allow. Yours is not obliged
+  to be LGPL because the board it runs in is.
+- **Change Meith itself, and those changes carry the same licence** to
+  whoever you hand the modified version to, along with the source and a
+  note of what you changed. That is the copyleft, and it is the whole of
+  what is asked in return.
+- **There is no warranty.** Sections 15 and 16 of `COPYING` say so at
+  length.
 
-The FSF also recommends a notice at the top of each source file. Meith does not
-carry them yet; the licence applies to the whole work either way. The boilerplate
-is at the end of `COPYING` — insert "Lesser" before "General" in all three places
-to refer to the LGPL rather than the GPL.
+The FSF also recommends a notice at the top of each source file. Meith
+does not carry them yet; the licence applies to the whole work either way.
+The boilerplate is at the end of `COPYING` — insert "Lesser" before
+"General" in all three places to refer to the LGPL rather than the GPL.
 
 Copyright (C) 2026 the Meith contributors.
