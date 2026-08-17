@@ -118,18 +118,33 @@ replacing their markup.
 
 ## Words and numbers
 
-A slot receives a view model and nothing else — there is no translator to
-reach for, in the same way there is no database. Anything already written for
-the reader arrives in the model, translated and formatted: a timestamp crosses
-as a `TimeModel` whose `label` is in the viewer's language and zone.
+A slot receives a view model and nothing else — there is no locale to reach
+for, in the same way there is no database. **The app formats; the theme
+renders.** Anything written for the reader arrives already written: a timestamp
+crosses as a `TimeModel`, and a counter as a `CountModel`.
 
-Two things are yours to do.
+```tsx
+export function ForumRow({ forum }: { forum: ForumRowModel }) {
+  return (
+    <span>
+      {forum.postCount.label} {forum.postCount.value === 1 ? 'post' : 'posts'}
+    </span>
+  )
+}
+```
 
-**Count with `formatCount()`** from `@meith/theme-kit`, never with
-`toLocaleString`. It groups digits by the locale the current render adopted, so
-a German board reads `1.204` where an English one reads `1,204`. The bare
-`toLocaleString()` follows the *host* instead, which makes the server and the
-browser disagree; the `no-fixed-locale-format` guard refuses both forms.
+`label` is the string — grouped by the reader's language, so `1,204` on an
+English board and `1.204` on a German one. `value` is the number, for the work
+a string cannot do: pluralising a noun, hiding a zero, sizing a bar. Rendering
+`value` directly is the bug this shape exists to prevent, and so is reaching
+for `toLocaleString` — with a locale it pins every board to one language,
+without one it follows the *host*, so the server and the browser disagree. The
+`no-fixed-locale-format` guard refuses both.
+
+A number your theme worked out for itself — "and 12 more" over a list you
+sliced — is yours to render as plain digits. The rule covers what the app hands
+you, and the app hands you a `memberCount` rather than making you count
+`members.length`.
 
 **Put your own words in a catalog.** A theme that writes a heading of its own
 ships a `messages` bundle and is registered with it in `community.config.ts`:
@@ -220,7 +235,7 @@ a complete theme today.
 
 ## Versioning
 
-`THEME_API_VERSION` (currently `0.13`) is `major.minor`, and both halves are
+`THEME_API_VERSION` (currently `0.14`) is `major.minor`, and both halves are
 promises:
 
 | Bump | What may land | What it costs you |
@@ -233,13 +248,20 @@ behaviour of its own, so a bug fixed in `resolveTheme` is a package version,
 not an API version.
 
 > [!NOTE]
-> **The major is `0`, and the freeze is still real.** Meith has not shipped
-> 1.0, so the major these rules count toward is the one that ships with the
-> product. In practice a minor is additive whatever the major says: `0.10`
-> added five slots and removed nothing, `0.11` through `0.13` added only
-> optional model fields. A theme written against `0.9` still compiles and
-> still renders — it inherits new slots from whatever it extends and ignores
-> fields it never reads.
+> **The major is `0`, and the freeze is still real — with one exception, so
+> far.** Meith has not shipped 1.0, so the major these rules count toward is
+> the one that ships with the product. Every minor up to `0.13` was additive
+> whatever the major said: `0.10` added five slots and removed nothing, `0.11`
+> through `0.13` added only optional model fields.
+>
+> `0.14` is the exception and is recorded here rather than glossed. It retyped
+> every counter a theme renders — `postCount`, `replyCount`, `total` and the
+> rest — from `number` to [`CountModel`](./theme-slots.md#countmodel), so a
+> theme written against `0.13` fails to compile against it. That is a major's
+> change landed in a minor, and it was landed that way because Meith is
+> pre-1.0 and no board runs on it: the alternative was carrying a second field
+> beside every counter until 1.0 to avoid breaking themes that do not exist.
+> Once 1.0 ships, the table above is the whole of it.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

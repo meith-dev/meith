@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.13.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
+**theme-kit v0.14.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -102,8 +102,8 @@ Props: `UserPanelModel`
 |---|---|---|
 | `viewer` | `ViewerModel` |  |
 | `links` | `readonly LinkModel[]` | Sign-in / register, or account links. Resolved by the app. |
-| `unreadNotifications` | `number` | `0` when there is nothing to show. |
-| `unreadMessages` | `number` |  |
+| `unreadNotifications` | `CountModel` | `value` is `0` when there is nothing to show. |
+| `unreadMessages` | `CountModel` |  |
 | `notificationsHref` | `string` | optional — Where the two counts above lead, so a theme can make them clickable. A count that cannot be acted on is a notification the reader has to go hunting for. Both are absent for a guest, who has neither. Themes read these rather than searching `links` for the one labelled "Notifications", which two of them were doing and which breaks the moment that label is reworded or translated. |
 | `messagesHref` | `string` | optional |
 | `children` | `ReactNode` | optional — Account controls the app supplies — today, the log-out form. Log out cannot be a `LinkModel`: it is a POST to a Server Action, because a GET that ends a session is fired by every prefetcher and link scanner that touches the page. A Server Action reference is also not plain data and could never cross this contract, so the app renders the form and the theme decides where in the panel it sits. |
@@ -213,9 +213,9 @@ Props: `BoardStatsModel`
 
 | Field | Type | Notes |
 |---|---|---|
-| `threadCount` | `number` |  |
-| `postCount` | `number` |  |
-| `memberCount` | `number` |  |
+| `threadCount` | `CountModel` |  |
+| `postCount` | `CountModel` |  |
+| `memberCount` | `CountModel` |  |
 | `newestMember` | `UserRefModel \| null` |  |
 | `computedAt` | `TimeModel \| null` | When the totals were last rolled up, or null before the first run. Part of the contract rather than a detail the app hides, because a theme that shows the numbers should be able to say how old they are — and "computed ten minutes ago" is the difference between a number that is stale and one that is wrong. |
 
@@ -229,10 +229,11 @@ Props: `WhoIsOnlineModel`
 
 | Field | Type | Notes |
 |---|---|---|
-| `guestCount` | `number` |  |
+| `guestCount` | `CountModel` |  |
 | `members` | `readonly OnlineMemberModel[]` |  |
-| `total` | `number` | Members plus guests, as this reader is permitted to count them. |
-| `recordCount` | `number` |  |
+| `memberCount` | `CountModel` | How many members are listed. Render this rather than `members.length`. |
+| `total` | `CountModel` | Members plus guests, as this reader is permitted to count them. |
+| `recordCount` | `CountModel` |  |
 | `recordAt` | `TimeModel \| null` |  |
 | `fullListHref` | `string` | The full list, for a theme that shows only a summary here. |
 
@@ -425,7 +426,7 @@ Props: `MemberProfileModel`
 | `title` | `string \| null` | The member's group, shown under their name. The same rule the postbit follows: `users.display_group_id` where the member has chosen one, and their primary group otherwise. `null` only where the group behind it has gone. |
 | `joinedAt` | `TimeModel` |  |
 | `lastVisitAt` | `TimeModel \| null` |  |
-| `postCount` | `number` |  |
+| `postCount` | `CountModel` |  |
 | `signatureHtml` | `string \| null` |  |
 | `fields` | `readonly { readonly label: string; readonly value: string }[]` | Custom profile fields, already filtered by visibility. |
 | `actions` | `readonly LinkModel[]` |  |
@@ -633,6 +634,15 @@ A link out of an authentication page, with the sentence that introduces it. "New
 | `group` | `string` | from `LinkModel` — optional — Which run of links this one belongs to, for themes that separate them. Compare it for *change*, never for value: a theme draws a rule wherever consecutive links disagree, and the strings themselves stay the app's business. Absent everywhere is the normal case and renders as one run. |
 | `lead` | `string \| null` |  |
 
+### CountModel
+
+A counter, in both forms a template needs. See this file's header.
+
+| Field | Type | Notes |
+|---|---|---|
+| `value` | `number` | The number itself: compare, pluralise and branch on it. Never rendered raw. |
+| `label` | `string` | Preformatted in the viewer's language, e.g. "1,204" or "1.204". |
+
 ### DiscoveryRowModel
 
 One row in a discovery listing.
@@ -644,7 +654,7 @@ One row in a discovery listing.
 | `href` | `string` |  |
 | `forum` | `LinkModel` |  |
 | `authorUsername` | `string` |  |
-| `replyCount` | `number` |  |
+| `replyCount` | `CountModel` |  |
 | `lastPostAt` | `TimeModel` |  |
 | `lastPostUsername` | `string \| null` | `null` when the thread has no reply yet, so the last post is the first. |
 
@@ -669,8 +679,8 @@ Submitted as the form value. Opaque to the theme. readonly value: string readonl
 | `description` | `string \| null` |  |
 | `href` | `string` |  |
 | `type` | `'category' \| 'forum' \| 'link'` | `link` rows navigate away and have no counters. |
-| `threadCount` | `number` |  |
-| `postCount` | `number` |  |
+| `threadCount` | `CountModel` |  |
+| `postCount` | `CountModel` |  |
 | `lastPost` | `LastPostModel \| null` |  |
 | `isUnread` | `boolean` | `false` for a guest, who has no read state. |
 | `subforums` | `readonly LinkModel[]` |  |
@@ -718,7 +728,7 @@ One thread in the index's "latest threads" panel. Every row carries its forum, b
 | `href` | `string` |  |
 | `forum` | `LinkModel` | The forum it was started in, resolved — a theme never builds an href. |
 | `author` | `UserRefModel` |  |
-| `replyCount` | `number` |  |
+| `replyCount` | `CountModel` |  |
 | `startedAt` | `TimeModel` |  |
 
 ### LinkModel
@@ -830,8 +840,8 @@ The author block beside a post.
 | `avatarUrl` | `string \| null` |  |
 | `title` | `string \| null` | The display group's title, or a custom user title. Was `null` on every post the board has ever rendered — the field was in the contract from the start and nothing populated it, so every theme's postbit had a place for a member's standing and nothing to put in it. It comes from `users.display_group_id`, falling back to the primary group. |
 | `badge` | `LogoModel \| null \| undefined` | optional — The board's badge for this member's group, or `null`. Shaped exactly like `LogoModel` and for the same reason: the app has already chosen which of the two images this reader gets, so `darkSrc` is non-null only for a reader on "system", where the server cannot know. |
-| `reputation` | `number \| null \| undefined` | optional — This member's reputation, or `null` when the board has it switched off. A denormalised counter on `users`, so it costs the postbit nothing. |
-| `postCount` | `number` |  |
+| `reputation` | `CountModel \| null \| undefined` | optional — This member's reputation, or `null` when the board has it switched off. A denormalised counter on `users`, so it costs the postbit nothing. |
+| `postCount` | `CountModel` |  |
 | `joinedAt` | `TimeModel \| null` |  |
 | `signatureHtml` | `string \| null` | Pre-rendered Markdown. Trusted output of the board's own renderer. |
 | `isOnline` | `boolean` |  |
@@ -978,8 +988,8 @@ One tab in a strip of view tabs.
 | `href` | `string` |  |
 | `prefix` | `PrefixModel \| null` |  |
 | `author` | `UserRefModel` |  |
-| `replyCount` | `number` |  |
-| `viewCount` | `number` |  |
+| `replyCount` | `CountModel` |  |
+| `viewCount` | `CountModel` |  |
 | `isSticky` | `boolean` |  |
 | `isLocked` | `boolean` |  |
 | `isUnread` | `boolean` |  |
@@ -1022,5 +1032,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.13. Nothing can be: this is the first
+Nothing is deprecated in v0.14. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

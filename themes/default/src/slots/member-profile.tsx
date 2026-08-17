@@ -1,5 +1,4 @@
 import type { MemberProfileModel } from '@meith/theme-kit'
-import { formatCount } from '@meith/theme-kit'
 import { Avatar, buttonVariants, Card, CardContent, CardHeader, CardTitle, cn } from '@meith/ui'
 
 import { NUMERIC, PAGE_BODY, Stamp } from '../shared'
@@ -54,7 +53,7 @@ export function MemberProfile({
         <dl className="grid grid-cols-3 gap-3 border-t border-border px-5 py-4">
           <div>
             <dd className={`text-lg font-semibold text-foreground ${NUMERIC}`}>
-              {formatCount(postCount)}
+              {postCount.label}
             </dd>
             <dt className="text-xs text-muted-foreground">Posts</dt>
           </div>

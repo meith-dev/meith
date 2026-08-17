@@ -27,15 +27,6 @@ if (catalogKeys.join('\n') !== sorted.join('\n')) {
   )
 }
 
-/* ── the mirrored surfaces ──────────────────────────────────────────────────
- *
- * Three files carry English next to a definition rather than in the catalog,
- * because they are read where no viewer exists: the CLI prints setting labels,
- * the worker raises errors, and a plugin registers a notification kind with a
- * plain string. The catalog mirrors them, and these checks are what stop the
- * two copies drifting — a new setting fails here until its message exists.
- */
-
 function literal(expression) {
   const parts = [...expression.matchAll(/'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"/g)]
   return parts
@@ -151,8 +142,6 @@ if (messages === null || keys === null) {
   }
 }
 
-/* ── every key a call site names must exist, and every key must be named ── */
-
 const files = await repoFiles()
 const source = files.filter(({ rel }) => /\.(ts|tsx)$/.test(rel))
 
@@ -183,14 +172,6 @@ if (orphans.length > 0) {
       'outlived its call site costs real work in every language. Delete it.',
   )
 }
-
-/* ── the ratchet on copy that has not been extracted yet ──────────────────
- *
- * Extraction is being done a surface at a time, so the view-builders still
- * hold English. What must not happen is the pile growing while that work is
- * in progress: this counts the prose literals per file and refuses any file
- * that gained one. A file not listed must have none at all.
- */
 
 const PROSE_SURFACE = /^apps\/community\/src\/view\/[^/]+\.ts$/
 

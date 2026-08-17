@@ -155,15 +155,15 @@ describe('buildUserPanelModel', () => {
 
   it('carries both unread counts, defaulting each to zero', () => {
     const none = buildUserPanelModel(buildViewerModel(member))
-    expect(none.unreadNotifications).toBe(0)
-    expect(none.unreadMessages).toBe(0)
+    expect(none.unreadNotifications.value).toBe(0)
+    expect(none.unreadMessages.value).toBe(0)
 
     const some = buildUserPanelModel(buildViewerModel(member), {
       unreadNotifications: 3,
       unreadMessages: 2,
     })
-    expect(some.unreadNotifications).toBe(3)
-    expect(some.unreadMessages).toBe(2)
+    expect(some.unreadNotifications.value).toBe(3)
+    expect(some.unreadMessages.value).toBe(2)
   })
 
   it('offers a guest no notification centre', () => {
@@ -175,8 +175,8 @@ describe('buildUserPanelModel', () => {
   it('reports no unread notifications unless it is given a count', () => {
     const panel = buildUserPanelModel(buildViewerModel(guest))
 
-    expect(panel.unreadNotifications).toBe(0)
-    expect(panel.unreadMessages).toBe(0)
+    expect(panel.unreadNotifications.value).toBe(0)
+    expect(panel.unreadMessages.value).toBe(0)
   })
 
   it('carries the unread notification count the shell resolved', () => {
@@ -184,7 +184,7 @@ describe('buildUserPanelModel', () => {
       unreadNotifications: 3,
     })
 
-    expect(panel.unreadNotifications).toBe(3)
+    expect(panel.unreadNotifications.value).toBe(3)
   })
 })
 

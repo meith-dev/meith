@@ -9,6 +9,7 @@ import type {
   ViewerModel,
 } from '@meith/theme-kit'
 
+import { count } from './count'
 import { memberHref } from './member-profile'
 import { timezoneLabel, untranslated } from './time'
 
@@ -118,8 +119,8 @@ export function buildUserPanelModel(
   return {
     viewer,
     links,
-    unreadNotifications: options.unreadNotifications ?? 0,
-    unreadMessages: options.unreadMessages ?? 0,
+    unreadNotifications: count(options.unreadNotifications ?? 0, t),
+    unreadMessages: count(options.unreadMessages ?? 0, t),
     ...(viewer.isGuest
       ? {}
       : { notificationsHref: NOTIFICATIONS_HREF, messagesHref: MESSAGES_HREF }),

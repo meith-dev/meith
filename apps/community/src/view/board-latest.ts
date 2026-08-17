@@ -8,6 +8,7 @@ import type {
 } from '@meith/theme-kit'
 
 import { forumHref } from './board-index'
+import { count } from './count'
 import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { postLink } from './post-link'
@@ -76,7 +77,7 @@ export function buildLatestThreadsModel(input: LatestInput<LatestThreadRow>): La
       href: forumHref({ id: row.forumId, slug: row.forumSlug }),
     },
     author: authorOf(row, input.identities),
-    replyCount: row.replyCount,
+    replyCount: count(row.replyCount, input.t),
     startedAt: formatTime(row.createdAt, input.now, input.t),
   }))
 

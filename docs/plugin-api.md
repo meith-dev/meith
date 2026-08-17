@@ -192,6 +192,11 @@ which is a feature when you mean it and a collision when you do not. Namespace
 your keys with your plugin key, the way settings and tasks are namespaced, and
 name a board key only when overriding it is the point.
 
+A page context also carries `locale`, the language tag the board resolved for
+this reader. A plugin renders arbitrary UI rather than filling a slot, so unlike
+a theme it formats its own dates and numbers — `new Intl.NumberFormat(context.locale)`
+rather than `toLocaleString()`, which the `no-fixed-locale-format` guard refuses.
+
 Nothing about a plugin's own text is required to be translatable; a plugin that
 ships only `en` works, and its messages fall back to English for every reader.
 [Languages](./internationalisation.md) covers the message syntax, the plural

@@ -1,5 +1,4 @@
-import type { PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
-import { formatCount } from '@meith/theme-kit'
+import type { CountModel, PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
 import { Badge, cn } from '@meith/ui'
 
 const PAGE_WIDTH = 'max-w-6xl'
@@ -79,7 +78,7 @@ export function Prefix({ prefix }: { prefix: PrefixModel }) {
 
 export interface CountItem {
   readonly label: string
-  readonly value: number
+  readonly value: CountModel
   readonly one: string
   readonly many: string
 }
@@ -91,10 +90,8 @@ export function Counts({ items, className }: { items: readonly CountItem[]; clas
         <div key={item.label}>
           <dt className="sr-only">{item.label}</dt>
           <dd>
-            <span className={cn('font-medium text-foreground', NUMERIC)}>
-              {formatCount(item.value)}
-            </span>{' '}
-            {item.value === 1 ? item.one : item.many}
+            <span className={cn('font-medium text-foreground', NUMERIC)}>{item.value.label}</span>{' '}
+            {item.value.value === 1 ? item.one : item.many}
           </dd>
         </div>
       ))}

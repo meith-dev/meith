@@ -564,7 +564,7 @@ describe("the author's group standing", () => {
     expect(authorOf({ identities: new Map([[7, IDENTITY]]) })).toMatchObject({
       title: 'Moderator',
       nameClass: 'gname-3',
-      reputation: 42,
+      reputation: { value: 42, label: '42' },
     })
   })
 
@@ -616,7 +616,7 @@ describe("the author's group standing", () => {
     expect(author.signatureHtml).toBeNull()
     expect(author.title).toBe('Moderator')
     expect(author.badge).not.toBeNull()
-    expect(author.reputation).toBe(42)
+    expect(author.reputation).toEqual({ value: 42, label: '42' })
   })
 })
 

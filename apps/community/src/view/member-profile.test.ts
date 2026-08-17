@@ -26,7 +26,7 @@ describe('buildMemberProfileView', () => {
     expect(memberHref(3)).toBe('/member/3')
     expect(view).toMatchObject({
       user: { userId: 3, username: 'ada', profileHref: '/member/3' },
-      postCount: 42,
+      postCount: { value: 42, label: '42' },
       lastVisitAt: { label: 'Today, 08:41' },
     })
   })

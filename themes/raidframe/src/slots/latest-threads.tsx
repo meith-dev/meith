@@ -29,7 +29,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
               <p className={`${MICRO} truncate normal-case`}>
                 <Stamp at={thread.startedAt} />
                 <span className="text-border">{' | '}</span>
-                <span className={NUMERIC}>{thread.replyCount}</span>
+                <span className={NUMERIC}>{thread.replyCount.label}</span>
                 <span className="uppercase"> replies</span>
               </p>
             </li>

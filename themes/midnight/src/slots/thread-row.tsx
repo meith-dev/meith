@@ -40,10 +40,10 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
         </p>
       </td>
       <td className="w-16 px-2 py-2 text-right font-mono text-xs text-muted-foreground">
-        {thread.replyCount}
+        {thread.replyCount.label}
       </td>
       <td className="w-16 px-2 py-2 text-right font-mono text-xs text-muted-foreground">
-        {thread.viewCount}
+        {thread.viewCount.label}
       </td>
       <td className="w-56 px-3 py-2 text-xs text-muted-foreground">
         {thread.lastPost === null ? (

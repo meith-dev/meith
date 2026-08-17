@@ -48,7 +48,7 @@ export const getLocale = cache(async (): Promise<ResolvedLocale> => {
   try {
     boardDefault = (await getSettings()).get('display.default_locale')
   } catch {
-    /* the board default is unreadable before install; the source locale stands in */
+    /* ignore */
   }
 
   return resolveLocale({

@@ -61,7 +61,7 @@ export function MemberProfile({
       <Frame aria-labelledby="member-stats-heading">
         <PanelHead id="member-stats-heading" title="Statistics" />
         <dl className="grid grid-cols-2 gap-1.5 p-3 sm:grid-cols-3">
-          <Field label="posts">{postCount}</Field>
+          <Field label="posts">{postCount.label}</Field>
           <Field label="joined">
             <Stamp at={joinedAt} />
           </Field>

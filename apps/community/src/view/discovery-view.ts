@@ -1,6 +1,7 @@
 import type { Translator } from '@meith/i18n'
 import type { DiscoveryViewModel } from '@meith/theme-kit'
 
+import { count } from './count'
 import { formatTime } from './time'
 
 export const DISCOVERY_LABELS = {
@@ -69,7 +70,7 @@ export function buildDiscoveryView(input: {
       href: `/thread/${row.threadId}-${row.slug}`,
       forum: { label: row.forumTitle, href: `/${row.forumId}-${row.forumSlug}` },
       authorUsername: row.authorUsername,
-      replyCount: row.replyCount,
+      replyCount: count(row.replyCount, input.t),
       lastPostAt: formatTime(row.lastPostAt, input.now, input.t),
       lastPostUsername: row.lastPostUsername,
     })),

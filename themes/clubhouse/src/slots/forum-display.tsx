@@ -1,5 +1,4 @@
 import type { ForumDisplayModel } from '@meith/theme-kit'
-import { formatCount } from '@meith/theme-kit'
 import { Card, CardRows, cn, Empty, EmptyAction, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import {
@@ -47,7 +46,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
         <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-xs text-muted-foreground">
           {forum.type !== 'link' && (
             <span className={`${MICRO} ${NUMERIC}`}>
-              {formatCount(forum.threadCount)} threads · {formatCount(forum.postCount)} posts
+              {forum.threadCount.label} threads · {forum.postCount.label} posts
             </span>
           )}
           {forum.description !== null && <span>{forum.description}</span>}

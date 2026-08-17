@@ -12,6 +12,7 @@ import type {
 import type { ThreadListingRow } from '@meith/threads'
 
 import { forumHref } from './board-index'
+import { count } from './count'
 import { threadRowModel } from './forum-display'
 import type { MemberIdentity } from './member-identity'
 import { memberHref } from './member-profile'
@@ -113,8 +114,8 @@ function post(post: PostListingRow, thread: ThreadListingRow, context: PostConte
       title: identity?.title ?? null,
       nameClass: identity?.nameClass ?? null,
       badge: identity?.badge ?? null,
-      reputation: identity?.reputation ?? null,
-      postCount: post.authorPostCount,
+      reputation: identity?.reputation === undefined ? null : count(identity.reputation, t),
+      postCount: count(post.authorPostCount, t),
       joinedAt: post.authorJoinedAt === null ? null : formatDate(post.authorJoinedAt, t),
       signatureHtml:
         hidden || post.authorUserId === null ? null : (signatures.get(post.authorUserId) ?? null),

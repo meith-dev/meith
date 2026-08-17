@@ -18,7 +18,7 @@ export function SubforumList({ forums }: SubforumListModel) {
           className="inline-flex items-center gap-1.5 border border-border bg-surface px-2 py-0.5 font-mono text-[0.625rem] tracking-[0.1em] text-foreground uppercase hover:border-primary/60 hover:text-primary"
         >
           {forum.title}
-          <span className={`${NUMERIC} text-muted-foreground`}>{forum.threadCount}</span>
+          <span className={`${NUMERIC} text-muted-foreground`}>{forum.threadCount.label}</span>
         </a>
       ))}
     </nav>

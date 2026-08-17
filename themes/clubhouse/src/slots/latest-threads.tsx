@@ -1,5 +1,4 @@
 import type { LatestThreadsModel } from '@meith/theme-kit'
-import { formatCount } from '@meith/theme-kit'
 import { Card, CardContent, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { LINK, MICRO, MUTED_LINK, NUMERIC, PanelHead, Stamp, UserRef } from '../shared'
@@ -35,7 +34,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
                     {thread.title}
                   </a>
                   <span className={`shrink-0 text-xs text-muted-foreground ${NUMERIC}`}>
-                    {formatCount(thread.replyCount)}
+                    {thread.replyCount.label}
                   </span>
                 </div>
 

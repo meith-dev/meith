@@ -15,15 +15,15 @@ export function UserPanel({
         {viewer.isGuest ? 'guest' : (viewer.username ?? 'signed in')}
       </span>
 
-      {unreadNotifications > 0 && (
+      {unreadNotifications.value > 0 && (
         <a href={notificationsHref} className="text-accent hover:underline">
-          [{unreadNotifications} new]
+          [{unreadNotifications.label} new]
           <span className="sr-only"> notifications</span>
         </a>
       )}
-      {unreadMessages > 0 && (
+      {unreadMessages.value > 0 && (
         <a href={messagesHref} className="text-accent hover:underline">
-          [{unreadMessages} pm]
+          [{unreadMessages.label} pm]
           <span className="sr-only"> unread messages</span>
         </a>
       )}

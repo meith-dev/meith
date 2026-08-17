@@ -1,5 +1,4 @@
 import type { PostBitSlotModel } from '@meith/theme-kit'
-import { formatCount } from '@meith/theme-kit'
 import { Alert, AlertDescription, AlertTitle, Avatar, Card } from '@meith/ui'
 
 import { HEADING, LINK, MICRO, MICRO_BARE, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
@@ -105,10 +104,8 @@ function AuthorBlock({
       </div>
 
       <dl className="mt-2.5 space-y-1 border-t border-border px-4 py-2.5">
-        <StatLine label="Posts">{formatCount(author.postCount)}</StatLine>
-        {author.reputation != null && (
-          <StatLine label="Rep">{formatCount(author.reputation)}</StatLine>
-        )}
+        <StatLine label="Posts">{author.postCount.label}</StatLine>
+        {author.reputation != null && <StatLine label="Rep">{author.reputation.label}</StatLine>}
         {author.joinedAt !== null && (
           <StatLine label="Joined">
             <Stamp at={author.joinedAt} />

@@ -20,6 +20,7 @@ import {
 } from '@meith/plugin-kit'
 
 import forumConfig from '../../community.config'
+import { getLocale } from './i18n'
 import { notificationService } from './notifications'
 import { getSettingOverrides } from './settings'
 
@@ -129,6 +130,7 @@ export async function renderPluginBoardPage(
         path,
         query: request.query,
         boardUrl: request.boardUrl,
+        locale: (await getLocale()).locale,
       }),
     }
   } catch (error) {
@@ -162,6 +164,7 @@ export async function renderPluginAdminPage(
       node: await page.render({
         ...runtimeContextFor(pluginKey, definition, overrides, log),
         query,
+        locale: (await getLocale()).locale,
       }),
     }
   } catch (error) {

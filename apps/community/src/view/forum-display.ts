@@ -11,6 +11,7 @@ import type {
 import type { ReadState, ThreadListingRow, ThreadPage } from '@meith/threads'
 
 import { forumHref } from './board-index'
+import { count } from './count'
 import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { postLink } from './post-link'
@@ -49,6 +50,7 @@ function lastPost(
 function forum(
   row: ForumListingRow,
   ownThreadsOnlyForumIds: ReadonlySet<number> | undefined,
+  t: Translator | undefined,
 ): ForumRowModel {
   const ownThreadsOnly = ownThreadsOnlyForumIds?.has(row.id) ?? false
   return {
@@ -57,8 +59,8 @@ function forum(
     description: row.description,
     href: forumHref(row),
     type: row.type,
-    threadCount: ownThreadsOnly ? 0 : row.threadCount,
-    postCount: ownThreadsOnly ? 0 : row.postCount,
+    threadCount: count(ownThreadsOnly ? 0 : row.threadCount, t),
+    postCount: count(ownThreadsOnly ? 0 : row.postCount, t),
     lastPost: null,
     isUnread: false,
     subforums: [],
@@ -89,8 +91,8 @@ export function threadRowModel(
       profileHref: row.authorUserId === null ? null : memberHref(row.authorUserId),
       nameClass: nameClassOf(identities, row.authorUserId),
     },
-    replyCount: row.replyCount,
-    viewCount: row.viewCount,
+    replyCount: count(row.replyCount, t),
+    viewCount: count(row.viewCount, t),
     isSticky: row.isSticky,
     isLocked: row.isLocked,
     isUnread,
@@ -125,7 +127,7 @@ export interface ForumDisplayView {
 export function buildForumDisplayView(input: ForumDisplayInput): ForumDisplayView {
   return {
     display: {
-      forum: forum(input.forum, input.ownThreadsOnlyForumIds),
+      forum: forum(input.forum, input.ownThreadsOnlyForumIds, input.t),
       newThreadHref: input.newThreadHref ?? null,
       markReadAction: input.markReadAction ?? null,
     },
@@ -133,7 +135,7 @@ export function buildForumDisplayView(input: ForumDisplayInput): ForumDisplayVie
       input.subforums.length === 0
         ? null
         : {
-            forums: input.subforums.map((row) => forum(row, input.ownThreadsOnlyForumIds)),
+            forums: input.subforums.map((row) => forum(row, input.ownThreadsOnlyForumIds, input.t)),
           },
     threads: input.page.rows.map((row) =>
       threadRowModel(row, input.now, input.readState ?? null, input.t, input.identities),

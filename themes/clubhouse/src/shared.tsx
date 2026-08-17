@@ -1,5 +1,4 @@
-import type { PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
-import { formatCount } from '@meith/theme-kit'
+import type { CountModel, PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
 import { Badge, cn } from '@meith/ui'
 
 export const PAGE = 'mx-auto w-full max-w-6xl px-4 sm:px-6'
@@ -81,10 +80,10 @@ export function ColumnHeads({
   )
 }
 
-export function Tally({ value, label }: { value: number; label: string }) {
+export function Tally({ value, label }: { value: CountModel; label: string }) {
   return (
     <span className={`${NUMERIC} text-sm font-semibold text-foreground md:text-right`}>
-      {formatCount(value)}
+      {value.label}
       <span className={`${MICRO} ms-1 md:hidden`}>{label}</span>
     </span>
   )

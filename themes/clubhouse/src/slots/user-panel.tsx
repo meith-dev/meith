@@ -70,16 +70,16 @@ export function UserPanel({
       />
 
       <div className="flex min-w-0 items-center gap-2">
-        {unreadNotifications > 0 && (
+        {unreadNotifications.value > 0 && (
           <Count href={notificationsHref} className="bg-primary text-primary-foreground">
-            {unreadNotifications}
+            {unreadNotifications.label}
             <span className="sr-only"> unread notifications</span>
             <span aria-hidden="true">new</span>
           </Count>
         )}
-        {unreadMessages > 0 && (
+        {unreadMessages.value > 0 && (
           <Count href={messagesHref} className="border border-border text-foreground">
-            {unreadMessages}
+            {unreadMessages.label}
             <span className="sr-only"> unread messages</span>
             <span aria-hidden="true">unread</span>
           </Count>

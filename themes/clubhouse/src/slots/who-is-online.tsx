@@ -1,5 +1,4 @@
 import type { OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
-import { formatCount } from '@meith/theme-kit'
 import { Badge } from '@meith/ui'
 
 import { LINK, MICRO, NUMERIC, Stamp, UserRef } from '../shared'
@@ -9,6 +8,7 @@ const VISIBLE_NAMES = 12
 export function WhoIsOnline({
   guestCount,
   members,
+  memberCount,
   total,
   recordCount,
   recordAt,
@@ -27,14 +27,14 @@ export function WhoIsOnline({
       </h2>
 
       <p className={NUMERIC}>
-        <span className="font-semibold text-foreground">{formatCount(total)}</span> online —{' '}
-        {formatCount(members.length)} {members.length === 1 ? 'member' : 'members'},{' '}
-        {formatCount(guestCount)} {guestCount === 1 ? 'guest' : 'guests'}
+        <span className="font-semibold text-foreground">{total.label}</span> online —{' '}
+        {memberCount.label} {memberCount.value === 1 ? 'member' : 'members'}, {guestCount.label}{' '}
+        {guestCount.value === 1 ? 'guest' : 'guests'}
       </p>
 
-      {members.length === 0 ? (
+      {memberCount.value === 0 ? (
         <p>
-          {guestCount === 0
+          {guestCount.value === 0
             ? 'Nobody is reading the board right now.'
             : 'Only guests are reading the board right now.'}
         </p>
@@ -50,7 +50,7 @@ export function WhoIsOnline({
                 className={`inline cursor-default list-none ${LINK} [&::-webkit-details-marker]:hidden [&::marker]:content-none`}
               >
                 {' and '}
-                <span className={NUMERIC}>{formatCount(rest.length)}</span> more
+                <span className={NUMERIC}>{rest.length}</span> more
               </summary>
               {': '}
               {rest.map((member, index) => (
@@ -67,7 +67,7 @@ export function WhoIsOnline({
         </a>
         {recordAt !== null && (
           <span className={`ms-auto ${NUMERIC}`}>
-            Record: {formatCount(recordCount)} on <Stamp at={recordAt} />
+            Record: {recordCount.label} on <Stamp at={recordAt} />
           </span>
         )}
       </p>

@@ -1,6 +1,7 @@
 import type { Translator } from '@meith/i18n'
 import type { BoardStatsModel, OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
 
+import { count } from './count'
 import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { formatTime } from './time'
@@ -54,10 +55,11 @@ export function buildWhoIsOnlineModel(input: OnlineInput): WhoIsOnlineModel {
   }))
 
   return {
-    guestCount: input.guestCount,
+    guestCount: count(input.guestCount, input.t),
     members,
-    total: members.length + input.guestCount,
-    recordCount: input.recordCount,
+    memberCount: count(members.length, input.t),
+    total: count(members.length + input.guestCount, input.t),
+    recordCount: count(input.recordCount, input.t),
     recordAt: input.recordAt === null ? null : formatTime(input.recordAt, input.now, input.t),
     fullListHref: '/online',
   }
@@ -77,9 +79,9 @@ export interface StatsInput {
 
 export function buildBoardStatsModel(input: StatsInput): BoardStatsModel {
   return {
-    threadCount: input.threadCount,
-    postCount: input.postCount,
-    memberCount: input.memberCount,
+    threadCount: count(input.threadCount, input.t),
+    postCount: count(input.postCount, input.t),
+    memberCount: count(input.memberCount, input.t),
     newestMember:
       input.newestUsername === null
         ? null

@@ -145,7 +145,8 @@ both run by `pnpm verify`:
 - **`no-fixed-locale-format`**, one of the textual guards in
   `scripts/guards.config.mjs`, refuses a locale named at a formatting call site
   — `toLocaleString('en')` and its bare no-argument form alike. Format through
-  the viewer's `Translator`, or through `formatCount()` in a theme.
+  the viewer's `Translator`, and hand a theme a `CountModel` rather than a
+  number.
 - **`pnpm i18n:check`** proves the catalog and the code agree: that every key a
   call site names exists, that no message has outlived the call site that read
   it, that the mirrored definitions still match, and that no view builder gained
@@ -170,20 +171,37 @@ View builders take it as `t` in their input object and pass it to
 builder called without one falls back to `untranslated()`, an English translator
 in UTC — which is what tests and the fixture board use.
 
-Themes cannot be handed a translator: a slot receives a view model and nothing
-else, by design. What they get instead is `formatCount()` from `@meith/theme-kit`,
-which reads the locale adopted for the current render. Anything a theme needs to
-*say*, rather than count, belongs in its own catalog.
+Themes are never handed a translator, or a locale: a slot receives a view model
+and nothing else, by design. Numbers reach a theme already formatted, as a
+`CountModel` carrying both the string and the number — the same bargain
+`TimeModel` has always made for timestamps. So a view builder that puts a
+counter in a model wraps it with `count()` from `@/view/count`, and the theme
+renders `postCount.label`. Anything a theme needs to *say* rather than count
+belongs in its own catalog. [The theme API](./theme-api.md) has the theme side.
+
+A plugin is different: it renders arbitrary UI rather than filling a slot, so
+its page context carries `locale` and it formats what it needs to.
 
 ### The three mirrored surfaces
 
 Setting labels in `packages/settings/src/definitions.ts`, error messages in
 `packages/core/src/errors.ts` and notification kinds in
 `packages/notifications/src/kinds.ts` keep their English text in place *and*
-carry it in the catalog. They are the exception, and the reason is that all
-three are read where no viewer exists — the CLI prints setting labels, the
-worker raises errors, a plugin registers a notification kind with a plain
-string — so each needs an English floor that does not depend on a request.
+carry it in the catalog. They are the exception, and the reasons differ:
+
+- **Errors have no choice.** `@meith/core` is the bottom of the stack and
+  dependency-cruiser's `core-depends-on-nothing` forbids it a sibling import,
+  so `errors.ts` has no catalog to read. An error raised in the worker or the
+  CLI carries English of its own, and the key is what lets a render boundary
+  upgrade it.
+- **Notification kinds are half-forced.** A plugin registers a kind with plain
+  `title` and `description` strings through `@meith/plugin-kit`, so the field
+  stays a string; the nine built-in kinds are mirrored to match.
+- **Settings are a readability choice.** Nothing outside the admin panel reads
+  a setting's label, so they could have moved wholesale. A definition that says
+  `label: 'Board name'` tells you what a setting is where you are editing it,
+  and one that says `labelKey: 'setting.board.name.label'` sends you to another
+  file to find out.
 
 `pnpm i18n:check` compares the two copies character for character and fails on
 any difference, so they cannot drift: adding a setting fails the build until its

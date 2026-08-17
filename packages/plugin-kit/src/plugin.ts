@@ -118,10 +118,12 @@ export interface PluginPageContext extends PluginRuntimeContext {
   readonly path: string
   readonly query: Readonly<Record<string, string>>
   readonly boardUrl: string
+  readonly locale: string
 }
 
 export interface PluginAdminPageContext extends PluginRuntimeContext {
   readonly query: Readonly<Record<string, string>>
+  readonly locale: string
 }
 
 export interface PluginBoardPage {

@@ -17,14 +17,17 @@ const member = (id: number): OnlineMemberModel => ({
   lastSeen: { iso: '2026-05-05T11:58:00.000Z', label: 'Today, 11:58' },
 })
 
+const tally = (value: number) => ({ value, label: String(value) })
+
 function render(count: number, overrides: Partial<WhoIsOnlineModel> = {}): string {
   const members = Array.from({ length: count }, (_, index) => member(index + 1))
   return renderToStaticMarkup(
     createElement(WhoIsOnline, {
-      guestCount: 2,
+      guestCount: tally(2),
       members,
-      total: count + 2,
-      recordCount: 40,
+      memberCount: tally(count),
+      total: tally(count + 2),
+      recordCount: tally(40),
       recordAt: { iso: '2025-11-01T20:00:00.000Z', label: '1 Nov 2025, 20:00' },
       fullListHref: '/online',
       ...overrides,
@@ -72,7 +75,7 @@ describe('the collapse', () => {
 
   it('says what is happening when nobody is here, rather than showing nothing', () => {
     expect(render(0)).toContain('Only guests are reading the board right now.')
-    expect(render(0, { guestCount: 0 })).toContain('Nobody is reading the board right now.')
+    expect(render(0, { guestCount: tally(0) })).toContain('Nobody is reading the board right now.')
   })
 
   it('marks an invisible member in words, wherever they fall in the run', () => {
@@ -83,10 +86,11 @@ describe('the collapse', () => {
 
     const html = renderToStaticMarkup(
       createElement(WhoIsOnline, {
-        guestCount: 0,
+        guestCount: tally(0),
         members,
-        total: 20,
-        recordCount: 40,
+        memberCount: tally(20),
+        total: tally(20),
+        recordCount: tally(40),
         recordAt: null,
         fullListHref: '/online',
       }),

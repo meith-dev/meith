@@ -1,5 +1,4 @@
 import type { MemberProfileModel } from '@meith/theme-kit'
-import { formatCount } from '@meith/theme-kit'
 import { Avatar, Card, CardContent, cn } from '@meith/ui'
 
 import { BUTTON, ClubBar, HEADING, MICRO, NUMERIC, PAGE_BODY, PanelHead, Stamp } from '../shared'
@@ -65,9 +64,7 @@ export function MemberProfile({
           <dl className="flex flex-wrap gap-x-6 gap-y-1 border-t-2 border-t-secondary bg-surface px-4 py-2.5 text-xs">
             <div className="flex items-baseline gap-1.5">
               <dt className={MICRO}>Posts</dt>
-              <dd className={`${NUMERIC} font-semibold text-foreground`}>
-                {formatCount(postCount)}
-              </dd>
+              <dd className={`${NUMERIC} font-semibold text-foreground`}>{postCount.label}</dd>
             </div>
             <div className="flex items-baseline gap-1.5">
               <dt className={MICRO}>Joined</dt>

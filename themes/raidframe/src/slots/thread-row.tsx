@@ -51,10 +51,10 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
       </td>
 
       <td className={`w-16 px-2 py-2.5 text-right text-xs ${NUMERIC} text-foreground`}>
-        {thread.replyCount}
+        {thread.replyCount.label}
       </td>
       <td className={`w-16 px-2 py-2.5 text-right text-xs ${NUMERIC} text-muted-foreground`}>
-        {thread.viewCount}
+        {thread.viewCount.label}
       </td>
 
       <td className="hidden w-52 px-3 py-2.5 text-xs text-muted-foreground sm:table-cell">

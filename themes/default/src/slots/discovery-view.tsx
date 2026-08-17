@@ -96,9 +96,9 @@ export function DiscoveryView({
 
                 <p className="shrink-0 text-xs text-muted-foreground sm:text-right">
                   <span className={cn('font-semibold text-foreground', NUMERIC)}>
-                    {row.replyCount}
+                    {row.replyCount.label}
                   </span>{' '}
-                  {row.replyCount === 1 ? 'reply' : 'replies'}
+                  {row.replyCount.value === 1 ? 'reply' : 'replies'}
                   <span className="block">
                     last post <Stamp at={row.lastPostAt} />
                     {row.lastPostUsername === null ? null : ` by ${row.lastPostUsername}`}

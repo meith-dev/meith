@@ -1,5 +1,4 @@
 import { ModerationQueue } from '@meith/moderation'
-import { formatCount } from '@meith/theme-kit'
 import {
   Alert,
   AlertDescription,
@@ -132,7 +131,7 @@ export default async function AdminHomePage() {
                   ].map((figure) => (
                     <div key={figure.label}>
                       <p className="text-2xl font-semibold text-foreground tabular-nums">
-                        {formatCount(figure.value)}
+                        {translator.number(figure.value)}
                       </p>
                       <p className="text-xs text-muted-foreground">{figure.label}</p>
                     </div>

@@ -1,5 +1,4 @@
 import type { BoardStatsModel } from '@meith/theme-kit'
-import { formatCount } from '@meith/theme-kit'
 
 import { MICRO, NUMERIC, Stamp, UserRef } from '../shared'
 
@@ -32,7 +31,7 @@ export function BoardStats({
           ].map((figure) => (
             <span key={figure.label}>
               <span className={`font-semibold text-foreground ${NUMERIC}`}>
-                {formatCount(figure.value)}
+                {figure.value.label}
               </span>{' '}
               {figure.label}
             </span>

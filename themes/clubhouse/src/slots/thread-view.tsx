@@ -1,5 +1,4 @@
 import type { ThreadViewModel } from '@meith/theme-kit'
-import { formatCount } from '@meith/theme-kit'
 import { Badge, cn } from '@meith/ui'
 
 import { BUTTON, HEADING, MICRO, MUTED_LINK, NUMERIC, PAGE_BODY, PageHead, Prefix } from '../shared'
@@ -47,7 +46,7 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
           {thread.isMoved && <Badge tone="moved">Moved</Badge>}
 
           <span className={`${MICRO} ${NUMERIC}`}>
-            {formatCount(thread.replyCount)} replies · {formatCount(thread.viewCount)} views
+            {thread.replyCount.label} replies · {thread.viewCount.label} views
           </span>
         </div>
       </PageHead>

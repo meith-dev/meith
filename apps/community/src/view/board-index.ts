@@ -8,6 +8,7 @@ import type {
   LinkModel,
 } from '@meith/theme-kit'
 
+import { count } from './count'
 import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { postLink } from './post-link'
@@ -75,8 +76,8 @@ function toForumRow(
     description: node.description,
     href: hrefFor(node),
     type: node.type,
-    threadCount: ownThreadsOnly ? 0 : node.threadCount,
-    postCount: ownThreadsOnly ? 0 : node.postCount,
+    threadCount: count(ownThreadsOnly ? 0 : node.threadCount, t),
+    postCount: count(ownThreadsOnly ? 0 : node.postCount, t),
     lastPost: ownThreadsOnly ? null : toLastPost(node, now, t, identities),
     isUnread: !ownThreadsOnly && (unreadForumIds?.has(node.id) ?? false),
     subforums: node.children.map(

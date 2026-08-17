@@ -1,4 +1,4 @@
-import type { UserPanelModel } from '@meith/theme-kit'
+import type { CountModel, UserPanelModel } from '@meith/theme-kit'
 import { Menu } from '@meith/ui/menu'
 
 import { Circle, count, ICON_BUTTON, MUTED_LINK, PILL, PILL_PRIMARY } from '../shared'
@@ -63,10 +63,10 @@ function IconButton({
   )
 }
 
-function CountBadge({ value, label }: { value: number; label: string }) {
+function CountBadge({ value, label }: { value: CountModel; label: string }) {
   return (
     <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-semibold text-destructive-foreground ring-2 ring-card">
-      <span aria-hidden="true">{value > 99 ? '99+' : value}</span>
+      <span aria-hidden="true">{value.value > 99 ? '99+' : value.label}</span>
       <span className="sr-only">
         {count(value)} {label}
       </span>
@@ -106,14 +106,14 @@ export function UserPanel({
         }}
       />
 
-      {unreadNotifications > 0 && (
+      {unreadNotifications.value > 0 && (
         <IconButton href={notificationsHref ?? null} title="Notifications">
           <BellIcon />
           <CountBadge value={unreadNotifications} label="unread notifications" />
         </IconButton>
       )}
 
-      {unreadMessages > 0 && (
+      {unreadMessages.value > 0 && (
         <IconButton href={messagesHref ?? null} title="Messages">
           <MessageIcon />
           <CountBadge value={unreadMessages} label="unread messages" />

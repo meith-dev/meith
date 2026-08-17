@@ -3,12 +3,7 @@ import 'server-only'
 import { cookies } from 'next/headers'
 import { cache } from 'react'
 
-import {
-  adoptRenderLocale,
-  assertThemeContract,
-  type ResolvedTheme,
-  resolveTheme,
-} from '@meith/theme-kit'
+import { assertThemeContract, type ResolvedTheme, resolveTheme } from '@meith/theme-kit'
 
 import {
   type ColourSchemePreference,
@@ -18,7 +13,6 @@ import {
 } from '@/view/theme-preference'
 
 import forumConfig from '../../community.config'
-import { getLocale } from './i18n'
 import { getBoardThemeStyle } from './theme-runtime'
 
 const RESOLVED: ReadonlyMap<string, ResolvedTheme> = new Map(
@@ -49,17 +43,8 @@ export const currentThemeKey = cache(async (): Promise<string> => {
 })
 
 export const currentTheme = cache(async (): Promise<ResolvedTheme> => {
-  const [key] = await Promise.all([currentThemeKey(), adoptViewerLocale()])
-  return RESOLVED.get(key) ?? buildTheme
+  return RESOLVED.get(await currentThemeKey()) ?? buildTheme
 })
-
-async function adoptViewerLocale(): Promise<void> {
-  try {
-    adoptRenderLocale((await getLocale()).locale)
-  } catch {
-    /* before install there is no viewer and no board default; the source locale stands in */
-  }
-}
 
 export const currentColourScheme = cache(async (): Promise<ColourSchemePreference> => {
   const chosen = (await cookies()).get(SCHEME_COOKIE)?.value

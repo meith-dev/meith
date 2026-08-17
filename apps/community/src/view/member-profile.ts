@@ -2,6 +2,7 @@ import type { MemberProfileRecord } from '@meith/accounts'
 import type { Translator } from '@meith/i18n'
 import type { MemberProfileModel } from '@meith/theme-kit'
 
+import { count } from './count'
 import { formatDate, formatTime } from './time'
 
 export function memberHref(userId: number): string {
@@ -39,7 +40,7 @@ export function buildMemberProfileView(
     title: profile.title,
     joinedAt: formatDate(profile.createdAt, t),
     lastVisitAt: profile.lastActiveAt === null ? null : formatTime(profile.lastActiveAt, now, t),
-    postCount: profile.postCount,
+    postCount: count(profile.postCount, t),
     signatureHtml: null,
     fields: [
       profile.location === null ? null : { label: 'Location', value: profile.location },

@@ -32,10 +32,10 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
       </td>
 
       <td className="w-16 px-2 py-2 text-right font-mono text-xs text-muted-foreground">
-        {isLink ? '' : forum.threadCount}
+        {isLink ? '' : forum.threadCount.label}
       </td>
       <td className="w-16 px-2 py-2 text-right font-mono text-xs text-muted-foreground">
-        {isLink ? '' : forum.postCount}
+        {isLink ? '' : forum.postCount.label}
       </td>
       <td className="w-64 px-3 py-2 text-xs text-muted-foreground">
         {isLink || forum.lastPost === null ? (

@@ -1,5 +1,4 @@
 import type { LatestThreadsModel } from '@meith/theme-kit'
-import { formatCount } from '@meith/theme-kit'
 import {
   Card,
   CardContent,
@@ -40,7 +39,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
                     {thread.title}
                   </a>
                   <span className={`shrink-0 text-xs text-muted-foreground ${NUMERIC}`}>
-                    {formatCount(thread.replyCount)} {thread.replyCount === 1 ? 'reply' : 'replies'}
+                    {thread.replyCount.label} {thread.replyCount.value === 1 ? 'reply' : 'replies'}
                   </span>
                 </div>
 

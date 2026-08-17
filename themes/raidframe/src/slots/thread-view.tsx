@@ -32,9 +32,9 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
                 <span className={`${TAG} border-thread-locked/60 text-thread-locked`}>locked</span>
               )}
               <span className={`${MICRO} ${NUMERIC} normal-case`}>
-                <span className="text-foreground">{thread.replyCount}</span> replies
+                <span className="text-foreground">{thread.replyCount.label}</span> replies
                 <span className="text-border">{' | '}</span>
-                <span className="text-foreground">{thread.viewCount}</span> views
+                <span className="text-foreground">{thread.viewCount.label}</span> views
               </span>
             </p>
           </div>

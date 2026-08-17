@@ -273,8 +273,8 @@ describe('a "your threads only" forum row', () => {
 
     const row = result.blocks[0]!.forums[0]!
     expect(row.lastPost).toBeNull()
-    expect(row.threadCount).toBe(0)
-    expect(row.postCount).toBe(0)
+    expect(row.threadCount).toEqual({ value: 0, label: '0' })
+    expect(row.postCount).toEqual({ value: 0, label: '0' })
     expect(row.isUnread).toBe(false)
   })
 
@@ -288,7 +288,7 @@ describe('a "your threads only" forum row', () => {
 
     const row = result.blocks[0]!.forums[0]!
     expect(row.lastPost?.threadTitle).toBe('My bank details are wrong')
-    expect(row.threadCount).toBe(412)
+    expect(row.threadCount).toEqual({ value: 412, label: '412' })
     expect(row.isUnread).toBe(true)
   })
 
@@ -302,6 +302,6 @@ describe('a "your threads only" forum row', () => {
     })
 
     expect(section!.forums[0]!.lastPost).toBeNull()
-    expect(section!.forums[0]!.threadCount).toBe(0)
+    expect(section!.forums[0]!.threadCount).toEqual({ value: 0, label: '0' })
   })
 })

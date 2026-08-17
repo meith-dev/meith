@@ -105,6 +105,7 @@ describe('what crosses the boundary', () => {
     expect(Object.keys(handed as object).sort()).toEqual([
       'data',
       'grants',
+      'locale',
       'logger',
       'notify',
       'query',
@@ -203,6 +204,7 @@ describe('board pages', () => {
       'boardUrl',
       'data',
       'grants',
+      'locale',
       'logger',
       'notify',
       'path',
