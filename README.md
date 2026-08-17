@@ -95,23 +95,23 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 
 | Section | Document | What it answers |
 |---|---|---|
-| Running a board | [`quickstart.md`](./docs/quickstart.md) | From nothing to a board people can reach, on your own server with Coolify. About twenty minutes, and the deploy pulls the released image rather than building anything. |
-| Running a board | [`operating.md`](./docs/operating.md) | The operator handbook. Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
-| Running a board | [`upgrading.md`](./docs/upgrading.md) | How to take a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
-| Running a board | [`single-sign-on.md`](./docs/single-sign-on.md) | Two-factor authentication, federated sign-in and passkeys: what each one means for your members, how they are configured, and the record of what has opened an account. |
+| Running a board | [`quickstart.md`](./docs/quickstart.md) | From nothing to a board on your own domain, with Coolify, in about twenty minutes. The deploy pulls the released image rather than building anything. |
+| Running a board | [`operating.md`](./docs/operating.md) | The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting. |
+| Running a board | [`upgrading.md`](./docs/upgrading.md) | Moving a board between versions: the upgrade command, how far you can jump, and the behaviour changes each release brings. |
+| Running a board | [`single-sign-on.md`](./docs/single-sign-on.md) | Two-factor authentication, federated sign-in and passkeys: what each means for your members, how to configure them, and the record of what has opened an account. |
 | Running a board | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
-| Running a board | [`demo-mode.md`](./docs/demo-mode.md) | A public board with its password printed on it, seeded with content, that deletes everything and rebuilds itself on a timer. What runs at demo.meith.dev. |
-| Advanced deployment | [`self-hosting.md`](./docs/self-hosting.md) | The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Advanced — the Quickstart is the route most boards should take. |
-| Themes | [`theme-api.md`](./docs/theme-api.md) | What the freeze covers, what a theme may do, and how to write one. |
-| Themes | [`theme-slots.md`](./docs/theme-slots.md) | Every slot and every view model, generated from the theme registry. *(generated)* |
+| Running a board | [`demo-mode.md`](./docs/demo-mode.md) | The self-resetting public demo board that runs at demo.meith.dev — what it changes, and how to run one yourself. |
+| Advanced deployment | [`self-hosting.md`](./docs/self-hosting.md) | The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead. |
+| Themes | [`theme-api.md`](./docs/theme-api.md) | How to write a theme, what a theme may do, and what the API freeze covers. |
+| Themes | [`theme-slots.md`](./docs/theme-slots.md) | Every slot and every view model, generated from the slot registry. *(generated)* |
 | Plugins | [`plugin-api.md`](./docs/plugin-api.md) | What a plugin is, what it may and may not do, and how a failure is contained. |
 | Plugins | [`plugin-hooks.md`](./docs/plugin-hooks.md) | Every hook and payload, generated from the hook registry. *(generated)* |
 | The API | [`rest-api.md`](./docs/rest-api.md) | Every endpoint, scope and rate limit, generated from the route registry. *(generated)* |
-| Migrating from MyBB | [`mybb-parity.md`](./docs/mybb-parity.md) | Every place this board behaves differently from MyBB, with the reason. Read it before promising anyone a like-for-like move. |
+| Migrating from MyBB | [`mybb-parity.md`](./docs/mybb-parity.md) | Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move. |
 | Development | [`development.md`](./docs/development.md) | Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request. |
-| Development | [`architecture.md`](./docs/architecture.md) | How it fits together: the processes, the layers, the path a request takes, and the seams everything else hangs off. |
-| Development | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |
-| Development | [`release.md`](./docs/release.md) | How a version is cut: the lockstep version rule, what each release publishes — the image, the branch, the npm packages — and the migration policy behind the numbers. |
+| Development | [`architecture.md`](./docs/architecture.md) | How Meith fits together: the processes, the layers, the path a request takes, and the extension seams. |
+| Development | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, Server Actions, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |
+| Development | [`release.md`](./docs/release.md) | How a version is cut, what each release publishes — the image, the branch, the npm packages — and the version policy behind the numbers. |
 
 <!-- docs:table end -->
 

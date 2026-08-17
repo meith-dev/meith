@@ -1,20 +1,21 @@
 # MyBB parity decisions
 
-Every place a Meith board behaves differently from MyBB, what it does instead,
-and why. **Read this before promising anyone a like-for-like move.**
+Every place a Meith board deliberately behaves differently from MyBB, what
+it does instead, and why. **Read this before promising anyone a
+like-for-like move.**
 
 Each entry has the same four parts:
 
 | Part | What it tells you |
 |---|---|
 | **MyBB** | What the board you are leaving does |
-| **We** | What this board does instead |
+| **Meith** | What this board does instead |
 | **Why** | The reasoning, so you can judge whether it suits your community |
 | **Cost** | What an imported board actually loses, stated plainly |
 
 > [!NOTE]
-> An entry is added when a divergence is **chosen**, not when one is discovered
-> by accident. A surprise is a bug, not a parity decision.
+> An entry is added when a divergence is **chosen**, not when one is
+> discovered by accident. A surprise is a bug, not a parity decision.
 
 ## What is on this page
 
@@ -35,7 +36,7 @@ Each entry has the same four parts:
 - [Attachments and avatars](#attachments-and-avatars)
 - [Reading and discovery](#reading-and-discovery)
 - [Feeds, URLs and the sitemap](#feeds-urls-and-the-sitemap)
-- [Parity passes](#parity-passes)
+- [The BBCode conversion](#the-bbcode-conversion)
 - [Search](#search)
 
 ---
@@ -44,65 +45,56 @@ Each entry has the same four parts:
 
 ### Flood intervals
 
-**MyBB** stores `searchfloodtime` (and `floodtime`) as a per-usergroup numeric
-column, combined like any other numeric limit.
+**MyBB** stores `floodtime` and `searchfloodtime` as per-usergroup numeric
+columns, combined like any other numeric limit.
 
-**We** do not model flood intervals as a permission field at all. The board
-setting `search.flood_seconds` holds the interval, and the existing
-`canBypassFloodCheck` boolean permission exempts a group from it.
+**Meith** does not model flood intervals as permission fields at all. The
+board settings `posting.flood_seconds` and `search.flood_seconds` hold the
+intervals, and the boolean permission `canBypassFloodCheck` exempts a group
+from them.
 
-**Why.** This board has one combination rule for all numerics: take the maximum,
-with `0` meaning unlimited and therefore beating every other value. That rule is
-correct for *allowances* — attachment size, posts per day — because a larger
-number is more permissive. It is exactly backwards for an *interval*, where the
-most permissive value is the smallest non-zero one. A user in a 30-second group
-and a 5-second group should get 5 seconds; MAX would give them 30.
-
-Keeping the field would have required a fourth combination kind used by two
-fields, and a permanent footnote on the permission matrix. Modelling it as a
-setting plus a boolean keeps that rule literally true for every field — the
-boolean combines by OR, which gives the right answer with no special case.
+**Why.** This board has one combination rule for all numeric permissions:
+take the maximum, with `0` meaning unlimited. That rule is correct for
+*allowances* — attachment size, posts per day — because a larger number is
+more permissive. It is exactly backwards for an *interval*, where the most
+permissive value is the smallest non-zero one: a member in a 30-second
+group and a 5-second group should get 5 seconds, and MAX would give them
+30. Keeping the field would have required a fourth combination kind used by
+two fields and a permanent footnote on the matrix. A setting plus a boolean
+(which combines by OR, giving the right answer) keeps the rule literally
+true for every field.
 
 **Cost.** An imported board loses per-group flood granularity: everyone is
 either subject to the board interval or exempt from it. Reintroducing
-granularity later means adding a `numeric-min` kind to
-`packages/core/src/permissions.ts` and one row per actor to the permission fixture.
-
-`posting.flood_seconds` is read by the posting path and
-the exemption is asked for as the global action `flood.bypass`, so no permission
-field escapes `@meith/authorization`. Administrators bypass it like any
-other action; the forum matrix does not carry a column for it, because the
-interval is a board setting rather than a per-forum grant.
-
----
+granularity would mean adding a `numeric-min` kind to
+`packages/core/src/permissions.ts`.
 
 ### Permission field naming
 
 **MyBB** uses lowercase, unpunctuated column names (`canpostthreads`,
-`canviewthreads`, `cansearch`).
+`canviewthreads`).
 
-**We** use camelCase keys (`canPostThreads`) mapped to snake_case columns
-(`can_post_threads`).
+**Meith** uses camelCase keys (`canPostThreads`) mapped to snake_case
+columns (`can_post_threads`).
 
 **Why.** The keys are consumed as TypeScript property names across three
-packages, and `canviewothersthreads` is genuinely ambiguous to read. The mapping
-is mechanical and lives in `packages/db/src/schema/permission-columns.ts`, so
-importer code can translate a legacy column name in one place.
-
----
+packages, and `canviewothersthreads` is genuinely ambiguous to read. The
+mapping is mechanical and lives in one file
+(`packages/db/src/schema/permission-columns.ts`), so importer code can
+translate a legacy column name in one place.
 
 ### Separate `canAccessAdminCp` and `isAdministrator`
 
-**MyBB** treats admin status and admin CP access as effectively the same thing
-(`cp_access` gates panel modules for an already-admin user).
+**MyBB** treats admin status and admin CP access as effectively the same
+thing.
 
-**We** keep them as two fields: `isAdministrator` grants the permission bypass,
-`canAccessAdminCp` grants the panel.
+**Meith** keeps them as two fields: `isAdministrator` grants the permission
+bypass, `canAccessAdminCp` grants the panel.
 
-**Why.** A bypass has to be explicit and logged. Splitting the fields
-makes it possible to grant a trusted role read access to the panel without also
-handing it the ability to bypass every forum permission on the board — and makes
-the audit log meaningful, because a bypass entry now implies a specific field.
+**Why.** A bypass has to be explicit and logged. Splitting the fields makes
+it possible to grant a trusted role read access to the panel without also
+handing it the ability to bypass every forum permission — and it makes the
+audit log meaningful, because a bypass entry now implies a specific field.
 
 ---
 
@@ -110,132 +102,124 @@ the audit log meaningful, because a bypass entry now implies a specific field.
 
 ### The markup language is Markdown, not BBCode
 
-**MyBB** posts are BBCode: `b i u s color size font align url email img quote
-code php list hr video`, plus smilies, admin-defined custom MyCode, and
-automatic linkification of bare URLs.
+**MyBB** posts are BBCode: `b i u s color size font align url email img
+quote code php list hr video`, plus smilies, admin-defined custom MyCode,
+and auto-linking of bare URLs.
 
-**We** post in Markdown. Every board that upgrades has its posts, private
-messages, signatures, announcements and drafts **converted once**, in the
-background, by the render backfill; the importer marks what MyBB hands over as
-BBCode and the same sweep converts it. There is no BBCode renderer left in the
-tree, and no board runs two markup languages at once.
+**Meith** posts are Markdown. A board that upgrades or imports has its
+content **converted once**: posts are rewritten in the background by the
+render backfill, and private messages, signatures, announcements and
+drafts are converted when they are next read. There is no BBCode renderer
+left in the tree, and no board runs two markup languages at once.
 
-This is the largest single divergence in this document, so what survives and
-what does not is worth stating precisely.
+This is the largest single divergence in this document, so what survives
+is worth stating precisely:
 
-**Converted with no loss.** `b i s url email img quote code list` all have a
-Markdown spelling, and the converter produces it. A quote keeps its
-attribution — `[quote='Bob']` becomes `> **[Bob](/member/by-name/Bob) wrote:**`
-above the quoted lines — and a `[code]` body is fenced with a rail long enough
-that its own backticks cannot close it.
+- **Converted with no loss:** `b i s url email img quote code php list`
+  all have a Markdown spelling, and the converter produces it. A quote
+  keeps its attribution — `[quote='Bob']` becomes
+  `> **[Bob](/member/by-name/Bob) wrote:**` above the quoted lines — and
+  `[code]` and `[php]` bodies are fenced with a rail long enough that
+  their own backticks cannot close it.
+- **Converted with the styling dropped, the words kept:** `u`, `color`
+  and `size` have no Markdown spelling. `[color=red]stop[/color]` becomes
+  `stop`. **This is a real, permanent loss of presentation on an imported
+  board** — the one place in the migration where something a member wrote
+  does not come back. Nothing they *said* is lost, only how it was
+  coloured.
+- **Left as the text it was:** `font`, `align`, `hr`, `video`, `[table]`,
+  and any custom MyCode the old board defined. An unrecognised tag is
+  escaped and shown as the characters its author typed, so an imported
+  post reads as slightly plainer prose rather than as a hole.
+- **Gained:** headings, tables, task lists, thematic rules, fenced code
+  with a language, and auto-linking — which MyBB had and this board's
+  earlier BBCode renderer refused. Markdown resolves the ambiguity that
+  made it refusable: a bare URL ends at whitespace and gives back the
+  trailing punctuation that belongs to the sentence.
 
-**Converted with the styling dropped, the words kept.** `u`, `color` and `size`
-have no Markdown spelling. `[color=red]stop[/color]` becomes `stop`. Inventing a
-board-only directive for each would have meant shipping three tags that exist
-nowhere else, which is the thing Markdown was chosen to stop doing. **This is a
-real, permanent loss of presentation on an imported board, and it is the one
-place in this migration where something a member wrote does not come back.**
-Nothing they *said* is lost — only how it was coloured.
-
-**Left as the text it was.** `font`, `align`, `hr`, `video`, `php`, and any
-custom MyCode the old board defined: an unrecognised tag is escaped and shown as
-the characters its author typed, so an imported post reads as slightly plainer
-prose rather than as a hole.
-
-**Gained.** Headings, tables, task lists, thematic rules, fenced code with a
-language, and **auto-linking** — which MyBB had and the BBCode renderer refused.
-Markdown resolves the ambiguity that made it refusable: a bare URL ends at
-whitespace and gives back the trailing punctuation that belongs to the sentence,
-which is a rule that can be written down and tested rather than guessed.
-
-### Quoting fills the box you are looking at
-
-**MyBB** quotes by navigating to the reply page, and offers multiquote for
-collecting several posts first.
-
-**We** do both of those and, with JavaScript on, neither navigates: clicking
-**Quote** puts the quote in the quick reply already on the thread page, opens
-it, and puts the caret under the quote. Multiquote works the same way — the
-selections are spent the moment the reply form loads.
-
-**The quote comes from the server, by post id.** That is worth stating because
-the alternative is what most boards do: read the post out of the page and turn
-it back into markup in the browser. This asks for the post instead, through the
-same visibility lookup the reply page uses, so a reader cannot quote something
-they were never shown and a moderator cannot republish a deleted post by
-quoting it.
-
-**Cost:** one request per quote, where a board doing it in the browser makes
-none. With scripting off, or on a page with no composer, the Quote link is a
-link to the reply page exactly as it always was.
-
-**A quote names its source twice.** The attribution links the member, the way a
-mention does, and carries a link back to the post it was taken from. Both are
-written into the Markdown rather than held as attributes, so they survive the
-reply being edited, and the link back uses the post's durable `#pid-` anchor
-rather than its position in the thread, which moves.
+**Meith does not accept raw HTML**, which CommonMark says should pass
+through. Accepting it would need a sanitiser, and a sanitiser is a
+blocklist; this renderer constructs its output instead, which is why it
+has never had one. `<script>` in a post is seven escaped characters and a
+word. Two smaller deviations from CommonMark: a single newline is a line
+break, and there are no indented code blocks.
 
 **A directive is not MyBB's custom MyCode.** MyBB's takes a *replacement
 pattern* — a regular expression and the HTML to put in its place — so an
-administrator can produce any markup they like from a form. Ours chooses a
-**name** and whether it is inline or block; members write `:::spoiler` … `:::`
-or `:spoiler[…]`, and the element is constructed by `@meith/markdown`. That is a
-real capability difference and a deliberate one: a field that chooses output
-markup is a second markup language administered through a web form, which is how
-boards with custom MyCode acquire a permanent XSS surface. Anything that needs
-bespoke markup is a plugin, where the code is reviewed and installed rather than
-typed into a text box.
+administrator can produce any markup from a form. Meith's chooses a
+**name** and whether it is inline or block; members write `:::spoiler` …
+`:::` or `:spoiler[…]`, and the element is constructed by
+`@meith/markdown`. That is a real capability difference and a deliberate
+one: a field that chooses output markup is a second markup language
+administered through a web form, which is how boards with custom MyCode
+acquire a permanent XSS surface. Anything needing bespoke markup is a
+plugin, where the code is reviewed rather than typed into a text box.
 
-**We do not accept raw HTML**, which CommonMark says should pass through. That
-would need a sanitiser, and a sanitiser is a blocklist; this renderer constructs
-its output instead, which is why it has never had one. `<script>` in a post is
-seven escaped characters and a word. Two smaller deviations from CommonMark are
-worth naming: a single newline is a line break, and there are no indented code
-blocks.
+**Cost.** An operator promising a like-for-like move should promise it
+about the *text*, not the colours. Members who knew BBCode have to learn
+a different syntax — the composer's toolbar, shortcuts and formatting
+help exist for exactly that week.
 
-**Cost.** An operator promising a like-for-like move should promise it about the
-*text*, not about the colours. Members who knew BBCode have to learn a different
-syntax — the composer's toolbar, its shortcuts and its formatting help exist for
-exactly that week.
+### Quoting fills the box you are looking at
+
+**MyBB** quotes by navigating to the reply page, with multiquote for
+collecting several posts first.
+
+**Meith** does both and, with JavaScript on, neither navigates: clicking
+**Quote** puts the quote into the quick reply already on the page, opens
+it, and puts the caret under the quote. Multiquote works the same way.
+
+**The quote comes from the server, by post id** — not read out of the page
+and turned back into markup in the browser. The server fetches the post
+through the same visibility lookup the reply page uses, so a reader
+cannot quote something they were never shown, and a moderator cannot
+republish a deleted post by quoting it.
+
+**A quote names its source twice.** The attribution links the member, and
+carries a link back to the post it was taken from. Both are written into
+the Markdown rather than held as attributes, so they survive the reply
+being edited, and the link back uses the post's durable id-based form
+rather than its position in the thread, which moves.
+
+**Cost.** One request per quote, where a board doing it in the browser
+makes none. With scripting off, the Quote link is a link to the reply
+page, exactly as it always was.
 
 ---
 
 ## Spam
 
-### Anti-spam: no hosted captcha, and limits are not intervals
+### No hosted captcha, and limits beside the interval
 
-**MyBB** ships a built-in image captcha, supports reCAPTCHA and hCaptcha, and
-models flood control as a per-usergroup interval.
+**MyBB** ships a built-in image captcha, supports reCAPTCHA and hCaptcha,
+and models flood control as a per-usergroup interval.
 
-**We** ship a honeypot, a fill-time floor, admin-defined question challenges and
-first-post moderation, plus hourly limits on posting, searching, private
-messages, reports and uploads. There is no image captcha and no hosted provider.
+**Meith** ships a honeypot, a fill-time floor, admin-defined question
+challenges and first-post moderation, plus hourly limits on posting,
+searching, private messages, reports and uploads. There is no image
+captcha and no hosted provider.
 
-**Why.** Three separate reasons, and they are worth keeping apart.
+**Why.** Three separate reasons:
 
-*No image captcha.* Generating one means rendering text to an image, which is a
-dependency, and the accessible fallback is an audio challenge, which is another.
-Both are defeated by commercial solvers for less than it costs to run them. A
-question a regular can answer and a script cannot is weaker against a determined
-human and stronger per unit of effort.
+- *No image captcha.* Generating one means rendering text to an image
+  (a dependency), the accessible fallback is an audio challenge (another),
+  and both are defeated by commercial solvers for less than they cost to
+  run. A question a regular can answer and a script cannot is weaker
+  against a determined human and stronger per unit of effort.
+- *No hosted provider by default.* hCaptcha and reCAPTCHA work, and they
+  mean every visitor's browser contacting a third party before they can
+  register. That is a decision about a board's members rather than a
+  setting, so the `CaptchaProvider` seam is shipped and the service is
+  not.
+- *Limits beside the interval, not instead of it.* An interval does
+  nothing about a script that posts every 31 seconds all night, so the
+  board adds a *limit* — how many in an hour — counted in the database so
+  every instance shares one allowance. The two answer different questions
+  and both are configured.
 
-*No hosted provider by default.* hCaptcha and reCAPTCHA work, and they mean every
-visitor's browser contacting a third party before they can register. That is a
-decision about a board's members rather than a setting, so the `CaptchaProvider`
-seam is shipped and the service is not. A board that wants one writes a small
-module against it; no form or call site changes.
-
-*Limits beside the interval, not instead of it.* MyBB's flood control is an
-interval, and this board keeps one (`posting.flood_seconds`, see
-[flood-intervals](#flood-intervals) for why it is a setting rather than a
-permission field). An interval does nothing about a script that posts every 31
-seconds all night, so the board adds a *limit* — how many in an hour — counted in the
-database so every instance shares one allowance. The two answer different
-questions and both are configured.
-
-**Cost.** An imported board's captcha configuration does not carry over; the
-challenge has to be set up again, and the questions written. Its flood settings
-map onto the interval as before, with the hourly limits starting at zero.
+**Cost.** An imported board's captcha configuration does not carry over;
+the challenge has to be set up again and the questions written. Its flood
+settings map onto the interval; the hourly limits start at zero.
 
 ---
 
@@ -243,27 +227,26 @@ map onto the interval as before, with the hourly limits starting at zero.
 
 ### Announcements are not sticky threads
 
-**MyBB** has announcements as a first-class thing, and boards frequently use a
-pinned thread for the same job.
+**MyBB** has announcements, and boards frequently use a pinned thread for
+the same job anyway.
 
-**We** have announcements, and they are deliberately *not* threads: nobody can
-reply to one, it has a start and an end date, and it lives above the forums
-rather than in the listing.
+**Meith** has announcements that are deliberately *not* threads: nobody
+can reply to one, it has a start and an end date, and it lives above the
+forums rather than in the listing.
 
-**Why.** A sticky thread is a conversation — it belongs to its author, members
-reply to it, and taking it down deletes what they said. That is what leaves a
-three-year-old rules post at the top of a forum on every board that pins one:
-removing it costs the discussion attached to it. An announcement expires on its
-own and removing it removes nothing anybody wrote, which is the whole point of
-having both.
+**Why.** A sticky thread is a conversation — it belongs to its author,
+members reply to it, and taking it down deletes what they said. That is
+what leaves a three-year-old rules post pinned at the top of a forum. An
+announcement expires on its own and removing it removes nothing anybody
+wrote, which is the point of having both.
 
 Two smaller differences follow. There is no per-group visibility on an
-announcement: a forum's is shown to whoever can see that forum, resolved through
-the same filter as everything else, and a board-wide one to everybody. And the
-dates are entered in **UTC** rather than in the operator's timezone, because the
-control submits wall-clock text with no zone and the alternative is an
-announcement that appears at a different hour depending on what `TZ` the
-container happened to have.
+announcement: a forum's announcement is shown to whoever can see that
+forum, resolved through the same filter as everything else, and a
+board-wide one to everybody. And the dates are entered in **UTC**, because
+the control submits wall-clock text with no zone and the alternative is an
+announcement appearing at a different hour depending on the container's
+`TZ`.
 
 ---
 
@@ -271,60 +254,55 @@ container happened to have.
 
 ### Markup that does not close
 
-**MyBB**'s regex passes leave an unmatched `[b]` as literal text, and can emit
-unbalanced HTML for crossed tags such as `[b][i]x[/b]`.
+**MyBB**'s regex passes leave an unmatched `[b]` as literal text, and can
+emit unbalanced HTML for crossed tags.
 
-**We** cannot emit unbalanced markup at all: the renderer builds a tree and
-writes elements out of it, so there is no path by which an opening tag reaches
-the page without its closing one. An unmatched `**` is two asterisks, an
-unterminated `` ` `` is a backtick, and an unclosed ``` fence ends at the end of
-the post rather than swallowing the thread.
+**Meith** cannot emit unbalanced markup at all: the renderer builds a tree
+and writes elements out of it, so no opening tag reaches the page without
+its closing one. An unmatched `**` is two asterisks, an unterminated
+`` ` `` is a backtick, and an unclosed fence ends at the end of the post
+rather than swallowing the thread.
 
-**Why.** Unbalanced output from a post body is the shape that lets formatting
-escape a post and affect the rest of the page, so this one is not negotiable
-regardless of parity. The visible outcome for the common mistake is the same as
-MyBB's — you see what you typed.
-
----
+**Why.** Unbalanced output from a post body is the shape that lets
+formatting escape a post and affect the rest of the page, so this one is
+not negotiable regardless of parity. The visible outcome for the common
+mistake is the same as MyBB's: you see what you typed.
 
 ### Deleting the first post of a thread
 
-**MyBB** lets a member with `candeleteposts` delete any of their own posts,
-including the opening one; deleting it leaves the thread's remaining replies in
-place under a first post that no longer exists.
+**MyBB** lets a member with `candeleteposts` delete any of their own
+posts, including the opening one — leaving the remaining replies under a
+first post that no longer exists.
 
-**We** refuse it, with a message pointing at thread deletion instead.
+**Meith** refuses it, with a message pointing at thread deletion instead.
 
-**Why.** The opening post *is* the thread as far as every listing is concerned —
-it supplies `first_post_id`, and the thread's title, author and counters are
-told from it. The two ways to allow the click both lose: deleting only the post
-leaves a thread with a title, a reply count and nothing to read, and quietly
-deleting the whole thread means "delete my post" removes other people's replies
-without saying so. Refusing and naming the alternative is the only option that
-does what it says.
+**Why.** The opening post *is* the thread as far as every listing is
+concerned — it supplies the title, the author, and the counters. The two
+ways to allow the click both lose: deleting only the post leaves a thread
+with a title and nothing to read; quietly deleting the whole thread means
+"delete my post" removes other people's replies without saying so.
+Refusing and naming the alternative is the only option that does what it
+says.
 
-**Cost.** Until the full thread tools exist, a member who wants their thread gone
-has to ask a moderator. An imported MyBB thread whose first post was deleted
-arrives with a first post that is soft-deleted rather than missing, which the
-moderator view shows and the member view skips.
+**Cost.** A member who wants their thread gone needs `canDeleteOwnThreads`
+granted, or a moderator. An imported MyBB thread whose first post was
+deleted arrives with that post soft-deleted rather than missing — the
+moderator view shows it, the member view skips it.
 
----
+### Editing a post after the window closes
 
-### Editing a post you no longer own the window for
+**MyBB** hides the edit control once `edittimelimit` has passed and
+refuses the submission server-side.
 
-**MyBB** hides the edit control once `edittimelimit` has passed and refuses the
-submission server-side.
+**Meith** does the same, with one difference: the window is a **numeric
+permission**, so the usual combination applies — `0` means unlimited and
+beats every other value across a member's groups. A member in a 30-minute
+group and an unlimited group gets unlimited.
 
-**We** do the same, with one difference worth stating: the window is a
-**numeric permission**, so the usual combination applies — `0` means unlimited and
-beats every other value across a user's groups. A member in a 30-minute group
-and an unlimited group gets unlimited.
-
-**Why.** It is the same rule every other numeric on the board follows, and the
-alternative (minimum-wins) would need a fourth combination kind for one field —
-the trap already recorded under *flood-intervals*, where minimum-wins genuinely
-is correct and the field was therefore modelled as a setting instead. An edit
-window is an *allowance*, so MAX is the right rule and no special case is needed.
+**Why.** It is the same rule every other numeric on the board follows. An
+edit window is an *allowance*, so MAX is the right rule and no special
+case is needed — unlike the flood interval above, where minimum-wins
+genuinely is correct and the field was therefore modelled as a setting.
 
 ---
 
@@ -332,436 +310,379 @@ window is an *allowance*, so MAX is the right rule and no special case is needed
 
 ### Who handles a report
 
-**MyBB** has a dedicated permission, `canmanagereportedcontent`, separate from
-the moderator rights that decide what somebody can actually *do* about a report.
+**MyBB** has a dedicated permission, `canmanagereportedcontent`, separate
+from the moderator rights that decide what somebody can actually *do*
+about a report.
 
-**We** scope reports by the sets that already exist: a report about a post or a
-thread is visible to the moderators of its forum (`moderatedForumIds`, the same
-set that scopes the approval queue), and a report about a *member* is visible to
-board staff (`modcp.access`).
+**Meith** scopes reports by the sets that already exist: a report about a
+post or thread is visible to the moderators of its forum (the same set
+that scopes the approval queue), and a report about a member — or a
+private message — is visible to board staff (`modcp.access`).
 
-**Why.** A third permission would let a board grant "can read reports about
-forum X" to somebody with no power to act on anything in forum X — a role whose
-only capability is reading complaints about their neighbours. Every report is
-about content or a person, and the people who can act are the people who should
-see it.
+**Why.** A third permission would let a board grant "can read reports
+about forum X" to somebody with no power to act on anything in forum X —
+a role whose only capability is reading complaints about their
+neighbours. Every report is about content or a person, and the people who
+can act are the people who should see it.
 
 **Cost.** An imported board's `canmanagereportedcontent` grants do not map
-one-to-one: anybody who held it without moderating a forum loses report access,
-and anybody who moderates a forum gains it. The importer should surface that
-as a migration note rather than guessing.
-
----
+one-to-one: anybody who held it without moderating a forum loses report
+access, and anybody who moderates a forum gains it.
 
 ### What can be reported
 
-**MyBB** allows reports against posts, threads, profiles, private messages and
-(with plugins) more.
+**MyBB** allows reports against posts, threads, profiles, private
+messages and (with plugins) more.
 
-**We** ship posts, threads and members. Private messages are absent because they
-has not been built — there are no tables for them, and a target kind nothing can
-produce is a promise the board cannot keep.
-
-**Why.** Same rule as everywhere else in this build: omit rather than stub. When
-they land, `REPORT_TARGET_KINDS` gains an entry and `resolveTarget` gains a
-branch; nothing else changes.
-
----
+**Meith** ships posts, threads, members and private messages. A private
+message can only be reported by somebody who holds a copy of it, and
+reporting is the *only* path by which staff can read one — see
+[private messages](#reporting-is-the-only-way-staff-read-a-private-message).
 
 ### Who can lock, pin and move threads
 
-**MyBB** grants these through `moderators` rows (per forum, per right) plus the
-super-moderator and administrator bypasses. There is no usergroup column for
-them.
+**MyBB** grants these through `moderators` rows (per forum, per right)
+plus the super-moderator and administrator bypasses. There is no
+usergroup column for them.
 
-**We** do the same, and this is a parity decision only because it is the first
-place our permission model *diverges from its own pattern*: every other action
-on the board reads a field off the resolved forum matrix, and these four read an
-appointment right instead.
+**Meith** does the same — and this is a parity entry only because it is
+the first place the permission model diverges from its own pattern: every
+other action reads a field off the resolved forum matrix, and the five
+thread-management rights (lock, stick, move, merge, split) read an
+appointment instead.
 
-**Why.** "May lock threads everywhere on the board" is a thing you are appointed
-to or a thing you bypass into as staff. A usergroup checkbox for it would let a
-board grant board-wide thread control by adding somebody to a group, with no
-record of which forums anybody was ever meant to be responsible for.
+**Why.** "May lock threads everywhere on the board" is a thing you are
+appointed to, or bypass into as staff. A usergroup checkbox for it would
+let a board grant board-wide thread control by adding somebody to a
+group, with no record of which forums anybody was ever meant to be
+responsible for.
 
-**Cost.** A board that wants a "Junior moderators" group with lock rights
-everywhere has to appoint the group to each forum — `forum_moderators` accepts a
-`group_id`, so that is one row per forum rather than one per person, but it is
-not one checkbox.
-
----
+**Cost.** A board that wants a "junior moderators" group with lock rights
+everywhere has to appoint the group to each forum — `forum_moderators`
+accepts a `group_id`, so that is one row per forum rather than one per
+person, but it is not one checkbox.
 
 ### Copying a thread
 
 **MyBB** offers "copy thread" alongside move, duplicating every post and
-crediting the copies to their original authors — so one piece of writing raises
-its author's post count twice.
+crediting the copies to their original authors — so one piece of writing
+raises its author's post count twice.
 
-**We** offer it too, on the same thread tools as move, and it makes the same
-choice about the counts. The product decision behind that — either a copy
-credits nobody and author counts stop matching the posts that exist, or it
-credits twice and a post count stops meaning "things this person wrote" — was
-settled in favour of parity. Two entries later on this page carry it:
+**Meith** offers it too, on the same thread tools as move, and makes the
+same choice about the counts — see
 [copying credits its authors twice](#copying-a-thread-credits-its-authors-twice)
-for the arithmetic, and
-[copy is authorised by `thread.move`, at both ends](#copy-is-authorised-by-threadmove-at-both-ends)
-for who may do it.
-
-**Cost.** After a copy, `post_count` means "posts attributed to you" rather than
-"posts you wrote", and `PostgresCounterRecount` agrees with it rather than
-undoing it. Only visible posts are copied.
-
----
+and
+[copy is authorised by `thread.move`, at both ends](#copy-is-authorised-by-threadmove-at-both-ends).
+Only visible posts are copied: copying held content would double the
+approval queue, and copying removed content would republish it.
 
 ### Splitting a thread, and where the pieces land
 
-**MyBB** offers "split thread", which takes a checkbox selection of posts, lets
-the moderator choose a destination forum, and can leave the split-off posts
-credited however they already were.
+**MyBB** splits by checkbox selection and lets the moderator choose a
+destination forum.
 
-**We** split "from this post onwards" and land the new thread in the **same
-forum**, always.
+**Meith** offers two selections — "from this post onwards" on the thread
+tools, and a per-post checkbox selection through inline moderation — and
+the new thread always lands in the **same forum**.
 
-**Why.** The two differences answer two different questions. The cut point is a
-`<select>` of the posts on screen rather than a checkbox set because a select
-cannot name a post that is not on the page, and arbitrary selection needs the
-per-post checkbox surface — two selection mechanisms for one
-operation is worse than one narrower one. The destination is fixed because
-splitting and moving are two acts: a single operation with a second forum to
-authorise would let a moderator who may split here, but not post there, place
-content in a forum they have no standing in.
+**Why the fixed destination.** Splitting and moving are two acts: a
+single operation with a second forum to authorise would let a moderator
+who may split here, but not post there, place content in a forum they
+have no standing in.
 
-**Cost.** A moderator who wants the split-off thread elsewhere splits, then
-moves — two operations and two audit rows instead of one. A moderator who wants
-posts 3, 7 and 12 and not 4–6 cannot express that yet.
-
----
+**Cost.** A moderator who wants the split-off thread elsewhere splits,
+then moves — two operations and two audit rows instead of one.
 
 ### Which thread survives a merge
 
 **MyBB** merges by thread URL or id and keeps the thread the moderator is
 looking at, absorbing the one they name.
 
-**We** go the other way round, and the direction is the important sentence on
-this page: **the thread on screen is the one that is merged away.** Its posts
-move into the thread whose number the moderator types, and the thread they were
-looking at is the row that is deleted. The tools say so — the field reads "Merge
-into thread #" and the button reads "Merge away" — and the survivor is never
-inferred from anything else, not the older thread and not the one with more
-posts.
+**Meith** goes the other way round, and the direction is the important
+sentence on this page: **the thread on screen is the one that is merged
+away.** Its posts move into the thread whose number the moderator types,
+and the thread they were looking at is the row that is deleted. The tools
+say so — the field reads "Merge into thread #" and the button reads
+"Merge away" — and the survivor is never inferred from anything else: not
+the older thread, not the one with more posts.
 
-**Why.** A merge destroys a thread row. Every heuristic for picking the survivor
-is right most of the time, and the times it is wrong are unrecoverable: the
-thread somebody meant to keep is gone and its posts are wearing another title.
-Being explicit costs a moderator nothing, because they already know which one
-they mean. Naming the *destination* rather than the victim is what makes the
-form readable in one direction only — "merge this into that" — where naming the
-victim would read as "merge that into this" from the same screen.
+**Why.** A merge destroys a thread row. Every heuristic for picking the
+survivor is right most of the time, and the times it is wrong are
+unrecoverable. Being explicit costs a moderator nothing, because they
+already know which one they mean.
 
-**And what goes with the deleted thread.** Only its posts are carried across.
-Everything else hanging off the source row goes with it, by cascade and without
-a prompt: its **poll**, every **vote** cast in that poll, its **ratings**, every
-**subscription** to it, and every member's **read marker** for it. The surviving
-thread keeps its own. That is the part a moderator cannot undo, and it is the
-strongest reason to check the direction before pressing the button — merging a
-long-running poll thread into a two-post duplicate destroys the poll.
+**What goes with the deleted thread.** Only its posts are carried across.
+Everything else hanging off the source row goes with it, by cascade and
+without a prompt: its **poll** and every vote in it, its **ratings**,
+every **subscription** to it, and every member's **read marker**. That is
+the part a moderator cannot undo, and the strongest reason to check the
+direction before pressing the button — merging a long-running poll thread
+into a two-post duplicate destroys the poll.
 
-**Cost.** Merging the wrong way round is still possible — it is a moderator's
-mistake to make, and it is logged with both thread ids and both forum ids under
-`threadId`/`targetThreadId` and `fromForumId`/`toForumId`, so it can be seen.
-What is not possible is the software making it for them.
-
----
+**Cost.** Merging the wrong way round is still possible — it is a
+moderator's mistake to make, and it is logged with both thread ids and
+both forum ids so it can be seen. What is not possible is the software
+making the mistake for them.
 
 ### What a merge does to post counts
 
-**MyBB** moves the posts and leaves author post counts alone, which is correct
-and worth stating because the neighbouring operation gets it wrong: MyBB's
-*copy* credits duplicated posts to their original authors, counting one piece of
-writing twice.
+**MyBB** moves the posts and leaves author post counts alone — correct,
+and worth stating because its neighbouring operation (copy) counts one
+piece of writing twice.
 
-**We** match MyBB on merge and split, for a reason we can state exactly: neither
-operation creates or destroys a post, so `users.post_count` never moves. Only
-`users.thread_count` does, by one — a split creates a thread, a merge destroys
-one.
+**Meith** matches MyBB on merge and split, for a reason it can state
+exactly: neither operation creates or destroys a post, so
+`users.post_count` never moves. Only `users.thread_count` moves, by one —
+a split creates a thread, a merge destroys one.
 
-**Cost.** None here. Copy is the operation that genuinely creates rows and so
-had to answer the question differently; the entry on that is
-[copying credits its authors twice](#copying-a-thread-credits-its-authors-twice).
+### Copying a thread credits its authors twice
+
+**MyBB:** copying a thread duplicates its posts, and each copy counts
+toward its author's post count.
+
+**Meith:** the same, chosen deliberately.
+
+**Why.** Every other counter on this board holds to one definition —
+`users.post_count` means *posts written* — and merge and split were
+settled by that definition. Copy is the one tool that genuinely creates
+rows, so the definition and parity actually conflict, and parity won: an
+imported board's counts must not change under it, and a moderator using
+copy expects the arithmetic they know.
+
+**Cost.** After a copy, `post_count` means "posts attributed to you"
+rather than "posts you wrote". The counter recount counts rows, so it
+agrees rather than quietly undoing it — the board stays internally
+consistent.
+
+### Copy is authorised by `thread.move`, at both ends
+
+**MyBB:** copy is governed by the same "can manage threads" permission as
+move.
+
+**Meith:** `thread.copy` does not exist as a right. Copying reads
+`thread.move` in the source forum *and* in the destination, exactly as a
+move does.
+
+**Why.** Copying is moving that leaves the original behind: it puts
+content into the destination by the same mechanism, so the destination's
+moderators have precisely the same interest. A separate right would be a
+column on `forum_moderators` distinguishing two acts nobody grants
+separately. Unlike a move, the destination *may* be the source forum —
+forking a discussion in place is legitimate, and there is no pointer to
+repair because nothing left.
 
 ### Inline moderation offers no "unapprove"
 
-**MyBB:** the inline moderation dropdown on a forum listing includes *Unapprove
+**MyBB:** the inline dropdown on a forum listing includes *Unapprove
 threads*, which sends published content back to the queue.
 
-**Here:** it does not. Inline moderation offers approve, delete, restore, lock,
-unlock, pin, unpin and move; taking a visible thread off the board is `delete`,
-which is reversible with `restore` and is what a moderator actually wants.
+**Meith:** it does not. Inline moderation offers approve, delete,
+restore, lock, unlock, pin, unpin and move; taking a visible thread off
+the board is `delete`, which `restore` reverses.
 
-**Why:** `unapproved` and `deleted` are both "not counted, not visible",
-so the two differ only in which list the content appears on afterwards. Sending
-a published thread to the *approval queue* puts it in front of a moderator as
-something to decide on, when the decision has already been made — and it makes
-the queue a mixture of "new content nobody has read" and "old content somebody
-removed", which is the one thing the queue's ordering (oldest first) relies on
-not being true. Deleting says what happened and restoring undoes it.
+**Why.** `unapproved` and `deleted` are both "not counted, not visible" —
+they differ only in which list the content lands on. Sending a published
+thread back to the *approval queue* puts it in front of a moderator as
+something to decide, when the decision has already been made — and it
+makes the queue a mixture of "new content nobody has read" and "old
+content somebody removed", which its oldest-first ordering relies on not
+being true.
 
 ### Bulk moderation chunks rather than refusing
 
-**MyBB:** inline moderation acts on whatever was selected, in one request.
+**MyBB:** inline moderation acts on whatever was selected, in one
+request.
 
-**Here:** a selection is applied in transactions of 25, up to a ceiling of 500
-in one request. The approval queue keeps its hard refusal above 200.
+**Meith:** a selection is applied in transactions of 25, up to a ceiling
+of 500 per request. The approval queue keeps its hard refusal above 200.
 
-**Why:** the two surfaces have different shapes. Nobody hand-selects two hundred
-items from a queue, so refusing and saying "work through it a page at a time" is
-honest there. A listing has a "select all" and a moderator clearing a spam run
-genuinely has hundreds, so refusing would mean the feature does not do the job
-it exists for. Chunking is safe because every transition is state-guarded — a
-bulk action that dies halfway is fixed by pressing the button again, and the
+**Why.** The two surfaces have different shapes. Nobody hand-selects two
+hundred items from a queue, so refusing there is honest. A listing has a
+"select all", and a moderator clearing a spam run genuinely has hundreds.
+Chunking is safe because every transition is state-guarded — a bulk
+action that dies halfway is fixed by pressing the button again, and the
 chunks that already ran report "already in that state".
+
+### A moved thread leaves no redirect stub
+
+**MyBB:** moving a thread can leave a "Moved: <title>" row in the source
+forum, optionally expiring.
+
+**Meith:** a move just moves. The schema keeps `moved_to_thread_id` and
+`ThreadRowModel.isMoved` for a future implementation, and nothing writes
+them.
+
+**Why.** The stub is a second kind of row in every listing query — the
+board's most performance-sensitive read — that has to be filtered,
+counted and expired everywhere. What it buys is a reader who bookmarked a
+thread finding it, and search and the thread's own permalink already do
+that, because the thread keeps its id. Revisit if a real board reports
+people losing threads after moves.
+
+---
 
 ## Warnings
 
 ### Warning levels are points, not percentages
 
-**MyBB:** warning levels are expressed as a percentage of a configured maximum,
-and a member's warning level reads as e.g. "40%".
+**MyBB:** warning levels are a percentage of a configured maximum, and a
+member's level reads as "40%".
 
-**Here:** levels and warnings are absolute points, and a member is on "6 points"
-with thresholds at 4, 7 and 10.
+**Meith:** levels and warnings are absolute points, and a member is on
+"6 points" with seeded thresholds at 4, 7 and 10.
 
-**Why:** a percentage needs a configured maximum to mean anything, and a board
-that has never opened the admin screen would have every member permanently at 0%
-of nothing — which is precisely the state a v1 board is in, because no screen
-configures `warning_levels` yet. The admin screen that exists is not that one: levels are
-moderation configuration rather than group permissions, and the seeded ladder is
-what a board runs on until something owns them. Points are readable on
-their own, the seeded ladder works on a fresh board, and "2 points, expires
-after 90 days" is a sentence a moderator can weigh before issuing it. The
-importer can convert a percentage against the source board's maximum.
+**Why.** A percentage needs a configured maximum to mean anything, and a
+board that never opens the admin screen would have every member
+permanently at 0% of nothing. Points are readable on their own, the
+seeded ladder works on a fresh board, and "2 points, expires after 90
+days" is a sentence a moderator can weigh before issuing it. An importer
+can convert a percentage against the source board's maximum.
 
 ### A warning restriction outranks a moderation bypass
 
-**MyBB:** a user under a "moderate posts" warning has their posts held; staff
-permissions and moderator status are resolved separately and can conflict.
+**MyBB:** a user under a "moderate posts" warning has their posts held;
+staff permissions are resolved separately and can conflict.
 
-**Here:** a warning-level restriction is applied *after* `bypassesModeration`
-and wins. A moderator who is themselves under a moderate-posting warning has
-their posts held, in every forum, including ones they moderate.
+**Meith:** a warning-level restriction is applied *after*
+`bypassesModeration`, and wins. A moderator who is themselves under a
+moderate-posting warning has their posts held, in every forum, including
+ones they moderate.
 
-**Why:** the bypass means "this forum's approval queue does not apply to you";
-the warning means "your posts are reviewed". They are different statements and
-the second is a sanction a person received. Letting the first cancel the second
-would make the board's moderators the only members a warning could not reach,
-which inverts what a warning is for.
+**Why.** The bypass means "this forum's approval queue does not apply to
+you"; the warning means "your posts are reviewed". They are different
+statements, and the second is a sanction a person received. Letting the
+first cancel the second would make the board's moderators the only
+members a warning could not reach.
 
 ### Bans from a warning level are not lifted by revoking the warning
 
-**MyBB:** a warning that triggered a ban and is then revoked leaves the ban in
-place; an administrator lifts it.
+**MyBB:** a warning that triggered a ban and is then revoked leaves the
+ban in place; an administrator lifts it.
 
-**Here:** the same, and deliberately.
+**Meith:** the same, deliberately.
 
-**Why:** the ban lifecycle owns the group the ban captured so it
-can be restored at expiry. Un-banning from the warning path would restore a
-group this feature never saw, through a code path that already refuses to run
-twice. More importantly, a ban is the heaviest thing the board does to somebody
-and its removal should be a decision a human makes while looking — which is what
-"a moderator lifts it" means. The revocation still lowers the points, so the
-level no longer applies and no further action is taken.
+**Why.** The ban lifecycle owns the group the ban captured, so it can be
+restored at expiry; un-banning from the warning path would restore a
+group that feature never saw. More importantly, a ban is the heaviest
+thing the board does to somebody, and its removal should be a decision a
+human makes while looking. The revocation still lowers the points, so the
+level no longer applies.
+
+---
 
 ## The moderator log
 
-### The moderator log is an allow-list of moderation actions
+### The moderator log is an allow-list over one table
 
-**MyBB:** the moderator log and the administrator log are separate tables.
+**MyBB:** the moderator log and the administrator log are separate
+tables.
 
-**Here:** they share `admin_log`, and the ModCP filters it by a named list of
-moderation actions.
+**Meith:** they share `admin_log`, and the ModCP filters it by a named
+allow-list of moderation actions.
 
-**Why:** one table means one place a bypass, a settings change and a thread lock
-are all recorded, which is what an operator wants when reconstructing an
-incident. The filter is an allow-list rather than a deny-list because the table
-will keep growing row types: a deny-list turns every future administrative
-action into a moderator-visible disclosure the day somebody forgets to update
-it, whereas an allow-list turns a new moderation action into a missing row
-somebody notices.
+**Why.** One table means one place a bypass, a settings change and a
+thread lock are all recorded — what an operator wants when reconstructing
+an incident. The filter is an allow-list rather than a deny-list because
+the table keeps growing row types: a deny-list turns every future
+administrative action into a moderator-visible disclosure the day
+somebody forgets to update it, whereas an allow-list turns a new
+moderation action into a missing row somebody notices.
 
 ### Everything that changes something is logged, and nothing that does not
 
-**MyBB:** the moderator log records what the moderation tools do. Handling a
-report, deleting one post from the thread it is in, or editing somebody else's
-post leaves nothing behind in it.
+**MyBB:** the moderator log records what the moderation tools do.
+Handling a report, deleting one post from inside a thread, or editing
+somebody else's post leaves nothing behind.
 
-**Here:** every path that changes content, a member's presentation or a report
-writes a row, whichever screen it was reached from. Closing a report writes
-`report.resolve` or `report.reject`; deleting or restoring a single post from
-the postbit writes `post.delete` or `post.restore`; editing a post somebody else
-wrote writes `post.edit`; locking a signature or an avatar writes
-`signature.lock`/`signature.unlock` or `avatar.lock`/`avatar.unlock`. Copying a
-thread already wrote `thread.copy` and now appears in the ModCP, because the
-action is in the allow-list the reader filters by. Every further batch of a mass
-mail writes `user.mass_mail_continued`, so a campaign is not one row followed by
-silence for the next several thousand recipients.
+**Meith:** every path that changes content, a member's presentation or a
+report writes a row, whichever screen it was reached from: closing a
+report (`report.resolve` / `report.reject`), deleting or restoring a
+single post from the postbit (`post.delete` / `post.restore`), editing
+somebody else's post (`post.edit`), locking a signature or an avatar,
+copying a thread. Each further 500-recipient batch of a mass mail writes
+a row in the admin log, so a campaign is not one row followed by silence.
+Where the change is a database write, the row is written in the same
+transaction — a moderation that rolls back leaves no row claiming it
+happened.
 
-**Why:** `/admin/log` says it holds "every administrative and moderation action"
-and the ModCP offers itself as the record of a forum. A log that is only mostly
-complete is worse than one that admits a boundary, because the missing row reads
-as "it did not happen". The rows that concern a forum carry the same
-`forumIds`/`forumId` scope keys as every other moderation row, so they reach the
-moderators of the forum they happened in and no one else.
+**The boundary is authorship, and it is deliberate.** A member deleting
+or editing their own post writes nothing: it is not moderation, and
+logging it would bury the moderation in it. Taking a report or putting it
+back is not logged either — it moves nothing, and the report's own
+timeline already shows who holds it.
 
-Where the change is a database write, the row is written in the transaction that
-makes it — a moderation that rolls back leaves no row claiming it happened. The
-two that are not database writes of their own, the signature and avatar locks,
-go through the same helper as the rest of the control panel and so also record
-the address the moderator acted from.
+**Cost.** A forum whose moderators edit heavily has a longer log than
+MyBB's, and every entry names a post rather than only a thread. The log
+has no retention policy, so `admin_log` grows with moderation rather
+than administration alone.
 
-**The boundary is authorship, and it is deliberate.** A member deleting or
-editing their own post writes nothing: it is not moderation, and logging it
-would bury the moderation in it. The row is written when the actor is not the
-post's author, which is the same question the postbit asks to decide whether it
-is showing a moderator's button. Taking a report or putting it back is not
-logged either — it moves nothing, and the report's own timeline already shows
-who holds it.
+### Every log row names the forums it concerns, when it is written
 
-**Cost.** A forum whose moderators edit heavily has a longer log than MyBB's,
-and every entry names a post rather than only a thread. The moderator log has no
-retention policy, so `admin_log` grows with moderation rather than with
-administration alone.
+**MyBB:** the moderator log carries an `fid` column, and the ModCP scopes
+the list by it.
 
-### Every log row names the forums it concerns, at the moment it is written
+**Meith:** the writer puts the forums into the row's detail — `forumIds`,
+an array of every forum the action reached — and the reader scopes by
+that and nothing else. Single-forum actions also carry `forumId`; moves
+and merges carry `fromForumId` and `toForumId`.
 
-**MyBB:** the moderator log carries an `fid` column, and the ModCP scopes the
-list by it.
+**Why.** The reader used to guess, taking the first of several detail
+keys that was present — and a split logs *thread* ids under `from`/`to`,
+so the guess could read a thread id as a forum id: the entry surfaced to
+whoever moderated the forum whose id happened to match, and stayed hidden
+from the forum's real moderators. Ids are only unambiguous where they are
+named, so they are named. The array also gets multi-forum actions right:
+a move concerns two forums, and every one of those forums' moderators
+sees the entry. A GIN index over the array keeps the scoping cheap.
 
-**Here:** the writer puts the forums into `detail` — `forumIds`, an array of
-every forum the action reached — and the reader scopes by that and by nothing
-else. Single-forum actions also carry `forumId`, moves and merges carry
-`fromForumId` and `toForumId`, and the ModCP names the destination when it says
-which forum an entry happened in.
-
-**Why:** the reader used to guess, taking the first of `forumId`, `toForumId`,
-`to`, `from` that was present. A split logs `{from: sourceThreadId, to:
-newThreadId}` and a merge logs `{from, to}` as thread ids too, so the guess read
-a *thread* id as a *forum* id: the entry surfaced to whoever moderates the forum
-whose id happened to equal that thread's, stayed hidden from the forum's real
-moderators, and rendered "From forum" and "To forum" over two thread ids. Ids
-are only unambiguous where they are named, so they are named. Nothing derives a
-forum from a key that could hold something else.
-
-The array also gets the scope right where a single column cannot. A move and a
-merge concern two forums, and an approval batch can concern several; every one
-of those forums' moderators sees the entry, not only the destination's. Entries
-that concern no forum at all — a warning, an address lookup — carry no forum key
-and stay the actor's own business, and the actor always sees what they did
-wherever they did it. `admin_log_forum_scope_idx`, a GIN index over
-`detail -> 'forumIds'`, is what keeps the containment test cheap.
-
-**Cost.** Rows written before this change do not have `forumIds`. Ones that
-carried an unambiguous `forumId` or `toForumId` are still scoped by it; an old
-split, merge or move row is visible only to the moderator who wrote it, because
-the alternative is the misattribution above. There is no backfill: the old
-detail cannot say which of `from`/`to` was a forum without knowing the action,
-and a migration that guessed would write the bug into the table permanently.
+**Cost.** Rows written before this change have no `forumIds`. Ones that
+carried an unambiguous forum key are still scoped by it; an old split,
+merge or move row is visible only to the moderator who wrote it, because
+the alternative is the misattribution above. There is no backfill — a
+migration that guessed would write the bug into the table permanently.
 
 ### A lock and an unlock are two actions, not one action with a flag
 
-**MyBB:** the moderator log records `open`/`close` and `stick`/`unstick` as
-separate action names.
+**MyBB:** records `open`/`close` and `stick`/`unstick` as separate action
+names.
 
-**Here:** the same — `thread.lock` and `thread.unlock`, `thread.stick` and
-`thread.unstick`, alongside the `inline.*` pair that already worked this way.
+**Meith:** the same — `thread.lock` / `thread.unlock`, `thread.stick` /
+`thread.unstick`.
 
-**Why:** one action name with a boolean in `detail` gives the log one label to
-print, so unlocking a thread read as "Locked a thread" with "Set to: false"
-underneath it. A log is read by someone reconstructing what happened, and the
-first line has to be true on its own.
+**Why.** One action name with a boolean in the detail gives the log one
+label to print, so unlocking a thread would read as "Locked a thread"
+with "Set to: false" underneath. A log is read by someone reconstructing
+what happened, and the first line has to be true on its own.
 
 ### The address lookup finds ranges, not addresses
 
-**MyBB:** the ModCP's IP search matches full addresses, which MyBB stores.
+**MyBB:** the ModCP's IP search matches full addresses, which MyBB
+stores.
 
-**Here:** it matches the truncated prefix the board stores, and the screen says
-so.
+**Meith:** it matches the truncated prefix the board stores, and the
+screen says so.
 
-**Why:** every address is truncated before it is written, so there is no full
-address to match — this is a consequence of the privacy invariant rather than a
-choice made here. It is stated on the screen because the difference matters to
-what a moderator does next: "shares an address" reads as proof, "shares a range"
-reads as something to check, and only the second is what the data supports.
+**Why.** Every address is truncated before it is written, so there is no
+full address to match — a consequence of the privacy invariant rather
+than a choice made here. The screen states it because the difference
+matters to what a moderator does next: "shares an address" reads as
+proof, "shares a range" reads as something to check, and only the second
+is what the data supports.
 
-**Two ranges are on record per account, and they are written at two moments.**
-`registration_ip_prefix` is written once, by the registration that created the
-account; `last_ip_prefix` is rewritten by every successful sign-in. MyBB also
-stamps `lastip` on ordinary page views; here the presence write is left alone,
-because the sign-in is the moment the board learns an account is being used from
-somewhere and it costs one update per session rather than one per member per
-minute. The consequence is worth knowing at the screen: a member who is still
-signed in from before this shipped shows no last-visit range until they sign in
-again, and one who never signs in again keeps the range of their last sign-in
-rather than of their last visit.
+**Two ranges are on record per account, written at two moments.**
+`registration_ip_prefix` is written once, by the registration;
+`last_ip_prefix` is rewritten by each successful sign-in. MyBB also
+stamps `lastip` on ordinary page views; Meith leaves the presence write
+alone, because the sign-in is the moment the board learns an account is
+being used from somewhere, and it costs one update per session rather
+than one per member per minute.
 
-**Cost.** Both columns are null for every account the board already had, and for
-every account a MyBB import creates — the importer does not carry `regip` or
-`lastip` across, so an imported board's lookups stay empty until its members
-register or sign in here. `posts.ip_prefix` exists in the schema and nothing
-writes it: the lookup does not read it, and a per-post range would be a second
-address trail to keep rather than a second thing to search.
-
-### Copying a thread credits its authors twice
-
-**MyBB:** copying a thread duplicates its posts, and each copy counts towards
-its author's post count. One piece of writing therefore counts twice.
-
-**Here:** the same, chosen deliberately.
-
-**Why:** every other counter on this board holds to one definition —
-`users.post_count` means *posts written* — and the merge/split rule was settled the
-question by that definition (neither operation duplicates a post, so neither
-moves an author's total). Copy is the one tool that genuinely creates rows, so
-the definition and parity actually conflict, and parity won: an imported MyBB
-board's counts must not change under it, and a moderator using copy expects the
-same arithmetic they know.
-
-The cost is stated rather than hidden: after a copy, `post_count` means "posts
-attributed to you", which is a slightly different thing from "posts you wrote".
-`PostgresCounterRecount` agrees with it, because the recount counts rows — so
-the board stays internally consistent, and a repair run will not quietly undo
-it. Only visible posts are copied: copying held content would double the
-approval queue, and copying removed content would republish it.
-
-### Copy is authorised by `thread.move`, at both ends
-
-**MyBB:** copy is governed by the same "can manage threads" moderator
-permission as move.
-
-**Here:** `thread.copy` does not exist as a right. Copying reads `thread.move`
-in the source forum *and* in the destination, exactly as a move does.
-
-**Why:** copying is moving that leaves the original behind. It puts content into
-the destination forum by the same mechanism, so the destination's moderators
-have precisely the same interest in it — and a separate right would mean an
-eighth column on `forum_moderators` distinguishing two acts nobody grants
-separately. Unlike a move, the destination *may* be the source forum: forking a
-discussion in place is legitimate and there is no pointer to repair, because
-nothing left.
-
-### A moved thread leaves no redirect stub
-
-**MyBB:** moving a thread can leave a "Moved: <title>" row in the source forum,
-linking to its new home, optionally expiring after a set number of days.
-
-**Here:** a move just moves. The schema keeps `moved_to_thread_id` and
-`ThreadRowModel.isMoved` for a future implementation, and nothing writes them.
-
-**Why:** the stub is a second kind of row in every listing query, in a listing
-that is already the board's most performance-sensitive read,
-and it has to be filtered, counted and expired everywhere. What it buys is a
-reader who bookmarked a thread finding it — and search and the thread's
-own permalink already do that, because the thread keeps its id. Revisit if a
-real board reports people losing threads after a move.
+**Cost.** Both columns are null for every account the board already had,
+and for every account an import creates — the importer does not carry
+`regip` or `lastip` across, so an imported board's lookups stay empty
+until its members sign in here. `posts.ip_prefix` exists in the schema
+and nothing writes it: a per-post trail would be a second address record
+to keep, not a second thing to search.
 
 ---
 
@@ -769,156 +690,139 @@ real board reports people losing threads after a move.
 
 ### A notification centre exists at all
 
-**MyBB:** has no notification centre. What a member is told arrives as e-mail
-(a subscribed thread, a warning, a PM alert), plus the "You have N new
-messages" line in the user CP. When the e-mail is filtered, bounces, or is
-simply never read, nothing on the board records that the member was told.
+**MyBB:** has no notification centre. What a member is told arrives as
+e-mail, plus the "You have N new messages" line. When the e-mail is
+filtered or never read, nothing on the board records that the member was
+told.
 
-**Here:** every notification is written to a `notifications` row first and
-delivered by e-mail second. The board's record is the row; the e-mail is one
-transport for it, and the transport can be declined.
+**Meith:** every notification is written to a `notifications` row first
+and delivered by e-mail second. The board's record is the row; the
+e-mail is one transport for it, and the transport can be declined.
 
-**Why:** a warning that changes what a member may do has to be discoverable
-from the board itself. Warnings shipped with exactly that gap —
-a suspended member found out by trying to post and being refused. Making the
-record the primary artefact also gives every later notifier — subscriptions,
-private messages, reputation — one place to write to
-rather than an e-mail template each.
+**Why.** A warning that changes what a member may do has to be
+discoverable from the board itself. Making the record the primary
+artefact also gives every notifier — subscriptions, private messages,
+reputation — one place to write to rather than an e-mail template each.
 
-**Cost:** one more table on the read path — an unread count in the user panel
-on every page for a signed-in member, which is why its index is partial over
-unread rows.
+**Cost.** One more table on the read path — an unread count in the user
+panel on every page for a signed-in member, which is why its index is
+partial over unread rows.
 
 ### On-site delivery cannot be switched off; e-mail can
 
-**MyBB:** every notification channel is opt-out. A member can disable e-mail
-about warnings and about subscribed threads.
+**MyBB:** every notification channel is opt-out.
 
-**Here:** the preferences screen configures **e-mail only**. Every kind is
-recorded in the notification centre regardless.
+**Meith:** the preferences screen configures **e-mail only**. Every kind
+is recorded in the notification centre regardless.
 
-**Why:** the centre is the board's evidence that somebody was told. A member who
-can erase the record can later say they were never warned, with the board's own
-data agreeing — which is worse for the member too, since a moderator reviewing
-an appeal has nothing to look at. Declining e-mail costs nobody anything,
-because the record survives.
+**Why.** The centre is the board's evidence that somebody was told. A
+member who could erase the record could later say they were never
+warned, with the board's own data agreeing — which is worse for the
+member too, since a moderator reviewing an appeal has nothing to look
+at. Declining e-mail costs nobody anything, because the record survives.
 
-**Cost:** a member who does not want to see a notification cannot remove it,
-only mark it read. If that becomes a real complaint, the answer is a "clear
-read notifications" control, not a channel switch.
+**Cost.** A member who does not want to see a notification cannot remove
+it, only mark it read.
 
 ### The reporter is told when their report is closed
 
-**MyBB:** tells the reporter nothing. A report is filed and disappears.
+**MyBB:** tells the reporter nothing.
 
-**Here:** closing a report raises `report.actioned` for the reporter, naming
-the outcome (actioned or closed without action) and the captured label of what
-they reported. The moderator's private note is never included — the port that
-carries the notification has no field that could hold one.
+**Meith:** closing a report raises `report.actioned` for the reporter,
+naming the outcome (actioned, or closed without action) and the captured
+label of what they reported. The moderator's private note is never
+included — the port that carries the notification has no field that
+could hold one.
 
-**Why:** a report button that silently swallows reports trains members to stop
-using it, and "we looked and decided not to act" is a legitimate outcome to
-communicate. E-mail for this kind is **off** by default, because reporting is
-exactly the act a member repeats and a second message about somebody else's
-content is not something to opt somebody into.
-
-**Cost:** a member who reports a lot gets a lot of on-site notifications. They
-coalesce per report rather than per target, so closing and re-closing one report
-is one line.
+**Why.** A report button that silently swallows reports trains members to
+stop using it, and "we looked and decided not to act" is a legitimate
+outcome to communicate. E-mail for this kind is **off** by default,
+because reporting is exactly the act a member repeats.
 
 ### A repeated notification is one row with a count
 
 **MyBB:** does not have the problem, having no notification store.
 
-**Here:** a raise may carry a dedupe key. While the notification it produced is
-unread, further raises with the same key increment `occurrences` and update the
-captured facts instead of writing a new row — enforced by a partial unique
-index rather than a prior read. Once the row is read, the next raise starts a
-fresh one.
+**Meith:** a raise may carry a dedupe key. While the notification it
+produced is unread, further raises with the same key increment a counter
+and update the captured facts instead of writing a new row — enforced by
+a partial unique index rather than a read-then-write. Once the row is
+read, the next raise starts a fresh one.
 
-**Why:** the first notification the board raises without a human behind it is
-`system.task_failed`, and a task failing on every tick would otherwise write
-1,440 rows a day per administrator, with an e-mail behind each. The count is
-also the more useful number: "this has failed 40 times" is the difference
-between a blip and an outage.
+**Why.** The first notification the board raises without a human behind
+it is `system.task_failed`, and a task failing on every tick would
+otherwise write 1,440 rows a day per administrator, with an e-mail behind
+each. The count is also the more useful number: "this has failed 40
+times" is the difference between a blip and an outage.
 
-**Cost:** the *first* occurrence's details are replaced by the latest one. That
-is deliberate for an operational alert and is why warnings carry no dedupe key
-at all — two warnings are two things that happened, and collapsing them would
-hide the one that crossed a threshold.
-
----
+**Cost.** The first occurrence's details are replaced by the latest —
+deliberate for an operational alert, and why warnings carry no dedupe
+key: two warnings are two things that happened, and collapsing them
+would hide the one that crossed a threshold.
 
 ### "Instant" notification means "within a tick"
 
-**MyBB:** sends a subscription e-mail during the request that created the post,
-inside `add_thread`/`add_post`.
+**MyBB:** sends a subscription e-mail during the request that created the
+post.
 
-**Here:** the post commits, and the `subscriptions.instant` task tells the
-subscribers on its next run — at most a minute later on a board whose tick runs
-every minute.
+**Meith:** the post commits, and the `subscriptions.instant` task tells
+the subscribers on its next run — at most a minute later on a board whose
+tick runs every minute.
 
-**Why:** notifying inline is an unbounded loop inside the board's hottest write.
-One iteration per subscriber, each needing a permission re-check (a subscription
-is not a standing grant), each potentially a mail send — on a thread with 500
-followers that is a posting request that takes seconds and fails if the mail
-provider is down. Every other side effect on this board already works this way
-(the outbox, the counter roll-up), and the watermark makes a delayed run
-indistinguishable from a prompt one except in timing.
+**Why.** Notifying inline is an unbounded loop inside the board's hottest
+write: one iteration per subscriber, each needing a permission re-check,
+each potentially a mail send. On a thread with 500 followers that is a
+posting request that takes seconds and fails when the mail provider is
+down.
 
-**Cost:** a subscriber can open a thread and see a reply before the notification
-about it arrives. That is strictly better than the failure it avoids, and the
-delay is bounded by the tick interval an operator controls.
+**Cost.** A subscriber can open a thread and see a reply before the
+notification about it arrives. That is strictly better than the failure
+it avoids, and the delay is bounded by the tick interval.
 
 ### A digest's clock is per member, not per board
 
-**MyBB:** has no digests at all — every subscription is instant e-mail or
+**MyBB:** has no digests — every subscription is instant e-mail or
 nothing.
 
-**Here:** a subscription's cadence is `instant`, `daily`, `weekly` or `none`,
-and the daily/weekly clock is stored per member *and* per cadence in
-`digest_runs`.
+**Meith:** a subscription's cadence is `instant`, `daily`, `weekly` or
+`none`, and the daily/weekly clock is stored per member *and* per
+cadence.
 
-**Why:** a board-wide "send the digests now" schedule delivers everybody's
-digest at whatever moment the tick happened to fire, and hands somebody who
-subscribed on Sunday a "weekly" digest on Monday. Per member, the interval means
-what it says. Per cadence as well, because a member can follow one thread daily
-and another weekly, and one clock cannot serve both.
-
-**Cost:** one row per member per cadence, written only once a digest has
-actually gone out. A member who has never received one is due immediately, which
-is what makes a new subscriber's first digest arrive rather than never.
+**Why.** A board-wide "send the digests now" schedule delivers
+everybody's digest at whatever moment the tick fired, and hands somebody
+who subscribed on Sunday a "weekly" digest on Monday. Per member, the
+interval means what it says; per cadence as well, because one member can
+follow one thread daily and another weekly, and one clock cannot serve
+both.
 
 ### The unsubscribe link acts on POST, not on GET
 
 **MyBB:** unsubscribe links are GETs — following the URL removes the
 subscription.
 
-**Here:** the link opens a page that says what unsubscribing would do and offers
-one button. The button is the act.
+**Meith:** the link opens a page that says what unsubscribing would do
+and offers one button. The button is the act.
 
-**Why:** mail clients, corporate link scanners and preview fetchers request
-every URL in a message. A GET that unsubscribed would mean a member is
-unsubscribed by their own spam filter looking at the mail, and they would never
-know why the notifications stopped. It also matches what one-click unsubscribe
-(RFC 8058) expects of a mail sender.
+**Why.** Mail clients, corporate link scanners and preview fetchers
+request every URL in a message. A GET that unsubscribed would mean a
+member unsubscribed by their own spam filter, never knowing why the
+notifications stopped.
 
-**Cost:** one extra click for somebody who genuinely wants out. The page needs
-no login and no JavaScript, so it is the cheapest possible extra click.
+**Cost.** One extra click for somebody who genuinely wants out. The page
+needs no login and no JavaScript.
 
 ### Unsubscribing from a digest does not delete subscriptions
 
-**MyBB:** does not have the case, having no digests.
+**Meith:** the digest's unsubscribe link switches subscription **e-mail**
+off. Every subscription stays, and new posts still appear in the
+notification centre.
 
-**Here:** the digest's unsubscribe link switches subscription **e-mail** off.
-Every subscription stays, and new posts still appear in the notification centre.
-
-**Why:** a digest covers many subscriptions, so "unsubscribe" cannot mean one of
-them — and taking it to mean "all of them" would delete a member's follow list
-because they wanted fewer e-mails. The notification record is already separate from the
-transport; this is that separation applied to the one-click case. The per-thread
-link in an "as it happens" notification *does* end that one subscription,
-because there the member knows exactly which thread they are silencing.
+**Why.** A digest covers many subscriptions, so "unsubscribe" cannot
+mean one of them — and taking it to mean "all of them" would delete a
+member's follow list because they wanted fewer e-mails. The per-thread
+link in an "as it happens" notification *does* end that one
+subscription, because there the member knows exactly which thread they
+are silencing.
 
 ---
 
@@ -926,1081 +830,1051 @@ because there the member knows exactly which thread they are silencing.
 
 ### Timezones are IANA names, never offsets
 
-**MyBB** stores a numeric offset (`timezone` = `-5`, plus a separate
-`dst` flag the board or the member toggles).
+**MyBB** stores a numeric offset (`timezone = -5`) plus a DST flag.
 
-**Here:** an IANA zone name (`America/New_York`), validated against the
-runtime's own tz database. Offsets are refused *even though `Intl` accepts
-them*.
+**Meith** stores an IANA zone name (`America/New_York`), validated
+against the runtime's tz database. Offsets are refused even though
+`Intl` would accept them.
 
-**Why:** an offset cannot express summer time, so it is wrong for half the year
-in every zone that observes it — and MyBB's answer to that, a DST flag somebody
-has to flip, is wrong every year for anybody who forgets. The tz database
-already knows when the clocks change in every zone; storing the name lets it
-answer.
+**Why.** An offset cannot express summer time, so it is wrong for half
+the year in every zone that observes it — and MyBB's answer, a DST flag
+somebody has to flip, is wrong every year for anybody who forgets. The
+tz database already knows when the clocks change.
 
-**Cost:** an imported MyBB board's offsets do not map cleanly — `-5` is
-`America/New_York` in winter and `America/Chicago`'s summer, and neither is
-certain. The importer will have to pick a representative zone per offset and
-say so, rather than pretending the data was there.
+**Cost.** Imported offsets do not map cleanly — `-5` is
+`America/New_York` in winter and `America/Chicago`'s summer, and neither
+is certain. The importer has to pick a representative zone per offset and
+say so.
 
 ### The default timezone is the reader's, not the board's
 
-**MyBB** has one board timezone that every guest and every member who has not
-changed it reads the board in.
+**MyBB** has one board timezone that every guest and every member who has
+not changed it reads the board in.
 
-**Here:** there is no board timezone. A reader's own zone is detected in the
-browser and reported to the server in a cookie, so a guest in Auckland and a
-guest in Chicago see the same thread at their own two clocks. A member may
-still pin a zone, and a pinned zone wins on every device; the default is
-"follow this device".
+**Meith** has no board timezone. A reader's own zone is detected in the
+browser and reported to the server in a cookie, so a guest in Auckland
+and a guest in Chicago see the same thread at their own two clocks. A
+member may pin a zone, and a pinned zone wins on every device.
 
-**Why:** a board timezone is right for whoever set it up and wrong for
-everybody else, and the two readers it is most wrong for are the guest who
-cannot change it and the member who does not know the setting exists. "Posted
-today at 09:14" has to mean the reader's today, or it is worse than a bare
-date.
+**Why.** A board timezone is right for whoever set it up and wrong for
+everybody else — most of all the guest who cannot change it and the
+member who does not know the setting exists. "Posted today at 09:14" has
+to mean the reader's today, or it is worse than a bare date.
 
-**Cost:** a reader with JavaScript off reports nothing, so they get UTC — the
-footer names the zone precisely because that case exists. And the first page a
-new reader opens reloads once, after the cookie is written, which is one extra
-request per visitor per browser.
+**Cost.** A reader with JavaScript off reports nothing and gets UTC —
+the footer names the zone precisely because that case exists. And the
+first page a new reader opens reloads once, after the cookie is written.
 
 ### A password change signs out every other device
 
 **MyBB:** changing a password keeps other sessions alive.
 
-**Here:** every session is revoked, and the device that made the change is
-immediately given a fresh one.
+**Meith:** every session is revoked, and the device that made the change
+is immediately given a fresh one.
 
-**Why:** changing a password is what somebody does when they think an account is
-compromised. One that leaves the attacker's session alive has done nothing.
-Re-issuing for the current device is what stops the safe behaviour from also
-being the annoying one.
-
-**Cost:** somebody who changes their password on a phone is signed out on their
-desktop. That is the intended outcome, and the screen says so before the button.
+**Why.** Changing a password is what somebody does when they think an
+account is compromised; one that leaves the attacker's session alive has
+done nothing. Re-issuing for the current device is what stops the safe
+behaviour from also being the annoying one.
 
 ### Changing an e-mail address requires confirming the new one
 
-**MyBB:** with "verify e-mail" off — the default on many boards — the address
-changes immediately.
+**MyBB:** with "verify e-mail" off — the default on many boards — the
+address changes immediately.
 
-**Here:** the address is held in a single-use token and adopted only when the
-link sent to it is followed. The current password is required to ask.
+**Meith:** the new address is held in a single-use token and adopted only
+when the link sent to it is followed. The current password is required
+to ask.
 
-**Why:** two failures, and the second is the serious one. A typo strands an
-account at an address nobody owns, with no way back except an administrator. And
-an unattended session becomes a full takeover: change the address, request a
-password reset, done. Confirming the new address closes both.
+**Why.** Two failures, and the second is the serious one: a typo strands
+an account at an address nobody owns, and an unattended session becomes
+a full takeover — change the address, request a password reset, done.
+Confirming the new address closes both.
 
-**Cost:** a member whose new address bounces keeps the old one, which is the
-safe direction. A board with no mail configured cannot change addresses at all —
-the UserCP says the link was sent, because from the board's side it was.
+**Cost.** A member whose new address bounces keeps the old one, which is
+the safe direction. A board with no mail configured cannot change
+addresses at all.
 
-### A custom profile field's visibility is per group, not a single "hidden" flag
+### A custom profile field's visibility is per group
 
-**MyBB:** `profilefields` carries `viewableby` and `editableby` as
-comma-separated group-id lists, plus `hidden` — and resolution is a substring
-check against the member's group string.
+**MyBB:** `profilefields` carries `viewableby`/`editableby` as
+comma-separated group-id lists plus a `hidden` flag, resolved by
+substring check.
 
-**Here:** a row per (field, group) in `profile_field_groups` with nullable
-`can_view` / `can_edit`, resolved by the same rule everything else on this
-board uses: NULL abstains, any explicit grant wins.
+**Meith:** a row per (field, group) with nullable `can_view` /
+`can_edit`, resolved by the same rule as everything else on this board:
+NULL abstains, any explicit grant wins.
 
-**Why:** the same shape as `forum_permissions`, so "who can see this" has
-one mental model rather than a second one that only applies to profile fields.
-A NULL that abstains is also what makes "staff may edit this" one row instead of
-a row per group with the other answer copied in — and a comma-separated list of
-ids cannot express "no opinion" at all.
+**Why.** The same shape as `forum_permissions`, so "who can see this"
+has one mental model. A NULL that abstains is also what makes "staff may
+edit this" one row instead of a row per group — and a comma-separated
+list of ids cannot express "no opinion" at all.
 
-**Cost:** an imported MyBB board's `viewableby=-1` (everyone) maps to the field
-default and its explicit lists map to grant rows, but MyBB's *deny by omission*
-does not survive: a group absent from `viewableby` becomes a group with no
-opinion, which inherits. The importer must write an explicit `false` row per
-group MyBB omitted, or set `default_visible` false and grant the listed ones.
+**Cost.** MyBB's *deny by omission* does not survive: a group absent
+from `viewableby` becomes a group with no opinion, which inherits. The
+importer must write explicit deny rows, or set the field default and
+grant the listed groups.
 
-### Registration asks only for fields the new member's group may edit
+### Registration asks only for fields the new member can edit
 
-**MyBB:** a field marked `required` is asked at registration regardless of
-whether the registering member's group can edit it afterwards.
+**MyBB:** a field marked `required` is asked at registration regardless
+of whether the registering member's group can edit it afterwards.
 
-**Here:** `requiredAtRegistration` is intersected with what the board's default
-member group may edit, so a field they will never be able to change is not asked
-for either.
+**Meith:** `requiredAtRegistration` is intersected with what the board's
+default member group may edit, so a field they could never change is not
+asked for either.
 
-**Why:** "what you are asked at registration" and "what you may change
-afterwards" disagreeing is a trap — somebody types an answer they can never
-correct. Resolving against the group registration *puts them in* (not the guest
-group they are currently in) is what makes the two consistent.
+**Why.** "What you are asked at registration" and "what you may change
+afterwards" disagreeing is a trap — somebody types an answer they can
+never correct.
 
-**Cost:** an operator who marks a field required but forgets to let the
-registered group edit it gets a field that is silently never asked. The CLI's
-`profile-field:add` says every new field starts editable by every group, which
-is the state where this cannot bite.
+**Cost.** An operator who marks a field required but forgets to let the
+registered group edit it gets a field that is silently never asked. The
+CLI's `profile-field:add` starts every new field editable by every
+group, the state where this cannot bite.
 
 ### An emptied field is deleted, not stored as an empty string
 
-**MyBB:** `userfields` has a column per field and a text column defaults to
-`''`, so "not answered" and "answered with nothing" are the same value.
+**MyBB:** a column per field, with text columns defaulting to `''` — so
+"not answered" and "answered with nothing" are the same value.
 
-**Here:** a row per (member, field), and clearing an answer deletes the row.
+**Meith:** a row per (member, field), and clearing an answer deletes the
+row.
 
-**Why:** every read on the board would otherwise have to treat two states as
-one, and one of them would eventually forget — a profile showing an empty
-"Pronouns:" row is the visible half of that. It is also what makes an
-unanswered field cost nothing on a board with twelve fields and ten thousand
-members who filled in two.
+**Why.** Every read would otherwise have to treat two states as one, and
+one of them eventually forgets — a profile showing an empty "Pronouns:"
+row is the visible half. It also makes an unanswered field cost nothing
+on a board with twelve fields and ten thousand members who filled in
+two.
 
-**Cost:** a column-per-field table is one join cheaper to read. It is also a
-schema migration every time an operator adds a field, which is the trade MyBB
-made and this does not.
+**Cost.** A column-per-field table is one join cheaper to read — and a
+schema migration every time an operator adds a field, which is the trade
+MyBB made and this does not.
 
-### Registration confirmation and password reset never say whether an address exists
+### The reset and confirmation forms never say whether an address exists
 
-**MyBB:** the lost-password form answers "the e-mail address you entered was not
-found" for an address it has no account for, and the resend-activation form says
-so when an account is already active.
+**MyBB:** the lost-password form answers "the e-mail address you entered
+was not found" for an unknown address.
 
-**Here:** one sentence on every path. An unknown address, an account that is
-already active, a send that failed and a link that really went out all produce
-the same notice, and the rate limit is spent *before* the account is looked up so
-that its refusal cannot be provoked for one address and not another.
+**Meith:** one sentence on every path. An unknown address, an
+already-active account, a failed send and a link that really went out
+all produce the same notice — and the rate limit is spent *before* the
+account is looked up, so its refusal cannot be provoked for one address
+and not another.
 
-**Why:** a form that answers "is there an account for this address?" answers it
-for anybody, one submission at a time — including for a list of addresses
-somebody bought. That is a membership list the board did not intend to publish,
-and on a board where membership itself is sensitive it is the whole game.
+**Why.** A form that answers "is there an account for this address?"
+answers it for anybody, one submission at a time — including for a list
+of addresses somebody bought. On a board where membership itself is
+sensitive, that is the whole game.
 
-**Cost:** somebody who mistypes their own address is told a link was sent and no
-link arrives, with nothing on screen to say why. The resend screen names the
-address it used, which is the one place the typo becomes visible.
+**Cost.** Somebody who mistypes their own address is told a link was
+sent, and no link arrives. The resend screen names the address it used,
+which is the one place the typo becomes visible.
 
 ### An unconfirmed account is a state on the row, not a usergroup
 
-**MyBB:** an account waiting for activation is a *member of the "Awaiting
-Activation" usergroup*, so its permissions come from that group and activating
-somebody means moving them between groups.
+**MyBB:** an account waiting for activation is a member of the "Awaiting
+Activation" usergroup, so activating somebody means moving them between
+groups.
 
-**Here:** `users.state` carries `awaiting_activation`, the group is whatever the
-board's default is, and confirming an address stamps `users.email_verified_at`.
-Under the `both` method the stamp is what says "the address is proven, an
-administrator has not looked yet" — the state does not change until they do.
+**Meith:** `users.state` carries `awaiting_activation`, the group is the
+board's default, and confirming an address stamps
+`users.email_verified_at`. Under the `both` activation method the stamp
+is what says "the address is proven, an administrator has not looked
+yet".
 
-**Why:** a group is how permissions are decided (R4.1), and lifecycle is not a
-permission. Modelling it as one means every permission question on the board
-silently depends on account state, and it means a ban — implemented by
-capturing and restoring the group — cannot be reasoned about independently. It
-also means the two facts stay separable: an account can be proven and unapproved,
-which the `both` method needs and a single group membership cannot express.
+**Why.** A group is how permissions are decided; lifecycle is not a
+permission. Modelling it as one makes every permission question silently
+depend on account state, and means a ban — implemented by capturing and
+restoring the group — cannot be reasoned about independently. It also
+keeps the two facts separable: an account can be proven and unapproved,
+which `both` needs and a single group membership cannot express.
 
-**Cost:** an operator cannot grant unactivated accounts a different permission
-set by editing a group, because there is no group to edit. Restricting what an
-unactivated account may do is not a MyBB feature people use — they cannot log in
-at all — but it is a knob that exists there and does not here.
+**Cost.** An operator cannot grant unactivated accounts a different
+permission set by editing a group, because there is no group to edit.
 
 ### A username's length is counted in code points
 
-**MyBB:** measures with `my_strlen`, which counts characters where mbstring is
-available and bytes where it is not — so the same name can be two different
-lengths on two installations of the same software.
+**MyBB:** measures with `my_strlen`, which counts characters where
+mbstring is available and bytes where it is not — the same name can be
+two lengths on two installations.
 
-**Here:** `registration.username_min` and `registration.username_max` are counted
-in Unicode code points, on every board, and the settings screen says so.
+**Meith:** `registration.username_min` and `registration.username_max`
+are counted in Unicode code points, on every board.
 
-**Why:** the accepted alphabet is `\p{L}\p{N}` under `/u`, which admits letters
-outside the Basic Multilingual Plane — the mathematical alphabets, the CJK
-extensions, the newer scripts. JavaScript's `String.length` counts UTF-16 code
-units, and every one of those letters occupies two, so measuring with it made a
-name of four such letters count as eight and fail a maximum of five, while a name
-of two counted as four and cleared a minimum of three. The rule was not "longer
-names are refused"; it was "your alphabet decides what the number means", which is
-the thing the setting's own description promised it would not do.
+**Why.** The accepted alphabet admits letters outside the Basic
+Multilingual Plane, and JavaScript's `String.length` counts UTF-16 code
+units — every such letter occupies two, so measuring with it made "your
+alphabet decides what the number means" the actual rule.
 
-**Cost:** none. `users.username` is `text` with the length enforced above it, and
-Postgres counts a `varchar` limit in characters rather than bytes in any case, so
-nothing downstream disagrees with the count.
+**Cost.** None; Postgres counts character limits the same way.
+
+---
 
 ## Private messages
 
 ### A private message is stored once, not once per recipient
 
-**MyBB:** `privatemessages` holds a row per copy — the sender's Sent Items and
-each recipient's Inbox carry the full subject and body.
+**MyBB:** `privatemessages` holds a row per copy — the sender's Sent
+Items and each recipient's Inbox carry the full subject and body.
 
-**Here:** `private_messages` holds the content and `private_message_copies`
-holds one small row per participant.
+**Meith:** `private_messages` holds the content and
+`private_message_copies` holds one small row per participant.
 
-**Why:** a message to twenty people is otherwise twenty copies of the text, and
-re-rendering one is twenty writes. It also makes quota count *copies* — the
-thing a member can actually delete — and lets the render cache invalidate
-private messages the same way it invalidates posts, on the next page load,
-with no migration.
+**Why.** A message to twenty people is otherwise twenty copies of the
+text, and re-rendering one is twenty writes. It also makes the quota
+count *copies* — the thing a member can actually delete.
 
-**Cost:** a join on every folder listing, which the folder and message indexes
-exist for. And a message everybody has deleted leaves an orphan row rather than
-disappearing by cascade — deliberately, because deleting *your* copy must not
-reach into somebody else's mailbox. Pruning orphans belongs to the maintenance sweep.
+**Cost.** A join on every folder listing, which the indexes exist for.
+And a message everybody has deleted leaves an orphan content row rather
+than disappearing by cascade — deliberately, because deleting *your*
+copy must not reach into somebody else's mailbox. (Nothing prunes those
+orphans today.)
 
 ### The quota is storage; the daily cap is separate
 
-**MyBB:** `pmquota` caps stored messages and there is no separate send rate for
+**MyBB:** `pmquota` caps stored messages, with no separate send rate for
 most groups.
 
-**Here:** two numbers. `max_private_messages_per_day` has existed since the
-initial schema and caps sends; `private_message_quota` caps what a member may
-keep. Both are 0-means-unlimited like every other numeric permission, combined
-by MAX across groups.
+**Meith:** two numbers. `maxPrivateMessagesPerDay` caps sends;
+`privateMessageQuota` caps what a member may keep. Both are
+0-means-unlimited numerics combined by MAX across groups.
 
-**Why:** they answer different abuse questions. A rate limit slows a spammer; a
-storage limit bounds what the board pays to keep. Collapsing them means a board
-that wants to allow a hundred stored messages must also allow a hundred a day.
+**Why.** They answer different abuse questions: a rate limit slows a
+spammer; a storage limit bounds what the board pays to keep. Collapsing
+them means a board that wants a hundred stored messages must also allow
+a hundred a day.
 
-**Cost:** one more column on `usergroups`, and an operator has two numbers to
-think about instead of one. The seeded ladder sets both, so a board nobody
-configures behaves sensibly.
+**Cost.** One more column on `usergroups`, and two numbers to think
+about. The seeded ladder sets both, so an unconfigured board behaves
+sensibly.
 
 ### A full inbox refuses the whole send, and names who is full
 
 **MyBB:** a send to a member over quota fails and reports it.
 
-**Here:** the same, extended to multiple recipients — if any one of them is
-full, **nothing is sent to anybody**, and every full recipient is named.
+**Meith:** the same, extended to multiple recipients — if any one of
+them is full, **nothing is sent to anybody**, and every full recipient
+is named.
 
-**Why:** partial delivery leaves the sender with a Sent copy claiming a message
-went somewhere it did not, and no answer to "did it send?". Naming the full
-recipient trades a small disclosure (their box is full) against the much worse
-failure of a sender who believes they were heard.
+**Why.** Partial delivery leaves the sender with a Sent copy claiming a
+message went somewhere it did not. Naming the full recipient trades a
+small disclosure against the much worse failure of a sender who
+believes they were heard.
 
-**Cost:** one member with a full box blocks a message to nine others until the
-sender removes their name. That is the intended outcome, and the message says
-which name to remove.
+**Cost.** One member with a full box blocks a message to nine others
+until the sender removes their name — the intended outcome, and the
+message says which name to remove.
 
 ### Reporting is the only way staff read a private message
 
-**MyBB:** a reported PM is copied into the report, and administrators with
-database access can read any message.
+**MyBB:** a reported PM is copied into the report, and administrators
+with database access can read any message.
 
-**Here:** there is no listing, no search and no browse path into private
-messages at all. `forReport` takes an id and is reached only from an existing
-report row, so a moderator reads exactly what was reported and nothing beside
-it. A message can only be reported by somebody who holds a copy of it, which is
-also what makes "not yours" and "does not exist" the same answer.
+**Meith:** there is no listing, no search and no browse path into
+private messages at all. The report path takes an id and is reached
+only from an existing report row, so a moderator reads exactly what was
+reported and nothing beside it. A message can only be reported by
+somebody who holds a copy of it.
 
-**Why:** a moderation tool that can enumerate private messages is a
+**Why.** A moderation tool that can enumerate private messages is a
 surveillance tool with a moderation feature attached.
 
-**Cost:** a moderator cannot see the rest of a conversation for context — only
-the message that was reported. Reporting each message is the way to give them
-more, which is also the way the member chooses what staff see.
+**Cost.** A moderator cannot see the rest of a conversation for
+context — only the message that was reported. Reporting each message is
+the way to give them more, which is also the way the member chooses what
+staff see.
 
 ### Reply addresses the author, not everybody on the message
 
-**MyBB:** reply addresses the sender; a separate "reply to all" addresses
-everyone.
+**MyBB:** reply addresses the sender; "reply to all" addresses everyone.
 
-**Here:** reply addresses the author, and there is no reply-all.
+**Meith:** reply addresses the author, and there is no reply-all.
 
-**Why:** bcc. A recipient who was bcc'd is hidden from the other recipients, and
-a reply-all composed by one of them would either leak that name or silently drop
-somebody — and whichever it did, it would do it without the member noticing. A
-message that quietly grows its audience is not what a reply button should mean.
+**Why.** Bcc. A recipient who was bcc'd is hidden from the others, and a
+reply-all composed by one of them would either leak that name or
+silently drop somebody — and whichever it did, it would do it without
+the member noticing.
 
-**Cost:** answering a group conversation means typing the other names, which the
-composer shows in the "To" line of the message being replied to.
+**Cost.** Answering a group conversation means typing the other names,
+which the composer shows in the "To" line of the message being replied
+to.
+
+---
 
 ## Buddies, ignoring and signatures
 
 ### Ignoring hides a post's body; it does not remove the post
 
-**MyBB:** an ignored member's posts are collapsed client-side, with the body
-still in the HTML.
+**MyBB:** an ignored member's posts are collapsed client-side, with the
+body still in the HTML.
 
-**Here:** the body is withheld **server-side** — it is not in the response at
-all — and the post keeps its place in the page and its number in the thread. A
-placeholder and a per-post reveal link take its place.
+**Meith:** the body is withheld **server-side** — it is not in the
+response at all — and the post keeps its place in the page and its
+number in the thread. A placeholder and a per-post reveal link take its
+place.
 
-**Why:** shipping the text and hiding it with CSS is a preference rather than a
-feature. And filtering the post *out* instead would give every viewer a
-different page size, make "#12" mean different posts to different people, and
-land permalinks on the wrong page — which is why the requirement names stable
-pagination and counts.
+**Why.** Shipping the text and hiding it with CSS is a preference rather
+than a feature. And filtering the post *out* instead would give every
+viewer a different page size, make "#12" mean different posts to
+different people, and land permalinks on the wrong page.
 
-**Cost:** a thread with an ignored member in it still has their posts in it, as
-placeholders. That is the intended reading: a conversation with holes in it is
-still a conversation, and a reader who wants the missing half is one click away.
+**Cost.** A thread with an ignored member still has their posts in it,
+as placeholders. That is the intended reading: a conversation with holes
+in it is still a conversation, and a reader who wants the missing half
+is one click away.
 
 ### Buddy and ignore are one table, and ignoring is not mutual
 
-**MyBB:** `userlist` with a `type` column, which is the same shape — but the
+**MyBB:** `userlist` with a `type` column — the same shape, but the
 ignore is often read as symmetric by the code around it.
 
-**Here:** one row per **ordered** pair, primary-keyed, so the two lists are
-mutually exclusive by construction. `(me, them)` is my opinion of them and says
-nothing about theirs of me.
+**Meith:** one row per **ordered** pair, primary-keyed, so the two lists
+are mutually exclusive by construction. `(me, them)` is my opinion of
+them and says nothing about theirs of me.
 
-**Why:** a mutual ignore lets anybody silence themselves in somebody else's eyes
-by ignoring them first, which is a griefing tool rather than a preference.
+**Why.** A mutual ignore lets anybody silence themselves in somebody
+else's eyes by ignoring them first — a griefing tool rather than a
+preference.
 
-**Cost:** two people who both want to stop reading each other need a row each.
-That is one extra click, and it is the correct model.
+**Cost.** Two people who both want to stop reading each other need a row
+each. One extra click, and the correct model.
 
 ### A blocked private message is refused, not silently discarded
 
 **MyBB:** a message to somebody who ignores you is accepted and dropped.
 
-**Here:** the send is refused, with the **same wording** as a permission
-refusal — "X cannot receive private messages" — so it does not disclose the
-ignore.
+**Meith:** the send is refused, with the **same wording** as a
+permission refusal — "X cannot receive private messages" — so it does
+not disclose the ignore.
 
-**Why:** silently discarding it leaves the sender believing they were heard,
-which is the worst outcome for both people. Naming the ignore would make the
-send path a way to read somebody's list, and a list that announces itself is one
-people stop using. The ambiguous refusal is the only option that is honest to
-the sender without betraying the recipient.
+**Why.** Silently discarding it leaves the sender believing they were
+heard, the worst outcome for both people. Naming the ignore would make
+the send path a way to read somebody's list. The ambiguous refusal is
+the only option honest to the sender without betraying the recipient.
 
-**Cost:** a sender cannot tell "they blocked me" from "their group cannot use
-PMs". That ambiguity is the feature.
+**Cost.** A sender cannot tell "they blocked me" from "their group
+cannot use PMs". That ambiguity is the feature.
 
-### A signature's forbidden constructs render as text rather than refusing the save
+### A signature's forbidden constructs render as text
 
-**MyBB:** per-group switches for images, links and HTML in signatures, enforced
-by stripping or by refusing.
+**MyBB:** per-group switches for images, links and HTML in signatures,
+enforced by stripping or refusing the save.
 
-**Here:** a signature is parsed with a **narrower set of constructs** — emphasis,
-strong, strikethrough, code spans and links. Images, headings, quotes, lists,
-tables, rules and code blocks are off, so they come out as the characters
-somebody typed.
+**Meith:** a signature is parsed with a **narrower set of constructs** —
+emphasis, strong, strikethrough, code spans and links. Images, headings,
+quotes, lists, tables, rules and code blocks are off, so they come out
+as the characters somebody typed.
 
-**Why:** it cannot be bypassed by a construct this build does not know about,
-and it degrades — somebody pasting a signature from another board gets most of
-it rather than an error. The image is the one that matters: a remote image under
-every post is a tracking beacon reporting each reader's IP to whoever hosts it.
+**Why.** It cannot be bypassed by a construct the build does not know
+about, and it degrades — somebody pasting a signature from another board
+gets most of it rather than an error. The image is the one that
+matters: a remote image under every post is a tracking beacon reporting
+each reader's IP to whoever hosts it.
 
-**Cost:** an imported MyBB signature that used images loses them, visibly, as
-bracketed text the member can then delete. The importer should strip the tags
+**Cost.** An imported signature that used images loses them, visibly, as
+bracketed text the member can delete. The importer should strip the tags
 rather than leave them, and say how many it touched.
 
 ### A signature is locked, not deleted
 
-**MyBB:** `suspendsignature` with an expiry, plus moderators simply clearing the
-text.
+**MyBB:** `suspendsignature` with an expiry, plus moderators simply
+clearing the text.
 
-**Here:** a boolean lock with a required reason. The text is kept, is shown back
-to the member with the reason on their own signature screen, and cannot be
-edited while locked.
+**Meith:** a boolean lock with a required reason. The text is kept,
+shown back to the member with the reason on their own signature screen,
+and cannot be edited while locked.
 
-**Why:** an emptied signature can be retyped the next minute and says nothing
-about why it went. Keeping the text is also what lets an appeal look at what was
-actually there rather than at somebody's recollection.
+**Why.** An emptied signature can be retyped the next minute and says
+nothing about why it went. Keeping the text is also what lets an appeal
+look at what was actually there.
 
-**Cost:** no expiry — an unlock is a second deliberate act. MyBB's timed
-suspension is the nicer behaviour and needs a scheduled task; it belongs with
-the maintenance sweep rather than being faked with a column nothing sweeps.
+**Cost.** No expiry — an unlock is a second deliberate act. MyBB's timed
+suspension is the nicer behaviour and needs a scheduled task; it belongs
+with the maintenance sweeps rather than being faked with a column
+nothing sweeps.
+
+---
 
 ## Reputation
 
 ### Reputation has no per-group power multiplier
 
-**MyBB:** `reputationpower` makes a moderator's vote worth more than a member's.
+**MyBB:** `reputationpower` makes a moderator's vote worth more than a
+member's.
 
-**Here:** every rating is worth −1, 0 or +1. The per-group settings are *whether*
-you may rate and *how many a day*.
+**Meith:** every rating is worth −1, 0 or +1. The per-group settings are
+*whether* you may rate and *how many a day*.
 
-**Why:** a multiplier cannot obey the rule for numeric permissions — MAX
+**Why.** A multiplier cannot obey the rule for numeric permissions — MAX
 across groups with 0 meaning unlimited — because "unlimited power" is
-meaningless and a multiplier has no unlimited state. It is the same shape as the
-`searchfloodtime` problem recorded above, and gets the same answer: leave it out
-rather than invert the combination rule for one field.
+meaningless. It is the same shape as the flood-interval problem above,
+and gets the same answer: leave it out rather than invert the
+combination rule for one field.
 
-**Cost:** a board that wants staff endorsements to carry weight cannot express
-it. An imported `reputationpower` is dropped, and the importer should say so
-rather than silently scaling everybody's totals.
+**Cost.** A board that wants staff endorsements to carry weight cannot
+express it. An imported `reputationpower` is dropped, and the importer
+should say so rather than silently scaling totals.
 
 ### Reputation totals are recomputed, not incremented
 
-**MyBB:** `users.reputation` is adjusted as ratings are added and removed.
+**MyBB:** `users.reputation` is adjusted as ratings are added and
+removed.
 
-**Here:** the column is rebuilt with a `sum` over the live rows, inside the same
-transaction as whatever changed them — a rating, a withdrawal, and an account
-merge, which drops the ratings that would become self-ratings or duplicates and
-then rebuilds the surviving account's total *and* the total of every third party
-whose duplicate rating went with them. `warning_points` is rebuilt the same way,
-by the same derivation the warning path uses, from the warnings the merge moved.
+**Meith:** the column is rebuilt with a `sum` over the live rows, inside
+the same transaction as whatever changed them — a rating, a withdrawal,
+or an account merge, which recounts every affected account.
+`warning_points` is rebuilt the same way.
 
-**Why:** an incremented total cannot survive a rating being revised or
-withdrawn, and when it drifts nobody notices until somebody counts by hand. Same
-decision this board made for `warning_points` and for the thread and forum
-counters. A merge that added the two cached numbers together would be counting
-the rows it had just deleted, and the counter recount does not cover either
-column, so the drift would never be swept up.
+**Why.** An incremented total cannot survive a rating being revised or
+withdrawn, and when it drifts nobody notices until somebody counts by
+hand — the same decision this board made for the thread and forum
+counters.
 
-**Cost:** one extra aggregate per rating. It is bounded by the number of ratings
-one member has, and a rating is a deliberate act rather than a hot path.
+**Cost.** One extra aggregate per rating, bounded by the number of
+ratings one member has. A rating is a deliberate act, not a hot path.
+
+---
 
 ## The control panel
 
 ### The control panel has its own session, with its own timeout
 
-**MyBB:** an "admin session" keyed to the board login, with a configurable
-timeout, plus an optional `ADMIN_BRANCH`-style secret URL.
+**MyBB:** an admin session keyed to the board login, with a configurable
+timeout.
 
-**Here:** a row in `admin_sessions` minted by re-entering the password, with a
-30-minute idle timeout, an 8-hour absolute ceiling, and its own cookie
-(`Path=/admin`, `SameSite=Strict`). A board password change revokes it.
+**Meith:** a row in `admin_sessions` minted by re-entering the password,
+with a 30-minute idle timeout, an 8-hour absolute ceiling, and its own
+cookie (`Path=/admin`, `SameSite=Strict`). A board password change
+revokes it.
 
-**Why:** the threat is an administrator's own browser being used by somebody
-else, not a password being guessed. A board session lasts days by design; an ACP
-session that inherited that would make an unattended laptop a board takeover.
-Separating them is what lets the ACP timeout be short enough to matter.
+**Why.** The threat is an administrator's own browser being used by
+somebody else, not a password being guessed. A board session lasts days
+by design; an admin session that inherited that would make an unattended
+laptop a board takeover. Separating them is what lets the panel timeout
+be short enough to matter.
 
-**Cost:** an administrator types their password twice — once for the board, once
-for the panel — and again after half an hour away. That is the intended price,
-and the sign-in screen says what it buys.
+**Cost.** An administrator types their password twice — once for the
+board, once for the panel — and again after half an hour away.
 
 ### The re-authentication clock is separate from the activity clock
 
-**MyBB:** the admin session has one timestamp, refreshed on every request.
+**MyBB:** the admin session has one timestamp, refreshed on every
+request.
 
-**Here:** `last_seen_at` moves with activity and `authenticated_at` moves only
-when the password is re-entered. Destructive operations read the second.
+**Meith:** `last_seen_at` moves with activity; `authenticated_at` moves
+only when the password is re-entered. Destructive operations read the
+second, over a fifteen-minute window.
 
-**Why:** with one timestamp, an administrator who has been clicking around for
-an hour has a "fresh" session and is never asked again — which makes
-re-authentication a formality that fires only for people who walked away, i.e.
-exactly the people who are about to be asked anyway when it expires.
+**Why.** With one timestamp, an administrator who has been clicking
+around for an hour has a "fresh" session and is never asked again —
+which makes re-authentication a formality that fires only for people who
+walked away.
 
-**Cost:** a long ACP session asks for the password more than once. Fifteen
-minutes is the window; it applies only to operations that are destructive.
+**Cost.** A long panel session asks for the password more than once, and
+only for destructive operations.
 
 ### The address allowlist is prefixes in the environment, not CIDR in the database
 
-**MyBB:** `$config['superadmins']` and an optional IP check in `config.php`.
+**MyBB:** `$config['superadmins']` and an optional IP check in
+`config.php`.
 
-**Here:** `ADMIN_IP_ALLOWLIST`, comma-separated whole addresses or textual
-prefixes ending in `.` or `:`. Empty means no restriction.
+**Meith:** `ADMIN_IP_ALLOWLIST` — comma-separated whole addresses, or
+textual prefixes ending in `.` or `:`. Empty means no restriction.
 
-**Why:** env rather than a setting, because the allowlist defends against a
-stolen administrator credential and storing it where that credential could edit
-it defeats the point. Prefixes rather than CIDR, because a mask is a thing
-people get wrong by one bit and the failure mode is locking yourself out. And
-the check runs *before* the board session is read, so a request from outside the
-list cannot learn that the panel exists.
+**Why.** The environment rather than a setting, because the allowlist
+defends against a stolen administrator credential, and storing it where
+that credential could edit it defeats the point. Prefixes rather than
+CIDR, because a mask is a thing people get wrong by one bit, and the
+failure mode is locking yourself out. The check runs *before* the board
+session is read, so a request from outside the list cannot learn the
+panel exists.
 
-**Cost:** no `/28`-style precision, and no way to change it without a redeploy.
-Both are deliberate. A deployment behind no proxy — where no forwarded address
-header arrives — is refused outright when a list is configured, which is the
-documented failure direction rather than a silent bypass.
+**Cost.** No `/28`-style precision, and no way to change it without a
+redeploy — both deliberate. A deployment behind no proxy (where no
+forwarded address arrives) is refused outright when a list is
+configured: the documented failure direction, rather than a silent
+bypass.
+
+---
 
 ## Attachments and avatars
 
 ### An attachment is re-encoded, and until it is, it does not exist
 
-**MyBB:** an upload is checked against a list of allowed extensions and MIME
-types, stored, and served. `verify_attachment` looks at the file's magic bytes
-for images; the file itself is kept as uploaded.
+**MyBB:** an upload is checked against allowed extensions and MIME
+types, stored, and served as uploaded.
 
-**Here:** PNG and JPEG are decoded to raw pixels and written back out by an
-encoder. The stored object is the encoder's output. The uploaded bytes are held
-in a separate, unservable object until that succeeds, and are then deleted. A
-row is `pending` until the re-encode finishes, and nothing will serve a
-`pending` row.
+**Meith:** PNG and JPEG are decoded to raw pixels and written back out
+by an encoder; the stored object is the encoder's output. The uploaded
+bytes are held in a separate, unservable object until that succeeds, and
+then deleted. A row is `pending` until the re-encode finishes, and
+nothing serves a `pending` row.
 
-**Why:** validation cannot make a file safe, and no amount of it can. A valid
-PNG with a ZIP appended after its `IEND` chunk passes every check MyBB makes
-and every check anyone could make, because the file genuinely *is* a valid PNG.
-So does one with a payload in an EXIF block aimed at whichever decoder opens it
-next. None of that survives a decode and re-encode, because the output is
-written from pixels and has never seen the original bytes.
+**Why.** Validation cannot make a file safe. A valid PNG with a ZIP
+appended after its `IEND` chunk passes every check anyone could make,
+because the file genuinely *is* a valid PNG; so does one with a payload
+in an EXIF block aimed at whichever decoder opens it next. None of that
+survives a decode and re-encode, because the output is written from
+pixels and has never seen the original bytes.
 
-**Cost:** an image is not visible for as long as the queue takes — usually
-seconds, up to a minute on a board whose tick is the only worker. EXIF is gone,
-including the orientation tag and any colour profile, which is a real loss for
-photographers and a real gain for everybody who did not mean to publish where
-they took the picture. Animated GIF is not accepted at all rather than being
-silently flattened to one frame.
+**Cost.** An image is not visible for as long as the queue takes —
+usually seconds, up to a minute on a board whose tick is the only
+worker. EXIF is gone, including the orientation tag and colour profile —
+a real loss for photographers, and a real gain for everybody who did not
+mean to publish where they took the picture. Animated GIF is not
+accepted at all rather than silently flattened to one frame.
 
 ### Four file types, not an operator-configurable list
 
-**MyBB:** the ACP has an attachment-types screen; an operator adds any
-extension and MIME type they like.
+**MyBB:** an attachment-types screen; an operator adds any extension and
+MIME type they like.
 
-**Here:** PNG, JPEG, PDF and ZIP, as a constant.
+**Meith:** PNG, JPEG, PDF and ZIP, as a constant. The images are
+re-encoded; PDF and ZIP are served as opaque downloads and never
+rendered.
 
-**Why:** a format is on the list only if the board can make a claim about the
-bytes it serves — either "this was re-encoded" or "this is served as an opaque
-download and never rendered". A configurable list is a way to accept a format
-nothing can process, and the switch would be offering an operator a choice the
-code cannot honour. `text/plain` is the instructive omission: it has no
-signature, so "is this a text file" can only ever be a guess.
+**Why.** A format is on the list only if the board can make a claim
+about the bytes it serves — "this was re-encoded", or "this is an
+opaque download". A configurable list is a way to accept a format
+nothing can process. `text/plain` is the instructive omission: it has
+no signature, so "is this a text file" can only ever be a guess.
 
-**Cost:** no `.docx`, no `.mp3`, no `.7z`, and no way to add one without a
-release. The admin screen configures *limits*,
-not *formats*, until something can attest to a new one.
+**Cost.** No `.docx`, no `.mp3`, no `.7z`, and no way to add one without
+a release. The admin screen configures *limits*, not *formats*.
 
-### The download is served by the board, not by the object store
+### The download is served by the board, not the object store
 
-**MyBB:** `attachment.php` streams the file through PHP after a permission
-check.
+**MyBB:** `attachment.php` streams the file through PHP after a
+permission check.
 
-**Here:** the same — a route handler that re-checks `attachment.download` in the
-attachment's forum, checks that the post and thread are visible to this viewer,
-and sets `Content-Disposition: attachment` with `nosniff` and a sandboxing CSP.
-The stored object is always private, even in a public forum, and a signed
-object-store URL is deliberately not used.
+**Meith:** the same — a route handler that re-checks
+`attachment.download` in the attachment's forum, checks the post and
+thread are visible to this viewer, and sets
+`Content-Disposition: attachment` with `nosniff` and a sandboxing CSP.
+The stored object is always private, even in a public forum, and a
+signed object-store URL is deliberately not used.
 
-**Why:** the parity here is not an accident of implementation. A signed URL is a
-bearer token that outlives the permission that issued it — move a thread into a
-private forum and every URL handed out in the last hour still works — and it
-carries the bucket's headers rather than ours, which is where the safety of
-serving member-supplied bytes actually lives.
+**Why.** A signed URL is a bearer token that outlives the permission
+that issued it — move a thread into a private forum and every URL handed
+out in the last hour still works — and it carries the bucket's headers
+rather than the board's, which is where the safety of serving
+member-supplied bytes actually lives.
 
-**Cost:** the bytes go through the app, so a large attachment costs the board
-bandwidth and, on a serverless platform, function time. Revisit if the
-`FileStore` port ever grows the ability to sign *with* response headers.
+**Cost.** The bytes go through the app, so a large attachment costs the
+board bandwidth. Revisit if the `FileStore` port ever grows the ability
+to sign with response headers.
 
 ### Files are submitted with the post, in one form
 
-**MyBB:** the composer uploads each attachment over its own request, keyed to a
-post id or a "posthash" for a post that does not exist yet, and the abandoned
-ones are swept later.
+**MyBB:** the composer uploads each attachment over its own request,
+keyed to a post id or a "posthash" for a post that does not exist yet,
+with abandoned ones swept later.
 
-**Here:** the file input is part of the reply form and the files arrive with the
-message. There is no upload step and no draft token.
+**Meith:** the file input is part of the reply form and the files arrive
+with the message. There is no upload step and no draft token.
 
-**Why:** it works with JavaScript off, which the posthash flow does not without
-a page round trip that loses the typed message. It also removes a whole class of
-state — a draft attachment waiting for a post that may never come — and with it
-the sweep for abandoned drafts.
+**Why.** It works with JavaScript off, which the posthash flow does not
+without a round trip that loses the typed message. It also removes a
+whole class of state — a draft attachment waiting for a post that may
+never come — and with it the sweep for abandoned drafts.
 
-**Cost:** a browser cannot repopulate a file input, so a submission that fails
-validation loses the chosen files even though the message survives. That is true
-of every no-JS upload. The editor islands are where an incremental upload belongs,
-and it should be an enhancement over this path rather than a replacement for it.
+**Cost.** A browser cannot repopulate a file input, so a submission that
+fails validation loses the chosen files even though the message
+survives. That is true of every no-JS upload; an incremental upload
+belongs in the editor islands, as an enhancement over this path rather
+than a replacement for it.
 
 ### An avatar is re-encoded and locked, never linked and never deleted
 
-**MyBB:** three ways to have one — upload, a remote URL, or Gravatar. An upload
-is checked for dimensions and extension and stored as sent. A moderator's
-remedy is to delete it.
+**MyBB:** three ways to have one — upload, a remote URL, or Gravatar. A
+moderator's remedy is to delete it.
 
-**Here:** upload only, decoded and re-encoded from raw pixels like every other
-image on this board, fitted to 200×200, and unservable until that
-succeeds. A moderator locks it rather than deleting it.
+**Meith:** upload only, decoded and re-encoded like every other image on
+the board, fitted to 200×200, unservable until that succeeds. A
+moderator locks it rather than deleting it, with a required reason the
+member is shown.
 
-**Why no remote URL:** rendered directly it is a tracking beacon that reports
-every reader's IP, referrer and user agent to a third party on every page view
-— which the requirement forbids in as many words. Fetched server-side to
-avoid that, it is SSRF: an attacker supplies a URL and the board makes the
-request, from inside whatever network it runs in. The only safe version ends at
-fetch-validate-re-encode-store, which is what the upload path already is, with
-an SSRF problem bolted on the front. Gravatar is the remote-URL problem with a
-better-known third party.
+**Why no remote URL.** Rendered directly, it is a tracking beacon
+reporting every reader's IP to a third party on every page view. Fetched
+server-side to avoid that, it is SSRF: an attacker supplies a URL and
+the board makes the request from inside whatever network it runs in.
+The only safe version ends at fetch-validate-re-encode-store — which is
+what the upload path already is. Gravatar is the remote-URL problem
+with a better-known third party.
 
-**Why a lock and not a delete:** the same argument that applies to signatures, and
-stronger here. Deleting destroys the evidence — an appeal about a signature can
-read the text that was kept; an appeal about an image has nothing at all unless
-the file survives. Locking stops it rendering, stops the member replacing it,
-keeps the object, and records a reason the member is shown.
+**Why a lock and not a delete.** The signature argument, stronger:
+deleting destroys the evidence, and an appeal about an image has
+nothing at all unless the file survives. Locking stops it rendering,
+stops the member replacing it, keeps the object, and records a reason.
 
-**Cost:** a member who wants their existing avatar from elsewhere has to
-download it and upload it, and nobody's Gravatar follows them here. The image
-loses its EXIF, which is the point. And an upload is not visible for as long as
-the queue takes, which the screen says rather than leaving somebody to conclude
-it failed.
+**Cost.** A member who wants their avatar from elsewhere downloads it
+and uploads it, and nobody's Gravatar follows them here. The image
+loses its EXIF, which is the point.
 
 ### An avatar keeps its aspect ratio; it is not cropped to a square
 
-**MyBB:** scales to fit the configured maximum, same as here.
+**Meith:** scaled to fit 200×200, aspect preserved, no crop.
 
-**Here:** scaled to fit 200×200, aspect preserved, no crop.
+**Why.** Cropping decides for somebody which part of their picture
+matters, and a board cannot know. A theme that wants circles can have
+them in CSS, which is reversible; a crop at upload time is not.
 
-**Why:** cropping decides for somebody which part of their picture matters, and
-a board cannot know. A theme that wants circles can have them in CSS, which is
-reversible; a crop at upload time is not.
+**Cost.** A wide image renders wide, so a theme laying out a fixed
+square has to say `object-fit: cover` rather than assuming. The default
+theme does.
 
-**Cost:** a wide image renders wide, so a theme laying out a fixed square has to
-say `object-fit: cover` rather than assuming. The default theme does.
+---
 
 ## Reading and discovery
 
-### "New posts" lists threads, and its window is a day rather than your last visit
+### "New posts" lists threads, and its window is a day, not your last visit
 
-**MyBB:** `search.php?action=getnew` runs a search for posts made since
-`lastvisit` and shows the *threads* those posts are in, ordered by last post. A
-member's `lastvisit` is stamped by the session handling on each new visit.
+**MyBB:** `search.php?action=getnew` runs a search for posts since
+`lastvisit` and shows the threads those posts are in.
 
-**Here:** `/discover/new` lists threads whose last post landed in the last 24
-hours. `/discover/today` uses midnight in the member's own timezone.
-Both are thread listings ordered by last post, permission-filtered in SQL and
-keyset-paged.
+**Meith:** `/discover/new` lists threads whose last post landed in the
+last 24 hours; `/discover/today` uses midnight in the member's own
+timezone. Both are thread listings ordered by last post,
+permission-filtered in SQL and keyset-paged.
 
-**Why:** a genuine "since your last visit" needs the per-thread read state
-keeps, and folding it into this query means either a join per row or a second
-query per page — against a feature specified as *budgeted*, with a test that
-holds it to one query on two board sizes. MyBB pays that cost as a full search
-run per page view, which is why the screen is one of the heaviest on a large
-board and why several hosts disable it.
+**Why.** A genuine "since your last visit" needs the per-thread read
+state, and folding that into this query means a join per row or a second
+query per page — against a screen with a p95 latency budget the load
+harness enforces. MyBB pays that cost as a full search run per page
+view, which is why the screen is one of the heaviest on a large board
+and why several hosts disable it.
 
-**Cost:** a member who has been away a week sees a day, not a week. The label
-says so, and `/discover/participated` and the subscription list are the
-two screens that do not have a window at all. When that read state and this
-query can be joined without a per-row cost, the window becomes a fallback for
-guests rather than the rule.
+**Cost.** A member who has been away a week sees a day, not a week. The
+label says so, and `/discover/participated` and the subscription list
+have no window at all.
 
 ### A busy thread is one row, not forty
 
-**MyBB:** the "new posts" and "today's posts" screens are searches over
-*posts*, so a thread with forty new replies contributes forty hits — collapsed
-into one thread row by the results template, but counted, paged and ranked as
-forty.
+**MyBB:** the "new posts" screens are searches over *posts*, so a thread
+with forty new replies contributes forty hits — collapsed by the
+template, but counted, paged and ranked as forty.
 
-**Here:** every discovery view returns one row per thread, and the `limit` is a
-limit on threads.
+**Meith:** every discovery view returns one row per thread, and the
+limit is a limit on threads.
 
-**Why:** "what is new" is a question about conversations. Paging over posts
-means a page of twenty hits can be three threads, the page count is a number
-about something the member cannot see, and one busy thread buries the rest of
-the board.
+**Why.** "What is new" is a question about conversations. Paging over
+posts means a page of twenty hits can be three threads, and one busy
+thread buries the rest of the board.
 
-**Cost:** the row says *when* the last post was and *who* wrote it, but not how
-many of the replies are new to this reader — that is the same read-state
-dependency the window above names.
+**Cost.** The row says when the last post was and who wrote it, but not
+how many of the replies are new to this reader — the same read-state
+dependency as above.
 
 ### Invisible browsing hides you from the count as well as the list
 
-**MyBB:** `users.invisible` removes a member from the online list. The board's
-"N users online" figure is computed from the same session table and the
-administrator-visible list shows invisible members marked.
+**MyBB:** `users.invisible` removes a member from the online list; the
+"N users online" figure still counts them.
 
-**Here:** the same setting, and it removes the member from the **count** too,
-for everybody who cannot see them. Staff — anybody with `modcp.access` — see
-them listed and marked.
+**Meith:** the same setting removes the member from the **count** too,
+for everybody who cannot see them. Staff — anybody with `modcp.access` —
+see them listed and marked.
 
-**Why:** a member removed from the list but left in the total can be found by
-subtraction. "Eleven online, ten listed" names an invisible member as surely as
-printing their name would, and it does it on a page that refreshes. Hiding
-somebody halfway is worse than not offering the setting, because the member
-believes they are hidden.
+**Why.** A member removed from the list but left in the total can be
+found by subtraction: "eleven online, ten listed" names an invisible
+member as surely as printing their name. Hiding somebody halfway is
+worse than not offering the setting.
 
-**Cost:** the visible total is a different number for staff and for everybody
-else, which looks like a bug until you know why. The "most ever online" record
-counts everybody, invisible included, because it is a fact about the board's
-traffic rather than about who anybody may see — so the record can exceed any
-total a member has ever been shown.
+**Cost.** The visible total differs between staff and everybody else,
+which looks like a bug until you know why. The "most ever online" record
+counts everybody, invisible included — it is a fact about the board's
+traffic, not about who anybody may see — so the record can exceed any
+total a member has been shown.
 
-### An online list says where somebody is only when the reader may know
+### The online list names a location only when the reader may know it
 
-**MyBB:** the online list shows each user's location as a description derived
-from the script they are on ("Viewing Thread X"), and the thread and forum
-titles are resolved without reference to the reader. Private forums leak by
-title through this screen on stock MyBB, which is why several plugins exist to
-suppress it.
+**MyBB:** the online list shows each user's location resolved without
+reference to the reader — private forums leak by title through this
+screen on stock MyBB.
 
-**Here:** the location is resolved **in the query, against the reader's own
-permissions**. A forum they cannot see arrives at the page as null and renders
-"Somewhere on the board" — there is no title in the data for a theme, a feed or
-a debug dump to print. A thread needs its forum to be nameable *and* the thread
-itself to be in the reader's content scope, so a moderator reading a
-soft-deleted thread does not put its title on the front page.
+**Meith:** the location is resolved **in the query, against the reader's
+own permissions**. A forum they cannot see arrives at the page as null
+and renders "Somewhere on the board" — there is no title in the data for
+a theme, a feed or a debug dump to print. A thread needs its forum to be
+nameable *and* the thread to be in the reader's content scope, so a
+moderator reading a soft-deleted thread does not put its title on the
+front page.
 
-**Why:** the alternative is to fetch titles and let the page decide, which puts
-the decision in every theme anybody writes, and one of them will get it wrong.
+**Why.** The alternative is fetching titles and letting the page decide,
+which puts the decision in every theme anybody writes, and one of them
+will get it wrong.
 
-**Cost:** the online list cannot be cached across readers — it is one query per
-reader, which is why it is one query. The location is stored without a query
-string, so "reading page 4" is not distinguishable from "reading page 1", and a
-member browsing the admin panel shows as somewhere on the board rather than in
-the panel.
+**Cost.** The online list cannot be cached across readers — it is one
+query per reader, which is why it is one query. The location is stored
+without a query string, so "reading page 4" is not distinguishable from
+"reading page 1", and a member browsing the admin panel shows as
+somewhere on the board rather than in the panel.
 
 ### Board totals are a rollup with a timestamp, not a live count
 
-**MyBB:** `datacache` holds the board statistics and they are updated on the
-write path — every new post, thread and member updates the cached figures.
+**MyBB:** `datacache` holds the board statistics, updated on the write
+path — every new post, thread and member updates the cached figures.
 
-**Here:** a scheduled task recomputes them every five minutes and the panel says
-when it last ran. `computed_at` is null before the first run and the panel says
-"not counted yet" rather than showing zeroes.
+**Meith:** a scheduled task recomputes them every five minutes, and the
+page says when it last ran. Before the first run the panel says "not
+counted yet" rather than showing zeroes.
 
-**Why:** the member count is a count of `users`, and the board index is the
-most-requested page there is. Updating on the write path is the other way to
-avoid that scan, and it makes every post pay for a number nobody reads on the
-posting screen — plus a cache that drifts from the truth with no way to notice.
-The thread and post totals are summed from the root forums, where the counters
-have already accumulated the tree, so those two are nearly free; the member
-count is what sets the shape.
+**Why.** The member count is a count of `users`, and the board index is
+the most-requested page there is. Updating on the write path makes
+every post pay for a number nobody reads on the posting screen — plus a
+cache that drifts with no way to notice. The thread and post totals are
+summed from the root forums, whose counters have already accumulated
+the tree; the member count is what sets the shape.
 
-**Cost:** the numbers on the index can be five minutes old. They say so. And a
-brand-new board shows "not counted yet" until the first tick, which is a truer
-statement than three zeroes.
+**Cost.** The numbers on the index can be five minutes old. They say
+so — and a brand-new board says "not counted yet" until the first tick,
+which is a truer statement than three zeroes.
+
+---
 
 ## Feeds, URLs and the sitemap
 
 ### A feed shows what a signed-out visitor sees, whoever fetches it
 
-**MyBB:** `syndication.php` resolves the requesting user from their cookie and
-filters the feed against that member's forum permissions, so a signed-in
+**MyBB:** `syndication.php` resolves the requesting user from their
+cookie and filters the feed against their permissions — a signed-in
 member's feed carries their private forums.
 
-**Here:** every feed is built from the **guest** scope, regardless of who asks.
+**Meith:** every feed is built from the **guest** scope, regardless of
+who asks.
 
-**Why:** a feed URL is handed to software, not read in the browser that holds
-the cookie. Aggregators, corporate proxies and CDNs cache one response per URL
-and serve it to everybody who asks for that URL next — so a personalised feed
-under a shared address is a private forum served to a stranger, in somebody
-else's cache, with nothing about the request that caused it visible from here.
-MyBB's version is only safe because most readers never send the cookie at all,
-which means the personalisation mostly does not happen.
+**Why.** A feed URL is handed to software, not read in the browser that
+holds the cookie. Aggregators, corporate proxies and CDNs cache one
+response per URL and serve it to everybody who asks next — so a
+personalised feed under a shared address is a private forum served to a
+stranger, in somebody else's cache. MyBB's version is only safe because
+most readers never send the cookie at all.
 
-**Cost:** a member cannot follow a private forum by RSS. That is a real
+**Cost.** A member cannot follow a private forum by RSS. That is a real
 capability lost, and the honest replacement is subscriptions, which
-deliver to a member rather than to a URL. A per-member feed token would restore
-it — a capability URL, cached safely because it is unguessable — and it is a
-feature with its own decisions to make, not a flag on this one.
+deliver to a member rather than to a URL. A per-member feed token — a
+capability URL, cached safely because it is unguessable — would restore
+it, and is a feature with its own decisions to make.
 
 ### A category is a page, not only a heading
 
-**MyBB:** a category is a heading on the index and a `forumdisplay.php?fid=`
-page of its own, which lists the forums under it.
+**MyBB:** a category is a heading on the index and a
+`forumdisplay.php?fid=` page of its own.
 
-**Here:** the same — `/{id}-{slug}` on a category renders its forums, using the
-index's own blocks so the two never drift apart. It exists because the
-breadcrumb on every forum and thread page names the category, and a named
-ancestor that 404s is a trail that stops halfway.
+**Meith:** the same — `/{id}-{slug}` on a category renders its forums,
+using the index's own blocks so the two never drift apart. It exists
+because the breadcrumb on every thread and forum page names the
+category, and a named ancestor that 404s is a trail that stops halfway.
 
-**Why it is not the index filtered:** a section is the one page that answers
-"what else is in here?" on a board large enough for the index to be long, and it
-is where a category's own description belongs. Neither needs a new slot: it is
-`CategoryBlock` and `ForumRow`, the pair the index already hands a theme.
-
-**Cost:** one more page per category to keep working. It shares the index's view
-model, so the cost is a route rather than a feature.
+**Cost.** One more page per category to keep working. It shares the
+index's view model, so the cost is a route rather than a feature.
 
 ### A category can hold threads of its own, if an admin says so
 
-**MyBB:** a category holds forums and nothing else. A board that wants one
-general area with no sub-structure makes a forum and hides the category, or
-lives with a category holding a single forum called the same thing.
+**MyBB:** a category holds forums and nothing else.
 
-**Here:** **Allow new threads** on a category — off on every category until an
-admin turns it on — makes it take threads as well as forums. Its page then lists
-them the way a forum's does, with its forums above them, and it is a destination
-a thread can be moved into.
+**Meith:** **Allow new threads** on a category — off on every category
+until an admin turns it on — makes it take threads as well as forums.
+Its page then lists them the way a forum's does, and it becomes a
+destination a thread can be moved into.
 
-**Why:** the difference between a category and a forum was never about what a
-member wanted to do there; it was about where the software would let them post.
-A small board is one heading with a handful of threads under it, and asking it
-to invent a forum inside a category to hold them is the software's filing system
-leaking into somebody's front page.
+**Why.** The difference between a category and a forum was never about
+what a member wanted to do there; it was about where the software would
+let them post. A small board is one heading with a handful of threads
+under it, and asking it to invent a forum inside a category is the
+software's filing system leaking into somebody's front page.
 
-**Off by default, and that is the whole feature.** A category that takes threads
-without being asked is a category that has quietly become a forum. The column
-that carries this is the same `allow_threads` every forum has, so a board that
-never opens the option is a board where nothing has changed.
+**Off by default is the whole feature:** a category that takes threads
+without being asked has quietly become a forum.
 
-**Cost:** turning it back off stops new threads and returns the page to its
-forums. Threads already posted there keep their addresses and stay in search and
-the latest-posts panel, but the category no longer lists them — turn it back on,
-or move them, to have them shown again.
+**Cost.** Turning it back off stops new threads and returns the page to
+its forums. Threads already posted keep their addresses and stay in
+search, but the category no longer lists them until it is turned back
+on — or they are moved.
 
 ### Every page of a thread is its own canonical URL
 
-**MyBB:** emits no canonical link. Duplicate URLs for one page — `showthread.php`
-with and without a `pid`, with and without `page=1` — are left for the crawler
-to work out.
+**MyBB:** emits no canonical link, leaving duplicate URLs for one page
+for the crawler to work out.
 
-**Here:** every thread and forum page carries `rel="canonical"` naming **the
-page being read**, with the permalink, cursor and reveal parameters dropped.
+**Meith:** every thread and forum page carries `rel="canonical"` naming
+**the page being read**, with the permalink, cursor and reveal
+parameters dropped.
 
-**Why:** the tempting version points every page at page 1, and it is worse than
-having none: it asks a crawler to drop every page but the first from its index,
-which is why so many forums are searchable only for their opening posts. What a
-canonical is actually for here is collapsing `?post=812`, `?after=…` and
-`?reveal=…` — three ways to reach one document.
+**Why.** The tempting version points every page at page 1, and it is
+worse than none: it asks a crawler to drop every page but the first
+from its index, which is why so many forums are searchable only for
+their opening posts. What a canonical is actually for here is
+collapsing `?post=`, `?after=` and `?reveal=` — three ways to reach one
+document.
 
-**Cost:** a permalink to post 812 is canonicalised to the page containing it, so
-a search result lands on the page rather than the post. The anchor still works
-for anybody who follows the original link.
+**Cost.** A permalink to post 812 is canonicalised to the page
+containing it, so a search result lands on the page rather than the
+post. The anchor still works for anybody who follows the original
+link.
 
 ### A post is anchored by its number, and reached by its id
 
-**MyBB:** links a post as `showthread.php?pid=1234#pid1234` and prints `#6`
-beside it. The two never agree, and the one a reader copies is the one they
-cannot read.
+**MyBB:** links a post as `showthread.php?pid=1234#pid1234` and prints
+`#6` beside it. The two never agree, and the one a reader copies is the
+one they cannot read.
 
-**Here:** there is one anchor, `#post-6`, and it is the number the corner shows.
-Everything the board writes — a notification, a search hit, a feed entry, the
-last-post link on the index, a quote's link back — links `?post=1234` instead,
-and the thread page answers that by finding the post and redirecting to the page
-holding it, anchored at its number.
+**Meith:** there is one anchor, `#post-6` — the number the corner
+shows. Everything the board writes — notifications, search hits, feed
+entries, last-post links, a quote's link back — links `?post=1234`
+instead, and the thread page answers that by finding the post and
+redirecting to the page holding it, anchored at its number.
 
-**Why:** the two jobs conflict. "The sixth post in this thread" is what a person
-means, and it moves when an earlier post is deleted; "post 1234" is what a
-stored link means, and it must not move at all. Splitting them across the query
-and the fragment lets each be what it is, and leaves one anchor scheme in the
-markup rather than two.
+**Why.** The two jobs conflict. "The sixth post in this thread" is what
+a person means, and it moves when an earlier post is deleted; "post
+1234" is what a stored link means, and it must not move at all.
+Splitting them across the query and the fragment lets each be what it
+is. It is also the only way the link *lands*: a fragment is never sent
+to the server, so `#post-812` can only work when the post happens to be
+on the page that loaded — resolving `?post=812` server-side finds the
+page as well as the anchor.
 
-**It is also the only way the link lands.** A fragment is never sent to the
-server, so `#post-812` on a thread that paginates can only work if the post
-happens to be on the page that loaded. Resolving `?post=812` server-side finds
-the page as well as the anchor, which is what makes a link to the four-hundredth
-post of a thread arrive at it.
-
-**Cost:** one redirect per link followed. A board that served the anchor
-directly makes none — and lands the reader at the top of page one whenever the
-post was not on it.
+**Cost.** One redirect per link followed. A board that served the
+anchor directly makes none — and lands the reader at the top of page
+one whenever the post was not on it.
 
 ### The sitemap is an index of chunks, ordered by id
 
-**MyBB:** ships no sitemap. Plugins that add one generally emit a single
-document.
+**MyBB:** ships no sitemap; plugins that add one generally emit a
+single document.
 
-**Here:** `/sitemap.xml` is always an index. Chunks are 5,000 URLs, keyset-paged
-on the thread id ascending.
+**Meith:** `/sitemap.xml` is always an index. Chunks are 5,000 URLs,
+keyset-paged on the thread id ascending.
 
-**Why:** one document does not survive the target data volume, and switching
-shapes later means every crawler that cached the old one has to rediscover the
-new — so it is an index from the first thread. The ordering is by id rather than
-by activity because a crawler works through the chunks over hours or days, and a
-boundary that moved whenever somebody posted would make the crawl skip threads
-and revisit others.
+**Why.** One document does not survive the target data volume, and
+switching shapes later means every crawler that cached the old one has
+to rediscover the new — so it is an index from the first thread. The
+ordering is by id rather than activity because a crawler works through
+the chunks over hours or days, and a boundary that moved whenever
+somebody posted would make the crawl skip threads and revisit others.
 
-**Cost:** a chunk request costs one skip into the primary-key index to find its
-own starting id — the only OFFSET in this codebase — because the index names the
-chunks by number before any of them exists. It is paid by crawlers, not readers.
+**Cost.** A chunk request pays one skip into the primary-key index to
+find its starting id, because the index names the chunks by number
+before any of them exists. It is paid by crawlers, not readers.
 
-## Parity passes
+---
 
-### The conversion pass
+## The BBCode conversion
 
-The corpus is `packages/markdown/src/bbcode.test.ts`. Every case below is a
-difference asserted there, so this document and the converter cannot disagree
-without a test failing.
+The conversion corpus is `packages/markdown/src/bbcode.test.ts`: each
+difference below is asserted there, so this document and the converter
+cannot silently disagree. (URL safety is asserted in the renderer's own
+security tests, which the converted output flows through.)
 
-**No MyBB source artefacts are copied**, and that is not only a licensing rule:
-MyBB's parser is a pile of regular expressions accumulated over fifteen years,
-and reproducing them would reproduce their bugs as though the bugs were the
-specification. The corpus is written from the *observable* side — the BBCode
-people actually type, the shapes that appear in real posts — and every case is a
-claim about what a reader sees after the conversion.
+**No MyBB source artefacts are copied**, and that is not only a
+licensing rule: MyBB's parser is a pile of regular expressions
+accumulated over fifteen years, and reproducing them would reproduce
+their bugs as though the bugs were the specification. The corpus is
+written from the *observable* side — the BBCode people actually type —
+and every case is a claim about what a reader sees after the
+conversion.
 
 ### Where the conversion is exact
 
 Bold, italic, strikethrough, both link forms, images, quotes with their
-attribution, code blocks, both kinds of list, and case-insensitive tag names.
-`[B]` matters more than it looks: boards are full of it, and a converter that
-matched only lower case would turn fifteen years of emphasis into literal text.
+attribution, code and PHP blocks, both kinds of list, and
+case-insensitive tag names. Case-insensitivity matters more than it
+looks: boards are full of `[B]`, and a converter that matched only
+lower case would turn fifteen years of emphasis into literal text.
 
 ### Difference: the text is escaped on the way through
 
-**MyBB:** a post is BBCode; `*`, `_`, `#` and `[` in it are punctuation.
+**MyBB:** a post is BBCode; `*`, `_`, `#` and `[` in it are
+punctuation.
 
-**Here:** those are Markdown syntax, so the converter escapes them. A post that
-said `a * b` still says `a * b`; a post that said `# 1 fan` is not a heading; a
-variable called `snake_case` does not come out half italic.
+**Meith:** those are Markdown syntax, so the converter escapes them. A
+post that said `a * b` still says `a * b`; a post that said `# 1 fan`
+is not a heading; a variable called `snake_case` does not come out half
+italic.
 
-**Why:** without it, every post on a converted board containing an asterisk
-changes meaning on the day of the upgrade — silently, and in a way nobody could
-find afterwards.
+**Why.** Without it, every post containing an asterisk changes meaning
+on the day of the upgrade — silently, and in a way nobody could find
+afterwards.
 
-**Cost:** an author who opens an old post in the editor sees backslashes where
-one was genuinely needed. That is the visible half of a guarantee whose
-alternative is invisible.
+**Cost.** An author who opens an old post in the editor sees
+backslashes where one was genuinely needed. That is the visible half of
+a guarantee whose alternative is invisible.
 
 ### Difference: URLs and CSS this renderer refuses
 
-**MyBB:** has historically rendered `[url=javascript:…]`, `[img]data:…[/img]`
-and `[color=red;background:…]` with varying degrees of filtering by version.
+**MyBB:** has historically rendered `[url=javascript:…]`,
+`[img]data:…[/img]` and `[color=red;background:…]` with varying degrees
+of filtering by version.
 
-**Here:** refused. The link keeps its text and loses its destination — no
-anchor, no image element, no attribute.
+**Meith:** refused by the renderer. The link keeps its text and loses
+its destination — no anchor, no image element, no attribute.
 
-**Why:** each is an XSS in a forum post, and "MyBB renders it" is a description
-of MyBB's history rather than a requirement.
+**Why.** Each is an XSS in a forum post, and "MyBB renders it" is a
+description of MyBB's history rather than a requirement.
 
-**Cost:** an imported post containing one shows the URL as text instead of a
-link. That is the intended outcome, and it is visible rather than silent.
+**Cost.** An imported post containing one shows the URL as text instead
+of a link — visible rather than silent, and intended.
 
 ### Difference: malformed input is handled consistently
 
-**MyBB:** leaves an unclosed tag as literal text in some contexts and swallows it
-in others, depending on which regular expression ran first. Its behaviour on
-crossed tags (`[b][i]x[/b][/i]`) likewise depends on the order of replacement.
+**MyBB:** leaves an unclosed tag as literal text in some contexts and
+swallows it in others, depending on which regular expression ran
+first.
 
-**Here:** the input is parsed, so the answer is the same everywhere. An unclosed
-tag converts to the text it is; a crossed pair keeps its content; a stray closing
-tag does not eat the line.
+**Meith:** the input is parsed, so the answer is the same everywhere.
+An unclosed tag converts to the text it is; a crossed pair keeps its
+content; a stray closing tag does not eat the line.
 
-**Why:** consistency is worth more than bug-compatibility here, and the rule is
-chosen so nothing is silently dropped — a post whose second half vanished is
-worse than a post with a visible `[b]` in it.
-
-**Cost:** posts that relied on MyBB's particular recovery may read slightly
-differently. In every case the text is present.
+**Why.** Consistency is worth more than bug-compatibility, and the rule
+is chosen so nothing is silently dropped — a post whose second half
+vanished is worse than a post with a visible `[b]` in it.
 
 ### Difference: an unknown tag becomes text
 
 **MyBB:** drops unknown tags in some paths.
 
-**Here:** an unknown tag is escaped and shown, and its content is kept.
+**Meith:** an unknown tag is escaped and shown, and its content is
+kept.
 
-**Why:** dropping is the worse default. A custom MyCode the old board defined
-would otherwise silently erase whatever it wrapped, and nobody would know which
-posts were affected.
+**Why.** Dropping is the worse default: a custom MyCode the old board
+defined would silently erase whatever it wrapped, and nobody would know
+which posts were affected.
 
-### Gap: tags MyBB has and this conversion does not translate
+### Gap: tags this conversion does not translate
 
-`[table]`, `[align]`, `[font]`, `[video]`, `[php]`, and any custom MyCode. Their
-content survives as text, which is legible; a tag that vanishes takes its
-content with it. `[table]` is the one most likely to matter — Markdown has
-tables, and a converter for MyBB's table syntax is a plausible later addition
-rather than a missing piece of this one.
+`[table]`, `[align]`, `[font]`, `[video]`, and any custom MyCode. Their
+content survives as text, which is legible; a tag that vanished would
+take its content with it. `[table]` is the one most likely to matter —
+Markdown has tables, and a converter for MyBB's table syntax is a
+plausible later addition.
+
+---
 
 ## Search
 
 ### The search form has an advanced half
 
-**MyBB:** `search.php` has two forms — a one-line box in the header and a full
-page with forums, an author, a date bound, "search thread titles only", a sort
-column and a direction, and "display results as posts or threads".
+**MyBB:** two forms — a one-line box in the header, and a full page
+with forums, an author, a date bound, "titles only", a sort column and
+a direction.
 
-**This board:** one form, with the second half behind a disclosure that opens
-itself when anything in it is set. It carries the same axes, named for what they
-do rather than for the column they sort: a forum (with **include subforums**, so
-a category is one click rather than eight), one or more authors by username, a
-date window, whether to match thread titles alone, whether a result is a post or
-a thread, and the order.
+**Meith:** one form, with the second half behind a disclosure that
+opens itself whenever anything in it is set. It carries the same axes,
+named for what they do: a forum (with **include subforums**, so a
+category is one click rather than eight), one or more authors, a date
+window, titles-only, post-or-thread results, and the order.
 
-**Why:** the plain box is what almost every search is, and a form that opens on
-eight controls asks a reader to answer questions they do not have. The
-disclosure state is the app's decision rather than the browser's, because a
-search that *was* narrowed and comes back looking unnarrowed is a bug report
-waiting to happen.
+**Why.** The plain box is what almost every search is, and a form that
+opens on eight controls asks a reader to answer questions they do not
+have. The disclosure state is the app's decision rather than the
+browser's, because a search that *was* narrowed and comes back looking
+unnarrowed is a bug report waiting to happen.
 
 ### Results are filtered where they are read, not by searching again
 
-**MyBB:** the results page is a listing. Narrowing it means going back to the
-form and running another search — which is also another entry against
-`searchfloodtime`.
+**MyBB:** the results page is a listing; narrowing it means going back
+to the form and running another search — another entry against the
+flood interval.
 
-**This board:** the results page carries the filters with it. The stored search
-holds the words and the options it was run with; the results URL carries a
-*refinement* on top — a forum, an author, a window, an order — and the page
-re-runs the stored search with both applied. The order is three links, because
-changing it is one decision and the commonest one; the filters are a strip of
-small labelled selects with one **apply**, because filtering is several
-decisions at once. Anything already on is also a chip, with an href that removes
-only itself.
+**Meith:** the results page carries the filters with it. The stored
+search holds the words and the options it ran with; the results URL
+carries a *refinement* on top — a forum, an author, a window, an
+order — and the page re-runs the stored search with both applied.
+Anything already applied is also a chip, with an href that removes only
+itself.
 
-The strip is deliberately a strip. A results page is a listing, and a filter
-panel that fills the screen above it is a listing you cannot see — but hiding
-the filters behind a disclosure trades that for a worse fault, because a filter
-nobody can see is a filter nobody uses.
-
-**Why:** a stored search is a token and a set of words, and re-running it is
-what the page already does on every open to re-check the reader's access. Adding
-a filter to the URL is therefore free of everything a new search costs: no row,
-no flood interval, no lost link. The reader's original search stays where it
-was, which is what makes "clear filters" a link rather than a re-type.
+**Why.** A stored search is a token and a set of words, and re-running
+it is what the page already does on every open to re-check the reader's
+access. A filter in the URL is therefore free of everything a new
+search costs: no row, no flood interval, no lost link — and "clear
+filters" is a link rather than a re-type.
 
 ### A refinement narrows and never widens
 
-**MyBB:** every search is run from the form, so the question does not arise.
+**Meith:** a refinement can only make the result set smaller. A search
+run against one forum cannot be refined into another; a titles-only
+search cannot be refined back into whole posts; a past-week search
+cannot become a past-year one. Where the two disagree, the narrower
+wins; clearing the refinement is what returns the search to what it
+was.
 
-**This board:** a refinement can only make the set smaller. A search run against
-one forum cannot be refined into another; a titles-only search cannot be refined
-back into the whole post; a search for the past week cannot be refined to the
-past year. Where the two disagree the narrower wins, and clearing the refinement
-— not choosing a wider value — is what returns the search to what it was.
-
-**Why:** the results URL is a link people paste, and a link that quietly returns
-*more* than the search it came from is one that leaks. The rule is small enough
-to hold in the head: this page shows a subset of that search, always.
+**Why.** The results URL is a link people paste, and a link that
+quietly returns *more* than the search it came from is one that leaks.
+The rule is small enough to hold in the head: this page shows a subset
+of that search, always.
 
 ### Counts and breakdowns are bounded by the same window
 
-**MyBB:** counts the whole match set for the result total.
+**MyBB:** counts the whole match set.
 
-**This board:** counts the first 20,000 matches, and says so when it stops
-there. The same pass produces the per-forum and per-author breakdowns the filter
-panel shows, and those counts deliberately ignore the forum and author filters
-already applied, so the numbers beside the other forums stay put as a reader
-moves between them.
+**Meith:** counts the first 20,000 matches and says so when it stops
+there. The same pass produces the per-forum and per-author breakdowns
+the filter panel shows, and those counts deliberately ignore the forum
+and author refinements already applied, so the numbers beside the other
+forums hold still as a reader moves between them.
 
-**Why:** the reason below, for ranking. A count over a term matching most of a
-large board is the same scan, and "more than 20,000" answers the question a
-reader is actually asking as well as an exact number would.
-
-**Cost:** on a board where a term matches more than twenty thousand posts, the
-result total reads "more than 20,000" where MyBB printed an exact number, and
-the per-forum counts beside it are floors.
+**Cost.** On a board where a term matches more than twenty thousand
+posts, the total reads "more than 20,000" where MyBB printed an exact
+number, and the per-forum counts beside it are floors.
 
 ### Sorting offers three orders, not six columns
 
-**MyBB:** sorts by relevance, subject, date, thread, forum or username, either
-direction.
+**MyBB:** sorts by relevance, subject, date, thread, forum or username,
+either direction.
 
-**This board:** best match, newest, oldest.
+**Meith:** best match, newest, oldest.
 
-**Why:** paging here is keyset, not `OFFSET` — `(rank, id)` for relevance and
-`id` for the two date orders — so a reader paging through results cannot have
-rows shuffle or repeat underneath them when somebody posts. A sort by username
-or subject has no such key, and the honest implementations are an `OFFSET` pager
-over an unbounded ranked set or an index per column. Neither is worth what it
-costs to answer a question the filters already answer better: a reader sorting
-by username wants one member's posts, which is what **posted by** does.
+**Why.** Paging here is keyset, not `OFFSET` — `(rank, id)` for
+relevance, `id` for the date orders — so a reader paging through
+results cannot have rows shuffle or repeat underneath them when
+somebody posts. A sort by username or subject has no such key, and the
+honest implementations are an `OFFSET` pager over an unbounded ranked
+set or an index per column — neither worth what it costs to answer a
+question the filters answer better: a reader sorting by username wants
+one member's posts, which is what **posted by** does.
 
-**Cost:** a member who sorted results by subject, thread, forum or username has
-no equivalent order here, and must reach the same set through **in** and
+**Cost.** A member who sorted by subject, thread, forum or username has
+no equivalent order and reaches the same set through **in** and
 **posted by** instead.
 
 ### One row per thread is a grouping, not a second query
 
 **MyBB:** "display results as threads" returns thread rows.
 
-**This board:** the same, and the row shown for a thread is its *best* match
-under the current order — the highest-ranked post when sorting by relevance, the
-newest when sorting by newest. Grouping is bounded by the same window as
-ranking, so a term matching more than 20,000 posts groups the recent ones.
+**Meith:** the same, and the row shown for a thread is its *best* match
+under the current order — the highest-ranked post for relevance, the
+newest for newest. Grouping is bounded by the same window as ranking.
 
-### Search relevance is ranked within a window
+### Relevance is ranked within a window
 
 **MyBB:** ranks every matching post, however many there are.
 
-**This board:** ranks the **20,000 most recent matches** when sorting by
-relevance. Sorting by newest or oldest reads the whole corpus, unless the search
-groups by thread or asks for a count, both of which are bounded the same way.
+**Meith:** ranks the **20,000 most recent matches** when sorting by
+relevance. Sorting by newest or oldest reads the whole corpus, unless
+the search groups by thread or asks for a count, both of which are
+bounded the same way.
 
-### Why
+**Why.** `order by ts_rank_cd(...)` cannot use an index: a relevance
+score depends on the query, so there is nothing to have indexed in
+advance, and Postgres has to score every matching row before it can
+name the top twenty. The load run measured the cost on a board of
+2.3 million posts: a term matching 96% of them took a p95 of
+**5.5 seconds** — the GIN index present and used throughout; the cost
+was the ranking, not the lookup. A term matching 1,171 posts, through
+the same code, took 35 ms. Bounding the ranked set brought the first
+case to 98 ms.
 
-`order by ts_rank_cd(...)` cannot use an index. A relevance score depends on the
-query, so there is nothing to have indexed in advance, and Postgres has to score
-every matching row before it can name the top twenty.
+**Who notices: almost nobody, and that is the argument.** For any term
+matching fewer than 20,000 posts the window contains the entire match
+set and the results are *identical*. The difference appears only for a
+term so common that "the single most relevant post" is not a
+meaningful thing to ask for — and there the answer becomes "the most
+relevant of the recent ones", which is what a member searching a
+ubiquitous word actually wants. The alternative was a five-second
+page, which is not a page.
 
-The load run measured what that costs on a board of 2,343,847 posts: a term matching 96%
-of them took a **p95 of 5.5 seconds**. The GIN index was present and used
-throughout — the cost was the ranking, not the lookup. A term matching 1,171
-posts, through exactly the same code, took 35 ms. Bounding the ranked set brought
-the first case to 98 ms.
-
-MyBB has the same problem and does not solve it; it is simply rarely provoked,
-because boards small enough to run MyBB comfortably do not have two million posts
-of anything.
-
-### Who notices
-
-**Almost nobody, and that is the argument.** For any term matching fewer than
-20,000 posts the window contains the entire match set and the results are
-*identical* — same rows, same order. The difference appears only for a term so
-common that "the single most relevant post" is not a meaningful thing to ask
-for, and there the answer becomes "the most relevant of the recent ones", which
-is what a member searching for a ubiquitous word actually wants.
-
-The alternative was a five-second page, which is not a page.
-
-### What was not done
-
-A search extension (RUM, or an external engine) would rank the whole corpus
-quickly and properly. It is a runtime dependency and, on most managed Postgres,
-an extension the operator cannot install — so it stays out until somebody has a
-board that needs it.
+**What was not done.** A search extension (RUM, or an external engine)
+would rank the whole corpus quickly and properly. It is a runtime
+dependency and, on most managed Postgres, an extension the operator
+cannot install — so it stays out until somebody has a board that needs
+it.

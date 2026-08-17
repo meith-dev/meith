@@ -2,14 +2,15 @@
 
 `@meith/theme-kit` is the frozen contract between the board and a theme.
 
-This document is the policy — what the freeze covers, what it does not, and how
-something is removed from it. The reference (every slot, every field) is
-generated into [Theme slots](./theme-slots.md).
+This document is the policy: how to write a theme, what a theme may do, what
+the freeze covers, and how something is removed from it. The reference —
+every slot and every view model — is generated into
+[Theme slots](./theme-slots.md).
 
 ## Writing a theme
 
-A theme is a module that calls `defineTheme` with a key, a title, and a map from
-slot name to component. Nothing else.
+A theme is a module that calls `defineTheme` with a key, a title, and a map
+from slot name to component. Nothing else.
 
 ```ts
 // themes/acme/src/theme.ts
@@ -26,143 +27,137 @@ export const acmeTheme = defineTheme({
 })
 ```
 
-Register it in `community.config.ts` and set `defaultTheme` to its key.
+Register it in `community.config.ts`, and set `defaultTheme` to its key if it
+should be the board's default.
 
-Two worked examples bracket the range a theme can occupy:
+Three shipped themes are worth reading before you write one:
 
 - **[`examples/iris-theme`](https://github.com/meith-dev/meith/tree/main/examples/iris-theme)
-  is the minimal one, and the one to copy first**: the default board recoloured
-  by overriding one brand group of tokens, plus a single slot (`Footer`) where
-  its markup genuinely disagrees. It ships as reference code rather than
-  registered; [`examples/README.md`](https://github.com/meith-dev/meith/tree/main/examples)
+  is the minimal one, and the one to copy first.** It recolours the default
+  board by overriding one brand group of tokens, plus a single slot
+  (`Footer`) where its markup genuinely disagrees. It ships as reference
+  code rather than registered;
+  [`examples/README.md`](https://github.com/meith-dev/meith/tree/main/examples)
   walks through installing it or your copy of it.
-- `themes/midnight` is the maximal one: twenty-two slots overridden, the rest
-  inherited, tables where the default theme has lists, and no change to any
-  package to make it possible. What it inherits is the point as much as what it
-  overrides — the control panels and the search and discovery pages arrived as
-  slots after it was written, and it renders all of them without a line
-  changing.
+- **`themes/midnight` is a full replacement**: 22 slots overridden, the rest
+  inherited, tables where the default theme has lists — and no change to any
+  package to make it possible. What it inherits matters as much as what it
+  overrides: the control panels and the search pages arrived as slots after
+  it was written, and it renders all of them without a line changing.
+- **`themes/clubhouse` is the one to read for a theme built to be
+  recoloured.** It keeps the default board's shape but dresses it as a
+  sports club's site, and nothing in it names a colour: the club's own two
+  colours are `primary` and `secondary`, so an operator repaints the whole
+  board from the theme screen, without a deploy.
 
-Between them, `themes/clubhouse` is the one to read for **a theme built to be
-recoloured**. It is the default board's shape — cards and lists, not tables —
-with the frame, the listings and the postbit dressed as a sports club's site,
-and it spends `primary` on the crest, the bar down every panel heading and the
-postbit's card panel rather than on one button. Nothing in it names a colour:
-the club's own two are `primary` and `secondary`, so an operator who presses a
-brand preset or types two hex values on the theme screen repaints the whole
-board, and a board that never opens that screen still gets a coherent one.
-
-### Four rules the tooling enforces
-
-Worth knowing before they fire.
+### Rules the tooling enforces
 
 | Rule | Why |
 |---|---|
 | **Write the slot map inline, with bare identifiers.** | `scripts/slot-kinds.mjs` resolves each binding to its module to check the server/client boundary. A map assembled dynamically cannot be checked, so it fails rather than passing unchecked. |
-| **A server slot must not be a `"use client"` module.** | For `PostBit` that ships the whole post list to the browser. Checked statically, and again at `defineTheme` for anything the bundler marked. |
-| **Colours come from tokens.** | A board's operator restyles by overriding tokens; a hardcoded colour is a region they cannot reach. Guard `no-hardcoded-colour` rejects hex literals in a theme. |
+| **A server slot must not be a `"use client"` module.** | For `PostBit` that would ship the whole post list to the browser. Checked statically, and again at `defineTheme` for anything the bundler marked. |
+| **Colours come from tokens.** | An operator restyles a board by overriding tokens; a hardcoded colour is a region they cannot reach. The `no-hardcoded-colour` guard rejects hex, `rgb()` and `hsl()` literals in any `.tsx` file across the repository, themes included. |
 | **View models are plain JSON data.** | No `Date`, no functions, no class instances — the same models cross to client slots and out through the REST API. `Serialisable<T>` proves it at compile time. |
 
-## What a theme reaches
+## What a theme renders
 
-Every page a member or a moderator or an administrator can open is rendered
-through slots. The registry covers four groups of them:
+Every page a member, moderator or administrator can open is rendered through
+slots. The registry declares 36: 34 stable, plus the two
+[provisional](#provisional-slots) editor islands. The stable ones fall into
+four groups:
 
 | Group | Slots | What it is |
 |---|---|---|
 | The frame | `Shell`, `Header`, `UserPanel`, `Navigation`, `Footer`, `Notice`, `ForumJump`, `ErrorNotice`, `RedirectNotice` | Wraps every page, including the error pages |
 | Reading | `BoardIndex`, `CategoryBlock`, `ForumRow`, `ForumDisplay`, `ThreadRow`, `ThreadView`, `PostBit`, `PostActions`, `Pagination`, `SubforumList`, `Announcement`, `BoardStats`, `WhoIsOnline`, `LatestThreads`, `LatestPosts`, `MemberProfile` | The board itself |
-| Finding | `SearchForm`, `SearchResults`, `DiscoveryView` | Searching, and the "new posts" listings |
+| Finding | `SearchForm`, `SearchResults`, `DiscoveryView` | Search, and the "new posts" listings |
 | Doing | `PostForm`, `AuthPage`, `PanelShell`, `PanelNav`, `PanelPage`, `PanelSection` | Writing, signing in, and all three control panels |
 
 **The three control panels are one set of slots, not three.** The member,
-moderator and administrator panels are the same shape — a rail of sections
-beside a page with a heading — so they are `PanelShell` + `PanelNav` +
-`PanelPage` + `PanelSection` between them, and `PanelKind` says which panel is
-being rendered for a theme that wants to tell them apart. That is what makes
-the admin panel themeable at all: its forty-odd screens fill `PanelPage`'s body
-with app-rendered forms, and a theme restyles every one of them by overriding
-the frame around them once.
+moderator and administrator panels share a shape — a rail of sections beside
+a page with a heading — so they are `PanelShell` + `PanelNav` + `PanelPage` +
+`PanelSection` between them, and `PanelKind` (`usercp` / `modcp` /
+`admincp`) tells a theme which panel it is rendering. This is what makes the
+admin panel themeable at all: its forty-odd screens fill `PanelPage`'s body
+with app-rendered forms, and a theme restyles every one of them by
+overriding the frame once.
 
-**`PanelPage` also frames three pages that are in no panel at all** — who's
-online, the board statistics and the report form are panel-shaped without a
-rail beside them. `PanelShell` centres the pages inside it and sets their
-gutters, so a `PanelPage` under one must not centre itself; nothing wraps the
-other three, so there it must. `frame` says which case a theme is rendering,
-and a theme that reads it centres its standalone pages on the same measure as
-the header above them.
+**`PanelPage` also frames three pages that are in no panel** — who's online,
+the board statistics and the report form are panel-shaped with no rail
+beside them. `PanelShell` centres the pages inside it, so a `PanelPage`
+rendered under one must not centre itself; the three standalone pages have
+no shell, so there it must. `PanelPageModel.frame` (`panel` /
+`standalone`) says which case a theme is rendering.
 
-**What a theme still does not own** is the body of an individual settings
-screen. A form posting to a Server Action never crosses this contract as data —
-so an admin screen's controls arrive as `children`, and a theme restyles them
-through the tokens the `@meith/ui` primitives read rather than by replacing
-their markup.
+**What a theme does not own** is the body of an individual settings screen.
+A form posting to a Server Action never crosses the theme contract as data,
+so an admin screen's controls arrive as `children`, and a theme restyles
+them through the tokens the `@meith/ui` primitives read rather than by
+replacing their markup.
 
 ## What a theme can and cannot do
 
 **A theme may:**
 
 - Fill any slot in the registry with a component.
-- Inherit from another theme with `extends` and override only the slots it cares
-  about. Resolution is shallowest-wins-per-slot, and overriding is total.
-- Ship its own token values, which a board's operator can then override without
+- Inherit from another theme with `extends` and override only the slots it
+  cares about. Resolution is shallowest-wins per slot, and an override is
+  total.
+- Ship its own token values, which an operator can then override without
   touching the theme.
 
-**A theme may not, and cannot:**
+**A theme cannot:**
 
 | It cannot | Because |
 |---|---|
-| Read the database, the request, cookies or the session | `@meith/theme-kit` depends on no workspace package at all — no database, no request, no domain package — and dependency-cruiser makes a theme's import of `@meith/db`, a driver or a domain package an error rather than a review comment |
-| Decide anything about permissions | `ViewerModel.canAccessAdminCp` and its siblings are *rendering hints* the Authorizer has already resolved. CSS is not authorization — anything a viewer must not see is not in the model at all |
+| Read the database, the request, cookies or the session | `@meith/theme-kit` depends on no workspace package at all, and dependency-cruiser makes a theme's import of `@meith/db`, a driver or a domain package a hard error |
+| Decide anything about permissions | `ViewerModel.canAccessAdminCp` and its siblings are rendering hints the Authorizer has already resolved. Anything a viewer must not see is not in the model at all — CSS is not authorization |
 | Build a URL | Every href arrives resolved, so the board can change its URL shape without breaking installed themes |
-| Render another slot | Slots are flat. The page composes them and passes rendered output in `regions` — rendering a slot needs the resolved theme, and there is no way to reach one from inside a slot |
+| Render another slot | Slots are flat. The page composes them and passes rendered output in `regions`; there is no way to reach the resolved theme from inside a slot |
 
-> [!IMPORTANT]
-> **A member can switch the whole theme, components included.** Every registered
-> theme is in the bundle and is resolved at module load — an `extends` chain
-> genuinely cannot change between requests — but *which* resolved map a request
-> renders is a per-request choice, made by `currentTheme()` from a cookie.
->
-> **`?theme=<key>` on any page sets that cookie**, so a theme can be linked
-> rather than described — `https://board.example/f/3-general?theme=phasebook`
-> opens that forum in Phasebook and keeps it for the rest of the visit. The
-> middleware writes the cookie and redirects to the same URL without the
-> parameter, so what a reader ends up sharing is the page and not the paint. The
-> key is validated where the cookie already was, in `currentThemeKey()` — a
-> theme that is not registered, or that the board has disabled, falls back to the
-> board default rather than erroring.
->
-> This document used to say the opposite, on the argument that a switcher "would
-> cost every first paint a database read". That had quietly expired: 91 of the
-> board's 92 routes were already `ƒ (Dynamic)`, because the shell resolves the
-> viewer from a cookie. There was no static rendering left to protect.
->
-> Consequences for a theme author:
->
-> - **`assertThemeContract` now runs over every registered theme**, not only the
->   board's. An incomplete alternate used to be a latent 500 on whatever page
->   reached its missing slot; now that a member can pick it, it is a boot
->   failure naming the slots.
-> - **A theme that fills no slots is a palette**, and that is a supported shape
->   rather than a broken one: picking it repaints the board and leaves the
->   markup to the build's theme. It is how a board offers three looks without
->   maintaining three sets of components.
-> - **Pairing rules matter more.** `midnight`'s note about overriding
->   `ForumRow` and `CategoryBlock` together is now a rule a *member* can trip
->   over, not only an operator.
+## Theme switching
+
+**A member can switch the whole theme, components included.** Every
+registered theme is in the bundle and resolved at module load — an `extends`
+chain cannot change between requests — but *which* resolved map a request
+renders is a per-request choice, made by `currentTheme()` from a cookie. The
+choice works with JavaScript off, and because the server reads it, the page
+arrives already correct: no flash, no second paint.
+
+**`?theme=<key>` on any page sets that cookie**, so a theme can be linked
+rather than described: `https://board.example/f/3-general?theme=phasebook`
+opens that forum in Phasebook and keeps it for the rest of the visit. The
+middleware writes the cookie and redirects to the same URL without the
+parameter, so what a reader shares is the page, not the paint. The key is
+validated in `currentThemeKey()`: a theme that is not registered, or that
+the board has disabled, falls back to the board default rather than
+erroring.
+
+Consequences for a theme author:
+
+- **`assertThemeContract` runs over every registered theme**, not only the
+  board's default. An incomplete theme used to be a latent 500 on whatever
+  page reached its missing slot; now that members can pick any enabled
+  theme, it is a boot failure naming the slots.
+- **A theme that fills no slots is a palette**, and that is a supported
+  shape: picking it repaints the board and leaves the markup to the default
+  theme. It is how a board offers three looks without maintaining three
+  sets of components.
+- **Pairing rules matter.** If a theme's `ForumRow` only makes sense inside
+  its own `CategoryBlock`, both must be overridden together — a member can
+  now switch to the theme and hit the combination an operator never would.
 
 ### The post anchor
 
-Resolving every href leaves the *other* end of a link to the theme. `PostBit`
-anchors each post at **`post-<post.number>`** — the number in its corner — and
-that is the whole scheme: `permalink` points at it, and so does every link the
-board writes, once the thread page has resolved it.
+Resolving every href leaves the *other* end of a link to the theme.
+`PostBit` anchors each post at **`post-<post.number>`** — the number in its
+corner — and that is the whole scheme: `permalink` points at it, and so does
+every link the board writes once the thread page has resolved it.
 
-Nothing links a post by its id. A link that has to survive a deletion carries
-`?post=<id>` in the query instead, and the thread page turns that into the page
-holding the post and this anchor, so a theme never sees an id in a fragment. A
-theme that anchors a post by `post.id` leaves those links at the top of the
-page.
+Nothing links a post by its id in a fragment. A link that has to survive
+deletions carries `?post=<id>` in the query instead, and the thread page
+turns that into the page holding the post plus this anchor. A theme that
+anchors a post by `post.id` leaves every such link at the top of the page.
 
 ## What the freeze covers
 
@@ -175,97 +170,91 @@ page.
 
 > [!IMPORTANT]
 > The last row is worth reading twice. `themes/default` is a reference
-> implementation, not an API. A theme that extends it inherits its markup and
-> therefore its changes. Copying it is supported and inheriting is better, but
-> neither makes its DOM a promise.
+> implementation, not an API. A theme that extends it inherits its markup
+> and therefore its changes. Copying it is supported and inheriting is
+> better — but neither makes its DOM a promise.
 
 ### Provisional slots
 
-`QuickReply` and `EditorToolbar` are the editor islands. They are named in the
-registry so the slot list is not retrofitted onto finished pages later, and they
-are excluded from the freeze because no page has ever handed their models to a
-component — freezing a props contract that has never been rendered is guessing
-with a version number attached.
+`QuickReply` and `EditorToolbar` are the editor islands, and the registry's
+only client slots. They are named in the registry so the slot list is not
+retrofitted onto finished pages later, and they are excluded from the freeze
+because no page has ever handed their models to a component — freezing a
+props contract that has never been rendered would be guessing with a version
+number attached.
 
 A theme is not required to fill them. `assertThemeContract` does not ask for
-them, and `resolveTheme(...).missing` reporting both is the normal state of a
-complete theme today.
+them, and `resolveTheme(...).missing` reporting both is the normal state of
+a complete theme today.
 
 ## Versioning
 
-`THEME_API_VERSION` is `major.minor`, and both halves are promises.
+`THEME_API_VERSION` (currently `0.13`) is `major.minor`, and both halves are
+promises:
 
 | Bump | What may land | What it costs you |
 |---|---|---|
 | **minor** | Additive only: a new slot, a new optional model field, a new export | Nothing. Every existing theme keeps working; upgrading is a redeploy |
 | **major** | Removals and renames — but only for things scheduled through `DEPRECATIONS` at least one major earlier | Work you were warned about |
 
-There is no patch component. This is a type-level contract with no runtime
-behaviour of its own; a bug fixed in `resolveTheme` is a package version.
+There is no patch component: this is a type-level contract with no runtime
+behaviour of its own, so a bug fixed in `resolveTheme` is a package version,
+not an API version.
 
 > [!NOTE]
-> **The major is `0`, and the freeze is still real.** Meith has not been
-> released, so nothing here has ever been somebody else's dependency and there is
-> no installed board for a rename to break. Every rule in this document is
-> enforced by code in `packages/theme-kit/src/api.ts` and has been since the
-> freeze — but the major those rules count toward is `1.0`, which ships with the
-> product rather than ahead of it. Practically: write a theme against `0.9` and a
-> later `0.10` will not break it, because a minor is additive whatever the major
-> says — `0.10` is that promise being kept: it adds five slots and removes
-> nothing, so a theme written against `0.9` inherits them from whatever it
-> extends and keeps compiling. `0.11` keeps it again, with optional fields only:
-> `LinkModel.group`, and `notificationsHref` / `messagesHref` on
-> `UserPanelModel`. `0.12` adds one more, `PanelPageModel.frame`. `0.13` adds
-> three: `SearchFormModel.advanced`, `SearchResultsModel.refine`, and
-> `within.hidden` on the same model — advanced search and the results filter,
-> every one of them optional. A theme that never reads them renders exactly what
-> it rendered before.
+> **The major is `0`, and the freeze is still real.** Meith has not shipped
+> 1.0, so the major these rules count toward is the one that ships with the
+> product. In practice a minor is additive whatever the major says: `0.10`
+> added five slots and removed nothing, `0.11` through `0.13` added only
+> optional model fields. A theme written against `0.9` still compiles and
+> still renders — it inherits new slots from whatever it extends and ignores
+> fields it never reads.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even
-> though nothing is removed — the app is the only producer of these models, and a
-> theme cannot fail to supply one. In practice new fields are added as optional
-> and themes ignore them until they want them.
+> though nothing is removed — the app is the only producer of these models,
+> and a theme cannot fail to supply one. In practice new fields are added as
+> optional, and themes ignore them until they want them.
 
 ## Deprecation
 
-No *slot* is deprecated. One field is: `PostBitModel.quoteSource`, deprecated in
-0.5 and scheduled out at 1.0 in favour of `PostBitModel.post.id` — the first
-entry through the machinery below, which is machinery rather than prose.
+No slot is currently deprecated. One field is: `PostBitModel.quoteSource`,
+deprecated in 0.5 and scheduled out at 1.0 in favour of
+`PostBitModel.post.id`. It is the first entry through this machinery — and
+it is machinery, not prose:
 
-1. **Mark and schedule.** The slot is marked `deprecated` in `SLOT_STABILITY`,
-   and an entry is added to `DEPRECATIONS` naming when it was deprecated, which
-   major removes it, what replaces it, and why. Both halves are required:
-   `assertDeprecationPolicy` refuses a mark with no schedule and a schedule with
-   no mark.
-2. **It keeps working.** A deprecated slot is still *required* of a theme,
-   because a page still renders it in this version. A theme that drops it early
-   has a hole in it.
-3. **It is reported.** `checkThemeContract` lists a deprecated *slot* a theme
-   still fills in `deprecatedInUse`, so the admin theme screen and a theme's own
-   CI test can both see it coming. A deprecated field is visible in the type and
-   the generated reference instead — no runtime report can tell whether a theme
-   reads a prop.
-4. **It is removed at the scheduled major** — and if it is not, the build fails.
-   `assertDeprecationPolicy` throws once the current version reaches `removeIn`.
+1. **Mark and schedule.** The slot is marked `deprecated` in
+   `SLOT_STABILITY`, and an entry is added to `DEPRECATIONS` naming when it
+   was deprecated, which major removes it, what replaces it, and why.
+   `assertDeprecationPolicy` refuses a mark with no schedule and a schedule
+   with no mark.
+2. **It keeps working.** A deprecated slot is still required of a theme,
+   because a page still renders it in this version.
+3. **It is reported.** `checkThemeContract` lists deprecated slots a theme
+   still fills in `deprecatedInUse`, so the admin theme screen and a
+   theme's own CI can both see the removal coming. A deprecated *field* is
+   visible in the type and the generated reference instead — no runtime
+   report can tell whether a theme reads a prop.
+4. **It is removed at the scheduled major — and if it is not, the build
+   fails.** `assertDeprecationPolicy` throws once the current version
+   reaches `removeIn`. A deadline that can pass quietly is how a
+   deprecation becomes permanent, so this one cannot.
 
-Step 4 is the reason to trust the schedule: a deadline that can pass quietly is
-how a deprecation becomes permanent.
-
-A field is scheduled the same way, as `Model.field` — `quoteSource` above is the
-live example. A whole model is never deprecated on its own — a model exists
-because a slot is handed it, so removing the slot *is* the deprecation.
+A field is scheduled the same way, as `Model.field`. A whole model is never
+deprecated on its own: a model exists because a slot is handed it, so
+removing the slot *is* the deprecation.
 
 ## Tokens
 
 A theme ships `LIGHT_TOKENS` and `DARK_TOKENS` using the same **names** the
-default theme declares. `globals.css` maps each name to a Tailwind utility, so a
-renamed token is a utility pointing at nothing. The values are the theme's own.
+default theme declares. `globals.css` maps each name to a Tailwind utility,
+so a renamed token is a utility pointing at nothing. The values are the
+theme's own.
 
 Only the default theme's values are compiled into the stylesheet. Any other
-theme's palette is emitted into `<head>` as the *difference* from that baseline —
-so a board on the default theme pays nothing for the mechanism, and a board on
-any other theme gets its colours without redeploying the CSS.
+theme's palette is emitted into `<head>` as the *difference* from that
+baseline, so a board on the default theme pays nothing for the mechanism,
+and a board on any other theme gets its colours without redeploying CSS.
 
 The cascade, in order:
 
@@ -275,63 +264,58 @@ compiled defaults                       (globals.css)
     → each other enabled theme's difference from that   [data-theme="<key>"]
 ```
 
-A board with one enabled theme emits exactly the first two lines, byte for byte
-what it emitted before members could switch. The scoped blocks carry only what a
-theme *disagrees with the board default about* — not its difference from the
-stylesheet — because the unscoped block is still in force when `data-theme` names
-another theme. Diffing against the wrong side is the bug that leaks one theme's
-brand colour into another's palette with nothing failing anywhere.
+The scoped blocks carry only what a theme disagrees with the *board
+default* about — not its difference from the compiled stylesheet — because
+the unscoped block is still in force when `data-theme` names another theme.
+Diffing against the wrong side is the bug that leaks one theme's brand
+colour into another's palette with nothing failing anywhere.
 
-`themes.token_overrides` is keyed by colour scheme:
+Operator overrides (`themes.token_overrides`) are keyed by colour scheme:
 
 ```json
 { "light": { "primary": "#1d4ed8" }, "dark": { "primary": "#93c5fd" } }
 ```
 
-A flat `{ "primary": "…" }` map is still read, and means both schemes — that is
-what every row written before this shape existed holds, and what an exported
-version 1 document carries.
+A flat `{ "primary": "…" }` map is still read and means both schemes —
+that is what rows written before per-scheme overrides existed hold, and
+what an exported version-1 document carries.
 
 `BROWSER_THEME_COLOR` is the one place a literal colour belongs in a theme:
-`<meta name="theme-color">` is ignored by Safari and older Chrome when given
-`oklch()`. Keep it equal to the two `background` tokens converted — there is a
-test for that, because a hand-written pair goes stale silently.
+`<meta name="theme-color">` is ignored by Safari and older Chrome when
+given `oklch()`. Keep it equal to the two `background` tokens converted to
+hex — a test enforces the pair, because a hand-written copy goes stale
+silently.
 
-### The default theme's palette is neutral on purpose
+### The default palette is neutral on purpose
 
-Every greyscale token the default theme ships is at **chroma zero** — the one
-colour in the palette is `primary`, the green the project's own site uses. A
-board brands itself by overriding one group — `primary`, `primary-hover`,
-`primary-foreground`, `ring`, or a single press of a brand preset on the theme
-screen — and nothing else fights the result, because nothing else in the
-palette carries a hue to clash with.
+Every greyscale token the default theme ships is at chroma zero. The one
+colour in the palette is `primary`, so a board brands itself by overriding
+one group — `primary`, `primary-hover`, `primary-foreground`, `ring`, or a
+single press of a brand preset on the theme screen — and nothing else in
+the palette carries a hue to clash with it.
 
-Two consequences worth knowing before you write a theme or a plugin:
+Two conventions follow, and both are conventions rather than contract:
 
 - **`accent` is a hover surface, not a highlight.** It carries shadcn/ui's
-  meaning here. Anything that needs to shout uses a semantic token, which has a
-  meaning to justify the volume.
-- **Link text is weight and an underline; only the underline takes `primary`.**
-  Colouring the text itself would put every operator's brand choice between
-  their members and the words — a pale yellow `primary` should cost a pale
-  yellow underline, not a page nobody can read.
+  meaning here. Anything that needs to shout uses a semantic token.
+- **Link text is weight and an underline; only the underline takes
+  `primary`.** Colouring the text itself would put the operator's brand
+  choice between members and the words they are reading.
 
-Neither is a rule the contract enforces. A theme is free to disagree; it should
-disagree deliberately. `themes/clubhouse` is the shipped disagreement: a club's
-colours are the point of a club's site, so `primary` marks a dozen things there
-rather than four — every panel heading's bar, the crest, the postbit's panel —
-and each place it is filled reads its text back as `primary-foreground`, the
-pair the contrast gate already measures. The ground stays neutral behind all of
-it, which is what keeps the two club colours the only hues on the page.
+A theme is free to disagree — deliberately. `themes/clubhouse` is the
+shipped disagreement: a club's colours are the point of a club's site, so
+`primary` marks a dozen surfaces there rather than four, and each one reads
+its text back as `primary-foreground`, the pair the contrast checks already
+measure.
 
 ## Components: `@meith/ui`
 
-`@meith/ui` is shadcn/ui's component vocabulary implemented on **Base UI**
-(`@base-ui/react`), and it is available to a theme — the shipped default theme
-is built out of it.
+`@meith/ui` is shadcn/ui's component vocabulary implemented on Base UI
+(`@base-ui/react`). It is available to themes, and the shipped default theme
+is built from it.
 
-The package is split by rendering cost rather than by category, and that split is
-the thing to understand before importing from it:
+The package is split by rendering cost, and the split is the thing to
+understand before importing from it:
 
 | Import | What it is |
 |---|---|
@@ -339,14 +323,14 @@ the thing to understand before importing from it:
 | `@meith/ui/button` | The Base UI `Button` — a `"use client"` island |
 | `@meith/ui/menu` | The Base UI `Menu` — the other `"use client"` island |
 
-Nothing reachable from the barrel declares `"use client"`, which is what makes it
-safe in a server slot. `PostBit` is rendered fifty times on a thread page, and a
-design system that pulled a client boundary in behind a `<Card>` would cost the
-board the property the slot registry exists to protect.
+Nothing reachable from the main barrel declares `"use client"`, which is
+what makes it safe in a server slot. `PostBit` renders fifty times on a
+thread page; a design system that pulled a client boundary in behind a
+`<Card>` would give away the property the slot registry exists to protect.
 
-That is also why `buttonVariants` is a separate module from `Button`. Almost
-every button on a forum is not a button: "New thread" is a link, "Mark read" is a
-native form submit. Both want the class recipe on a plain element —
+That is also why `buttonVariants` is a separate export from `Button`. Most
+buttons on a forum are not buttons — "New thread" is a link, "Mark read" is
+a native form submit — and both want the class recipe on a plain element:
 
 ```tsx
 <a href={newThreadHref} className={buttonVariants({ variant: 'primary' })}>
@@ -354,18 +338,18 @@ native form submit. Both want the class recipe on a plain element —
 </a>
 ```
 
-— and get the same appearance for no bytes. Reach for `@meith/ui/button` when the
-control genuinely lives in an island.
+Reach for `@meith/ui/button` only when the control genuinely lives in an
+island.
 
-A theme is not required to use any of this. `@meith/theme-kit` remains the only
-dependency a theme *needs*, and a theme that wants its own markup from scratch
-(as `themes/midnight` largely does) is a supported thing to be.
+None of this is required. `@meith/theme-kit` is the only dependency a theme
+*needs*, and a theme that builds its own markup from scratch (as
+`themes/midnight` largely does) is a supported thing to be.
 
 ## Testing a theme
 
-`apps/community/src/theme/contract.test.ts` renders **every theme registered in
-`community.config.ts`** through every stable slot with the same fixture models, and
-asserts the properties that are true of any theme:
+`apps/community/src/theme/contract.test.ts` renders every theme registered
+in `community.config.ts` through every stable slot with the same fixture
+models, and asserts the properties that are true of any theme:
 
 - Required slots are filled.
 - Each one renders.
@@ -373,22 +357,20 @@ asserts the properties that are true of any theme:
 - Nothing renders `[object Object]`, `undefined`, or an empty `href`.
 - No server slot emits a script.
 
-Registering a theme enrols it. There is no list to add yourself to, and none to
-forget.
+Registering a theme enrols it — there is no list to add yourself to.
 
-**It deliberately does not assert appearance.** A theme is free to be a table, a
-card grid or a wall of text. A suite that required matching the default theme's
-markup would make the second theme's job "look like the first", which is the
-opposite of the point.
+The suite deliberately does not assert appearance. A theme is free to be a
+table, a card grid or a wall of text; a suite that required matching the
+default theme's markup would make the second theme's job "look like the
+first", which is the opposite of the point.
 
 ## The generated reference is a gate
 
-[Theme slots](./theme-slots.md) is written by `scripts/theme-api-docs.mjs` from
-the three source files that *are* the contract. `pnpm verify` and CI run
-`pnpm theme:docs:check`, which fails when the file and the code disagree.
-
-The consequence is deliberate: you cannot change the theme contract without the
-documentation change appearing in the same diff — which is exactly when a
-reviewer should be asked whether the change is allowed at all.
+[Theme slots](./theme-slots.md) is written by `scripts/theme-api-docs.mjs`
+from the source files that *are* the contract. `pnpm verify` and CI run
+`pnpm theme:docs:check`, which fails when the file and the code disagree —
+so a change to the theme contract cannot land without the documentation
+change appearing in the same diff, which is exactly when a reviewer should
+be asked whether the change is allowed at all.
 
 If the check fails, run `pnpm theme:docs` and commit the result.
