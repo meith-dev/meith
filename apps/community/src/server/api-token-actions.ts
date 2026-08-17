@@ -2,12 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { isAppError, logger, ValidationError } from '@meith/core'
+import { isAppError, logger, publicMessageOf, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { apiTokenStore, issueApiToken } from './api-tokens-admin'
 import type { FormState } from './auth-form-state'
+import { getMessageResolver, tr } from './i18n'
 
 function field(form: FormData, name: string): string {
   const value = form.get(name)
@@ -29,10 +30,10 @@ function refreshTokenList(): void {
   revalidatePath('/admin/api-tokens')
 }
 
-function toState(err: unknown): FormState {
-  if (isAppError(err)) return { error: err.message }
+async function toState(err: unknown): Promise<FormState> {
+  if (isAppError(err)) return { error: publicMessageOf(err, await getMessageResolver()) }
   logger({ module: 'api-token-actions' }).error({ err }, 'api token action failed')
-  return { error: 'Something went wrong. Please try again.' }
+  return { error: await tr('notice.app.something-went-wrong-please-try') }
 }
 
 export async function issueApiTokenAction(_prev: FormState, form: FormData): Promise<FormState> {
@@ -66,10 +67,10 @@ export async function revokeApiTokenAction(_prev: FormState, form: FormData): Pr
     await requireAdmin()
 
     const id = Number(field(form, 'tokenId'))
-    if (!Number.isSafeInteger(id) || id <= 0) return { error: 'No such token.' }
+    if (!Number.isSafeInteger(id) || id <= 0) return { error: await tr('notice.app.such-token') }
 
     const store = apiTokenStore()
-    if (store === null) return { error: 'This board has no database, so it has no API.' }
+    if (store === null) return { error: await tr('notice.app.board-database-api') }
 
     const revoked = await store.revoke(id, new Date())
     if (revoked) {

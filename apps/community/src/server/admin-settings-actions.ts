@@ -16,6 +16,7 @@ import {
 
 import { recordAdminAction, requireAdmin } from './admin'
 import type { FormState } from './auth-form-state'
+import { tr } from './i18n'
 import { getSettings } from './settings'
 
 function submittedKeys(form: FormData): readonly SettingDefinition[] {
@@ -72,6 +73,6 @@ export async function saveAdminSettingsAction(
   } catch (err) {
     if (isAppError(err)) return { error: err.message }
     logger({ module: 'admin-settings' }).error({ err }, 'failed to save settings')
-    return { error: 'Something went wrong. Please try again.' }
+    return { error: await tr('notice.app.something-went-wrong-please-try') }
   }
 }

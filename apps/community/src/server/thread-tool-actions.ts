@@ -12,6 +12,7 @@ import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
+import { tr } from './i18n'
 
 const toFormState = formStateReporter('thread-tool-actions', 'unexpected error in thread tools')
 
@@ -31,13 +32,13 @@ export async function threadToolAction(_prev: FormState, form: FormData): Promis
   const toForumId = positiveInt(form, 'toForumId')
 
   if (threadId === null || tool === null) {
-    return { error: 'That thread does not exist.' }
+    return { error: await tr('notice.app.thread-exist') }
   }
 
   const { authorizer, threadTools, threads } = getContainer()
   if (threadTools === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it has no thread tools.',
+      error: await tr('notice.app.board-running-in-memory-sample-data-3'),
     }
   }
 

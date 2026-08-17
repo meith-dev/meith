@@ -20,6 +20,7 @@ import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
+import { tr } from './i18n'
 import { isSafeLocalPath } from './safe-path'
 
 const toFormState = formStateReporter('inline-moderation', 'unexpected error in inline moderation')
@@ -42,12 +43,12 @@ export async function inlineModerateAction(_prev: FormState, form: FormData): Pr
   const tool = parseInlineTool(
     typeof form.get('tool') === 'string' ? (form.get('tool') as string) : undefined,
   )
-  if (tool === null) return { error: 'Choose what to do with the selected items.' }
+  if (tool === null) return { error: await tr('notice.app.choose-what-with-selected-items') }
 
   const { inlineModeration } = getContainer()
   if (inlineModeration === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it has no moderation tools.',
+      error: await tr('notice.app.board-running-in-memory-sample-data-4'),
     }
   }
 

@@ -19,6 +19,7 @@ import {
 } from './federation'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
+import { tr } from './i18n'
 
 const toFormState = formStateReporter(
   'federation-actions',
@@ -70,7 +71,7 @@ export async function unlinkIdentityAction(_prev: FormState, form: FormData): Pr
     const { userId, hasPassword } = await requireOwnAccount()
     const identityId = Number(text(form, 'identityId'))
     if (!Number.isInteger(identityId)) {
-      return { error: 'That sign-in could not be found.' }
+      return { error: await tr('notice.app.sign-in-could-found') }
     }
 
     await (await federationService()).unlink({
@@ -93,7 +94,7 @@ export async function removePasskeyAction(_prev: FormState, form: FormData): Pro
     const { userId, hasPassword } = await requireOwnAccount()
     const passkeyId = Number(text(form, 'passkeyId'))
     if (!Number.isInteger(passkeyId)) {
-      return { error: 'That passkey could not be found.' }
+      return { error: await tr('notice.app.passkey-could-found') }
     }
 
     await (await passkeyService()).remove({

@@ -27,6 +27,7 @@ import type { FormState } from './auth-form-state'
 import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
 import { configuredIdentity, configuredSessions, getContainer } from './container'
 import { formStateReporter } from './form-state-reporter'
+import { tr } from './i18n'
 import { termsAcceptance } from './legal'
 import { profileFieldService, registrationFieldContext, submittedFields } from './profile-fields'
 import { requestFingerprint } from './request-fingerprint'
@@ -364,7 +365,7 @@ export async function confirmResetAction(_prev: FormState, form: FormData): Prom
   const confirm = field(form, 'confirm')
 
   if (password !== confirm) {
-    return { error: 'The two passwords do not match.', values: { token } }
+    return { error: await tr('notice.app.two-passwords-match'), values: { token } }
   }
 
   const identity = await configuredIdentity()

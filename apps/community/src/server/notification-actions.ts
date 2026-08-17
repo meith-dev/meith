@@ -10,6 +10,7 @@ import type { FormState } from './auth-form-state'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
+import { tr } from './i18n'
 import { audiencesForActor } from './notification-audience'
 import { notificationService } from './notifications'
 
@@ -34,7 +35,7 @@ export async function markNotificationReadAction(
   form: FormData,
 ): Promise<FormState> {
   const notificationId = positiveInt(form, 'notificationId')
-  if (notificationId === null) return { error: 'That notification does not exist.' }
+  if (notificationId === null) return { error: await tr('notice.app.notification-exist') }
 
   try {
     const { service, userId } = await requireOwnCentre()

@@ -11,18 +11,19 @@ import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt, text } from './form-values'
+import { tr } from './i18n'
 import { warningNotifier } from './notifications'
 
 const toFormState = formStateReporter('warning-actions', 'unexpected error in warnings')
 
 export async function issueWarningAction(_prev: FormState, form: FormData): Promise<FormState> {
   const userId = positiveInt(form, 'userId')
-  if (userId === null) return { error: 'That member does not exist.' }
+  if (userId === null) return { error: await tr('notice.app.member-exist') }
 
   const { authorizer, warnings, warningBans } = getContainer()
   if (warnings === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it has no warnings.',
+      error: await tr('notice.app.board-running-in-memory-sample-data'),
     }
   }
 
@@ -64,13 +65,13 @@ export async function revokeWarningAction(_prev: FormState, form: FormData): Pro
   const warningId = positiveInt(form, 'warningId')
   const userId = positiveInt(form, 'userId')
   if (warningId === null || userId === null) {
-    return { error: 'That warning does not exist.' }
+    return { error: await tr('notice.app.warning-exist') }
   }
 
   const { authorizer, warnings, warningBans } = getContainer()
   if (warnings === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it has no warnings.',
+      error: await tr('notice.app.board-running-in-memory-sample-data'),
     }
   }
 

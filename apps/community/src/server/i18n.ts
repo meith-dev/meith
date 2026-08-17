@@ -76,3 +76,10 @@ export const getMessageResolver = cache(async (): Promise<MessageResolver> => {
   const translator = await getTranslator()
   return (key, args) => (translator.has(key) ? translator.t(key, args) : undefined)
 })
+
+export async function tr(
+  key: string,
+  args?: Readonly<Record<string, string | number>>,
+): Promise<string> {
+  return (await getTranslator()).t(key, args)
+}

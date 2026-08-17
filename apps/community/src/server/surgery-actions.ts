@@ -10,6 +10,7 @@ import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
+import { tr } from './i18n'
 
 function positiveInt(form: FormData, name: string): number | null {
   const value = form.get(name)
@@ -27,8 +28,8 @@ export async function splitThreadAction(_prev: FormState, form: FormData): Promi
   const fromPostId = positiveInt(form, 'fromPostId')
   const title = typeof form.get('title') === 'string' ? (form.get('title') as string) : ''
 
-  if (threadId === null) return { error: 'That thread does not exist.' }
-  if (fromPostId === null) return { error: 'Choose the post to split from.' }
+  if (threadId === null) return { error: await tr('notice.app.thread-exist') }
+  if (fromPostId === null) return { error: await tr('notice.app.choose-post-split-from') }
 
   const { threadSurgery } = getContainer()
   if (threadSurgery === null) return { error: NO_STORE }
@@ -57,7 +58,7 @@ export async function splitThreadAction(_prev: FormState, form: FormData): Promi
 export async function splitSelectedAction(_prev: FormState, form: FormData): Promise<FormState> {
   const threadId = positiveInt(form, 'threadId')
   const title = typeof form.get('title') === 'string' ? (form.get('title') as string) : ''
-  if (threadId === null) return { error: 'That thread does not exist.' }
+  if (threadId === null) return { error: await tr('notice.app.thread-exist') }
 
   const { threadSurgery } = getContainer()
   if (threadSurgery === null) return { error: NO_STORE }
@@ -94,9 +95,9 @@ export async function mergeThreadAction(_prev: FormState, form: FormData): Promi
   const sourceThreadId = positiveInt(form, 'threadId')
   const targetThreadId = positiveInt(form, 'targetThreadId')
 
-  if (sourceThreadId === null) return { error: 'That thread does not exist.' }
+  if (sourceThreadId === null) return { error: await tr('notice.app.thread-exist') }
   if (targetThreadId === null) {
-    return { error: 'Enter the number of the thread to merge into.' }
+    return { error: await tr('notice.app.enter-number-thread-merge-into') }
   }
 
   const { threadSurgery } = getContainer()

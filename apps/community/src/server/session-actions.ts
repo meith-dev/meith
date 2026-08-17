@@ -11,6 +11,7 @@ import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
+import { tr } from './i18n'
 import { readSessionToken } from './session-cookies'
 
 const toFormState = formStateReporter(
@@ -37,12 +38,12 @@ export async function revokeSessionAction(_prev: FormState, form: FormData): Pro
   try {
     const userId = await requireViewer()
     const sessionId = positiveInt(form, 'sessionId')
-    if (sessionId === null) return { error: 'That session could not be found.' }
+    if (sessionId === null) return { error: await tr('notice.app.session-could-found') }
 
     const { accountStore } = getContainer()
     const revoked = await accountStore.sessions.revokeOwned(userId, sessionId, new Date())
 
-    if (!revoked) return { error: 'That session had already ended.' }
+    if (!revoked) return { error: await tr('notice.app.session-had-already-ended') }
 
     await recordAuthEvent({ userId, kind: 'session_revoked' })
   } catch (err) {
@@ -62,7 +63,7 @@ export async function revokeOtherSessionsAction(
 
     const keep = await currentSessionId()
     if (keep === null) {
-      return { error: 'This session could not be identified, so nothing was signed out.' }
+      return { error: await tr('notice.app.session-could-identified-nothing-signed') }
     }
 
     const revoked = await accountStore.sessions.revokeAllForUserExcept(userId, keep)

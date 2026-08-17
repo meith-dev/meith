@@ -12,6 +12,7 @@ import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveIntIn } from './form-values'
+import { tr } from './i18n'
 import { reportNotifier } from './notifications'
 import { resolveReportScope } from './report-scope'
 
@@ -29,13 +30,13 @@ export async function fileReportAction(_prev: FormState, form: FormData): Promis
   const values = { reason }
 
   if (kind === null || targetId === null) {
-    return { error: 'That does not exist.', values }
+    return { error: await tr('notice.app.exist'), values }
   }
 
   const { authorizer, reports } = getContainer()
   if (reports === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it cannot take reports.',
+      error: await tr('notice.app.board-running-in-memory-sample-data-5'),
       values,
     }
   }
@@ -91,10 +92,10 @@ export async function fileReportAction(_prev: FormState, form: FormData): Promis
 export async function assignReportAction(_prev: FormState, form: FormData): Promise<FormState> {
   const reportId = positiveIntIn(field(form, 'reportId'))
   const take = field(form, 'take') === '1'
-  if (reportId === null) return { error: 'That report does not exist.' }
+  if (reportId === null) return { error: await tr('notice.app.report-exist') }
 
   const { reports } = getContainer()
-  if (reports === null) return { error: 'This board has no reports.' }
+  if (reports === null) return { error: await tr('notice.app.board-reports') }
 
   try {
     const actor = await getActor()
@@ -118,13 +119,13 @@ export async function closeReportAction(_prev: FormState, form: FormData): Promi
   const status = form.get('status')
   const note = field(form, 'note')
 
-  if (reportId === null) return { error: 'That report does not exist.' }
+  if (reportId === null) return { error: await tr('notice.app.report-exist') }
   if (status !== 'resolved' && status !== 'rejected') {
-    return { error: 'Choose resolve or dismiss.' }
+    return { error: await tr('notice.app.choose-resolve-dismiss') }
   }
 
   const { reports } = getContainer()
-  if (reports === null) return { error: 'This board has no reports.' }
+  if (reports === null) return { error: await tr('notice.app.board-reports') }
 
   try {
     const actor = await getActor()

@@ -19,6 +19,7 @@ import { getActor } from './context'
 import { assertDemoAccountChangeable } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
+import { tr } from './i18n'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
 import { setSessionCookie } from './session-cookies'
 import { signatureStore, viewerSignatureLimits } from './signatures'
@@ -108,7 +109,7 @@ export async function changePasswordAction(_prev: FormState, form: FormData): Pr
 
     const next = text(form, 'newPassword')
     if (next !== text(form, 'confirmPassword')) {
-      return { error: 'The two new passwords do not match.' }
+      return { error: await tr('notice.app.two-new-passwords-match') }
     }
 
     await service.changePassword({

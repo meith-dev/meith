@@ -24,6 +24,7 @@ import { activeVocabulary } from './content-admin'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { checkbox, positiveIntIn } from './form-values'
+import { tr } from './i18n'
 import { emitEvent, viewerRef } from './plugin-view'
 import { notifyPostAudience } from './post-notifications'
 import { resolvePostScope } from './post-scope'
@@ -98,7 +99,7 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
     .filter((value): value is string => typeof value === 'string')
   const values = { title, message, prefixId: field(form, 'prefixId') }
 
-  if (forumId === null) return { error: 'That forum does not exist.', values }
+  if (forumId === null) return { error: await tr('notice.app.forum-exist'), values }
 
   if (field(form, 'intent') === 'preview') {
     return { notice: 'preview', values, preview: await previewHtml(message) }
@@ -109,7 +110,7 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
 
   if (threadWrites === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it cannot accept posts.',
+      error: await tr('notice.app.board-running-in-memory-sample-data-6'),
       values,
     }
   }
@@ -235,7 +236,7 @@ export async function createReplyAction(_prev: FormState, form: FormData): Promi
   const seenLastPostId = positiveIntIn(field(form, 'seenLastPostId'))
   const values = { message, seenLastPostId: field(form, 'seenLastPostId') }
 
-  if (threadId === null) return { error: 'That thread does not exist.', values }
+  if (threadId === null) return { error: await tr('notice.app.thread-exist'), values }
 
   if (field(form, 'intent') === 'preview') {
     return { notice: 'preview', values, preview: await previewHtml(message) }
@@ -306,7 +307,7 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
   const values = { message, reason }
 
   if (threadId === null || postId === null) {
-    return { error: 'That post does not exist.', values }
+    return { error: await tr('notice.app.post-exist'), values }
   }
 
   if (field(form, 'intent') === 'preview') {
@@ -316,7 +317,7 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
   const { postWrites } = getContainer()
   if (postWrites === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it cannot accept edits.',
+      error: await tr('notice.app.board-running-in-memory-sample-data-7'),
       values,
     }
   }
@@ -377,13 +378,13 @@ async function moveVisibility(form: FormData, to: 'deleted' | 'visible'): Promis
   const threadId = positiveIntIn(field(form, 'threadId'))
   const postId = positiveIntIn(field(form, 'postId'))
   if (threadId === null || postId === null) {
-    return { error: 'That post does not exist.' }
+    return { error: await tr('notice.app.post-exist') }
   }
 
   const { postWrites } = getContainer()
   if (postWrites === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it cannot accept changes.',
+      error: await tr('notice.app.board-running-in-memory-sample-data-8'),
     }
   }
 

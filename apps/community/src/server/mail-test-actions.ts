@@ -7,6 +7,7 @@ import { canSendMail, describeMailConfig } from '@meith/settings'
 import { recordAdminAction, requireAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
+import { tr } from './i18n'
 import { sendTestMail } from './mail-test'
 import { getSettings } from './settings'
 
@@ -21,14 +22,14 @@ export async function sendTestMailAction(
     if (!canSendMail(config)) {
       return {
         error:
-          'This board has no working mail configuration, so there is nothing to test. ' +
+          (await tr('notice.app.board-working-mail-configuration-there')) +
           `Right now: ${describeMailConfig(config)}.`,
       }
     }
 
     const account = await getContainer().accountStore.accounts.findById(admin.userId)
     if (account === null || account.email === '') {
-      return { error: 'Your account has no e-mail address to send a test to.' }
+      return { error: await tr('notice.app.account-e-mail-address-send-test') }
     }
 
     const settings = await getSettings()
@@ -62,6 +63,6 @@ export async function sendTestMailAction(
   } catch (error) {
     if (isAppError(error)) return { error: error.message }
     logger({ module: 'mail-test' }).error({ err: String(error) }, 'test send failed')
-    return { error: 'The test could not be run.' }
+    return { error: await tr('notice.app.test-could-run') }
   }
 }

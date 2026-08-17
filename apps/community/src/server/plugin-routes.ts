@@ -1,3 +1,4 @@
+import { tr } from './i18n'
 import 'server-only'
 
 import { env, logger, resolveClientAddress } from '@meith/core'
@@ -233,7 +234,7 @@ export async function dispatchPluginRoute(
         JSON.stringify({
           error: {
             code: 'rate_limited',
-            message: 'Too many calls to this endpoint. Give it a moment.',
+            message: await tr('notice.app.too-many-calls-endpoint-give'),
             requestId: currentRequestId() ?? null,
           },
         }),

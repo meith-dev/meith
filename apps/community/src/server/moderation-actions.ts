@@ -12,6 +12,7 @@ import { avatarService } from './avatars'
 import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
+import { tr } from './i18n'
 
 const toFormState = formStateReporter('moderation-actions', 'unexpected error in the queue')
 
@@ -30,13 +31,13 @@ function outcomeQuery(outcome: {
 export async function moderateQueueAction(_prev: FormState, form: FormData): Promise<FormState> {
   const decision = form.get('decision')
   if (decision !== 'approve' && decision !== 'reject') {
-    return { error: 'Choose approve or reject.' }
+    return { error: await tr('notice.app.choose-approve-reject') }
   }
 
   const { authorizer, moderationQueue } = getContainer()
   if (moderationQueue === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it has no queue.',
+      error: await tr('notice.app.board-running-in-memory-sample-data-2'),
     }
   }
 
