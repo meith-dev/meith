@@ -14,6 +14,7 @@ import { PollForm } from '@/components/content/poll'
 import { ThreadRatingForm } from '@/components/content/thread-rating'
 import { ReplyForm } from '@/components/content/reply-form'
 import { MultiQuoteButton } from '@/components/content/multiquote-button'
+import { MultiQuoteSelection } from '@/components/content/multiquote-selection'
 import { ThanksButton } from '@/components/content/thanks-button'
 import { QuoteInPlace } from '@/components/content/quote-in-place'
 import { attachmentLimits, canAttach } from '@/server/attachments'
@@ -553,6 +554,7 @@ export default async function ThreadPage({
   const quickReply = !canReply ? null : (
     <>
       <QuoteInPlace threadId={thread.id} />
+      <MultiQuoteSelection threadId={thread.id} />
       <ReplyForm
         threadId={thread.id}
         seenLastPostId={thread.lastPost?.postId ?? null}
