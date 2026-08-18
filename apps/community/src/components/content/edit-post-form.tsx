@@ -6,7 +6,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { deletePostAction, editPostAction, restorePostAction } from '@/server/content-actions'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
-import { type Copy, fromCopy, useCopy } from '../shell/copy'
+import { type Copy, fromCopy } from '../shell/copy'
 import { MarkdownEditor } from './markdown-editor'
 
 export function EditPostForm({
@@ -62,9 +62,16 @@ export function EditPostForm({
   )
 }
 
-export function DeletePostForm({ threadId, postId }: { threadId: number; postId: number }) {
+export function DeletePostForm({
+  threadId,
+  postId,
+  copy,
+}: {
+  threadId: number
+  postId: number
+  copy: Copy
+}) {
   const [state, action] = useActionState(deletePostAction, EMPTY_STATE)
-  const copy = useCopy()
 
   return (
     <form action={action} className="mt-6 flex flex-col gap-3 border-t border-border pt-5">
@@ -84,9 +91,16 @@ export function DeletePostForm({ threadId, postId }: { threadId: number; postId:
   )
 }
 
-export function RestorePostForm({ threadId, postId }: { threadId: number; postId: number }) {
+export function RestorePostForm({
+  threadId,
+  postId,
+  copy,
+}: {
+  threadId: number
+  postId: number
+  copy: Copy
+}) {
   const [state, action] = useActionState(restorePostAction, EMPTY_STATE)
-  const copy = useCopy()
 
   return (
     <form action={action} className="flex flex-col gap-3">

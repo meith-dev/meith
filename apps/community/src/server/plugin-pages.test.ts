@@ -110,6 +110,7 @@ describe('what crosses the boundary', () => {
       'notify',
       'query',
       'settings',
+      't',
       'users',
     ])
     expect((handed as { settings: unknown }).settings).toEqual({ batch: 42 })
@@ -210,6 +211,7 @@ describe('board pages', () => {
       'path',
       'query',
       'settings',
+      't',
       'users',
       'viewer',
     ])

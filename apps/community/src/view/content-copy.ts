@@ -18,7 +18,18 @@ export function replyFormCopy(t: Translator = untranslated()): Readonly<Record<s
 }
 
 export function editPostFormCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
-  return copyFor(['composer.edit.reason', 'composer.edit.submit', 'composer.preview'], t)
+  return copyFor(
+    [
+      'composer.edit.reason',
+      'composer.edit.submit',
+      'composer.edit.delete',
+      'composer.edit.deleteBlurb',
+      'composer.edit.restore',
+      'composer.edit.restoreBlurb',
+      'composer.preview',
+    ],
+    t,
+  )
 }
 
 export function newThreadFormCopy(

@@ -547,11 +547,18 @@ export async function CodesPage({
   const created = context.query.created
   const toggled = context.query.disabled ?? context.query.enabled
   const error = CODE_ERROR_KEYS[context.query.error as keyof typeof CODE_ERROR_KEYS]
+  const [createdLead, createdTail] = context.t
+    .t('dues.admin.codes.created', { code: '{code}' })
+    .split('{code}')
 
   return (
     <div className="flex flex-col gap-4">
       {created !== undefined && (
-        <GoodNotice>{context.t.t('dues.admin.codes.created', { code: created })}</GoodNotice>
+        <GoodNotice>
+          {createdLead}
+          <code className="mx-1 font-mono text-base font-semibold">{created}</code>
+          {createdTail}
+        </GoodNotice>
       )}
       {toggled !== undefined && (
         <GoodNotice>

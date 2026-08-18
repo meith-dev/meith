@@ -54,6 +54,7 @@ export default async function EditPostPage({
   const theme = await currentTheme()
   const PostForm = requireSlot(theme, 'PostForm')
   const translator = await getTranslator()
+  const formCopy = editPostFormCopy(translator)
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
@@ -62,19 +63,21 @@ export default async function EditPostPage({
         copy={slotCopy(theme, 'PostForm', translator)}
         regions={{
           form: isDeleted ? (
-            <RestorePostForm threadId={thread} postId={post} />
+            <RestorePostForm copy={formCopy} threadId={thread} postId={post} />
           ) : (
             <>
               {scope.mayEdit && (
                 <EditPostForm
-                  copy={editPostFormCopy(await getTranslator())}
+                  copy={formCopy}
                   threadId={thread}
                   postId={post}
                   message={scope.target.post.message}
                   reason={null}
                 />
               )}
-              {scope.mayDelete && <DeletePostForm threadId={thread} postId={post} />}
+              {scope.mayDelete && (
+                <DeletePostForm copy={formCopy} threadId={thread} postId={post} />
+              )}
             </>
           ),
           toolbar: null,
