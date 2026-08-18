@@ -26,6 +26,10 @@ export interface TaskWorkerDeps {
     pruneExpiredTokens(now: Date, limit?: number): Promise<number>
   }
   readonly rateLimits?: { prune(before: Date, limit?: number): Promise<number> }
+  readonly authEvents?: {
+    retentionDays(): Promise<number>
+    pruneBefore(cutoff: Date, limit?: number): Promise<number>
+  }
   readonly timedGroups?: { expire(limit: number): Promise<number> }
   readonly outbox: OutboxReader
   readonly events: EventRegistry
@@ -148,6 +152,17 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
           async pruneRateLimits() {
             const before = new Date(Date.now() - 2 * 3600 * 1000)
             return deps.rateLimits!.prune(before)
+          },
+        }),
+
+    ...(deps.authEvents === undefined
+      ? {}
+      : {
+          async pruneAuthEvents() {
+            const days = await deps.authEvents!.retentionDays()
+            if (days <= 0) return 0
+
+            return deps.authEvents!.pruneBefore(new Date(Date.now() - days * 86_400_000))
           },
         }),
 

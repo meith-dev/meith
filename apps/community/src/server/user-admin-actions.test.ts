@@ -47,6 +47,45 @@ vi.mock('@meith/drivers', () => ({
   }),
 }))
 
+const staffEvents: Array<{ userId: number; kind: string }> = []
+vi.mock('./auth-events', () => ({
+  recordStaffAuthEvent: async (input: { userId: number; kind: string }) => {
+    staffEvents.push(input)
+  },
+}))
+
+const factor = { enrolled: true }
+const cleared: number[] = []
+const revokedFor: number[] = []
+const held = { email: 'ann@example.test' }
+
+vi.mock('./two-factor', () => ({
+  clearMemberSecondFactor: async (userId: number) => {
+    cleared.push(userId)
+    const enrolled = factor.enrolled
+    factor.enrolled = false
+    return enrolled
+  },
+}))
+
+vi.mock('./container', () => ({
+  getContainer: () => ({
+    accountStore: {
+      accounts: { findById: async () => ({ id: 7, email: held.email }) },
+      sessions: {
+        async revokeAllForUser(userId: number) {
+          revokedFor.push(userId)
+        },
+      },
+    },
+  }),
+}))
+
+vi.mock('./demo', () => ({
+  assertDemoAccountChangeable: async () => undefined,
+  assertDemoIdentityUnchanged: async () => undefined,
+}))
+
 const accounts: Array<{ userId: number; input: Record<string, unknown> }> = []
 const states: Array<{ userId: number; state: string }> = []
 const bans: Array<Record<string, unknown>> = []
@@ -117,6 +156,7 @@ vi.mock('./user-admin', () => ({
 
 const {
   banMemberAction,
+  clearSecondFactorAction,
   liftBanAction,
   continueMassMailAction,
   mergeStepAction,
@@ -135,6 +175,11 @@ function form(fields: Record<string, string>): FormData {
 
 beforeEach(() => {
   adminCalls.length = 0
+  staffEvents.length = 0
+  cleared.length = 0
+  revokedFor.length = 0
+  factor.enrolled = true
+  held.email = 'ann@example.test'
   invalidated.length = 0
   revalidated.length = 0
   accounts.length = 0
@@ -559,5 +604,63 @@ describe('the screens the write is read back from', () => {
       '/admin/users',
       '/admin/users/[id]',
     ])
+  })
+})
+
+describe('clearing a member’s second factor', () => {
+  it('asks for a fresh proof, clears it, and signs every session out', async () => {
+    const state = await clearSecondFactorAction({}, form({ userId: '7' }))
+
+    expect(requireFreshAdminMock).toHaveBeenCalledTimes(1)
+    expect(state.notice).toBe('cleared')
+    expect(cleared).toEqual([7])
+    expect(revokedFor).toEqual([7])
+  })
+
+  it('leaves a row in the admin log and one the member can read', async () => {
+    await clearSecondFactorAction({}, form({ userId: '7' }))
+
+    expect(adminCalls).toEqual([{ action: 'user.second_factor_cleared', detail: { userId: 7 } }])
+    expect(staffEvents).toEqual([{ userId: 7, kind: 'second_factor_cleared' }])
+  })
+
+  it('touches no session and writes no row when there was no factor to clear', async () => {
+    factor.enrolled = false
+
+    const state = await clearSecondFactorAction({}, form({ userId: '7' }))
+
+    expect(state.notice).toBe('cleared')
+    expect(revokedFor).toEqual([])
+    expect(adminCalls).toEqual([])
+    expect(staffEvents).toEqual([])
+  })
+
+  it('does nothing at all when the proof is stale', async () => {
+    requireFreshAdminMock.mockRejectedValue(
+      Object.assign(new Error('nope'), { code: 'FORBIDDEN', publicMessage: 'nope' }),
+    )
+
+    const state = await clearSecondFactorAction({}, form({ userId: '7' }))
+
+    expect(state.error).toBeDefined()
+    expect(cleared).toEqual([])
+    expect(revokedFor).toEqual([])
+  })
+})
+
+describe('an address changed from the panel', () => {
+  const fields = { userId: '7', username: 'Annabel', primaryGroupId: '3' }
+
+  it('reaches the member’s own security activity', async () => {
+    await saveMemberAccountAction({}, form({ ...fields, email: 'ann@elsewhere.test' }))
+
+    expect(staffEvents).toEqual([{ userId: 7, kind: 'email_changed' }])
+  })
+
+  it('records nothing when the address is the one already held', async () => {
+    await saveMemberAccountAction({}, form({ ...fields, email: 'ann@example.test' }))
+
+    expect(accounts).toHaveLength(1)
+    expect(staffEvents).toEqual([])
   })
 })

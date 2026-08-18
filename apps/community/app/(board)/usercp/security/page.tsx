@@ -96,9 +96,8 @@ export default async function SecurityPage({
   const hasPassword = account !== null && account.passwordHash !== null
 
   const posture = await secondFactorPosture(actor.userId)
-  const factor = posture.offered
-    ? await twoFactorState(actor.userId)
-    : { enrolled: false, pending: false, recoveryCodesLeft: 0 }
+  const factor = await twoFactorState(actor.userId)
+  const manageFactor = posture.offered || factor.enrolled
 
   const enrolment = factor.pending ? await pendingEnrolment(actor.userId) : null
 
@@ -182,7 +181,7 @@ export default async function SecurityPage({
       />
       <EmailForm email={settings.email} copy={emailFormCopy(translator)} />
 
-      {posture.offered &&
+      {manageFactor &&
         (settingUp ? (
           <TwoFactorSetup
             enrolment={enrolment}

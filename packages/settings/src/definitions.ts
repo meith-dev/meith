@@ -765,6 +765,20 @@ export const SETTING_DEFINITIONS = [
   }),
 
   define({
+    key: 'security.auth_event_retention_days',
+    group: 'security',
+    label: 'Days of sign-in activity to keep',
+    description:
+      'How long the sign-in activity log holds an entry before the hourly prune ' +
+      'drops it. 0 keeps every entry forever, which is the default: an audit ' +
+      'trail that deletes itself without being asked is one you cannot rely on. ' +
+      'Set a number of days where a retention policy says you must.',
+    schema: z.number().int().min(0).max(3650),
+    default: 0,
+    ui: { min: 0, max: 3650 },
+  }),
+
+  define({
     key: 'federation.github_enabled',
     group: 'federation',
     label: 'Sign in with GitHub',

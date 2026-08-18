@@ -5,6 +5,7 @@ import { useActionState } from 'react'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   banMemberAction,
+  clearSecondFactorAction,
   continueMassMailAction,
   liftBanAction,
   mergeStepAction,
@@ -145,6 +146,43 @@ export function MemberStateForm({
       <div>
         <SubmitButton>{fromCopy(copy, 'adminUser.saveState')}</SubmitButton>
       </div>
+    </form>
+  )
+}
+
+export function ClearSecondFactorForm({
+  userId,
+  enrolled,
+  copy,
+}: {
+  userId: number
+  enrolled: boolean
+  copy: Copy
+}) {
+  const [state, action] = useActionState(clearSecondFactorAction, EMPTY_STATE)
+
+  return (
+    <form action={action} className="flex flex-col gap-3" noValidate>
+      <FormError message={state.error} />
+      <Saved when={state.notice === 'cleared'}>
+        {fromCopy(copy, 'adminUser.secondFactorCleared')}
+      </Saved>
+      <input type="hidden" name="userId" value={userId} />
+
+      <p className="text-sm text-muted-foreground">
+        {fromCopy(copy, enrolled ? 'adminUser.secondFactorHeld' : 'adminUser.secondFactorNotHeld')}
+      </p>
+
+      {enrolled && (
+        <>
+          <div>
+            <SubmitButton>{fromCopy(copy, 'adminUser.clearSecondFactor')}</SubmitButton>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {fromCopy(copy, 'adminUser.secondFactorNote')}
+          </p>
+        </>
+      )}
     </form>
   )
 }

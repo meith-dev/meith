@@ -271,6 +271,7 @@ The commands:
 | `community settings:list` / `settings:get` / `settings:set` | Read and write board settings. |
 | `community user:create` | Create an account — `--username`, `--email`, optional `--group`; password on stdin. Works with registration closed. |
 | `community user:promote` | Administrator access on a board that already works. |
+| `community user:2fa-clear` | Clear a member's second factor when they have lost their app *and* their recovery codes — `--user <id\|username>`. Ends every session on the account. The break-glass for a sole administrator locked out of their own board; see [signing in](./single-sign-on.md#when-the-app-and-the-codes-are-both-gone). |
 | `community forum:create` | Create a forum. |
 | `community profile-field:list` / `profile-field:add` / `profile-field:remove` | Manage custom profile fields. |
 | `community task:list` | What is scheduled, and how often each task runs. |
@@ -1909,6 +1910,14 @@ the same rows filtered to moderation actions in the forums a moderator
 holds. The **Action** dropdown is built from the distinct actions
 actually recorded — an action nobody has performed yet is not offered,
 and appears the first time it happens.
+
+How somebody *got in* is not here: sign-ins, refused attempts, second
+factors and sessions revoked are a separate record with its own screen at
+`/admin/security` — **Sign-in activity** — described in
+[signing in](./single-sign-on.md#what-has-happened-to-an-account). The two
+are deliberately apart: this log records what was done by somebody already
+inside, that one records how they got in. It keeps every entry forever
+unless **Days of sign-in activity to keep** says otherwise.
 
 Two things are on the screens but not in the table, and knowing which is
 which saves an investigation: a member editing or deleting **their own**

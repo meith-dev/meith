@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 
 import {
   BanMemberForm,
+  ClearSecondFactorForm,
   LiftBanForm,
   MemberAccountForm,
   MemberStateForm,
@@ -12,6 +13,7 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getTranslator, tr } from '@/server/i18n'
+import { memberHoldsSecondFactor } from '@/server/two-factor'
 import { buildMemberView } from '@/server/user-admin'
 import { userAdminCopy } from '@/view/admin-user-copy'
 import { formatTime } from '@/view/time'
@@ -30,6 +32,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
   if (view === null) notFound()
 
   const { member, activeBan } = view
+  const enrolled = await memberHoldsSecondFactor(member.id)
   const now = new Date()
   const translator = await getTranslator()
   const copy = userAdminCopy(translator)
@@ -135,6 +138,13 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
             <LiftBanForm userId={member.id} copy={copy} />
           </>
         )}
+      </section>
+
+      <section className={PANEL_CARD}>
+        <h2 className="font-heading text-lg font-semibold">
+          {translator.t('adminUser.secondFactor')}
+        </h2>
+        <ClearSecondFactorForm userId={member.id} enrolled={enrolled} copy={copy} />
       </section>
 
       <section className={PANEL_CARD}>

@@ -1,4 +1,4 @@
-import { foldIdentifier } from '@meith/accounts'
+import { clearSecondFactor, foldIdentifier } from '@meith/accounts'
 import { ValidationError } from '@meith/core'
 import { FORUM_TYPES, type ForumType } from '@meith/forums'
 import {
@@ -91,6 +91,35 @@ export async function userPromote(args: readonly string[]): Promise<number> {
 
   await ctx.admin.setPrimaryGroup(user.id, group.id)
   console.log(`${user.username} is now in ${group.key} (${group.title}).`)
+  return 0
+}
+
+export async function userClearSecondFactor(args: readonly string[]): Promise<number> {
+  const { flags } = parseFlags(args)
+  const userRef = required(flags, 'user')
+
+  const ctx = await createContext()
+  const user = await findUser(ctx, userRef)
+
+  const removed = await clearSecondFactor(ctx.accounts, user.id)
+
+  if (!removed) {
+    console.log(`${user.username} holds no second factor. Nothing to do.`)
+    return 0
+  }
+
+  await ctx.accounts.sessions.revokeAllForUser(user.id)
+  await ctx.accounts.authEvents.record({
+    userId: user.id,
+    kind: 'second_factor_cleared',
+    detail: { by: 'cli' },
+    at: new Date(),
+  })
+
+  console.log(
+    `Cleared the second factor on ${user.username} and signed every session out. ` +
+      'They sign in with their password alone until they set one up again.',
+  )
   return 0
 }
 

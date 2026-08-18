@@ -183,6 +183,54 @@ describe('the statistics rollup', () => {
   })
 })
 
+describe('pruning the sign-in activity log', () => {
+  const base = {
+    ...unusedDeps,
+    queue: new MemoryQueue(),
+    outbox: new FakeOutbox([]),
+    events: buildEventRegistry({
+      counters: { rollUpAncestors: async () => true, applyVisibilityChange: async () => false },
+    }),
+  }
+
+  it('reads nothing and deletes nothing while the board keeps its log forever', async () => {
+    const pruneBefore = vi.fn(async () => 9)
+    const workers = taskWorkers({
+      ...base,
+      authEvents: { retentionDays: async () => 0, pruneBefore },
+    })
+
+    expect(await workers.pruneAuthEvents!()).toBe(0)
+    expect(pruneBefore).not.toHaveBeenCalled()
+  })
+
+  it('cuts at the retention the board is set to', async () => {
+    const cutoffs: Date[] = []
+    const workers = taskWorkers({
+      ...base,
+      authEvents: {
+        retentionDays: async () => 30,
+        pruneBefore: async (cutoff) => {
+          cutoffs.push(cutoff)
+          return 4
+        },
+      },
+    })
+
+    expect(await workers.pruneAuthEvents!()).toBe(4)
+
+    const elapsed = Date.now() - cutoffs[0]!.getTime()
+    expect(elapsed).toBeGreaterThan(29 * 86_400_000)
+    expect(elapsed).toBeLessThan(31 * 86_400_000)
+  })
+
+  it('is absent, not a stub, on a board with no log to prune', async () => {
+    const workers = taskWorkers(base)
+
+    expect('pruneAuthEvents' in workers).toBe(false)
+  })
+})
+
 describe('the search index backfill', () => {
   const base = {
     ...unusedDeps,

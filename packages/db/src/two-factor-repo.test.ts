@@ -179,4 +179,34 @@ describe('Postgres two-factor, recovery code and auth event repositories', () =>
 
     expect(next.every((event) => event.id < first[1]!.id)).toBe(true)
   })
+
+  it('prunes only the entries older than the cutoff', async () => {
+    const old = new Date('2026-01-01T00:00:00Z')
+    await store.authEvents.record({ userId, kind: 'login', at: old })
+    await store.authEvents.record({ userId, kind: 'login', at: now })
+
+    const removed = await store.authEvents.pruneBefore(new Date('2026-02-01T00:00:00Z'))
+
+    expect(removed).toBe(1)
+    expect(
+      (await store.authEvents.listForUser(userId, 100)).every(
+        (event) => event.at.getTime() >= old.getTime(),
+      ),
+    ).toBe(true)
+    expect(
+      (await store.authEvents.listForUser(userId, 100)).some(
+        (event) => event.at.getTime() === old.getTime(),
+      ),
+    ).toBe(false)
+  })
+
+  it('takes no more than the batch it is given', async () => {
+    const old = new Date('2025-01-01T00:00:00Z')
+    for (let index = 0; index < 3; index += 1) {
+      await store.authEvents.record({ userId, kind: 'logout', at: old })
+    }
+
+    expect(await store.authEvents.pruneBefore(new Date('2025-06-01T00:00:00Z'), 2)).toBe(2)
+    expect(await store.authEvents.pruneBefore(new Date('2025-06-01T00:00:00Z'), 2)).toBe(1)
+  })
 })

@@ -282,6 +282,7 @@ export const AUTH_EVENT_KINDS = [
   'second_factor_failed',
   'second_factor_enabled',
   'second_factor_disabled',
+  'second_factor_cleared',
   'recovery_code_used',
   'recovery_codes_replaced',
   'password_changed',
@@ -325,6 +326,7 @@ export interface AuthEventRepository {
     before?: number | undefined
     kind?: AuthEventKind | undefined
   }): Promise<readonly AuthEventRecord[]>
+  pruneBefore(cutoff: Date, limit?: number): Promise<number>
 }
 
 export interface LoginAttemptRepository {

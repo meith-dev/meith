@@ -365,6 +365,7 @@ describe('bans.expire is registered', () => {
     return {
       relayOutbox: zero,
       pruneRateLimits: zero,
+      pruneAuthEvents: zero,
       deliverWebhooks: async () => ({ attempted: 0, delivered: 0, retried: 0, dead: 0 }),
       sweepAttachments: async () => ({ deleted: 0, failed: 0 }),
       sweepAvatars: zero,
@@ -434,6 +435,7 @@ function fullWorkerSet(): TaskWorkers {
   return {
     relayOutbox: async () => 0,
     pruneRateLimits: async () => 0,
+    pruneAuthEvents: async () => 0,
     deliverWebhooks: async () => ({ attempted: 0, delivered: 0, retried: 0, dead: 0 }),
     sweepAttachments: async () => ({ deleted: 0, failed: 0 }),
     sweepAvatars: async () => 0,

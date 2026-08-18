@@ -3,7 +3,14 @@ import process from 'node:process'
 
 import { type LoadedEnvFiles, loadEnvFiles } from '@meith/core/env-files'
 
-import { forumCreate, settingsGet, settingsSet, userCreate, userPromote } from './commands'
+import {
+  forumCreate,
+  settingsGet,
+  settingsSet,
+  userClearSecondFactor,
+  userCreate,
+  userPromote,
+} from './commands'
 import { demoReset, demoSeed } from './demo'
 import { importCommand } from './import'
 import { profileFieldAdd, profileFieldList, profileFieldRemove } from './profile-fields'
@@ -167,6 +174,13 @@ const commands: Command[] = [
     summary: "Change a user's primary group.",
     usage: 'community user:promote --user <id|username> --group <key|id>',
     run: userPromote,
+  },
+
+  {
+    name: 'user:2fa-clear',
+    summary: "Clear a user's second factor when they have lost it, and sign them out.",
+    usage: 'community user:2fa-clear --user <id|username>',
+    run: userClearSecondFactor,
   },
 
   {

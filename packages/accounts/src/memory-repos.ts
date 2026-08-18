@@ -613,6 +613,15 @@ class MemoryAuthEvents implements AuthEventRepository {
       .sort((a, b) => b.id - a.id)
       .slice(0, input.limit)
   }
+
+  async pruneBefore(cutoff: Date, limit = 5000): Promise<number> {
+    const doomed = this.events
+      .filter((event) => event.at.getTime() < cutoff.getTime())
+      .slice(0, limit)
+
+    for (const event of doomed) this.events.splice(this.events.indexOf(event), 1)
+    return doomed.length
+  }
 }
 
 export function createMemoryStore(): AccountStore {

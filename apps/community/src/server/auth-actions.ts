@@ -203,11 +203,31 @@ export async function loginAction(_prev: FormState, form: FormData): Promise<For
       await completeSignIn(outcome.login, remember)
     }
   } catch (err) {
-    await recordAuthEvent({ userId: null, kind: 'login_failed', detail: { identifier } })
+    await recordAuthEvent({
+      userId: await accountBehind(identifier),
+      kind: 'login_failed',
+      detail: { identifier },
+    })
     return toFormState(err, values)
   }
 
   redirect(destination)
+}
+
+async function accountBehind(identifier: string): Promise<number | null> {
+  const lower = foldIdentifier(identifier)
+  if (lower === '') return null
+
+  try {
+    const { accounts } = getContainer().accountStore
+    const account =
+      (await accounts.findByUsernameLower(lower)) ?? (await accounts.findByEmailLower(lower))
+
+    return account?.id ?? null
+  } catch (err) {
+    logger({ module: 'auth-actions' }).warn({ err }, 'could not attribute a refused sign-in')
+    return null
+  }
 }
 
 async function completeSignIn(

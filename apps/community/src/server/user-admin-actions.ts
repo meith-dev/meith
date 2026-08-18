@@ -7,10 +7,13 @@ import { drivers } from '@meith/drivers'
 import { msg } from '@meith/i18n'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
+import { recordStaffAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
-import { assertDemoIdentityUnchanged } from './demo'
+import { getContainer } from './container'
+import { assertDemoAccountChangeable, assertDemoIdentityUnchanged } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
+import { clearMemberSecondFactor } from './two-factor'
 import { banService, requireUserAdmin, requireUserBulk, requireUserMerge } from './user-admin'
 
 const MERGE_CHUNK = 500
@@ -55,6 +58,8 @@ export async function saveMemberAccountAction(
     const email = trimmedText(form, 'email')
     await assertDemoIdentityUnchanged(id, { username, email })
 
+    const before = await getContainer().accountStore.accounts.findById(id)
+
     await requireUserAdmin().updateAccount(id, {
       username,
       email,
@@ -65,7 +70,36 @@ export async function saveMemberAccountAction(
     refreshMemberScreens()
     await recordAdminAction({ action: 'user.account_changed', detail: { userId: id } })
 
+    if (before !== null && before.email !== email) {
+      await recordStaffAuthEvent({ userId: id, kind: 'email_changed' })
+    }
+
     return { notice: 'saved' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+export async function clearSecondFactorAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireFreshAdmin()
+    const id = userId(form)
+
+    await assertDemoAccountChangeable(id, 'sign-in method')
+
+    const cleared = await clearMemberSecondFactor(id)
+    if (!cleared) return { notice: 'cleared' }
+
+    await getContainer().accountStore.sessions.revokeAllForUser(id)
+
+    refreshMemberScreens()
+    await recordAdminAction({ action: 'user.second_factor_cleared', detail: { userId: id } })
+    await recordStaffAuthEvent({ userId: id, kind: 'second_factor_cleared' })
+
+    return { notice: 'cleared' }
   } catch (err) {
     return toFormState(err)
   }
