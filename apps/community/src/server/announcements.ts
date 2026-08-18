@@ -53,7 +53,14 @@ function toModel(
 ): AnnouncementModel {
   return {
     title: row.title,
-    bodyHtml: renderMarkdown(row.message, vocabularyOptions(vocabulary)).html,
+    bodyHtml: renderMarkdown(row.message, {
+      ...vocabularyOptions(vocabulary),
+      ...(translator === undefined
+        ? {}
+        : {
+            quoteAttribution: (author) => translator.t('markdown.quote.attribution', { author }),
+          }),
+    }).html,
     postedBy:
       row.authorUsername === ''
         ? null

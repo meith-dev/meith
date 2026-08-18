@@ -30,7 +30,11 @@ import {
   PostgresWarningRepository,
   PostgresWebhookRepository,
 } from '@meith/db'
-import { deliverNotificationEmail, NotificationService } from '@meith/notifications'
+import {
+  deliverNotificationEmail,
+  NotificationService,
+  type NotificationTranslatorResolver,
+} from '@meith/notifications'
 import type { PluginDefinition } from '@meith/plugin-kit'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/tasks'
 
@@ -55,6 +59,7 @@ export function buildSchedulerBundle(deps: {
   readonly files?: FileStore
   readonly images?: ImageProcessor
   readonly plugins?: readonly PluginDefinition[]
+  readonly translatorForLocale?: NotificationTranslatorResolver
 }): SchedulerBundle {
   const db = deps.db ?? getDb()
   const threadViews = new PostgresThreadViewBuffer(db)
@@ -133,6 +138,9 @@ export function buildSchedulerBundle(deps: {
                           ...(deps.themeKey === undefined ? {} : { themeKey: deps.themeKey }),
                         }),
                         notificationId,
+                        ...(deps.translatorForLocale === undefined
+                          ? {}
+                          : { translatorForLocale: deps.translatorForLocale }),
                       })
                     },
                   },

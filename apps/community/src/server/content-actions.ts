@@ -24,7 +24,7 @@ import { activeVocabulary } from './content-admin'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { checkbox, positiveIntIn } from './form-values'
-import { tr } from './i18n'
+import { getTranslator, tr } from './i18n'
 import { emitEvent, viewerRef } from './plugin-view'
 import { notifyPostAudience } from './post-notifications'
 import { resolvePostScope } from './post-scope'
@@ -34,10 +34,11 @@ import { getSettings } from './settings'
 export type PreviewScope = 'post' | 'signature'
 
 async function previewHtml(message: string, scope: PreviewScope = 'post'): Promise<string> {
-  const vocabulary = await activeVocabulary()
+  const [vocabulary, translator] = await Promise.all([activeVocabulary(), getTranslator()])
   return renderMarkdown(message, {
     ...vocabularyOptions(vocabulary),
     ...(scope === 'signature' ? { features: SIGNATURE_FEATURES } : {}),
+    quoteAttribution: (author) => translator.t('markdown.quote.attribution', { author }),
   }).html
 }
 
@@ -77,6 +78,7 @@ export async function quotePostAction(threadId: number, postId: number): Promise
     author: quoted.authorUsername,
     markdown: quoted.message,
     sourceHref: postLink(`/thread/${target.threadId}-${target.slug}`, quoted.id),
+    sourceLabel: await tr('markdown.quote.view-post'),
   })
 }
 

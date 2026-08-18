@@ -5,6 +5,8 @@ import {
   REGION_NAMES,
 } from '@meith/plugin-kit'
 
+import en from './messages/en.json'
+
 export const RECORDED: {
   hooks: { name: string; value: unknown }[]
   regions: PluginRegion[]
@@ -45,36 +47,62 @@ function contribution(region: PluginRegion) {
 
 export const referencePlugin = definePlugin({
   key: 'reference',
-  name: 'Reference plugin',
+  name: en['reference.definition.name'],
+  nameKey: 'reference.definition.name',
   version: '0.7.0',
-  description: 'Exercises every documented extension point. Installed in CI, not on a board.',
+  description: en['reference.definition.description'],
+  descriptionKey: 'reference.definition.description',
   apiVersion: '0',
 
   settings: [
     {
       key: 'greeting',
-      label: 'Greeting',
+      label: en['reference.setting.greeting.label'],
+      labelKey: 'reference.setting.greeting.label',
       default: 'hello',
-      description: 'Prefixed to the footer.',
+      description: en['reference.setting.greeting.description'],
+      descriptionKey: 'reference.setting.greeting.description',
     },
-    { key: 'badge_limit', label: 'Badge limit', default: 3 },
-    { key: 'noisy', label: 'Log every hook', default: false, advanced: true },
+    {
+      key: 'badge_limit',
+      label: en['reference.setting.badgeLimit.label'],
+      labelKey: 'reference.setting.badgeLimit.label',
+      default: 3,
+    },
+    {
+      key: 'noisy',
+      label: en['reference.setting.noisy.label'],
+      labelKey: 'reference.setting.noisy.label',
+      default: false,
+      advanced: true,
+    },
     {
       key: 'api_secret',
-      label: 'API secret',
+      label: en['reference.setting.apiSecret.label'],
+      labelKey: 'reference.setting.apiSecret.label',
       type: 'secret',
       env: 'REFERENCE_API_SECRET',
       required: true,
       default: '',
-      description: 'Exists to exercise the write-only secret path.',
+      description: en['reference.setting.apiSecret.description'],
+      descriptionKey: 'reference.setting.apiSecret.description',
     },
     {
       key: 'mode',
-      label: 'Mode',
+      label: en['reference.setting.mode.label'],
+      labelKey: 'reference.setting.mode.label',
       type: 'select',
       options: [
-        { value: 'record', label: 'Record' },
-        { value: 'replay', label: 'Replay' },
+        {
+          value: 'record',
+          label: en['reference.setting.mode.record'],
+          labelKey: 'reference.setting.mode.record',
+        },
+        {
+          value: 'replay',
+          label: en['reference.setting.mode.replay'],
+          labelKey: 'reference.setting.mode.replay',
+        },
       ],
       default: 'record',
     },
@@ -104,12 +132,13 @@ export const referencePlugin = definePlugin({
   adminPages: [
     {
       path: 'status',
-      title: 'Reference plugin',
-      render: (context) => (
-        <p>
-          {String(context.settings.greeting ?? 'hello')} — {RECORDED.hooks.length} hooks seen.
-        </p>
-      ),
+      title: en['reference.admin.status.title'],
+      titleKey: 'reference.admin.status.title',
+      render: (context) =>
+        context.t.t('reference.admin.status.summary', {
+          greeting: String(context.settings.greeting ?? 'hello'),
+          count: RECORDED.hooks.length,
+        }),
     },
   ],
 
@@ -172,8 +201,10 @@ export const referencePlugin = definePlugin({
   notifications: [
     {
       key: 'poked',
-      title: 'The reference plugin pokes you',
-      description: 'Exists to exercise the notification seam end to end.',
+      title: en['reference.notification.poked.title'],
+      titleKey: 'reference.notification.poked.title',
+      description: en['reference.notification.poked.description'],
+      descriptionKey: 'reference.notification.poked.description',
       emailByDefault: false,
     },
   ],
@@ -181,13 +212,16 @@ export const referencePlugin = definePlugin({
   pages: [
     {
       path: '',
-      title: 'Reference',
+      title: en['reference.page.title'],
+      titleKey: 'reference.page.title',
       access: 'anonymous',
       render: (context) => {
         RECORDED.pages.push(context.path)
         return (
           <p data-plugin={MARK}>
-            {MARK} page for viewer {String(context.viewer.userId ?? 'guest')}
+            {context.t.t('reference.page.viewer', {
+              viewer: String(context.viewer.userId ?? context.t.t('reference.page.guest')),
+            })}
           </p>
         )
       },

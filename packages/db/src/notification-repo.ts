@@ -220,7 +220,7 @@ export class PostgresNotificationRepository implements NotificationRepository {
       await this.db.execute(sql`
         select n.id, n.user_id, n.kind, n.data, n.href, n.occurrences,
                n.created_at, n.updated_at, n.read_at, n.email_sent_at,
-               u.username, u.email, u.state,
+               u.username, u.email, u.locale, u.state,
                p.email as preference
           from notifications n
           join users u on u.id = n.user_id
@@ -233,6 +233,7 @@ export class PostgresNotificationRepository implements NotificationRepository {
         email_sent_at: string | Date | null
         username: string
         email: string
+        locale: string
         state: string
         preference: boolean | null
       }
@@ -250,6 +251,7 @@ export class PostgresNotificationRepository implements NotificationRepository {
         userId: Number(row.user_id),
         username: row.username,
         email: row.email,
+        locale: row.locale,
       },
       emailEnabled: row.preference ?? spec?.emailByDefault ?? false,
       emailSentAt: toNullableDate(row.email_sent_at),

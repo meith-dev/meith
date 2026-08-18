@@ -34,13 +34,16 @@ export default async function NotificationsPage({
   if (actor.userId === null || service === null) notFound()
 
   const pageNumber = readPage(query)
+  const translator = await getTranslator()
   const [page, unread, total] = await Promise.all([
-    service.list(actor.userId, { offset: offsetOf(pageNumber, NOTIFICATIONS_PAGE_SIZE) }),
+    service.list(
+      actor.userId,
+      { offset: offsetOf(pageNumber, NOTIFICATIONS_PAGE_SIZE) },
+      translator,
+    ),
     service.unreadCount(actor.userId),
     service.count(actor.userId),
   ])
-
-  const translator = await getTranslator()
 
   const view = buildNotificationCentreView({
     rows: page.rows,

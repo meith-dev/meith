@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { sourceTranslator } from '@meith/i18n'
 import {
   HOOKS,
   type HookName,
@@ -10,6 +11,7 @@ import {
   unavailablePluginUsers,
 } from '@meith/plugin-kit'
 
+import en from './messages/en.json'
 import { MARK, RECORDED, referencePlugin, resetRecorder } from './plugin'
 
 async function wiredHooks(): Promise<readonly HookName[]> {
@@ -243,6 +245,8 @@ describe('routes and pages', () => {
       path: '',
       query: {},
       boardUrl: '',
+      locale: 'en',
+      t: sourceTranslator(en),
     })
 
     expect(node).not.toBeNull()

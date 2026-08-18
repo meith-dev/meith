@@ -31,13 +31,15 @@ export default async function MessagePage({ params }: { params: Promise<{ id: st
   const detail = await service.open({ messageId, userId: actor.userId }).catch(() => null)
   if (detail === null) notFound()
 
-  const _preferences = await getViewerPreferences()
+  const [_preferences, translator] = await Promise.all([getViewerPreferences(), getTranslator()])
   const view = buildMessageView({
     detail,
-    bodyHtml: postBodyHtml(detail.message, await activeVocabulary()),
+    bodyHtml: postBodyHtml(detail.message, await activeVocabulary(), {
+      quoteAttribution: (author) => translator.t('markdown.quote.attribution', { author }),
+    }),
     viewerUserId: actor.userId,
     now: new Date(),
-    t: await getTranslator(),
+    t: translator,
   })
 
   return (

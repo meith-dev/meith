@@ -72,6 +72,21 @@ export const getTranslator = cache(async (): Promise<Translator> => {
   })
 })
 
+export async function translatorForLocale(locale: string): Promise<Translator> {
+  const settings = await getSettings()
+  const resolved = resolveLocale({
+    stored: locale,
+    accepted: null,
+    boardDefault: settings.get('display.default_locale'),
+    supported: catalogs.locales,
+  })
+
+  return createTranslator({
+    locale: resolved.locale,
+    catalog: catalogs.catalogFor(resolved.locale),
+  })
+}
+
 export const getMessageResolver = cache(async (): Promise<MessageResolver> => {
   const translator = await getTranslator()
   return (key, args) => (translator.has(key) ? translator.t(key, args) : undefined)

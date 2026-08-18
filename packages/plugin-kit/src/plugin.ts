@@ -39,7 +39,13 @@ export interface PluginSetting {
   readonly description?: string | undefined
   readonly descriptionKey?: string | undefined
   readonly type?: PluginSettingType | undefined
-  readonly options?: readonly { readonly value: string; readonly label: string }[] | undefined
+  readonly options?:
+    | readonly {
+        readonly value: string
+        readonly label: string
+        readonly labelKey?: string | undefined
+      }[]
+    | undefined
   readonly env?: string | undefined
   readonly required?: boolean | undefined
   readonly default: string | number | boolean

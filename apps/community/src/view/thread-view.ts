@@ -122,7 +122,17 @@ function post(post: PostListingRow, thread: ThreadListingRow, context: PostConte
       isOnline: false,
       fields: hidden || post.authorUserId === null ? [] : (fields.get(post.authorUserId) ?? []),
     },
-    bodyHtml: hidden ? '' : filterWords(postBodyHtml(post, context.vocabulary), context.wordFilter),
+    bodyHtml: hidden
+      ? ''
+      : filterWords(
+          postBodyHtml(post, context.vocabulary, {
+            quoteAttribution:
+              t === undefined
+                ? undefined
+                : (author) => t.t('markdown.quote.attribution', { author }),
+          }),
+          context.wordFilter,
+        ),
     postedAt: formatTime(post.createdAt, now, t),
     editedNote: editedNote(
       { editedAt: post.editedAt, editedByUsername: post.editedByUsername, reason: post.editReason },

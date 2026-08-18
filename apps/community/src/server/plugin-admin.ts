@@ -184,7 +184,10 @@ export async function pluginInventory(t?: Translator): Promise<PluginInventory> 
           overridden: overrides.has(`plugin.${entry.key}.${setting.key}`),
           source,
           set: typeof value === 'string' ? value !== '' : true,
-          options: setting.options ?? [],
+          options: (setting.options ?? []).map((option) => ({
+            value: option.value,
+            label: translated(t, option.labelKey, option.label),
+          })),
           envName: setting.env ?? null,
           problem,
         }

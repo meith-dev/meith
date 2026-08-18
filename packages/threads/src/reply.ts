@@ -169,10 +169,12 @@ export function quotePrefill(quoted: {
   readonly authorUsername: string
   readonly message: string
   readonly sourceHref?: string | null
+  readonly sourceLabel?: string
 }): string {
   return `${quoteBlock({
     author: quoted.authorUsername,
     markdown: quoted.message,
     sourceHref: quoted.sourceHref ?? null,
+    ...(quoted.sourceLabel === undefined ? {} : { sourceLabel: quoted.sourceLabel }),
   })}\n\n`
 }

@@ -105,6 +105,7 @@ import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
 import { FixturePostRepository } from './fixture-post-repo'
 import { FixtureThreadRepository } from './fixture-thread-repo'
+import { translatorForLocale } from './i18n'
 import { activeDefinitions } from './plugin-host'
 import { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_GROUP } from './seed-board'
 
@@ -294,6 +295,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
         files: drivers().files,
         images: imageProcessor,
         plugins: activeDefinitions(),
+        translatorForLocale,
       }),
       db,
     ),

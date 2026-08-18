@@ -1,0 +1,20 @@
+{
+  "reference.admin.status.summary": "{greeting} — {count, plural, one {# hook seen.} other {# hooks seen.}}",
+  "reference.admin.status.title": "Reference plugin",
+  "reference.definition.description": "Exercises every documented extension point. Installed in CI, not on a board.",
+  "reference.definition.name": "Reference plugin",
+  "reference.notification.poked.description": "Exists to exercise the notification seam end to end.",
+  "reference.notification.poked.title": "The reference plugin pokes you",
+  "reference.page.guest": "guest",
+  "reference.page.title": "Reference",
+  "reference.page.viewer": "reference-plugin page for viewer {viewer}",
+  "reference.setting.apiSecret.description": "Exists to exercise the write-only secret path.",
+  "reference.setting.apiSecret.label": "API secret",
+  "reference.setting.badgeLimit.label": "Badge limit",
+  "reference.setting.greeting.description": "Prefixed to the footer.",
+  "reference.setting.greeting.label": "Greeting",
+  "reference.setting.mode.label": "Mode",
+  "reference.setting.mode.record": "Record",
+  "reference.setting.mode.replay": "Replay",
+  "reference.setting.noisy.label": "Log every hook"
+}

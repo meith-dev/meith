@@ -64,6 +64,7 @@ export default async function ReplyPage({
         authorUsername: quoted.authorUsername,
         message: quoted.message,
         sourceHref: postLink(`/thread/${target.threadId}-${target.slug}`, quoted.id),
+        sourceLabel: await tr('markdown.quote.view-post'),
       })
     }
   }

@@ -105,7 +105,6 @@
   "packages/moderation/src/warnings.ts": 1,
   "packages/notifications/src/kinds.ts": 22,
   "packages/notifications/src/mail.ts": 2,
-  "packages/notifications/src/render.ts": 8,
   "packages/plugin-kit/src/hooks.ts": 114,
   "packages/plugin-kit/src/plugin.ts": 1,
   "packages/plugin-kit/src/regions.ts": 12,
@@ -132,7 +131,7 @@
   "plugins/dues/src/stripe/client.ts": 1,
   "plugins/dues/src/ui/admin.tsx": 3,
   "plugins/dues/src/ui/pages.tsx": 3,
-  "plugins/reference/src/plugin.tsx": 13,
+  "plugins/reference/src/plugin.tsx": 3,
   "themes/default/src/slots/forum-row.tsx": 1,
   "themes/phasebook/src/shared.tsx": 2,
   "themes/phasebook/src/slots/post-actions.tsx": 1
