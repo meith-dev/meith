@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -267,3 +268,50 @@ export const captchaQuestions = pgTable('captcha_questions', {
   enabled: boolean('enabled').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const NAVIGATION_AUDIENCES = ['all', 'guests', 'members', 'staff'] as const
+
+export const navigationItems = pgTable(
+  'navigation_items',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    key: text('key'),
+    parentId: integer('parent_id'),
+    label: text('label').notNull().default(''),
+    href: text('href').notNull(),
+    displayOrder: integer('display_order').notNull().default(0),
+    audience: text('audience').notNull().default('all'),
+    newTab: boolean('new_tab').notNull().default(false),
+    enabled: boolean('enabled').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('navigation_items_key_key').on(t.key).where(sql`${t.key} is not null`),
+    index('navigation_items_order_idx').on(t.parentId, t.displayOrder, t.id),
+    foreignKey({
+      columns: [t.parentId],
+      foreignColumns: [t.id],
+      name: 'navigation_items_parent_id_fk',
+    }).onDelete('cascade'),
+    check(
+      'navigation_items_audience_check',
+      sql`${t.audience} in ('all', 'guests', 'members', 'staff')`,
+    ),
+  ],
+)
+
+export const navigationItemGroups = pgTable(
+  'navigation_item_groups',
+  {
+    itemId: integer('item_id')
+      .notNull()
+      .references(() => navigationItems.id, { onDelete: 'cascade' }),
+    groupId: integer('group_id')
+      .notNull()
+      .references(() => usergroups.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.itemId, t.groupId] }),
+    index('navigation_item_groups_group_idx').on(t.groupId),
+  ],
+)

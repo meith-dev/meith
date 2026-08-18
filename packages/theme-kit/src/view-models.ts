@@ -134,6 +134,27 @@ export interface LinkModel {
    * business. Absent everywhere is the normal case and renders as one run.
    */
   readonly group?: string
+  /**
+   * Whether the link leaves the board, and should open in its own tab (0.16).
+   *
+   * Set by the app for a link an administrator marked as off-site — a chat
+   * server, a shop, a wiki. A theme that ignores it renders an ordinary link
+   * and is still correct, which is what keeps the field additive. A theme that
+   * honours it must pair `target="_blank"` with `rel="noopener noreferrer"`,
+   * because the opened page can otherwise reach back through `window.opener`.
+   */
+  readonly newTab?: boolean
+  /**
+   * Links that belong under this one, for a menu that opens a level (0.16).
+   *
+   * One level only: the app never nests a submenu inside a submenu, so a theme
+   * that renders one level renders every menu there is. Absent is the normal
+   * case. A theme that ignores it drops those links from the page entirely
+   * rather than flattening them, so a theme meaning to support the board
+   * navigation should render them — under `:hover` and `:focus-within`, both,
+   * because a menu that only opens to a mouse is closed to a keyboard.
+   */
+  readonly submenu?: readonly LinkModel[]
 }
 
 /** Who is looking. The only actor data a theme is given. */

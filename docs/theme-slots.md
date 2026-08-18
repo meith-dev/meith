@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.15.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
+**theme-kit v0.16.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -632,6 +632,8 @@ A link out of an authentication page, with the sentence that introduces it. "New
 | `label` | `string` | from `LinkModel` |
 | `href` | `string` | from `LinkModel` |
 | `group` | `string` | from `LinkModel` — optional — Which run of links this one belongs to, for themes that separate them. Compare it for *change*, never for value: a theme draws a rule wherever consecutive links disagree, and the strings themselves stay the app's business. Absent everywhere is the normal case and renders as one run. |
+| `newTab` | `boolean` | from `LinkModel` — optional — Whether the link leaves the board, and should open in its own tab (0.16). Set by the app for a link an administrator marked as off-site — a chat server, a shop, a wiki. A theme that ignores it renders an ordinary link and is still correct, which is what keeps the field additive. A theme that honours it must pair `target="_blank"` with `rel="noopener noreferrer"`, because the opened page can otherwise reach back through `window.opener`. |
+| `submenu` | `readonly LinkModel[]` | from `LinkModel` — optional — Links that belong under this one, for a menu that opens a level (0.16). One level only: the app never nests a submenu inside a submenu, so a theme that renders one level renders every menu there is. Absent is the normal case. A theme that ignores it drops those links from the page entirely rather than flattening them, so a theme meaning to support the board navigation should render them — under `:hover` and `:focus-within`, both, because a menu that only opens to a mouse is closed to a keyboard. |
 | `lead` | `string \| null` |  |
 
 ### CountModel
@@ -740,6 +742,8 @@ A resolved link. Themes never build hrefs; the app owns URL shape.
 | `label` | `string` |  |
 | `href` | `string` |  |
 | `group` | `string` | optional — Which run of links this one belongs to, for themes that separate them. Compare it for *change*, never for value: a theme draws a rule wherever consecutive links disagree, and the strings themselves stay the app's business. Absent everywhere is the normal case and renders as one run. |
+| `newTab` | `boolean` | optional — Whether the link leaves the board, and should open in its own tab (0.16). Set by the app for a link an administrator marked as off-site — a chat server, a shop, a wiki. A theme that ignores it renders an ordinary link and is still correct, which is what keeps the field additive. A theme that honours it must pair `target="_blank"` with `rel="noopener noreferrer"`, because the opened page can otherwise reach back through `window.opener`. |
+| `submenu` | `readonly LinkModel[]` | optional — Links that belong under this one, for a menu that opens a level (0.16). One level only: the app never nests a submenu inside a submenu, so a theme that renders one level renders every menu there is. Absent is the normal case. A theme that ignores it drops those links from the page entirely rather than flattening them, so a theme meaning to support the board navigation should render them — under `:hover` and `:focus-within`, both, because a menu that only opens to a mouse is closed to a keyboard. |
 
 ### LogoModel
 
@@ -1032,5 +1036,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.15. Nothing can be: this is the first
+Nothing is deprecated in v0.16. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

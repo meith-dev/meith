@@ -10,18 +10,17 @@ import { getContainer } from '@/server/container'
 import { getTranslator } from '@/server/i18n'
 import { legalFooterLinks } from '@/server/legal'
 import { unreadMessageCount } from '@/server/messages'
+import { boardNavigation } from '@/server/navigation'
 import { unreadNotificationCount } from '@/server/notifications'
 import { boardRegion, filterView, viewerRef } from '@/server/plugin-view'
 import { touchCurrentLocation } from '@/server/presence'
 import { registrationOpen } from '@/server/registration'
 import { touchActivity } from '@/server/relations'
-import { searchEnabled } from '@/server/search'
 import { getSettings } from '@/server/settings'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildForumJumpModel } from '@/view/forum-jump'
 import {
-  buildBoardNavigation,
   buildFooterModel,
   buildHeaderModel,
   buildUserPanelModel,
@@ -69,10 +68,7 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
   })
   const header = buildHeaderModel(
     viewer,
-    buildBoardNavigation(viewer, {
-      searchEnabled: await searchEnabled(),
-      t: await getTranslator(),
-    }),
+    await boardNavigation(actor, viewer),
     boardTitle,
     await currentLogo(boardTitle),
   )
