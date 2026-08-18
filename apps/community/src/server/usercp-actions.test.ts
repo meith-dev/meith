@@ -30,9 +30,19 @@ vi.mock('./session-cookies', () => ({
 }))
 
 const mailRef: { current: Array<{ email: string; token: string }> } = { current: [] }
+const noticeRef: {
+  current: Array<{ stage: string; previousEmail: string; email: string }>
+} = { current: [] }
 vi.mock('./usercp-mail', () => ({
   sendEmailChangeConfirmation: async (input: { email: string; token: string }) => {
     mailRef.current.push(input)
+  },
+  sendEmailChangeNotice: async (input: { stage: string; previousEmail: string; email: string }) => {
+    noticeRef.current.push({
+      stage: input.stage,
+      previousEmail: input.previousEmail,
+      email: input.email,
+    })
   },
 }))
 
@@ -150,6 +160,7 @@ beforeEach(async () => {
   settings = new FakeSettings()
   cookieRef.current = []
   mailRef.current = []
+  noticeRef.current = []
   actorRef.current = await actorFor(SEED_GROUP.registered, 1)
   await install()
 }, 30_000)
@@ -356,6 +367,20 @@ describe('changing the e-mail address', () => {
     expect(settings.row.email).toBe('ivan@example.test')
   }, 30_000)
 
+  it('tells the old address a change was asked for', async () => {
+    await run(
+      requestEmailChangeAction,
+      form([
+        ['currentPassword', PASSWORD],
+        ['newEmail', 'new@example.test'],
+      ]),
+    )
+
+    expect(noticeRef.current).toEqual([
+      { stage: 'requested', previousEmail: 'ivan@example.test', email: 'new@example.test' },
+    ])
+  }, 30_000)
+
   it('refuses without the current password, and sends nothing', async () => {
     const result = await run(
       requestEmailChangeAction,
@@ -367,5 +392,6 @@ describe('changing the e-mail address', () => {
 
     expect(result.error).toContain('not your current password')
     expect(mailRef.current).toEqual([])
+    expect(noticeRef.current).toEqual([])
   }, 30_000)
 })

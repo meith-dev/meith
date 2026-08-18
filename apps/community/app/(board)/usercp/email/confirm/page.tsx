@@ -6,7 +6,8 @@ import { MemberSettingsService } from '@meith/accounts'
 import { recordAuthEvent } from '@/server/auth-events'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
+import { sendEmailChangeNotice } from '@/server/usercp-mail'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.confirm-e-mail-address') }
@@ -37,6 +38,12 @@ export default async function ConfirmEmailPage({
         }).confirmEmailChange(token)
 
   if (outcome !== null) {
+    await sendEmailChangeNotice({
+      stage: 'adopted',
+      previousEmail: outcome.previousEmail,
+      email: outcome.email,
+      t: await getTranslator(),
+    })
     await recordAuthEvent({ userId: actor.userId, kind: 'email_changed' })
   }
 

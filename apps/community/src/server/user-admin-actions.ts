@@ -13,8 +13,10 @@ import { getContainer } from './container'
 import { assertDemoAccountChangeable, assertDemoIdentityUnchanged } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
+import { getTranslator } from './i18n'
 import { clearMemberSecondFactor } from './two-factor'
 import { banService, requireUserAdmin, requireUserBulk, requireUserMerge } from './user-admin'
+import { sendEmailChangeNotice } from './usercp-mail'
 
 const MERGE_CHUNK = 500
 
@@ -71,6 +73,12 @@ export async function saveMemberAccountAction(
     await recordAdminAction({ action: 'user.account_changed', detail: { userId: id } })
 
     if (before !== null && before.email !== email) {
+      await sendEmailChangeNotice({
+        stage: 'adopted',
+        previousEmail: before.email,
+        email,
+        t: await getTranslator(),
+      })
       await recordStaffAuthEvent({ userId: id, kind: 'email_changed' })
     }
 

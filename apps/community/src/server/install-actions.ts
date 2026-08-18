@@ -84,7 +84,10 @@ export async function installAction(
     }
   }
 
-  const report = await runInstall(parsed.value)
+  const run = await runInstall(parsed.value)
+  if ('sealed' in run) redirect('/')
+
+  const { report } = run
   const failure = firstFailure(report)
 
   if (failure !== null) {
@@ -92,7 +95,7 @@ export async function installAction(
       failedStep: {
         id: failure.id,
         title: t.t(stepTitleKey(failure.id)),
-        error: failure.error ?? t.t('installAction.unknownFailure'),
+        error: translatedFailure(failure.error, t),
       },
       errors: translatedErrors(fieldErrorsFromReport(report), t),
       report,
@@ -101,6 +104,14 @@ export async function installAction(
   }
 
   redirect('/login?installed=1')
+}
+
+function translatedFailure(
+  error: string | undefined,
+  t: Awaited<ReturnType<typeof getTranslator>>,
+) {
+  if (error === undefined) return t.t('installAction.unknownFailure')
+  return t.has(error) ? t.t(error) : error
 }
 
 function translatedErrors(

@@ -236,7 +236,7 @@ export class MemberSettingsService {
     readonly userId: number
     readonly currentPassword: string
     readonly newEmail: string
-  }): Promise<{ token: string; email: string; expiresAt: Date }> {
+  }): Promise<{ token: string; email: string; previousEmail: string; expiresAt: Date }> {
     const account = await this.requireVerified(input.userId, input.currentPassword)
 
     const email = input.newEmail.trim()
@@ -266,12 +266,17 @@ export class MemberSettingsService {
       expiresAt,
     })
 
-    return { token, email, expiresAt }
+    return { token, email, previousEmail: account.email, expiresAt }
   }
 
-  async confirmEmailChange(token: string): Promise<{ email: string } | null> {
+  async confirmEmailChange(
+    token: string,
+  ): Promise<{ email: string; previousEmail: string } | null> {
     const consumed = await this.tokens.consume(await hashToken(token), 'email_change', this.now())
     if (consumed === null || consumed.payload === null) return null
+
+    const account = await this.accounts.findById(consumed.userId)
+    if (account === null) return null
 
     const email = consumed.payload
     const adopted = await this.settings.adoptEmail({
@@ -280,7 +285,7 @@ export class MemberSettingsService {
       emailLower: foldIdentifier(email),
     })
 
-    return adopted ? { email } : null
+    return adopted ? { email, previousEmail: account.email } : null
   }
 
   private async requireVerified(userId: number, currentPassword: string) {

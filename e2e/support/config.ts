@@ -10,6 +10,8 @@ export const STAFF = {
   moderator: { id: 9002, username: 'e2e_moderator' },
 } as const
 
+export const E2E_TICK_SECRET = 'e2e-only-tick-secret-000000000000'
+
 export const E2E_DATABASE_URL = `postgres://postgres:postgres@127.0.0.1:${E2E_DB_PORT}/postgres`
 
 export const E2E_INSTALL_DB_PORT = 55_433

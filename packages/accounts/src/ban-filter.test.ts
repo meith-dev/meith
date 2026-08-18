@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import { ValidationError } from '@meith/core'
 
-import { assertUsableFilter, type BanFilter, matchBanFilter } from './ban-filter'
+import {
+  assertUsableFilter,
+  BAN_FILTER_PATTERN_MAX,
+  BAN_FILTER_WILDCARD_MAX,
+  type BanFilter,
+  matchBanFilter,
+} from './ban-filter'
 
 function filter(type: BanFilter['type'], pattern: string, id = 1): BanFilter {
   return { id, type, pattern }
@@ -94,5 +100,59 @@ describe('assertUsableFilter', () => {
 
   it('rejects an unknown type', () => {
     expect(() => assertUsableFilter('nickname' as 'username', 'x')).toThrow(ValidationError)
+  })
+
+  it('rejects a pattern longer than the cap', () => {
+    expect(() => assertUsableFilter('username', 'a'.repeat(BAN_FILTER_PATTERN_MAX))).not.toThrow()
+    expect(() => assertUsableFilter('username', 'a'.repeat(BAN_FILTER_PATTERN_MAX + 1))).toThrow(
+      ValidationError,
+    )
+  })
+
+  it('rejects a pattern carrying more wildcards than the cap', () => {
+    const allowed = `${'a*'.repeat(BAN_FILTER_WILDCARD_MAX)}b`
+    expect(() => assertUsableFilter('username', allowed)).not.toThrow()
+    expect(() =>
+      assertUsableFilter('username', `${'a*'.repeat(BAN_FILTER_WILDCARD_MAX + 1)}b`),
+    ).toThrow(ValidationError)
+  })
+
+  it('counts ? against the wildcard cap too', () => {
+    expect(() => assertUsableFilter('username', '?'.repeat(BAN_FILTER_WILDCARD_MAX + 1))).toThrow(
+      ValidationError,
+    )
+  })
+
+  it('measures the pattern the matcher will see, not the one that was typed', () => {
+    expect(() => assertUsableFilter('username', 'İ'.repeat(BAN_FILTER_PATTERN_MAX))).toThrow(
+      ValidationError,
+    )
+  })
+
+  it('counts characters rather than code units, so an emoji is one', () => {
+    expect(() => assertUsableFilter('username', '🙂'.repeat(BAN_FILTER_PATTERN_MAX))).not.toThrow()
+  })
+})
+
+describe('matching stays linear', () => {
+  it('answers a classic catastrophic-backtracking pattern promptly', () => {
+    const pattern = `${'a*'.repeat(BAN_FILTER_WILDCARD_MAX)}b`
+    const value = 'a'.repeat(5_000)
+
+    const started = process.hrtime.bigint()
+    expect(matchBanFilter([filter('username', pattern)], { username: value })).toBeNull()
+    const elapsedMs = Number(process.hrtime.bigint() - started) / 1_000_000
+
+    expect(elapsedMs).toBeLessThan(1_000)
+  })
+
+  it('ignores a stored pattern that outgrew the caps', () => {
+    const overlong = `${'a'.repeat(BAN_FILTER_PATTERN_MAX + 1)}*`
+    expect(
+      matchBanFilter([filter('username', overlong)], { username: `${'a'.repeat(300)}x` }),
+    ).toBeNull()
+
+    const wild = '*'.repeat(BAN_FILTER_WILDCARD_MAX + 1) + 'x'
+    expect(matchBanFilter([filter('username', wild)], { username: 'ax' })).toBeNull()
   })
 })

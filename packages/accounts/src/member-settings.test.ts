@@ -436,6 +436,16 @@ describe('changing the e-mail address', () => {
     expect(settings.row.email).toBe('ivan@example.test')
   }, 20_000)
 
+  it('names the address being left, so the old one can be told', async () => {
+    const pending = await service.requestEmailChange({
+      userId: 7,
+      currentPassword: PASSWORD,
+      newEmail: 'new@example.test',
+    })
+
+    expect(pending.previousEmail).toBe('ivan@example.test')
+  }, 20_000)
+
   it('requires the current password', async () => {
     await expect(
       service.requestEmailChange({
@@ -485,8 +495,17 @@ describe('changing the e-mail address', () => {
 
     expect(await service.confirmEmailChange('a-token')).toEqual({
       email: 'new@example.test',
+      previousEmail: 'ivan@example.test',
     })
     expect(settings.adopted).toEqual([{ userId: 7, email: 'new@example.test' }])
+  })
+
+  it('names the address left behind, so it can be told the change went through', async () => {
+    tokens.redeemable = { userId: 7, payload: 'new@example.test' }
+
+    const outcome = await service.confirmEmailChange('a-token')
+
+    expect(outcome?.previousEmail).toBe('ivan@example.test')
   })
 
   it('does nothing on a second click', async () => {

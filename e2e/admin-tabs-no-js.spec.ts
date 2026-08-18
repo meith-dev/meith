@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
 
 import { STAFF, STAFF_PASSWORD } from './support/config'
-import { enterAdminPanel, PASSWORD, signIn, signUp } from './support/session'
+import { enterAdminPanel, PASSWORD, runTick, signIn, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
@@ -737,7 +737,7 @@ test('the system screen reports the scheduler, the volumes and its own sweeps', 
 }) => {
   await enterAdminPanel(page)
 
-  await request.get('/api/system/tick?secret=e2e-only-tick-secret-000000000000')
+  await runTick(request)
   await page.goto('/admin/system')
 
   const tasks = page.locator('section').filter({ hasText: 'Scheduled tasks' }).last()
@@ -776,7 +776,7 @@ test('the system screen reports the scheduler, the volumes and its own sweeps', 
 test('the overview counts the board it is looking at', async ({ page, request }) => {
   await enterAdminPanel(page)
 
-  await request.get('/api/system/tick?secret=e2e-only-tick-secret-000000000000')
+  await runTick(request)
   await page.goto('/admin')
 
   const totals = page.locator('section[aria-labelledby="totals-heading"]')

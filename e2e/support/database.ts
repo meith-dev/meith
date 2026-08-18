@@ -324,7 +324,7 @@ if (invokedDirectly) {
 
   void (async () => {
     const { stop } = await startDatabase(
-      empty ? { seeded: false, port: E2E_INSTALL_DB_PORT, maxConnections: 2 } : {},
+      empty ? { seeded: false, port: E2E_INSTALL_DB_PORT, maxConnections: 3 } : {},
     )
     // biome-ignore lint/suspicious/noConsole: this is a process; its output is its status
     console.log(

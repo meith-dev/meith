@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 
 import { samplePng } from './support/png'
-import { signInAsModerator, signUp } from './support/session'
+import { runTick, signInAsModerator, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
@@ -82,7 +82,7 @@ test('a member takes their avatar down again', async ({ page, request }) => {
 
   const shown = page.locator('img[alt="Your avatar"]')
   await expect(async () => {
-    await request.get('/api/system/tick?secret=e2e-only-tick-secret-000000000000')
+    await runTick(request)
     await page.goto('/usercp/avatar')
     await expect(shown).toBeVisible({ timeout: 2_000 })
   }).toPass({ timeout: 90_000, intervals: [1_000, 2_000, 5_000, 10_000] })

@@ -23,7 +23,7 @@ import { getTranslator, tr } from './i18n'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
 import { setSessionCookie } from './session-cookies'
 import { signatureStore, viewerSignatureLimits } from './signatures'
-import { sendEmailChangeConfirmation } from './usercp-mail'
+import { sendEmailChangeConfirmation, sendEmailChangeNotice } from './usercp-mail'
 
 const toFormState = formStateReporter('usercp-actions', 'unexpected error in the UserCP')
 
@@ -137,7 +137,7 @@ export async function requestEmailChangeAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
-  let pending: { token: string; email: string; userId: number }
+  let pending: { token: string; email: string; previousEmail: string; userId: number }
   try {
     const { service, userId } = await requireOwnSettings()
 
@@ -155,7 +155,14 @@ export async function requestEmailChangeAction(
     return toFormState(err)
   }
 
-  await sendEmailChangeConfirmation({ ...pending, t: await getTranslator() }).catch(() => undefined)
+  const t = await getTranslator()
+  await sendEmailChangeConfirmation({ ...pending, t }).catch(() => undefined)
+  await sendEmailChangeNotice({
+    stage: 'requested',
+    previousEmail: pending.previousEmail,
+    email: pending.email,
+    t,
+  })
   await recordAuthEvent({ userId: pending.userId, kind: 'email_change_requested' })
 
   redirect('/usercp/security?sent=1')
