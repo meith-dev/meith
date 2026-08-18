@@ -18,11 +18,11 @@ the last recorded run measured against a full-scale board.
 | Posts | 2,343,847 |
 | Threads | 100,030 |
 | Longest thread | 14,741 posts |
-| Visibility | 23,438 deleted, 23,438 unapproved, 2,296,971 visible |
+| Visibility | 21,012 deleted, 21,012 unapproved, 2,301,823 visible |
 | Iterations | 60 per scenario, 8 discarded |
-| Machine | 4× Intel(R) Xeon(R) Processor @ 2.80GHz, 16 GB |
+| Machine | 4× Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB |
 | Runtime | Node v22.22.2 on linux-x64 |
-| Measured | 2026-08-04 |
+| Measured | 2026-08-18 |
 
 The absolute numbers belong to that machine. What travels between machines
 is the **shape**: which scenarios sit near their budget, and whether a deep
@@ -32,16 +32,16 @@ page costs more than a first page. Compare ratios, not milliseconds.
 
 | Page | Budget | | Measured p95 | p50 | p99 | Used |
 |---|---:|---|---:|---:|---:|---:|
-| Thread, page 1 | 50 ms | target | 3.3 ms | 1.8 ms | 10.3 ms | 7% |
-| Thread, deep page | 60 ms | target | 4.7 ms | 3.6 ms | 7.1 ms | 8% |
-| Forum, page 1 | 50 ms | target | 6.2 ms | 4.7 ms | 8.4 ms | 12% |
-| Forum, deep page | 60 ms | target | 5.0 ms | 3.6 ms | 6.5 ms | 8% |
-| Board index | 80 ms | target | 1.6 ms | 1.2 ms | 3.1 ms | 2% |
-| Permission filter | 40 ms | target | 5.9 ms | 3.6 ms | 6.6 ms | 15% |
-| Latest threads | 150 ms | target | 44.3 ms | 31.7 ms | 47.6 ms | 30% |
-| Search, near-universal term | 300 ms | target | 95.2 ms | 85.3 ms | 110.9 ms | 32% |
-| Search, rare term | 200 ms | target | 35.3 ms | 15.3 ms | 37.3 ms | 18% |
-| Member profile | 60 ms | target | 1.8 ms | 1.3 ms | 3.4 ms | 3% |
+| Thread, page 1 | 50 ms | target | 2.9 ms | 2.1 ms | 4.1 ms | 6% |
+| Thread, deep page | 60 ms | target | 9.8 ms | 6.3 ms | 11.1 ms | 16% |
+| Forum, page 1 | 50 ms | target | 6.3 ms | 4.4 ms | 7.0 ms | 13% |
+| Forum, deep page | 60 ms | target | 4.6 ms | 3.2 ms | 5.4 ms | 8% |
+| Board index | 80 ms | target | 1.5 ms | 1.1 ms | 2.7 ms | 2% |
+| Permission filter | 40 ms | target | 4.6 ms | 3.2 ms | 7.6 ms | 11% |
+| Latest threads | 150 ms | target | 36.3 ms | 27.5 ms | 60.1 ms | 24% |
+| Search, near-universal term | 300 ms | target | 57.0 ms | 49.9 ms | 78.6 ms | 19% |
+| Search, rare term | 200 ms | target | 43.1 ms | 26.3 ms | 53.5 ms | 22% |
+| Member profile | 60 ms | target | 1.4 ms | 1.1 ms | 2.8 ms | 2% |
 
 ## Partial visible indexes
 
@@ -56,11 +56,11 @@ onto a sequential scan of the largest table on the board. Nothing errors.
 
 | Page | Index | Used | Warm |
 |---|---|---|---:|
-| Forum listing, as a member | `threads_forum_listing_idx` | yes | 2.7 ms |
-| Forum listing, as a moderator | `threads_forum_listing_all_idx` | yes | 2.9 ms |
+| Forum listing, as a member | `threads_forum_listing_idx` | yes | 1.9 ms |
+| Forum listing, as a moderator | `threads_forum_listing_all_idx` | yes | 1.8 ms |
 | Thread page, as a member | `posts_thread_visible_idx` | yes | 0.0 ms |
 | Thread page, as a moderator | `posts_thread_all_idx` | yes | 0.0 ms |
-| Moderation queue | `posts_forum_visibility_idx` | yes | 1.2 ms |
+| Moderation queue | `posts_forum_visibility_idx` | yes | 1.4 ms |
 
 Each partial index has an unfiltered twin, and the twins are checked too. A
 moderator seeing unapproved and deleted content *cannot* use the partial
