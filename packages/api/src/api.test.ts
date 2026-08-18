@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  ANONYMOUS_WINDOW,
   type ApiTokenRecord,
   type ApiTokenRepository,
   authenticateToken,
   bearerFrom,
+  consumeAnonymousRateLimit,
   consumeRateLimit,
   DEFAULT_WINDOW,
   hashTokenSecret,
@@ -15,6 +17,7 @@ import {
   matchRoute,
   parseToken,
   ROUTES,
+  type RouteSpec,
   rateLimitHeaders,
   routeKey,
   SCOPES,
@@ -160,9 +163,10 @@ describe('authenticating a token', () => {
 describe('scopes', () => {
   it('recognises exactly the declared set', () => {
     expect(isScope('posts:write')).toBe(true)
+    expect(isScope('threads:write')).toBe(true)
     expect(isScope('posts:delete')).toBe(false)
-    expect(isScope('threads:write')).toBe(false)
     expect(isScope('admin:read')).toBe(false)
+    expect(isScope('moderation:write')).toBe(false)
   })
 
   it('answers only for the scopes a token carries', () => {
@@ -278,5 +282,79 @@ describe('the rate limit', () => {
   it('never reports a negative remaining budget', async () => {
     const headers = rateLimitHeaders(await consumeRateLimit(storeReturning(900), 1, 1, NOW))
     expect(headers['x-ratelimit-remaining']).toBe('0')
+  })
+})
+
+describe('reading without a token', () => {
+  it('opens only reads to an unauthenticated caller', () => {
+    for (const route of ROUTES.filter((candidate) => !candidate.authenticated)) {
+      expect(route.method).toBe('GET')
+    }
+  })
+
+  it('keeps every write behind a token', () => {
+    for (const route of ROUTES.filter((candidate) => candidate.method !== 'GET')) {
+      expect(route.authenticated).toBe(true)
+    }
+  })
+
+  it('keeps the token’s own identity behind a token', () => {
+    expect(ROUTES.find((route) => route.path === '/me')?.authenticated).toBe(true)
+  })
+
+  it('opens something, or the anonymous surface is a claim and not a feature', () => {
+    expect(ROUTES.filter((route) => !route.authenticated).length).toBeGreaterThan(0)
+  })
+
+  it('meters an anonymous caller against a smaller budget than a token', () => {
+    expect(ANONYMOUS_WINDOW.budget).toBeLessThan(DEFAULT_WINDOW.budget)
+  })
+
+  it('charges the declared cost against the caller’s subject, not their token', async () => {
+    const consume = vi.fn(async () => 10)
+    await consumeAnonymousRateLimit({ consume }, '203.0.113.0', 10, NOW)
+    expect(consume).toHaveBeenCalledWith('203.0.113.0', windowStart(NOW, ANONYMOUS_WINDOW), 10)
+  })
+
+  it('refuses the anonymous caller who goes over', async () => {
+    const outcome = await consumeAnonymousRateLimit(
+      { consume: async () => ANONYMOUS_WINDOW.budget + 1 },
+      '203.0.113.0',
+      1,
+      NOW,
+    )
+    expect(outcome.allowed).toBe(false)
+    expect(outcome.budget).toBe(ANONYMOUS_WINDOW.budget)
+  })
+})
+
+describe('the declared schemas', () => {
+  it('describes a request body for every write', () => {
+    for (const route of ROUTES.filter((candidate) => candidate.method !== 'GET')) {
+      if (route.method === 'DELETE') continue
+      expect(route.request).toBeDefined()
+    }
+  })
+
+  it('describes a response for every route', () => {
+    for (const route of ROUTES) {
+      expect(route.response.status).toBeGreaterThanOrEqual(200)
+      expect(route.response.schema).toBeDefined()
+    }
+  })
+
+  it('names every path parameter the path declares', () => {
+    for (const route of ROUTES as readonly RouteSpec[]) {
+      const declared = route.path
+        .split('/')
+        .filter((part) => part.startsWith(':'))
+        .map((part) => part.slice(1))
+
+      const described = (route.params ?? [])
+        .filter((param) => param.in === 'path')
+        .map((param) => param.name)
+
+      expect([...described].sort()).toEqual([...declared].sort())
+    }
   })
 })

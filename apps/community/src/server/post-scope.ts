@@ -1,10 +1,12 @@
 import 'server-only'
 
-import type { EditCapabilities, PostWriteRepository } from '@meith/posts'
+import type { Actor } from '@meith/authorization'
+import { type EditCapabilities, PostEditor, type PostWriteRepository } from '@meith/posts'
 
 import { getContainer } from './container'
 import { getActor } from './context'
 import { moderatorTargetFor } from './modcp'
+import { getSettings } from './settings'
 
 export interface PostManageScope {
   readonly target: NonNullable<Awaited<ReturnType<PostWriteRepository['findEditTarget']>>>
@@ -19,8 +21,9 @@ export interface PostManageScope {
 export async function resolvePostScope(
   threadId: number,
   postId: number,
+  viewer?: Actor,
 ): Promise<PostManageScope | null> {
-  const actor = await getActor()
+  const actor = viewer ?? (await getActor())
   const { authorizer, postWrites } = getContainer()
   if (postWrites === null) return null
 
@@ -57,4 +60,16 @@ export async function resolvePostScope(
       bypassesModeration: moderates,
     },
   }
+}
+
+export async function postEditor(posts: PostWriteRepository): Promise<PostEditor> {
+  const settings = await getSettings()
+
+  return new PostEditor({
+    posts,
+    config: {
+      maxLength: settings.get('posting.max_length'),
+      editGraceSeconds: settings.get('posting.edit_grace_seconds'),
+    },
+  })
 }

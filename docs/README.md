@@ -64,7 +64,12 @@ bare server to a board on your own domain in about twenty minutes.
 
 | Document | What it covers |
 |---|---|
-| [`rest-api.md`](./rest-api.md) | Every endpoint, scope and rate limit. *Generated — do not edit.* |
+| [`rest-api.md`](./rest-api.md) | Every endpoint, scope and rate limit, and which of them answer without a token. *Generated — do not edit.* |
+
+The machine-readable form is `docs/openapi.json`, an OpenAPI 3 document with a
+schema for every request and response. A board serves the same document live at
+`/api/v1/openapi.json`. It is generated too, from the same registry, and
+generators should be pointed at it rather than at the table above.
 
 ## Migrating from MyBB
 
@@ -86,13 +91,14 @@ are covered in [Running a board](./operating.md).
 
 ## Generated references
 
-Four documents are generated from the code they describe and must not be edited
+Five documents are generated from the code they describe and must not be edited
 by hand:
 
 ```sh
 pnpm theme:docs      # docs/theme-slots.md   — from the slot registry
 pnpm plugin:docs     # docs/plugin-hooks.md  — from the hook registry
-pnpm api:docs        # docs/rest-api.md      — from the route registry
+pnpm api:docs        # docs/openapi.json     — from the route registry
+                     # docs/rest-api.md      — from that OpenAPI document
 pnpm perf:docs       # docs/performance.md   — from the last load run
 ```
 

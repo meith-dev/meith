@@ -5,8 +5,14 @@ export interface RateLimitWindow {
 
 export const DEFAULT_WINDOW: RateLimitWindow = { seconds: 300, budget: 600 }
 
+export const ANONYMOUS_WINDOW: RateLimitWindow = { seconds: 300, budget: 120 }
+
 export interface RateLimitStore {
   consume(tokenId: number, windowStart: Date, cost: number): Promise<number>
+}
+
+export interface AnonymousRateLimitStore {
+  consume(subject: string, windowStart: Date, cost: number): Promise<number>
 }
 
 export interface RateLimitOutcome {
@@ -45,5 +51,24 @@ export function rateLimitHeaders(outcome: RateLimitOutcome): Record<string, stri
     'x-ratelimit-limit': String(outcome.budget),
     'x-ratelimit-remaining': String(Math.max(0, outcome.budget - outcome.used)),
     'x-ratelimit-reset': String(outcome.resetSeconds),
+  }
+}
+
+export async function consumeAnonymousRateLimit(
+  store: AnonymousRateLimitStore,
+  subject: string,
+  cost: number,
+  now: Date,
+  window: RateLimitWindow = ANONYMOUS_WINDOW,
+): Promise<RateLimitOutcome> {
+  const start = windowStart(now, window)
+  const used = await store.consume(subject, start, cost)
+  const elapsed = Math.floor((now.getTime() - start.getTime()) / 1000)
+
+  return {
+    allowed: used <= window.budget,
+    used,
+    budget: window.budget,
+    resetSeconds: Math.max(1, window.seconds - elapsed),
   }
 }

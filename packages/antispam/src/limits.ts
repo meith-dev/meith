@@ -1,7 +1,7 @@
 export const RATE_LIMIT_SCOPES = ['post', 'search', 'message', 'report', 'upload'] as const
 export type ConfiguredRateLimitScope = (typeof RATE_LIMIT_SCOPES)[number]
 
-export const FIXED_RATE_LIMIT_SCOPES = ['verify_resend'] as const
+export const FIXED_RATE_LIMIT_SCOPES = ['verify_resend', 'api_anon'] as const
 export type FixedRateLimitScope = (typeof FIXED_RATE_LIMIT_SCOPES)[number]
 
 export const AUTH_RATE_LIMIT_SCOPES = ['reset', 'reset_ip', 'register_ip'] as const

@@ -1,5 +1,6 @@
 import 'server-only'
 
+import type { Actor } from '@meith/authorization'
 import type { RaterLimits, ReputationSettings } from '@meith/reputation'
 import { ReputationService } from '@meith/reputation'
 
@@ -22,8 +23,8 @@ export async function reputationSettings(): Promise<ReputationSettings> {
   }
 }
 
-export async function viewerRaterLimits(): Promise<RaterLimits> {
-  const actor = await getActor()
+export async function viewerRaterLimits(viewer?: Actor): Promise<RaterLimits> {
+  const actor = viewer ?? (await getActor())
   const { authorizer, memberProfiles } = getContainer()
 
   if (actor.userId === null) return { canGive: false, maxPerDay: 0, postCount: 0 }

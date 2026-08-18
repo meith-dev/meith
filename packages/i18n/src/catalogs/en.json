@@ -2147,7 +2147,6 @@
   "notice.app.board-running-in-memory-sample-data-3": "This board is running on in-memory sample data, so it has no thread tools.",
   "notice.app.board-running-in-memory-sample-data-4": "This board is running on in-memory sample data, so it has no moderation tools.",
   "notice.app.board-running-in-memory-sample-data-5": "This board is running on in-memory sample data, so it cannot take reports.",
-  "notice.app.board-running-in-memory-sample-data-6": "This board is running on in-memory sample data, so it cannot accept posts.",
   "notice.app.board-running-in-memory-sample-data-7": "This board is running on in-memory sample data, so it cannot accept edits.",
   "notice.app.board-running-in-memory-sample-data-8": "This board is running on in-memory sample data, so it cannot accept changes.",
   "notice.app.board-working-mail-configuration-there": "This board has no working mail configuration, so there is nothing to test. ",

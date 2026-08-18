@@ -2,54 +2,39 @@ import type { NextRequest } from 'next/server'
 
 import {
   bearerFrom,
+  consumeAnonymousRateLimit,
   consumeRateLimit,
   hasScope,
-  idParam,
+  type Method,
   matchRoute,
-  ROUTES,
+  type RateLimitOutcome,
   type RouteSpec,
   rateLimitHeaders,
+  routeKey,
 } from '@meith/api'
+import type { Actor } from '@meith/authorization'
 import { isAppError, statusForError, toPublicError } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
-import { canHoldThreads } from '@meith/forums'
-import { sourceAsMarkdown } from '@meith/markdown'
-import {
-  isRunnable,
-  parseSearchInput,
-  readGrouping,
-  readMatch,
-  readPeriod,
-  readSort,
-  type SearchCursor,
-  searchQueryFrom,
-} from '@meith/search'
-import type { ThreadCursor } from '@meith/threads'
 
-import { apiActor, apiToken } from '@/server/api-auth'
-import { getContainer } from '@/server/container'
-import { activeWordFilter } from '@/server/content-admin'
-import { getMessageResolver } from '@/server/i18n'
-import { resolveReplyTarget, submitReply } from '@/server/reply-core'
+import { JSON_MEDIA_TYPE } from '@/server/api/http'
+import { handlerFor } from '@/server/api/registry'
 import {
-  requireSearch,
-  requireSearchEnabled,
-  searchMinWordLength,
-  searchScopeFor,
-} from '@/server/search'
-import { filterWords } from '@/view/word-filter'
+  type AuthenticatedToken,
+  anonymousLimits,
+  anonymousSubject,
+  apiActor,
+  apiGuest,
+  apiToken,
+} from '@/server/api-auth'
+import { boardOffline } from '@/server/board-offline'
+import { getMessageResolver } from '@/server/i18n'
 
 export const dynamic = 'force-dynamic'
-
-interface Ok {
-  readonly status: number
-  readonly body: unknown
-}
 
 function json(body: unknown, status: number, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8', ...headers },
+    headers: { 'content-type': JSON_MEDIA_TYPE, ...headers },
   })
 }
 
@@ -57,55 +42,103 @@ function fail(status: number, code: string, message: string, headers = {}): Resp
   return json({ error: { code, message, requestId: currentRequestId() ?? null } }, status, headers)
 }
 
-async function handle(request: NextRequest, method: 'GET' | 'POST'): Promise<Response> {
+interface Caller {
+  readonly actor: Actor
+  readonly authenticated: AuthenticatedToken | null
+  readonly limit: RateLimitOutcome | null
+}
+
+async function resolveCaller(
+  route: RouteSpec,
+  presented: string | null,
+): Promise<Caller | Response> {
+  if (presented !== null) {
+    const authenticated = await apiToken(presented)
+    if (authenticated === null) return fail(401, 'unauthenticated', 'That token is not valid.')
+
+    if (!hasScope(authenticated.token, route.scope)) {
+      return fail(403, 'missing_scope', `This token does not carry the "${route.scope}" scope.`)
+    }
+
+    const limit = await consumeRateLimit(
+      authenticated.limits,
+      authenticated.token.id,
+      route.cost,
+      new Date(),
+    )
+    if (!limit.allowed) return refused(limit)
+
+    const actor = await apiActor(authenticated.token.userId)
+    if (actor === null) {
+      return fail(403, 'owner_unavailable', 'The account this token belongs to cannot act.', {
+        ...rateLimitHeaders(limit),
+      })
+    }
+
+    return { actor, authenticated, limit }
+  }
+
+  if (route.authenticated) {
+    return fail(401, 'unauthenticated', 'Send a bearer token in the Authorization header.')
+  }
+
+  const store = anonymousLimits()
+  const limit =
+    store === null
+      ? null
+      : await consumeAnonymousRateLimit(store, await anonymousSubject(), route.cost, new Date())
+
+  if (limit !== null && !limit.allowed) return refused(limit)
+
+  return { actor: await apiGuest(), authenticated: null, limit }
+}
+
+function refused(limit: RateLimitOutcome): Response {
+  return fail(429, 'rate_limited', 'Too many requests. Slow down and try again.', {
+    ...rateLimitHeaders(limit),
+    'retry-after': String(limit.resetSeconds),
+  })
+}
+
+async function handle(request: NextRequest, method: Method): Promise<Response> {
   const url = new URL(request.url)
   const path = url.pathname.replace(/^\/api\/v1/, '')
 
   const matched = matchRoute(method, path)
   if (matched === null) {
-    return fail(404, 'no_such_route', 'No such endpoint. See /api/v1 for the route list.')
+    return fail(404, 'no_such_route', 'No such endpoint. See /api/v1/openapi.json for the routes.')
   }
 
-  const presented = bearerFrom(request.headers.get('authorization'))
-  if (presented === null) {
-    return fail(401, 'unauthenticated', 'Send a bearer token in the Authorization header.')
-  }
+  const caller = await resolveCaller(
+    matched.route,
+    bearerFrom(request.headers.get('authorization')),
+  )
+  if (caller instanceof Response) return caller
 
-  const authenticated = await apiToken(presented)
-  if (authenticated === null) {
-    return fail(401, 'unauthenticated', 'That token is not valid.')
-  }
+  const headers = caller.limit === null ? {} : rateLimitHeaders(caller.limit)
 
-  if (!hasScope(authenticated.token, matched.route.scope)) {
+  const offline = await boardOffline(caller.actor)
+  if (offline !== null) return fail(503, 'board_offline', offline.message, headers)
+
+  const handler = handlerFor(routeKey(matched.route))
+  if (handler === null) {
     return fail(
-      403,
-      'missing_scope',
-      `This token does not carry the "${matched.route.scope}" scope.`,
+      501,
+      'not_implemented',
+      `${matched.route.method} ${matched.route.path} is declared but not yet implemented.`,
+      headers,
     )
   }
 
-  const limit = await consumeRateLimit(
-    authenticated.limits,
-    authenticated.token.id,
-    matched.route.cost,
-    new Date(),
-  )
-  const headers = rateLimitHeaders(limit)
-
-  if (!limit.allowed) {
-    return fail(429, 'rate_limited', 'Too many requests. Slow down and try again.', {
-      ...headers,
-      'retry-after': String(limit.resetSeconds),
-    })
-  }
-
-  const actor = await apiActor(authenticated.token.userId)
-  if (actor === null) {
-    return fail(403, 'owner_unavailable', 'The account this token belongs to cannot act.')
-  }
-
   try {
-    const result = await dispatch(matched.route, matched.params, actor, request)
+    const result = await handler({
+      actor: caller.actor,
+      token: caller.authenticated?.token ?? null,
+      params: matched.params,
+      url,
+      body: matched.route.request === undefined ? null : await readJsonBody(request),
+    })
+
     return json(result.body, result.status, headers)
   } catch (err) {
     if (isAppError(err)) {
@@ -114,331 +147,6 @@ async function handle(request: NextRequest, method: 'GET' | 'POST'): Promise<Res
     }
     throw err
   }
-}
-
-const DEFAULT_PAGE = 25
-const MAX_PAGE = 100
-
-function pageLimit(url: URL): number {
-  const raw = url.searchParams.get('limit')
-  if (raw === null) return DEFAULT_PAGE
-  const parsed = Number(raw)
-  if (!Number.isSafeInteger(parsed) || parsed < 1) return DEFAULT_PAGE
-  return Math.min(parsed, MAX_PAGE)
-}
-
-function encodeCursor(cursor: unknown): string {
-  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url')
-}
-
-function decodeCursor<T>(raw: string | null): T | null {
-  if (raw === null) return null
-  try {
-    return JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')) as T
-  } catch {
-    return null
-  }
-}
-
-async function threadScope(
-  actor: Awaited<ReturnType<typeof apiActor>> & object,
-  threadId: number,
-): Promise<{
-  readonly scope: ReturnType<ReturnType<typeof getContainer>['authorizer']['contentScope']>
-  readonly authors: ReturnType<ReturnType<typeof getContainer>['authorizer']['authorFilter']>
-  readonly forumId: number
-} | null> {
-  const { authorizer, forums, threads } = getContainer()
-
-  const located = await threads.locate(threadId)
-  if (located === null) return null
-
-  const forum = await forums.findById(located.forumId)
-  if (!forum || !canHoldThreads(forum.type)) return null
-
-  const matrix = await authorizer.forumMatrix(actor, forum.id)
-  const target = await authorizer.moderatorTargetIn(actor, forum.id, matrix)
-  if (
-    !authorizer.can(actor, 'thread.view', {
-      ...target,
-      threadAuthorId: located.authorUserId,
-    })
-  ) {
-    return null
-  }
-
-  return {
-    scope: authorizer.contentScope(actor, target),
-    authors: authorizer.authorFilter(actor, target),
-    forumId: forum.id,
-  }
-}
-
-function threadBody(row: {
-  readonly id: number
-  readonly forumId: number
-  readonly title: string
-  readonly slug: string
-  readonly authorUserId: number | null
-  readonly authorUsername: string
-  readonly replyCount: number
-  readonly viewCount: number
-  readonly isSticky: boolean
-  readonly isLocked: boolean
-  readonly visibility: string
-  readonly lastPostAt: Date
-}): Record<string, unknown> {
-  return {
-    id: row.id,
-    forumId: row.forumId,
-    title: row.title,
-    slug: row.slug,
-    authorUserId: row.authorUserId,
-    authorUsername: row.authorUsername,
-    replyCount: row.replyCount,
-    viewCount: row.viewCount,
-    isSticky: row.isSticky,
-    isLocked: row.isLocked,
-    visibility: row.visibility,
-    lastPostAt: row.lastPostAt.toISOString(),
-  }
-}
-
-async function dispatch(
-  route: RouteSpec,
-  params: Readonly<Record<string, string>>,
-  actor: Awaited<ReturnType<typeof apiActor>> & object,
-  request: NextRequest,
-): Promise<Ok> {
-  const { authorizer, forums, threads, posts } = getContainer()
-  const url = new URL(request.url)
-
-  const notFound: Ok = {
-    status: 404,
-    body: { error: { code: 'not_found', message: 'No such resource.' } },
-  }
-
-  switch (`${route.method} ${route.path}`) {
-    case 'GET /me':
-      return { status: 200, body: { userId: actor.userId } }
-
-    case 'GET /forums': {
-      const visible = new Set(await authorizer.forumIdsWhere(actor, 'forum.view'))
-      const all = await forums.listAll()
-
-      return {
-        status: 200,
-        body: {
-          data: all
-            .filter((forum) => visible.has(forum.id))
-            .map((forum) => ({
-              id: forum.id,
-              title: forum.title,
-              slug: forum.slug,
-              type: forum.type,
-              parentId: forum.parentId ?? null,
-              depth: forum.depth,
-            })),
-        },
-      }
-    }
-
-    case 'GET /forums/:forumId/threads': {
-      const forumId = idParam(params.forumId)
-      if (forumId === null) return notFound
-
-      const forum = await forums.findById(forumId)
-      if (!forum || !canHoldThreads(forum.type)) return notFound
-
-      const matrix = await authorizer.forumMatrix(actor, forum.id)
-      if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) {
-        return notFound
-      }
-
-      const target = await authorizer.moderatorTargetIn(actor, forum.id, matrix)
-      const cursor = decodeCursor<ThreadCursor>(url.searchParams.get('after'))
-      const page = await threads.listForum(forum.id, {
-        limit: pageLimit(url),
-        scope: authorizer.contentScope(actor, target),
-        authors: authorizer.authorFilter(actor, target),
-        ...(cursor === null
-          ? {}
-          : { after: { ...cursor, lastPostAt: new Date(cursor.lastPostAt) } }),
-      })
-
-      return {
-        status: 200,
-        body: {
-          data: page.rows.map(threadBody),
-          nextCursor: page.nextCursor === null ? null : encodeCursor(page.nextCursor),
-        },
-      }
-    }
-
-    case 'GET /threads/:threadId': {
-      const threadId = idParam(params.threadId)
-      if (threadId === null) return notFound
-
-      const resolved = await threadScope(actor, threadId)
-      if (resolved === null) return notFound
-
-      const thread = await threads.findById(threadId, resolved.scope, resolved.authors)
-      if (!thread) return notFound
-
-      return { status: 200, body: { data: threadBody(thread) } }
-    }
-
-    case 'GET /threads/:threadId/posts': {
-      const threadId = idParam(params.threadId)
-      if (threadId === null) return notFound
-
-      const resolved = await threadScope(actor, threadId)
-      if (resolved === null) return notFound
-
-      const after = url.searchParams.get('after')
-      const afterId = after === null ? null : idParam(after)
-      const page = await posts.listThread(threadId, {
-        ...(afterId === null ? {} : { afterId }),
-        limit: pageLimit(url),
-        scope: resolved.scope,
-      })
-
-      return {
-        status: 200,
-        body: {
-          data: page.rows.map((post) => ({
-            id: post.id,
-            threadId,
-            number: post.number,
-            authorUserId: post.authorUserId,
-            authorUsername: post.authorUsername,
-            message: sourceAsMarkdown(post.message, post.bodyFormat),
-            visibility: post.visibility,
-            postedAt: post.createdAt.toISOString(),
-          })),
-          nextAfterId: page.nextAfterId,
-        },
-      }
-    }
-
-    case 'POST /threads/:threadId/posts': {
-      const threadId = idParam(params.threadId)
-      if (threadId === null) return notFound
-
-      const body = await readJsonBody(request)
-      const message = typeof body?.message === 'string' ? body.message : ''
-
-      const resolved = await resolveReplyTarget(actor, threadId)
-      const created = await submitReply(actor, resolved, {
-        message,
-        subscribe: body?.subscribe === true,
-      })
-
-      return {
-        status: 201,
-        body: {
-          data: {
-            id: created.postId,
-            threadId: created.threadId,
-            visibility: created.visibility,
-          },
-        },
-      }
-    }
-
-    case 'GET /search': {
-      await requireSearchEnabled()
-
-      const minWordLength = await searchMinWordLength()
-      const parsed = parseSearchInput(url.searchParams.get('q') ?? '', minWordLength)
-      if (!isRunnable(parsed)) {
-        return {
-          status: 400,
-          body: {
-            error: {
-              code: 'bad_query',
-              message:
-                parsed.refusal === 'too-short'
-                  ? `That search term is too short — one word in it has to be at least ${minWordLength} characters.`
-                  : parsed.refusal === 'too-long'
-                    ? 'That search term is too long.'
-                    : 'Provide a search term in ?q=.',
-            },
-          },
-        }
-      }
-
-      const ids = (key: string): readonly number[] | undefined => {
-        const values = url.searchParams
-          .getAll(key)
-          .map((value) => Number(value))
-          .filter((value) => Number.isSafeInteger(value) && value > 0)
-
-        return values.length === 0 ? undefined : values
-      }
-
-      const forumIds = ids('forum')
-      const authorUserIds = ids('by')
-
-      const results = await requireSearch().search(
-        searchQueryFrom(
-          parsed.terms,
-          {
-            sort: readSort(url.searchParams.get('sort')),
-            match: readMatch(url.searchParams.get('in')),
-            grouping: readGrouping(url.searchParams.get('show')),
-            period: readPeriod(url.searchParams.get('when')),
-            ...(forumIds === undefined ? {} : { forumIds }),
-            ...(authorUserIds === undefined ? {} : { authorUserIds }),
-          },
-          {
-            limit: pageLimit(url),
-            after: decodeCursor<SearchCursor>(url.searchParams.get('after')),
-            now: new Date(),
-          },
-        ),
-        await searchScopeFor(actor),
-      )
-
-      const wordFilter = await activeWordFilter()
-
-      return {
-        status: 200,
-        body: {
-          data: results.hits.map((hit) => ({
-            postId: hit.postId,
-            threadId: hit.threadId,
-            forumId: hit.forumId,
-            threadTitle: hit.threadTitle,
-            authorUserId: hit.authorUserId,
-            authorUsername: hit.authorUsername,
-            postedAt: hit.postedAt.toISOString(),
-            excerpt: filterWords(hit.excerpt, wordFilter),
-          })),
-          nextCursor: results.nextCursor === null ? null : encodeCursor(results.nextCursor),
-        },
-      }
-    }
-
-    default:
-      return {
-        status: 501,
-        body: {
-          error: {
-            code: 'not_implemented',
-            message: `${route.method} ${route.path} is declared but not yet implemented.`,
-          },
-        },
-      }
-  }
-}
-
-export async function GET(request: NextRequest): Promise<Response> {
-  return handle(request, 'GET')
-}
-
-export async function POST(request: NextRequest): Promise<Response> {
-  return handle(request, 'POST')
 }
 
 async function readJsonBody(request: NextRequest): Promise<Record<string, unknown> | null> {
@@ -452,16 +160,18 @@ async function readJsonBody(request: NextRequest): Promise<Record<string, unknow
   }
 }
 
-export const IMPLEMENTED_ROUTES: readonly string[] = [
-  'GET /me',
-  'GET /forums',
-  'GET /forums/:forumId/threads',
-  'GET /threads/:threadId',
-  'GET /threads/:threadId/posts',
-  'POST /threads/:threadId/posts',
-  'GET /search',
-]
+export async function GET(request: NextRequest): Promise<Response> {
+  return handle(request, 'GET')
+}
 
-export const DECLARED_ROUTES: readonly string[] = ROUTES.map(
-  (route) => `${route.method} ${route.path}`,
-)
+export async function POST(request: NextRequest): Promise<Response> {
+  return handle(request, 'POST')
+}
+
+export async function PATCH(request: NextRequest): Promise<Response> {
+  return handle(request, 'PATCH')
+}
+
+export async function DELETE(request: NextRequest): Promise<Response> {
+  return handle(request, 'DELETE')
+}

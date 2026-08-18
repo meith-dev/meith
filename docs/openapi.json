@@ -1,0 +1,3487 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Meith REST API",
+    "version": "0.9.0",
+    "summary": "The read and write surface a client, a bot or an integration talks to.",
+    "description": "A token is a restriction on an actor, never a grant to one. Every request resolves the owner’s permissions and asks the Authorizer, exactly as a page does, in addition to checking the token’s scope — so a token can never reach anything its owner could not. Endpoints marked as readable without a token resolve as the board’s guest through that same path, which is why a private forum stays private to them.",
+    "license": {
+      "name": "LGPL-3.0-or-later",
+      "identifier": "LGPL-3.0-or-later"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "This board."
+    }
+  ],
+  "security": [
+    {
+      "bearerToken": []
+    }
+  ],
+  "paths": {
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "summary": "The token’s owner, and the scopes this token carries.",
+        "tags": [
+          "members"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "members:read"
+            ]
+          }
+        ],
+        "x-scope": "members:read",
+        "x-rate-limit-cost": 1,
+        "responses": {
+          "200": {
+            "description": "The token’s owner, and the scopes this token carries.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Identity"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter was missing or unusable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/forums": {
+      "get": {
+        "operationId": "getForums",
+        "summary": "Every forum the caller may see, as a flat list with parent ids.",
+        "tags": [
+          "forums"
+        ],
+        "description": "Readable without a token, as the board’s guest sees it.",
+        "security": [
+          {
+            "bearerToken": [
+              "forums:read"
+            ]
+          },
+          {}
+        ],
+        "x-scope": "forums:read",
+        "x-rate-limit-cost": 1,
+        "responses": {
+          "200": {
+            "description": "Every forum the caller may see, as a flat list with parent ids.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Forum"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter was missing or unusable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/forums/{forumId}/threads": {
+      "get": {
+        "operationId": "getForumsByForumIdThreads",
+        "summary": "Threads in a forum, newest activity first, keyset-paged.",
+        "tags": [
+          "threads"
+        ],
+        "description": "Readable without a token, as the board’s guest sees it.",
+        "security": [
+          {
+            "bearerToken": [
+              "threads:read"
+            ]
+          },
+          {}
+        ],
+        "x-scope": "threads:read",
+        "x-rate-limit-cost": 1,
+        "parameters": [
+          {
+            "name": "forumId",
+            "in": "path",
+            "required": true,
+            "description": "The forum to list.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "How many rows to return. Defaults to 25, capped at 100.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "description": "The `nextCursor` from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Threads in a forum, newest activity first, keyset-paged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Thread"
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Pass back as `after` for the next page, or `null` at the end."
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter was missing or unusable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postForumsByForumIdThreads",
+        "summary": "Start a thread. Subject to the same flood control, approval queue and word limits as the web form.",
+        "tags": [
+          "threads"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "threads:write"
+            ]
+          }
+        ],
+        "x-scope": "threads:write",
+        "x-rate-limit-cost": 10,
+        "parameters": [
+          {
+            "name": "forumId",
+            "in": "path",
+            "required": true,
+            "description": "The forum to post in.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "The thread’s title."
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "The first post’s body, as Markdown."
+                  },
+                  "prefixId": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "A thread prefix to apply, if the forum offers any."
+                  },
+                  "subscribe": {
+                    "type": "boolean",
+                    "description": "Follow the thread after starting it."
+                  }
+                },
+                "required": [
+                  "title",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Start a thread. Subject to the same flood control, approval queue and word limits as the web form.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "description": "The new thread’s id."
+                        },
+                        "postId": {
+                          "type": "integer",
+                          "description": "The first post’s id."
+                        },
+                        "slug": {
+                          "type": "string",
+                          "description": "The URL-safe form of the title."
+                        },
+                        "visibility": {
+                          "type": "string",
+                          "description": "`unapproved` when the post went to the moderation queue.",
+                          "enum": [
+                            "visible",
+                            "unapproved"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "postId",
+                        "slug",
+                        "visibility"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The board refused the contents by its own posting rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/threads/{threadId}": {
+      "get": {
+        "operationId": "getThreadsByThreadId",
+        "summary": "One thread’s metadata.",
+        "tags": [
+          "threads"
+        ],
+        "description": "Readable without a token, as the board’s guest sees it.",
+        "security": [
+          {
+            "bearerToken": [
+              "threads:read"
+            ]
+          },
+          {}
+        ],
+        "x-scope": "threads:read",
+        "x-rate-limit-cost": 1,
+        "parameters": [
+          {
+            "name": "threadId",
+            "in": "path",
+            "required": true,
+            "description": "The thread to read.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One thread’s metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Thread"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter was missing or unusable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/threads/{threadId}/posts": {
+      "get": {
+        "operationId": "getThreadsByThreadIdPosts",
+        "summary": "Posts in a thread, oldest first, keyset-paged.",
+        "tags": [
+          "posts"
+        ],
+        "description": "Readable without a token, as the board’s guest sees it.",
+        "security": [
+          {
+            "bearerToken": [
+              "posts:read"
+            ]
+          },
+          {}
+        ],
+        "x-scope": "posts:read",
+        "x-rate-limit-cost": 1,
+        "parameters": [
+          {
+            "name": "threadId",
+            "in": "path",
+            "required": true,
+            "description": "The thread to read.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "How many rows to return. Defaults to 25, capped at 100.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "description": "The `nextAfterId` from the previous page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Posts in a thread, oldest first, keyset-paged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Post"
+                      }
+                    },
+                    "nextAfterId": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "Pass back as `after` for the next page, or `null` at the end."
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "nextAfterId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter was missing or unusable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postThreadsByThreadIdPosts",
+        "summary": "Post a reply. Subject to the same flood control and moderation as the web form.",
+        "tags": [
+          "posts"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "posts:write"
+            ]
+          }
+        ],
+        "x-scope": "posts:write",
+        "x-rate-limit-cost": 5,
+        "parameters": [
+          {
+            "name": "threadId",
+            "in": "path",
+            "required": true,
+            "description": "The thread to reply in.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "The reply’s body, as Markdown."
+                  },
+                  "subscribe": {
+                    "type": "boolean",
+                    "description": "Follow the thread after replying."
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Post a reply. Subject to the same flood control and moderation as the web form.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "description": "The new post’s id."
+                        },
+                        "threadId": {
+                          "type": "integer",
+                          "description": "The thread it landed in."
+                        },
+                        "visibility": {
+                          "type": "string",
+                          "description": "`unapproved` when the post went to the moderation queue.",
+                          "enum": [
+                            "visible",
+                            "unapproved"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "threadId",
+                        "visibility"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The board refused the contents by its own posting rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/threads/{threadId}/posts/{postId}": {
+      "patch": {
+        "operationId": "patchThreadsByThreadIdPostsByPostId",
+        "summary": "Edit a post. The owner’s permissions decide whether that is their own post, anybody’s, and whether the edit window has closed.",
+        "tags": [
+          "posts"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "posts:write"
+            ]
+          }
+        ],
+        "x-scope": "posts:write",
+        "x-rate-limit-cost": 5,
+        "parameters": [
+          {
+            "name": "threadId",
+            "in": "path",
+            "required": true,
+            "description": "The thread the post is in.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "description": "The post to edit.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "The replacement body, as Markdown."
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "An edit reason, shown under the post."
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Edit a post. The owner’s permissions decide whether that is their own post, anybody’s, and whether the edit window has closed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "description": "The edited post’s id."
+                        },
+                        "threadId": {
+                          "type": "integer",
+                          "description": "The thread it is in."
+                        },
+                        "changed": {
+                          "type": "boolean",
+                          "description": "False when the submitted body matched what was already there."
+                        },
+                        "heldForApproval": {
+                          "type": "boolean",
+                          "description": "Whether the edit sent the post back to the queue."
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "threadId",
+                        "changed",
+                        "heldForApproval"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The board refused the contents by its own posting rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteThreadsByThreadIdPostsByPostId",
+        "summary": "Remove a post. This is the board’s soft delete — the same one the web form performs, recoverable by a moderator.",
+        "tags": [
+          "posts"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "posts:write"
+            ]
+          }
+        ],
+        "x-scope": "posts:write",
+        "x-rate-limit-cost": 5,
+        "parameters": [
+          {
+            "name": "threadId",
+            "in": "path",
+            "required": true,
+            "description": "The thread the post is in.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "description": "The post to remove.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Remove a post. This is the board’s soft delete — the same one the web form performs, recoverable by a moderator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "description": "The removed post’s id."
+                        },
+                        "threadId": {
+                          "type": "integer",
+                          "description": "The thread it was in."
+                        },
+                        "changed": {
+                          "type": "boolean",
+                          "description": "False when the post was already removed."
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "threadId",
+                        "changed"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The board refused the contents by its own posting rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/members/{userId}": {
+      "get": {
+        "operationId": "getMembersByUserId",
+        "summary": "A member’s public profile.",
+        "tags": [
+          "members"
+        ],
+        "description": "Readable without a token, as the board’s guest sees it.",
+        "security": [
+          {
+            "bearerToken": [
+              "members:read"
+            ]
+          },
+          {}
+        ],
+        "x-scope": "members:read",
+        "x-rate-limit-cost": 1,
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "The member to read.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A member’s public profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Member"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter was missing or unusable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/members/{userId}/reputation": {
+      "post": {
+        "operationId": "postMembersByUserIdReputation",
+        "summary": "Rate a member, optionally against one of their posts. The board’s reputation settings decide whether negative points and empty comments are allowed.",
+        "tags": [
+          "reputation"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "reputation:write"
+            ]
+          }
+        ],
+        "x-scope": "reputation:write",
+        "x-rate-limit-cost": 5,
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "The member being rated.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "points": {
+                    "type": "integer",
+                    "description": "The rating, within what the board allows."
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "Why. Some boards require one."
+                  },
+                  "postId": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "The post being rated, if the rating is about one."
+                  }
+                },
+                "required": [
+                  "points"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Rate a member, optionally against one of their posts. The board’s reputation settings decide whether negative points and empty comments are allowed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "userId": {
+                          "type": "integer",
+                          "description": "The member who was rated."
+                        }
+                      },
+                      "required": [
+                        "userId"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The board refused the contents by its own posting rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages": {
+      "get": {
+        "operationId": "getMessages",
+        "summary": "One folder of the caller’s private messages. Listing marks nothing read.",
+        "tags": [
+          "messages"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "messages:read"
+            ]
+          }
+        ],
+        "x-scope": "messages:read",
+        "x-rate-limit-cost": 1,
+        "parameters": [
+          {
+            "name": "folder",
+            "in": "query",
+            "required": false,
+            "description": "Which folder to list. Defaults to `inbox`.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "inbox",
+                "sent",
+                "trash"
+              ]
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "description": "The `nextBefore` from the previous page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One folder of the caller’s private messages. Listing marks nothing read.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MessageSummary"
+                      }
+                    },
+                    "nextBefore": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "Pass back as `after` for the next page, or `null` at the end."
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "nextBefore"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter was missing or unusable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postMessages",
+        "summary": "Send a private message. Recipient quotas, ignore lists and the board’s message rate limits all apply.",
+        "tags": [
+          "messages"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "messages:write"
+            ]
+          }
+        ],
+        "x-scope": "messages:write",
+        "x-rate-limit-cost": 10,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "to": {
+                    "type": "string",
+                    "description": "Recipient usernames, separated by semicolons."
+                  },
+                  "bcc": {
+                    "type": "string",
+                    "description": "Blind recipients, separated by semicolons."
+                  },
+                  "subject": {
+                    "type": "string",
+                    "description": "The subject line."
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "The body, as Markdown."
+                  },
+                  "receiptRequested": {
+                    "type": "boolean",
+                    "description": "Ask to be told when it is read."
+                  },
+                  "replyToId": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "The message this replies to."
+                  }
+                },
+                "required": [
+                  "to",
+                  "subject",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Send a private message. Recipient quotas, ignore lists and the board’s message rate limits all apply.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "description": "The sent message’s id."
+                        }
+                      },
+                      "required": [
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The board refused the contents by its own posting rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/{messageId}": {
+      "get": {
+        "operationId": "getMessagesByMessageId",
+        "summary": "One private message the caller is on. Opening it marks it read and, if the sender asked for a receipt, tells them.",
+        "tags": [
+          "messages"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "messages:read"
+            ]
+          }
+        ],
+        "x-scope": "messages:read",
+        "x-rate-limit-cost": 1,
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "description": "The message to open.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One private message the caller is on. Opening it marks it read and, if the sender asked for a receipt, tells them.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Message"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter was missing or unusable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/threads/{threadId}/poll": {
+      "get": {
+        "operationId": "getThreadsByThreadIdPoll",
+        "summary": "A thread’s poll, with the running totals and the caller’s own vote.",
+        "tags": [
+          "threads"
+        ],
+        "description": "Readable without a token, as the board’s guest sees it.",
+        "security": [
+          {
+            "bearerToken": [
+              "threads:read"
+            ]
+          },
+          {}
+        ],
+        "x-scope": "threads:read",
+        "x-rate-limit-cost": 1,
+        "parameters": [
+          {
+            "name": "threadId",
+            "in": "path",
+            "required": true,
+            "description": "The thread whose poll to read.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A thread’s poll, with the running totals and the caller’s own vote.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Poll"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter was missing or unusable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/polls/{pollId}/votes": {
+      "post": {
+        "operationId": "postPollsByPollIdVotes",
+        "summary": "Vote in a thread’s poll.",
+        "tags": [
+          "polls"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "polls:write"
+            ]
+          }
+        ],
+        "x-scope": "polls:write",
+        "x-rate-limit-cost": 5,
+        "parameters": [
+          {
+            "name": "pollId",
+            "in": "path",
+            "required": true,
+            "description": "The poll to vote in.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "threadId": {
+                    "type": "integer",
+                    "description": "The thread the poll is attached to."
+                  },
+                  "optionId": {
+                    "type": "integer",
+                    "description": "The option being voted for."
+                  }
+                },
+                "required": [
+                  "threadId",
+                  "optionId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Vote in a thread’s poll.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "pollId": {
+                          "type": "integer",
+                          "description": "The poll voted in."
+                        }
+                      },
+                      "required": [
+                        "pollId"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The board refused the contents by its own posting rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscriptions": {
+      "get": {
+        "operationId": "getSubscriptions",
+        "summary": "Everything the caller follows, filtered to forums they may still see.",
+        "tags": [
+          "subscriptions"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "subscriptions:read"
+            ]
+          }
+        ],
+        "x-scope": "subscriptions:read",
+        "x-rate-limit-cost": 1,
+        "responses": {
+          "200": {
+            "description": "Everything the caller follows, filtered to forums they may still see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Subscription"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter was missing or unusable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postSubscriptions",
+        "summary": "Follow a thread or a forum.",
+        "tags": [
+          "subscriptions"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "subscriptions:write"
+            ]
+          }
+        ],
+        "x-scope": "subscriptions:write",
+        "x-rate-limit-cost": 2,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "description": "What to follow.",
+                    "enum": [
+                      "thread",
+                      "forum"
+                    ]
+                  },
+                  "targetId": {
+                    "type": "integer",
+                    "description": "The thread or forum to follow."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "description": "How to be told about new posts. Defaults to `instant`.",
+                    "enum": [
+                      "instant",
+                      "daily",
+                      "weekly",
+                      "none"
+                    ]
+                  }
+                },
+                "required": [
+                  "target",
+                  "targetId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Follow a thread or a forum.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "target": {
+                          "type": "string",
+                          "description": "What is followed.",
+                          "enum": [
+                            "thread",
+                            "forum"
+                          ]
+                        },
+                        "targetId": {
+                          "type": "integer",
+                          "description": "What is followed."
+                        },
+                        "mode": {
+                          "type": "string",
+                          "description": "How the caller will be told.",
+                          "enum": [
+                            "instant",
+                            "daily",
+                            "weekly",
+                            "none"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "target",
+                        "targetId",
+                        "mode"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The board refused the contents by its own posting rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscriptions/{target}/{targetId}": {
+      "delete": {
+        "operationId": "deleteSubscriptionsByTargetByTargetId",
+        "summary": "Stop following a thread or a forum.",
+        "tags": [
+          "subscriptions"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "subscriptions:write"
+            ]
+          }
+        ],
+        "x-scope": "subscriptions:write",
+        "x-rate-limit-cost": 2,
+        "parameters": [
+          {
+            "name": "target",
+            "in": "path",
+            "required": true,
+            "description": "What to stop following.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "thread",
+                "forum"
+              ]
+            }
+          },
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "description": "The thread or forum to stop following.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stop following a thread or a forum.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "target": {
+                          "type": "string",
+                          "description": "What is no longer followed.",
+                          "enum": [
+                            "thread",
+                            "forum"
+                          ]
+                        },
+                        "targetId": {
+                          "type": "integer",
+                          "description": "What is no longer followed."
+                        }
+                      },
+                      "required": [
+                        "target",
+                        "targetId"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The board refused the contents by its own posting rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "getSearch",
+        "summary": "Full-text search, filtered to what the caller may read. Narrow it with `forum`, `by`, `when`, `in` and `show`, and order it with `sort`.",
+        "tags": [
+          "search"
+        ],
+        "description": "Readable without a token, as the board’s guest sees it.",
+        "security": [
+          {
+            "bearerToken": [
+              "search:read"
+            ]
+          },
+          {}
+        ],
+        "x-scope": "search:read",
+        "x-rate-limit-cost": 10,
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "The search term.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "forum",
+            "in": "query",
+            "required": false,
+            "description": "Restrict to a forum. Repeatable.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "by",
+            "in": "query",
+            "required": false,
+            "description": "Restrict to an author’s user id. Repeatable.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "when",
+            "in": "query",
+            "required": false,
+            "description": "Restrict to a period, such as `week`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "in",
+            "in": "query",
+            "required": false,
+            "description": "Match `titles`, `posts` or both.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "show",
+            "in": "query",
+            "required": false,
+            "description": "Group results as posts or as threads.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "description": "Order the results.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "How many rows to return. Defaults to 25, capped at 100.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "description": "The `nextCursor` from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Full-text search, filtered to what the caller may read. Narrow it with `forum`, `by`, `when`, `in` and `show`, and order it with `sort`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SearchHit"
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Pass back as `after` for the next page, or `null` at the end."
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter was missing or unusable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "A personal access token: `forum_pat_<lookup>_<secret>`."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "description": "Every failure on every endpoint has this shape.",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Stable and machine-readable. Branch on this, never on `message`."
+              },
+              "message": {
+                "type": "string",
+                "description": "For a human reading a terminal. Translated to the board’s language."
+              },
+              "requestId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The board’s correlation id, for quoting in a report."
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "Forum": {
+        "type": "object",
+        "description": "One forum, as the token’s owner may see it.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The forum’s id."
+          },
+          "title": {
+            "type": "string",
+            "description": "The forum’s name."
+          },
+          "slug": {
+            "type": "string",
+            "description": "The URL-safe form of the title."
+          },
+          "type": {
+            "type": "string",
+            "description": "What the forum holds.",
+            "enum": [
+              "category",
+              "forum",
+              "link"
+            ]
+          },
+          "parentId": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The forum this one sits under, or `null` at the top."
+          },
+          "depth": {
+            "type": "integer",
+            "description": "How far down the tree the forum sits; the top level is 0."
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "type",
+          "parentId",
+          "depth"
+        ],
+        "additionalProperties": false
+      },
+      "Identity": {
+        "type": "object",
+        "description": "Who the caller is, and what this token may ask for.",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "The account the token belongs to."
+          },
+          "username": {
+            "type": "string",
+            "description": "That account’s name."
+          },
+          "scopes": {
+            "type": "array",
+            "description": "Every scope this token carries.",
+            "items": {
+              "type": "string",
+              "description": "One scope."
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "username",
+          "scopes"
+        ],
+        "additionalProperties": false
+      },
+      "Member": {
+        "type": "object",
+        "description": "A member’s public profile — the same fields the member page shows a visitor.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The member’s user id."
+          },
+          "username": {
+            "type": "string",
+            "description": "The member’s name."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Their custom or group title."
+          },
+          "postCount": {
+            "type": "integer",
+            "description": "How many posts they have made."
+          },
+          "joinedAt": {
+            "type": "string",
+            "description": "When they registered.",
+            "format": "date-time"
+          },
+          "lastActiveAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When they were last seen, if the board records it.",
+            "format": "date-time"
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Their stated location."
+          },
+          "website": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Their stated website."
+          },
+          "bio": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Their stated biography."
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "title",
+          "postCount",
+          "joinedAt",
+          "lastActiveAt",
+          "location",
+          "website",
+          "bio"
+        ],
+        "additionalProperties": false
+      },
+      "Message": {
+        "type": "object",
+        "description": "One private message, as one participant sees it. Reading marks it read.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The message’s id."
+          },
+          "copyId": {
+            "type": "integer",
+            "description": "The caller’s copy of the message, which folders and reads act on."
+          },
+          "authorUserId": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Who sent it, or `null` if the account is gone."
+          },
+          "authorUsername": {
+            "type": "string",
+            "description": "The sender’s name as it was at the time."
+          },
+          "subject": {
+            "type": "string",
+            "description": "The subject line."
+          },
+          "message": {
+            "type": "string",
+            "description": "The body, as Markdown source."
+          },
+          "folder": {
+            "type": "string",
+            "description": "Which of the caller’s folders this copy sits in.",
+            "enum": [
+              "inbox",
+              "sent",
+              "trash"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "description": "How the caller is on the message.",
+            "enum": [
+              "author",
+              "to",
+              "bcc"
+            ]
+          },
+          "receiptRequested": {
+            "type": "boolean",
+            "description": "Whether the sender asked to be told it was read."
+          },
+          "replyToId": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The message this one replies to, if any."
+          },
+          "sentAt": {
+            "type": "string",
+            "description": "When it was sent.",
+            "format": "date-time"
+          },
+          "readAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When the caller read it, or `null`.",
+            "format": "date-time"
+          },
+          "participants": {
+            "type": "array",
+            "description": "Everyone on the message the caller may see.",
+            "items": {
+              "$ref": "#/components/schemas/Participant"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "copyId",
+          "authorUserId",
+          "authorUsername",
+          "subject",
+          "message",
+          "folder",
+          "role",
+          "receiptRequested",
+          "replyToId",
+          "sentAt",
+          "readAt",
+          "participants"
+        ],
+        "additionalProperties": false
+      },
+      "MessageSummary": {
+        "type": "object",
+        "description": "One row of a message folder. Listing does not mark anything read.",
+        "properties": {
+          "copyId": {
+            "type": "integer",
+            "description": "The caller’s copy of the message. Page on this."
+          },
+          "messageId": {
+            "type": "integer",
+            "description": "The message itself."
+          },
+          "folder": {
+            "type": "string",
+            "description": "Which folder this copy sits in.",
+            "enum": [
+              "inbox",
+              "sent",
+              "trash"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "description": "How the caller is on the message.",
+            "enum": [
+              "author",
+              "to",
+              "bcc"
+            ]
+          },
+          "subject": {
+            "type": "string",
+            "description": "The subject line."
+          },
+          "sentAt": {
+            "type": "string",
+            "description": "When it was sent.",
+            "format": "date-time"
+          },
+          "readAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When the caller read it, or `null`.",
+            "format": "date-time"
+          },
+          "counterparties": {
+            "type": "array",
+            "description": "The other people on the message.",
+            "items": {
+              "type": "string",
+              "description": "One name."
+            }
+          },
+          "moreCounterparties": {
+            "type": "integer",
+            "description": "How many further names were not listed."
+          }
+        },
+        "required": [
+          "copyId",
+          "messageId",
+          "folder",
+          "role",
+          "subject",
+          "sentAt",
+          "readAt",
+          "counterparties",
+          "moreCounterparties"
+        ],
+        "additionalProperties": false
+      },
+      "Participant": {
+        "type": "object",
+        "description": "One person on a message. Blind copies are visible only to themselves and the sender.",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "The participant’s user id."
+          },
+          "username": {
+            "type": "string",
+            "description": "Their name."
+          },
+          "role": {
+            "type": "string",
+            "description": "How they are on the message.",
+            "enum": [
+              "author",
+              "to",
+              "bcc"
+            ]
+          },
+          "readAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When they read it, or `null`.",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "userId",
+          "username",
+          "role",
+          "readAt"
+        ],
+        "additionalProperties": false
+      },
+      "Poll": {
+        "type": "object",
+        "description": "A thread’s poll.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The poll’s id."
+          },
+          "threadId": {
+            "type": "integer",
+            "description": "The thread the poll is attached to."
+          },
+          "question": {
+            "type": "string",
+            "description": "What the poll asks."
+          },
+          "closesAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When voting closes, or `null` if it does not.",
+            "format": "date-time"
+          },
+          "options": {
+            "type": "array",
+            "description": "What may be voted for.",
+            "items": {
+              "$ref": "#/components/schemas/PollOption"
+            }
+          },
+          "votedOptionId": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "What the caller voted for, or `null`."
+          }
+        },
+        "required": [
+          "id",
+          "threadId",
+          "question",
+          "closesAt",
+          "options",
+          "votedOptionId"
+        ],
+        "additionalProperties": false
+      },
+      "PollOption": {
+        "type": "object",
+        "description": "One option on a poll.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The option’s id. Vote with this."
+          },
+          "label": {
+            "type": "string",
+            "description": "The option as it is shown."
+          },
+          "votes": {
+            "type": "integer",
+            "description": "How many votes it has."
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "votes"
+        ],
+        "additionalProperties": false
+      },
+      "Post": {
+        "type": "object",
+        "description": "One post, as the caller may see it.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The post’s id."
+          },
+          "threadId": {
+            "type": "integer",
+            "description": "The thread it is in."
+          },
+          "number": {
+            "type": "integer",
+            "description": "Its position in the thread, counting from 1."
+          },
+          "authorUserId": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Who wrote it, or `null` if the account is gone."
+          },
+          "authorUsername": {
+            "type": "string",
+            "description": "The author’s name as it was at the time."
+          },
+          "message": {
+            "type": "string",
+            "description": "The body, as Markdown source."
+          },
+          "visibility": {
+            "type": "string",
+            "description": "Whether the post is public, held, or removed.",
+            "enum": [
+              "visible",
+              "unapproved",
+              "deleted"
+            ]
+          },
+          "postedAt": {
+            "type": "string",
+            "description": "When it was posted.",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "threadId",
+          "number",
+          "authorUserId",
+          "authorUsername",
+          "message",
+          "visibility",
+          "postedAt"
+        ],
+        "additionalProperties": false
+      },
+      "SearchHit": {
+        "type": "object",
+        "description": "One search result.",
+        "properties": {
+          "postId": {
+            "type": "integer",
+            "description": "The matching post."
+          },
+          "threadId": {
+            "type": "integer",
+            "description": "The thread it is in."
+          },
+          "forumId": {
+            "type": "integer",
+            "description": "The forum that thread is in."
+          },
+          "threadTitle": {
+            "type": "string",
+            "description": "The thread’s title."
+          },
+          "authorUserId": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Who wrote it, or `null`."
+          },
+          "authorUsername": {
+            "type": "string",
+            "description": "The author’s name."
+          },
+          "postedAt": {
+            "type": "string",
+            "description": "When it was posted.",
+            "format": "date-time"
+          },
+          "excerpt": {
+            "type": "string",
+            "description": "The matching passage, word-filtered as the board filters it."
+          }
+        },
+        "required": [
+          "postId",
+          "threadId",
+          "forumId",
+          "threadTitle",
+          "authorUserId",
+          "authorUsername",
+          "postedAt",
+          "excerpt"
+        ],
+        "additionalProperties": false
+      },
+      "Subscription": {
+        "type": "object",
+        "description": "One thing the caller follows.",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "What is being followed.",
+            "enum": [
+              "thread",
+              "forum"
+            ]
+          },
+          "targetId": {
+            "type": "integer",
+            "description": "The id of the thread or forum being followed."
+          },
+          "title": {
+            "type": "string",
+            "description": "Its title."
+          },
+          "href": {
+            "type": "string",
+            "description": "Where it lives on the board."
+          },
+          "mode": {
+            "type": "string",
+            "description": "How the follower is told about new posts.",
+            "enum": [
+              "instant",
+              "daily",
+              "weekly",
+              "none"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the subscription was made.",
+            "format": "date-time"
+          },
+          "pending": {
+            "type": "integer",
+            "description": "Posts since the follower last caught up."
+          }
+        },
+        "required": [
+          "target",
+          "targetId",
+          "title",
+          "href",
+          "mode",
+          "createdAt",
+          "pending"
+        ],
+        "additionalProperties": false
+      },
+      "Thread": {
+        "type": "object",
+        "description": "One thread, as the caller may see it.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The thread’s id."
+          },
+          "forumId": {
+            "type": "integer",
+            "description": "The forum it is in."
+          },
+          "title": {
+            "type": "string",
+            "description": "The thread’s title."
+          },
+          "slug": {
+            "type": "string",
+            "description": "The URL-safe form of the title."
+          },
+          "authorUserId": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Who started it, or `null` if the account is gone."
+          },
+          "authorUsername": {
+            "type": "string",
+            "description": "The starter’s name as it was at the time."
+          },
+          "replyCount": {
+            "type": "integer",
+            "description": "How many replies it has."
+          },
+          "viewCount": {
+            "type": "integer",
+            "description": "How many times it has been read."
+          },
+          "isSticky": {
+            "type": "boolean",
+            "description": "Whether it is pinned to the top of its forum."
+          },
+          "isLocked": {
+            "type": "boolean",
+            "description": "Whether it is closed to further replies."
+          },
+          "visibility": {
+            "type": "string",
+            "description": "Whether the thread is public, held, or removed.",
+            "enum": [
+              "visible",
+              "unapproved",
+              "deleted"
+            ]
+          },
+          "lastPostAt": {
+            "type": "string",
+            "description": "When it was last posted in.",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "forumId",
+          "title",
+          "slug",
+          "authorUserId",
+          "authorUsername",
+          "replyCount",
+          "viewCount",
+          "isSticky",
+          "isLocked",
+          "visibility",
+          "lastPostAt"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "x-scopes": {
+    "forums:read": [
+      "GET /forums"
+    ],
+    "threads:read": [
+      "GET /forums/:forumId/threads",
+      "GET /threads/:threadId",
+      "GET /threads/:threadId/poll"
+    ],
+    "threads:write": [
+      "POST /forums/:forumId/threads"
+    ],
+    "posts:read": [
+      "GET /threads/:threadId/posts"
+    ],
+    "posts:write": [
+      "POST /threads/:threadId/posts",
+      "PATCH /threads/:threadId/posts/:postId",
+      "DELETE /threads/:threadId/posts/:postId"
+    ],
+    "members:read": [
+      "GET /me",
+      "GET /members/:userId"
+    ],
+    "messages:read": [
+      "GET /messages",
+      "GET /messages/:messageId"
+    ],
+    "messages:write": [
+      "POST /messages"
+    ],
+    "polls:write": [
+      "POST /polls/:pollId/votes"
+    ],
+    "reputation:write": [
+      "POST /members/:userId/reputation"
+    ],
+    "subscriptions:read": [
+      "GET /subscriptions"
+    ],
+    "subscriptions:write": [
+      "POST /subscriptions",
+      "DELETE /subscriptions/:target/:targetId"
+    ],
+    "search:read": [
+      "GET /search"
+    ]
+  },
+  "x-rate-limit": {
+    "window": {
+      "seconds": 300,
+      "budget": 600
+    },
+    "anonymousWindow": {
+      "seconds": 300,
+      "budget": 120
+    },
+    "description": "Metered in units of work, not requests. A token spends against its own budget; an unauthenticated caller spends against a smaller one held per address prefix."
+  }
+}

@@ -2,6 +2,9 @@ import 'server-only'
 
 import { cache } from 'react'
 
+import type { Actor } from '@meith/authorization'
+import { ForbiddenError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { EMPTY_VOCABULARY } from '@meith/markdown'
 import { type MessageNotifierPort, type MessagePolicy, MessageService } from '@meith/messages'
 
@@ -20,6 +23,31 @@ export function messageService(): MessageService | null {
     notifier: messageNotifier(),
     vocabulary: async () => (await activeVocabulary()) ?? EMPTY_VOCABULARY,
   })
+}
+
+export interface Messaging {
+  readonly service: MessageService
+  readonly userId: number
+  readonly username: string
+}
+
+export async function requireMessaging(actor: Actor): Promise<Messaging> {
+  const { authorizer, accountStore } = getContainer()
+
+  if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
+  if (!authorizer.can(actor, 'pm.use')) {
+    throw new ForbiddenError(msg('error.app.use-private-messages'))
+  }
+
+  const service = messageService()
+  if (service === null) {
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-21'))
+  }
+
+  const account = await accountStore.accounts.findById(actor.userId)
+  if (account === null) throw new ForbiddenError(msg('error.app.must-logged'))
+
+  return { service, userId: actor.userId, username: account.username }
 }
 
 export function messagePolicy(): MessagePolicy {

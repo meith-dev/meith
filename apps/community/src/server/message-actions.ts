@@ -2,44 +2,19 @@
 
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError } from '@meith/core'
+import { ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 import { parseFolder } from '@meith/messages'
 
 import { folderHref } from '../view/messages'
 import { dailyLimitMessage, limitMessage, spendDailyLimit, spendLimit } from './antispam'
 import type { FormState } from './auth-form-state'
-import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
-import { messageService } from './messages'
+import { requireMessaging } from './messages'
 
 const toFormState = formStateReporter('message-actions', 'unexpected error in a message action')
-
-async function requireMessaging(): Promise<{
-  service: NonNullable<ReturnType<typeof messageService>>
-  userId: number
-  username: string
-}> {
-  const actor = await getActor()
-  const { authorizer, accountStore } = getContainer()
-
-  if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
-  if (!authorizer.can(actor, 'pm.use')) {
-    throw new ForbiddenError(msg('error.app.use-private-messages'))
-  }
-
-  const service = messageService()
-  if (service === null) {
-    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-21'))
-  }
-
-  const account = await accountStore.accounts.findById(actor.userId)
-  if (account === null) throw new ForbiddenError(msg('error.app.must-logged'))
-
-  return { service, userId: actor.userId, username: account.username }
-}
 
 export async function sendMessageAction(_prev: FormState, form: FormData): Promise<FormState> {
   const values = {
@@ -50,9 +25,8 @@ export async function sendMessageAction(_prev: FormState, form: FormData): Promi
   }
 
   try {
-    const { service, userId, username } = await requireMessaging()
-
     const actor = await getActor()
+    const { service, userId, username } = await requireMessaging(actor)
 
     const limited = await spendLimit({ scope: 'message', actor })
     if (limited !== null && !limited.allowed) {
@@ -88,7 +62,7 @@ export async function messageBulkAction(_prev: FormState, form: FormData): Promi
 
   let query: string
   try {
-    const { service, userId } = await requireMessaging()
+    const { service, userId } = await requireMessaging(await getActor())
 
     if (command === 'empty') {
       query = `emptied=${await service.emptyTrash(userId)}`
