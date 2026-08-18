@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { MAX_RELATIONS } from '@meith/relations'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { RemoveRelationForm } from '@/components/account/relation-forms'
 import { PANEL_LIST } from '@/components/shell/panel-list'
@@ -55,7 +55,12 @@ export default async function ContactsPage({
       lede={`Add somebody from their profile. ${view.total} of ${view.limit} used.`}
     >
       {notice !== null && (
-        <Notice kind={notice.kind} message={notice.message} dismissHref={RETURN_TO} />
+        <Notice
+          kind={notice.kind}
+          message={notice.message}
+          dismissHref={RETURN_TO}
+          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
+        />
       )}
 
       <section className="flex flex-col gap-3">

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { FollowForm } from '@/components/account/subscription-forms'
 import { MultiQuoteButton } from '@/components/content/multiquote-button'
@@ -379,12 +379,14 @@ export default async function ThreadPage({
     now: new Date(),
   }).modes
 
-  const ThreadView = requireSlot(await currentTheme(), 'ThreadView')
-  const Navigation = requireSlot(await currentTheme(), 'Navigation')
-  const Notice = requireSlot(await currentTheme(), 'Notice')
-  const PostBit = requireSlot(await currentTheme(), 'PostBit')
-  const PostActions = requireSlot(await currentTheme(), 'PostActions')
-  const Pagination = requireSlot(await currentTheme(), 'Pagination')
+  const theme = await currentTheme()
+  const ThreadView = requireSlot(theme, 'ThreadView')
+  const Navigation = requireSlot(theme, 'Navigation')
+  const Notice = requireSlot(theme, 'Notice')
+  const PostBit = requireSlot(theme, 'PostBit')
+  const PostActions = requireSlot(theme, 'PostActions')
+  const Pagination = requireSlot(theme, 'Pagination')
+  const translator = await getTranslator()
 
   const notice =
     query.replied === 'race'
@@ -438,7 +440,7 @@ export default async function ThreadPage({
           select: selectionFor('post', post.id, `post #${post.number}`, inlineOffered),
           regions: {
             actions: (
-              <PostActions {...actions}>
+              <PostActions {...actions} copy={slotCopy(theme, 'PostActions', translator)}>
                 {thanksOffered &&
                 post.author.userId !== null &&
                 post.author.userId !== actor.userId &&
@@ -577,8 +579,10 @@ export default async function ThreadPage({
       ...view.view,
       regions: {
         ...(tools === undefined ? {} : { tools }),
-        posts: postModels.map((model) => <PostBit key={model.post.id} {...model} />),
-        pagination: <Pagination {...pagination} />,
+        posts: postModels.map((model) => (
+          <PostBit key={model.post.id} {...model} copy={slotCopy(theme, 'PostBit', translator)} />
+        )),
+        pagination: <Pagination {...pagination} copy={slotCopy(theme, 'Pagination', translator)} />,
         ...(afterContent === undefined ? {} : { afterContent }),
         quickReply,
       },
@@ -600,7 +604,7 @@ export default async function ThreadPage({
 
   return (
     <>
-      <Navigation items={trail} />
+      <Navigation items={trail} copy={slotCopy(theme, 'Navigation', translator)} />
       <main id="board-content" tabIndex={-1} className="flex-1">
         {jsonLd !== null && (
           <script
@@ -615,10 +619,11 @@ export default async function ThreadPage({
               kind="info"
               message={notice}
               dismissHref={`/thread/${thread.id}-${thread.slug}`}
+              copy={slotCopy(theme, 'Notice', translator)}
             />
           </div>
         )}
-        <ThreadView {...threadViewModel} />
+        <ThreadView {...threadViewModel} copy={slotCopy(theme, 'ThreadView', translator)} />
         {inlineOffered && (
           <InlineModerationForm
             copy={moderationFormsCopy(await getTranslator())}

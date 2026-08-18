@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 import { quotePrefill } from '@meith/threads'
 
 import { MultiQuoteSelection } from '@/components/content/multiquote-selection'
@@ -74,12 +74,15 @@ export default async function ReplyPage({
     errorMessage: locked ? 'This thread is locked.' : null,
   })
 
-  const PostForm = requireSlot(await currentTheme(), 'PostForm')
+  const theme = await currentTheme()
+  const PostForm = requireSlot(theme, 'PostForm')
+  const translator = await getTranslator()
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       <PostForm
         {...view}
+        copy={slotCopy(theme, 'PostForm', translator)}
         regions={{
           form: locked ? null : (
             <>

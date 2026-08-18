@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { PanelSectionGrid, PanelWaitingList } from '@/components/shell/panel-overview'
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
@@ -40,6 +40,7 @@ export default async function UserCpPage() {
         kind="info"
         message="Your profile is public. Your options and e-mail address are not."
         dismissHref={null}
+        copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
       />
 
       <PanelSection id="waiting-heading" title={await tr('page.waiting-for')}>

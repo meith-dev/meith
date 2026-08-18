@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { NOTIFICATIONS_PAGE_SIZE } from '@meith/notifications'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import {
   MarkAllNotificationsReadForm,
@@ -75,7 +75,14 @@ export default async function NotificationsPage({
         />
       }
     >
-      {notice !== null && <Notice kind="info" message={notice} dismissHref="/notifications" />}
+      {notice !== null && (
+        <Notice
+          kind="info"
+          message={notice}
+          dismissHref="/notifications"
+          copy={slotCopy(await currentTheme(), 'Notice', translator)}
+        />
+      )}
 
       {view.rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">

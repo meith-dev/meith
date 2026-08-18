@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { DeletePostForm, EditPostForm, RestorePostForm } from '@/components/content/edit-post-form'
 import { getTranslator, tr } from '@/server/i18n'
@@ -51,12 +51,15 @@ export default async function EditPostPage({
     isDeleted,
   })
 
-  const PostForm = requireSlot(await currentTheme(), 'PostForm')
+  const theme = await currentTheme()
+  const PostForm = requireSlot(theme, 'PostForm')
+  const translator = await getTranslator()
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       <PostForm
         {...view}
+        copy={slotCopy(theme, 'PostForm', translator)}
         regions={{
           form: isDeleted ? (
             <RestorePostForm threadId={thread} postId={post} />

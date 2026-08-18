@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { MESSAGES_PAGE_SIZE, parseFolder } from '@meith/messages'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { MessageActionBar } from '@/components/messages/message-forms'
 import { PanelPage } from '@/components/shell/panel-page'
@@ -86,6 +86,7 @@ export default async function MessagesPage({
           kind={notice.kind}
           message={notice.message}
           dismissHref={view.tabs[0]?.href ?? '/messages'}
+          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
         />
       )}
 

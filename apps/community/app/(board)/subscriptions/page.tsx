@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { SubscriptionService } from '@meith/subscriptions'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { SubscriptionRowForm } from '@/components/account/subscription-forms'
 import { PanelPage } from '@/components/shell/panel-page'
@@ -58,7 +58,14 @@ export default async function SubscriptionsPage({
         </>
       }
     >
-      {notice !== null && <Notice kind="info" message={notice} dismissHref="/subscriptions" />}
+      {notice !== null && (
+        <Notice
+          kind="info"
+          message={notice}
+          dismissHref="/subscriptions"
+          copy={slotCopy(await currentTheme(), 'Notice', translator)}
+        />
+      )}
 
       {view.total === 0 ? (
         <p className="text-sm text-muted-foreground">{await tr('page.subscriptions.none')}</p>

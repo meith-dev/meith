@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { ModerationQueue, QUEUE_PAGE_SIZE } from '@meith/moderation'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { QueueForm } from '@/components/moderation/queue-form'
@@ -55,7 +55,8 @@ export default async function ModerationPage({
     t: translator,
   })
 
-  const Notice = requireSlot(await currentTheme(), 'Notice')
+  const theme = await currentTheme()
+  const Notice = requireSlot(theme, 'Notice')
 
   const parts: string[] = []
   if (query.did !== undefined && query.n !== undefined) {
@@ -79,7 +80,14 @@ export default async function ModerationPage({
           : `${view.pending} items awaiting approval.`
       }
     >
-      {notice !== null && <Notice kind="info" message={notice} dismissHref="/moderation" />}
+      {notice !== null && (
+        <Notice
+          kind="info"
+          message={notice}
+          dismissHref="/moderation"
+          copy={slotCopy(theme, 'Notice', translator)}
+        />
+      )}
 
       {view.emptyReason !== null && (
         <Card>

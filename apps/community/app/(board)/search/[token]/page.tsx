@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { isAppError } from '@meith/core'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { SearchOffNotice } from '@/components/board/search-off-notice'
 import { getContainer } from '@/server/container'
@@ -105,9 +105,13 @@ export default async function SearchResultsPage({
       {...filtered}
       regions={{
         pagination: (
-          <Pagination {...(await filterView('view.pagination', pager, viewerRef(actor)))} />
+          <Pagination
+            {...(await filterView('view.pagination', pager, viewerRef(actor)))}
+            copy={slotCopy(await currentTheme(), 'Pagination', translator)}
+          />
         ),
       }}
+      copy={slotCopy(await currentTheme(), 'SearchResults', translator)}
     />
   )
 }

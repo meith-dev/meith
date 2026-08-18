@@ -1,7 +1,8 @@
 import type { PanelKind } from '@meith/theme-kit'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 
@@ -30,7 +31,8 @@ export async function PanelPage({
   gap = 'normal',
   children,
 }: PanelPageProps) {
-  const Page = requireSlot(await currentTheme(), 'PanelPage')
+  const theme = await currentTheme()
+  const Page = requireSlot(theme, 'PanelPage')
 
   const model = await filterView(
     'view.panel-page',
@@ -50,7 +52,11 @@ export async function PanelPage({
     viewerRef(await getActor()),
   )
 
-  return <Page {...model}>{children}</Page>
+  return (
+    <Page {...model} copy={slotCopy(theme, 'PanelPage', await getTranslator())}>
+      {children}
+    </Page>
+  )
 }
 
 export async function PanelSection({
@@ -66,7 +72,8 @@ export async function PanelSection({
   readonly id: string
   readonly children: React.ReactNode
 }) {
-  const Section = requireSlot(await currentTheme(), 'PanelSection')
+  const theme = await currentTheme()
+  const Section = requireSlot(theme, 'PanelSection')
 
   const model = await filterView(
     'view.panel-section',
@@ -81,5 +88,9 @@ export async function PanelSection({
     viewerRef(await getActor()),
   )
 
-  return <Section {...model}>{children}</Section>
+  return (
+    <Section {...model} copy={slotCopy(theme, 'PanelSection', await getTranslator())}>
+      {children}
+    </Section>
+  )
 }

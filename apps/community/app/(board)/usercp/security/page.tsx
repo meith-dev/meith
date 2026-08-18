@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { PASSKEY_LIMIT, providerLabel } from '@meith/accounts'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { ActiveSessions, type SessionView } from '@/components/account/active-sessions'
 import { PasskeyEnrol } from '@/components/account/passkey-enrol'
@@ -168,7 +168,12 @@ export default async function SecurityPage({
       lede={await tr('page.changing-either-e-mail-address-password')}
     >
       {notice !== null && (
-        <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/security" />
+        <Notice
+          kind={notice.kind}
+          message={notice.message}
+          dismissHref="/usercp/security"
+          copy={slotCopy(await currentTheme(), 'Notice', translator)}
+        />
       )}
 
       <PasswordForm

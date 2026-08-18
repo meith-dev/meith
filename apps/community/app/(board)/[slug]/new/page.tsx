@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { canHoldThreads } from '@meith/forums'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { NewThreadForm } from '@/components/content/new-thread-form'
 import { attachmentLimits, canAttach } from '@/server/attachments'
@@ -50,12 +50,15 @@ export default async function NewThreadPage({ params }: { params: Promise<{ slug
       rules.isOpen && rules.allowThreads ? null : 'This forum is closed to new threads.',
   })
 
-  const PostForm = requireSlot(await currentTheme(), 'PostForm')
+  const theme = await currentTheme()
+  const PostForm = requireSlot(theme, 'PostForm')
+  const translator = await getTranslator()
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       <PostForm
         {...view}
+        copy={slotCopy(theme, 'PostForm', translator)}
         regions={{
           form:
             rules.isOpen && rules.allowThreads ? (

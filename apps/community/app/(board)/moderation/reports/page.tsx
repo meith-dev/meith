@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { REPORTS_PAGE_SIZE, ReportService } from '@meith/moderation'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { AssignReportForm, CloseReportForm } from '@/components/moderation/report-forms'
@@ -47,7 +47,8 @@ export default async function ReportsPage({
 
   const now = new Date()
   const translator = await getTranslator()
-  const Notice = requireSlot(await currentTheme(), 'Notice')
+  const theme = await currentTheme()
+  const Notice = requireSlot(theme, 'Notice')
   const notice =
     query.closed === 'resolved'
       ? 'Report resolved.'
@@ -60,7 +61,14 @@ export default async function ReportsPage({
       title={await tr('page.reports')}
       lede={open === 1 ? '1 report still open.' : `${open} reports still open.`}
     >
-      {notice !== null && <Notice kind="info" message={notice} dismissHref="/moderation/reports" />}
+      {notice !== null && (
+        <Notice
+          kind="info"
+          message={notice}
+          dismissHref="/moderation/reports"
+          copy={slotCopy(theme, 'Notice', translator)}
+        />
+      )}
 
       {page.rows.length === 0 && (
         <Card>

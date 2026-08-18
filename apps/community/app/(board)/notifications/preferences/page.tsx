@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { NotificationPreferencesForm } from '@/components/account/notification-forms'
 import { PanelPage } from '@/components/shell/panel-page'
@@ -45,7 +45,12 @@ export default async function NotificationPreferencesPage({
       lede={await tr('page.which-board-s-notifications-also')}
     >
       {notice !== null && (
-        <Notice kind="info" message={notice} dismissHref="/notifications/preferences" />
+        <Notice
+          kind="info"
+          message={notice}
+          dismissHref="/notifications/preferences"
+          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
+        />
       )}
 
       <NotificationPreferencesForm

@@ -179,7 +179,7 @@
   "packages/tasks/src/builtin.ts": 95,
   "packages/theme-kit/src/api.ts": 9,
   "packages/theme-kit/src/slots.ts": 64,
-  "packages/theme-kit/src/theme.ts": 5,
+  "packages/theme-kit/src/theme.ts": 6,
   "packages/ui/src/disclosure.tsx": 1,
   "packages/ui/src/field.tsx": 1,
   "packages/ui/src/menu.tsx": 4,

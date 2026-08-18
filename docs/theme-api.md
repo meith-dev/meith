@@ -118,10 +118,11 @@ replacing their markup.
 
 ## Words and numbers
 
-A slot receives a view model and nothing else — there is no locale to reach
-for, in the same way there is no database. **The app formats; the theme
-renders.** Anything written for the reader arrives already written: a timestamp
-crosses as a `TimeModel`, and a counter as a `CountModel`.
+A slot receives a view model and its own resolved words — nothing else. There
+is still no locale to reach for and no translator to call, in the same way
+there is no database. **The app formats; the theme renders.** Anything the app
+already knows arrives pre-written: a timestamp crosses as a `TimeModel`, and a
+counter as a `CountModel`.
 
 ```tsx
 export function ForumRow({ forum }: { forum: ForumRowModel }) {
@@ -146,13 +147,44 @@ sliced — is yours to render as plain digits. The rule covers what the app hand
 you, and the app hands you a `memberCount` rather than making you count
 `members.length`.
 
-**Put your own words in a catalog.** A theme that writes a heading of its own
-ships a `messages` bundle and is registered with it in `community.config.ts`:
+**Put your own words in a catalog, and read them through `copy`.** Every slot
+component takes a second prop, `copy: SlotCopy` — `Readonly<Record<string,
+string>>` — carrying whatever your theme registered for that slot, already
+resolved for the viewer:
+
+```tsx
+import { defineTheme } from '@meith/theme-kit'
+
+function whoIsOnlineCopy(t: Translator): SlotCopy {
+  return {
+    'clubhouse.whoIsOnline.heading': t.t('clubhouse.whoIsOnline.heading'),
+    'clubhouse.whoIsOnline.empty': t.t('clubhouse.whoIsOnline.empty'),
+  }
+}
+
+export const clubhouseTheme = defineTheme({
+  key: 'clubhouse',
+  title: 'Clubhouse',
+  slots: { WhoIsOnline },
+  copy: { WhoIsOnline: whoIsOnlineCopy },
+})
+```
+
+```tsx
+function WhoIsOnline({ total, copy }: WhoIsOnlineModel & { copy: SlotCopy }) {
+  return <h2>{copy['clubhouse.whoIsOnline.heading'] ?? 'clubhouse.whoIsOnline.heading'}</h2>
+}
+```
+
+A missing key renders as itself, the same fallback every other copy record in
+the app uses. The values themselves come from your theme's own message
+catalog — a `messages` bundle registered alongside `slots` and `copy` in
+`community.config.ts`:
 
 ```ts
 export const clubhouseMessages = {
-  en: { 'clubhouse.lobby': 'The Lobby' },
-  de: { 'clubhouse.lobby': 'Die Lobby' },
+  en: { 'clubhouse.whoIsOnline.heading': 'In the clubhouse' },
+  de: { 'clubhouse.whoIsOnline.heading': 'Im Klubhaus' },
 }
 ```
 
@@ -160,6 +192,18 @@ Because a theme's catalog is merged over the board's, the same mechanism lets a
 theme reword the board itself — registering `nav.home` renames *Home*
 everywhere, in every language you supply it for. [Languages](./internationalisation.md)
 has the message syntax and the merge order.
+
+**Namespace your own keys.** More than one theme can be registered on the same
+board — a member picks between them in *Your control panel → Appearance* — so
+two themes' catalogs are merged into the same registry at once. A bare key
+like `heading` collides the moment a second theme defines one; `clubhouse.
+whoIsOnline.heading` cannot, because no other theme owns the `clubhouse.`
+prefix. The app resolves your copy with its own translator — which already
+holds every registered theme's messages, not only the active one's — so it is
+your key names, not the merge, that keep themes apart.
+
+A slot your theme fills but has nothing of its own to say for gets `copy: {}`.
+There is nothing to register for it, and nothing to read.
 
 ## Theme switching
 
@@ -211,7 +255,7 @@ anchors a post by `post.id` leaves every such link at the top of the page.
 |---|---|
 | The name and `kind` of every **stable** slot | The two **provisional** slots (`QuickReply`, `EditorToolbar`) |
 | The fields of the model a stable slot is handed | Fields of a provisional slot's model |
-| `defineTheme`, `resolveTheme`, `requireSlot`, `hasSlot`, `assertComplete`, `assertThemeContract`, `checkThemeContract` | Anything not re-exported from `packages/theme-kit/src/index.ts` |
+| `defineTheme`, `resolveTheme`, `requireSlot`, `slotCopy`, `hasSlot`, `assertComplete`, `assertThemeContract`, `checkThemeContract` | Anything not re-exported from `packages/theme-kit/src/index.ts` |
 | `SLOTS`, `SLOT_NAMES`, `SLOT_STABILITY`, `isSlotName`, `slotKind` | The markup, class names and token *values* of the shipped themes |
 
 > [!IMPORTANT]
@@ -235,7 +279,7 @@ a complete theme today.
 
 ## Versioning
 
-`THEME_API_VERSION` (currently `0.14`) is `major.minor`, and both halves are
+`THEME_API_VERSION` (currently `0.15`) is `major.minor`, and both halves are
 promises:
 
 | Bump | What may land | What it costs you |
@@ -261,7 +305,13 @@ not an API version.
 > change landed in a minor, and it was landed that way because Meith is
 > pre-1.0 and no board runs on it: the alternative was carrying a second field
 > beside every counter until 1.0 to avoid breaking themes that do not exist.
-> Once 1.0 ships, the table above is the whole of it.
+>
+> `0.15` is back to ordinary: every slot component now receives a `copy` prop
+> beside its view model — the theme's own words, resolved server-side — but a
+> theme's existing implementation still compiles unchanged, because it was
+> never required to declare every prop it is handed. Only the app, which is
+> the sole caller of `requireSlot`, had to change: it now resolves `slotCopy()`
+> for every slot it renders. See [Words and numbers](#words-and-numbers).
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

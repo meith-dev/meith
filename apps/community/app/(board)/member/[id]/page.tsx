@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { RemoveRelationForm, SetRelationForm } from '@/components/account/relation-forms'
 import { AvatarLockForm, SignatureLockForm } from '@/components/moderation/signature-lock-form'
@@ -91,7 +91,10 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
-      <MemberProfile {...profileModel} />
+      <MemberProfile
+        {...profileModel}
+        copy={slotCopy(await currentTheme(), 'MemberProfile', await getTranslator())}
+      />
 
       {(signatureState !== null || repSummary !== null || currentRelation !== null) && (
         <div className={`${BOARD_MEASURE} pt-4 pb-8`}>

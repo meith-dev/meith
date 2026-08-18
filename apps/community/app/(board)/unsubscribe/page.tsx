@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { env } from '@meith/core'
 import { readUnsubscribeToken } from '@meith/subscriptions'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { UnsubscribeConfirmForm } from '@/components/account/subscription-forms'
 import { getTranslator, tr } from '@/server/i18n'
@@ -35,7 +35,12 @@ export default async function UnsubscribePage({
 
         {done !== null ? (
           <>
-            <Notice kind="info" message={done} dismissHref="/" />
+            <Notice
+              kind="info"
+              message={done}
+              dismissHref="/"
+              copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
+            />
             <p className="text-sm text-muted-foreground">
               You can change any of this later from{' '}
               <a

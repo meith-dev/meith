@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { signatureHtml, signatureLimit } from '@meith/signatures'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { SignatureForm } from '@/components/account/usercp-forms'
 import { PanelPage } from '@/components/shell/panel-page'
@@ -44,7 +44,12 @@ export default async function SignaturePage({
       lede={await tr('page.shown-under-every-post-have')}
     >
       {notice !== null && (
-        <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/signature" />
+        <Notice
+          kind={notice.kind}
+          message={notice.message}
+          dismissHref="/usercp/signature"
+          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
+        />
       )}
 
       <SignatureForm

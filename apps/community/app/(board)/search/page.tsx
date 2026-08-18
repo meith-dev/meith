@@ -20,6 +20,7 @@ import {
   requireSlot,
   type SearchAdvancedModel,
   type SearchFormModel,
+  slotCopy,
 } from '@meith/theme-kit'
 
 import { SearchOffNotice } from '@/components/board/search-off-notice'
@@ -71,6 +72,7 @@ export default async function SearchPage({
 
   const actor = await getActor()
   const SearchForm = requireSlot(await currentTheme(), 'SearchForm')
+  const translator = await getTranslator()
 
   if (submitted.terms !== '') {
     const outcome = await runSearch({
@@ -94,6 +96,7 @@ export default async function SearchPage({
             hint: null,
             errorMessage: errorFor(outcome),
           }))}
+          copy={slotCopy(await currentTheme(), 'SearchForm', translator)}
         />
       </Page>
     )
@@ -107,6 +110,7 @@ export default async function SearchPage({
           hint: HINT,
           errorMessage: null,
         }))}
+        copy={slotCopy(await currentTheme(), 'SearchForm', translator)}
       />
     </Page>
   )

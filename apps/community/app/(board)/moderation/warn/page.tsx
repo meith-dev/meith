@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { WarningService } from '@meith/moderation'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { IssueWarningForm, RevokeWarningForm } from '@/components/moderation/warning-forms'
@@ -72,7 +72,8 @@ export default async function WarnPage({
     t: translator,
   })
 
-  const Notice = requireSlot(await currentTheme(), 'Notice')
+  const theme = await currentTheme()
+  const Notice = requireSlot(theme, 'Notice')
   const notice = warningNotice(query, translator)
 
   return (
@@ -93,6 +94,7 @@ export default async function WarnPage({
           kind="info"
           message={notice}
           dismissHref={`/moderation/warn?user=${view.member.userId}`}
+          copy={slotCopy(theme, 'Notice', translator)}
         />
       )}
 

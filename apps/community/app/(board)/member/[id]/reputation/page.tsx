@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { RateMemberForm, WithdrawRatingForm } from '@/components/account/reputation-forms'
 import { getContainer } from '@/server/container'
@@ -89,7 +89,12 @@ export default async function ReputationPage({
     <main id="board-content" tabIndex={-1} className="flex-1">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
         {notice !== null && (
-          <Notice kind={notice.kind} message={notice.message} dismissHref={returnTo} />
+          <Notice
+            kind={notice.kind}
+            message={notice.message}
+            dismissHref={returnTo}
+            copy={slotCopy(await currentTheme(), 'Notice', translator)}
+          />
         )}
 
         <div className="flex flex-col gap-1">

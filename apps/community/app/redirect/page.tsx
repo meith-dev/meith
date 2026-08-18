@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
 import { buildRedirectNotice } from '@/view/redirect-notice'
 
@@ -27,7 +27,10 @@ export default async function RedirectPage({
         tabIndex={-1}
         className="flex flex-1 items-center justify-center px-6 py-12"
       >
-        <RedirectNotice {...notice} />
+        <RedirectNotice
+          {...notice}
+          copy={slotCopy(await currentTheme(), 'RedirectNotice', await getTranslator())}
+        />
       </main>
     </>
   )

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { FollowForm } from '@/components/account/subscription-forms'
 import { SectionPage } from '@/components/board/section-page'
@@ -241,15 +241,17 @@ export default async function ForumPage({
     t: await getTranslator(),
   })
 
-  const Announcement = requireSlot(await currentTheme(), 'Announcement')
-  const ForumDisplay = requireSlot(await currentTheme(), 'ForumDisplay')
-  const Navigation = requireSlot(await currentTheme(), 'Navigation')
-  const Notice = requireSlot(await currentTheme(), 'Notice')
-  const ThreadRow = requireSlot(await currentTheme(), 'ThreadRow')
-  const SubforumList = requireSlot(await currentTheme(), 'SubforumList')
-  const Pagination = requireSlot(await currentTheme(), 'Pagination')
+  const theme = await currentTheme()
+  const Announcement = requireSlot(theme, 'Announcement')
+  const ForumDisplay = requireSlot(theme, 'ForumDisplay')
+  const Navigation = requireSlot(theme, 'Navigation')
+  const Notice = requireSlot(theme, 'Notice')
+  const ThreadRow = requireSlot(theme, 'ThreadRow')
+  const SubforumList = requireSlot(theme, 'SubforumList')
+  const Pagination = requireSlot(theme, 'Pagination')
 
-  const notice = forumNotice(query, await getTranslator())
+  const translator = await getTranslator()
+  const notice = forumNotice(query, translator)
 
   const pluginContext = { ...viewerRef(actor), forumId: id }
 
@@ -318,9 +320,14 @@ export default async function ForumPage({
               ),
             }
           : {}),
-        subforums: subforums === null ? null : <SubforumList {...subforums} />,
-        threads: threadRows.map((row) => <ThreadRow key={row.thread.id} {...row} />),
-        pagination: <Pagination {...pagination} />,
+        subforums:
+          subforums === null ? null : (
+            <SubforumList {...subforums} copy={slotCopy(theme, 'SubforumList', translator)} />
+          ),
+        threads: threadRows.map((row) => (
+          <ThreadRow key={row.thread.id} {...row} copy={slotCopy(theme, 'ThreadRow', translator)} />
+        )),
+        pagination: <Pagination {...pagination} copy={slotCopy(theme, 'Pagination', translator)} />,
         ...(announcements.length === 0
           ? {}
           : {
@@ -329,6 +336,7 @@ export default async function ForumPage({
                   // biome-ignore lint/suspicious/noArrayIndexKey: the position is the identity — this list is server-rendered in order and never reordered on the client
                   key={position}
                   {...announcement}
+                  copy={slotCopy(theme, 'Announcement', translator)}
                 />
               )),
             }),
@@ -346,14 +354,19 @@ export default async function ForumPage({
 
   return (
     <>
-      <Navigation items={trail} />
+      <Navigation items={trail} copy={slotCopy(theme, 'Navigation', translator)} />
       <main id="board-content" tabIndex={-1} className="flex-1">
         {notice !== null && (
           <div className={`${BOARD_MEASURE} pt-6`}>
-            <Notice kind="info" message={notice} dismissHref={`/${id}-${forum.slug}`} />
+            <Notice
+              kind="info"
+              message={notice}
+              dismissHref={`/${id}-${forum.slug}`}
+              copy={slotCopy(theme, 'Notice', translator)}
+            />
           </div>
         )}
-        <ForumDisplay {...forumDisplayModel} />
+        <ForumDisplay {...forumDisplayModel} copy={slotCopy(theme, 'ForumDisplay', translator)} />
         {inlineOffered && (
           <InlineModerationForm
             copy={moderationFormsCopy(await getTranslator())}
