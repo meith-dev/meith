@@ -95,6 +95,7 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 | Running a board | [`single-sign-on.md`](./docs/single-sign-on.md) | Two-factor authentication, federated sign-in and passkeys: what each means for your members, how to configure them, and the record of what has opened an account. |
 | Running a board | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
 | Running a board | [`internationalisation.md`](./docs/internationalisation.md) | How a page picks its language, how to add one, and how a theme or plugin ships its own words. |
+| Running a board | [`web-push.md`](./docs/web-push.md) | Notifications that reach a member who does not have the board open, and the manifest that makes the board installable — what it costs their privacy, and how to turn it on. |
 | Running a board | [`demo-mode.md`](./docs/demo-mode.md) | The self-resetting public demo board that runs at demo.meith.dev — what it changes, and how to run one yourself. |
 | Advanced deployment | [`self-hosting.md`](./docs/self-hosting.md) | The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead. |
 | Themes | [`theme-api.md`](./docs/theme-api.md) | How to write a theme, what a theme may do, and what the API freeze covers. |

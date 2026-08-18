@@ -104,6 +104,7 @@ export interface PluginNotifyKindInput {
   readonly description: string
   readonly descriptionKey?: string | undefined
   readonly emailByDefault?: boolean | undefined
+  readonly pushByDefault?: boolean | undefined
 }
 
 export interface PluginNotificationKindSpec {
@@ -115,6 +116,8 @@ export interface PluginNotificationKindSpec {
   readonly audience: 'member'
   readonly emailByDefault: boolean
   readonly emailConfigurable: true
+  readonly pushByDefault: boolean
+  readonly pushConfigurable: true
 }
 
 export interface PluginNotifyBackend {
@@ -140,6 +143,8 @@ export function pluginNotificationKindSpecs(
     audience: 'member',
     emailByDefault: kind.emailByDefault ?? true,
     emailConfigurable: true,
+    pushByDefault: kind.pushByDefault ?? false,
+    pushConfigurable: true,
   }))
 }
 

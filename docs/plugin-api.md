@@ -480,8 +480,9 @@ contained from the server.
 ## Notifications
 
 `context.notify` — on every runtime context — sends a member a notification
-through the board's own system: the bell, and an e-mail if the member wants
-one. A plugin first declares its kinds as data:
+through the board's own system: the bell, an e-mail if the member wants one,
+and a [pushed notification](./web-push.md) if the board offers push and the
+member asked for it. A plugin first declares its kinds as data:
 
 ```ts
 notifications: [
@@ -489,7 +490,7 @@ notifications: [
     description: 'A member bought a membership in your name.' },
   { key: 'renewal_trouble', title: 'A membership payment fails',
     description: 'Your renewal did not go through; access holds while Stripe retries.',
-    emailByDefault: false },
+    emailByDefault: false, pushByDefault: true },
 ],
 ```
 
@@ -510,8 +511,9 @@ The host owns the decisions a plugin must not:
 
 - **Every kind is namespaced** — `plugin.<plugin>.<kind>` — and lands as its
   own line on the member's notification preferences screen, where the
-  member decides whether it e-mails them. `emailByDefault` sets the
-  starting position; the member's choice wins from then on.
+  member decides which channels it reaches them by. `emailByDefault` and
+  `pushByDefault` set the starting positions — push starts off unless a
+  plugin asks otherwise — and the member's choice wins from then on.
 - **An undeclared kind refuses at send.** Declaring kinds is what makes
   them legible to members; a plugin cannot invent one on the fly.
 - **The words travel as data.** The subject (up to 200 characters) and body

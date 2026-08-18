@@ -284,6 +284,7 @@ The commands:
 | `community task:list` | What is scheduled, and how often each task runs. |
 | `community task:run` | Run the tick once, by hand — or one named task. |
 | `community search:reindex` | Rebuild the search index now rather than over the next few ticks. |
+| `community push:keys` | Generate the VAPID key pair [web push](./web-push.md) signs with. `--save` writes it to the board rather than printing it. |
 | `community demo:seed` / `demo:reset` | [Demo mode](./demo-mode.md) only; both refuse without `DEMO_MODE`. |
 
 Search indexes itself: `search.reindex` runs on the tick every ten minutes
@@ -976,6 +977,12 @@ cannot execute, which is the line the script directive holds.
 `img-src` is the third part, and it is a setting: see
 [remote images](#remote-images).
 
+`worker-src` and `manifest-src` are `'self'`, which is what lets the board
+register its own service worker and serve its own web app manifest. Both
+are named explicitly because `strict-dynamic` in `script-src` would
+otherwise refuse a worker no nonce can be attached to. See
+[Web push](./web-push.md).
+
 If you put something in front of the board that rewrites headers, do not
 let it replace this one — a cached or hand-written policy will not carry
 the nonce for the request it is served with, and every page will arrive
@@ -1001,6 +1008,7 @@ Three things widen that, and an operator chooses each one:
 | Images from other hosts, embedded in posts | `REMOTE_IMAGES=1` — see [remote images](#remote-images) |
 | A federated sign-in provider | Configured per provider — see [Signing in](./single-sign-on.md) |
 | Whatever a plugin loads | Installing the plugin in `community.config.ts` |
+| A pushed notification, carried by the browser maker's push service | `/admin/settings?group=push`, and then each member for themselves — see [Web push](./web-push.md) |
 
 **Upgrading from 0.7.0 or earlier removes a request your members were
 making without knowing.** Those versions rendered a hosted analytics
@@ -1521,6 +1529,11 @@ The split is deliberate. The first two go to members the board already
 knows, in volume, and can wait a minute. The rest go to somebody sitting
 in front of a screen who will retry within seconds — and two of them go
 to an address the board has not proven yet.
+
+A notification can leave by a third route as well. [Web
+push](./web-push.md) puts it on a member's phone or laptop without the
+board being open; it is off until an operator turns it on, and off for
+each member until they ask for it on the browser in front of them.
 
 ### Changing an address tells the old one
 

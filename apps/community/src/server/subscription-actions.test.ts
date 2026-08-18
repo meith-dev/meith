@@ -80,7 +80,7 @@ class FakeSubscriptions implements SubscriptionRepository {
 class FakeNotifications {
   readonly saved: Array<{ userId: number; entries: Map<string, boolean> }> = []
 
-  async saveEmailPreferences(userId: number, entries: ReadonlyMap<string, boolean>) {
+  async savePreferences(userId: number, _channel: string, entries: ReadonlyMap<string, boolean>) {
     this.saved.push({ userId, entries: new Map(entries) })
   }
 }

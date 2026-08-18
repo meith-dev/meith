@@ -38,6 +38,8 @@ const DELIVERABLE: DeliverableNotification = {
   recipient: { userId: 1, username: 'ivan', email: 'ivan@example.test', locale: 'en' },
   emailEnabled: true,
   emailSentAt: null,
+  pushEnabled: false,
+  pushSentAt: null,
 }
 
 let mail: CollectingMail

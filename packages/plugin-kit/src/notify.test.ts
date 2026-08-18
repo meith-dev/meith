@@ -9,6 +9,7 @@ const KINDS = [
     title: 'A renewal fails',
     description: 'Your card did not go through.',
     emailByDefault: false,
+    pushByDefault: true,
   },
 ]
 
@@ -35,6 +36,8 @@ describe('pluginNotificationKindSpecs', () => {
         audience: 'member',
         emailByDefault: true,
         emailConfigurable: true,
+        pushByDefault: false,
+        pushConfigurable: true,
       },
       {
         id: 'plugin.dues.renewal_trouble',
@@ -43,6 +46,8 @@ describe('pluginNotificationKindSpecs', () => {
         audience: 'member',
         emailByDefault: false,
         emailConfigurable: true,
+        pushByDefault: true,
+        pushConfigurable: true,
       },
     ])
   })

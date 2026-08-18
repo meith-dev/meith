@@ -4,9 +4,13 @@ import type { Actor } from '@meith/authorization'
 import { combinePermissionSets, InMemoryAuthorizationSource } from '@meith/authorization'
 import type {
   DeliverableNotification,
+  NotificationChannel,
+  NotificationChannelPreference,
   NotificationRepository,
+  PushSubscriptionRecord,
   RaiseInput,
   RaiseResult,
+  SavePushSubscriptionInput,
 } from '@meith/notifications'
 
 const { RedirectError } = vi.hoisted(() => {
@@ -39,10 +43,20 @@ const { installTestContainer } = await import('./test-container')
 class FakeNotifications implements NotificationRepository {
   readonly markedRead: Array<{ userId: number; id: number }> = []
   readonly markedAll: number[] = []
-  readonly saved: Array<{ userId: number; entries: Map<string, boolean> }> = []
+  readonly saved: Array<{
+    userId: number
+    channel: NotificationChannel
+    entries: Map<string, boolean>
+  }> = []
+  readonly subscriptions: SavePushSubscriptionInput[] = []
 
   async raise(input: RaiseInput): Promise<RaiseResult> {
-    return { notificationId: 1, coalesced: false, emailQueued: input.email }
+    return {
+      notificationId: 1,
+      coalesced: false,
+      emailQueued: input.email,
+      pushQueued: input.push,
+    }
   }
 
   async listFor() {
@@ -67,12 +81,16 @@ class FakeNotifications implements NotificationRepository {
     return 1
   }
 
-  async emailPreferencesFor(): Promise<ReadonlyMap<string, boolean>> {
+  async preferencesFor(): Promise<ReadonlyMap<string, NotificationChannelPreference>> {
     return new Map()
   }
 
-  async saveEmailPreferences(userId: number, entries: ReadonlyMap<string, boolean>) {
-    this.saved.push({ userId, entries: new Map(entries) })
+  async savePreferences(
+    userId: number,
+    channel: NotificationChannel,
+    entries: ReadonlyMap<string, boolean>,
+  ) {
+    this.saved.push({ userId, channel, entries: new Map(entries) })
   }
 
   async findForDelivery(): Promise<DeliverableNotification | null> {
@@ -80,6 +98,41 @@ class FakeNotifications implements NotificationRepository {
   }
 
   async markEmailSent(): Promise<void> {}
+
+  async markPushSent(): Promise<void> {}
+
+  async savePushSubscription(input: SavePushSubscriptionInput): Promise<void> {
+    this.subscriptions.push(input)
+  }
+
+  async removePushSubscription(_userId: number, endpoint: string): Promise<boolean> {
+    const index = this.subscriptions.findIndex((row) => row.endpoint === endpoint)
+    if (index === -1) return false
+    this.subscriptions.splice(index, 1)
+    return true
+  }
+
+  async pushSubscriptionsFor(userId: number): Promise<readonly PushSubscriptionRecord[]> {
+    return this.subscriptions
+      .filter((row) => row.userId === userId)
+      .map((row, index) => ({
+        id: index + 1,
+        userId: row.userId,
+        endpoint: row.endpoint,
+        p256dh: row.p256dh,
+        auth: row.auth,
+        createdAt: row.at,
+        lastSeenAt: row.at,
+      }))
+  }
+
+  async countPushSubscriptions(userId: number): Promise<number> {
+    return this.subscriptions.filter((row) => row.userId === userId).length
+  }
+
+  async prunePushSubscription(): Promise<void> {}
+
+  async touchPushSubscription(): Promise<void> {}
 
   async administratorIds(): Promise<readonly number[]> {
     return []

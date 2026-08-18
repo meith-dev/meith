@@ -539,6 +539,7 @@ export const notifications = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     readAt: timestamp('read_at', { withTimezone: true }),
     emailSentAt: timestamp('email_sent_at', { withTimezone: true }),
+    pushSentAt: timestamp('push_sent_at', { withTimezone: true }),
   },
   (t) => [
     index('notifications_user_idx').on(t.userId, t.createdAt.desc(), t.id.desc()),
@@ -556,10 +557,33 @@ export const notificationPreferences = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     kind: text('kind').notNull(),
-    email: boolean('email').notNull(),
+    email: boolean('email'),
+    push: boolean('push'),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ name: 'notification_preferences_pkey', columns: [t.userId, t.kind] })],
+)
+
+export const pushSubscriptions = pgTable(
+  'push_subscriptions',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    endpoint: text('endpoint').notNull(),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('push_subscriptions_endpoint_key').on(t.endpoint),
+    index('push_subscriptions_user_idx').on(t.userId, t.id),
+  ],
 )
 
 export const profileFields = pgTable(

@@ -13,6 +13,7 @@ import { positiveInt } from './form-values'
 import { tr } from './i18n'
 import { audiencesForActor } from './notification-audience'
 import { notificationService } from './notifications'
+import { pushAvailability } from './push'
 
 const toFormState = formStateReporter('notification-actions', 'unexpected error in notifications')
 
@@ -67,12 +68,13 @@ export async function saveNotificationPreferencesAction(
 ): Promise<FormState> {
   try {
     const { service, userId } = await requireOwnCentre()
-    const checked = form
-      .getAll('email')
-      .filter((value): value is string => typeof value === 'string')
+    const email = form.getAll('email').filter((value): value is string => typeof value === 'string')
+    const push = form.getAll('push').filter((value): value is string => typeof value === 'string')
+    const offersPush = (await pushAvailability()).enabled
 
     for (const audience of await audiencesForActor()) {
-      await service.savePreferences(userId, audience, checked)
+      await service.savePreferences(userId, audience, email, 'email')
+      if (offersPush) await service.savePreferences(userId, audience, push, 'push')
     }
   } catch (err) {
     return toFormState(err)

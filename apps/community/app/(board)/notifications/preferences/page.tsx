@@ -4,11 +4,13 @@ import { notFound } from 'next/navigation'
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { NotificationPreferencesForm } from '@/components/account/notification-forms'
+import { PushDeviceForm } from '@/components/account/push-device-form'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { audiencesForActor } from '@/server/notification-audience'
 import { notificationService } from '@/server/notifications'
+import { pushAvailability } from '@/server/push'
 import { currentTheme } from '@/server/theme'
 import { notificationFormsCopy } from '@/view/account-copy'
 import { buildPreferencesView, notificationNotice } from '@/view/notifications'
@@ -34,6 +36,7 @@ export default async function NotificationPreferencesPage({
     await Promise.all(audiences.map((audience) => service.preferences(userId, audience)))
   ).flat()
 
+  const push = await pushAvailability()
   const view = buildPreferencesView(rows, await getTranslator())
   const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = notificationNotice(query, await getTranslator())
@@ -53,8 +56,16 @@ export default async function NotificationPreferencesPage({
         />
       )}
 
+      {push.enabled && (
+        <PushDeviceForm
+          publicKey={push.publicKey}
+          copy={notificationFormsCopy(await getTranslator())}
+        />
+      )}
+
       <NotificationPreferencesForm
         rows={view.rows}
+        push={push.enabled}
         copy={notificationFormsCopy(await getTranslator())}
       />
     </PanelPage>

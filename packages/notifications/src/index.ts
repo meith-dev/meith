@@ -4,6 +4,11 @@ export {
   type NotificationTranslatorResolver,
 } from './deliver'
 export {
+  deliverNotificationPush,
+  type PushDeliveryResult,
+  pushPayload,
+} from './deliver-push'
+export {
   configurableKindsFor,
   isNotificationKind,
   NOTIFICATION_KINDS,
@@ -18,6 +23,23 @@ export {
   type RenderedMail,
   renderNotificationMail,
 } from './mail'
+export {
+  encryptPushPayload,
+  generateVapidKeys,
+  isVapidPrivateKey,
+  isVapidPublicKey,
+  PUSH_PAYLOAD_LIMIT,
+  PUSH_TTL_SECONDS,
+  type PushSendOutcome,
+  type PushSendResult,
+  type PushSubscriptionKeys,
+  pushAudience,
+  pushOutcomeFor,
+  sendWebPush,
+  type VapidDetails,
+  type VapidKeyPair,
+  vapidAuthorization,
+} from './push'
 export { type NotificationView, renderNotification } from './render'
 export {
   MAX_STAFF_FANOUT,
@@ -27,10 +49,14 @@ export {
 } from './service'
 export type {
   DeliverableNotification,
+  NotificationChannel,
+  NotificationChannelPreference,
   NotificationData,
   NotificationPage,
   NotificationRecord,
   NotificationRepository,
+  PushSubscriptionRecord,
   RaiseInput,
   RaiseResult,
+  SavePushSubscriptionInput,
 } from './types'

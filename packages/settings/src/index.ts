@@ -54,6 +54,13 @@ export {
 } from './mail'
 export { isUsableIssuer } from './origin'
 export {
+  type PushConfig,
+  type PushProblem,
+  type PushResolution,
+  pushContact,
+  resolvePushConfig,
+} from './push'
+export {
   type SaveResult,
   type SettingsRepository,
   SettingsSnapshot,
