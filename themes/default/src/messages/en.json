@@ -1,0 +1,15 @@
+{
+  "default.whoIsOnline.and": "and",
+  "default.whoIsOnline.guest.one": "guest",
+  "default.whoIsOnline.guest.other": "guests",
+  "default.whoIsOnline.heading": "Who’s online",
+  "default.whoIsOnline.invisible": "Invisible",
+  "default.whoIsOnline.member.one": "member",
+  "default.whoIsOnline.member.other": "members",
+  "default.whoIsOnline.more": "more",
+  "default.whoIsOnline.nobody": "Nobody is reading the board right now.",
+  "default.whoIsOnline.online": "online —",
+  "default.whoIsOnline.onlyGuests": "Only guests are reading the board right now.",
+  "default.whoIsOnline.record": "Record:",
+  "default.whoIsOnline.seeEveryone": "See everyone online"
+}

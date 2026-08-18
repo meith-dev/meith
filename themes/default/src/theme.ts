@@ -1,5 +1,6 @@
 import { defineTheme } from '@meith/theme-kit'
 
+import { whoIsOnlineCopy } from './copy'
 import { Announcement } from './slots/announcement'
 import { AuthPage } from './slots/auth-page'
 import { BoardIndex } from './slots/board-index'
@@ -83,5 +84,8 @@ export const defaultTheme = defineTheme({
 
     RedirectNotice,
     ErrorNotice,
+  },
+  copy: {
+    WhoIsOnline: whoIsOnlineCopy,
   },
 })

@@ -1,3 +1,4 @@
+export { defaultMessages } from './messages'
 export { defaultTheme } from './theme'
 export {
   BROWSER_THEME_COLOR,

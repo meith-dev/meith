@@ -2,10 +2,14 @@ import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { defaultTheme } from '@meith/theme-default'
-import type { OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
+import { defaultMessages, defaultTheme } from '@meith/theme-default'
+import type { OnlineMemberModel, SlotCopy, WhoIsOnlineModel } from '@meith/theme-kit'
 
-const WhoIsOnline = defaultTheme.slots.WhoIsOnline as (props: WhoIsOnlineModel) => ReactNode
+const copy: SlotCopy = defaultMessages.en ?? {}
+
+const WhoIsOnline = defaultTheme.slots.WhoIsOnline as (
+  props: WhoIsOnlineModel & { copy: SlotCopy },
+) => ReactNode
 
 const member = (id: number): OnlineMemberModel => ({
   userId: id,
@@ -30,6 +34,7 @@ function render(count: number, overrides: Partial<WhoIsOnlineModel> = {}): strin
       recordCount: tally(40),
       recordAt: { iso: '2025-11-01T20:00:00.000Z', label: '1 Nov 2025, 20:00' },
       fullListHref: '/online',
+      copy,
       ...overrides,
     }),
   )
@@ -93,6 +98,7 @@ describe('the collapse', () => {
         recordCount: tally(40),
         recordAt: null,
         fullListHref: '/online',
+        copy,
       }),
     )
 

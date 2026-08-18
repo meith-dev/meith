@@ -6,6 +6,7 @@ import { SLOT_NAMES, type SlotName } from './slots'
 import {
   assertComplete,
   defineTheme,
+  fromSlotCopy,
   hasSlot,
   type PartialSlotImplementations,
   requireSlot,
@@ -261,6 +262,16 @@ describe('slotCopy', () => {
     )
 
     expect(slotCopy(theme, 'Header', t)).toEqual({ greeting: 'Hello' })
+  })
+})
+
+describe('fromSlotCopy', () => {
+  it('reads a registered key', () => {
+    expect(fromSlotCopy({ heading: 'In the clubhouse' }, 'heading')).toBe('In the clubhouse')
+  })
+
+  it('falls back to the key itself when nothing registered it', () => {
+    expect(fromSlotCopy({}, 'clubhouse.whoIsOnline.heading')).toBe('clubhouse.whoIsOnline.heading')
   })
 })
 

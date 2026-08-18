@@ -2,6 +2,7 @@ import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
+import { sourceTranslator } from '@meith/i18n'
 import {
   assertThemeContract,
   requireSlot,
@@ -9,6 +10,7 @@ import {
   SLOT_NAMES,
   SLOT_STABILITY,
   type SlotName,
+  slotCopy,
   type ThemeDefinition,
 } from '@meith/theme-kit'
 
@@ -24,13 +26,16 @@ const themes: readonly { key: string; definition: ThemeDefinition }[] = Object.v
     definition: installed.theme as ThemeDefinition,
   }))
 
+const t = sourceTranslator({})
+
 async function renderSlot(
   definition: ThemeDefinition,
   name: SlotName,
   model: object,
 ): Promise<string> {
-  const Slot = requireSlot(resolveTheme(definition), name) as (props: object) => ReactNode
-  const node = await Slot(model)
+  const resolved = resolveTheme(definition)
+  const Slot = requireSlot(resolved, name) as (props: object) => ReactNode
+  const node = await Slot({ ...model, copy: slotCopy(resolved, name, t) })
   return renderToStaticMarkup(createElement(() => node as never))
 }
 

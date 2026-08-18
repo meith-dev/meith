@@ -1,4 +1,4 @@
-export type { Translator } from '@meith/i18n'
+export type { CatalogBundle, Translator } from '@meith/i18n'
 
 export {
   type ApiVersion,
@@ -28,6 +28,7 @@ export {
 export {
   assertComplete,
   defineTheme,
+  fromSlotCopy,
   hasSlot,
   type PartialSlotCopyBuilders,
   type PartialSlotImplementations,
