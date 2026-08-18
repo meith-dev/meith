@@ -22,14 +22,15 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { arrangeForumAction } from '@/server/forum-admin-actions'
 
 import { FormError } from '../auth/form-controls'
+import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 
 const INDENT_PX = 24
 
-const NUDGE_LABELS: Record<Nudge, string> = {
-  up: 'up',
-  down: 'down',
-  in: 'in, under the forum above it',
-  out: 'out of its parent',
+const NUDGE_KEYS: Record<Nudge, string> = {
+  up: 'adminForum.tree.nudge.up',
+  down: 'adminForum.tree.nudge.down',
+  in: 'adminForum.tree.nudge.in',
+  out: 'adminForum.tree.nudge.out',
 }
 
 const ICON = {
@@ -134,6 +135,7 @@ function insertionIndex(measured: readonly Measured[], docY: number): number {
 }
 
 function sentence(
+  copy: Copy,
   outline: readonly ForumOutlineRow[],
   row: ForumOutlineRow,
   target: DropTarget,
@@ -141,13 +143,19 @@ function sentence(
   const parent = outline.find((entry) => entry.id === target.parentId)
   const after = outline.find((entry) => entry.id === target.afterId)
 
-  const where = parent === undefined ? 'at the top level' : `inside ${parent.title}`
-  const order = after === undefined ? 'first' : `after ${after.title}`
+  const where =
+    parent === undefined
+      ? fromCopy(copy, 'adminForum.tree.where.topLevel')
+      : formatFromCopy(copy, 'adminForum.tree.where.inside', { parent: parent.title })
+  const order =
+    after === undefined
+      ? fromCopy(copy, 'adminForum.tree.order.first')
+      : formatFromCopy(copy, 'adminForum.tree.order.after', { after: after.title })
 
-  return `${row.title}: ${where}, ${order}.`
+  return formatFromCopy(copy, 'adminForum.tree.placed', { title: row.title, where, order })
 }
 
-export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
+export function ForumTree({ rows, copy }: { rows: readonly ForumOutlineRow[]; copy: Copy }) {
   const [state, action, pending] = useActionState(arrangeForumAction, EMPTY_STATE)
 
   const [given, setGiven] = useState(rows)
@@ -202,7 +210,7 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
 
     setOutline(applyDrop(outline, row.id, projectionOf(outline, row.id, target)))
     setMoving(row.id)
-    setSaid(sentence(outline, row, target))
+    setSaid(sentence(copy, outline, row, target))
     return true
   }
 
@@ -286,12 +294,12 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
     <section className="flex flex-col gap-3" aria-labelledby="forum-tree-heading">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="forum-tree-heading" className="font-heading text-lg font-semibold">
-          The tree
+          {fromCopy(copy, 'adminForum.tree.heading')}
         </h2>
         <p className="text-xs text-muted-foreground">
           {hydrated
-            ? 'Drag a row by its handle to move it, sideways to nest it. The arrows do the same from the keyboard.'
-            : 'Use the arrows to move a forum up, down, in or out.'}
+            ? fromCopy(copy, 'adminForum.tree.dragHint')
+            : fromCopy(copy, 'adminForum.tree.arrowsHint')}
         </p>
       </div>
 
@@ -350,7 +358,9 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
                     onPointerUp={drop}
                     onPointerCancel={() => setDrag(null)}
                     onKeyDown={(event) => keys(row, event)}
-                    aria-label={`Move ${row.title}`}
+                    aria-label={formatFromCopy(copy, 'adminForum.tree.moveHandle', {
+                      title: row.title,
+                    })}
                     aria-describedby="forum-tree-help"
                     className={cn(
                       buttonVariants({ variant: 'ghost', size: 'icon' }),
@@ -370,7 +380,7 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-sm font-medium">{row.title}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {row.type} · /{row.slug}
+                    {fromCopy(copy, `adminForum.tree.type.${row.type}`)} · /{row.slug}
                   </span>
                 </span>
               </span>
@@ -390,7 +400,7 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
                     onClick={() => {
                       if (hydrated) previewNudge(row, direction)
                     }}
-                    aria-label={`Move ${row.title} ${NUDGE_LABELS[direction]}`}
+                    aria-label={formatFromCopy(copy, NUDGE_KEYS[direction], { title: row.title })}
                     className={cn(
                       buttonVariants({ variant: 'ghost', size: 'icon' }),
                       'size-8 rounded-none border-0 border-l border-border first:border-l-0 text-muted-foreground',
@@ -404,17 +414,21 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
               <span className="ml-auto flex shrink-0 items-center gap-3 text-xs sm:ml-0 sm:gap-2 sm:pl-1">
                 <a
                   href={`/admin/forums/${row.id}`}
-                  aria-label={`Options for ${row.title}`}
+                  aria-label={formatFromCopy(copy, 'adminForum.tree.optionsFor', {
+                    title: row.title,
+                  })}
                   className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                 >
-                  Options
+                  {fromCopy(copy, 'adminForum.options')}
                 </a>
                 <a
                   href={`/admin/forums/${row.id}/permissions`}
-                  aria-label={`Permissions for ${row.title}`}
+                  aria-label={formatFromCopy(copy, 'adminForum.tree.permissionsFor', {
+                    title: row.title,
+                  })}
                   className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                 >
-                  Permissions
+                  {fromCopy(copy, 'adminForum.tree.permissions')}
                 </a>
               </span>
             </li>
@@ -423,9 +437,7 @@ export function ForumTree({ rows }: { rows: readonly ForumOutlineRow[] }) {
       </ol>
 
       <p id="forum-tree-help" className="text-xs text-muted-foreground">
-        Moving a forum takes its subforums with it, and they inherit from wherever they land.
-        Re-parenting asks for your password again if it is more than fifteen minutes since you last
-        confirmed it; reordering under the same parent does not.
+        {fromCopy(copy, 'adminForum.tree.help')}
       </p>
 
       {drag !== null && dragged !== null && (

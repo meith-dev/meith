@@ -15,7 +15,8 @@ import {
   previewPromotions,
   promotionRuleRepository,
 } from '@/server/group-admin'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
+import { groupAdminCopy } from '@/view/admin-group-copy'
 import { promotionRuleFormValues, promotionRuleSummary } from '@/view/promotion-rules'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -41,6 +42,7 @@ export default async function AdminPromotionsPage() {
 
   const groups = await repository.list()
   const stored = await rules.listRules()
+  const copy = groupAdminCopy(await getTranslator())
 
   const titles = new Map(groups.map((group) => [group.id, group.title]))
   const title = (id: number | null): string =>
@@ -81,7 +83,11 @@ export default async function AdminPromotionsPage() {
                   {promotionRuleSummary(rule, title)}
                   {rule.enabled ? '' : ' · disabled'}
                 </p>
-                <PromotionRuleRowForm rule={promotionRuleFormValues(rule)} groups={options} />
+                <PromotionRuleRowForm
+                  rule={promotionRuleFormValues(rule)}
+                  groups={options}
+                  copy={copy}
+                />
               </div>
             ))}
           </div>
@@ -90,7 +96,7 @@ export default async function AdminPromotionsPage() {
 
       <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">{await tr('page.add-rule')}</h2>
-        <NewPromotionRuleForm groups={options} />
+        <NewPromotionRuleForm groups={options} copy={copy} />
       </section>
 
       <section className="flex flex-col gap-3">
@@ -126,7 +132,7 @@ export default async function AdminPromotionsPage() {
 
             <section className={PANEL_CARD}>
               <h3 className="font-heading text-lg font-semibold">{await tr('page.run-it')}</h3>
-              <ApplyPromotionsForm count={result.outcomes.length} />
+              <ApplyPromotionsForm count={result.outcomes.length} copy={copy} />
             </section>
           </>
         )}

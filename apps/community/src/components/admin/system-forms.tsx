@@ -13,6 +13,7 @@ import {
 } from '@/server/system-admin-actions'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 
 function Result({ children }: { children: React.ReactNode }) {
   return (
@@ -22,37 +23,49 @@ function Result({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function PruneSessionsForm({ prunable }: { prunable: number }) {
+export function PruneSessionsForm({ prunable, copy }: { prunable: number; copy: Copy }) {
   const [state, action] = useActionState(pruneSessionsAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-2">
       <FormError message={state.error} />
-      {state.notice === 'pruned' && <Result>{state.values?.removed} session rows removed.</Result>}
+      {state.notice === 'pruned' && (
+        <Result>
+          {formatFromCopy(copy, 'adminPanel.system.sessionsRemoved', {
+            removed: state.values?.removed ?? '',
+          })}
+        </Result>
+      )}
       <div>
         <SubmitButton>
-          Prune {prunable} expired session{prunable === 1 ? '' : 's'}
+          {formatFromCopy(copy, 'adminPanel.system.pruneSessions', { prunable })}
         </SubmitButton>
       </div>
     </form>
   )
 }
 
-export function PruneTokensForm() {
+export function PruneTokensForm({ copy }: { copy: Copy }) {
   const [state, action] = useActionState(pruneTokensAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-2">
       <FormError message={state.error} />
-      {state.notice === 'pruned' && <Result>{state.values?.removed} token rows removed.</Result>}
+      {state.notice === 'pruned' && (
+        <Result>
+          {formatFromCopy(copy, 'adminPanel.system.tokensRemoved', {
+            removed: state.values?.removed ?? '',
+          })}
+        </Result>
+      )}
       <div>
-        <SubmitButton>Prune expired tokens</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminPanel.system.pruneTokens')}</SubmitButton>
       </div>
     </form>
   )
 }
 
-export function RecountForm() {
+export function RecountForm({ copy }: { copy: Copy }) {
   const [state, action] = useActionState(recountAction, EMPTY_STATE)
 
   return (
@@ -60,85 +73,95 @@ export function RecountForm() {
       <FormError message={state.error} />
       {state.notice === 'ran' && (
         <Result>
-          {state.values?.corrected} counter{state.values?.corrected === '1' ? '' : 's'} corrected in
-          this batch. Press again to continue — it resumes where it stopped.
+          {formatFromCopy(copy, 'adminPanel.system.recountResult', {
+            corrected: Number(state.values?.corrected ?? 0),
+          })}
         </Result>
       )}
       <div>
-        <SubmitButton>Run one recount batch</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminPanel.system.recountRun')}</SubmitButton>
       </div>
     </form>
   )
 }
 
-export function ClearCacheForm() {
+export function ClearCacheForm({ copy }: { copy: Copy }) {
   const [state, action] = useActionState(clearCacheAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-2">
       <FormError message={state.error} />
-      {state.notice === 'cleared' && <Result>Cleared {state.values?.tag}.</Result>}
+      {state.notice === 'cleared' && (
+        <Result>
+          {formatFromCopy(copy, 'adminPanel.system.cleared', { tag: state.values?.tag ?? '' })}
+        </Result>
+      )}
 
       <input type="hidden" name="what" value="forums" />
       <p className="text-xs text-muted-foreground">
-        The forum tree is the only thing the board caches globally under a name this screen can
-        reach. Everything else is either resolved per request or cleared by the write that changed
-        it.
+        {fromCopy(copy, 'adminPanel.system.clearNote')}
       </p>
 
       <div>
-        <SubmitButton>Clear the forum tree</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminPanel.system.clearForumTree')}</SubmitButton>
       </div>
     </form>
   )
 }
 
-export function RetryJobForm() {
+export function RetryJobForm({ copy }: { copy: Copy }) {
   const [state, action] = useActionState(retryJobAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-2" noValidate>
       <FormError message={state.error} />
-      {state.notice === 'retried' && <Result>Back on the queue.</Result>}
+      {state.notice === 'retried' && <Result>{fromCopy(copy, 'adminPanel.system.retried')}</Result>}
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Job id</span>
+        <span className="font-medium">{fromCopy(copy, 'adminPanel.system.jobId')}</span>
         <input
           name="jobId"
           className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs"
           required
         />
         <span className="text-xs text-muted-foreground">
-          One at a time. A job dead-letters after exhausting its attempts, so the reason is usually
-          still true — retrying every one puts the same failures straight back.
+          {fromCopy(copy, 'adminPanel.system.jobIdHint')}
         </span>
       </label>
 
       <div>
-        <SubmitButton>Retry</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminPanel.system.retry')}</SubmitButton>
       </div>
     </form>
   )
 }
 
-export function ReindexSearchForm({ pending }: { pending: number }) {
+export function ReindexSearchForm({ pending, copy }: { pending: number; copy: Copy }) {
   const [state, action] = useActionState(reindexSearchAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-2">
       <FormError message={state.error} />
       {state.notice === 'finished' && (
-        <Result>{state.values?.indexed} indexed. Every post on the board is searchable.</Result>
+        <Result>
+          {formatFromCopy(copy, 'adminPanel.system.indexFinished', {
+            indexed: state.values?.indexed ?? '',
+          })}
+        </Result>
       )}
       {state.notice === 'more' && (
         <Result>
-          {state.values?.indexed} indexed, {state.values?.pending} still to go. Press again — it
-          resumes where it stopped.
+          {formatFromCopy(copy, 'adminPanel.system.indexMore', {
+            indexed: state.values?.indexed ?? '',
+            pending: state.values?.pending ?? '',
+          })}
         </Result>
       )}
       <div>
         <SubmitButton>
-          {pending === 0 ? 'Nothing to index' : `Index the next batch of ${pending}`}
+          {pending === 0
+            ? fromCopy(copy, 'adminPanel.system.nothingToIndex')
+            : formatFromCopy(copy, 'adminPanel.system.indexNext', { pending })}
         </SubmitButton>
       </div>
     </form>

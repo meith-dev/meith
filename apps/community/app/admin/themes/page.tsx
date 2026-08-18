@@ -11,6 +11,8 @@ import { logoKey, logoSrc } from '@/server/branding'
 import { getTranslator, tr } from '@/server/i18n'
 import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { themeListing } from '@/server/theme-admin'
+import { brandingFormsCopy } from '@/view/admin-panel-copy'
+import { themeStateCopy } from '@/view/admin-theme-copy'
 import { formatTime } from '@/view/time'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,6 +26,8 @@ export default async function AdminThemesPage() {
   const [lightKey, darkKey] = await Promise.all([logoKey('light'), logoKey('dark')])
   const now = new Date()
   const translator = await getTranslator()
+  const brandingCopy = brandingFormsCopy(translator)
+  const stateCopy = themeStateCopy(translator)
 
   return (
     <PanelPage
@@ -49,6 +53,7 @@ export default async function AdminThemesPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <LogoUploadForm
             maxKib={MAX_IMAGE_BYTES / 1024}
+            copy={brandingCopy}
             slot={{
               scheme: 'light',
               label: 'Light',
@@ -58,6 +63,7 @@ export default async function AdminThemesPage() {
           />
           <LogoUploadForm
             maxKib={MAX_IMAGE_BYTES / 1024}
+            copy={brandingCopy}
             slot={{
               scheme: 'dark',
               label: 'Dark',
@@ -124,6 +130,7 @@ export default async function AdminThemesPage() {
               enabled={theme.enabled}
               isDefault={theme.isDefault}
               isBuildTheme={theme.isBuildTheme}
+              copy={stateCopy}
             />
           </li>
         ))}

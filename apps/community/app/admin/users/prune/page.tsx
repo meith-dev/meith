@@ -4,8 +4,9 @@ import { PruneForm } from '@/components/admin/user-forms'
 import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { parsePruneCriteria, userBulkRepository } from '@/server/user-admin'
+import { userPruneCopy } from '@/view/admin-user-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.prune-members') }
@@ -127,7 +128,7 @@ export default async function AdminPrunePage({
             before={value('before')}
             inactive={value('inactive')}
             awaiting={value('awaiting') !== ''}
-            total={preview.total}
+            copy={userPruneCopy(preview.total, await getTranslator())}
           />
         </section>
       ) : null}

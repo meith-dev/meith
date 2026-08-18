@@ -8,6 +8,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getTranslator, tr } from '@/server/i18n'
 import { hookListeners, pluginInventory } from '@/server/plugin-admin'
+import { pluginFormsCopy } from '@/view/admin-panel-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.plugins') }
@@ -19,6 +20,7 @@ export default async function AdminPluginsPage() {
 
   const { plugins, migrationsKnown } = await pluginInventory()
   const listeners = hookListeners()
+  const copy = pluginFormsCopy(t)
 
   return (
     <PanelPage
@@ -102,7 +104,11 @@ export default async function AdminPluginsPage() {
                     Details
                   </a>
                   {plugin.configuredEnabled && plugin.hasDefinition && (
-                    <PluginEnableForm pluginKey={plugin.key} enabled={plugin.operatorEnabled} />
+                    <PluginEnableForm
+                      pluginKey={plugin.key}
+                      enabled={plugin.operatorEnabled}
+                      copy={copy}
+                    />
                   )}
                 </span>
               </li>

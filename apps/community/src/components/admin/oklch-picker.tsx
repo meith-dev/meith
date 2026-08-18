@@ -11,6 +11,8 @@ import {
   rgbToHex,
 } from '@/view/oklch'
 
+import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
+
 const NEUTRAL: Oklch = { l: 0.6, c: 0, h: 0 }
 
 const TRACK =
@@ -69,12 +71,14 @@ function Slider({
 export function OklchPicker({
   name,
   describes,
+  copy,
   value,
   shipped,
   onChange,
 }: {
   name: string
   describes?: string | undefined
+  copy: Copy
   value: string
   shipped?: string | undefined
   onChange: (next: string) => void
@@ -87,9 +91,14 @@ export function OklchPicker({
 
   const set = (next: Partial<Oklch>): void => onChange(formatOklch({ ...colour, ...next }))
 
-  const opens = describes === undefined ? 'Adjust this colour' : `Adjust ${describes}`
+  const opens =
+    describes === undefined
+      ? fromCopy(copy, 'adminTheme.oklch.adjustColour')
+      : formatFromCopy(copy, 'adminTheme.oklch.adjust', { describes })
   const hides =
-    describes === undefined ? 'Hide the colour sliders' : `Hide the sliders for ${describes}`
+    describes === undefined
+      ? fromCopy(copy, 'adminTheme.oklch.hideSliders')
+      : formatFromCopy(copy, 'adminTheme.oklch.hideSlidersFor', { describes })
 
   return (
     <div className="flex flex-col gap-2">
@@ -117,7 +126,7 @@ export function OklchPicker({
       {open && (
         <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/40 p-3">
           <Slider
-            label="Lightness"
+            label={fromCopy(copy, 'adminTheme.oklch.lightness')}
             value={colour.l}
             min={0}
             max={1}
@@ -127,7 +136,7 @@ export function OklchPicker({
             onChange={(l) => set({ l })}
           />
           <Slider
-            label="Chroma"
+            label={fromCopy(copy, 'adminTheme.oklch.chroma')}
             value={colour.c}
             min={0}
             max={MAX_CHROMA}
@@ -137,7 +146,7 @@ export function OklchPicker({
             onChange={(c) => set({ c })}
           />
           <Slider
-            label="Hue"
+            label={fromCopy(copy, 'adminTheme.oklch.hue')}
             value={colour.h}
             min={0}
             max={360}
@@ -149,8 +158,7 @@ export function OklchPicker({
 
           {!inGamut && (
             <p role="status" className="text-xs text-muted-foreground">
-              No ordinary screen can show this colour — the swatch is the closest it can manage.
-              Lower the chroma until it stops changing.
+              {fromCopy(copy, 'adminTheme.oklch.gamut')}
             </p>
           )}
 
@@ -161,7 +169,7 @@ export function OklchPicker({
                 onClick={() => onChange('')}
                 className="text-xs font-medium underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
-                Clear, and use the value it ships with
+                {fromCopy(copy, 'adminTheme.oklch.clear')}
               </button>
             </div>
           )}

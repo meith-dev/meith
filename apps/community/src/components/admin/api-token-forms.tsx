@@ -6,8 +6,9 @@ import { issueApiTokenAction, revokeApiTokenAction } from '@/server/api-token-ac
 import { EMPTY_STATE } from '@/server/auth-form-state'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import { type Copy, fromCopy } from '../shell/copy'
 
-export function IssueTokenForm({ scopes }: { scopes: readonly string[] }) {
+export function IssueTokenForm({ scopes, copy }: { scopes: readonly string[]; copy: Copy }) {
   const [state, action] = useActionState(issueApiTokenAction, EMPTY_STATE)
 
   return (
@@ -19,9 +20,7 @@ export function IssueTokenForm({ scopes }: { scopes: readonly string[] }) {
           role="status"
           className="flex flex-col gap-2 rounded-md border border-accent bg-post-highlight px-3 py-3"
         >
-          <p className="text-sm font-semibold">
-            Copy this now — it is not shown again and cannot be recovered.
-          </p>
+          <p className="text-sm font-semibold">{fromCopy(copy, 'adminPanel.token.copyNow')}</p>
           <code className="block overflow-x-auto rounded-sm bg-card px-2 py-1 font-mono text-sm">
             {state.values.token}
           </code>
@@ -29,23 +28,23 @@ export function IssueTokenForm({ scopes }: { scopes: readonly string[] }) {
       )}
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Name</span>
+        <span className="font-medium">{fromCopy(copy, 'adminPanel.token.name')}</span>
         <input
           name="name"
           required
           maxLength={80}
-          placeholder="Status page poller"
+          placeholder={fromCopy(copy, 'adminPanel.token.namePlaceholder')}
           className="rounded-sm border border-input bg-card px-2 py-1"
         />
         <span className="text-xs text-muted-foreground">
-          What this token is for, so a later reader knows what breaks if it is revoked.
+          {fromCopy(copy, 'adminPanel.token.nameHint')}
         </span>
       </label>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium">Scopes</legend>
+        <legend className="text-sm font-medium">{fromCopy(copy, 'adminPanel.token.scopes')}</legend>
         <span className="text-xs text-muted-foreground">
-          A token can never do more than its owner may. Scopes narrow it further.
+          {fromCopy(copy, 'adminPanel.token.scopesHint')}
         </span>
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           {scopes.map((scope) => (
@@ -58,31 +57,30 @@ export function IssueTokenForm({ scopes }: { scopes: readonly string[] }) {
       </fieldset>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Expires in (days)</span>
+        <span className="font-medium">{fromCopy(copy, 'adminPanel.token.expiresInDays')}</span>
         <input
           name="expiresInDays"
           inputMode="numeric"
-          placeholder="Leave empty for no expiry"
+          placeholder={fromCopy(copy, 'adminPanel.token.expiresPlaceholder')}
           className="w-56 rounded-sm border border-input bg-card px-2 py-1"
         />
         <span className="text-xs text-muted-foreground">
-          A whole number of days. Leave it empty for a token that never expires — anything else is
-          refused rather than read as never.
+          {fromCopy(copy, 'adminPanel.token.expiresHint')}
         </span>
       </label>
 
-      <SubmitButton>Issue token</SubmitButton>
+      <SubmitButton>{fromCopy(copy, 'adminPanel.token.issue')}</SubmitButton>
     </form>
   )
 }
 
-export function RevokeTokenForm({ tokenId }: { tokenId: number }) {
+export function RevokeTokenForm({ tokenId, copy }: { tokenId: number; copy: Copy }) {
   const [state, action] = useActionState(revokeApiTokenAction, EMPTY_STATE)
 
   return (
     <form action={action}>
       <input type="hidden" name="tokenId" value={tokenId} />
-      <SubmitButton>Revoke</SubmitButton>
+      <SubmitButton>{fromCopy(copy, 'adminPanel.token.revoke')}</SubmitButton>
       {state.error !== undefined && (
         <span className="ml-2 text-xs text-destructive">{state.error}</span>
       )}

@@ -12,9 +12,12 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildGroupPermissionView, groupAdminRepository } from '@/server/group-admin'
 import { badgeKey, badgeSrc } from '@/server/group-badge'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { boardSampleSurfaces } from '@/server/theme-admin'
+import { groupAdminCopy } from '@/view/admin-group-copy'
+import { badgeFormsCopy } from '@/view/admin-panel-copy'
+import { oklchPickerCopy } from '@/view/admin-theme-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.group') }
@@ -30,6 +33,9 @@ export default async function AdminGroupPage({ params }: { params: Promise<{ id:
   if (view === null) notFound()
 
   const groups = (await groupAdminRepository()?.list()) ?? []
+  const t = await getTranslator()
+  const copy = { ...groupAdminCopy(t), ...oklchPickerCopy(t) }
+  const badgeCopy = badgeFormsCopy(t)
 
   const [lightBadge, darkBadge] = await Promise.all([
     badgeKey(view.group.id, 'light'),
@@ -68,6 +74,7 @@ export default async function AdminGroupPage({ params }: { params: Promise<{ id:
             nameColorDark: view.group.nameColorDark ?? '',
           }}
           surfaces={await boardSampleSurfaces()}
+          copy={copy}
         />
       </section>
 
@@ -86,6 +93,7 @@ export default async function AdminGroupPage({ params }: { params: Promise<{ id:
             label="Light"
             src={badges.light}
             maxKib={MAX_IMAGE_BYTES / 1024}
+            copy={badgeCopy}
           />
           <BadgeUploadForm
             groupId={view.group.id}
@@ -93,6 +101,7 @@ export default async function AdminGroupPage({ params }: { params: Promise<{ id:
             label="Dark"
             src={badges.dark}
             maxKib={MAX_IMAGE_BYTES / 1024}
+            copy={badgeCopy}
           />
         </div>
       </section>
@@ -104,7 +113,7 @@ export default async function AdminGroupPage({ params }: { params: Promise<{ id:
           the most permissive of them — a tick can only ever grant, never take away — except for the
           restrictions, where any group that lifts one lifts it everywhere.
         </p>
-        <GroupPermissionsForm groupId={view.group.id} cells={view.cells} />
+        <GroupPermissionsForm groupId={view.group.id} cells={view.cells} copy={copy} />
       </section>
 
       <section className={PANEL_CARD}>
@@ -122,6 +131,7 @@ export default async function AdminGroupPage({ params }: { params: Promise<{ id:
               title: group.title,
               memberCount: group.memberCount,
             }))}
+            copy={copy}
           />
         )}
       </section>

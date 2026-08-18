@@ -7,9 +7,10 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import type { SettingFieldModel, SettingGroupModel } from '@/view/admin-settings'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import { type Copy, fromCopy } from '../shell/copy'
 import { INPUT } from './form-bits'
 
-function Control({ setting }: { setting: SettingFieldModel }) {
+function Control({ setting, copy }: { setting: SettingFieldModel; copy: Copy }) {
   const { field, key, value } = setting
 
   switch (field.kind) {
@@ -55,14 +56,14 @@ function Control({ setting }: { setting: SettingFieldModel }) {
             id={key}
             type="password"
             name={key}
-            placeholder="Unchanged"
+            placeholder={fromCopy(copy, 'adminPanel.setting.unchangedPlaceholder')}
             autoComplete="off"
             className={INPUT}
           />
           {setting.clearName !== null && (
             <label className="flex items-center gap-2 text-xs text-muted-foreground">
               <input type="checkbox" name={setting.clearName} value="1" className="size-4" />
-              <span>Clear the stored value and go back to the default</span>
+              <span>{fromCopy(copy, 'adminPanel.setting.clearStored')}</span>
             </label>
           )}
         </div>
@@ -72,13 +73,23 @@ function Control({ setting }: { setting: SettingFieldModel }) {
   }
 }
 
-export function AdminSettingsForm({ groups }: { groups: readonly SettingGroupModel[] }) {
+export function AdminSettingsForm({
+  groups,
+  copy,
+}: {
+  groups: readonly SettingGroupModel[]
+  copy: Copy
+}) {
   const [state, action] = useActionState(saveAdminSettingsAction, EMPTY_STATE)
 
   const keys = groups.flatMap((group) => group.settings.map((setting) => setting.key))
 
   if (keys.length === 0) {
-    return <p className="text-sm text-muted-foreground">No settings match that search.</p>
+    return (
+      <p className="text-sm text-muted-foreground">
+        {fromCopy(copy, 'adminPanel.setting.noMatches')}
+      </p>
+    )
   }
 
   return (
@@ -86,12 +97,12 @@ export function AdminSettingsForm({ groups }: { groups: readonly SettingGroupMod
       <FormError message={state.error} />
       {state.notice === 'saved' && (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          Saved, and the caches those settings declare have been cleared.
+          {fromCopy(copy, 'adminPanel.setting.saved')}
         </p>
       )}
       {state.notice === 'unchanged' && (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          Nothing was different, so nothing was written.
+          {fromCopy(copy, 'adminPanel.setting.unchanged')}
         </p>
       )}
 
@@ -107,20 +118,20 @@ export function AdminSettingsForm({ groups }: { groups: readonly SettingGroupMod
                   htmlFor={setting.key}
                   className="flex items-center gap-2 text-sm font-medium"
                 >
-                  {setting.field.kind === 'boolean' && <Control setting={setting} />}
+                  {setting.field.kind === 'boolean' && <Control setting={setting} copy={copy} />}
                   <span>{setting.label}</span>
                   {setting.advanced && (
                     <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                      Advanced
+                      {fromCopy(copy, 'adminPanel.setting.advanced')}
                     </span>
                   )}
                   {!setting.isDefault && (
                     <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      Changed
+                      {fromCopy(copy, 'adminPanel.setting.changed')}
                     </span>
                   )}
                 </label>
-                {setting.field.kind !== 'boolean' && <Control setting={setting} />}
+                {setting.field.kind !== 'boolean' && <Control setting={setting} copy={copy} />}
                 <p className="text-xs text-muted-foreground">{setting.description}</p>
                 <code className="text-[10px] text-muted-foreground">{setting.key}</code>
               </div>
@@ -130,7 +141,7 @@ export function AdminSettingsForm({ groups }: { groups: readonly SettingGroupMod
       ))}
 
       <div>
-        <SubmitButton>Save settings</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminPanel.setting.save')}</SubmitButton>
       </div>
     </form>
   )

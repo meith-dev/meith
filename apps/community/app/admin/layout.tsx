@@ -9,6 +9,7 @@ import { PanelShell } from '@/components/shell/panel-shell'
 import { askForPassword, resolveAdmin } from '@/server/admin'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
+import { adminFormsCopy } from '@/view/admin-panel-copy'
 import { buildPanelLinks } from '@/view/shell'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -31,14 +32,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           next="/admin"
           reason={resolved.denied === 'expired' ? 'expired' : null}
           idleMinutes={ADMIN_IDLE_MINUTES}
+          copy={adminFormsCopy(await getTranslator())}
         />
       </main>
     )
   }
 
   const actor = await getActor()
+  const t = await getTranslator()
   const links = buildPanelLinks({
-    t: await getTranslator(),
+    t,
     current: 'admincp',
     canAccessModCp: actor.global.canAccessModCp === true,
   })
@@ -64,7 +67,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <a href="/" className="text-muted-foreground hover:text-foreground">
               {await tr('page.board')}
             </a>
-            <AdminSignOutForm />
+            <AdminSignOutForm copy={adminFormsCopy(t)} />
           </div>
         </div>
       </header>

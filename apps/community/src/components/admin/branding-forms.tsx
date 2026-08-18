@@ -7,6 +7,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { removeLogoAction, saveLogoAction } from '@/server/branding-actions'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 
 export interface LogoSlot {
   readonly scheme: 'light' | 'dark'
@@ -18,7 +19,15 @@ export interface LogoSlot {
 const GHOST =
   'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-export function LogoUploadForm({ slot, maxKib }: { slot: LogoSlot; maxKib: number }) {
+export function LogoUploadForm({
+  slot,
+  maxKib,
+  copy,
+}: {
+  slot: LogoSlot
+  maxKib: number
+  copy: Copy
+}) {
   const [saved, saveAction] = useActionState(saveLogoAction, EMPTY_STATE)
   const [removed, removeAction] = useActionState(removeLogoAction, EMPTY_STATE)
 
@@ -34,12 +43,12 @@ export function LogoUploadForm({ slot, maxKib }: { slot: LogoSlot; maxKib: numbe
       <FormError message={saved.error ?? removed.error} />
       {saved.notice === 'saved' && (
         <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          Saved. The header is showing it now.
+          {fromCopy(copy, 'adminPanel.branding.saved')}
         </p>
       )}
       {removed.notice === 'removed' && (
         <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          Removed. The header is showing the board&rsquo;s name again.
+          {fromCopy(copy, 'adminPanel.branding.removed')}
         </p>
       )}
 
@@ -50,7 +59,7 @@ export function LogoUploadForm({ slot, maxKib }: { slot: LogoSlot; maxKib: numbe
       >
         {slot.src === null ? (
           <span className="text-xs text-muted-foreground">
-            Nothing uploaded — the header shows the board&rsquo;s name.
+            {fromCopy(copy, 'adminPanel.branding.nothing')}
           </span>
         ) : (
           <img src={slot.src} alt="" className="h-8 w-auto max-w-48 object-contain" />
@@ -71,12 +80,11 @@ export function LogoUploadForm({ slot, maxKib }: { slot: LogoSlot; maxKib: numbe
           className="w-full text-xs file:mr-3 file:rounded-md file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-medium"
         />
         <p className="text-xs text-muted-foreground">
-          PNG, JPEG, WebP or SVG, up to {maxKib} KiB. The contents decide the format, not the file
-          name. An SVG containing script is refused.
+          {formatFromCopy(copy, 'adminPanel.branding.formats', { maxKib })}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <span className="min-w-32">
-            <SubmitButton>Upload</SubmitButton>
+            <SubmitButton>{fromCopy(copy, 'adminPanel.branding.upload')}</SubmitButton>
           </span>
         </div>
       </form>
@@ -85,7 +93,7 @@ export function LogoUploadForm({ slot, maxKib }: { slot: LogoSlot; maxKib: numbe
         <form action={removeAction}>
           <input type="hidden" name="scheme" value={slot.scheme} />
           <button type="submit" className={GHOST}>
-            Remove
+            {fromCopy(copy, 'admin.remove')}
           </button>
         </form>
       )}

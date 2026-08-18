@@ -8,8 +8,9 @@ import { MergeForm } from '@/components/admin/user-forms'
 import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { userAdminRepository } from '@/server/user-admin'
+import { userAdminCopy } from '@/view/admin-user-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.merge-account') }
@@ -54,6 +55,9 @@ export default async function AdminMergePage({
       preview: await merge.preview(member.id, row.id),
     })),
   )
+
+  const t = await getTranslator()
+  const copy = userAdminCopy(t)
 
   return (
     <PanelPage
@@ -109,6 +113,7 @@ export default async function AdminMergePage({
                 toUserId={row.id}
                 toUsername={row.username}
                 posts={preview.posts}
+                copy={copy}
               />
             )}
           </section>

@@ -17,6 +17,7 @@ import {
 } from '@/server/group-admin-actions'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 import { INPUT, Saved } from './form-bits'
 import { OklchPicker } from './oklch-picker'
 
@@ -29,13 +30,15 @@ export interface GroupOption {
 function GroupSelect({
   name,
   groups,
+  copy,
   defaultValue,
   exclude,
   required = true,
-  placeholder = '— choose a group —',
+  placeholder,
 }: {
   name: string
   groups: readonly GroupOption[]
+  copy: Copy
   defaultValue?: string | undefined
   exclude?: number | undefined
   required?: boolean
@@ -43,7 +46,7 @@ function GroupSelect({
 }) {
   return (
     <select name={name} defaultValue={defaultValue ?? ''} className={INPUT} required={required}>
-      <option value="">{placeholder}</option>
+      <option value="">{placeholder ?? fromCopy(copy, 'adminGroup.select.placeholder')}</option>
       {groups
         .filter((group) => group.id !== exclude)
         .map((group) => (
@@ -75,9 +78,11 @@ export interface SampleSurface {
 export function GroupIdentityForm({
   group,
   surfaces,
+  copy,
 }: {
   group: GroupIdentityValues
   surfaces: { readonly light: SampleSurface; readonly dark: SampleSurface }
+  copy: Copy
 }) {
   const [state, action] = useActionState(saveGroupIdentityAction, EMPTY_STATE)
   const [light, setLight] = useState(group.nameColorLight)
@@ -86,21 +91,21 @@ export function GroupIdentityForm({
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === 'saved'}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
       <input type="hidden" name="groupId" value={group.id} />
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Title</span>
+        <span className="font-medium">{fromCopy(copy, 'adminGroup.title')}</span>
         <input name="title" defaultValue={group.title} className={INPUT} required />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Description</span>
+        <span className="font-medium">{fromCopy(copy, 'adminGroup.description')}</span>
         <textarea name="description" rows={2} defaultValue={group.description} className={INPUT} />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Display order</span>
+        <span className="font-medium">{fromCopy(copy, 'adminGroup.displayOrder')}</span>
         <input
           type="number"
           name="displayOrder"
@@ -111,23 +116,36 @@ export function GroupIdentityForm({
       </label>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="text-sm font-medium">Name colour</legend>
+        <legend className="text-sm font-medium">{fromCopy(copy, 'adminGroup.nameColour')}</legend>
         <p className="text-xs text-muted-foreground">
-          Shown wherever a member of this group is named — postbits, thread listings, the online
-          list. Leave a picker empty and their name is the ordinary text colour, which is what every
-          name does by default.
+          {fromCopy(copy, 'adminGroup.nameColourHint')}
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
           {[
-            ['light', 'Light', light, setLight, surfaces.light] as const,
-            ['dark', 'Dark', dark, setDark, surfaces.dark] as const,
-          ].map(([scheme, label, value, set, surface]) => (
+            [
+              'light',
+              fromCopy(copy, 'adminGroup.light'),
+              light,
+              setLight,
+              surfaces.light,
+              fromCopy(copy, 'adminGroup.nameColour.describesLight'),
+            ] as const,
+            [
+              'dark',
+              fromCopy(copy, 'adminGroup.dark'),
+              dark,
+              setDark,
+              surfaces.dark,
+              fromCopy(copy, 'adminGroup.nameColour.describesDark'),
+            ] as const,
+          ].map(([scheme, label, value, set, surface, describes]) => (
             <div key={scheme} className="flex flex-col gap-2">
               <span className="text-xs text-muted-foreground">{label}</span>
               <OklchPicker
                 name={scheme === 'dark' ? 'nameColorDark' : 'nameColorLight'}
-                describes={`the ${label.toLowerCase()} name colour`}
+                describes={describes}
+                copy={copy}
                 value={value}
                 onChange={set}
               />
@@ -136,7 +154,7 @@ export function GroupIdentityForm({
                 style={{ backgroundColor: surface.background, color: surface.foreground }}
               >
                 <span style={value === '' ? undefined : { color: value }}>
-                  {group.title || 'A member'}
+                  {group.title || fromCopy(copy, 'adminGroup.sampleMember')}
                 </span>
               </p>
             </div>
@@ -154,7 +172,7 @@ export function GroupIdentityForm({
           defaultChecked={group.isStaffGroup}
           className="size-4"
         />
-        <span>Staff group — listed on the staff page</span>
+        <span>{fromCopy(copy, 'adminGroup.staffGroup')}</span>
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
@@ -166,22 +184,15 @@ export function GroupIdentityForm({
             defaultChecked={group.pluginGrantable}
             className="size-4"
           />
-          <span>May be granted by plugins</span>
+          <span>{fromCopy(copy, 'adminGroup.pluginGrantable')}</span>
         </span>
         <span className="text-xs text-muted-foreground">
-          Lets an installed plugin put members in this group for a limited time — a paid pass, a
-          trial. Refused for system and staff groups, and for any group whose permissions carry
-          administrative or moderation power. Membership a plugin grants always expires. A plugin
-          may ask for the group to become the member&rsquo;s primary one, which is what a plugin
-          selling membership normally wants: the group they were primary in becomes a secondary
-          membership and comes back the moment the grant is revoked or lapses. A staff
-          member&rsquo;s primary group is never displaced — staff is appointed, and a purchase
-          cannot move it.
+          {fromCopy(copy, 'adminGroup.pluginGrantableHint')}
         </span>
       </label>
 
       <div>
-        <SubmitButton>Save group</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminGroup.saveGroup')}</SubmitButton>
       </div>
     </form>
   )
@@ -222,16 +233,18 @@ function PermissionControl({ cell }: { cell: PermissionCellValues }) {
 export function GroupPermissionsForm({
   groupId,
   cells,
+  copy,
 }: {
   groupId: number
   cells: readonly PermissionCellValues[]
+  copy: Copy
 }) {
   const [state, action] = useActionState(saveGroupPermissionsAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === 'saved'}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
       <input type="hidden" name="groupId" value={groupId} />
 
       <div className="flex flex-col divide-y divide-border">
@@ -244,12 +257,12 @@ export function GroupPermissionsForm({
                 <code className="text-xs">{cell.key}</code>
                 {cell.kind === 'negative' && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    ticked = restricted
+                    {fromCopy(copy, 'adminGroup.perm.tickedRestricted')}
                   </span>
                 )}
                 {cell.scope === 'forum' && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    default for every forum
+                    {fromCopy(copy, 'adminGroup.perm.forumDefault')}
                   </span>
                 )}
               </span>
@@ -265,47 +278,45 @@ export function GroupPermissionsForm({
       </div>
 
       <div>
-        <SubmitButton>Save permissions</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminGroup.savePermissions')}</SubmitButton>
       </div>
     </form>
   )
 }
 
-export function CreateGroupForm({ groups }: { groups: readonly GroupOption[] }) {
+export function CreateGroupForm({ groups, copy }: { groups: readonly GroupOption[]; copy: Copy }) {
   const [state, action] = useActionState(createGroupAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === 'created'}>Created.</Saved>
+      <Saved when={state.notice === 'created'}>{fromCopy(copy, 'admin.created')}</Saved>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Title</span>
+          <span className="font-medium">{fromCopy(copy, 'adminGroup.title')}</span>
           <input name="title" className={INPUT} required />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Key</span>
+          <span className="font-medium">{fromCopy(copy, 'adminGroup.key')}</span>
           <input name="key" className={INPUT} required />
           <span className="text-xs text-muted-foreground">
-            How code refers to the group. Lower-case letters, numbers and underscores; it cannot be
-            changed afterwards.
+            {fromCopy(copy, 'adminGroup.keyHint')}
           </span>
         </label>
 
         <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-          <span className="font-medium">Copy permissions from</span>
-          <GroupSelect name="copyFromGroupId" groups={groups} />
+          <span className="font-medium">{fromCopy(copy, 'adminGroup.copyPermissionsFrom')}</span>
+          <GroupSelect name="copyFromGroupId" groups={groups} copy={copy} />
           <span className="text-xs text-muted-foreground">
-            Required. Starting from the defaults would deny everything, which makes a group whose
-            members cannot see the board.
+            {fromCopy(copy, 'adminGroup.copyPermissionsFromHint')}
           </span>
         </label>
       </div>
 
       <div>
-        <SubmitButton>Create group</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminGroup.createGroup')}</SubmitButton>
       </div>
     </form>
   )
@@ -314,40 +325,37 @@ export function CreateGroupForm({ groups }: { groups: readonly GroupOption[] }) 
 export function DeleteGroupForm({
   groupId,
   groups,
+  copy,
 }: {
   groupId: number
   groups: readonly GroupOption[]
+  copy: Copy
 }) {
   const [state, action] = useActionState(deleteGroupAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === 'deleted'}>
-        Deleted. Its members are in the group you chose.
-      </Saved>
+      <Saved when={state.notice === 'deleted'}>{fromCopy(copy, 'adminGroup.deleted')}</Saved>
       <input type="hidden" name="groupId" value={groupId} />
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Move its members to</span>
-        <GroupSelect name="moveMembersTo" groups={groups} exclude={groupId} />
+        <span className="font-medium">{fromCopy(copy, 'adminGroup.moveMembersTo')}</span>
+        <GroupSelect name="moveMembersTo" groups={groups} copy={copy} exclude={groupId} />
         <span className="text-xs text-muted-foreground">
-          Required — every member has a primary group, so there is nowhere for them to be left.
+          {fromCopy(copy, 'adminGroup.moveMembersToHint')}
         </span>
       </label>
 
       <div>
-        <SubmitButton>Delete this group</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminGroup.deleteGroup')}</SubmitButton>
       </div>
-      <p className="text-xs text-muted-foreground">
-        You will be asked for your password again. This changes what every member it holds is
-        allowed to do, and there is no undo.
-      </p>
+      <p className="text-xs text-muted-foreground">{fromCopy(copy, 'adminGroup.deleteNote')}</p>
     </form>
   )
 }
 
-export function MoveMembersForm({ groups }: { groups: readonly GroupOption[] }) {
+export function MoveMembersForm({ groups, copy }: { groups: readonly GroupOption[]; copy: Copy }) {
   const [state, action] = useActionState(moveMembersAction, EMPTY_STATE)
 
   const cursor = state.values?.afterUserId ?? '0'
@@ -360,13 +368,12 @@ export function MoveMembersForm({ groups }: { groups: readonly GroupOption[] }) 
 
       {state.notice === 'finished' && (
         <Saved when>
-          Finished. {movedSoFar} member{movedSoFar === '1' ? '' : 's'} moved.
+          {formatFromCopy(copy, 'adminGroup.move.finished', { count: Number(movedSoFar) })}
         </Saved>
       )}
       {running && (
         <Saved when>
-          {movedSoFar} moved so far — there are more. Press again to continue; the run picks up
-          where it stopped.
+          {formatFromCopy(copy, 'adminGroup.move.moreSoFar', { count: Number(movedSoFar) })}
         </Saved>
       )}
 
@@ -375,27 +382,34 @@ export function MoveMembersForm({ groups }: { groups: readonly GroupOption[] }) 
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">From</span>
+          <span className="font-medium">{fromCopy(copy, 'adminGroup.move.from')}</span>
           <GroupSelect
             name="fromGroupId"
             groups={groups}
+            copy={copy}
             defaultValue={state.values?.fromGroupId}
           />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">To</span>
-          <GroupSelect name="toGroupId" groups={groups} defaultValue={state.values?.toGroupId} />
+          <span className="font-medium">{fromCopy(copy, 'adminGroup.move.to')}</span>
+          <GroupSelect
+            name="toGroupId"
+            groups={groups}
+            copy={copy}
+            defaultValue={state.values?.toGroupId}
+          />
         </label>
       </div>
 
       <div>
-        <SubmitButton>{running ? 'Move the next batch' : 'Start moving'}</SubmitButton>
+        <SubmitButton>
+          {running
+            ? fromCopy(copy, 'adminGroup.move.nextBatch')
+            : fromCopy(copy, 'adminGroup.move.start')}
+        </SubmitButton>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Moves up to 500 members per press, so the board stays responsive while a long run works
-        through. You will be asked for your password again.
-      </p>
+      <p className="text-xs text-muted-foreground">{fromCopy(copy, 'adminGroup.move.note')}</p>
     </form>
   )
 }
@@ -415,29 +429,31 @@ export interface PromotionRuleValues {
 function PromotionRuleFields({
   groups,
   rule,
+  copy,
 }: {
   groups: readonly GroupOption[]
   rule?: PromotionRuleValues
+  copy: Copy
 }) {
   return (
     <>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Title</span>
+          <span className="font-medium">{fromCopy(copy, 'adminGroup.title')}</span>
           <input
             name="title"
             defaultValue={rule?.title ?? ''}
             className={INPUT}
-            placeholder="Veteran"
+            placeholder={fromCopy(copy, 'adminGroup.rule.titlePlaceholder')}
             required
           />
           <span className="text-xs text-muted-foreground">
-            Names the rule in the preview and in the admin log. Members never see it.
+            {fromCopy(copy, 'adminGroup.rule.titleHint')}
           </span>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Display order</span>
+          <span className="font-medium">{fromCopy(copy, 'adminGroup.displayOrder')}</span>
           <input
             type="number"
             name="displayOrder"
@@ -446,47 +462,50 @@ function PromotionRuleFields({
             className={INPUT}
           />
           <span className="text-xs text-muted-foreground">
-            The first rule in this order that matches a member is the one applied.
+            {fromCopy(copy, 'adminGroup.rule.displayOrderHint')}
           </span>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Promote from</span>
+          <span className="font-medium">{fromCopy(copy, 'adminGroup.rule.promoteFrom')}</span>
           <GroupSelect
             name="fromPrimaryGroupId"
             groups={groups}
+            copy={copy}
             defaultValue={rule?.fromPrimaryGroupId}
             required={false}
-            placeholder="Any group"
+            placeholder={fromCopy(copy, 'adminGroup.rule.anyGroup')}
           />
           <span className="text-xs text-muted-foreground">
-            Their primary group. Any group considers every member the guards allow.
+            {fromCopy(copy, 'adminGroup.rule.promoteFromHint')}
           </span>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Promote into</span>
+          <span className="font-medium">{fromCopy(copy, 'adminGroup.rule.promoteInto')}</span>
           <GroupSelect
             name="toPrimaryGroupId"
             groups={groups}
+            copy={copy}
             defaultValue={rule?.toPrimaryGroupId}
           />
           <span className="text-xs text-muted-foreground">
-            Becomes their primary and display group.
+            {fromCopy(copy, 'adminGroup.rule.promoteIntoHint')}
           </span>
         </label>
       </div>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="text-sm font-medium">They must have at least</legend>
+        <legend className="text-sm font-medium">
+          {fromCopy(copy, 'adminGroup.rule.thresholds')}
+        </legend>
         <p className="text-xs text-muted-foreground">
-          Blank means the rule does not look at that number. At least one has to be filled in — a
-          rule with none matches every member it examines.
+          {fromCopy(copy, 'adminGroup.rule.thresholdsHint')}
         </p>
 
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Posts</span>
+            <span className="font-medium">{fromCopy(copy, 'adminGroup.rule.posts')}</span>
             <input
               type="number"
               name="minPostCount"
@@ -497,7 +516,7 @@ function PromotionRuleFields({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Reputation</span>
+            <span className="font-medium">{fromCopy(copy, 'adminGroup.rule.reputation')}</span>
             <input
               type="number"
               name="minReputation"
@@ -508,7 +527,7 @@ function PromotionRuleFields({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Days registered</span>
+            <span className="font-medium">{fromCopy(copy, 'adminGroup.rule.daysRegistered')}</span>
             <input
               type="number"
               name="minDaysRegistered"
@@ -526,9 +545,11 @@ function PromotionRuleFields({
 export function PromotionRuleRowForm({
   rule,
   groups,
+  copy,
 }: {
   rule: PromotionRuleValues
   groups: readonly GroupOption[]
+  copy: Copy
 }) {
   const [state, action] = useActionState(updatePromotionRuleAction, EMPTY_STATE)
   const [toggleState, toggleAction] = useActionState(setPromotionRuleEnabledAction, EMPTY_STATE)
@@ -537,20 +558,20 @@ export function PromotionRuleRowForm({
   return (
     <div className="flex flex-col gap-3 py-4">
       <FormError message={state.error ?? toggleState.error ?? removeState.error} />
-      <Saved when={state.notice === 'saved'}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
       <Saved when={toggleState.notice === 'enabled'}>
-        Enabled. The scheduled task will apply it.
+        {fromCopy(copy, 'adminGroup.rule.enabledNotice')}
       </Saved>
       <Saved when={toggleState.notice === 'disabled'}>
-        Disabled. It stays here and is skipped.
+        {fromCopy(copy, 'adminGroup.rule.disabledNotice')}
       </Saved>
 
       <form action={action} className="flex flex-col gap-3" noValidate>
         <input type="hidden" name="id" value={rule.id} />
-        <PromotionRuleFields groups={groups} rule={rule} />
+        <PromotionRuleFields groups={groups} rule={rule} copy={copy} />
 
         <div>
-          <SubmitButton>Save rule</SubmitButton>
+          <SubmitButton>{fromCopy(copy, 'adminGroup.rule.save')}</SubmitButton>
         </div>
       </form>
 
@@ -559,43 +580,50 @@ export function PromotionRuleRowForm({
           <input type="hidden" name="id" value={rule.id} />
           {!rule.enabled && <input type="hidden" name="enabled" value="1" />}
           <button type="submit" className="text-xs text-muted-foreground hover:underline">
-            {rule.enabled ? 'Disable this rule' : 'Enable this rule'}
+            {rule.enabled
+              ? fromCopy(copy, 'adminGroup.rule.disable')
+              : fromCopy(copy, 'adminGroup.rule.enable')}
           </button>
         </form>
 
         <form action={removeAction} className="flex items-center">
           <input type="hidden" name="id" value={rule.id} />
           <button type="submit" className="text-xs text-destructive hover:underline">
-            Remove
+            {fromCopy(copy, 'admin.remove')}
           </button>
         </form>
       </div>
       <p className="text-xs text-muted-foreground">
-        Removing asks for your password again. Disabling does not, and is the reversible way to stop
-        a rule.
+        {fromCopy(copy, 'adminGroup.rule.removeNote')}
       </p>
     </div>
   )
 }
 
-export function NewPromotionRuleForm({ groups }: { groups: readonly GroupOption[] }) {
+export function NewPromotionRuleForm({
+  groups,
+  copy,
+}: {
+  groups: readonly GroupOption[]
+  copy: Copy
+}) {
   const [state, action] = useActionState(createPromotionRuleAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === 'created'}>Added. It is enabled straight away.</Saved>
+      <Saved when={state.notice === 'created'}>{fromCopy(copy, 'adminGroup.rule.added')}</Saved>
 
-      <PromotionRuleFields groups={groups} />
+      <PromotionRuleFields groups={groups} copy={copy} />
 
       <div>
-        <SubmitButton>Add rule</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminGroup.rule.add')}</SubmitButton>
       </div>
     </form>
   )
 }
 
-export function ApplyPromotionsForm({ count }: { count: number }) {
+export function ApplyPromotionsForm({ count, copy }: { count: number; copy: Copy }) {
   const [state, action] = useActionState(applyPromotionsAction, EMPTY_STATE)
   const promoted =
     state.notice?.startsWith('promoted:') === true ? state.notice.slice('promoted:'.length) : null
@@ -605,19 +633,14 @@ export function ApplyPromotionsForm({ count }: { count: number }) {
       <FormError message={state.error} />
       {promoted !== null && (
         <Saved when>
-          Done. {promoted} member{promoted === '1' ? '' : 's'} promoted.
+          {formatFromCopy(copy, 'adminGroup.apply.done', { count: Number(promoted) })}
         </Saved>
       )}
 
       <div>
-        <SubmitButton>
-          Promote {count} member{count === 1 ? '' : 's'}
-        </SubmitButton>
+        <SubmitButton>{formatFromCopy(copy, 'adminGroup.apply.promote', { count })}</SubmitButton>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Runs the same evaluation you are looking at, and writes its outcomes. You will be asked for
-        your password again.
-      </p>
+      <p className="text-xs text-muted-foreground">{fromCopy(copy, 'adminGroup.apply.note')}</p>
     </form>
   )
 }

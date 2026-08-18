@@ -2,6 +2,8 @@
 
 import type { EditableToken } from '@/view/theme-draft'
 
+import { type Copy, fromCopy } from '../shell/copy'
+
 export type CellState = 'clean' | 'saved' | 'unsaved'
 
 export interface PaletteCell {
@@ -12,10 +14,10 @@ export interface PaletteCell {
   readonly visible: boolean
 }
 
-const STATE_NOTE: Readonly<Record<CellState, string>> = {
+const STATE_NOTE_KEY: Readonly<Record<CellState, string>> = {
   clean: '',
-  saved: 'changed by this board',
-  unsaved: 'changed, not saved yet',
+  saved: 'adminTheme.palette.changed',
+  unsaved: 'adminTheme.palette.unsaved',
 }
 
 function Swatch({ cell }: { cell: PaletteCell }) {
@@ -43,13 +45,15 @@ function Swatch({ cell }: { cell: PaletteCell }) {
 function Cell({
   cell,
   expanded,
+  copy,
   onSelect,
 }: {
   cell: PaletteCell
   expanded: boolean
+  copy: Copy
   onSelect: () => void
 }) {
-  const note = STATE_NOTE[cell.state]
+  const note = cell.state === 'clean' ? '' : fromCopy(copy, STATE_NOTE_KEY[cell.state])
 
   return (
     <button
@@ -91,10 +95,12 @@ function Cell({
 export function PaletteGrid({
   cells,
   selected,
+  copy,
   onSelect,
 }: {
   cells: readonly PaletteCell[]
   selected: string | null
+  copy: Copy
   onSelect: (name: string) => void
 }) {
   return (
@@ -104,6 +110,7 @@ export function PaletteGrid({
           key={cell.token.name}
           cell={cell}
           expanded={selected === cell.token.name}
+          copy={copy}
           onSelect={() => onSelect(cell.token.name)}
         />
       ))}

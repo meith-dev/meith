@@ -1,0 +1,100 @@
+import type { Translator } from '@meith/i18n'
+
+import { copyFor, patternCopy } from './copy'
+import { untranslated } from './time'
+
+export const ADMIN_SHARED_KEYS = [
+  'admin.saved',
+  'admin.created',
+  'admin.create',
+  'admin.remove',
+  'admin.none',
+] as const
+
+export function adminSharedCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
+  return copyFor(ADMIN_SHARED_KEYS, t)
+}
+
+export function forumAdminCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
+  return {
+    ...adminSharedCopy(t),
+    ...copyFor(
+      [
+        'adminForum.toggle.isOpen',
+        'adminForum.toggle.allowThreads',
+        'adminForum.toggle.allowReplies',
+        'adminForum.toggle.allowPolls',
+        'adminForum.toggle.allowAttachments',
+        'adminForum.toggle.requiresPrefix',
+        'adminForum.toggle.moderateNewThreads',
+        'adminForum.toggle.moderateNewPosts',
+        'adminForum.title',
+        'adminForum.slug',
+        'adminForum.slugHint',
+        'adminForum.description',
+        'adminForum.linkUrl',
+        'adminForum.linkUrlHint',
+        'adminForum.displayOrder',
+        'adminForum.displayOrderHint',
+        'adminForum.options',
+        'adminForum.categoryThreadsHint',
+        'adminForum.saveForum',
+        'adminForum.perm.allowed',
+        'adminForum.perm.denied',
+        'adminForum.perm.required',
+        'adminForum.perm.notRequired',
+        'adminForum.perm.requiredOption',
+        'adminForum.perm.notRequiredOption',
+        'adminForum.perm.inherit',
+        'adminForum.perm.grant',
+        'adminForum.perm.deny',
+        'adminForum.perm.ancestor',
+        'adminForum.copied',
+        'adminForum.copyNote',
+        'adminForum.topLevel',
+        'adminForum.kind',
+        'adminForum.kind.forum',
+        'adminForum.kind.category',
+        'adminForum.kind.link',
+        'adminForum.inside',
+        'adminForum.linkOnlyHint',
+        'adminForum.moved',
+        'adminForum.moveInside',
+        'adminForum.moveForum',
+        'adminForum.moveNote',
+        'adminForum.right.canEditPosts',
+        'adminForum.right.canSoftDeletePosts',
+        'adminForum.right.canRestorePosts',
+        'adminForum.right.canApproveContent',
+        'adminForum.right.canOpenCloseThreads',
+        'adminForum.right.canStickThreads',
+        'adminForum.right.canMoveThreads',
+        'adminForum.right.canMergeThreads',
+        'adminForum.right.canSplitThreads',
+        'adminForum.moderators',
+        'adminForum.noModerators',
+        'adminForum.noRights',
+        'adminForum.alsoSubforums',
+        'adminForum.appointTitle',
+        'adminForum.member',
+        'adminForum.usernamePlaceholder',
+        'adminForum.orGroup',
+        'adminForum.appointNote',
+        'adminForum.may',
+        'adminForum.cascade',
+        'adminForum.saveAppointment',
+      ],
+      t,
+    ),
+    ...patternCopy(
+      [
+        'adminForum.perm.setHere',
+        'adminForum.perm.inheritedDefault',
+        'adminForum.perm.inheritedFrom',
+        'adminForum.saveGroup',
+        'adminForum.copyTo',
+      ],
+      t,
+    ),
+  }
+}

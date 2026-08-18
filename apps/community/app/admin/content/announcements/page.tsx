@@ -13,7 +13,8 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { announcementRepository } from '@/server/announcements'
 import { getContainer } from '@/server/container'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
+import { contentAdminCopy } from '@/view/admin-content-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.announcements') }
@@ -46,6 +47,8 @@ export default async function AdminAnnouncementsPage() {
   const forInput = (at: Date | null): string => (at === null ? '' : at.toISOString().slice(0, 16))
 
   const now = new Date()
+
+  const copy = contentAdminCopy(await getTranslator())
 
   return (
     <PanelPage
@@ -95,7 +98,7 @@ export default async function AdminAnnouncementsPage() {
                   {row.forumTitle ?? 'the whole board'}
                   {row.authorUsername !== '' && ` · by ${row.authorUsername}`}
                 </p>
-                <AnnouncementRowForm announcement={values} forums={choices} />
+                <AnnouncementRowForm announcement={values} forums={choices} copy={copy} />
               </div>
             )
           })}
@@ -104,7 +107,7 @@ export default async function AdminAnnouncementsPage() {
 
       <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">{await tr('page.new-announcement')}</h2>
-        <NewAnnouncementForm forums={choices} />
+        <NewAnnouncementForm forums={choices} copy={copy} />
       </section>
     </PanelPage>
   )

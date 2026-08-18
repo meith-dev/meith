@@ -211,7 +211,12 @@ function proseLiterals(text, rel) {
 function isProse(value) {
   if (!/[A-Za-z]{2}.*\s.*[A-Za-z]/.test(value)) return false
   if (value.startsWith('/') || value.startsWith('http') || value.includes('${')) return false
-  if (/^[a-z][\w-]*(?:\s+[a-z:[\]][\w:./[\]-]*)+$/.test(value)) return false
+  if (/^-?[a-z@][\w:./@[\]-]*(?:\s+[a-z:[\]&@-][\w:./%[\](),&@-]*)+$/.test(value)) return false
+  if (
+    /^[MmLlHhVvCcSsQqTtAaZz][\d.eE-]/.test(value) &&
+    /^[\d.\s,eEMmLlHhVvCcSsQqTtAaZz-]+$/.test(value)
+  )
+    return false
   if (/^[A-Z_]+(?:\s+[A-Z_]+)*$/.test(value)) return false
   return true
 }

@@ -9,6 +9,7 @@ import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
 import { attachmentAdminRepository } from '@/server/content-admin'
 import { getTranslator, tr } from '@/server/i18n'
+import { contentAdminCopy } from '@/view/admin-content-copy'
 import { formatBytes } from '@/view/attachments'
 import { offsetOf, readPage } from '@/view/pager'
 import { postLink } from '@/view/post-link'
@@ -61,6 +62,7 @@ export default async function AdminAttachmentsPage({
 
   const now = new Date()
   const translator = await getTranslator()
+  const copy = contentAdminCopy(translator)
   return (
     <PanelPage
       back={{ href: '/admin/content', label: 'Content' }}
@@ -167,7 +169,7 @@ export default async function AdminAttachmentsPage({
                 )}
               </span>
 
-              <DeleteAttachmentForm attachmentId={row.id} />
+              <DeleteAttachmentForm attachmentId={row.id} copy={copy} />
             </li>
           ))}
         </ul>

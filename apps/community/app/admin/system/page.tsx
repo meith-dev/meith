@@ -15,6 +15,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getTranslator, tr } from '@/server/i18n'
 import { buildSystemHealthView } from '@/server/system-admin'
+import { systemFormsCopy } from '@/view/admin-panel-copy'
 import { formatTime } from '@/view/time'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -26,6 +27,7 @@ export default async function AdminSystemPage() {
 
   const now = new Date()
   const translator = await getTranslator()
+  const copy = systemFormsCopy(translator)
   const view = await buildSystemHealthView(now)
 
   if (view === null) {
@@ -254,7 +256,7 @@ export default async function AdminSystemPage() {
             ))}
           </ul>
         )}
-        <RecountForm />
+        <RecountForm copy={copy} />
       </section>
 
       <section className="flex flex-col gap-3">
@@ -275,7 +277,7 @@ export default async function AdminSystemPage() {
           )}
           .
         </p>
-        <ReindexSearchForm pending={view.searchIndex.pending} />
+        <ReindexSearchForm pending={view.searchIndex.pending} copy={copy} />
       </section>
 
       <section className={cn(PANEL_CARD, 'gap-4')}>
@@ -286,10 +288,10 @@ export default async function AdminSystemPage() {
           be used, and a cleared cache is a copy of data that still exists.
         </p>
 
-        <PruneSessionsForm prunable={view.prunableSessions} />
-        <PruneTokensForm />
-        <ClearCacheForm />
-        <RetryJobForm />
+        <PruneSessionsForm prunable={view.prunableSessions} copy={copy} />
+        <PruneTokensForm copy={copy} />
+        <ClearCacheForm copy={copy} />
+        <RetryJobForm copy={copy} />
       </section>
     </PanelPage>
   )

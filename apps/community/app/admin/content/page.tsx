@@ -16,7 +16,8 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { contentAdminRepository } from '@/server/content-admin'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
+import { contentAdminCopy } from '@/view/admin-content-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.content') }
@@ -42,6 +43,8 @@ export default async function AdminContentPage() {
     repository.listSmilies(),
     repository.listDirectives(),
   ])
+
+  const copy = contentAdminCopy(await getTranslator())
 
   return (
     <PanelPage
@@ -77,13 +80,13 @@ export default async function AdminContentPage() {
         ) : (
           <div className="flex flex-col divide-y divide-border">
             {filters.map((filter) => (
-              <WordFilterRowForm key={filter.id} filter={filter} />
+              <WordFilterRowForm key={filter.id} filter={filter} copy={copy} />
             ))}
           </div>
         )}
 
         <div className="border-t border-border pt-3">
-          <NewWordFilterForm />
+          <NewWordFilterForm copy={copy} />
         </div>
       </section>
 
@@ -111,14 +114,14 @@ export default async function AdminContentPage() {
                     {prefix.forumPathPrefix !== null && ` · only under ${prefix.forumPathPrefix}`}
                   </span>
                 </span>
-                <DeletePrefixForm prefix={prefix} />
+                <DeletePrefixForm prefix={prefix} copy={copy} />
               </li>
             ))}
           </ul>
         )}
 
         <div className="border-t border-border pt-3">
-          <NewPrefixForm />
+          <NewPrefixForm copy={copy} />
         </div>
       </section>
 
@@ -175,13 +178,13 @@ export default async function AdminContentPage() {
         ) : (
           <div className="flex flex-col divide-y divide-border">
             {smilies.map((smiley) => (
-              <SmileyRowForm key={smiley.id} smiley={smiley} />
+              <SmileyRowForm key={smiley.id} smiley={smiley} copy={copy} />
             ))}
           </div>
         )}
 
         <div className="border-t border-border pt-3">
-          <NewSmileyForm />
+          <NewSmileyForm copy={copy} />
         </div>
       </section>
 
@@ -211,13 +214,13 @@ export default async function AdminContentPage() {
         ) : (
           <div className="flex flex-col divide-y divide-border">
             {directives.map((directive) => (
-              <DirectiveRowForm key={directive.id} directive={directive} />
+              <DirectiveRowForm key={directive.id} directive={directive} copy={copy} />
             ))}
           </div>
         )}
 
         <div className="border-t border-border pt-3">
-          <NewDirectiveForm />
+          <NewDirectiveForm copy={copy} />
         </div>
       </section>
     </PanelPage>

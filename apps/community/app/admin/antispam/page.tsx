@@ -7,8 +7,9 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { captchaQuestionRepository } from '@/server/antispam'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { getSettings } from '@/server/settings'
+import { contentAdminCopy } from '@/view/admin-content-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.anti-spam') }
@@ -23,6 +24,8 @@ export default async function AdminAntispamPage() {
   const mode = settings.get('antispam.captcha_mode')
   const questions = repository === null ? [] : await repository.list()
   const usable = questions.filter((question) => question.enabled && question.answers.length > 0)
+
+  const copy = contentAdminCopy(await getTranslator())
 
   return (
     <PanelPage
@@ -79,13 +82,13 @@ export default async function AdminAntispamPage() {
             ) : (
               <div className="flex flex-col divide-y divide-border">
                 {questions.map((question) => (
-                  <CaptchaQuestionRowForm key={question.id} question={question} />
+                  <CaptchaQuestionRowForm key={question.id} question={question} copy={copy} />
                 ))}
               </div>
             )}
 
             <div className="border-t border-border pt-3">
-              <NewCaptchaQuestionForm />
+              <NewCaptchaQuestionForm copy={copy} />
             </div>
           </>
         )}

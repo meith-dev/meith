@@ -25,6 +25,7 @@ import {
 } from '@/server/content-admin-actions'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import { type Copy, fromCopy } from '../shell/copy'
 import { INPUT, Saved } from './form-bits'
 
 export interface WordFilterValues {
@@ -35,25 +36,25 @@ export interface WordFilterValues {
   readonly enabled: boolean
 }
 
-export function WordFilterRowForm({ filter }: { filter: WordFilterValues }) {
+export function WordFilterRowForm({ filter, copy }: { filter: WordFilterValues; copy: Copy }) {
   const [state, action] = useActionState(updateWordFilterAction, EMPTY_STATE)
   const [removeState, removeAction] = useActionState(deleteWordFilterAction, EMPTY_STATE)
 
   return (
     <div className="flex flex-col gap-2 py-3">
       <FormError message={state.error ?? removeState.error} />
-      <Saved when={state.notice === 'saved'}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
 
       <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
         <input type="hidden" name="id" value={filter.id} />
 
         <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
-          <span className="font-medium">Match</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.filter.match')}</span>
           <input name="pattern" defaultValue={filter.pattern} className={INPUT} required />
         </label>
 
         <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
-          <span className="font-medium">Show instead</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.filter.showInstead')}</span>
           <input name="replacement" defaultValue={filter.replacement} className={INPUT} />
         </label>
 
@@ -65,7 +66,7 @@ export function WordFilterRowForm({ filter }: { filter: WordFilterValues }) {
             defaultChecked={filter.wholeWord}
             className="size-4"
           />
-          <span>Whole words</span>
+          <span>{fromCopy(copy, 'adminContent.filter.wholeWords')}</span>
         </label>
 
         <label className="flex items-center gap-2 text-sm">
@@ -76,50 +77,52 @@ export function WordFilterRowForm({ filter }: { filter: WordFilterValues }) {
             defaultChecked={filter.enabled}
             className="size-4"
           />
-          <span>Active</span>
+          <span>{fromCopy(copy, 'adminContent.filter.active')}</span>
         </label>
 
         <span className="min-w-24">
-          <SubmitButton>Save</SubmitButton>
+          <SubmitButton>{fromCopy(copy, 'adminContent.save')}</SubmitButton>
         </span>
       </form>
 
       <form action={removeAction}>
         <input type="hidden" name="id" value={filter.id} />
         <button type="submit" className="text-xs text-muted-foreground hover:underline">
-          Remove this filter
+          {fromCopy(copy, 'adminContent.filter.removeThis')}
         </button>
       </form>
     </div>
   )
 }
 
-export function NewWordFilterForm() {
+export function NewWordFilterForm({ copy }: { copy: Copy }) {
   const [state, action] = useActionState(createWordFilterAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === 'saved'}>Added.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'adminContent.added')}</Saved>
 
       <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
-        <span className="font-medium">Match</span>
+        <span className="font-medium">{fromCopy(copy, 'adminContent.filter.match')}</span>
         <input name="pattern" className={INPUT} required />
       </label>
 
       <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
-        <span className="font-medium">Show instead</span>
+        <span className="font-medium">{fromCopy(copy, 'adminContent.filter.showInstead')}</span>
         <input name="replacement" className={INPUT} />
-        <span className="text-xs text-muted-foreground">Blank removes the word.</span>
+        <span className="text-xs text-muted-foreground">
+          {fromCopy(copy, 'adminContent.filter.showInsteadHint')}
+        </span>
       </label>
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="wholeWord" value="1" defaultChecked className="size-4" />
-        <span>Whole words</span>
+        <span>{fromCopy(copy, 'adminContent.filter.wholeWords')}</span>
       </label>
 
       <span className="min-w-28">
-        <SubmitButton>Add</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminContent.add')}</SubmitButton>
       </span>
     </form>
   )
@@ -133,7 +136,7 @@ export interface PrefixValues {
   readonly forumPathPrefix: string | null
 }
 
-export function DeletePrefixForm({ prefix }: { prefix: PrefixValues }) {
+export function DeletePrefixForm({ prefix, copy }: { prefix: PrefixValues; copy: Copy }) {
   const [state, action] = useActionState(deletePrefixAction, EMPTY_STATE)
 
   return (
@@ -141,50 +144,50 @@ export function DeletePrefixForm({ prefix }: { prefix: PrefixValues }) {
       <FormError message={state.error} />
       <input type="hidden" name="id" value={prefix.id} />
       <button type="submit" className="text-xs text-muted-foreground hover:underline">
-        Remove
+        {fromCopy(copy, 'admin.remove')}
       </button>
     </form>
   )
 }
 
-export function NewPrefixForm() {
+export function NewPrefixForm({ copy }: { copy: Copy }) {
   const [state, action] = useActionState(createPrefixAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === 'saved'}>Added.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'adminContent.added')}</Saved>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Label</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.prefix.label')}</span>
           <input name="label" className={INPUT} required />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Style token</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.prefix.styleToken')}</span>
           <input name="token" className={INPUT} />
           <span className="text-xs text-muted-foreground">
-            Names a theme token for its colour. Blank uses the default.
+            {fromCopy(copy, 'adminContent.prefix.styleTokenHint')}
           </span>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Display order</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.prefix.displayOrder')}</span>
           <input type="number" name="displayOrder" min={0} defaultValue={0} className={INPUT} />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Only in this branch</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.prefix.onlyBranch')}</span>
           <input name="forumPathPrefix" className={INPUT} />
           <span className="text-xs text-muted-foreground">
-            A forum path, to scope the prefix to one branch of the tree. Blank offers it everywhere.
+            {fromCopy(copy, 'adminContent.prefix.onlyBranchHint')}
           </span>
         </label>
       </div>
 
       <div>
-        <SubmitButton>Add prefix</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminContent.prefix.add')}</SubmitButton>
       </div>
     </form>
   )
@@ -198,14 +201,14 @@ export interface SmileyValues {
   readonly enabled: boolean
 }
 
-export function SmileyRowForm({ smiley }: { smiley: SmileyValues }) {
+export function SmileyRowForm({ smiley, copy }: { smiley: SmileyValues; copy: Copy }) {
   const [state, action] = useActionState(updateSmileyAction, EMPTY_STATE)
   const [removeState, removeAction] = useActionState(deleteSmileyAction, EMPTY_STATE)
 
   return (
     <div className="flex flex-col gap-2 py-3">
       <FormError message={state.error ?? removeState.error} />
-      <Saved when={state.notice === 'saved'}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
 
       <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
         <input type="hidden" name="id" value={smiley.id} />
@@ -217,17 +220,17 @@ export function SmileyRowForm({ smiley }: { smiley: SmileyValues }) {
         />
 
         <label className="flex w-28 flex-col gap-1 text-sm">
-          <span className="font-medium">Code</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.smiley.code')}</span>
           <input name="code" defaultValue={smiley.code} className={INPUT} required />
         </label>
 
         <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
-          <span className="font-medium">Image</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.smiley.image')}</span>
           <input name="src" defaultValue={smiley.src} className={INPUT} required />
         </label>
 
         <label className="flex w-32 flex-col gap-1 text-sm">
-          <span className="font-medium">Alt text</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.smiley.altText')}</span>
           <input name="alt" defaultValue={smiley.alt ?? ''} className={INPUT} />
         </label>
 
@@ -239,50 +242,62 @@ export function SmileyRowForm({ smiley }: { smiley: SmileyValues }) {
             defaultChecked={smiley.enabled}
             className="size-4"
           />
-          <span>Enabled</span>
+          <span>{fromCopy(copy, 'adminContent.enabled')}</span>
         </label>
 
         <span className="min-w-24">
-          <SubmitButton>Save</SubmitButton>
+          <SubmitButton>{fromCopy(copy, 'adminContent.save')}</SubmitButton>
         </span>
       </form>
 
       <form action={removeAction}>
         <input type="hidden" name="id" value={smiley.id} />
         <button type="submit" className="text-xs text-destructive hover:underline">
-          Remove
+          {fromCopy(copy, 'admin.remove')}
         </button>
       </form>
     </div>
   )
 }
 
-export function NewSmileyForm() {
+export function NewSmileyForm({ copy }: { copy: Copy }) {
   const [state, action] = useActionState(createSmileyAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === 'saved'}>Added.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'adminContent.added')}</Saved>
 
       <label className="flex w-28 flex-col gap-1 text-sm">
-        <span className="font-medium">Code</span>
-        <input name="code" className={INPUT} placeholder=":)" required />
+        <span className="font-medium">{fromCopy(copy, 'adminContent.smiley.code')}</span>
+        <input
+          name="code"
+          className={INPUT}
+          placeholder={fromCopy(copy, 'adminContent.smiley.codePlaceholder')}
+          required
+        />
       </label>
 
       <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
-        <span className="font-medium">Image</span>
-        <input name="src" className={INPUT} placeholder="/smilies/smile.png" required />
+        <span className="font-medium">{fromCopy(copy, 'adminContent.smiley.image')}</span>
+        <input
+          name="src"
+          className={INPUT}
+          placeholder={fromCopy(copy, 'adminContent.smiley.imagePlaceholder')}
+          required
+        />
       </label>
 
       <label className="flex w-32 flex-col gap-1 text-sm">
-        <span className="font-medium">Alt text</span>
+        <span className="font-medium">{fromCopy(copy, 'adminContent.smiley.altText')}</span>
         <input name="alt" className={INPUT} />
-        <span className="text-xs text-muted-foreground">Defaults to the code.</span>
+        <span className="text-xs text-muted-foreground">
+          {fromCopy(copy, 'adminContent.smiley.altTextHint')}
+        </span>
       </label>
 
       <span className="min-w-28">
-        <SubmitButton>Add</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminContent.add')}</SubmitButton>
       </span>
     </form>
   )
@@ -296,25 +311,25 @@ export interface DirectiveValues {
   readonly enabled: boolean
 }
 
-export function DirectiveRowForm({ directive }: { directive: DirectiveValues }) {
+export function DirectiveRowForm({ directive, copy }: { directive: DirectiveValues; copy: Copy }) {
   const [state, action] = useActionState(updateDirectiveAction, EMPTY_STATE)
   const [removeState, removeAction] = useActionState(deleteDirectiveAction, EMPTY_STATE)
 
   return (
     <div className="flex flex-col gap-2 py-3">
       <FormError message={state.error ?? removeState.error} />
-      <Saved when={state.notice === 'saved'}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
 
       <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
         <input type="hidden" name="id" value={directive.id} />
 
         <label className="flex w-36 flex-col gap-1 text-sm">
-          <span className="font-medium">Name</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.directive.name')}</span>
           <input name="name" defaultValue={directive.name} className={INPUT} required />
         </label>
 
         <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
-          <span className="font-medium">Note</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.directive.note')}</span>
           <input name="description" defaultValue={directive.description ?? ''} className={INPUT} />
         </label>
 
@@ -326,7 +341,7 @@ export function DirectiveRowForm({ directive }: { directive: DirectiveValues }) 
             defaultChecked={directive.block}
             className="size-4"
           />
-          <span>Block</span>
+          <span>{fromCopy(copy, 'adminContent.directive.block')}</span>
         </label>
 
         <label className="flex items-center gap-2 text-sm">
@@ -337,60 +352,70 @@ export function DirectiveRowForm({ directive }: { directive: DirectiveValues }) 
             defaultChecked={directive.enabled}
             className="size-4"
           />
-          <span>Enabled</span>
+          <span>{fromCopy(copy, 'adminContent.enabled')}</span>
         </label>
 
         <span className="min-w-24">
-          <SubmitButton>Save</SubmitButton>
+          <SubmitButton>{fromCopy(copy, 'adminContent.save')}</SubmitButton>
         </span>
       </form>
 
       <form action={removeAction}>
         <input type="hidden" name="id" value={directive.id} />
         <button type="submit" className="text-xs text-destructive hover:underline">
-          Remove
+          {fromCopy(copy, 'admin.remove')}
         </button>
       </form>
     </div>
   )
 }
 
-export function NewDirectiveForm() {
+export function NewDirectiveForm({ copy }: { copy: Copy }) {
   const [state, action] = useActionState(createDirectiveAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === 'saved'}>Added.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'adminContent.added')}</Saved>
 
       <label className="flex w-36 flex-col gap-1 text-sm">
-        <span className="font-medium">Name</span>
-        <input name="name" className={INPUT} placeholder="spoiler" required />
+        <span className="font-medium">{fromCopy(copy, 'adminContent.directive.name')}</span>
+        <input
+          name="name"
+          className={INPUT}
+          placeholder={fromCopy(copy, 'adminContent.directive.namePlaceholder')}
+          required
+        />
         <span className="text-xs text-muted-foreground">
-          1–16 letters or digits. Written <code>:::spoiler</code> as a block, or{' '}
-          <code>:spoiler[…]</code> inline.
+          {copy['adminContent.directive.nameHintLead']}
+          <code>:::spoiler</code>
+          {copy['adminContent.directive.nameHintMid']}
+          <code>:spoiler[…]</code>
+          {copy['adminContent.directive.nameHintTail']}
         </span>
       </label>
 
       <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
-        <span className="font-medium">Note</span>
+        <span className="font-medium">{fromCopy(copy, 'adminContent.directive.note')}</span>
         <input name="description" className={INPUT} />
-        <span className="text-xs text-muted-foreground">For you. Never shown to members.</span>
+        <span className="text-xs text-muted-foreground">
+          {fromCopy(copy, 'adminContent.directive.noteHint')}
+        </span>
       </label>
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="block" value="1" className="size-4" />
-        <span>Block</span>
+        <span>{fromCopy(copy, 'adminContent.directive.block')}</span>
       </label>
 
       <span className="min-w-28">
-        <SubmitButton>Add</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminContent.add')}</SubmitButton>
       </span>
     </form>
   )
 }
 
-export function DeleteAttachmentForm({ attachmentId }: { attachmentId: number }) {
+export function DeleteAttachmentForm({ attachmentId, copy }: { attachmentId: number; copy: Copy }) {
   const [state, action] = useActionState(deleteAttachmentAction, EMPTY_STATE)
 
   return (
@@ -398,7 +423,7 @@ export function DeleteAttachmentForm({ attachmentId }: { attachmentId: number })
       <FormError message={state.error} />
       <input type="hidden" name="id" value={attachmentId} />
       <button type="submit" className="text-xs text-destructive hover:underline">
-        Delete
+        {fromCopy(copy, 'adminContent.attachment.delete')}
       </button>
     </form>
   )
@@ -422,19 +447,21 @@ export interface ForumChoice {
 function AnnouncementFields({
   forums,
   values,
+  copy,
 }: {
   forums: readonly ForumChoice[]
   values?: AnnouncementValues
+  copy: Copy
 }) {
   return (
     <>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Title</span>
+        <span className="font-medium">{fromCopy(copy, 'adminContent.announcement.title')}</span>
         <input name="title" defaultValue={values?.title ?? ''} className={INPUT} required />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Message</span>
+        <span className="font-medium">{fromCopy(copy, 'adminContent.announcement.message')}</span>
         <textarea
           name="message"
           rows={5}
@@ -443,13 +470,12 @@ function AnnouncementFields({
           required
         />
         <span className="text-xs text-muted-foreground">
-          Markdown, rendered the same way a post is — including this board&rsquo;s smilies and
-          directives.
+          {fromCopy(copy, 'adminContent.announcement.messageHint')}
         </span>
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Where</span>
+        <span className="font-medium">{fromCopy(copy, 'adminContent.announcement.where')}</span>
         <select
           name="forumId"
           defaultValue={
@@ -457,7 +483,7 @@ function AnnouncementFields({
           }
           className={INPUT}
         >
-          <option value="">The whole board</option>
+          <option value="">{fromCopy(copy, 'adminContent.announcement.wholeBoard')}</option>
           {forums.map((forum) => (
             <option key={forum.id} value={forum.id}>
               {forum.label}
@@ -465,14 +491,13 @@ function AnnouncementFields({
           ))}
         </select>
         <span className="text-xs text-muted-foreground">
-          A forum&rsquo;s announcement is shown to whoever can see that forum. A board-wide one is
-          shown on the index and on every forum.
+          {fromCopy(copy, 'adminContent.announcement.whereHint')}
         </span>
       </label>
 
       <div className="flex flex-wrap gap-3">
         <label className="flex flex-1 flex-col gap-1 text-sm">
-          <span className="font-medium">From</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.announcement.from')}</span>
           <input
             type="datetime-local"
             name="startsAt"
@@ -482,18 +507,22 @@ function AnnouncementFields({
         </label>
 
         <label className="flex flex-1 flex-col gap-1 text-sm">
-          <span className="font-medium">Until</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.announcement.until')}</span>
           <input
             type="datetime-local"
             name="endsAt"
             defaultValue={values?.endsAtInput ?? ''}
             className={INPUT}
           />
-          <span className="text-xs text-muted-foreground">Blank never expires.</span>
+          <span className="text-xs text-muted-foreground">
+            {fromCopy(copy, 'adminContent.announcement.untilHint')}
+          </span>
         </label>
       </div>
 
-      <p className="text-xs text-muted-foreground">Times are UTC.</p>
+      <p className="text-xs text-muted-foreground">
+        {fromCopy(copy, 'adminContent.announcement.timesUtc')}
+      </p>
     </>
   )
 }
@@ -501,9 +530,11 @@ function AnnouncementFields({
 export function AnnouncementRowForm({
   announcement,
   forums,
+  copy,
 }: {
   announcement: AnnouncementValues
   forums: readonly ForumChoice[]
+  copy: Copy
 }) {
   const [state, action] = useActionState(updateAnnouncementAction, EMPTY_STATE)
   const [removeState, removeAction] = useActionState(deleteAnnouncementAction, EMPTY_STATE)
@@ -511,11 +542,11 @@ export function AnnouncementRowForm({
   return (
     <div className="flex flex-col gap-3 py-4">
       <FormError message={state.error ?? removeState.error} />
-      <Saved when={state.notice === 'saved'}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
 
       <form action={action} className="flex flex-col gap-3" noValidate>
         <input type="hidden" name="id" value={announcement.id} />
-        <AnnouncementFields forums={forums} values={announcement} />
+        <AnnouncementFields forums={forums} values={announcement} copy={copy} />
 
         <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm">
@@ -526,11 +557,11 @@ export function AnnouncementRowForm({
               defaultChecked={announcement.enabled}
               className="size-4"
             />
-            <span>Enabled</span>
+            <span>{fromCopy(copy, 'adminContent.enabled')}</span>
           </label>
 
           <span className="min-w-28">
-            <SubmitButton>Save</SubmitButton>
+            <SubmitButton>{fromCopy(copy, 'adminContent.save')}</SubmitButton>
           </span>
         </div>
       </form>
@@ -538,31 +569,37 @@ export function AnnouncementRowForm({
       <form action={removeAction}>
         <input type="hidden" name="id" value={announcement.id} />
         <button type="submit" className="text-xs text-destructive hover:underline">
-          Remove
+          {fromCopy(copy, 'admin.remove')}
         </button>
       </form>
     </div>
   )
 }
 
-export function NewAnnouncementForm({ forums }: { forums: readonly ForumChoice[] }) {
+export function NewAnnouncementForm({
+  forums,
+  copy,
+}: {
+  forums: readonly ForumChoice[]
+  copy: Copy
+}) {
   const [state, action] = useActionState(createAnnouncementAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === 'saved'}>Added.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'adminContent.added')}</Saved>
 
-      <AnnouncementFields forums={forums} />
+      <AnnouncementFields forums={forums} copy={copy} />
 
       <div className="flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="enabled" value="1" defaultChecked className="size-4" />
-          <span>Enabled</span>
+          <span>{fromCopy(copy, 'adminContent.enabled')}</span>
         </label>
 
         <span className="min-w-28">
-          <SubmitButton>Add</SubmitButton>
+          <SubmitButton>{fromCopy(copy, 'adminContent.add')}</SubmitButton>
         </span>
       </div>
     </form>
@@ -576,27 +613,31 @@ export interface CaptchaQuestionValues {
   readonly enabled: boolean
 }
 
-const ANSWERS_HINT = 'One per line. Any of them is accepted, ignoring case and extra spaces.'
-
-export function CaptchaQuestionRowForm({ question }: { question: CaptchaQuestionValues }) {
+export function CaptchaQuestionRowForm({
+  question,
+  copy,
+}: {
+  question: CaptchaQuestionValues
+  copy: Copy
+}) {
   const [state, action] = useActionState(updateCaptchaQuestionAction, EMPTY_STATE)
   const [removeState, removeAction] = useActionState(deleteCaptchaQuestionAction, EMPTY_STATE)
 
   return (
     <div className="flex flex-col gap-2 py-3">
       <FormError message={state.error ?? removeState.error} />
-      <Saved when={state.notice === 'saved'}>Saved.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
 
       <form action={action} className="flex flex-col gap-3" noValidate>
         <input type="hidden" name="id" value={question.id} />
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Question</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.captcha.question')}</span>
           <input name="question" defaultValue={question.question} className={INPUT} required />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Accepted answers</span>
+          <span className="font-medium">{fromCopy(copy, 'adminContent.captcha.answers')}</span>
           <textarea
             name="answers"
             rows={3}
@@ -604,7 +645,9 @@ export function CaptchaQuestionRowForm({ question }: { question: CaptchaQuestion
             className={INPUT}
             required
           />
-          <span className="text-xs text-muted-foreground">{ANSWERS_HINT}</span>
+          <span className="text-xs text-muted-foreground">
+            {fromCopy(copy, 'adminContent.captcha.answersHint')}
+          </span>
         </label>
 
         <div className="flex flex-wrap items-center gap-4">
@@ -616,11 +659,11 @@ export function CaptchaQuestionRowForm({ question }: { question: CaptchaQuestion
               defaultChecked={question.enabled}
               className="size-4"
             />
-            <span>Enabled</span>
+            <span>{fromCopy(copy, 'adminContent.enabled')}</span>
           </label>
 
           <span className="min-w-24">
-            <SubmitButton>Save</SubmitButton>
+            <SubmitButton>{fromCopy(copy, 'adminContent.save')}</SubmitButton>
           </span>
         </div>
       </form>
@@ -628,39 +671,41 @@ export function CaptchaQuestionRowForm({ question }: { question: CaptchaQuestion
       <form action={removeAction}>
         <input type="hidden" name="id" value={question.id} />
         <button type="submit" className="text-xs text-destructive hover:underline">
-          Remove
+          {fromCopy(copy, 'admin.remove')}
         </button>
       </form>
     </div>
   )
 }
 
-export function NewCaptchaQuestionForm() {
+export function NewCaptchaQuestionForm({ copy }: { copy: Copy }) {
   const [state, action] = useActionState(createCaptchaQuestionAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === 'saved'}>Added.</Saved>
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'adminContent.added')}</Saved>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Question</span>
+        <span className="font-medium">{fromCopy(copy, 'adminContent.captcha.question')}</span>
         <input
           name="question"
           className={INPUT}
-          placeholder="What is the name of this forum?"
+          placeholder={fromCopy(copy, 'adminContent.captcha.questionPlaceholder')}
           required
         />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Accepted answers</span>
+        <span className="font-medium">{fromCopy(copy, 'adminContent.captcha.answers')}</span>
         <textarea name="answers" rows={3} className={INPUT} required />
-        <span className="text-xs text-muted-foreground">{ANSWERS_HINT}</span>
+        <span className="text-xs text-muted-foreground">
+          {fromCopy(copy, 'adminContent.captcha.answersHint')}
+        </span>
       </label>
 
       <span className="min-w-28">
-        <SubmitButton>Add</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminContent.add')}</SubmitButton>
       </span>
     </form>
   )

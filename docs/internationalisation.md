@@ -207,18 +207,46 @@ carry it in the catalog. They are the exception, and the reasons differ:
 any difference, so they cannot drift: adding a setting fails the build until its
 `setting.<key>.label` and `setting.<key>.description` exist and match.
 
+### Copy in a client component
+
+A client component cannot ask for a translator — a `'use client'` boundary
+only passes JSON — so its words arrive as a **copy record**: a plain
+`Readonly<Record<string, string>>` of catalog keys to resolved strings, built
+by the rendering page with a helper from `src/view/*-copy.ts` and passed as a
+`copy` prop. `fromCopy(copy, key)` reads one, and a missing key renders as
+itself, same as everywhere else. A sentence the server can finish — arguments
+known at render time — is resolved in the helper with `t.t(key, args)`; a
+sentence wrapped around a link or a `<code>` element is split by
+`splitAround()` into `…Lead`/`…Tail` entries so the translator still writes
+one sentence with one placeholder.
+
+A sentence only the browser can finish — a live count, a per-row value —
+travels as its **raw ICU pattern** (`patternCopy()` on the server,
+`formatFromCopy()` in the component). `@meith/i18n` has no dependencies and
+formats with `Intl`, so the same `formatMessage` runs client-side and a
+client-side count still picks the right plural category in every language.
+
+Two things skip the prop entirely. Form chrome that every form shares —
+“Working…”, “Not saved.”, the markdown editor's toolbar and help, the
+attachment field, multi-quote — comes from a `CopyProvider` context the root
+layout fills once, read with `useCopy()`. And a component rendered only on the
+server just calls `getTranslator()` itself.
+
 ### The rest of the copy, and the ratchet
 
 The view builders under `apps/community/src/view/` are done, and so are the
-biggest error and page surfaces: domain packages raise their validation errors
-through `msg()` — a catalog key, its ICU arguments, and the English the key
-renders to, so logs and tests read the same sentence they always did while a
-reader gets it translated with the limit interpolated — and the server pages'
+error, page and component surfaces: domain packages raise their validation
+errors through `msg()` — a catalog key, its ICU arguments, and the English the
+key renders to, so logs and tests read the same sentence they always did while
+a reader gets it translated with the limit interpolated — the server pages'
 browser-tab titles, frame titles and whole-text headings resolve through the
-request's translator. What still holds English: the client components under
-`src/components/` (forms, which need copy handed in as props), sentence
-fragments wrapped around inline elements, the themes' own chrome, and the
-plugins — some 4,100 strings across 390 files.
+request's translator, and every client component under `src/components/`
+(member forms, the composer, moderation tools, the installer, the whole admin
+panel) reads from a copy record. What still holds English: the themes' own
+chrome (~220 strings), the dues plugin (~220), a long tail of server-side
+fragments in the app (~400), and the packages — where most of the count is
+the demo board's fixture posts and the deliberately mirrored setting
+definitions, which are staying English on purpose.
 
 They cannot grow. `scripts/i18n-baseline.json` records how much English each
 file holds — string literals and JSX text alike — and `pnpm i18n:check` fails

@@ -6,9 +6,10 @@ import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { adminPageContext } from '@/server/admin'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { pluginRow } from '@/server/plugin-admin'
 import { renderPluginAdminPage } from '@/server/plugin-pages'
+import { pluginFormsCopy } from '@/view/admin-panel-copy'
 import { pluginPanelTabs } from '@/view/plugin-panel'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -80,6 +81,7 @@ export default async function AdminPluginPage({
 
   const visibleSettings = plugin.settings
   const pendingMigrations = plugin.migrations.filter((migration) => !migration.applied)
+  const copy = pluginFormsCopy(await getTranslator())
 
   return (
     <PanelPage
@@ -129,7 +131,7 @@ export default async function AdminPluginPage({
 
         {plugin.configuredEnabled && plugin.hasDefinition && (
           <div className="max-w-40">
-            <PluginEnableForm pluginKey={plugin.key} enabled={plugin.operatorEnabled} />
+            <PluginEnableForm pluginKey={plugin.key} enabled={plugin.operatorEnabled} copy={copy} />
           </div>
         )}
       </section>
@@ -176,7 +178,7 @@ export default async function AdminPluginPage({
             Stored under this plugin&rsquo;s own namespace, so two plugins cannot collide and
             neither can reach a board setting.
           </p>
-          <PluginSettingsForm pluginKey={plugin.key} settings={visibleSettings} />
+          <PluginSettingsForm pluginKey={plugin.key} settings={visibleSettings} copy={copy} />
         </section>
       )}
 

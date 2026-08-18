@@ -11,6 +11,7 @@ import { boardUrlResolution } from '@/server/board-url'
 import { getTranslator, tr } from '@/server/i18n'
 import { assessMailReadiness } from '@/server/mail-health'
 import { getSettings } from '@/server/settings'
+import { mailTestCardCopy, settingsFormCopy } from '@/view/admin-panel-copy'
 import { buildAdminSettingsModel, DEFAULT_SETTING_GROUP, settingsHref } from '@/view/admin-settings'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,12 +30,13 @@ export default async function AdminSettingsPage({
   if (query.group === undefined && query.q === undefined) {
     redirect(settingsHref({ group: DEFAULT_SETTING_GROUP, advanced: query.advanced === '1' }))
   }
+  const t = await getTranslator()
   const model = buildAdminSettingsModel({
     snapshot: await getSettings(),
     query: query.q,
     group: query.group,
     advanced: query.advanced === '1',
-    t: await getTranslator(),
+    t,
   })
 
   const mail =
@@ -130,6 +132,7 @@ export default async function AdminSettingsPage({
           summary={mail.summary}
           sends={mail.sends}
           fromEnvironment={mail.source === 'environment'}
+          copy={mailTestCardCopy(t)}
         />
       )}
 
@@ -169,7 +172,7 @@ export default async function AdminSettingsPage({
         </section>
       )}
 
-      <AdminSettingsForm groups={model.groups} />
+      <AdminSettingsForm groups={model.groups} copy={settingsFormCopy(t)} />
     </PanelPage>
   )
 }

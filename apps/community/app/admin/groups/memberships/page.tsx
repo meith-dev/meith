@@ -5,7 +5,8 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { groupAdminRepository } from '@/server/group-admin'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
+import { groupAdminCopy } from '@/view/admin-group-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.mass-membership-change') }
@@ -45,6 +46,7 @@ export default async function AdminMembershipsPage() {
             title: group.title,
             memberCount: group.memberCount,
           }))}
+          copy={groupAdminCopy(await getTranslator())}
         />
       </section>
 

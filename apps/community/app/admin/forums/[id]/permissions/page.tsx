@@ -6,7 +6,8 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildForumMatrixView, previewCopy } from '@/server/forum-admin'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
+import { forumAdminCopy } from '@/view/admin-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.forum-permissions') }
@@ -25,6 +26,7 @@ export default async function ForumPermissionsPage({
   const view = await buildForumMatrixView(Number(id))
   if (view === null) notFound()
 
+  const t = await getTranslator()
   const plan = previewCopy(view)
   const forumTitles = new Map([view.forum, ...view.descendants].map((row) => [row.id, row.title]))
 
@@ -48,6 +50,7 @@ export default async function ForumPermissionsPage({
             forumId={view.forum.id}
             row={row}
             forumTitles={forumTitles}
+            copy={forumAdminCopy(t)}
           />
         ))}
       </div>
@@ -88,6 +91,7 @@ export default async function ForumPermissionsPage({
               forumId={view.forum.id}
               changeCount={plan.changes.length}
               forumCount={new Set(plan.changes.map((change) => change.forumId)).size}
+              copy={forumAdminCopy(t)}
             />
           </>
         )}

@@ -9,6 +9,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getTranslator, tr } from '@/server/i18n'
 import { buildThemeAdminView, themeAdminRepository } from '@/server/theme-admin'
+import { themeAdminCopy } from '@/view/admin-theme-copy'
 import { contrastCopy } from '@/view/contrast'
 import { tokenGroupCopy } from '@/view/theme-tokens'
 import { formatTime } from '@/view/time'
@@ -28,6 +29,11 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
   const exported = repository === null ? null : await repository.exportTheme(key)
   const now = new Date()
   const translator = await getTranslator()
+  const copy = {
+    ...tokenGroupCopy(translator),
+    ...contrastCopy(translator),
+    ...themeAdminCopy(translator),
+  }
 
   return (
     <PanelPage
@@ -62,10 +68,7 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
     >
       <section className={PANEL_CARD}>
         <ThemeEditorForm
-          copy={{
-            ...tokenGroupCopy(await getTranslator()),
-            ...contrastCopy(await getTranslator()),
-          }}
+          copy={copy}
           themeKey={view.key}
           tokens={view.tokens}
           customCss={view.customCss}
@@ -89,7 +92,7 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
 
       <section className={cn(PANEL_CARD, 'max-w-3xl')}>
         <h2 className="font-heading text-lg font-semibold">Import</h2>
-        <ImportThemeForm themeKey={view.key} />
+        <ImportThemeForm themeKey={view.key} copy={copy} />
       </section>
 
       <section className={cn(PANEL_CARD, 'max-w-3xl')}>
@@ -100,7 +103,7 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
               Removes every override, putting the board back to exactly what the theme ships. Take a
               copy of the export above first if you might want it back.
             </p>
-            <ResetThemeForm themeKey={view.key} />
+            <ResetThemeForm themeKey={view.key} copy={copy} />
           </>
         ) : (
           <p className="text-sm text-muted-foreground">

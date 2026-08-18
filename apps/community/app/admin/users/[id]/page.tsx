@@ -13,6 +13,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getTranslator, tr } from '@/server/i18n'
 import { buildMemberView } from '@/server/user-admin'
+import { userAdminCopy } from '@/view/admin-user-copy'
 import { formatTime } from '@/view/time'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -31,6 +32,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
   const { member, activeBan } = view
   const now = new Date()
   const translator = await getTranslator()
+  const copy = userAdminCopy(translator)
 
   return (
     <PanelPage
@@ -76,6 +78,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
             displayGroupId: member.displayGroupId,
           }}
           groups={view.groups}
+          copy={copy}
         />
       </section>
 
@@ -91,6 +94,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
           groups={view.groups}
           selected={view.secondaryGroupIds}
           primaryGroupId={member.primaryGroupId}
+          copy={copy}
         />
       </section>
 
@@ -102,14 +106,14 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
             here would leave the ban record active.
           </p>
         ) : (
-          <MemberStateForm userId={member.id} state={member.state} />
+          <MemberStateForm userId={member.id} state={member.state} copy={copy} />
         )}
       </section>
 
       <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">Ban</h2>
         {activeBan === null ? (
-          <BanMemberForm userId={member.id} />
+          <BanMemberForm userId={member.id} copy={copy} />
         ) : (
           <>
             <p className="text-sm">
@@ -134,7 +138,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
                 Shown to them: {activeBan.publicReason}
               </p>
             )}
-            <LiftBanForm userId={member.id} />
+            <LiftBanForm userId={member.id} copy={copy} />
           </>
         )}
       </section>

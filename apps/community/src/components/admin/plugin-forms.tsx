@@ -6,6 +6,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { savePluginSettingsAction, setPluginEnabledAction } from '@/server/plugin-admin-actions'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 import { INPUT } from './form-bits'
 
 export interface PluginSettingField {
@@ -23,7 +24,15 @@ export interface PluginSettingField {
   readonly problem: string | null
 }
 
-export function PluginEnableForm({ pluginKey, enabled }: { pluginKey: string; enabled: boolean }) {
+export function PluginEnableForm({
+  pluginKey,
+  enabled,
+  copy,
+}: {
+  pluginKey: string
+  enabled: boolean
+  copy: Copy
+}) {
   const [state, action] = useActionState(setPluginEnabledAction, EMPTY_STATE)
 
   return (
@@ -35,7 +44,9 @@ export function PluginEnableForm({ pluginKey, enabled }: { pluginKey: string; en
         type="submit"
         className="inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm"
       >
-        {enabled ? 'Disable' : 'Enable'}
+        {enabled
+          ? fromCopy(copy, 'adminPanel.plugin.disable')
+          : fromCopy(copy, 'adminPanel.plugin.enable')}
       </button>
     </form>
   )
@@ -44,9 +55,11 @@ export function PluginEnableForm({ pluginKey, enabled }: { pluginKey: string; en
 export function PluginSettingsForm({
   pluginKey,
   settings,
+  copy,
 }: {
   pluginKey: string
   settings: readonly PluginSettingField[]
+  copy: Copy
 }) {
   const [state, action] = useActionState(savePluginSettingsAction, EMPTY_STATE)
 
@@ -55,7 +68,7 @@ export function PluginSettingsForm({
       <FormError message={state.error} />
       {state.notice === 'saved' && (
         <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          Saved. The plugin reads these on its next call.
+          {fromCopy(copy, 'adminPanel.plugin.saved')}
         </p>
       )}
 
@@ -113,10 +126,10 @@ export function PluginSettingsForm({
                     defaultValue=""
                     placeholder={
                       fromEnvironment
-                        ? 'set by the environment'
+                        ? fromCopy(copy, 'adminPanel.plugin.secretFromEnvPlaceholder')
                         : setting.set
-                          ? 'set — leave blank to keep it'
-                          : 'not set'
+                          ? fromCopy(copy, 'adminPanel.plugin.secretSetPlaceholder')
+                          : fromCopy(copy, 'adminPanel.plugin.secretNotSetPlaceholder')
                     }
                     disabled={fromEnvironment}
                     className={INPUT}
@@ -153,31 +166,30 @@ export function PluginSettingsForm({
                 </code>
                 {fromEnvironment && setting.envName !== null && (
                   <>
-                    {' · set by '}
+                    {copy['adminPanel.plugin.envInertLead']}
                     <code className="text-xs">{setting.envName}</code>
-                    {' in the environment — this box is inert'}
+                    {copy['adminPanel.plugin.envInertTail']}
                   </>
                 )}
                 {!fromEnvironment && setting.envName !== null && (
                   <>
-                    {' · '}
+                    {copy['adminPanel.plugin.envOverridesLead']}
                     <code className="text-xs">{setting.envName}</code>
-                    {' overrides this when set'}
+                    {copy['adminPanel.plugin.envOverridesTail']}
                   </>
                 )}
-                {setting.kind !== 'secret' && (
-                  <>
-                    {' · ships as '}
-                    {typeof setting.default === 'boolean'
-                      ? setting.default
-                        ? 'on'
-                        : 'off'
-                      : String(setting.default) === ''
-                        ? 'empty'
-                        : String(setting.default)}
-                  </>
-                )}
-                {setting.advanced && ' · advanced'}
+                {setting.kind !== 'secret' &&
+                  formatFromCopy(copy, 'adminPanel.plugin.shipsAs', {
+                    value:
+                      typeof setting.default === 'boolean'
+                        ? setting.default
+                          ? fromCopy(copy, 'adminPanel.plugin.on')
+                          : fromCopy(copy, 'adminPanel.plugin.off')
+                        : String(setting.default) === ''
+                          ? fromCopy(copy, 'adminPanel.plugin.empty')
+                          : String(setting.default),
+                  })}
+                {setting.advanced && fromCopy(copy, 'adminPanel.plugin.advanced')}
               </span>
             </div>
           )
@@ -185,7 +197,7 @@ export function PluginSettingsForm({
       </div>
 
       <span className="min-w-40 max-w-48">
-        <SubmitButton>Save settings</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminPanel.plugin.save')}</SubmitButton>
       </span>
     </form>
   )

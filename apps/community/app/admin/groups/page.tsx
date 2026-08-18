@@ -5,7 +5,8 @@ import { PANEL_CARD, PANEL_LIST, PANEL_ROW, PanelActionLink } from '@/components
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { groupAdminRepository } from '@/server/group-admin'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
+import { groupAdminCopy } from '@/view/admin-group-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.groups') }
@@ -89,6 +90,7 @@ export default async function AdminGroupsPage() {
             title: group.title,
             memberCount: group.memberCount,
           }))}
+          copy={groupAdminCopy(await getTranslator())}
         />
       </section>
     </PanelPage>

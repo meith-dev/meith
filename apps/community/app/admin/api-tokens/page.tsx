@@ -5,6 +5,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildApiTokenView } from '@/server/api-tokens-admin'
 import { getTranslator, tr } from '@/server/i18n'
+import { apiTokenFormsCopy } from '@/view/admin-panel-copy'
 import { formatTime } from '@/view/time'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,6 +17,7 @@ export default async function AdminApiTokensPage() {
 
   const now = new Date()
   const translator = await getTranslator()
+  const copy = apiTokenFormsCopy(translator)
   const view = await buildApiTokenView(now)
 
   if (view === null) {
@@ -42,7 +44,7 @@ export default async function AdminApiTokensPage() {
     >
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-lg font-semibold">{await tr('page.issue-token')}</h2>
-        <IssueTokenForm scopes={view.scopes} />
+        <IssueTokenForm scopes={view.scopes} copy={copy} />
       </section>
 
       <section className="flex flex-col gap-3">
@@ -106,7 +108,9 @@ export default async function AdminApiTokensPage() {
                       </span>
                     </td>
                     <td className="py-2">
-                      {token.state === 'revoked' ? null : <RevokeTokenForm tokenId={token.id} />}
+                      {token.state === 'revoked' ? null : (
+                        <RevokeTokenForm tokenId={token.id} copy={copy} />
+                      )}
                     </td>
                   </tr>
                 ))}

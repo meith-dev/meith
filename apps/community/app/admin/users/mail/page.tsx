@@ -6,8 +6,9 @@ import { MassMailForm } from '@/components/admin/user-forms'
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { userAdminRepository, userBulkRepository } from '@/server/user-admin'
+import { userMassMailCopy } from '@/view/admin-user-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.mass-mail') }
@@ -55,7 +56,10 @@ export default async function AdminMassMailPage() {
       }
     >
       <section className={PANEL_CARD}>
-        <MassMailForm groups={audiences} audience={everybody} />
+        <MassMailForm
+          groups={audiences}
+          copy={userMassMailCopy(everybody, await getTranslator())}
+        />
       </section>
 
       <div className={cn(PANEL_CARD, 'gap-2 text-xs text-muted-foreground')}>
