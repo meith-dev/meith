@@ -127,6 +127,9 @@ importers:
       '@meith/install':
         specifier: workspace:*
         version: link:../../packages/install
+      '@meith/mail':
+        specifier: workspace:*
+        version: link:../../packages/mail
       '@meith/markdown':
         specifier: workspace:*
         version: link:../../packages/markdown
@@ -587,6 +590,21 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
+  packages/mail:
+    dependencies:
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
+      '@meith/markdown':
+        specifier: workspace:*
+        version: link:../markdown
+      '@meith/settings':
+        specifier: workspace:*
+        version: link:../settings
+      '@meith/theme-kit':
+        specifier: workspace:*
+        version: link:../theme-kit
+
   packages/markdown: {}
 
   packages/messages:
@@ -615,9 +633,12 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
-      '@meith/markdown':
+      '@meith/i18n':
         specifier: workspace:*
-        version: link:../markdown
+        version: link:../i18n
+      '@meith/mail':
+        specifier: workspace:*
+        version: link:../mail
 
   packages/plugin-kit:
     dependencies:
@@ -706,6 +727,12 @@ importers:
       '@meith/groups':
         specifier: workspace:*
         version: link:../groups
+      '@meith/i18n':
+        specifier: workspace:*
+        version: link:../i18n
+      '@meith/mail':
+        specifier: workspace:*
+        version: link:../mail
       '@meith/moderation':
         specifier: workspace:*
         version: link:../moderation
@@ -721,6 +748,9 @@ importers:
       '@meith/tasks':
         specifier: workspace:*
         version: link:../tasks
+      '@meith/theme-default':
+        specifier: workspace:*
+        version: link:../../themes/default
 
   packages/search:
     dependencies:

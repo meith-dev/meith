@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { MemoryMailDriver, MemoryQueue } from '@meith/drivers'
 import type { OutboxReader, OutboxRecord } from '@meith/events'
+import { buildMailBrand } from '@meith/mail'
 import {
   type DeliverableNotification,
   deliverNotificationEmail,
@@ -90,12 +91,12 @@ function build(rows: OutboxRecord[], withMail = true) {
                 await deliverNotificationEmail({
                   notifications,
                   mail,
-                  brand: {
+                  brand: buildMailBrand({
                     boardName: 'Test Board',
                     fromName: 'The Test Board',
                     boardUrl: 'https://board.example',
-                    accent: '#123456',
-                  },
+                    tokens: null,
+                  }),
                   notificationId,
                 })
               },

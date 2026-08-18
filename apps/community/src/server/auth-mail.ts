@@ -4,30 +4,42 @@ import { VERIFICATION_TTL_HOURS } from '@meith/accounts'
 import { logger } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import type { Translator } from '@meith/i18n'
+import { absoluteUrl, type MailBody, renderMail } from '@meith/mail'
 
 import { AUTH_CONFIG } from './auth-config'
-import { boardUrl } from './board-url'
-import { getSettings } from './settings'
+import { brandedFor } from './mail-brand'
 
 const VERIFY_PATH = '/verify'
 const RESET_PATH = '/reset/confirm'
 
-async function boardOrigin(): Promise<string | null> {
-  const origin = await boardUrl()
-  return origin === '' ? null : origin
-}
+const FALLBACK_KEY = 'authMail.boardFallback'
 
-async function boardIdentity(t: Translator): Promise<{ name: string; fromName: string }> {
-  const settings = await getSettings()
-  return {
-    name: settings.get('board.name') || t.t('authMail.boardFallback'),
-    fromName: settings.get('mail.from_name'),
+async function send(input: {
+  readonly email: string
+  readonly body: (board: string, link: string | null) => MailBody
+  readonly path: string
+  readonly token: string
+  readonly t: Translator
+  readonly failure: string
+}): Promise<void> {
+  const { brand, boardName } = await brandedFor(input.t, FALLBACK_KEY)
+  const link = absoluteUrl(brand.boardUrl, `${input.path}?token=${encodeURIComponent(input.token)}`)
+
+  const mail = renderMail({ brand, t: input.t, body: input.body(boardName, link) })
+  const fromName = brand.fromName ?? ''
+
+  try {
+    await drivers().mail.send({
+      to: input.email,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+      ...(fromName === '' ? {} : { fromName }),
+    })
+  } catch (err) {
+    logger({ module: 'auth' }).error({ err }, input.failure)
+    throw err
   }
-}
-
-async function linkTo(path: string, token: string): Promise<string | null> {
-  const origin = await boardOrigin()
-  return origin === null ? null : `${origin}${path}?token=${encodeURIComponent(token)}`
 }
 
 export async function sendVerificationEmail(input: {
@@ -36,34 +48,27 @@ export async function sendVerificationEmail(input: {
   readonly username: string
   readonly t: Translator
 }): Promise<void> {
-  const { name, fromName } = await boardIdentity(input.t)
-  const link = await linkTo(VERIFY_PATH, input.token)
+  const { t } = input
 
-  const lines = [
-    input.t.t('authMail.greeting', { username: input.username }),
-    '',
-    input.t.t('authMail.verify.intro', { board: name }),
-    '',
-    link === null
-      ? input.t.t('authMail.verify.noLink', { board: name })
-      : input.t.t('authMail.verify.link', { link }),
-    '',
-    input.t.t('authMail.linkHours', { hours: VERIFICATION_TTL_HOURS }),
-    '',
-    input.t.t('authMail.verify.ignore'),
-  ]
-
-  try {
-    await drivers().mail.send({
-      to: input.email,
-      subject: `[${name}] ${input.t.t('authMail.verify.subject')}`,
-      text: lines.join('\n'),
-      ...(fromName === '' ? {} : { fromName }),
-    })
-  } catch (err) {
-    logger({ module: 'auth' }).error({ err }, 'could not send a verification e-mail')
-    throw err
-  }
+  await send({
+    email: input.email,
+    path: VERIFY_PATH,
+    token: input.token,
+    t,
+    failure: 'could not send a verification e-mail',
+    body: (board, link) => ({
+      title: t.t('authMail.verify.subject'),
+      greeting: t.t('authMail.greeting', { username: input.username }),
+      paragraphs: [
+        t.t('authMail.verify.intro', { board }),
+        ...(link === null ? [t.t('authMail.verify.noLink', { board })] : []),
+        t.t('authMail.verify.ignore'),
+      ],
+      ...(link === null ? {} : { action: { label: t.t('authMail.verify.action'), href: link } }),
+      note: t.t('authMail.linkHours', { hours: VERIFICATION_TTL_HOURS }),
+      footer: [{ text: t.t('mail.footer.sentBy', { board }) }],
+    }),
+  })
 }
 
 export async function sendPasswordResetEmail(input: {
@@ -72,32 +77,25 @@ export async function sendPasswordResetEmail(input: {
   readonly username: string
   readonly t: Translator
 }): Promise<void> {
-  const { name, fromName } = await boardIdentity(input.t)
-  const link = await linkTo(RESET_PATH, input.token)
+  const { t } = input
 
-  const lines = [
-    input.t.t('authMail.greeting', { username: input.username }),
-    '',
-    input.t.t('authMail.reset.intro', { board: name }),
-    '',
-    link === null
-      ? input.t.t('authMail.reset.noLink', { board: name })
-      : input.t.t('authMail.reset.link', { link }),
-    '',
-    input.t.t('authMail.linkMinutes', { minutes: AUTH_CONFIG.resetTokenTtlMinutes }),
-    '',
-    input.t.t('authMail.reset.ignore'),
-  ]
-
-  try {
-    await drivers().mail.send({
-      to: input.email,
-      subject: `[${name}] ${input.t.t('authMail.reset.subject')}`,
-      text: lines.join('\n'),
-      ...(fromName === '' ? {} : { fromName }),
-    })
-  } catch (err) {
-    logger({ module: 'auth' }).error({ err }, 'could not send a password reset e-mail')
-    throw err
-  }
+  await send({
+    email: input.email,
+    path: RESET_PATH,
+    token: input.token,
+    t,
+    failure: 'could not send a password reset e-mail',
+    body: (board, link) => ({
+      title: t.t('authMail.reset.subject'),
+      greeting: t.t('authMail.greeting', { username: input.username }),
+      paragraphs: [
+        t.t('authMail.reset.intro', { board }),
+        ...(link === null ? [t.t('authMail.reset.noLink', { board })] : []),
+        t.t('authMail.reset.ignore'),
+      ],
+      ...(link === null ? {} : { action: { label: t.t('authMail.reset.action'), href: link } }),
+      note: t.t('authMail.linkMinutes', { minutes: AUTH_CONFIG.resetTokenTtlMinutes }),
+      footer: [{ text: t.t('mail.footer.sentBy', { board }) }],
+    }),
+  })
 }

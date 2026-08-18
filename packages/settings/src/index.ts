@@ -7,6 +7,14 @@ export {
   resolveBoardUrl,
 } from './board-url'
 export {
+  isLogoKey,
+  isLogoScheme,
+  LOGO_SCHEMES,
+  type LogoScheme,
+  logoFormat,
+  logoPath,
+} from './branding'
+export {
   SETTING_DEFINITION_BY_KEY,
   SETTING_DEFINITIONS,
   type SettingDefinition,

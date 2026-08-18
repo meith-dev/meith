@@ -772,6 +772,13 @@ board's name, which is usually what the logo says anyway.
 With no logo the header shows the board's name in text, which is where
 every board starts and where most stay.
 
+Outgoing mail uses the same two uploads, addressed absolutely off the
+board's address — with one exception: **an SVG logo is skipped in mail**,
+because most clients will not draw one. A board whose only logo is an SVG
+still gets its name as a wordmark in the masthead, which is what a client
+with images blocked would have shown anyway. See
+[what the messages look like](#what-the-messages-look-like).
+
 ### What you can change without a deploy
 
 `/admin/themes` holds the parts that are data rather than code:
@@ -1422,6 +1429,47 @@ The split is deliberate. The first two go to members the board already
 knows, in volume, and can wait a minute. The last three go to somebody
 sitting in front of a screen who will retry within seconds — and two of
 the three go to an address the board has not proven yet.
+
+### What the messages look like
+
+All five are rendered by one template, so a member sees the same board in
+their inbox that they see in a browser. Every message carries a plain-text
+part and an HTML one; a client that refuses HTML — or a member who has
+turned it off — still gets a complete, readable message with every link
+spelled out in full.
+
+The template takes three things from the board and nothing from anywhere
+else:
+
+| What it takes | Where it comes from |
+|---|---|
+| The name in the masthead and the `[Board] …` subject prefix | `board.name` |
+| The logo above the message | `board.logo_light` and `board.logo_dark`, addressed absolutely off the board's address |
+| Every colour, the type stack and the corner radius | The tokens of the theme that is **default on the board** — the one claiming default in `/admin/themes`, not the one the deployment was built with — with an administrator's token overrides applied on top |
+
+**The colours are converted to sRGB hex when the message is built.** The
+board stores tokens in OKLCH, which no mail client parses; converting at
+send time means a recoloured theme reaches the next message without a
+redeploy, and a token nothing can convert falls back to the default
+theme's own value rather than to nothing.
+
+**Dark mode is a `prefers-color-scheme` block carrying the theme's dark
+tokens.** Apple Mail, iOS Mail and Thunderbird honour it. Gmail and
+Outlook ignore it and get the light design, which is correct on its own —
+so the light palette is the one to check first when a colour looks wrong.
+
+**A logo reaches mail only when the board's address is set**, because a
+message has no origin of its own to resolve `/logo/light` against — see
+[the board has to know its own
+address](#the-board-has-to-know-its-own-address). An **SVG logo is
+skipped**, because most clients will not draw one, and so is any image
+for a recipient who has images blocked. Either way the masthead falls
+back to the board's name as text, which is what the logo's alt text says
+anyway.
+
+Mass mail is the one message an administrator writes themselves. Its
+subject and body are sent as typed — the template only wraps them in the
+board's chrome and adds one line naming the board underneath.
 
 ### Choosing a transport
 

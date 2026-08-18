@@ -73,6 +73,8 @@
       "@meith/admin": ["packages/admin/src/index.ts"],
       "@meith/posts/*": ["packages/posts/src/*"],
       "@meith/markdown": ["packages/markdown/src/index.ts"],
+      "@meith/mail": ["packages/mail/src/index.ts"],
+      "@meith/mail/*": ["packages/mail/src/*"],
       "@meith/markdown/*": ["packages/markdown/src/*"],
       "@meith/plugin-dues": ["plugins/dues/src/index.ts"],
       "@meith/plugin-dues/*": ["plugins/dues/src/*"],

@@ -8,7 +8,13 @@ import { getDb, PostgresThemeRepository, type ThemeRuntimeState } from '@meith/d
 import { DARK_TOKENS as DEFAULT_DARK, LIGHT_TOKENS as DEFAULT_LIGHT } from '@meith/theme-default'
 
 import forumConfig from '../../community.config'
-import { type BoardTheme, renderBoardStyle, type ThemeRuntimeStyle } from './theme-style'
+import {
+  type BoardTheme,
+  effectiveTokens,
+  renderBoardStyle,
+  type ThemeRuntimeStyle,
+  type ThemeTokens,
+} from './theme-style'
 
 export interface ThemeChoice {
   readonly key: string
@@ -18,6 +24,7 @@ export interface ThemeChoice {
 export interface BoardThemeStyle extends ThemeRuntimeStyle {
   readonly choices: readonly ThemeChoice[]
   readonly defaultKey: string
+  readonly defaultTokens: ThemeTokens
 }
 
 const registered = Object.values(forumConfig.themes)
@@ -47,10 +54,13 @@ function composeBoard(rows: readonly ThemeRuntimeState[]): BoardThemeStyle {
     customCss: byKey.get(theme.key)?.customCss ?? null,
   }))
 
+  const active = themes.find((theme) => theme.key === defaultKey)
+
   return {
     ...renderBoardStyle({ themes, defaultKey, baseline: COMPILED_TOKENS }),
     choices: enabled.map((theme) => ({ key: theme.key, title: theme.title })),
     defaultKey,
+    defaultTokens: active === undefined ? COMPILED_TOKENS : effectiveTokens(active),
   }
 }
 

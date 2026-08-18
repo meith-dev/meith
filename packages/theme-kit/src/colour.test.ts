@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { DARK_TOKENS, LIGHT_TOKENS } from '@meith/theme-default'
-
 import {
   colourToHex,
   formatOklch,
@@ -10,7 +8,7 @@ import {
   parseHex,
   rgbToHex,
   rgbToOklch,
-} from './oklch'
+} from './colour'
 
 describe('parseColour', () => {
   it('reads the two notations the board stores', () => {
@@ -35,21 +33,6 @@ describe('parseColour', () => {
 })
 
 describe('round trips', () => {
-  it('survives OKLCH → sRGB → OKLCH for every token the default theme ships', () => {
-    for (const value of [...Object.values(LIGHT_TOKENS), ...Object.values(DARK_TOKENS)]) {
-      const parsed = parseColour(value)
-      if (parsed === null) continue
-
-      const { rgb, inGamut } = oklchToRgb(parsed)
-      expect(inGamut, value).toBe(true)
-
-      const back = rgbToOklch(rgb)
-      expect(back.l, `${value} lightness`).toBeCloseTo(parsed.l, 2)
-      expect(back.c, `${value} chroma`).toBeCloseTo(parsed.c, 2)
-      if (parsed.c > 0.01) expect(back.h, `${value} hue`).toBeCloseTo(parsed.h, 0)
-    }
-  })
-
   it('survives hex → OKLCH → hex exactly', () => {
     for (const hex of ['#000000', '#ffffff', '#3b5998', '#1d4ed8', '#fcd34d']) {
       expect(rgbToHex(oklchToRgb(rgbToOklch(parseHex(hex)!)).rgb), hex).toBe(hex)

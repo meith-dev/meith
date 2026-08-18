@@ -389,6 +389,24 @@ given `oklch()`. Keep it equal to the two `background` tokens converted to
 hex — a test enforces the pair, because a hand-written copy goes stale
 silently.
 
+### Converting a token to sRGB
+
+`@meith/theme-kit` exports the colour maths the board itself uses on
+tokens — `parseColour`, `oklchToRgb`, `rgbToOklch`, `rgbToHex`,
+`formatOklch`, `relativeLuminance` and `colourToHex`, the last of which
+takes either notation and answers a six-digit hex or `null`.
+
+They are exported because more than one surface needs them and every copy
+is a copy that drifts: `<meta name="theme-color">`, the contrast readouts
+and the OKLCH picker on the theme screen, and **outgoing mail**, which
+must be hex because no mail client parses `oklch()`. A theme that computes
+a colour of its own should reach for these rather than carry its own
+matrices.
+
+`colourToHex` answers `null` for anything it cannot read — a named colour,
+an `rgb()` string, a `color-mix()` — so a caller falls back to a value it
+chose rather than emitting something a client will ignore.
+
 ### The default palette is neutral on purpose
 
 Every greyscale token the default theme ships is at chroma zero. The one

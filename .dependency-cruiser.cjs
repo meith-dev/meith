@@ -12,6 +12,7 @@ const DOMAIN = [
   'reputation',
   'signatures',
   'admin',
+  'mail',
   'markdown',
   'moderation',
   'notifications',

@@ -17,6 +17,19 @@ export {
   type ThemeContractReport,
 } from './api'
 export {
+  colourToHex,
+  formatOklch,
+  MAX_CHROMA,
+  type Oklch,
+  oklchToRgb,
+  parseColour,
+  parseHex,
+  type Rgb,
+  relativeLuminance,
+  rgbToHex,
+  rgbToOklch,
+} from './colour'
+export {
   isSlotName,
   SLOT_NAMES,
   SLOTS,
