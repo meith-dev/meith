@@ -27,6 +27,7 @@ import type { PluginDefinition } from '@meith/plugin-kit'
 import { threadSlug } from '@meith/threads'
 
 import { DEMO_ACCOUNTS, type DemoAccount, type DemoGroupKey } from './accounts'
+import { demoIpPrefixes } from './addresses'
 import {
   DEMO_FORUMS,
   DEMO_MESSAGES,
@@ -226,11 +227,14 @@ async function seedAccounts(db: Database, now: Date): Promise<ReadonlyMap<string
     const hash =
       account.password === null ? null : await hashPassword(account.password, DEMO_HASH_POLICY)
 
+    const prefixes = demoIpPrefixes(account.key)
+
     const rows = resultRows(
       await db.execute(sql`
         insert into users
           (username, username_lower, email, email_lower, password_hash, password_algo,
            password_changed_at, primary_group_id, state, location, website, bio,
+           registration_ip_prefix, last_ip_prefix,
            last_active_at, email_verified_at, created_at, updated_at)
         values
           (${account.username}, ${account.username.toLowerCase()},
@@ -239,6 +243,7 @@ async function seedAccounts(db: Database, now: Date): Promise<ReadonlyMap<string
            ${groups.get(account.group)!},
            ${account.group === 'awaitingActivation' ? 'awaiting_activation' : 'active'},
            ${account.location}, ${account.website}, ${account.bio},
+           ${prefixes.registration}, ${prefixes.lastVisit},
            ${lastActive(now, account)}, ${createdAt}, ${createdAt}, ${createdAt})
         returning id
       `),

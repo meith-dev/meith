@@ -3,9 +3,8 @@
 import { redirect } from 'next/navigation'
 
 import { type AuthConfig, foldIdentifier, type LoginBucket } from '@meith/accounts'
-import { env, logger, truncateIp } from '@meith/core'
+import { env, logger } from '@meith/core'
 
-import { remoteAddress } from './admin'
 import {
   limitMessage,
   loginAddressAttempts,
@@ -24,7 +23,12 @@ import { formStateReporter } from './form-state-reporter'
 import { getTranslator, tr } from './i18n'
 import { termsAcceptance } from './legal'
 import { profileFieldService, registrationFieldContext, submittedFields } from './profile-fields'
-import { requestFingerprint } from './request-fingerprint'
+import {
+  countingAddress,
+  countingPrefix,
+  requestFingerprint,
+  retainedIpPrefix,
+} from './request-fingerprint'
 import { isSafeLocalPath } from './safe-path'
 import {
   clearSecondFactorCookie,
@@ -45,7 +49,7 @@ function field(form: FormData, name: string): string {
 const toFormState = formStateReporter('auth-actions', 'unexpected error in auth action')
 
 async function addressContext(): Promise<{ readonly ipPrefix: string | null }> {
-  return { ipPrefix: truncateIp(await remoteAddress()) ?? null }
+  return { ipPrefix: await retainedIpPrefix() }
 }
 
 async function deviceContext(): Promise<{
@@ -65,12 +69,12 @@ async function loginBuckets(
     max: config.maxAccountLoginAttempts,
   }
 
-  const address = await remoteAddress()
-  if (address === null || address === '') return [wide]
+  const address = await countingAddress()
+  if (address === null) return [wide]
 
   const perAddress = await loginAddressAttempts()
-  const prefix = truncateIp(address)
-  if (perAddress <= 0 || prefix === undefined) {
+  const prefix = await countingPrefix()
+  if (perAddress <= 0 || prefix === null) {
     return [{ key: `login:${account}@${address}` }, wide]
   }
 

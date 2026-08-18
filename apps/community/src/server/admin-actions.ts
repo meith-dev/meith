@@ -4,21 +4,16 @@ import { redirect } from 'next/navigation'
 
 import { generateToken, hashToken, verifyPassword } from '@meith/accounts'
 import { ipAllowed } from '@meith/admin'
-import { ForbiddenError, logger, truncateIp, ValidationError } from '@meith/core'
+import { ForbiddenError, logger, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
-import {
-  adminAllowlist,
-  adminService,
-  recordAdminAction,
-  remoteAddress,
-  resolveAdmin,
-} from './admin'
+import { adminAllowlist, adminService, recordAdminAction, resolveAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
+import { remoteAddress, retainedIpPrefix } from './request-fingerprint'
 import { isSafeLocalPath } from './safe-path'
 import { clearAdminCookie, readAdminToken, setAdminCookie } from './session-cookies'
 import { twoFactorRequiredForStaff, twoFactorService } from './two-factor'
@@ -67,7 +62,7 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
       const session = await service.start({
         userId: actor.userId,
         tokenHash: await hashToken(token),
-        ipPrefix: truncateIp(await remoteAddress()) ?? null,
+        ipPrefix: await retainedIpPrefix(),
       })
       await setAdminCookie(token, session.expiresAt)
       await recordAdminAction({ action: 'admin.signed_in' })

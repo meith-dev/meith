@@ -1,8 +1,7 @@
 import type { NextRequest } from 'next/server'
 
-import { logger, statusForError, toPublicError, truncateIp } from '@meith/core'
+import { logger, statusForError, toPublicError } from '@meith/core'
 
-import { remoteAddress } from '@/server/admin'
 import { recordAuthEvent } from '@/server/auth-events'
 import { configuredIdentity, configuredSessions } from '@/server/container'
 import { getActor } from '@/server/context'
@@ -14,6 +13,7 @@ import {
 } from '@/server/federation'
 import { tr } from '@/server/i18n'
 import { type PasskeyPurpose, unpackChallenge } from '@/server/passkey-challenge'
+import { retainedIpPrefix } from '@/server/request-fingerprint'
 import { isSafeLocalPath } from '@/server/safe-path'
 import { crossOriginRefusal, isSameOrigin } from '@/server/same-origin'
 import {
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       await identity.clearSecondFactorFailures(pending.userId)
 
       const login = await identity.redeemSecondFactor(held, {
-        ipPrefix: truncateIp(await remoteAddress()) ?? null,
+        ipPrefix: await retainedIpPrefix(),
       })
 
       await clearSecondFactorCookie()
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       expectedChallenge,
       relyingParty: party,
       response: { clientDataJSON, authenticatorData, signature },
-      context: { ipPrefix: truncateIp(await remoteAddress()) ?? null },
+      context: { ipPrefix: await retainedIpPrefix() },
     })
 
     await setSessionCookie(outcome.login.sessionToken, outcome.login.expiresAt)

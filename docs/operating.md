@@ -66,6 +66,13 @@ address written to the moderator log, and the truncated range recorded
 against an account at registration and on each sign-in (which is what the
 ModCP's address lookup and the member search's **IP** filter read).
 
+A board in [demo mode](./demo-mode.md#the-addresses-nobody-keeps) writes
+none of the last two, and keys the lockout and the hourly limits on a
+salted in-memory token rather than on the address itself — its
+administrator password is published, so the next visitor would be the one
+reading the last visitor's range. Only the allowlist still sees an
+address, and only for the length of the request.
+
 Behind a proxy the board cannot see the connection — it sees
 `X-Forwarded-For`, a header each proxy **appends** its view of the caller
 to, and which the caller may send some of themselves.

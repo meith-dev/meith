@@ -205,12 +205,57 @@ password is published:
 | **Webhook delivery is never registered** — the task does not exist, rather than existing and refusing. | A visitor could point a webhook at any address that resolves from the host, and the board would make the request for them, on a schedule. |
 | **The login lockout is relaxed** — 50 attempts per address, a one-minute lockout, and a 500-attempt account-wide backstop. | The counters are per account. One visitor mistyping `admin` five times would otherwise lock the published login for everybody else. Relaxed, not removed — it is still a login form on the open internet. |
 | **The published logins cannot change password, e-mail, username or sign-in method.** Everything else about them is fair game. | All four would lock the next visitor out. Renaming `admin` would leave the banner naming a login that no longer exists, and a second factor added to a shared login is a code only the visitor who added it can produce. The refusal is reported on the page, not as a failed request. |
+| **No visitor's address is written down** — not against the account, not on the session, not in the security log or the log the panels write, and not in what a plugin is handed. | Every visitor is signed in as the same three accounts, so every row those accounts leave behind is read by whoever logs in next. See [the addresses nobody keeps](#the-addresses-nobody-keeps). |
 | **`robots.txt` disallows everything.** | Half of what a crawler stored would be a 404 within the hour, and the other half is whatever an anonymous visitor typed on a board carrying the project's domain. |
 
 Nothing else is held back. A visitor can delete every forum, rewrite the
 permission matrix, switch themes, ban the moderator and turn the board
 off. All of it is undone by the next reset — and watching someone do it
 is a better demonstration than a disabled button.
+
+### The addresses nobody keeps
+
+An ordinary board truncates a visitor's address to a `/24` or a `/48` and
+keeps the range in four places: on the account — once at registration,
+and again on every sign-in — on the session, in the security log, and in
+the log the panels write. The first of those is what the ModCP's address
+lookup and the member search's **IP** filter read, and on any other board
+the person reading it is the board's own staff.
+
+On a demo there is no such thing as the board's own staff. `admin` is
+published, so the reader is a stranger who signed in a minute ago, and
+the range they are reading belongs to the stranger before them. So a demo
+writes none of it: every one of those columns stays null, and every
+screen that shows one says the address was not recorded. The address is
+resolved as usual — the control panel's allowlist still has to be
+answered — but it is gone by the end of the request.
+
+The shortened user-agent string beside it is kept, because the sessions
+screen and the security log are worth demonstrating and a browser name is
+not a location.
+
+**The counters still count.** A login lockout that cannot tell two
+visitors apart is a lockout on the published login, and an hourly limit
+that cannot is a limit on the demo. So the demo counts against a token
+instead: a hash of the address under a random salt drawn once, in memory,
+at boot. It is never written down and does not survive a restart, which
+is what makes it a token rather than a slower way of storing an address —
+an IPv4 space is small enough to enumerate, so an unsalted hash of an
+address *is* the address. The bucket rows the counters leave behind carry
+the token, and nothing else about the request.
+
+**The address tools still demonstrate.** The 51 seeded members carry
+invented prefixes in `198.18.0.0/15`, the range reserved for benchmarking
+and routed to nobody, so the lookup, the filter and the "same range as"
+question have something to answer with — the same ranges on every reset,
+because they are derived from the account rather than rolled. Every one
+of them is fiction. Nothing a visitor's browser sends ever joins them.
+
+An address is truncated in one place in the board — `retainedIpPrefix()`
+in `apps/community/src/server/request-fingerprint.ts` — and `pnpm guards`
+refuses a second call site anywhere in the app. A new one would be a
+column that fills up on the demo and stays empty everywhere else, which
+is the kind of gap no test on a board with real members can see.
 
 ## The reset
 

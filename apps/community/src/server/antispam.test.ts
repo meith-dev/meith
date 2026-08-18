@@ -10,7 +10,7 @@ const state = vi.hoisted(() => ({
   storeThrows: false,
 }))
 
-vi.mock('./admin', () => ({ remoteAddress: async () => null }))
+vi.mock('./request-fingerprint', () => ({ countingPrefix: async () => null }))
 vi.mock('./settings', () => ({ getSettings: async () => ({ get: () => 0 }) }))
 
 vi.mock('./container', () => ({

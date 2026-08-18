@@ -1,16 +1,16 @@
 import { msg } from '@meith/i18n'
 import 'server-only'
 
-import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
 
 import { hashToken } from '@meith/accounts'
 import { type AdminContext, AdminService, ipAllowed, parseAllowlist } from '@meith/admin'
-import { env, ForbiddenError, logger, resolveClientAddress, truncateIp } from '@meith/core'
+import { env, ForbiddenError } from '@meith/core'
 
 import { getContainer } from './container'
 import { getActor } from './context'
+import { remoteAddress, retainedIpPrefix } from './request-fingerprint'
 import { readAdminToken } from './session-cookies'
 
 export type AdminDenial = 'address' | 'permission' | 'signin' | 'expired' | 'unavailable'
@@ -18,27 +18,6 @@ export type AdminDenial = 'address' | 'permission' | 'signin' | 'expired' | 'una
 export function adminService(): AdminService | null {
   const { adminSessions } = getContainer()
   return adminSessions === null ? null : new AdminService({ sessions: adminSessions })
-}
-
-let announcedUntrustedForwarding = false
-
-export async function remoteAddress(): Promise<string | null> {
-  const jar = await headers()
-  const forwarded = jar.get('x-forwarded-for')
-
-  if (env.TRUSTED_PROXY_HOPS === 0 && forwarded !== null && !announcedUntrustedForwarding) {
-    announcedUntrustedForwarding = true
-    logger({ module: 'admin' }).warn(
-      'TRUSTED_PROXY_HOPS is 0 and a request arrived carrying X-Forwarded-For; ' +
-        'the header is being ignored. Set it to the number of proxies in front ' +
-        'of the board, or addresses will not resolve.',
-    )
-  }
-
-  return resolveClientAddress(
-    { forwardedFor: forwarded, realIp: jar.get('x-real-ip') },
-    env.TRUSTED_PROXY_HOPS,
-  )
 }
 
 export const adminAllowlist = cache(
@@ -123,7 +102,7 @@ export async function recordAdminAction(input: {
       userId: actor.userId,
       action: input.action,
       detail: input.detail ?? {},
-      ipPrefix: truncateIp(await remoteAddress()) ?? null,
+      ipPrefix: await retainedIpPrefix(),
       at: new Date(),
     })
   } catch (err) {
