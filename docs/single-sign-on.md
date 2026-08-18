@@ -68,7 +68,10 @@ whole surface hides itself rather than pretending.
 > Changing `AUTH_SECRET` on a board where members have set up a second
 > factor strands every stored secret. They cannot be decrypted again, and
 > every affected member has to set up their app from scratch. The board
-> says so plainly rather than reporting a wrong code.
+> says so plainly rather than reporting a wrong code. Clearing a stranded
+> factor — from the panel or the CLI, [below](#when-the-app-and-the-codes-are-both-gone)
+> — needs no key, so a rotated secret does not lock those members out
+> permanently.
 
 **Require it of anyone who can reach the control panel**
 (`security.two_factor_required_for_staff`) is off by default. Turned on, an
@@ -76,6 +79,14 @@ account with `admincp.access` is refused the panel until it has an
 authenticator app set up, and cannot turn its second factor off while it
 holds that access. The panel can rewrite the whole board; a password alone
 is a thin thing to protect that with.
+
+Turning **Offer two-factor authentication** back off does not release the
+members who already set one up: the sign-in gate asks for a code because the
+account holds a factor, not because the board offers the feature, so
+switching it off would otherwise lock those members in rather than out. They
+keep their panel on **/usercp/security** — enough of it to replace their
+recovery codes or turn the factor off — while nobody new is offered the
+setup.
 
 ### What a member does
 
@@ -105,6 +116,37 @@ Turning the second factor off — or replacing the recovery codes — asks for
 the password again. An account with no password (one that arrived through a
 provider, or holds only passkeys) gives a current code instead, which proves
 the same possession.
+
+### When the app and the codes are both gone
+
+A member who still has one recovery code has not lost anything: it signs
+them in, and they can replace the set from **/usercp/security** afterwards.
+A member who has lost the app *and* every code cannot get in on their own,
+and a password reset does not help — the reset changes the password, and the
+second screen still asks for a code.
+
+That is what an operator is for. **Admin → Members → the member → Second
+factor** clears it, and the panel asks for the administrator's own password
+and code first. Clearing signs every one of that member's sessions out and
+leaves the account on its password alone until they set an app up again; the
+board records it in the admin log and in the member's own security activity,
+where it reads as cleared by staff rather than by them. Nothing about it
+proves who asked — satisfy yourself that you are talking to the member
+before you press it.
+
+The panel cannot help the one case that matters most: the sole
+administrator of a board that requires a second factor of its staff, who has
+lost theirs. That is what the operator CLI is for, and it needs no panel
+session:
+
+```sh
+community user:2fa-clear --user ada
+```
+
+It does the same work — clears the factor, ends every session, writes the
+same entry — from a shell on the host. See
+[the operator CLI](./operating.md#the-operator-cli) for how to reach it on
+your deployment.
 
 ### What signing in looks like
 
@@ -182,8 +224,8 @@ refuse the exact case the window exists to forgive.
 
 The board keeps a durable record of authentication events: password
 sign-ins and refused attempts, sign-outs, wrong second-factor codes,
-recovery codes used, password and e-mail changes, sessions revoked, and
-every provider or passkey added or removed.
+recovery codes used, password and e-mail changes, sessions revoked, a second
+factor cleared by staff, and every provider or passkey added or removed.
 
 A member sees their own record, newest first, at the bottom of
 **/usercp/security**. An operator sees the board's, filterable by kind, at
@@ -196,6 +238,29 @@ which is what makes "that was not me" answerable. Writing an event never
 blocks the thing it records: a sign-in that works but goes unrecorded is a
 gap in an audit trail, while a sign-in refused because the trail was
 unwritable would be an outage.
+
+A refused sign-in is filed against the account whose name or address was
+typed, when there is one, so the member reading their own page sees the
+attempts made on their account rather than only their own mistakes. What the
+board *answers* the person at the keyboard does not change: the response to
+a wrong password is the same whether or not the name exists, and the log is
+not a surface anybody outside can read.
+
+Two kinds of entry come from the panel rather than from the member: an
+address changed by staff, and a second factor cleared by staff. Both are
+filed against the member so they appear on their own page, and both are
+recorded without an address or a device — that would be the administrator's,
+not theirs. Who did it, and from where, is in the admin log.
+
+### How long it is kept
+
+**Days of sign-in activity to keep** (`security.auth_event_retention_days`,
+under **Admin → Settings → Security**) is **0** by default, which keeps every
+entry forever: an audit trail that deletes itself without being asked is one
+you cannot rely on. Set it to a number of days where a retention policy says
+you must, and the hourly `authevents.prune` task drops anything older, in
+batches, from then on. Lowering it deletes history that cannot be recovered
+without a restore.
 
 ## Federated sign-in
 

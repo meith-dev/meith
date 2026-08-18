@@ -10,6 +10,7 @@ const LABEL_KEYS: Readonly<Record<AuthEventKind, string>> = {
   second_factor_failed: 'authEvent.second_factor_failed',
   second_factor_enabled: 'authEvent.second_factor_enabled',
   second_factor_disabled: 'authEvent.second_factor_disabled',
+  second_factor_cleared: 'authEvent.second_factor_cleared',
   recovery_code_used: 'authEvent.recovery_code_used',
   recovery_codes_replaced: 'authEvent.recovery_codes_replaced',
   password_changed: 'authEvent.password_changed',

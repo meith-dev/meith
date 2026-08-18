@@ -11,6 +11,7 @@ import type {
 } from '@meith/accounts'
 
 import type { Database } from './client'
+import { resultRows } from './result-rows'
 import { authEvents, recoveryCodes, userTwoFactor } from './schema'
 
 const TWO_FACTOR_COLUMNS = {
@@ -215,5 +216,20 @@ export class PostgresAuthEventRepository implements AuthEventRepository {
       .orderBy(desc(authEvents.id))
       .limit(input.limit)
     return rows.map(toEvent)
+  }
+
+  async pruneBefore(cutoff: Date, limit = 5000): Promise<number> {
+    const result = await this.db.execute(sql`
+      delete from ${authEvents}
+       where id in (
+         select id from ${authEvents}
+          where at < ${cutoff}
+          order by id
+          limit ${limit}
+       )
+      returning id
+    `)
+
+    return resultRows(result).length
   }
 }

@@ -40,6 +40,31 @@ export async function recordAuthEvent(input: {
   }
 }
 
+export async function recordStaffAuthEvent(input: {
+  readonly userId: number
+  readonly kind: AuthEventKind
+  readonly detail?: Readonly<Record<string, unknown>>
+}): Promise<void> {
+  const { accountStore, dataSource } = getContainer()
+  if (dataSource !== 'postgres') return
+
+  try {
+    await accountStore.authEvents.record({
+      userId: input.userId,
+      kind: input.kind,
+      ipPrefix: null,
+      userAgent: null,
+      detail: { ...(input.detail ?? {}), by: 'staff' },
+      at: new Date(),
+    })
+  } catch (err) {
+    logger({ module: 'auth-events' }).warn(
+      { err, kind: input.kind },
+      'could not record an authentication event',
+    )
+  }
+}
+
 export async function memberSecurityActivity(
   userId: number,
   limit = MEMBER_ACTIVITY_LIMIT,

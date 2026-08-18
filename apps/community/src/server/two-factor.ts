@@ -1,6 +1,12 @@
 import 'server-only'
 
-import { type Enrolment, TwoFactorService, type TwoFactorState } from '@meith/accounts'
+import {
+  clearSecondFactor,
+  type Enrolment,
+  holdsSecondFactor,
+  TwoFactorService,
+  type TwoFactorState,
+} from '@meith/accounts'
 import { env } from '@meith/core'
 
 import { getContainer } from './container'
@@ -54,6 +60,14 @@ export async function secondFactorPosture(userId: number | null): Promise<Second
   if (actor.userId !== userId) return { offered, required: false }
 
   return { offered, required: getContainer().authorizer.can(actor, 'admincp.access') }
+}
+
+export async function memberHoldsSecondFactor(userId: number): Promise<boolean> {
+  return holdsSecondFactor(getContainer().accountStore.twoFactor, userId)
+}
+
+export async function clearMemberSecondFactor(userId: number): Promise<boolean> {
+  return clearSecondFactor(getContainer().accountStore, userId)
 }
 
 export async function pendingEnrolment(userId: number): Promise<Enrolment | null> {

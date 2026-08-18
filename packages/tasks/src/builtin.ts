@@ -12,6 +12,7 @@ export interface TaskWorkers {
   pruneSessions(): Promise<number>
   pruneExpiredTokens(): Promise<number>
   pruneRateLimits(): Promise<number>
+  pruneAuthEvents(): Promise<number>
   reconcileCounters(batchSize: number): Promise<number>
   flushThreadViews(batchSize: number): Promise<number>
   backfillPostRenders(batchSize: number): Promise<number>
@@ -123,6 +124,24 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       maxDurationSeconds: 30,
       async run() {
         const removed = await workers.pruneRateLimits()
+        return { detail: { removed } }
+      },
+    },
+
+    {
+      id: 'authevents.prune',
+      title: 'Prune sign-in activity',
+      titleKey: 'adminSystem.task.authEventsPrune.title',
+      description:
+        'Drops sign-in activity older than the retention the board is set to ' +
+        'keep. Does nothing at all while that setting is 0, which is the ' +
+        'default: the log is an audit trail, and one that expires without ' +
+        'being asked to is worse than one that grows.',
+      descriptionKey: 'adminSystem.task.authEventsPrune.description',
+      intervalSeconds: 3600,
+      maxDurationSeconds: 30,
+      async run() {
+        const removed = await workers.pruneAuthEvents()
         return { detail: { removed } }
       },
     },
@@ -391,6 +410,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'sessions.prune': 'pruneSessions',
   'tokens.prune': 'pruneExpiredTokens',
   'ratelimits.prune': 'pruneRateLimits',
+  'authevents.prune': 'pruneAuthEvents',
   'counters.reconcile': 'reconcileCounters',
   'views.flush': 'flushThreadViews',
   'posts.render_backfill': 'backfillPostRenders',

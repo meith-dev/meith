@@ -23,16 +23,14 @@ const toFormState = formStateReporter(
   'unexpected error while changing two-factor authentication',
 )
 
-async function requireOwnAccount(): Promise<{
+interface Owner {
   readonly userId: number
   readonly hasPassword: boolean
-}> {
+}
+
+async function ownAccount(): Promise<Owner> {
   const actor = await getActor()
   if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
-
-  if (!(await twoFactorOffered())) {
-    throw new ForbiddenError(msg('error.app.board-offer-two-factor-authentication'))
-  }
 
   await assertDemoAccountChangeable(actor.userId, 'sign-in method')
 
@@ -40,6 +38,24 @@ async function requireOwnAccount(): Promise<{
   if (account === null) throw new ForbiddenError(msg('error.app.account-longer-exists'))
 
   return { userId: actor.userId, hasPassword: account.passwordHash !== null }
+}
+
+async function requireOwnAccount(): Promise<Owner> {
+  if (!(await twoFactorOffered())) {
+    throw new ForbiddenError(msg('error.app.board-offer-two-factor-authentication'))
+  }
+
+  return ownAccount()
+}
+
+async function requireOwnFactor(): Promise<Owner> {
+  const owner = await ownAccount()
+  if (await twoFactorOffered()) return owner
+
+  const service = twoFactorService()
+  if (service !== null && (await service.isEnrolled(owner.userId))) return owner
+
+  throw new ForbiddenError(msg('error.app.board-offer-two-factor-authentication'))
 }
 
 export async function beginTwoFactorAction(_prev: FormState, _form: FormData): Promise<FormState> {
@@ -95,7 +111,7 @@ export async function replaceRecoveryCodesAction(
   form: FormData,
 ): Promise<FormState> {
   try {
-    const { userId, hasPassword } = await requireOwnAccount()
+    const { userId, hasPassword } = await requireOwnFactor()
 
     const service = twoFactorService()
     if (service === null) throw new ForbiddenError(msg('error.app.board-seal-secret'))
@@ -113,7 +129,7 @@ export async function replaceRecoveryCodesAction(
 
 export async function disableTwoFactorAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
-    const { userId, hasPassword } = await requireOwnAccount()
+    const { userId, hasPassword } = await requireOwnFactor()
 
     const service = twoFactorService()
     if (service === null) throw new ForbiddenError(msg('error.app.board-seal-secret'))

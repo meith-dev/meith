@@ -4,6 +4,7 @@ import { createMemoryStore } from '../memory-repos'
 import type { AccountStore } from '../ports'
 import { rejectionMessage } from '../test-support.fixture'
 import {
+  clearSecondFactor,
   newRecoveryCode,
   normaliseRecoveryCode,
   RECOVERY_CODE_COUNT,
@@ -115,6 +116,25 @@ describe('setting up an authenticator app', () => {
     await service().abandonEnrolment(userId)
 
     expect((await service().state(userId)).enrolled).toBe(true)
+  })
+})
+
+describe('clearing a factor an operator has been asked to break open', () => {
+  it('takes the secret and the recovery codes even where a member could not', async () => {
+    await enrol()
+
+    expect(await clearSecondFactor(store, userId)).toBe(true)
+
+    expect(await service().state(userId)).toEqual({
+      enrolled: false,
+      pending: false,
+      recoveryCodesLeft: 0,
+    })
+    expect(await store.recoveryCodes.countUnused(userId)).toBe(0)
+  })
+
+  it('says so when there was nothing to clear', async () => {
+    expect(await clearSecondFactor(store, userId)).toBe(false)
   })
 })
 

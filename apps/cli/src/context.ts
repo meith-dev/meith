@@ -1,4 +1,5 @@
 import {
+  type AccountStore,
   type AuthConfig,
   DEFAULT_AUTH_POLICY,
   IdentityService,
@@ -17,6 +18,7 @@ import { SettingsSnapshot } from '@meith/settings'
 
 export interface CliContext {
   readonly db: Database
+  readonly accounts: AccountStore
   readonly identity: IdentityService
   readonly forums: PostgresForumRepository
   readonly settings: PostgresSettingsRepository
@@ -62,9 +64,12 @@ export async function createContext(): Promise<CliContext> {
     defaultMemberGroupId: await defaultMemberGroupId(admin),
   }
 
+  const store = createPostgresAccountStore(db)
+
   return {
     db,
-    identity: new IdentityService({ store: createPostgresAccountStore(db), config }),
+    accounts: store,
+    identity: new IdentityService({ store, config }),
     forums: new PostgresForumRepository(db),
     settings,
     admin,

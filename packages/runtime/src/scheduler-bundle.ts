@@ -9,6 +9,7 @@ import {
   expireTimedGroupMemberships,
   getDb,
   PostgresAttachmentRepository,
+  PostgresAuthEventRepository,
   PostgresAuthorizationSource,
   PostgresAvatarRepository,
   PostgresBanRepository,
@@ -22,6 +23,7 @@ import {
   PostgresRateLimitBucketStore,
   PostgresRenderBackfill,
   PostgresSearchRepository,
+  PostgresSettingsRepository,
   PostgresStatsRepository,
   PostgresSubscriptionRepository,
   PostgresTaskRepository,
@@ -36,6 +38,7 @@ import {
   type NotificationTranslatorResolver,
 } from '@meith/notifications'
 import type { PluginDefinition } from '@meith/plugin-kit'
+import { SettingsSnapshot } from '@meith/settings'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/tasks'
 
 import { buildEventRegistry } from './event-handlers'
@@ -98,6 +101,11 @@ export function buildSchedulerBundle(deps: {
           guards: defaultPromotionGuards(),
           maintenance: new PostgresMaintenanceRepository(db),
           rateLimits: new PostgresRateLimitBucketStore(db),
+          authEvents: {
+            retentionDays: () => authEventRetentionDays(db),
+            pruneBefore: (cutoff, limit) =>
+              new PostgresAuthEventRepository(db).pruneBefore(cutoff, limit),
+          },
           timedGroups: { expire: (limit) => expireTimedGroupMemberships(db, limit) },
           outbox: new PostgresOutboxReader(db),
           ...(attachmentService === undefined ? {} : { attachments: attachmentService }),
@@ -169,6 +177,18 @@ export function buildSchedulerBundle(deps: {
       ),
       ...contributed,
     ],
+  }
+}
+
+async function authEventRetentionDays(db: Database): Promise<number> {
+  try {
+    const overrides = await new PostgresSettingsRepository(db).loadAll()
+    return SettingsSnapshot.fromOverrides(new Map(overrides)).get(
+      'security.auth_event_retention_days',
+    )
+  } catch (err) {
+    logger({ module: 'tick' }).warn({ err }, 'could not read the sign-in activity retention')
+    return 0
   }
 }
 

@@ -45,6 +45,26 @@ export type SecondFactorOutcome =
   | { readonly status: 'wrong' }
   | { readonly status: 'replayed' }
 
+export async function holdsSecondFactor(
+  twoFactor: TwoFactorRepository,
+  userId: number,
+): Promise<boolean> {
+  const record = await twoFactor.find(userId)
+  return record !== null && record.confirmedAt !== null
+}
+
+export async function clearSecondFactor(
+  store: {
+    readonly twoFactor: TwoFactorRepository
+    readonly recoveryCodes: RecoveryCodeRepository
+  },
+  userId: number,
+): Promise<boolean> {
+  const removed = await store.twoFactor.remove(userId)
+  await store.recoveryCodes.removeAll(userId)
+  return removed
+}
+
 export class TwoFactorService {
   private readonly accounts: AccountRepository
   private readonly twoFactor: TwoFactorRepository
@@ -72,8 +92,7 @@ export class TwoFactorService {
   }
 
   async isEnrolled(userId: number): Promise<boolean> {
-    const record = await this.twoFactor.find(userId)
-    return record !== null && record.confirmedAt !== null
+    return holdsSecondFactor(this.twoFactor, userId)
   }
 
   async beginEnrolment(userId: number, boardName: string): Promise<Enrolment> {

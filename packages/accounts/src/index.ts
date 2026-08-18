@@ -167,8 +167,10 @@ export {
 export { decodeBase32, encodeBase32, isBase32 } from './totp/base32'
 export { assertSealingKey, openSecret, sealSecret } from './totp/secret-box'
 export {
+  clearSecondFactor,
   type Enrolment,
   enrolmentLookup,
+  holdsSecondFactor,
   newRecoveryCode,
   normaliseRecoveryCode,
   RECOVERY_CODE_COUNT,

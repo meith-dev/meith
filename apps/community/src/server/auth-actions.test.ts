@@ -48,6 +48,20 @@ vi.mock('./auth-mail', () => ({
   },
 }))
 
+const events = vi.hoisted(() => ({
+  recorded: [] as Array<{ userId: number | null; kind: string }>,
+}))
+
+vi.mock('./auth-events', () => ({
+  MEMBER_ACTIVITY_LIMIT: 20,
+  recordAuthEvent: async (input: { userId: number | null; kind: string }) => {
+    events.recorded.push(input)
+  },
+  recordStaffAuthEvent: async () => {},
+  memberSecurityActivity: async () => [],
+  boardSecurityActivity: async () => [],
+}))
+
 const policy = vi.hoisted(() => ({
   activationMethod: 'none' as string,
   registrationEnabled: true,
@@ -158,6 +172,7 @@ async function registerUser(over: Partial<typeof CREDS> = {}): Promise<void> {
 
 beforeEach(() => {
   jar.clear()
+  events.recorded.length = 0
   delete (globalThis as Record<symbol, unknown>)[CONTAINER_KEY]
   mail.verifications.length = 0
   mail.resets.length = 0
@@ -315,6 +330,24 @@ describe('loginAction', () => {
     )
     expect(state.error).toBeTruthy()
     expect(jar.has(SESSION_COOKIE)).toBe(false)
+  })
+
+  it('files a refused sign-in against the account it named', async () => {
+    await registerUser()
+
+    await loginAction(EMPTY_STATE, form({ identifier: CREDS.email, password: 'wrong-password' }))
+
+    const refused = events.recorded.filter((event) => event.kind === 'login_failed')
+    expect(refused).toHaveLength(1)
+    expect(refused[0]?.userId).toBeTypeOf('number')
+  })
+
+  it('files a refused sign-in against nobody when the name matches no account', async () => {
+    await registerUser()
+
+    await loginAction(EMPTY_STATE, form({ identifier: 'nobody', password: 'wrong-password' }))
+
+    expect(events.recorded.filter((event) => event.kind === 'login_failed')[0]?.userId).toBeNull()
   })
 
   it('locks out at the number the settings screen says, not at the constant', async () => {
