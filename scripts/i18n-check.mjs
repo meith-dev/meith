@@ -208,9 +208,28 @@ function proseLiterals(text, rel) {
   return found
 }
 
+const FONT_STACK_QUOTED = /^"[^"]*"$|^'[^']*'$/
+const FONT_STACK_TOKEN = /^-?[A-Za-z][\w-]*$/
+const FONT_STACK_GENERIC =
+  /^(?:serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded)$/
+
+function isFontStack(value) {
+  const segments = value.split(',').map((segment) => segment.trim())
+  if (segments.length < 2) return false
+  if (
+    !segments.every((segment) => FONT_STACK_QUOTED.test(segment) || FONT_STACK_TOKEN.test(segment))
+  )
+    return false
+  return segments.some(
+    (segment) => FONT_STACK_QUOTED.test(segment) || FONT_STACK_GENERIC.test(segment),
+  )
+}
+
 function isProse(value) {
   if (!/[A-Za-z]{2}.*\s.*[A-Za-z]/.test(value)) return false
   if (value.startsWith('/') || value.startsWith('http') || value.includes('${')) return false
+  if (value.includes('var(--') || /^[\d.]+px[\s,]/.test(value)) return false
+  if (isFontStack(value)) return false
   if (/^-?[a-z@][\w:./@[\]-]*(?:\s+[a-z:[\]&@-][\w:./%[\](),&@-]*)+$/.test(value)) return false
   if (
     /^[MmLlHhVvCcSsQqTtAaZz][\d.eE-]/.test(value) &&

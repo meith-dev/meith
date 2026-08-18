@@ -213,7 +213,6 @@
   "themes/clubhouse/src/slots/thread-view.tsx": 2,
   "themes/clubhouse/src/slots/user-panel.tsx": 3,
   "themes/clubhouse/src/slots/who-is-online.tsx": 4,
-  "themes/clubhouse/src/tokens.ts": 8,
   "themes/default/src/slots/announcement.tsx": 1,
   "themes/default/src/slots/board-index.tsx": 2,
   "themes/default/src/slots/board-stats.tsx": 2,
@@ -235,7 +234,6 @@
   "themes/default/src/slots/thread-view.tsx": 2,
   "themes/default/src/slots/user-panel.tsx": 3,
   "themes/default/src/slots/who-is-online.tsx": 4,
-  "themes/default/src/tokens.ts": 6,
   "themes/midnight/src/slots/board-index.tsx": 1,
   "themes/midnight/src/slots/board-stats.tsx": 1,
   "themes/midnight/src/slots/category-block.tsx": 1,
@@ -247,7 +245,6 @@
   "themes/midnight/src/slots/post-actions.tsx": 1,
   "themes/midnight/src/slots/post-bit.tsx": 4,
   "themes/midnight/src/slots/shell.tsx": 1,
-  "themes/midnight/src/tokens.ts": 4,
   "themes/phasebook/src/shared.tsx": 2,
   "themes/phasebook/src/slots/board-index.tsx": 2,
   "themes/phasebook/src/slots/board-stats.tsx": 3,
@@ -269,7 +266,6 @@
   "themes/phasebook/src/slots/thread-view.tsx": 2,
   "themes/phasebook/src/slots/user-panel.tsx": 3,
   "themes/phasebook/src/slots/who-is-online.tsx": 4,
-  "themes/phasebook/src/tokens.ts": 6,
   "themes/raidframe/src/slots/announcement.tsx": 1,
   "themes/raidframe/src/slots/board-stats.tsx": 1,
   "themes/raidframe/src/slots/category-block.tsx": 1,
@@ -286,6 +282,5 @@
   "themes/raidframe/src/slots/search-results.tsx": 2,
   "themes/raidframe/src/slots/shell.tsx": 1,
   "themes/raidframe/src/slots/user-panel.tsx": 2,
-  "themes/raidframe/src/slots/who-is-online.tsx": 1,
-  "themes/raidframe/src/tokens.ts": 8
+  "themes/raidframe/src/slots/who-is-online.tsx": 1
 }
