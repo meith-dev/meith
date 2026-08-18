@@ -474,6 +474,25 @@ None of this is required. `@meith/theme-kit` is the only dependency a theme
 *needs*, and a theme that builds its own markup from scratch (as
 `themes/midnight` largely does) is a supported thing to be.
 
+### Form controls are 16px on a touch screen, whatever a theme asks for
+
+`globals.css` ends with one rule, outside every Tailwind layer, that sets
+`font-size: 1rem` on `input`, `select` and `textarea` under
+`@media (pointer: coarse)`. Being unlayered, it beats a utility class:
+`text-sm` on an input is honoured on a desktop and overruled on a phone.
+
+It is there because iOS Safari zooms the page in when a control with text
+smaller than 16px takes focus, and does not zoom back out afterwards. Every
+form on the board — signing in, registering, the reply box, search — was
+built at `text-sm`, so every one of them jumped on the way in and left the
+member on a page wider than their screen. The rule is scoped to coarse
+pointers, so a theme's density on a desktop is untouched.
+
+A theme that wants a larger control on a phone can still have one: the rule
+sets a size, it does not lock it, and a selector of higher specificity (or
+another unlayered rule loaded after) wins. Going *below* 16px is the thing
+that brings the zoom back.
+
 ## Testing a theme
 
 `apps/community/src/theme/contract.test.ts` renders every theme registered
