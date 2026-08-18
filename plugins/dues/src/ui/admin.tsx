@@ -35,8 +35,8 @@ const ACT_BUTTON =
 const QUIET_BUTTON =
   'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-sm'
 
-function fmt(date: Date): string {
-  return date.toISOString().slice(0, 16).replace('T', ' ')
+function fmt(date: Date, context: PluginAdminPageContext): string {
+  return context.t.parts(date, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })
 }
 
 function GoodNotice({ children }: { children: ReactNode }) {
@@ -58,13 +58,11 @@ function BadNotice({ children }: { children: ReactNode }) {
   )
 }
 
-function Attention({ count }: { count: number }) {
+function Attention({ count, context }: { count: number; context: PluginAdminPageContext }) {
   if (count === 0) return null
   return (
     <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
-      <strong>{count}</strong> record{count === 1 ? ' needs' : 's need'} attention — a payment that
-      could not become a membership, or an amount that did not match its order. The members screen
-      lists {count === 1 ? 'it' : 'them'} first.
+      {context.t.t('dues.admin.status.attention', { count })}
     </p>
   )
 }
@@ -86,26 +84,31 @@ export async function StatusPage({
 
   return (
     <div className="flex flex-col gap-4">
-      {context.query.cleared !== undefined && <GoodNotice>Flag cleared.</GoodNotice>}
-      {context.query.error !== undefined && (
-        <BadNotice>That flag could not be found — it may already be cleared.</BadNotice>
+      {context.query.cleared !== undefined && (
+        <GoodNotice>{context.t.t('dues.admin.status.flagCleared')}</GoodNotice>
       )}
-      <Attention count={attention} />
+      {context.query.error !== undefined && (
+        <BadNotice>{context.t.t('dues.admin.status.flagMissing')}</BadNotice>
+      )}
+      <Attention count={attention} context={context} />
 
       {flaggedOrders.length > 0 && (
         <section className={CARD}>
-          <h2 className="font-heading text-lg font-semibold">Orders needing attention</h2>
+          <h2 className="font-heading text-lg font-semibold">
+            {context.t.t('dues.admin.status.orders')}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Money moved but the order could not settle cleanly — most often an amount that did not
-            match. Check the payment in Stripe&rsquo;s dashboard, put it right there, then clear the
-            flag here.
+            {context.t.t('dues.admin.status.ordersText')}
           </p>
           <ul className="flex flex-col divide-y divide-border text-sm">
             {flaggedOrders.map((order) => (
               <li key={order.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <span>
-                  Order {order.id} — {order.planName},{' '}
-                  {formatMinor(order.amountMinor, order.currency)}
+                  {context.t.t('dues.admin.status.order', {
+                    id: order.id,
+                    plan: order.planName,
+                    amount: formatMinor(order.amountMinor, order.currency, context.locale),
+                  })}
                   <span className="block text-xs text-muted-foreground">
                     {order.needsAttention}
                   </span>
@@ -113,7 +116,7 @@ export async function StatusPage({
                 <form method="post" action="/admin/api/plugins/dues/attention/clear">
                   <input type="hidden" name="order" value={order.id} />
                   <button type="submit" className={QUIET_BUTTON}>
-                    Clear the flag
+                    {context.t.t('dues.admin.status.clear')}
                   </button>
                 </form>
               </li>
@@ -123,34 +126,40 @@ export async function StatusPage({
       )}
 
       <section className={CARD}>
-        <h2 className="font-heading text-lg font-semibold">Is it working?</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {context.t.t('dues.admin.status.working')}
+        </h2>
         <dl className="flex flex-col gap-1 text-sm">
           <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Stripe secret key</dt>
-            <dd>{keySet ? 'set' : 'not set — nothing can be bought'}</dd>
+            <dt className="text-muted-foreground">{context.t.t('dues.admin.status.secret')}</dt>
+            <dd>
+              {context.t.t(keySet ? 'dues.admin.status.keySet' : 'dues.admin.status.keyUnset')}
+            </dd>
           </div>
           <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Webhook signing secret</dt>
-            <dd>{webhookSet ? 'set' : 'not set — payments cannot confirm'}</dd>
+            <dt className="text-muted-foreground">
+              {context.t.t('dues.admin.status.webhookSecret')}
+            </dt>
+            <dd>
+              {context.t.t(
+                webhookSet ? 'dues.admin.status.keySet' : 'dues.admin.status.webhookUnset',
+              )}
+            </dd>
           </div>
           <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Grace after a failed renewal</dt>
-            <dd>{config.graceDays} days</dd>
+            <dt className="text-muted-foreground">{context.t.t('dues.admin.status.grace')}</dt>
+            <dd>{context.t.t('dues.admin.status.days', { count: config.graceDays })}</dd>
           </div>
         </dl>
-        <p className="text-xs text-muted-foreground">
-          Keys resolve environment-first: the settings form below this page shows which source is
-          winning.
-        </p>
+        <p className="text-xs text-muted-foreground">{context.t.t('dues.admin.status.source')}</p>
       </section>
 
       <section className={CARD}>
-        <h2 className="font-heading text-lg font-semibold">The webhook to create</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {context.t.t('dues.admin.status.webhook')}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          In the Stripe dashboard, add an endpoint at
-          <code className="mx-1 text-xs">/api/plugins/dues/hook/stripe</code>
-          on this board&rsquo;s public address, subscribed to exactly these events, and put its
-          signing secret in the settings:
+          {context.t.t('dues.admin.status.webhookText')}
         </p>
         <p className="flex flex-wrap gap-x-3 gap-y-1">
           {SUBSCRIBED_EVENT_TYPES.map((type) => (
@@ -162,28 +171,21 @@ export async function StatusPage({
       </section>
 
       <section className={CARD}>
-        <h2 className="font-heading text-lg font-semibold">Plans on sale</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {context.t.t('dues.admin.status.plans')}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Plans are made and changed on the{' '}
-          <a
-            href="/admin/plugins/dues/plans"
-            className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
-            plans screen
-          </a>
-          . Each grants membership of its group only while that group is marked &ldquo;may be
-          granted by plugins&rdquo; under Admin → Groups; a purchase against a group that refuses
-          shows up above as needing attention, with the payment kept and the reason recorded.
+          {context.t.t('dues.admin.status.plansText')}
         </p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-96 border-collapse text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className={TH}>Plan</th>
-                <th className={TH}>Price</th>
-                <th className={TH}>Billing</th>
-                <th className={TH}>Group</th>
-                <th className={TH}>Giftable</th>
+                <th className={TH}>{context.t.t('dues.admin.status.plan')}</th>
+                <th className={TH}>{context.t.t('dues.admin.status.price')}</th>
+                <th className={TH}>{context.t.t('dues.admin.status.billing')}</th>
+                <th className={TH}>{context.t.t('dues.admin.status.group')}</th>
+                <th className={TH}>{context.t.t('dues.admin.status.giftable')}</th>
               </tr>
             </thead>
             <tbody>
@@ -194,15 +196,24 @@ export async function StatusPage({
                     <td className={TD}>
                       {plan.name}
                       {plan.hidden && (
-                        <span className="text-xs text-muted-foreground"> · hidden</span>
+                        <span className="text-xs text-muted-foreground">
+                          {' '}
+                          · {context.t.t('dues.admin.status.hidden')}
+                        </span>
                       )}
                     </td>
-                    <td className={TD}>{formatMinor(plan.priceMinor, plan.currency)}</td>
+                    <td className={TD}>
+                      {formatMinor(plan.priceMinor, plan.currency, context.locale)}
+                    </td>
                     <td className={TD}>{describeBilling(plan)}</td>
                     <td className={TD}>
                       <code className="text-xs">{plan.groupKey}</code>
                     </td>
-                    <td className={TD}>{plan.giftable ? 'yes' : 'no'}</td>
+                    <td className={TD}>
+                      {context.t.t(
+                        plan.giftable ? 'dues.admin.status.yes' : 'dues.admin.status.no',
+                      )}
+                    </td>
                   </tr>
                 ))}
             </tbody>
@@ -211,22 +222,21 @@ export async function StatusPage({
       </section>
 
       <section className={CARD}>
-        <h2 className="font-heading text-lg font-semibold">Latest webhook events</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {context.t.t('dues.admin.status.events')}
+        </h2>
         {events.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            None yet. The first purchase, or Stripe&rsquo;s &ldquo;send test event&rdquo; button,
-            will put a row here — which is how you prove the endpoint works.
-          </p>
+          <p className="text-sm text-muted-foreground">{context.t.t('dues.admin.status.none')}</p>
         ) : (
           <ul className="flex flex-col divide-y divide-border text-sm">
             {events.map((event) => (
               <li key={event.id} className="flex flex-wrap justify-between gap-2 py-1.5">
                 <code className="text-xs">{event.type}</code>
                 <span className="text-xs text-muted-foreground">
-                  {fmt(event.receivedAt)} ·{' '}
+                  {fmt(event.receivedAt, context)} ·{' '}
                   {event.processedAt === null
-                    ? 'unprocessed — the reconcile task retries it'
-                    : (event.outcome ?? 'done')}
+                    ? context.t.t('dues.admin.status.unprocessed')
+                    : (event.outcome ?? context.t.t('dues.admin.status.done'))}
                 </span>
               </li>
             ))}
@@ -237,33 +247,39 @@ export async function StatusPage({
   )
 }
 
-function statusChip(membership: MembershipRow): ReactNode {
+const STATUS_KEYS = {
+  active: 'dues.admin.members.active',
+  closing: 'dues.admin.members.closing',
+  expired: 'dues.admin.members.expired',
+  grace: 'dues.admin.members.grace',
+  revoked: 'dues.admin.members.revokedStatus',
+} as const
+
+function statusChip(membership: MembershipRow, context: PluginAdminPageContext): ReactNode {
   const tone =
     membership.status === 'active'
       ? 'text-muted-foreground'
       : membership.status === 'grace' || membership.needsAttention !== null
         ? ''
         : 'text-muted-foreground'
-  return <span className={tone}>{membership.status}</span>
+  return <span className={tone}>{context.t.t(STATUS_KEYS[membership.status])}</span>
 }
 
-const MEMBER_NOTICES: Record<string, string> = {
-  extended: 'Membership extended. The member holds their group until the new date.',
-  cancelled: 'Renewal cancelled. They keep what they paid for until the period ends.',
-  revoked: 'Membership revoked. Their access is gone as of now.',
-  cleared: 'Flag cleared.',
-}
+const MEMBER_NOTICE_KEYS = new Set([
+  'dues.admin.members.cancelled',
+  'dues.admin.members.cleared',
+  'dues.admin.members.extended',
+  'dues.admin.members.revoked',
+])
 
-const MEMBER_ERRORS: Record<string, string> = {
-  'bad-days': 'Extensions are 1 to 366 days.',
-  'not-live': 'That membership is not live any more, so there is nothing to act on.',
-  'not-cancellable': 'Only a live subscription has a renewal to cancel.',
-  unconfigured: 'Stripe is not configured, so the subscription cannot be reached.',
-  'stripe-error': 'Stripe could not be reached. Nothing changed — try again shortly.',
-  'grant-refused':
-    'The extension was recorded, but the board refused the group grant — the row is ' +
-    'flagged with the reason.',
-}
+const MEMBER_ERROR_KEYS = new Set([
+  'dues.admin.members.badDays',
+  'dues.admin.members.grantRefused',
+  'dues.admin.members.noMembership',
+  'dues.admin.members.noRenewal',
+  'dues.admin.members.stripeError',
+  'dues.admin.members.stripeUnconfigured',
+])
 
 function isLiveRow(membership: MembershipRow): boolean {
   return (
@@ -273,7 +289,13 @@ function isLiveRow(membership: MembershipRow): boolean {
   )
 }
 
-function MemberActions({ membership }: { membership: MembershipRow }) {
+function MemberActions({
+  membership,
+  context,
+}: {
+  membership: MembershipRow
+  context: PluginAdminPageContext
+}) {
   if (!isLiveRow(membership) && membership.needsAttention === null) {
     return <span className="text-xs text-muted-foreground">—</span>
   }
@@ -293,11 +315,11 @@ function MemberActions({ membership }: { membership: MembershipRow }) {
             defaultValue={30}
             min={1}
             max={366}
-            aria-label={`Days to extend membership ${membership.id} by`}
+            aria-label={context.t.t('dues.admin.members.extendAria', { id: membership.id })}
             className={`${INPUT} w-20`}
           />
           <button type="submit" className={QUIET_BUTTON}>
-            Extend
+            {context.t.t('dues.admin.members.extend')}
           </button>
         </form>
       )}
@@ -308,7 +330,7 @@ function MemberActions({ membership }: { membership: MembershipRow }) {
           <form method="post" action="/admin/api/plugins/dues/members/cancel">
             <input type="hidden" name="membership" value={membership.id} />
             <button type="submit" className={QUIET_BUTTON}>
-              Cancel renewal
+              {context.t.t('dues.admin.members.cancel')}
             </button>
           </form>
         )}
@@ -316,7 +338,7 @@ function MemberActions({ membership }: { membership: MembershipRow }) {
         <form method="post" action="/admin/api/plugins/dues/members/revoke">
           <input type="hidden" name="membership" value={membership.id} />
           <button type="submit" className={QUIET_BUTTON}>
-            Revoke now
+            {context.t.t('dues.admin.members.revoke')}
           </button>
         </form>
       )}
@@ -324,7 +346,7 @@ function MemberActions({ membership }: { membership: MembershipRow }) {
         <form method="post" action="/admin/api/plugins/dues/attention/clear">
           <input type="hidden" name="membership" value={membership.id} />
           <button type="submit" className={QUIET_BUTTON}>
-            Clear the flag
+            {context.t.t('dues.admin.members.clear')}
           </button>
         </form>
       )}
@@ -343,32 +365,32 @@ export async function MembersPage({ context }: { context: PluginAdminPageContext
     }
   }
 
-  const good = Object.keys(MEMBER_NOTICES).find((key) => context.query[key] !== undefined)
-  const bad = MEMBER_ERRORS[context.query.error ?? '']
+  const good = `dues.admin.members.${Object.keys(context.query).find((key) =>
+    MEMBER_NOTICE_KEYS.has(`dues.admin.members.${key}`),
+  )}`
+  const bad = `dues.admin.members.${context.query.error ?? ''}`
 
   return (
     <div className="flex flex-col gap-4">
-      {good !== undefined && <GoodNotice>{MEMBER_NOTICES[good]}</GoodNotice>}
-      {bad !== undefined && <BadNotice>{bad}</BadNotice>}
+      {MEMBER_NOTICE_KEYS.has(good) && <GoodNotice>{context.t.t(good)}</GoodNotice>}
+      {MEMBER_ERROR_KEYS.has(bad) && <BadNotice>{context.t.t(bad)}</BadNotice>}
       <p className="text-sm text-muted-foreground">
-        Every membership this plugin has sold, flagged rows first. Extending is a grant, not a
-        charge; revoking removes access on the spot without touching the money — refunds happen in
-        Stripe&rsquo;s dashboard, and the refund webhook revokes on its own.
+        {context.t.t('dues.admin.members.description')}
       </p>
       {memberships.length === 0 ? (
-        <p className={QUIET_PANEL}>Nothing sold yet.</p>
+        <p className={QUIET_PANEL}>{context.t.t('dues.admin.members.none')}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[48rem] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className={TH}>Member</th>
-                <th className={TH}>Plan</th>
-                <th className={TH}>Status</th>
-                <th className={TH}>Period ends</th>
-                <th className={TH}>Grace until</th>
-                <th className={TH}>Subscription</th>
-                <th className={TH}>Actions</th>
+                <th className={TH}>{context.t.t('dues.admin.members.member')}</th>
+                <th className={TH}>{context.t.t('dues.admin.members.plan')}</th>
+                <th className={TH}>{context.t.t('dues.admin.members.status')}</th>
+                <th className={TH}>{context.t.t('dues.admin.members.periodEnds')}</th>
+                <th className={TH}>{context.t.t('dues.admin.members.graceUntil')}</th>
+                <th className={TH}>{context.t.t('dues.admin.members.subscription')}</th>
+                <th className={TH}>{context.t.t('dues.admin.members.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -377,7 +399,7 @@ export async function MembersPage({ context }: { context: PluginAdminPageContext
                   <td className={TD}>{names.get(membership.userId)}</td>
                   <td className={TD}>{membership.planKey}</td>
                   <td className={TD}>
-                    {statusChip(membership)}
+                    {statusChip(membership, context)}
                     {membership.needsAttention !== null && (
                       <p className="mt-1 rounded border border-destructive/40 bg-destructive/10 px-2 py-1 text-xs">
                         {membership.needsAttention}
@@ -386,17 +408,19 @@ export async function MembersPage({ context }: { context: PluginAdminPageContext
                   </td>
                   <td className={TD}>
                     {isLifetime(membership.currentPeriodEnd)
-                      ? 'for good'
-                      : fmt(membership.currentPeriodEnd)}
+                      ? context.t.t('dues.admin.members.forGood')
+                      : fmt(membership.currentPeriodEnd, context)}
                   </td>
                   <td className={TD}>
-                    {isLifetime(membership.currentPeriodEnd) ? '—' : fmt(membership.graceUntil)}
+                    {isLifetime(membership.currentPeriodEnd)
+                      ? '—'
+                      : fmt(membership.graceUntil, context)}
                   </td>
                   <td className={TD}>
                     <code className="text-xs">{membership.stripeSubscriptionId ?? '—'}</code>
                   </td>
                   <td className={TD}>
-                    <MemberActions membership={membership} />
+                    <MemberActions membership={membership} context={context} />
                   </td>
                 </tr>
               ))}
@@ -421,17 +445,21 @@ export async function LedgerPage({
   return (
     <div className="flex flex-col gap-4">
       <section className={CARD}>
-        <h2 className="font-heading text-lg font-semibold">By month</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {context.t.t('dues.admin.ledger.byMonth')}
+        </h2>
         {months.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No money has moved yet.</p>
+          <p className="text-sm text-muted-foreground">
+            {context.t.t('dues.admin.ledger.noMoney')}
+          </p>
         ) : (
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className={TH}>Month</th>
-                <th className={TH}>Charges</th>
-                <th className={TH}>Gross</th>
-                <th className={TH}>Refunded</th>
+                <th className={TH}>{context.t.t('dues.admin.ledger.month')}</th>
+                <th className={TH}>{context.t.t('dues.admin.ledger.charges')}</th>
+                <th className={TH}>{context.t.t('dues.admin.ledger.gross')}</th>
+                <th className={TH}>{context.t.t('dues.admin.ledger.refunded')}</th>
               </tr>
             </thead>
             <tbody>
@@ -439,11 +467,13 @@ export async function LedgerPage({
                 <tr key={`${month.month}-${month.currency}`} className="border-b border-border">
                   <td className={TD}>{month.month}</td>
                   <td className={TD}>{month.charges}</td>
-                  <td className={TD}>{formatMinor(month.grossMinor, month.currency)}</td>
+                  <td className={TD}>
+                    {formatMinor(month.grossMinor, month.currency, context.locale)}
+                  </td>
                   <td className={TD}>
                     {month.refundedMinor === 0
                       ? '—'
-                      : formatMinor(month.refundedMinor, month.currency)}
+                      : formatMinor(month.refundedMinor, month.currency, context.locale)}
                   </td>
                 </tr>
               ))}
@@ -451,16 +481,16 @@ export async function LedgerPage({
           </table>
         )}
         <p className="text-xs text-muted-foreground">
-          Append-only, written as money moves: charges positive, refunds and chargebacks negative.
-          Stripe&rsquo;s dashboard is the authority; this is the board&rsquo;s own copy in{' '}
-          {config.currency.toUpperCase()}.
+          {context.t.t('dues.admin.ledger.appendOnly', { currency: config.currency.toUpperCase() })}
         </p>
       </section>
 
       <section className={CARD}>
-        <h2 className="font-heading text-lg font-semibold">Latest entries</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {context.t.t('dues.admin.ledger.latest')}
+        </h2>
         {entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Empty.</p>
+          <p className="text-sm text-muted-foreground">{context.t.t('dues.admin.ledger.empty')}</p>
         ) : (
           <ul className="flex flex-col divide-y divide-border text-sm">
             {entries.map((entry) => (
@@ -472,7 +502,8 @@ export async function LedgerPage({
                   )}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {fmt(entry.occurredAt)} · {formatMinor(entry.amountMinor, entry.currency)}
+                  {fmt(entry.occurredAt, context)} ·{' '}
+                  {formatMinor(entry.amountMinor, entry.currency, context.locale)}
                 </span>
               </li>
             ))}
@@ -620,7 +651,7 @@ export async function CodesPage({
                       {code.maxRedemptions !== null && ` of ${code.maxRedemptions}`}
                     </td>
                     <td className={TD}>
-                      {code.expiresAt === null ? 'never' : fmt(code.expiresAt)}
+                      {code.expiresAt === null ? 'never' : fmt(code.expiresAt, context)}
                     </td>
                     <td className={TD}>{codeState(code, now)}</td>
                     <td className={TD}>
