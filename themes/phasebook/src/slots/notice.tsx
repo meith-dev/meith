@@ -1,31 +1,33 @@
-import type { NoticeModel } from '@meith/theme-kit'
+import type { NoticeModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { cn } from '@meith/ui'
 
 const KIND = {
   info: {
-    label: 'Notice',
+    copyKey: 'info',
     className: 'border-primary/30 bg-primary/8 text-foreground',
     mark: 'bg-primary text-primary-foreground',
   },
   success: {
-    label: 'Done',
+    copyKey: 'success',
     className: 'border-moderation-approved/30 bg-moderation-approved/8 text-foreground',
     mark: 'bg-moderation-approved text-card',
   },
   warning: {
-    label: 'Warning',
+    copyKey: 'warning',
     className: 'border-thread-pinned/30 bg-thread-pinned/8 text-foreground',
     mark: 'bg-thread-pinned text-card',
   },
   error: {
-    label: 'Error',
+    copyKey: 'error',
     className: 'border-destructive/30 bg-destructive/8 text-foreground',
     mark: 'bg-destructive text-destructive-foreground',
   },
 } as const
 
-export function Notice({ kind, message, dismissHref }: NoticeModel) {
+export function Notice({ kind, message, dismissHref, copy }: NoticeModel & { copy: SlotCopy }) {
   const tone = KIND[kind]
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.notice.${key}`)
 
   return (
     <div
@@ -46,7 +48,7 @@ export function Notice({ kind, message, dismissHref }: NoticeModel) {
       </span>
 
       <p className="min-w-0 flex-1">
-        <span className="font-semibold">{tone.label}:</span> {message}
+        <span className="font-semibold">{c(tone.copyKey)}:</span> {message}
       </p>
 
       {dismissHref !== null && (
@@ -54,7 +56,7 @@ export function Notice({ kind, message, dismissHref }: NoticeModel) {
           href={dismissHref}
           className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
-          Dismiss
+          {c('dismiss')}
         </a>
       )}
     </div>

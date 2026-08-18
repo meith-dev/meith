@@ -1,9 +1,12 @@
-import type { ThreadRowSlotModel } from '@meith/theme-kit'
+import type { SlotCopy, ThreadRowSlotModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Badge } from '@meith/ui'
 
 import { HEADING, LINK, MICRO, Prefix, ReadMark, Stamp, TABLE_ROW, Tally, UserRef } from '../shared'
 
-export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
+export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.threadRow.${key}`)
+
   return (
     <li
       data-unread={thread.isUnread ? '' : undefined}
@@ -29,9 +32,9 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
-          {thread.isSticky && <Badge tone="pinned">Pinned</Badge>}
-          {thread.isLocked && <Badge tone="locked">Locked</Badge>}
-          {thread.isMoved && <Badge tone="moved">Moved</Badge>}
+          {thread.isSticky && <Badge tone="pinned">{c('pinned')}</Badge>}
+          {thread.isLocked && <Badge tone="locked">{c('locked')}</Badge>}
+          {thread.isMoved && <Badge tone="moved">{c('moved')}</Badge>}
 
           <a
             href={thread.href}
@@ -39,35 +42,35 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
           >
             {thread.title}
           </a>
-          {thread.isUnread && <span className="sr-only"> (new posts)</span>}
+          {thread.isUnread && <span className="sr-only"> {c('newPosts')}</span>}
         </div>
 
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Started by <UserRef user={thread.author} className="font-medium" />
+          {c('startedBy')} <UserRef user={thread.author} className="font-medium" />
         </p>
       </div>
 
       <span className="col-start-2 md:col-start-3 md:block md:text-right">
-        <Tally value={thread.replyCount} label="replies" />
+        <Tally value={thread.replyCount} label={c('replies')} />
         <span className="ms-3 md:hidden">
-          <Tally value={thread.viewCount} label="views" />
+          <Tally value={thread.viewCount} label={c('views')} />
         </span>
       </span>
 
       <span className="hidden md:block md:text-right">
-        <Tally value={thread.viewCount} label="views" />
+        <Tally value={thread.viewCount} label={c('views')} />
       </span>
 
       <div className="col-start-2 min-w-0 text-xs text-muted-foreground md:col-start-5">
         {thread.lastPost === null ? (
-          <span className={MICRO}>No replies yet</span>
+          <span className={MICRO}>{c('noRepliesYet')}</span>
         ) : (
           <>
             <a
               href={thread.lastPost.href}
               className={`block font-semibold text-foreground ${LINK}`}
             >
-              Latest reply
+              {c('latestReply')}
             </a>
             <span className="mt-0.5 block truncate">
               <UserRef user={thread.lastPost.author} className="font-medium" />

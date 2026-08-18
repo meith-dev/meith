@@ -1,4 +1,5 @@
-import type { PostFormModel } from '@meith/theme-kit'
+import type { PostFormModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Alert, AlertDescription, AlertTitle, Card } from '@meith/ui'
 
 import { MUTED_LINK, pageAt } from '../shared'
@@ -9,7 +10,10 @@ export function PostForm({
   cancelLabel,
   errorMessage,
   regions,
-}: PostFormModel) {
+  copy,
+}: PostFormModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.postForm.${key}`)
+
   return (
     <div className={`${pageAt('max-w-3xl')} flex w-full flex-col gap-5 py-6 sm:py-8`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
@@ -22,7 +26,7 @@ export function PostForm({
       {errorMessage !== null && (
         <Alert tone="error">
           <AlertDescription>
-            <AlertTitle>Cannot post.</AlertTitle> {errorMessage}
+            <AlertTitle>{c('cannotPost')}</AlertTitle> {errorMessage}
           </AlertDescription>
         </Alert>
       )}

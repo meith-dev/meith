@@ -1,4 +1,5 @@
-import type { UserPanelModel } from '@meith/theme-kit'
+import type { SlotCopy, UserPanelModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Menu } from '@meith/ui/menu'
 
 import { BUTTON, BUTTON_PRIMARY, MICRO } from '../shared'
@@ -30,7 +31,10 @@ export function UserPanel({
   notificationsHref,
   messagesHref,
   children,
-}: UserPanelModel) {
+  copy,
+}: UserPanelModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.userPanel.${key}`)
+
   if (viewer.isGuest) {
     return (
       <div className="flex flex-wrap items-center gap-2">
@@ -43,7 +47,7 @@ export function UserPanel({
     )
   }
 
-  const name = viewer.username ?? 'signed in'
+  const name = viewer.username ?? c('signedIn')
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -59,7 +63,7 @@ export function UserPanel({
           href={notificationsHref}
           className={`${COUNT} border-primary/60 bg-primary/15 text-primary hover:border-primary`}
         >
-          {unreadNotifications.label} new
+          {unreadNotifications.label} {c('new')}
         </a>
       )}
       {unreadMessages.value > 0 && (
@@ -67,13 +71,13 @@ export function UserPanel({
           href={messagesHref}
           className={`${COUNT} border-forum-unread/60 bg-forum-unread/15 text-forum-unread hover:border-forum-unread`}
         >
-          {unreadMessages.label} pm
+          {unreadMessages.label} {c('pm')}
         </a>
       )}
 
       <div data-account="menu" className="flex min-w-0 items-center">
         <Menu
-          label="Your account"
+          label={c('accountLabel')}
           items={links}
           triggerClassName="rounded-none border-border bg-card px-2 py-1 hover:border-primary/70 hover:bg-card"
           trigger={
@@ -96,7 +100,7 @@ export function UserPanel({
       <nav
         data-account="plain"
         style={{ display: 'none' }}
-        aria-label="Your account"
+        aria-label={c('accountLabel')}
         className="flex-wrap items-center gap-x-3 gap-y-1"
       >
         <span className={`${MICRO} text-foreground`}>{name}</span>

@@ -1,4 +1,5 @@
-import type { PaginationModel } from '@meith/theme-kit'
+import type { PaginationModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { cn } from '@meith/ui'
 
 import { NUMERIC, PILL } from '../shared'
@@ -10,23 +11,25 @@ export function Pagination({
   pages,
   previousHref,
   nextHref,
-}: PaginationModel) {
+  copy,
+}: PaginationModel & { copy: SlotCopy }) {
   if (pageCount <= 1 && previousHref === null && nextHref === null) return null
 
   const disabled = cn(PILL, 'pointer-events-none opacity-40')
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.pagination.${key}`)
 
   return (
     <nav
-      aria-label="Pagination"
+      aria-label={c('ariaLabel')}
       className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2.5 shadow-elevation"
     >
       {previousHref === null ? (
         <span className={disabled} aria-hidden="true">
-          Previous
+          {c('previous')}
         </span>
       ) : (
         <a href={previousHref} rel="prev" className={PILL}>
-          Previous
+          {c('previous')}
         </a>
       )}
 
@@ -45,7 +48,7 @@ export function Pagination({
               <a
                 href={entry.href}
                 aria-current={entry.isCurrent ? 'page' : undefined}
-                aria-label={`Page ${entry.page}`}
+                aria-label={`${c('page')} ${entry.page}`}
                 className={cn(
                   'inline-flex size-9 items-center justify-center rounded-full text-sm font-semibold transition-colors',
                   NUMERIC,
@@ -61,18 +64,18 @@ export function Pagination({
         })}
 
         <li className={`ml-1 text-xs whitespace-nowrap text-muted-foreground ${NUMERIC}`}>
-          <span className="sr-only">Page </span>
-          {pageCountIsExact ? `${page} of ${pageCount}` : `Page ${page}`}
+          <span className="sr-only">{c('page')} </span>
+          {pageCountIsExact ? `${page} ${c('of')} ${pageCount}` : `${c('page')} ${page}`}
         </li>
       </ol>
 
       {nextHref === null ? (
         <span className={disabled} aria-hidden="true">
-          Next
+          {c('next')}
         </span>
       ) : (
         <a href={nextHref} rel="next" className={PILL}>
-          Next
+          {c('next')}
         </a>
       )}
     </nav>

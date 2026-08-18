@@ -1,25 +1,32 @@
-import type { LatestThreadsModel } from '@meith/theme-kit'
+import type { LatestThreadsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Card, CardContent, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { LINK, MICRO, MUTED_LINK, NUMERIC, PanelHead, Stamp, UserRef } from '../shared'
 
-export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
+export function LatestThreads({
+  threads,
+  capturedAt,
+  copy,
+}: LatestThreadsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.latestThreads.${key}`)
+
   return (
     <Card aria-labelledby="latest-threads-heading">
       <PanelHead
         id="latest-threads-heading"
-        title="Latest threads"
+        title={c('title')}
         aside={
           <span className={MICRO}>
-            As of <Stamp at={capturedAt} />
+            {c('asOf')} <Stamp at={capturedAt} />
           </span>
         }
       />
 
       {threads.length === 0 ? (
         <Empty className="py-5">
-          <EmptyTitle>Nothing started yet</EmptyTitle>
-          <EmptyDescription>The newest threads you can see will appear here.</EmptyDescription>
+          <EmptyTitle>{c('nothingStartedYet')}</EmptyTitle>
+          <EmptyDescription>{c('newestThreadsEmpty')}</EmptyDescription>
         </Empty>
       ) : (
         <CardContent className="px-0 py-0">
@@ -40,7 +47,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
 
                 <p className="truncate text-xs text-muted-foreground">
                   <UserRef user={thread.author} className="font-medium" />
-                  {' in '}
+                  {` ${c('in')} `}
                   <a href={thread.forum.href} className={MUTED_LINK}>
                     {thread.forum.label}
                   </a>

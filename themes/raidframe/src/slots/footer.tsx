@@ -1,8 +1,17 @@
-import type { FooterModel } from '@meith/theme-kit'
+import type { FooterModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { RULE } from '../shared'
 
-export function Footer({ boardTitle, links, timezoneLabel, poweredBy }: FooterModel) {
+export function Footer({
+  boardTitle,
+  links,
+  timezoneLabel,
+  poweredBy,
+  copy,
+}: FooterModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.footer.${key}`)
+
   return (
     <footer className="mt-auto">
       <div className={RULE} aria-hidden="true" />
@@ -12,7 +21,7 @@ export function Footer({ boardTitle, links, timezoneLabel, poweredBy }: FooterMo
           {boardTitle}
         </span>
 
-        <nav aria-label="Board links" className="flex flex-wrap gap-x-4 gap-y-1">
+        <nav aria-label={c('linksAriaLabel')} className="flex flex-wrap gap-x-4 gap-y-1">
           {links.map((link) => (
             <a key={link.href} href={link.href} className="hover:text-primary">
               {link.label}
@@ -21,7 +30,10 @@ export function Footer({ boardTitle, links, timezoneLabel, poweredBy }: FooterMo
         </nav>
 
         <span className="flex flex-wrap gap-x-4 gap-y-1">
-          <span>all times {timezoneLabel}</span>
+          <span>
+            {c('allTimesPrefix')}
+            {timezoneLabel}
+          </span>
           {poweredBy && (
             <a href={poweredBy.href} className="hover:text-primary">
               {poweredBy.label}

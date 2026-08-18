@@ -1,4 +1,5 @@
-import type { PanelNavItemModel, PanelNavModel } from '@meith/theme-kit'
+import type { PanelNavItemModel, PanelNavModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { MICRO, NUMERIC, RULE } from '../shared'
 
@@ -9,7 +10,9 @@ const OPEN = 'border-l-primary/40 font-semibold text-foreground'
 const ELSEWHERE =
   'border-l-transparent text-muted-foreground hover:border-l-border hover:text-primary'
 
-function Count({ count }: { count: number }) {
+function Count({ count, copy }: { count: number; copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.panelNav.${key}`)
+
   return (
     <>
       <span
@@ -18,16 +21,26 @@ function Count({ count }: { count: number }) {
       >
         {count > 99 ? '99+' : count}
       </span>
-      <span className="sr-only">({count} waiting)</span>
+      <span className="sr-only">
+        ({count} {c('waiting')})
+      </span>
     </>
   )
 }
 
-function Item({ item, className }: { item: PanelNavItemModel; className: string }) {
+function Item({
+  item,
+  className,
+  copy,
+}: {
+  item: PanelNavItemModel
+  className: string
+  copy: SlotCopy
+}) {
   const body = (
     <>
       <span className="min-w-0 flex-1">{item.title}</span>
-      {item.count !== null && <Count count={item.count} />}
+      {item.count !== null && <Count count={item.count} copy={copy} />}
     </>
   )
 
@@ -52,7 +65,11 @@ function Item({ item, className }: { item: PanelNavItemModel; className: string 
   )
 }
 
-function Sections({ label, sections }: Pick<PanelNavModel, 'label' | 'sections'>) {
+function Sections({
+  label,
+  sections,
+  copy,
+}: Pick<PanelNavModel, 'label' | 'sections'> & { copy: SlotCopy }) {
   return (
     <nav aria-label={label}>
       <ul className="flex flex-col">
@@ -64,13 +81,18 @@ function Sections({ label, sections }: Pick<PanelNavModel, 'label' | 'sections'>
             <Item
               item={section}
               className={section.current === 'here' ? HERE : section.isOpen ? OPEN : ELSEWHERE}
+              copy={copy}
             />
 
             {section.isOpen && section.children.length > 0 && (
               <ul className="my-0.5 ml-3 flex flex-col border-l border-border pl-1">
                 {section.children.map((child) => (
                   <li key={child.href}>
-                    <Item item={child} className={child.current === 'here' ? HERE : ELSEWHERE} />
+                    <Item
+                      item={child}
+                      className={child.current === 'here' ? HERE : ELSEWHERE}
+                      copy={copy}
+                    />
                   </li>
                 ))}
               </ul>
@@ -82,7 +104,12 @@ function Sections({ label, sections }: Pick<PanelNavModel, 'label' | 'sections'>
   )
 }
 
-export function PanelNav({ label, sections, currentTitle }: PanelNavModel) {
+export function PanelNav({
+  label,
+  sections,
+  currentTitle,
+  copy,
+}: PanelNavModel & { copy: SlotCopy }) {
   return (
     <>
       <details className="border border-border bg-card lg:hidden">
@@ -92,7 +119,7 @@ export function PanelNav({ label, sections, currentTitle }: PanelNavModel) {
         </summary>
         <div className={RULE} aria-hidden="true" />
         <div className="p-2">
-          <Sections label={label} sections={sections} />
+          <Sections label={label} sections={sections} copy={copy} />
         </div>
       </details>
 
@@ -102,7 +129,7 @@ export function PanelNav({ label, sections, currentTitle }: PanelNavModel) {
         </p>
         <div className={RULE} aria-hidden="true" />
         <div className="p-2">
-          <Sections label={label} sections={sections} />
+          <Sections label={label} sections={sections} copy={copy} />
         </div>
       </div>
     </>

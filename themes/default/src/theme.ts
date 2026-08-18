@@ -1,6 +1,36 @@
 import { defineTheme } from '@meith/theme-kit'
 
-import { whoIsOnlineCopy } from './copy'
+import {
+  announcementCopy,
+  boardIndexCopy,
+  boardStatsCopy,
+  discoveryViewCopy,
+  errorNoticeCopy,
+  footerCopy,
+  forumDisplayCopy,
+  forumRowCopy,
+  headerCopy,
+  latestPostsCopy,
+  latestThreadsCopy,
+  memberProfileCopy,
+  navigationCopy,
+  noticeCopy,
+  paginationCopy,
+  panelNavCopy,
+  panelPageCopy,
+  postActionsCopy,
+  postBitCopy,
+  postFormCopy,
+  redirectNoticeCopy,
+  searchFormCopy,
+  searchResultsCopy,
+  shellCopy,
+  subforumListCopy,
+  threadRowCopy,
+  threadViewCopy,
+  userPanelCopy,
+  whoIsOnlineCopy,
+} from './copy'
 import { Announcement } from './slots/announcement'
 import { AuthPage } from './slots/auth-page'
 import { BoardIndex } from './slots/board-index'
@@ -86,6 +116,43 @@ export const defaultTheme = defineTheme({
     ErrorNotice,
   },
   copy: {
+    Shell: shellCopy,
+    Header: headerCopy,
+    UserPanel: userPanelCopy,
+    Navigation: navigationCopy,
+    Footer: footerCopy,
+    Notice: noticeCopy,
+    Announcement: announcementCopy,
+
+    BoardIndex: boardIndexCopy,
+    ForumRow: forumRowCopy,
+    BoardStats: boardStatsCopy,
     WhoIsOnline: whoIsOnlineCopy,
+    LatestThreads: latestThreadsCopy,
+    LatestPosts: latestPostsCopy,
+
+    ForumDisplay: forumDisplayCopy,
+    SubforumList: subforumListCopy,
+    ThreadRow: threadRowCopy,
+    Pagination: paginationCopy,
+
+    ThreadView: threadViewCopy,
+    PostBit: postBitCopy,
+    PostActions: postActionsCopy,
+
+    PostForm: postFormCopy,
+
+    MemberProfile: memberProfileCopy,
+
+    SearchForm: searchFormCopy,
+    SearchResults: searchResultsCopy,
+
+    DiscoveryView: discoveryViewCopy,
+
+    PanelNav: panelNavCopy,
+    PanelPage: panelPageCopy,
+
+    RedirectNotice: redirectNoticeCopy,
+    ErrorNotice: errorNoticeCopy,
   },
 })

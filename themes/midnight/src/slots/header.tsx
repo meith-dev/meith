@@ -1,4 +1,5 @@
-import type { HeaderModel } from '@meith/theme-kit'
+import type { HeaderModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 function BoardMark({ boardTitle, logo }: Pick<HeaderModel, 'boardTitle' | 'logo'>) {
   if (logo === undefined) return <>{boardTitle}</>
@@ -22,7 +23,16 @@ function BoardMark({ boardTitle, logo }: Pick<HeaderModel, 'boardTitle' | 'logo'
   )
 }
 
-export function Header({ boardTitle, homeHref, navigation, logo, children }: HeaderModel) {
+export function Header({
+  boardTitle,
+  homeHref,
+  navigation,
+  logo,
+  children,
+  copy,
+}: HeaderModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `midnight.header.${key}`)
+
   return (
     <header>
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-border bg-secondary px-4 py-3">
@@ -36,7 +46,7 @@ export function Header({ boardTitle, homeHref, navigation, logo, children }: Hea
       </div>
 
       {navigation.length > 0 && (
-        <nav aria-label="Board sections" className="flex flex-wrap border-b border-border">
+        <nav aria-label={c('sectionsLabel')} className="flex flex-wrap border-b border-border">
           {navigation.map((item) => (
             <a
               key={item.href}

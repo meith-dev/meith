@@ -1,9 +1,16 @@
-import type { BoardIndexModel } from '@meith/theme-kit'
+import type { BoardIndexModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Card, cn } from '@meith/ui'
 
 import { BUTTON, PAGE_BODY } from '../shared'
 
-export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
+export function BoardIndex({
+  markAllReadAction,
+  regions,
+  copy,
+}: BoardIndexModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.boardIndex.${key}`)
+
   const rail = (regions.latest ?? null) !== null
   const footer = regions.stats !== null || regions.online !== null
 
@@ -19,7 +26,7 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
             type="submit"
             className={cn(BUTTON, 'bg-secondary text-secondary-foreground hover:bg-secondary/80')}
           >
-            Mark all forums read
+            {c('markAllRead')}
           </button>
         </form>
       )}
@@ -34,7 +41,7 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
         <div className="flex min-w-0 flex-col gap-4">{regions.categories}</div>
 
         {rail && (
-          <aside aria-label="Board activity" className="flex min-w-0 flex-col gap-4">
+          <aside aria-label={c('boardActivity')} className="flex min-w-0 flex-col gap-4">
             {regions.latest}
           </aside>
         )}

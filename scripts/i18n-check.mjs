@@ -225,12 +225,15 @@ function isFontStack(value) {
   )
 }
 
+const CSS_MEDIA_FEATURE = /^\([a-z-]+:\s*[\w-]+\)$/i
+
 function isProse(value) {
   if (!/[A-Za-z]{2}.*\s.*[A-Za-z]/.test(value)) return false
   if (value.startsWith('/') || value.startsWith('http') || value.includes('${')) return false
   if (value.includes('var(--') || /^[\d.]+px[\s,]/.test(value)) return false
+  if (CSS_MEDIA_FEATURE.test(value.trim())) return false
   if (isFontStack(value)) return false
-  if (/^-?[a-z@][\w:./@[\]-]*(?:\s+[a-z:[\]&@-][\w:./%[\](),&@-]*)+$/.test(value)) return false
+  if (/^\s*-?[a-z@][\w:./@[\]-]*(?:\s+[a-z:[\]&@-][\w:./%[\](),&@-]*)+$/.test(value)) return false
   if (
     /^[MmLlHhVvCcSsQqTtAaZz][\d.eE-]/.test(value) &&
     /^[\d.\s,eEMmLlHhVvCcSsQqTtAaZz-]+$/.test(value)

@@ -1,10 +1,13 @@
-import type { ThreadRowSlotModel } from '@meith/theme-kit'
+import type { SlotCopy, ThreadRowSlotModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { MICRO, NUMERIC, ReadPip, Stamp, UserRef } from '../shared'
 
 const TAG = 'border px-1.5 py-px font-mono text-[0.625rem] font-bold uppercase tracking-[0.12em]'
 
-export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
+export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.threadRow.${key}`)
+
   return (
     <tr className="border-t border-border align-top hover:bg-secondary/50">
       <td className="px-3 py-2.5">
@@ -31,21 +34,25 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
           <a href={thread.href} className="font-medium text-foreground hover:text-primary">
             {thread.title}
           </a>
-          {thread.isUnread && <span className="sr-only">(new posts)</span>}
+          {thread.isUnread && <span className="sr-only">{c('newPosts')}</span>}
 
           {thread.isSticky && (
-            <span className={`${TAG} border-thread-pinned/60 text-thread-pinned`}>pinned</span>
+            <span className={`${TAG} border-thread-pinned/60 text-thread-pinned`}>
+              {c('pinned')}
+            </span>
           )}
           {thread.isLocked && (
-            <span className={`${TAG} border-thread-locked/60 text-thread-locked`}>locked</span>
+            <span className={`${TAG} border-thread-locked/60 text-thread-locked`}>
+              {c('locked')}
+            </span>
           )}
           {thread.isMoved && (
-            <span className={`${TAG} border-thread-moved/60 text-thread-moved`}>moved</span>
+            <span className={`${TAG} border-thread-moved/60 text-thread-moved`}>{c('moved')}</span>
           )}
         </div>
 
         <p className={`${MICRO} mt-1 normal-case`}>
-          <span className="uppercase">started by</span>{' '}
+          <span className="uppercase">{c('startedBy')}</span>{' '}
           <UserRef user={thread.author} className="hover:text-primary" />
         </p>
       </td>
@@ -59,12 +66,13 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
 
       <td className="hidden w-52 px-3 py-2.5 text-xs text-muted-foreground sm:table-cell">
         {thread.lastPost === null ? (
-          <span className={MICRO}>—</span>
+          <span className={MICRO}>{c('none')}</span>
         ) : (
           <a href={thread.lastPost.href} className="block hover:text-primary">
             <Stamp at={thread.lastPost.at} className="text-foreground" />
             <span className={`${MICRO} mt-0.5 block normal-case`}>
-              by <UserRef user={thread.lastPost.author} linked={false} />
+              {c('byPrefix')}
+              <UserRef user={thread.lastPost.author} linked={false} />
             </span>
           </a>
         )}

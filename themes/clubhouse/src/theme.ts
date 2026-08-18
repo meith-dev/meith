@@ -1,6 +1,30 @@
 import { defaultTheme } from '@meith/theme-default'
 import { defineTheme } from '@meith/theme-kit'
 
+import {
+  announcementCopy,
+  boardIndexCopy,
+  boardStatsCopy,
+  categoryBlockCopy,
+  footerCopy,
+  forumDisplayCopy,
+  forumRowCopy,
+  headerCopy,
+  latestPostsCopy,
+  latestThreadsCopy,
+  memberProfileCopy,
+  navigationCopy,
+  noticeCopy,
+  paginationCopy,
+  postActionsCopy,
+  postBitCopy,
+  shellCopy,
+  subforumListCopy,
+  threadRowCopy,
+  threadViewCopy,
+  userPanelCopy,
+  whoIsOnlineCopy,
+} from './copy'
 import { Announcement } from './slots/announcement'
 import { BoardIndex } from './slots/board-index'
 import { BoardStats } from './slots/board-stats'
@@ -55,5 +79,29 @@ export const clubhouseTheme = defineTheme({
     PostActions,
 
     MemberProfile,
+  },
+  copy: {
+    Announcement: announcementCopy,
+    BoardIndex: boardIndexCopy,
+    BoardStats: boardStatsCopy,
+    CategoryBlock: categoryBlockCopy,
+    Footer: footerCopy,
+    ForumDisplay: forumDisplayCopy,
+    ForumRow: forumRowCopy,
+    Header: headerCopy,
+    LatestPosts: latestPostsCopy,
+    LatestThreads: latestThreadsCopy,
+    MemberProfile: memberProfileCopy,
+    Navigation: navigationCopy,
+    Notice: noticeCopy,
+    Pagination: paginationCopy,
+    PostActions: postActionsCopy,
+    PostBit: postBitCopy,
+    Shell: shellCopy,
+    SubforumList: subforumListCopy,
+    ThreadRow: threadRowCopy,
+    ThreadView: threadViewCopy,
+    UserPanel: userPanelCopy,
+    WhoIsOnline: whoIsOnlineCopy,
   },
 })

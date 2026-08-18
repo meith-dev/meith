@@ -2,7 +2,8 @@ import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { requireSlot, resolveTheme, type ThemeDefinition } from '@meith/theme-kit'
+import { sourceTranslator } from '@meith/i18n'
+import { requireSlot, resolveTheme, slotCopy, type ThemeDefinition } from '@meith/theme-kit'
 
 import { CrashNoticeProvider } from '@/components/shell/crash-notice'
 import { buildErrorNotice, CRASH_NOTICE, crashNoticeCopy } from '@/view/error-notice'
@@ -21,9 +22,15 @@ const themes: readonly { key: string; definition: ThemeDefinition }[] = Object.v
     definition: installed.theme as ThemeDefinition,
   }))
 
+const t = sourceTranslator({})
+
 async function themedNotice(definition: ThemeDefinition): Promise<ReactNode> {
-  const Slot = requireSlot(resolveTheme(definition), 'ErrorNotice') as (props: object) => ReactNode
-  return Slot(buildErrorNotice(CRASH_NOTICE, REQUEST_ID))
+  const resolved = resolveTheme(definition)
+  const Slot = requireSlot(resolved, 'ErrorNotice') as (props: object) => ReactNode
+  return Slot({
+    ...buildErrorNotice(CRASH_NOTICE, REQUEST_ID),
+    copy: slotCopy(resolved, 'ErrorNotice', t),
+  })
 }
 
 function renderErrorPage(notice: ReactNode): string {

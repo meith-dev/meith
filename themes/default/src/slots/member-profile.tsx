@@ -1,4 +1,5 @@
-import type { MemberProfileModel } from '@meith/theme-kit'
+import type { MemberProfileModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Avatar, buttonVariants, Card, CardContent, CardHeader, CardTitle, cn } from '@meith/ui'
 
 import { NUMERIC, PAGE_BODY, Stamp } from '../shared'
@@ -14,7 +15,10 @@ export function MemberProfile({
   fields,
   actions,
   regions,
-}: MemberProfileModel) {
+  copy,
+}: MemberProfileModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.memberProfile.${key}`)
+
   return (
     <div className={PAGE_BODY}>
       <Card>
@@ -33,7 +37,10 @@ export function MemberProfile({
           </div>
 
           {actions.length > 0 && (
-            <nav aria-label="Member actions" className="flex shrink-0 flex-wrap items-center gap-2">
+            <nav
+              aria-label={c('memberActions')}
+              className="flex shrink-0 flex-wrap items-center gap-2"
+            >
               {actions.map((action, index) => (
                 <a
                   key={action.href}
@@ -55,19 +62,19 @@ export function MemberProfile({
             <dd className={`text-lg font-semibold text-foreground ${NUMERIC}`}>
               {postCount.label}
             </dd>
-            <dt className="text-xs text-muted-foreground">Posts</dt>
+            <dt className="text-xs text-muted-foreground">{c('postsLabel')}</dt>
           </div>
           <div>
             <dd className="text-sm font-medium text-foreground">
               <Stamp at={joinedAt} />
             </dd>
-            <dt className="text-xs text-muted-foreground">Joined</dt>
+            <dt className="text-xs text-muted-foreground">{c('joinedLabel')}</dt>
           </div>
           <div>
             <dd className="text-sm font-medium text-foreground">
-              {lastVisitAt === null ? 'Never' : <Stamp at={lastVisitAt} />}
+              {lastVisitAt === null ? c('never') : <Stamp at={lastVisitAt} />}
             </dd>
-            <dt className="text-xs text-muted-foreground">Last visit</dt>
+            <dt className="text-xs text-muted-foreground">{c('lastVisitLabel')}</dt>
           </div>
         </dl>
       </Card>
@@ -76,7 +83,7 @@ export function MemberProfile({
         <Card aria-labelledby="profile-fields-heading">
           <CardHeader>
             <CardTitle id="profile-fields-heading" className="text-sm">
-              About
+              {c('about')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -96,7 +103,7 @@ export function MemberProfile({
         <Card aria-labelledby="profile-signature-heading">
           <CardHeader>
             <CardTitle id="profile-signature-heading" className="text-sm">
-              Signature
+              {c('signature')}
             </CardTitle>
           </CardHeader>
           <CardContent>

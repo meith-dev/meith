@@ -1,11 +1,18 @@
-import type { BoardIndexModel } from '@meith/theme-kit'
+import type { BoardIndexModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { buttonVariants } from '@meith/ui'
 
 import { PAGE_BODY } from '../shared'
 
-export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
+export function BoardIndex({
+  markAllReadAction,
+  regions,
+  copy,
+}: BoardIndexModel & { copy: SlotCopy }) {
   const rail = (regions.latest ?? null) !== null
   const footer = regions.stats !== null || regions.online !== null
+
+  const c = (key: string) => fromSlotCopy(copy, `default.boardIndex.${key}`)
 
   return (
     <div className={PAGE_BODY}>
@@ -16,7 +23,7 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
       {markAllReadAction !== null && (
         <form action={markAllReadAction} method="post" className="self-end">
           <button type="submit" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-            Mark all forums read
+            {c('markAllRead')}
           </button>
         </form>
       )}
@@ -31,7 +38,7 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
         <div className="flex min-w-0 flex-col gap-4">{regions.categories}</div>
 
         {rail && (
-          <aside aria-label="Board activity" className="flex min-w-0 flex-col gap-4">
+          <aside aria-label={c('boardActivity')} className="flex min-w-0 flex-col gap-4">
             {regions.latest}
           </aside>
         )}

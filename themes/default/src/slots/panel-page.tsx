@@ -1,9 +1,21 @@
-import type { PanelPageModel, PanelSectionModel } from '@meith/theme-kit'
+import type { PanelPageModel, PanelSectionModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { cn } from '@meith/ui'
 
 import { MUTED_LINK, PAGE, pageAt } from '../shared'
 
-export function PanelPage({ title, back, frame, width, gap, regions, children }: PanelPageModel) {
+export function PanelPage({
+  title,
+  back,
+  frame,
+  width,
+  gap,
+  regions,
+  children,
+  copy,
+}: PanelPageModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.panelPage.${key}`)
+
   return (
     <main
       id="board-content"
@@ -20,7 +32,7 @@ export function PanelPage({ title, back, frame, width, gap, regions, children }:
         <div className="flex min-w-0 flex-col gap-1">
           {back !== null && (
             <a href={back.href} className={`text-sm font-medium ${MUTED_LINK}`}>
-              ← {back.label}
+              {c('back')} {back.label}
             </a>
           )}
 

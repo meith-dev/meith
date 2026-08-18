@@ -1,9 +1,11 @@
-import type { ForumRowSlotModel } from '@meith/theme-kit'
+import type { ForumRowSlotModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Circle, count, MUTED_LINK, NUMERIC, plural, Stamp, UserRef } from '../shared'
 
-export function ForumRow({ forum }: ForumRowSlotModel) {
+export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }) {
   const isLink = forum.type === 'link'
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.forumRow.${key}`)
 
   return (
     <li
@@ -28,12 +30,13 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
           >
             {forum.title}
           </a>
-          {forum.isUnread && <span className="sr-only"> (new posts)</span>}
+          {forum.isUnread && <span className="sr-only"> {c('newPosts')}</span>}
 
           {!isLink && (
             <span className={`shrink-0 text-xs text-muted-foreground ${NUMERIC}`}>
-              {count(forum.threadCount)} {plural(forum.threadCount, 'thread', 'threads')} ·{' '}
-              {count(forum.postCount)} {plural(forum.postCount, 'post', 'posts')}
+              {count(forum.threadCount)}{' '}
+              {plural(forum.threadCount, c('thread.one'), c('thread.other'))} ·{' '}
+              {count(forum.postCount)} {plural(forum.postCount, c('post.one'), c('post.other'))}
             </span>
           )}
         </div>
@@ -59,7 +62,7 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
         {!isLink && (
           <p className="mt-1.5 truncate text-xs text-muted-foreground">
             {forum.lastPost === null ? (
-              <span className="text-forum-read">No posts yet</span>
+              <span className="text-forum-read">{c('noPostsYet')}</span>
             ) : (
               <>
                 <a href={forum.lastPost.href} className={`font-semibold ${MUTED_LINK}`}>

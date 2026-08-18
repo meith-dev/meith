@@ -1,4 +1,5 @@
-import type { ForumDisplayModel } from '@meith/theme-kit'
+import type { ForumDisplayModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import {
   buttonVariants,
   Card,
@@ -11,7 +12,15 @@ import {
 
 import { Counts, isEmptyRegion, PAGE_BODY } from '../shared'
 
-export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: ForumDisplayModel) {
+export function ForumDisplay({
+  forum,
+  newThreadHref,
+  markReadAction,
+  regions,
+  copy,
+}: ForumDisplayModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.forumDisplay.${key}`)
+
   return (
     <div className={PAGE_BODY}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
@@ -25,16 +34,16 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
               className="mt-2"
               items={[
                 {
-                  label: 'Threads',
+                  label: c('threadsLabel'),
                   value: forum.threadCount,
-                  one: 'thread',
-                  many: 'threads',
+                  one: c('thread.one'),
+                  many: c('thread.other'),
                 },
                 {
-                  label: 'Posts',
+                  label: c('postsLabel'),
                   value: forum.postCount,
-                  one: 'post',
-                  many: 'posts',
+                  one: c('post.one'),
+                  many: c('post.other'),
                 },
               ]}
             />
@@ -45,13 +54,13 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
           {markReadAction !== null && (
             <form action={markReadAction} method="post">
               <button type="submit" className={buttonVariants({ variant: 'ghost' })}>
-                Mark read
+                {c('markRead')}
               </button>
             </form>
           )}
           {newThreadHref !== null && (
             <a href={newThreadHref} className={buttonVariants({ variant: 'primary' })}>
-              New thread
+              {c('newThread')}
             </a>
           )}
         </div>
@@ -70,16 +79,14 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
       <Card>
         {isEmptyRegion(regions.threads) ? (
           <Empty>
-            <EmptyTitle>No threads here yet</EmptyTitle>
+            <EmptyTitle>{c('noThreadsYet')}</EmptyTitle>
             <EmptyDescription>
-              {newThreadHref === null
-                ? 'Nothing has been posted in this forum.'
-                : 'Nothing has been posted in this forum. Yours would be the first.'}
+              {newThreadHref === null ? c('emptyNoThread') : c('emptyNoThreadFirst')}
             </EmptyDescription>
             {newThreadHref !== null && (
               <EmptyAction>
                 <a href={newThreadHref} className={buttonVariants({ variant: 'primary' })}>
-                  Start the first thread
+                  {c('startFirstThread')}
                 </a>
               </EmptyAction>
             )}

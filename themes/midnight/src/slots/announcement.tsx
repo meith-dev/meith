@@ -1,8 +1,18 @@
-import type { AnnouncementModel } from '@meith/theme-kit'
+import type { AnnouncementModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: AnnouncementModel) {
+export function Announcement({
+  title,
+  bodyHtml,
+  postedBy,
+  postedAt,
+  forum,
+  copy,
+}: AnnouncementModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `midnight.announcement.${key}`)
+
   return (
     <article className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-4">
       <h2 className="font-heading text-lg font-semibold text-foreground">{title}</h2>
@@ -14,10 +24,10 @@ export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: Ann
 
       <p className="text-xs text-muted-foreground">
         {postedBy === null ? (
-          'Posted'
+          c('posted')
         ) : (
           <>
-            Posted by{' '}
+            {c('postedBy')}{' '}
             <UserRef
               user={postedBy}
               className={

@@ -1,12 +1,7 @@
-import type { PanelKind, PanelPageModel, PanelSectionModel } from '@meith/theme-kit'
+import type { PanelKind, PanelPageModel, PanelSectionModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { HEADING, MICRO, RULE } from '../shared'
-
-const LABEL: Record<PanelKind, string> = {
-  usercp: 'your control panel',
-  modcp: 'moderator control panel',
-  admincp: 'control panel',
-}
 
 export function PanelPage({
   panel,
@@ -17,7 +12,15 @@ export function PanelPage({
   gap,
   regions,
   children,
-}: PanelPageModel) {
+  copy,
+}: PanelPageModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.panelPage.${key}`)
+  const LABEL: Record<PanelKind, string> = {
+    usercp: c('panelLabel.usercp'),
+    modcp: c('panelLabel.modcp'),
+    admincp: c('panelLabel.admincp'),
+  }
+
   return (
     <main
       id="board-content"

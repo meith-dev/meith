@@ -1,4 +1,5 @@
-import type { PostBitSlotModel } from '@meith/theme-kit'
+import type { PostBitSlotModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { cn } from '@meith/ui'
 
 import {
@@ -22,10 +23,11 @@ const VISIBILITY_TINT = {
   deleted: 'border-thread-deleted/50 bg-destructive/5',
 } as const
 
-function StatusBanner({ visibility }: { visibility: Post['visibility'] }) {
+function StatusBanner({ visibility, copy }: { visibility: Post['visibility']; copy: SlotCopy }) {
   if (visibility === 'visible') return null
 
   const deleted = visibility === 'deleted'
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.postBit.${key}`)
 
   return (
     <p
@@ -36,8 +38,8 @@ function StatusBanner({ visibility }: { visibility: Post['visibility'] }) {
           : 'border-thread-unapproved/30 text-thread-unapproved',
       )}
     >
-      {deleted ? 'Deleted post.' : 'Waiting for approval.'}
-      <span className="font-normal text-muted-foreground">Only moderators can see this.</span>
+      {deleted ? c('deletedPost') : c('waitingApproval')}
+      <span className="font-normal text-muted-foreground">{c('moderatorsOnly')}</span>
     </p>
   )
 }
@@ -114,8 +116,9 @@ function Attachments({ files }: { files: Post['attachments'] }) {
   )
 }
 
-export function PostBit({ post, select, regions }: PostBitSlotModel) {
+export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { copy: SlotCopy }) {
   const { author } = post
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.postBit.${key}`)
 
   return (
     <article
@@ -127,7 +130,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
         VISIBILITY_TINT[post.visibility],
       )}
     >
-      <StatusBanner visibility={post.visibility} />
+      <StatusBanner visibility={post.visibility} copy={copy} />
 
       <header className="flex items-start gap-3.5 px-5 pt-4">
         {select !== null && (
@@ -164,7 +167,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             {author.isOnline && (
               <>
                 <span aria-hidden="true">·</span>
-                <span className="text-moderation-approved">Online</span>
+                <span className="text-moderation-approved">{c('online')}</span>
               </>
             )}
           </p>
@@ -179,11 +182,11 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
         <p
           className={`shrink-0 text-right text-xs leading-relaxed text-muted-foreground ${NUMERIC}`}
         >
-          {count(author.postCount)} {plural(author.postCount, 'post', 'posts')}
+          {count(author.postCount)} {plural(author.postCount, c('post.one'), c('post.other'))}
           {author.reputation != null && (
             <>
               <br />
-              {count(author.reputation)} rep
+              {count(author.reputation)} {c('rep')}
             </>
           )}
         </p>
@@ -191,11 +194,11 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
 
       {post.ignored !== null ? (
         <p className="px-5 py-5 text-sm text-muted-foreground">
-          You are ignoring{' '}
-          <span className="font-semibold text-foreground">{post.ignored.authorUsername}</span>. This
-          post is hidden.{' '}
+          {c('ignoring')}{' '}
+          <span className="font-semibold text-foreground">{post.ignored.authorUsername}</span>.{' '}
+          {c('hiddenNote')}{' '}
           <a href={post.ignored.revealHref} className={LINK}>
-            Show it anyway
+            {c('showAnyway')}
           </a>
         </p>
       ) : (

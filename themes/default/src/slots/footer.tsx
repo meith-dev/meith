@@ -1,8 +1,17 @@
-import type { FooterModel } from '@meith/theme-kit'
+import type { FooterModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { MUTED_LINK, PAGE } from '../shared'
 
-export function Footer({ boardTitle, links, timezoneLabel, poweredBy }: FooterModel) {
+export function Footer({
+  boardTitle,
+  links,
+  timezoneLabel,
+  poweredBy,
+  copy,
+}: FooterModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.footer.${key}`)
+
   return (
     <footer className="mt-auto border-t border-border bg-card">
       <div
@@ -11,7 +20,7 @@ export function Footer({ boardTitle, links, timezoneLabel, poweredBy }: FooterMo
         <span className="font-medium text-foreground">{boardTitle}</span>
 
         {links.length > 0 && (
-          <nav aria-label="Footer" className="flex flex-wrap gap-x-4 gap-y-1">
+          <nav aria-label={c('nav')} className="flex flex-wrap gap-x-4 gap-y-1">
             {links.map((link) => (
               <a key={link.href} href={link.href} className={MUTED_LINK}>
                 {link.label}
@@ -21,7 +30,9 @@ export function Footer({ boardTitle, links, timezoneLabel, poweredBy }: FooterMo
         )}
 
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:justify-end sm:text-right">
-          <span>Times are shown in {timezoneLabel}</span>
+          <span>
+            {c('timesShownIn')} {timezoneLabel}
+          </span>
           {poweredBy && (
             <a href={poweredBy.href} className={MUTED_LINK}>
               {poweredBy.label}

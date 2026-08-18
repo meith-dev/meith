@@ -1,4 +1,5 @@
-import type { MemberProfileModel } from '@meith/theme-kit'
+import type { MemberProfileModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { cn } from '@meith/ui'
 
 import { Circle, count, FEED, NUMERIC, PAGE, PILL, PILL_PRIMARY, Stamp } from '../shared'
@@ -14,7 +15,10 @@ export function MemberProfile({
   fields,
   actions,
   regions,
-}: MemberProfileModel) {
+  copy,
+}: MemberProfileModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.memberProfile.${key}`)
+
   return (
     <div className={`${PAGE} py-4 sm:py-6`}>
       <div className={`${FEED} flex flex-col gap-4`}>
@@ -45,7 +49,7 @@ export function MemberProfile({
 
             {actions.length > 0 && (
               <nav
-                aria-label="Member actions"
+                aria-label={c('actionsAriaLabel')}
                 className="flex shrink-0 flex-wrap items-center justify-center gap-2"
               >
                 {actions.map((action, index) => (
@@ -64,19 +68,19 @@ export function MemberProfile({
           <dl className="grid grid-cols-3 gap-2 border-t border-border px-4 py-3 text-center">
             <div>
               <dd className={`text-lg font-bold text-foreground ${NUMERIC}`}>{count(postCount)}</dd>
-              <dt className="text-xs text-muted-foreground">Posts</dt>
+              <dt className="text-xs text-muted-foreground">{c('posts')}</dt>
             </div>
             <div>
               <dd className="text-sm font-semibold text-foreground">
                 <Stamp at={joinedAt} />
               </dd>
-              <dt className="text-xs text-muted-foreground">Joined</dt>
+              <dt className="text-xs text-muted-foreground">{c('joined')}</dt>
             </div>
             <div>
               <dd className="text-sm font-semibold text-foreground">
-                {lastVisitAt === null ? 'Never' : <Stamp at={lastVisitAt} />}
+                {lastVisitAt === null ? c('never') : <Stamp at={lastVisitAt} />}
               </dd>
-              <dt className="text-xs text-muted-foreground">Last visit</dt>
+              <dt className="text-xs text-muted-foreground">{c('lastVisit')}</dt>
             </div>
           </dl>
         </section>
@@ -90,7 +94,7 @@ export function MemberProfile({
               id="profile-fields-heading"
               className="px-4 pt-3 pb-1 text-[1.0625rem] font-bold tracking-tight"
             >
-              About
+              {c('about')}
             </h2>
             <dl className="grid gap-x-6 gap-y-3 px-4 pt-2 pb-4 sm:grid-cols-2">
               {fields.map((field) => (
@@ -112,7 +116,7 @@ export function MemberProfile({
               id="profile-signature-heading"
               className="px-4 pt-3 pb-1 text-[1.0625rem] font-bold tracking-tight"
             >
-              Signature
+              {c('signature')}
             </h2>
             <div
               className="prose-md px-4 pt-2 pb-4 text-sm text-muted-foreground"

@@ -1,19 +1,26 @@
-import type { LatestThreadsModel } from '@meith/theme-kit'
+import type { LatestThreadsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
+export function LatestThreads({
+  threads,
+  capturedAt,
+  copy,
+}: LatestThreadsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `midnight.latestThreads.${key}`)
+
   return (
     <section aria-labelledby="latest-threads-heading" className="border border-border">
       <h2
         id="latest-threads-heading"
         className="border-b border-border bg-secondary px-3 py-1 font-mono text-xs uppercase tracking-wide"
       >
-        Latest threads
+        {c('heading')}
       </h2>
 
       {threads.length === 0 ? (
-        <p className="px-3 py-2 font-mono text-xs text-muted-foreground">nothing started yet</p>
+        <p className="px-3 py-2 font-mono text-xs text-muted-foreground">{c('empty')}</p>
       ) : (
         <ul className="divide-y divide-border font-mono text-xs">
           {threads.map((thread) => (
@@ -36,7 +43,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
       )}
 
       <p className="border-t border-border px-3 py-1 font-mono text-xs text-muted-foreground">
-        as of <time dateTime={capturedAt.iso}>{capturedAt.label}</time>
+        {c('asOf')} <time dateTime={capturedAt.iso}>{capturedAt.label}</time>
       </p>
     </section>
   )

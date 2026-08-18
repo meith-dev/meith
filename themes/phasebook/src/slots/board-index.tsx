@@ -1,11 +1,18 @@
-import type { BoardIndexModel } from '@meith/theme-kit'
+import type { BoardIndexModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { FEED, isEmptyRegion, PAGE, PILL_QUIET } from '../shared'
 
-export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
+export function BoardIndex({
+  markAllReadAction,
+  regions,
+  copy,
+}: BoardIndexModel & { copy: SlotCopy }) {
   const hasRail = [regions.latest, regions.online, regions.stats].some(
     (region) => !isEmptyRegion(region),
   )
+
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.boardIndex.${key}`)
 
   return (
     <div className={`${PAGE} py-4 sm:py-6`}>
@@ -24,7 +31,7 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
           {markAllReadAction !== null && (
             <form action={markAllReadAction} method="post" className="self-end">
               <button type="submit" className={PILL_QUIET}>
-                Mark all forums read
+                {c('markAllRead')}
               </button>
             </form>
           )}
@@ -36,7 +43,7 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
 
         {hasRail && (
           <aside
-            aria-label="Board activity"
+            aria-label={c('activityAriaLabel')}
             className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-[4.5rem]"
           >
             {regions.latest}

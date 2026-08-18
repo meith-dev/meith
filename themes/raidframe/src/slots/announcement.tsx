@@ -1,12 +1,22 @@
-import type { AnnouncementModel } from '@meith/theme-kit'
+import type { AnnouncementModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Frame, HEADING, MICRO, Stamp, UserRef } from '../shared'
 
-export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: AnnouncementModel) {
+export function Announcement({
+  title,
+  bodyHtml,
+  postedBy,
+  postedAt,
+  forum,
+  copy,
+}: AnnouncementModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.announcement.${key}`)
+
   return (
     <Frame as="article">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-surface px-3 py-2">
-        <span className={`${MICRO} text-primary`}>announcement</span>
+        <span className={`${MICRO} text-primary`}>{c('kicker')}</span>
         {forum !== null && (
           <a href={forum.href} className={`${MICRO} hover:text-primary`}>
             {forum.label}
@@ -24,14 +34,14 @@ export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: Ann
 
         <p className={MICRO}>
           {postedBy === null ? (
-            'posted'
+            c('postedFallback')
           ) : (
             <>
-              {'posted by '}
+              {c('postedByPrefix')}
               <UserRef user={postedBy} className="text-primary hover:underline" />
             </>
           )}
-          {' · '}
+          {c('separator')}
           <Stamp at={postedAt} />
         </p>
       </div>

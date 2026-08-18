@@ -1,4 +1,5 @@
-import type { HeaderModel } from '@meith/theme-kit'
+import type { HeaderModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { PAGE } from '../shared'
 
@@ -35,7 +36,16 @@ function BoardMark({ boardTitle, logo }: Pick<HeaderModel, 'boardTitle' | 'logo'
   )
 }
 
-export function Header({ boardTitle, homeHref, navigation, logo, children }: HeaderModel) {
+export function Header({
+  boardTitle,
+  homeHref,
+  navigation,
+  logo,
+  children,
+  copy,
+}: HeaderModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.header.${key}`)
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card shadow-elevation">
       <div className={`${PAGE} flex h-14 items-center justify-between gap-3`}>
@@ -50,7 +60,10 @@ export function Header({ boardTitle, homeHref, navigation, logo, children }: Hea
         </a>
 
         {navigation.length > 0 && (
-          <nav aria-label="Board sections" className="hidden min-w-0 flex-1 justify-center lg:flex">
+          <nav
+            aria-label={c('sectionsAriaLabel')}
+            className="hidden min-w-0 flex-1 justify-center lg:flex"
+          >
             <ul className="flex items-center gap-1">
               {navigation.map((item) => (
                 <li key={item.href}>
@@ -70,7 +83,7 @@ export function Header({ boardTitle, homeHref, navigation, logo, children }: Hea
       </div>
 
       {navigation.length > 0 && (
-        <nav aria-label="Board sections" className="border-t border-border lg:hidden">
+        <nav aria-label={c('sectionsAriaLabel')} className="border-t border-border lg:hidden">
           <ul className={`${PAGE} flex items-center gap-1 overflow-x-auto py-1`}>
             {navigation.map((item) => (
               <li key={item.href} className="shrink-0">

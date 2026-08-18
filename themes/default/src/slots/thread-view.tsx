@@ -1,9 +1,19 @@
-import type { ThreadViewModel } from '@meith/theme-kit'
+import type { SlotCopy, ThreadViewModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Badge, buttonVariants } from '@meith/ui'
 
 import { Counts, MUTED_LINK, PAGE_BODY, Prefix } from '../shared'
 
-export function ThreadView({ thread, forum, replyHref, markReadAction, regions }: ThreadViewModel) {
+export function ThreadView({
+  thread,
+  forum,
+  replyHref,
+  markReadAction,
+  regions,
+  copy,
+}: ThreadViewModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.threadView.${key}`)
+
   return (
     <div className={PAGE_BODY}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
@@ -18,23 +28,23 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
 
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
             {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
-            {thread.isSticky && <Badge tone="pinned">Pinned</Badge>}
-            {thread.isLocked && <Badge tone="locked">Locked — no new replies</Badge>}
-            {thread.isMoved && <Badge tone="moved">Moved</Badge>}
+            {thread.isSticky && <Badge tone="pinned">{c('pinned')}</Badge>}
+            {thread.isLocked && <Badge tone="locked">{c('locked')}</Badge>}
+            {thread.isMoved && <Badge tone="moved">{c('moved')}</Badge>}
 
             <Counts
               items={[
                 {
-                  label: 'Replies',
+                  label: c('repliesLabel'),
                   value: thread.replyCount,
-                  one: 'reply',
-                  many: 'replies',
+                  one: c('reply.one'),
+                  many: c('reply.other'),
                 },
                 {
-                  label: 'Views',
+                  label: c('viewsLabel'),
                   value: thread.viewCount,
-                  one: 'view',
-                  many: 'views',
+                  one: c('view.one'),
+                  many: c('view.other'),
                 },
               ]}
             />
@@ -45,13 +55,13 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
           {markReadAction !== null && (
             <form action={markReadAction} method="post">
               <button type="submit" className={buttonVariants({ variant: 'ghost' })}>
-                Mark read
+                {c('markRead')}
               </button>
             </form>
           )}
           {replyHref !== null && (
             <a href={replyHref} className={buttonVariants({ variant: 'primary' })}>
-              Reply
+              {c('replyAction')}
             </a>
           )}
         </div>

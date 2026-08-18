@@ -1,8 +1,15 @@
-import type { CategoryBlockModel } from '@meith/theme-kit'
+import type { CategoryBlockModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Frame, MICRO, PanelHead } from '../shared'
 
-export function CategoryBlock({ category, children }: CategoryBlockModel) {
+export function CategoryBlock({
+  category,
+  children,
+  copy,
+}: CategoryBlockModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.categoryBlock.${key}`)
+
   return (
     <Frame>
       <PanelHead title={category.title} href={category.href} />
@@ -17,16 +24,16 @@ export function CategoryBlock({ category, children }: CategoryBlockModel) {
         <thead>
           <tr className={`${MICRO} text-left`}>
             <th scope="col" className="px-3 py-1.5 font-semibold">
-              Forum
+              {c('forum')}
             </th>
             <th scope="col" className="w-16 px-2 py-1.5 text-right font-semibold">
-              Threads
+              {c('threads')}
             </th>
             <th scope="col" className="w-16 px-2 py-1.5 text-right font-semibold">
-              Posts
+              {c('posts')}
             </th>
             <th scope="col" className="hidden w-60 px-3 py-1.5 font-semibold sm:table-cell">
-              Last post
+              {c('lastPost')}
             </th>
           </tr>
         </thead>

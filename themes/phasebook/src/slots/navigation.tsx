@@ -1,12 +1,15 @@
-import type { NavigationModel } from '@meith/theme-kit'
+import type { NavigationModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { PAGE } from '../shared'
 
-export function Navigation({ items }: NavigationModel) {
+export function Navigation({ items, copy }: NavigationModel & { copy: SlotCopy }) {
   if (items.length === 0) return null
 
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.navigation.${key}`)
+
   return (
-    <nav aria-label="Breadcrumb" className="bg-background">
+    <nav aria-label={c('ariaLabel')} className="bg-background">
       <ol
         className={`${PAGE} flex items-center gap-1 overflow-x-auto pt-3 text-sm whitespace-nowrap text-muted-foreground`}
       >

@@ -1,8 +1,11 @@
-import type { NavigationModel } from '@meith/theme-kit'
+import type { NavigationModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
-export function Navigation({ items }: NavigationModel) {
+export function Navigation({ items, copy }: NavigationModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.navigation.${key}`)
+
   return (
-    <nav aria-label="Breadcrumb" className="border-b border-border bg-card/40 px-4 py-2">
+    <nav aria-label={c('ariaLabel')} className="border-b border-border bg-card/40 px-4 py-2">
       <ol className="flex flex-wrap items-center gap-1.5 font-mono text-[0.6875rem] tracking-[0.1em] text-muted-foreground uppercase">
         {items.map((item, index) => {
           const isLast = index === items.length - 1

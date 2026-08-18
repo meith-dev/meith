@@ -1,13 +1,23 @@
-import type { ThreadViewModel } from '@meith/theme-kit'
+import type { SlotCopy, ThreadViewModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
-export function ThreadView({ thread, forum, replyHref, markReadAction, regions }: ThreadViewModel) {
+export function ThreadView({
+  thread,
+  forum,
+  replyHref,
+  markReadAction,
+  regions,
+  copy,
+}: ThreadViewModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `midnight.threadView.${key}`)
+
   const reply =
     replyHref === null ? null : (
       <a
         href={replyHref}
         className="border border-primary bg-primary px-3 py-1 font-mono text-xs text-primary-foreground hover:opacity-90"
       >
-        reply
+        {c('reply')}
       </a>
     )
 
@@ -17,7 +27,7 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
         <div>
           <h1 className="font-mono text-lg font-semibold">{thread.title}</h1>
           <p className="font-mono text-xs text-muted-foreground">
-            in{' '}
+            {c('in')}{' '}
             <a href={forum.href} className="hover:text-primary">
               {forum.label}
             </a>
@@ -48,7 +58,7 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
               type="submit"
               className="border border-border px-2 py-1 font-mono text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
             >
-              mark read
+              {c('markRead')}
             </button>
           </form>
         )}

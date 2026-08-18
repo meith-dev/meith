@@ -1,4 +1,5 @@
-import type { NoticeModel } from '@meith/theme-kit'
+import type { NoticeModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 const TONE: Record<NoticeModel['kind'], string> = {
   info: 'border-l-forum-unread text-forum-unread',
@@ -7,7 +8,9 @@ const TONE: Record<NoticeModel['kind'], string> = {
   error: 'border-l-destructive text-destructive',
 }
 
-export function Notice({ kind, message, dismissHref }: NoticeModel) {
+export function Notice({ kind, message, dismissHref, copy }: NoticeModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.notice.${key}`)
+
   return (
     <div
       role={kind === 'error' ? 'alert' : undefined}
@@ -15,7 +18,7 @@ export function Notice({ kind, message, dismissHref }: NoticeModel) {
     >
       <p className="text-foreground">
         <span className="mr-2 font-mono text-[0.625rem] font-bold tracking-[0.18em] uppercase">
-          {kind}
+          {c(kind)}
         </span>
         {message}
       </p>
@@ -24,7 +27,7 @@ export function Notice({ kind, message, dismissHref }: NoticeModel) {
           href={dismissHref}
           className="font-mono text-[0.625rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase hover:text-primary"
         >
-          dismiss
+          {c('dismiss')}
         </a>
       )}
     </div>

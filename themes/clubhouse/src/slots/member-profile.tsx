@@ -1,4 +1,5 @@
-import type { MemberProfileModel } from '@meith/theme-kit'
+import type { MemberProfileModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Avatar, Card, CardContent, cn } from '@meith/ui'
 
 import { BUTTON, ClubBar, HEADING, MICRO, NUMERIC, PAGE_BODY, PanelHead, Stamp } from '../shared'
@@ -14,7 +15,10 @@ export function MemberProfile({
   fields,
   actions,
   regions,
-}: MemberProfileModel) {
+  copy,
+}: MemberProfileModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.memberProfile.${key}`)
+
   return (
     <div className={PAGE_BODY}>
       <Card className="flex items-stretch">
@@ -40,7 +44,7 @@ export function MemberProfile({
 
             {actions.length > 0 && (
               <nav
-                aria-label="Member actions"
+                aria-label={c('memberActions')}
                 className="flex shrink-0 flex-wrap items-center gap-2"
               >
                 {actions.map((action, index) => (
@@ -63,19 +67,19 @@ export function MemberProfile({
 
           <dl className="flex flex-wrap gap-x-6 gap-y-1 border-t-2 border-t-secondary bg-surface px-4 py-2.5 text-xs">
             <div className="flex items-baseline gap-1.5">
-              <dt className={MICRO}>Posts</dt>
+              <dt className={MICRO}>{c('posts')}</dt>
               <dd className={`${NUMERIC} font-semibold text-foreground`}>{postCount.label}</dd>
             </div>
             <div className="flex items-baseline gap-1.5">
-              <dt className={MICRO}>Joined</dt>
+              <dt className={MICRO}>{c('joined')}</dt>
               <dd className="font-semibold text-foreground">
                 <Stamp at={joinedAt} />
               </dd>
             </div>
             <div className="flex items-baseline gap-1.5">
-              <dt className={MICRO}>Last visit</dt>
+              <dt className={MICRO}>{c('lastVisit')}</dt>
               <dd className="font-semibold text-foreground">
-                {lastVisitAt === null ? 'Never' : <Stamp at={lastVisitAt} />}
+                {lastVisitAt === null ? c('never') : <Stamp at={lastVisitAt} />}
               </dd>
             </div>
           </dl>
@@ -84,7 +88,7 @@ export function MemberProfile({
 
       {fields.length > 0 && (
         <Card aria-labelledby="profile-fields-heading">
-          <PanelHead id="profile-fields-heading" title="About" />
+          <PanelHead id="profile-fields-heading" title={c('about')} />
           <CardContent className="px-4 py-3">
             <dl className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
               {fields.map((field) => (
@@ -100,7 +104,7 @@ export function MemberProfile({
 
       {signatureHtml !== null && (
         <Card aria-labelledby="profile-signature-heading">
-          <PanelHead id="profile-signature-heading" title="Signature" />
+          <PanelHead id="profile-signature-heading" title={c('signature')} />
           <CardContent className="px-4 py-3">
             <div
               className="prose-md text-sm text-muted-foreground"

@@ -1,4 +1,5 @@
-import type { BoardStatsModel, CountModel } from '@meith/theme-kit'
+import type { BoardStatsModel, CountModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Frame, MICRO, NUMERIC, PanelHead, Stamp, UserRef } from '../shared'
 
@@ -19,22 +20,25 @@ export function BoardStats({
   memberCount,
   newestMember,
   computedAt,
-}: BoardStatsModel) {
+  copy,
+}: BoardStatsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.boardStats.${key}`)
+
   return (
     <Frame aria-labelledby="board-stats-heading">
-      <PanelHead id="board-stats-heading" title="Board statistics" />
+      <PanelHead id="board-stats-heading" title={c('heading')} />
 
       <dl className="grid grid-cols-3 gap-1.5 px-3 py-3">
-        <Stat label="threads" value={threadCount} />
-        <Stat label="posts" value={postCount} />
-        <Stat label="members" value={memberCount} />
+        <Stat label={c('threads')} value={threadCount} />
+        <Stat label={c('posts')} value={postCount} />
+        <Stat label={c('members')} value={memberCount} />
       </dl>
 
       <p className={`${MICRO} border-t border-border px-3 py-2 normal-case`}>
-        <span className="uppercase">newest member</span>
+        <span className="uppercase">{c('newestMember')}</span>
         {': '}
         {newestMember === null ? (
-          '—'
+          c('none')
         ) : (
           <UserRef user={newestMember} className="text-primary hover:underline" />
         )}
@@ -42,10 +46,10 @@ export function BoardStats({
 
       <p className={`${MICRO} border-t border-border px-3 py-1.5 normal-case`}>
         {computedAt === null ? (
-          <span className="uppercase">not counted yet</span>
+          <span className="uppercase">{c('notCountedYet')}</span>
         ) : (
           <>
-            <span className="uppercase">counted</span> <Stamp at={computedAt} />
+            <span className="uppercase">{c('counted')}</span> <Stamp at={computedAt} />
           </>
         )}
       </p>

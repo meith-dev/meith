@@ -1,9 +1,12 @@
-import type { SubforumListModel } from '@meith/theme-kit'
+import type { SlotCopy, SubforumListModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { count, NUMERIC, plural } from '../shared'
 
-export function SubforumList({ forums }: SubforumListModel) {
+export function SubforumList({ forums, copy }: SubforumListModel & { copy: SlotCopy }) {
   if (forums.length === 0) return null
+
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.subforumList.${key}`)
 
   return (
     <section
@@ -14,7 +17,7 @@ export function SubforumList({ forums }: SubforumListModel) {
         id="subforums-heading"
         className="px-4 pt-3 pb-1 text-[0.9375rem] font-semibold text-muted-foreground"
       >
-        Subforums
+        {c('title')}
       </h2>
 
       <ul className="flex flex-wrap gap-2 px-4 pt-1 pb-3">
@@ -27,7 +30,8 @@ export function SubforumList({ forums }: SubforumListModel) {
               {forum.title}
               {forum.type !== 'link' && (
                 <span className={`text-xs font-medium text-muted-foreground ${NUMERIC}`}>
-                  {count(forum.threadCount)} {plural(forum.threadCount, 'thread', 'threads')}
+                  {count(forum.threadCount)}{' '}
+                  {plural(forum.threadCount, c('thread.one'), c('thread.other'))}
                 </span>
               )}
             </a>

@@ -1,4 +1,5 @@
-import type { HeaderModel } from '@meith/theme-kit'
+import type { HeaderModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { RULE } from '../shared'
 
@@ -30,7 +31,16 @@ function BoardMark({ boardTitle, logo }: Pick<HeaderModel, 'boardTitle' | 'logo'
   )
 }
 
-export function Header({ boardTitle, homeHref, navigation, logo, children }: HeaderModel) {
+export function Header({
+  boardTitle,
+  homeHref,
+  navigation,
+  logo,
+  children,
+  copy,
+}: HeaderModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.header.${key}`)
+
   return (
     <header>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-border bg-surface px-4 py-3">
@@ -48,7 +58,7 @@ export function Header({ boardTitle, homeHref, navigation, logo, children }: Hea
 
       {navigation.length > 0 && (
         <nav
-          aria-label="Board sections"
+          aria-label={c('sectionsAriaLabel')}
           className="flex flex-wrap border-b border-border bg-card/60"
         >
           {navigation.map((item) => (

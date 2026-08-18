@@ -1,14 +1,17 @@
-import type { LatestPostsModel } from '@meith/theme-kit'
+import type { LatestPostsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Frame, MICRO, PanelHead, Stamp, UserRef } from '../shared'
 
-export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
+export function LatestPosts({ posts, capturedAt, copy }: LatestPostsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.latestPosts.${key}`)
+
   return (
     <Frame aria-labelledby="latest-posts-heading">
-      <PanelHead id="latest-posts-heading" title="Latest posts" />
+      <PanelHead id="latest-posts-heading" title={c('heading')} />
 
       {posts.length === 0 ? (
-        <p className={`${MICRO} px-3 py-2.5`}>nothing said yet</p>
+        <p className={`${MICRO} px-3 py-2.5`}>{c('empty')}</p>
       ) : (
         <ul className="divide-y divide-border">
           {posts.map((post) => (
@@ -38,7 +41,7 @@ export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
       )}
 
       <p className={`${MICRO} border-t border-border px-3 py-1.5 normal-case`}>
-        <span className="uppercase">as of</span> <Stamp at={capturedAt} />
+        <span className="uppercase">{c('asOf')}</span> <Stamp at={capturedAt} />
       </p>
     </Frame>
   )

@@ -1,9 +1,15 @@
-import type { CategoryBlockModel } from '@meith/theme-kit'
+import type { CategoryBlockModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Card, CardRows } from '@meith/ui'
 
 import { ColumnHeads, PanelHead } from '../shared'
 
-export function CategoryBlock({ category, children }: CategoryBlockModel) {
+export function CategoryBlock({
+  category,
+  children,
+  copy,
+}: CategoryBlockModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.categoryBlock.${key}`)
   const headingId = `category-${category.id}`
 
   return (
@@ -19,7 +25,7 @@ export function CategoryBlock({ category, children }: CategoryBlockModel) {
             })}
       />
 
-      <ColumnHeads first="Forum" counts={['Threads', 'Posts']} last="Last post" />
+      <ColumnHeads first={c('forum')} counts={[c('threads'), c('posts')]} last={c('lastPost')} />
 
       <CardRows>{children}</CardRows>
     </Card>

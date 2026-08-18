@@ -1,4 +1,5 @@
-import type { PostBitSlotModel } from '@meith/theme-kit'
+import type { PostBitSlotModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Alert, AlertDescription, AlertTitle, Avatar, Card } from '@meith/ui'
 
 import { HEADING, LINK, MICRO, MICRO_BARE, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
@@ -9,8 +10,16 @@ const VISIBILITY_TINT = {
   deleted: 'border-thread-deleted/50 bg-destructive/5',
 } as const
 
-function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['visibility'] }) {
+function StatusBanner({
+  visibility,
+  copy,
+}: {
+  visibility: PostBitSlotModel['post']['visibility']
+  copy: SlotCopy
+}) {
   if (visibility === 'visible') return null
+
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.postBit.${key}`)
 
   return (
     <Alert
@@ -19,9 +28,9 @@ function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['vi
     >
       <AlertDescription>
         <AlertTitle>
-          {visibility === 'deleted' ? 'Deleted post.' : 'Waiting for approval.'}
+          {visibility === 'deleted' ? c('deletedPost') : c('waitingApproval')}
         </AlertTitle>{' '}
-        Only moderators can see this.
+        {c('staffOnly')}
       </AlertDescription>
     </Alert>
   )
@@ -65,10 +74,14 @@ function StatLine({ label, children }: { label: string; children: React.ReactNod
 function AuthorBlock({
   author,
   badges,
+  copy,
 }: {
   author: PostBitSlotModel['post']['author']
   badges: React.ReactNode
+  copy: SlotCopy
 }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.postBit.${key}`)
+
   return (
     <>
       <div aria-hidden="true" className="h-12 border-b-2 border-b-secondary bg-primary" />
@@ -90,7 +103,7 @@ function AuthorBlock({
         {author.isOnline && (
           <p className="mt-1 flex items-center gap-1.5 text-xs text-moderation-approved">
             <span aria-hidden="true" className="size-1.5 rounded-full bg-moderation-approved" />
-            Online
+            {c('online')}
           </p>
         )}
 
@@ -104,10 +117,12 @@ function AuthorBlock({
       </div>
 
       <dl className="mt-2.5 space-y-1 border-t border-border px-4 py-2.5">
-        <StatLine label="Posts">{author.postCount.label}</StatLine>
-        {author.reputation != null && <StatLine label="Rep">{author.reputation.label}</StatLine>}
+        <StatLine label={c('posts')}>{author.postCount.label}</StatLine>
+        {author.reputation != null && (
+          <StatLine label={c('rep')}>{author.reputation.label}</StatLine>
+        )}
         {author.joinedAt !== null && (
-          <StatLine label="Joined">
+          <StatLine label={c('joined')}>
             <Stamp at={author.joinedAt} />
           </StatLine>
         )}
@@ -121,7 +136,9 @@ function AuthorBlock({
   )
 }
 
-export function PostBit({ post, select, regions }: PostBitSlotModel) {
+export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.postBit.${key}`)
+
   return (
     <Card
       as="article"
@@ -130,11 +147,11 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
       data-visibility={post.visibility}
       className={`target:bg-post-highlight ${VISIBILITY_TINT[post.visibility]}`}
     >
-      <StatusBanner visibility={post.visibility} />
+      <StatusBanner visibility={post.visibility} copy={copy} />
 
       <div className="grid grid-cols-1 sm:grid-cols-[11rem_minmax(0,1fr)]">
         <div className="border-b border-border bg-surface pb-1 sm:border-r sm:border-b-0">
-          <AuthorBlock author={post.author} badges={regions.pluginBadges} />
+          <AuthorBlock author={post.author} badges={regions.pluginBadges} copy={copy} />
         </div>
 
         <div className="min-w-0">
@@ -157,7 +174,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
                 <span
                   className={`${MICRO_BARE} rounded-sm bg-primary px-1.5 py-0.5 text-primary-foreground`}
                 >
-                  Opening post
+                  {c('openingPost')}
                 </span>
               )}
 
@@ -171,11 +188,11 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
 
           {post.ignored !== null ? (
             <div className="px-4 py-5 text-sm text-muted-foreground">
-              You are ignoring{' '}
-              <span className="font-semibold text-foreground">{post.ignored.authorUsername}</span>.
-              This post is hidden.{' '}
+              {c('ignoring')}{' '}
+              <span className="font-semibold text-foreground">{post.ignored.authorUsername}</span>.{' '}
+              {c('postHidden')}{' '}
               <a href={post.ignored.revealHref} className={`font-semibold text-foreground ${LINK}`}>
-                Show it anyway
+                {c('showAnyway')}
               </a>
             </div>
           ) : (
@@ -197,7 +214,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             <div className="border-t border-border px-4 py-3">
               <h4 className={`${MICRO} mb-2`}>
                 {post.attachments.length}{' '}
-                {post.attachments.length === 1 ? 'attachment' : 'attachments'}
+                {post.attachments.length === 1 ? c('attachment.one') : c('attachment.other')}
               </h4>
               <ul className="flex flex-wrap gap-3">
                 {post.attachments.map((file) => (

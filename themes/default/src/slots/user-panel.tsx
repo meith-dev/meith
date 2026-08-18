@@ -1,4 +1,5 @@
-import type { UserPanelModel } from '@meith/theme-kit'
+import type { SlotCopy, UserPanelModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Avatar, Badge, buttonVariants } from '@meith/ui'
 import { Menu } from '@meith/ui/menu'
 
@@ -15,7 +16,10 @@ export function UserPanel({
   notificationsHref,
   messagesHref,
   children,
-}: UserPanelModel) {
+  copy,
+}: UserPanelModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.userPanel.${key}`)
+
   if (viewer.isGuest) {
     return (
       <div className="flex items-center gap-2">
@@ -35,7 +39,7 @@ export function UserPanel({
     )
   }
 
-  const name = viewer.username ?? 'Signed in'
+  const name = viewer.username ?? c('signedIn')
 
   return (
     <div className="flex min-w-0 flex-col items-start gap-1 sm:items-end">
@@ -51,8 +55,8 @@ export function UserPanel({
           <a href={notificationsHref} className={COUNT_LINK}>
             <Badge tone="solid">
               {unreadNotifications.label}
-              <span className="sr-only"> unread notifications</span>
-              <span aria-hidden="true"> new</span>
+              <span className="sr-only"> {c('unreadNotifications')}</span>
+              <span aria-hidden="true"> {c('new')}</span>
             </Badge>
           </a>
         )}
@@ -60,15 +64,15 @@ export function UserPanel({
           <a href={messagesHref} className={COUNT_LINK}>
             <Badge tone="outline">
               {unreadMessages.label}
-              <span className="sr-only"> unread messages</span>
-              <span aria-hidden="true"> unread</span>
+              <span className="sr-only"> {c('unreadMessages')}</span>
+              <span aria-hidden="true"> {c('unread')}</span>
             </Badge>
           </a>
         )}
 
         <span data-account="menu" className="flex min-w-0 items-center">
           <Menu
-            label="Your account"
+            label={c('yourAccount')}
             items={links}
             trigger={
               <>
@@ -97,7 +101,7 @@ export function UserPanel({
       <nav
         data-account="plain"
         style={{ display: 'none' }}
-        aria-label="Your account"
+        aria-label={c('yourAccount')}
         className="flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:justify-end"
       >
         <span className="font-medium text-foreground">{name}</span>

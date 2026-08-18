@@ -1,8 +1,15 @@
-import type { BoardIndexModel } from '@meith/theme-kit'
+import type { BoardIndexModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { BUTTON } from '../shared'
 
-export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
+export function BoardIndex({
+  markAllReadAction,
+  regions,
+  copy,
+}: BoardIndexModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.boardIndex.${key}`)
+
   const latest = regions.latest ?? null
 
   return (
@@ -26,7 +33,7 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
       {markAllReadAction !== null && (
         <form action={markAllReadAction} method="post">
           <button type="submit" className={BUTTON}>
-            mark all read
+            {c('markAllRead')}
           </button>
         </form>
       )}

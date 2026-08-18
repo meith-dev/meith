@@ -1,4 +1,5 @@
-import type { BoardStatsModel } from '@meith/theme-kit'
+import type { BoardStatsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { NUMERIC, Stamp, UserRef } from '../shared'
 
@@ -8,26 +9,27 @@ export function BoardStats({
   memberCount,
   newestMember,
   computedAt,
-}: BoardStatsModel) {
+  copy,
+}: BoardStatsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.boardStats.${key}`)
+
   return (
     <section
       aria-labelledby="board-stats-heading"
       className="flex flex-wrap items-baseline gap-x-3 gap-y-1"
     >
       <h2 id="board-stats-heading" className="sr-only">
-        Board statistics
+        {c('heading')}
       </h2>
 
       {computedAt === null ? (
-        <span>
-          The board&rsquo;s totals are rolled up on a schedule, and the first run has not happened.
-        </span>
+        <span>{c('notComputed')}</span>
       ) : (
         <>
           {[
-            { label: 'threads', value: threadCount },
-            { label: 'posts', value: postCount },
-            { label: 'members', value: memberCount },
+            { label: c('threads'), value: threadCount },
+            { label: c('posts'), value: postCount },
+            { label: c('members'), value: memberCount },
           ].map((figure) => (
             <span key={figure.label}>
               <span className={`font-medium text-foreground ${NUMERIC}`}>{figure.value.label}</span>{' '}
@@ -37,12 +39,12 @@ export function BoardStats({
 
           {newestMember !== null && (
             <span>
-              newest member <UserRef user={newestMember} className="text-foreground" />
+              {c('newestMember')} <UserRef user={newestMember} className="text-foreground" />
             </span>
           )}
 
           <span className={`ms-auto ${NUMERIC}`}>
-            Counted <Stamp at={computedAt} />
+            {c('counted')} <Stamp at={computedAt} />
           </span>
         </>
       )}

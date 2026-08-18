@@ -1,12 +1,15 @@
-import type { NavigationModel } from '@meith/theme-kit'
+import type { NavigationModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { MICRO, MUTED_LINK, PAGE } from '../shared'
 
-export function Navigation({ items }: NavigationModel) {
+export function Navigation({ items, copy }: NavigationModel & { copy: SlotCopy }) {
   if (items.length === 0) return null
 
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.navigation.${key}`)
+
   return (
-    <nav aria-label="Breadcrumb" className="border-b border-border bg-card">
+    <nav aria-label={c('breadcrumb')} className="border-b border-border bg-card">
       <ol
         className={`${PAGE} flex items-center gap-2 overflow-x-auto py-2 whitespace-nowrap ${MICRO}`}
       >

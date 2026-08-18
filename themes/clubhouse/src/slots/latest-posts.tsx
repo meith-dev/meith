@@ -1,25 +1,28 @@
-import type { LatestPostsModel } from '@meith/theme-kit'
+import type { LatestPostsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Card, CardContent, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { LINK, MICRO, MUTED_LINK, PanelHead, Stamp, UserRef } from '../shared'
 
-export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
+export function LatestPosts({ posts, capturedAt, copy }: LatestPostsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.latestPosts.${key}`)
+
   return (
     <Card aria-labelledby="latest-posts-heading">
       <PanelHead
         id="latest-posts-heading"
-        title="Latest posts"
+        title={c('title')}
         aside={
           <span className={MICRO}>
-            As of <Stamp at={capturedAt} />
+            {c('asOf')} <Stamp at={capturedAt} />
           </span>
         }
       />
 
       {posts.length === 0 ? (
         <Empty className="py-5">
-          <EmptyTitle>Nothing said yet</EmptyTitle>
-          <EmptyDescription>The newest posts you can see will appear here.</EmptyDescription>
+          <EmptyTitle>{c('nothingSaidYet')}</EmptyTitle>
+          <EmptyDescription>{c('newestPostsEmpty')}</EmptyDescription>
         </Empty>
       ) : (
         <CardContent className="px-0 py-0">
@@ -39,7 +42,7 @@ export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
 
                 <p className="truncate text-xs text-muted-foreground">
                   <UserRef user={post.author} className="font-medium" />
-                  {' in '}
+                  {` ${c('in')} `}
                   <a href={post.forum.href} className={MUTED_LINK}>
                     {post.forum.label}
                   </a>

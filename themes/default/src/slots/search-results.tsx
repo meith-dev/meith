@@ -1,4 +1,5 @@
-import type { OptionModel, SearchRefineModel, SearchResultsModel } from '@meith/theme-kit'
+import type { OptionModel, SearchRefineModel, SearchResultsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import {
   buttonVariants,
   Card,
@@ -26,7 +27,10 @@ export function SearchResults({
   within,
   refine,
   regions,
-}: SearchResultsModel) {
+  copy,
+}: SearchResultsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.searchResults.${key}`)
+
   return (
     <main
       id="board-content"
@@ -34,22 +38,23 @@ export function SearchResults({
       className={`${pageAt('max-w-3xl')} flex flex-1 flex-col gap-6 py-8`}
     >
       <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">Results for &ldquo;{terms}&rdquo;</h1>
+        <h1 className="font-heading text-2xl font-semibold">
+          {c('resultsFor')} {c('openQuote')}
+          {terms}
+          {c('closeQuote')}
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Searched <Stamp at={searchedAt} />. Results are checked against your access every time
-          this page is opened, so they can change.
+          {c('searched')} <Stamp at={searchedAt} />. {c('searchedNote')}
         </p>
       </div>
 
-      {refine !== undefined && <Refine {...refine} />}
+      {refine !== undefined && <Refine {...refine} copy={copy} />}
 
       <Card>
         {hits.length === 0 ? (
           <Empty>
-            <EmptyTitle>Nothing matched.</EmptyTitle>
-            <EmptyDescription>
-              Or nothing you can see does. Try fewer words, or a different spelling.
-            </EmptyDescription>
+            <EmptyTitle>{c('nothingMatched')}</EmptyTitle>
+            <EmptyDescription>{c('tryFewerWords')}</EmptyDescription>
           </Empty>
         ) : (
           <CardRows>
@@ -63,7 +68,7 @@ export function SearchResults({
                   dangerouslySetInnerHTML={{ __html: hit.excerptHtml }}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {hit.authorUsername} · <Stamp at={hit.postedAt} />
+                  {hit.authorUsername} {c('dot')} <Stamp at={hit.postedAt} />
                 </p>
               </li>
             ))}
@@ -76,7 +81,7 @@ export function SearchResults({
           nextHref !== null && (
             <CardFooter>
               <a href={nextHref} className={`font-medium text-foreground ${LINK}`}>
-                {nextLabel} →
+                {nextLabel} {c('nextArrow')}
               </a>
             </CardFooter>
           )
@@ -111,7 +116,7 @@ export function SearchResults({
       </Card>
 
       <a href={newSearchHref} className={`text-sm font-medium text-foreground ${LINK}`}>
-        Start a new search
+        {c('startNewSearch')}
       </a>
     </main>
   )
@@ -128,7 +133,10 @@ function Refine({
   submitLabel,
   applied,
   clearHref,
-}: SearchRefineModel) {
+  copy,
+}: SearchRefineModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.searchResults.${key}`)
+
   return (
     <section
       aria-label={label}
@@ -164,8 +172,8 @@ function Refine({
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-primary/20"
           >
             {chip.label}
-            <span aria-hidden="true">×</span>
-            <span className="sr-only">— remove this filter</span>
+            <span aria-hidden="true">{c('removeFilterX')}</span>
+            <span className="sr-only">{c('removeFilter')}</span>
           </a>
         ))}
       </div>
@@ -193,7 +201,7 @@ function Refine({
 
         {clearHref !== null && (
           <a href={clearHref} className={`text-xs font-medium text-foreground ${LINK}`}>
-            Clear filters
+            {c('clearFilters')}
           </a>
         )}
       </form>

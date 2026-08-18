@@ -1,4 +1,5 @@
-import type { PostBitSlotModel } from '@meith/theme-kit'
+import type { PostBitSlotModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
@@ -28,21 +29,28 @@ function GroupBadge({
   )
 }
 
-function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['visibility'] }) {
+function StatusBanner({
+  visibility,
+  copy,
+}: {
+  visibility: PostBitSlotModel['post']['visibility']
+  copy: SlotCopy
+}) {
   if (visibility === 'visible') return null
+  const c = (key: string) => fromSlotCopy(copy, `midnight.postBit.${key}`)
   return (
     <p className="border-b border-border bg-muted px-3 py-1 font-mono text-xs text-muted-foreground">
-      {visibility === 'deleted'
-        ? 'deleted — visible to moderators only'
-        : 'awaiting approval — visible to moderators only'}
+      {visibility === 'deleted' ? c('deleted') : c('unapproved')}
     </p>
   )
 }
 
-export function PostBit({ post, select, regions }: PostBitSlotModel) {
+export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `midnight.postBit.${key}`)
+
   return (
     <article id={`post-${post.number}`} data-post-id={post.id} className="border border-border">
-      <StatusBanner visibility={post.visibility} />
+      <StatusBanner visibility={post.visibility} copy={copy} />
 
       <div className="grid grid-cols-1 sm:grid-cols-[11rem_1fr]">
         <div className="border-b border-border bg-secondary px-3 py-2 sm:border-b-0 sm:border-r">
@@ -88,12 +96,12 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           )}
           <dl className="mt-2 font-mono text-xs text-muted-foreground">
             <div className="flex gap-1">
-              <dt>posts</dt>
+              <dt>{c('posts')}</dt>
               <dd className="text-foreground">{post.author.postCount.label}</dd>
             </div>
             {post.author.joinedAt !== null && (
               <div className="flex gap-1">
-                <dt>joined</dt>
+                <dt>{c('joined')}</dt>
                 <dd>
                   <time dateTime={post.author.joinedAt.iso}>{post.author.joinedAt.label}</time>
                 </dd>
@@ -101,11 +109,11 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             )}
             {post.author.reputation != null && (
               <div className="flex gap-1">
-                <dt>rep</dt>
+                <dt>{c('rep')}</dt>
                 <dd className="text-foreground">{post.author.reputation.label}</dd>
               </div>
             )}
-            {post.author.isOnline && <div className="text-forum-unread">online</div>}
+            {post.author.isOnline && <div className="text-forum-unread">{c('online')}</div>}
           </dl>
 
           {post.author.fields.length > 0 && (
@@ -130,9 +138,10 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
 
           {post.ignored !== null ? (
             <p className="px-3 py-3 text-sm text-muted-foreground">
-              Post from {post.ignored.authorUsername}, who you are ignoring.{' '}
+              {c('ignoredPrefix')} {post.ignored.authorUsername}
+              {c('ignoredSuffix')}{' '}
               <a href={post.ignored.revealHref} className="text-primary hover:underline">
-                Show it
+                {c('showIt')}
               </a>
             </p>
           ) : (

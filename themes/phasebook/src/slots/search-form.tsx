@@ -1,4 +1,5 @@
-import type { OptionModel, SearchAdvancedModel, SearchFormModel } from '@meith/theme-kit'
+import type { OptionModel, SearchAdvancedModel, SearchFormModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { PILL_PRIMARY } from '../shared'
 
@@ -102,7 +103,8 @@ export function SearchForm({
   hint,
   errorMessage,
   advanced,
-}: SearchFormModel) {
+  copy,
+}: SearchFormModel & { copy: SlotCopy }) {
   const described = [
     hint === null ? null : 'search-hint',
     errorMessage === null ? null : 'search-error',
@@ -110,12 +112,14 @@ export function SearchForm({
     .filter((id): id is string => id !== null)
     .join(' ')
 
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.searchForm.${key}`)
+
   return (
     <section className="rounded-lg border border-border bg-card text-card-foreground shadow-elevation">
       <form method="get" action={action} className="flex flex-col gap-4 px-4 py-4">
         <div>
           <label htmlFor="search-query" className={LABEL}>
-            Search for
+            {c('searchFor')}
           </label>
           <input
             id="search-query"
@@ -124,7 +128,7 @@ export function SearchForm({
             defaultValue={query}
             maxLength={maxQueryLength}
             autoComplete="off"
-            placeholder="Words in a subject or a post"
+            placeholder={c('placeholder')}
             aria-invalid={errorMessage === null ? undefined : true}
             {...(described === '' ? {} : { 'aria-describedby': described })}
             className="w-full rounded-full border border-input bg-surface px-4 py-2.5 text-sm text-foreground transition-colors focus-visible:border-ring"
@@ -144,15 +148,15 @@ export function SearchForm({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Choice id="search-forum" label="In" name={fields.forum} options={forums} />
-          <Choice id="search-sort" label="Sort by" name={fields.sort} options={sorts} />
+          <Choice id="search-forum" label={c('in')} name={fields.forum} options={forums} />
+          <Choice id="search-sort" label={c('sortBy')} name={fields.sort} options={sorts} />
         </div>
 
         {advanced !== undefined && <Advanced {...advanced} />}
 
         <div>
           <button type="submit" className={PILL_PRIMARY}>
-            Search
+            {c('search')}
           </button>
         </div>
       </form>
