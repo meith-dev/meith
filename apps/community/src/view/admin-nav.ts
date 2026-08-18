@@ -70,6 +70,10 @@ export const ADMIN_SECTIONS: PanelNav = [
         titleKey: 'adminNav.admin-content-announcements.title',
       },
       { href: '/admin/content/attachments', titleKey: 'adminNav.admin-content-attachments.title' },
+      {
+        href: '/admin/content/navigation',
+        titleKey: 'adminNav.admin-content-navigation.title',
+      },
     ],
   },
   {

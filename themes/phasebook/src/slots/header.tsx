@@ -1,5 +1,5 @@
 import type { HeaderModel, SlotCopy } from '@meith/theme-kit'
-import { fromSlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy, linkTarget } from '@meith/theme-kit'
 
 import { PAGE } from '../shared'
 
@@ -69,6 +69,7 @@ export function Header({
                 <li key={item.href}>
                   <a
                     href={item.href}
+                    {...linkTarget(item)}
                     className="inline-flex h-11 items-center rounded-lg px-6 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   >
                     {item.label}
@@ -89,6 +90,7 @@ export function Header({
               <li key={item.href} className="shrink-0">
                 <a
                   href={item.href}
+                  {...linkTarget(item)}
                   className="inline-flex h-9 items-center rounded-full px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 >
                   {item.label}

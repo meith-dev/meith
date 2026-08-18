@@ -1,5 +1,5 @@
 import type { HeaderModel, SlotCopy } from '@meith/theme-kit'
-import { fromSlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy, linkTarget } from '@meith/theme-kit'
 
 function BoardMark({ boardTitle, logo }: Pick<HeaderModel, 'boardTitle' | 'logo'>) {
   if (logo === undefined) return <>{boardTitle}</>
@@ -51,6 +51,7 @@ export function Header({
             <a
               key={item.href}
               href={item.href}
+              {...linkTarget(item)}
               className="border-r border-border px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               {item.label}

@@ -2,6 +2,7 @@ import type { CacheDriver } from './ports'
 
 export const CacheTags = {
   forumTree: () => 'forum-tree',
+  navigation: () => 'navigation',
   settings: () => 'settings',
   theme: (key: string) => `theme:${key}`,
   markdownVocabulary: () => 'markdown-vocabulary',
@@ -18,6 +19,7 @@ export type CacheTag = ReturnType<(typeof CacheTags)[keyof typeof CacheTags]>
 
 export const GLOBAL_TAGS: readonly string[] = [
   CacheTags.forumTree(),
+  CacheTags.navigation(),
   CacheTags.settings(),
   CacheTags.markdownVocabulary(),
   CacheTags.prefixes(),

@@ -111,6 +111,11 @@ export class Authorizer {
     }
   }
 
+  inAnyGroup(actor: Actor, groupIds: readonly number[]): boolean {
+    if (groupIds.length === 0) return true
+    return actor.groupIds.some((id) => groupIds.includes(id))
+  }
+
   async forumMatrix(actor: Actor, forumId: number): Promise<ForumPermissions> {
     const chain = await this.source.ancestorChain(forumId)
     const groups = await this.source.groupDefaults(actor.groupIds)

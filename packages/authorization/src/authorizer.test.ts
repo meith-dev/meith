@@ -148,6 +148,25 @@ describe('board.viewOffline', () => {
   })
 })
 
+describe('inAnyGroup', () => {
+  const auth = new Authorizer(source)
+
+  it('admits everybody when no group was named', () => {
+    expect(auth.inAnyGroup(actorWith({}), [])).toBe(true)
+  })
+
+  it('admits a member of one of the named groups', () => {
+    expect(auth.inAnyGroup(actorWith({}, { groupIds: [2, 5] }), [5, 9])).toBe(true)
+  })
+
+  it('refuses a member of none of them, administrator or not', () => {
+    const admin = actorWith({ isAdministrator: true }, { groupIds: [2] })
+
+    expect(auth.inAnyGroup(actorWith({}, { groupIds: [2] }), [9])).toBe(false)
+    expect(auth.inAnyGroup(admin, [9])).toBe(false)
+  })
+})
+
 describe('applicableGroupRows', () => {
   const rows = [
     { fieldId: 1, groupId: 2, canView: true },

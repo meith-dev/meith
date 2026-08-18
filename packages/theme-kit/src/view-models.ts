@@ -134,6 +134,16 @@ export interface LinkModel {
    * business. Absent everywhere is the normal case and renders as one run.
    */
   readonly group?: string
+  /**
+   * Whether the link leaves the board, and should open in its own tab (0.16).
+   *
+   * Set by the app for a link an administrator marked as off-site — a chat
+   * server, a shop, a wiki. A theme that ignores it renders an ordinary link
+   * and is still correct, which is what keeps the field additive. A theme that
+   * honours it must pair `target="_blank"` with `rel="noopener noreferrer"`,
+   * because the opened page can otherwise reach back through `window.opener`.
+   */
+  readonly newTab?: boolean
 }
 
 /** Who is looking. The only actor data a theme is given. */

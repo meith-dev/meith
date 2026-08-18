@@ -1,5 +1,5 @@
 import type { HeaderModel, SlotCopy } from '@meith/theme-kit'
-import { fromSlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy, linkTarget } from '@meith/theme-kit'
 
 import { ClubRule, Crest, HEADING, PAGE, TAB } from '../shared'
 
@@ -66,6 +66,7 @@ export function Header({
                 <li key={item.href} className="shrink-0">
                   <a
                     href={item.href}
+                    {...linkTarget(item)}
                     className={`${TAB} border-b-2 border-b-transparent text-muted-foreground hover:border-b-secondary hover:bg-primary hover:text-primary-foreground`}
                   >
                     {item.label}

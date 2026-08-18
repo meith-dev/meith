@@ -1,5 +1,5 @@
 import type { HeaderModel, SlotCopy } from '@meith/theme-kit'
-import { fromSlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy, linkTarget } from '@meith/theme-kit'
 
 import { RULE } from '../shared'
 
@@ -65,6 +65,7 @@ export function Header({
             <a
               key={item.href}
               href={item.href}
+              {...linkTarget(item)}
               className="border-t-2 border-r border-t-transparent border-r-border px-3.5 py-2 font-mono text-[0.6875rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase hover:border-t-primary hover:bg-secondary hover:text-primary"
             >
               {item.label}

@@ -503,3 +503,23 @@ board's plugin list now. If you have been running a plugin whose
 migrations the panel reported as pending, run `community upgrade` once
 more — re-running is safe, since applying and recording a migration are
 one transaction and a re-run of an applied one is a no-op.
+
+#### The navigation menu is a list you edit
+
+The row of links across the top of the board used to be six items
+compiled into the app. They are rows in the database now, and the
+migration seeds exactly those six with their existing addresses,
+ordering and audiences — **an upgraded board's menu looks and behaves
+the way it did**, including Search disappearing when search is off and
+My posts staying away from signed-out visitors.
+
+What is new is that you can change it, under **Admin → Content →
+Navigation**: rename an item, reorder it, hide it, delete it, or add
+your own — to a chat server, a wiki, anything with an address. Items can
+be limited to an audience or to particular groups, and one marked as
+opening in a new tab does so in every theme that honours it.
+
+A theme you maintain needs no change. `LinkModel` gained an optional
+`newTab`, which a theme is free to ignore; to honour it, spread
+`linkTarget(item)` onto the anchor — see
+[the theme API](./theme-api.md#versioning).
