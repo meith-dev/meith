@@ -20,7 +20,7 @@ import {
 } from '@meith/plugin-kit'
 
 import forumConfig from '../../community.config'
-import { getLocale } from './i18n'
+import { getTranslator } from './i18n'
 import { notificationService } from './notifications'
 import { getSettingOverrides } from './settings'
 
@@ -118,7 +118,7 @@ export async function renderPluginBoardPage(
     return { outcome: 'sign-in-first', title: page.title }
   }
 
-  const log = logger({ component: 'plugin-page', plugin: pluginKey })
+  const [log, t] = [logger({ component: 'plugin-page', plugin: pluginKey }), await getTranslator()]
 
   try {
     return {
@@ -130,7 +130,8 @@ export async function renderPluginBoardPage(
         path,
         query: request.query,
         boardUrl: request.boardUrl,
-        locale: (await getLocale()).locale,
+        locale: t.locale,
+        t,
       }),
     }
   } catch (error) {
@@ -156,7 +157,7 @@ export async function renderPluginAdminPage(
   const overrides = await getSettingOverrides()
   if (overrides.get(`plugin.${pluginKey}._enabled`) === '0') return null
 
-  const log = logger({ component: 'plugin-page', plugin: pluginKey })
+  const [log, t] = [logger({ component: 'plugin-page', plugin: pluginKey }), await getTranslator()]
 
   try {
     return {
@@ -164,7 +165,8 @@ export async function renderPluginAdminPage(
       node: await page.render({
         ...runtimeContextFor(pluginKey, definition, overrides, log),
         query,
-        locale: (await getLocale()).locale,
+        locale: t.locale,
+        t,
       }),
     }
   } catch (error) {

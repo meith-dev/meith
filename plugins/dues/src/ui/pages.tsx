@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import type { PluginPageContext } from '@meith/plugin-kit'
+import type { Translator } from '@meith/theme-kit'
 
 import type { DuesConfig } from '../config'
 import { formatMinor } from '../money'
@@ -28,84 +29,74 @@ const BUY_BUTTON =
 const QUIET_BUTTON =
   'inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm'
 
-function fmtDate(date: Date, locale: string): ReactNode {
-  const label = new Intl.DateTimeFormat(locale, {
+function fmtDate(date: Date, t: Translator): ReactNode {
+  const label = t.parts(date, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
-  }).format(date)
+  })
   return <time dateTime={date.toISOString()}>{label}</time>
 }
 
-function priceLine(plan: PlanRow): string {
-  const price = formatMinor(plan.priceMinor, plan.currency)
-  if (plan.mode === 'auto') return `${price} every ${plan.billingInterval ?? 'month'}`
-  if (plan.mode === 'lifetime') return `${price} · once, for good`
+function priceLine(plan: PlanRow, t: Translator): string {
+  const price = formatMinor(plan.priceMinor, plan.currency, t.locale)
+  if (plan.mode === 'auto') return `${price} ${describeBilling(plan)}`
+  if (plan.mode === 'lifetime') return `${price} · ${describeBilling(plan)}`
   return `${price} · ${describeBilling(plan)}`
 }
 
-const NOTICES: Record<string, string> = {
-  'unknown-plan': 'That plan is not on offer. The ones below are.',
-  unconfigured:
-    'Payments are not set up on this board yet. An administrator needs to finish the ' +
-    'Stripe configuration before anything can be bought.',
-  'unknown-recipient':
-    'No member goes by that name. Check the spelling — the gift needs somewhere to go.',
-  'gift-not-allowed': 'That plan cannot be bought for someone else. Fixed-term passes can.',
-  'already-member':
-    'There is already an active subscription for that membership, so a second one ' +
-    'would just charge twice for the same thing.',
-  'try-again': 'That did not go through cleanly. Nothing was charged — try once more.',
-  'stripe-error': 'Stripe could not be reached, so nothing was charged. Try again shortly.',
-  'sign-in': 'Sign in first, so the membership has an account to attach to.',
-  'unknown-code': 'That discount code does not exist. Check the spelling.',
-  'code-disabled': 'That discount code has been switched off.',
-  'code-expired': 'That discount code has expired.',
-  'code-exhausted': 'That discount code has been used as many times as it allows.',
-  'code-wrong-plan': 'That discount code is for a different plan.',
-  'already-forever':
-    'You hold this membership for good already — there is nothing left to buy for it.',
-  'plan-not-ready':
-    'That plan is not finished being set up — its Stripe price is missing. An ' +
-    'administrator needs to complete it.',
-  'cancel-first':
-    'There is an active subscription for that membership. Cancel its renewal first, ' +
-    'then buy the lifetime plan — you keep everything already paid for.',
-}
+const NOTICE_KEYS = new Set([
+  'dues.notice.already-forever',
+  'dues.notice.already-member',
+  'dues.notice.cancel-first',
+  'dues.notice.code-disabled',
+  'dues.notice.code-exhausted',
+  'dues.notice.code-expired',
+  'dues.notice.code-wrong-plan',
+  'dues.notice.gift-not-allowed',
+  'dues.notice.plan-not-ready',
+  'dues.notice.sign-in',
+  'dues.notice.stripe-error',
+  'dues.notice.try-again',
+  'dues.notice.unconfigured',
+  'dues.notice.unknown-code',
+  'dues.notice.unknown-plan',
+  'dues.notice.unknown-recipient',
+])
 
-function Notice({ query }: { query: Readonly<Record<string, string>> }) {
+function Notice({ query, t }: { query: Readonly<Record<string, string>>; t: Translator }) {
   if (query.cancelled === '1') {
     return (
       <p className="rounded-lg border border-border bg-muted px-4 py-3 text-sm">
-        Checkout was cancelled. Nothing was charged.
+        {t.t('dues.notice.cancelled')}
       </p>
     )
   }
-  const message = NOTICES[query.error ?? '']
-  if (message === undefined) return null
+  const key = `dues.notice.${query.error ?? ''}`
+  if (!NOTICE_KEYS.has(key)) return null
   return (
     <p
       role="status"
       className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm"
     >
-      {message}
+      {t.t(key)}
     </p>
   )
 }
 
-function membershipLine(membership: MembershipRow): string {
+function membershipLine(membership: MembershipRow, t: Translator): string {
   switch (membership.status) {
     case 'active':
-      return membership.renewalMode === 'auto' ? 'renews on' : 'yours until'
+      return t.t(membership.renewalMode === 'auto' ? 'dues.membership.activeAuto' : 'dues.membership.activeFixed')
     case 'grace':
-      return 'payment failed — access until'
+      return t.t('dues.membership.grace')
     case 'closing':
-      return 'will not renew — yours until'
+      return t.t('dues.membership.closing')
     case 'expired':
-      return 'ended on'
+      return t.t('dues.membership.expired')
     case 'revoked':
-      return 'refunded and ended on'
+      return t.t('dues.membership.revoked')
   }
 }
 
@@ -113,23 +104,23 @@ function membershipDate(membership: MembershipRow): Date {
   return membership.status === 'grace' ? membership.graceUntil : membership.currentPeriodEnd
 }
 
-function membershipWhen(membership: MembershipRow, locale: string): ReactNode {
+function membershipWhen(membership: MembershipRow, t: Translator): ReactNode {
   if (membership.renewalMode === 'lifetime' && membership.status === 'active') {
-    return 'yours for good'
+    return t.t('dues.membership.lifetime')
   }
   return (
     <>
-      {membershipLine(membership)} {fmtDate(membershipDate(membership), locale)}
+      {membershipLine(membership, t)} {fmtDate(membershipDate(membership), t)}
     </>
   )
 }
 
 function HeldCard({
   memberships,
-  locale,
+  t,
 }: {
   memberships: readonly MembershipRow[]
-  locale: string
+  t: Translator
 }) {
   const live = memberships.filter(
     (row) => row.status === 'active' || row.status === 'grace' || row.status === 'closing',
@@ -139,14 +130,14 @@ function HeldCard({
   return (
     <section className={CARD} aria-labelledby="dues-held">
       <h2 id="dues-held" className="font-heading text-lg font-semibold">
-        What you hold
+        {t.t('dues.held.heading')}
       </h2>
       <ul className="flex flex-col gap-2 text-sm">
         {live.map((row) => (
           <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="font-medium">{row.planKey}</span>
             <span className={row.status === 'grace' ? '' : 'text-muted-foreground'}>
-              {membershipWhen(row, locale)}
+              {membershipWhen(row, t)}
             </span>
           </li>
         ))}
@@ -156,7 +147,7 @@ function HeldCard({
           href="/plugins/dues/manage"
           className="font-medium underline decoration-border underline-offset-2 hover:decoration-current"
         >
-          Manage your membership
+          {t.t('dues.held.manage')}
         </a>
       </p>
     </section>
@@ -168,27 +159,29 @@ function PlanCard({
   viewerSignedIn,
   defaultRecipient,
   defaultCode,
+  t,
 }: {
   plan: PlanRow
   viewerSignedIn: boolean
   defaultRecipient: string
   defaultCode: string
+  t: Translator
 }) {
   return (
     <section className={CARD} aria-label={plan.name}>
       <div className="flex flex-col gap-1">
         <h3 className="font-heading text-lg font-semibold">{plan.name}</h3>
-        <p className="text-sm font-medium">{priceLine(plan)}</p>
+        <p className="text-sm font-medium">{priceLine(plan, t)}</p>
         {plan.description !== null && (
           <p className="text-sm text-muted-foreground">{plan.description}</p>
         )}
         {plan.mode === 'auto' && (
           <p className="text-xs text-muted-foreground">
-            Renews automatically. Cancel any time and keep what you paid for until the period ends.
+            {t.t('dues.plan.auto')}
           </p>
         )}
         {plan.mode === 'lifetime' && (
-          <p className="text-xs text-muted-foreground">One payment, no renewal, no end date.</p>
+          <p className="text-xs text-muted-foreground">{t.t('dues.plan.lifetime')}</p>
         )}
       </div>
 
@@ -198,7 +191,7 @@ function PlanCard({
           {plan.giftable && (
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-xs text-muted-foreground">
-                Buying for another member? Their username — leave empty for yourself.
+                {t.t('dues.plan.gift')}
               </span>
               <input
                 name="recipient"
@@ -209,29 +202,28 @@ function PlanCard({
             </label>
           )}
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-muted-foreground">Discount code, if you have one.</span>
+            <span className="text-xs text-muted-foreground">{t.t('dues.plan.discountCode')}</span>
             <input name="code" defaultValue={defaultCode} autoComplete="off" className={INPUT} />
           </label>
           <div>
             <button type="submit" className={BUY_BUTTON}>
               {plan.mode === 'auto'
-                ? 'Subscribe'
+                ? t.t('dues.plan.buySubscription')
                 : plan.mode === 'lifetime'
-                  ? 'Buy lifetime membership'
-                  : 'Buy this pass'}
+                  ? t.t('dues.plan.buyLifetime')
+                  : t.t('dues.plan.buyFixed')}
             </button>
           </div>
         </form>
       ) : (
         <p className="text-sm">
           <a href="/login?next=%2Fplugins%2Fdues" className={QUIET_BUTTON}>
-            Sign in to join
+            {t.t('dues.plan.signIn')}
           </a>
         </p>
       )}
       <p className="text-xs text-muted-foreground">
-        Payment is taken by Stripe on their own checkout page — no card number ever touches this
-        board.
+        {t.t('dues.plan.payment')}
       </p>
     </section>
   )
@@ -252,9 +244,9 @@ export async function PlansPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <Notice query={context.query} />
-      <HeldCard memberships={memberships} locale={context.locale} />
-      {plans.length === 0 && <p className={QUIET_PANEL}>Nothing is on sale just now.</p>}
+      <Notice query={context.query} t={context.t} />
+      <HeldCard memberships={memberships} t={context.t} />
+      {plans.length === 0 && <p className={QUIET_PANEL}>{context.t.t('dues.plan.empty')}</p>}
       <div className="grid gap-4 sm:grid-cols-2">
         {plans.map((plan) => (
           <PlanCard
@@ -263,6 +255,7 @@ export async function PlansPage({
             viewerSignedIn={signedIn}
             defaultRecipient={bounced === plan.key ? (context.query.recipient ?? '') : ''}
             defaultCode={bounced === plan.key ? (context.query.code ?? '') : ''}
+            t={context.t}
           />
         ))}
       </div>
@@ -299,9 +292,9 @@ export function GoPage({
   if (!allowed) {
     return (
       <p className={QUIET_PANEL}>
-        That is not somewhere this board sends people.{' '}
+        {context.t.t('dues.go.notAllowed')}{' '}
         <a href="/plugins/dues" className="font-medium underline underline-offset-2">
-          Back to safety.
+          {context.t.t('dues.go.back')}
         </a>
       </p>
     )
@@ -310,14 +303,13 @@ export function GoPage({
   return (
     <section className={CARD}>
       <meta httpEquiv="refresh" content={`0;url=${to}`} />
-      <h2 className="font-heading text-lg font-semibold">Over to Stripe…</h2>
+      <h2 className="font-heading text-lg font-semibold">{context.t.t('dues.go.heading')}</h2>
       <p className="text-sm text-muted-foreground">
-        Payment happens on Stripe&rsquo;s own page — no card number ever touches this board. You
-        should be there already;{' '}
+        {context.t.t('dues.go.paymentLead')}{' '}
         <a href={to} className="font-medium underline underline-offset-2">
-          continue by hand
+          {context.t.t('dues.go.continue')}
         </a>{' '}
-        if not.
+        {context.t.t('dues.go.paymentTail')}
       </p>
     </section>
   )
@@ -342,9 +334,9 @@ export async function ReturnPage({
   ) {
     return (
       <p className={QUIET_PANEL}>
-        There is no order of yours here.{' '}
+        {context.t.t('dues.return.noOrder')}{' '}
         <a href="/plugins/dues" className="font-medium underline underline-offset-2">
-          Back to {config.label.toLowerCase()}
+          {context.t.t('dues.return.backToShop', { label: config.label.toLowerCase() })}
         </a>
       </p>
     )
@@ -355,16 +347,18 @@ export async function ReturnPage({
   if (order.status === 'paid') {
     return (
       <section className={CARD}>
-        <h2 className="font-heading text-lg font-semibold">Paid, and done</h2>
+        <h2 className="font-heading text-lg font-semibold">{context.t.t('dues.return.paid')}</h2>
         <p className="text-sm">
           {gift
-            ? `Your gift of ${order.planName} has been delivered. They hold it from this moment.`
-            : `${order.planName} is yours from this moment.`}{' '}
-          {formatMinor(order.amountMinor, order.currency)} — Stripe sends the receipt.
+            ? context.t.t('dues.return.giftPaid', { plan: order.planName })
+            : context.t.t('dues.return.paidPlan', { plan: order.planName })}{' '}
+          {context.t.t('dues.return.payment', {
+            amount: formatMinor(order.amountMinor, order.currency, context.locale),
+          })}
         </p>
         <p className="text-sm">
           <a href="/plugins/dues/manage" className="font-medium underline underline-offset-2">
-            See your membership
+            {context.t.t('dues.return.seeMembership')}
           </a>
         </p>
       </section>
@@ -374,13 +368,19 @@ export async function ReturnPage({
   if (order.status === 'failed' || order.status === 'cancelled') {
     return (
       <section className={CARD}>
-        <h2 className="font-heading text-lg font-semibold">Nothing was charged</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {context.t.t('dues.return.nothingCharged')}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          This checkout {order.status === 'failed' ? 'did not go through' : 'was cancelled'}.
+          {context.t.t('dues.return.checkout', {
+            status: context.t.t(
+              order.status === 'failed' ? 'dues.return.failed' : 'dues.return.wasCancelled',
+            ),
+          })}
         </p>
         <p className="text-sm">
           <a href="/plugins/dues" className="font-medium underline underline-offset-2">
-            Back to the plans
+            {context.t.t('dues.return.backToPlans')}
           </a>
         </p>
       </section>
@@ -389,40 +389,41 @@ export async function ReturnPage({
 
   return (
     <section className={CARD}>
-      <h2 className="font-heading text-lg font-semibold">Confirming your payment…</h2>
+      <h2 className="font-heading text-lg font-semibold">
+        {context.t.t('dues.return.confirming')}
+      </h2>
       <p className="text-sm text-muted-foreground">
-        Stripe is telling the board about your payment right now. This page does not grant anything
-        by itself — the confirmation does, and it usually lands within seconds.
+        {context.t.t('dues.return.confirmingText')}
       </p>
       <p className="text-sm">
         <a href={`/plugins/dues/return?order=${order.id}`} className={QUIET_BUTTON}>
-          Check again
+          {context.t.t('dues.return.checkAgain')}
         </a>
       </p>
     </section>
   )
 }
 
-function GiftList({ orders }: { orders: readonly OrderRow[] }) {
+function GiftList({ orders, t }: { orders: readonly OrderRow[]; t: Translator }) {
   const gifts = orders.filter((order) => order.buyerUserId !== order.recipientUserId)
   if (gifts.length === 0) return null
 
   return (
     <section className={CARD} aria-labelledby="dues-gifts">
       <h2 id="dues-gifts" className="font-heading text-lg font-semibold">
-        Gifts you bought
+        {t.t('dues.gifts.heading')}
       </h2>
       <ul className="flex flex-col divide-y divide-border text-sm">
         {gifts.map((order) => (
           <li key={order.id} className="flex flex-wrap justify-between gap-2 py-2">
             <span>
-              {order.planName} — {formatMinor(order.amountMinor, order.currency)}
+              {order.planName} — {formatMinor(order.amountMinor, order.currency, t.locale)}
             </span>
             <span className="text-muted-foreground">
               {order.status === 'paid'
-                ? 'delivered'
+                ? t.t('dues.gifts.delivered')
                 : order.status === 'pending' || order.status === 'created'
-                  ? 'awaiting payment'
+                  ? t.t('dues.gifts.awaitingPayment')
                   : order.status}
             </span>
           </li>
@@ -432,15 +433,13 @@ function GiftList({ orders }: { orders: readonly OrderRow[] }) {
   )
 }
 
-const MANAGE_NOTICES: Record<string, string> = {
-  'cancel-failed': 'That could not be cancelled. If it keeps failing, contact a moderator.',
-  'no-customer':
-    'Stripe has no record for your account yet — the portal exists once you have bought ' +
-    'something.',
-  'stripe-error': 'Stripe could not be reached. Try again shortly.',
-  unconfigured: 'Payments are not fully set up on this board.',
-  'sign-in': 'Sign in first.',
-}
+const MANAGE_NOTICE_KEYS = new Set([
+  'dues.manage.cancel-failed',
+  'dues.manage.no-customer',
+  'dues.manage.sign-in',
+  'dues.manage.stripe-error',
+  'dues.manage.unconfigured',
+])
 
 export async function ManagePage({
   config,
@@ -459,30 +458,29 @@ export async function ManagePage({
     <div className="flex flex-col gap-6">
       {context.query.cancelled === '1' && (
         <p role="status" className="rounded-lg border border-border bg-muted px-4 py-3 text-sm">
-          Renewal cancelled. You keep everything you paid for until the period ends — nothing
-          changes before then.
+          {context.t.t('dues.manage.cancelled')}
         </p>
       )}
-      {MANAGE_NOTICES[context.query.error ?? ''] !== undefined && (
+      {MANAGE_NOTICE_KEYS.has(`dues.manage.${context.query.error ?? ''}`) && (
         <p
           role="status"
           className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm"
         >
-          {MANAGE_NOTICES[context.query.error ?? '']}
+          {context.t.t(`dues.manage.${context.query.error ?? ''}`)}
         </p>
       )}
 
       {memberships.length === 0 ? (
         <p className={QUIET_PANEL}>
-          You hold no {config.label.toLowerCase()} yet.{' '}
+          {context.t.t('dues.manage.empty', { label: config.label.toLowerCase() })}{' '}
           <a href="/plugins/dues" className="font-medium underline underline-offset-2">
-            The plans are here.
+            {context.t.t('dues.manage.plans')}
           </a>
         </p>
       ) : (
         <section className={CARD} aria-labelledby="dues-manage">
           <h2 id="dues-manage" className="font-heading text-lg font-semibold">
-            Your {config.label.toLowerCase()}
+            {context.t.t('dues.manage.title', { label: config.label.toLowerCase() })}
           </h2>
           <ul className="flex flex-col divide-y divide-border">
             {memberships.map((membership) => (
@@ -490,25 +488,25 @@ export async function ManagePage({
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-medium">{membership.planKey}</span>
                   <span className={membership.status === 'grace' ? '' : 'text-muted-foreground'}>
-                    {membershipWhen(membership, context.locale)}
+                    {membershipWhen(membership, context.t)}
                   </span>
                 </div>
                 {membership.status === 'grace' && (
                   <p className="text-sm">
-                    A renewal payment failed. Stripe retries on its own; updating your card below
-                    usually settles it.
+                    {context.t.t('dues.manage.grace')}
                   </p>
                 )}
                 {membership.status === 'active' && membership.renewalMode === 'auto' && (
                   <form method="post" action="/api/plugins/dues/cancel">
                     <input type="hidden" name="membership" value={membership.id} />
                     <button type="submit" className={QUIET_BUTTON}>
-                      Cancel renewal — keep access until{' '}
-                      {new Intl.DateTimeFormat(context.locale, {
-                        day: 'numeric',
-                        month: 'long',
-                        timeZone: 'UTC',
-                      }).format(membershipDate(membership))}
+                      {context.t.t('dues.manage.cancel', {
+                        date: context.t.parts(membershipDate(membership), {
+                          day: 'numeric',
+                          month: 'long',
+                          timeZone: 'UTC',
+                        }),
+                      })}
                     </button>
                   </form>
                 )}
@@ -519,19 +517,20 @@ export async function ManagePage({
       )}
 
       <section className={CARD}>
-        <h2 className="font-heading text-lg font-semibold">Card and receipts</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {context.t.t('dues.manage.cardHeading')}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Cards, invoices and receipts live on Stripe, where the payment did. The portal is theirs;
-          it comes back here when you are done.
+          {context.t.t('dues.manage.cardText')}
         </p>
         <form method="post" action="/api/plugins/dues/portal">
           <button type="submit" className={QUIET_BUTTON}>
-            Open the billing portal
+            {context.t.t('dues.manage.openPortal')}
           </button>
         </form>
       </section>
 
-      <GiftList orders={orders} />
+      <GiftList orders={orders} t={context.t} />
     </div>
   )
 }

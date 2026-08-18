@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import type { Translator } from '@meith/theme-kit'
+
 import { type HOOKS, type HookName, isHookName } from './hooks'
 import type { HookContext, HookValue } from './payloads'
 import { isPluginRegion, type PluginRegion, type PluginRegionContext } from './regions'
@@ -119,11 +121,13 @@ export interface PluginPageContext extends PluginRuntimeContext {
   readonly query: Readonly<Record<string, string>>
   readonly boardUrl: string
   readonly locale: string
+  readonly t: Translator
 }
 
 export interface PluginAdminPageContext extends PluginRuntimeContext {
   readonly query: Readonly<Record<string, string>>
   readonly locale: string
+  readonly t: Translator
 }
 
 export interface PluginBoardPage {

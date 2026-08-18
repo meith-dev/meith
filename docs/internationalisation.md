@@ -180,7 +180,10 @@ renders `postCount.label`. Anything a theme needs to *say* rather than count
 belongs in its own catalog. [The theme API](./theme-api.md) has the theme side.
 
 A plugin is different: it renders arbitrary UI rather than filling a slot, so
-its page context carries `locale` and it formats what it needs to.
+its page context carries the board `Translator` as `t` as well as its `locale`.
+Its catalog is registered from the plugin entry in `community.config.ts`; pages
+read `context.t.t('plugin.key')`, which lets the board override a plugin's words
+without the plugin needing to know how catalogs are assembled.
 
 ### The three mirrored surfaces
 
@@ -242,11 +245,11 @@ a reader gets it translated with the limit interpolated — the server pages'
 browser-tab titles, frame titles and whole-text headings resolve through the
 request's translator, and every client component under `src/components/`
 (member forms, the composer, moderation tools, the installer, the whole admin
-panel) reads from a copy record. What still holds English: the themes' own
-chrome (~220 strings), the dues plugin (~220), a long tail of server-side
-fragments in the app (~400), and the packages — where most of the count is
-the demo board's fixture posts and the deliberately mirrored setting
-definitions, which are staying English on purpose.
+panel) reads from a copy record. The built-in themes and the member-facing Dues
+pages are extracted too. What still holds English: Dues administration (~100
+strings), a long tail of server-side fragments in the app (~400), and the
+packages — where most of the count is the demo board's fixture posts and the
+deliberately mirrored setting definitions, which are staying English on purpose.
 
 They cannot grow. `scripts/i18n-baseline.json` records how much English each
 file holds — string literals and JSX text alike — and `pnpm i18n:check` fails

@@ -1,6 +1,6 @@
 import type { InstalledPlugin } from '@meith/core'
 import { readPluginEnv } from '@meith/core'
-import { dues } from '@meith/plugin-dues'
+import { dues, duesMessages } from '@meith/plugin-dues'
 import type { PluginDefinition } from '@meith/plugin-kit'
 
 const PLAIN_HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/
@@ -29,6 +29,7 @@ function boardHosts(): readonly string[] {
 const testBoardPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
   {
     key: 'dues',
+    messages: duesMessages,
     plugin: dues({
       currency: 'gbp',
       graceDays: 7,
@@ -62,6 +63,7 @@ const testBoardPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
 const demoPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
   {
     key: 'dues',
+    messages: duesMessages,
     plugin: dues({
       currency: 'eur',
       graceDays: 7,

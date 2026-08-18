@@ -1,5 +1,6 @@
 export type { DuesConfigInput, DuesPlanInput } from './config'
 export { dues } from './definition'
+export { duesMessages } from './messages'
 export {
   DUES_DEMO_CODES,
   DUES_DEMO_CURRENCY,
