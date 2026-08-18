@@ -1,6 +1,5 @@
 export type { DuesConfigInput, DuesPlanInput } from './config'
 export { dues } from './definition'
-export { duesMessages } from './messages'
 export {
   DUES_DEMO_CODES,
   DUES_DEMO_CURRENCY,
@@ -13,5 +12,6 @@ export {
   type DuesDemoSummary,
   seedDuesDemo,
 } from './demo'
+export { duesMessages } from './messages'
 export { SUBSCRIBED_EVENT_TYPES } from './stripe/events'
 export { signStripePayload } from './stripe/webhook'

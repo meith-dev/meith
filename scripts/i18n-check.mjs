@@ -188,7 +188,7 @@ for (const { abs, rel } of source) {
 const orphans = messageKeys.filter((key) => !used.has(key))
 if (orphans.length > 0) {
   fail(
-      `English catalogs carry ${orphans.length} message(s) nothing reads: ${orphans.join(', ')}. ` +
+    `English catalogs carry ${orphans.length} message(s) nothing reads: ${orphans.join(', ')}. ` +
       'Translators are asked to translate every one of them, so a message that has ' +
       'outlived its call site costs real work in every language. Delete it.',
   )

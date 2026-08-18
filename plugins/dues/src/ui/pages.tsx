@@ -88,7 +88,11 @@ function Notice({ query, t }: { query: Readonly<Record<string, string>>; t: Tran
 function membershipLine(membership: MembershipRow, t: Translator): string {
   switch (membership.status) {
     case 'active':
-      return t.t(membership.renewalMode === 'auto' ? 'dues.membership.activeAuto' : 'dues.membership.activeFixed')
+      return t.t(
+        membership.renewalMode === 'auto'
+          ? 'dues.membership.activeAuto'
+          : 'dues.membership.activeFixed',
+      )
     case 'grace':
       return t.t('dues.membership.grace')
     case 'closing':
@@ -115,13 +119,7 @@ function membershipWhen(membership: MembershipRow, t: Translator): ReactNode {
   )
 }
 
-function HeldCard({
-  memberships,
-  t,
-}: {
-  memberships: readonly MembershipRow[]
-  t: Translator
-}) {
+function HeldCard({ memberships, t }: { memberships: readonly MembershipRow[]; t: Translator }) {
   const live = memberships.filter(
     (row) => row.status === 'active' || row.status === 'grace' || row.status === 'closing',
   )
@@ -176,9 +174,7 @@ function PlanCard({
           <p className="text-sm text-muted-foreground">{plan.description}</p>
         )}
         {plan.mode === 'auto' && (
-          <p className="text-xs text-muted-foreground">
-            {t.t('dues.plan.auto')}
-          </p>
+          <p className="text-xs text-muted-foreground">{t.t('dues.plan.auto')}</p>
         )}
         {plan.mode === 'lifetime' && (
           <p className="text-xs text-muted-foreground">{t.t('dues.plan.lifetime')}</p>
@@ -190,9 +186,7 @@ function PlanCard({
           <input type="hidden" name="plan" value={plan.key} />
           {plan.giftable && (
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-muted-foreground">
-                {t.t('dues.plan.gift')}
-              </span>
+              <span className="text-xs text-muted-foreground">{t.t('dues.plan.gift')}</span>
               <input
                 name="recipient"
                 defaultValue={defaultRecipient}
@@ -222,9 +216,7 @@ function PlanCard({
           </a>
         </p>
       )}
-      <p className="text-xs text-muted-foreground">
-        {t.t('dues.plan.payment')}
-      </p>
+      <p className="text-xs text-muted-foreground">{t.t('dues.plan.payment')}</p>
     </section>
   )
 }
@@ -392,9 +384,7 @@ export async function ReturnPage({
       <h2 className="font-heading text-lg font-semibold">
         {context.t.t('dues.return.confirming')}
       </h2>
-      <p className="text-sm text-muted-foreground">
-        {context.t.t('dues.return.confirmingText')}
-      </p>
+      <p className="text-sm text-muted-foreground">{context.t.t('dues.return.confirmingText')}</p>
       <p className="text-sm">
         <a href={`/plugins/dues/return?order=${order.id}`} className={QUIET_BUTTON}>
           {context.t.t('dues.return.checkAgain')}
@@ -492,9 +482,7 @@ export async function ManagePage({
                   </span>
                 </div>
                 {membership.status === 'grace' && (
-                  <p className="text-sm">
-                    {context.t.t('dues.manage.grace')}
-                  </p>
+                  <p className="text-sm">{context.t.t('dues.manage.grace')}</p>
                 )}
                 {membership.status === 'active' && membership.renewalMode === 'auto' && (
                   <form method="post" action="/api/plugins/dues/cancel">
@@ -520,9 +508,7 @@ export async function ManagePage({
         <h2 className="font-heading text-lg font-semibold">
           {context.t.t('dues.manage.cardHeading')}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          {context.t.t('dues.manage.cardText')}
-        </p>
+        <p className="text-sm text-muted-foreground">{context.t.t('dues.manage.cardText')}</p>
         <form method="post" action="/api/plugins/dues/portal">
           <button type="submit" className={QUIET_BUTTON}>
             {context.t.t('dues.manage.openPortal')}
