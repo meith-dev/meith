@@ -32,13 +32,13 @@ export default async function ForumPermissionsPage({
 
   return (
     <PanelPage
-      back={{ href: '/admin/forums', label: 'All forums' }}
-      title={`Permissions: ${view.forum.title}`}
+      back={{ href: '/admin/forums', label: t.t('adminForums.all') }}
+      title={t.t('adminForums.permissionsTitle', { title: view.forum.title })}
       lede={
         <>
-          <strong>Inherit</strong> is not the same as <strong>Deny</strong>. A cell left on Inherit
-          follows the nearest ancestor that sets it, and the group&rsquo;s own default if none does
-          — so changing that ancestor later still reaches this forum. Setting Deny pins it here.
+          <strong>{t.t('adminForums.inherit')}</strong>
+          {t.t('adminForums.permissionsLedeBetween')} <strong>{t.t('adminForums.deny')}</strong>
+          {t.t('adminForums.permissionsLedeEnd')}
         </>
       }
       gap="loose"
@@ -69,11 +69,11 @@ export default async function ForumPermissionsPage({
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              This would change {plan.changes.length} setting
-              {plan.changes.length === 1 ? '' : 's'} across{' '}
-              {new Set(plan.changes.map((change) => change.forumId)).size} forum
-              {new Set(plan.changes.map((change) => change.forumId)).size === 1 ? '' : 's'}
-              {plan.unchanged.length > 0 && `, leaving ${plan.unchanged.length} unchanged`}.
+              {t.t('adminForums.copyPreview', {
+                changes: plan.changes.length,
+                forums: new Set(plan.changes.map((change) => change.forumId)).size,
+                unchanged: plan.unchanged.length,
+              })}
             </p>
 
             <ul className="max-h-64 overflow-y-auto text-xs text-muted-foreground">

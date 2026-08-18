@@ -27,12 +27,7 @@ export default async function AdminForumsPage() {
       title={await tr('page.forums')}
       width="wide"
       gap="loose"
-      lede={
-        <>
-          The board&rsquo;s tree, in the order it renders, and the place to rearrange it. A category
-          holds forums, and threads too where it has been told to; a link is a redirect row.
-        </>
-      }
+      lede={t.t('adminForums.lede')}
     >
       <ForumTree rows={outline} copy={forumTreeCopy(t)} />
 

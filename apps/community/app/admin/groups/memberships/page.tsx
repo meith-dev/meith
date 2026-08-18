@@ -27,17 +27,13 @@ export default async function AdminMembershipsPage() {
   }
 
   const groups = await repository.list()
+  const translator = await getTranslator()
 
   return (
     <PanelPage
-      back={{ href: '/admin/groups', label: 'All groups' }}
+      back={{ href: '/admin/groups', label: translator.t('adminGroups.all') }}
       title={await tr('page.mass-membership-change')}
-      lede={
-        <>
-          Moves every member of one group into another, a batch at a time. The counts beside each
-          group are how many members it holds now.
-        </>
-      }
+      lede={translator.t('adminGroups.membershipsLede')}
     >
       <section className={PANEL_CARD}>
         <MoveMembersForm
@@ -46,14 +42,14 @@ export default async function AdminMembershipsPage() {
             title: group.title,
             memberCount: group.memberCount,
           }))}
-          copy={groupAdminCopy(await getTranslator())}
+          copy={groupAdminCopy(translator)}
         />
       </section>
 
       <p className="text-xs text-muted-foreground">
-        This changes members&rsquo; <strong>primary</strong> group, which is what decides their
-        permissions and the badge beside their name. It is not reversible except by moving them
-        back.
+        {translator.t('adminGroups.membershipsBefore')}{' '}
+        <strong>{translator.t('adminGroups.primary')}</strong>
+        {translator.t('adminGroups.membershipsAfter')}
       </p>
     </PanelPage>
   )

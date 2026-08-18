@@ -66,7 +66,9 @@ export default async function AdminHomePage() {
           <time dateTime={context.session.createdAt.toISOString()}>
             {formatTime(context.session.createdAt, now, translator).label}
           </time>
-          {context.session.ipPrefix === null ? null : ` from ${context.session.ipPrefix}`}.
+          {context.session.ipPrefix === null
+            ? translator.t('adminHome.sessionEnd')
+            : translator.t('adminHome.sessionFrom', { address: context.session.ipPrefix })}
         </>
       }
       gap="loose"
@@ -90,24 +92,22 @@ export default async function AdminHomePage() {
           items={[
             {
               count: pending,
-              one: 'post held for approval',
-              many: 'posts held for approval',
+              one: translator.t('adminHome.postHeld'),
+              many: translator.t('adminHome.postsHeld'),
               href: '/moderation',
-              action: 'Review',
+              action: translator.t('adminHome.review'),
             },
             {
               count: openReports,
-              one: 'open report',
-              many: 'open reports',
+              one: translator.t('adminHome.openReport'),
+              many: translator.t('adminHome.openReports'),
               href: '/moderation/reports',
-              action: 'Open',
+              action: translator.t('adminHome.open'),
             },
           ]}
-          emptyTitle="Nothing is waiting"
+          emptyTitle={translator.t('adminHome.emptyTitle')}
           emptyDescription={
-            allClear
-              ? 'No posts held for approval, no open reports, and the board is up to date.'
-              : 'No posts held for approval and no open reports.'
+            allClear ? translator.t('adminHome.allClear') : translator.t('adminHome.noPending')
           }
         />
       </PanelSection>
@@ -126,9 +126,9 @@ export default async function AdminHomePage() {
               <>
                 <CardContent className="grid grid-cols-3 gap-4 p-5">
                   {[
-                    { label: 'Threads', value: totals.threadCount },
-                    { label: 'Posts', value: totals.postCount },
-                    { label: 'Members', value: totals.memberCount },
+                    { label: translator.t('adminHome.threads'), value: totals.threadCount },
+                    { label: translator.t('adminHome.posts'), value: totals.postCount },
+                    { label: translator.t('adminHome.members'), value: totals.memberCount },
                   ].map((figure) => (
                     <div key={figure.label}>
                       <p className="text-2xl font-semibold text-foreground tabular-nums">
@@ -141,11 +141,11 @@ export default async function AdminHomePage() {
                 <CardFooter className="justify-between">
                   <span>
                     {totals.newestUsername === null
-                      ? 'No members yet'
-                      : `Newest member: ${totals.newestUsername}`}
+                      ? translator.t('adminHome.noMembers')
+                      : translator.t('adminHome.newestMember', { username: totals.newestUsername })}
                   </span>
                   <span>
-                    Counted{' '}
+                    {translator.t('adminHome.counted')}{' '}
                     <time dateTime={totals.computedAt.toISOString()}>
                       {formatTime(totals.computedAt, now, translator).label}
                     </time>
@@ -176,7 +176,7 @@ export default async function AdminHomePage() {
                   >
                     <code className="font-mono text-xs text-foreground">{row.action}</code>
                     <span className="text-xs text-muted-foreground">
-                      {row.username ?? 'the system'}
+                      {row.username ?? translator.t('adminHome.system')}
                       {' · '}
                       <time dateTime={row.createdAt.toISOString()}>
                         {formatTime(row.createdAt, now, translator).label}

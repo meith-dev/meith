@@ -9,15 +9,12 @@ import type { SearchScope } from '@meith/search'
 import { getContainer } from './container'
 import { getSettings } from './settings'
 
-export const SEARCH_OFF_MESSAGE =
-  'Search is switched off on this board. Browse the forums instead, or ask an administrator to turn it back on.'
-
 export async function searchEnabled(): Promise<boolean> {
   return (await getSettings()).get('search.enabled') === true
 }
 
 export async function requireSearchEnabled(): Promise<void> {
-  if (!(await searchEnabled())) throw new ForbiddenError(SEARCH_OFF_MESSAGE)
+  if (!(await searchEnabled())) throw new ForbiddenError(msg('board.search.disabled'))
 }
 
 export async function searchMinWordLength(): Promise<number> {

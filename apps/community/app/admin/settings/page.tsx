@@ -47,15 +47,7 @@ export default async function AdminSettingsPage({
   const address = model.activeGroup === 'board' ? await boardUrlResolution() : null
 
   return (
-    <PanelPage
-      title={await tr('page.board-settings')}
-      lede={
-        <>
-          Every setting this build has, with what it does. A value equal to its default is not
-          stored, so changing a default in a later release reaches a board that never touched it.
-        </>
-      }
-    >
+    <PanelPage title={await tr('page.board-settings')} lede={t.t('adminSettings.lede')}>
       <Card>
         <CardContent className="flex flex-wrap items-center gap-3 p-3">
           <form method="get" className="flex min-w-64 flex-1 items-center gap-2">
@@ -65,7 +57,7 @@ export default async function AdminSettingsPage({
                 type="search"
                 name="q"
                 defaultValue={model.query}
-                placeholder="Search every group by name or description"
+                placeholder={t.t('adminSettings.searchPlaceholder')}
               />
             </label>
             {model.showAdvanced && <input type="hidden" name="advanced" value="1" />}
@@ -86,27 +78,30 @@ export default async function AdminSettingsPage({
                 'shrink-0',
               )}
             >
-              {model.showAdvanced ? 'Hide advanced' : `Show ${model.hiddenAdvanced} advanced`}
+              {model.showAdvanced
+                ? t.t('adminSettings.hideAdvanced')
+                : t.t('adminSettings.showAdvanced', { count: model.hiddenAdvanced })}
             </a>
           )}
         </CardContent>
 
         <CardFooter>
           {model.query === ''
-            ? `${model.total} setting${model.total === 1 ? '' : 's'} in ${
-                model.groups[0]?.label ?? 'this group'
-              }.`
-            : `${model.total} match${model.total === 1 ? '' : 'es'} for “${model.query}”, across every group.`}
-          {model.showAdvanced && ' Advanced settings are shown.'}
+            ? t.t('adminSettings.settingCount', {
+                count: model.total,
+                group: model.groups[0]?.label ?? t.t('adminSettings.thisGroup'),
+              })
+            : t.t('adminSettings.matchCount', { count: model.total, query: model.query })}
+          {model.showAdvanced && t.t('adminSettings.advancedShown')}
         </CardFooter>
       </Card>
 
       {address?.source === 'environment' && (
         <section className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
           <p>
-            The board’s address is <code>{address.url}</code>, from <code>APP_URL</code> in this
-            deployment’s environment. It overrides the “Board address” field below, which is stored
-            but not read until <code>APP_URL</code> is unset and the board redeployed.
+            {t.t('adminSettings.environmentAddressBefore')} <code>{address.url}</code>
+            {t.t('adminSettings.environmentAddressAfterUrl')} <code>APP_URL</code>
+            {t.t('adminSettings.environmentAddressEnd')}
           </p>
         </section>
       )}
@@ -119,11 +114,7 @@ export default async function AdminSettingsPage({
           <h2 className="font-heading text-lg font-semibold text-destructive">
             {await tr('page.this-board-does-not-know')}
           </h2>
-          <p className="text-sm">
-            Every link the board sends is built from it, so password resets and confirmations arrive
-            carrying no link at all — they are polite and useless. Feeds and canonical URLs fall
-            back to a localhost address. Set “Board address” below.
-          </p>
+          <p className="text-sm">{t.t('adminSettings.noAddress')}</p>
         </section>
       )}
 
@@ -152,20 +143,22 @@ export default async function AdminSettingsPage({
             would release it never arrives.
           </p>
           <p className="text-sm">
-            Either set the activation method to <strong className="font-medium">none</strong> or{' '}
-            <strong className="font-medium">admin</strong>, or{' '}
+            {t.t('adminSettings.fixActivationBefore')} <strong className="font-medium">none</strong>{' '}
+            {t.t('adminSettings.fixActivationBetween')}{' '}
+            <strong className="font-medium">admin</strong>
+            {t.t('adminSettings.fixActivationAfter')}
             {mail.source === 'environment' ? (
               <>
-                complete the <code>MAIL_*</code> variables in this deployment’s environment and
-                redeploy — <code>MAIL_DRIVER</code> is set, so it overrides the mail settings
-                screen.
+                {t.t('adminSettings.environmentMailBefore')} <code>MAIL_*</code>
+                {t.t('adminSettings.environmentMailBetween')} <code>MAIL_DRIVER</code>
+                {t.t('adminSettings.environmentMailEnd')}
               </>
             ) : (
               <>
                 <a href={settingsHref({ group: 'mail' })} className="underline">
-                  configure mail
+                  {t.t('adminSettings.configureMail')}
                 </a>
-                , which takes effect without a redeploy and has a button to prove it works.
+                {t.t('adminSettings.configureMailEnd')}
               </>
             )}
           </p>

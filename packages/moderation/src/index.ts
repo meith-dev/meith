@@ -15,7 +15,7 @@ export {
 export {
   type IpMatch,
   MOD_LOG_ACTIONS,
-  MOD_LOG_LABELS,
+  MOD_LOG_LABEL_KEYS,
   MODCP_PAGE_SIZE,
   type ModCpRepository,
   type ModeratedForum,

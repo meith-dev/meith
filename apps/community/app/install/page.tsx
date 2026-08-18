@@ -83,8 +83,8 @@ async function Preflight({ checks }: { checks: readonly Check[] }) {
           ))}
           <p className="text-sm text-muted-foreground">
             {stopping.length === 1
-              ? 'That has to be fixed before this board can be installed. Fix it, redeploy if it was an environment variable, and reload this page.'
-              : `Those ${stopping.length} things have to be fixed before this board can be installed. Fix them, redeploy if they were environment variables, and reload this page.`}
+              ? t.t('installPreflight.blocker.one')
+              : t.t('installPreflight.blocker.other', { count: stopping.length })}
           </p>
         </div>
       )}
@@ -97,8 +97,8 @@ async function Preflight({ checks }: { checks: readonly Check[] }) {
           {warned.length > 0 && (
             <p className="text-sm text-muted-foreground">
               {warned.length === 1
-                ? 'You can install without resolving that. Nothing will fail at the time — which is what makes it worth reading.'
-                : 'You can install without resolving those. Nothing will fail at the time — which is what makes them worth reading.'}
+                ? t.t('installPreflight.warning.one')
+                : t.t('installPreflight.warning.other')}
             </p>
           )}
         </>
@@ -119,9 +119,7 @@ async function Preflight({ checks }: { checks: readonly Check[] }) {
       )}
 
       {passed.length > 0 && (
-        <Disclosure
-          summary={passed.length === 1 ? '1 check passed' : `${passed.length} checks passed`}
-        >
+        <Disclosure summary={t.t('installPreflight.passed', { count: passed.length })}>
           <ul className="flex flex-col gap-1 text-sm">
             {passed.map((check) => (
               <li key={check.id} className="flex gap-2">

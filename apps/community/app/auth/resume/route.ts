@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server'
 import { logger } from '@meith/core'
 
 import { configuredSessions } from '@/server/container'
+import { tr } from '@/server/i18n'
 import { requestFingerprint } from '@/server/request-fingerprint'
 import { isSafeLocalPath } from '@/server/safe-path'
 import { isTopLevelNavigation } from '@/server/same-origin'
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   if (!token) redirect(next)
 
   if (!isTopLevelNavigation(request)) {
-    return new Response('A session is resumed by opening the board, not by a subresource.', {
+    return new Response(await tr('authRoute.resume.topLevel'), {
       status: 403,
       headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' },
     })

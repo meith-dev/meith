@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { MOD_LOG_LABELS, ModeratorPanel } from '@meith/moderation'
+import { MOD_LOG_LABEL_KEYS, ModeratorPanel } from '@meith/moderation'
 import { Card, CardFooter, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { PanelPage } from '@/components/shell/panel-page'
@@ -56,7 +56,7 @@ export default async function ModLogPage({
                 <li key={entry.id} className="px-4 py-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
                     <span className="font-medium">
-                      {MOD_LOG_LABELS[entry.action] ?? entry.action}
+                      {translator.t(MOD_LOG_LABEL_KEYS[entry.action] ?? entry.action)}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {entry.actorUsername ?? 'a former moderator'}

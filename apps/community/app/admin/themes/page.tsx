@@ -30,24 +30,11 @@ export default async function AdminThemesPage() {
   const stateCopy = themeStateCopy(translator)
 
   return (
-    <PanelPage
-      title={await tr('page.themes')}
-      lede={
-        <>
-          Every theme this build contains. Turn one on and members can pick it from the appearance
-          control at the foot of every page; the default is what a member who has picked nothing
-          sees.
-        </>
-      }
-    >
+    <PanelPage title={await tr('page.themes')} lede={translator.t('adminThemes.lede')}>
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <h2 className="font-heading text-lg font-semibold">Logo</h2>
-          <p className="text-sm text-muted-foreground">
-            Shown in the header instead of the board&rsquo;s name. Two images, because one that
-            reads on a white page usually disappears on a black one — upload only the light one and
-            it is used in both. With none, the header shows the name, which is what it does today.
-          </p>
+          <h2 className="font-heading text-lg font-semibold">{translator.t('adminThemes.logo')}</h2>
+          <p className="text-sm text-muted-foreground">{translator.t('adminThemes.logoHint')}</p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -56,8 +43,8 @@ export default async function AdminThemesPage() {
             copy={brandingCopy}
             slot={{
               scheme: 'light',
-              label: 'Light',
-              hint: 'Used on a light page, and everywhere if there is no dark one.',
+              label: translator.t('adminThemes.light'),
+              hint: translator.t('adminThemes.lightHint'),
               src: lightKey === null ? null : logoSrc('light', lightKey),
             }}
           />
@@ -66,8 +53,8 @@ export default async function AdminThemesPage() {
             copy={brandingCopy}
             slot={{
               scheme: 'dark',
-              label: 'Dark',
-              hint: 'Used when the reader is in dark mode.',
+              label: translator.t('adminThemes.dark'),
+              hint: translator.t('adminThemes.darkHint'),
               src: darkKey === null ? null : logoSrc('dark', darkKey),
             }}
           />
@@ -90,17 +77,17 @@ export default async function AdminThemesPage() {
                 <span className="truncate text-sm font-medium">{theme.title}</span>
                 {theme.isDefault && (
                   <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
-                    Default
+                    {translator.t('adminThemes.default')}
                   </span>
                 )}
                 {!theme.enabled && (
                   <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
-                    Off
+                    {translator.t('adminThemes.off')}
                   </span>
                 )}
                 {theme.isBuildTheme && (
                   <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
-                    The build&rsquo;s own
+                    {translator.t('adminThemes.buildsOwn')}
                   </span>
                 )}
               </span>
@@ -108,7 +95,7 @@ export default async function AdminThemesPage() {
               <span className="truncate text-xs text-muted-foreground">
                 <code className="text-xs">{theme.key}</code> ·{' '}
                 {theme.overriddenTokens === 0 && !theme.hasCustomCss
-                  ? 'no changes — exactly as it ships'
+                  ? translator.t('adminThemes.noChanges')
                   : `${theme.overriddenTokens} colour${theme.overriddenTokens === 1 ? '' : 's'} changed${
                       theme.hasCustomCss ? ', plus custom CSS' : ''
                     }`}
@@ -137,7 +124,9 @@ export default async function AdminThemesPage() {
       </ul>
 
       <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
-        <h2 className="font-heading text-lg font-semibold">What a member&rsquo;s choice changes</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {translator.t('adminThemes.memberChoice')}
+        </h2>
         <p className="text-muted-foreground">
           <strong>{await tr('page.whole-theme')}</strong> — its components as well as its colours. A
           theme that renders forum listings as tables renders them as tables for the member who
@@ -145,16 +134,16 @@ export default async function AdminThemesPage() {
           correct: no flash, no second paint, and the control works with JavaScript turned off.
         </p>
         <p className="text-muted-foreground">
-          A theme that ships <em>only</em> tokens is the exception, and is a deliberate one: it has
-          no components to render, so picking it repaints the board and leaves the layout alone.
-          That is how a board offers three looks without maintaining three sets of components.
+          {translator.t('adminThemes.tokensOnlyBefore')} <em>only</em>{' '}
+          {translator.t('adminThemes.tokensOnlyAfter')}
         </p>
         <p className="text-muted-foreground">
-          What is still a deploy is which themes <em>exist</em>. A theme is code, so it has to be in
-          the build: <code className="text-xs">pnpm add</code> the package, add a line to{' '}
-          <code className="text-xs">community.config.ts</code>, redeploy.{' '}
-          <code className="text-xs">defaultTheme</code> in that file decides which theme the board
-          falls back to when its table says nothing — everything else is on this page.
+          {translator.t('adminThemes.deployBefore')} <em>exist</em>
+          {translator.t('adminThemes.deployAfterExist')} <code className="text-xs">pnpm add</code>{' '}
+          {translator.t('adminThemes.deployAfterAdd')}{' '}
+          <code className="text-xs">community.config.ts</code>
+          {translator.t('adminThemes.deployAfterConfig')}{' '}
+          <code className="text-xs">defaultTheme</code> {translator.t('adminThemes.deployEnd')}
         </p>
       </section>
     </PanelPage>

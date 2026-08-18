@@ -19,7 +19,7 @@ vi.mock('./settings', () => ({
 }))
 vi.mock('./context', () => ({ getActor: async () => viewer }))
 
-const { OFFLINE_FALLBACK_MESSAGE, boardOffline } = await import('./board-offline')
+const { boardOffline } = await import('./board-offline')
 const { offlineFeed } = await import('./feed-routes')
 const { OfflineNotice } = await import('../components/shell/offline-notice')
 
@@ -91,7 +91,7 @@ describe('an offline board', () => {
 
   it('falls back to a maintenance line when the message is blank', async () => {
     offline('   ')
-    expect(await boardOffline()).toEqual({ message: OFFLINE_FALLBACK_MESSAGE })
+    expect(await boardOffline()).toEqual({ message: EN_CATALOG['offline.fallback'] })
   })
 })
 
@@ -114,7 +114,7 @@ describe('the offline page', () => {
     const html = renderToStaticMarkup(
       createElement(OfflineNotice, { ...notice!, copy: EN_CATALOG }),
     )
-    expect(html).toContain(OFFLINE_FALLBACK_MESSAGE)
+    expect(html).toContain(EN_CATALOG['offline.fallback']!)
   })
 })
 

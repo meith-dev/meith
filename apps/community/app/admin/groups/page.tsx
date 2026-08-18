@@ -27,21 +27,22 @@ export default async function AdminGroupsPage() {
   }
 
   const groups = await repository.list()
+  const translator = await getTranslator()
 
   return (
     <PanelPage
       title={await tr('page.groups')}
       lede={
         <>
-          A group is a set of permissions and the members who hold it. What a group allows here is
-          the <em>default</em> for every forum — a forum may override it, and{' '}
+          {translator.t('adminGroups.ledeBefore')} <em>{translator.t('adminGroups.default')}</em>
+          {translator.t('adminGroups.ledeBetween')}{' '}
           <a
             href="/admin/forums"
             className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            forum permissions
+            {translator.t('adminGroups.forumPermissions')}
           </a>{' '}
-          is where that happens.
+          {translator.t('adminGroups.ledeEnd')}
         </>
       }
     >
@@ -52,31 +53,36 @@ export default async function AdminGroupsPage() {
               <span className="truncate text-sm font-medium">
                 {group.title}
                 {group.isSystem && (
-                  <span className="ml-2 text-xs font-normal text-muted-foreground">system</span>
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    {translator.t('adminGroups.system')}
+                  </span>
                 )}
                 {group.isStaffGroup && (
-                  <span className="ml-2 text-xs font-normal text-muted-foreground">staff</span>
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    {translator.t('adminGroups.staff')}
+                  </span>
                 )}
               </span>
               <span className="truncate text-xs text-muted-foreground">
-                {group.key} · {group.memberCount} member
-                {group.memberCount === 1 ? '' : 's'}
+                {group.key} · {translator.t('adminGroups.members', { count: group.memberCount })}
                 {group.description === null ? '' : ` · ${group.description}`}
               </span>
             </span>
             <a
               href={`/admin/groups/${group.id}`}
-              aria-label={`Edit ${group.title}`}
+              aria-label={translator.t('adminGroups.editLabel', { title: group.title })}
               className="shrink-0 text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
             >
-              Edit
+              {translator.t('adminGroups.edit')}
             </a>
           </li>
         ))}
       </ul>
 
       <nav className="flex flex-wrap gap-2">
-        <PanelActionLink href="/admin/groups/promotions">Promotions</PanelActionLink>
+        <PanelActionLink href="/admin/groups/promotions">
+          {translator.t('adminGroups.promotions')}
+        </PanelActionLink>
         <PanelActionLink href="/admin/groups/memberships">
           {await tr('page.mass-membership-change')}
         </PanelActionLink>
@@ -90,7 +96,7 @@ export default async function AdminGroupsPage() {
             title: group.title,
             memberCount: group.memberCount,
           }))}
-          copy={groupAdminCopy(await getTranslator())}
+          copy={groupAdminCopy(translator)}
         />
       </section>
     </PanelPage>

@@ -33,10 +33,7 @@ export default async function AdminSystemPage() {
   if (view === null) {
     return (
       <PanelPage title={await tr('page.system-health')}>
-        <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it has no scheduler and nothing to
-          maintain.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">{translator.t('adminSystem.sample')}</p>
       </PanelPage>
     )
   }
@@ -46,7 +43,7 @@ export default async function AdminSystemPage() {
   return (
     <PanelPage
       title={await tr('page.system-health')}
-      lede={<>{await tr('page.what-board-does-schedule-whether')}</>}
+      lede={await tr('page.what-board-does-schedule-whether')}
       gap="loose"
     >
       {scheduler.schedulerStopped && (
@@ -63,11 +60,7 @@ export default async function AdminSystemPage() {
             counters drift, uploads that failed to process are not retried, and queued mail sits in
             the queue.
           </p>
-          <p className="text-sm">
-            Nothing is broken and nothing is lost — the tasks are written to catch up, so they will
-            work through the backlog once it runs again. Check that whatever invokes the scheduled
-            endpoint is still configured and still authorised.
-          </p>
+          <p className="text-sm">{translator.t('adminSystem.schedulerStopped')}</p>
         </section>
       )}
 
@@ -101,70 +94,67 @@ export default async function AdminSystemPage() {
             {await tr('page.no-new-member-can-activate')}
           </h2>
           <p className="text-sm">
-            Registration is set to <strong>{mail.activationMethod}</strong>, so every new account
-            waits for a confirmation link — and this board sends no mail:{' '}
-            {mail.summary.toLowerCase()}. Password reset is silently failing for the same reason.
+            {translator.t('adminSystem.activationProblem', {
+              method: mail.activationMethod,
+              summary: mail.summary.toLowerCase(),
+            })}
           </p>
           <p className="text-sm">
             {mail.source === 'environment' ? (
               <>
-                Mail is configured from this deployment’s environment, so it has to be fixed there:
-                complete the <code>MAIL_*</code> variables and redeploy, or unset{' '}
-                <code>MAIL_DRIVER</code> to configure mail on the board instead.
+                {translator.t('adminSystem.environmentMailBefore')} <code>MAIL_*</code>{' '}
+                {translator.t('adminSystem.environmentMailBetween')} <code>MAIL_DRIVER</code>{' '}
+                {translator.t('adminSystem.environmentMailEnd')}
               </>
             ) : (
               <>
-                Set it up on the{' '}
+                {translator.t('adminSystem.boardMailBefore')}{' '}
                 <a href="/admin/settings?group=mail" className="underline">
                   mail settings screen
                 </a>{' '}
-                — no redeploy needed — or set the activation method to <strong>none</strong> or{' '}
-                <strong>admin</strong>.
+                {translator.t('adminSystem.boardMailAfter')} <strong>none</strong>{' '}
+                {translator.t('adminSystem.boardMailOr')} <strong>admin</strong>.
               </>
             )}{' '}
-            Accounts already stuck at &ldquo;awaiting activation&rdquo; can be activated by hand
-            from the member screen.
+            {translator.t('adminSystem.activationAccounts')}
           </p>
         </section>
       )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Mail</h2>
+        <h2 className="font-heading text-lg font-semibold">{translator.t('adminSystem.mail')}</h2>
         <p className="text-sm">
           {mail.summary}
           {!mail.sends && (
             <span className="text-muted-foreground">
               {' '}
-              — nothing this board sends reaches anybody.
+              {translator.t('adminSystem.mailDoesNotSend')}
             </span>
           )}{' '}
-          · activation method: <code>{mail.activationMethod}</code> · configured from{' '}
-          <code>{mail.source === 'environment' ? 'the environment' : 'board settings'}</code>
+          {translator.t('adminSystem.activationMethod')} <code>{mail.activationMethod}</code>{' '}
+          {translator.t('adminSystem.configuredFrom')}{' '}
+          <code>
+            {mail.source === 'environment'
+              ? translator.t('adminSystem.environment')
+              : translator.t('adminSystem.boardSettings')}
+          </code>
         </p>
         {mail.source === 'board' && (
           <p className="text-sm text-muted-foreground">
-            Change it — and send a test message to prove it works — on the{' '}
+            {translator.t('adminSystem.changeMailBefore')}{' '}
             <a href="/admin/settings?group=mail" className="underline">
               mail settings screen
             </a>
-            .
+            {translator.t('adminSystem.changeMailEnd')}
           </p>
         )}
-        <p className="text-sm text-muted-foreground">
-          Notification and mass mail leave on the tick above, so a stopped scheduler is also a board
-          that sends none of them. Verification and password-reset links are sent as the request
-          happens and do not wait for it.
-        </p>
+        <p className="text-sm text-muted-foreground">{translator.t('adminSystem.mailSchedule')}</p>
       </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-lg font-semibold">{await tr('page.scheduled-tasks')}</h2>
         {scheduler.tasks.length === 0 ? (
-          <p className={PANEL_NOTE}>
-            No tasks are registered. A build registers a task only when it has a worker that can
-            genuinely do the work, so an absent one means the feature behind it is not wired up on
-            this deployment.
-          </p>
+          <p className={PANEL_NOTE}>{translator.t('adminSystem.noTasks')}</p>
         ) : (
           <ul className={PANEL_LIST}>
             {scheduler.tasks.map((task) => (
@@ -174,7 +164,7 @@ export default async function AdminSystemPage() {
                   <span className="truncate text-xs text-muted-foreground">
                     every {task.intervalSeconds}s ·{' '}
                     {task.lastRunAt === null
-                      ? 'never run'
+                      ? translator.t('adminSystem.neverRun')
                       : `last ran ${formatTime(task.lastRunAt, now, translator).label}`}
                     {task.consecutiveFailures > 0 &&
                       ` · ${task.consecutiveFailures} failure${
@@ -225,27 +215,26 @@ export default async function AdminSystemPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Volumes</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {translator.t('adminSystem.volumes')}
+        </h2>
         <ul className="grid gap-2 text-sm sm:grid-cols-3">
-          <li>{volumes.users} members</li>
-          <li>{volumes.threads} threads</li>
-          <li>{volumes.posts} posts</li>
-          <li>{volumes.attachments} attachments</li>
-          <li>{volumes.queuedJobs} jobs waiting</li>
+          <li>{translator.t('adminSystem.members', { count: volumes.users })}</li>
+          <li>{translator.t('adminSystem.threads', { count: volumes.threads })}</li>
+          <li>{translator.t('adminSystem.posts', { count: volumes.posts })}</li>
+          <li>{translator.t('adminSystem.attachments', { count: volumes.attachments })}</li>
+          <li>{translator.t('adminSystem.queuedJobs', { count: volumes.queuedJobs })}</li>
           <li className={volumes.deadLetteredJobs > 0 ? 'font-medium text-destructive' : undefined}>
-            {volumes.deadLetteredJobs} dead-lettered
+            {translator.t('adminSystem.deadLettered', { count: volumes.deadLetteredJobs })}
           </li>
         </ul>
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Recount &amp; rebuild</h2>
-        <p className="text-sm text-muted-foreground">
-          Counters are denormalised, so they can drift. The recount walks the content and corrects
-          them in bounded batches, keeping its phase and cursor in the database — so it resumes
-          where it stopped rather than starting over, which is what makes it finish at all on a
-          large board.
-        </p>
+        <h2 className="font-heading text-lg font-semibold">
+          {translator.t('adminSystem.recount')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{translator.t('adminSystem.recountHint')}</p>
         {view.recount.length > 0 && (
           <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
             {view.recount.map((row) => (
@@ -262,10 +251,7 @@ export default async function AdminSystemPage() {
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-lg font-semibold">{await tr('page.search-index')}</h2>
         <p className="text-sm text-muted-foreground">
-          A post is indexed when it is written or edited, so this is only ever a backfill — an
-          existing board adopting search, or one whose index was invalidated. It resumes by
-          construction: the batch is &ldquo;posts with no index entry&rdquo;, a set that only
-          shrinks, so an interrupted run costs nothing and a repeated one does nothing.
+          {translator.t('adminSystem.searchIndexHint')}
         </p>
         <p className="text-sm">
           {view.searchIndex.indexed} indexed
@@ -281,11 +267,11 @@ export default async function AdminSystemPage() {
       </section>
 
       <section className={cn(PANEL_CARD, 'gap-4')}>
-        <h2 className="font-heading text-lg font-semibold">Maintenance</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {translator.t('adminSystem.maintenance')}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Each of these is bounded to one batch. Nothing here destroys anything an operator would
-          want back: expired sessions no longer authenticate anybody, expired tokens can no longer
-          be used, and a cleared cache is a copy of data that still exists.
+          {translator.t('adminSystem.maintenanceHint')}
         </p>
 
         <PruneSessionsForm prunable={view.prunableSessions} copy={copy} />

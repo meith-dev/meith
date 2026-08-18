@@ -12,6 +12,7 @@ import {
   passkeysEnabled,
   relyingParty,
 } from '@/server/federation'
+import { tr } from '@/server/i18n'
 import { type PasskeyPurpose, unpackChallenge } from '@/server/passkey-challenge'
 import { isSafeLocalPath } from '@/server/safe-path'
 import { crossOriginRefusal, isSameOrigin } from '@/server/same-origin'
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!isSameOrigin(request)) return crossOriginRefusal()
 
   if (!(await passkeysEnabled())) {
-    return problem('Passkeys are not switched on for this board.', 404)
+    return problem(await tr('authRoute.passkey.disabled'), 404)
   }
 
   const asked = request.nextUrl.searchParams.get('for')
@@ -68,19 +69,19 @@ export async function POST(request: NextRequest): Promise<Response> {
   try {
     body = (await request.json()) as Submission
   } catch {
-    return problem('That passkey response could not be read.', 400)
+    return problem(await tr('authRoute.passkey.responseUnreadable'), 400)
   }
 
   const expectedChallenge = unpackChallenge(await readPasskeyChallengeCookie(), purpose)
   await clearPasskeyChallengeCookie()
 
   if (expectedChallenge === null) {
-    return problem('That passkey attempt has expired. Start it again.', 400)
+    return problem(await tr('authRoute.passkey.attemptExpired'), 400)
   }
 
   const clientDataJSON = text(body.clientDataJSON)
   if (clientDataJSON === null) {
-    return problem('That passkey response was incomplete.', 400)
+    return problem(await tr('authRoute.passkey.responseIncomplete'), 400)
   }
 
   const log = logger({ module: 'passkeys' })
@@ -91,14 +92,15 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     if (purpose === 'register') {
       const actor = await getActor()
-      if (actor.userId === null) return problem('Sign in before adding a passkey.', 403)
+      if (actor.userId === null)
+        return problem(await tr('authRoute.passkey.signInBeforeAdding'), 403)
       if (!(await memberManagedSignIns())) {
-        return problem('This board manages sign-ins for its members.', 403)
+        return problem(await tr('authRoute.passkey.managedSignIns'), 403)
       }
 
       const attestationObject = text(body.attestationObject)
       if (attestationObject === null) {
-        return problem('That passkey response was incomplete.', 400)
+        return problem(await tr('authRoute.passkey.responseIncomplete'), 400)
       }
 
       const passkey = await service.enrol({
@@ -124,7 +126,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const signature = text(body.signature)
 
     if (credentialId === null || authenticatorData === null || signature === null) {
-      return problem('That passkey response was incomplete.', 400)
+      return problem(await tr('authRoute.passkey.responseIncomplete'), 400)
     }
 
     if (purpose === 'second-factor') {
@@ -134,7 +136,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         held === undefined || held === '' ? null : await identity.pendingSecondFactor(held)
 
       if (pending === null || held === undefined) {
-        return problem('That sign-in took too long to finish. Start again.', 403)
+        return problem(await tr('authRoute.passkey.signInExpired'), 403)
       }
 
       await identity.assertSecondFactorAttemptsLeft(pending.userId)
@@ -150,7 +152,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       if (!proved) {
         await identity.recordSecondFactorFailure(pending.userId)
         await recordAuthEvent({ userId: pending.userId, kind: 'second_factor_failed' })
-        return problem('That passkey does not belong to this account.', 403)
+        return problem(await tr('authRoute.passkey.notForAccount'), 403)
       }
 
       await identity.clearSecondFactorFailures(pending.userId)

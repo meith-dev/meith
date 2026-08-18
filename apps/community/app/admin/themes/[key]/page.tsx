@@ -37,7 +37,7 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
 
   return (
     <PanelPage
-      back={{ href: '/admin/themes', label: 'All themes' }}
+      back={{ href: '/admin/themes', label: translator.t('adminThemes.all') }}
       title={view.title}
       gap="loose"
       width="wide"
@@ -45,10 +45,10 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
         <>
           <code className="font-mono text-xs">{view.key}</code>
           {view.isDefault
-            ? ' · what a member who has chosen nothing sees'
+            ? translator.t('adminThemes.defaultLede')
             : view.enabled
-              ? ' · members may choose it'
-              : ' · turned off, so nobody can choose it'}
+              ? translator.t('adminThemes.enabledLede')
+              : translator.t('adminThemes.disabledLede')}
           {view.updatedAt !== null && (
             <>
               {' '}
@@ -62,8 +62,8 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
       }
       meta={
         view.isBuildTheme
-          ? 'The board falls back to this theme’s components when nothing else is chosen, so it is what a new visitor sees.'
-          : 'A member who picks this theme gets its components as well as these colours.'
+          ? translator.t('adminThemes.buildMeta')
+          : translator.t('adminThemes.memberMeta')
       }
     >
       <section className={PANEL_CARD}>
@@ -77,11 +77,8 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
       </section>
 
       <section className={cn(PANEL_CARD, 'max-w-3xl')}>
-        <h2 className="font-heading text-lg font-semibold">Export</h2>
-        <p className="text-sm text-muted-foreground">
-          Everything this board has changed, as a document another board can import. It carries no
-          timestamp and no board identity — only the overrides themselves.
-        </p>
+        <h2 className="font-heading text-lg font-semibold">{translator.t('adminThemes.export')}</h2>
+        <p className="text-sm text-muted-foreground">{translator.t('adminThemes.exportHint')}</p>
         <textarea
           readOnly
           rows={8}
@@ -91,18 +88,15 @@ export default async function AdminThemePage({ params }: { params: Promise<{ key
       </section>
 
       <section className={cn(PANEL_CARD, 'max-w-3xl')}>
-        <h2 className="font-heading text-lg font-semibold">Import</h2>
+        <h2 className="font-heading text-lg font-semibold">{translator.t('adminThemes.import')}</h2>
         <ImportThemeForm themeKey={view.key} copy={copy} />
       </section>
 
       <section className={cn(PANEL_CARD, 'max-w-3xl')}>
-        <h2 className="font-heading text-lg font-semibold">Reset</h2>
+        <h2 className="font-heading text-lg font-semibold">{translator.t('adminThemes.reset')}</h2>
         {view.customised ? (
           <>
-            <p className="text-sm text-muted-foreground">
-              Removes every override, putting the board back to exactly what the theme ships. Take a
-              copy of the export above first if you might want it back.
-            </p>
+            <p className="text-sm text-muted-foreground">{translator.t('adminThemes.resetHint')}</p>
             <ResetThemeForm themeKey={view.key} copy={copy} />
           </>
         ) : (

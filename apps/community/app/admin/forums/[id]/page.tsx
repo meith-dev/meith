@@ -39,14 +39,9 @@ export default async function AdminForumPage({ params }: { params: Promise<{ id:
 
   return (
     <PanelPage
-      back={{ href: '/admin/forums', label: 'All forums' }}
+      back={{ href: '/admin/forums', label: t.t('adminForums.all') }}
       title={forum.title}
-      lede={
-        <>
-          Everything this forum is, apart from where it sits. Order is arranged on the tree screen;
-          the move below is the long way round, for a destination too far to drag to.
-        </>
-      }
+      lede={t.t('adminForums.optionsLede')}
       gap="loose"
     >
       <ForumOptionsForm
@@ -73,7 +68,7 @@ export default async function AdminForumPage({ params }: { params: Promise<{ id:
       />
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Move</h2>
+        <h2 className="font-heading text-lg font-semibold">{t.t('adminForums.move')}</h2>
         <MoveForumForm
           forumId={forum.id}
           currentParentId={forum.parentId}

@@ -28,7 +28,7 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
-import { SEARCH_OFF_MESSAGE, searchEnabled } from '@/server/search'
+import { searchEnabled } from '@/server/search'
 import { MAX_AUTHOR_NAMES, type RunSearchOutcome, runSearch } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
 import { currentTheme } from '@/server/theme'
@@ -59,7 +59,15 @@ export default async function SearchPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  if (!(await searchEnabled())) return <SearchOffNotice message={SEARCH_OFF_MESSAGE} />
+  if (!(await searchEnabled())) {
+    const translator = await getTranslator()
+    return (
+      <SearchOffNotice
+        title={translator.t('board.search.title')}
+        message={translator.t('board.search.disabled')}
+      />
+    )
+  }
 
   const params = await searchParams
   const submitted = read(params)

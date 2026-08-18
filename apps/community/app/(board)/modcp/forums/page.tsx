@@ -16,7 +16,7 @@ export default async function ModCpForumsPage() {
   const access = await resolveModCpAccess()
   if (access === null) notFound()
 
-  const forums = await moderatedForumRights(access)
+  const forums = await moderatedForumRights(access, t)
 
   return (
     <PanelPage title={t.t('page.my-forums')} lede={t.t('page.where-appointed-exactly-what-may')}>
