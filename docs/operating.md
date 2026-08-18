@@ -44,7 +44,7 @@ written to the audit log — which is not the same as encrypted.
 |---|---|---|
 | `DATABASE_URL` | For a real board | On a *managed* database, use the transaction-mode pooler string — see [connection pooling](#connection-pooling). |
 | `AUTH_SECRET` | In production | Signs the unsubscribe links in outgoing mail, and seals members' two-factor secrets. Sessions do **not** depend on it — they are random tokens stored hashed — so rotating it signs nobody out, but it does strand every enrolled authenticator app (see [Signing in](./single-sign-on.md#board-settings)). No default, deliberately. |
-| `TICK_SECRET` | In production | Guards `GET /api/system/tick`: with it set, a caller without it gets a 404. On the Docker Compose stack the `worker` container runs the tick in-process and never calls the route — but production still refuses to boot without the secret, so the route is never left open. Only an external caller — a cron, a platform scheduler, the `curl-tick` sidecar — actually presents it. |
+| `TICK_SECRET` | In production | Guards `/api/system/tick`: with it set, a caller without it gets a 404. It is presented as `Authorization: Bearer <TICK_SECRET>` or as an `X-Tick-Secret` header, and **never in the query string** — see [Driving the tick from outside](#driving-the-tick-from-outside). On the Docker Compose stack the `worker` container runs the tick in-process and never calls the route — but production still refuses to boot without the secret, so the route is never left open. Only an external caller — a cron, a platform scheduler, the `curl-tick` sidecar — actually presents it. |
 | `APP_URL` | No | The board's public origin, absolute, no trailing slash. Unset, the address comes from **Board address** in the settings; set, it wins, and the settings screen says its stored value is not being read. Something must supply it — a digest sent from the worker has no request to be relative to. |
 | `MAIL_DRIVER` | No | `log`, `http` or `smtp`. `http` or `smtp` here wins outright over the board's mail settings; `log` or unset leaves mail to the board. See [Mail](#mail). |
 | `DATA_SOURCE` | No | `postgres` or `fixture`. Defaults to `fixture` when `DATABASE_URL` is unset. |
@@ -1423,6 +1423,37 @@ gives. Lift the ban and the form comes back. Issuing a ban *from* the
 state form is refused outright: bans belong to the ban screen, the only
 path that records who, why, and what to restore.
 
+### Ban filters
+
+A **ban filter** blocks a registration or a sign-in before an account
+exists, by pattern rather than by member. Each filter names one of three
+fields — the username, the e-mail address or the address the request came
+from — and is tested only against its own field. Usernames and e-mail
+addresses are matched with case folded away; an address is matched as
+written.
+
+The pattern language is two wildcards and nothing else. `*` stands for
+any run of characters, including none, and `?` stands for exactly one.
+Every other character is literal, including the ones a regular expression
+would treat as syntax: `a+b` matches the username `a+b` and nothing else,
+and `.*` matches the username `.*` rather than everything. A pattern is
+anchored at both ends, so `spam` blocks `spam` and leaves `notspammer`
+alone; write `*spam*` for the substring.
+
+Matching does not use the regular-expression engine, so no pattern can
+cost more than the length of the pattern times the length of the value it
+is tested against. Two bounds keep even that small, and both are refused
+at the point a filter is saved: a pattern may be at most **200
+characters** and may carry at most **20 wildcards**. A filter already
+stored that exceeds either bound is skipped at match time rather than
+run, so lowering a bound can never leave the board matching something it
+refuses to accept.
+
+An all-`*` pattern is refused outright, whatever its length: it would
+match every value in its field and lock the board's own members out.
+Close signups from the registration settings instead — see
+[Closing registration](#closing-registration).
+
 ## Pruning dormant accounts
 
 `/admin/users/prune` closes accounts in batches: a registration date,
@@ -1475,17 +1506,51 @@ settings screen says so rather than pretending its fields are live.
 | Notification e-mail | A member's notification, when they asked for it by mail | Queued — leaves on the **tick** |
 | Mass mail | An administrator sends one from `/admin/users/mail` | Queued — leaves on the **tick** |
 | E-mail change confirmation | A member changes their address in the UserCP | Sent during the request |
+| E-mail change notice | The same change, and again when it completes — see [Changing an address tells the old one](#changing-an-address-tells-the-old-one) | Sent during the request |
 | Registration confirmation | A registration, when the activation method asks for one | Sent during the request |
 | Password reset | Somebody uses the "forgot your password" form | Sent during the request |
 
 The split is deliberate. The first two go to members the board already
-knows, in volume, and can wait a minute. The last three go to somebody
-sitting in front of a screen who will retry within seconds — and two of
-the three go to an address the board has not proven yet.
+knows, in volume, and can wait a minute. The rest go to somebody sitting
+in front of a screen who will retry within seconds — and two of them go
+to an address the board has not proven yet.
+
+### Changing an address tells the old one
+
+An address change is confirmed by the **new** address: the board sends a
+link there and adopts the address only when the link is used. That proves
+the new address, and proves nothing to whoever held the old one — so the
+board writes to the old address as well, twice:
+
+- **When the change is asked for**, naming the address the account would
+  move to, and saying that nothing happens until that address confirms
+  it.
+- **When the change goes through**, naming the address the account now
+  uses.
+
+Neither message asks anything of a member who made the change
+themselves, and neither carries a token — the button on each goes to a
+public page the board serves to anybody, so reading one of these
+messages, or having one intercepted, grants nothing. What they carry is a
+way back: the first's button is **Reset your password**, since resetting
+it ends every session on the account and the old address can still
+receive that link; the second's opens the board, because by then the
+address is no longer the account's and only the board's staff can help.
+On a board with no address configured, neither carries a button and the
+first says in words which form to look for.
+
+An address changed by an administrator from `/admin/users/[id]` sends the
+same completion notice, for the same reason: a member should learn their
+address moved whoever moved it.
+
+A board with mail not configured, or a provider that is down, does not
+block the change — the notice is logged as a failure and the change
+stands. The change is the member's, and holding it for a mail provider
+would be the worse failure.
 
 ### What the messages look like
 
-All five are rendered by one template, so a member sees the same board in
+All six are rendered by one template, so a member sees the same board in
 their inbox that they see in a browser. Every message carries a plain-text
 part and an HTML one; a client that refuses HTML — or a member who has
 turned it off — still gets a complete, readable message with every link
@@ -2003,6 +2068,40 @@ reports what it did, and each one is expected to have done it.
   The reason a job died is usually still true, so read its last error
   before retrying.
 
+### Driving the tick from outside
+
+On the documented deployment the `worker` container runs the tick
+in-process and the route is never called. Where there is no worker — a
+platform that only offers a cron, or an operator who would rather one
+container held the database credentials — `/api/system/tick` is the same
+tick over HTTP.
+
+The secret goes in a header, and only in a header:
+
+```sh
+curl -fsS -X POST -H "Authorization: Bearer $TICK_SECRET" \
+  https://board.example/api/system/tick
+```
+
+`X-Tick-Secret: $TICK_SECRET` is read the same way, for callers that
+cannot set an `Authorization` header. The route answers `POST` and `GET`
+alike, so a scheduler that can only issue a `GET` still works: the tick
+claims its work in the database, so calling it twice runs nothing twice
+and an accidental call runs nothing that was not already due.
+
+**The query string is not read.** A secret in a URL is written to every
+reverse proxy's access log, every browser history and every referrer
+header, so `?secret=…` is no longer a way in — a caller still passing it
+gets the same 404 as a caller presenting nothing, and the board logs a
+line naming the query string as the reason. Boards upgrading from before
+this change need their cron line edited; nothing else moves.
+
+A caller that gets the secret wrong gets a **404**, not a 401, so an
+unauthorised caller cannot use the response to confirm the endpoint is
+there. With `TICK_SECRET` unset the route is open and says so in the log
+on every call — permitted in development, and the reason production
+refuses to boot without the secret.
+
 ### The admin log
 
 `/admin/log` is the whole table: administrative and moderation actions
@@ -2179,11 +2278,14 @@ swept — and nothing errors, because nothing ran.*
    rather than every few seconds, which is a crash loop with the reason
    logged above each restart.
 3. If instead you drive the tick from outside — a cron, a platform
-   scheduler, the `curl-tick` sidecar — the route
-   (`GET /api/system/tick`) is what runs it, and `TICK_SECRET` must be
-   set *and* presented. A caller with the wrong secret gets a 404,
-   deliberately, so an unauthorised caller cannot confirm the endpoint
-   exists — from the caller's side that looks identical to a wrong URL.
+   scheduler, the `curl-tick` sidecar — the route is what runs it, and
+   `TICK_SECRET` must be set *and* presented **as a header**, per
+   [Driving the tick from outside](#driving-the-tick-from-outside). A
+   caller with the wrong secret gets a 404, deliberately, so an
+   unauthorised caller cannot confirm the endpoint exists — from the
+   caller's side that looks identical to a wrong URL. A caller still
+   passing `?secret=…` gets that same 404, with a line in the board's log
+   naming the query string as the reason.
 
 4. A task that is running is not a task that is late. Each one declares a
    budget; when it is spent, the tick tells the task to stop, and the ones

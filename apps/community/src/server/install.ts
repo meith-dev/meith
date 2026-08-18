@@ -20,6 +20,7 @@ import {
   PostgresSettingsRepository,
   runMigrations,
   SEED_GROUP_KEY,
+  withInstallLock,
 } from '@meith/db'
 import { currentMailConfig, drivers } from '@meith/drivers'
 import {
@@ -41,6 +42,10 @@ import {
 } from '@meith/settings'
 
 const INSTALLED_VERSION = '0.1.0'
+
+const INSTALL_IN_FLIGHT = 'install.raced.inFlight'
+
+const INSTALL_RACED = 'install.raced.sealed'
 
 export async function gatherPreflight(): Promise<readonly Check[]> {
   const dataSource = env.DATA_SOURCE === 'postgres' ? 'postgres' : 'fixture'
@@ -118,9 +123,18 @@ async function forgetCachedBoard(): Promise<void> {
   }
 }
 
-export async function runInstall(input: InstallInput): Promise<readonly StepOutcome[]> {
+export type InstallRun = { readonly sealed: true } | { readonly report: readonly StepOutcome[] }
+
+export async function runInstall(input: InstallInput): Promise<InstallRun> {
+  const url = env.DATABASE_URL ?? ''
+
   try {
-    return await performInstall(input)
+    const run = await withInstallLock(url, async (): Promise<InstallRun> => {
+      if (await isInstalled(getDb())) return { sealed: true }
+      return { report: await performInstall(input) }
+    })
+
+    return run ?? { report: [{ id: 'migrate', status: 'failed', error: INSTALL_IN_FLIGHT }] }
   } finally {
     await forgetCachedBoard()
   }
@@ -256,7 +270,9 @@ async function performInstall(input: InstallInput): Promise<readonly StepOutcome
     return report
   }
 
-  await step('seal', () => markInstalled(db, INSTALLED_VERSION))
+  await step('seal', async () => {
+    if (!(await markInstalled(db, INSTALLED_VERSION))) throw new Error(INSTALL_RACED)
+  })
 
   logger().info({ adminUserId, steps: report.length }, 'board installed')
   return report

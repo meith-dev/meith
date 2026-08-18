@@ -1,6 +1,8 @@
 export {
   assertUsableFilter,
+  BAN_FILTER_PATTERN_MAX,
   BAN_FILTER_TYPES,
+  BAN_FILTER_WILDCARD_MAX,
   type BanFilter,
   type BanFilterSubject,
   type BanFilterType,

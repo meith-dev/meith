@@ -16,7 +16,6 @@ export {
   THEME_API_VERSION,
   type ThemeContractReport,
 } from './api'
-export { linkTarget, type OffSiteAnchorProps } from './links'
 export {
   colourToHex,
   formatOklch,
@@ -30,6 +29,7 @@ export {
   rgbToHex,
   rgbToOklch,
 } from './colour'
+export { linkTarget, type OffSiteAnchorProps } from './links'
 export {
   isSlotName,
   SLOT_NAMES,

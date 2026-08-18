@@ -1,6 +1,6 @@
 import { type APIRequestContext, expect, type Page } from '@playwright/test'
 
-import { STAFF, STAFF_PASSWORD } from './config'
+import { E2E_TICK_SECRET, STAFF, STAFF_PASSWORD } from './config'
 
 export const PASSWORD = 'long-enough-password'
 
@@ -59,6 +59,12 @@ export async function enterAdminPanel(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
 }
 
+export async function runTick(request: APIRequestContext): Promise<void> {
+  await request.post('/api/system/tick', {
+    headers: { authorization: `Bearer ${E2E_TICK_SECRET}` },
+  })
+}
+
 export async function drainUntil(
   request: APIRequestContext,
   page: Page,
@@ -66,7 +72,7 @@ export async function drainUntil(
   check: () => Promise<void>,
 ): Promise<void> {
   await expect(async () => {
-    await request.get('/api/system/tick?secret=e2e-only-tick-secret-000000000000')
+    await runTick(request)
     await page.goto(url)
     await check()
   }).toPass({ timeout: 90_000, intervals: [1_000, 2_000, 5_000, 10_000] })

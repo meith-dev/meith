@@ -129,7 +129,14 @@ export {
 } from './import-repo'
 export { PostgresImportSink } from './import-sink'
 export { PostgresInlineModerationRepository } from './inline-moderation'
-export { canConnect, countUsers, isInstalled, markInstalled } from './install-repo'
+export {
+  canConnect,
+  countUsers,
+  INSTALL_LOCK_KEY,
+  isInstalled,
+  markInstalled,
+  withInstallLock,
+} from './install-repo'
 export {
   type LatestPostRow,
   type LatestScope,

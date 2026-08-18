@@ -10,6 +10,8 @@ import { getContainer } from '@/server/container'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+const SECRET_HEADER = 'x-tick-secret'
+
 function secretMatches(presented: string, expected: string): boolean {
   const a = Buffer.from(presented, 'utf8')
   const b = Buffer.from(expected, 'utf8')
@@ -20,24 +22,39 @@ function secretMatches(presented: string, expected: string): boolean {
   return timingSafeEqual(a, b)
 }
 
-export async function GET(request: Request): Promise<NextResponse> {
+function presentedSecret(request: Request): string {
+  const authorization = request.headers.get('authorization')
+  if (authorization !== null && /^Bearer\s+/i.test(authorization)) {
+    return authorization.replace(/^Bearer\s+/i, '')
+  }
+
+  return request.headers.get(SECRET_HEADER) ?? ''
+}
+
+function authorised(request: Request): boolean {
+  const expected = env.TICK_SECRET
+
+  if (!expected) {
+    logger().warn(
+      'TICK_SECRET is not set; the tick endpoint is unauthenticated. This is ' +
+        'permitted in development only.',
+    )
+    return true
+  }
+
+  if (new URL(request.url).searchParams.has('secret')) {
+    logger().warn(
+      `The tick was called with the secret in the query string, which is no longer read. Present it as "Authorization: Bearer <TICK_SECRET>" or as the "${SECRET_HEADER}" header instead.`,
+    )
+  }
+
+  return secretMatches(presentedSecret(request), expected)
+}
+
+async function runTick(request: Request): Promise<NextResponse> {
   return withRequestContext({}, async () => {
-    const expected = env.TICK_SECRET
-
-    if (!expected) {
-      logger().warn(
-        'TICK_SECRET is not set; the tick endpoint is unauthenticated. This is ' +
-          'permitted in development only.',
-      )
-    } else {
-      const header =
-        request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ??
-        new URL(request.url).searchParams.get('secret') ??
-        ''
-
-      if (!secretMatches(header, expected)) {
-        return NextResponse.json({ error: 'Not found' }, { status: 404 })
-      }
+    if (!authorised(request)) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
     const { scheduler } = getContainer()
@@ -69,4 +86,12 @@ export async function GET(request: Request): Promise<NextResponse> {
       registered: scheduler.tasks.length,
     })
   })
+}
+
+export async function GET(request: Request): Promise<NextResponse> {
+  return runTick(request)
+}
+
+export async function POST(request: Request): Promise<NextResponse> {
+  return runTick(request)
 }

@@ -78,7 +78,9 @@ async function signIn(page: Page, username: string, password: string): Promise<v
 
 async function warmTheBoard(request: APIRequestContext, page: Page): Promise<void> {
   await expect(async () => {
-    await request.get(`/api/system/tick?secret=${TICK_SECRET}`)
+    await request.post('/api/system/tick', {
+      headers: { authorization: `Bearer ${TICK_SECRET}` },
+    })
     await page.goto(`/search?q=${SEARCH_TERM}`)
     await expectResults(page)
   }).toPass({ timeout: 120_000, intervals: [1_000, 2_000, 5_000, 10_000] })

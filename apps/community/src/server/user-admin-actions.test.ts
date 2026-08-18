@@ -47,6 +47,17 @@ vi.mock('@meith/drivers', () => ({
   }),
 }))
 
+const notices: Array<{ stage: string; previousEmail: string; email: string }> = []
+vi.mock('./usercp-mail', () => ({
+  sendEmailChangeNotice: async (input: { stage: string; previousEmail: string; email: string }) => {
+    notices.push({
+      stage: input.stage,
+      previousEmail: input.previousEmail,
+      email: input.email,
+    })
+  },
+}))
+
 const staffEvents: Array<{ userId: number; kind: string }> = []
 vi.mock('./auth-events', () => ({
   recordStaffAuthEvent: async (input: { userId: number; kind: string }) => {
@@ -176,6 +187,7 @@ function form(fields: Record<string, string>): FormData {
 beforeEach(() => {
   adminCalls.length = 0
   staffEvents.length = 0
+  notices.length = 0
   cleared.length = 0
   revokedFor.length = 0
   factor.enrolled = true
@@ -657,10 +669,19 @@ describe('an address changed from the panel', () => {
     expect(staffEvents).toEqual([{ userId: 7, kind: 'email_changed' }])
   })
 
+  it('tells the address that was taken away', async () => {
+    await saveMemberAccountAction({}, form({ ...fields, email: 'ann@elsewhere.test' }))
+
+    expect(notices).toEqual([
+      { stage: 'adopted', previousEmail: 'ann@example.test', email: 'ann@elsewhere.test' },
+    ])
+  })
+
   it('records nothing when the address is the one already held', async () => {
     await saveMemberAccountAction({}, form({ ...fields, email: 'ann@example.test' }))
 
     expect(accounts).toHaveLength(1)
     expect(staffEvents).toEqual([])
+    expect(notices).toEqual([])
   })
 })

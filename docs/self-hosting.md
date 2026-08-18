@@ -102,7 +102,7 @@ Edit the last line to your real domain — it is the only line you type.
 |---|---|
 | `POSTGRES_PASSWORD` | The database's own password. Generated, never typed — and hex, see the note below. The compose file has a well-known default, so set your own. |
 | `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. Sessions are not derived from it — they are random tokens stored hashed. There is deliberately no default: a shipped one is a link every reader of the source can forge. Compose refuses to start without it. |
-| `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. Compose refuses to start without it too. |
+| `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. Presented as an `Authorization: Bearer` header, never in the query string — see [driving the tick from outside](./operating.md#driving-the-tick-from-outside). Compose refuses to start without it too. |
 | `PORT` | **`127.0.0.1:3000`, not `3000`.** Binding all interfaces publishes the board on port 3000 alongside your HTTPS one — plaintext, no certificate — and Docker writes its own iptables rules, so `ufw` does not stop it. |
 | `APP_URL` | The board's public origin. The compose file otherwise defaults it to `http://localhost:3000`, and every link in every password-reset and confirmation e-mail is built from it — so a wrong or missing value here is mail pointing at a host you do not own. It must be your real origin, not a placeholder. |
 
@@ -297,7 +297,8 @@ drift apart, and why there is no second Dockerfile.
 The `worker` service holds database credentials, which some operators
 would rather only the web server did. The compose file ships an
 alternative behind a profile: a small container that calls
-`/api/system/tick` over HTTP once a minute, presenting `TICK_SECRET`:
+`/api/system/tick` over HTTP once a minute, presenting `TICK_SECRET` in
+an `Authorization: Bearer` header:
 
 ```sh
 docker compose --profile curl-tick up -d

@@ -1,6 +1,10 @@
 import { sql } from 'drizzle-orm'
+import postgres from 'postgres'
 
 import type { Database } from './client'
+import { resultRows } from './result-rows'
+
+export const INSTALL_LOCK_KEY = '8626403014885544245'
 
 export async function isInstalled(db: Database): Promise<boolean> {
   try {
@@ -33,10 +37,31 @@ export async function canConnect(db: Database): Promise<boolean> {
   }
 }
 
-export async function markInstalled(db: Database, version: string): Promise<void> {
-  await db.execute(sql`
-    insert into install_state (id, installed_version)
-    values (1, ${version})
-    on conflict (id) do nothing
-  `)
+export async function markInstalled(db: Database, version: string): Promise<boolean> {
+  const rows = resultRows(
+    await db.execute(sql`
+      insert into install_state (id, installed_version)
+      values (1, ${version})
+      on conflict (id) do nothing
+      returning id
+    `),
+  )
+
+  return rows.length > 0
+}
+
+export async function withInstallLock<T>(url: string, body: () => Promise<T>): Promise<T | null> {
+  const client = postgres(url, { max: 1, prepare: false, onnotice: () => {} })
+
+  try {
+    const rows = await client`
+      select pg_try_advisory_lock(${INSTALL_LOCK_KEY}::bigint) as locked
+    `
+
+    if (rows[0]?.locked !== true) return null
+
+    return await body()
+  } finally {
+    await client.end({ timeout: 5 })
+  }
 }

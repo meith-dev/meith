@@ -18,16 +18,58 @@ export interface BanFilterSubject {
   readonly ip?: string | undefined
 }
 
-function compile(pattern: string): RegExp {
-  const source = [...pattern]
-    .map((char) => {
-      if (char === '*') return '.*'
-      if (char === '?') return '.'
-      return char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    })
-    .join('')
+export const BAN_FILTER_PATTERN_MAX = 200
+export const BAN_FILTER_WILDCARD_MAX = 20
 
-  return new RegExp(`^${source}$`)
+function preparedPattern(type: BanFilterType, pattern: string): string {
+  return type === 'ip' ? pattern.trim() : foldIdentifier(pattern)
+}
+
+function wildcards(pattern: string): number {
+  let count = 0
+  for (const char of pattern) {
+    if (char === '*' || char === '?') count += 1
+  }
+  return count
+}
+
+function tooLong(pattern: string): boolean {
+  return [...pattern].length > BAN_FILTER_PATTERN_MAX
+}
+
+function tooWild(pattern: string): boolean {
+  return wildcards(pattern) > BAN_FILTER_WILDCARD_MAX
+}
+
+function globMatches(pattern: string, value: string): boolean {
+  const p = [...pattern]
+  const v = [...value]
+
+  let pi = 0
+  let vi = 0
+  let star = -1
+  let resume = 0
+
+  while (vi < v.length) {
+    if (pi < p.length && (p[pi] === '?' || p[pi] === v[vi])) {
+      pi += 1
+      vi += 1
+    } else if (pi < p.length && p[pi] === '*') {
+      star = pi
+      resume = vi
+      pi += 1
+    } else if (star !== -1) {
+      resume += 1
+      pi = star + 1
+      vi = resume
+    } else {
+      return false
+    }
+  }
+
+  while (pi < p.length && p[pi] === '*') pi += 1
+
+  return pi === p.length
 }
 
 export function assertUsableFilter(type: BanFilterType, pattern: string): void {
@@ -47,6 +89,20 @@ export function assertUsableFilter(type: BanFilterType, pattern: string): void {
   if (!(BAN_FILTER_TYPES as readonly string[]).includes(type)) {
     throw new ValidationError(`Unknown ban filter type: ${type}`)
   }
+
+  const prepared = preparedPattern(type, pattern)
+
+  if (tooLong(prepared)) {
+    throw new ValidationError(
+      msg('error.accounts.ban-filter-pattern-long', { max: BAN_FILTER_PATTERN_MAX }),
+    )
+  }
+
+  if (tooWild(prepared)) {
+    throw new ValidationError(
+      msg('error.accounts.ban-filter-too-many-wildcards', { max: BAN_FILTER_WILDCARD_MAX }),
+    )
+  }
 }
 
 function subjectValue(type: BanFilterType, subject: BanFilterSubject): string | undefined {
@@ -63,8 +119,9 @@ export function matchBanFilter(
     const value = subjectValue(filter.type, subject)
     if (value === undefined || value === '') continue
 
-    const pattern = filter.type === 'ip' ? filter.pattern.trim() : foldIdentifier(filter.pattern)
-    if (compile(pattern).test(value)) return filter
+    const pattern = preparedPattern(filter.type, filter.pattern)
+    if (tooLong(pattern) || tooWild(pattern)) continue
+    if (globMatches(pattern, value)) return filter
   }
   return null
 }

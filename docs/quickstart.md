@@ -161,6 +161,13 @@ e-mail anybody.
 > purpose. You are running this against the production database, which is
 > the right place — just do not run it twice against two different ones.
 
+Running it twice against the *same* one is safe, including at the same
+moment from two browsers. The installer takes a lock on the database
+before it does anything and re-checks the seal inside it: the second
+attempt is told an install is already running, or — if the first has
+finished — sent to the finished board. It does not migrate a second time,
+and it does not create a second administrator.
+
 That is a board. It sends you to the sign-in page; sign in with the
 account you just made.
 

@@ -202,6 +202,30 @@ prefers `DIRECT_DATABASE_URL`: a transaction-mode pooler hands out a
 different backend per transaction and cannot hold a session lock. A crashed
 migrator releases the lock the moment its connection drops.
 
+**One install runs at a time, and only one can finish.** The web installer
+takes the same kind of lock on its own connection and its own key
+(`pg_try_advisory_lock(8626403014885544245)` — the first eight bytes of
+`sha256("meith:install")`, read the same way), and re-reads `install_state`
+*inside* it before doing any work. Two people pressing Install at the same
+moment therefore do not both migrate, both create an administrator and both
+create a first forum: the second is refused the lock outright and told an
+install is already running, and a second attempt that arrives after the
+first finished finds the board sealed and is sent to it rather than
+installing over it. `pg_try_advisory_lock` rather than `pg_advisory_lock`,
+because a second installer should be told what is happening rather than
+left waiting on a request that may run for minutes. The lock is its own
+connection, held for the length of the run and dropped in a `finally`, so
+an install briefly needs one connection more than the pool it is
+configured with — three in total, counting the migrator's own.
+
+The lock is the coordination; the seal is the proof. `markInstalled()`
+inserts `install_state` with `on conflict do nothing returning id`, so it
+reports whether *this* call was the one that sealed the board, and the
+final install step fails loudly if it was not. The two together mean the
+race cannot be won twice even if the lock were somehow bypassed — a
+different key, a connection that dropped mid-run — and the row's
+`check (id = 1)` primary key is what makes that true.
+
 **Denormalised author names.** A member's name is stored beside the content
 that renders it (`posts.author_username`, `threads.author_username` and
 `threads.last_post_username`, `forums.last_post_username`,
@@ -428,8 +452,8 @@ invalidate.
 
 The tick has two drivers: the worker process (in-process, every 60 s, keeps
 running when the web container is down) and the `TICK_SECRET`-guarded
-`GET /api/system/tick` route for deployments where an external scheduler
-drives it. Same `tick()`, same claim semantics, no coordination needed
+`/api/system/tick` route — `GET` or `POST`, the secret in a header — for
+deployments where an external scheduler drives it. Same `tick()`, same claim semantics, no coordination needed
 between them; running both is safe. The worker holds one tick at a time: a
 tick that passes its five-minute ceiling has its signal aborted and is
 awaited, so the tasks still running stop at their next unit and release
@@ -505,11 +529,12 @@ server is `@meith/drivers`' job, and the two never meet: the template can
 be rendered and asserted on in a unit test with no transport configured,
 which is why every branch of it is covered.
 
-It exists as its own package because **five call sites in three processes
+It exists as its own package because **six call sites in three processes
 need the same template**. Notification and mass mail are rendered by the
 worker, which has no Next.js and no theme registry; registration
-confirmation, password reset and the e-mail change confirmation are
-rendered during a request in `apps/community`. Putting the template in
+confirmation, password reset, the e-mail change confirmation and the
+notice that goes to the address being left are rendered during a request
+in `apps/community`. Putting the template in
 `notifications` would have made an auth e-mail import a notifications
 package to render itself.
 

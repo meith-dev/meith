@@ -1,12 +1,12 @@
 import { type APIRequestContext, expect, type Page, test } from '@playwright/test'
 
-import { signUp } from './support/session'
+import { runTick, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
 async function indexed(request: APIRequestContext, page: Page): Promise<void> {
   await expect(async () => {
-    await request.get('/api/system/tick?secret=e2e-only-tick-secret-000000000000')
+    await runTick(request)
     await page.goto('/search?q=version')
     await expect(page.getByRole('link', { name: 'Version 0.1 is live' })).toBeVisible()
   }).toPass({ timeout: 20_000, intervals: [500, 1_000, 2_000, 5_000] })

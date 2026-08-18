@@ -9,6 +9,7 @@ import {
   E2E_INSTALL_DATABASE_URL,
   E2E_INSTALL_DB_PORT,
   E2E_INSTALL_PORT,
+  E2E_TICK_SECRET,
   E2E_UPLOADS_DIR,
 } from './e2e/support/config'
 
@@ -73,7 +74,7 @@ export default defineConfig({
         FILESTORE_DRIVER: 'local',
         UPLOADS_DIR: E2E_UPLOADS_DIR,
         AUTH_SECRET: 'e2e-only-secret-0000000000000000',
-        TICK_SECRET: 'e2e-only-tick-secret-000000000000',
+        TICK_SECRET: E2E_TICK_SECRET,
         FORUM_DIST_DIR: '.next-e2e',
         NEXT_TELEMETRY_DISABLED: '1',
         SHOWCASE_THEMES: '1',
@@ -104,7 +105,7 @@ export default defineConfig({
         FILESTORE_DRIVER: 'local',
         UPLOADS_DIR: `${E2E_UPLOADS_DIR}-install`,
         AUTH_SECRET: 'e2e-only-secret-0000000000000000',
-        TICK_SECRET: 'e2e-only-tick-secret-000000000000',
+        TICK_SECRET: E2E_TICK_SECRET,
         FORUM_DIST_DIR: '.next-e2e-install',
         NEXT_TELEMETRY_DISABLED: '1',
       },
