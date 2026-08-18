@@ -11,6 +11,7 @@ import type {
 
 import { count } from './count'
 import { memberHref } from './member-profile'
+import { buildNavigation, defaultNavigationItems } from './navigation'
 import { timezoneLabel, untranslated } from './time'
 
 export const BOARD_TITLE = 'Meith'
@@ -58,16 +59,7 @@ export function buildBoardNavigation(
   viewer: ViewerModel,
   options: { searchEnabled?: boolean; t?: Translator } = {},
 ): readonly LinkModel[] {
-  const t = options.t ?? untranslated()
-
-  return [
-    { label: t.t('nav.home'), href: '/' },
-    { label: t.t('nav.newPosts'), href: '/discover/new' },
-    { label: t.t('nav.unanswered'), href: '/discover/unanswered' },
-    ...(viewer.isGuest ? [] : [{ label: t.t('nav.myPosts'), href: '/discover/participated' }]),
-    ...(options.searchEnabled === false ? [] : [{ label: t.t('nav.search'), href: '/search' }]),
-    { label: t.t('nav.online'), href: '/online' },
-  ]
+  return buildNavigation(defaultNavigationItems(), viewer, options)
 }
 
 const ACCOUNT_GROUP = 'account'

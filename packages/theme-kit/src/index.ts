@@ -16,6 +16,7 @@ export {
   THEME_API_VERSION,
   type ThemeContractReport,
 } from './api'
+export { linkTarget, type OffSiteAnchorProps } from './links'
 export {
   colourToHex,
   formatOklch,

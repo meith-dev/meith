@@ -143,6 +143,13 @@ export { PostgresMessageRepository } from './message-repo'
 export { runMigrations } from './migrate'
 export { PostgresModCpRepository } from './modcp-repo'
 export { PostgresModerationQueueRepository } from './moderation-queue'
+export {
+  type NavigationAudience,
+  type NavigationDropTarget,
+  type NavigationItemInput,
+  type NavigationItemRow,
+  PostgresNavigationRepository,
+} from './navigation-repo'
 export { PostgresNotificationRepository } from './notification-repo'
 export { PostgresOutboxReader } from './outbox-repo'
 export {

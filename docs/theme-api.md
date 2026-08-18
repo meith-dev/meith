@@ -279,7 +279,7 @@ a complete theme today.
 
 ## Versioning
 
-`THEME_API_VERSION` (currently `0.15`) is `major.minor`, and both halves are
+`THEME_API_VERSION` (currently `0.16`) is `major.minor`, and both halves are
 promises:
 
 | Bump | What may land | What it costs you |
@@ -312,6 +312,14 @@ not an API version.
 > never required to declare every prop it is handed. Only the app, which is
 > the sole caller of `requireSlot`, had to change: it now resolves `slotCopy()`
 > for every slot it renders. See [Words and numbers](#words-and-numbers).
+>
+> `0.16` is additive again: [`LinkModel`](./theme-slots.md#linkmodel) gained
+> `newTab` and `submenu`, both optional, because the board navigation is now a
+> list an administrator edits — its links may leave the board, and they may
+> have one level of links under them. A `linkTarget(link)` helper is exported
+> beside them: spread onto an anchor it writes the `target` and the `rel` that
+> has to accompany it. A theme that ignores both fields still compiles, and
+> renders the top level as an ordinary row of links.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

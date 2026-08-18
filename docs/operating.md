@@ -1173,8 +1173,8 @@ Writing a plugin: [the plugin API](./plugin-api.md). Every hook:
 ## Content and announcements
 
 `/admin/content` holds the board-wide vocabularies — the word filter,
-thread prefixes, smilies and custom directives — with attachments and
-announcements on screens beside it.
+thread prefixes, smilies and custom directives — with attachments,
+announcements and the navigation menu on screens beside it.
 
 One difference matters operationally:
 
@@ -1300,6 +1300,59 @@ expires on its own date, and removing it removes nothing anybody wrote —
 which is why it is safe to delete and a sticky thread is not.
 
 Dates are entered in UTC, and the screen says so.
+
+### The navigation menu
+
+`/admin/content/navigation` is the menu across the top of every board
+page. A new board starts with six items — Home, New posts, Unanswered, My
+posts, Search and Who's online — and those six are ordinary rows on this
+screen: rename one, move it, hide it, or delete it outright, and add
+links of your own beside them.
+
+### Arranging it, and sub-menus
+
+The list is a tree you drag. Take an item by its handle and drop it where
+you want it; drop it **to the right of the item above** and it becomes a
+sub-menu entry of that item, which opens under the parent when a reader
+hovers it or tabs onto it. Sub-menus go one level deep — an item with
+things under it cannot itself go under something, and the screen refuses
+the move rather than flattening it.
+
+Everything drag does, the four arrow buttons on each row do as well, and
+they are ordinary form submissions: **the screen is fully usable with
+JavaScript off**, which is how the rest of the panel behaves and how the
+browser suite tests it. With JavaScript on, the arrows preview the move
+before the server confirms it, and the keyboard arrows do the same thing
+from the handle. Order is kept for you; there is no number to type.
+
+Each row opens an **Edit** panel with the item's own settings:
+
+| Field | What it does |
+|---|---|
+| **Label** | The words in the menu. Left empty on one of the board's own six, the item keeps its translated name — so it stays in the reader's language rather than freezing into the one you typed. |
+| **Address** | A path on this board (`/rules`) or a full `http(s)` address. Nothing else is accepted: a `javascript:` address and a protocol-relative `//host` one are both refused, because a menu every reader sees is not a place to discover that a link left the board. |
+| **Inside** | The top level, or the item this one hangs under. The same move dragging makes, for anyone who would rather pick it from a list. |
+| **Shown to** | Everyone, signed-out visitors, signed-in members, or staff — the last meaning anybody with a moderator or admin control panel. |
+| **Groups** | Tick none and the audience above decides alone. Tick some and only members of those groups see the item. The Authorizer answers the group question; the menu never reads group membership itself. |
+
+**Open in a new tab** is the last: it marks a link as leaving the board,
+and a theme that honours it opens the link in its own tab with
+`rel="noopener noreferrer"`. A theme is free to ignore it and render an
+ordinary link.
+
+A hidden parent takes its sub-menu with it, and a sub-menu entry the
+viewer may not see simply is not there — a parent whose children are all
+filtered out renders as a plain link with nothing under it.
+
+Two behaviours survive from before the menu was editable. The Search item
+disappears when `search.enabled` is off, because the page it points at is
+gone — an item of your own pointing at `/search` is left alone, on the
+grounds that you asked for it. And a board with no database behind it
+(`DATA_SOURCE=fixture`, the demo and `pnpm dev`) renders the original six
+and says so rather than offering a screen that cannot save.
+
+The menu is cached board-wide under one tag and saving any row clears it,
+so a change is live on the next page load.
 
 ## The moderation queue
 
