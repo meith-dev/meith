@@ -14,6 +14,7 @@ import { getTranslator, tr } from '@/server/i18n'
 import { messageService } from '@/server/messages'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { currentTheme } from '@/server/theme'
+import { moderationFormsCopy } from '@/view/moderation-copy'
 import { offsetOf, readPage } from '@/view/pager'
 import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
@@ -138,12 +139,13 @@ export default async function ReportsPage({
                       : `Assigned to ${report.assignedToUsername}`}
                   </span>
                   <AssignReportForm
+                    copy={moderationFormsCopy(translator)}
                     reportId={report.id}
                     mine={report.assignedToUserId === actor.userId}
                   />
                 </div>
 
-                <CloseReportForm reportId={report.id} />
+                <CloseReportForm reportId={report.id} copy={moderationFormsCopy(translator)} />
               </li>
             )
           })}

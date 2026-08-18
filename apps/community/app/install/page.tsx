@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle, Disclosure } from '@meith/ui'
 import { InstallForm } from '@/components/install/install-form'
 import { getTranslator, tr } from '@/server/i18n'
 import { gatherPreflight, installerIsSealed, probeMail } from '@/server/install'
+import { installFormCopy } from '@/view/install-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.install') }
@@ -50,10 +51,10 @@ export default async function InstallPage() {
           presets={MAIL_PRESETS}
           steps={INSTALL_STEPS}
           initialReport={freshReport()}
-          reservedUsernames={DEFAULT_AUTH_POLICY.reservedUsernames}
           mailIsFromEnvironment={mail.source === 'environment'}
           suggestedBoardUrl={suggestedBoardUrl}
           boardUrlIsFromEnvironment={(env.APP_URL ?? '') !== ''}
+          copy={installFormCopy(DEFAULT_AUTH_POLICY.reservedUsernames, t)}
         />
       )}
     </main>

@@ -11,6 +11,7 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
+import { issueWarningFormCopy, moderationFormsCopy } from '@/view/moderation-copy'
 import { buildWarningView, warningNotice } from '@/view/warnings'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -96,8 +97,8 @@ export default async function WarnPage({
       )}
 
       <IssueWarningForm
+        copy={issueWarningFormCopy(view.member.username, translator)}
         userId={view.member.userId}
-        username={view.member.username}
         postId={postId}
         types={view.types}
       />
@@ -132,7 +133,11 @@ export default async function WarnPage({
                 )}
                 {row.lapsed === null ? (
                   <div className="mt-3">
-                    <RevokeWarningForm warningId={row.id} userId={view.member.userId} />
+                    <RevokeWarningForm
+                      warningId={row.id}
+                      userId={view.member.userId}
+                      copy={moderationFormsCopy(translator)}
+                    />
                   </div>
                 ) : (
                   <p className="mt-2 text-xs italic text-muted-foreground">{row.lapsed}</p>

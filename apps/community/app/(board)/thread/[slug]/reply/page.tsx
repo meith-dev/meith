@@ -11,6 +11,7 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
+import { replyFormCopy } from '@/view/content-copy'
 import { buildReplyView } from '@/view/post-form'
 import { postLink } from '@/view/post-link'
 import { leadingId } from '@/view/slug-id'
@@ -84,6 +85,7 @@ export default async function ReplyPage({
             <>
               <MultiQuoteSelection threadId={target.threadId} insertOnMount />
               <ReplyForm
+                copy={replyFormCopy(await getTranslator())}
                 threadId={target.threadId}
                 seenLastPostId={target.lastPostId}
                 prefill={prefill}

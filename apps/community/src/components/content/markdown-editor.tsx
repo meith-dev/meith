@@ -6,6 +6,7 @@ import { cn } from '@meith/ui'
 
 import { type PreviewScope, renderPreviewAction } from '@/server/content-actions'
 
+import { type Copy, formatFromCopy, fromCopy, useCopy } from '../shell/copy'
 import {
   type Edit,
   fenceEdit,
@@ -25,40 +26,74 @@ type Command =
   | { readonly kind: 'fence' }
 
 interface Tool {
-  readonly label: string
+  readonly labelKey: string
   readonly glyph: string
   readonly shortcut?: string
-  readonly command: Command
+  readonly command: (copy: Copy) => Command
 }
 
 const TOOLS: readonly Tool[] = [
   {
-    label: 'Bold',
+    labelKey: 'composer.tool.bold',
     glyph: 'B',
     shortcut: 'b',
-    command: { kind: 'wrap', syntax: { marker: '*', length: 2, placeholder: 'bold text' } },
+    command: (copy) => ({
+      kind: 'wrap',
+      syntax: { marker: '*', length: 2, placeholder: fromCopy(copy, 'composer.placeholder.bold') },
+    }),
   },
   {
-    label: 'Italic',
+    labelKey: 'composer.tool.italic',
     glyph: 'I',
     shortcut: 'i',
-    command: { kind: 'wrap', syntax: { marker: '*', length: 1, placeholder: 'italic text' } },
+    command: (copy) => ({
+      kind: 'wrap',
+      syntax: {
+        marker: '*',
+        length: 1,
+        placeholder: fromCopy(copy, 'composer.placeholder.italic'),
+      },
+    }),
   },
   {
-    label: 'Strikethrough',
+    labelKey: 'composer.tool.strikethrough',
     glyph: 'S',
-    command: { kind: 'wrap', syntax: { marker: '~', length: 2, placeholder: 'struck out' } },
+    command: (copy) => ({
+      kind: 'wrap',
+      syntax: {
+        marker: '~',
+        length: 2,
+        placeholder: fromCopy(copy, 'composer.placeholder.struck'),
+      },
+    }),
   },
-  { label: 'Link', glyph: 'Link', shortcut: 'k', command: { kind: 'link' } },
-  { label: 'Quote', glyph: '“”', command: { kind: 'prefix', marker: '> ' } },
-  { label: 'Code', glyph: '</>', command: { kind: 'fence' } },
-  { label: 'Bulleted list', glyph: '•', command: { kind: 'prefix', marker: '- ' } },
   {
-    label: 'Numbered list',
-    glyph: '1.',
-    command: { kind: 'prefix', marker: (index: number) => `${index + 1}. ` },
+    labelKey: 'composer.tool.link',
+    glyph: 'Link',
+    shortcut: 'k',
+    command: () => ({ kind: 'link' }),
   },
-  { label: 'Heading', glyph: 'H', command: { kind: 'prefix', marker: '## ' } },
+  {
+    labelKey: 'composer.tool.quote',
+    glyph: '“”',
+    command: () => ({ kind: 'prefix', marker: '> ' }),
+  },
+  { labelKey: 'composer.tool.code', glyph: '</>', command: () => ({ kind: 'fence' }) },
+  {
+    labelKey: 'composer.tool.bulletedList',
+    glyph: '•',
+    command: () => ({ kind: 'prefix', marker: '- ' }),
+  },
+  {
+    labelKey: 'composer.tool.numberedList',
+    glyph: '1.',
+    command: () => ({ kind: 'prefix', marker: (index: number) => `${index + 1}. ` }),
+  },
+  {
+    labelKey: 'composer.tool.heading',
+    glyph: 'H',
+    command: () => ({ kind: 'prefix', marker: '## ' }),
+  },
 ]
 
 function apply(field: HTMLTextAreaElement, edit: Edit): void {
@@ -93,7 +128,7 @@ export interface MarkdownEditorProps {
 export function MarkdownEditor({
   id = 'post-message',
   name = 'message',
-  label = 'Message',
+  label,
   rows = 12,
   required = false,
   defaultValue,
@@ -104,6 +139,7 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   const field = useRef<HTMLTextAreaElement>(null)
   const panelId = useId()
+  const copy = useCopy()
 
   const [enhanced, setEnhanced] = useState(false)
   useEffect(() => setEnhanced(true), [])
@@ -154,7 +190,7 @@ export function MarkdownEditor({
       const tool = TOOLS.find((candidate) => candidate.shortcut === event.key.toLowerCase())
       if (tool !== undefined) {
         event.preventDefault()
-        run(element, tool.command)
+        run(element, tool.command(copy))
       }
       return
     }
@@ -203,13 +239,13 @@ export function MarkdownEditor({
     <div className="flex flex-col gap-1.5 text-sm">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <label htmlFor={id} className="font-medium">
-          {label}
+          {label ?? fromCopy(copy, 'composer.message')}
         </label>
 
         {enhanced && (
           <div
             role="tablist"
-            aria-label="Write or preview"
+            aria-label={fromCopy(copy, 'composer.tabs')}
             className="flex gap-1"
             onKeyDown={onTabKey}
           >
@@ -223,7 +259,7 @@ export function MarkdownEditor({
               onClick={() => setTab('write')}
               className={tabClass(tab === 'write')}
             >
-              Write
+              {fromCopy(copy, 'composer.write')}
             </button>
             <button
               type="button"
@@ -235,7 +271,7 @@ export function MarkdownEditor({
               onClick={() => void showPreview()}
               className={tabClass(tab === 'preview')}
             >
-              Preview
+              {fromCopy(copy, 'composer.preview')}
             </button>
           </div>
         )}
@@ -244,24 +280,27 @@ export function MarkdownEditor({
       {enhanced && tab === 'write' && (
         <div
           role="group"
-          aria-label="Formatting"
+          aria-label={fromCopy(copy, 'composer.formatting')}
           aria-controls={id}
           className="flex flex-wrap gap-0.5 rounded-md border border-border bg-muted/40 p-1"
         >
           {TOOLS.map((tool) => (
             <button
-              key={tool.label}
+              key={tool.labelKey}
               type="button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
-                if (field.current !== null) run(field.current, tool.command)
+                if (field.current !== null) run(field.current, tool.command(copy))
               }}
               title={
                 tool.shortcut === undefined
-                  ? tool.label
-                  : `${tool.label} (Ctrl+${tool.shortcut.toUpperCase()})`
+                  ? fromCopy(copy, tool.labelKey)
+                  : formatFromCopy(copy, 'composer.toolShortcut', {
+                      label: fromCopy(copy, tool.labelKey),
+                      key: tool.shortcut.toUpperCase(),
+                    })
               }
-              aria-label={tool.label}
+              aria-label={fromCopy(copy, tool.labelKey)}
               {...(tool.shortcut === undefined
                 ? {}
                 : { 'aria-keyshortcuts': `Control+${tool.shortcut}` })}
@@ -303,16 +342,16 @@ export function MarkdownEditor({
           className="min-h-32 rounded-md border border-border bg-card px-3 py-2"
         >
           {previewState === 'loading' && (
-            <p className="text-sm text-muted-foreground">Rendering…</p>
+            <p className="text-sm text-muted-foreground">{fromCopy(copy, 'composer.rendering')}</p>
           )}
           {previewState === 'failed' && (
-            <p className="text-sm text-destructive">
-              The preview could not be rendered. Your post is untouched — switch back to Write.
-            </p>
+            <p className="text-sm text-destructive">{fromCopy(copy, 'composer.previewFailed')}</p>
           )}
           {previewState === 'idle' &&
             (rendered === null || rendered === '' ? (
-              <p className="text-sm text-muted-foreground">Nothing to preview yet.</p>
+              <p className="text-sm text-muted-foreground">
+                {fromCopy(copy, 'composer.previewEmpty')}
+              </p>
             ) : (
               <div className="prose-md text-sm" dangerouslySetInnerHTML={{ __html: rendered }} />
             ))}
@@ -326,38 +365,39 @@ export function MarkdownEditor({
 }
 
 function FormattingHelp({ scope }: { scope: PreviewScope }) {
+  const copy = useCopy()
+
   const inline: readonly (readonly [string, string])[] = [
-    ['**bold**', 'bold'],
-    ['*italic*', 'italic'],
-    ['~~struck~~', 'struck out'],
-    ['[text](https://…)', 'a link'],
-    ['`code`', 'code, inline'],
+    ['**bold**', 'composer.help.bold'],
+    ['*italic*', 'composer.help.italic'],
+    ['~~struck~~', 'composer.help.struck'],
+    ['[text](https://…)', 'composer.help.link'],
+    ['`code`', 'composer.help.codeInline'],
   ]
   const blocks: readonly (readonly [string, string])[] = [
-    ['```', 'a code block, closed by another ```'],
-    ['> quoted', 'a quote'],
-    ['- item', 'a list; 1. for a numbered one'],
-    ['## Heading', 'a heading'],
+    ['```', 'composer.help.codeBlock'],
+    ['> quoted', 'composer.help.quote'],
+    ['- item', 'composer.help.list'],
+    ['## Heading', 'composer.help.heading'],
   ]
   const rows = scope === 'signature' ? inline : [...inline, ...blocks]
 
   return (
     <details className="text-xs text-muted-foreground">
-      <summary className="cursor-pointer select-none">Formatting help</summary>
+      <summary className="cursor-pointer select-none">
+        {fromCopy(copy, 'composer.help.summary')}
+      </summary>
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-        {rows.map(([syntax, meaning]) => (
+        {rows.map(([syntax, meaningKey]) => (
           <div key={syntax} className="contents">
             <dt>
               <code>{syntax}</code>
             </dt>
-            <dd>{meaning}</dd>
+            <dd>{fromCopy(copy, meaningKey)}</dd>
           </div>
         ))}
       </dl>
-      <p className="mt-2">
-        A single Return is a line break, exactly as you typed it. HTML is shown as text, never
-        rendered.
-      </p>
+      <p className="mt-2">{fromCopy(copy, 'composer.help.note')}</p>
     </details>
   )
 }

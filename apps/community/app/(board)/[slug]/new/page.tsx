@@ -10,6 +10,7 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
+import { newThreadFormCopy } from '@/view/content-copy'
 import { buildNewThreadView } from '@/view/post-form'
 import { leadingId } from '@/view/slug-id'
 
@@ -59,6 +60,7 @@ export default async function NewThreadPage({ params }: { params: Promise<{ slug
           form:
             rules.isOpen && rules.allowThreads ? (
               <NewThreadForm
+                copy={newThreadFormCopy(await getTranslator())}
                 forumId={id}
                 prefixes={prefixes.map((p) => ({ id: p.id, label: p.label }))}
                 requiresPrefix={rules.requiresPrefix}

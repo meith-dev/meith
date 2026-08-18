@@ -2,6 +2,7 @@ import type { LinkModel, PanelKind } from '@meith/theme-kit'
 import { requireSlot } from '@meith/theme-kit'
 
 import { getActor } from '@/server/context'
+import { tr } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 
@@ -17,7 +18,7 @@ export async function PanelShell({ panel, nav, links = [], children }: PanelShel
 
   const model = await filterView(
     'view.panel-shell',
-    { panel, links, linksLabel: 'Other panels', regions: { nav } },
+    { panel, links, linksLabel: await tr('panel.otherPanels'), regions: { nav } },
     viewerRef(await getActor()),
   )
 

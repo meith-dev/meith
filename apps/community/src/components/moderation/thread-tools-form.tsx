@@ -6,6 +6,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { threadToolAction } from '@/server/thread-tool-actions'
 
 import { FormError } from '../auth/form-controls'
+import { type Copy, fromCopy } from '../shell/copy'
 
 const BUTTON =
   'inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -51,7 +52,8 @@ export function ThreadToolsForm({
   isSticky,
   rights,
   moveTargets,
-  heading = 'Moderator tools',
+  heading,
+  copy,
   children,
 }: {
   threadId: number
@@ -59,7 +61,8 @@ export function ThreadToolsForm({
   isSticky: boolean
   rights: { lock: boolean; stick: boolean; move: boolean; delete: boolean }
   moveTargets: readonly MoveOption[]
-  heading?: string
+  heading: string
+  copy: Copy
   children?: React.ReactNode
 }) {
   const [moveState, moveAction] = useActionState(threadToolAction, EMPTY_STATE)
@@ -75,18 +78,31 @@ export function ThreadToolsForm({
         <ToolButton
           threadId={threadId}
           tool={isLocked ? 'unlock' : 'lock'}
-          label={isLocked ? 'Unlock' : 'Lock'}
+          label={
+            isLocked
+              ? fromCopy(copy, 'moderationForm.tool.unlock')
+              : fromCopy(copy, 'moderationForm.tool.lock')
+          }
         />
       )}
       {rights.stick && (
         <ToolButton
           threadId={threadId}
           tool={isSticky ? 'unstick' : 'stick'}
-          label={isSticky ? 'Unpin' : 'Pin'}
+          label={
+            isSticky
+              ? fromCopy(copy, 'moderationForm.tool.unpin')
+              : fromCopy(copy, 'moderationForm.tool.pin')
+          }
         />
       )}
       {rights.delete && (
-        <ToolButton threadId={threadId} tool="delete" label="Delete thread" destructive />
+        <ToolButton
+          threadId={threadId}
+          tool="delete"
+          label={fromCopy(copy, 'moderationForm.tool.deleteThread')}
+          destructive
+        />
       )}
 
       {rights.move && moveTargets.length > 0 && (
@@ -94,7 +110,7 @@ export function ThreadToolsForm({
           <FormError message={moveState.error} />
           <input type="hidden" name="threadId" value={threadId} />
           <label className="flex items-center gap-2 text-xs">
-            <span className="sr-only">Move to</span>
+            <span className="sr-only">{fromCopy(copy, 'moderationForm.moveTo')}</span>
             <select
               name="toForumId"
               className="h-8 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -107,10 +123,10 @@ export function ThreadToolsForm({
             </select>
           </label>
           <button type="submit" name="tool" value="move" className={BUTTON}>
-            Move
+            {fromCopy(copy, 'moderationForm.tool.move')}
           </button>
           <button type="submit" name="tool" value="copy" className={BUTTON}>
-            Copy
+            {fromCopy(copy, 'moderationForm.tool.copy')}
           </button>
         </form>
       )}

@@ -9,6 +9,7 @@ import {
   InMemoryAuthorizationSource,
   type MemoryAppointment,
 } from '@meith/authorization'
+import { EN_CATALOG } from '@meith/i18n'
 import type { MoveDestination, ThreadToolsRepository, ThreadToolTarget } from '@meith/moderation'
 
 const { RedirectError } = vi.hoisted(() => {
@@ -303,6 +304,8 @@ describe('copy', () => {
         isSticky: false,
         rights: { lock: true, stick: true, move: true, delete: true },
         moveTargets: [{ id: SEED_FORUM.announcements, title: 'Announcements' }],
+        heading: 'Moderator tools',
+        copy: EN_CATALOG,
       }),
     )
 
@@ -324,6 +327,8 @@ describe('copy', () => {
         isSticky: false,
         rights: { lock: true, stick: true, move: true, delete: true },
         moveTargets: [{ id: SEED_FORUM.announcements, title: 'Announcements' }],
+        heading: 'Moderator tools',
+        copy: EN_CATALOG,
       }),
     )
 
@@ -432,7 +437,7 @@ describe('deleting a thread you started', () => {
 describe('the panel an author sees', () => {
   function render(
     rights: Parameters<typeof ThreadToolsForm>[0]['rights'],
-    heading?: string,
+    heading = 'Moderator tools',
   ): string {
     return renderToStaticMarkup(
       createElement(ThreadToolsForm, {
@@ -441,7 +446,8 @@ describe('the panel an author sees', () => {
         isSticky: false,
         rights,
         moveTargets: [],
-        ...(heading === undefined ? {} : { heading }),
+        heading,
+        copy: EN_CATALOG,
       }),
     )
   }

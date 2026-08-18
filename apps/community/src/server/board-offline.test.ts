@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Actor } from '@meith/authorization'
 import { emptyPermissionSet, type PermissionSet } from '@meith/core'
+import { EN_CATALOG } from '@meith/i18n'
 import { SettingsSnapshot } from '@meith/settings'
 
 let overrides = new Map<string, string>()
@@ -100,7 +101,9 @@ describe('the offline page', () => {
     const notice = await boardOffline()
     expect(notice).not.toBeNull()
 
-    const html = renderToStaticMarkup(createElement(OfflineNotice, notice!))
+    const html = renderToStaticMarkup(
+      createElement(OfflineNotice, { ...notice!, copy: EN_CATALOG }),
+    )
     expect(html).toContain(MESSAGE)
   })
 
@@ -108,7 +111,9 @@ describe('the offline page', () => {
     offline('')
     const notice = await boardOffline()
 
-    const html = renderToStaticMarkup(createElement(OfflineNotice, notice!))
+    const html = renderToStaticMarkup(
+      createElement(OfflineNotice, { ...notice!, copy: EN_CATALOG }),
+    )
     expect(html).toContain(OFFLINE_FALLBACK_MESSAGE)
   })
 })

@@ -17,12 +17,6 @@ export function themeFromQuery(value: string | null | undefined): string | null 
 export const COLOUR_SCHEMES = ['system', 'light', 'dark'] as const
 export type ColourSchemePreference = (typeof COLOUR_SCHEMES)[number]
 
-export const COLOUR_SCHEME_LABEL: Record<ColourSchemePreference, string> = {
-  system: 'System',
-  light: 'Light',
-  dark: 'Dark',
-}
-
 export function isColourScheme(value: unknown): value is ColourSchemePreference {
   return COLOUR_SCHEMES.includes(value as ColourSchemePreference)
 }

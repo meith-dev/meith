@@ -6,6 +6,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { mergeThreadAction, splitThreadAction } from '@/server/surgery-actions'
 
 import { FormError } from '../auth/form-controls'
+import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 
 const BUTTON =
   'inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -22,10 +23,12 @@ export function ThreadSurgeryForm({
   threadId,
   rights,
   splitPoints,
+  copy,
 }: {
   threadId: number
   rights: { merge: boolean; split: boolean }
   splitPoints: readonly SplitPoint[]
+  copy: Copy
 }) {
   const [splitState, splitAction] = useActionState(splitThreadAction, EMPTY_STATE)
   const [mergeState, mergeAction] = useActionState(mergeThreadAction, EMPTY_STATE)
@@ -37,29 +40,32 @@ export function ThreadSurgeryForm({
           <FormError message={splitState.error} />
           <input type="hidden" name="threadId" value={threadId} />
           <label className="flex items-center gap-2 text-xs">
-            <span className="sr-only">Split from post</span>
+            <span className="sr-only">{fromCopy(copy, 'moderationForm.surgery.fromSr')}</span>
             <select name="fromPostId" className={FIELD}>
               {splitPoints.map((point) => (
                 <option key={point.id} value={point.id}>
-                  #{point.number} by {point.author}
+                  {formatFromCopy(copy, 'moderationForm.surgery.splitPoint', {
+                    number: point.number,
+                    author: point.author,
+                  })}
                 </option>
               ))}
             </select>
           </label>
           <label className="flex items-center gap-2 text-xs">
-            <span className="sr-only">New thread title</span>
+            <span className="sr-only">{fromCopy(copy, 'moderationForm.surgery.titleSr')}</span>
             <input
               type="text"
               name="title"
               required
               minLength={3}
               maxLength={150}
-              placeholder="New thread title"
+              placeholder={fromCopy(copy, 'moderationForm.newThreadTitle')}
               className={`${FIELD} w-48`}
             />
           </label>
           <button type="submit" className={BUTTON}>
-            Split
+            {fromCopy(copy, 'moderationForm.surgery.split')}
           </button>
         </form>
       )}
@@ -69,19 +75,19 @@ export function ThreadSurgeryForm({
           <FormError message={mergeState.error} />
           <input type="hidden" name="threadId" value={threadId} />
           <label className="flex items-center gap-2 text-xs">
-            <span className="sr-only">Merge into thread number</span>
+            <span className="sr-only">{fromCopy(copy, 'moderationForm.surgery.mergeSr')}</span>
             <input
               type="number"
               name="targetThreadId"
               required
               min={1}
               step={1}
-              placeholder="Merge into thread #"
+              placeholder={fromCopy(copy, 'moderationForm.surgery.mergePlaceholder')}
               className={`${FIELD} w-40`}
             />
           </label>
           <button type="submit" className={`${BUTTON} border-destructive/40 text-destructive`}>
-            Merge away
+            {fromCopy(copy, 'moderationForm.surgery.merge')}
           </button>
         </form>
       )}

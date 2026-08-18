@@ -7,7 +7,8 @@ import { ReportForm } from '@/components/moderation/report-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
+import { moderationFormsCopy } from '@/view/moderation-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.report') }
@@ -60,7 +61,11 @@ export default async function ReportPage({
       title={`Report ${what}`}
       lede={await tr('page.moderator-will-look-at-this')}
     >
-      <ReportForm kind={kind} targetId={targetId} />
+      <ReportForm
+        kind={kind}
+        targetId={targetId}
+        copy={moderationFormsCopy(await getTranslator())}
+      />
     </PanelPage>
   )
 }

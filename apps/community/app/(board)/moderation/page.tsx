@@ -12,6 +12,7 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
+import { moderationFormsCopy } from '@/view/moderation-copy'
 import { buildQueueView } from '@/view/moderation-queue'
 import { offsetOf, readPage } from '@/view/pager'
 
@@ -97,7 +98,9 @@ export default async function ModerationPage({
         </Card>
       )}
 
-      {view.rows.length > 0 && <QueueForm rows={view.rows} />}
+      {view.rows.length > 0 && (
+        <QueueForm rows={view.rows} copy={moderationFormsCopy(await getTranslator())} />
+      )}
 
       <PanelPagination
         path="/moderation"

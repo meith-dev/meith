@@ -10,6 +10,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { createReplyAction } from '@/server/content-actions'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import { type Copy, fromCopy } from '../shell/copy'
 import { AttachmentField } from './attachment-field'
 import { ComposerIntents } from './composer-intents'
 import { MarkdownEditor } from './markdown-editor'
@@ -22,6 +23,7 @@ export function ReplyForm({
   attachmentLimits,
   draft,
   collapsible = false,
+  copy,
 }: {
   threadId: number
   seenLastPostId: number | null
@@ -30,6 +32,7 @@ export function ReplyForm({
   attachmentLimits: UploadLimits | null
   draft: Draft | null
   collapsible?: boolean
+  copy: Copy
 }) {
   const [state, action] = useActionState(createReplyAction, EMPTY_STATE)
 
@@ -39,7 +42,7 @@ export function ReplyForm({
 
       {state.notice === 'saved' && (
         <Alert tone="success">
-          <AlertDescription>Draft saved.</AlertDescription>
+          <AlertDescription>{fromCopy(copy, 'composer.draftSaved')}</AlertDescription>
         </Alert>
       )}
 
@@ -64,13 +67,13 @@ export function ReplyForm({
       {canSubscribe && (
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="subscribe" value="1" className="size-4 accent-primary" />
-          <span>Notify me of replies</span>
+          <span>{fromCopy(copy, 'composer.notifyReplies')}</span>
         </label>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
         <SubmitButton className={collapsible ? 'w-auto' : 'w-full sm:w-auto'}>
-          Post reply
+          {fromCopy(copy, 'composer.reply.submit')}
         </SubmitButton>
         <ComposerIntents />
       </div>
@@ -83,8 +86,12 @@ export function ReplyForm({
 
   return (
     <Disclosure
-      summary="Write a reply"
-      aside={draft === null ? 'Quick reply' : 'Draft saved'}
+      summary={fromCopy(copy, 'composer.reply.write')}
+      aside={
+        draft === null
+          ? fromCopy(copy, 'composer.reply.quick')
+          : fromCopy(copy, 'composer.reply.draftSaved')
+      }
       className={cn(forceOpen && 'border-ring/40')}
       {...(forceOpen ? { open: true } : {})}
     >

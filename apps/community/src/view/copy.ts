@@ -11,8 +11,74 @@ export function copyFor(
   return copy
 }
 
+export function patternCopy(
+  keys: readonly string[],
+  t: Translator = untranslated(),
+): Readonly<Record<string, string>> {
+  const copy: Record<string, string> = {}
+  for (const key of keys) copy[key] = t.pattern(key) ?? key
+  return copy
+}
+
+const CHROME_KEYS = [
+  'form.working',
+  'form.notSaved',
+  'composer.message',
+  'composer.tabs',
+  'composer.write',
+  'composer.preview',
+  'composer.formatting',
+  'composer.rendering',
+  'composer.previewFailed',
+  'composer.previewEmpty',
+  'composer.saveDraft',
+  'composer.tool.bold',
+  'composer.tool.italic',
+  'composer.tool.strikethrough',
+  'composer.tool.link',
+  'composer.tool.quote',
+  'composer.tool.code',
+  'composer.tool.bulletedList',
+  'composer.tool.numberedList',
+  'composer.tool.heading',
+  'composer.placeholder.bold',
+  'composer.placeholder.italic',
+  'composer.placeholder.struck',
+  'composer.help.summary',
+  'composer.help.bold',
+  'composer.help.italic',
+  'composer.help.struck',
+  'composer.help.link',
+  'composer.help.codeInline',
+  'composer.help.codeBlock',
+  'composer.help.quote',
+  'composer.help.list',
+  'composer.help.heading',
+  'composer.help.note',
+  'composer.attachments.label',
+  'composer.thanks.thanked',
+  'composer.thanks.thanks',
+  'composer.multiquote.button',
+  'composer.multiquote.addToReply',
+  'composer.multiquote.adding',
+  'composer.multiquote.clear',
+  'composer.multiquote.cleared',
+  'composer.multiquote.noneQuoted',
+] as const
+
+const CHROME_PATTERN_KEYS = [
+  'composer.toolShortcut',
+  'composer.attachments.hint',
+  'composer.thanks.count',
+  'composer.multiquote.selectedToQuote',
+  'composer.multiquote.added',
+  'composer.multiquote.removed',
+  'composer.multiquote.quotesAdded',
+  'composer.multiquote.quotesPartial',
+] as const
+
 export function formChromeCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
-  return copyFor(['form.working', 'form.notSaved'], t)
+  return { ...copyFor(CHROME_KEYS, t), ...patternCopy(CHROME_PATTERN_KEYS, t) }
 }
 
 export function splitAround(

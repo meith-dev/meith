@@ -20,6 +20,7 @@ import {
 import { Button } from '@meith/ui/button'
 
 import { Field } from '@/components/auth/form-controls'
+import { type Copy, formatFromCopy, fromCopy } from '@/components/shell/copy'
 
 type FieldControl = Parameters<React.ComponentProps<typeof UiFieldGroup>['children']>[0]
 
@@ -51,20 +52,20 @@ export interface InstallStepOutcome {
 
 const SKIP = 'skip'
 
-const FIELD_LABELS: Record<string, string> = {
-  boardName: 'Board name',
-  boardUrl: 'Board address',
-  username: 'Administrator’s name',
-  email: 'Administrator’s e-mail',
-  password: 'Administrator’s password',
-  mailPreset: 'How mail is sent',
-  mailFrom: 'Sender address',
-  mailUsername: 'Mail username',
-  mailSecret: 'Mail password or API key',
-  mailHost: 'SMTP host',
-  mailPort: 'Port',
-  mailSecurity: 'Security',
-  mailEndpoint: 'API endpoint',
+const FIELD_LABEL_KEYS: Record<string, string> = {
+  boardName: 'install.field.boardName',
+  boardUrl: 'install.field.boardUrl',
+  username: 'install.field.username',
+  email: 'install.field.email',
+  password: 'install.field.password',
+  mailPreset: 'install.field.mailPreset',
+  mailFrom: 'install.field.mailFrom',
+  mailUsername: 'install.field.mailUsername',
+  mailSecret: 'install.field.mailSecret',
+  mailHost: 'install.field.mailHost',
+  mailPort: 'install.field.mailPort',
+  mailSecurity: 'install.field.mailSecurity',
+  mailEndpoint: 'install.field.mailEndpoint',
 }
 
 const FOLDED_FIELDS = ['mailHost', 'mailPort', 'mailSecurity', 'mailEndpoint']
@@ -73,18 +74,18 @@ export function InstallForm({
   presets,
   steps,
   initialReport,
-  reservedUsernames,
   mailIsFromEnvironment,
   suggestedBoardUrl,
   boardUrlIsFromEnvironment,
+  copy,
 }: {
   presets: readonly InstallMailPreset[]
   steps: readonly InstallStepView[]
   initialReport: readonly InstallStepOutcome[]
-  reservedUsernames: readonly string[]
   suggestedBoardUrl: string
   boardUrlIsFromEnvironment: boolean
   mailIsFromEnvironment: boolean
+  copy: Copy
 }) {
   const [state, submit, pending] = useActionState(installAction, EMPTY)
 
@@ -92,103 +93,115 @@ export function InstallForm({
 
   return (
     <form action={submit} className="flex flex-col gap-6">
-      <FormSection n={1} title="Your board" hint="What it is called, and where it lives.">
+      <FormSection
+        n={1}
+        title={fromCopy(copy, 'install.board.title')}
+        hint={fromCopy(copy, 'install.board.hint')}
+      >
         <Field
           name="boardName"
           id="boardName"
-          label="Board name"
+          label={fromCopy(copy, 'install.boardName.label')}
           defaultValue={state.values?.boardName ?? ''}
           error={state.errors?.boardName}
           autoComplete="organization"
-          hint="Shown in the header, in the page title, and on every message it sends."
+          hint={fromCopy(copy, 'install.boardName.hint')}
         />
         {boardUrlIsFromEnvironment ? (
           <Alert tone="info">
             <AlertDescription>
-              The board’s address comes from <code>APP_URL</code> in this deployment’s environment,
-              which overrides anything stored on the board.
+              {copy['install.urlFromEnvLead']}
+              <code>APP_URL</code>
+              {copy['install.urlFromEnvTail']}
             </AlertDescription>
           </Alert>
         ) : (
           <Field
             name="boardUrl"
             id="boardUrl"
-            label="Board address"
+            label={fromCopy(copy, 'install.boardUrl.label')}
             type="url"
             defaultValue={state.values?.boardUrl ?? suggestedBoardUrl}
             error={state.errors?.boardUrl}
-            hint="Every link the board sends is built from this. Filled in from the address you are reading — check it."
+            hint={fromCopy(copy, 'install.boardUrl.hint')}
           />
         )}
       </FormSection>
 
       <FormSection
         n={2}
-        title="Your account"
-        hint="The first account on the board, and the only one that can reach the control panel."
+        title={fromCopy(copy, 'install.account.title')}
+        hint={fromCopy(copy, 'install.account.hint')}
       >
         <Field
           name="username"
           id="username"
-          label="Your name on the board"
+          label={fromCopy(copy, 'install.username.label')}
           defaultValue={state.values?.username ?? ''}
           error={state.errors?.username}
           autoComplete="username"
-          hint={`This is what you post under. Reserved, so nothing can impersonate the board: ${reservedUsernames.join(', ')}.`}
+          hint={fromCopy(copy, 'install.username.hint')}
         />
         <Field
           name="email"
           id="email"
-          label="Your e-mail"
+          label={fromCopy(copy, 'install.email.label')}
           type="email"
           defaultValue={state.values?.email ?? ''}
           error={state.errors?.email}
           autoComplete="email"
-          hint="Where the test message goes, so use an address you can read now."
+          hint={fromCopy(copy, 'install.email.hint')}
         />
         <Field
           name="password"
           id="password"
-          label="Your password"
+          label={fromCopy(copy, 'install.password.label')}
           type="password"
           defaultValue=""
           error={state.errors?.password}
           autoComplete="new-password"
-          hint="At least 12 characters. Nothing on this board can reset it until mail works."
+          hint={fromCopy(copy, 'install.password.hint')}
         />
       </FormSection>
 
       {mailIsFromEnvironment ? (
-        <FormSection n={3} title="Sending mail" hint="Decided by this deployment’s environment.">
+        <FormSection
+          n={3}
+          title={fromCopy(copy, 'install.mail.title')}
+          hint={fromCopy(copy, 'install.mail.envHint')}
+        >
           <Alert tone="info">
             <AlertDescription>
-              <code>MAIL_DRIVER</code> is set in this deployment’s environment, which overrides
-              anything stored on the board. Mail is configured there and cannot be changed from this
-              form or from the settings screen — unset it if you would rather configure mail on the
-              board.
+              {copy['install.mailFromEnvLead']}
+              <code>MAIL_DRIVER</code>
+              {copy['install.mailFromEnvTail']}
             </AlertDescription>
           </Alert>
         </FormSection>
       ) : (
-        <MailSection presets={presets} state={state} />
+        <MailSection presets={presets} state={state} copy={copy} />
       )}
 
       <Card>
         <CardContent className="flex flex-col gap-4">
-          <Outcome state={state} />
+          <Outcome state={state} copy={copy} />
 
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" variant="primary" size="lg" disabled={pending}>
-              {pending ? 'Installing…' : failed ? 'Try again' : 'Install'}
+              {pending
+                ? fromCopy(copy, 'install.submit.installing')
+                : failed
+                  ? fromCopy(copy, 'install.submit.tryAgain')
+                  : fromCopy(copy, 'install.submit.install')}
             </Button>
             <p className="text-xs text-muted-foreground">
               {pending
-                ? 'Applying migrations. This can take a few seconds — do not reload.'
-                : 'Takes a few seconds. When it finishes, this page stops existing.'}
+                ? fromCopy(copy, 'install.submit.pendingNote')
+                : fromCopy(copy, 'install.submit.idleNote')}
             </p>
           </div>
 
-          <StepReport steps={steps} report={state.report ?? initialReport} />
+          <StepReport steps={steps} report={state.report ?? initialReport} copy={copy} />
         </CardContent>
       </Card>
     </form>
@@ -228,9 +241,11 @@ function FormSection({
 function StepReport({
   steps,
   report,
+  copy,
 }: {
   steps: readonly InstallStepView[]
   report: readonly InstallStepOutcome[]
+  copy: Copy
 }) {
   const statusOf = (id: string) => report.find((outcome) => outcome.id === id)?.status ?? 'pending'
   const anyFailed = report.some((outcome) => outcome.status === 'failed')
@@ -238,8 +253,12 @@ function StepReport({
   return (
     <Disclosure
       open={anyFailed}
-      summary={anyFailed ? 'How far it got' : 'What installing does'}
-      aside={anyFailed ? undefined : `${steps.length} steps`}
+      summary={
+        anyFailed ? fromCopy(copy, 'install.steps.howFar') : fromCopy(copy, 'install.steps.what')
+      }
+      aside={
+        anyFailed ? undefined : formatFromCopy(copy, 'install.steps.count', { count: steps.length })
+      }
       contentClassName="p-4"
     >
       <ol className="flex flex-col gap-2 text-sm">
@@ -253,16 +272,19 @@ function StepReport({
                 {status === 'done' && (
                   <span className="ml-2 font-mono text-xs uppercase text-muted-foreground">
                     {' '}
-                    done
+                    {fromCopy(copy, 'install.steps.done')}
                   </span>
                 )}
                 {status === 'failed' && (
-                  <span className="ml-2 font-mono text-xs uppercase text-destructive"> failed</span>
+                  <span className="ml-2 font-mono text-xs uppercase text-destructive">
+                    {' '}
+                    {fromCopy(copy, 'install.steps.failed')}
+                  </span>
                 )}
                 {status === 'pending' && anyFailed && (
                   <span className="ml-2 font-mono text-xs uppercase text-muted-foreground">
                     {' '}
-                    not run
+                    {fromCopy(copy, 'install.steps.notRun')}
                   </span>
                 )}
                 <span className="block text-muted-foreground">{step.detail}</span>
@@ -275,7 +297,7 @@ function StepReport({
   )
 }
 
-function Outcome({ state }: { state: InstallFormState }) {
+function Outcome({ state, copy }: { state: InstallFormState; copy: Copy }) {
   const fieldErrors = Object.entries(state.errors ?? {}).filter(([name]) => name !== 'form')
   const formError = state.errors?.form
   const failed = state.failedStep
@@ -287,15 +309,15 @@ function Outcome({ state }: { state: InstallFormState }) {
       <AlertDescription>
         {failed !== undefined ? (
           <>
-            <AlertTitle>“{failed.title}” did not finish.</AlertTitle>{' '}
-            {fieldErrors.length > 0 ? 'One answer needs changing:' : failed.error}
+            <AlertTitle>
+              {formatFromCopy(copy, 'install.outcome.didNotFinish', { title: failed.title })}
+            </AlertTitle>{' '}
+            {fieldErrors.length > 0 ? fromCopy(copy, 'install.outcome.oneAnswer') : failed.error}
           </>
         ) : (
           <AlertTitle>
             {formError ??
-              (fieldErrors.length === 1
-                ? 'Nothing has been installed — one answer needs changing.'
-                : `Nothing has been installed — ${fieldErrors.length} answers need changing.`)}
+              formatFromCopy(copy, 'install.outcome.answers', { count: fieldErrors.length })}
           </AlertTitle>
         )}
 
@@ -304,7 +326,7 @@ function Outcome({ state }: { state: InstallFormState }) {
             {fieldErrors.map(([name, message]) => (
               <li key={name}>
                 <a href={`#${name}`} className="font-medium underline">
-                  {FIELD_LABELS[name] ?? name}
+                  {fromCopy(copy, FIELD_LABEL_KEYS[name] ?? name)}
                 </a>
                 {' — '}
                 {message}
@@ -314,8 +336,7 @@ function Outcome({ state }: { state: InstallFormState }) {
         )}
 
         <p className="mt-2 text-xs text-muted-foreground">
-          Passwords are never sent back to this page, so any you typed are empty again — retype
-          them.
+          {fromCopy(copy, 'install.outcome.passwords')}
         </p>
       </AlertDescription>
     </Alert>
@@ -325,9 +346,11 @@ function Outcome({ state }: { state: InstallFormState }) {
 function MailSection({
   presets,
   state,
+  copy,
 }: {
   presets: readonly InstallMailPreset[]
   state: InstallFormState
+  copy: Copy
 }) {
   const chosen = state.values?.mailPreset ?? SKIP
   const foldedError = FOLDED_FIELDS.some((name) => state.errors?.[name] !== undefined)
@@ -335,12 +358,13 @@ function MailSection({
   return (
     <FormSection
       n={3}
-      title="Sending mail"
-      hint="Optional, and the one thing that is harder to add later than now."
+      title={fromCopy(copy, 'install.mail.title')}
+      hint={fromCopy(copy, 'install.mail.optionalHint')}
     >
       <p className="text-sm text-muted-foreground">
-        A test message is sent to the address above <em>before</em> anything is written, so a wrong
-        key costs a retry rather than a board that cannot mail anybody.
+        {copy['install.mail.testNoteLead']}
+        <em>{fromCopy(copy, 'install.mail.testNoteBefore')}</em>
+        {copy['install.mail.testNoteTail']}
       </p>
 
       {state.errors?.mailPreset !== undefined && (
@@ -352,12 +376,12 @@ function MailSection({
       <UiFieldGroup
         name="mailPreset"
         id="mailPreset"
-        label="How mail is sent"
+        label={fromCopy(copy, 'install.mail.how')}
         error={state.errors?.mailPreset ?? null}
       >
         {(control: FieldControl) => (
           <NativeSelect {...control} defaultValue={chosen}>
-            <option value={SKIP}>Skip for now — this board sends no mail</option>
+            <option value={SKIP}>{fromCopy(copy, 'install.mail.skip')}</option>
             {presets.map((preset) => (
               <option key={preset.id} value={preset.id}>
                 {preset.label}
@@ -367,7 +391,7 @@ function MailSection({
         )}
       </UiFieldGroup>
 
-      <Disclosure summary="What each of these needs before it will send">
+      <Disclosure summary={fromCopy(copy, 'install.mail.needs')}>
         <ul className="flex flex-col gap-2 text-sm">
           {presets.map((preset) => (
             <li key={preset.id}>
@@ -381,50 +405,47 @@ function MailSection({
       <Field
         name="mailFrom"
         id="mailFrom"
-        label="Sender address"
+        label={fromCopy(copy, 'install.mailFrom.label')}
         type="email"
         required={false}
         defaultValue={state.values?.mailFrom ?? ''}
         error={state.errors?.mailFrom}
-        hint="Must be on a domain the provider has verified. Not needed if you are skipping."
+        hint={fromCopy(copy, 'install.mailFrom.hint')}
       />
 
       <Field
         name="mailUsername"
         id="mailUsername"
-        label="Username"
+        label={fromCopy(copy, 'install.mailUsername.label')}
         required={false}
         autoComplete="off"
         defaultValue={state.values?.mailUsername ?? ''}
         error={state.errors?.mailUsername}
-        hint="For the SMTP choices. Leave blank when the choice above already knows it, and for the API choices."
+        hint={fromCopy(copy, 'install.mailUsername.hint')}
       />
 
       <Field
         name="mailSecret"
         id="mailSecret"
-        label="Password or API key"
+        label={fromCopy(copy, 'install.mailSecret.label')}
         type="password"
         required={false}
         autoComplete="new-password"
         defaultValue=""
         error={state.errors?.mailSecret}
-        hint="Whichever the choice above uses — an app password for SMTP, or the provider’s API key."
+        hint={fromCopy(copy, 'install.mailSecret.hint')}
       />
 
-      <Disclosure
-        open={foldedError}
-        summary="Server details — only if yours differ from the choice above"
-      >
+      <Disclosure open={foldedError} summary={fromCopy(copy, 'install.mail.serverDetails')}>
         <div className="flex flex-col gap-4">
           <Field
             name="mailHost"
             id="mailHost"
-            label="SMTP host"
+            label={fromCopy(copy, 'install.mailHost.label')}
             required={false}
             defaultValue={state.values?.mailHost ?? ''}
             error={state.errors?.mailHost}
-            hint="Leave blank to use the host the choice above already knows."
+            hint={fromCopy(copy, 'install.mailHost.hint')}
           />
 
           <div className="flex flex-wrap gap-4">
@@ -432,7 +453,7 @@ function MailSection({
               <Field
                 name="mailPort"
                 id="mailPort"
-                label="Port"
+                label={fromCopy(copy, 'install.mailPort.label')}
                 required={false}
                 defaultValue={state.values?.mailPort ?? ''}
                 error={state.errors?.mailPort}
@@ -441,16 +462,18 @@ function MailSection({
             <UiFieldGroup
               name="mailSecurity"
               id="mailSecurity"
-              label="Security"
+              label={fromCopy(copy, 'install.mailSecurity.label')}
               className="min-w-56 flex-1"
               error={state.errors?.mailSecurity ?? null}
             >
               {(control: FieldControl) => (
                 <NativeSelect {...control} defaultValue={state.values?.mailSecurity ?? ''}>
-                  <option value="">Whatever the choice above uses</option>
-                  <option value="starttls">STARTTLS, required (port 587)</option>
-                  <option value="tls">Implicit TLS (port 465)</option>
-                  <option value="none">None — local relay only</option>
+                  <option value="">{fromCopy(copy, 'install.mailSecurity.default')}</option>
+                  <option value="starttls">
+                    {fromCopy(copy, 'install.mailSecurity.starttls')}
+                  </option>
+                  <option value="tls">{fromCopy(copy, 'install.mailSecurity.tls')}</option>
+                  <option value="none">{fromCopy(copy, 'install.mailSecurity.none')}</option>
                 </NativeSelect>
               )}
             </UiFieldGroup>
@@ -459,11 +482,11 @@ function MailSection({
           <Field
             name="mailEndpoint"
             id="mailEndpoint"
-            label="API endpoint"
+            label={fromCopy(copy, 'install.mailEndpoint.label')}
             required={false}
             defaultValue={state.values?.mailEndpoint ?? ''}
             error={state.errors?.mailEndpoint}
-            hint="For the API choices. Leave blank to use the endpoint the choice above already knows."
+            hint={fromCopy(copy, 'install.mailEndpoint.hint')}
           />
         </div>
       </Disclosure>

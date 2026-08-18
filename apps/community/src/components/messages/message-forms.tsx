@@ -7,6 +7,7 @@ import { messageBulkAction, sendMessageAction } from '@/server/message-actions'
 
 import { FormError } from '../auth/form-controls'
 import { MarkdownEditor } from '../content/markdown-editor'
+import { type Copy, fromCopy } from '../shell/copy'
 
 const FIELD =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -24,11 +25,13 @@ export function ComposeForm({
   subject,
   message,
   replyToId,
+  copy,
 }: {
   to: string
   subject: string
   message: string
   replyToId: number | null
+  copy: Copy
 }) {
   const [state, action] = useActionState(sendMessageAction, EMPTY_STATE)
 
@@ -40,7 +43,7 @@ export function ComposeForm({
       {replyToId === null ? null : <input type="hidden" name="replyTo" value={replyToId} />}
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">To</span>
+        <span className="font-medium">{fromCopy(copy, 'messageForm.to')}</span>
         <input
           name="to"
           defaultValue={values.to ?? to}
@@ -49,20 +52,20 @@ export function ComposeForm({
           required
         />
         <span className="text-xs text-muted-foreground">
-          One or more usernames, separated by commas.
+          {fromCopy(copy, 'messageForm.toHint')}
         </span>
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Bcc</span>
+        <span className="font-medium">{fromCopy(copy, 'messageForm.bcc')}</span>
         <input name="bcc" defaultValue={values.bcc ?? ''} className={FIELD} autoComplete="off" />
         <span className="text-xs text-muted-foreground">
-          Optional. These names are hidden from the other recipients.
+          {fromCopy(copy, 'messageForm.bccHint')}
         </span>
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Subject</span>
+        <span className="font-medium">{fromCopy(copy, 'messageForm.subject')}</span>
         <input
           name="subject"
           defaultValue={values.subject ?? subject}
@@ -77,17 +80,17 @@ export function ComposeForm({
         required
         rows={12}
         defaultValue={values.message ?? message}
-        hint="Markdown, the same as in a post."
+        hint={fromCopy(copy, 'messageForm.bodyHint')}
       />
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="receipt" className="size-4 rounded border-border" />
-        <span>Tell me when it has been read</span>
+        <span>{fromCopy(copy, 'messageForm.receipt')}</span>
       </label>
 
       <div>
         <button type="submit" className={BUTTON}>
-          Send message
+          {fromCopy(copy, 'messageForm.send')}
         </button>
       </div>
     </form>
@@ -97,9 +100,11 @@ export function ComposeForm({
 export function MessageActionBar({
   formId,
   folder,
+  copy,
 }: {
   formId: string
   folder: 'inbox' | 'sent' | 'trash'
+  copy: Copy
 }) {
   const [state, action] = useActionState(messageBulkAction, EMPTY_STATE)
 
@@ -109,15 +114,17 @@ export function MessageActionBar({
       <input type="hidden" name="folder" value={folder} />
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted-foreground">With selected:</span>
+        <span className="text-xs text-muted-foreground">
+          {fromCopy(copy, 'messageForm.withSelected')}
+        </span>
 
         {folder === 'inbox' && (
           <>
             <button type="submit" name="command" value="read" className={SECONDARY}>
-              Mark read
+              {fromCopy(copy, 'messageForm.markRead')}
             </button>
             <button type="submit" name="command" value="unread" className={SECONDARY}>
-              Mark unread
+              {fromCopy(copy, 'messageForm.markUnread')}
             </button>
           </>
         )}
@@ -125,18 +132,18 @@ export function MessageActionBar({
         {folder === 'trash' ? (
           <>
             <button type="submit" name="command" value="restore" className={SECONDARY}>
-              Restore to inbox
+              {fromCopy(copy, 'messageForm.restore')}
             </button>
             <button type="submit" name="command" value="delete" className={SECONDARY}>
-              Delete permanently
+              {fromCopy(copy, 'messageForm.deleteForever')}
             </button>
             <button type="submit" name="command" value="empty" className={SECONDARY}>
-              Empty trash
+              {fromCopy(copy, 'messageForm.emptyTrash')}
             </button>
           </>
         ) : (
           <button type="submit" name="command" value="trash" className={SECONDARY}>
-            Move to trash
+            {fromCopy(copy, 'messageForm.moveToTrash')}
           </button>
         )}
       </div>

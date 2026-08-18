@@ -5,7 +5,7 @@ import { useFormStatus } from 'react-dom'
 import { Alert, AlertDescription, AlertTitle, Input, Field as UiField } from '@meith/ui'
 import { Button } from '@meith/ui/button'
 
-import { useCopy } from '../shell/copy'
+import { fromCopy, useCopy } from '../shell/copy'
 
 export function SubmitButton({
   children,
@@ -15,7 +15,7 @@ export function SubmitButton({
   className?: string
 }) {
   const { pending } = useFormStatus()
-  const c = useCopy()
+  const copy = useCopy()
 
   return (
     <Button
@@ -25,18 +25,18 @@ export function SubmitButton({
       disabled={pending}
       className={className ?? 'w-full'}
     >
-      {pending ? c('form.working') : children}
+      {pending ? fromCopy(copy, 'form.working') : children}
     </Button>
   )
 }
 
 export function FormError({ message }: { message?: string | undefined }) {
-  const c = useCopy()
+  const copy = useCopy()
   if (!message) return null
   return (
     <Alert tone="error">
       <AlertDescription>
-        <AlertTitle>{c('form.notSaved')}</AlertTitle> {message}
+        <AlertTitle>{fromCopy(copy, 'form.notSaved')}</AlertTitle> {message}
       </AlertDescription>
     </Alert>
   )

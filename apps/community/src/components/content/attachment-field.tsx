@@ -7,8 +7,11 @@ import { ACCEPTED_EXTENSIONS, ATTACHMENT_FIELD } from '@meith/attachments/types'
 
 import { formatBytes } from '@/view/attachments'
 
+import { formatFromCopy, fromCopy, useCopy } from '../shell/copy'
+
 export function AttachmentField({ limits }: { limits: UploadLimits }) {
   const input = useRef<HTMLInputElement>(null)
+  const copy = useCopy()
   const perPost = maxPerPostFor(limits)
   const maxBytes = maxBytesFor(limits)
 
@@ -25,7 +28,7 @@ export function AttachmentField({ limits }: { limits: UploadLimits }) {
       }}
     >
       <label htmlFor={ATTACHMENT_FIELD} className="font-medium">
-        Attachments
+        {fromCopy(copy, 'composer.attachments.label')}
       </label>
       <input
         ref={input}
@@ -38,9 +41,10 @@ export function AttachmentField({ limits }: { limits: UploadLimits }) {
         className="rounded-md border border-input bg-card px-3 py-1.5 text-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm"
       />
       <p id={`${ATTACHMENT_FIELD}-limits`} className="text-xs text-muted-foreground">
-        Drop files here, or choose up to {perPost} file{perPost === 1 ? '' : 's'} of{' '}
-        {formatBytes(maxBytes)} each — PNG, JPEG, PDF or ZIP. Images are re-encoded, which removes
-        any metadata they carry.
+        {formatFromCopy(copy, 'composer.attachments.hint', {
+          count: perPost,
+          size: formatBytes(maxBytes),
+        })}
       </p>
     </div>
   )

@@ -1,6 +1,8 @@
 import { buttonVariants, Card, CardContent } from '@meith/ui'
 
-export function OfflineNotice({ message }: { message: string }) {
+import { type Copy, fromCopy } from './copy-record'
+
+export function OfflineNotice({ message, copy }: { message: string; copy: Copy }) {
   return (
     <main
       id="board-content"
@@ -10,15 +12,15 @@ export function OfflineNotice({ message }: { message: string }) {
       <Card className="w-full max-w-lg">
         <CardContent className="p-6">
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Offline
+            {fromCopy(copy, 'offline.kicker')}
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">
-            The board is closed
+            {fromCopy(copy, 'offline.title')}
           </h1>
           <p className="mt-2 text-sm whitespace-pre-line text-muted-foreground">{message}</p>
 
           <a href="/login" className={`mt-5 ${buttonVariants({ variant: 'primary' })}`}>
-            Log in
+            {fromCopy(copy, 'offline.logIn')}
           </a>
         </CardContent>
       </Card>

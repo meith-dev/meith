@@ -7,6 +7,7 @@ import { DeletePostForm, EditPostForm, RestorePostForm } from '@/components/cont
 import { getTranslator, tr } from '@/server/i18n'
 import { resolvePostScope } from '@/server/post-scope'
 import { currentTheme } from '@/server/theme'
+import { editPostFormCopy } from '@/view/content-copy'
 import { buildEditView } from '@/view/post-form'
 import { leadingId } from '@/view/slug-id'
 
@@ -63,6 +64,7 @@ export default async function EditPostPage({
             <>
               {scope.mayEdit && (
                 <EditPostForm
+                  copy={editPostFormCopy(await getTranslator())}
                   threadId={thread}
                   postId={post}
                   message={scope.target.post.message}

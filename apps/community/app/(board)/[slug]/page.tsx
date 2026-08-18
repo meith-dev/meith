@@ -28,6 +28,7 @@ import { forumNotice } from '@/view/forum-notice'
 import { anyInlineTool, INLINE_FORM_ID, selectionFor } from '@/view/inline-moderation'
 import { distinctUserIds } from '@/view/member-identity'
 import { canonicalPath } from '@/view/metadata'
+import { moderationFormsCopy } from '@/view/moderation-copy'
 import { buildOffsetPager, offsetOf } from '@/view/pager'
 import { leadingId } from '@/view/slug-id'
 import { buildSubscriptionsView } from '@/view/subscriptions'
@@ -355,6 +356,7 @@ export default async function ForumPage({
         <ForumDisplay {...forumDisplayModel} />
         {inlineOffered && (
           <InlineModerationForm
+            copy={moderationFormsCopy(await getTranslator())}
             formId={INLINE_FORM_ID}
             scope="threads"
             rights={inlineRights}

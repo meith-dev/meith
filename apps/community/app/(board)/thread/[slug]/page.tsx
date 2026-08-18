@@ -36,6 +36,7 @@ import { getViewerPreferences } from '@/server/viewer-preferences'
 import { followFormCopy } from '@/view/account-copy'
 import { attachmentsByPost } from '@/view/attachments'
 import { buildBreadcrumb } from '@/view/breadcrumb'
+import { replyFormCopy, threadRatingCopy } from '@/view/content-copy'
 import {
   anyInlineTool,
   INLINE_FORM_ID,
@@ -43,6 +44,7 @@ import {
   selectionFor,
 } from '@/view/inline-moderation'
 import { cardDescription, jsonLdScript, pageLinks, threadJsonLd } from '@/view/metadata'
+import { moderationFormsCopy } from '@/view/moderation-copy'
 import { buildOffsetPager, offsetOf } from '@/view/pager'
 import { locatedHref } from '@/view/post-link'
 import { leadingId } from '@/view/slug-id'
@@ -495,6 +497,7 @@ export default async function ThreadPage({
       <QuoteInPlace threadId={thread.id} />
       <MultiQuoteSelection threadId={thread.id} />
       <ReplyForm
+        copy={replyFormCopy(await getTranslator())}
         threadId={thread.id}
         seenLastPostId={thread.lastPost?.postId ?? null}
         prefill=""
@@ -522,6 +525,7 @@ export default async function ThreadPage({
       <>
         {anyTool && (
           <ThreadToolsForm
+            copy={moderationFormsCopy(await getTranslator())}
             threadId={thread.id}
             isLocked={thread.isLocked}
             isSticky={thread.isSticky}
@@ -530,6 +534,7 @@ export default async function ThreadPage({
             heading={threadToolsHeading(appointment.isForumModerator, await getTranslator())}
           >
             <ThreadSurgeryForm
+              copy={moderationFormsCopy(await getTranslator())}
               threadId={thread.id}
               rights={surgeryRights}
               splitPoints={splitPoints}
@@ -545,7 +550,12 @@ export default async function ThreadPage({
     !showRating && !followOffered ? undefined : (
       <>
         {showRating && (
-          <ThreadRatingForm threadId={thread.id} rating={rating} canRate={canRateThread} />
+          <ThreadRatingForm
+            threadId={thread.id}
+            rating={rating}
+            canRate={canRateThread}
+            copy={threadRatingCopy(rating, await getTranslator())}
+          />
         )}
         {followOffered && (
           <FollowForm
@@ -611,6 +621,7 @@ export default async function ThreadPage({
         <ThreadView {...threadViewModel} />
         {inlineOffered && (
           <InlineModerationForm
+            copy={moderationFormsCopy(await getTranslator())}
             formId={INLINE_FORM_ID}
             scope="posts"
             rights={inlineRights}

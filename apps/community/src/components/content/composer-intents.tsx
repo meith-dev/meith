@@ -1,6 +1,9 @@
 import { buttonVariants } from '@meith/ui'
 
+import { fromCopy, useCopy } from '../shell/copy'
+
 export function ComposerIntents() {
+  const copy = useCopy()
   return (
     <>
       <button
@@ -9,7 +12,7 @@ export function ComposerIntents() {
         value="preview"
         className={buttonVariants({ variant: 'outline' })}
       >
-        Preview
+        {fromCopy(copy, 'composer.preview')}
       </button>
       <button
         type="submit"
@@ -17,7 +20,7 @@ export function ComposerIntents() {
         value="save_draft"
         className={buttonVariants({ variant: 'ghost' })}
       >
-        Save draft
+        {fromCopy(copy, 'composer.saveDraft')}
       </button>
     </>
   )

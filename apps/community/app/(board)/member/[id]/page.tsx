@@ -18,6 +18,7 @@ import { reputationService, reputationSettings } from '@/server/reputation'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildMemberProfileView } from '@/view/member-profile'
+import { moderationFormsCopy } from '@/view/moderation-copy'
 import { reputationLabel } from '@/view/reputation'
 import { numericId } from '@/view/slug-id'
 
@@ -154,8 +155,16 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                 <span className="text-muted-foreground">
                   Signature: {signatureState.locked ? 'locked' : 'allowed'}
                 </span>
-                <SignatureLockForm userId={id} locked={signatureState.locked} />
-                <AvatarLockForm userId={id} locked={(await avatarFor(id)).locked} />
+                <SignatureLockForm
+                  userId={id}
+                  locked={signatureState.locked}
+                  copy={moderationFormsCopy(await getTranslator())}
+                />
+                <AvatarLockForm
+                  userId={id}
+                  locked={(await avatarFor(id)).locked}
+                  copy={moderationFormsCopy(await getTranslator())}
+                />
               </div>
             )}
           </section>
