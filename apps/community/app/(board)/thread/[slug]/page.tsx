@@ -59,17 +59,18 @@ export async function generateMetadata({
   searchParams: Promise<{ page?: string }>
 }): Promise<Metadata> {
   const [{ slug }, query] = await Promise.all([params, searchParams])
+  const t = await getTranslator()
   const id = leadingId(slug)
-  if (id === null) return { title: 'Thread' }
+  if (id === null) return { title: t.t('threadPage.defaultTitle') }
 
   const actor = await getActor()
   const { forums, threads, authorizer } = getContainer()
 
   const located = await threads.locate(id)
-  if (located === null) return { title: 'Thread' }
+  if (located === null) return { title: t.t('threadPage.defaultTitle') }
 
   const forum = await forums.findById(located.forumId)
-  if (!forum || !canHoldThreads(forum.type)) return { title: 'Thread' }
+  if (!forum || !canHoldThreads(forum.type)) return { title: t.t('threadPage.defaultTitle') }
 
   const matrix = await authorizer.forumMatrix(actor, forum.id)
   const target = await authorizer.moderatorTargetIn(actor, forum.id, matrix)
@@ -79,7 +80,7 @@ export async function generateMetadata({
       threadAuthorId: located.authorUserId,
     })
   ) {
-    return { title: 'Thread' }
+    return { title: t.t('threadPage.defaultTitle') }
   }
 
   const thread = await threads.findById(
@@ -87,7 +88,7 @@ export async function generateMetadata({
     authorizer.contentScope(actor, target),
     authorizer.authorFilter(actor, target),
   )
-  if (!thread) return { title: 'Thread' }
+  if (!thread) return { title: t.t('threadPage.defaultTitle') }
 
   const page = Number(query.page ?? '1')
   const links = pageLinks({
@@ -96,7 +97,7 @@ export async function generateMetadata({
     hasNext: false,
   })
 
-  const description = `A discussion in ${forum.title}.`
+  const description = t.t('threadPage.discussion', { forum: forum.title })
 
   return {
     title: thread.title,
@@ -118,16 +119,16 @@ export async function generateMetadata({
   }
 }
 
-const TOOL_NOTICE: Readonly<Record<string, string>> = {
-  lock: 'Thread locked.',
-  unlock: 'Thread unlocked.',
-  stick: 'Thread pinned.',
-  unstick: 'Thread unpinned.',
-  move: 'Thread moved.',
-  copy: 'Thread copied. You are looking at the copy.',
-  restore: 'Thread restored.',
-  split: 'Thread split. You are looking at the new one.',
-  merge: 'Threads merged. You are looking at the one that survived.',
+const TOOL_NOTICE_KEYS: Readonly<Record<string, string>> = {
+  copy: 'threadPage.notice.copied',
+  lock: 'threadPage.notice.locked',
+  merge: 'threadPage.notice.merged',
+  move: 'threadPage.notice.moved',
+  restore: 'threadPage.notice.restored',
+  split: 'threadPage.notice.split',
+  stick: 'threadPage.notice.pinned',
+  unlock: 'threadPage.notice.unlocked',
+  unstick: 'threadPage.notice.unpinned',
 }
 
 function afterId(value: string | undefined): number | null | undefined {
@@ -387,18 +388,21 @@ export default async function ThreadPage({
   const PostActions = requireSlot(theme, 'PostActions')
   const Pagination = requireSlot(theme, 'Pagination')
   const translator = await getTranslator()
+  const toolNotice = query.tool === undefined ? undefined : TOOL_NOTICE_KEYS[query.tool]
 
   const notice =
     query.replied === 'race'
-      ? 'Somebody else replied while you were writing. Your reply was posted below theirs.'
+      ? translator.t('threadPage.notice.race')
       : query.posted === 'moderated'
-        ? 'Your post is waiting for a moderator to approve it.'
+        ? translator.t('threadPage.notice.moderated')
         : query.tool !== undefined
-          ? (TOOL_NOTICE[query.tool] ?? null)
+          ? toolNotice === undefined
+            ? null
+            : translator.t(toolNotice)
           : query.removed === 'post'
-            ? 'That post has been deleted.'
+            ? translator.t('threadPage.notice.deleted')
             : query.unchanged === 'post'
-              ? 'Nothing changed — that post was already in this state.'
+              ? translator.t('threadPage.notice.unchanged')
               : inlineOutcomeNotice(query)
 
   const opening = postPage.rows.find((row) => row.isFirstPost) ?? null
@@ -415,7 +419,7 @@ export default async function ThreadPage({
           forumTitle: forum.title,
           description: cardDescription(
             opening.message,
-            `A discussion in ${forum.title}.`,
+            translator.t('threadPage.discussion', { forum: forum.title }),
             wordFilter,
           ),
         })
@@ -437,7 +441,12 @@ export default async function ThreadPage({
         'view.post-bit',
         {
           post,
-          select: selectionFor('post', post.id, `post #${post.number}`, inlineOffered),
+          select: selectionFor(
+            'post',
+            post.id,
+            translator.t('threadPage.postNumber', { number: post.number }),
+            inlineOffered,
+          ),
           regions: {
             actions: (
               <PostActions {...actions} copy={slotCopy(theme, 'PostActions', translator)}>

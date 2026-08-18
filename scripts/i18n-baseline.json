@@ -16,7 +16,6 @@
   "apps/community/app/(board)/plugins/[key]/[[...path]]/page.tsx": 1,
   "apps/community/app/(board)/search/page.tsx": 3,
   "apps/community/app/(board)/stats/page.tsx": 3,
-  "apps/community/app/(board)/thread/[slug]/page.tsx": 13,
   "apps/community/app/(board)/thread/[slug]/reply/page.tsx": 1,
   "apps/community/app/(board)/usercp/contacts/page.tsx": 2,
   "apps/community/app/(board)/usercp/page.tsx": 3,
