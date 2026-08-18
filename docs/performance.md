@@ -5,11 +5,14 @@
 
   Budgets come from packages/testkit/src/load/budgets.ts, which the load runner enforces.
   Measurements come from docs/perf-results.json, written by `pnpm perf measure --record`.
+  Cohorts and the traffic mix come from packages/testkit/src/load/cohorts.ts.
+  The load run comes from docs/perf-load.json, written by `pnpm perf load --record`.
   Regenerate with `pnpm perf:docs`; `pnpm verify` fails when this is stale.
 -->
 
-The p95 budgets for the pages a board’s traffic actually goes to, and what
-the last recorded run measured against a full-scale board.
+The p95 budgets for the pages a board’s traffic actually goes to, what the
+last recorded run measured against a full-scale board one read at a time,
+and what a board full of members reading at once measured on the same data.
 
 ## The board these numbers came from
 
@@ -42,6 +45,64 @@ page costs more than a first page. Compare ratios, not milliseconds.
 | Search, near-universal term | 300 ms | target | 57.0 ms | 49.9 ms | 78.6 ms | 19% |
 | Search, rare term | 200 ms | target | 43.1 ms | 26.3 ms | 53.5 ms | 22% |
 | Member profile | 60 ms | target | 1.4 ms | 1.1 ms | 2.8 ms | 2% |
+
+## Under concurrent load
+
+Every measurement above is one read at a time. This is the same board with
+members on it: each one asks for a page every 10 seconds, drawn from the
+mix below, through the single connection pool one process has —
+**3 connections**, which is the shipped default and not a tuned number.
+
+Arrival times are on a fixed schedule rather than a request-then-sleep loop.
+That distinction is the whole measurement: a loop that sleeps *after* each
+response slows its own arrivals down exactly when the board gets slow, so it
+reports a queue as if it were an idle system. **Lateness** is what that loop
+cannot see — how long a request sat before it even started, because every
+connection was busy. It moves first, and it moves before the p95 does.
+
+| Active members | Offered | Served | Budget | | p50 | p95 | p99 | Late p95 |
+|---:|---:|---:|---:|---|---:|---:|---:|---:|
+| 50 | 5/s | 5/s | 80 ms | target | 3.0 ms | 32.3 ms | 40.1 ms | 1.0 ms |
+| 250 | 25/s | 25/s | 80 ms | target | 2.3 ms | 29.5 ms | 41.0 ms | 0.6 ms |
+| 1,000 | 100/s | 99/s | 80 ms | target | 2.2 ms | 30.0 ms | 48.5 ms | 0.6 ms |
+| 2,500 | 250/s | 250/s | 100 ms | target | 2.8 ms | 33.5 ms | 63.7 ms | 1.0 ms |
+| 4,250 | 425/s | 425/s | 300 ms | target | 29.6 ms | 142.2 ms | 257.3 ms | 3.6 ms |
+| 5,000 | 500/s | 501/s | 4000 ms | limit | 576.8 ms | 1570.1 ms | 1980.5 ms | 4.7 ms |
+
+Each rung discards its first 10 seconds, then measures until it has both 400 requests and a steady window to put them in.
+
+## The same pages, under that load
+
+From 50 members to 2,500 the p95 of the mix barely moves — 32.3 ms to 33.5 ms, across 50× the traffic. That flatness is not the board being idle; it is what a mixed p95 measures. A p95 is set by the slowest one request in twenty, and search and discovery are about that share of the traffic, so until the pool runs out the mixed p95 mostly reports which pages are in the mix rather than how many members are on the board.
+
+The per-page breakdown is where load shows earlier, and says which pages it
+shows in first.
+
+| Page | Share | 50 | 250 | 1,000 | 2,500 | 4,250 | 5,000 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Thread, page 1 | 38% | 3.7 ms | 2.9 ms | 4.4 ms | 9.9 ms | 115.9 ms | 712.6 ms |
+| Thread, deep page | 10% | 4.7 ms | 3.4 ms | 5.0 ms | 10.3 ms | 117.8 ms | 707.8 ms |
+| Forum, page 1 | 20% | 7.7 ms | 6.0 ms | 7.7 ms | 13.8 ms | 115.6 ms | 711.9 ms |
+| Forum, deep page | 4% | 5.6 ms | 5.3 ms | 6.2 ms | 12.3 ms | 105.3 ms | 701.3 ms |
+| Board index | 15% | 2.3 ms | 1.8 ms | 2.5 ms | 9.9 ms | 107.5 ms | 708.1 ms |
+| Latest threads | 5% | 36.6 ms | 43.1 ms | 45.9 ms | 67.2 ms | 328.2 ms | 2065.5 ms |
+| Search, near-universal term | 1% | 73.9 ms | 61.1 ms | 74.0 ms | 91.1 ms | 371.0 ms | 2090.2 ms |
+| Search, rare term | 2% | 42.1 ms | 40.2 ms | 47.6 ms | 64.4 ms | 355.9 ms | 2072.3 ms |
+| Member profile | 5% | 2.6 ms | 1.9 ms | 5.2 ms | 10.6 ms | 107.3 ms | 691.1 ms |
+
+Every row is a p95 in milliseconds, and the column heading is how many members
+were on the board. A row that climbs left to right is a page that costs more
+when the board is busy; a row that does not is a page whose cost is its own.
+
+The scoped reads —
+*Latest threads*, *Search, near-universal term*, *Search, rare term* —
+pay the permission filter first, in the same request, exactly as a page does.
+Their numbers here are therefore the filter plus the read, and are not
+comparable with the single-read measurement of the same id above.
+
+### 5,000 active members
+
+Over the shoulder, and here to say where the shoulder is. This is a limit, not a target: five hundred requests a second is past what one process at the default pool of three absorbs, the requests still start on time — lateness stays near zero — and then they queue inside the pool, which is why the p95 goes to seconds while every rung below it is in milliseconds. It is recorded so the shoulder cannot move down quietly. Where it should be is an open question for whoever sizes a deployment: more processes, a larger pool, or accepting that a board this busy has outgrown one of them.
 
 ## Partial visible indexes
 

@@ -4,7 +4,7 @@ import { cpus, totalmem } from 'node:os'
 import { desc, eq, sql } from 'drizzle-orm'
 
 import { Authorizer } from '@meith/authorization'
-import { ALL_THREAD_AUTHORS, PUBLIC_CONTENT } from '@meith/core'
+import { ALL_THREAD_AUTHORS, env, PUBLIC_CONTENT } from '@meith/core'
 import {
   ActorBuilder,
   type Database,
@@ -20,8 +20,18 @@ import {
   schema,
 } from '@meith/db'
 
+import { createRandom } from '../random'
 import { FULL_SCALE, type SeedScale, SMOKE_SCALE, seedBoard } from '../seed'
 import { BUDGETS } from './budgets'
+import { COHORTS, type Cohort, FILTER_ID, THINK_MS, TRAFFIC_MIX } from './cohorts'
+import {
+  type CohortResult,
+  type CohortVerdict,
+  cohortVerdict,
+  DEFAULT_CONCURRENT,
+  planJourneys,
+  runCohort,
+} from './concurrent'
 import { INDEX_PLANS, type PlanResult, readPlan } from './index-plans'
 import {
   DEFAULT_MEASURE,
@@ -448,6 +458,151 @@ function resultRowsOf(result: unknown): Record<string, unknown>[] {
   return Array.isArray(rows) ? (rows as Record<string, unknown>[]) : []
 }
 
+function reportCohorts(verdicts: readonly CohortVerdict[]): boolean {
+  const width = Math.max(...COHORTS.map((c) => c.id.length))
+  process.stdout.write('\n')
+
+  for (const v of verdicts) {
+    process.stdout.write(
+      `  ${v.pass ? 'ok  ' : 'FAIL'}  ${v.id.padEnd(width)}  ` +
+        `p95 ${v.p95Ms.toFixed(1).padStart(7)}ms  budget ${String(v.budgetMs).padStart(4)}ms  ` +
+        `${String(`${(v.ratio * 100).toFixed(0)}% of budget`).padEnd(15)}  ` +
+        `late ${v.latenessMs.toFixed(1).padStart(7)}ms  ` +
+        `${(v.sustained * 100).toFixed(0)}% of the offered rate\n`,
+    )
+  }
+
+  const failed = verdicts.filter((v) => !v.pass)
+  process.stdout.write('\n')
+
+  if (failed.length > 0) {
+    const behind = failed.filter((v) => !v.keptUp)
+    process.stdout.write(
+      `${failed.length} of ${verdicts.length} cohorts over budget.\n\n` +
+        'A cohort fails on either of two things: a p95 over its budget, or requests ' +
+        'that started later than the members asked for them. The second is the one to ' +
+        'read first — lateness is the queue in front of the pool, and it climbs before ' +
+        'the p95 does, because a request that has not started yet is not being timed.\n' +
+        (behind.length > 0
+          ? `${behind.map((v) => v.id).join(', ')} did not keep up with the schedule.\n`
+          : ''),
+    )
+    return false
+  }
+
+  process.stdout.write(
+    verdicts.length === 1
+      ? 'The cohort is within budget.\n'
+      : `All ${verdicts.length} cohorts are within budget.\n`,
+  )
+  return true
+}
+
+function chooseCohorts(): Cohort[] | null {
+  const adHoc = argOf('--members')
+  if (adHoc !== undefined) {
+    const members = Number(adHoc)
+    if (!Number.isInteger(members) || members < 1) {
+      process.stderr.write(`--members needs a whole number of members, not "${adHoc}".\n`)
+      return null
+    }
+
+    return [
+      {
+        id: `members-${members}`,
+        members,
+        p95Ms: Number(argOf('--budget') ?? COHORTS[COHORTS.length - 1]?.p95Ms ?? 1_000),
+        kind: 'limit',
+        why: 'An ad-hoc rung, for finding where this machine’s shoulder is.',
+      },
+    ]
+  }
+
+  const only = argOf('--cohort')
+  if (only === undefined) return [...COHORTS]
+
+  const found = COHORTS.filter((cohort) => cohort.id === only)
+  if (found.length === 0) {
+    process.stderr.write(`Unknown cohort "${only}". Use: ${COHORTS.map((c) => c.id).join(', ')}\n`)
+    return null
+  }
+
+  return found
+}
+
+async function runLoad(db: Database, marks: Landmarks): Promise<number> {
+  const scenarios = await buildScenarios(db, marks)
+  const journeys = planJourneys(TRAFFIC_MIX, scenarios, FILTER_ID)
+  const options = { ...DEFAULT_CONCURRENT, thinkMs: THINK_MS }
+
+  const cohorts = chooseCohorts()
+  if (cohorts === null) return 2
+
+  const [counted] = await db.select({ posts: sql<number>`count(*)::int` }).from(schema.posts)
+  const [countedThreads] = await db
+    .select({ threads: sql<number>`count(*)::int` })
+    .from(schema.threads)
+
+  process.stdout.write(
+    `Loading ${(counted?.posts ?? 0).toLocaleString()} posts through a pool of ` +
+      `${env.DATABASE_POOL_MAX}, one request per member every ` +
+      `${(options.thinkMs / 1_000).toFixed(0)}s.\n`,
+  )
+
+  const results: CohortResult[] = []
+  const verdicts: CohortVerdict[] = []
+
+  for (const cohort of cohorts) {
+    process.stdout.write(
+      `  ${cohort.members.toLocaleString()} active members ` +
+        `(${((cohort.members * 1_000) / options.thinkMs).toFixed(0)} req/s offered)…\n`,
+    )
+
+    const result = await runCohort(cohort, journeys, createRandom(cohort.members), options)
+    if (result.underpowered) {
+      throw new Error(`Cohort "${cohort.id}" ran too few requests for a p99.`)
+    }
+
+    results.push(result)
+    verdicts.push(cohortVerdict(result, cohort.p95Ms))
+  }
+
+  const passed = reportCohorts(verdicts)
+
+  if (process.argv.includes('--record')) {
+    if (cohorts.length !== COHORTS.length) {
+      process.stderr.write(
+        'Refusing to record a partial ladder. Drop --cohort, or drop --record.\n',
+      )
+      return 2
+    }
+
+    await writeFile(
+      LOAD_FILE,
+      `${JSON.stringify(
+        {
+          measuredAt: new Date().toISOString(),
+          postCount: counted?.posts ?? 0,
+          threadCount: countedThreads?.threads ?? 0,
+          thinkMs: options.thinkMs,
+          poolMax: env.DATABASE_POOL_MAX,
+          settleMs: options.settleMs,
+          minRequests: options.minRequests,
+          environment: describeEnvironment(),
+          mix: TRAFFIC_MIX,
+          results,
+        },
+        null,
+        2,
+      )}\n`,
+      'utf8',
+    )
+    process.stdout.write(`\nRecorded to ${LOAD_FILE}.\n`)
+  }
+
+  return passed ? 0 : 1
+}
+
 async function main(): Promise<number> {
   const command = process.argv[2] ?? 'measure'
   const db = getDb()
@@ -474,8 +629,13 @@ async function main(): Promise<number> {
     return explainIndexes(db, marks)
   }
 
+  if (command === 'load') {
+    const marks = await findLandmarks(db)
+    return runLoad(db, marks)
+  }
+
   if (command !== 'measure') {
-    process.stderr.write(`Unknown command "${command}". Use: seed | measure | explain\n`)
+    process.stderr.write(`Unknown command "${command}". Use: seed | measure | explain | load\n`)
     return 2
   }
 
@@ -552,6 +712,8 @@ async function main(): Promise<number> {
 }
 
 const RESULTS_FILE = new URL('../../../../docs/perf-results.json', import.meta.url).pathname
+
+const LOAD_FILE = new URL('../../../../docs/perf-load.json', import.meta.url).pathname
 
 function describeEnvironment(): Record<string, string | number> {
   return {

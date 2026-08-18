@@ -151,10 +151,10 @@ two-space indent, 100 columns. The version is pinned exactly in
 nobody touched.
 
 It covers TypeScript, JSX, JSON and CSS — every such file in the tree
-except `docs/perf-indexes.json` and `docs/perf-results.json`, which a
-generator writes. Markdown, YAML and SQL have no formatter: Biome does not
-format them, so `docs/`, the workflows and the migrations are written by
-hand and reviewed as prose.
+except `docs/perf-indexes.json`, `docs/perf-load.json` and
+`docs/perf-results.json`, which a generator writes. Markdown, YAML and SQL
+have no formatter: Biome does not format them, so `docs/`, the workflows and
+the migrations are written by hand and reviewed as prose.
 
 Three rules carry an invariant rather than a preference:
 
