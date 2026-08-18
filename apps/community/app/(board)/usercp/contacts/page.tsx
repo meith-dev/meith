@@ -27,6 +27,7 @@ export default async function ContactsPage({
 }) {
   const query = await searchParams
   const actor = await getActor()
+  const translator = await getTranslator()
   const service = relationService()
 
   if (actor.userId === null || service === null) notFound()
@@ -52,7 +53,7 @@ export default async function ContactsPage({
   return (
     <PanelPage
       title={await tr('page.buddies-ignored-members')}
-      lede={`Add somebody from their profile. ${view.total} of ${view.limit} used.`}
+      lede={translator.t('board.contacts.lede', { total: view.total, limit: view.limit })}
     >
       {notice !== null && (
         <Notice
@@ -65,15 +66,17 @@ export default async function ContactsPage({
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-lg font-semibold">
-          Buddies{' '}
+          {translator.t('board.contacts.buddies')}{' '}
           <span className="text-sm font-normal text-muted-foreground">
-            {view.onlineCount > 0 ? `${view.onlineCount} online now` : null}
+            {view.onlineCount > 0
+              ? translator.t('board.contacts.onlineNow', { count: view.onlineCount })
+              : null}
           </span>
         </h2>
 
         {view.buddies.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Nobody yet. There is a link on every member&rsquo;s profile.
+            {translator.t('board.contacts.emptyBuddies')}
           </p>
         ) : (
           <ul className={PANEL_LIST}>
@@ -85,14 +88,17 @@ export default async function ContactsPage({
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Ignored</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {translator.t('board.contacts.ignored')}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Their posts are hidden behind a link rather than removed, so a thread still reads in order
-          and its numbering is the same for everybody. They cannot send you private messages.
+          {translator.t('board.contacts.ignoredHint')}
         </p>
 
         {view.ignored.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nobody.</p>
+          <p className="text-sm text-muted-foreground">
+            {translator.t('board.contacts.emptyIgnored')}
+          </p>
         ) : (
           <ul className={PANEL_LIST}>
             {view.ignored.map((row) => (
@@ -105,7 +111,8 @@ export default async function ContactsPage({
   )
 }
 
-function ContactLine({ row }: { row: ContactRowView }) {
+async function ContactLine({ row }: { row: ContactRowView }) {
+  const translator = await getTranslator()
   return (
     <li className="flex flex-wrap items-center gap-3 px-4 py-3">
       <a
@@ -116,7 +123,9 @@ function ContactLine({ row }: { row: ContactRowView }) {
       </a>
 
       {row.isOnline ? (
-        <span className="text-xs font-medium text-moderation-approved">Online</span>
+        <span className="text-xs font-medium text-moderation-approved">
+          {translator.t('board.contacts.online')}
+        </span>
       ) : (
         row.lastSeenLabel !== null && (
           <span className="text-xs text-muted-foreground">{row.lastSeenLabel}</span>
@@ -129,7 +138,7 @@ function ContactLine({ row }: { row: ContactRowView }) {
             href={row.messageHref}
             className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Message
+            {translator.t('board.contacts.message')}
           </a>
         )}
         <RemoveRelationForm userId={row.userId} username={row.username} returnTo={RETURN_TO} />

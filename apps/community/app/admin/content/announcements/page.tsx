@@ -48,19 +48,14 @@ export default async function AdminAnnouncementsPage() {
 
   const now = new Date()
 
-  const copy = contentAdminCopy(await getTranslator())
+  const translator = await getTranslator()
+  const copy = contentAdminCopy(translator)
 
   return (
     <PanelPage
-      back={{ href: '/admin/content', label: 'Content' }}
+      back={{ href: '/admin/content', label: translator.t('page.content') }}
       title={await tr('page.announcements')}
-      lede={
-        <>
-          A dated notice above the forums. Nobody can reply to one, it disappears on its own date,
-          and removing it removes nothing anybody wrote — which is what makes it a different thing
-          from a pinned thread rather than a worse one.
-        </>
-      }
+      lede={translator.t('adminAnnouncements.lede')}
       gap="loose"
     >
       {rows.length === 0 ? (
@@ -71,12 +66,12 @@ export default async function AdminAnnouncementsPage() {
             const live =
               row.enabled && row.startsAt <= now && (row.endsAt === null || row.endsAt > now)
             const state = !row.enabled
-              ? 'switched off'
+              ? translator.t('adminAnnouncements.state.off')
               : row.startsAt > now
-                ? 'scheduled'
+                ? translator.t('adminAnnouncements.state.scheduled')
                 : row.endsAt !== null && row.endsAt <= now
-                  ? 'expired'
-                  : 'showing now'
+                  ? translator.t('adminAnnouncements.state.expired')
+                  : translator.t('adminAnnouncements.state.showing')
 
             const values: AnnouncementValues = {
               id: row.id,
@@ -95,8 +90,9 @@ export default async function AdminAnnouncementsPage() {
                     {state}
                   </span>
                   {' · '}
-                  {row.forumTitle ?? 'the whole board'}
-                  {row.authorUsername !== '' && ` · by ${row.authorUsername}`}
+                  {row.forumTitle ?? translator.t('adminAnnouncements.wholeBoard')}
+                  {row.authorUsername !== '' &&
+                    translator.t('adminAnnouncements.by', { username: row.authorUsername })}
                 </p>
                 <AnnouncementRowForm announcement={values} forums={choices} copy={copy} />
               </div>

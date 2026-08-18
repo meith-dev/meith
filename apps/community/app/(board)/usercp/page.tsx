@@ -24,6 +24,7 @@ export default async function UserCpPage() {
   if (actor.userId === null || memberSettings === null) notFound()
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
+  const translator = await getTranslator()
 
   const [messages, notifications] = await Promise.all([
     unreadMessageCount(actor.userId),
@@ -38,7 +39,7 @@ export default async function UserCpPage() {
     >
       <Notice
         kind="info"
-        message="Your profile is public. Your options and e-mail address are not."
+        message={translator.t('board.usercp.profilePrivacy')}
         dismissHref={null}
         copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
       />
@@ -48,26 +49,26 @@ export default async function UserCpPage() {
           items={[
             {
               count: messages,
-              one: 'unread message',
-              many: 'unread messages',
+              one: translator.t('board.usercp.unreadMessage', { count: 1 }),
+              many: translator.t('board.usercp.unreadMessage', { count: 2 }),
               href: '/messages',
-              action: 'Read',
+              action: translator.t('board.usercp.read'),
             },
             {
               count: notifications,
-              one: 'unread notification',
-              many: 'unread notifications',
+              one: translator.t('board.usercp.unreadNotification', { count: 1 }),
+              many: translator.t('board.usercp.unreadNotification', { count: 2 }),
               href: '/notifications',
-              action: 'Open',
+              action: translator.t('board.usercp.open'),
             },
           ]}
-          emptyTitle="Nothing unread"
-          emptyDescription="No new messages and no new notifications."
+          emptyTitle={translator.t('board.usercp.emptyTitle')}
+          emptyDescription={translator.t('board.usercp.emptyDescription')}
         />
       </PanelSection>
 
       <PanelSection id="sections-heading" title={await tr('page.sections')}>
-        <PanelSectionGrid sections={panelSectionCopy(USERCP_SECTIONS, await getTranslator())} />
+        <PanelSectionGrid sections={panelSectionCopy(USERCP_SECTIONS, translator)} />
       </PanelSection>
     </PanelPage>
   )

@@ -71,7 +71,7 @@ export default async function ReplyPage({
   const view = buildReplyView({
     t: await getTranslator(),
     thread: { id: target.threadId, title: target.title, slug: target.slug },
-    errorMessage: locked ? 'This thread is locked.' : null,
+    errorMessage: locked ? (await getTranslator()).t('board.reply.locked') : null,
   })
 
   const theme = await currentTheme()

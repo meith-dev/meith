@@ -24,10 +24,7 @@ export default async function ModCpForumsPage() {
         {forums.length === 0 ? (
           <Empty className="py-8">
             <EmptyTitle>{t.t('page.no-forum-appointments')}</EmptyTitle>
-            <EmptyDescription>
-              You are not assigned to any forum. Your group permissions still apply wherever they
-              grant something.
-            </EmptyDescription>
+            <EmptyDescription>{t.t('board.modcp.noAppointmentsHint')}</EmptyDescription>
           </Empty>
         ) : (
           <CardRows>

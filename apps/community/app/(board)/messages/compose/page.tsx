@@ -38,7 +38,7 @@ export default async function ComposePage({
 
   return (
     <PanelPage
-      back={{ href: '/messages', label: 'Private messages' }}
+      back={{ href: '/messages', label: await tr('page.private-messages') }}
       title={await tr('page.write-message')}
       lede={await tr('page.private-messages-not-moderated-but')}
     >

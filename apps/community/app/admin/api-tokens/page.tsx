@@ -19,6 +19,11 @@ export default async function AdminApiTokensPage() {
   const translator = await getTranslator()
   const copy = apiTokenFormsCopy(translator)
   const view = await buildApiTokenView(now)
+  const stateLabels = {
+    expired: translator.t('adminApiTokens.state.expired'),
+    live: translator.t('adminApiTokens.state.live'),
+    revoked: translator.t('adminApiTokens.state.revoked'),
+  }
 
   if (view === null) {
     return (
@@ -35,9 +40,9 @@ export default async function AdminApiTokensPage() {
       title={await tr('page.api-tokens')}
       lede={
         <>
-          Bearer tokens for <code className="font-mono text-xs">/api/v1</code>. Every request is
-          still checked against its owner’s permissions — a scope narrows a token, it never widens
-          the account.
+          {translator.t('adminApiTokens.ledeBefore')}{' '}
+          <code className="font-mono text-xs">/api/v1</code>
+          {translator.t('adminApiTokens.ledeAfter')}
         </>
       }
       gap="loose"
@@ -60,25 +65,25 @@ export default async function AdminApiTokensPage() {
               <thead>
                 <tr className="border-b border-border text-left">
                   <th scope="col" className="py-2 pr-3 font-medium">
-                    Name
+                    {translator.t('adminApiTokens.name')}
                   </th>
                   <th scope="col" className="py-2 pr-3 font-medium">
-                    Owner
+                    {translator.t('adminApiTokens.owner')}
                   </th>
                   <th scope="col" className="py-2 pr-3 font-medium">
-                    Prefix
+                    {translator.t('adminApiTokens.prefix')}
                   </th>
                   <th scope="col" className="py-2 pr-3 font-medium">
-                    Scopes
+                    {translator.t('adminApiTokens.scopes')}
                   </th>
                   <th scope="col" className="py-2 pr-3 font-medium">
                     {await tr('page.last-used')}
                   </th>
                   <th scope="col" className="py-2 pr-3 font-medium">
-                    State
+                    {translator.t('adminApiTokens.state')}
                   </th>
                   <th scope="col" className="py-2 font-medium">
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{translator.t('adminApiTokens.actions')}</span>
                   </th>
                 </tr>
               </thead>
@@ -91,7 +96,7 @@ export default async function AdminApiTokensPage() {
                     <td className="py-2 pr-3 font-mono text-xs">{token.scopes.join(' ')}</td>
                     <td className="py-2 pr-3">
                       {token.lastUsedAt === null
-                        ? 'never'
+                        ? translator.t('adminApiTokens.never')
                         : formatTime(token.lastUsedAt, now, translator).label}
                     </td>
                     <td className="py-2 pr-3">
@@ -104,7 +109,7 @@ export default async function AdminApiTokensPage() {
                               : 'text-muted-foreground'
                         }
                       >
-                        {token.state}
+                        {stateLabels[token.state]}
                       </span>
                     </td>
                     <td className="py-2">

@@ -32,21 +32,22 @@ export default async function ModCpPage() {
     new ModeratorPanel({ modcp }).dashboard({ forums }),
     modCpCounts(),
   ])
+  const translator = await getTranslator()
 
   const waiting: readonly WaitingItem[] = [
     {
       count: counts.pending,
-      one: 'post held for approval',
-      many: 'posts held for approval',
+      one: translator.t('board.modcp.pending', { count: 1 }),
+      many: translator.t('board.modcp.pending', { count: 2 }),
       href: '/moderation',
-      action: 'Review',
+      action: translator.t('board.modcp.review'),
     },
     {
       count: counts.openReports,
-      one: 'open report',
-      many: 'open reports',
+      one: translator.t('board.modcp.report', { count: 1 }),
+      many: translator.t('board.modcp.report', { count: 2 }),
       href: '/moderation/reports',
-      action: 'Open',
+      action: translator.t('board.modcp.open'),
     },
   ]
 
@@ -59,24 +60,21 @@ export default async function ModCpPage() {
       <PanelSection id="waiting-heading" title={await tr('page.waiting-for')}>
         <PanelWaitingList
           items={waiting}
-          emptyTitle="Nothing is waiting"
-          emptyDescription="No posts held for approval and no open reports in the forums you moderate."
+          emptyTitle={translator.t('board.modcp.nothingWaiting')}
+          emptyDescription={translator.t('board.modcp.nothingWaitingHint')}
         />
       </PanelSection>
 
       <PanelSection
         id="forums-heading"
         title={await tr('page.forums-2')}
-        description="Busiest first. What you may do in each is on My forums."
+        description={translator.t('board.modcp.forumsHint')}
       >
         <Card>
           {dashboard.length === 0 ? (
             <Empty className="py-8">
               <EmptyTitle>{await tr('page.no-forum-appointments')}</EmptyTitle>
-              <EmptyDescription>
-                You hold moderator permissions but are not assigned to any forum. Your group
-                permissions still apply wherever they grant something.
-              </EmptyDescription>
+              <EmptyDescription>{translator.t('board.modcp.noAppointmentsHint')}</EmptyDescription>
             </Empty>
           ) : (
             <CardRows>
@@ -93,11 +91,10 @@ export default async function ModCpPage() {
                   </a>
                   <span className="flex gap-3 text-xs text-muted-foreground">
                     <a href="/moderation" className="hover:text-foreground">
-                      <span className="tabular-nums">{forum.pending}</span> waiting
+                      {translator.t('board.modcp.waiting', { count: forum.pending })}
                     </a>
                     <a href="/moderation/reports" className="hover:text-foreground">
-                      <span className="tabular-nums">{forum.openReports}</span> open{' '}
-                      {forum.openReports === 1 ? 'report' : 'reports'}
+                      {translator.t('board.modcp.openReports', { count: forum.openReports })}
                     </a>
                   </span>
                 </li>
@@ -108,9 +105,7 @@ export default async function ModCpPage() {
       </PanelSection>
 
       <PanelSection id="sections-heading" title={await tr('page.sections')}>
-        <PanelSectionGrid
-          sections={panelSectionCopy(modCpSections(access), await getTranslator())}
-        />
+        <PanelSectionGrid sections={panelSectionCopy(modCpSections(access), translator)} />
       </PanelSection>
     </PanelPage>
   )

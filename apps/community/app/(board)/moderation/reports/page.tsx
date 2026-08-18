@@ -51,15 +51,15 @@ export default async function ReportsPage({
   const Notice = requireSlot(theme, 'Notice')
   const notice =
     query.closed === 'resolved'
-      ? 'Report resolved.'
+      ? translator.t('board.reports.resolved')
       : query.closed === 'rejected'
-        ? 'Report dismissed.'
+        ? translator.t('board.reports.dismissed')
         : null
 
   return (
     <PanelPage
       title={await tr('page.reports')}
-      lede={open === 1 ? '1 report still open.' : `${open} reports still open.`}
+      lede={translator.t('board.reports.open', { count: open })}
     >
       {notice !== null && (
         <Notice
@@ -100,7 +100,9 @@ export default async function ReportsPage({
               >
                 <div className="flex flex-wrap items-baseline gap-2 text-sm">
                   <span className="font-medium capitalize">
-                    {report.kind === 'private_message' ? 'Private message' : report.kind}
+                    {report.kind === 'private_message'
+                      ? translator.t('board.reports.privateMessage')
+                      : report.kind}
                   </span>
                   {href === null ? (
                     <span className="font-medium">{report.targetLabel}</span>
@@ -113,8 +115,11 @@ export default async function ReportsPage({
                     </a>
                   )}
                   <span className="text-xs text-muted-foreground">
-                    reported by {report.reporterUsername ?? 'a deleted account'} ·{' '}
-                    <time dateTime={posted.iso}>{posted.label}</time>
+                    {translator.t('board.reports.reportedBy', {
+                      username:
+                        report.reporterUsername ?? translator.t('board.reports.deletedAccount'),
+                    })}{' '}
+                    · <time dateTime={posted.iso}>{posted.label}</time>
                   </span>
                 </div>
 
@@ -126,16 +131,16 @@ export default async function ReportsPage({
                   <div className="mt-2 rounded-md border border-border bg-muted/50 p-3">
                     <p className="text-xs font-medium text-muted-foreground">
                       {message === undefined
-                        ? 'The reported message'
-                        : `The reported message, from ${
-                            message.authorUsername === ''
-                              ? 'a deleted member'
-                              : message.authorUsername
-                          }`}
+                        ? translator.t('board.reports.message')
+                        : translator.t('board.reports.messageFrom', {
+                            username:
+                              message.authorUsername === ''
+                                ? translator.t('board.reports.deletedMember')
+                                : message.authorUsername,
+                          })}
                     </p>
                     <p className="mt-1 whitespace-pre-wrap break-words text-sm">
-                      {message?.message ??
-                        'This message has since been deleted by everybody who held it.'}
+                      {message?.message ?? translator.t('board.reports.messageDeleted')}
                     </p>
                   </div>
                 )}
@@ -143,8 +148,10 @@ export default async function ReportsPage({
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                   <span>
                     {report.assignedToUsername === null
-                      ? 'Unassigned'
-                      : `Assigned to ${report.assignedToUsername}`}
+                      ? translator.t('board.reports.unassigned')
+                      : translator.t('board.reports.assignedTo', {
+                          username: report.assignedToUsername,
+                        })}
                   </span>
                   <AssignReportForm
                     copy={moderationFormsCopy(translator)}

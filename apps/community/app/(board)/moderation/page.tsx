@@ -60,13 +60,13 @@ export default async function ModerationPage({
 
   const parts: string[] = []
   if (query.did !== undefined && query.n !== undefined) {
-    const verb = query.did === 'approve' ? 'Approved' : 'Rejected'
-    parts.push(`${verb} ${query.n} item${query.n === '1' ? '' : 's'}.`)
+    const verb = query.did === 'approve' ? 'board.moderation.approved' : 'board.moderation.rejected'
+    parts.push(translator.t(verb, { count: Number(query.n) }))
     if (query.refused !== undefined) {
-      parts.push(`${query.refused} were in forums you do not moderate.`)
+      parts.push(translator.t('board.moderation.notModerated', { count: Number(query.refused) }))
     }
     if (query.gone !== undefined) {
-      parts.push(`${query.gone} had already been handled.`)
+      parts.push(translator.t('board.moderation.alreadyHandled', { count: Number(query.gone) }))
     }
   }
   const notice = parts.length === 0 ? null : parts.join(' ')
@@ -76,8 +76,8 @@ export default async function ModerationPage({
       title={await tr('page.approval-queue')}
       lede={
         view.pending === 1
-          ? '1 item awaiting approval.'
-          : `${view.pending} items awaiting approval.`
+          ? translator.t('board.moderation.awaiting', { count: 1 })
+          : translator.t('board.moderation.awaiting', { count: view.pending })
       }
     >
       {notice !== null && (
@@ -94,13 +94,13 @@ export default async function ModerationPage({
           <Empty className="py-8">
             <EmptyTitle>
               {view.emptyReason === 'nothing-moderated'
-                ? 'You do not moderate any forums'
-                : 'Nothing is waiting'}
+                ? translator.t('board.moderation.nothingModerated')
+                : translator.t('board.moderation.nothingWaiting')}
             </EmptyTitle>
             <EmptyDescription>
               {view.emptyReason === 'nothing-moderated'
-                ? 'Posts held for approval appear here once you are appointed to a forum, or given a group permission that moderates one.'
-                : 'Every post held for approval in the forums you moderate has been dealt with.'}
+                ? translator.t('board.moderation.nothingModeratedHint')
+                : translator.t('board.moderation.nothingWaitingHint')}
             </EmptyDescription>
           </Empty>
         </Card>

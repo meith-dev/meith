@@ -47,14 +47,14 @@ export default async function StatsPage() {
       title={await tr('page.board-statistics')}
       lede={
         totals.computedAt === null ? (
-          'The totals below have not been counted yet — they are rolled up on a schedule.'
+          translator.t('board.stats.notCounted')
         ) : (
           <>
-            Totals counted{' '}
+            {translator.t('board.stats.counted')}{' '}
             <time dateTime={totals.computedAt.toISOString()}>
               {formatTime(totals.computedAt, now, translator).label}
             </time>
-            . The tables below are live.
+            . {translator.t('board.stats.live')}
           </>
         )
       }
@@ -63,9 +63,18 @@ export default async function StatsPage() {
         <Card>
           <CardContent>
             <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-              <Figure label="Threads" value={translator.number(totals.threadCount)} />
-              <Figure label="Posts" value={translator.number(totals.postCount)} />
-              <Figure label="Members" value={translator.number(totals.memberCount)} />
+              <Figure
+                label={translator.t('board.stats.threads')}
+                value={translator.number(totals.threadCount)}
+              />
+              <Figure
+                label={translator.t('board.stats.posts')}
+                value={translator.number(totals.postCount)}
+              />
+              <Figure
+                label={translator.t('board.stats.members')}
+                value={translator.number(totals.memberCount)}
+              />
               <div>
                 <dt className="text-muted-foreground">{await tr('page.newest-member')}</dt>
                 <dd className="font-medium">
@@ -85,7 +94,10 @@ export default async function StatsPage() {
         </Card>
       </PanelSection>
 
-      <PanelSection id="posters-heading" title={`Top ${LEADERBOARD_SIZE} posters`}>
+      <PanelSection
+        id="posters-heading"
+        title={translator.t('board.stats.topPosters', { count: LEADERBOARD_SIZE })}
+      >
         <Card>
           {topPosters.length === 0 ? (
             <Empty>
@@ -114,14 +126,14 @@ export default async function StatsPage() {
 
       <ThreadTable
         id="viewed"
-        heading="Most viewed threads"
+        heading={translator.t('board.stats.mostViewed')}
         rows={mostViewed}
         figure={(row) => translator.t('stats.views', { count: row.viewCount })}
       />
 
       <ThreadTable
         id="replied"
-        heading="Most replied-to threads"
+        heading={translator.t('board.stats.mostReplied')}
         rows={mostReplied}
         figure={(row) => translator.t('stats.replies', { count: row.replyCount })}
       />
@@ -157,6 +169,7 @@ async function ThreadTable({
   }[]
   figure: (row: { viewCount: number; replyCount: number }) => string
 }) {
+  const translator = await getTranslator()
   return (
     <PanelSection id={`${id}-heading`} title={heading}>
       <Card>
@@ -174,7 +187,9 @@ async function ThreadTable({
                   <a href={`/thread/${row.threadId}-${row.slug}`} className={LINK}>
                     {row.title}
                   </a>{' '}
-                  <span className="text-muted-foreground">in {row.forumTitle}</span>
+                  <span className="text-muted-foreground">
+                    {translator.t('board.stats.inForum', { forum: row.forumTitle })}
+                  </span>
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">{figure(row)}</span>
               </li>

@@ -185,6 +185,11 @@ Its catalog is registered from the plugin entry in `community.config.ts`; pages
 read `context.t.t('plugin.key')`, which lets the board override a plugin's words
 without the plugin needing to know how catalogs are assembled.
 
+Plugin manifests retain English fallbacks for the operator CLI and generated
+reference, and carry `nameKey`, `descriptionKey`, `labelKey` or `titleKey` for
+board-rendered metadata. A title or description that interpolates data also
+carries its `*Args`; the board resolves the key when it builds the page or panel.
+
 ### The three mirrored surfaces
 
 Setting labels in `packages/settings/src/definitions.ts`, error messages in
@@ -245,11 +250,11 @@ a reader gets it translated with the limit interpolated — the server pages'
 browser-tab titles, frame titles and whole-text headings resolve through the
 request's translator, and every client component under `src/components/`
 (member forms, the composer, moderation tools, the installer, the whole admin
-panel) reads from a copy record. The built-in themes and the member-facing Dues
-pages are extracted too. What still holds English: Dues administration (~100
-strings), a long tail of server-side fragments in the app (~400), and the
-packages — where most of the count is the demo board's fixture posts and the
-deliberately mirrored setting definitions, which are staying English on purpose.
+panel) reads from a copy record. The built-in themes and the complete Dues UI
+are extracted too. What still holds English is the shrinking long tail of
+server-side fragments and packages — where most of the count is the demo
+board's fixture posts and the deliberately mirrored setting definitions, which
+are staying English on purpose.
 
 They cannot grow. `scripts/i18n-baseline.json` records how much English each
 file holds — string literals and JSX text alike — and `pnpm i18n:check` fails

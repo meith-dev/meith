@@ -91,10 +91,24 @@ export type BoardPageResult =
   | { readonly outcome: 'missing' }
   | { readonly outcome: 'sign-in-first'; readonly title: string }
 
-export function pluginBoardPageTitle(pluginKey: string, path: string): string | null {
+function translated(
+  t: Awaited<ReturnType<typeof getTranslator>> | undefined,
+  key: string | undefined,
+  fallback: string,
+  args?: Parameters<Awaited<ReturnType<typeof getTranslator>>['t']>[1],
+): string {
+  return t !== undefined && key !== undefined && t.has(key) ? t.t(key, args) : fallback
+}
+
+export function pluginBoardPageTitle(
+  pluginKey: string,
+  path: string,
+  t?: Awaited<ReturnType<typeof getTranslator>>,
+): string | null {
   const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === pluginKey)
   const definition = entry?.plugin as PluginDefinition | undefined
-  return (definition?.pages ?? []).find((page) => page.path === path)?.title ?? null
+  const page = (definition?.pages ?? []).find((candidate) => candidate.path === path)
+  return page === undefined ? null : translated(t, page.titleKey, page.title, page.titleArgs)
 }
 
 export async function renderPluginBoardPage(
@@ -114,16 +128,17 @@ export async function renderPluginBoardPage(
   const overrides = await getSettingOverrides()
   if (overrides.get(`plugin.${pluginKey}._enabled`) === '0') return { outcome: 'missing' }
 
-  if (page.access === 'member' && request.viewer.userId === null) {
-    return { outcome: 'sign-in-first', title: page.title }
-  }
-
   const [log, t] = [logger({ component: 'plugin-page', plugin: pluginKey }), await getTranslator()]
+  const title = translated(t, page.titleKey, page.title, page.titleArgs)
+
+  if (page.access === 'member' && request.viewer.userId === null) {
+    return { outcome: 'sign-in-first', title }
+  }
 
   try {
     return {
       outcome: 'rendered',
-      title: page.title,
+      title,
       node: await page.render({
         ...runtimeContextFor(pluginKey, definition, overrides, log),
         viewer: request.viewer,
@@ -136,7 +151,7 @@ export async function renderPluginBoardPage(
     }
   } catch (error) {
     log.error({ err: error, path }, 'plugin board page failed to render')
-    return { outcome: 'rendered', title: page.title, node: null }
+    return { outcome: 'rendered', title, node: null }
   }
 }
 
@@ -158,10 +173,11 @@ export async function renderPluginAdminPage(
   if (overrides.get(`plugin.${pluginKey}._enabled`) === '0') return null
 
   const [log, t] = [logger({ component: 'plugin-page', plugin: pluginKey }), await getTranslator()]
+  const title = translated(t, page.titleKey, page.title, page.titleArgs)
 
   try {
     return {
-      title: page.title,
+      title,
       node: await page.render({
         ...runtimeContextFor(pluginKey, definition, overrides, log),
         query,
@@ -171,6 +187,6 @@ export async function renderPluginAdminPage(
     }
   } catch (error) {
     log.error({ err: error, path }, 'plugin admin page failed to render')
-    return { title: page.title, node: null }
+    return { title, node: null }
   }
 }

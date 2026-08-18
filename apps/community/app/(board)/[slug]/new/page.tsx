@@ -47,7 +47,9 @@ export default async function NewThreadPage({ params }: { params: Promise<{ slug
     t: await getTranslator(),
     forum: { id: forum.id, title: forum.title, slug: forum.slug },
     errorMessage:
-      rules.isOpen && rules.allowThreads ? null : 'This forum is closed to new threads.',
+      rules.isOpen && rules.allowThreads
+        ? null
+        : (await getTranslator()).t('board.newThread.closed'),
   })
 
   const theme = await currentTheme()

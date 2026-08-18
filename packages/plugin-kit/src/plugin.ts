@@ -35,7 +35,9 @@ export type PluginSettingType = 'string' | 'secret' | 'number' | 'boolean' | 'se
 export interface PluginSetting {
   readonly key: string
   readonly label: string
+  readonly labelKey?: string | undefined
   readonly description?: string | undefined
+  readonly descriptionKey?: string | undefined
   readonly type?: PluginSettingType | undefined
   readonly options?: readonly { readonly value: string; readonly label: string }[] | undefined
   readonly env?: string | undefined
@@ -58,6 +60,8 @@ export interface PluginTask {
 export interface PluginAdminPage {
   readonly path: string
   readonly title: string
+  readonly titleKey?: string | undefined
+  readonly titleArgs?: Parameters<Translator['t']>[1] | undefined
   readonly render: (context: PluginAdminPageContext) => ReactNode | Promise<ReactNode>
 }
 
@@ -133,6 +137,8 @@ export interface PluginAdminPageContext extends PluginRuntimeContext {
 export interface PluginBoardPage {
   readonly path: string
   readonly title: string
+  readonly titleKey?: string | undefined
+  readonly titleArgs?: Parameters<Translator['t']>[1] | undefined
   readonly access: PluginPageAccess
   readonly render: (context: PluginPageContext) => ReactNode | Promise<ReactNode>
 }
@@ -153,15 +159,20 @@ export interface PluginRuntimeContext {
 export interface PluginNotificationKind {
   readonly key: string
   readonly title: string
+  readonly titleKey?: string | undefined
   readonly description: string
+  readonly descriptionKey?: string | undefined
   readonly emailByDefault?: boolean | undefined
 }
 
 export interface PluginDefinition {
   readonly key: string
   readonly name: string
+  readonly nameKey?: string | undefined
   readonly version: string
   readonly description?: string | undefined
+  readonly descriptionKey?: string | undefined
+  readonly descriptionArgs?: Parameters<Translator['t']>[1] | undefined
   readonly apiVersion?: string | undefined
 
   readonly dependsOn?: readonly string[] | undefined

@@ -18,7 +18,7 @@ export default async function AdminPluginsPage() {
   const t = await getTranslator()
   if ((await adminPageContext()) === null) return null
 
-  const { plugins, migrationsKnown } = await pluginInventory()
+  const { plugins, migrationsKnown } = await pluginInventory(t)
   const listeners = hookListeners()
   const copy = pluginFormsCopy(t)
 

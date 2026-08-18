@@ -46,12 +46,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.search') }
 }
 
-const HINT =
-  'Searches every forum you can see. Put a phrase in quotes to match it exactly, ' +
-  'and put a minus in front of a word to exclude it.'
-
-const AUTHOR_HINT = `Usernames, separated by commas. Up to ${MAX_AUTHOR_NAMES}.`
-
 interface Submitted {
   readonly terms: string
   readonly forums: readonly string[]
@@ -94,7 +88,7 @@ export default async function SearchPage({
           {...(await filteredForm({
             ...(await formModel(submitted)),
             hint: null,
-            errorMessage: errorFor(outcome),
+            errorMessage: errorFor(outcome, translator),
           }))}
           copy={slotCopy(await currentTheme(), 'SearchForm', translator)}
         />
@@ -107,7 +101,7 @@ export default async function SearchPage({
       <SearchForm
         {...(await filteredForm({
           ...(await formModel(submitted)),
-          hint: HINT,
+          hint: translator.t('board.search.hint'),
           errorMessage: null,
         }))}
         copy={slotCopy(await currentTheme(), 'SearchForm', translator)}
@@ -116,30 +110,32 @@ export default async function SearchPage({
   )
 }
 
-function Page({ children }: { children: React.ReactNode }) {
+async function Page({ children }: { children: React.ReactNode }) {
+  const translator = await getTranslator()
   return (
     <main
       id="board-content"
       tabIndex={-1}
       className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 flex-1"
     >
-      <h1 className="font-heading text-2xl font-semibold">Search</h1>
+      <h1 className="font-heading text-2xl font-semibold">{translator.t('board.search.title')}</h1>
       {children}
     </main>
   )
 }
 
-function errorFor(outcome: Exclude<RunSearchOutcome, { kind: 'ok' }>): string {
+function errorFor(outcome: Exclude<RunSearchOutcome, { kind: 'ok' }>, t: Translator): string {
   if (outcome.kind === 'flooded') {
-    return `You are searching very quickly. Try again in ${outcome.seconds} seconds.`
+    return t.t('board.search.flooded', { seconds: outcome.seconds })
   }
   if (outcome.kind === 'limited') return outcome.message
-  if (outcome.kind === 'unknown-author') return `Nobody here is called “${outcome.name}”.`
+  if (outcome.kind === 'unknown-author')
+    return t.t('board.search.unknownAuthor', { name: outcome.name })
   if (outcome.reason === 'too-short') {
-    return `That search is too short — one word in it has to be at least ${outcome.minWordLength} characters.`
+    return t.t('board.search.tooShort', { count: outcome.minWordLength })
   }
-  if (outcome.reason === 'too-long') return 'That search is too long to run.'
-  return 'Type something to search for.'
+  if (outcome.reason === 'too-long') return t.t('board.search.tooLong')
+  return t.t('board.search.empty')
 }
 
 function read(params: Record<string, string | string[] | undefined>): Submitted {
@@ -233,7 +229,7 @@ function advancedModel(submitted: Submitted, t: Translator): SearchAdvancedModel
       label: t.t('search.postedBy'),
       value: submitted.authors,
       placeholder: t.t('search.anybody'),
-      hint: AUTHOR_HINT,
+      hint: t.t('board.search.authorHint', { count: MAX_AUTHOR_NAMES }),
     },
     toggles: [
       {

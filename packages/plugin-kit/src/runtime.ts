@@ -96,14 +96,18 @@ const MAX_NOTIFY_BODY = 2_000
 export interface PluginNotifyKindInput {
   readonly key: string
   readonly title: string
+  readonly titleKey?: string | undefined
   readonly description: string
+  readonly descriptionKey?: string | undefined
   readonly emailByDefault?: boolean | undefined
 }
 
 export interface PluginNotificationKindSpec {
   readonly id: string
   readonly title: string
+  readonly titleKey?: string
   readonly description: string
+  readonly descriptionKey?: string
   readonly audience: 'member'
   readonly emailByDefault: boolean
   readonly emailConfigurable: true
@@ -126,7 +130,9 @@ export function pluginNotificationKindSpecs(
   return kinds.map((kind) => ({
     id: `plugin.${pluginKey}.${kind.key}`,
     title: kind.title,
+    ...(kind.titleKey === undefined ? {} : { titleKey: kind.titleKey }),
     description: kind.description,
+    ...(kind.descriptionKey === undefined ? {} : { descriptionKey: kind.descriptionKey }),
     audience: 'member',
     emailByDefault: kind.emailByDefault ?? true,
     emailConfigurable: true,

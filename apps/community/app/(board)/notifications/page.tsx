@@ -58,7 +58,7 @@ export default async function NotificationsPage({
       title={await tr('page.notifications')}
       lede={
         <>
-          {view.unread === 0 ? 'Nothing unread.' : `${view.unread} unread.`}{' '}
+          {translator.t('board.notifications.unread', { count: view.unread })}{' '}
           <a
             href={view.preferencesHref}
             className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
@@ -85,10 +85,7 @@ export default async function NotificationsPage({
       )}
 
       {view.rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          You have no notifications. When a moderator warns you, or a report you filed is closed, it
-          will appear here.
-        </p>
+        <p className="text-sm text-muted-foreground">{translator.t('board.notifications.empty')}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {view.rows.map((row) => (
@@ -102,7 +99,7 @@ export default async function NotificationsPage({
                 <span className="text-sm font-medium">
                   {row.isRead ? null : (
                     <span className="mr-2 text-xs font-semibold uppercase text-forum-unread">
-                      New
+                      {translator.t('board.notifications.new')}
                     </span>
                   )}
                   {row.subject}
@@ -126,7 +123,7 @@ export default async function NotificationsPage({
                     href={row.href}
                     className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                   >
-                    View
+                    {translator.t('board.notifications.view')}
                   </a>
                 )}
                 {!row.isRead && (

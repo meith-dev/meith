@@ -160,7 +160,7 @@ export default async function BoardIndexPage() {
             <LiveRegion
               refresh={refreshLatestPanels}
               seconds={LATEST_REFRESH_SECONDS}
-              label="Latest activity"
+              label={translator.t('board.index.latestActivity')}
             >
               {latest}
             </LiveRegion>

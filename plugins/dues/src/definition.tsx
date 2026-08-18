@@ -27,6 +27,7 @@ import {
   handleAdminPlanUpdate,
   handleAdminRevoke,
 } from './handlers-admin'
+import en from './messages/en.json'
 import { DUES_MIGRATIONS } from './schema'
 import { runReconcile, runSweep } from './tasks'
 import { CodesPage, LedgerPage, MembersPage, PlansAdminPage, StatusPage } from './ui/admin'
@@ -46,48 +47,52 @@ export function dues(input: DuesConfigInput): PluginDefinition {
     key: 'dues',
     name: 'Dues',
     version: '0.7.0',
-    description:
-      `Sells ${config.label.toLowerCase()} — time-limited membership of a group — ` +
-      'through Stripe, for yourself or as a gift.',
+    description: en['dues.definition.description'].replace('{label}', config.label.toLowerCase()),
+    descriptionKey: 'dues.definition.description',
+    descriptionArgs: { label: config.label.toLowerCase() },
     apiVersion: '0',
 
     settings: [
       {
         key: 'stripe_secret_key',
-        label: 'Stripe secret key',
+        label: en['dues.definition.setting.secret.label'],
+        labelKey: 'dues.definition.setting.secret.label',
         type: 'secret',
         env: 'DUES_STRIPE_SECRET_KEY',
         required: true,
         default: '',
-        description: 'The sk_live_… or sk_test_… key from the Stripe dashboard.',
+        description: en['dues.definition.setting.secret.description'],
+        descriptionKey: 'dues.definition.setting.secret.description',
       },
       {
         key: 'stripe_webhook_secret',
-        label: 'Webhook signing secret',
+        label: en['dues.definition.setting.webhook.label'],
+        labelKey: 'dues.definition.setting.webhook.label',
         type: 'secret',
         env: 'DUES_STRIPE_WEBHOOK_SECRET',
         required: true,
         default: '',
-        description:
-          'The whsec_… secret of the webhook endpoint. Without it, payments are taken ' +
-          'but can never confirm.',
+        description: en['dues.definition.setting.webhook.description'],
+        descriptionKey: 'dues.definition.setting.webhook.description',
       },
       {
         key: 'stripe_api_version',
-        label: 'Stripe API version',
+        label: en['dues.definition.setting.apiVersion.label'],
+        labelKey: 'dues.definition.setting.apiVersion.label',
         default: '2024-12-18.acacia',
         advanced: true,
-        description:
-          'Pinned so Stripe’s payload shapes change on a deploy, not on a Tuesday. ' +
-          'Change it only alongside a plugin upgrade that expects the new shapes.',
+        description: en['dues.definition.setting.apiVersion.description'],
+        descriptionKey: 'dues.definition.setting.apiVersion.description',
       },
       {
         key: 'stripe_api_base',
-        label: 'Stripe API address',
+        label: en['dues.definition.setting.apiBase.label'],
+        labelKey: 'dues.definition.setting.apiBase.label',
         env: 'DUES_STRIPE_API_BASE',
         default: 'https://api.stripe.com',
         advanced: true,
-        description: 'Only a stripe-mock or a test double ever changes this.',
+        description: en['dues.definition.setting.apiBase.description'],
+        descriptionKey: 'dues.definition.setting.apiBase.description',
       },
     ],
 
@@ -125,15 +130,17 @@ export function dues(input: DuesConfigInput): PluginDefinition {
     notifications: [
       {
         key: 'gift_received',
-        title: 'Somebody gifts you a membership',
-        description:
-          'A member bought a membership in your name. It starts the moment the payment confirms.',
+        title: en['dues.definition.notification.gift.title'],
+        titleKey: 'dues.definition.notification.gift.title',
+        description: en['dues.definition.notification.gift.description'],
+        descriptionKey: 'dues.definition.notification.gift.description',
       },
       {
         key: 'renewal_trouble',
-        title: 'A membership payment fails',
-        description:
-          'A renewal did not go through. Access holds during the grace window while Stripe retries.',
+        title: en['dues.definition.notification.renewal.title'],
+        titleKey: 'dues.definition.notification.renewal.title',
+        description: en['dues.definition.notification.renewal.description'],
+        descriptionKey: 'dues.definition.notification.renewal.description',
       },
     ],
 
@@ -232,19 +239,23 @@ export function dues(input: DuesConfigInput): PluginDefinition {
       },
       {
         path: 'return',
-        title: 'Confirming your payment',
+        title: en['dues.definition.page.return'],
+        titleKey: 'dues.definition.page.return',
         access: 'member',
         render: (context) => ReturnPage({ config, context }),
       },
       {
         path: 'manage',
-        title: `Your ${config.label.toLowerCase()}`,
+        title: en['dues.definition.manage'].replace('{label}', config.label.toLowerCase()),
+        titleKey: 'dues.definition.manage',
+        titleArgs: { label: config.label.toLowerCase() },
         access: 'member',
         render: (context) => ManagePage({ config, context }),
       },
       {
         path: 'go',
-        title: 'Over to Stripe',
+        title: en['dues.definition.go'],
+        titleKey: 'dues.definition.go',
         access: 'member',
         render: (context) =>
           GoPage({
@@ -262,27 +273,32 @@ export function dues(input: DuesConfigInput): PluginDefinition {
     adminPages: [
       {
         path: 'status',
-        title: 'Status',
+        title: en['dues.definition.page.status'],
+        titleKey: 'dues.definition.page.status',
         render: (context) => StatusPage({ config, context }),
       },
       {
         path: 'plans',
-        title: 'Plans',
+        title: en['dues.definition.page.plans'],
+        titleKey: 'dues.definition.page.plans',
         render: (context) => PlansAdminPage({ config, context }),
       },
       {
         path: 'members',
-        title: 'Memberships',
+        title: en['dues.definition.page.members'],
+        titleKey: 'dues.definition.page.members',
         render: (context) => MembersPage({ context }),
       },
       {
         path: 'codes',
-        title: 'Discount codes',
+        title: en['dues.definition.page.codes'],
+        titleKey: 'dues.definition.page.codes',
         render: (context) => CodesPage({ config, context }),
       },
       {
         path: 'ledger',
-        title: 'Ledger',
+        title: en['dues.definition.page.ledger'],
+        titleKey: 'dues.definition.page.ledger',
         render: (context) => LedgerPage({ config, context }),
       },
     ],

@@ -41,28 +41,31 @@ export async function generateMetadata({
   searchParams: Promise<{ page?: string }>
 }): Promise<Metadata> {
   const [{ slug }, query] = await Promise.all([params, searchParams])
+  const translator = await getTranslator()
   const id = leadingId(slug)
-  if (id === null) return { title: 'Forum' }
+  if (id === null) return { title: translator.t('board.forum.title') }
 
   const actor = await getActor()
   const { forums, authorizer } = getContainer()
 
   const forum = await forums.findById(id)
-  if (!forum || forum.type === 'link') return { title: 'Forum' }
+  if (!forum || forum.type === 'link') return { title: translator.t('board.forum.title') }
 
   if (forum.type === 'category') {
     const visible = await authorizer.visibleForumIds(actor)
-    if (!visible.includes(forum.id)) return { title: 'Forum' }
+    if (!visible.includes(forum.id)) return { title: translator.t('board.forum.title') }
     return {
       title: forum.title,
-      description: forum.description ?? `Forums in ${forum.title}.`,
+      description:
+        forum.description ??
+        translator.t('board.forum.categoryDescription', { title: forum.title }),
       alternates: { canonical: canonicalPath({ path: `/${forum.id}-${forum.slug}`, page: 1 }) },
     }
   }
 
   const matrix = await authorizer.forumMatrix(actor, forum.id)
   if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) {
-    return { title: 'Forum' }
+    return { title: translator.t('board.forum.title') }
   }
 
   const page = Number(query.page ?? '1')
@@ -70,7 +73,8 @@ export async function generateMetadata({
     path: `/${forum.id}-${forum.slug}`,
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
   })
-  const description = forum.description ?? `Discussions in ${forum.title}.`
+  const description =
+    forum.description ?? translator.t('board.forum.description', { title: forum.title })
 
   return {
     title: forum.title,
@@ -130,6 +134,7 @@ export default async function ForumPage({
     notFound()
 
   const actor = await getActor()
+  const translator = await getTranslator()
   const { forums, threads, authorizer, readState, threadWrites, inlineModeration } = getContainer()
   const [rows, listing, read] = await Promise.all([
     forums.listListing(),
@@ -250,7 +255,6 @@ export default async function ForumPage({
   const SubforumList = requireSlot(theme, 'SubforumList')
   const Pagination = requireSlot(theme, 'Pagination')
 
-  const translator = await getTranslator()
   const notice = forumNotice(query, translator)
 
   const pluginContext = { ...viewerRef(actor), forumId: id }
@@ -283,16 +287,16 @@ export default async function ForumPage({
 
   const orderTabs = (
     <ViewTabs
-      label="Thread order"
+      label={translator.t('board.forum.threadOrder')}
       tabs={[
         {
           href: `/${id}-${forum.slug}`,
-          label: 'Latest',
+          label: translator.t('board.forum.latest'),
           isCurrent: sort === 'activity',
         },
         {
           href: `/${id}-${forum.slug}?sort=rating`,
-          label: 'Top rated',
+          label: translator.t('board.forum.topRated'),
           isCurrent: sort === 'rating',
         },
       ]}

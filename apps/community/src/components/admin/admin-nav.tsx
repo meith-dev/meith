@@ -6,8 +6,9 @@ import { ADMIN_OVERVIEW, adminNavWithPlugin, pluginKeyAt } from '@/view/admin-na
 import { pluginNavChildren } from '@/view/plugin-panel'
 
 export async function AdminNav() {
+  const t = await getTranslator()
   const pluginKey = pluginKeyAt(await currentLocation())
-  const plugin = pluginKey === null ? null : await pluginPanelSection(pluginKey)
+  const plugin = pluginKey === null ? null : await pluginPanelSection(pluginKey, t)
 
   return (
     <PanelNavRegion
@@ -16,7 +17,7 @@ export async function AdminNav() {
         plugin === null
           ? null
           : { key: plugin.key, name: plugin.name, pages: pluginNavChildren(plugin.pages) },
-        await getTranslator(),
+        t,
       )}
       overviewHref={ADMIN_OVERVIEW.href}
       fallbackHref={ADMIN_OVERVIEW.href}

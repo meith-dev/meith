@@ -33,10 +33,10 @@ function positiveInt(value: string | undefined): number | null {
   return Number.isSafeInteger(n) ? n : null
 }
 
-const MATCH_LABELS: Readonly<Record<string, string>> = {
-  registration: 'registered from this range',
-  last_visit: 'last visited from this range',
-  both: 'registered and last visited from this range',
+const MATCH_LABEL_KEYS: Readonly<Record<string, string>> = {
+  registration: 'board.ip.registration',
+  last_visit: 'board.ip.lastVisit',
+  both: 'board.ip.both',
 }
 
 export default async function IpLookupPage({
@@ -67,20 +67,11 @@ export default async function IpLookupPage({
   const translator = await getTranslator()
 
   return (
-    <PanelPage
-      title={await tr('page.address-lookup')}
-      lede={
-        <>
-          Finds accounts that share a stored address <em>range</em> with a member. The board never
-          stores a full address, so this is evidence to follow up, not proof. Every lookup is
-          recorded in the moderator log.
-        </>
-      }
-    >
+    <PanelPage title={await tr('page.address-lookup')} lede={translator.t('board.ip.hint')}>
       <Card>
         <CardContent>
           <form method="get" className="flex flex-wrap items-end gap-3">
-            <Field name="user" label="Member id" className="w-40">
+            <Field name="user" label={translator.t('board.ip.memberId')} className="w-40">
               {(control) => (
                 <Input {...control} type="number" min={1} defaultValue={subjectId ?? ''} />
               )}
@@ -101,7 +92,7 @@ export default async function IpLookupPage({
       {subject !== null && result !== null && (
         <PanelSection
           id="matches-heading"
-          title={`Accounts sharing a range with ${subject.username}`}
+          title={translator.t('board.ip.matches', { username: subject.username })}
           description={
             <>
               <a
@@ -110,9 +101,15 @@ export default async function IpLookupPage({
               >
                 {subject.username}
               </a>
-              . Ranges on record: registration{' '}
-              <code className="font-mono">{result.prefixes.registration ?? 'none'}</code>, last
-              visit <code className="font-mono">{result.prefixes.lastVisit ?? 'none'}</code>.
+              . {translator.t('board.ip.ranges')} {translator.t('board.ip.registration')}{' '}
+              <code className="font-mono">
+                {result.prefixes.registration ?? translator.t('board.ip.none')}
+              </code>
+              ,{translator.t('board.ip.lastVisit')}{' '}
+              <code className="font-mono">
+                {result.prefixes.lastVisit ?? translator.t('board.ip.none')}
+              </code>
+              .
             </>
           }
         >
@@ -138,11 +135,11 @@ export default async function IpLookupPage({
                       {match.username}
                     </a>
                     <span className="text-xs text-muted-foreground">
-                      {MATCH_LABELS[match.matchedOn] ?? match.matchedOn}
+                      {translator.t(MATCH_LABEL_KEYS[match.matchedOn] ?? 'board.ip.unknown')}
                       {match.lastActiveAt !== null && (
                         <>
                           {' '}
-                          · last seen{' '}
+                          · {translator.t('board.ip.lastSeen')}{' '}
                           <time dateTime={formatTime(match.lastActiveAt, now, translator).iso}>
                             {formatTime(match.lastActiveAt, now, translator).label}
                           </time>

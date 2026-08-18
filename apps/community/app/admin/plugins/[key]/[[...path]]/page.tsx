@@ -26,7 +26,8 @@ export default async function AdminPluginPage({
   if ((await adminPageContext()) === null) return null
 
   const { key, path } = await params
-  const plugin = await pluginRow(key)
+  const t = await getTranslator()
+  const plugin = await pluginRow(key, t)
   if (plugin === null) notFound()
 
   const segments = path ?? []
@@ -81,7 +82,7 @@ export default async function AdminPluginPage({
 
   const visibleSettings = plugin.settings
   const pendingMigrations = plugin.migrations.filter((migration) => !migration.applied)
-  const copy = pluginFormsCopy(await getTranslator())
+  const copy = pluginFormsCopy(t)
 
   return (
     <PanelPage

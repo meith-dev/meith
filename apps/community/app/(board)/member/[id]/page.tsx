@@ -62,6 +62,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
       : await signatures.read(id).catch(() => null)
 
   const MemberProfile = requireSlot(await currentTheme(), 'MemberProfile')
+  const translator = await getTranslator()
 
   const profileModel = await filterView(
     'view.member-profile',
@@ -75,7 +76,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
           actor.userId !== null &&
           actor.userId !== id &&
           authorizer.can(actor, 'pm.use'),
-        t: await getTranslator(),
+        t: translator,
         customFields,
       }),
       regions: {
@@ -93,21 +94,21 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
     <main id="board-content" tabIndex={-1} className="flex-1">
       <MemberProfile
         {...profileModel}
-        copy={slotCopy(await currentTheme(), 'MemberProfile', await getTranslator())}
+        copy={slotCopy(await currentTheme(), 'MemberProfile', translator)}
       />
 
       {(signatureState !== null || repSummary !== null || currentRelation !== null) && (
         <div className={`${BOARD_MEASURE} pt-4 pb-8`}>
           <section
-            aria-label={`About ${profile.username}`}
+            aria-label={translator.t('board.member.about', { username: profile.username })}
             className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card text-sm"
           >
             {repSummary !== null && (
               <div className="flex flex-wrap items-baseline gap-3 px-4 py-3">
-                <span className="text-muted-foreground">Reputation</span>
-                <span className="font-medium">
-                  {reputationLabel(repSummary, await getTranslator())}
+                <span className="text-muted-foreground">
+                  {translator.t('board.member.reputation')}
                 </span>
+                <span className="font-medium">{reputationLabel(repSummary, translator)}</span>
                 <a
                   href={`/member/${id}/reputation`}
                   className="ms-auto font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
@@ -126,14 +127,14 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                       username={profile.username}
                       kind="buddy"
                       returnTo={`/member/${id}`}
-                      label="Add to buddy list"
+                      label={translator.t('board.member.addBuddy')}
                     />
                     <SetRelationForm
                       userId={id}
                       username={profile.username}
                       kind="ignore"
                       returnTo={`/member/${id}`}
-                      label="Ignore this member"
+                      label={translator.t('board.member.ignore')}
                     />
                   </>
                 ) : (
@@ -141,7 +142,11 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                     userId={id}
                     username={profile.username}
                     returnTo={`/member/${id}`}
-                    label={currentRelation === 'buddy' ? 'Remove from buddy list' : 'Stop ignoring'}
+                    label={
+                      currentRelation === 'buddy'
+                        ? translator.t('board.member.removeBuddy')
+                        : translator.t('board.member.stopIgnoring')
+                    }
                   />
                 )}
                 <a
@@ -156,17 +161,21 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             {signatureState !== null && (
               <div className="flex flex-wrap items-center gap-3 px-4 py-3">
                 <span className="text-muted-foreground">
-                  Signature: {signatureState.locked ? 'locked' : 'allowed'}
+                  {translator.t('board.member.signature', {
+                    status: translator.t(
+                      signatureState.locked ? 'board.member.locked' : 'board.member.allowed',
+                    ),
+                  })}
                 </span>
                 <SignatureLockForm
                   userId={id}
                   locked={signatureState.locked}
-                  copy={moderationFormsCopy(await getTranslator())}
+                  copy={moderationFormsCopy(translator)}
                 />
                 <AvatarLockForm
                   userId={id}
                   locked={(await avatarFor(id)).locked}
-                  copy={moderationFormsCopy(await getTranslator())}
+                  copy={moderationFormsCopy(translator)}
                 />
               </div>
             )}
