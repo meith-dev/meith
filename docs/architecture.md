@@ -163,7 +163,7 @@ through `mail`). In broad strokes:
 | Members | `profile-fields`, `messages`, `relations`, `reputation`, `signatures` | Custom profile fields, private messages, buddy/ignore lists, ratings, and signatures (rendered with a deliberately narrower Markdown feature set). |
 | Moderation and safety | `moderation`, `antispam` | The approval queue, reports, thread tools, warnings; rate limits counted in the database, the honeypot, question challenges, and held first posts. |
 | Rendering | `markdown` | The one place member text becomes markup: parsing, rendering, the word filter, BBCode conversion, URL safety. |
-| Delivery | `notifications`, `subscriptions`, `events`, `mail` | The single "somebody needs to be told" path, thread and forum following, the transactional outbox, and the one template every outgoing message is rendered with — see [mail](#mail). |
+| Delivery | `notifications`, `subscriptions`, `events`, `mail` | The single "somebody needs to be told" path, thread and forum following, the transactional outbox, the one template every outgoing message is rendered with — see [mail](#mail) — and the VAPID signing and payload encryption behind [web push](./web-push.md). |
 | Platform | `settings`, `tasks`, `search`, `api`, `i18n` | The typed settings registry, the scheduled-task contract, the search provider seam, the REST route registry as data, and the message catalog with the locale-aware formatters — see [Languages](./internationalisation.md). |
 | Lifecycle | `install`, `upgrade`, `import` | The installer, the upgrade planner, and the resumable MyBB importer. |
 

@@ -3,16 +3,22 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { MAX_STAFF_FANOUT, NotificationService } from './service'
 import type {
   DeliverableNotification,
+  NotificationChannel,
+  NotificationChannelPreference,
   NotificationRecord,
   NotificationRepository,
+  PushSubscriptionRecord,
   RaiseInput,
   RaiseResult,
+  SavePushSubscriptionInput,
 } from './types'
 
 class MemoryNotifications implements NotificationRepository {
   readonly raised: RaiseInput[] = []
   readonly rows: NotificationRecord[] = []
-  readonly preferences = new Map<number, Map<string, boolean>>()
+  readonly preferences = new Map<number, Map<string, NotificationChannelPreference>>()
+  readonly subscriptions: PushSubscriptionRecord[] = []
+  readonly pushSent: number[] = []
   administrators: number[] = []
   private nextId = 1
   private readonly dedupe = new Map<string, number>()
@@ -27,7 +33,7 @@ class MemoryNotifications implements NotificationRepository {
       const row = this.rows.find((r) => r.id === existing)!
       const bumped = { ...row, occurrences: row.occurrences + 1, updatedAt: input.at }
       this.rows[this.rows.indexOf(row)] = bumped
-      return { notificationId: existing, coalesced: true, emailQueued: false }
+      return { notificationId: existing, coalesced: true, emailQueued: false, pushQueued: false }
     }
 
     const id = this.nextId++
@@ -43,7 +49,12 @@ class MemoryNotifications implements NotificationRepository {
       readAt: null,
     })
     if (key !== null) this.dedupe.set(key, id)
-    return { notificationId: id, coalesced: false, emailQueued: input.email }
+    return {
+      notificationId: id,
+      coalesced: false,
+      emailQueued: input.email,
+      pushQueued: input.push,
+    }
   }
 
   async listFor(userId: number, options: { limit: number; after?: string }) {
@@ -81,12 +92,23 @@ class MemoryNotifications implements NotificationRepository {
     return count
   }
 
-  async emailPreferencesFor(userId: number): Promise<ReadonlyMap<string, boolean>> {
+  async preferencesFor(
+    userId: number,
+  ): Promise<ReadonlyMap<string, NotificationChannelPreference>> {
     return this.preferences.get(userId) ?? new Map()
   }
 
-  async saveEmailPreferences(userId: number, entries: ReadonlyMap<string, boolean>) {
-    this.preferences.set(userId, new Map(entries))
+  async savePreferences(
+    userId: number,
+    channel: NotificationChannel,
+    entries: ReadonlyMap<string, boolean>,
+  ) {
+    const stored = this.preferences.get(userId) ?? new Map()
+    for (const [kind, on] of entries) {
+      const current = stored.get(kind) ?? { email: null, push: null }
+      stored.set(kind, channel === 'email' ? { ...current, email: on } : { ...current, push: on })
+    }
+    this.preferences.set(userId, stored)
   }
 
   async findForDelivery(): Promise<DeliverableNotification | null> {
@@ -94,6 +116,52 @@ class MemoryNotifications implements NotificationRepository {
   }
 
   async markEmailSent(): Promise<void> {}
+
+  async markPushSent(notificationId: number): Promise<void> {
+    this.pushSent.push(notificationId)
+  }
+
+  async savePushSubscription(input: SavePushSubscriptionInput): Promise<void> {
+    const existing = this.subscriptions.findIndex((row) => row.endpoint === input.endpoint)
+    const row = {
+      id: existing === -1 ? this.subscriptions.length + 1 : this.subscriptions[existing]!.id,
+      userId: input.userId,
+      endpoint: input.endpoint,
+      p256dh: input.p256dh,
+      auth: input.auth,
+      createdAt: input.at,
+      lastSeenAt: input.at,
+    }
+    if (existing === -1) this.subscriptions.push(row)
+    else this.subscriptions[existing] = row
+  }
+
+  async removePushSubscription(userId: number, endpoint: string): Promise<boolean> {
+    const index = this.subscriptions.findIndex(
+      (row) => row.userId === userId && row.endpoint === endpoint,
+    )
+    if (index === -1) return false
+    this.subscriptions.splice(index, 1)
+    return true
+  }
+
+  async pushSubscriptionsFor(userId: number): Promise<readonly PushSubscriptionRecord[]> {
+    return this.subscriptions.filter((row) => row.userId === userId)
+  }
+
+  async countPushSubscriptions(userId: number): Promise<number> {
+    return this.subscriptions.filter((row) => row.userId === userId).length
+  }
+
+  async prunePushSubscription(id: number): Promise<void> {
+    const index = this.subscriptions.findIndex((row) => row.id === id)
+    if (index !== -1) this.subscriptions.splice(index, 1)
+  }
+
+  async touchPushSubscription(id: number, at: Date): Promise<void> {
+    const index = this.subscriptions.findIndex((row) => row.id === id)
+    if (index !== -1) this.subscriptions[index] = { ...this.subscriptions[index]!, lastSeenAt: at }
+  }
 
   async administratorIds(limit: number): Promise<readonly number[]> {
     return this.administrators.slice(0, limit)
@@ -134,7 +202,7 @@ describe('raising', () => {
   })
 
   it('honours a stored preference over the registry default', async () => {
-    repo.preferences.set(1, new Map([['warning.received', false]]))
+    repo.preferences.set(1, new Map([['warning.received', { email: false, push: null }]]))
 
     const result = await service.raise({
       userId: 1,
@@ -192,6 +260,8 @@ describe('kinds registered at runtime', () => {
     audience: 'member' as const,
     emailByDefault: true,
     emailConfigurable: true as const,
+    pushByDefault: false,
+    pushConfigurable: true as const,
   }
 
   it('raises a registered kind, honouring its email default and the member override', async () => {
@@ -205,7 +275,7 @@ describe('kinds registered at runtime', () => {
     })
     expect(repo.raised[0]).toMatchObject({ kind: 'plugin.dues.gift_received', email: true })
 
-    repo.preferences.set(7, new Map([['plugin.dues.gift_received', false]]))
+    repo.preferences.set(7, new Map([['plugin.dues.gift_received', { email: false, push: null }]]))
     await service.raise({
       userId: 7,
       kind: 'plugin.dues.gift_received',
@@ -232,7 +302,7 @@ describe('kinds registered at runtime', () => {
     expect(prefs.some((row) => row.kind === 'plugin.dues.gift_received')).toBe(true)
 
     await service.savePreferences(7, 'member', [])
-    expect(repo.preferences.get(7)?.get('plugin.dues.gift_received')).toBe(false)
+    expect(repo.preferences.get(7)?.get('plugin.dues.gift_received')?.email).toBe(false)
   })
 
   it('refuses an unnamespaced registration and a collision with a built-in', () => {
@@ -315,7 +385,7 @@ describe('preferences', () => {
   })
 
   it('shows a stored override and marks it as not a default', async () => {
-    repo.preferences.set(1, new Map([['warning.received', false]]))
+    repo.preferences.set(1, new Map([['warning.received', { email: false, push: null }]]))
 
     const rows = await service.preferences(1, 'member')
     const warning = rows.find((r) => r.kind === 'warning.received')
@@ -333,8 +403,8 @@ describe('preferences', () => {
     await service.savePreferences(1, 'member', ['report.actioned'])
 
     const stored = repo.preferences.get(1)
-    expect(stored?.get('warning.received')).toBe(false)
-    expect(stored?.get('report.actioned')).toBe(true)
+    expect(stored?.get('warning.received')?.email).toBe(false)
+    expect(stored?.get('report.actioned')?.email).toBe(true)
   })
 
   it('cannot write a kind outside the submitted audience', async () => {
@@ -365,5 +435,57 @@ describe('reading', () => {
     expect(await service.unreadCount(1)).toBe(2)
     expect(await service.markAllRead(1)).toBe(2)
     expect(await service.unreadCount(1)).toBe(0)
+  })
+})
+
+describe('push', () => {
+  const DEVICE = {
+    userId: 1,
+    endpoint: 'https://push.example/send/abc',
+    p256dh: 'client-key',
+    auth: 'shared-secret',
+  }
+
+  it('queues no push for a member with no subscribed browser', async () => {
+    const result = await service.raise({ userId: 1, kind: 'pm.received', data: {} })
+
+    expect(result.pushQueued).toBe(false)
+    expect(repo.raised[0]?.push).toBe(false)
+  })
+
+  it('queues a push once a browser is subscribed and the kind is on by default', async () => {
+    await service.subscribeToPush(DEVICE)
+
+    const result = await service.raise({ userId: 1, kind: 'pm.received', data: {} })
+
+    expect(result.pushQueued).toBe(true)
+  })
+
+  it('honours a kind the member turned off, subscribed or not', async () => {
+    await service.subscribeToPush(DEVICE)
+    await service.savePreferences(1, 'member', [], 'push')
+
+    const result = await service.raise({ userId: 1, kind: 'pm.received', data: {} })
+
+    expect(result.pushQueued).toBe(false)
+  })
+
+  it('leaves the e-mail preference alone when the push boxes are saved', async () => {
+    await service.savePreferences(1, 'member', ['pm.received'], 'email')
+    await service.savePreferences(1, 'member', [], 'push')
+
+    const rows = await service.preferences(1, 'member')
+    const pm = rows.find((row) => row.kind === 'pm.received')
+
+    expect(pm?.email).toBe(true)
+    expect(pm?.push).toBe(false)
+  })
+
+  it('forgets a browser that unsubscribes', async () => {
+    await service.subscribeToPush(DEVICE)
+    expect(await service.countPushSubscriptions(1)).toBe(1)
+
+    expect(await service.unsubscribeFromPush(1, DEVICE.endpoint)).toBe(true)
+    expect(await service.countPushSubscriptions(1)).toBe(0)
   })
 })

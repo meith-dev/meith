@@ -119,8 +119,9 @@ export async function unsubscribeByTokenAction(
     }
 
     if (claim.scope === 'email') {
-      await notifications.saveEmailPreferences(
+      await notifications.savePreferences(
         claim.userId,
+        'email',
         new Map([
           ['subscription.reply', false],
           ['subscription.digest', false],

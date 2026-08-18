@@ -169,6 +169,7 @@ export interface PluginNotificationKind {
   readonly description: string
   readonly descriptionKey?: string | undefined
   readonly emailByDefault?: boolean | undefined
+  readonly pushByDefault?: boolean | undefined
 }
 
 export interface PluginDefinition {

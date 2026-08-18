@@ -25,6 +25,31 @@ export interface NotificationPage {
   readonly nextCursor?: string
 }
 
+export type NotificationChannel = 'email' | 'push'
+
+export interface NotificationChannelPreference {
+  readonly email: boolean | null
+  readonly push: boolean | null
+}
+
+export interface PushSubscriptionRecord {
+  readonly id: number
+  readonly userId: number
+  readonly endpoint: string
+  readonly p256dh: string
+  readonly auth: string
+  readonly createdAt: Date
+  readonly lastSeenAt: Date
+}
+
+export interface SavePushSubscriptionInput {
+  readonly userId: number
+  readonly endpoint: string
+  readonly p256dh: string
+  readonly auth: string
+  readonly at: Date
+}
+
 export interface DeliverableNotification {
   readonly notification: NotificationRecord
   readonly recipient: {
@@ -35,6 +60,8 @@ export interface DeliverableNotification {
   }
   readonly emailEnabled: boolean
   readonly emailSentAt: Date | null
+  readonly pushEnabled: boolean
+  readonly pushSentAt: Date | null
 }
 
 export interface RaiseInput {
@@ -44,6 +71,7 @@ export interface RaiseInput {
   readonly href?: string | null
   readonly dedupeKey?: string | null
   readonly email: boolean
+  readonly push: boolean
   readonly at: Date
 }
 
@@ -51,6 +79,7 @@ export interface RaiseResult {
   readonly notificationId: number
   readonly coalesced: boolean
   readonly emailQueued: boolean
+  readonly pushQueued: boolean
 }
 
 export interface NotificationRepository {
@@ -74,13 +103,31 @@ export interface NotificationRepository {
 
   markAllRead(userId: number): Promise<number>
 
-  emailPreferencesFor(userId: number): Promise<ReadonlyMap<string, boolean>>
+  preferencesFor(userId: number): Promise<ReadonlyMap<string, NotificationChannelPreference>>
 
-  saveEmailPreferences(userId: number, entries: ReadonlyMap<string, boolean>): Promise<void>
+  savePreferences(
+    userId: number,
+    channel: NotificationChannel,
+    entries: ReadonlyMap<string, boolean>,
+  ): Promise<void>
 
   findForDelivery(notificationId: number): Promise<DeliverableNotification | null>
 
   markEmailSent(notificationId: number, at: Date): Promise<void>
+
+  markPushSent(notificationId: number, at: Date): Promise<void>
+
+  savePushSubscription(input: SavePushSubscriptionInput): Promise<void>
+
+  removePushSubscription(userId: number, endpoint: string): Promise<boolean>
+
+  pushSubscriptionsFor(userId: number): Promise<readonly PushSubscriptionRecord[]>
+
+  countPushSubscriptions(userId: number): Promise<number>
+
+  prunePushSubscription(id: number): Promise<void>
+
+  touchPushSubscription(id: number, at: Date): Promise<void>
 
   administratorIds(limit: number): Promise<readonly number[]>
 }

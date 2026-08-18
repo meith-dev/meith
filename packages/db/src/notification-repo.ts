@@ -2,12 +2,16 @@ import { sql } from 'drizzle-orm'
 
 import type {
   DeliverableNotification,
+  NotificationChannel,
+  NotificationChannelPreference,
   NotificationData,
   NotificationPage,
   NotificationRecord,
   NotificationRepository,
+  PushSubscriptionRecord,
   RaiseInput,
   RaiseResult,
+  SavePushSubscriptionInput,
 } from '@meith/notifications'
 import { notificationKind } from '@meith/notifications'
 
@@ -32,6 +36,10 @@ function toData(value: unknown): NotificationData {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as NotificationData)
     : {}
+}
+
+function toChannel(value: boolean | null): boolean | null {
+  return value === null ? null : value === true
 }
 
 function toRecord(row: RawNotification): NotificationRecord {
@@ -98,8 +106,9 @@ export class PostgresNotificationRepository implements NotificationRepository {
       const coalesced = Number(row.occurrences) > 1
 
       const emailQueued = input.email && !coalesced
+      const pushQueued = input.push && !coalesced
 
-      if (emailQueued) {
+      if (emailQueued || pushQueued) {
         await tx.execute(sql`
           insert into outbox (topic, payload)
           values (
@@ -113,7 +122,7 @@ export class PostgresNotificationRepository implements NotificationRepository {
         `)
       }
 
-      return { notificationId, coalesced, emailQueued }
+      return { notificationId, coalesced, emailQueued, pushQueued }
     })
   }
 
@@ -189,29 +198,119 @@ export class PostgresNotificationRepository implements NotificationRepository {
     return rows.length
   }
 
-  async emailPreferencesFor(userId: number): Promise<ReadonlyMap<string, boolean>> {
+  async preferencesFor(
+    userId: number,
+  ): Promise<ReadonlyMap<string, NotificationChannelPreference>> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select kind, email from notification_preferences where user_id = ${userId}
+        select kind, email, push from notification_preferences where user_id = ${userId}
       `),
-    ) as Array<{ kind: string; email: boolean }>
+    ) as Array<{ kind: string; email: boolean | null; push: boolean | null }>
 
-    return new Map(rows.map((row) => [row.kind, row.email === true]))
+    return new Map(
+      rows.map((row) => [row.kind, { email: toChannel(row.email), push: toChannel(row.push) }]),
+    )
   }
 
-  async saveEmailPreferences(userId: number, entries: ReadonlyMap<string, boolean>): Promise<void> {
+  async savePreferences(
+    userId: number,
+    channel: NotificationChannel,
+    entries: ReadonlyMap<string, boolean>,
+  ): Promise<void> {
     if (entries.size === 0) return
 
     const values = sql.join(
-      [...entries].map(([kind, email]) => sql`(${userId}, ${kind}, ${email}, now())`),
+      [...entries].map(([kind, on]) => sql`(${userId}, ${kind}, ${on}, now())`),
       sql`, `,
     )
 
+    await this.db.execute(
+      channel === 'email'
+        ? sql`
+            insert into notification_preferences (user_id, kind, email, updated_at)
+            values ${values}
+                on conflict (user_id, kind)
+                do update set email = excluded.email, updated_at = now()
+          `
+        : sql`
+            insert into notification_preferences (user_id, kind, push, updated_at)
+            values ${values}
+                on conflict (user_id, kind)
+                do update set push = excluded.push, updated_at = now()
+          `,
+    )
+  }
+
+  async savePushSubscription(input: SavePushSubscriptionInput): Promise<void> {
     await this.db.execute(sql`
-      insert into notification_preferences (user_id, kind, email, updated_at)
-      values ${values}
-          on conflict (user_id, kind)
-          do update set email = excluded.email, updated_at = now()
+      insert into push_subscriptions
+             (user_id, endpoint, p256dh, auth, created_at, last_seen_at)
+      values (${input.userId}, ${input.endpoint}, ${input.p256dh}, ${input.auth},
+              ${input.at}, ${input.at})
+          on conflict (endpoint)
+          do update set user_id = excluded.user_id,
+                        p256dh = excluded.p256dh,
+                        auth = excluded.auth,
+                        last_seen_at = excluded.last_seen_at
+    `)
+  }
+
+  async removePushSubscription(userId: number, endpoint: string): Promise<boolean> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        delete from push_subscriptions
+         where user_id = ${userId} and endpoint = ${endpoint}
+        returning id
+      `),
+    ) as Array<{ id: number }>
+    return rows.length > 0
+  }
+
+  async pushSubscriptionsFor(userId: number): Promise<readonly PushSubscriptionRecord[]> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select id, user_id, endpoint, p256dh, auth, created_at, last_seen_at
+          from push_subscriptions
+         where user_id = ${userId}
+         order by id
+      `),
+    ) as Array<{
+      id: number
+      user_id: number
+      endpoint: string
+      p256dh: string
+      auth: string
+      created_at: string | Date
+      last_seen_at: string | Date
+    }>
+
+    return rows.map((row) => ({
+      id: Number(row.id),
+      userId: Number(row.user_id),
+      endpoint: row.endpoint,
+      p256dh: row.p256dh,
+      auth: row.auth,
+      createdAt: toDate(row.created_at),
+      lastSeenAt: toDate(row.last_seen_at),
+    }))
+  }
+
+  async countPushSubscriptions(userId: number): Promise<number> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select count(*)::int as total from push_subscriptions where user_id = ${userId}
+      `),
+    ) as Array<{ total: number }>
+    return Number(rows[0]?.total ?? 0)
+  }
+
+  async prunePushSubscription(id: number): Promise<void> {
+    await this.db.execute(sql`delete from push_subscriptions where id = ${id}`)
+  }
+
+  async touchPushSubscription(id: number, at: Date): Promise<void> {
+    await this.db.execute(sql`
+      update push_subscriptions set last_seen_at = ${at} where id = ${id}
     `)
   }
 
@@ -219,9 +318,9 @@ export class PostgresNotificationRepository implements NotificationRepository {
     const rows = resultRows(
       await this.db.execute(sql`
         select n.id, n.user_id, n.kind, n.data, n.href, n.occurrences,
-               n.created_at, n.updated_at, n.read_at, n.email_sent_at,
+               n.created_at, n.updated_at, n.read_at, n.email_sent_at, n.push_sent_at,
                u.username, u.email, u.locale, u.state,
-               p.email as preference
+               p.email as email_preference, p.push as push_preference
           from notifications n
           join users u on u.id = n.user_id
           left join notification_preferences p
@@ -231,11 +330,13 @@ export class PostgresNotificationRepository implements NotificationRepository {
     ) as Array<
       RawNotification & {
         email_sent_at: string | Date | null
+        push_sent_at: string | Date | null
         username: string
         email: string
         locale: string
         state: string
-        preference: boolean | null
+        email_preference: boolean | null
+        push_preference: boolean | null
       }
     >
 
@@ -253,14 +354,22 @@ export class PostgresNotificationRepository implements NotificationRepository {
         email: row.email,
         locale: row.locale,
       },
-      emailEnabled: row.preference ?? spec?.emailByDefault ?? false,
+      emailEnabled: row.email_preference ?? spec?.emailByDefault ?? false,
       emailSentAt: toNullableDate(row.email_sent_at),
+      pushEnabled: row.push_preference ?? spec?.pushByDefault ?? false,
+      pushSentAt: toNullableDate(row.push_sent_at),
     }
   }
 
   async markEmailSent(notificationId: number, at: Date): Promise<void> {
     await this.db.execute(sql`
       update notifications set email_sent_at = ${at} where id = ${notificationId}
+    `)
+  }
+
+  async markPushSent(notificationId: number, at: Date): Promise<void> {
+    await this.db.execute(sql`
+      update notifications set push_sent_at = ${at} where id = ${notificationId}
     `)
   }
 

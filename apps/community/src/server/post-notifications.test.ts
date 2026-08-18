@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { quoteBlock } from '@meith/markdown'
-import type { RaiseInput, RaiseResult } from '@meith/notifications'
+import type { NotificationChannelPreference, RaiseInput, RaiseResult } from '@meith/notifications'
 
 const { notifyPostAudience } = await import('./post-notifications')
 const { installTestContainer } = await import('./test-container')
@@ -13,11 +13,20 @@ class FakeNotifications {
   async raise(input: RaiseInput): Promise<RaiseResult> {
     if (this.failing) throw new Error('notification store is down')
     this.raised.push(input)
-    return { notificationId: this.raised.length, coalesced: false, emailQueued: false }
+    return {
+      notificationId: this.raised.length,
+      coalesced: false,
+      emailQueued: false,
+      pushQueued: false,
+    }
   }
 
-  async emailPreferencesFor(): Promise<ReadonlyMap<string, boolean>> {
+  async preferencesFor(): Promise<ReadonlyMap<string, NotificationChannelPreference>> {
     return new Map()
+  }
+
+  async countPushSubscriptions(): Promise<number> {
+    return 0
   }
 }
 

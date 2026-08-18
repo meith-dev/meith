@@ -14,6 +14,7 @@ import {
 import { demoReset, demoSeed } from './demo'
 import { importCommand } from './import'
 import { profileFieldAdd, profileFieldList, profileFieldRemove } from './profile-fields'
+import { pushKeys } from './push'
 import { SECRET_ENV_KEYS } from './redaction'
 import { searchReindex } from './search'
 import { taskList, taskRun } from './tasks'
@@ -227,6 +228,13 @@ const commands: Command[] = [
     summary: "Delete a custom profile field and every member's answer to it.",
     usage: 'community profile-field:remove <key>',
     run: profileFieldRemove,
+  },
+
+  {
+    name: 'push:keys',
+    summary: 'Generate a VAPID key pair for web push. --save writes it to the board.',
+    usage: 'community push:keys [--save]',
+    run: pushKeys,
   },
 
   {

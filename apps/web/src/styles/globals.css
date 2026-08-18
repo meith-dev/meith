@@ -1255,3 +1255,20 @@ body {
   background: color-mix(in srgb, var(--accent) 12%, var(--raised));
   color: var(--fg);
 }
+
+@media (pointer: coarse) {
+  input:not(
+    [type="checkbox"],
+    [type="radio"],
+    [type="range"],
+    [type="color"],
+    [type="file"],
+    [type="submit"],
+    [type="button"],
+    [type="reset"]
+  ),
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+}

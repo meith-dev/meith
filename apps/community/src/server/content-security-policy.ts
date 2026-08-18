@@ -16,6 +16,8 @@ export function contentSecurityPolicy(options: PolicyOptions): string {
       development ? " 'unsafe-eval'" : ''
     }`,
     "connect-src 'self'",
+    "worker-src 'self'",
+    "manifest-src 'self'",
     "frame-ancestors 'self'",
     "object-src 'none'",
     "base-uri 'self'",

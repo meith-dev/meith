@@ -1,3 +1,5 @@
+import type { NotificationChannel } from './types'
+
 export type NotificationAudience = 'member' | 'staff'
 
 interface NotificationKindBase {
@@ -8,6 +10,8 @@ interface NotificationKindBase {
   readonly audience: NotificationAudience
   readonly emailByDefault: boolean
   readonly emailConfigurable: boolean
+  readonly pushByDefault: boolean
+  readonly pushConfigurable: boolean
 }
 
 export const NOTIFICATION_KINDS = [
@@ -22,6 +26,8 @@ export const NOTIFICATION_KINDS = [
     audience: 'member',
     emailByDefault: true,
     emailConfigurable: true,
+    pushByDefault: true,
+    pushConfigurable: true,
   },
   {
     id: 'report.actioned',
@@ -34,6 +40,8 @@ export const NOTIFICATION_KINDS = [
     audience: 'member',
     emailByDefault: false,
     emailConfigurable: true,
+    pushByDefault: false,
+    pushConfigurable: true,
   },
   {
     id: 'subscription.reply',
@@ -46,6 +54,8 @@ export const NOTIFICATION_KINDS = [
     audience: 'member',
     emailByDefault: true,
     emailConfigurable: true,
+    pushByDefault: true,
+    pushConfigurable: true,
   },
   {
     id: 'subscription.digest',
@@ -57,6 +67,8 @@ export const NOTIFICATION_KINDS = [
     audience: 'member',
     emailByDefault: true,
     emailConfigurable: true,
+    pushByDefault: false,
+    pushConfigurable: true,
   },
   {
     id: 'post.mentioned',
@@ -69,6 +81,8 @@ export const NOTIFICATION_KINDS = [
     audience: 'member',
     emailByDefault: true,
     emailConfigurable: true,
+    pushByDefault: true,
+    pushConfigurable: true,
   },
   {
     id: 'post.quoted',
@@ -81,6 +95,8 @@ export const NOTIFICATION_KINDS = [
     audience: 'member',
     emailByDefault: false,
     emailConfigurable: true,
+    pushByDefault: false,
+    pushConfigurable: true,
   },
   {
     id: 'pm.received',
@@ -93,6 +109,8 @@ export const NOTIFICATION_KINDS = [
     audience: 'member',
     emailByDefault: true,
     emailConfigurable: true,
+    pushByDefault: true,
+    pushConfigurable: true,
   },
   {
     id: 'pm.receipt',
@@ -105,6 +123,8 @@ export const NOTIFICATION_KINDS = [
     audience: 'member',
     emailByDefault: false,
     emailConfigurable: true,
+    pushByDefault: false,
+    pushConfigurable: true,
   },
   {
     id: 'system.task_failed',
@@ -118,6 +138,8 @@ export const NOTIFICATION_KINDS = [
     audience: 'staff',
     emailByDefault: true,
     emailConfigurable: true,
+    pushByDefault: false,
+    pushConfigurable: true,
   },
 ] as const satisfies readonly (NotificationKindBase & { readonly id: string })[]
 
@@ -143,8 +165,11 @@ export function isNotificationKind(id: string): id is NotificationKind {
 
 export function configurableKindsFor(
   audience: NotificationAudience,
+  channel: NotificationChannel = 'email',
 ): readonly NotificationKindSpec[] {
   return NOTIFICATION_KINDS.filter(
-    (kind) => kind.audience === audience && kind.emailConfigurable,
+    (kind) =>
+      kind.audience === audience &&
+      (channel === 'email' ? kind.emailConfigurable : kind.pushConfigurable),
   ) as readonly NotificationKindSpec[]
 }

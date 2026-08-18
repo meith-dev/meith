@@ -6,7 +6,8 @@ export interface EventHandlerDeps {
     applyVisibilityChange(postId: number): Promise<boolean>
   }
   readonly notifications?: {
-    deliverEmail(notificationId: number): Promise<void>
+    deliverEmail?(notificationId: number): Promise<void>
+    deliverPush?(notificationId: number): Promise<void>
   }
   readonly attachments?: {
     process(attachmentId: number): Promise<unknown>
@@ -70,13 +71,28 @@ export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
     })
   }
 
-  if (deps.notifications === undefined) return registry
+  const notifications = deps.notifications
+  if (notifications === undefined) return registry
 
-  return registry.register({
-    id: 'notifications.email',
-    event: 'notification.created',
-    async handle(payload) {
-      await deps.notifications!.deliverEmail(payload.notificationId)
-    },
-  })
+  if (notifications.deliverEmail !== undefined) {
+    registry.register({
+      id: 'notifications.email',
+      event: 'notification.created',
+      async handle(payload) {
+        await notifications.deliverEmail!(payload.notificationId)
+      },
+    })
+  }
+
+  if (notifications.deliverPush !== undefined) {
+    registry.register({
+      id: 'notifications.push',
+      event: 'notification.created',
+      async handle(payload) {
+        await notifications.deliverPush!(payload.notificationId)
+      },
+    })
+  }
+
+  return registry
 }

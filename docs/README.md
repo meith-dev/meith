@@ -16,6 +16,7 @@ bare server to a board on your own domain in about twenty minutes.
 | Move a board to a new version | [Upgrading a board](./upgrading.md) |
 | Add 2FA, SSO or passkeys | [Signing in](./single-sign-on.md) |
 | Run a board in another language | [Languages](./internationalisation.md) |
+| Push notifications to a phone | [Web push](./web-push.md) |
 | Deploy with Docker Compose, no panel | [Deploying by hand](./self-hosting.md) |
 | Run a public demo board | [Demo mode](./demo-mode.md) |
 | Write a theme | [The theme API](./theme-api.md) |
@@ -36,6 +37,7 @@ bare server to a board on your own domain in about twenty minutes.
 | [`single-sign-on.md`](./single-sign-on.md) | Everything beyond a password: two-factor authentication, federated sign-in, passkeys, sessions, and the sign-in activity log. |
 | [`internationalisation.md`](./internationalisation.md) | How a page picks its language, how to add one, and how a theme or plugin ships its own words. |
 | [`performance.md`](./performance.md) | The p95 budgets for hot pages and what the last load run measured. *Generated — do not edit.* |
+| [`web-push.md`](./web-push.md) | Notifications that reach a member who does not have the board open, the privacy that costs, and the manifest that makes the board installable. |
 | [`demo-mode.md`](./demo-mode.md) | The self-resetting public demo board that runs at demo.meith.dev, and how to run one yourself. |
 
 ## Advanced deployment

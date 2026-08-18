@@ -30,6 +30,7 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
+  await db.execute(sql`delete from push_subscriptions`)
   await db.execute(sql`delete from notification_preferences`)
   await db.execute(sql`delete from notifications`)
   await db.execute(sql`delete from outbox`)
@@ -62,6 +63,7 @@ function raise(over: Partial<Parameters<PostgresNotificationRepository['raise']>
     href: null,
     dedupeKey: null,
     email: false,
+    push: false,
     at: AT,
     ...over,
   })
@@ -91,8 +93,20 @@ describe('raising', () => {
     expect(await outboxTopics()).toEqual(['notification.created'])
   })
 
-  it('writes no outbox row when e-mail is not wanted', async () => {
-    await raise({ email: false })
+  it('writes one outbox row when only push is wanted', async () => {
+    const result = await raise({ email: false, push: true })
+
+    expect(result.pushQueued).toBe(true)
+    expect(await outboxTopics()).toEqual(['notification.created'])
+  })
+
+  it('writes one outbox row, not two, when both channels are wanted', async () => {
+    await raise({ email: true, push: true })
+    expect(await outboxTopics()).toEqual(['notification.created'])
+  })
+
+  it('writes no outbox row when neither channel is wanted', async () => {
+    await raise({ email: false, push: false })
     expect(await outboxTopics()).toEqual([])
   })
 
@@ -222,30 +236,91 @@ describe('marking read is scoped in the statement', () => {
 
 describe('preferences', () => {
   it('stores overrides and reads them back', async () => {
-    await repo.saveEmailPreferences(
+    await repo.savePreferences(
       IVAN,
+      'email',
       new Map([
         ['warning.received', false],
         ['report.actioned', true],
       ]),
     )
 
-    const stored = await repo.emailPreferencesFor(IVAN)
-    expect(stored.get('warning.received')).toBe(false)
-    expect(stored.get('report.actioned')).toBe(true)
+    const stored = await repo.preferencesFor(IVAN)
+    expect(stored.get('warning.received')?.email).toBe(false)
+    expect(stored.get('report.actioned')?.email).toBe(true)
   })
 
   it('overwrites rather than duplicating on a second save', async () => {
-    await repo.saveEmailPreferences(IVAN, new Map([['warning.received', false]]))
-    await repo.saveEmailPreferences(IVAN, new Map([['warning.received', true]]))
+    await repo.savePreferences(IVAN, 'email', new Map([['warning.received', false]]))
+    await repo.savePreferences(IVAN, 'email', new Map([['warning.received', true]]))
 
-    const stored = await repo.emailPreferencesFor(IVAN)
+    const stored = await repo.preferencesFor(IVAN)
     expect(stored.size).toBe(1)
-    expect(stored.get('warning.received')).toBe(true)
+    expect(stored.get('warning.received')?.email).toBe(true)
   })
 
   it('has no rows for a member who has never saved', async () => {
-    expect((await repo.emailPreferencesFor(IVAN)).size).toBe(0)
+    expect((await repo.preferencesFor(IVAN)).size).toBe(0)
+  })
+})
+
+describe('push subscriptions', () => {
+  const DEVICE = {
+    endpoint: 'https://push.example/send/abc',
+    p256dh: 'a-client-key',
+    auth: 'a-shared-secret',
+  }
+
+  it('stores one per browser and reads it back for the member', async () => {
+    await repo.savePushSubscription({ userId: IVAN, ...DEVICE, at: AT })
+
+    const stored = await repo.pushSubscriptionsFor(IVAN)
+    expect(stored).toHaveLength(1)
+    expect(stored[0]).toMatchObject({ userId: IVAN, endpoint: DEVICE.endpoint })
+    expect(await repo.countPushSubscriptions(MOD)).toBe(0)
+  })
+
+  it('refreshes the keys and the last-seen stamp rather than duplicating', async () => {
+    const later = new Date(AT.getTime() + 60_000)
+
+    await repo.savePushSubscription({ userId: IVAN, ...DEVICE, at: AT })
+    await repo.savePushSubscription({ userId: IVAN, ...DEVICE, p256dh: 'rotated', at: later })
+
+    const stored = await repo.pushSubscriptionsFor(IVAN)
+    expect(stored).toHaveLength(1)
+    expect(stored[0]?.p256dh).toBe('rotated')
+    expect(stored[0]?.lastSeenAt).toEqual(later)
+  })
+
+  it('follows a browser that signs a different member in', async () => {
+    await repo.savePushSubscription({ userId: IVAN, ...DEVICE, at: AT })
+    await repo.savePushSubscription({ userId: MOD, ...DEVICE, at: AT })
+
+    expect(await repo.countPushSubscriptions(IVAN)).toBe(0)
+    expect(await repo.countPushSubscriptions(MOD)).toBe(1)
+  })
+
+  it('lets a member remove only their own', async () => {
+    await repo.savePushSubscription({ userId: IVAN, ...DEVICE, at: AT })
+
+    expect(await repo.removePushSubscription(MOD, DEVICE.endpoint)).toBe(false)
+    expect(await repo.removePushSubscription(IVAN, DEVICE.endpoint)).toBe(true)
+    expect(await repo.countPushSubscriptions(IVAN)).toBe(0)
+  })
+
+  it('prunes one the push service has given up on', async () => {
+    await repo.savePushSubscription({ userId: IVAN, ...DEVICE, at: AT })
+    const [stored] = await repo.pushSubscriptionsFor(IVAN)
+
+    await repo.prunePushSubscription(stored!.id)
+    expect(await repo.countPushSubscriptions(IVAN)).toBe(0)
+  })
+
+  it('goes when the member does', async () => {
+    await repo.savePushSubscription({ userId: IVAN, ...DEVICE, at: AT })
+    await db.execute(sql`delete from users where id = ${IVAN}`)
+
+    expect(await repo.countPushSubscriptions(IVAN)).toBe(0)
   })
 })
 
@@ -262,9 +337,26 @@ describe('delivery lookup', () => {
 
   it('reflects a preference changed after the raise', async () => {
     const { notificationId } = await raise({ email: true })
-    await repo.saveEmailPreferences(IVAN, new Map([['warning.received', false]]))
+    await repo.savePreferences(IVAN, 'email', new Map([['warning.received', false]]))
 
     expect((await repo.findForDelivery(notificationId))?.emailEnabled).toBe(false)
+  })
+
+  it('reads the push preference beside the e-mail one', async () => {
+    const { notificationId } = await raise({ email: true, push: true })
+
+    expect((await repo.findForDelivery(notificationId))?.pushEnabled).toBe(true)
+
+    await repo.savePreferences(IVAN, 'push', new Map([['warning.received', false]]))
+    expect((await repo.findForDelivery(notificationId))?.pushEnabled).toBe(false)
+    expect((await repo.findForDelivery(notificationId))?.emailEnabled).toBe(true)
+  })
+
+  it('records that a push went out', async () => {
+    const { notificationId } = await raise({ push: true })
+    await repo.markPushSent(notificationId, AT)
+
+    expect((await repo.findForDelivery(notificationId))?.pushSentAt).toEqual(AT)
   })
 
   it('records that a message went out', async () => {

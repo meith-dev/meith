@@ -108,6 +108,15 @@
       "primary": false
     },
     {
+      "slug": "web-push",
+      "file": "web-push.md",
+      "section": "running",
+      "title": "Web push",
+      "blurb": "Notifications that reach a member who does not have the board open, and the manifest that makes the board installable — what it costs their privacy, and how to turn it on.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "demo-mode",
       "file": "demo-mode.md",
       "section": "running",

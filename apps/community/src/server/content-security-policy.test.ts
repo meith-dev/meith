@@ -36,6 +36,13 @@ describe('contentSecurityPolicy', () => {
     )
   })
 
+  it('lets the board register its own service worker and manifest', () => {
+    const policy = contentSecurityPolicy({ nonce: 'n' })
+
+    expect(directive(policy, 'worker-src')).toBe("worker-src 'self'")
+    expect(directive(policy, 'manifest-src')).toBe("manifest-src 'self'")
+  })
+
   it('keeps the rest of the header set it inherited', () => {
     const policy = contentSecurityPolicy({ nonce: 'n' })
 

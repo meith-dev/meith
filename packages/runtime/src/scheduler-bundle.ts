@@ -36,11 +36,13 @@ import { EN_CATALOG, sourceTranslator } from '@meith/i18n'
 import { renderMail } from '@meith/mail'
 import {
   deliverNotificationEmail,
+  deliverNotificationPush,
   NotificationService,
   type NotificationTranslatorResolver,
+  type VapidDetails,
 } from '@meith/notifications'
 import type { PluginDefinition } from '@meith/plugin-kit'
-import { SettingsSnapshot } from '@meith/settings'
+import { resolvePushConfig, SettingsSnapshot } from '@meith/settings'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/tasks'
 
 import { buildEventRegistry } from './event-handlers'
@@ -125,6 +127,35 @@ export function buildSchedulerBundle(deps: {
             ...(avatarService === undefined
               ? {}
               : { avatars: { process: (id) => avatarService.process(id) } }),
+            notifications: {
+              ...(mail === undefined
+                ? {}
+                : {
+                    async deliverEmail(notificationId: number) {
+                      await deliverNotificationEmail({
+                        notifications,
+                        mail,
+                        brand: await resolveMailBrand({ db, ...themeDeps }),
+                        notificationId,
+                        ...(deps.translatorForLocale === undefined
+                          ? {}
+                          : { translatorForLocale: deps.translatorForLocale }),
+                      })
+                    },
+                  }),
+              async deliverPush(notificationId: number) {
+                const vapid = await vapidDetails(db)
+                if (vapid === null) return
+                await deliverNotificationPush({
+                  notifications,
+                  vapid,
+                  notificationId,
+                  ...(deps.translatorForLocale === undefined
+                    ? {}
+                    : { translatorForLocale: deps.translatorForLocale }),
+                })
+              },
+            },
             ...(mail === undefined
               ? {}
               : {
@@ -169,19 +200,6 @@ export function buildSchedulerBundle(deps: {
                       })
                     },
                   },
-                  notifications: {
-                    async deliverEmail(notificationId) {
-                      await deliverNotificationEmail({
-                        notifications,
-                        mail,
-                        brand: await resolveMailBrand({ db, ...themeDeps }),
-                        notificationId,
-                        ...(deps.translatorForLocale === undefined
-                          ? {}
-                          : { translatorForLocale: deps.translatorForLocale }),
-                      })
-                    },
-                  },
                 }),
           }),
           recount: new PostgresCounterRecount(db),
@@ -207,6 +225,20 @@ export function buildSchedulerBundle(deps: {
       ),
       ...contributed,
     ],
+  }
+}
+
+async function vapidDetails(db: Database): Promise<VapidDetails | null> {
+  try {
+    const overrides = await new PostgresSettingsRepository(db).loadAll()
+    const { config } = resolvePushConfig({
+      environment: env,
+      settings: SettingsSnapshot.fromOverrides(new Map(overrides)),
+    })
+    return config
+  } catch (err) {
+    logger({ module: 'tick' }).warn({ err }, 'could not read the web push configuration')
+    return null
   }
 }
 

@@ -7,7 +7,14 @@ import {
   type RegisteredNotificationKind,
 } from './kinds'
 import { type NotificationView, renderNotification } from './render'
-import type { NotificationData, NotificationRepository, RaiseResult } from './types'
+import type {
+  NotificationChannel,
+  NotificationData,
+  NotificationRepository,
+  PushSubscriptionRecord,
+  RaiseResult,
+  SavePushSubscriptionInput,
+} from './types'
 
 export const NOTIFICATIONS_PAGE_SIZE = 25
 
@@ -20,6 +27,7 @@ export interface NotificationPreferenceView {
   readonly titleKey?: string
   readonly descriptionKey?: string
   readonly email: boolean
+  readonly push: boolean
   readonly isDefault: boolean
 }
 
@@ -63,7 +71,7 @@ export class NotificationService {
     const spec = this.kinds.get(input.kind)
     if (spec === undefined) throw new ValidationError(`Unknown notification kind: ${input.kind}`)
 
-    const email = await this.wantsEmail(input.userId, input.kind)
+    const wanted = await this.wanted(input.userId, input.kind)
 
     return this.repository.raise({
       userId: input.userId,
@@ -71,7 +79,8 @@ export class NotificationService {
       data: input.data,
       href: input.href ?? null,
       dedupeKey: input.dedupeKey ?? null,
-      email,
+      email: wanted.email,
+      push: wanted.push,
       at: this.now(),
     })
   }
@@ -129,9 +138,14 @@ export class NotificationService {
     return this.repository.markAllRead(userId)
   }
 
-  configurableKinds(audience: NotificationAudience): readonly RegisteredNotificationKind[] {
+  configurableKinds(
+    audience: NotificationAudience,
+    channel: NotificationChannel = 'email',
+  ): readonly RegisteredNotificationKind[] {
     return [...this.kinds.values()].filter(
-      (kind) => kind.audience === audience && kind.emailConfigurable,
+      (kind) =>
+        kind.audience === audience &&
+        (channel === 'email' ? kind.emailConfigurable : kind.pushConfigurable),
     )
   }
 
@@ -139,7 +153,7 @@ export class NotificationService {
     userId: number,
     audience: NotificationAudience,
   ): Promise<readonly NotificationPreferenceView[]> {
-    const stored = await this.repository.emailPreferencesFor(userId)
+    const stored = await this.repository.preferencesFor(userId)
 
     return this.configurableKinds(audience).map((spec) => {
       const override = stored.get(spec.id)
@@ -149,7 +163,8 @@ export class NotificationService {
         description: spec.description,
         ...(spec.titleKey === undefined ? {} : { titleKey: spec.titleKey }),
         ...(spec.descriptionKey === undefined ? {} : { descriptionKey: spec.descriptionKey }),
-        email: override ?? spec.emailByDefault,
+        email: override?.email ?? spec.emailByDefault,
+        push: spec.pushConfigurable ? (override?.push ?? spec.pushByDefault) : false,
         isDefault: override === undefined,
       }
     })
@@ -159,22 +174,44 @@ export class NotificationService {
     userId: number,
     audience: NotificationAudience,
     enabled: readonly string[],
+    channel: NotificationChannel = 'email',
   ): Promise<void> {
     const checked = new Set(enabled)
     const entries = new Map<string, boolean>()
 
-    for (const spec of this.configurableKinds(audience)) {
+    for (const spec of this.configurableKinds(audience, channel)) {
       entries.set(spec.id, checked.has(spec.id))
     }
 
-    await this.repository.saveEmailPreferences(userId, entries)
+    await this.repository.savePreferences(userId, channel, entries)
   }
 
-  private async wantsEmail(userId: number, kind: string): Promise<boolean> {
-    const spec = this.kinds.get(kind)
-    if (spec === undefined) return false
+  async pushSubscriptions(userId: number): Promise<readonly PushSubscriptionRecord[]> {
+    return this.repository.pushSubscriptionsFor(userId)
+  }
 
-    const stored = await this.repository.emailPreferencesFor(userId)
-    return stored.get(kind) ?? spec.emailByDefault
+  async countPushSubscriptions(userId: number): Promise<number> {
+    return this.repository.countPushSubscriptions(userId)
+  }
+
+  async subscribeToPush(input: Omit<SavePushSubscriptionInput, 'at'>): Promise<void> {
+    await this.repository.savePushSubscription({ ...input, at: this.now() })
+  }
+
+  async unsubscribeFromPush(userId: number, endpoint: string): Promise<boolean> {
+    return this.repository.removePushSubscription(userId, endpoint)
+  }
+
+  private async wanted(userId: number, kind: string): Promise<{ email: boolean; push: boolean }> {
+    const spec = this.kinds.get(kind)
+    if (spec === undefined) return { email: false, push: false }
+
+    const stored = (await this.repository.preferencesFor(userId)).get(kind)
+    const asked = spec.pushConfigurable ? (stored?.push ?? spec.pushByDefault) : spec.pushByDefault
+
+    return {
+      email: stored?.email ?? spec.emailByDefault,
+      push: asked && (await this.repository.countPushSubscriptions(userId)) > 0,
+    }
   }
 }

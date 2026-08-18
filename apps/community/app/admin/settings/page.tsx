@@ -10,6 +10,7 @@ import { adminPageContext } from '@/server/admin'
 import { boardUrlResolution } from '@/server/board-url'
 import { getTranslator, tr } from '@/server/i18n'
 import { assessMailReadiness } from '@/server/mail-health'
+import { pushReadiness } from '@/server/push'
 import { getSettings } from '@/server/settings'
 import { mailTestCardCopy, settingsFormCopy } from '@/view/admin-panel-copy'
 import { buildAdminSettingsModel, DEFAULT_SETTING_GROUP, settingsHref } from '@/view/admin-settings'
@@ -45,6 +46,8 @@ export default async function AdminSettingsPage({
       : null
 
   const address = model.activeGroup === 'board' ? await boardUrlResolution() : null
+
+  const push = model.activeGroup === 'push' ? await pushReadiness() : null
 
   return (
     <PanelPage title={await tr('page.board-settings')} lede={t.t('adminSettings.lede')}>
@@ -161,6 +164,22 @@ export default async function AdminSettingsPage({
                 {t.t('adminSettings.configureMailEnd')}
               </>
             )}
+          </p>
+        </section>
+      )}
+
+      {push !== null && push.problem !== null && push.problem !== 'disabled' && (
+        <section
+          role="alert"
+          className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
+        >
+          <h2 className="font-heading text-lg font-semibold text-destructive">
+            {t.t('adminSettings.pushNotLive')}
+          </h2>
+          <p className="text-sm">
+            {push.problem === 'no-subject'
+              ? t.t('adminSettings.pushNoContact')
+              : t.t('adminSettings.pushNoKeys')}
           </p>
         </section>
       )}

@@ -5,7 +5,7 @@ import { type MailBrand, renderNotificationMail } from './mail'
 import { renderNotification } from './render'
 import type { NotificationRepository } from './types'
 
-export type DeliveryOutcome = 'sent' | 'missing' | 'declined' | 'already-sent'
+export type DeliveryOutcome = 'sent' | 'missing' | 'declined' | 'already-sent' | 'unsubscribed'
 
 export type NotificationTranslatorResolver = (locale: string) => Promise<Translator> | Translator
 

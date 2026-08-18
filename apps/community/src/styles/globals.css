@@ -814,3 +814,20 @@ ol.md-list {
 div.md-directive {
   margin-block: 0.85em;
 }
+
+@media (pointer: coarse) {
+  input:not(
+    [type="checkbox"],
+    [type="radio"],
+    [type="range"],
+    [type="color"],
+    [type="file"],
+    [type="submit"],
+    [type="button"],
+    [type="reset"]
+  ),
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+}

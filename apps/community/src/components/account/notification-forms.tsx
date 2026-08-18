@@ -58,13 +58,19 @@ export interface PreferenceRow {
   readonly title: string
   readonly description: string
   readonly email: boolean
+  readonly push: boolean
 }
+
+const CHECKBOX =
+  'size-4 rounded border-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export function NotificationPreferencesForm({
   rows,
+  push,
   copy,
 }: {
   rows: readonly PreferenceRow[]
+  push: boolean
   copy: Copy
 }) {
   const [state, action] = useActionState(saveNotificationPreferencesAction, EMPTY_STATE)
@@ -76,26 +82,65 @@ export function NotificationPreferencesForm({
     >
       <FormError message={state.error} />
 
-      <fieldset className="flex flex-col gap-4">
+      <fieldset className={push ? 'flex flex-col gap-5' : 'flex flex-col gap-4'}>
         <legend className="text-sm font-medium">
-          {fromCopy(copy, 'accountForm.notifications.legend')}
+          {fromCopy(
+            copy,
+            push ? 'accountForm.notifications.channels' : 'accountForm.notifications.legend',
+          )}
         </legend>
 
-        {rows.map((row) => (
-          <label key={row.kind} className="flex items-start gap-3 text-sm">
-            <input
-              type="checkbox"
-              name="email"
-              value={row.kind}
-              defaultChecked={row.email}
-              className="mt-1 size-4 rounded border-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            />
-            <span>
-              <span className="font-medium">{row.title}</span>
-              <span className="block text-muted-foreground">{row.description}</span>
-            </span>
-          </label>
-        ))}
+        {rows.map((row) =>
+          push ? (
+            <div
+              key={row.kind}
+              className="flex flex-col gap-2 text-sm sm:flex-row sm:items-start sm:justify-between sm:gap-6"
+            >
+              <span className="sm:flex-1">
+                <span className="font-medium">{row.title}</span>
+                <span className="block text-muted-foreground">{row.description}</span>
+              </span>
+
+              <span className="flex shrink-0 items-center gap-5">
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    name="email"
+                    value={row.kind}
+                    defaultChecked={row.email}
+                    className={CHECKBOX}
+                  />
+                  {fromCopy(copy, 'accountForm.notifications.email')}
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    name="push"
+                    value={row.kind}
+                    defaultChecked={row.push}
+                    className={CHECKBOX}
+                  />
+                  {fromCopy(copy, 'accountForm.notifications.push')}
+                </label>
+              </span>
+            </div>
+          ) : (
+            <label key={row.kind} className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                name="email"
+                value={row.kind}
+                defaultChecked={row.email}
+                className={`mt-1 ${CHECKBOX}`}
+              />
+              <span>
+                <span className="font-medium">{row.title}</span>
+                <span className="block text-muted-foreground">{row.description}</span>
+              </span>
+            </label>
+          ),
+        )}
       </fieldset>
 
       <p className="text-xs text-muted-foreground">

@@ -16,6 +16,7 @@ export type SettingGroup =
   | 'security'
   | 'federation'
   | 'antispam'
+  | 'push'
   | 'legal'
 
 interface SettingDefinitionBase<T> {
@@ -956,6 +957,65 @@ export const SETTING_DEFINITIONS = [
     ui: { advanced: true },
   }),
 
+  define({
+    key: 'push.enabled',
+    group: 'push',
+    label: 'Offer web push',
+    description:
+      'Members can ask this board to push a notification to a device, and the ' +
+      'notifications screen grows a button that subscribes the browser they are ' +
+      'reading on. Needs the two keys below. Off, no device is asked and no ' +
+      'notification leaves by that route; what is already stored on the board ' +
+      'stays, so switching it back on resumes where it left off.',
+    schema: z.boolean(),
+    default: false,
+    invalidates: ['settings'],
+  }),
+  define({
+    key: 'push.vapid_public_key',
+    group: 'push',
+    label: 'VAPID public key',
+    description:
+      'The board identifies itself to a push service with this key, and every ' +
+      'browser stores it when it subscribes. Generate the pair with ' +
+      '`community push:keys`. Replacing it invalidates every subscription ' +
+      'already stored, because the browsers hold the old one.',
+    schema: z.string().trim().max(200),
+    default: '',
+    invalidates: ['settings'],
+  }),
+  define({
+    key: 'push.vapid_private_key',
+    group: 'push',
+    label: 'VAPID private key',
+    description:
+      'The other half of the pair, and the half that signs. Stored on the ' +
+      'board. Leave the box empty to keep the key already saved.',
+    schema: z.string().trim().max(200),
+    default: '',
+    secret: true,
+    invalidates: ['settings'],
+  }),
+  define({
+    key: 'push.contact',
+    group: 'push',
+    label: 'Contact for the push service',
+    description:
+      'A mailto: or https: address a push service can use to reach you when ' +
+      'this board is sending it something it does not like. Left empty, the ' +
+      'board sends the mail-from address, and failing that its own address — ' +
+      'but only when that address is an https one. With none of the three, ' +
+      'nothing is pushed.',
+    schema: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value === '' || /^(?:mailto:.+@.+|https:\/\/.+)$/.test(value),
+        'Give a mailto: address or an https: URL.',
+      ),
+    default: '',
+    invalidates: ['settings'],
+  }),
   define({
     key: 'legal.terms',
     group: 'legal',
