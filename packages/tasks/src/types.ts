@@ -13,6 +13,8 @@ export interface TaskDefinition {
   readonly id: string
   readonly title: string
   readonly description: string
+  readonly titleKey?: string
+  readonly descriptionKey?: string
   readonly intervalSeconds: number
   readonly maxDurationSeconds: number
   run(context: TaskContext): Promise<TaskResult>

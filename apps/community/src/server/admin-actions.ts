@@ -81,10 +81,6 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
   redirect(target)
 }
 
-const ADMIN_NEEDS_TWO_FACTOR =
-  'This board requires two-factor authentication of anyone who can reach the control ' +
-  'panel. Set up an authenticator app on your account security page first.'
-
 /**
  * The panel's door asks for the second factor as well as the password. The
  * panel can rewrite the whole board, so re-proving only the thing most likely
@@ -101,7 +97,7 @@ async function assertSecondFactorGiven(input: {
 
   if (!enrolled) {
     if (await twoFactorRequiredForStaff()) {
-      throw new ForbiddenError(ADMIN_NEEDS_TWO_FACTOR)
+      throw new ForbiddenError(msg('adminAction.twoFactorRequired'))
     }
     return
   }
@@ -114,11 +110,10 @@ async function assertSecondFactorGiven(input: {
   const outcome = await service.verify({ userId: input.userId, code })
   if (outcome.status !== 'ok') {
     await recordAdminAction({ action: 'admin.signin_failed' })
-    throw new ForbiddenError(
-      outcome.status === 'replayed'
-        ? 'That code has been used already. Wait for the next one.'
-        : 'That code is not right.',
-    )
+    if (outcome.status === 'replayed') {
+      throw new ForbiddenError(msg('adminAction.codeReplayed'))
+    }
+    throw new ForbiddenError(msg('adminAction.codeWrong'))
   }
 }
 

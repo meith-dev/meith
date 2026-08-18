@@ -2,13 +2,7 @@
 
 import { redirect } from 'next/navigation'
 
-import {
-  type AuthConfig,
-  foldIdentifier,
-  type LoginBucket,
-  REPLAYED_CODE,
-  WRONG_CODE,
-} from '@meith/accounts'
+import { type AuthConfig, foldIdentifier, type LoginBucket } from '@meith/accounts'
 import { env, logger, truncateIp } from '@meith/core'
 
 import { remoteAddress } from './admin'
@@ -27,7 +21,7 @@ import type { FormState } from './auth-form-state'
 import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
 import { configuredIdentity, configuredSessions, getContainer } from './container'
 import { formStateReporter } from './form-state-reporter'
-import { tr } from './i18n'
+import { getTranslator, tr } from './i18n'
 import { termsAcceptance } from './legal'
 import { profileFieldService, registrationFieldContext, submittedFields } from './profile-fields'
 import { requestFingerprint } from './request-fingerprint'
@@ -60,9 +54,6 @@ async function deviceContext(): Promise<{
 }> {
   return requestFingerprint()
 }
-
-const SECOND_FACTOR_EXPIRED =
-  'That sign-in took too long to finish. Start again from the sign-in page.'
 
 async function loginBuckets(
   identifier: string,
@@ -101,7 +92,7 @@ export async function registerAction(_prev: FormState, form: FormData): Promise<
     const terms = await termsAcceptance()
     if (terms !== null && !accepted) {
       return {
-        error: `Please read the ${terms.label.toLowerCase()} and tick the box to accept it.`,
+        error: await tr('authAction.acceptTerms', { terms: terms.label }),
         values,
       }
     }
@@ -136,7 +127,7 @@ export async function registerAction(_prev: FormState, form: FormData): Promise<
 
   if (verification !== null) {
     try {
-      await sendVerificationEmail(verification)
+      await sendVerificationEmail({ ...verification, t: await getTranslator() })
     } catch (err) {
       logger({ module: 'auth-actions' }).error(
         { err },
@@ -156,7 +147,7 @@ export async function resendVerificationAction(
   const email = field(form, 'email')
   const values = { email }
 
-  const notice = 'If that address has an account waiting to be confirmed, a new link has been sent.'
+  const notice = await tr('authAction.verificationResent')
 
   try {
     const limit = await spendResendLimit(foldIdentifier(email))
@@ -171,6 +162,7 @@ export async function resendVerificationAction(
           token: resent.token,
           email: resent.account.email,
           username: resent.account.username,
+          t: await getTranslator(),
         })
       } catch (err) {
         logger({ module: 'auth-actions' }).error({ err }, 'could not resend a verification e-mail')
@@ -246,18 +238,18 @@ export async function verifySecondFactorAction(
 
   const token = await readSecondFactorToken()
   if (token === undefined || token === '') {
-    return { error: SECOND_FACTOR_EXPIRED }
+    return { error: await tr('authAction.secondFactorExpired') }
   }
 
   const identity = await configuredIdentity()
   const pending = await identity.pendingSecondFactor(token)
   if (pending === null) {
     await clearSecondFactorCookie()
-    return { error: SECOND_FACTOR_EXPIRED }
+    return { error: await tr('authAction.secondFactorExpired') }
   }
 
   const service = twoFactorService()
-  if (service === null) return { error: SECOND_FACTOR_EXPIRED }
+  if (service === null) return { error: await tr('authAction.secondFactorExpired') }
 
   try {
     await identity.assertSecondFactorAttemptsLeft(pending.userId)
@@ -267,7 +259,11 @@ export async function verifySecondFactorAction(
     if (outcome.status !== 'ok') {
       await identity.recordSecondFactorFailure(pending.userId)
       await recordAuthEvent({ userId: pending.userId, kind: 'second_factor_failed' })
-      return { error: outcome.status === 'replayed' ? REPLAYED_CODE : WRONG_CODE }
+      return {
+        error: await tr(
+          outcome.status === 'replayed' ? 'authAction.codeReplayed' : 'authAction.codeWrong',
+        ),
+      }
     }
 
     await identity.clearSecondFactorFailures(pending.userId)
@@ -324,7 +320,7 @@ export async function requestResetAction(_prev: FormState, form: FormData): Prom
   const email = field(form, 'email')
   const { identity } = getContainer()
 
-  const notice = 'If an account exists for that email, a password reset link has been sent.'
+  const notice = await tr('authAction.resetRequested')
 
   try {
     const limits = await spendResetLimits(foldIdentifier(email))
@@ -340,6 +336,7 @@ export async function requestResetAction(_prev: FormState, form: FormData): Prom
             token,
             email: account.email,
             username: account.username,
+            t: await getTranslator(),
           })
         } catch (err) {
           logger({ module: 'auth-actions' }).error(

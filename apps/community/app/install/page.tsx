@@ -26,6 +26,12 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const dynamic = 'force-dynamic'
 
+const LEVEL_KEYS = {
+  blocker: 'installPreflight.level.blocker',
+  warning: 'installPreflight.level.warning',
+  ok: 'installPreflight.level.ok',
+} as const
+
 export default async function InstallPage() {
   const t = await getTranslator()
   if (await installerIsSealed()) notFound()
@@ -79,7 +85,7 @@ async function Preflight({ checks }: { checks: readonly Check[] }) {
       {stopping.length > 0 && (
         <div role="alert" className="flex flex-col gap-2">
           {stopping.map((check) => (
-            <Finding key={check.id} check={check} />
+            <Finding key={check.id} check={check} t={t} />
           ))}
           <p className="text-sm text-muted-foreground">
             {stopping.length === 1
@@ -92,7 +98,7 @@ async function Preflight({ checks }: { checks: readonly Check[] }) {
       {stopping.length === 0 ? (
         <>
           {warned.map((check) => (
-            <Finding key={check.id} check={check} />
+            <Finding key={check.id} check={check} t={t} />
           ))}
           {warned.length > 0 && (
             <p className="text-sm text-muted-foreground">
@@ -105,13 +111,14 @@ async function Preflight({ checks }: { checks: readonly Check[] }) {
       ) : (
         warned.length > 0 && (
           <Disclosure
-            summary={`${warned.length === 1 ? '1 warning' : `${warned.length} warnings`}${
-              stopping.length === 1 ? ', for after that is fixed' : ', for after those are fixed'
-            }`}
+            summary={t.t('installPreflight.deferredWarnings', {
+              warnings: warned.length,
+              blockers: stopping.length,
+            })}
           >
             <div className="flex flex-col gap-2">
               {warned.map((check) => (
-                <Finding key={check.id} check={check} />
+                <Finding key={check.id} check={check} t={t} />
               ))}
             </div>
           </Disclosure>
@@ -126,7 +133,7 @@ async function Preflight({ checks }: { checks: readonly Check[] }) {
                 <span aria-hidden className="text-muted-foreground">
                   ✓
                 </span>
-                <span>{check.title}</span>
+                <span>{t.t(check.titleKey, check.titleArgs)}</span>
               </li>
             ))}
           </ul>
@@ -136,17 +143,19 @@ async function Preflight({ checks }: { checks: readonly Check[] }) {
   )
 }
 
-function Finding({ check }: { check: Check }) {
+function Finding({ check, t }: { check: Check; t: Awaited<ReturnType<typeof getTranslator>> }) {
   return (
     <Alert tone={check.level === 'blocker' ? 'error' : 'warning'}>
       <AlertDescription>
         <span className="font-mono text-xs uppercase text-muted-foreground">
-          {check.level}
+          {t.t(LEVEL_KEYS[check.level])}
           {' · '}
         </span>
-        <AlertTitle>{check.title}</AlertTitle>
-        {check.detail !== '' && (
-          <span className="mt-1 block text-muted-foreground">{check.detail}</span>
+        <AlertTitle>{t.t(check.titleKey, check.titleArgs)}</AlertTitle>
+        {check.detailKey !== undefined && (
+          <span className="mt-1 block text-muted-foreground">
+            {t.t(check.detailKey, check.detailArgs)}
+          </span>
         )}
       </AlertDescription>
     </Alert>

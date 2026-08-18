@@ -13,7 +13,7 @@ import {
   federationService,
   memberManagedSignIns,
 } from '@/server/federation'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { isTopLevelNavigation } from '@/server/same-origin'
 import {
   clearHandshakeCookie,
@@ -115,6 +115,7 @@ export async function GET(
           token: outcome.verificationToken,
           email: outcome.account.email,
           username: outcome.account.username,
+          t: await getTranslator(),
         })
       } catch (err) {
         log.error({ err }, 'could not send a verification e-mail after a federated sign-up')

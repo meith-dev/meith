@@ -77,12 +77,12 @@ export async function requireAdmin(): Promise<AdminContext> {
 
   throw new ForbiddenError(
     resolved.denied === 'address'
-      ? 'The control panel is not available from this address.'
+      ? msg('error.app.control-panel-available-from-address')
       : resolved.denied === 'unavailable'
-        ? 'This board is running on in-memory sample data, so it has no control panel.'
+        ? msg('error.app.board-running-in-memory-sample-data-25')
         : resolved.denied === 'permission'
-          ? 'You cannot reach the control panel.'
-          : 'Sign in to the control panel and try that again.',
+          ? msg('error.app.reach-control-panel')
+          : msg('error.app.control-panel-sign-in'),
   )
 }
 

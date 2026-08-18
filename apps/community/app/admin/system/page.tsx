@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import type { TaskHealthStatus } from '@meith/tasks'
 import { cn } from '@meith/ui'
 
 import {
@@ -17,6 +18,15 @@ import { getTranslator, tr } from '@/server/i18n'
 import { buildSystemHealthView } from '@/server/system-admin'
 import { systemFormsCopy } from '@/view/admin-panel-copy'
 import { formatTime } from '@/view/time'
+
+const TASK_STATUS_KEYS = {
+  healthy: 'adminSystem.taskStatus.healthy',
+  late: 'adminSystem.taskStatus.late',
+  stale: 'adminSystem.taskStatus.stale',
+  failing: 'adminSystem.taskStatus.failing',
+  disabled: 'adminSystem.taskStatus.disabled',
+  'never-run': 'adminSystem.taskStatus.never-run',
+} satisfies Record<TaskHealthStatus, string>
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.system-health') }
@@ -55,10 +65,9 @@ export default async function AdminSystemPage() {
             {await tr('page.scheduler-not-running')}
           </h2>
           <p className="text-sm">
-            Every task is overdue, which means the tick is not firing at all. While this is true:{' '}
-            <strong>bans do not expire</strong>, digests and notification emails are not sent,
-            counters drift, uploads that failed to process are not retried, and queued mail sits in
-            the queue.
+            {translator.t('adminSystem.schedulerStoppedBefore')}{' '}
+            <strong>{translator.t('adminSystem.schedulerStoppedStrong')}</strong>
+            {translator.t('adminSystem.schedulerStoppedAfter')}
           </p>
           <p className="text-sm">{translator.t('adminSystem.schedulerStopped')}</p>
         </section>
@@ -70,17 +79,10 @@ export default async function AdminSystemPage() {
           className="flex flex-col gap-1 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm"
         >
           {scheduler.stale > 0 && (
-            <p>
-              {scheduler.stale} task{scheduler.stale === 1 ? ' is' : 's are'} overdue by several of
-              their own intervals.
-            </p>
+            <p>{translator.t('adminSystem.tasksOverdue', { count: scheduler.stale })}</p>
           )}
           {scheduler.failing > 0 && (
-            <p>
-              {scheduler.failing} task
-              {scheduler.failing === 1 ? ' is' : 's are'} failing repeatedly — running, and losing.
-              The log below says why.
-            </p>
+            <p>{translator.t('adminSystem.tasksFailing', { count: scheduler.failing })}</p>
           )}
         </section>
       )}
@@ -110,7 +112,7 @@ export default async function AdminSystemPage() {
               <>
                 {translator.t('adminSystem.boardMailBefore')}{' '}
                 <a href="/admin/settings?group=mail" className="underline">
-                  mail settings screen
+                  {translator.t('page.board-settings')}
                 </a>{' '}
                 {translator.t('adminSystem.boardMailAfter')} <strong>none</strong>{' '}
                 {translator.t('adminSystem.boardMailOr')} <strong>admin</strong>.
@@ -143,7 +145,7 @@ export default async function AdminSystemPage() {
           <p className="text-sm text-muted-foreground">
             {translator.t('adminSystem.changeMailBefore')}{' '}
             <a href="/admin/settings?group=mail" className="underline">
-              mail settings screen
+              {translator.t('page.board-settings')}
             </a>
             {translator.t('adminSystem.changeMailEnd')}
           </p>
@@ -160,16 +162,26 @@ export default async function AdminSystemPage() {
             {scheduler.tasks.map((task) => (
               <li key={task.key} className={PANEL_ROW}>
                 <span className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm font-medium">{task.key}</span>
+                  <span className="truncate text-sm font-medium">
+                    {task.titleKey === undefined ? task.key : translator.t(task.titleKey)}
+                  </span>
+                  {task.descriptionKey !== undefined && (
+                    <span className="text-xs text-muted-foreground">
+                      {translator.t(task.descriptionKey)}
+                    </span>
+                  )}
                   <span className="truncate text-xs text-muted-foreground">
-                    every {task.intervalSeconds}s ·{' '}
+                    <code>{task.key}</code> ·{' '}
+                    {translator.t('adminSystem.taskInterval', { seconds: task.intervalSeconds })} ·{' '}
                     {task.lastRunAt === null
                       ? translator.t('adminSystem.neverRun')
-                      : `last ran ${formatTime(task.lastRunAt, now, translator).label}`}
+                      : translator.t('adminSystem.taskLastRun', {
+                          time: formatTime(task.lastRunAt, now, translator).label,
+                        })}
                     {task.consecutiveFailures > 0 &&
-                      ` · ${task.consecutiveFailures} failure${
-                        task.consecutiveFailures === 1 ? '' : 's'
-                      } in a row`}
+                      ` · ${translator.t('adminSystem.taskFailures', {
+                        count: task.consecutiveFailures,
+                      })}`}
                   </span>
                 </span>
                 <span
@@ -179,7 +191,7 @@ export default async function AdminSystemPage() {
                       : 'shrink-0 text-xs font-medium text-destructive'
                   }
                 >
-                  {task.status}
+                  {translator.t(TASK_STATUS_KEYS[task.status])}
                 </span>
               </li>
             ))}
@@ -198,7 +210,9 @@ export default async function AdminSystemPage() {
               <li key={`${run.taskKey}:${run.ranAt.toISOString()}:${index}`}>
                 <code className="text-xs">{run.taskKey}</code>{' '}
                 <span className="text-muted-foreground">
-                  {run.succeeded ? 'ok' : 'failed'}
+                  {run.succeeded
+                    ? translator.t('adminSystem.taskRunOk')
+                    : translator.t('adminSystem.taskRunFailed')}
                   {run.durationMs !== null && ` · ${run.durationMs}ms`} ·{' '}
                   <time dateTime={run.ranAt.toISOString()}>
                     {formatTime(run.ranAt, now, translator).label}
@@ -239,8 +253,13 @@ export default async function AdminSystemPage() {
           <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
             {view.recount.map((row) => (
               <li key={row.id}>
-                {row.id}: phase {row.phase}, cursor {row.cursor}, {row.passes} complete pass
-                {row.passes === 1 ? '' : 'es'}, {row.corrected} corrected
+                {translator.t('adminSystem.recountProgress', {
+                  id: row.id,
+                  phase: row.phase,
+                  cursor: row.cursor,
+                  passes: row.passes,
+                  corrected: row.corrected,
+                })}
               </li>
             ))}
           </ul>
@@ -254,11 +273,11 @@ export default async function AdminSystemPage() {
           {translator.t('adminSystem.searchIndexHint')}
         </p>
         <p className="text-sm">
-          {view.searchIndex.indexed} indexed
+          {translator.t('adminSystem.searchIndexIndexed', { count: view.searchIndex.indexed })}
           {view.searchIndex.pending > 0 && (
             <span className="font-medium text-destructive">
-              {' '}
-              · {view.searchIndex.pending} not yet searchable
+              {' · '}
+              {translator.t('adminSystem.searchIndexPending', { count: view.searchIndex.pending })}
             </span>
           )}
           .

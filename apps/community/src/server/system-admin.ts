@@ -12,7 +12,7 @@ import {
   type RecountStateRow,
   type TaskRunRow,
 } from '@meith/db'
-import { assessScheduler, type SchedulerHealth } from '@meith/tasks'
+import { assessScheduler, type SchedulerHealth, type TaskHealth } from '@meith/tasks'
 
 import { getContainer } from './container'
 import { assessMailReadiness, type MailReadiness } from './mail-health'
@@ -39,7 +39,12 @@ export function requireRecount(): PostgresCounterRecount {
 
 export interface SystemHealthView {
   readonly searchIndex: { readonly indexed: number; readonly pending: number }
-  readonly scheduler: SchedulerHealth
+  readonly scheduler: Omit<SchedulerHealth, 'tasks'> & {
+    readonly tasks: readonly (TaskHealth & {
+      readonly titleKey?: string
+      readonly descriptionKey?: string
+    })[]
+  }
   readonly mail: MailReadiness
   readonly runs: readonly TaskRunRow[]
   readonly recount: readonly RecountStateRow[]
@@ -62,8 +67,19 @@ export async function buildSystemHealthView(now: Date): Promise<SystemHealthView
     assessMailReadiness(),
   ])
 
+  const scheduler = assessScheduler(tasks, now)
+  const taskMessages = new Map(
+    (getContainer().scheduler?.tasks ?? []).map((task) => [
+      task.id,
+      { titleKey: task.titleKey, descriptionKey: task.descriptionKey },
+    ]),
+  )
+
   return {
-    scheduler: assessScheduler(tasks, now),
+    scheduler: {
+      ...scheduler,
+      tasks: scheduler.tasks.map((task) => ({ ...task, ...taskMessages.get(task.key) })),
+    },
     searchIndex,
     mail,
     runs,

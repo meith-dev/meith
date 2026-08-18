@@ -19,7 +19,7 @@ import { getActor } from './context'
 import { assertDemoAccountChangeable } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
-import { tr } from './i18n'
+import { getTranslator, tr } from './i18n'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
 import { setSessionCookie } from './session-cookies'
 import { signatureStore, viewerSignatureLimits } from './signatures'
@@ -155,7 +155,7 @@ export async function requestEmailChangeAction(
     return toFormState(err)
   }
 
-  await sendEmailChangeConfirmation(pending).catch(() => undefined)
+  await sendEmailChangeConfirmation({ ...pending, t: await getTranslator() }).catch(() => undefined)
   await recordAuthEvent({ userId: pending.userId, kind: 'email_change_requested' })
 
   redirect('/usercp/security?sent=1')
