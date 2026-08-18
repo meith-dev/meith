@@ -6,6 +6,12 @@ export {
   type DemoGroupKey,
   demoAccount,
 } from './accounts'
+export {
+  type DemoIpPrefixes,
+  demoAddressToken,
+  demoDiscardsAddresses,
+  demoIpPrefixes,
+} from './addresses'
 export { type DemoBanner, demoBanner } from './banner'
 export {
   DEMO_FORUMS,

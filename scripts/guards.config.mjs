@@ -309,4 +309,27 @@ export const GUARDS = [
       clean: "return isSafeLocalPath(next) ? next : '/'",
     },
   },
+  {
+    id: 'no-address-outside-the-fingerprint',
+    why:
+      'An address is truncated in one place only: retainedIpPrefix() and its two ' +
+      'counting siblings in apps/community/src/server/request-fingerprint.ts. ' +
+      'Every other module asks that module for a prefix, because it is where the ' +
+      'demo rule lives: a board whose administrator password is printed on the ' +
+      'page must keep no addresses at all, or one visitor reads the last one out ' +
+      'of the admin log. A fresh truncateIp() call site is a column that fills up ' +
+      'again on the demo and nowhere else, which no test on any other board can ' +
+      'see. docs/demo-mode.md carries the reasoning.',
+    files: /^apps\/community\/.*\.tsx?$/,
+    pattern: /truncateIp\s*\(/,
+    allow: /^(apps\/community\/src\/server\/request-fingerprint\.ts|.*\.test\.tsx?$)/,
+    probe: {
+      violates: 'ipPrefix: truncateIp(await remoteAddress()) ?? null,',
+      clean: 'ipPrefix: await retainedIpPrefix(),',
+    },
+    alsoClean: [
+      'const prefix = await countingPrefix()',
+      'const address = await remoteAddress()\n\tif (!ipAllowed(address, allowlist)) return',
+    ],
+  },
 ]

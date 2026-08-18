@@ -1,8 +1,7 @@
 import type { NextRequest } from 'next/server'
 
-import { isAppError, logger, RateLimitedError, truncateIp } from '@meith/core'
+import { isAppError, logger, RateLimitedError } from '@meith/core'
 
-import { remoteAddress } from '@/server/admin'
 import { refused, spendRegisterLimit } from '@/server/antispam'
 import { recordAuthEvent } from '@/server/auth-events'
 import { sendVerificationEmail } from '@/server/auth-mail'
@@ -14,6 +13,7 @@ import {
   memberManagedSignIns,
 } from '@/server/federation'
 import { getTranslator, tr } from '@/server/i18n'
+import { retainedIpPrefix } from '@/server/request-fingerprint'
 import { isTopLevelNavigation } from '@/server/same-origin'
 import {
   clearHandshakeCookie,
@@ -100,7 +100,7 @@ export async function GET(
     const outcome = await federation.completeSignIn({
       provider,
       profile,
-      context: { ipPrefix: truncateIp(await remoteAddress()) ?? null },
+      context: { ipPrefix: await retainedIpPrefix() },
       beforeProvision: async () => {
         const limited = await spendRegisterLimit()
         if (refused(limited)) throw new RateLimitedError(limited.retryAfterSeconds)

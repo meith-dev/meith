@@ -3,6 +3,7 @@ import 'server-only'
 
 import { env, logger, resolveClientAddress } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
+import { demoAddressToken, demoDiscardsAddresses } from '@meith/demo'
 import {
   createRouteRateLimiter,
   DEFAULT_ROUTE_BODY_BYTES,
@@ -165,7 +166,9 @@ function callerKey(request: Request, userId: number | null): string {
     },
     env.TRUSTED_PROXY_HOPS,
   )
-  return `a:${address ?? 'unknown'}`
+  if (address === null) return 'a:unknown'
+
+  return `a:${demoDiscardsAddresses() ? demoAddressToken(address) : address}`
 }
 
 export type PluginRouteSurface = 'board' | 'admin'

@@ -80,6 +80,28 @@ describe('a reset against a real engine', () => {
     expect(guests[0]?.can_view).toBe(true)
   }, 120_000)
 
+  it('gives every seeded member an invented range and nobody a real one', async () => {
+    inDemoMode()
+
+    await resetDemoBoard({ db, now: NOW, migrate: applyMigrations })
+
+    const rows = resultRows(
+      await db.execute(sql`
+        select username, registration_ip_prefix, last_ip_prefix from users
+      `),
+    ) as Array<{
+      username: string
+      registration_ip_prefix: string | null
+      last_ip_prefix: string | null
+    }>
+
+    expect(rows.length).toBeGreaterThan(0)
+    for (const row of rows) {
+      expect(row.registration_ip_prefix).toMatch(/^198\.(18|19)\.\d{1,3}\.0\/24$/)
+      expect(row.last_ip_prefix).toMatch(/^198\.(18|19)\.\d{1,3}\.0\/24$/)
+    }
+  }, 120_000)
+
   it('leaves a board a second reset can run against', async () => {
     inDemoMode()
 

@@ -17,12 +17,12 @@ import {
   subjectFor,
 } from '@meith/antispam'
 import type { Actor, NumericGlobalPermission } from '@meith/authorization'
-import { env, logger, truncateIp } from '@meith/core'
+import { env, logger } from '@meith/core'
 import { getDb, PostgresCaptchaQuestionRepository, PostgresRateLimitBucketStore } from '@meith/db'
 import type { SettingsSnapshot } from '@meith/settings'
 
-import { remoteAddress } from './admin'
 import { getContainer } from './container'
+import { countingPrefix } from './request-fingerprint'
 import { getSettings } from './settings'
 
 const LIMIT_SETTING = {
@@ -66,7 +66,7 @@ export async function spendLimit(input: {
 
     const subject = subjectFor({
       userId: input.actor.userId,
-      ipPrefix: truncateIp(await remoteAddress()) ?? null,
+      ipPrefix: await countingPrefix(),
     })
 
     return await new RateLimiter(store).consume({
@@ -154,14 +154,10 @@ async function spendAuthLimit(input: {
   }
 }
 
-async function requestPrefix(): Promise<string | null> {
-  return truncateIp(await remoteAddress()) ?? null
-}
-
 export async function spendResetLimits(
   emailLower: string,
 ): Promise<readonly (RateLimitOutcome | null)[]> {
-  const prefix = await requestPrefix()
+  const prefix = await countingPrefix()
 
   return [
     await spendAuthLimit({
@@ -178,7 +174,7 @@ export async function spendResetLimits(
 }
 
 export async function spendRegisterLimit(): Promise<RateLimitOutcome | null> {
-  const prefix = await requestPrefix()
+  const prefix = await countingPrefix()
 
   return spendAuthLimit({
     scope: 'register_ip',
