@@ -23,7 +23,6 @@
   "apps/community/app/admin/api-tokens/page.tsx": 1,
   "apps/community/app/admin/content/announcements/page.tsx": 1,
   "apps/community/app/admin/content/attachments/page.tsx": 2,
-  "apps/community/app/admin/content/page.tsx": 12,
   "apps/community/app/admin/forums/[id]/page.tsx": 2,
   "apps/community/app/admin/forums/[id]/permissions/page.tsx": 1,
   "apps/community/app/admin/forums/page.tsx": 1,
