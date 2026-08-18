@@ -22,7 +22,7 @@ export {
   installed,
   type StepOutcome,
   type StepStatus,
-  stepTitle,
+  stepTitleKey,
 } from './plan'
 export {
   blockers,

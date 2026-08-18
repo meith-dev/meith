@@ -13,7 +13,7 @@ import {
   mailConfigFromInstallInput,
   parseInstallInput,
   type StepOutcome,
-  stepTitle,
+  stepTitleKey,
   withEnvironmentAnswers,
 } from '@meith/install'
 import { mailConfigFromEnvironment } from '@meith/settings'
@@ -51,19 +51,19 @@ export async function installAction(
   }
 
   const parsed = parseInstallInput(submitted)
-  if (!parsed.ok) return { errors: parsed.errors, values }
+  const t = await getTranslator()
+  if (!parsed.ok) return { errors: translatedErrors(parsed.errors, t), values }
 
   if (!canProceed(await gatherPreflight())) {
     return {
       errors: {
-        form: (await getTranslator()).t('installAction.notReady'),
+        form: t.t('installAction.notReady'),
       },
       values,
     }
   }
 
   if (parsed.value.mailPreset !== MAIL_SKIP) {
-    const t = await getTranslator()
     const test = await sendTestMail({
       config: mailConfigFromInstallInput(parsed.value),
       to: parsed.value.email,
@@ -91,14 +91,23 @@ export async function installAction(
     return {
       failedStep: {
         id: failure.id,
-        title: stepTitle(failure.id),
-        error: failure.error ?? 'Unknown failure.',
+        title: t.t(stepTitleKey(failure.id)),
+        error: failure.error ?? t.t('installAction.unknownFailure'),
       },
-      errors: fieldErrorsFromReport(report),
+      errors: translatedErrors(fieldErrorsFromReport(report), t),
       report,
       values,
     }
   }
 
   redirect('/login?installed=1')
+}
+
+function translatedErrors(
+  errors: Record<string, string>,
+  t: Awaited<ReturnType<typeof getTranslator>>,
+) {
+  return Object.fromEntries(
+    Object.entries(errors).map(([field, error]) => [field, t.has(error) ? t.t(error) : error]),
+  )
 }

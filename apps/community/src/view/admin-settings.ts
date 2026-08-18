@@ -72,6 +72,19 @@ export function settingGroupLabel(group: SettingGroup, translator: Translator): 
   return translator.has(key) ? translator.t(key) : GROUP_LABELS[group]
 }
 
+function settingFieldCopy(definition: SettingDefinition, translator: Translator): SettingField {
+  const field = settingField(definition)
+  if (field.kind !== 'select') return field
+
+  return {
+    ...field,
+    options: field.options.map((option) => {
+      const key = `setting.${definition.key}.option.${option.value}`
+      return translator.has(key) ? { ...option, label: translator.t(key) } : option
+    }),
+  }
+}
+
 function formValue(definition: SettingDefinition, current: unknown): string {
   if (definition.secret === true) return ''
   if (typeof current === 'boolean') return current ? '1' : ''
@@ -119,7 +132,7 @@ export function buildAdminSettingsModel(input: {
         key: definition.key,
         label: copy.label,
         description: copy.description,
-        field: settingField(definition),
+        field: settingFieldCopy(definition, translator),
         value: formValue(definition, current),
         checked: current === true,
         isDefault,

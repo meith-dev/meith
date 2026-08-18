@@ -32,6 +32,41 @@ const LEVEL_KEYS = {
   ok: 'installPreflight.level.ok',
 } as const
 
+const MAIL_PRESET_KEYS: Record<string, { readonly label: string; readonly note: string }> = {
+  mailbox: {
+    label: 'install.mailPreset.mailbox.label',
+    note: 'install.mailPreset.mailbox.note',
+  },
+  'resend-http': {
+    label: 'install.mailPreset.resendHttp.label',
+    note: 'install.mailPreset.resendHttp.note',
+  },
+  'resend-smtp': {
+    label: 'install.mailPreset.resendSmtp.label',
+    note: 'install.mailPreset.resendSmtp.note',
+  },
+  brevo: {
+    label: 'install.mailPreset.brevo.label',
+    note: 'install.mailPreset.brevo.note',
+  },
+  postmark: {
+    label: 'install.mailPreset.postmark.label',
+    note: 'install.mailPreset.postmark.note',
+  },
+  ses: {
+    label: 'install.mailPreset.ses.label',
+    note: 'install.mailPreset.ses.note',
+  },
+  smtp: {
+    label: 'install.mailPreset.smtp.label',
+    note: 'install.mailPreset.smtp.note',
+  },
+  http: {
+    label: 'install.mailPreset.http.label',
+    note: 'install.mailPreset.http.note',
+  },
+}
+
 export default async function InstallPage() {
   const t = await getTranslator()
   if (await installerIsSealed()) notFound()
@@ -54,8 +89,16 @@ export default async function InstallPage() {
 
       {ready && (
         <InstallForm
-          presets={MAIL_PRESETS}
-          steps={INSTALL_STEPS}
+          presets={MAIL_PRESETS.map((preset) => ({
+            ...preset,
+            label: t.t(MAIL_PRESET_KEYS[preset.id]?.label ?? preset.label),
+            note: t.t(MAIL_PRESET_KEYS[preset.id]?.note ?? preset.note),
+          }))}
+          steps={INSTALL_STEPS.map((step) => ({
+            id: step.id,
+            title: t.t(step.titleKey),
+            detail: t.t(step.detailKey),
+          }))}
           initialReport={freshReport()}
           mailIsFromEnvironment={mail.source === 'environment'}
           suggestedBoardUrl={suggestedBoardUrl}
