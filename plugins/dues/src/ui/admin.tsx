@@ -514,24 +514,24 @@ export async function LedgerPage({
   )
 }
 
-const CODE_ERRORS: Record<string, string> = {
-  'bad-code':
-    'Codes are 3 to 32 letters, digits and hyphens. Leave the box empty to have one invented.',
-  'bad-percent': 'The discount is a whole number from 1 to 100 percent.',
-  'bad-plan': 'That plan does not exist on this board.',
-  'bad-max': 'The redemption cap is a whole number, at least 1 — or empty for no cap.',
-  'bad-expiry': 'The expiry needs to be a date in the future, like 2027-01-31.',
-  'duplicate-code': 'A code by that name already exists. Every code is unique, spelt any case.',
-  'no-such-code': 'That code could not be found.',
-}
+const CODE_ERROR_KEYS = {
+  'bad-code': 'dues.admin.codes.badCode',
+  'bad-expiry': 'dues.admin.codes.badExpiry',
+  'bad-max': 'dues.admin.codes.badMax',
+  'bad-percent': 'dues.admin.codes.badPercent',
+  'bad-plan': 'dues.admin.codes.badPlan',
+  'duplicate-code': 'dues.admin.codes.duplicate',
+  'no-such-code': 'dues.admin.codes.noSuch',
+} as const
 
-function codeState(code: CodeRow, now: Date): string {
-  if (code.disabled) return 'switched off'
-  if (code.expiresAt !== null && code.expiresAt <= now) return 'expired'
+function codeState(code: CodeRow, now: Date, context: PluginAdminPageContext): string {
+  if (code.disabled) return context.t.t('dues.admin.codes.switchedOff')
+  if (code.expiresAt !== null && code.expiresAt <= now)
+    return context.t.t('dues.admin.codes.expired')
   if (code.maxRedemptions !== null && code.redeemedCount >= code.maxRedemptions) {
-    return 'used up'
+    return context.t.t('dues.admin.codes.usedUp')
   }
-  return 'live'
+  return context.t.t('dues.admin.codes.live')
 }
 
 export async function CodesPage({
@@ -546,34 +546,34 @@ export async function CodesPage({
   const now = new Date()
   const created = context.query.created
   const toggled = context.query.disabled ?? context.query.enabled
-  const error = CODE_ERRORS[context.query.error ?? '']
+  const error = CODE_ERROR_KEYS[context.query.error as keyof typeof CODE_ERROR_KEYS]
 
   return (
     <div className="flex flex-col gap-4">
       {created !== undefined && (
-        <GoodNotice>
-          The code is live:{' '}
-          <code className="mx-1 font-mono text-base font-semibold">{created}</code>— hand it out
-          however you like. It is shown in full below whenever you need it again.
-        </GoodNotice>
+        <GoodNotice>{context.t.t('dues.admin.codes.created', { code: created })}</GoodNotice>
       )}
       {toggled !== undefined && (
         <GoodNotice>
-          <code className="font-mono">{toggled}</code>{' '}
           {context.query.disabled !== undefined
-            ? 'is switched off. Anyone typing it now is told the code is not usable.'
-            : 'is back on.'}
+            ? context.t.t('dues.admin.codes.toggledOff', { code: toggled })
+            : context.t.t('dues.admin.codes.toggledOn', { code: toggled })}
         </GoodNotice>
       )}
-      {error !== undefined && <BadNotice>{error}</BadNotice>}
+      {error !== undefined && (
+        <BadNotice>
+          {context.t.t(
+            error,
+            context.query.error === 'too-long' ? { days: MAX_PLAN_DAYS } : undefined,
+          )}
+        </BadNotice>
+      )}
 
       <section className={CARD}>
-        <h2 className="font-heading text-lg font-semibold">Mint a code</h2>
-        <p className="text-sm text-muted-foreground">
-          A code takes a percentage off at checkout: the whole price of a pass, the first payment of
-          a subscription — renewals bill in full. A 100% code on a pass skips Stripe entirely, which
-          is how you comp somebody.
-        </p>
+        <h2 className="font-heading text-lg font-semibold">
+          {context.t.t('dues.admin.codes.mint')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{context.t.t('dues.admin.codes.intro')}</p>
         <form
           method="post"
           action="/admin/api/plugins/dues/codes/create"
@@ -581,18 +581,22 @@ export async function CodesPage({
         >
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-xs text-muted-foreground">
-              Code — leave empty to have one invented
+              {context.t.t('dues.admin.codes.codeHelp')}
             </span>
             <input name="code" autoComplete="off" placeholder="LAUNCH50" className={INPUT} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-muted-foreground">Percent off, 1–100</span>
+            <span className="text-xs text-muted-foreground">
+              {context.t.t('dues.admin.codes.percentHelp')}
+            </span>
             <input type="number" name="percent" min={1} max={100} required className={INPUT} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-muted-foreground">Which plan it works on</span>
+            <span className="text-xs text-muted-foreground">
+              {context.t.t('dues.admin.codes.planHelp')}
+            </span>
             <select name="plan" className={INPUT}>
-              <option value="">Any plan</option>
+              <option value="">{context.t.t('dues.admin.codes.anyPlan')}</option>
               {plans.map((plan) => (
                 <option key={plan.key} value={plan.key}>
                   {plan.name}
@@ -602,40 +606,42 @@ export async function CodesPage({
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-xs text-muted-foreground">
-              Redemption cap — empty for unlimited
+              {context.t.t('dues.admin.codes.redemptionCap')}
             </span>
             <input type="number" name="max" min={1} className={INPUT} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-xs text-muted-foreground">
-              Expires at end of day (UTC) — empty for never
+              {context.t.t('dues.admin.codes.expiresHelp')}
             </span>
             <input type="date" name="expires" className={INPUT} />
           </label>
           <div className="flex items-end">
             <button type="submit" className={ACT_BUTTON}>
-              Mint the code
+              {context.t.t('dues.admin.codes.mintButton')}
             </button>
           </div>
         </form>
       </section>
 
       <section className={CARD}>
-        <h2 className="font-heading text-lg font-semibold">Every code</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {context.t.t('dues.admin.codes.every')}
+        </h2>
         {codes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">None yet.</p>
+          <p className="text-sm text-muted-foreground">{context.t.t('dues.admin.codes.empty')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[40rem] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className={TH}>Code</th>
-                  <th className={TH}>Off</th>
-                  <th className={TH}>Plan</th>
-                  <th className={TH}>Redeemed</th>
-                  <th className={TH}>Expires</th>
-                  <th className={TH}>State</th>
-                  <th className={TH}>Actions</th>
+                  <th className={TH}>{context.t.t('dues.admin.codes.code')}</th>
+                  <th className={TH}>{context.t.t('dues.admin.codes.off')}</th>
+                  <th className={TH}>{context.t.t('dues.admin.codes.plan')}</th>
+                  <th className={TH}>{context.t.t('dues.admin.codes.redeemed')}</th>
+                  <th className={TH}>{context.t.t('dues.admin.codes.expires')}</th>
+                  <th className={TH}>{context.t.t('dues.admin.codes.state')}</th>
+                  <th className={TH}>{context.t.t('dues.admin.codes.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -645,21 +651,27 @@ export async function CodesPage({
                       <code className="font-mono">{code.code}</code>
                     </td>
                     <td className={TD}>{code.percentOff}%</td>
-                    <td className={TD}>{code.planKey ?? 'any'}</td>
+                    <td className={TD}>{code.planKey ?? context.t.t('dues.admin.codes.any')}</td>
                     <td className={TD}>
                       {code.redeemedCount}
-                      {code.maxRedemptions !== null && ` of ${code.maxRedemptions}`}
+                      {code.maxRedemptions !== null && ` / ${code.maxRedemptions}`}
                     </td>
                     <td className={TD}>
-                      {code.expiresAt === null ? 'never' : fmt(code.expiresAt, context)}
+                      {code.expiresAt === null
+                        ? context.t.t('dues.admin.codes.never')
+                        : fmt(code.expiresAt, context)}
                     </td>
-                    <td className={TD}>{codeState(code, now)}</td>
+                    <td className={TD}>{codeState(code, now, context)}</td>
                     <td className={TD}>
                       <form method="post" action="/admin/api/plugins/dues/codes/disable">
                         <input type="hidden" name="code" value={code.id} />
                         <input type="hidden" name="disabled" value={code.disabled ? '0' : '1'} />
                         <button type="submit" className={QUIET_BUTTON}>
-                          {code.disabled ? 'Switch on' : 'Switch off'}
+                          {context.t.t(
+                            code.disabled
+                              ? 'dues.admin.codes.switchOn'
+                              : 'dues.admin.codes.switchOff',
+                          )}
                         </button>
                       </form>
                     </td>
@@ -670,44 +682,37 @@ export async function CodesPage({
           </div>
         )}
         <p className="text-xs text-muted-foreground">
-          Redemptions count when a payment settles, not when a checkout starts. A code is never
-          deleted — switching it off keeps the history of what it sold.
+          {context.t.t('dues.admin.codes.redemptions')}
         </p>
       </section>
     </div>
   )
 }
 
-const PLAN_ERRORS: Record<string, string> = {
-  'bad-key': 'Plan keys are lower-case letters, digits and hyphens, like day-pass.',
-  'bad-name': 'The plan needs a name members will read.',
-  'bad-group': 'That is not a valid group key.',
-  'bad-price': 'The price is a positive whole number of minor units — 500 is £5.00.',
-  'bad-currency': 'The currency is a three-letter ISO code, like gbp, usd or eur.',
-  'bad-mode': 'Pick how the plan bills.',
-  'bad-length': 'The length is a whole number of days, weeks, months or years — at least 1.',
-  'too-long': `A pass plus its grace window cannot reach past two years (${MAX_PLAN_DAYS} days) — that is the board's cap on a plugin grant. Sell lifetime instead.`,
-  'bad-interval': 'A subscription bills every month or every year.',
-  'auto-gift': 'A subscription cannot be giftable — it would bill the buyer forever.',
-  'duplicate-plan': 'A plan with that key already exists. Keys are forever; pick another.',
-  'no-such-plan': 'That plan could not be found.',
-  'bad-stripe-price': 'A pasted Stripe price id starts with price_.',
-  unconfigured:
-    'Stripe is not configured, so a subscription price cannot be minted. Set the secret ' +
-    'key first, or paste a price id made in the Stripe dashboard.',
-  'stripe-error': 'Stripe could not be reached. Nothing was saved — try again shortly.',
-}
+const PLAN_ERROR_KEYS = {
+  'auto-gift': 'dues.admin.plans.autoGift',
+  'bad-currency': 'dues.admin.plans.badCurrency',
+  'bad-group': 'dues.admin.plans.badGroup',
+  'bad-interval': 'dues.admin.plans.badInterval',
+  'bad-key': 'dues.admin.plans.badKey',
+  'bad-length': 'dues.admin.plans.badLength',
+  'bad-mode': 'dues.admin.plans.badMode',
+  'bad-name': 'dues.admin.plans.badName',
+  'bad-price': 'dues.admin.plans.badPrice',
+  'bad-stripe-price': 'dues.admin.plans.badStripePrice',
+  'duplicate-plan': 'dues.admin.plans.duplicate',
+  'no-such-plan': 'dues.admin.plans.noSuch',
+  'stripe-error': 'dues.admin.plans.stripeError',
+  'too-long': 'dues.admin.plans.tooLong',
+  unconfigured: 'dues.admin.plans.stripeUnconfigured',
+} as const
 
-const PLAN_NOTICES: Record<string, (key: string) => string> = {
-  created: (key) => `The plan ${key} is on sale from this moment.`,
-  updated: (key) =>
-    `${key} is updated. Existing memberships and running subscriptions keep what they ` +
-    'bought; the change is for the next buyer.',
-  archived: (key) =>
-    `${key} is off sale. Everyone who holds it keeps it — archiving stops new purchases, ` +
-    'nothing else.',
-  restored: (key) => `${key} is back on sale.`,
-}
+const PLAN_NOTICE_KEYS = {
+  archived: 'dues.admin.plans.archived',
+  created: 'dues.admin.plans.created',
+  restored: 'dues.admin.plans.restored',
+  updated: 'dues.admin.plans.updated',
+} as const
 
 function planPeriodParts(plan: PlanRow): { length: number; unit: string } {
   const match = /^P(\d+)([YMWD])$/.exec(plan.periodSpec ?? '')
@@ -717,27 +722,33 @@ function planPeriodParts(plan: PlanRow): { length: number; unit: string } {
   return { length: Number(match[1]), unit }
 }
 
-function PlanFields({ plan }: { plan?: PlanRow }) {
+function PlanFields({ plan, context }: { plan?: PlanRow; context: PluginAdminPageContext }) {
   const period = plan === undefined ? { length: 90, unit: 'days' } : planPeriodParts(plan)
   return (
     <>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-xs text-muted-foreground">Name</span>
+        <span className="text-xs text-muted-foreground">
+          {context.t.t('dues.admin.plans.name')}
+        </span>
         <input name="name" defaultValue={plan?.name ?? ''} required className={INPUT} />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-xs text-muted-foreground">Description — optional</span>
+        <span className="text-xs text-muted-foreground">
+          {context.t.t('dues.admin.plans.description')}
+        </span>
         <input name="description" defaultValue={plan?.description ?? ''} className={INPUT} />
       </label>
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-xs text-muted-foreground">
-          Group it grants (marked plugin-grantable under Admin → Groups)
+          {context.t.t('dues.admin.plans.giftGroup')}
         </span>
         <input name="group" defaultValue={plan?.groupKey ?? ''} required className={INPUT} />
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs text-muted-foreground">Price in minor units — 500 is £5.00</span>
+          <span className="text-xs text-muted-foreground">
+            {context.t.t('dues.admin.plans.price')}
+          </span>
           <input
             type="number"
             name="price"
@@ -748,7 +759,9 @@ function PlanFields({ plan }: { plan?: PlanRow }) {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs text-muted-foreground">Currency</span>
+          <span className="text-xs text-muted-foreground">
+            {context.t.t('dues.admin.plans.currency')}
+          </span>
           <input
             name="currency"
             defaultValue={plan?.currency ?? ''}
@@ -762,7 +775,9 @@ function PlanFields({ plan }: { plan?: PlanRow }) {
       {(plan === undefined || plan.mode === 'fixed') && (
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-muted-foreground">Pass length</span>
+            <span className="text-xs text-muted-foreground">
+              {context.t.t('dues.admin.plans.length')}
+            </span>
             <input
               type="number"
               name="length"
@@ -772,29 +787,33 @@ function PlanFields({ plan }: { plan?: PlanRow }) {
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-muted-foreground">…counted in</span>
+            <span className="text-xs text-muted-foreground">
+              {context.t.t('dues.admin.plans.unit')}
+            </span>
             <select name="unit" defaultValue={period.unit} className={INPUT}>
-              <option value="days">days</option>
-              <option value="weeks">weeks</option>
-              <option value="months">months</option>
-              <option value="years">years</option>
+              <option value="days">{context.t.t('dues.admin.plans.days')}</option>
+              <option value="weeks">{context.t.t('dues.admin.plans.weeks')}</option>
+              <option value="months">{context.t.t('dues.admin.plans.months')}</option>
+              <option value="years">{context.t.t('dues.admin.plans.years')}</option>
             </select>
           </label>
         </div>
       )}
       {(plan === undefined || plan.mode === 'auto') && (
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs text-muted-foreground">Subscription bills every</span>
+          <span className="text-xs text-muted-foreground">
+            {context.t.t('dues.admin.plans.interval')}
+          </span>
           <select name="interval" defaultValue={plan?.billingInterval ?? 'month'} className={INPUT}>
-            <option value="month">month</option>
-            <option value="year">year</option>
+            <option value="month">{context.t.t('dues.admin.plans.month')}</option>
+            <option value="year">{context.t.t('dues.admin.plans.year')}</option>
           </select>
         </label>
       )}
       {(plan === undefined || plan.mode === 'auto') && (
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-xs text-muted-foreground">
-            Stripe price id — leave empty and one is minted to match
+            {context.t.t('dues.admin.plans.stripePrice')}
           </span>
           <input name="stripe_price" placeholder="price_…" autoComplete="off" className={INPUT} />
         </label>
@@ -806,11 +825,11 @@ function PlanFields({ plan }: { plan?: PlanRow }) {
             name="giftable"
             defaultChecked={plan === undefined ? true : plan.giftable}
           />
-          Can be bought for another member
+          {context.t.t('dues.admin.plans.canGift')}
         </label>
         <label className="flex items-center gap-2">
           <input type="checkbox" name="hidden" defaultChecked={plan?.hidden ?? false} />
-          Hidden from the shop
+          {context.t.t('dues.admin.plans.hidden')}
         </label>
       </div>
     </>
@@ -825,26 +844,27 @@ export async function PlansAdminPage({
   context: PluginAdminPageContext
 }) {
   const plans = await loadPlans(context.data, config)
-  const notice = Object.keys(PLAN_NOTICES).find((key) => context.query[key] !== undefined)
-  const error = PLAN_ERRORS[context.query.error ?? '']
+  const notice = Object.keys(PLAN_NOTICE_KEYS).find((key) => context.query[key] !== undefined)
+  const error = PLAN_ERROR_KEYS[context.query.error as keyof typeof PLAN_ERROR_KEYS]
 
   return (
     <div className="flex flex-col gap-4">
       {notice !== undefined && (
-        <GoodNotice>{PLAN_NOTICES[notice]!(context.query[notice]!)}</GoodNotice>
+        <GoodNotice>
+          {context.t.t(PLAN_NOTICE_KEYS[notice as keyof typeof PLAN_NOTICE_KEYS], {
+            key: context.query[notice],
+          })}
+        </GoodNotice>
       )}
       {error !== undefined && <BadNotice>{error}</BadNotice>}
 
-      <p className="text-sm text-muted-foreground">
-        Every purchase snapshots its plan — the name, the price, the currency, the length — so
-        editing here never rewrites what anyone already bought. A subscription price change mints a
-        new Stripe price: running subscriptions keep billing what they signed up for, and only the
-        next buyer sees the new number.
-      </p>
+      <p className="text-sm text-muted-foreground">{context.t.t('dues.admin.plans.editing')}</p>
 
       {plans.length > 0 && (
         <section className={CARD}>
-          <h2 className="font-heading text-lg font-semibold">The plans</h2>
+          <h2 className="font-heading text-lg font-semibold">
+            {context.t.t('dues.admin.plans.thePlans')}
+          </h2>
           <ul className="flex flex-col divide-y divide-border">
             {plans.map((plan) => (
               <li key={plan.id} className="flex flex-col gap-3 py-4">
@@ -854,21 +874,23 @@ export async function PlansAdminPage({
                     {plan.name}
                   </span>
                   <span className="text-sm text-muted-foreground">
-                    {formatMinor(plan.priceMinor, plan.currency)} · {describeBilling(plan)}
-                    {plan.hidden && ' · hidden'}
-                    {plan.archived && ' · off sale'}
+                    {formatMinor(plan.priceMinor, plan.currency, context.locale)} ·{' '}
+                    {describeBilling(plan)}
+                    {plan.hidden && ` · ${context.t.t('dues.admin.plans.hidden')}`}
+                    {plan.archived && ` · ${context.t.t('dues.admin.plans.offSale')}`}
                   </span>
                 </div>
                 {plan.mode === 'auto' && (
                   <p className="text-xs text-muted-foreground">
-                    Billing against{' '}
-                    <code>{plan.stripePriceId ?? 'no price yet — not buyable'}</code>
+                    {context.t.t('dues.admin.plans.billing', {
+                      price: plan.stripePriceId ?? context.t.t('dues.admin.plans.missingPrice'),
+                    })}
                   </p>
                 )}
                 {!plan.archived && (
                   <details>
                     <summary className="cursor-pointer text-sm text-muted-foreground">
-                      Edit this plan
+                      {context.t.t('dues.admin.plans.edit')}
                     </summary>
                     <form
                       method="post"
@@ -876,10 +898,10 @@ export async function PlansAdminPage({
                       className="mt-3 flex flex-col gap-3"
                     >
                       <input type="hidden" name="id" value={plan.id} />
-                      <PlanFields plan={plan} />
+                      <PlanFields plan={plan} context={context} />
                       <div>
                         <button type="submit" className={ACT_BUTTON}>
-                          Save the plan
+                          {context.t.t('dues.admin.plans.save')}
                         </button>
                       </div>
                     </form>
@@ -889,7 +911,9 @@ export async function PlansAdminPage({
                   <input type="hidden" name="id" value={plan.id} />
                   <input type="hidden" name="archived" value={plan.archived ? '0' : '1'} />
                   <button type="submit" className={QUIET_BUTTON}>
-                    {plan.archived ? 'Put it back on sale' : 'Take it off sale'}
+                    {context.t.t(
+                      plan.archived ? 'dues.admin.plans.putBack' : 'dues.admin.plans.takeOffSale',
+                    )}
                   </button>
                 </form>
               </li>
@@ -899,13 +923,10 @@ export async function PlansAdminPage({
       )}
 
       <section className={CARD}>
-        <h2 className="font-heading text-lg font-semibold">Add a plan</h2>
-        <p className="text-sm text-muted-foreground">
-          A <strong>pass</strong> is one payment for a fixed stretch — a day to two years. A{' '}
-          <strong>subscription</strong> renews by itself until cancelled. <strong>Lifetime</strong>{' '}
-          is one payment, forever. The key is the plan&rsquo;s permanent name in records and cannot
-          be changed later; everything else can.
-        </p>
+        <h2 className="font-heading text-lg font-semibold">
+          {context.t.t('dues.admin.plans.add')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{context.t.t('dues.admin.plans.addIntro')}</p>
         <form
           method="post"
           action="/admin/api/plugins/dues/plans/create"
@@ -913,29 +934,30 @@ export async function PlansAdminPage({
         >
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-muted-foreground">Key — permanent</span>
+              <span className="text-xs text-muted-foreground">
+                {context.t.t('dues.admin.plans.key')}
+              </span>
               <input name="key" placeholder="day-pass" required className={INPUT} />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-muted-foreground">How it bills</span>
+              <span className="text-xs text-muted-foreground">
+                {context.t.t('dues.admin.plans.bills')}
+              </span>
               <select name="mode" className={INPUT}>
-                <option value="fixed">a pass — one payment, fixed length</option>
-                <option value="auto">a subscription — renews itself</option>
-                <option value="lifetime">lifetime — one payment, forever</option>
+                <option value="fixed">{context.t.t('dues.admin.plans.fixed')}</option>
+                <option value="auto">{context.t.t('dues.admin.plans.subscription')}</option>
+                <option value="lifetime">{context.t.t('dues.admin.plans.lifetime')}</option>
               </select>
             </label>
           </div>
-          <PlanFields />
+          <PlanFields context={context} />
           <div>
             <button type="submit" className={ACT_BUTTON}>
-              Put it on sale
+              {context.t.t('dues.admin.plans.onSale')}
             </button>
           </div>
         </form>
-        <p className="text-xs text-muted-foreground">
-          Pass length and billing interval apply to the mode that uses them; the others ignore them.
-          A subscription needs Stripe configured, or a pasted price id.
-        </p>
+        <p className="text-xs text-muted-foreground">{context.t.t('dues.admin.plans.footer')}</p>
       </section>
     </div>
   )

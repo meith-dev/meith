@@ -192,7 +192,7 @@
   "plugins/dues/src/plans.ts": 1,
   "plugins/dues/src/store.ts": 12,
   "plugins/dues/src/stripe/client.ts": 1,
-  "plugins/dues/src/ui/admin.tsx": 62,
+  "plugins/dues/src/ui/admin.tsx": 3,
   "plugins/dues/src/ui/pages.tsx": 3,
   "plugins/reference/src/plugin.tsx": 13,
   "themes/default/src/slots/forum-row.tsx": 1,
