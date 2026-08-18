@@ -292,6 +292,9 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
         db,
         mail: drivers().mail,
         themeKey: forumConfig.defaultTheme,
+        themeTokens: Object.fromEntries(
+          Object.values(forumConfig.themes).map((theme) => [theme.key, theme.tokens]),
+        ),
         files: drivers().files,
         images: imageProcessor,
         plugins: activeDefinitions(),

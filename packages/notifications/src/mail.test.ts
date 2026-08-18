@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { type MailBrand, renderNotificationMail } from './mail'
+import { buildMailBrand, type MailBrand } from '@meith/mail'
+
+import { renderNotificationMail } from './mail'
 import type { NotificationView } from './render'
 
-const BRAND: MailBrand = {
+const BRAND: MailBrand = buildMailBrand({
   boardName: 'Test Board',
   boardUrl: 'https://board.example',
-  accent: '#aa0044',
-}
+  tokens: null,
+})
 
 const VIEW: NotificationView = {
   id: 1,
@@ -30,7 +32,8 @@ function render(view: Partial<NotificationView> = {}, brand: Partial<MailBrand> 
   })
 }
 
-const OWN_TAGS = /<\/?(?:div|p|a|br|hr)(?:\s[^<>]*)?>/g
+const OWN_TAGS =
+  /<\/?(?:!doctype html|html|head|meta|title|style|body|div|table|tr|td|p|h1|a|img|span|br)(?:\s[^<>]*)?>/gi
 
 describe('safety', () => {
   it('every "<" in the output is one this package wrote', () => {
@@ -52,18 +55,6 @@ describe('safety', () => {
     expect(mail.html).not.toContain('" onload="')
     expect(mail.html).toContain('a&quot; onload=&quot;alert(1)')
   })
-
-  it('refuses a colour that is not a colour', () => {
-    const mail = render({}, { accent: 'red; background:url(https://tracker.test/x)' })
-    expect(mail.html).not.toContain('tracker.test')
-    expect(mail.html).toContain('#3b5998')
-  })
-
-  it('accepts the colour forms a theme actually stores', () => {
-    for (const accent of ['#aa0044', 'rebeccapurple', 'oklch(0.6 0.2 250)', 'rgb(1, 2, 3)']) {
-      expect(render({}, { accent }).html).toContain(accent)
-    }
-  })
 })
 
 describe('links', () => {
@@ -81,10 +72,9 @@ describe('links', () => {
     expect(render().text).toContain('https://board.example/notifications/preferences')
   })
 
-  it('tolerates a trailing slash on the origin', () => {
-    const mail = render({}, { boardUrl: 'https://board.example/' })
-    expect(mail.text).toContain('https://board.example/notifications')
-    expect(mail.text).not.toContain('example//notifications')
+  it('offers the token link when the notification carries one', () => {
+    const mail = render({ unsubscribeToken: 'abc def' })
+    expect(mail.text).toContain('https://board.example/unsubscribe?token=abc%20def')
   })
 })
 
@@ -105,13 +95,12 @@ describe('the message', () => {
   })
 
   it('splits the body into paragraphs rather than relying on pre-wrap', () => {
-    const mail = render()
-    expect(mail.html.match(/<p/g)?.length ?? 0).toBeGreaterThanOrEqual(4)
+    expect(render().html.match(/<p class="m-text"/g)?.length ?? 0).toBe(3)
   })
 
   it('omits the body block entirely when there is nothing to say', () => {
     const mail = render({ body: '' })
     expect(mail.text).toContain('You have been warned')
-    expect(mail.html).not.toContain('<p style="margin:0 0 16px"></p>')
+    expect(mail.html.match(/<p class="m-text"/g)?.length ?? 0).toBe(1)
   })
 })

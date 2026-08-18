@@ -1,5 +1,5 @@
 {
-  "name": "@meith/notifications",
+  "name": "@meith/mail",
   "version": "0.8.0",
   "private": true,
   "type": "module",
@@ -8,6 +8,8 @@
   "dependencies": {
     "@meith/core": "workspace:*",
     "@meith/i18n": "workspace:*",
-    "@meith/mail": "workspace:*"
+    "@meith/markdown": "workspace:*",
+    "@meith/settings": "workspace:*",
+    "@meith/theme-kit": "workspace:*"
   }
 }

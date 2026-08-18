@@ -1,6 +1,6 @@
 import type { Translator } from '@meith/i18n'
+import { oklchToRgb, parseColour, relativeLuminance } from '@meith/theme-kit'
 
-import { oklchToRgb, parseColour, relativeLuminance } from './oklch'
 import { untranslated } from './time'
 
 export type ContrastNeed = 'text' | 'large-text' | 'non-text'

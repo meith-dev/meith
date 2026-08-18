@@ -1,4 +1,4 @@
-import { colourToHex } from '@/view/oklch'
+import { colourToHex } from '@meith/theme-kit'
 
 export interface ThemeTokens {
   readonly light: Readonly<Record<string, string>>
@@ -111,7 +111,7 @@ function declarations(values: Readonly<Record<string, string>>): string {
     .join('')
 }
 
-function effectiveTokens(theme: BoardTheme): ThemeTokens {
+export function effectiveTokens(theme: BoardTheme): ThemeTokens {
   const overrides = validateTokenOverrides(theme.tokens, theme.overrides)
   return {
     light: { ...theme.tokens.light, ...overrides.light },

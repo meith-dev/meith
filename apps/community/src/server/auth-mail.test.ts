@@ -21,6 +21,9 @@ const settings = vi.hoisted(() => ({
     'board.name': 'The Townland',
     'mail.from_name': '',
     'board.url': '',
+    'board.logo_light': '',
+    'board.logo_dark': '',
+    'board.logo_alt': '',
   } as Record<string, string>,
 }))
 
@@ -54,6 +57,9 @@ beforeEach(() => {
     'board.name': 'The Townland',
     'mail.from_name': '',
     'board.url': '',
+    'board.logo_light': '',
+    'board.logo_dark': '',
+    'board.logo_alt': '',
   }
 })
 

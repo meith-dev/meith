@@ -2,11 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MailDriver, OutgoingMail } from '@meith/core'
 import { sourceTranslator } from '@meith/i18n'
+import { buildMailBrand } from '@meith/mail'
 
 import { deliverNotificationEmail } from './deliver'
 import type { DeliverableNotification, NotificationRepository } from './types'
 
-const BRAND = { boardName: 'Test Board', boardUrl: 'https://board.example', accent: '#123456' }
+const BRAND = buildMailBrand({
+  boardName: 'Test Board',
+  boardUrl: 'https://board.example',
+  tokens: null,
+})
 
 class CollectingMail implements MailDriver {
   readonly sent: OutgoingMail[] = []

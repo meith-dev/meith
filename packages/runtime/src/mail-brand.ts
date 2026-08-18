@@ -1,72 +1,83 @@
 import { env, logger } from '@meith/core'
 import { type Database, PostgresSettingsRepository, PostgresThemeRepository } from '@meith/db'
-import type { MailBrand } from '@meith/notifications'
+import {
+  buildMailBrand,
+  type MailBrand,
+  mergeTokenOverrides,
+  type ThemeTokenSet,
+} from '@meith/mail'
 import { resolveBoardUrl, SettingsSnapshot } from '@meith/settings'
+import { DARK_TOKENS, LIGHT_TOKENS } from '@meith/theme-default'
 
 export const DEFAULT_THEME_KEY = 'default'
 
-const FALLBACK_ACCENT = '#3b5998'
+export type ThemeTokenRegistry = Readonly<Record<string, ThemeTokenSet>>
 
-const ACCENT_KEYS = ['primary', 'accent', 'brand'] as const
-
-function readAccent(overrides: unknown): string | null {
-  if (overrides === null || typeof overrides !== 'object') return null
-  const record = overrides as Record<string, unknown>
-
-  for (const key of ACCENT_KEYS) {
-    const value = record[key]
-    if (typeof value === 'string' && value.trim() !== '') return value.trim()
-    const light = record.light
-    if (light !== null && typeof light === 'object') {
-      const nested = (light as Record<string, unknown>)[key]
-      if (typeof nested === 'string' && nested.trim() !== '') return nested.trim()
-    }
-  }
-  return null
+export const SHIPPED_TOKENS: ThemeTokenRegistry = {
+  [DEFAULT_THEME_KEY]: { light: LIGHT_TOKENS, dark: DARK_TOKENS },
 }
 
-export async function resolveMailBrand(deps: {
+export interface MailBrandDeps {
   readonly db: Database
   readonly themeKey?: string
-}): Promise<MailBrand> {
-  const themeKey = deps.themeKey ?? DEFAULT_THEME_KEY
+  readonly themeTokens?: ThemeTokenRegistry
+}
 
+async function themeTokens(deps: MailBrandDeps): Promise<ThemeTokenSet | null> {
+  const registry = deps.themeTokens ?? SHIPPED_TOKENS
+  const buildKey = deps.themeKey ?? DEFAULT_THEME_KEY
+
+  const rows = await new PostgresThemeRepository(deps.db).listRuntime()
+  const claimed = rows.find(
+    (row) => row.isDefault && row.enabled && registry[row.key] !== undefined,
+  )
+
+  const key = claimed?.key ?? buildKey
+  const baseline = registry[key] ?? registry[DEFAULT_THEME_KEY] ?? SHIPPED_TOKENS[DEFAULT_THEME_KEY]
+  if (baseline === undefined) return null
+
+  const overrides = rows.find((row) => row.key === key)?.tokenOverrides ?? null
+
+  return mergeTokenOverrides(baseline, overrides)
+}
+
+export async function resolveMailBrand(deps: MailBrandDeps): Promise<MailBrand> {
   let boardName = ''
   let fromName = ''
   let boardUrl = ''
-  let accent: string | null = null
+  let logo: { lightKey: string; darkKey: string; alt: string } | undefined
+  let tokens: ThemeTokenSet | null = null
 
   try {
     const overrides = await new PostgresSettingsRepository(deps.db).loadAll()
     const settings = SettingsSnapshot.fromOverrides(new Map(overrides))
+
     boardName = settings.get('board.name')
     fromName = settings.get('mail.from_name')
     boardUrl = resolveBoardUrl({ environment: env, settings }).url
+
+    const alt = settings.get('board.logo_alt').trim()
+    logo = {
+      lightKey: settings.get('board.logo_light'),
+      darkKey: settings.get('board.logo_dark'),
+      alt: alt === '' ? boardName : alt,
+    }
   } catch (err) {
     logger({ module: 'mail-brand' }).warn({ err }, 'could not read board name for mail')
   }
 
   try {
-    const theme = await new PostgresThemeRepository(deps.db).findRuntimeByKey(themeKey)
-    accent = readAccent(theme?.tokenOverrides ?? null)
+    tokens = await themeTokens(deps)
   } catch (err) {
     logger({ module: 'mail-brand' }).warn({ err }, 'could not read theme tokens for mail')
+    tokens = SHIPPED_TOKENS[DEFAULT_THEME_KEY] ?? null
   }
 
-  return {
+  return buildMailBrand({
     boardName,
     fromName,
     boardUrl,
-    accent: accent ?? FALLBACK_ACCENT,
-  }
-}
-
-export async function resolveSenderName(db: Database): Promise<string> {
-  try {
-    const overrides = await new PostgresSettingsRepository(db).loadAll()
-    return SettingsSnapshot.fromOverrides(new Map(overrides)).get('mail.from_name')
-  } catch (err) {
-    logger({ module: 'mail-brand' }).warn({ err }, 'could not read the sender name for mail')
-    return ''
-  }
+    tokens,
+    ...(logo === undefined ? {} : { logo }),
+  })
 }

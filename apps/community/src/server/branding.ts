@@ -5,16 +5,15 @@ import { cache } from 'react'
 import { CacheTags } from '@meith/core'
 import { getDb, PostgresSettingsRepository } from '@meith/db'
 import { drivers } from '@meith/drivers'
-import { saveSettings } from '@meith/settings'
+import { isLogoKey, type LogoScheme, logoPath, saveSettings } from '@meith/settings'
 
-import { forgetImage, type ImageScheme, isImageScheme, storeImage } from './image-upload'
+import { forgetImage, storeImage } from './image-upload'
 import { getSettings } from './settings'
 import { currentColourScheme } from './theme'
 
 export const LOGO_FIELD = 'logo'
 
-export type LogoScheme = ImageScheme
-export const isLogoScheme = isImageScheme
+export { isLogoScheme, type LogoScheme } from '@meith/settings'
 
 const SETTING_FOR: Record<LogoScheme, 'board.logo_light' | 'board.logo_dark'> = {
   light: 'board.logo_light',
@@ -51,12 +50,10 @@ export async function removeLogo(scheme: LogoScheme): Promise<void> {
 
 export async function logoKey(scheme: LogoScheme): Promise<string | null> {
   const key = (await getSettings()).get(SETTING_FOR[scheme])
-  return /^board\/logo-(light|dark)-[a-f0-9-]{36}\.(png|jpg|webp|svg)$/.test(key) ? key : null
+  return isLogoKey(key) ? key : null
 }
 
-export function logoSrc(scheme: LogoScheme, key: string): string {
-  return `/logo/${scheme}?v=${key.slice(-16, -4)}`
-}
+export const logoSrc = logoPath
 
 export interface BoardLogo {
   readonly src: string

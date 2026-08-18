@@ -32,6 +32,8 @@ import {
   PostgresWarningRepository,
   PostgresWebhookRepository,
 } from '@meith/db'
+import { EN_CATALOG, sourceTranslator } from '@meith/i18n'
+import { renderMail } from '@meith/mail'
 import {
   deliverNotificationEmail,
   NotificationService,
@@ -43,7 +45,7 @@ import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/t
 
 import { buildEventRegistry } from './event-handlers'
 import { SEED_GROUP } from './groups'
-import { resolveMailBrand, resolveSenderName } from './mail-brand'
+import { resolveMailBrand, type ThemeTokenRegistry } from './mail-brand'
 import { pluginTasks } from './plugin-tasks'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 import { visibleForumSource } from './visible-forums'
@@ -59,12 +61,17 @@ export function buildSchedulerBundle(deps: {
   readonly db?: Database
   readonly mail?: MailDriver
   readonly themeKey?: string
+  readonly themeTokens?: ThemeTokenRegistry
   readonly files?: FileStore
   readonly images?: ImageProcessor
   readonly plugins?: readonly PluginDefinition[]
   readonly translatorForLocale?: NotificationTranslatorResolver
 }): SchedulerBundle {
   const db = deps.db ?? getDb()
+  const themeDeps = {
+    ...(deps.themeKey === undefined ? {} : { themeKey: deps.themeKey }),
+    ...(deps.themeTokens === undefined ? {} : { themeTokens: deps.themeTokens }),
+  }
   const threadViews = new PostgresThreadViewBuffer(db)
   const notifications = new PostgresNotificationRepository(db)
   const mail = deps.mail
@@ -127,11 +134,37 @@ export function buildSchedulerBundle(deps: {
                         massMailId,
                       )
                       if (campaign === null) return
-                      const fromName = await resolveSenderName(db)
+
+                      const brand = await resolveMailBrand({ db, ...themeDeps })
+                      const t = await (
+                        deps.translatorForLocale ?? (() => sourceTranslator(EN_CATALOG))
+                      )('')
+
+                      const rendered = renderMail({
+                        brand,
+                        t,
+                        body: {
+                          title: campaign.subject,
+                          paragraphs: campaign.body.split(/\n{2,}/),
+                          footer: [
+                            {
+                              text: t.t('mail.footer.sentBy', {
+                                board:
+                                  brand.boardName === ''
+                                    ? t.t('mail.boardFallback')
+                                    : brand.boardName,
+                              }),
+                            },
+                          ],
+                        },
+                      })
+
+                      const fromName = brand.fromName ?? ''
                       await mail.send({
                         to: email,
                         subject: campaign.subject,
-                        text: campaign.body,
+                        text: rendered.text,
+                        html: rendered.html,
                         ...(fromName === '' ? {} : { fromName }),
                       })
                     },
@@ -141,10 +174,7 @@ export function buildSchedulerBundle(deps: {
                       await deliverNotificationEmail({
                         notifications,
                         mail,
-                        brand: await resolveMailBrand({
-                          db,
-                          ...(deps.themeKey === undefined ? {} : { themeKey: deps.themeKey }),
-                        }),
+                        brand: await resolveMailBrand({ db, ...themeDeps }),
                         notificationId,
                         ...(deps.translatorForLocale === undefined
                           ? {}

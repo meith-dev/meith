@@ -15,10 +15,13 @@
     "@meith/drivers": "workspace:*",
     "@meith/events": "workspace:*",
     "@meith/groups": "workspace:*",
+    "@meith/i18n": "workspace:*",
+    "@meith/mail": "workspace:*",
     "@meith/moderation": "workspace:*",
     "@meith/notifications": "workspace:*",
     "@meith/plugin-kit": "workspace:*",
     "@meith/settings": "workspace:*",
-    "@meith/tasks": "workspace:*"
+    "@meith/tasks": "workspace:*",
+    "@meith/theme-default": "workspace:*"
   }
 }

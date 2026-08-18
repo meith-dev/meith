@@ -9,7 +9,7 @@ import {
   oklchToRgb,
   parseColour,
   rgbToHex,
-} from '@/view/oklch'
+} from '@meith/theme-kit'
 
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 
