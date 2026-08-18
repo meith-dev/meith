@@ -7,6 +7,8 @@ import { cn } from '@meith/ui'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { thankForPostAction } from '@/server/reputation-actions'
 
+import { formatFromCopy, fromCopy, useCopy } from '../shell/copy'
+
 export function ThanksButton({
   postId,
   authorUserId,
@@ -21,6 +23,7 @@ export function ThanksButton({
   count: number
 }) {
   const [state, action] = useActionState(thankForPostAction, EMPTY_STATE)
+  const copy = useCopy()
 
   return (
     <form action={action} className="inline-flex items-center">
@@ -40,13 +43,15 @@ export function ThanksButton({
         )}
       >
         <span aria-hidden="true">{thanked ? '★' : '☆'}</span>
-        {thanked ? 'Thanked' : 'Thanks'}
+        {thanked
+          ? fromCopy(copy, 'composer.thanks.thanked')
+          : fromCopy(copy, 'composer.thanks.thanks')}
         {count > 0 && (
           <span className="tabular-nums opacity-70">
             {count}
             <span className="sr-only">
               {' '}
-              {count === 1 ? 'person has' : 'people have'} thanked this
+              {formatFromCopy(copy, 'composer.thanks.count', { count })}
             </span>
           </span>
         )}

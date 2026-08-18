@@ -12,6 +12,7 @@ import {
   passkeysEnabled,
   relyingParty,
 } from '@/server/federation'
+import { tr } from '@/server/i18n'
 import { type PasskeyPurpose, packChallenge } from '@/server/passkey-challenge'
 import { crossOriginRefusal, isSameOrigin } from '@/server/same-origin'
 import { readSecondFactorToken, setPasskeyChallengeCookie } from '@/server/session-cookies'
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!isSameOrigin(request)) return crossOriginRefusal()
 
   if (!(await passkeysEnabled())) {
-    return problem('Passkeys are not switched on for this board.', 404)
+    return problem(await tr('authRoute.passkey.disabled'), 404)
   }
 
   const asked = request.nextUrl.searchParams.get('for')
@@ -52,12 +53,12 @@ export async function POST(request: NextRequest): Promise<Response> {
           : await (await configuredIdentity()).pendingSecondFactor(held)
 
       if (pending === null) {
-        return problem('That sign-in took too long to finish. Start again.', 403)
+        return problem(await tr('authRoute.passkey.signInExpired'), 403)
       }
 
       const heldPasskeys = await getContainer().accountStore.passkeys.listForUser(pending.userId)
       if (heldPasskeys.length === 0) {
-        return problem('That account has no passkey to confirm with.', 403)
+        return problem(await tr('authRoute.passkey.noneForAccount'), 403)
       }
 
       const options = (await passkeyService()).assertionOptions({
@@ -81,10 +82,10 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     const actor = await getActor()
     if (actor.userId === null) {
-      return problem('Sign in before adding a passkey.', 403)
+      return problem(await tr('authRoute.passkey.signInBeforeAdding'), 403)
     }
     if (!(await memberManagedSignIns())) {
-      return problem('This board manages sign-ins for its members.', 403)
+      return problem(await tr('authRoute.passkey.managedSignIns'), 403)
     }
 
     const options = await (await passkeyService()).registrationOptions({

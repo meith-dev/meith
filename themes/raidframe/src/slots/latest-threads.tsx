@@ -1,14 +1,21 @@
-import type { LatestThreadsModel } from '@meith/theme-kit'
+import type { LatestThreadsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Frame, MICRO, NUMERIC, PanelHead, Stamp, UserRef } from '../shared'
 
-export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
+export function LatestThreads({
+  threads,
+  capturedAt,
+  copy,
+}: LatestThreadsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.latestThreads.${key}`)
+
   return (
     <Frame aria-labelledby="latest-threads-heading">
-      <PanelHead id="latest-threads-heading" title="Latest threads" />
+      <PanelHead id="latest-threads-heading" title={c('heading')} />
 
       {threads.length === 0 ? (
-        <p className={`${MICRO} px-3 py-2.5`}>nothing started yet</p>
+        <p className={`${MICRO} px-3 py-2.5`}>{c('empty')}</p>
       ) : (
         <ul className="divide-y divide-border">
           {threads.map((thread) => (
@@ -30,7 +37,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
                 <Stamp at={thread.startedAt} />
                 <span className="text-border">{' | '}</span>
                 <span className={NUMERIC}>{thread.replyCount.label}</span>
-                <span className="uppercase"> replies</span>
+                <span className="uppercase">{c('replies')}</span>
               </p>
             </li>
           ))}
@@ -38,7 +45,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
       )}
 
       <p className={`${MICRO} border-t border-border px-3 py-1.5 normal-case`}>
-        <span className="uppercase">as of</span> <Stamp at={capturedAt} />
+        <span className="uppercase">{c('asOf')}</span> <Stamp at={capturedAt} />
       </p>
     </Frame>
   )

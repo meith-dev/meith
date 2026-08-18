@@ -1,9 +1,12 @@
-import type { ThreadRowSlotModel } from '@meith/theme-kit'
+import type { SlotCopy, ThreadRowSlotModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Badge } from '@meith/ui'
 
 import { Counts, LINK, Prefix, ReadSpacer, Stamp, UnreadDot, UserRef } from '../shared'
 
-export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
+export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.threadRow.${key}`)
+
   return (
     <li
       data-unread={thread.isUnread ? '' : undefined}
@@ -29,9 +32,9 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
-          {thread.isSticky && <Badge tone="pinned">Pinned</Badge>}
-          {thread.isLocked && <Badge tone="locked">Locked</Badge>}
-          {thread.isMoved && <Badge tone="moved">Moved</Badge>}
+          {thread.isSticky && <Badge tone="pinned">{c('pinned')}</Badge>}
+          {thread.isLocked && <Badge tone="locked">{c('locked')}</Badge>}
+          {thread.isMoved && <Badge tone="moved">{c('moved')}</Badge>}
 
           <a
             href={thread.href}
@@ -42,11 +45,11 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
           >
             {thread.title}
           </a>
-          {thread.isUnread && <span className="sr-only"> (new posts)</span>}
+          {thread.isUnread && <span className="sr-only"> {c('newPosts')}</span>}
         </div>
 
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Started by <UserRef user={thread.author} className="font-normal" />
+          {c('startedBy')} <UserRef user={thread.author} className="font-normal" />
         </p>
       </div>
 
@@ -54,32 +57,30 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
         className="col-start-2 md:col-start-3 md:justify-end"
         items={[
           {
-            label: 'Replies',
+            label: c('repliesLabel'),
             value: thread.replyCount,
-            one: 'reply',
-            many: 'replies',
+            one: c('reply.one'),
+            many: c('reply.other'),
           },
           {
-            label: 'Views',
+            label: c('viewsLabel'),
             value: thread.viewCount,
-            one: 'view',
-            many: 'views',
+            one: c('view.one'),
+            many: c('view.other'),
           },
         ]}
       />
 
       <div className="col-start-2 min-w-0 text-xs text-muted-foreground md:col-start-4">
         {thread.lastPost === null ? (
-          <span className="text-thread-moved">No replies yet</span>
+          <span className="text-thread-moved">{c('noRepliesYet')}</span>
         ) : (
           <>
             <a href={thread.lastPost.href} className={`block font-medium text-foreground ${LINK}`}>
-              Latest reply
+              {c('latestReply')}
             </a>
             <span className="mt-0.5 block truncate">
-              {'by '}
-              <UserRef user={thread.lastPost.author} className="font-normal" />
-              {' · '}
+              {c('by')} <UserRef user={thread.lastPost.author} className="font-normal" /> {c('dot')}{' '}
               <Stamp at={thread.lastPost.at} />
             </span>
           </>

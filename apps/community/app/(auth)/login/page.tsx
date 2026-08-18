@@ -7,23 +7,23 @@ import { LoginForm } from '@/components/auth/login-form'
 import { PasskeySignIn } from '@/components/auth/passkey-sign-in'
 import { SsoButtons } from '@/components/auth/sso-buttons'
 import { passkeysEnabled, signInProviders } from '@/server/federation'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { registrationOpen } from '@/server/registration'
+import { loginFormCopy, passkeyCopy, ssoButtonModels, ssoButtonsCopy } from '@/view/auth-copy'
 import { ssoNotice } from '@/view/sso-notices'
 
-export const metadata: Metadata = { title: 'Sign in' }
-
-const NOTICES: Record<string, string> = {
-  installed: 'Your board is installed. Sign in with the administrator account you just created.',
-  registered: 'Account created. You can sign in now.',
-  reset: 'Your password has been changed. Sign in with your new password.',
-  activated: 'Your address is confirmed. You can sign in now.',
-  confirmed:
-    'Your address is confirmed. An administrator will review your account before you can sign in.',
-  already: 'That account is already active. Sign in below.',
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.sign') }
 }
 
-const VERIFY_FAILED = 'That confirmation link is no longer valid. Ask for a new one below.'
+const NOTICE_KEYS: Record<string, string> = {
+  installed: 'authNotice.installed',
+  registered: 'authNotice.registered',
+  reset: 'authNotice.reset',
+  activated: 'authNotice.activated',
+  confirmed: 'authNotice.confirmed',
+  already: 'authNotice.already',
+}
 
 export default async function LoginPage({
   searchParams,
@@ -41,28 +41,34 @@ export default async function LoginPage({
   }>
 }) {
   const params = await searchParams
-  const federated = ssoNotice(params.sso, await getTranslator())
-  const notice = params.installed
-    ? NOTICES.installed
+  const t = await getTranslator()
+  const federated = ssoNotice(params.sso, t)
+  const noticeKey = params.installed
+    ? NOTICE_KEYS.installed
     : params.registered
-      ? NOTICES.registered
+      ? NOTICE_KEYS.registered
       : params.reset
-        ? NOTICES.reset
+        ? NOTICE_KEYS.reset
         : params.activated
-          ? NOTICES.activated
+          ? NOTICE_KEYS.activated
           : params.confirmed
-            ? NOTICES.confirmed
+            ? NOTICE_KEYS.confirmed
             : params.already
-              ? NOTICES.already
+              ? NOTICE_KEYS.already
               : undefined
+  const notice = noticeKey === undefined ? undefined : t.t(noticeKey)
 
   const links: AuthLinkModel[] = [
-    { label: 'Forgot your password?', href: '/reset', lead: null },
-    { label: 'Need a new confirmation link?', href: '/verify/resend', lead: null },
+    { label: t.t('authLink.forgotPassword'), href: '/reset', lead: null },
+    { label: t.t('authLink.needConfirmation'), href: '/verify/resend', lead: null },
   ]
 
   if (await registrationOpen()) {
-    links.push({ label: 'Create an account', href: '/register', lead: 'New here?' })
+    links.push({
+      label: t.t('authLink.createAccount'),
+      href: '/register',
+      lead: t.t('authLink.newHere'),
+    })
   }
 
   const providers = await signInProviders()
@@ -70,20 +76,30 @@ export default async function LoginPage({
 
   const alert =
     params.verify === 'failed'
-      ? VERIFY_FAILED
+      ? t.t('authNotice.verifyFailed')
       : federated?.kind === 'warning'
         ? federated.message
         : null
 
   return (
-    <AuthPage title="Welcome back" lede="Sign in to your account." alert={alert} links={links}>
+    <AuthPage
+      title={await tr('page.welcome-back')}
+      lede={await tr('page.sign-account')}
+      alert={alert}
+      links={links}
+    >
       <div className="flex flex-col gap-4">
-        <SsoButtons providers={providers} next={params.next} />
+        <SsoButtons
+          providers={ssoButtonModels(providers, t)}
+          next={params.next}
+          copy={ssoButtonsCopy(t)}
+        />
         <LoginForm
           next={params.next}
           notice={federated?.kind === 'info' ? federated.message : notice}
+          copy={loginFormCopy(t)}
         />
-        {passkeys ? <PasskeySignIn next={params.next} /> : null}
+        {passkeys ? <PasskeySignIn next={params.next} copy={passkeyCopy(t)} /> : null}
       </div>
     </AuthPage>
   )

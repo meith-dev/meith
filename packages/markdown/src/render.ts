@@ -7,6 +7,7 @@ import { safeImageUrl, safeUrl } from './url'
 export interface RenderContext {
   readonly smilies?: CompiledSmilies | undefined
   readonly headingOffset?: number
+  readonly quoteAttribution?: ((author: string) => string) | undefined
 }
 
 const LANGUAGE = /^[a-z0-9][a-z0-9+#._-]{0,23}$/i
@@ -71,7 +72,7 @@ export function renderInline(nodes: readonly Inline[], context: RenderContext = 
   return html
 }
 
-function renderAttribution(attribution: QuoteAttribution): string {
+function renderAttribution(attribution: QuoteAttribution, context: RenderContext): string {
   const name = escapeHtml(attribution.name)
   const profile = attribution.href === null ? null : safeUrl(attribution.href)
   const author = profile === null ? name : anchor(profile, null, name, 'md-quote-author')
@@ -82,7 +83,8 @@ function renderAttribution(attribution: QuoteAttribution): string {
       ? ''
       : anchor(source, null, escapeHtml(attribution.sourceLabel), 'md-quote-source')
 
-  return `<p class="md-quote-attribution"><strong>${author} wrote:</strong>${citation}</p>\n`
+  const label = context.quoteAttribution?.(author) ?? `${author} wrote:`
+  return `<p class="md-quote-attribution"><strong>${label}</strong>${citation}</p>\n`
 }
 
 function renderItem(item: ListItem, tight: boolean, context: RenderContext): string {
@@ -109,7 +111,7 @@ function renderBlocks(blocks: readonly Block[], context: RenderContext, tight = 
       case 'quote': {
         const attribution = quoteAttribution(block.children[0])
         const body = attribution === null ? block.children : block.children.slice(1)
-        html += `<blockquote class="md-quote">${attribution === null ? '' : renderAttribution(attribution)}${renderBlocks(body, context)}</blockquote>\n`
+        html += `<blockquote class="md-quote">${attribution === null ? '' : renderAttribution(attribution, context)}${renderBlocks(body, context)}</blockquote>\n`
         break
       }
       case 'list': {

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { PERMISSION_FIELDS, ValidationError } from '@meith/core'
 import { permissionsCarryPower } from '@meith/db'
 import type { PromotionRuleInput } from '@meith/groups'
+import { msg } from '@meith/i18n'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import type { FormState } from './auth-form-state'
@@ -17,7 +18,7 @@ const CHUNK = 500
 
 function groupId(form: FormData, name = 'groupId'): number {
   const id = Number(trimmedText(form, name))
-  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError('No such group.')
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError(msg('error.app.such-group'))
   return id
 }
 
@@ -34,7 +35,8 @@ function refreshPromotionScreen(): void {
 
 function ruleId(form: FormData): number {
   const id = Number(trimmedText(form, 'id'))
-  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError('No such promotion rule.')
+  if (!Number.isSafeInteger(id) || id <= 0)
+    throw new ValidationError(msg('error.app.such-promotion-rule'))
   return id
 }
 
@@ -71,11 +73,11 @@ export async function saveGroupIdentityAction(
     const id = groupId(form)
 
     const title = trimmedText(form, 'title')
-    if (title === '') throw new ValidationError('A group needs a title.')
+    if (title === '') throw new ValidationError(msg('error.app.group-needs-title'))
 
     const order = Number(trimmedText(form, 'displayOrder'))
     if (!Number.isSafeInteger(order) || order < 0) {
-      throw new ValidationError('Display order must be a whole number.')
+      throw new ValidationError(msg('error.app.display-order-must-whole-number'))
     }
 
     const isStaffGroup = checkbox(form, 'isStaffGroup')
@@ -83,23 +85,16 @@ export async function saveGroupIdentityAction(
 
     if (pluginGrantable) {
       if (isStaffGroup) {
-        throw new ValidationError(
-          'A staff group cannot be granted by plugins — staff is appointed, not sold.',
-        )
+        throw new ValidationError(msg('error.app.staff-group-granted-by-plugins'))
       }
       const repository = requireGroupAdmin()
       const summary = (await repository.list()).find((group) => group.id === id)
       if (summary?.isSystem === true) {
-        throw new ValidationError(
-          'A system group cannot be granted by plugins. The board resolves it by key.',
-        )
+        throw new ValidationError(msg('error.app.system-group-granted-by-plugins'))
       }
       const permissions = await repository.readPermissions(id)
       if (permissions !== null && permissionsCarryPower(permissions)) {
-        throw new ValidationError(
-          'This group carries administrative or moderation power, so plugins may not grant it. ' +
-            'Make a separate group for what a plugin hands out.',
-        )
+        throw new ValidationError(msg('error.app.group-carries-administrative-moderation-power'))
       }
     }
 
@@ -162,20 +157,14 @@ export async function createGroupAction(_prev: FormState, form: FormData): Promi
 
     const key = trimmedText(form, 'key')
     if (!/^[a-z][a-z0-9_]*$/.test(key)) {
-      throw new ValidationError(
-        'A key may contain lower-case letters, numbers and underscores, and must start with a letter.',
-      )
+      throw new ValidationError(msg('error.app.key-contain-lower-case-letters-numbers'))
     }
 
     const title = trimmedText(form, 'title')
-    if (title === '') throw new ValidationError('A group needs a title.')
+    if (title === '') throw new ValidationError(msg('error.app.group-needs-title'))
 
     if (trimmedText(form, 'copyFromGroupId') === '') {
-      throw new ValidationError(
-        'Choose a group to copy permissions from. Starting from the defaults ' +
-          'would deny everything, which makes a group whose members cannot see ' +
-          'the board.',
-      )
+      throw new ValidationError(msg('error.app.choose-group-copy-permissions-from'))
     }
 
     const id = await requireGroupAdmin().create({
@@ -221,7 +210,7 @@ export async function moveMembersAction(_prev: FormState, form: FormData): Promi
 
     const after = Number(trimmedText(form, 'afterUserId') || '0')
     if (!Number.isSafeInteger(after) || after < 0) {
-      throw new ValidationError('Lost track of where the run had got to. Start again.')
+      throw new ValidationError(msg('error.app.lost-track-where-run-had'))
     }
 
     const chunk = await requireGroupAdmin().moveMembersChunk({

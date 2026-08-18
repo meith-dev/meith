@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 export const MODCP_PAGE_SIZE = 25
 
@@ -118,7 +119,7 @@ export class ModeratorPanel {
     readonly matches: readonly IpMatch[]
   }> {
     if (!input.rights.access || !input.rights.ipLookup) {
-      throw new ValidationError('You cannot look up addresses.')
+      throw new ValidationError(msg('error.moderation.look-up-addresses'))
     }
 
     const prefixes = await this.repo.ipPrefixesFor(input.subjectUserId)
@@ -135,39 +136,39 @@ export class ModeratorPanel {
   }
 }
 
-export const MOD_LOG_LABELS: Readonly<Record<string, string>> = {
-  'moderation.approve': 'Approved held content',
-  'moderation.reject': 'Rejected held content',
-  'thread.lock': 'Locked a thread',
-  'thread.unlock': 'Unlocked a thread',
-  'thread.stick': 'Pinned a thread',
-  'thread.unstick': 'Unpinned a thread',
-  'thread.move': 'Moved a thread',
-  'thread.delete': 'Deleted a thread',
-  'thread.restore': 'Restored a thread',
-  'thread.split': 'Split a thread',
-  'thread.merge': 'Merged two threads',
-  'thread.copy': 'Copied a thread',
-  'inline.approve': 'Approved a selection',
-  'inline.delete': 'Deleted a selection',
-  'inline.restore': 'Restored a selection',
-  'inline.lock': 'Locked a selection',
-  'inline.unlock': 'Unlocked a selection',
-  'inline.stick': 'Pinned a selection',
-  'inline.unstick': 'Unpinned a selection',
-  'inline.move': 'Moved a selection',
-  'post.edit': 'Edited a post they did not write',
-  'post.delete': 'Deleted a post',
-  'post.restore': 'Restored a post',
-  'report.resolve': 'Resolved a report',
-  'report.reject': 'Rejected a report',
-  'warning.issue': 'Issued a warning',
-  'warning.revoke': 'Revoked a warning',
-  'signature.lock': 'Locked a signature',
-  'signature.unlock': 'Unlocked a signature',
-  'avatar.lock': 'Locked an avatar',
-  'avatar.unlock': 'Unlocked an avatar',
-  'modcp.ip_lookup': 'Looked up an address',
+export const MOD_LOG_LABEL_KEYS: Readonly<Record<string, string>> = {
+  'moderation.approve': 'board.modlog.moderation.approve',
+  'moderation.reject': 'board.modlog.moderation.reject',
+  'thread.lock': 'board.modlog.thread.lock',
+  'thread.unlock': 'board.modlog.thread.unlock',
+  'thread.stick': 'board.modlog.thread.stick',
+  'thread.unstick': 'board.modlog.thread.unstick',
+  'thread.move': 'board.modlog.thread.move',
+  'thread.delete': 'board.modlog.thread.delete',
+  'thread.restore': 'board.modlog.thread.restore',
+  'thread.split': 'board.modlog.thread.split',
+  'thread.merge': 'board.modlog.thread.merge',
+  'thread.copy': 'board.modlog.thread.copy',
+  'inline.approve': 'board.modlog.inline.approve',
+  'inline.delete': 'board.modlog.inline.delete',
+  'inline.restore': 'board.modlog.inline.restore',
+  'inline.lock': 'board.modlog.inline.lock',
+  'inline.unlock': 'board.modlog.inline.unlock',
+  'inline.stick': 'board.modlog.inline.stick',
+  'inline.unstick': 'board.modlog.inline.unstick',
+  'inline.move': 'board.modlog.inline.move',
+  'post.edit': 'board.modlog.post.edit',
+  'post.delete': 'board.modlog.post.delete',
+  'post.restore': 'board.modlog.post.restore',
+  'report.resolve': 'board.modlog.report.resolve',
+  'report.reject': 'board.modlog.report.reject',
+  'warning.issue': 'board.modlog.warning.issue',
+  'warning.revoke': 'board.modlog.warning.revoke',
+  'signature.lock': 'board.modlog.signature.lock',
+  'signature.unlock': 'board.modlog.signature.unlock',
+  'avatar.lock': 'board.modlog.avatar.lock',
+  'avatar.unlock': 'board.modlog.avatar.unlock',
+  'modcp.ip_lookup': 'board.modlog.ipLookup',
 }
 
-export const MOD_LOG_ACTIONS: readonly string[] = Object.keys(MOD_LOG_LABELS)
+export const MOD_LOG_ACTIONS: readonly string[] = Object.keys(MOD_LOG_LABEL_KEYS)

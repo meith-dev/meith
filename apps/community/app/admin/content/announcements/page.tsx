@@ -13,8 +13,12 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { announcementRepository } from '@/server/announcements'
 import { getContainer } from '@/server/container'
+import { getTranslator, tr } from '@/server/i18n'
+import { contentAdminCopy } from '@/view/admin-content-copy'
 
-export const metadata: Metadata = { title: 'Announcements' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.announcements') }
+}
 
 export default async function AdminAnnouncementsPage() {
   if ((await adminPageContext()) === null) return null
@@ -22,9 +26,9 @@ export default async function AdminAnnouncementsPage() {
   const repository = announcementRepository()
   if (repository === null) {
     return (
-      <PanelPage title="Announcements">
+      <PanelPage title={await tr('page.announcements')}>
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it stores no announcements.
+          {await tr('page.this-board-running-in-memory-sample-5')}
         </p>
       </PanelPage>
     )
@@ -44,33 +48,30 @@ export default async function AdminAnnouncementsPage() {
 
   const now = new Date()
 
+  const translator = await getTranslator()
+  const copy = contentAdminCopy(translator)
+
   return (
     <PanelPage
-      back={{ href: '/admin/content', label: 'Content' }}
-      title="Announcements"
-      lede={
-        <>
-          A dated notice above the forums. Nobody can reply to one, it disappears on its own date,
-          and removing it removes nothing anybody wrote — which is what makes it a different thing
-          from a pinned thread rather than a worse one.
-        </>
-      }
+      back={{ href: '/admin/content', label: translator.t('page.content') }}
+      title={await tr('page.announcements')}
+      lede={translator.t('adminAnnouncements.lede')}
       gap="loose"
     >
       {rows.length === 0 ? (
-        <p className={PANEL_NOTE}>None. The board shows no announcements.</p>
+        <p className={PANEL_NOTE}>{await tr('page.none-board-shows-no-announcements')}</p>
       ) : (
         <section className={cn(PANEL_LIST, 'px-4')}>
           {rows.map((row) => {
             const live =
               row.enabled && row.startsAt <= now && (row.endsAt === null || row.endsAt > now)
             const state = !row.enabled
-              ? 'switched off'
+              ? translator.t('adminAnnouncements.state.off')
               : row.startsAt > now
-                ? 'scheduled'
+                ? translator.t('adminAnnouncements.state.scheduled')
                 : row.endsAt !== null && row.endsAt <= now
-                  ? 'expired'
-                  : 'showing now'
+                  ? translator.t('adminAnnouncements.state.expired')
+                  : translator.t('adminAnnouncements.state.showing')
 
             const values: AnnouncementValues = {
               id: row.id,
@@ -89,10 +90,11 @@ export default async function AdminAnnouncementsPage() {
                     {state}
                   </span>
                   {' · '}
-                  {row.forumTitle ?? 'the whole board'}
-                  {row.authorUsername !== '' && ` · by ${row.authorUsername}`}
+                  {row.forumTitle ?? translator.t('adminAnnouncements.wholeBoard')}
+                  {row.authorUsername !== '' &&
+                    translator.t('adminAnnouncements.by', { username: row.authorUsername })}
                 </p>
-                <AnnouncementRowForm announcement={values} forums={choices} />
+                <AnnouncementRowForm announcement={values} forums={choices} copy={copy} />
               </div>
             )
           })}
@@ -100,8 +102,8 @@ export default async function AdminAnnouncementsPage() {
       )}
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">New announcement</h2>
-        <NewAnnouncementForm forums={choices} />
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.new-announcement')}</h2>
+        <NewAnnouncementForm forums={choices} copy={copy} />
       </section>
     </PanelPage>
   )

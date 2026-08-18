@@ -9,8 +9,12 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { forumAdminRepository } from '@/server/forum-admin'
+import { getTranslator, tr } from '@/server/i18n'
+import { forumAdminCopy } from '@/view/admin-copy'
 
-export const metadata: Metadata = { title: 'Forum options' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.forum-options') }
+}
 
 export default async function AdminForumPage({ params }: { params: Promise<{ id: string }> }) {
   if ((await adminPageContext()) === null) return null
@@ -26,6 +30,7 @@ export default async function AdminForumPage({ params }: { params: Promise<{ id:
   const options = await repository?.readOptions(forum.id)
   if (options === null || options === undefined || repository === null) notFound()
 
+  const t = await getTranslator()
   const moderators = await repository.listModerators(forum.id)
   const groups = (await repository.listGroups()).map((group) => ({
     groupId: group.id,
@@ -34,14 +39,9 @@ export default async function AdminForumPage({ params }: { params: Promise<{ id:
 
   return (
     <PanelPage
-      back={{ href: '/admin/forums', label: 'All forums' }}
+      back={{ href: '/admin/forums', label: t.t('adminForums.all') }}
       title={forum.title}
-      lede={
-        <>
-          Everything this forum is, apart from where it sits. Order is arranged on the tree screen;
-          the move below is the long way round, for a destination too far to drag to.
-        </>
-      }
+      lede={t.t('adminForums.optionsLede')}
       gap="loose"
     >
       <ForumOptionsForm
@@ -64,10 +64,11 @@ export default async function AdminForumPage({ params }: { params: Promise<{ id:
             moderateNewPosts: options.moderateNewPosts,
           },
         }}
+        copy={forumAdminCopy(t)}
       />
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Move</h2>
+        <h2 className="font-heading text-lg font-semibold">{t.t('adminForums.move')}</h2>
         <MoveForumForm
           forumId={forum.id}
           currentParentId={forum.parentId}
@@ -79,6 +80,7 @@ export default async function AdminForumPage({ params }: { params: Promise<{ id:
                 !row.path.startsWith(`${forum.path}.`),
             )
             .map((row) => ({ id: row.id, title: row.title, depth: row.depth }))}
+          copy={forumAdminCopy(t)}
         />
       </section>
 
@@ -87,6 +89,7 @@ export default async function AdminForumPage({ params }: { params: Promise<{ id:
         rights={[...MODERATOR_RIGHTS]}
         moderators={moderators}
         groups={groups}
+        copy={forumAdminCopy(t)}
       />
     </PanelPage>
   )

@@ -1,4 +1,5 @@
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import {
   COMMENT_MAX,
@@ -32,20 +33,20 @@ export class ReputationService {
 
   async give(input: GiveInput): Promise<void> {
     if (!input.settings.enabled) {
-      throw new ForbiddenError('Reputation is switched off on this board.')
+      throw new ForbiddenError(msg('error.reputation.reputation-switched-off-board'))
     }
 
     if (input.userId === input.givenByUserId) {
-      throw new ValidationError('You cannot rate yourself.')
+      throw new ValidationError(msg('error.reputation.rate-yourself'))
     }
 
     if (!input.limits.canGive) {
-      throw new ForbiddenError('You cannot rate other members.')
+      throw new ForbiddenError(msg('error.reputation.rate-other-members'))
     }
 
     if (input.limits.postCount < input.settings.minPostsToGive) {
       throw new ForbiddenError(
-        `You need at least ${input.settings.minPostsToGive} posts before you can rate anybody.`,
+        msg('error.reputation.min-posts', { min: input.settings.minPostsToGive }),
       )
     }
 
@@ -53,10 +54,10 @@ export class ReputationService {
     const comment = input.comment.trim()
 
     if (input.settings.commentRequired && comment === '') {
-      throw new ValidationError('Say why. A rating with no reason is the part people argue about.')
+      throw new ValidationError(msg('error.reputation.say-why-rating-with-reason'))
     }
     if (comment.length > COMMENT_MAX) {
-      throw new ValidationError(`A comment may be at most ${COMMENT_MAX} characters.`)
+      throw new ValidationError(msg('error.reputation.comment-length', { max: COMMENT_MAX }))
     }
 
     const wrote = await this.repository.give({
@@ -70,10 +71,7 @@ export class ReputationService {
     })
 
     if (!wrote) {
-      throw new ForbiddenError(
-        `You have given as many ratings as you can today (${input.limits.maxPerDay}). ` +
-          'Try again tomorrow.',
-      )
+      throw new ForbiddenError(msg('error.reputation.daily-limit', { max: input.limits.maxPerDay }))
     }
   }
 
@@ -137,10 +135,10 @@ export class ReputationService {
 
 function normalisePoints(points: number, settings: ReputationSettings): number {
   if (!Number.isInteger(points) || points > 1 || points < -1) {
-    throw new ValidationError('That is not a rating.')
+    throw new ValidationError(msg('error.reputation.rating'))
   }
   if (points < 0 && !settings.allowNegative) {
-    throw new ValidationError('This board does not allow negative ratings.')
+    throw new ValidationError(msg('error.reputation.board-allow-negative-ratings'))
   }
   return points
 }

@@ -1,14 +1,24 @@
-import type { ThreadViewModel } from '@meith/theme-kit'
+import type { SlotCopy, ThreadViewModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { BUTTON, BUTTON_PRIMARY, HEADING, MICRO, NUMERIC, RULE } from '../shared'
 
 const TAG = 'border px-1.5 py-px font-mono text-[0.625rem] font-bold uppercase tracking-[0.12em]'
 
-export function ThreadView({ thread, forum, replyHref, markReadAction, regions }: ThreadViewModel) {
+export function ThreadView({
+  thread,
+  forum,
+  replyHref,
+  markReadAction,
+  regions,
+  copy,
+}: ThreadViewModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.threadView.${key}`)
+
   const reply =
     replyHref === null ? null : (
       <a href={replyHref} className={BUTTON_PRIMARY}>
-        post reply
+        {c('postReply')}
       </a>
     )
 
@@ -26,15 +36,19 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
 
             <p className="mt-1.5 flex flex-wrap items-center gap-2">
               {thread.isSticky && (
-                <span className={`${TAG} border-thread-pinned/60 text-thread-pinned`}>pinned</span>
+                <span className={`${TAG} border-thread-pinned/60 text-thread-pinned`}>
+                  {c('pinned')}
+                </span>
               )}
               {thread.isLocked && (
-                <span className={`${TAG} border-thread-locked/60 text-thread-locked`}>locked</span>
+                <span className={`${TAG} border-thread-locked/60 text-thread-locked`}>
+                  {c('locked')}
+                </span>
               )}
               <span className={`${MICRO} ${NUMERIC} normal-case`}>
-                <span className="text-foreground">{thread.replyCount.label}</span> replies
+                <span className="text-foreground">{thread.replyCount.label}</span> {c('replies')}
                 <span className="text-border">{' | '}</span>
-                <span className="text-foreground">{thread.viewCount.label}</span> views
+                <span className="text-foreground">{thread.viewCount.label}</span> {c('views')}
               </span>
             </p>
           </div>
@@ -65,7 +79,7 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
         {markReadAction !== null && (
           <form action={markReadAction} method="post">
             <button type="submit" className={BUTTON}>
-              mark read
+              {c('markRead')}
             </button>
           </form>
         )}

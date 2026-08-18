@@ -8,13 +8,16 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
 import { attachmentAdminRepository } from '@/server/content-admin'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
+import { contentAdminCopy } from '@/view/admin-content-copy'
 import { formatBytes } from '@/view/attachments'
 import { offsetOf, readPage } from '@/view/pager'
 import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Attachments' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.attachments') }
+}
 
 const PAGE_SIZE = 50
 
@@ -28,9 +31,9 @@ export default async function AdminAttachmentsPage({
   const repository = attachmentAdminRepository()
   if (repository === null) {
     return (
-      <PanelPage title="Attachments" width="wide">
+      <PanelPage title={await tr('page.attachments')} width="wide">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it stores no files.
+          {await tr('page.this-board-running-in-memory-sample-4')}
         </p>
       </PanelPage>
     )
@@ -59,36 +62,43 @@ export default async function AdminAttachmentsPage({
 
   const now = new Date()
   const translator = await getTranslator()
+  const copy = contentAdminCopy(translator)
   return (
     <PanelPage
-      back={{ href: '/admin/content', label: 'Content' }}
-      title="Attachments"
+      back={{ href: '/admin/content', label: translator.t('page.content') }}
+      title={await tr('page.attachments')}
       lede={
         <>
-          Every file members have uploaded. Deleting one removes it from the list under its post and
-          hands the stored bytes to the hourly sweep — <strong>the post itself is untouched</strong>
-          , because an attachment is shown beside a post rather than written into it.
+          {translator.t('adminAttachments.ledeBefore')}{' '}
+          <strong>{translator.t('adminAttachments.ledeStrong')}</strong>
+          {translator.t('adminAttachments.ledeAfter')}
         </>
       }
       width="wide"
     >
       <dl className={cn(PANEL_CARD, 'grid grid-cols-2 gap-4 sm:grid-cols-4')}>
         <div>
-          <dt className="text-xs text-muted-foreground">Files</dt>
+          <dt className="text-xs text-muted-foreground">
+            {translator.t('adminAttachments.files')}
+          </dt>
           <dd className="text-lg">{totals.count}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Stored</dt>
+          <dt className="text-xs text-muted-foreground">
+            {translator.t('adminAttachments.stored')}
+          </dt>
           <dd className="text-lg">{formatBytes(totals.bytes)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Awaiting processing</dt>
+          <dt className="text-xs text-muted-foreground">{await tr('page.awaiting-processing')}</dt>
           <dd className={totals.pending > 0 ? 'text-lg text-destructive' : 'text-lg'}>
             {totals.pending}
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Failed</dt>
+          <dt className="text-xs text-muted-foreground">
+            {translator.t('adminAttachments.failed')}
+          </dt>
           <dd className={totals.failed > 0 ? 'text-lg text-destructive' : 'text-lg'}>
             {totals.failed}
           </dd>
@@ -97,7 +107,7 @@ export default async function AdminAttachmentsPage({
 
       <form method="get" className={cn(PANEL_CARD, 'flex-row flex-wrap items-end')}>
         <label className="flex min-w-48 flex-1 flex-col gap-1 text-sm">
-          <span className="font-medium">Filename contains</span>
+          <span className="font-medium">{await tr('page.filename-contains')}</span>
           <input
             name="filename"
             defaultValue={filename ?? ''}
@@ -106,16 +116,16 @@ export default async function AdminAttachmentsPage({
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Status</span>
+          <span className="font-medium">{translator.t('adminAttachments.status')}</span>
           <select
             name="status"
             defaultValue={status ?? ''}
             className="rounded-md border border-border bg-background px-3 py-2 text-sm"
           >
-            <option value="">Any</option>
-            <option value="ready">Ready</option>
-            <option value="pending">Awaiting processing</option>
-            <option value="failed">Failed</option>
+            <option value="">{translator.t('adminAttachments.any')}</option>
+            <option value="ready">{translator.t('adminAttachments.ready')}</option>
+            <option value="pending">{await tr('page.awaiting-processing')}</option>
+            <option value="failed">{translator.t('adminAttachments.failed')}</option>
           </select>
         </label>
 
@@ -123,12 +133,12 @@ export default async function AdminAttachmentsPage({
           type="submit"
           className="inline-flex h-10 items-center rounded-md border border-border px-4 text-sm"
         >
-          Filter
+          {translator.t('adminAttachments.filter')}
         </button>
       </form>
 
       {page.rows.length === 0 ? (
-        <p className={PANEL_NOTE}>Nothing matches.</p>
+        <p className={PANEL_NOTE}>{await tr('page.nothing-matches')}</p>
       ) : (
         <ul className={PANEL_LIST}>
           {page.rows.map((row) => (
@@ -136,14 +146,17 @@ export default async function AdminAttachmentsPage({
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="truncate text-sm font-medium">{row.filename}</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {formatBytes(row.sizeBytes)} · {row.contentType} · {row.downloadCount} download
-                  {row.downloadCount === 1 ? '' : 's'} ·{' '}
+                  {translator.t('adminAttachments.meta', {
+                    size: formatBytes(row.sizeBytes),
+                    type: row.contentType,
+                    count: row.downloadCount,
+                  })}{' '}
                   <time dateTime={row.createdAt.toISOString()}>
                     {formatTime(row.createdAt, now, translator).label}
                   </time>
                 </span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {row.uploaderUsername ?? 'a deleted account'}
+                  {row.uploaderUsername ?? translator.t('adminAttachments.deletedAccount')}
                   {row.threadSlug !== null && (
                     <>
                       {' · '}
@@ -151,7 +164,7 @@ export default async function AdminAttachmentsPage({
                         href={postLink(`/thread/${row.threadSlug}`, row.postId)}
                         className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                       >
-                        the post
+                        {translator.t('adminAttachments.post')}
                       </a>
                     </>
                   )}
@@ -159,13 +172,16 @@ export default async function AdminAttachmentsPage({
                 {row.status !== 'ready' && (
                   <span className="text-xs text-destructive">
                     {row.status === 'pending'
-                      ? 'Awaiting processing — not downloadable yet.'
-                      : `Failed: ${row.failureReason ?? 'no reason recorded'}`}
+                      ? translator.t('adminAttachments.pending')
+                      : translator.t('adminAttachments.failure', {
+                          reason:
+                            row.failureReason ?? translator.t('adminAttachments.noFailureReason'),
+                        })}
                   </span>
                 )}
               </span>
 
-              <DeleteAttachmentForm attachmentId={row.id} />
+              <DeleteAttachmentForm attachmentId={row.id} copy={copy} />
             </li>
           ))}
         </ul>

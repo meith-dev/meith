@@ -11,11 +11,14 @@ import {
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { buildMemberView } from '@/server/user-admin'
+import { userAdminCopy } from '@/view/admin-user-copy'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Member' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.member') }
+}
 
 export default async function AdminMemberPage({ params }: { params: Promise<{ id: string }> }) {
   if ((await adminPageContext()) === null) return null
@@ -29,42 +32,38 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
   const { member, activeBan } = view
   const now = new Date()
   const translator = await getTranslator()
+  const copy = userAdminCopy(translator)
 
   return (
     <PanelPage
-      back={{ href: '/admin/users', label: 'All members' }}
+      back={{ href: '/admin/users', label: translator.t('adminUsers.allMembers') }}
       title={member.username}
       gap="loose"
-      lede={
-        <>
-          #{member.id} · registered{' '}
-          <time dateTime={member.createdAt.toISOString()}>
-            {formatTime(member.createdAt, now, translator).label}
-          </time>
-          {member.lastActiveAt !== null && (
-            <>
-              {' '}
-              · last seen{' '}
-              <time dateTime={member.lastActiveAt.toISOString()}>
-                {formatTime(member.lastActiveAt, now, translator).label}
-              </time>
-            </>
-          )}
-          {member.deletedAt !== null && ' · account deleted'}
-        </>
-      }
-      meta={
-        <>
-          {member.postCount} post{member.postCount === 1 ? '' : 's'} · {member.threadCount} thread
-          {member.threadCount === 1 ? '' : 's'} · {member.reputation} reputation ·{' '}
-          {member.warningPoints} warning point
-          {member.warningPoints === 1 ? '' : 's'} ·{' '}
-          {member.emailVerifiedAt === null ? 'email unverified' : 'email verified'}
-        </>
-      }
+      lede={translator.t('adminUsers.memberLede', {
+        id: member.id,
+        registered: formatTime(member.createdAt, now, translator).label,
+        lastSeen:
+          member.lastActiveAt === null
+            ? ''
+            : translator.t('adminUsers.lastSeen', {
+                time: formatTime(member.lastActiveAt, now, translator).label,
+              }),
+        deleted: member.deletedAt === null ? '' : translator.t('adminUsers.accountDeleted'),
+      })}
+      meta={translator.t('adminUsers.memberMeta', {
+        posts: translator.t('adminUsers.posts', { count: member.postCount }),
+        threads: translator.t('adminUsers.threads', { count: member.threadCount }),
+        reputation: member.reputation,
+        warnings: translator.t('adminUsers.warningPoints', { count: member.warningPoints }),
+        email: translator.t(
+          member.emailVerifiedAt === null
+            ? 'adminUsers.emailUnverified'
+            : 'adminUsers.emailVerified',
+        ),
+      })}
     >
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Account</h2>
+        <h2 className="font-heading text-lg font-semibold">{translator.t('adminUsers.account')}</h2>
         <MemberAccountForm
           member={{
             id: member.id,
@@ -74,49 +73,48 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
             displayGroupId: member.displayGroupId,
           }}
           groups={view.groups}
+          copy={copy}
         />
       </section>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Additional groups</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.additional-groups')}</h2>
         <p className="text-sm text-muted-foreground">
-          Groups held <em>as well as</em> the primary one. They grant in exactly the same way — a
-          member gets the most permissive answer across all of them — so an extra group can only
-          ever add.
+          {translator.t('adminUsers.additionalGroupsLede')}
         </p>
         <SecondaryGroupsForm
           userId={member.id}
           groups={view.groups}
           selected={view.secondaryGroupIds}
           primaryGroupId={member.primaryGroupId}
+          copy={copy}
         />
       </section>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">State</h2>
+        <h2 className="font-heading text-lg font-semibold">{translator.t('adminUsers.state')}</h2>
         {activeBan !== null || member.state === 'banned' ? (
           <p className="text-sm text-muted-foreground">
-            This member is banned. Lift the ban below to change their state — flipping the column
-            here would leave the ban record active.
+            {translator.t('adminUsers.bannedStateLede')}
           </p>
         ) : (
-          <MemberStateForm userId={member.id} state={member.state} />
+          <MemberStateForm userId={member.id} state={member.state} copy={copy} />
         )}
       </section>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Ban</h2>
+        <h2 className="font-heading text-lg font-semibold">{translator.t('adminUsers.ban')}</h2>
         {activeBan === null ? (
-          <BanMemberForm userId={member.id} />
+          <BanMemberForm userId={member.id} copy={copy} />
         ) : (
           <>
             <p className="text-sm">
-              Banned{' '}
+              {translator.t('adminUsers.banned')}{' '}
               {activeBan.expiresAt === null ? (
-                <strong>permanently</strong>
+                <strong>{translator.t('adminUsers.permanently')}</strong>
               ) : (
                 <>
-                  until{' '}
+                  {translator.t('adminUsers.until')}{' '}
                   <time dateTime={activeBan.expiresAt.toISOString()}>
                     {formatTime(activeBan.expiresAt, now, translator).label}
                   </time>
@@ -125,52 +123,54 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
               .
             </p>
             {activeBan.reason !== null && (
-              <p className="text-sm text-muted-foreground">Staff note: {activeBan.reason}</p>
+              <p className="text-sm text-muted-foreground">
+                {translator.t('adminUsers.staffNote', { reason: activeBan.reason })}
+              </p>
             )}
             {activeBan.publicReason !== null && (
               <p className="text-sm text-muted-foreground">
-                Shown to them: {activeBan.publicReason}
+                {translator.t('adminUsers.shownToMember', { reason: activeBan.publicReason })}
               </p>
             )}
-            <LiftBanForm userId={member.id} />
+            <LiftBanForm userId={member.id} copy={copy} />
           </>
         )}
       </section>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Merge</h2>
-        <p className="text-sm text-muted-foreground">
-          Fold this account into another one — for a member who registered twice, or a duplicate
-          made by an importer.
-        </p>
+        <h2 className="font-heading text-lg font-semibold">{translator.t('adminUsers.merge')}</h2>
+        <p className="text-sm text-muted-foreground">{translator.t('adminUsers.mergeLede')}</p>
         <p>
           <a
             href={`/admin/users/${member.id}/merge`}
             className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Merge {member.username} into another account →
+            {translator.t('adminUsers.mergeLink', { username: member.username })}
           </a>
         </p>
       </section>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Network</h2>
+        <h2 className="font-heading text-lg font-semibold">{translator.t('adminUsers.network')}</h2>
         <p className="text-sm text-muted-foreground">
-          Registered from {member.registrationIpPrefix ?? 'an address that was not recorded'}
-          {member.lastIpPrefix !== null && `, last seen from ${member.lastIpPrefix}`}. Only a prefix
-          is stored, so these are networks rather than machines.
+          {translator.t('adminUsers.networkLede', {
+            registered:
+              member.registrationIpPrefix ?? translator.t('adminUsers.addressNotRecorded'),
+            lastSeen:
+              member.lastIpPrefix === null
+                ? ''
+                : translator.t('adminUsers.lastSeenFrom', { address: member.lastIpPrefix }),
+          })}
         </p>
 
         {view.sharedNetwork.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No other account has been seen on the same network.
+            {await tr('page.no-other-account-has-been')}
           </p>
         ) : (
           <>
             <p className="text-sm">
-              {view.sharedNetwork.length} other account
-              {view.sharedNetwork.length === 1 ? '' : 's'} on the same network. A household, an
-              office and a campus all look like this.
+              {translator.t('adminUsers.sharedNetwork', { count: view.sharedNetwork.length })}
             </p>
             <ul className="flex flex-col gap-1 text-sm">
               {view.sharedNetwork.map((row) => (
@@ -182,8 +182,10 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
                     {row.username}
                   </a>{' '}
                   <span className="text-xs text-muted-foreground">
-                    {row.state === 'active' ? '' : `${row.state} · `}
-                    {row.postCount} post{row.postCount === 1 ? '' : 's'}
+                    {row.state === 'active'
+                      ? ''
+                      : `${row.state === 'banned' ? translator.t('adminUsers.banned') : translator.t('page.awaiting-activation')} · `}
+                    {translator.t('adminUsers.posts', { count: row.postCount })}
                   </span>
                 </li>
               ))}

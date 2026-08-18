@@ -1,16 +1,22 @@
 import { describe, expect, it } from 'vitest'
 
+import { sourceTranslator } from '@meith/i18n'
+
 import { SLOT_NAMES, type SlotName } from './slots'
 import {
   assertComplete,
   defineTheme,
+  fromSlotCopy,
   hasSlot,
   type PartialSlotImplementations,
   requireSlot,
   resolveTheme,
   type SlotComponent,
+  slotCopy,
   type ThemeDefinition,
 } from './theme'
+
+const t = sourceTranslator({ 'stub.greeting': 'Hello' })
 
 function stub(label: string) {
   const component = () => label
@@ -106,6 +112,28 @@ describe('defineTheme', () => {
     expect(() => defineTheme(a as ThemeDefinition)).toThrow(/cyclic extends chain/)
   })
 
+  it('rejects copy for an unknown slot name', () => {
+    expect(() =>
+      defineTheme({
+        key: 'typo',
+        title: 'Typo',
+        slots: {},
+        copy: { Postbit: () => ({}) } as unknown as ThemeDefinition['copy'],
+      }),
+    ).toThrow(/carries copy for unknown slot "Postbit"/)
+  })
+
+  it('rejects copy that is not a function', () => {
+    expect(() =>
+      defineTheme({
+        key: 'resolved-early',
+        title: 'Resolved early',
+        slots: {},
+        copy: { Header: { greeting: 'Hi' } } as unknown as ThemeDefinition['copy'],
+      }),
+    ).toThrow(/copy for slot "Header" is not a function/)
+  })
+
   it('rejects two themes sharing a key in one chain', () => {
     const parent = defineTheme({ key: 'dup', title: 'Parent', slots: {} })
 
@@ -173,6 +201,36 @@ describe('resolveTheme', () => {
     expect(requireSlot(resolveTheme(parent), 'Header')).toBe(parentHeader)
     expect(hasSlot(resolveTheme(parent), 'QuickReply')).toBe(false)
   })
+
+  it('prefers the nearest copy builder, and falls through to an ancestor for slots it does not register', () => {
+    const grandparentWithCopy = defineTheme({
+      key: 'grandparent',
+      title: 'Grandparent',
+      slots: { Header: grandparentHeader, Footer: grandparentFooter },
+      copy: {
+        Header: () => ({ 'grandparent.header': 'grandparent' }),
+        Footer: () => ({ 'grandparent.footer': 'grandparent' }),
+      },
+    })
+    const childWithCopy = defineTheme({
+      key: 'child',
+      title: 'Child',
+      extends: grandparentWithCopy,
+      slots: { Header: childHeader },
+      copy: { Header: () => ({ 'child.header': 'child' }) },
+    })
+
+    const resolved = resolveTheme(childWithCopy)
+
+    expect(slotCopy(resolved, 'Header', t)).toEqual({ 'child.header': 'child' })
+    expect(slotCopy(resolved, 'Footer', t)).toEqual({ 'grandparent.footer': 'grandparent' })
+  })
+
+  it('gives a slot with no registered copy an empty record', () => {
+    const resolved = resolveTheme(child)
+
+    expect(slotCopy(resolved, 'PostBit', t)).toEqual({})
+  })
 })
 
 describe('requireSlot', () => {
@@ -189,6 +247,31 @@ describe('requireSlot', () => {
     expect(() => requireSlot(theme, 'PostBit')).toThrow(
       /does not implement slot "PostBit"[\s\S]*sparse → sparse-base/,
     )
+  })
+})
+
+describe('slotCopy', () => {
+  it('hands the copy builder the translator it was given', () => {
+    const theme = resolveTheme(
+      defineTheme({
+        key: 'greets',
+        title: 'Greets',
+        slots: {},
+        copy: { Header: (translator) => ({ greeting: translator.t('stub.greeting') }) },
+      }),
+    )
+
+    expect(slotCopy(theme, 'Header', t)).toEqual({ greeting: 'Hello' })
+  })
+})
+
+describe('fromSlotCopy', () => {
+  it('reads a registered key', () => {
+    expect(fromSlotCopy({ heading: 'In the clubhouse' }, 'heading')).toBe('In the clubhouse')
+  })
+
+  it('falls back to the key itself when nothing registered it', () => {
+    expect(fromSlotCopy({}, 'clubhouse.whoIsOnline.heading')).toBe('clubhouse.whoIsOnline.heading')
   })
 })
 

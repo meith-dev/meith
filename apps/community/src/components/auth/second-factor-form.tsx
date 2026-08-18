@@ -7,14 +7,17 @@ import { Button } from '@meith/ui/button'
 import { abandonSecondFactorAction, verifySecondFactorAction } from '@/server/auth-actions'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 
+import { type Copy, fromCopy } from '../shell/copy'
 import { Field, FormError, SubmitButton } from './form-controls'
 
 export function SecondFactorForm({
   next,
   recoveryCodesLeft,
+  copy,
 }: {
   readonly next?: string | undefined
   readonly recoveryCodesLeft: number
+  readonly copy: Copy
 }) {
   const [state, action] = useActionState(verifySecondFactorAction, EMPTY_STATE)
 
@@ -24,23 +27,23 @@ export function SecondFactorForm({
         <FormError message={state.error} />
 
         <Field
-          label="Code from your authenticator app"
+          label={fromCopy(copy, 'authForm.secondFactor.code')}
           name="code"
           autoComplete="one-time-code"
           hint={
             recoveryCodesLeft > 0
-              ? 'Or one of the recovery codes you saved when you set this up.'
-              : 'Or one of the recovery codes you saved when you set this up. You have none left — replace them from your account security page once you are in.'
+              ? fromCopy(copy, 'authForm.secondFactor.recoveryHint')
+              : fromCopy(copy, 'authForm.secondFactor.recoveryHintExhausted')
           }
         />
 
         {next ? <input type="hidden" name="next" value={next} /> : null}
-        <SubmitButton>Finish signing in</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'authForm.secondFactor.submit')}</SubmitButton>
       </form>
 
       <form action={abandonSecondFactorAction}>
         <Button type="submit" variant="ghost" size="sm">
-          Cancel and sign in as somebody else
+          {fromCopy(copy, 'authForm.secondFactor.cancel')}
         </Button>
       </form>
     </div>

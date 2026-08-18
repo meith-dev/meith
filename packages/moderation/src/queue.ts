@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 export type QueueItemKind = 'thread' | 'post'
 
@@ -97,12 +98,10 @@ export class ModerationQueue {
     readonly actorUserId: number
   }): Promise<QueueOutcome> {
     if (input.selection.length === 0) {
-      throw new ValidationError('Select at least one item.')
+      throw new ValidationError(msg('error.moderation.select-at-least-one-item'))
     }
     if (input.selection.length > MAX_CHUNK) {
-      throw new ValidationError(
-        `At most ${MAX_CHUNK} items can be handled at once. Work through the queue a page at a time.`,
-      )
+      throw new ValidationError(msg('error.moderation.queue-chunk', { max: MAX_CHUNK }))
     }
 
     const unique = new Map<string, QueueSelection>()

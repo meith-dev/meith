@@ -1,6 +1,30 @@
 import { defaultTheme } from '@meith/theme-default'
 import { defineTheme } from '@meith/theme-kit'
 
+import {
+  announcementCopy,
+  boardIndexCopy,
+  boardStatsCopy,
+  categoryBlockCopy,
+  footerCopy,
+  forumDisplayCopy,
+  forumRowCopy,
+  headerCopy,
+  latestPostsCopy,
+  latestThreadsCopy,
+  memberProfileCopy,
+  navigationCopy,
+  noticeCopy,
+  paginationCopy,
+  postActionsCopy,
+  postBitCopy,
+  shellCopy,
+  subforumListCopy,
+  threadRowCopy,
+  threadViewCopy,
+  userPanelCopy,
+  whoIsOnlineCopy,
+} from './copy'
 import { Announcement } from './slots/announcement'
 import { BoardIndex } from './slots/board-index'
 import { BoardStats } from './slots/board-stats'
@@ -55,5 +79,33 @@ export const midnightTheme = defineTheme({
     PostActions,
 
     MemberProfile,
+  },
+  copy: {
+    Shell: shellCopy,
+    Header: headerCopy,
+    UserPanel: userPanelCopy,
+    Navigation: navigationCopy,
+    Footer: footerCopy,
+    Notice: noticeCopy,
+    Announcement: announcementCopy,
+
+    BoardIndex: boardIndexCopy,
+    CategoryBlock: categoryBlockCopy,
+    ForumRow: forumRowCopy,
+    BoardStats: boardStatsCopy,
+    WhoIsOnline: whoIsOnlineCopy,
+    LatestThreads: latestThreadsCopy,
+    LatestPosts: latestPostsCopy,
+
+    ForumDisplay: forumDisplayCopy,
+    ThreadRow: threadRowCopy,
+    SubforumList: subforumListCopy,
+    Pagination: paginationCopy,
+
+    ThreadView: threadViewCopy,
+    PostBit: postBitCopy,
+    PostActions: postActionsCopy,
+
+    MemberProfile: memberProfileCopy,
   },
 })

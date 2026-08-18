@@ -3,6 +3,8 @@ import { cn } from '@meith/ui'
 
 import { rateThreadAction } from '@/server/thread-rating-actions'
 
+import { type Copy, formatFromCopy, fromCopy } from '../shell/copy-record'
+
 const STAR_PATH = 'M10 1.6l2.47 5.01 5.53.8-4 3.9.94 5.5L10 14.21l-4.94 2.6.94-5.5-4-3.9 5.53-.8z'
 
 function Star({
@@ -52,32 +54,36 @@ export function ThreadRatingForm({
   threadId,
   rating,
   canRate,
+  copy,
 }: {
   threadId: number
   rating: ThreadRating
   canRate: boolean
+  copy: Copy
 }) {
   if (rating.count === 0 && !canRate) return null
 
   return (
-    <section aria-label="Thread rating" className="flex flex-wrap items-center gap-x-4 gap-y-2">
+    <section
+      aria-label={fromCopy(copy, 'thread.rating.section')}
+      className="flex flex-wrap items-center gap-x-4 gap-y-2"
+    >
       <div className="flex items-center gap-2.5">
         {rating.count === 0 ? (
-          <p className="text-sm text-muted-foreground">No ratings yet.</p>
+          <p className="text-sm text-muted-foreground">{fromCopy(copy, 'thread.rating.none')}</p>
         ) : (
           <>
             <Average value={rating.average} threadId={threadId} />
             <p className="text-sm text-muted-foreground">
+              {copy['thread.rating.outOfLead']}
               <span className="font-medium text-foreground tabular-nums">
-                {rating.average.toFixed(1)}
-              </span>{' '}
-              out of 5
-              <span className="sr-only">
-                , from {rating.count} {rating.count === 1 ? 'rating' : 'ratings'}
+                {copy['thread.rating.average']}
               </span>
+              {copy['thread.rating.outOfTail']}
+              <span className="sr-only">{copy['thread.rating.from']}</span>
               <span aria-hidden="true" className="tabular-nums">
                 {' · '}
-                {rating.count} {rating.count === 1 ? 'rating' : 'ratings'}
+                {copy['thread.rating.countLabel']}
               </span>
             </p>
           </>
@@ -89,7 +95,9 @@ export function ThreadRatingForm({
           <input type="hidden" name="threadId" value={threadId} />
 
           <span id={`rate-${threadId}`} className="text-muted-foreground">
-            {rating.mine === null ? 'Rate it' : 'Your rating'}
+            {rating.mine === null
+              ? fromCopy(copy, 'thread.rating.rateIt')
+              : fromCopy(copy, 'thread.rating.yours')}
           </span>
 
           <span
@@ -108,8 +116,8 @@ export function ThreadRatingForm({
                   value={value}
                   aria-label={
                     rating.mine === value
-                      ? `${value} out of 5 — your current rating`
-                      : `Rate ${value} out of 5`
+                      ? formatFromCopy(copy, 'thread.rating.currentValue', { value })
+                      : formatFromCopy(copy, 'thread.rating.rateValue', { value })
                   }
                   className={cn(
                     'inline-flex size-7 items-center justify-center rounded-md transition-colors',
@@ -125,7 +133,7 @@ export function ThreadRatingForm({
 
           {rating.mine !== null && (
             <span className="text-xs text-muted-foreground tabular-nums">
-              You rated this {rating.mine}
+              {copy['thread.rating.mine']}
             </span>
           )}
         </form>

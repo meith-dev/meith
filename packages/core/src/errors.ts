@@ -27,7 +27,15 @@ export const ERROR_MESSAGES = {
   CONFIGURATION: 'This server is misconfigured.',
 } as const satisfies Record<ErrorCode, string>
 
-export type MessageResolver = (key: string) => string | undefined
+export type PublicMessageArgs = Readonly<Record<string, string | number>>
+
+export interface PublicMessage {
+  readonly key: string
+  readonly args?: PublicMessageArgs | undefined
+  readonly text: string
+}
+
+export type MessageResolver = (key: string, args?: PublicMessageArgs) => string | undefined
 
 export abstract class AppError extends Error {
   abstract readonly code: ErrorCode
@@ -36,6 +44,8 @@ export abstract class AppError extends Error {
 
   readonly publicMessageKey: string | null
 
+  readonly publicMessageArgs: PublicMessageArgs | undefined
+
   readonly meta: Readonly<Record<string, unknown>>
 
   constructor(
@@ -43,6 +53,7 @@ export abstract class AppError extends Error {
     options?: {
       publicMessage?: string
       publicMessageKey?: string | null
+      publicMessageArgs?: PublicMessageArgs | undefined
       meta?: Record<string, unknown>
       cause?: unknown
     },
@@ -51,8 +62,24 @@ export abstract class AppError extends Error {
     this.name = new.target.name
     this.publicMessage = options?.publicMessage ?? message
     this.publicMessageKey = options?.publicMessageKey ?? null
+    this.publicMessageArgs = options?.publicMessageArgs
     this.meta = Object.freeze({ ...options?.meta })
   }
+}
+
+function opened(
+  message: string | PublicMessage | undefined,
+  code: ErrorCode,
+): {
+  readonly text: string
+  readonly key: string | null
+  readonly args: PublicMessageArgs | undefined
+} {
+  if (message === undefined) {
+    return { text: ERROR_MESSAGES[code], key: ERROR_MESSAGE_KEYS[code], args: undefined }
+  }
+  if (typeof message === 'string') return { text: message, key: null, args: undefined }
+  return { text: message.text, key: message.key, args: message.args }
 }
 
 export function publicMessageOf(value: unknown, resolve?: MessageResolver): string {
@@ -60,7 +87,7 @@ export function publicMessageOf(value: unknown, resolve?: MessageResolver): stri
     return resolve?.(ERROR_MESSAGE_KEYS.INTERNAL) ?? ERROR_MESSAGES.INTERNAL
   }
   if (value.publicMessageKey === null) return value.publicMessage
-  return resolve?.(value.publicMessageKey) ?? value.publicMessage
+  return resolve?.(value.publicMessageKey, value.publicMessageArgs) ?? value.publicMessage
 }
 
 export class ValidationError extends AppError {
@@ -68,14 +95,15 @@ export class ValidationError extends AppError {
   readonly fieldErrors: Readonly<Record<string, string[]>>
 
   constructor(
-    message?: string,
+    message?: string | PublicMessage,
     fieldErrors: Record<string, string[]> = {},
     options?: { meta?: Record<string, unknown>; cause?: unknown },
   ) {
-    const text = message ?? ERROR_MESSAGES.VALIDATION
+    const { text, key, args } = opened(message, 'VALIDATION')
     super(text, {
       publicMessage: text,
-      publicMessageKey: message === undefined ? ERROR_MESSAGE_KEYS.VALIDATION : null,
+      publicMessageKey: key,
+      publicMessageArgs: args,
       ...options,
     })
     this.fieldErrors = Object.freeze(fieldErrors)
@@ -86,13 +114,14 @@ export class ForbiddenError extends AppError {
   override readonly code = 'FORBIDDEN' as const
 
   constructor(
-    message?: string,
+    message?: string | PublicMessage,
     options?: { action?: string; meta?: Record<string, unknown>; cause?: unknown },
   ) {
-    const text = message ?? ERROR_MESSAGES.FORBIDDEN
+    const { text, key, args } = opened(message, 'FORBIDDEN')
     super(text, {
       publicMessage: text,
-      publicMessageKey: message === undefined ? ERROR_MESSAGE_KEYS.FORBIDDEN : null,
+      publicMessageKey: key,
+      publicMessageArgs: args,
       meta: {
         ...options?.meta,
         ...(options?.action === undefined ? {} : { action: options.action }),
@@ -105,26 +134,24 @@ export class ForbiddenError extends AppError {
 export class NotFoundError extends AppError {
   override readonly code = 'NOT_FOUND' as const
 
-  constructor(message?: string, options?: { meta?: Record<string, unknown>; cause?: unknown }) {
-    const text = message ?? ERROR_MESSAGES.NOT_FOUND
-    super(text, {
-      publicMessage: text,
-      publicMessageKey: message === undefined ? ERROR_MESSAGE_KEYS.NOT_FOUND : null,
-      ...options,
-    })
+  constructor(
+    message?: string | PublicMessage,
+    options?: { meta?: Record<string, unknown>; cause?: unknown },
+  ) {
+    const { text, key, args } = opened(message, 'NOT_FOUND')
+    super(text, { publicMessage: text, publicMessageKey: key, publicMessageArgs: args, ...options })
   }
 }
 
 export class ConflictError extends AppError {
   override readonly code = 'CONFLICT' as const
 
-  constructor(message?: string, options?: { meta?: Record<string, unknown>; cause?: unknown }) {
-    const text = message ?? ERROR_MESSAGES.CONFLICT
-    super(text, {
-      publicMessage: text,
-      publicMessageKey: message === undefined ? ERROR_MESSAGE_KEYS.CONFLICT : null,
-      ...options,
-    })
+  constructor(
+    message?: string | PublicMessage,
+    options?: { meta?: Record<string, unknown>; cause?: unknown },
+  ) {
+    const { text, key, args } = opened(message, 'CONFLICT')
+    super(text, { publicMessage: text, publicMessageKey: key, publicMessageArgs: args, ...options })
   }
 }
 
@@ -134,15 +161,11 @@ export class RateLimitedError extends AppError {
 
   constructor(
     retryAfterSeconds: number,
-    message?: string,
+    message?: string | PublicMessage,
     options?: { meta?: Record<string, unknown>; cause?: unknown },
   ) {
-    const text = message ?? ERROR_MESSAGES.RATE_LIMITED
-    super(text, {
-      publicMessage: text,
-      publicMessageKey: message === undefined ? ERROR_MESSAGE_KEYS.RATE_LIMITED : null,
-      ...options,
-    })
+    const { text, key, args } = opened(message, 'RATE_LIMITED')
+    super(text, { publicMessage: text, publicMessageKey: key, publicMessageArgs: args, ...options })
     this.retryAfterSeconds = retryAfterSeconds
   }
 }

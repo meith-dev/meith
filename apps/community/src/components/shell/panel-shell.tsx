@@ -1,7 +1,8 @@
 import type { LinkModel, PanelKind } from '@meith/theme-kit'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { getActor } from '@/server/context'
+import { getTranslator, tr } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 
@@ -13,13 +14,18 @@ export interface PanelShellProps {
 }
 
 export async function PanelShell({ panel, nav, links = [], children }: PanelShellProps) {
-  const Shell = requireSlot(await currentTheme(), 'PanelShell')
+  const theme = await currentTheme()
+  const Shell = requireSlot(theme, 'PanelShell')
 
   const model = await filterView(
     'view.panel-shell',
-    { panel, links, linksLabel: 'Other panels', regions: { nav } },
+    { panel, links, linksLabel: await tr('panel.otherPanels'), regions: { nav } },
     viewerRef(await getActor()),
   )
 
-  return <Shell {...model}>{children}</Shell>
+  return (
+    <Shell {...model} copy={slotCopy(theme, 'PanelShell', await getTranslator())}>
+      {children}
+    </Shell>
+  )
 }

@@ -1,14 +1,23 @@
-import type { ForumDisplayModel } from '@meith/theme-kit'
+import type { ForumDisplayModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { BUTTON, BUTTON_PRIMARY, Frame, HEADING, MICRO, NUMERIC, RULE } from '../shared'
 
-export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: ForumDisplayModel) {
+export function ForumDisplay({
+  forum,
+  newThreadHref,
+  markReadAction,
+  regions,
+  copy,
+}: ForumDisplayModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.forumDisplay.${key}`)
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="border border-border bg-card shadow-elevation">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
-            <p className={MICRO}>forum</p>
+            <p className={MICRO}>{c('kicker')}</p>
             <h1 className={`${HEADING} text-xl text-foreground`}>{forum.title}</h1>
             {forum.description !== null && (
               <p className="mt-1 text-xs text-muted-foreground">{forum.description}</p>
@@ -17,13 +26,13 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
 
           <div className="flex flex-wrap items-center gap-3">
             <span className={`${MICRO} ${NUMERIC} normal-case`}>
-              <span className="text-foreground">{forum.threadCount.label}</span> threads
+              <span className="text-foreground">{forum.threadCount.label}</span> {c('threads')}
               <span className="text-border">{' | '}</span>
-              <span className="text-foreground">{forum.postCount.label}</span> posts
+              <span className="text-foreground">{forum.postCount.label}</span> {c('posts')}
             </span>
             {newThreadHref !== null && (
               <a href={newThreadHref} className={BUTTON_PRIMARY}>
-                new thread
+                {c('newThread')}
               </a>
             )}
           </div>
@@ -46,16 +55,16 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
           <thead>
             <tr className={`${MICRO} border-b border-border bg-surface text-left`}>
               <th scope="col" className="px-3 py-2 font-semibold">
-                Thread
+                {c('threadHeader')}
               </th>
               <th scope="col" className="w-16 px-2 py-2 text-right font-semibold">
-                Replies
+                {c('repliesHeader')}
               </th>
               <th scope="col" className="w-16 px-2 py-2 text-right font-semibold">
-                Views
+                {c('viewsHeader')}
               </th>
               <th scope="col" className="hidden w-52 px-3 py-2 font-semibold sm:table-cell">
-                Last post
+                {c('lastPostHeader')}
               </th>
             </tr>
           </thead>
@@ -72,7 +81,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
       {markReadAction !== null && (
         <form action={markReadAction} method="post">
           <button type="submit" className={BUTTON}>
-            mark this forum read
+            {c('markRead')}
           </button>
         </form>
       )}

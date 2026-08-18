@@ -4,31 +4,15 @@ import { headers } from 'next/headers'
 import { cache } from 'react'
 
 import type { MessageResolver } from '@meith/core'
-import {
-  BOARD_CATALOG,
-  createCatalogRegistry,
-  createTranslator,
-  type Translator,
-} from '@meith/i18n'
+import { createTranslator, type Translator } from '@meith/i18n'
 
 import { type ResolvedLocale, resolveLocale } from '@/view/locale'
 
-import forumConfig from '../../community.config'
+import { catalogs, translatorForLocale } from './i18n-catalogs'
 import { getSettings } from './settings'
 import { getViewerPreferences } from './viewer-preferences'
 
-export const catalogs = createCatalogRegistry([
-  BOARD_CATALOG,
-  ...Object.values(forumConfig.themes).flatMap((theme) =>
-    theme.messages === undefined ? [] : [{ id: `theme:${theme.key}`, messages: theme.messages }],
-  ),
-  ...(forumConfig.plugins ?? []).flatMap((entry) =>
-    entry.enabled === false || entry.messages === undefined
-      ? []
-      : [{ id: `plugin:${entry.key}`, messages: entry.messages }],
-  ),
-  ...(forumConfig.messages === undefined ? [] : [{ id: 'board', messages: forumConfig.messages }]),
-])
+export { catalogs, translatorForLocale }
 
 const acceptedLanguages = cache(async (): Promise<string | null> => {
   try {
@@ -74,5 +58,12 @@ export const getTranslator = cache(async (): Promise<Translator> => {
 
 export const getMessageResolver = cache(async (): Promise<MessageResolver> => {
   const translator = await getTranslator()
-  return (key) => (translator.has(key) ? translator.t(key) : undefined)
+  return (key, args) => (translator.has(key) ? translator.t(key, args) : undefined)
 })
+
+export async function tr(
+  key: string,
+  args?: Readonly<Record<string, string | number>>,
+): Promise<string> {
+  return (await getTranslator()).t(key, args)
+}

@@ -7,6 +7,7 @@ import { canSendMail, describeMailConfig } from '@meith/settings'
 import { recordAdminAction, requireAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
+import { getTranslator, tr } from './i18n'
 import { sendTestMail } from './mail-test'
 import { getSettings } from './settings'
 
@@ -16,19 +17,20 @@ export async function sendTestMailAction(
 ): Promise<FormState> {
   try {
     const admin = await requireAdmin()
+    const t = await getTranslator()
 
     const config = await currentMailConfig()
     if (!canSendMail(config)) {
       return {
         error:
-          'This board has no working mail configuration, so there is nothing to test. ' +
-          `Right now: ${describeMailConfig(config)}.`,
+          (await tr('notice.app.board-working-mail-configuration-there')) +
+          t.t('mailTest.currentConfiguration', { configuration: describeMailConfig(config) }),
       }
     }
 
     const account = await getContainer().accountStore.accounts.findById(admin.userId)
     if (account === null || account.email === '') {
-      return { error: 'Your account has no e-mail address to send a test to.' }
+      return { error: await tr('notice.app.account-e-mail-address-send-test') }
     }
 
     const settings = await getSettings()
@@ -36,6 +38,7 @@ export async function sendTestMailAction(
       config,
       to: account.email,
       boardName: settings.get('board.name'),
+      t,
       fromName: settings.get('mail.from_name'),
     })
 
@@ -46,22 +49,19 @@ export async function sendTestMailAction(
 
     if (!result.ok) {
       return {
-        error:
-          `The message could not be sent. ${result.error ?? ''} ` +
-          '(Sent through: ' +
-          `${describeMailConfig(config)}.)`,
+        error: t.t('mailTest.action.failed', {
+          error: result.error ?? '',
+          configuration: describeMailConfig(config),
+        }),
       }
     }
 
     return {
-      notice:
-        `A test message is on its way to ${account.email}. If it does not arrive within ` +
-        'a minute or two, check the spam folder and then the provider’s own log — the ' +
-        'board has done everything it can see.',
+      notice: t.t('mailTest.action.sent', { email: account.email }),
     }
   } catch (error) {
     if (isAppError(error)) return { error: error.message }
     logger({ module: 'mail-test' }).error({ err: String(error) }, 'test send failed')
-    return { error: 'The test could not be run.' }
+    return { error: await tr('notice.app.test-could-run') }
   }
 }

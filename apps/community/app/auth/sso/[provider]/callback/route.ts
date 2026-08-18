@@ -13,6 +13,7 @@ import {
   federationService,
   memberManagedSignIns,
 } from '@/server/federation'
+import { getTranslator, tr } from '@/server/i18n'
 import { isTopLevelNavigation } from '@/server/same-origin'
 import {
   clearHandshakeCookie,
@@ -41,7 +42,7 @@ export async function GET(
   context: { params: Promise<{ provider: string }> },
 ): Promise<Response> {
   if (!isTopLevelNavigation(request)) {
-    return new Response('A sign-in is completed by opening the board, not by a subresource.', {
+    return new Response(await tr('authRoute.sso.completeTopLevel'), {
       status: 403,
       headers: {
         'content-type': 'text/plain; charset=utf-8',
@@ -114,6 +115,7 @@ export async function GET(
           token: outcome.verificationToken,
           email: outcome.account.email,
           username: outcome.account.username,
+          t: await getTranslator(),
         })
       } catch (err) {
         log.error({ err }, 'could not send a verification e-mail after a federated sign-up')

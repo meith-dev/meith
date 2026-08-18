@@ -1,11 +1,14 @@
-import type { LatestPostsModel } from '@meith/theme-kit'
+import type { LatestPostsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Circle, MUTED_LINK, NUMERIC, Rail, Stamp, UserRef } from '../shared'
 
-export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
+export function LatestPosts({ posts, capturedAt, copy }: LatestPostsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.latestPosts.${key}`)
+
   return (
     <Rail
-      title="Latest posts"
+      title={c('title')}
       titleId="latest-posts-heading"
       action={
         <span className={`text-xs text-muted-foreground ${NUMERIC}`}>
@@ -14,9 +17,7 @@ export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
       }
     >
       {posts.length === 0 ? (
-        <p className="px-3 pt-1 pb-3 text-xs text-muted-foreground">
-          The newest posts you can see will appear here.
-        </p>
+        <p className="px-3 pt-1 pb-3 text-xs text-muted-foreground">{c('empty')}</p>
       ) : (
         <ul className="px-1 pt-1 pb-1">
           {posts.map((post) => (
@@ -43,7 +44,7 @@ export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
 
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     <UserRef user={post.author} className="text-xs font-medium" />
-                    {' in '}
+                    {` ${c('in')} `}
                     <a href={post.forum.href} className={MUTED_LINK}>
                       {post.forum.label}
                     </a>

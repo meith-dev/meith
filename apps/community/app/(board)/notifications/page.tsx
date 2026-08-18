@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { NOTIFICATIONS_PAGE_SIZE } from '@meith/notifications'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import {
   MarkAllNotificationsReadForm,
@@ -11,13 +11,16 @@ import {
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { notificationService } from '@/server/notifications'
 import { currentTheme } from '@/server/theme'
+import { notificationFormsCopy } from '@/view/account-copy'
 import { buildNotificationCentreView, notificationNotice } from '@/view/notifications'
 import { offsetOf, readPage } from '@/view/pager'
 
-export const metadata: Metadata = { title: 'Notifications' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.notifications') }
+}
 
 export default async function NotificationsPage({
   searchParams,
@@ -31,13 +34,16 @@ export default async function NotificationsPage({
   if (actor.userId === null || service === null) notFound()
 
   const pageNumber = readPage(query)
+  const translator = await getTranslator()
   const [page, unread, total] = await Promise.all([
-    service.list(actor.userId, { offset: offsetOf(pageNumber, NOTIFICATIONS_PAGE_SIZE) }),
+    service.list(
+      actor.userId,
+      { offset: offsetOf(pageNumber, NOTIFICATIONS_PAGE_SIZE) },
+      translator,
+    ),
     service.unreadCount(actor.userId),
     service.count(actor.userId),
   ])
-
-  const translator = await getTranslator()
 
   const view = buildNotificationCentreView({
     rows: page.rows,
@@ -52,28 +58,37 @@ export default async function NotificationsPage({
 
   return (
     <PanelPage
-      title="Notifications"
+      title={await tr('page.notifications')}
       lede={
         <>
-          {view.unread === 0 ? 'Nothing unread.' : `${view.unread} unread.`}{' '}
+          {translator.t('board.notifications.unread', { count: view.unread })}{' '}
           <a
             href={view.preferencesHref}
             className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Choose which of these you receive by e-mail
+            {await tr('page.choose-which-these-receive-by')}
           </a>
           .
         </>
       }
-      actions={<MarkAllNotificationsReadForm unread={view.unread} />}
+      actions={
+        <MarkAllNotificationsReadForm
+          unread={view.unread}
+          copy={notificationFormsCopy(translator)}
+        />
+      }
     >
-      {notice !== null && <Notice kind="info" message={notice} dismissHref="/notifications" />}
+      {notice !== null && (
+        <Notice
+          kind="info"
+          message={notice}
+          dismissHref="/notifications"
+          copy={slotCopy(await currentTheme(), 'Notice', translator)}
+        />
+      )}
 
       {view.rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          You have no notifications. When a moderator warns you, or a report you filed is closed, it
-          will appear here.
-        </p>
+        <p className="text-sm text-muted-foreground">{translator.t('board.notifications.empty')}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {view.rows.map((row) => (
@@ -87,7 +102,7 @@ export default async function NotificationsPage({
                 <span className="text-sm font-medium">
                   {row.isRead ? null : (
                     <span className="mr-2 text-xs font-semibold uppercase text-forum-unread">
-                      New
+                      {translator.t('board.notifications.new')}
                     </span>
                   )}
                   {row.subject}
@@ -111,10 +126,15 @@ export default async function NotificationsPage({
                     href={row.href}
                     className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                   >
-                    View
+                    {translator.t('board.notifications.view')}
                   </a>
                 )}
-                {!row.isRead && <MarkNotificationReadForm notificationId={row.id} />}
+                {!row.isRead && (
+                  <MarkNotificationReadForm
+                    notificationId={row.id}
+                    copy={notificationFormsCopy(translator)}
+                  />
+                )}
               </div>
             </li>
           ))}

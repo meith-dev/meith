@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { parseRating } from '@meith/reputation'
 
 import { postLink } from '@/view/post-link'
@@ -31,13 +32,11 @@ async function requireReputation(): Promise<{
   userId: number
 }> {
   const actor = await getActor()
-  if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+  if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
   const service = reputationService()
   if (service === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so it keeps no reputation.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data'))
   }
 
   return { service, userId: actor.userId }
@@ -50,10 +49,10 @@ export async function rateMemberAction(_prev: FormState, form: FormData): Promis
 
   try {
     const { service, userId: raterId } = await requireReputation()
-    if (userId === null) throw new ValidationError('No such member.')
+    if (userId === null) throw new ValidationError(msg('error.app.such-member'))
 
     const points = parseRating(trimmedText(form, 'points'))
-    if (points === null) throw new ValidationError('That is not a rating.')
+    if (points === null) throw new ValidationError(msg('error.app.rating'))
 
     const [settings, limits] = await Promise.all([reputationSettings(), viewerRaterLimits()])
 
@@ -81,7 +80,7 @@ export async function withdrawRatingAction(_prev: FormState, form: FormData): Pr
     const { service, userId: raterId } = await requireReputation()
 
     const ratingId = positiveInt(form, 'ratingId')
-    if (ratingId === null) throw new ValidationError('No such rating.')
+    if (ratingId === null) throw new ValidationError(msg('error.app.such-rating'))
 
     await service.withdraw(ratingId, raterId)
   } catch (err) {
@@ -98,7 +97,7 @@ export async function thankForPostAction(_prev: FormState, form: FormData): Prom
 
   try {
     const { service, userId: raterId } = await requireReputation()
-    if (userId === null || postId === null) throw new ValidationError('No such post.')
+    if (userId === null || postId === null) throw new ValidationError(msg('error.app.such-post'))
 
     const held = await service.existing({ givenByUserId: raterId, userId, postId })
 

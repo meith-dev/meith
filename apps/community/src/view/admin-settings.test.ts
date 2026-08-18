@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { sourceTranslator } from '@meith/i18n'
 import { SETTING_DEFINITIONS, SettingsSnapshot } from '@meith/settings'
 
 import { buildAdminSettingsModel, settingsHref } from './admin-settings'
@@ -143,6 +144,25 @@ describe('values', () => {
 
     expect(enabled?.checked).toBe(false)
     expect(enabled?.field.kind).toBe('boolean')
+  })
+
+  it('translates select options from their setting key', () => {
+    const built = model({
+      group: 'registration',
+      t: sourceTranslator({
+        'setting.registration.method.option.none': 'Translated activation',
+      }),
+    })
+    const method = built.groups[0]?.settings.find(
+      (setting) => setting.key === 'registration.method',
+    )
+
+    expect(method?.field.kind).toBe('select')
+    if (method?.field.kind === 'select') {
+      expect(method.field.options.find((option) => option.value === 'none')?.label).toBe(
+        'Translated activation',
+      )
+    }
   })
 })
 

@@ -1,7 +1,7 @@
 import 'server-only'
 
 import type { ForumListingRow } from '@meith/forums'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
@@ -55,6 +55,7 @@ export async function SectionPage({
   const BoardIndex = requireSlot(theme, 'BoardIndex')
   const CategoryBlock = requireSlot(theme, 'CategoryBlock')
   const ForumRow = requireSlot(theme, 'ForumRow')
+  const translator = await getTranslator()
 
   const trail = buildBreadcrumb({
     forums: rows,
@@ -70,9 +71,16 @@ export async function SectionPage({
       regions: {
         categories:
           section === null ? null : (
-            <CategoryBlock category={section.block.category}>
+            <CategoryBlock
+              category={section.block.category}
+              copy={slotCopy(theme, 'CategoryBlock', translator)}
+            >
               {forums.map((row) => (
-                <ForumRow key={row.forum.id} {...row} />
+                <ForumRow
+                  key={row.forum.id}
+                  {...row}
+                  copy={slotCopy(theme, 'ForumRow', translator)}
+                />
               ))}
             </CategoryBlock>
           ),
@@ -85,9 +93,9 @@ export async function SectionPage({
 
   return (
     <>
-      <Navigation items={trail} />
+      <Navigation items={trail} copy={slotCopy(theme, 'Navigation', translator)} />
       <main id="board-content" tabIndex={-1} className="flex-1">
-        <BoardIndex {...index} />
+        <BoardIndex {...index} copy={slotCopy(theme, 'BoardIndex', translator)} />
       </main>
     </>
   )

@@ -1,4 +1,5 @@
-import type { PostFormModel } from '@meith/theme-kit'
+import type { PostFormModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { FEED, PAGE, PILL } from '../shared'
 
@@ -8,7 +9,10 @@ export function PostForm({
   cancelLabel,
   errorMessage,
   regions,
-}: PostFormModel) {
+  copy,
+}: PostFormModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.postForm.${key}`)
+
   return (
     <div className={`${PAGE} py-4 sm:py-6`}>
       <div className={`${FEED} flex flex-col gap-4`}>
@@ -17,7 +21,7 @@ export function PostForm({
             role="alert"
             className="rounded-lg border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm shadow-elevation"
           >
-            <span className="font-semibold">Cannot post.</span> {errorMessage}
+            <span className="font-semibold">{c('cannotPost')}</span> {errorMessage}
           </p>
         )}
 

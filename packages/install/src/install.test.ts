@@ -18,7 +18,7 @@ import {
   parseInstallInput,
   preflight,
   SECRET_FIELDS,
-  stepTitle,
+  stepTitleKey,
   warnings,
   withEnvironmentAnswers,
 } from './index'
@@ -55,9 +55,10 @@ describe('the preflight on a ready board', () => {
 
   it('reports the pending migration count without blocking on it', () => {
     const checks = preflight(ready({ pendingMigrations: 1 }))
-    expect(checks.find((check) => check.id === 'migrations')?.title).toBe(
-      '1 migration will be applied',
-    )
+    expect(checks.find((check) => check.id === 'migrations')).toMatchObject({
+      titleKey: 'installPreflight.migrations.title',
+      titleArgs: { count: 1 },
+    })
     expect(canProceed(checks)).toBe(true)
   })
 
@@ -101,11 +102,11 @@ describe('blockers', () => {
     expect(canProceed(checks)).toBe(false)
   })
 
-  it('counts accounts in the message, singular and plural', () => {
+  it('carries account counts to the translated detail', () => {
     const one = preflight(ready({ userCount: 1 })).find((c) => c.id === 'has-members')
     const many = preflight(ready({ userCount: 4 })).find((c) => c.id === 'has-members')
-    expect(one?.detail).toContain('is 1 account')
-    expect(many?.detail).toContain('are 4 accounts')
+    expect(one?.detailArgs).toEqual({ count: 1 })
+    expect(many?.detailArgs).toEqual({ count: 4 })
   })
 
   it('does not block when the account count is unknown', () => {
@@ -190,15 +191,15 @@ describe('the step plan', () => {
     expect(firstFailure(freshReport())).toBeNull()
   })
 
-  it('gives every step a title a screen can print', () => {
+  it('gives every step a title key a screen can translate', () => {
     for (const step of INSTALL_STEPS) {
-      expect(stepTitle(step.id)).toBe(step.title)
-      expect(stepTitle(step.id)).not.toBe(step.id)
+      expect(stepTitleKey(step.id)).toBe(step.titleKey)
+      expect(stepTitleKey(step.id)).not.toBe(step.id)
     }
   })
 
   it('falls back to the id for a step it does not know', () => {
-    expect(stepTitle('nonexistent')).toBe('nonexistent')
+    expect(stepTitleKey('nonexistent')).toBe('nonexistent')
   })
 })
 
@@ -252,7 +253,7 @@ describe('the report a screen renders', () => {
   })
 
   it('is joinable to the step list by id alone', () => {
-    const titles = new Map(INSTALL_STEPS.map((step) => [step.id, step.title]))
+    const titles = new Map(INSTALL_STEPS.map((step) => [step.id, step.titleKey]))
     for (const outcome of freshReport()) {
       expect(titles.get(outcome.id)).toBeDefined()
     }
@@ -662,7 +663,10 @@ describe('the preflight’s mail check', () => {
   it('says so, without a credential, when mail is already working', () => {
     const check = preflight(ready()).find((c) => c.id === 'mail')
     expect(check?.level).toBe('ok')
-    expect(check?.title).toContain('smtp.example')
+    expect(check).toMatchObject({
+      titleKey: 'installPreflight.mail.configuredTitle',
+      titleArgs: { summary: expect.stringContaining('smtp.example') },
+    })
   })
 })
 
@@ -674,16 +678,17 @@ describe('the board address check', () => {
       const check = checks.find((c) => c.id === 'public-url')
 
       expect(check?.level).toBe('ok')
-      expect(check?.title).toContain('form below')
+      expect(check?.titleKey).toBe('installPreflight.publicUrl.formTitle')
       expect(idsOf(warnings(checks))).not.toContain('public-url')
     },
   )
 
   it('names APP_URL, and its value, when the environment supplies it', () => {
     const check = preflight(ready()).find((c) => c.id === 'public-url')
-    expect(check?.title).toContain('APP_URL')
-    expect(check?.title).toContain('https://board.example')
-    expect(check?.title).not.toContain('PUBLIC_URL')
+    expect(check).toMatchObject({
+      titleKey: 'installPreflight.publicUrl.setTitle',
+      titleArgs: { url: 'https://board.example' },
+    })
   })
 })
 
@@ -692,8 +697,7 @@ describe('the tick-secret warning', () => {
     const check = preflight(ready({ hasTickSecret: false })).find((c) => c.id === 'tick-secret')
 
     expect(check?.level).toBe('warning')
-    expect(check?.detail).toContain('worker')
-    expect(check?.detail).toContain('HTTP')
+    expect(check?.detailKey).toBe('installPreflight.tickSecret.missingDetail')
   })
 })
 

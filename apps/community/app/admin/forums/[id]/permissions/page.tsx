@@ -6,8 +6,12 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildForumMatrixView, previewCopy } from '@/server/forum-admin'
+import { getTranslator, tr } from '@/server/i18n'
+import { forumAdminCopy } from '@/view/admin-copy'
 
-export const metadata: Metadata = { title: 'Forum permissions' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.forum-permissions') }
+}
 
 export default async function ForumPermissionsPage({
   params,
@@ -22,18 +26,19 @@ export default async function ForumPermissionsPage({
   const view = await buildForumMatrixView(Number(id))
   if (view === null) notFound()
 
+  const t = await getTranslator()
   const plan = previewCopy(view)
   const forumTitles = new Map([view.forum, ...view.descendants].map((row) => [row.id, row.title]))
 
   return (
     <PanelPage
-      back={{ href: '/admin/forums', label: 'All forums' }}
-      title={`Permissions: ${view.forum.title}`}
+      back={{ href: '/admin/forums', label: t.t('adminForums.all') }}
+      title={t.t('adminForums.permissionsTitle', { title: view.forum.title })}
       lede={
         <>
-          <strong>Inherit</strong> is not the same as <strong>Deny</strong>. A cell left on Inherit
-          follows the nearest ancestor that sets it, and the group&rsquo;s own default if none does
-          — so changing that ancestor later still reaches this forum. Setting Deny pins it here.
+          <strong>{t.t('adminForums.inherit')}</strong>
+          {t.t('adminForums.permissionsLedeBetween')} <strong>{t.t('adminForums.deny')}</strong>
+          {t.t('adminForums.permissionsLedeEnd')}
         </>
       }
       gap="loose"
@@ -45,27 +50,30 @@ export default async function ForumPermissionsPage({
             forumId={view.forum.id}
             row={row}
             forumTitles={forumTitles}
+            copy={forumAdminCopy(t)}
           />
         ))}
       </div>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Copy to subforums</h2>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.copy-subforums')}</h2>
 
         {view.descendants.length === 0 ? (
-          <p className="text-sm text-muted-foreground">This forum has nothing beneath it.</p>
+          <p className="text-sm text-muted-foreground">
+            {await tr('page.this-forum-has-nothing-beneath')}
+          </p>
         ) : plan.changes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Every forum beneath this one already matches it. There is nothing to copy.
+            {await tr('page.every-forum-beneath-this-one')}
           </p>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              This would change {plan.changes.length} setting
-              {plan.changes.length === 1 ? '' : 's'} across{' '}
-              {new Set(plan.changes.map((change) => change.forumId)).size} forum
-              {new Set(plan.changes.map((change) => change.forumId)).size === 1 ? '' : 's'}
-              {plan.unchanged.length > 0 && `, leaving ${plan.unchanged.length} unchanged`}.
+              {t.t('adminForums.copyPreview', {
+                changes: plan.changes.length,
+                forums: new Set(plan.changes.map((change) => change.forumId)).size,
+                unchanged: plan.unchanged.length,
+              })}
             </p>
 
             <ul className="max-h-64 overflow-y-auto text-xs text-muted-foreground">
@@ -83,6 +91,7 @@ export default async function ForumPermissionsPage({
               forumId={view.forum.id}
               changeCount={plan.changes.length}
               forumCount={new Set(plan.changes.map((change) => change.forumId)).size}
+              copy={forumAdminCopy(t)}
             />
           </>
         )}

@@ -2,6 +2,7 @@ import 'server-only'
 
 import { logger } from '@meith/core'
 import { drivers } from '@meith/drivers'
+import type { Translator } from '@meith/i18n'
 
 import { boardUrl } from './board-url'
 import { getSettings } from './settings'
@@ -11,9 +12,10 @@ const CONFIRM_PATH = '/usercp/email/confirm'
 export async function sendEmailChangeConfirmation(input: {
   readonly token: string
   readonly email: string
+  readonly t: Translator
 }): Promise<void> {
   const settings = await getSettings()
-  const boardName = settings.get('board.name') || 'the forum'
+  const boardName = settings.get('board.name') || input.t.t('usercpMail.boardFallback')
   const fromName = settings.get('mail.from_name')
 
   const origin = await boardUrl()
@@ -21,23 +23,21 @@ export async function sendEmailChangeConfirmation(input: {
     origin === '' ? null : `${origin}${CONFIRM_PATH}?token=${encodeURIComponent(input.token)}`
 
   const lines = [
-    'Hello,',
+    input.t.t('usercpMail.greeting'),
     '',
-    `Somebody — we hope you — asked to use this address for their account on ${boardName}.`,
+    input.t.t('usercpMail.intro', { board: boardName }),
     '',
-    link === null
-      ? 'Open your user control panel on the board and follow the confirmation link there.'
-      : `Confirm the change: ${link}`,
+    link === null ? input.t.t('usercpMail.noLink') : input.t.t('usercpMail.link', { link }),
     '',
-    'The link is valid for one hour and can be used once.',
+    input.t.t('usercpMail.ttl'),
     '',
-    'If this was not you, ignore this message. Nothing changes until the link is used.',
+    input.t.t('usercpMail.ignore'),
   ]
 
   try {
     await drivers().mail.send({
       to: input.email,
-      subject: `[${boardName}] Confirm your new e-mail address`,
+      subject: `[${boardName}] ${input.t.t('usercpMail.subject')}`,
       text: lines.join('\n'),
       ...(fromName === '' ? {} : { fromName }),
     })

@@ -1,4 +1,5 @@
-import type { OptionModel, SearchRefineModel, SearchResultsModel } from '@meith/theme-kit'
+import type { OptionModel, SearchRefineModel, SearchResultsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { BUTTON_PRIMARY, Frame, HEADING, MICRO, RULE, Stamp } from '../shared'
 
@@ -15,7 +16,10 @@ export function SearchResults({
   within,
   refine,
   regions,
-}: SearchResultsModel) {
+  copy,
+}: SearchResultsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.searchResults.${key}`)
+
   return (
     <main
       id="board-content"
@@ -24,28 +28,28 @@ export function SearchResults({
     >
       <div className="border border-border bg-card shadow-elevation">
         <div className="px-4 py-3">
-          <p className={MICRO}>search</p>
+          <p className={MICRO}>{c('kicker')}</p>
           <h1 className={`${HEADING} text-xl text-foreground`}>
-            Results for &ldquo;{terms}&rdquo;
+            {c('resultsForPrefix')}
+            {terms}
+            {c('resultsForSuffix')}
           </h1>
           <p className={`${MICRO} mt-1 normal-case`}>
-            <span className="uppercase">run</span> <Stamp at={searchedAt} />
+            <span className="uppercase">{c('run')}</span> <Stamp at={searchedAt} />
             <span className="text-border">{' | '}</span>
-            <span>checked against your access every time this page is opened</span>
+            <span>{c('accessNotice')}</span>
           </p>
         </div>
         <div className={RULE} aria-hidden="true" />
       </div>
 
-      {refine !== undefined && <Refine {...refine} />}
+      {refine !== undefined && <Refine {...refine} copy={copy} />}
 
       <Frame>
         {hits.length === 0 ? (
           <div className="px-4 py-6 text-center">
-            <p className={`${HEADING} text-sm text-foreground`}>Nothing matched</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Or nothing you can see does. Try fewer words, or a different spelling.
-            </p>
+            <p className={`${HEADING} text-sm text-foreground`}>{c('nothingMatched')}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{c('nothingMatchedHint')}</p>
           </div>
         ) : (
           <ul className="divide-y divide-border">
@@ -123,7 +127,7 @@ export function SearchResults({
 
       <p>
         <a href={newSearchHref} className={`${MICRO} hover:text-primary`}>
-          start a new search
+          {c('startNewSearch')}
         </a>
       </p>
     </main>
@@ -141,7 +145,10 @@ function Refine({
   submitLabel,
   applied,
   clearHref,
-}: SearchRefineModel) {
+  copy,
+}: SearchRefineModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.searchResults.${key}`)
+
   return (
     <section
       aria-label={label}
@@ -175,7 +182,7 @@ function Refine({
           >
             {chip.label}
             <span aria-hidden="true">×</span>
-            <span className="sr-only">— remove this filter</span>
+            <span className="sr-only">{c('removeFilter')}</span>
           </a>
         ))}
       </div>
@@ -195,7 +202,7 @@ function Refine({
 
         {clearHref !== null && (
           <a href={clearHref} className={`${MICRO} hover:text-primary`}>
-            clear filters
+            {c('clearFilters')}
           </a>
         )}
       </form>

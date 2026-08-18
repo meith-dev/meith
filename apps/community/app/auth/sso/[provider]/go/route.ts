@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 
 import { federationProvider } from '@/server/federation'
+import { getTranslator, tr } from '@/server/i18n'
 import { isTopLevelNavigation } from '@/server/same-origin'
 import { readHandshakeCookie } from '@/server/session-cookies'
 import { decodeHandshake } from '@/server/sso-handshake'
@@ -21,7 +22,7 @@ export async function GET(
   context: { params: Promise<{ provider: string }> },
 ): Promise<Response> {
   if (!isTopLevelNavigation(request)) {
-    return new Response('A sign-in is started by opening this page, not by a subresource.', {
+    return new Response(await tr('authRoute.sso.startTopLevel'), {
       status: 403,
       headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' },
     })
@@ -40,7 +41,11 @@ export async function GET(
   }
 
   return new Response(
-    handOffPage({ label: provider.label, authorizationUrl: handshake.authorizationUrl }),
+    handOffPage({
+      label: provider.label,
+      authorizationUrl: handshake.authorizationUrl,
+      t: await getTranslator(),
+    }),
     {
       status: 200,
       headers: {

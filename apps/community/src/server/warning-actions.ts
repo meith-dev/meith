@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { WarningService } from '@meith/moderation'
 
 import type { FormState } from './auth-form-state'
@@ -10,25 +11,26 @@ import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt, text } from './form-values'
+import { tr } from './i18n'
 import { warningNotifier } from './notifications'
 
 const toFormState = formStateReporter('warning-actions', 'unexpected error in warnings')
 
 export async function issueWarningAction(_prev: FormState, form: FormData): Promise<FormState> {
   const userId = positiveInt(form, 'userId')
-  if (userId === null) return { error: 'That member does not exist.' }
+  if (userId === null) return { error: await tr('notice.app.member-exist') }
 
   const { authorizer, warnings, warningBans } = getContainer()
   if (warnings === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it has no warnings.',
+      error: await tr('notice.app.board-running-in-memory-sample-data'),
     }
   }
 
   let outcome: Awaited<ReturnType<WarningService['issue']>>
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const mayWarn = authorizer.can(actor, 'user.warn')
 
@@ -63,20 +65,20 @@ export async function revokeWarningAction(_prev: FormState, form: FormData): Pro
   const warningId = positiveInt(form, 'warningId')
   const userId = positiveInt(form, 'userId')
   if (warningId === null || userId === null) {
-    return { error: 'That warning does not exist.' }
+    return { error: await tr('notice.app.warning-exist') }
   }
 
   const { authorizer, warnings, warningBans } = getContainer()
   if (warnings === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it has no warnings.',
+      error: await tr('notice.app.board-running-in-memory-sample-data'),
     }
   }
 
   let standing: Awaited<ReturnType<WarningService['revoke']>>
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     standing = await new WarningService({ warnings, bans: warningBans }).revoke({
       warningId,

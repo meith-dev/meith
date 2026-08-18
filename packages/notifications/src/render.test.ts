@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { sourceTranslator } from '@meith/i18n'
+
 import { renderNotification } from './render'
 import type { NotificationRecord } from './types'
 
@@ -143,5 +145,32 @@ describe('a plugin kind', () => {
       readAt: null,
     })
     expect(view.subject).toBe('A plugin has news for you')
+  })
+
+  it('renders stored plugin catalog keys with the recipient translator', () => {
+    const view = renderNotification(
+      {
+        id: 11,
+        userId: 7,
+        kind: 'plugin.reference.poked',
+        data: {
+          subjectKey: 'reference.notification.poked.subject',
+          subjectArgs: '{"plan":"Gold"}',
+          bodyKey: 'reference.notification.poked.body',
+          bodyArgs: '{"count":2}',
+        },
+        href: '/reference',
+        occurrences: 1,
+        createdAt: new Date('2026-08-11T00:00:00Z'),
+        updatedAt: new Date('2026-08-11T00:00:00Z'),
+        readAt: null,
+      },
+      sourceTranslator({
+        'reference.notification.poked.subject': 'Plan {plan}',
+        'reference.notification.poked.body': '{count, plural, one {One hook} other {# hooks}}',
+      }),
+    )
+
+    expect(view).toMatchObject({ subject: 'Plan Gold', body: '2 hooks', href: '/reference' })
   })
 })

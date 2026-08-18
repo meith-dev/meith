@@ -1,8 +1,10 @@
-import type { ForumRowSlotModel } from '@meith/theme-kit'
+import type { ForumRowSlotModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { CHIP, HEADING, LINK, MICRO, ReadMark, Stamp, TABLE_ROW, Tally, UserRef } from '../shared'
 
-export function ForumRow({ forum }: ForumRowSlotModel) {
+export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.forumRow.${key}`)
   const isLink = forum.type === 'link'
 
   return (
@@ -19,8 +21,8 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
         >
           {forum.title}
         </a>
-        {forum.isUnread && <span className="sr-only"> (new posts)</span>}
-        {isLink && <span className={`${MICRO} ml-2`}>Link</span>}
+        {forum.isUnread && <span className="sr-only"> {c('newPosts')}</span>}
+        {isLink && <span className={`${MICRO} ml-2`}>{c('link')}</span>}
 
         {forum.description !== null && (
           <p className="mt-0.5 text-xs text-muted-foreground">{forum.description}</p>
@@ -40,19 +42,19 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
       {!isLink && (
         <>
           <span className="col-start-2 md:col-start-3 md:block md:text-right">
-            <Tally value={forum.threadCount} label="threads" />
+            <Tally value={forum.threadCount} label={c('threads')} />
             <span className="ms-3 md:hidden">
-              <Tally value={forum.postCount} label="posts" />
+              <Tally value={forum.postCount} label={c('posts')} />
             </span>
           </span>
 
           <span className="hidden md:block md:text-right">
-            <Tally value={forum.postCount} label="posts" />
+            <Tally value={forum.postCount} label={c('posts')} />
           </span>
 
           <div className="col-start-2 min-w-0 text-xs text-muted-foreground md:col-start-5">
             {forum.lastPost === null ? (
-              <span className={MICRO}>No posts yet</span>
+              <span className={MICRO}>{c('noPostsYet')}</span>
             ) : (
               <>
                 <a

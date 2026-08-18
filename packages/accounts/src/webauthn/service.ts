@@ -1,4 +1,5 @@
 import { ConflictError, ForbiddenError, NotFoundError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { encodeBase64Url, randomBase64Url } from '../crypto/base64url'
 import type {
@@ -87,7 +88,7 @@ export class PasskeyService {
     readonly boardName: string
   }): Promise<PasskeyRegistrationOptions> {
     const account = await this.accounts.findById(input.userId)
-    if (account === null) throw new NotFoundError('That account no longer exists.')
+    if (account === null) throw new NotFoundError(msg('error.accounts.account-longer-exists'))
 
     const existing = await this.passkeys.listForUser(input.userId)
     if (existing.length >= PASSKEY_LIMIT) {
@@ -151,7 +152,7 @@ export class PasskeyService {
 
     const claimed = await this.passkeys.findByCredentialId(verified.credentialId)
     if (claimed !== null) {
-      throw new ConflictError('That passkey is already registered here.')
+      throw new ConflictError(msg('error.accounts.passkey-already-registered-here'))
     }
 
     return this.passkeys.create({
@@ -177,7 +178,7 @@ export class PasskeyService {
   }): Promise<{ readonly account: AccountRecord; readonly login: LoginResult }> {
     const passkey = await this.passkeys.findByCredentialId(input.credentialId)
     if (passkey === null) {
-      throw new ForbiddenError('That passkey is not registered on this board.')
+      throw new ForbiddenError(msg('error.accounts.passkey-registered-board'))
     }
 
     const verified = await verifyAssertion({
@@ -190,7 +191,7 @@ export class PasskeyService {
 
     const account = await this.accounts.findById(passkey.userId)
     if (account === null) {
-      throw new ForbiddenError('The account behind that passkey no longer exists.')
+      throw new ForbiddenError(msg('error.accounts.account-behind-passkey-longer-exists'))
     }
 
     const login = await this.identity.startSessionFor(account, input.context ?? {})
@@ -250,7 +251,7 @@ export class PasskeyService {
     }
 
     const removed = await this.passkeys.remove(input.userId, input.passkeyId)
-    if (!removed) throw new NotFoundError('That passkey was already removed.')
+    if (!removed) throw new NotFoundError(msg('error.accounts.passkey-already-removed'))
   }
 }
 

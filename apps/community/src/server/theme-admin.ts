@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import { ForbiddenError } from '@meith/core'
@@ -18,9 +19,7 @@ export function themeAdminRepository(): PostgresThemeAdminRepository | null {
 export function requireThemeAdmin(): PostgresThemeAdminRepository {
   const repository = themeAdminRepository()
   if (repository === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so its theme cannot be edited.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-24'))
   }
   return repository
 }

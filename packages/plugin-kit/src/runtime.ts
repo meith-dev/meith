@@ -76,8 +76,12 @@ export interface PluginNotify {
   send(input: {
     readonly userId: number
     readonly kind: string
-    readonly subject: string
+    readonly subject?: string | undefined
+    readonly subjectKey?: string | undefined
+    readonly subjectArgs?: Readonly<Record<string, string | number>> | undefined
     readonly body?: string | undefined
+    readonly bodyKey?: string | undefined
+    readonly bodyArgs?: Readonly<Record<string, string | number>> | undefined
     readonly href?: string | undefined
     readonly dedupeKey?: string | undefined
   }): Promise<void>
@@ -96,14 +100,18 @@ const MAX_NOTIFY_BODY = 2_000
 export interface PluginNotifyKindInput {
   readonly key: string
   readonly title: string
+  readonly titleKey?: string | undefined
   readonly description: string
+  readonly descriptionKey?: string | undefined
   readonly emailByDefault?: boolean | undefined
 }
 
 export interface PluginNotificationKindSpec {
   readonly id: string
   readonly title: string
+  readonly titleKey?: string
   readonly description: string
+  readonly descriptionKey?: string
   readonly audience: 'member'
   readonly emailByDefault: boolean
   readonly emailConfigurable: true
@@ -126,7 +134,9 @@ export function pluginNotificationKindSpecs(
   return kinds.map((kind) => ({
     id: `plugin.${pluginKey}.${kind.key}`,
     title: kind.title,
+    ...(kind.titleKey === undefined ? {} : { titleKey: kind.titleKey }),
     description: kind.description,
+    ...(kind.descriptionKey === undefined ? {} : { descriptionKey: kind.descriptionKey }),
     audience: 'member',
     emailByDefault: kind.emailByDefault ?? true,
     emailConfigurable: true,
@@ -153,14 +163,36 @@ export function pluginNotify(
         throw new Error(`plugin "${pluginKey}": a notification needs a real user id.`)
       }
 
-      const subject = input.subject.trim()
-      if (subject === '' || subject.length > MAX_NOTIFY_SUBJECT) {
+      const hasSubject = input.subject !== undefined
+      const hasSubjectKey = input.subjectKey !== undefined
+      if (hasSubject === hasSubjectKey) {
+        throw new Error(
+          `plugin "${pluginKey}": a notification needs exactly one of subject or subjectKey.`,
+        )
+      }
+
+      const subject = input.subject?.trim() ?? ''
+      if (hasSubject && (subject === '' || subject.length > MAX_NOTIFY_SUBJECT)) {
         throw new Error(
           `plugin "${pluginKey}": a notification subject is 1 to ${MAX_NOTIFY_SUBJECT} characters.`,
         )
       }
 
+      const subjectKey = input.subjectKey?.trim() ?? ''
+      if (hasSubjectKey && subjectKey === '') {
+        throw new Error(`plugin "${pluginKey}": a notification subjectKey cannot be empty.`)
+      }
+
       const body = (input.body ?? '').trim()
+      const hasBody = input.body !== undefined
+      const hasBodyKey = input.bodyKey !== undefined
+      if (hasBody && hasBodyKey) {
+        throw new Error(`plugin "${pluginKey}": a notification cannot have both body and bodyKey.`)
+      }
+      const bodyKey = input.bodyKey?.trim() ?? ''
+      if (hasBodyKey && bodyKey === '') {
+        throw new Error(`plugin "${pluginKey}": a notification bodyKey cannot be empty.`)
+      }
       if (body.length > MAX_NOTIFY_BODY) {
         throw new Error(
           `plugin "${pluginKey}": a notification body caps at ${MAX_NOTIFY_BODY} characters — ` +
@@ -181,7 +213,28 @@ export function pluginNotify(
       await backend.raise({
         userId: input.userId,
         kind: `plugin.${pluginKey}.${input.kind}`,
-        data: body === '' ? { subject } : { subject, body },
+        data: {
+          ...(hasSubject
+            ? { subject }
+            : {
+                subjectKey,
+                ...(input.subjectArgs === undefined
+                  ? {}
+                  : { subjectArgs: JSON.stringify(input.subjectArgs) }),
+              }),
+          ...(hasBody
+            ? body === ''
+              ? {}
+              : { body }
+            : !hasBodyKey
+              ? {}
+              : {
+                  bodyKey,
+                  ...(input.bodyArgs === undefined
+                    ? {}
+                    : { bodyArgs: JSON.stringify(input.bodyArgs) }),
+                }),
+        },
         href: input.href ?? null,
         dedupeKey: input.dedupeKey ?? null,
       })

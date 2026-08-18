@@ -1,4 +1,5 @@
-import type { ShellModel } from '@meith/theme-kit'
+import type { ShellModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 const APP_REGIONS = `
 [data-theme-raidframe] .font-heading:not([class*="tracking-"]) {
@@ -7,7 +8,9 @@ const APP_REGIONS = `
 }
 `
 
-export function Shell({ viewer, children }: ShellModel) {
+export function Shell({ viewer, children, copy }: ShellModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.shell.${key}`)
+
   return (
     <div
       className="relative min-h-dvh bg-background text-foreground"
@@ -29,7 +32,7 @@ export function Shell({ viewer, children }: ShellModel) {
         href="#board-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:border focus:border-primary focus:bg-card focus:px-3 focus:py-2 focus:font-mono focus:text-xs focus:uppercase"
       >
-        Skip to content
+        {c('skipToContent')}
       </a>
 
       <div className="relative mx-auto flex min-h-dvh w-full max-w-6xl flex-col border-x border-border bg-background/80">

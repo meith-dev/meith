@@ -1,18 +1,21 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { OptionsForm } from '@/components/account/usercp-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { catalogs, getTranslator } from '@/server/i18n'
+import { catalogs, getTranslator, tr } from '@/server/i18n'
 import { getSettings } from '@/server/settings'
 import { currentTheme } from '@/server/theme'
+import { optionsFormCopy } from '@/view/account-copy'
 import { localeChoices, optionsFormValues, timezoneChoices, userCpNotice } from '@/view/usercp'
 
-export const metadata: Metadata = { title: 'Your options' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.options') }
+}
 
 export default async function OptionsPage({
   searchParams,
@@ -34,19 +37,27 @@ export default async function OptionsPage({
 
   return (
     <PanelPage
-      title="Your options"
-      lede="Your language and timezone, and how much of a thread fits on a page."
+      title={await tr('page.options')}
+      lede={await tr('page.language-timezone-how-much-thread')}
     >
       {notice !== null && (
-        <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/options" />
+        <Notice
+          kind={notice.kind}
+          message={notice.message}
+          dismissHref="/usercp/options"
+          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
+        />
       )}
 
       <OptionsForm
         {...values}
         timezones={timezoneChoices(await getTranslator())}
         locales={localeChoices(catalogs.locales, await getTranslator())}
-        boardPostsPerPage={board.get('display.posts_per_page')}
-        boardThreadsPerPage={board.get('display.threads_per_page')}
+        copy={optionsFormCopy(
+          board.get('display.posts_per_page'),
+          board.get('display.threads_per_page'),
+          await getTranslator(),
+        )}
       />
     </PanelPage>
   )

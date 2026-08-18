@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import {
   MAX_RELATIONS,
@@ -44,8 +45,7 @@ export class RelationService {
 
     if (input.kind === 'ignore' && input.targetIsStaff === true) {
       throw new ValidationError(
-        'Moderators and administrators cannot be ignored — their posts are often ' +
-          'the ones explaining what happened to a thread.',
+        msg('error.relations.moderators-administrators-ignored-their-posts'),
       )
     }
 
@@ -59,10 +59,7 @@ export class RelationService {
         )
 
       if (!onListAlready) {
-        throw new ValidationError(
-          `Your buddy and ignore lists are full (${MAX_RELATIONS} people). ` +
-            'Remove somebody first.',
-        )
+        throw new ValidationError(msg('error.relations.lists-full', { max: MAX_RELATIONS }))
       }
     }
 

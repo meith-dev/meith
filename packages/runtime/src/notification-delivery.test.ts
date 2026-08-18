@@ -51,7 +51,7 @@ const DELIVERABLE: DeliverableNotification = {
     updatedAt: new Date('2026-07-31T12:00:00Z'),
     readAt: null,
   },
-  recipient: { userId: 1, username: 'ivan', email: 'ivan@example.test' },
+  recipient: { userId: 1, username: 'ivan', email: 'ivan@example.test', locale: 'en' },
   emailEnabled: true,
   emailSentAt: null,
 }

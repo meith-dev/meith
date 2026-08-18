@@ -2,6 +2,7 @@ import 'server-only'
 
 import { env, logger, readPluginEnv } from '@meith/core'
 import { appliedPluginMigrations, getDb } from '@meith/db'
+import type { Translator } from '@meith/i18n'
 import {
   type PluginDefinition,
   type PluginHealth,
@@ -81,6 +82,15 @@ export interface PluginInventory {
   readonly migrationsKnown: boolean
 }
 
+function translated(
+  t: Translator | undefined,
+  key: string | undefined,
+  fallback: string,
+  args?: Parameters<Translator['t']>[1],
+): string {
+  return t !== undefined && key !== undefined && t.has(key) ? t.t(key, args) : fallback
+}
+
 function definitionsByKey(): ReadonlyMap<string, PluginDefinition | undefined> {
   return new Map(
     (forumConfig.plugins ?? []).map((entry) => [
@@ -109,7 +119,7 @@ async function appliedByPlugin(
   }
 }
 
-export async function pluginInventory(): Promise<PluginInventory> {
+export async function pluginInventory(t?: Translator): Promise<PluginInventory> {
   const definitions = definitionsByKey()
   const overrides = await getSettingOverrides()
   await syncOperatorDisables()
@@ -132,9 +142,20 @@ export async function pluginInventory(): Promise<PluginInventory> {
 
     return {
       key: entry.key,
-      name: entry.name,
+      name:
+        definition === undefined
+          ? entry.name
+          : translated(t, definition.nameKey, entry.name ?? definition.name),
       version: entry.version,
-      description: definition?.description ?? null,
+      description:
+        definition?.description === undefined
+          ? null
+          : translated(
+              t,
+              definition.descriptionKey,
+              definition.description,
+              definition.descriptionArgs,
+            ),
       dependsOn: definition?.dependsOn ?? [],
       hasDefinition: entry.hasDefinition,
 
@@ -151,8 +172,11 @@ export async function pluginInventory(): Promise<PluginInventory> {
         const secret = kind === 'secret'
         return {
           key: setting.key,
-          label: setting.label,
-          description: setting.description ?? null,
+          label: translated(t, setting.labelKey, setting.label),
+          description:
+            setting.description === undefined
+              ? null
+              : translated(t, setting.descriptionKey, setting.description),
           advanced: setting.advanced === true,
           kind,
           default: secret ? '' : setting.default,
@@ -160,7 +184,10 @@ export async function pluginInventory(): Promise<PluginInventory> {
           overridden: overrides.has(`plugin.${entry.key}.${setting.key}`),
           source,
           set: typeof value === 'string' ? value !== '' : true,
-          options: setting.options ?? [],
+          options: (setting.options ?? []).map((option) => ({
+            value: option.value,
+            label: translated(t, option.labelKey, option.label),
+          })),
           envName: setting.env ?? null,
           problem,
         }
@@ -184,7 +211,7 @@ export async function pluginInventory(): Promise<PluginInventory> {
       pages: (definition?.adminPages ?? []).map(
         (page): PluginPageRow => ({
           path: page.path,
-          title: page.title,
+          title: translated(t, page.titleKey, page.title, page.titleArgs),
           href: pluginAdminPath(entry.key, page.path),
         }),
       ),
@@ -194,8 +221,8 @@ export async function pluginInventory(): Promise<PluginInventory> {
   return { plugins, migrationsKnown: withMigrations.length === 0 || applied !== null }
 }
 
-export async function pluginRow(key: string): Promise<PluginRow | null> {
-  const inventory = await pluginInventory()
+export async function pluginRow(key: string, t?: Translator): Promise<PluginRow | null> {
+  const inventory = await pluginInventory(t)
   return inventory.plugins.find((plugin) => plugin.key === key) ?? null
 }
 

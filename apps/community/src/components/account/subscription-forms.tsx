@@ -10,6 +10,7 @@ import {
 } from '@/server/subscription-actions'
 
 import { FormError } from '../auth/form-controls'
+import { type Copy, fromCopy } from '../shell/copy'
 
 const BUTTON =
   'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -35,6 +36,7 @@ export function FollowForm({
   modes,
   back,
   label,
+  copy,
 }: {
   target: 'thread' | 'forum'
   targetId: number
@@ -42,6 +44,7 @@ export function FollowForm({
   modes: readonly ModeOption[]
   back: string
   label: string
+  copy: Copy
 }) {
   const [state, action] = useActionState(subscribeAction, EMPTY_STATE)
   const [stopState, stopAction] = useActionState(unsubscribeAction, EMPTY_STATE)
@@ -57,12 +60,14 @@ export function FollowForm({
           <input type="hidden" name="back" value={back} />
 
           <label className="text-sm">
-            <span className="mr-2">{mode === null ? label : 'Notify me'}</span>
+            <span className="mr-2">
+              {mode === null ? label : fromCopy(copy, 'accountForm.follow.notifyMe')}
+            </span>
             <select
               name="mode"
               className={FIELD}
               defaultValue={mode ?? 'instant'}
-              aria-label="How often to notify me"
+              aria-label={fromCopy(copy, 'accountForm.follow.frequency')}
             >
               {modes.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -73,7 +78,9 @@ export function FollowForm({
           </label>
 
           <button type="submit" className={QUIET_BUTTON}>
-            {mode === null ? 'Follow' : 'Save'}
+            {mode === null
+              ? fromCopy(copy, 'accountForm.follow.follow')
+              : fromCopy(copy, 'accountForm.follow.save')}
           </button>
         </form>
 
@@ -83,7 +90,7 @@ export function FollowForm({
             <input type="hidden" name="targetId" value={targetId} />
             <input type="hidden" name="back" value={back} />
             <button type="submit" className={GHOST_BUTTON}>
-              Stop following
+              {fromCopy(copy, 'accountForm.follow.stop')}
             </button>
           </form>
         )}
@@ -97,11 +104,13 @@ export function SubscriptionRowForm({
   targetId,
   mode,
   modes,
+  copy,
 }: {
   target: 'thread' | 'forum'
   targetId: number
   mode: string
   modes: readonly ModeOption[]
+  copy: Copy
 }) {
   return (
     <FollowForm
@@ -110,7 +119,8 @@ export function SubscriptionRowForm({
       mode={mode}
       modes={modes}
       back="/subscriptions"
-      label="Notify me"
+      label={fromCopy(copy, 'accountForm.follow.notifyMe')}
+      copy={copy}
     />
   )
 }
@@ -118,9 +128,11 @@ export function SubscriptionRowForm({
 export function UnsubscribeConfirmForm({
   token,
   description,
+  copy,
 }: {
   token: string
   description: string
+  copy: Copy
 }) {
   const [state, action] = useActionState(unsubscribeByTokenAction, EMPTY_STATE)
 
@@ -131,7 +143,7 @@ export function UnsubscribeConfirmForm({
       <p className="text-sm">{description}</p>
       <div>
         <button type="submit" className={BUTTON}>
-          Unsubscribe
+          {fromCopy(copy, 'accountForm.follow.unsubscribe')}
         </button>
       </div>
     </form>

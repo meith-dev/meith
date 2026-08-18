@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { parseRelationKind } from '@meith/relations'
 
 import type { FormState } from './auth-form-state'
@@ -24,13 +25,11 @@ async function requireLists(): Promise<{
   userId: number
 }> {
   const actor = await getActor()
-  if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+  if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
   const service = relationService()
   if (service === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so it keeps no buddy or ignore lists.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-15'))
   }
 
   return { service, userId: actor.userId }
@@ -52,8 +51,8 @@ export async function setRelationAction(_prev: FormState, form: FormData): Promi
     const username = trimmedText(form, 'username')
     const kind = parseRelationKind(trimmedText(form, 'kind'))
 
-    if (otherUserId === null) throw new ValidationError('No such member.')
-    if (kind === null) throw new ValidationError('That is not a list.')
+    if (otherUserId === null) throw new ValidationError(msg('error.app.such-member'))
+    if (kind === null) throw new ValidationError(msg('error.app.list'))
 
     await service.set({
       userId,
@@ -78,7 +77,7 @@ export async function removeRelationAction(_prev: FormState, form: FormData): Pr
     const { service, userId } = await requireLists()
 
     const otherUserId = positiveInt(form, 'userId')
-    if (otherUserId === null) throw new ValidationError('No such member.')
+    if (otherUserId === null) throw new ValidationError(msg('error.app.such-member'))
 
     await service.remove(userId, otherUserId)
     query = `removed=${encodeURIComponent(trimmedText(form, 'username'))}`

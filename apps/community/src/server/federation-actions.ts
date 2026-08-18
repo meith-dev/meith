@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { recordAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
@@ -18,6 +19,7 @@ import {
 } from './federation'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
+import { tr } from './i18n'
 
 const toFormState = formStateReporter(
   'federation-actions',
@@ -50,16 +52,16 @@ async function requireOwnAccount(): Promise<{
   readonly hasPassword: boolean
 }> {
   const actor = await getActor()
-  if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+  if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
   if (!(await memberManagedSignIns())) {
-    throw new ForbiddenError('This board manages sign-ins for its members.')
+    throw new ForbiddenError(msg('error.app.board-manages-sign-ins-for-its'))
   }
 
   await assertDemoAccountChangeable(actor.userId, 'password')
 
   const account = await getContainer().accountStore.accounts.findById(actor.userId)
-  if (account === null) throw new ForbiddenError('That account no longer exists.')
+  if (account === null) throw new ForbiddenError(msg('error.app.account-longer-exists'))
 
   return { userId: actor.userId, hasPassword: account.passwordHash !== null }
 }
@@ -69,7 +71,7 @@ export async function unlinkIdentityAction(_prev: FormState, form: FormData): Pr
     const { userId, hasPassword } = await requireOwnAccount()
     const identityId = Number(text(form, 'identityId'))
     if (!Number.isInteger(identityId)) {
-      return { error: 'That sign-in could not be found.' }
+      return { error: await tr('notice.app.sign-in-could-found') }
     }
 
     await (await federationService()).unlink({
@@ -92,7 +94,7 @@ export async function removePasskeyAction(_prev: FormState, form: FormData): Pro
     const { userId, hasPassword } = await requireOwnAccount()
     const passkeyId = Number(text(form, 'passkeyId'))
     if (!Number.isInteger(passkeyId)) {
-      return { error: 'That passkey could not be found.' }
+      return { error: await tr('notice.app.passkey-could-found') }
     }
 
     await (await passkeyService()).remove({

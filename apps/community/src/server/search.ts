@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import type { Actor } from '@meith/authorization'
@@ -8,15 +9,12 @@ import type { SearchScope } from '@meith/search'
 import { getContainer } from './container'
 import { getSettings } from './settings'
 
-export const SEARCH_OFF_MESSAGE =
-  'Search is switched off on this board. Browse the forums instead, or ask an administrator to turn it back on.'
-
 export async function searchEnabled(): Promise<boolean> {
   return (await getSettings()).get('search.enabled') === true
 }
 
 export async function requireSearchEnabled(): Promise<void> {
-  if (!(await searchEnabled())) throw new ForbiddenError(SEARCH_OFF_MESSAGE)
+  if (!(await searchEnabled())) throw new ForbiddenError(msg('board.search.disabled'))
 }
 
 export async function searchMinWordLength(): Promise<number> {
@@ -30,9 +28,7 @@ export function searchProvider(): PostgresSearchRepository | null {
 export function requireSearch(): PostgresSearchRepository {
   const provider = searchProvider()
   if (provider === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, which is not indexed for search.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-11'))
   }
   return provider
 }

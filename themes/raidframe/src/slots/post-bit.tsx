@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
-import type { PostBitSlotModel } from '@meith/theme-kit'
+import type { PostBitSlotModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { HEADING, MICRO, NUMERIC, Stamp, UserRef } from '../shared'
 
@@ -30,8 +31,16 @@ function GroupBadge({
   )
 }
 
-function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['visibility'] }) {
+function StatusBanner({
+  visibility,
+  copy,
+}: {
+  visibility: PostBitSlotModel['post']['visibility']
+  copy: SlotCopy
+}) {
   if (visibility === 'visible') return null
+
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.postBit.${key}`)
 
   return (
     <p
@@ -39,9 +48,7 @@ function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['vi
         visibility === 'deleted' ? 'bg-thread-deleted/10' : 'bg-post-unapproved'
       }`}
     >
-      {visibility === 'deleted'
-        ? 'deleted — visible to moderators only'
-        : 'awaiting approval — visible to moderators only'}
+      {visibility === 'deleted' ? c('deletedNotice') : c('awaitingApprovalNotice')}
     </p>
   )
 }
@@ -55,7 +62,9 @@ function StatLine({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-export function PostBit({ post, select, regions }: PostBitSlotModel) {
+export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.postBit.${key}`)
+
   return (
     <article
       id={`post-${post.number}`}
@@ -71,7 +80,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
         className="pointer-events-none absolute -right-px -bottom-px size-2 border-r-2 border-b-2 border-primary/70"
       />
 
-      <StatusBanner visibility={post.visibility} />
+      <StatusBanner visibility={post.visibility} copy={copy} />
 
       <div className="grid grid-cols-1 sm:grid-cols-[12rem_1fr]">
         <div className="border-b border-border bg-surface px-3 py-3 sm:border-r sm:border-b-0">
@@ -119,7 +128,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
                     aria-hidden="true"
                     className="size-1.5 bg-moderation-approved shadow-[0_0_6px_var(--color-moderation-approved)]"
                   />
-                  <span className={`${MICRO} text-moderation-approved`}>online</span>
+                  <span className={`${MICRO} text-moderation-approved`}>{c('online')}</span>
                 </p>
               )}
             </div>
@@ -134,12 +143,12 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           )}
 
           <dl className="mt-2.5">
-            <StatLine label="posts">{post.author.postCount.label}</StatLine>
+            <StatLine label={c('posts')}>{post.author.postCount.label}</StatLine>
             {post.author.reputation != null && (
-              <StatLine label="rep">{post.author.reputation.label}</StatLine>
+              <StatLine label={c('rep')}>{post.author.reputation.label}</StatLine>
             )}
             {post.author.joinedAt !== null && (
-              <StatLine label="joined">
+              <StatLine label={c('joined')}>
                 <Stamp at={post.author.joinedAt} />
               </StatLine>
             )}
@@ -164,9 +173,11 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
 
           {post.ignored !== null ? (
             <p className="px-3 py-3 text-sm text-muted-foreground">
-              Post from {post.ignored.authorUsername}, who you are ignoring.{' '}
+              {c('ignoredPrefix')}
+              {post.ignored.authorUsername}
+              {c('ignoredSuffix')}{' '}
               <a href={post.ignored.revealHref} className="text-primary hover:underline">
-                Show it
+                {c('showIt')}
               </a>
             </p>
           ) : (

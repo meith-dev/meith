@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import {
   BodyFormat,
   RENDER_VERSION,
@@ -40,16 +41,14 @@ export function prepareSignature(
   limits: SignatureLimits,
 ): { source: string; rendered: RenderedSignature } {
   if (!limits.canUse) {
-    throw new ValidationError('Your group cannot use a signature.')
+    throw new ValidationError(msg('error.signatures.group-use-signature'))
   }
 
   const source = raw.trim()
   const limit = signatureLimit(limits)
 
   if (source.length > limit) {
-    throw new ValidationError(
-      `A signature may be at most ${limit} characters. Yours is ${source.length}.`,
-    )
+    throw new ValidationError(msg('error.signatures.length', { max: limit, length: source.length }))
   }
 
   const rendered = renderMarkdown(source, SIGNATURE_RENDER_OPTIONS)

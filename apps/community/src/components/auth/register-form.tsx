@@ -6,6 +6,7 @@ import { registerAction } from '@/server/auth-actions'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 
 import { CustomField, type CustomFieldInput } from '../profile/custom-field'
+import { type Copy, fromCopy } from '../shell/copy'
 import { Field, FormError, SubmitButton } from './form-controls'
 
 const CONTROL =
@@ -34,39 +35,41 @@ export function RegisterForm({
   challenge,
   limits,
   terms = null,
+  copy,
 }: {
   customFields?: readonly CustomFieldInput[]
   challenge?: ChallengeInput
   limits: RegistrationLimits
   terms?: TermsInput | null | undefined
+  copy: Copy
 }) {
   const [state, action] = useActionState(registerAction, EMPTY_STATE)
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
       <Field
-        label="Username"
+        label={fromCopy(copy, 'authForm.register.username')}
         name="username"
         autoComplete="username"
         minLength={limits.usernameMin}
         maxLength={limits.usernameMax}
         defaultValue={state.values?.username}
-        hint={`${limits.usernameMin}–${limits.usernameMax} characters: letters, numbers, and _ - .`}
+        hint={fromCopy(copy, 'authForm.register.usernameHint')}
       />
       <Field
-        label="Email"
+        label={fromCopy(copy, 'authForm.email')}
         name="email"
         type="email"
         autoComplete="email"
         defaultValue={state.values?.email}
       />
       <Field
-        label="Password"
+        label={fromCopy(copy, 'authForm.register.password')}
         name="password"
         type="password"
         autoComplete="new-password"
         minLength={limits.minPasswordLength}
-        hint={`At least ${limits.minPasswordLength} characters.`}
+        hint={fromCopy(copy, 'authForm.passwordHint')}
       />
       {customFields.map((field) => (
         <CustomField key={field.key} field={field} className={CONTROL} />
@@ -79,7 +82,7 @@ export function RegisterForm({
 
           {challenge.honeypot && (
             <div aria-hidden="true" className="hidden">
-              <label htmlFor="contact_url">Leave this field empty</label>
+              <label htmlFor="contact_url">{fromCopy(copy, 'authForm.register.honeypot')}</label>
               <input
                 id="contact_url"
                 name="contact_url"
@@ -96,7 +99,7 @@ export function RegisterForm({
               label={challenge.prompt}
               name="challenge_answer"
               autoComplete="off"
-              hint="A question set by this board, to show you are not a script."
+              hint={fromCopy(copy, 'authForm.register.challengeHint')}
             />
           )}
         </>
@@ -113,7 +116,7 @@ export function RegisterForm({
             className="mt-0.5 size-4 rounded border-input accent-primary"
           />
           <span>
-            I have read and accept the{' '}
+            {copy['authForm.register.termsLead']}
             <a
               href={terms.href}
               target="_blank"
@@ -122,12 +125,12 @@ export function RegisterForm({
             >
               {terms.label}
             </a>
-            .
+            {copy['authForm.register.termsTail']}
           </span>
         </label>
       )}
 
-      <SubmitButton>Create account</SubmitButton>
+      <SubmitButton>{fromCopy(copy, 'authForm.register.submit')}</SubmitButton>
     </form>
   )
 }

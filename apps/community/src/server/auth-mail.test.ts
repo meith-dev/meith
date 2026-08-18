@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { type OutgoingMail, resetEnvForTests } from '@meith/core'
+import { EN_CATALOG, sourceTranslator } from '@meith/i18n'
 
 const sent = vi.hoisted(() => ({ mail: [] as OutgoingMail[], fail: false }))
 
@@ -29,7 +30,11 @@ vi.mock('./settings', () => ({
 
 const { sendPasswordResetEmail, sendVerificationEmail } = await import('./auth-mail')
 
-const RECIPIENT = { email: 'ivan@example.test', username: 'ivan' }
+const RECIPIENT = {
+  email: 'ivan@example.test',
+  username: 'ivan',
+  t: sourceTranslator(EN_CATALOG),
+}
 
 async function withOrigin<T>(origin: string | undefined, body: () => Promise<T>): Promise<T> {
   vi.stubEnv('APP_URL', origin)

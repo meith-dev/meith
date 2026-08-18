@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Actor } from '@meith/authorization'
 import { emptyPermissionSet, type PermissionSet } from '@meith/core'
+import { EN_CATALOG } from '@meith/i18n'
 import { SettingsSnapshot } from '@meith/settings'
 
 let overrides = new Map<string, string>()
@@ -18,7 +19,7 @@ vi.mock('./settings', () => ({
 }))
 vi.mock('./context', () => ({ getActor: async () => viewer }))
 
-const { OFFLINE_FALLBACK_MESSAGE, boardOffline } = await import('./board-offline')
+const { boardOffline } = await import('./board-offline')
 const { offlineFeed } = await import('./feed-routes')
 const { OfflineNotice } = await import('../components/shell/offline-notice')
 
@@ -90,7 +91,7 @@ describe('an offline board', () => {
 
   it('falls back to a maintenance line when the message is blank', async () => {
     offline('   ')
-    expect(await boardOffline()).toEqual({ message: OFFLINE_FALLBACK_MESSAGE })
+    expect(await boardOffline()).toEqual({ message: EN_CATALOG['offline.fallback'] })
   })
 })
 
@@ -100,7 +101,9 @@ describe('the offline page', () => {
     const notice = await boardOffline()
     expect(notice).not.toBeNull()
 
-    const html = renderToStaticMarkup(createElement(OfflineNotice, notice!))
+    const html = renderToStaticMarkup(
+      createElement(OfflineNotice, { ...notice!, copy: EN_CATALOG }),
+    )
     expect(html).toContain(MESSAGE)
   })
 
@@ -108,8 +111,10 @@ describe('the offline page', () => {
     offline('')
     const notice = await boardOffline()
 
-    const html = renderToStaticMarkup(createElement(OfflineNotice, notice!))
-    expect(html).toContain(OFFLINE_FALLBACK_MESSAGE)
+    const html = renderToStaticMarkup(
+      createElement(OfflineNotice, { ...notice!, copy: EN_CATALOG }),
+    )
+    expect(html).toContain(EN_CATALOG['offline.fallback']!)
   })
 })
 

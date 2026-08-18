@@ -1,5 +1,6 @@
 import type { FileStore } from '@meith/core'
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { declaredDimensions } from './dimensions'
 import { sanitiseFilename, storageKeyFor } from './filename'
@@ -24,37 +25,42 @@ export function acceptFile(file: IncomingFile, limits: UploadLimits): AcceptedUp
   const shown = file.filename.slice(0, 60)
 
   if (file.bytes.length === 0) {
-    throw new ValidationError(`“${shown}” is empty.`)
+    throw new ValidationError(msg('error.attachments.empty', { name: shown }))
   }
 
   const maxBytes = maxBytesFor(limits)
   if (file.bytes.length > maxBytes) {
     throw new ValidationError(
-      `“${shown}” is ${describeSize(file.bytes.length)}, over the ${describeSize(maxBytes)} limit.`,
+      msg('error.attachments.too-large', {
+        name: shown,
+        size: describeSize(file.bytes.length),
+        limit: describeSize(maxBytes),
+      }),
     )
   }
 
   if (file.bytes.length < MAGIC_BYTES_NEEDED) {
-    throw new ValidationError(
-      `“${shown}” is too short to be a file of any type this board accepts.`,
-    )
+    throw new ValidationError(msg('error.attachments.too-short', { name: shown }))
   }
 
   const type = sniff(file.bytes)
   if (type === undefined) {
-    throw new ValidationError(
-      `“${shown}” is not a type this board accepts. Attachments may be PNG, JPEG, PDF or ZIP.`,
-    )
+    throw new ValidationError(msg('error.attachments.bad-type', { name: shown }))
   }
 
   if (type.codec !== null) {
     const size = declaredDimensions(file.bytes, type)
     if (size === undefined) {
-      throw new ValidationError(`“${shown}” has a damaged header and cannot be read.`)
+      throw new ValidationError(msg('error.attachments.damaged', { name: shown }))
     }
     if ((size.width * size.height) / 1_000_000 > MAX_MEGAPIXELS) {
       throw new ValidationError(
-        `“${shown}” is ${size.width}×${size.height}, over the ${MAX_MEGAPIXELS} megapixel limit.`,
+        msg('error.attachments.too-many-pixels', {
+          name: shown,
+          width: size.width,
+          height: size.height,
+          max: MAX_MEGAPIXELS,
+        }),
       )
     }
   }
@@ -69,7 +75,7 @@ export function acceptFiles(
 ): readonly AcceptedUpload[] {
   const cap = maxPerPostFor(limits)
   if (existing + files.length > cap) {
-    throw new ValidationError(`A post may have at most ${cap} attachment${cap === 1 ? '' : 's'}.`)
+    throw new ValidationError(msg('error.attachments.per-post', { max: cap }))
   }
   return files.map((file) => acceptFile(file, limits))
 }

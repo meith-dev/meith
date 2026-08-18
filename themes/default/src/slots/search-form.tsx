@@ -1,4 +1,5 @@
-import type { OptionModel, SearchAdvancedModel, SearchFormModel } from '@meith/theme-kit'
+import type { OptionModel, SearchAdvancedModel, SearchFormModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import {
   Alert,
   AlertDescription,
@@ -22,14 +23,17 @@ export function SearchForm({
   hint,
   errorMessage,
   advanced,
-}: SearchFormModel) {
+  copy,
+}: SearchFormModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.searchForm.${key}`)
+
   return (
     <Card>
       <CardContent className="p-4 sm:p-5">
         <form method="get" action={action} className="flex flex-col gap-4">
           <Field
             name={fields.query}
-            label="Search for"
+            label={c('searchFor')}
             error={errorMessage}
             {...(hint === null ? {} : { description: hint })}
           >
@@ -40,21 +44,21 @@ export function SearchForm({
                 maxLength={maxQueryLength}
                 type="search"
                 autoComplete="off"
-                placeholder="Words in a subject or a post"
+                placeholder={c('placeholder')}
               />
             )}
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Choice label="In" name={fields.forum} options={forums} />
-            <Choice label="Sort by" name={fields.sort} options={sorts} />
+            <Choice label={c('in')} name={fields.forum} options={forums} />
+            <Choice label={c('sortBy')} name={fields.sort} options={sorts} />
           </div>
 
           {advanced !== undefined && <Advanced {...advanced} />}
 
           <div>
             <button type="submit" className={buttonVariants({ variant: 'primary' })}>
-              Search
+              {c('search')}
             </button>
           </div>
         </form>
@@ -62,7 +66,7 @@ export function SearchForm({
         {errorMessage !== null && (
           <Alert tone="error" className="mt-4">
             <AlertDescription>
-              <AlertTitle>No results.</AlertTitle> {errorMessage}
+              <AlertTitle>{c('noResults')}</AlertTitle> {errorMessage}
             </AlertDescription>
           </Alert>
         )}

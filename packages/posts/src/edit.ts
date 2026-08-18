@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 export const MESSAGE_MIN = 1
 
@@ -125,26 +126,26 @@ export class PostEditor {
     const capabilities = input.capabilities
 
     if (post.visibility === 'deleted') {
-      throw new ValidationError('That post has been deleted.')
+      throw new ValidationError(msg('error.posts.post-deleted'))
     }
     if (thread.visibility !== 'visible') {
-      throw new ValidationError('That thread is not available.')
+      throw new ValidationError(msg('error.posts.thread-available'))
     }
     if (thread.isLocked && !capabilities.bypassesLock) {
-      throw new ValidationError('This thread is locked.')
+      throw new ValidationError(msg('error.posts.thread-locked'))
     }
     if (!forum.isOpen && !capabilities.bypassesLock) {
-      throw new ValidationError('This forum is closed.')
+      throw new ValidationError(msg('error.posts.forum-closed'))
     }
 
     this.enforceEditWindow(capabilities, post)
 
     const message = input.message.trim()
     if (message.length < MESSAGE_MIN) {
-      throw new ValidationError('A post needs a message.')
+      throw new ValidationError(msg('error.posts.post-needs-message'))
     }
     if (message.length > this.config.maxLength) {
-      throw new ValidationError(`A post may be at most ${this.config.maxLength} characters.`)
+      throw new ValidationError(msg('error.posts.post-length', { max: this.config.maxLength }))
     }
 
     if (message === post.message) {
@@ -199,15 +200,13 @@ export class PostEditor {
     const { post, thread } = target
 
     if (post.isFirstPost) {
-      throw new ValidationError(
-        'The first post of a thread cannot be deleted on its own. Delete the thread instead.',
-      )
+      throw new ValidationError(msg('error.posts.first-post-thread-deleted-its'))
     }
     if (post.visibility === 'deleted') {
-      throw new ValidationError('That post has already been deleted.')
+      throw new ValidationError(msg('error.posts.post-already-deleted'))
     }
     if (thread.isLocked && !capabilities.bypassesLock) {
-      throw new ValidationError('This thread is locked.')
+      throw new ValidationError(msg('error.posts.thread-locked'))
     }
 
     const changed = await this.posts.applyVisibility({
@@ -235,7 +234,7 @@ export class PostEditor {
     const { post, thread } = target
 
     if (post.visibility !== 'deleted') {
-      throw new ValidationError('That post is not deleted.')
+      throw new ValidationError(msg('error.posts.post-deleted-2'))
     }
 
     const changed = await this.posts.applyVisibility({
@@ -276,7 +275,7 @@ export class PostEditor {
     if (elapsedMinutes <= capabilities.editWindowMinutes) return
 
     throw new ValidationError(
-      `Posts can only be edited for ${capabilities.editWindowMinutes} minutes after posting.`,
+      msg('error.posts.edit-window', { minutes: capabilities.editWindowMinutes }),
     )
   }
 }

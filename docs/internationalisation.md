@@ -180,7 +180,15 @@ renders `postCount.label`. Anything a theme needs to *say* rather than count
 belongs in its own catalog. [The theme API](./theme-api.md) has the theme side.
 
 A plugin is different: it renders arbitrary UI rather than filling a slot, so
-its page context carries `locale` and it formats what it needs to.
+its page context carries the board `Translator` as `t` as well as its `locale`.
+Its catalog is registered from the plugin entry in `community.config.ts`; pages
+read `context.t.t('plugin.key')`, which lets the board override a plugin's words
+without the plugin needing to know how catalogs are assembled.
+
+Plugin manifests retain English fallbacks for the operator CLI and generated
+reference, and carry `nameKey`, `descriptionKey`, `labelKey` or `titleKey` for
+board-rendered metadata. A title or description that interpolates data also
+carries its `*Args`; the board resolves the key when it builds the page or panel.
 
 ### The three mirrored surfaces
 
@@ -207,13 +215,46 @@ carry it in the catalog. They are the exception, and the reasons differ:
 any difference, so they cannot drift: adding a setting fails the build until its
 `setting.<key>.label` and `setting.<key>.description` exist and match.
 
+### Copy in a client component
+
+A client component cannot ask for a translator — a `'use client'` boundary
+only passes JSON — so its words arrive as a **copy record**: a plain
+`Readonly<Record<string, string>>` of catalog keys to resolved strings, built
+by the rendering page with a helper from `src/view/*-copy.ts` and passed as a
+`copy` prop. `fromCopy(copy, key)` reads one, and a missing key renders as
+itself, same as everywhere else. A sentence the server can finish — arguments
+known at render time — is resolved in the helper with `t.t(key, args)`; a
+sentence wrapped around a link or a `<code>` element is split by
+`splitAround()` into `…Lead`/`…Tail` entries so the translator still writes
+one sentence with one placeholder.
+
+A sentence only the browser can finish — a live count, a per-row value —
+travels as its **raw ICU pattern** (`patternCopy()` on the server,
+`formatFromCopy()` in the component). `@meith/i18n` has no dependencies and
+formats with `Intl`, so the same `formatMessage` runs client-side and a
+client-side count still picks the right plural category in every language.
+
+Two things skip the prop entirely. Form chrome that every form shares —
+“Working…”, “Not saved.”, the markdown editor's toolbar and help, the
+attachment field, multi-quote — comes from a `CopyProvider` context the root
+layout fills once, read with `useCopy()`. And a component rendered only on the
+server just calls `getTranslator()` itself.
+
 ### The rest of the copy, and the ratchet
 
-The view builders under `apps/community/src/view/` are done: every one of them
-reads its copy from the catalog. Most of the board's words are not — the pages
-and components under `apps/community/app/` and `src/components/`, the sentences
-domain packages raise as validation errors, and the themes' and plugins' own
-headings still hold English, some 4,900 strings across 470 files.
+The view builders under `apps/community/src/view/` are done, and so are the
+error, page and component surfaces: domain packages raise their validation
+errors through `msg()` — a catalog key, its ICU arguments, and the English the
+key renders to, so logs and tests read the same sentence they always did while
+a reader gets it translated with the limit interpolated — the server pages'
+browser-tab titles, frame titles and whole-text headings resolve through the
+request's translator, and every client component under `src/components/`
+(member forms, the composer, moderation tools, the installer, the whole admin
+panel) reads from a copy record. The built-in themes and the complete Dues UI
+are extracted too. What still holds English is the shrinking long tail of
+server-side fragments and packages — where most of the count is the demo
+board's fixture posts and the deliberately mirrored setting definitions, which
+are staying English on purpose.
 
 They cannot grow. `scripts/i18n-baseline.json` records how much English each
 file holds — string literals and JSX text alike — and `pnpm i18n:check` fails
@@ -227,6 +268,7 @@ prose to the counter, and `view/setting-groups.ts` holds the group labels the
 catalog mirrors. They sit in the baseline at a fixed number and stay there.
 
 Extracting a file is the same four steps every time: give each string a key in
-`en.json`, replace the literal with `t.t(key)`, take a `Translator` where the
-builder does not already have one, and hand it in from the page. A builder
-called without one falls back to English, so nothing breaks half-way through.
+`en.json`, replace the literal with `t.t(key)` — or `msg(key, args)` where an
+error is thrown, or `await tr(key)` in a page or action — take a `Translator`
+where the code does not already have one, and hand it in. Code without one
+falls back to English, so nothing breaks half-way through.

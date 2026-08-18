@@ -1,4 +1,5 @@
-import type { ForumDisplayModel } from '@meith/theme-kit'
+import type { ForumDisplayModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import {
   Circle,
@@ -12,7 +13,15 @@ import {
   plural,
 } from '../shared'
 
-export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: ForumDisplayModel) {
+export function ForumDisplay({
+  forum,
+  newThreadHref,
+  markReadAction,
+  regions,
+  copy,
+}: ForumDisplayModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.forumDisplay.${key}`)
+
   return (
     <div className={`${PAGE} py-4 sm:py-6`}>
       <div className={`${FEED} flex flex-col gap-4`}>
@@ -30,8 +39,10 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
                   </h1>
                   {forum.type !== 'link' && (
                     <p className={`mt-0.5 text-xs text-muted-foreground ${NUMERIC}`}>
-                      {count(forum.threadCount)} {plural(forum.threadCount, 'thread', 'threads')} ·{' '}
-                      {count(forum.postCount)} {plural(forum.postCount, 'post', 'posts')}
+                      {count(forum.threadCount)}{' '}
+                      {plural(forum.threadCount, c('thread.one'), c('thread.other'))} ·{' '}
+                      {count(forum.postCount)}{' '}
+                      {plural(forum.postCount, c('post.one'), c('post.other'))}
                     </p>
                   )}
                 </div>
@@ -40,7 +51,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
               {markReadAction !== null && (
                 <form action={markReadAction} method="post" className="shrink-0">
                   <button type="submit" className={PILL}>
-                    Mark read
+                    {c('markRead')}
                   </button>
                 </form>
               )}
@@ -59,10 +70,10 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
               href={newThreadHref}
               className="min-w-0 flex-1 truncate rounded-full bg-secondary px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent"
             >
-              Start a thread in {forum.title}…
+              {c('startThreadIn')} {forum.title}…
             </a>
             <a href={newThreadHref} className={`hidden sm:inline-flex ${PILL_PRIMARY}`}>
-              New thread
+              {c('newThread')}
             </a>
           </div>
         )}
@@ -79,15 +90,13 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
 
         {isEmptyRegion(regions.threads) ? (
           <div className="rounded-lg border border-border bg-card px-4 py-10 text-center shadow-elevation">
-            <p className="text-base font-semibold">No threads here yet</p>
+            <p className="text-base font-semibold">{c('noThreadsYet')}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {newThreadHref === null
-                ? 'Nothing has been posted in this forum.'
-                : 'Nothing has been posted in this forum. Yours would be the first.'}
+              {newThreadHref === null ? c('emptyForum') : c('emptyForumInvite')}
             </p>
             {newThreadHref !== null && (
               <a href={newThreadHref} className={`mt-4 ${PILL_PRIMARY}`}>
-                Start the first thread
+                {c('startFirstThread')}
               </a>
             )}
           </div>

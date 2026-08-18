@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { generateToken, hashToken, verifyPassword } from '@meith/accounts'
 import { ipAllowed } from '@meith/admin'
 import { ForbiddenError, logger, truncateIp, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import {
   adminAllowlist,
@@ -29,32 +30,30 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
 
   try {
     if (!ipAllowed(await remoteAddress(), await adminAllowlist())) {
-      throw new ForbiddenError('The control panel is not available from this address.')
+      throw new ForbiddenError(msg('error.app.control-panel-available-from-address'))
     }
 
     const service = adminService()
     if (service === null) {
-      throw new ForbiddenError(
-        'This board is running on in-memory sample data, so it has no control panel.',
-      )
+      throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-25'))
     }
 
     const actor = await getActor()
     const { authorizer, accountStore } = getContainer()
     if (actor.userId === null || !authorizer.can(actor, 'admincp.access')) {
-      throw new ForbiddenError('You cannot reach the control panel.')
+      throw new ForbiddenError(msg('error.app.reach-control-panel'))
     }
 
     const account = await accountStore.accounts.findById(actor.userId)
-    if (account === null) throw new ForbiddenError('You cannot reach the control panel.')
+    if (account === null) throw new ForbiddenError(msg('error.app.reach-control-panel'))
 
     const password = text(form, 'password')
-    if (password === '') throw new ValidationError('Enter your password.')
+    if (password === '') throw new ValidationError(msg('error.app.enter-password'))
 
     const ok = await verifyPassword(password, account.passwordHash)
     if (!ok) {
       await recordAdminAction({ action: 'admin.signin_failed' })
-      throw new ForbiddenError('That password is not right.')
+      throw new ForbiddenError(msg('error.app.password-right'))
     }
 
     await assertSecondFactorGiven({ userId: actor.userId, form })
@@ -82,10 +81,6 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
   redirect(target)
 }
 
-const ADMIN_NEEDS_TWO_FACTOR =
-  'This board requires two-factor authentication of anyone who can reach the control ' +
-  'panel. Set up an authenticator app on your account security page first.'
-
 /**
  * The panel's door asks for the second factor as well as the password. The
  * panel can rewrite the whole board, so re-proving only the thing most likely
@@ -102,24 +97,23 @@ async function assertSecondFactorGiven(input: {
 
   if (!enrolled) {
     if (await twoFactorRequiredForStaff()) {
-      throw new ForbiddenError(ADMIN_NEEDS_TWO_FACTOR)
+      throw new ForbiddenError(msg('adminAction.twoFactorRequired'))
     }
     return
   }
 
   const code = text(input.form, 'code')
   if (code === '') {
-    throw new ValidationError('Enter the code from your authenticator app as well.')
+    throw new ValidationError(msg('error.app.enter-code-from-authenticator-app'))
   }
 
   const outcome = await service.verify({ userId: input.userId, code })
   if (outcome.status !== 'ok') {
     await recordAdminAction({ action: 'admin.signin_failed' })
-    throw new ForbiddenError(
-      outcome.status === 'replayed'
-        ? 'That code has been used already. Wait for the next one.'
-        : 'That code is not right.',
-    )
+    if (outcome.status === 'replayed') {
+      throw new ForbiddenError(msg('adminAction.codeReplayed'))
+    }
+    throw new ForbiddenError(msg('adminAction.codeWrong'))
   }
 }
 

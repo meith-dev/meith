@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import { unstable_cache } from 'next/cache'
@@ -27,9 +28,7 @@ export function contentAdminRepository(): PostgresContentAdminRepository | null 
 export function requireContentAdmin(): PostgresContentAdminRepository {
   const repository = contentAdminRepository()
   if (repository === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so its content settings cannot be edited.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-22'))
   }
   return repository
 }
@@ -71,9 +70,7 @@ export function attachmentAdminRepository(): PostgresAttachmentAdminRepository |
 export function requireAttachmentAdmin(): PostgresAttachmentAdminRepository {
   const repository = attachmentAdminRepository()
   if (repository === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so it has no attachments.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-23'))
   }
   return repository
 }

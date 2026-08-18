@@ -1,11 +1,18 @@
-import type { LatestThreadsModel } from '@meith/theme-kit'
+import type { LatestThreadsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Circle, count, MUTED_LINK, NUMERIC, plural, Rail, Stamp, UserRef } from '../shared'
 
-export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
+export function LatestThreads({
+  threads,
+  capturedAt,
+  copy,
+}: LatestThreadsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.latestThreads.${key}`)
+
   return (
     <Rail
-      title="Latest threads"
+      title={c('title')}
       titleId="latest-threads-heading"
       action={
         <span className={`text-xs text-muted-foreground ${NUMERIC}`}>
@@ -14,9 +21,7 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
       }
     >
       {threads.length === 0 ? (
-        <p className="px-3 pt-1 pb-3 text-xs text-muted-foreground">
-          The newest threads you can see will appear here.
-        </p>
+        <p className="px-3 pt-1 pb-3 text-xs text-muted-foreground">{c('empty')}</p>
       ) : (
         <ul className="px-1 pt-1 pb-1">
           {threads.map((thread) => (
@@ -44,7 +49,8 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
                   </p>
 
                   <p className={`mt-0.5 truncate text-xs text-muted-foreground ${NUMERIC}`}>
-                    {count(thread.replyCount)} {plural(thread.replyCount, 'reply', 'replies')} ·{' '}
+                    {count(thread.replyCount)}{' '}
+                    {plural(thread.replyCount, c('reply.one'), c('reply.other'))} ·{' '}
                     <Stamp at={thread.startedAt} />
                   </p>
                 </div>

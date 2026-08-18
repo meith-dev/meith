@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 
 import type { ForumOverride } from '@meith/authorization'
 import { FORUM_PERMISSION_FIELDS, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -135,7 +136,7 @@ export class PostgresForumAdminRepository {
     const hasUser = input.userId !== null
     const hasGroup = input.groupId !== null
     if (hasUser === hasGroup) {
-      throw new ValidationError('An appointment names a member or a group, not both.')
+      throw new ValidationError(msg('error.db.appointment-names-member-group-both'))
     }
 
     const columns = MODERATOR_RIGHTS.map((right) => sql.raw(columnName(right)))

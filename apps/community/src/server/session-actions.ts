@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { recordAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
@@ -10,6 +11,7 @@ import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
+import { tr } from './i18n'
 import { readSessionToken } from './session-cookies'
 
 const toFormState = formStateReporter(
@@ -19,7 +21,7 @@ const toFormState = formStateReporter(
 
 async function requireViewer(): Promise<number> {
   const actor = await getActor()
-  if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+  if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
   return actor.userId
 }
 
@@ -36,12 +38,12 @@ export async function revokeSessionAction(_prev: FormState, form: FormData): Pro
   try {
     const userId = await requireViewer()
     const sessionId = positiveInt(form, 'sessionId')
-    if (sessionId === null) return { error: 'That session could not be found.' }
+    if (sessionId === null) return { error: await tr('notice.app.session-could-found') }
 
     const { accountStore } = getContainer()
     const revoked = await accountStore.sessions.revokeOwned(userId, sessionId, new Date())
 
-    if (!revoked) return { error: 'That session had already ended.' }
+    if (!revoked) return { error: await tr('notice.app.session-had-already-ended') }
 
     await recordAuthEvent({ userId, kind: 'session_revoked' })
   } catch (err) {
@@ -61,7 +63,7 @@ export async function revokeOtherSessionsAction(
 
     const keep = await currentSessionId()
     if (keep === null) {
-      return { error: 'This session could not be identified, so nothing was signed out.' }
+      return { error: await tr('notice.app.session-could-identified-nothing-signed') }
     }
 
     const revoked = await accountStore.sessions.revokeAllForUserExcept(userId, keep)

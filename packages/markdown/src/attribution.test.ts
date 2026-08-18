@@ -21,6 +21,14 @@ describe('quote attributions', () => {
     )
   })
 
+  it('uses the supplied attribution copy', () => {
+    const out = renderMarkdown('> **ada wrote:**\n>\n> hello', {
+      quoteAttribution: (author) => `quoted from ${author}`,
+    }).html
+
+    expect(out).toContain('<strong>quoted from ada</strong>')
+  })
+
   it('marks the link back to the quoted post so a theme can place it', () => {
     const out = html('> **ada wrote:** [View post](/thread/15-release?post=90)\n>\n> hello')
 

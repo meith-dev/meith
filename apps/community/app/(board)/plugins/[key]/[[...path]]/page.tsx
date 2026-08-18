@@ -5,6 +5,7 @@ import { pluginPagePath } from '@meith/plugin-kit'
 
 import { boardUrl } from '@/server/board-url'
 import { getActor } from '@/server/context'
+import { getTranslator } from '@/server/i18n'
 import { pluginBoardPageTitle, renderPluginBoardPage } from '@/server/plugin-pages'
 import { viewerRef } from '@/server/plugin-view'
 
@@ -61,8 +62,7 @@ export default async function PluginBoardPage({
       <h1 className="font-heading text-2xl font-semibold">{result.title}</h1>
       {result.node === null ? (
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-          This page failed to render. The error is in the server log, and the rest of the board is
-          unaffected.
+          {(await getTranslator()).t('board.plugin.failed')}
         </p>
       ) : (
         result.node

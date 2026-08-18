@@ -1,8 +1,17 @@
-import type { AuthPageModel } from '@meith/theme-kit'
+import type { AuthPageModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Frame, HEADING, MICRO } from '../shared'
 
-export function AuthPage({ title, alert, links, regions }: AuthPageModel) {
+export function AuthPage({
+  title,
+  alert,
+  links,
+  regions,
+  copy,
+}: AuthPageModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.authPage.${key}`)
+
   return (
     <main
       id="board-content"
@@ -12,7 +21,7 @@ export function AuthPage({ title, alert, links, regions }: AuthPageModel) {
       <Frame className="w-full max-w-sm">
         <div className="flex flex-col gap-5 px-5 py-5">
           <div className="flex flex-col gap-1">
-            <p className={`${MICRO} text-primary`}>access</p>
+            <p className={`${MICRO} text-primary`}>{c('kicker')}</p>
             <h1 className={`${HEADING} text-2xl text-foreground`}>{title}</h1>
             {regions.lede !== undefined && (
               <p className="text-sm text-muted-foreground">{regions.lede}</p>

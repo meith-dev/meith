@@ -2,21 +2,25 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { SubscriptionService } from '@meith/subscriptions'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { SubscriptionRowForm } from '@/components/account/subscription-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
+import { followFormCopy } from '@/view/account-copy'
+import { splitAround } from '@/view/copy'
 import {
   buildSubscriptionsView,
   type SubscriptionRowView,
   subscriptionNotice,
 } from '@/view/subscriptions'
 
-export const metadata: Metadata = { title: 'Subscriptions' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.subscriptions') }
+}
 
 export default async function SubscriptionsPage({
   searchParams,
@@ -40,7 +44,7 @@ export default async function SubscriptionsPage({
 
   return (
     <PanelPage
-      title="Subscriptions"
+      title={await tr('page.subscriptions')}
       lede={
         <>
           What you follow, and how often you hear about it.{' '}
@@ -48,32 +52,40 @@ export default async function SubscriptionsPage({
             href="/notifications/preferences"
             className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Whether any of it also arrives by e-mail
+            {await tr('page.whether-any-it-also-arrives')}
           </a>{' '}
           is a separate setting.
         </>
       }
     >
-      {notice !== null && <Notice kind="info" message={notice} dismissHref="/subscriptions" />}
+      {notice !== null && (
+        <Notice
+          kind="info"
+          message={notice}
+          dismissHref="/subscriptions"
+          copy={slotCopy(await currentTheme(), 'Notice', translator)}
+        />
+      )}
 
       {view.total === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          You are not following anything yet. Use the “Follow” control on a thread or a forum, or
-          tick the box when you post.
-        </p>
+        <p className="text-sm text-muted-foreground">{await tr('page.subscriptions.none')}</p>
       ) : (
         <>
           <Section
-            title="Threads"
-            empty="You are not following any threads."
+            title={await tr('page.threads')}
+            empty={await tr('page.subscriptions.noThreads')}
             rows={view.threads}
             modes={view.modes}
+            since={splitAround(translator, 'page.subscriptions.since', 'time')}
+            copy={followFormCopy(translator)}
           />
           <Section
-            title="Forums"
-            empty="You are not following any forums."
+            title={await tr('page.forums')}
+            empty={await tr('page.subscriptions.noForums')}
             rows={view.forums}
             modes={view.modes}
+            since={splitAround(translator, 'page.subscriptions.since', 'time')}
+            copy={followFormCopy(translator)}
           />
         </>
       )}
@@ -86,11 +98,15 @@ function Section({
   empty,
   rows,
   modes,
+  since,
+  copy,
 }: {
   title: string
   empty: string
   rows: readonly SubscriptionRowView[]
   modes: readonly { readonly value: string; readonly label: string }[]
+  since: readonly [string, string]
+  copy: Readonly<Record<string, string>>
 }) {
   return (
     <section className="flex flex-col gap-3">
@@ -110,7 +126,9 @@ function Section({
                   {row.title}
                 </a>
                 <span className="text-xs text-muted-foreground">
-                  Following since <time dateTime={row.since.iso}>{row.since.label}</time>
+                  {since[0]}
+                  <time dateTime={row.since.iso}>{row.since.label}</time>
+                  {since[1]}
                   {row.pending === null ? null : ` · ${row.pending}`}
                 </span>
               </div>
@@ -121,6 +139,7 @@ function Section({
                   targetId={row.targetId}
                   mode={row.mode}
                   modes={modes}
+                  copy={copy}
                 />
               </div>
             </li>

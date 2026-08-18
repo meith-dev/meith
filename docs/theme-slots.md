@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.14.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
+**theme-kit v0.15.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -1032,5 +1032,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.14. Nothing can be: this is the first
+Nothing is deprecated in v0.15. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

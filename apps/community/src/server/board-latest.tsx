@@ -3,7 +3,7 @@ import 'server-only'
 import type { Actor } from '@meith/authorization'
 import { contentScopeFrom } from '@meith/core'
 import { getDb, type LatestScope, PostgresLatestRepository } from '@meith/db'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { getTranslator } from '@/server/i18n'
 import { buildLatestPostsModel, buildLatestThreadsModel } from '@/view/board-latest'
@@ -96,8 +96,8 @@ export async function renderLatestPanels(): Promise<React.ReactNode> {
 
   return (
     <>
-      <LatestThreads {...threads} />
-      <LatestPosts {...posts} />
+      <LatestThreads {...threads} copy={slotCopy(theme, 'LatestThreads', translator)} />
+      <LatestPosts {...posts} copy={slotCopy(theme, 'LatestPosts', translator)} />
     </>
   )
 }

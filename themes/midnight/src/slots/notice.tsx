@@ -1,4 +1,5 @@
-import type { NoticeModel } from '@meith/theme-kit'
+import type { NoticeModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 const EDGE: Record<NoticeModel['kind'], string> = {
   info: 'border-l-primary',
@@ -7,7 +8,9 @@ const EDGE: Record<NoticeModel['kind'], string> = {
   error: 'border-l-destructive',
 }
 
-export function Notice({ kind, message, dismissHref }: NoticeModel) {
+export function Notice({ kind, message, dismissHref, copy }: NoticeModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `midnight.notice.${key}`)
+
   return (
     <div
       role={kind === 'error' ? 'alert' : undefined}
@@ -15,7 +18,7 @@ export function Notice({ kind, message, dismissHref }: NoticeModel) {
     >
       <p>
         <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
-          {kind}
+          {c(`kind.${kind}`)}
           {': '}
         </span>
         {message}
@@ -25,7 +28,7 @@ export function Notice({ kind, message, dismissHref }: NoticeModel) {
           href={dismissHref}
           className="font-mono text-xs text-muted-foreground hover:text-foreground"
         >
-          dismiss
+          {c('dismiss')}
         </a>
       )}
     </div>

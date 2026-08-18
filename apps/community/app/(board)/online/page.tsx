@@ -5,12 +5,14 @@ import { Card, CardFooter, CardRows, Empty, EmptyDescription, EmptyTitle } from 
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { presenceRepository, readOnline } from '@/server/presence'
 import { locationOf } from '@/view/presence'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: "Who's online" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.who-s-online') }
+}
 
 export default async function OnlinePage() {
   const actor = await getActor()
@@ -23,11 +25,11 @@ export default async function OnlinePage() {
 
   if (snapshot === null) {
     return (
-      <PanelPage frame="standalone" title="Who’s online">
+      <PanelPage frame="standalone" title={await tr('page.who-s-online')}>
         <Card>
           <Empty>
-            <EmptyTitle>Nobody is counted here</EmptyTitle>
-            <EmptyDescription>This board is not tracking who is online.</EmptyDescription>
+            <EmptyTitle>{await tr('page.nobody-counted-here')}</EmptyTitle>
+            <EmptyDescription>{await tr('page.this-board-not-tracking-who')}</EmptyDescription>
           </Empty>
         </Card>
       </PanelPage>
@@ -39,7 +41,7 @@ export default async function OnlinePage() {
   return (
     <PanelPage
       frame="standalone"
-      title="Who’s online"
+      title={await tr('page.who-s-online')}
       lede={
         <>
           {translator.t('presence.summary', {
@@ -55,8 +57,8 @@ export default async function OnlinePage() {
       <Card>
         {snapshot.members.length === 0 ? (
           <Empty>
-            <EmptyTitle>Nobody is here</EmptyTitle>
-            <EmptyDescription>No members are online right now.</EmptyDescription>
+            <EmptyTitle>{await tr('page.nobody-here')}</EmptyTitle>
+            <EmptyDescription>{await tr('page.no-members-online-right-now')}</EmptyDescription>
           </Empty>
         ) : (
           <CardRows>
@@ -77,7 +79,9 @@ export default async function OnlinePage() {
                       {member.username}
                     </a>
                     {member.invisible && (
-                      <span className="ml-1 text-xs text-muted-foreground">(invisible)</span>
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        {translator.t('board.online.invisible')}
+                      </span>
                     )}
                   </span>
 
@@ -102,7 +106,7 @@ export default async function OnlinePage() {
 
         {record.at !== null && (
           <CardFooter>
-            Most ever online: {translator.number(record.count)} on{' '}
+            {translator.t('board.online.record', { count: record.count })}{' '}
             <time dateTime={record.at.toISOString()}>
               {formatTime(record.at, now, translator).label}
             </time>

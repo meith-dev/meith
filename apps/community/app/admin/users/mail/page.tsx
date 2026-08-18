@@ -6,9 +6,13 @@ import { MassMailForm } from '@/components/admin/user-forms'
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
+import { getTranslator, tr } from '@/server/i18n'
 import { userAdminRepository, userBulkRepository } from '@/server/user-admin'
+import { userMassMailCopy } from '@/view/admin-user-copy'
 
-export const metadata: Metadata = { title: 'Mass mail' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.mass-mail') }
+}
 
 export default async function AdminMassMailPage() {
   if ((await adminPageContext()) === null) return null
@@ -18,9 +22,9 @@ export default async function AdminMassMailPage() {
   if (bulk === null || users === null) {
     return (
       <PanelPage
-        back={{ href: '/admin/users', label: 'All members' }}
-        title="Mass mail"
-        lede="This board is running on in-memory sample data, so it has nobody to mail."
+        back={{ href: '/admin/users', label: (await getTranslator()).t('adminUsers.allMembers') }}
+        title={await tr('page.mass-mail')}
+        lede={await tr('page.this-board-running-in-memory-sample')}
       >
         {null}
       </PanelPage>
@@ -38,39 +42,25 @@ export default async function AdminMassMailPage() {
     title: group.title,
     audience: byGroup.get(group.id) ?? 0,
   }))
+  const translator = await getTranslator()
 
   return (
     <PanelPage
-      back={{ href: '/admin/users', label: 'All members' }}
-      title="Mass mail"
-      lede={
-        <>
-          Sends one message to every member of a group. It goes only to addresses the board has{' '}
-          <strong>verified</strong> — an unverified address is as often a typo, or somebody
-          else&rsquo;s mailbox, as it is the member&rsquo;s.
-        </>
-      }
+      back={{ href: '/admin/users', label: translator.t('adminUsers.allMembers') }}
+      title={await tr('page.mass-mail')}
+      lede={translator.t('adminUsers.massMailLede')}
     >
       <section className={PANEL_CARD}>
-        <MassMailForm groups={audiences} audience={everybody} />
+        <MassMailForm groups={audiences} copy={userMassMailCopy(everybody, translator)} />
       </section>
 
       <div className={cn(PANEL_CARD, 'gap-2 text-xs text-muted-foreground')}>
-        <p>Before you press it:</p>
+        <p>{await tr('page.before-press-it')}</p>
         <ul className="flex list-disc flex-col gap-1 pl-4">
-          <li>
-            Nothing is sent immediately. Messages are queued and go out as the scheduled tick drains
-            them.
-          </li>
-          <li>
-            There is no unsubscribe link and no per-member opt-out, so this is for things every
-            member needs to know rather than for anything promotional.
-          </li>
-          <li>
-            A campaign that stops half way is continued, never restarted — restarting would mail
-            everybody a second time.
-          </li>
-          <li>An email cannot be unsent.</li>
+          <li>{translator.t('adminUsers.massMailQueued')}</li>
+          <li>{translator.t('adminUsers.massMailNoUnsubscribe')}</li>
+          <li>{translator.t('adminUsers.massMailContinues')}</li>
+          <li>{await tr('page.email-cannot-be-unsent')}</li>
         </ul>
       </div>
     </PanelPage>

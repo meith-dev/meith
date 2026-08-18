@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 
 import { NotFoundError, ValidationError } from '@meith/core'
 import { drivers } from '@meith/drivers'
+import { msg } from '@meith/i18n'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import type { FormState } from './auth-form-state'
@@ -94,7 +95,7 @@ export async function clearCacheAction(_prev: FormState, form: FormData): Promis
 
     const tag = clearableTag(form.get('what'))
 
-    if (tag === null) throw new ValidationError('Choose what to clear.')
+    if (tag === null) throw new ValidationError(msg('error.app.choose-what-clear'))
 
     await drivers().cache.invalidateTags([tag])
 
@@ -112,7 +113,7 @@ export async function retryJobAction(_prev: FormState, form: FormData): Promise<
 
     const jobId = form.get('jobId')
     if (typeof jobId !== 'string' || jobId.trim() === '') {
-      throw new ValidationError('No such job.')
+      throw new ValidationError(msg('error.app.such-job'))
     }
 
     const id = jobId.trim()

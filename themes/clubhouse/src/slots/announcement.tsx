@@ -1,16 +1,26 @@
-import type { AnnouncementModel } from '@meith/theme-kit'
+import type { AnnouncementModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Card, CardContent, CardFooter } from '@meith/ui'
 
 import { ClubBar, HEADING, MICRO, MUTED_LINK, Stamp, UserRef } from '../shared'
 
-export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: AnnouncementModel) {
+export function Announcement({
+  title,
+  bodyHtml,
+  postedBy,
+  postedAt,
+  forum,
+  copy,
+}: AnnouncementModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.announcement.${key}`)
+
   return (
     <Card as="article" className="flex items-stretch">
       <ClubBar />
 
       <div className="min-w-0 flex-1">
         <CardContent className="flex flex-col gap-1.5 px-4 py-3">
-          <p className={MICRO}>Club notice</p>
+          <p className={MICRO}>{c('clubNotice')}</p>
 
           <h2 className={`${HEADING} text-base text-balance`}>{title}</h2>
 
@@ -20,11 +30,10 @@ export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: Ann
         <CardFooter>
           <span>
             {postedBy === null ? (
-              'Posted'
+              c('posted')
             ) : (
               <>
-                {'Posted by '}
-                <UserRef user={postedBy} className="text-foreground" />
+                {c('postedBy')} <UserRef user={postedBy} className="text-foreground" />
               </>
             )}{' '}
             <Stamp at={postedAt} />

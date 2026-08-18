@@ -1,6 +1,6 @@
 import type { Actor } from '@meith/authorization'
 import { currentRequestId } from '@meith/core/logger'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { LogoutForm } from '@/components/account/logout-form'
 import { ThemeSwitcher } from '@/components/shell/theme-switcher'
@@ -115,21 +115,31 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
   const built = await buildJumpModel(actor).catch(() => null)
   const jump = built === null ? null : await filterView('view.forum-jump', built, pluginContext)
 
+  const translator = await getTranslator()
+
   return (
-    <Shell boardTitle={shellModel.boardTitle} viewer={shellModel.viewer}>
-      <Header {...headerModel}>
-        <UserPanel {...userPanelModel}>{viewer.isGuest ? null : <LogoutForm />}</UserPanel>
+    <Shell
+      boardTitle={shellModel.boardTitle}
+      viewer={shellModel.viewer}
+      copy={slotCopy(theme, 'Shell', translator)}
+    >
+      <Header {...headerModel} copy={slotCopy(theme, 'Header', translator)}>
+        <UserPanel {...userPanelModel} copy={slotCopy(theme, 'UserPanel', translator)}>
+          {viewer.isGuest ? null : <LogoutForm label={translator.t('nav.logOut')} />}
+        </UserPanel>
       </Header>
 
       {await boardRegion('header.notice', actor)}
 
       {children}
 
-      {jump !== null && jump.forums.length > 0 && <ForumJump {...jump} />}
+      {jump !== null && jump.forums.length > 0 && (
+        <ForumJump {...jump} copy={slotCopy(theme, 'ForumJump', translator)} />
+      )}
 
       <ThemeSwitcher />
 
-      <Footer {...footerModel} />
+      <Footer {...footerModel} copy={slotCopy(theme, 'Footer', translator)} />
     </Shell>
   )
 }

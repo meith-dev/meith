@@ -1,4 +1,8 @@
-export { type DeliveryOutcome, deliverNotificationEmail } from './deliver'
+export {
+  type DeliveryOutcome,
+  deliverNotificationEmail,
+  type NotificationTranslatorResolver,
+} from './deliver'
 export {
   configurableKindsFor,
   isNotificationKind,

@@ -1,4 +1,5 @@
-import type { BoardStatsModel } from '@meith/theme-kit'
+import type { BoardStatsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
@@ -8,30 +9,33 @@ export function BoardStats({
   memberCount,
   newestMember,
   computedAt,
-}: BoardStatsModel) {
+  copy,
+}: BoardStatsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `midnight.boardStats.${key}`)
+
   return (
     <section aria-labelledby="board-stats-heading" className="border border-border">
       <h2
         id="board-stats-heading"
         className="border-b border-border bg-secondary px-3 py-1 font-mono text-xs uppercase tracking-wide"
       >
-        Board statistics
+        {c('heading')}
       </h2>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 px-3 py-2 font-mono text-xs md:grid-cols-4 lg:grid-cols-2">
         <div>
-          <dt className="text-muted-foreground">threads</dt>
+          <dt className="text-muted-foreground">{c('threads')}</dt>
           <dd>{threadCount.label}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">posts</dt>
+          <dt className="text-muted-foreground">{c('posts')}</dt>
           <dd>{postCount.label}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">members</dt>
+          <dt className="text-muted-foreground">{c('members')}</dt>
           <dd>{memberCount.label}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">newest</dt>
+          <dt className="text-muted-foreground">{c('newest')}</dt>
           <dd>
             {newestMember === null ? (
               '—'
@@ -43,10 +47,10 @@ export function BoardStats({
       </dl>
       <p className="border-t border-border px-3 py-1 font-mono text-xs text-muted-foreground">
         {computedAt === null ? (
-          'not counted yet'
+          c('notCounted')
         ) : (
           <>
-            counted <time dateTime={computedAt.iso}>{computedAt.label}</time>
+            {c('counted')} <time dateTime={computedAt.iso}>{computedAt.label}</time>
           </>
         )}
       </p>

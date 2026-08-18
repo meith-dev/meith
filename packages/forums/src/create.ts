@@ -1,4 +1,5 @@
 import { ConflictError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { ForumRow, NewForum } from './types'
 
@@ -13,7 +14,7 @@ export interface CreatePlan {
 
 export function planCreate(rows: readonly ForumRow[], input: NewForum): CreatePlan {
   const title = input.title.trim()
-  if (title === '') throw new ValidationError('A forum needs a title.')
+  if (title === '') throw new ValidationError(msg('error.forums.forum-needs-title'))
 
   if (!SLUG.test(input.slug)) {
     throw new ValidationError(
@@ -22,7 +23,7 @@ export function planCreate(rows: readonly ForumRow[], input: NewForum): CreatePl
   }
 
   if (input.type === 'link' && !input.linkUrl) {
-    throw new ValidationError('A link forum needs a linkUrl.')
+    throw new ValidationError(msg('error.forums.link-forum-needs-linkurl'))
   }
 
   const parent = input.parentId === null ? null : rows.find((r) => r.id === input.parentId)

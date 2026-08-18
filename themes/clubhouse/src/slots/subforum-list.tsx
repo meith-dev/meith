@@ -1,14 +1,17 @@
-import type { SubforumListModel } from '@meith/theme-kit'
+import type { SlotCopy, SubforumListModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Card, CardContent } from '@meith/ui'
 
 import { HEADING, LINK, MICRO, NUMERIC, PanelHead } from '../shared'
 
-export function SubforumList({ forums }: SubforumListModel) {
+export function SubforumList({ forums, copy }: SubforumListModel & { copy: SlotCopy }) {
   if (forums.length === 0) return null
+
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.subforumList.${key}`)
 
   return (
     <Card aria-labelledby="subforums-heading">
-      <PanelHead id="subforums-heading" title="Subforums" />
+      <PanelHead id="subforums-heading" title={c('title')} />
 
       <CardContent className="px-4 py-3">
         <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -19,7 +22,7 @@ export function SubforumList({ forums }: SubforumListModel) {
               </a>
               {forum.type !== 'link' && (
                 <p className={`${MICRO} ${NUMERIC} mt-0.5`}>
-                  {forum.threadCount.label} threads · {forum.postCount.label} posts
+                  {forum.threadCount.label} {c('threads')} · {forum.postCount.label} {c('posts')}
                 </p>
               )}
             </li>

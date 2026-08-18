@@ -6,6 +6,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { deletePostAction, editPostAction, restorePostAction } from '@/server/content-actions'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import { type Copy, fromCopy } from '../shell/copy'
 import { MarkdownEditor } from './markdown-editor'
 
 export function EditPostForm({
@@ -13,11 +14,13 @@ export function EditPostForm({
   postId,
   message,
   reason,
+  copy,
 }: {
   threadId: number
   postId: number
   message: string
   reason: string | null
+  copy: Copy
 }) {
   const [state, action] = useActionState(editPostAction, EMPTY_STATE)
 
@@ -34,7 +37,7 @@ export function EditPostForm({
       />
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Reason for editing (optional)</span>
+        <span className="font-medium">{fromCopy(copy, 'composer.edit.reason')}</span>
         <input
           type="text"
           name="reason"
@@ -45,21 +48,29 @@ export function EditPostForm({
       </label>
 
       <div className="flex flex-wrap gap-3">
-        <SubmitButton>Save changes</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'composer.edit.submit')}</SubmitButton>
         <button
           type="submit"
           name="intent"
           value="preview"
           className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm font-medium transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          Preview
+          {fromCopy(copy, 'composer.preview')}
         </button>
       </div>
     </form>
   )
 }
 
-export function DeletePostForm({ threadId, postId }: { threadId: number; postId: number }) {
+export function DeletePostForm({
+  threadId,
+  postId,
+  copy,
+}: {
+  threadId: number
+  postId: number
+  copy: Copy
+}) {
   const [state, action] = useActionState(deletePostAction, EMPTY_STATE)
 
   return (
@@ -67,22 +78,28 @@ export function DeletePostForm({ threadId, postId }: { threadId: number; postId:
       <FormError message={state.error} />
       <input type="hidden" name="threadId" value={threadId} />
       <input type="hidden" name="postId" value={postId} />
-      <p className="text-sm text-muted-foreground">
-        Deleting hides this post from the thread. A moderator can put it back.
-      </p>
+      <p className="text-sm text-muted-foreground">{fromCopy(copy, 'composer.edit.deleteBlurb')}</p>
       <div>
         <button
           type="submit"
           className="inline-flex h-10 items-center justify-center rounded-md border border-destructive/40 px-4 text-sm font-medium text-destructive transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          Delete this post
+          {fromCopy(copy, 'composer.edit.delete')}
         </button>
       </div>
     </form>
   )
 }
 
-export function RestorePostForm({ threadId, postId }: { threadId: number; postId: number }) {
+export function RestorePostForm({
+  threadId,
+  postId,
+  copy,
+}: {
+  threadId: number
+  postId: number
+  copy: Copy
+}) {
   const [state, action] = useActionState(restorePostAction, EMPTY_STATE)
 
   return (
@@ -91,11 +108,10 @@ export function RestorePostForm({ threadId, postId }: { threadId: number; postId
       <input type="hidden" name="threadId" value={threadId} />
       <input type="hidden" name="postId" value={postId} />
       <p className="text-sm text-muted-foreground">
-        This post is deleted. Restoring puts it back in the thread and back into the board&rsquo;s
-        counts.
+        {fromCopy(copy, 'composer.edit.restoreBlurb')}
       </p>
       <div>
-        <SubmitButton>Restore this post</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'composer.edit.restore')}</SubmitButton>
       </div>
     </form>
   )

@@ -1,5 +1,5 @@
 import type { PanelKind } from '@meith/theme-kit'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { getActor } from '@/server/context'
 import { currentLocation } from '@/server/current-location'
@@ -17,7 +17,9 @@ export interface PanelNavProps {
 }
 
 export async function PanelNavRegion(props: PanelNavProps) {
-  const Nav = requireSlot(await currentTheme(), 'PanelNav')
+  const theme = await currentTheme()
+  const Nav = requireSlot(theme, 'PanelNav')
+  const translator = await getTranslator()
 
   const model = buildPanelNavModel({
     panel: props.panel,
@@ -26,8 +28,13 @@ export async function PanelNavRegion(props: PanelNavProps) {
     location: await currentLocation(),
     fallbackHref: props.fallbackHref,
     counts: props.counts,
-    t: await getTranslator(),
+    t: translator,
   })
 
-  return <Nav {...(await filterView('view.panel-nav', model, viewerRef(await getActor())))} />
+  return (
+    <Nav
+      {...(await filterView('view.panel-nav', model, viewerRef(await getActor())))}
+      copy={slotCopy(theme, 'PanelNav', translator)}
+    />
+  )
 }

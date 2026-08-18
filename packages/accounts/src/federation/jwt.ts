@@ -1,4 +1,5 @@
 import { InternalError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { decodeBase64Url, decodeBase64UrlText } from '../crypto/base64url'
 import { fetchJson } from './http'
@@ -55,7 +56,7 @@ export interface VerifyIdTokenInput {
 export async function verifyIdToken(input: VerifyIdTokenInput): Promise<IdTokenClaims> {
   const parts = input.token.split('.')
   if (parts.length !== 3) {
-    throw new ValidationError('The identity provider sent a token that is not a JWT.')
+    throw new ValidationError(msg('error.accounts.identity-provider-sent-token-jwt'))
   }
 
   const [encodedHeader, encodedPayload, encodedSignature] = parts as [string, string, string]
@@ -64,9 +65,7 @@ export async function verifyIdToken(input: VerifyIdTokenInput): Promise<IdTokenC
 
   const algorithm = ALGORITHMS[stringClaim(header, 'alg') ?? '']
   if (algorithm === undefined) {
-    throw new ValidationError(
-      'The identity provider signed its token with an algorithm this board does not accept.',
-    )
+    throw new ValidationError(msg('error.accounts.identity-provider-signed-its-token'))
   }
 
   const key = await importSigningKey({
@@ -86,7 +85,7 @@ export async function verifyIdToken(input: VerifyIdTokenInput): Promise<IdTokenC
     signed as unknown as BufferSource,
   )
   if (!verified) {
-    throw new ValidationError('The identity provider sent a token with a bad signature.')
+    throw new ValidationError(msg('error.accounts.identity-provider-sent-token-with'))
   }
 
   assertClaims(claims, input)
@@ -96,29 +95,29 @@ export async function verifyIdToken(input: VerifyIdTokenInput): Promise<IdTokenC
 function assertClaims(claims: IdTokenClaims, input: VerifyIdTokenInput): void {
   const issuer = stringClaim(claims, 'iss')
   if (issuer === null || !sameIssuer(issuer, input.issuer)) {
-    throw new ValidationError('The identity provider sent a token issued by somebody else.')
+    throw new ValidationError(msg('error.accounts.identity-provider-sent-token-issued'))
   }
 
   const audience = claims.aud
   const audiences = Array.isArray(audience) ? audience : [audience]
   if (!audiences.includes(input.audience)) {
-    throw new ValidationError('The identity provider sent a token meant for another board.')
+    throw new ValidationError(msg('error.accounts.identity-provider-sent-token-meant'))
   }
 
   const seconds = Math.floor(input.now.getTime() / 1000)
 
   const expiry = numberClaim(claims, 'exp')
   if (expiry === null || expiry + CLOCK_SKEW_SECONDS < seconds) {
-    throw new ValidationError('The identity provider sent a token that has expired.')
+    throw new ValidationError(msg('error.accounts.identity-provider-sent-token-expired'))
   }
 
   const issuedAt = numberClaim(claims, 'iat')
   if (issuedAt !== null && issuedAt - CLOCK_SKEW_SECONDS > seconds) {
-    throw new ValidationError('The identity provider sent a token issued in the future.')
+    throw new ValidationError(msg('error.accounts.identity-provider-sent-token-issued-2'))
   }
 
   if (input.nonce !== null && stringClaim(claims, 'nonce') !== input.nonce) {
-    throw new ValidationError('The identity provider sent a token for a different sign-in attempt.')
+    throw new ValidationError(msg('error.accounts.identity-provider-sent-token-for'))
   }
 }
 

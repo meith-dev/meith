@@ -60,7 +60,8 @@ vi.mock('@meith/drivers', () => ({
 
 const written: Array<Map<string, string>> = []
 const deleted: string[][] = []
-vi.mock('@meith/db', () => ({
+vi.mock('@meith/db', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@meith/db')>()),
   getDb: () => ({}),
   PostgresSettingsRepository: class {
     async save(values: Map<string, string>) {

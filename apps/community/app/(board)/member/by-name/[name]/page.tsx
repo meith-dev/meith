@@ -5,9 +5,12 @@ import { foldIdentifier } from '@meith/accounts'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { tr } from '@/server/i18n'
 import { memberHref } from '@/view/member-profile'
 
-export const metadata: Metadata = { title: 'Member profile' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.member-profile') }
+}
 
 export default async function MemberByNamePage({ params }: { params: Promise<{ name: string }> }) {
   const raw = (await params).name

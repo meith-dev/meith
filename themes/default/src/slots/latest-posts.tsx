@@ -1,4 +1,5 @@
-import type { LatestPostsModel } from '@meith/theme-kit'
+import type { LatestPostsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import {
   Card,
   CardContent,
@@ -11,20 +12,22 @@ import {
 
 import { LINK, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
 
-export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
+export function LatestPosts({ posts, capturedAt, copy }: LatestPostsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.latestPosts.${key}`)
+
   return (
     <Card aria-labelledby="latest-posts-heading">
       <CardHeader>
-        <CardTitle id="latest-posts-heading">Latest posts</CardTitle>
+        <CardTitle id="latest-posts-heading">{c('heading')}</CardTitle>
         <p className={`text-xs text-muted-foreground ${NUMERIC}`}>
-          As of <Stamp at={capturedAt} />
+          {c('asOf')} <Stamp at={capturedAt} />
         </p>
       </CardHeader>
 
       {posts.length === 0 ? (
         <Empty className="py-6">
-          <EmptyTitle>Nothing said yet</EmptyTitle>
-          <EmptyDescription>The newest posts you can see will appear here.</EmptyDescription>
+          <EmptyTitle>{c('nothingYet')}</EmptyTitle>
+          <EmptyDescription>{c('emptyDescription')}</EmptyDescription>
         </Empty>
       ) : (
         <CardContent className="px-0 py-0">
@@ -43,13 +46,11 @@ export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
                 )}
 
                 <p className="truncate text-xs text-muted-foreground">
-                  <UserRef user={post.author} className="font-normal" />
-                  {' in '}
+                  <UserRef user={post.author} className="font-normal" /> {c('in')}{' '}
                   <a href={post.forum.href} className={MUTED_LINK}>
                     {post.forum.label}
-                  </a>
-                  {' · '}
-                  <Stamp at={post.postedAt} />
+                  </a>{' '}
+                  {c('dot')} <Stamp at={post.postedAt} />
                 </p>
               </li>
             ))}

@@ -4,7 +4,10 @@ import { cache } from 'react'
 
 import type { Actor, ModeratedTarget, ModeratorRights } from '@meith/authorization'
 import { canHoldThreads } from '@meith/forums'
+import type { Translator } from '@meith/i18n'
 import { ModerationQueue } from '@meith/moderation'
+
+import { untranslated } from '@/view/time'
 
 import { getContainer } from './container'
 import { getActor } from './context'
@@ -75,20 +78,21 @@ export interface ModeratedForumRights {
   readonly rights: readonly string[]
 }
 
-const RIGHT_LABELS: Readonly<Record<keyof ModeratorRights, string>> = {
-  canApproveContent: 'Approve content',
-  canEditPosts: 'Edit posts',
-  canSoftDeletePosts: 'Delete posts',
-  canRestorePosts: 'Restore posts',
-  canOpenCloseThreads: 'Lock and unlock',
-  canStickThreads: 'Pin and unpin',
-  canMoveThreads: 'Move threads',
-  canMergeThreads: 'Merge threads',
-  canSplitThreads: 'Split threads',
+const RIGHT_LABEL_KEYS: Readonly<Record<keyof ModeratorRights, string>> = {
+  canApproveContent: 'modcp.right.approve-content',
+  canEditPosts: 'modcp.right.edit-posts',
+  canSoftDeletePosts: 'modcp.right.delete-posts',
+  canRestorePosts: 'modcp.right.restore-posts',
+  canOpenCloseThreads: 'modcp.right.lock-unlock',
+  canStickThreads: 'modcp.right.pin-unpin',
+  canMoveThreads: 'modcp.right.move-threads',
+  canMergeThreads: 'modcp.right.merge-threads',
+  canSplitThreads: 'modcp.right.split-threads',
 }
 
 export async function moderatedForumRights(
   access: ModCpAccess,
+  t: Translator = untranslated(),
 ): Promise<readonly ModeratedForumRights[]> {
   const { authorizer, forums } = getContainer()
   const rows = await forums.listListing()
@@ -102,9 +106,9 @@ export async function moderatedForumRights(
         forumId,
         title: row.title,
         slug: row.slug,
-        rights: (Object.keys(RIGHT_LABELS) as (keyof ModeratorRights)[])
+        rights: (Object.keys(RIGHT_LABEL_KEYS) as (keyof ModeratorRights)[])
           .filter((key) => rights[key])
-          .map((key) => RIGHT_LABELS[key]),
+          .map((key) => t.t(RIGHT_LABEL_KEYS[key])),
       }
     }),
   )

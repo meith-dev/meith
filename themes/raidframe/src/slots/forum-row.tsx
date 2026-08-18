@@ -1,9 +1,11 @@
-import type { ForumRowSlotModel } from '@meith/theme-kit'
+import type { ForumRowSlotModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { HEADING, MICRO, NUMERIC, ReadPip, Stamp, UserRef } from '../shared'
 
-export function ForumRow({ forum }: ForumRowSlotModel) {
+export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }) {
   const isLink = forum.type === 'link'
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.forumRow.${key}`)
 
   return (
     <tr className="border-t border-border align-top hover:bg-secondary/50">
@@ -17,8 +19,8 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
             >
               {forum.title}
             </a>
-            {forum.isUnread && <span className="sr-only">(new posts)</span>}
-            {isLink && <span className={`${MICRO} ml-2`}>link</span>}
+            {forum.isUnread && <span className="sr-only">{c('newPosts')}</span>}
+            {isLink && <span className={`${MICRO} ml-2`}>{c('linkBadge')}</span>}
 
             {forum.description !== null && (
               <p className="mt-0.5 text-xs text-muted-foreground">{forum.description}</p>
@@ -42,15 +44,23 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
       </td>
 
       <td className={`w-16 px-2 py-2.5 text-right text-xs ${NUMERIC} text-foreground`}>
-        {isLink ? <span className="text-muted-foreground">—</span> : forum.threadCount.label}
+        {isLink ? (
+          <span className="text-muted-foreground">{c('none')}</span>
+        ) : (
+          forum.threadCount.label
+        )}
       </td>
       <td className={`w-16 px-2 py-2.5 text-right text-xs ${NUMERIC} text-foreground`}>
-        {isLink ? <span className="text-muted-foreground">—</span> : forum.postCount.label}
+        {isLink ? (
+          <span className="text-muted-foreground">{c('none')}</span>
+        ) : (
+          forum.postCount.label
+        )}
       </td>
 
       <td className="hidden w-60 px-3 py-2.5 text-xs text-muted-foreground sm:table-cell">
         {isLink || forum.lastPost === null ? (
-          <span className={MICRO}>{isLink ? '' : 'no posts yet'}</span>
+          <span className={MICRO}>{isLink ? '' : c('noPostsYet')}</span>
         ) : (
           <>
             <a
@@ -61,7 +71,7 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
             </a>
             <span className={`${MICRO} mt-0.5 block normal-case`}>
               <UserRef user={forum.lastPost.author} className="hover:text-primary" />
-              {' · '}
+              {c('separator')}
               <Stamp at={forum.lastPost.at} />
             </span>
           </>

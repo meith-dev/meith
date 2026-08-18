@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import { ForbiddenError } from '@meith/core'
@@ -11,7 +12,7 @@ import {
   type RecountStateRow,
   type TaskRunRow,
 } from '@meith/db'
-import { assessScheduler, type SchedulerHealth } from '@meith/tasks'
+import { assessScheduler, type SchedulerHealth, type TaskHealth } from '@meith/tasks'
 
 import { getContainer } from './container'
 import { assessMailReadiness, type MailReadiness } from './mail-health'
@@ -24,25 +25,26 @@ export function systemHealthRepository(): PostgresSystemHealthRepository | null 
 
 export function requireMaintenance(): PostgresMaintenanceRepository {
   if (getContainer().dataSource !== 'postgres') {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so there is nothing to maintain.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-6'))
   }
   return new PostgresMaintenanceRepository(getDb())
 }
 
 export function requireRecount(): PostgresCounterRecount {
   if (getContainer().dataSource !== 'postgres') {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so its counters are not stored.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-7'))
   }
   return new PostgresCounterRecount(getDb())
 }
 
 export interface SystemHealthView {
   readonly searchIndex: { readonly indexed: number; readonly pending: number }
-  readonly scheduler: SchedulerHealth
+  readonly scheduler: Omit<SchedulerHealth, 'tasks'> & {
+    readonly tasks: readonly (TaskHealth & {
+      readonly titleKey?: string
+      readonly descriptionKey?: string
+    })[]
+  }
   readonly mail: MailReadiness
   readonly runs: readonly TaskRunRow[]
   readonly recount: readonly RecountStateRow[]
@@ -65,8 +67,19 @@ export async function buildSystemHealthView(now: Date): Promise<SystemHealthView
     assessMailReadiness(),
   ])
 
+  const scheduler = assessScheduler(tasks, now)
+  const taskMessages = new Map(
+    (getContainer().scheduler?.tasks ?? []).map((task) => [
+      task.id,
+      { titleKey: task.titleKey, descriptionKey: task.descriptionKey },
+    ]),
+  )
+
   return {
-    scheduler: assessScheduler(tasks, now),
+    scheduler: {
+      ...scheduler,
+      tasks: scheduler.tasks.map((task) => ({ ...task, ...taskMessages.get(task.key) })),
+    },
     searchIndex,
     mail,
     runs,

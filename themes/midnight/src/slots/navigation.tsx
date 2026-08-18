@@ -1,8 +1,11 @@
-import type { NavigationModel } from '@meith/theme-kit'
+import type { NavigationModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
-export function Navigation({ items }: NavigationModel) {
+export function Navigation({ items, copy }: NavigationModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `midnight.navigation.${key}`)
+
   return (
-    <nav aria-label="Breadcrumb" className="border-b border-border bg-muted px-4 py-1.5">
+    <nav aria-label={c('breadcrumbLabel')} className="border-b border-border bg-muted px-4 py-1.5">
       <ol className="flex flex-wrap items-center gap-1 font-mono text-xs text-muted-foreground">
         {items.map((item, index) => {
           const isLast = index === items.length - 1

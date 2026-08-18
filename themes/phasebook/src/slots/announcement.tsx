@@ -1,8 +1,18 @@
-import type { AnnouncementModel } from '@meith/theme-kit'
+import type { AnnouncementModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Circle, MUTED_LINK, Stamp, Tag, UserRef } from '../shared'
 
-export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: AnnouncementModel) {
+export function Announcement({
+  title,
+  bodyHtml,
+  postedBy,
+  postedAt,
+  forum,
+  copy,
+}: AnnouncementModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.announcement.${key}`)
+
   return (
     <article className="overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-elevation">
       <div className="flex items-start gap-2.5 px-4 pt-3">
@@ -25,7 +35,7 @@ export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: Ann
           </p>
         </div>
 
-        <Tag className="mt-0.5">Announcement</Tag>
+        <Tag className="mt-0.5">{c('announcement')}</Tag>
       </div>
 
       <div

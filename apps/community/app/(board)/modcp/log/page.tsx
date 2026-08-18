@@ -1,17 +1,19 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { MOD_LOG_LABELS, ModeratorPanel } from '@meith/moderation'
+import { MOD_LOG_LABEL_KEYS, ModeratorPanel } from '@meith/moderation'
 import { Card, CardFooter, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getContainer } from '@/server/container'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { resolveModCpAccess } from '@/server/modcp'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Moderator log' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.moderator-log') }
+}
 
 export default async function ModLogPage({
   searchParams,
@@ -35,15 +37,15 @@ export default async function ModLogPage({
 
   return (
     <PanelPage
-      title="Moderator log"
-      lede="Scoped to the forums you moderate, plus your own actions elsewhere."
+      title={await tr('page.moderator-log')}
+      lede={await tr('page.scoped-forums-moderate-plus-own')}
     >
       <Card>
         {page.entries.length === 0 ? (
           <Empty className="py-8">
-            <EmptyTitle>Nothing has been logged yet</EmptyTitle>
+            <EmptyTitle>{await tr('page.nothing-has-been-logged-yet')}</EmptyTitle>
             <EmptyDescription>
-              Approvals, locks, moves and deletions in your forums appear here as they happen.
+              {await tr('page.approvals-locks-moves-deletions-forums')}
             </EmptyDescription>
           </Empty>
         ) : (
@@ -54,7 +56,7 @@ export default async function ModLogPage({
                 <li key={entry.id} className="px-4 py-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
                     <span className="font-medium">
-                      {MOD_LOG_LABELS[entry.action] ?? entry.action}
+                      {translator.t(MOD_LOG_LABEL_KEYS[entry.action] ?? entry.action)}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {entry.actorUsername ?? 'a former moderator'}

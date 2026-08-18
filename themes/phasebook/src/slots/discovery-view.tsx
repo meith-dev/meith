@@ -1,4 +1,5 @@
-import type { DiscoveryViewModel, TabModel } from '@meith/theme-kit'
+import type { DiscoveryViewModel, SlotCopy, TabModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { cn } from '@meith/ui'
 
 import { Chip, count, FEED, LINK, PAGE, PILL, plural, Stamp } from '../shared'
@@ -43,7 +44,10 @@ export function DiscoveryView({
   nextLabel,
   emptyMessage,
   refusal,
-}: DiscoveryViewModel) {
+  copy,
+}: DiscoveryViewModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.discoveryView.${key}`)
+
   return (
     <main id="board-content" tabIndex={-1} className={`${PAGE} flex-1 py-4 sm:py-6`}>
       <div className={`${FEED} flex flex-col gap-4`}>
@@ -83,17 +87,19 @@ export function DiscoveryView({
                     {row.title}
                   </a>
                   <Chip>
-                    {count(row.replyCount)} {plural(row.replyCount, 'reply', 'replies')}
+                    {count(row.replyCount)}{' '}
+                    {plural(row.replyCount, c('reply.one'), c('reply.other'))}
                   </Chip>
                 </div>
 
                 <p className="mt-1 text-xs text-muted-foreground">
-                  in{' '}
+                  {c('in')}{' '}
                   <a href={row.forum.href} className={LINK}>
                     {row.forum.label}
                   </a>{' '}
-                  · started by {row.authorUsername} · last post <Stamp at={row.lastPostAt} />
-                  {row.lastPostUsername === null ? null : ` by ${row.lastPostUsername}`}
+                  · {c('startedBy')} {row.authorUsername} · {c('lastPost')}{' '}
+                  <Stamp at={row.lastPostAt} />
+                  {row.lastPostUsername === null ? null : ` ${c('by')} ${row.lastPostUsername}`}
                 </p>
               </li>
             ))}

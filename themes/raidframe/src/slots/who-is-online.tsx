@@ -1,4 +1,5 @@
-import type { WhoIsOnlineModel } from '@meith/theme-kit'
+import type { SlotCopy, WhoIsOnlineModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Frame, MICRO, NUMERIC, PanelHead, Stamp, UserRef } from '../shared'
 
@@ -10,12 +11,15 @@ export function WhoIsOnline({
   recordCount,
   recordAt,
   fullListHref,
-}: WhoIsOnlineModel) {
+  copy,
+}: WhoIsOnlineModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.whoIsOnline.${key}`)
+
   return (
     <Frame aria-labelledby="who-is-online-heading">
       <PanelHead
         id="who-is-online-heading"
-        title="Online now"
+        title={c('heading')}
         aside={
           <span className="inline-flex items-center gap-1.5 border border-moderation-approved/50 bg-moderation-approved/10 px-1.5 py-0.5">
             <span
@@ -25,7 +29,7 @@ export function WhoIsOnline({
             <span
               className={`${NUMERIC} text-[0.625rem] font-bold tracking-[0.12em] text-moderation-approved uppercase`}
             >
-              {total.label} online
+              {total.label} {c('onlineSuffix')}
             </span>
           </span>
         }
@@ -33,13 +37,13 @@ export function WhoIsOnline({
 
       <p className="px-3 py-2.5 text-xs">
         {memberCount.value === 0 ? (
-          <span className={MICRO}>no members</span>
+          <span className={MICRO}>{c('noMembers')}</span>
         ) : (
           members.map((member, index) => (
             <span key={member.username}>
               {index > 0 && <span className="text-border">{' | '}</span>}
               <UserRef user={member} className="text-foreground hover:text-primary" />
-              {member.isInvisible && <span className={`${MICRO} ml-1`}>hidden</span>}
+              {member.isInvisible && <span className={`${MICRO} ml-1`}>{c('hidden')}</span>}
             </span>
           ))
         )}
@@ -47,12 +51,16 @@ export function WhoIsOnline({
 
       <p className={`${MICRO} border-t border-border px-3 py-1.5 normal-case`}>
         <a href={fullListHref} className="uppercase hover:text-primary">
-          full list
+          {c('fullList')}
         </a>
         <span className="text-border">{' | '}</span>
-        <span className="uppercase">{guestCount.label} guests</span>
+        <span className="uppercase">
+          {guestCount.label} {c('guests')}
+        </span>
         <span className="text-border">{' | '}</span>
-        <span className="uppercase">record {recordCount.label}</span>
+        <span className="uppercase">
+          {c('record')} {recordCount.label}
+        </span>
         {recordAt !== null && (
           <>
             {' '}

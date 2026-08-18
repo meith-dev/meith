@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import type { PermissionField, PermissionSet } from '@meith/core'
@@ -20,9 +21,7 @@ export function groupAdminRepository(): PostgresGroupAdminRepository | null {
 export function requireGroupAdmin(): PostgresGroupAdminRepository {
   const repository = groupAdminRepository()
   if (repository === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so its groups cannot be edited.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-18'))
   }
   return repository
 }
@@ -73,9 +72,7 @@ export function promotionRuleRepository(): PostgresPromotionRepository | null {
 export function requirePromotionRules(): PostgresPromotionRepository {
   const repository = promotionRuleRepository()
   if (repository === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so its promotion rules cannot be edited.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-19'))
   }
   return repository
 }
@@ -92,9 +89,7 @@ export async function previewPromotions(limit = 500): Promise<PromotionRunResult
 
 export function promotionService(): PromotionService {
   if (getContainer().dataSource !== 'postgres') {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so promotions cannot run.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-20'))
   }
   return new PromotionService({
     promotions: new PostgresPromotionRepository(getDb()),

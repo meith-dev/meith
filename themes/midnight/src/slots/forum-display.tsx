@@ -1,6 +1,15 @@
-import type { ForumDisplayModel } from '@meith/theme-kit'
+import type { ForumDisplayModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
-export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: ForumDisplayModel) {
+export function ForumDisplay({
+  forum,
+  newThreadHref,
+  markReadAction,
+  regions,
+  copy,
+}: ForumDisplayModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `midnight.forumDisplay.${key}`)
+
   return (
     <div className="flex flex-col gap-3 p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -10,7 +19,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
             href={newThreadHref}
             className="border border-primary bg-primary px-3 py-1 font-mono text-xs text-primary-foreground hover:opacity-90"
           >
-            new thread
+            {c('newThread')}
           </a>
         )}
       </div>
@@ -33,16 +42,16 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
         <thead>
           <tr className="bg-secondary text-left font-mono text-xs uppercase tracking-wide text-muted-foreground">
             <th scope="col" className="px-3 py-1.5">
-              Thread
+              {c('threadHeader')}
             </th>
             <th scope="col" className="w-16 px-2 py-1.5 text-right">
-              Replies
+              {c('repliesHeader')}
             </th>
             <th scope="col" className="w-16 px-2 py-1.5 text-right">
-              Views
+              {c('viewsHeader')}
             </th>
             <th scope="col" className="w-56 px-3 py-1.5">
-              Last post
+              {c('lastPostHeader')}
             </th>
           </tr>
         </thead>
@@ -61,7 +70,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
             type="submit"
             className="border border-border px-2 py-1 font-mono text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            mark this forum read
+            {c('markForumRead')}
           </button>
         </form>
       )}

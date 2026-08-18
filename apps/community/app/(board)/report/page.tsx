@@ -7,8 +7,12 @@ import { ReportForm } from '@/components/moderation/report-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getTranslator, tr } from '@/server/i18n'
+import { moderationFormsCopy } from '@/view/moderation-copy'
 
-export const metadata: Metadata = { title: 'Report' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.report') }
+}
 
 function positiveInt(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d*$/.test(value)) return null
@@ -55,9 +59,13 @@ export default async function ReportPage({
     <PanelPage
       frame="standalone"
       title={`Report ${what}`}
-      lede="A moderator will look at this. Your report is private."
+      lede={await tr('page.moderator-will-look-at-this')}
     >
-      <ReportForm kind={kind} targetId={targetId} />
+      <ReportForm
+        kind={kind}
+        targetId={targetId}
+        copy={moderationFormsCopy(await getTranslator())}
+      />
     </PanelPage>
   )
 }

@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import type { WordFilterRule } from '@meith/markdown'
 
 import type { Database } from './client'
@@ -67,7 +68,7 @@ export class PostgresContentAdminRepository {
 
   async createWordFilter(input: WordFilterRule): Promise<number> {
     const pattern = input.pattern.trim()
-    if (pattern === '') throw new ValidationError('A filter needs something to match.')
+    if (pattern === '') throw new ValidationError(msg('error.db.filter-needs-something-match'))
 
     const rows = resultRows(
       await this.db.execute(sql`
@@ -85,7 +86,7 @@ export class PostgresContentAdminRepository {
     input: WordFilterRule & { readonly enabled: boolean },
   ): Promise<void> {
     const pattern = input.pattern.trim()
-    if (pattern === '') throw new ValidationError('A filter needs something to match.')
+    if (pattern === '') throw new ValidationError(msg('error.db.filter-needs-something-match'))
 
     const rows = resultRows(
       await this.db.execute(sql`
@@ -97,7 +98,7 @@ export class PostgresContentAdminRepository {
       `),
     ) as Array<{ id: number }>
 
-    if (rows[0] === undefined) throw new ValidationError('No such filter.')
+    if (rows[0] === undefined) throw new ValidationError(msg('error.db.such-filter'))
   }
 
   async deleteWordFilter(id: number): Promise<void> {
@@ -127,7 +128,7 @@ export class PostgresContentAdminRepository {
     readonly displayOrder: number
     readonly forumPathPrefix: string | null
   }): Promise<number> {
-    if (input.label.trim() === '') throw new ValidationError('A prefix needs a label.')
+    if (input.label.trim() === '') throw new ValidationError(msg('error.db.prefix-needs-label'))
 
     const rows = resultRows(
       await this.db.execute(sql`
@@ -215,7 +216,7 @@ export class PostgresContentAdminRepository {
       `),
     ) as Array<{ id: number }>
 
-    if (rows[0] === undefined) throw new ValidationError('No such smiley.')
+    if (rows[0] === undefined) throw new ValidationError(msg('error.db.such-smiley'))
     await this.bumpVocabulary()
   }
 
@@ -276,7 +277,7 @@ export class PostgresContentAdminRepository {
       `),
     ) as Array<{ id: number }>
 
-    if (rows[0] === undefined) throw new ValidationError('No such directive.')
+    if (rows[0] === undefined) throw new ValidationError(msg('error.db.such-directive'))
     await this.bumpVocabulary()
   }
 

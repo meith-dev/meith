@@ -6,6 +6,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@meith/core": "workspace:*"
+    "@meith/core": "workspace:*",
+    "@meith/i18n": "workspace:*"
   }
 }

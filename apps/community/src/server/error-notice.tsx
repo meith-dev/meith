@@ -2,7 +2,7 @@ import 'server-only'
 
 import { logger } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { getTranslator } from '@/server/i18n'
 import { buildErrorNotice, CRASH_NOTICE, type ErrorNoticeCopy } from '@/view/error-notice'
@@ -13,10 +13,11 @@ import { currentTheme } from './theme'
 export async function renderErrorNotice(copy: ErrorNoticeCopy): Promise<React.ReactNode> {
   const requestId = currentRequestId() ?? null
   const ErrorNotice = requireSlot(await currentTheme(), 'ErrorNotice')
+  const translator = await getTranslator()
 
   const model = await filterView(
     'view.error-notice',
-    buildErrorNotice(copy, requestId, await getTranslator()),
+    buildErrorNotice(copy, requestId, translator),
     {
       userId: null,
       isGuest: true,
@@ -24,7 +25,7 @@ export async function renderErrorNotice(copy: ErrorNoticeCopy): Promise<React.Re
     },
   )
 
-  return <ErrorNotice {...model} />
+  return <ErrorNotice {...model} copy={slotCopy(await currentTheme(), 'ErrorNotice', translator)} />
 }
 
 export async function crashNotice(): Promise<React.ReactNode> {

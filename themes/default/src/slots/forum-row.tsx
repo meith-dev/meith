@@ -1,9 +1,12 @@
-import type { ForumRowSlotModel } from '@meith/theme-kit'
+import type { ForumRowSlotModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Counts, LINK, MUTED_LINK, ReadSpacer, Stamp, UnreadDot, UserRef } from '../shared'
 
-export function ForumRow({ forum }: ForumRowSlotModel) {
+export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }) {
   const isLink = forum.type === 'link'
+
+  const c = (key: string) => fromSlotCopy(copy, `default.forumRow.${key}`)
 
   return (
     <li
@@ -25,7 +28,7 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
         >
           {forum.title}
         </a>
-        {forum.isUnread && <span className="sr-only"> (new posts)</span>}
+        {forum.isUnread && <span className="sr-only"> {c('newPosts')}</span>}
 
         {forum.description !== null && (
           <p className="mt-0.5 text-sm text-muted-foreground">{forum.description}</p>
@@ -33,7 +36,7 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
 
         {forum.subforums.length > 0 && (
           <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Subforums</span>
+            <span className="font-medium text-foreground">{c('subforums')}</span>
             {forum.subforums.map((sub) => (
               <a key={sub.href} href={sub.href} className={MUTED_LINK}>
                 {sub.label}
@@ -49,23 +52,23 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
             className="col-start-2 md:col-start-3 md:justify-end"
             items={[
               {
-                label: 'Threads',
+                label: c('threadsLabel'),
                 value: forum.threadCount,
-                one: 'thread',
-                many: 'threads',
+                one: c('thread.one'),
+                many: c('thread.other'),
               },
               {
-                label: 'Posts',
+                label: c('postsLabel'),
                 value: forum.postCount,
-                one: 'post',
-                many: 'posts',
+                one: c('post.one'),
+                many: c('post.other'),
               },
             ]}
           />
 
           <div className="col-start-2 min-w-0 text-xs text-muted-foreground md:col-start-4">
             {forum.lastPost === null ? (
-              <span className="text-forum-read">No posts yet</span>
+              <span className="text-forum-read">{c('noPostsYet')}</span>
             ) : (
               <>
                 <a
@@ -75,10 +78,8 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
                   {forum.lastPost.threadTitle}
                 </a>
                 <span className="mt-0.5 block truncate">
-                  {'by '}
-                  <UserRef user={forum.lastPost.author} className="font-normal" />
-                  {' · '}
-                  <Stamp at={forum.lastPost.at} />
+                  {c('by')} <UserRef user={forum.lastPost.author} className="font-normal" />{' '}
+                  {c('dot')} <Stamp at={forum.lastPost.at} />
                 </span>
               </>
             )}

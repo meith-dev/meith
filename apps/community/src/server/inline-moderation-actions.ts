@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { type Action, type Actor, hasAnyModeratorRight } from '@meith/authorization'
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import {
   INLINE_TOOL_ACTIONS,
   InlineModeration,
@@ -19,6 +20,7 @@ import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
+import { tr } from './i18n'
 import { isSafeLocalPath } from './safe-path'
 
 const toFormState = formStateReporter('inline-moderation', 'unexpected error in inline moderation')
@@ -41,12 +43,12 @@ export async function inlineModerateAction(_prev: FormState, form: FormData): Pr
   const tool = parseInlineTool(
     typeof form.get('tool') === 'string' ? (form.get('tool') as string) : undefined,
   )
-  if (tool === null) return { error: 'Choose what to do with the selected items.' }
+  if (tool === null) return { error: await tr('notice.app.choose-what-with-selected-items') }
 
   const { inlineModeration } = getContainer()
   if (inlineModeration === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it has no moderation tools.',
+      error: await tr('notice.app.board-running-in-memory-sample-data-4'),
     }
   }
 
@@ -56,16 +58,16 @@ export async function inlineModerateAction(_prev: FormState, form: FormData): Pr
   let outcome: InlineOutcome
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in to moderate.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged-moderate'))
 
     const selection = parseSelection(
       form.getAll('item').filter((v): v is string => typeof v === 'string'),
     )
-    if (selection.length === 0) throw new ValidationError('Select at least one item.')
+    if (selection.length === 0) throw new ValidationError(msg('error.app.select-at-least-one-item'))
 
     const scopeForumIds = await scopeFor(tool, actor)
     if (scopeForumIds.length === 0) {
-      throw new ForbiddenError('You cannot moderate anything here.')
+      throw new ForbiddenError(msg('error.app.moderate-anything-here'))
     }
 
     outcome = await new InlineModeration({ inline: inlineModeration }).apply({

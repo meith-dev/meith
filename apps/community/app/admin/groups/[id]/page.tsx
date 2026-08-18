@@ -12,10 +12,16 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildGroupPermissionView, groupAdminRepository } from '@/server/group-admin'
 import { badgeKey, badgeSrc } from '@/server/group-badge'
+import { getTranslator, tr } from '@/server/i18n'
 import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { boardSampleSurfaces } from '@/server/theme-admin'
+import { groupAdminCopy } from '@/view/admin-group-copy'
+import { badgeFormsCopy } from '@/view/admin-panel-copy'
+import { oklchPickerCopy } from '@/view/admin-theme-copy'
 
-export const metadata: Metadata = { title: 'Group' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.group') }
+}
 
 export default async function AdminGroupPage({ params }: { params: Promise<{ id: string }> }) {
   if ((await adminPageContext()) === null) return null
@@ -27,6 +33,9 @@ export default async function AdminGroupPage({ params }: { params: Promise<{ id:
   if (view === null) notFound()
 
   const groups = (await groupAdminRepository()?.list()) ?? []
+  const t = await getTranslator()
+  const copy = { ...groupAdminCopy(t), ...oklchPickerCopy(t) }
+  const badgeCopy = badgeFormsCopy(t)
 
   const [lightBadge, darkBadge] = await Promise.all([
     badgeKey(view.group.id, 'light'),
@@ -39,19 +48,19 @@ export default async function AdminGroupPage({ params }: { params: Promise<{ id:
 
   return (
     <PanelPage
-      back={{ href: '/admin/groups', label: 'All groups' }}
+      back={{ href: '/admin/groups', label: t.t('adminGroups.all') }}
       title={view.group.title}
       lede={
         <>
-          <code className="text-xs">{view.group.key}</code> · {view.group.memberCount} member
-          {view.group.memberCount === 1 ? '' : 's'}
-          {view.group.isSystem && ' · a system group: the board resolves it by key'}
+          <code className="text-xs">{view.group.key}</code> ·{' '}
+          {t.t('adminGroupDetail.members', { count: view.group.memberCount })}
+          {view.group.isSystem && ` · ${t.t('adminGroupDetail.systemGroup')}`}
         </>
       }
       gap="loose"
     >
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Details</h2>
+        <h2 className="font-heading text-lg font-semibold">{t.t('adminGroupDetail.details')}</h2>
         <GroupIdentityForm
           group={{
             id: view.group.id,
@@ -65,51 +74,47 @@ export default async function AdminGroupPage({ params }: { params: Promise<{ id:
             nameColorDark: view.group.nameColorDark ?? '',
           }}
           surfaces={await boardSampleSurfaces()}
+          copy={copy}
         />
       </section>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Badge</h2>
-        <p className="text-sm text-muted-foreground">
-          A small image shown beside a member&rsquo;s name. Two of them, for the reason the colours
-          have two: an icon drawn for a white page usually disappears on a black one. Upload only
-          the light one and it is used in both.
-        </p>
+        <h2 className="font-heading text-lg font-semibold">{t.t('adminGroupDetail.badge')}</h2>
+        <p className="text-sm text-muted-foreground">{t.t('adminGroupDetail.badgeHint')}</p>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <BadgeUploadForm
             groupId={view.group.id}
             scheme="light"
-            label="Light"
+            label={t.t('adminGroupDetail.light')}
             src={badges.light}
             maxKib={MAX_IMAGE_BYTES / 1024}
+            copy={badgeCopy}
           />
           <BadgeUploadForm
             groupId={view.group.id}
             scheme="dark"
-            label="Dark"
+            label={t.t('adminGroupDetail.dark')}
             src={badges.dark}
             maxKib={MAX_IMAGE_BYTES / 1024}
+            copy={badgeCopy}
           />
         </div>
       </section>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Permissions</h2>
-        <p className="text-sm text-muted-foreground">
-          These are this group&rsquo;s answers, not a forum&rsquo;s. A member in several groups gets
-          the most permissive of them — a tick can only ever grant, never take away — except for the
-          restrictions, where any group that lifts one lifts it everywhere.
-        </p>
-        <GroupPermissionsForm groupId={view.group.id} cells={view.cells} />
+        <h2 className="font-heading text-lg font-semibold">
+          {t.t('adminGroupDetail.permissions')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t.t('adminGroupDetail.permissionsHint')}</p>
+        <GroupPermissionsForm groupId={view.group.id} cells={view.cells} copy={copy} />
       </section>
 
       <section className={PANEL_CARD}>
-        <h2 className="font-heading text-lg font-semibold">Delete</h2>
+        <h2 className="font-heading text-lg font-semibold">{t.t('adminGroupDetail.delete')}</h2>
         {view.group.isSystem ? (
           <p className="text-sm text-muted-foreground">
-            This group is part of how the board works — registration, bans and the control panel
-            resolve it by key — so it cannot be deleted. Its permissions are still yours to change.
+            {t.t('adminGroupDetail.deleteSystemHint')}
           </p>
         ) : (
           <DeleteGroupForm
@@ -119,6 +124,7 @@ export default async function AdminGroupPage({ params }: { params: Promise<{ id:
               title: group.title,
               memberCount: group.memberCount,
             }))}
+            copy={copy}
           />
         )}
       </section>

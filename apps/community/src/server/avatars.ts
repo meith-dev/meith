@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import { cache } from 'react'
@@ -73,10 +74,10 @@ export async function resolveAvatar(
 export function requireAvatarService(actor: Actor): AvatarService {
   const service = avatarService()
   if (service === null) {
-    throw new ForbiddenError('This board cannot accept avatar uploads.')
+    throw new ForbiddenError(msg('error.app.board-accept-avatar-uploads'))
   }
   if (actor.userId === null) {
-    throw new ForbiddenError('You must be logged in to change your avatar.')
+    throw new ForbiddenError(msg('error.app.must-logged-change-avatar'))
   }
   return service
 }

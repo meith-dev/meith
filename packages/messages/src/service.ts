@@ -1,4 +1,5 @@
 import { ForbiddenError, NotFoundError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import {
   type BoardVocabulary,
   EMPTY_VOCABULARY,
@@ -92,7 +93,7 @@ export class MessageService {
 
   async open(input: { messageId: number; userId: number }): Promise<MessageDetail> {
     const detail = await this.repository.detail(input)
-    if (detail === null) throw new NotFoundError('No such message.')
+    if (detail === null) throw new NotFoundError(msg('error.messages.such-message'))
 
     const visible = this.visibleParticipants(detail, input.userId)
 
@@ -136,13 +137,13 @@ export class MessageService {
     const subject = input.subject.trim()
     const message = input.message.trim()
 
-    if (subject === '') throw new ValidationError('A message needs a subject.')
+    if (subject === '') throw new ValidationError(msg('error.messages.message-needs-subject'))
     if (subject.length > SUBJECT_MAX) {
-      throw new ValidationError(`A subject may be at most ${SUBJECT_MAX} characters.`)
+      throw new ValidationError(msg('error.messages.subject-length', { max: SUBJECT_MAX }))
     }
-    if (message === '') throw new ValidationError('A message needs something in it.')
+    if (message === '') throw new ValidationError(msg('error.messages.message-needs-something'))
     if (message.length > BODY_MAX) {
-      throw new ValidationError(`A message may be at most ${BODY_MAX} characters.`)
+      throw new ValidationError(msg('error.messages.body-length', { max: BODY_MAX }))
     }
 
     const recipients = await this.resolveRecipients(input)
@@ -186,7 +187,8 @@ export class MessageService {
       ...splitNames(input.bcc ?? '').map((name) => ({ name, bcc: true })),
     ]
 
-    if (named.length === 0) throw new ValidationError('Name at least one recipient.')
+    if (named.length === 0)
+      throw new ValidationError(msg('error.messages.name-at-least-one-recipient'))
 
     const seen = new Map<string, { name: string; bcc: boolean }>()
     for (const entry of named) {
@@ -198,7 +200,7 @@ export class MessageService {
 
     if (seen.size > MAX_RECIPIENTS) {
       throw new ValidationError(
-        `A message may go to at most ${MAX_RECIPIENTS} people. You named ${seen.size}.`,
+        msg('error.messages.recipient-limit', { max: MAX_RECIPIENTS, count: seen.size }),
       )
     }
 
@@ -211,14 +213,15 @@ export class MessageService {
     const unknown = resolved.filter((r) => r.userId === null).map((r) => r.name)
     if (unknown.length > 0) {
       throw new ValidationError(
-        unknown.length === 1
-          ? `There is no member called "${unknown[0]}".`
-          : `No such members: ${unknown.join(', ')}.`,
+        msg('error.messages.unknown-recipients', {
+          count: unknown.length,
+          names: unknown.join(', '),
+        }),
       )
     }
 
     if (resolved.some((r) => r.userId === input.authorUserId)) {
-      throw new ValidationError('You cannot send a message to yourself.')
+      throw new ValidationError(msg('error.messages.send-message-yourself'))
     }
 
     return resolved
@@ -238,9 +241,7 @@ export class MessageService {
 
     const senderLimit = limitById.get(authorUserId)
     if (senderLimit !== undefined && isFull(senderLimit.quota, stored.get(authorUserId) ?? 0)) {
-      throw new ForbiddenError(
-        'Your message store is full. Delete some messages before sending another.',
-      )
+      throw new ForbiddenError(msg('error.messages.message-store-full-delete-some'))
     }
 
     const full: string[] = []
@@ -261,13 +262,13 @@ export class MessageService {
     }
 
     if (closed.length > 0) {
-      throw new ForbiddenError(`${closed.join(', ')} cannot receive private messages.`)
+      throw new ForbiddenError(
+        msg('error.messages.recipients-closed', { names: closed.join(', ') }),
+      )
     }
     if (full.length > 0) {
       throw new ForbiddenError(
-        full.length === 1
-          ? `${full[0]}'s message store is full, so nothing was sent.`
-          : `These members' message stores are full, so nothing was sent: ${full.join(', ')}.`,
+        msg('error.messages.recipients-full', { count: full.length, names: full.join(', ') }),
       )
     }
   }
@@ -294,7 +295,7 @@ export class MessageService {
 
   async replyDraft(input: { messageId: number; userId: number }): Promise<Draft> {
     const detail = await this.repository.detail(input)
-    if (detail === null) throw new NotFoundError('No such message.')
+    if (detail === null) throw new NotFoundError(msg('error.messages.such-message'))
 
     return {
       to: detail.message.authorUsername,
@@ -306,7 +307,7 @@ export class MessageService {
 
   async forwardDraft(input: { messageId: number; userId: number }): Promise<Draft> {
     const detail = await this.repository.detail(input)
-    if (detail === null) throw new NotFoundError('No such message.')
+    if (detail === null) throw new NotFoundError(msg('error.messages.such-message'))
 
     return {
       to: '',

@@ -1,4 +1,6 @@
 import { demoBannerModel } from '@/server/demo'
+import { getTranslator } from '@/server/i18n'
+import { splitAround } from '@/view/copy'
 
 /**
  * The strip at the top of a demo board.
@@ -12,16 +14,19 @@ export async function DemoBanner() {
   const banner = await demoBannerModel()
   if (banner === null) return null
 
+  const t = await getTranslator()
+  const [loginLead, loginTail] = splitAround(t, 'demo.loginAs', 'logins')
+
   return (
     <aside
       className="border-b border-border bg-muted px-4 py-2 text-sm text-muted-foreground"
-      aria-label="About this demo"
+      aria-label={t.t('demo.aria')}
     >
       <div className="mx-auto flex max-w-6xl flex-wrap items-baseline gap-x-4 gap-y-1">
-        <strong className="font-semibold text-foreground">This is a demo.</strong>
+        <strong className="font-semibold text-foreground">{t.t('demo.title')}</strong>
 
         <span>
-          Log in as{' '}
+          {loginLead}
           {banner.logins.map((login, index) => (
             <span key={login.username}>
               {index > 0 && ', '}
@@ -30,12 +35,13 @@ export async function DemoBanner() {
               </code>
             </span>
           ))}
-          .
+          {loginTail}
         </span>
 
         <span>
-          Everything you post here is deleted
-          {banner.resetsIn === null ? ' when the board resets' : ` ${banner.resetsIn}`}.
+          {banner.resetsIn === null
+            ? t.t('demo.wiped')
+            : t.t('demo.wipedIn', { when: banner.resetsIn })}
         </span>
       </div>
     </aside>

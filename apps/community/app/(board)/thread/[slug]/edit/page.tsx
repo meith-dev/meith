@@ -1,16 +1,19 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { DeletePostForm, EditPostForm, RestorePostForm } from '@/components/content/edit-post-form'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { resolvePostScope } from '@/server/post-scope'
 import { currentTheme } from '@/server/theme'
+import { editPostFormCopy } from '@/view/content-copy'
 import { buildEditView } from '@/view/post-form'
 import { leadingId } from '@/view/slug-id'
 
-export const metadata: Metadata = { title: 'Edit post' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.edit-post') }
+}
 
 function postId(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d*$/.test(value)) return null
@@ -48,26 +51,33 @@ export default async function EditPostPage({
     isDeleted,
   })
 
-  const PostForm = requireSlot(await currentTheme(), 'PostForm')
+  const theme = await currentTheme()
+  const PostForm = requireSlot(theme, 'PostForm')
+  const translator = await getTranslator()
+  const formCopy = editPostFormCopy(translator)
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       <PostForm
         {...view}
+        copy={slotCopy(theme, 'PostForm', translator)}
         regions={{
           form: isDeleted ? (
-            <RestorePostForm threadId={thread} postId={post} />
+            <RestorePostForm copy={formCopy} threadId={thread} postId={post} />
           ) : (
             <>
               {scope.mayEdit && (
                 <EditPostForm
+                  copy={formCopy}
                   threadId={thread}
                   postId={post}
                   message={scope.target.post.message}
                   reason={null}
                 />
               )}
-              {scope.mayDelete && <DeletePostForm threadId={thread} postId={post} />}
+              {scope.mayDelete && (
+                <DeletePostForm copy={formCopy} threadId={thread} postId={post} />
+              )}
             </>
           ),
           toolbar: null,

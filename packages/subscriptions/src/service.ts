@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { parseSubscriptionMode, type SubscriptionMode, type SubscriptionTarget } from './modes'
 import type { SubscriptionRepository, SubscriptionRow } from './types'
@@ -21,10 +22,10 @@ export class SubscriptionService {
     readonly mode: string
     readonly mayView: boolean
   }): Promise<SubscriptionMode> {
-    if (!input.mayView) throw new ValidationError('That does not exist.')
+    if (!input.mayView) throw new ValidationError(msg('error.subscriptions.exist'))
 
     const mode = parseSubscriptionMode(input.mode)
-    if (mode === null) throw new ValidationError('That is not a notification setting.')
+    if (mode === null) throw new ValidationError(msg('error.subscriptions.notification-setting'))
 
     const written = await this.repository.subscribe({
       userId: input.userId,
@@ -33,7 +34,7 @@ export class SubscriptionService {
       mode,
       at: this.now(),
     })
-    if (!written) throw new ValidationError('That does not exist.')
+    if (!written) throw new ValidationError(msg('error.subscriptions.exist'))
 
     return mode
   }

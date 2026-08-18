@@ -1,4 +1,5 @@
-import type { PanelNavItemModel, PanelNavModel } from '@meith/theme-kit'
+import type { PanelNavItemModel, PanelNavModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { cn, Disclosure } from '@meith/ui'
 
 import { PanelIcon } from '../panel-icons'
@@ -11,21 +12,33 @@ const HERE =
 const OPEN = 'font-semibold text-foreground hover:bg-accent'
 const ELSEWHERE = 'text-muted-foreground hover:bg-accent hover:text-foreground'
 
-function Count({ count }: { count: number }) {
+function Count({ count, copy }: { count: number; copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.panelNav.${key}`)
+
   return (
     <>
       <span
         aria-hidden="true"
         className="ml-auto min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-xs font-semibold tabular-nums text-primary-foreground"
       >
-        {count > 99 ? '99+' : count}
+        {count > 99 ? c('countCap') : count}
       </span>
-      <span className="sr-only">({count} waiting)</span>
+      <span className="sr-only">
+        ({count} {c('waiting')})
+      </span>
     </>
   )
 }
 
-function Item({ item, className }: { item: PanelNavItemModel; className: string }) {
+function Item({
+  item,
+  className,
+  copy,
+}: {
+  item: PanelNavItemModel
+  className: string
+  copy: SlotCopy
+}) {
   const body = (
     <>
       {item.icon !== null && (
@@ -34,7 +47,7 @@ function Item({ item, className }: { item: PanelNavItemModel; className: string 
         </span>
       )}
       <span className="min-w-0 flex-1 truncate">{item.title}</span>
-      {item.count !== null && <Count count={item.count} />}
+      {item.count !== null && <Count count={item.count} copy={copy} />}
     </>
   )
 
@@ -61,7 +74,11 @@ function Item({ item, className }: { item: PanelNavItemModel; className: string 
   )
 }
 
-function Sections({ label, sections }: Pick<PanelNavModel, 'label' | 'sections'>) {
+function Sections({
+  label,
+  sections,
+  copy,
+}: Pick<PanelNavModel, 'label' | 'sections'> & { copy: SlotCopy }) {
   return (
     <nav aria-label={label} className="text-sm">
       <ul className="flex flex-col gap-0.5 pl-2.5">
@@ -73,13 +90,18 @@ function Sections({ label, sections }: Pick<PanelNavModel, 'label' | 'sections'>
             <Item
               item={section}
               className={section.current === 'here' ? HERE : section.isOpen ? OPEN : ELSEWHERE}
+              copy={copy}
             />
 
             {section.isOpen && section.children.length > 0 && (
               <ul className="mt-0.5 ml-4 flex flex-col gap-0.5 border-l border-border pl-2.5">
                 {section.children.map((child) => (
                   <li key={child.href}>
-                    <Item item={child} className={child.current === 'here' ? HERE : ELSEWHERE} />
+                    <Item
+                      item={child}
+                      className={child.current === 'here' ? HERE : ELSEWHERE}
+                      copy={copy}
+                    />
                   </li>
                 ))}
               </ul>
@@ -91,7 +113,12 @@ function Sections({ label, sections }: Pick<PanelNavModel, 'label' | 'sections'>
   )
 }
 
-export function PanelNav({ label, sections, currentTitle }: PanelNavModel) {
+export function PanelNav({
+  label,
+  sections,
+  currentTitle,
+  copy,
+}: PanelNavModel & { copy: SlotCopy }) {
   return (
     <>
       <div className="sticky top-0 z-20 -mx-4 bg-background/95 px-4 py-2 backdrop-blur-sm sm:-mx-6 sm:px-6 lg:hidden">
@@ -100,12 +127,12 @@ export function PanelNav({ label, sections, currentTitle }: PanelNavModel) {
           contentClassName="p-2"
           {...(currentTitle === null ? {} : { aside: currentTitle })}
         >
-          <Sections label={label} sections={sections} />
+          <Sections label={label} sections={sections} copy={copy} />
         </Disclosure>
       </div>
 
       <div className="hidden rounded-xl border border-border bg-card p-2 shadow-elevation lg:block">
-        <Sections label={label} sections={sections} />
+        <Sections label={label} sections={sections} copy={copy} />
       </div>
     </>
   )

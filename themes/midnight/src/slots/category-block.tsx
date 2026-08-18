@@ -1,6 +1,13 @@
-import type { CategoryBlockModel } from '@meith/theme-kit'
+import type { CategoryBlockModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
-export function CategoryBlock({ category, children }: CategoryBlockModel) {
+export function CategoryBlock({
+  category,
+  children,
+  copy,
+}: CategoryBlockModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `midnight.categoryBlock.${key}`)
+
   return (
     <section className="border border-border">
       <h2 className="border-b border-border bg-secondary px-3 py-1.5 font-mono text-sm font-semibold uppercase tracking-wide">
@@ -22,10 +29,10 @@ export function CategoryBlock({ category, children }: CategoryBlockModel) {
         </colgroup>
         <thead className="sr-only">
           <tr>
-            <th scope="col">Forum</th>
-            <th scope="col">Threads</th>
-            <th scope="col">Posts</th>
-            <th scope="col">Last post</th>
+            <th scope="col">{c('forumHeader')}</th>
+            <th scope="col">{c('threadsHeader')}</th>
+            <th scope="col">{c('postsHeader')}</th>
+            <th scope="col">{c('lastPostHeader')}</th>
           </tr>
         </thead>
         <tbody>{children}</tbody>

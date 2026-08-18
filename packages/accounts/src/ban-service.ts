@@ -1,4 +1,5 @@
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { BanRecord, BanRepository, Clock } from './ports'
 
@@ -27,12 +28,12 @@ export class BanService {
     const now = this.now()
 
     if (input.expiresAt !== undefined && input.expiresAt <= now) {
-      throw new ValidationError('A ban cannot expire in the past.')
+      throw new ValidationError(msg('error.accounts.ban-expire-past'))
     }
 
     const existing = await this.deps.bans.findActive(input.userId)
     if (existing) {
-      throw new ValidationError('That user is already banned. Lift the existing ban first.')
+      throw new ValidationError(msg('error.accounts.user-already-banned-lift-existing'))
     }
 
     return this.deps.bans.create({
@@ -48,7 +49,7 @@ export class BanService {
 
   async lift(userId: number): Promise<void> {
     const active = await this.deps.bans.findActive(userId)
-    if (!active) throw new ValidationError('That user is not banned.')
+    if (!active) throw new ValidationError(msg('error.accounts.user-banned'))
 
     await this.deps.bans.lift(active.id, this.now())
   }

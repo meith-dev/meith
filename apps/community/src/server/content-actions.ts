@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { quoteBlock, renderMarkdown, SIGNATURE_FEATURES, vocabularyOptions } from '@meith/markdown'
 import { restrictsPosting } from '@meith/moderation'
 import { PostEditor, type PostWriteRepository } from '@meith/posts'
@@ -23,6 +24,7 @@ import { activeVocabulary } from './content-admin'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { checkbox, positiveIntIn } from './form-values'
+import { getTranslator, tr } from './i18n'
 import { emitEvent, viewerRef } from './plugin-view'
 import { notifyPostAudience } from './post-notifications'
 import { resolvePostScope } from './post-scope'
@@ -32,10 +34,11 @@ import { getSettings } from './settings'
 export type PreviewScope = 'post' | 'signature'
 
 async function previewHtml(message: string, scope: PreviewScope = 'post'): Promise<string> {
-  const vocabulary = await activeVocabulary()
+  const [vocabulary, translator] = await Promise.all([activeVocabulary(), getTranslator()])
   return renderMarkdown(message, {
     ...vocabularyOptions(vocabulary),
     ...(scope === 'signature' ? { features: SIGNATURE_FEATURES } : {}),
+    quoteAttribution: (author) => translator.t('markdown.quote.attribution', { author }),
   }).html
 }
 
@@ -75,6 +78,7 @@ export async function quotePostAction(threadId: number, postId: number): Promise
     author: quoted.authorUsername,
     markdown: quoted.message,
     sourceHref: postLink(`/thread/${target.threadId}-${target.slug}`, quoted.id),
+    sourceLabel: await tr('markdown.quote.view-post'),
   })
 }
 
@@ -97,7 +101,7 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
     .filter((value): value is string => typeof value === 'string')
   const values = { title, message, prefixId: field(form, 'prefixId') }
 
-  if (forumId === null) return { error: 'That forum does not exist.', values }
+  if (forumId === null) return { error: await tr('notice.app.forum-exist'), values }
 
   if (field(form, 'intent') === 'preview') {
     return { notice: 'preview', values, preview: await previewHtml(message) }
@@ -108,7 +112,7 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
 
   if (threadWrites === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it cannot accept posts.',
+      error: await tr('notice.app.board-running-in-memory-sample-data-6'),
       values,
     }
   }
@@ -120,21 +124,21 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
   let staged: Awaited<ReturnType<typeof stageAttachments>>
   try {
     forum = await threadWrites.postingRules(forumId)
-    if (!forum) throw new ValidationError('That forum does not exist.')
+    if (!forum) throw new ValidationError(msg('error.app.forum-exist'))
 
     const matrix = await authorizer.forumMatrix(actor, forumId)
     const target = { forumId, forum: matrix }
     if (!authorizer.can(actor, 'thread.view', target)) {
-      throw new ValidationError('That forum does not exist.')
+      throw new ValidationError(msg('error.app.forum-exist'))
     }
     authorizer.require(actor, 'thread.post', target)
 
     if (actor.userId === null) {
-      throw new ForbiddenError('You must be logged in to post.')
+      throw new ForbiddenError(msg('error.app.must-logged-post'))
     }
 
     if (field(form, 'intent') === 'save_draft') {
-      if (drafts === null) throw new ValidationError('Drafts are unavailable on this board.')
+      if (drafts === null) throw new ValidationError(msg('error.app.drafts-unavailable-board'))
       await drafts.save(actor.userId, { forumId, threadId: null, title, message, prefixId })
       return { notice: 'saved', values }
     }
@@ -234,7 +238,7 @@ export async function createReplyAction(_prev: FormState, form: FormData): Promi
   const seenLastPostId = positiveIntIn(field(form, 'seenLastPostId'))
   const values = { message, seenLastPostId: field(form, 'seenLastPostId') }
 
-  if (threadId === null) return { error: 'That thread does not exist.', values }
+  if (threadId === null) return { error: await tr('notice.app.thread-exist'), values }
 
   if (field(form, 'intent') === 'preview') {
     return { notice: 'preview', values, preview: await previewHtml(message) }
@@ -251,7 +255,7 @@ export async function createReplyAction(_prev: FormState, form: FormData): Promi
     const userId = actor.userId!
 
     if (field(form, 'intent') === 'save_draft') {
-      if (drafts === null) throw new ValidationError('Drafts are unavailable on this board.')
+      if (drafts === null) throw new ValidationError(msg('error.app.drafts-unavailable-board'))
       await drafts.save(userId, { forumId, threadId, title: '', message, prefixId: null })
       return { notice: 'saved', values }
     }
@@ -282,7 +286,7 @@ async function authorProfile(
   userId: number,
 ): Promise<{ readonly username: string; readonly postCount: number }> {
   const profile = await getContainer().memberProfiles.findPublicById(userId)
-  if (!profile) throw new ForbiddenError('Your account can no longer post.')
+  if (!profile) throw new ForbiddenError(msg('error.app.account-longer-post'))
   return { username: profile.username, postCount: profile.postCount }
 }
 
@@ -305,7 +309,7 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
   const values = { message, reason }
 
   if (threadId === null || postId === null) {
-    return { error: 'That post does not exist.', values }
+    return { error: await tr('notice.app.post-exist'), values }
   }
 
   if (field(form, 'intent') === 'preview') {
@@ -315,7 +319,7 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
   const { postWrites } = getContainer()
   if (postWrites === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it cannot accept edits.',
+      error: await tr('notice.app.board-running-in-memory-sample-data-7'),
       values,
     }
   }
@@ -324,12 +328,12 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
   let scope: Awaited<ReturnType<typeof resolvePostScope>>
   try {
     scope = await resolvePostScope(threadId, postId)
-    if (scope === null) throw new ValidationError('That post does not exist.')
-    if (!scope.mayEdit) throw new ForbiddenError('You cannot edit that post.')
+    if (scope === null) throw new ValidationError(msg('error.app.post-exist'))
+    if (!scope.mayEdit) throw new ForbiddenError(msg('error.app.edit-post'))
 
     const actor = await getActor()
     if (actor.userId === null) {
-      throw new ForbiddenError('You must be logged in to edit a post.')
+      throw new ForbiddenError(msg('error.app.must-logged-edit-post'))
     }
 
     const editor = await postEditor(postWrites)
@@ -376,34 +380,34 @@ async function moveVisibility(form: FormData, to: 'deleted' | 'visible'): Promis
   const threadId = positiveIntIn(field(form, 'threadId'))
   const postId = positiveIntIn(field(form, 'postId'))
   if (threadId === null || postId === null) {
-    return { error: 'That post does not exist.' }
+    return { error: await tr('notice.app.post-exist') }
   }
 
   const { postWrites } = getContainer()
   if (postWrites === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it cannot accept changes.',
+      error: await tr('notice.app.board-running-in-memory-sample-data-8'),
     }
   }
 
   let moved: Awaited<ReturnType<PostEditor['softDelete' | 'restore']>>
   try {
     const scope = await resolvePostScope(threadId, postId)
-    if (scope === null) throw new ValidationError('That post does not exist.')
+    if (scope === null) throw new ValidationError(msg('error.app.post-exist'))
 
     const actor = await getActor()
     if (actor.userId === null) {
-      throw new ForbiddenError('You must be logged in to do that.')
+      throw new ForbiddenError(msg('error.app.must-logged-2'))
     }
 
     const editor = await postEditor(postWrites)
     if (to === 'deleted') {
-      if (!scope.mayDelete) throw new ForbiddenError('You cannot delete that post.')
+      if (!scope.mayDelete) throw new ForbiddenError(msg('error.app.delete-post'))
       moved = await editor.softDelete(actor.userId, scope.target, {
         bypassesLock: scope.bypassesLock,
       })
     } else {
-      if (!scope.mayRestore) throw new ForbiddenError('You cannot restore that post.')
+      if (!scope.mayRestore) throw new ForbiddenError(msg('error.app.restore-post'))
       moved = await editor.restore(actor.userId, scope.target)
     }
   } catch (err) {

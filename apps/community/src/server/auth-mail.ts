@@ -3,6 +3,7 @@ import 'server-only'
 import { VERIFICATION_TTL_HOURS } from '@meith/accounts'
 import { logger } from '@meith/core'
 import { drivers } from '@meith/drivers'
+import type { Translator } from '@meith/i18n'
 
 import { AUTH_CONFIG } from './auth-config'
 import { boardUrl } from './board-url'
@@ -16,10 +17,10 @@ async function boardOrigin(): Promise<string | null> {
   return origin === '' ? null : origin
 }
 
-async function boardIdentity(): Promise<{ name: string; fromName: string }> {
+async function boardIdentity(t: Translator): Promise<{ name: string; fromName: string }> {
   const settings = await getSettings()
   return {
-    name: settings.get('board.name') || 'the forum',
+    name: settings.get('board.name') || t.t('authMail.boardFallback'),
     fromName: settings.get('mail.from_name'),
   }
 }
@@ -33,28 +34,29 @@ export async function sendVerificationEmail(input: {
   readonly token: string
   readonly email: string
   readonly username: string
+  readonly t: Translator
 }): Promise<void> {
-  const { name, fromName } = await boardIdentity()
+  const { name, fromName } = await boardIdentity(input.t)
   const link = await linkTo(VERIFY_PATH, input.token)
 
   const lines = [
-    `Hello ${input.username},`,
+    input.t.t('authMail.greeting', { username: input.username }),
     '',
-    `An account was created for this address on ${name}. It cannot be used until the address is confirmed.`,
+    input.t.t('authMail.verify.intro', { board: name }),
     '',
     link === null
-      ? `Open ${name} and use the "resend confirmation" link on the sign-in page to get a working link.`
-      : `Confirm your address: ${link}`,
+      ? input.t.t('authMail.verify.noLink', { board: name })
+      : input.t.t('authMail.verify.link', { link }),
     '',
-    `The link is valid for ${VERIFICATION_TTL_HOURS} hours and can be used once.`,
+    input.t.t('authMail.linkHours', { hours: VERIFICATION_TTL_HOURS }),
     '',
-    'If you did not create this account, ignore this message. An unconfirmed account cannot be used.',
+    input.t.t('authMail.verify.ignore'),
   ]
 
   try {
     await drivers().mail.send({
       to: input.email,
-      subject: `[${name}] Confirm your account`,
+      subject: `[${name}] ${input.t.t('authMail.verify.subject')}`,
       text: lines.join('\n'),
       ...(fromName === '' ? {} : { fromName }),
     })
@@ -68,28 +70,29 @@ export async function sendPasswordResetEmail(input: {
   readonly token: string
   readonly email: string
   readonly username: string
+  readonly t: Translator
 }): Promise<void> {
-  const { name, fromName } = await boardIdentity()
+  const { name, fromName } = await boardIdentity(input.t)
   const link = await linkTo(RESET_PATH, input.token)
 
   const lines = [
-    `Hello ${input.username},`,
+    input.t.t('authMail.greeting', { username: input.username }),
     '',
-    `Somebody — we hope you — asked to reset the password for your account on ${name}.`,
+    input.t.t('authMail.reset.intro', { board: name }),
     '',
     link === null
-      ? `Open ${name} and use the "forgot your password" form again once the board has its address configured; the link in this message could not be built.`
-      : `Reset your password: ${link}`,
+      ? input.t.t('authMail.reset.noLink', { board: name })
+      : input.t.t('authMail.reset.link', { link }),
     '',
-    `The link is valid for ${AUTH_CONFIG.resetTokenTtlMinutes} minutes and can be used once.`,
+    input.t.t('authMail.linkMinutes', { minutes: AUTH_CONFIG.resetTokenTtlMinutes }),
     '',
-    'If this was not you, ignore this message. Your password has not changed, and nothing happens until the link is used.',
+    input.t.t('authMail.reset.ignore'),
   ]
 
   try {
     await drivers().mail.send({
       to: input.email,
-      subject: `[${name}] Reset your password`,
+      subject: `[${name}] ${input.t.t('authMail.reset.subject')}`,
       text: lines.join('\n'),
       ...(fromName === '' ? {} : { fromName }),
     })

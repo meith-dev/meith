@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import type { BanRecord } from '@meith/accounts'
@@ -30,18 +31,14 @@ export function userAdminRepository(): PostgresUserAdminRepository | null {
 export function requireUserAdmin(): PostgresUserAdminRepository {
   const repository = userAdminRepository()
   if (repository === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so its members cannot be edited.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-2'))
   }
   return repository
 }
 
 export function banService(): BanService {
   if (getContainer().dataSource !== 'postgres') {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so it cannot issue bans.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-3'))
   }
   return new BanService({
     bans: new PostgresBanRepository(getDb()),
@@ -51,9 +48,7 @@ export function banService(): BanService {
 
 export function requireUserMerge(): PostgresUserMergeRepository {
   if (getContainer().dataSource !== 'postgres') {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so its accounts cannot be merged.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-4'))
   }
   return new PostgresUserMergeRepository(getDb())
 }
@@ -134,9 +129,7 @@ export async function buildMemberView(userId: number): Promise<MemberView | null
 
 export function requireUserBulk(): PostgresUserBulkRepository {
   if (getContainer().dataSource !== 'postgres') {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so it has no membership to sweep or mail.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-5'))
   }
   return new PostgresUserBulkRepository(getDb())
 }

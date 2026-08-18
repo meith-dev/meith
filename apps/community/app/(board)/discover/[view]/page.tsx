@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { isAppError } from '@meith/core'
-import { type DiscoveryViewModel, requireSlot } from '@meith/theme-kit'
+import { type DiscoveryViewModel, requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { getActor } from '@/server/context'
 import { DISCOVER_PAGE, DISCOVERY_VIEWS, isDiscoveryView, runDiscovery } from '@/server/discovery'
@@ -54,6 +54,7 @@ export default async function DiscoverPage({
   const now = new Date()
 
   const DiscoveryView = requireSlot(await currentTheme(), 'DiscoveryView')
+  const translator = await getTranslator()
   const themed = async (model: DiscoveryViewModel) =>
     filterView('view.discovery-view', model, viewerRef(actor))
 
@@ -87,6 +88,7 @@ export default async function DiscoverPage({
               refusalMessage: err.message,
             }),
           ))}
+          copy={slotCopy(await currentTheme(), 'DiscoveryView', translator)}
         />
       )
     }
@@ -107,6 +109,7 @@ export default async function DiscoverPage({
                 )}&after=${page.nextCursor.threadId}`,
         }),
       ))}
+      copy={slotCopy(await currentTheme(), 'DiscoveryView', translator)}
     />
   )
 }

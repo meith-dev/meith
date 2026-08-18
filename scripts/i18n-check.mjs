@@ -15,8 +15,11 @@ function fail(message) {
   problems.push(message)
 }
 
+const files = await repoFiles()
 const catalog = JSON.parse(await readFile(join(ROOT, CATALOG), 'utf8'))
 const catalogKeys = Object.keys(catalog)
+const allMessages = { ...catalog }
+const messageKeys = [...catalogKeys]
 const used = new Set()
 
 const sorted = [...catalogKeys].sort()
@@ -25,6 +28,16 @@ if (catalogKeys.join('\n') !== sorted.join('\n')) {
     `${CATALOG} is not in key order. A catalog is edited by hand in every language it ` +
       'is translated into, and an unordered one makes every diff a search. Sort it.',
   )
+}
+
+for (const { abs, rel } of files) {
+  if (!/^(?:themes|plugins)\/[^/]+\/src\/messages\/en\.json$/.test(rel)) continue
+
+  const extra = JSON.parse(await readFile(abs, 'utf8'))
+  const keys = Object.keys(extra)
+  if (keys.join('\n') !== [...keys].sort().join('\n')) fail(`${rel} is not in key order. Sort it.`)
+  Object.assign(allMessages, extra)
+  messageKeys.push(...keys)
 }
 
 function literal(expression) {
@@ -142,12 +155,11 @@ if (messages === null || keys === null) {
   }
 }
 
-const files = await repoFiles()
 const source = files.filter(
   ({ rel }) => /\.(ts|tsx)$/.test(rel) && !/\.(test|type-test)\.tsx?$/.test(rel),
 )
 
-const CALL = /\.\s*(?:t|has)\(\s*'([\w.-]+)'/g
+const CALL = /(?:\.\s*(?:t|has)|\bmsg)\(\s*'([\w.-]+)'/g
 const CARRIED = /\b(?:title|blurb|label|description|message|publicMessage)Key:\s*'([\w.-]+)'/g
 const KEY_SHAPE = /^[a-z][\w-]*(?:\.[\w-]+)+$/
 
@@ -156,7 +168,7 @@ for (const { abs, rel } of source) {
 
   for (const match of text.matchAll(new RegExp(STRING, 'g'))) {
     const key = match[0].slice(1, -1)
-    if (catalog[key] !== undefined) used.add(key)
+    if (allMessages[key] !== undefined) used.add(key)
   }
 
   for (const match of [...text.matchAll(CALL), ...text.matchAll(CARRIED)]) {
@@ -164,19 +176,19 @@ for (const { abs, rel } of source) {
     if (!KEY_SHAPE.test(key)) continue
 
     used.add(key)
-    if (catalog[key] === undefined) {
+    if (allMessages[key] === undefined) {
       fail(
-        `${rel} reads the message "${key}" and ${CATALOG} does not carry it. ` +
+        `${rel} reads the message "${key}" and no English catalog carries it. ` +
           'A missing message renders as its own key, in every language including English.',
       )
     }
   }
 }
 
-const orphans = catalogKeys.filter((key) => !used.has(key))
+const orphans = messageKeys.filter((key) => !used.has(key))
 if (orphans.length > 0) {
   fail(
-    `${CATALOG} carries ${orphans.length} message(s) nothing reads: ${orphans.join(', ')}. ` +
+    `English catalogs carry ${orphans.length} message(s) nothing reads: ${orphans.join(', ')}. ` +
       'Translators are asked to translate every one of them, so a message that has ' +
       'outlived its call site costs real work in every language. Delete it.',
   )
@@ -208,10 +220,37 @@ function proseLiterals(text, rel) {
   return found
 }
 
+const FONT_STACK_QUOTED = /^"[^"]*"$|^'[^']*'$/
+const FONT_STACK_TOKEN = /^-?[A-Za-z][\w-]*$/
+const FONT_STACK_GENERIC =
+  /^(?:serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded)$/
+
+function isFontStack(value) {
+  const segments = value.split(',').map((segment) => segment.trim())
+  if (segments.length < 2) return false
+  if (
+    !segments.every((segment) => FONT_STACK_QUOTED.test(segment) || FONT_STACK_TOKEN.test(segment))
+  )
+    return false
+  return segments.some(
+    (segment) => FONT_STACK_QUOTED.test(segment) || FONT_STACK_GENERIC.test(segment),
+  )
+}
+
+const CSS_MEDIA_FEATURE = /^\([a-z-]+:\s*[\w-]+\)$/i
+
 function isProse(value) {
   if (!/[A-Za-z]{2}.*\s.*[A-Za-z]/.test(value)) return false
   if (value.startsWith('/') || value.startsWith('http') || value.includes('${')) return false
-  if (/^[a-z][\w-]*(?:\s+[a-z:[\]][\w:./[\]-]*)+$/.test(value)) return false
+  if (value.includes('var(--') || /^[\d.]+px[\s,]/.test(value)) return false
+  if (CSS_MEDIA_FEATURE.test(value.trim())) return false
+  if (isFontStack(value)) return false
+  if (/^\s*-?[a-z@][\w:./@[\]-]*(?:\s+[a-z:[\]&@-][\w:./%[\](),&@-]*)+$/.test(value)) return false
+  if (
+    /^[MmLlHhVvCcSsQqTtAaZz][\d.eE-]/.test(value) &&
+    /^[\d.\s,eEMmLlHhVvCcSsQqTtAaZz-]+$/.test(value)
+  )
+    return false
   if (/^[A-Z_]+(?:\s+[A-Z_]+)*$/.test(value)) return false
   return true
 }
@@ -263,6 +302,6 @@ if (problems.length > 0) {
 }
 
 console.log(
-  `✓ message catalog: ${catalogKeys.length} messages, every mirrored definition agrees, ` +
+  `✓ message catalog: ${messageKeys.length} messages, every mirrored definition agrees, ` +
     'every key a call site names exists, and no file gained untranslated copy',
 )

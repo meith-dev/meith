@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { EN_CATALOG, sourceTranslator, type Translator } from '@meith/i18n'
 
 import {
   NOTIFICATION_KINDS,
@@ -98,6 +99,7 @@ export class NotificationService {
   async list(
     userId: number,
     options: { readonly after?: string; readonly offset?: number } = {},
+    t: Translator = sourceTranslator(EN_CATALOG),
   ): Promise<{ rows: readonly NotificationView[]; nextCursor?: string }> {
     const page = await this.repository.listFor(userId, {
       limit: NOTIFICATIONS_PAGE_SIZE,
@@ -106,7 +108,7 @@ export class NotificationService {
     })
 
     return {
-      rows: page.rows.map(renderNotification),
+      rows: page.rows.map((row) => renderNotification(row, t)),
       ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
     }
   }

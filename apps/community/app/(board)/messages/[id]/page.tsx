@@ -7,12 +7,14 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { activeVocabulary } from '@/server/content-admin'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { messageService } from '@/server/messages'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildMessageView, folderHref } from '@/view/messages'
 
-export const metadata: Metadata = { title: 'Private message' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.private-message') }
+}
 
 export default async function MessagePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -29,13 +31,15 @@ export default async function MessagePage({ params }: { params: Promise<{ id: st
   const detail = await service.open({ messageId, userId: actor.userId }).catch(() => null)
   if (detail === null) notFound()
 
-  const _preferences = await getViewerPreferences()
+  const [_preferences, translator] = await Promise.all([getViewerPreferences(), getTranslator()])
   const view = buildMessageView({
     detail,
-    bodyHtml: postBodyHtml(detail.message, await activeVocabulary()),
+    bodyHtml: postBodyHtml(detail.message, await activeVocabulary(), {
+      quoteAttribution: (author) => translator.t('markdown.quote.attribution', { author }),
+    }),
     viewerUserId: actor.userId,
     now: new Date(),
-    t: await getTranslator(),
+    t: translator,
   })
 
   return (
@@ -76,14 +80,14 @@ export default async function MessagePage({ params }: { params: Promise<{ id: st
         ))}
         {view.reportHref !== null && (
           <a href={view.reportHref} className="text-sm text-muted-foreground hover:text-foreground">
-            Report this message
+            {await tr('page.report-this-message')}
           </a>
         )}
       </div>
 
       {view.tracking.length > 0 && (
         <section className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
-          <h2 className="text-sm font-medium">Who has read it</h2>
+          <h2 className="text-sm font-medium">{await tr('page.who-has-read-it')}</h2>
           <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
             {view.tracking.map((participant) => (
               <li key={participant.username}>

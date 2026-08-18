@@ -1,4 +1,5 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 export type WarningAction = 'suspend_posting' | 'moderate_posting' | 'ban'
 
@@ -177,19 +178,19 @@ export class WarningService {
     readonly postId?: number | null
     readonly mayWarn: boolean
   }): Promise<IssuedWarning> {
-    if (!input.mayWarn) throw new ValidationError('You cannot warn members.')
+    if (!input.mayWarn) throw new ValidationError(msg('error.moderation.warn-members'))
 
     if (input.userId === input.actorUserId) {
-      throw new ValidationError('You cannot warn yourself.')
+      throw new ValidationError(msg('error.moderation.warn-yourself'))
     }
 
     const target = await this.warnings.findWarnable(input.userId)
-    if (target === null) throw new ValidationError('That member does not exist.')
+    if (target === null) throw new ValidationError(msg('error.moderation.member-exist'))
 
     const reason = input.reason.trim()
-    if (reason.length === 0) throw new ValidationError('Say what the warning is for.')
+    if (reason.length === 0) throw new ValidationError(msg('error.moderation.say-what-warning-for'))
     if (reason.length > REASON_MAX) {
-      throw new ValidationError(`A reason may be at most ${REASON_MAX} characters.`)
+      throw new ValidationError(msg('error.moderation.reason-length', { max: REASON_MAX }))
     }
 
     const { title, points, expiryDays } = await this.resolveSubject(input)
@@ -240,11 +241,11 @@ export class WarningService {
     readonly reason: string
     readonly mayWarn: boolean
   }): Promise<WarningStanding | null> {
-    if (!input.mayWarn) throw new ValidationError('You cannot revoke warnings.')
+    if (!input.mayWarn) throw new ValidationError(msg('error.moderation.revoke-warnings'))
 
     const reason = input.reason.trim()
     if (reason.length > REASON_MAX) {
-      throw new ValidationError(`A reason may be at most ${REASON_MAX} characters.`)
+      throw new ValidationError(msg('error.moderation.reason-length', { max: REASON_MAX }))
     }
 
     const at = this.now()
@@ -287,19 +288,19 @@ export class WarningService {
   }): Promise<{ title: string; points: number; expiryDays: number | null }> {
     if (input.typeId !== null) {
       const type = await this.warnings.findType(input.typeId)
-      if (type === null) throw new ValidationError('That warning type does not exist.')
+      if (type === null) throw new ValidationError(msg('error.moderation.warning-type-exist'))
       return { title: type.title, points: type.points, expiryDays: type.expiryDays }
     }
 
     const title = (input.title ?? '').trim()
-    if (title.length === 0) throw new ValidationError('A warning needs a title.')
+    if (title.length === 0) throw new ValidationError(msg('error.moderation.warning-needs-title'))
     if (title.length > TITLE_MAX) {
-      throw new ValidationError(`A title may be at most ${TITLE_MAX} characters.`)
+      throw new ValidationError(msg('error.moderation.warning-title-length', { max: TITLE_MAX }))
     }
 
     const points = input.points ?? 0
     if (!Number.isSafeInteger(points) || points < 1 || points > POINTS_MAX) {
-      throw new ValidationError(`Points must be between 1 and ${POINTS_MAX}.`)
+      throw new ValidationError(msg('error.moderation.points-range', { max: POINTS_MAX }))
     }
     return { title, points, expiryDays: null }
   }

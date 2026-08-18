@@ -8,8 +8,17 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { assignReportAction, closeReportAction, fileReportAction } from '@/server/report-actions'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import { type Copy, fromCopy } from '../shell/copy'
 
-export function ReportForm({ kind, targetId }: { kind: string; targetId: number }) {
+export function ReportForm({
+  kind,
+  targetId,
+  copy,
+}: {
+  kind: string
+  targetId: number
+  copy: Copy
+}) {
   const [state, action] = useActionState(fileReportAction, EMPTY_STATE)
 
   return (
@@ -22,8 +31,8 @@ export function ReportForm({ kind, targetId }: { kind: string; targetId: number 
 
           <Field
             name="reason"
-            label="What is wrong with it?"
-            description="Say what a moderator should look at. The member you are reporting never sees this."
+            label={fromCopy(copy, 'moderationForm.report.label')}
+            description={fromCopy(copy, 'moderationForm.report.hint')}
           >
             {(control) => (
               <Textarea {...control} required defaultValue={state.values?.reason ?? ''} />
@@ -31,7 +40,9 @@ export function ReportForm({ kind, targetId }: { kind: string; targetId: number 
           </Field>
 
           <div>
-            <SubmitButton className="w-full sm:w-auto sm:px-8">Send report</SubmitButton>
+            <SubmitButton className="w-full sm:w-auto sm:px-8">
+              {fromCopy(copy, 'moderationForm.report.submit')}
+            </SubmitButton>
           </div>
         </form>
       </CardContent>
@@ -39,7 +50,15 @@ export function ReportForm({ kind, targetId }: { kind: string; targetId: number 
   )
 }
 
-export function AssignReportForm({ reportId, mine }: { reportId: number; mine: boolean }) {
+export function AssignReportForm({
+  reportId,
+  mine,
+  copy,
+}: {
+  reportId: number
+  mine: boolean
+  copy: Copy
+}) {
   const [state, action] = useActionState(assignReportAction, EMPTY_STATE)
 
   return (
@@ -51,13 +70,15 @@ export function AssignReportForm({ reportId, mine }: { reportId: number; mine: b
         type="submit"
         className="text-xs font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        {mine ? 'Put back' : 'Take this'}
+        {mine
+          ? fromCopy(copy, 'moderationForm.report.putBack')
+          : fromCopy(copy, 'moderationForm.report.take')}
       </button>
     </form>
   )
 }
 
-export function CloseReportForm({ reportId }: { reportId: number }) {
+export function CloseReportForm({ reportId, copy }: { reportId: number; copy: Copy }) {
   const [state, action] = useActionState(closeReportAction, EMPTY_STATE)
 
   return (
@@ -66,7 +87,7 @@ export function CloseReportForm({ reportId }: { reportId: number }) {
       <input type="hidden" name="reportId" value={reportId} />
       <label className="flex flex-col gap-1 text-xs">
         <span className="font-medium text-muted-foreground">
-          Note for moderators (optional, never shown to the reporter)
+          {fromCopy(copy, 'moderationForm.report.note')}
         </span>
         <input
           type="text"
@@ -83,7 +104,7 @@ export function CloseReportForm({ reportId }: { reportId: number }) {
           value="resolved"
           className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          Resolve
+          {fromCopy(copy, 'moderationForm.report.resolve')}
         </button>
         <button
           type="submit"
@@ -91,7 +112,7 @@ export function CloseReportForm({ reportId }: { reportId: number }) {
           value="rejected"
           className="inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          Dismiss
+          {fromCopy(copy, 'moderationForm.report.dismiss')}
         </button>
       </div>
     </form>

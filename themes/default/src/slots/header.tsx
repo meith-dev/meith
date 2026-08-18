@@ -1,4 +1,5 @@
-import type { HeaderModel } from '@meith/theme-kit'
+import type { HeaderModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { LINK, PAGE } from '../shared'
 
@@ -24,7 +25,16 @@ function BoardMark({ boardTitle, logo }: Pick<HeaderModel, 'boardTitle' | 'logo'
   )
 }
 
-export function Header({ boardTitle, homeHref, navigation, logo, children }: HeaderModel) {
+export function Header({
+  boardTitle,
+  homeHref,
+  navigation,
+  logo,
+  children,
+  copy,
+}: HeaderModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.header.${key}`)
+
   return (
     <header className="border-b border-border bg-card">
       <div className={`${PAGE} flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-3`}>
@@ -38,7 +48,7 @@ export function Header({ boardTitle, homeHref, navigation, logo, children }: Hea
       </div>
 
       {navigation.length > 0 && (
-        <nav aria-label="Board sections" className="border-t border-border bg-surface">
+        <nav aria-label={c('sections')} className="border-t border-border bg-surface">
           <div className={PAGE}>
             <ul className="-mx-4 flex items-stretch gap-1 overflow-x-auto px-4 text-sm [mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)] sm:-mx-6 sm:px-6 sm:[mask-image:none]">
               {navigation.map((item) => (

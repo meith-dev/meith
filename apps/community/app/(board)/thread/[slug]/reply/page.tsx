@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 import { quotePrefill } from '@meith/threads'
 
 import { MultiQuoteSelection } from '@/components/content/multiquote-selection'
@@ -9,13 +9,16 @@ import { ReplyForm } from '@/components/content/reply-form'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
+import { replyFormCopy } from '@/view/content-copy'
 import { buildReplyView } from '@/view/post-form'
 import { postLink } from '@/view/post-link'
 import { leadingId } from '@/view/slug-id'
 
-export const metadata: Metadata = { title: 'Reply' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.reply') }
+}
 
 function quotedPostId(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d*$/.test(value)) return null
@@ -61,6 +64,7 @@ export default async function ReplyPage({
         authorUsername: quoted.authorUsername,
         message: quoted.message,
         sourceHref: postLink(`/thread/${target.threadId}-${target.slug}`, quoted.id),
+        sourceLabel: await tr('markdown.quote.view-post'),
       })
     }
   }
@@ -68,20 +72,24 @@ export default async function ReplyPage({
   const view = buildReplyView({
     t: await getTranslator(),
     thread: { id: target.threadId, title: target.title, slug: target.slug },
-    errorMessage: locked ? 'This thread is locked.' : null,
+    errorMessage: locked ? (await getTranslator()).t('board.reply.locked') : null,
   })
 
-  const PostForm = requireSlot(await currentTheme(), 'PostForm')
+  const theme = await currentTheme()
+  const PostForm = requireSlot(theme, 'PostForm')
+  const translator = await getTranslator()
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       <PostForm
         {...view}
+        copy={slotCopy(theme, 'PostForm', translator)}
         regions={{
           form: locked ? null : (
             <>
               <MultiQuoteSelection threadId={target.threadId} insertOnMount />
               <ReplyForm
+                copy={replyFormCopy(await getTranslator())}
                 threadId={target.threadId}
                 seenLastPostId={target.lastPostId}
                 prefill={prefill}

@@ -29,12 +29,12 @@ export function isValidMinorAmount(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 }
 
-export function formatMinor(amountMinor: number, currency: string): string {
+export function formatMinor(amountMinor: number, currency: string, locale = 'en'): string {
   const upper = currency.toUpperCase()
   const amount = isZeroDecimal(currency) ? amountMinor : amountMinor / 100
 
   try {
-    return new Intl.NumberFormat('en', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: upper,
       minimumFractionDigits: isZeroDecimal(currency) ? 0 : 2,

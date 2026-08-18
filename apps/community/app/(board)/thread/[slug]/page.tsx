@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { FollowForm } from '@/components/account/subscription-forms'
 import { MultiQuoteButton } from '@/components/content/multiquote-button'
@@ -33,8 +33,10 @@ import { getSettings } from '@/server/settings'
 import { signaturesFor } from '@/server/signatures'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { followFormCopy } from '@/view/account-copy'
 import { attachmentsByPost } from '@/view/attachments'
 import { buildBreadcrumb } from '@/view/breadcrumb'
+import { replyFormCopy, threadRatingCopy } from '@/view/content-copy'
 import {
   anyInlineTool,
   INLINE_FORM_ID,
@@ -42,6 +44,7 @@ import {
   selectionFor,
 } from '@/view/inline-moderation'
 import { cardDescription, jsonLdScript, pageLinks, threadJsonLd } from '@/view/metadata'
+import { moderationFormsCopy } from '@/view/moderation-copy'
 import { buildOffsetPager, offsetOf } from '@/view/pager'
 import { locatedHref } from '@/view/post-link'
 import { leadingId } from '@/view/slug-id'
@@ -56,17 +59,18 @@ export async function generateMetadata({
   searchParams: Promise<{ page?: string }>
 }): Promise<Metadata> {
   const [{ slug }, query] = await Promise.all([params, searchParams])
+  const t = await getTranslator()
   const id = leadingId(slug)
-  if (id === null) return { title: 'Thread' }
+  if (id === null) return { title: t.t('threadPage.defaultTitle') }
 
   const actor = await getActor()
   const { forums, threads, authorizer } = getContainer()
 
   const located = await threads.locate(id)
-  if (located === null) return { title: 'Thread' }
+  if (located === null) return { title: t.t('threadPage.defaultTitle') }
 
   const forum = await forums.findById(located.forumId)
-  if (!forum || !canHoldThreads(forum.type)) return { title: 'Thread' }
+  if (!forum || !canHoldThreads(forum.type)) return { title: t.t('threadPage.defaultTitle') }
 
   const matrix = await authorizer.forumMatrix(actor, forum.id)
   const target = await authorizer.moderatorTargetIn(actor, forum.id, matrix)
@@ -76,7 +80,7 @@ export async function generateMetadata({
       threadAuthorId: located.authorUserId,
     })
   ) {
-    return { title: 'Thread' }
+    return { title: t.t('threadPage.defaultTitle') }
   }
 
   const thread = await threads.findById(
@@ -84,7 +88,7 @@ export async function generateMetadata({
     authorizer.contentScope(actor, target),
     authorizer.authorFilter(actor, target),
   )
-  if (!thread) return { title: 'Thread' }
+  if (!thread) return { title: t.t('threadPage.defaultTitle') }
 
   const page = Number(query.page ?? '1')
   const links = pageLinks({
@@ -93,7 +97,7 @@ export async function generateMetadata({
     hasNext: false,
   })
 
-  const description = `A discussion in ${forum.title}.`
+  const description = t.t('threadPage.discussion', { forum: forum.title })
 
   return {
     title: thread.title,
@@ -115,16 +119,16 @@ export async function generateMetadata({
   }
 }
 
-const TOOL_NOTICE: Readonly<Record<string, string>> = {
-  lock: 'Thread locked.',
-  unlock: 'Thread unlocked.',
-  stick: 'Thread pinned.',
-  unstick: 'Thread unpinned.',
-  move: 'Thread moved.',
-  copy: 'Thread copied. You are looking at the copy.',
-  restore: 'Thread restored.',
-  split: 'Thread split. You are looking at the new one.',
-  merge: 'Threads merged. You are looking at the one that survived.',
+const TOOL_NOTICE_KEYS: Readonly<Record<string, string>> = {
+  copy: 'threadPage.notice.copied',
+  lock: 'threadPage.notice.locked',
+  merge: 'threadPage.notice.merged',
+  move: 'threadPage.notice.moved',
+  restore: 'threadPage.notice.restored',
+  split: 'threadPage.notice.split',
+  stick: 'threadPage.notice.pinned',
+  unlock: 'threadPage.notice.unlocked',
+  unstick: 'threadPage.notice.unpinned',
 }
 
 function afterId(value: string | undefined): number | null | undefined {
@@ -376,24 +380,29 @@ export default async function ThreadPage({
     now: new Date(),
   }).modes
 
-  const ThreadView = requireSlot(await currentTheme(), 'ThreadView')
-  const Navigation = requireSlot(await currentTheme(), 'Navigation')
-  const Notice = requireSlot(await currentTheme(), 'Notice')
-  const PostBit = requireSlot(await currentTheme(), 'PostBit')
-  const PostActions = requireSlot(await currentTheme(), 'PostActions')
-  const Pagination = requireSlot(await currentTheme(), 'Pagination')
+  const theme = await currentTheme()
+  const ThreadView = requireSlot(theme, 'ThreadView')
+  const Navigation = requireSlot(theme, 'Navigation')
+  const Notice = requireSlot(theme, 'Notice')
+  const PostBit = requireSlot(theme, 'PostBit')
+  const PostActions = requireSlot(theme, 'PostActions')
+  const Pagination = requireSlot(theme, 'Pagination')
+  const translator = await getTranslator()
+  const toolNotice = query.tool === undefined ? undefined : TOOL_NOTICE_KEYS[query.tool]
 
   const notice =
     query.replied === 'race'
-      ? 'Somebody else replied while you were writing. Your reply was posted below theirs.'
+      ? translator.t('threadPage.notice.race')
       : query.posted === 'moderated'
-        ? 'Your post is waiting for a moderator to approve it.'
+        ? translator.t('threadPage.notice.moderated')
         : query.tool !== undefined
-          ? (TOOL_NOTICE[query.tool] ?? null)
+          ? toolNotice === undefined
+            ? null
+            : translator.t(toolNotice)
           : query.removed === 'post'
-            ? 'That post has been deleted.'
+            ? translator.t('threadPage.notice.deleted')
             : query.unchanged === 'post'
-              ? 'Nothing changed — that post was already in this state.'
+              ? translator.t('threadPage.notice.unchanged')
               : inlineOutcomeNotice(query)
 
   const opening = postPage.rows.find((row) => row.isFirstPost) ?? null
@@ -410,7 +419,7 @@ export default async function ThreadPage({
           forumTitle: forum.title,
           description: cardDescription(
             opening.message,
-            `A discussion in ${forum.title}.`,
+            translator.t('threadPage.discussion', { forum: forum.title }),
             wordFilter,
           ),
         })
@@ -432,10 +441,15 @@ export default async function ThreadPage({
         'view.post-bit',
         {
           post,
-          select: selectionFor('post', post.id, `post #${post.number}`, inlineOffered),
+          select: selectionFor(
+            'post',
+            post.id,
+            translator.t('threadPage.postNumber', { number: post.number }),
+            inlineOffered,
+          ),
           regions: {
             actions: (
-              <PostActions {...actions}>
+              <PostActions {...actions} copy={slotCopy(theme, 'PostActions', translator)}>
                 {thanksOffered &&
                 post.author.userId !== null &&
                 post.author.userId !== actor.userId &&
@@ -494,6 +508,7 @@ export default async function ThreadPage({
       <QuoteInPlace threadId={thread.id} />
       <MultiQuoteSelection threadId={thread.id} />
       <ReplyForm
+        copy={replyFormCopy(await getTranslator())}
         threadId={thread.id}
         seenLastPostId={thread.lastPost?.postId ?? null}
         prefill=""
@@ -521,6 +536,7 @@ export default async function ThreadPage({
       <>
         {anyTool && (
           <ThreadToolsForm
+            copy={moderationFormsCopy(await getTranslator())}
             threadId={thread.id}
             isLocked={thread.isLocked}
             isSticky={thread.isSticky}
@@ -529,6 +545,7 @@ export default async function ThreadPage({
             heading={threadToolsHeading(appointment.isForumModerator, await getTranslator())}
           >
             <ThreadSurgeryForm
+              copy={moderationFormsCopy(await getTranslator())}
               threadId={thread.id}
               rights={surgeryRights}
               splitPoints={splitPoints}
@@ -544,7 +561,12 @@ export default async function ThreadPage({
     !showRating && !followOffered ? undefined : (
       <>
         {showRating && (
-          <ThreadRatingForm threadId={thread.id} rating={rating} canRate={canRateThread} />
+          <ThreadRatingForm
+            threadId={thread.id}
+            rating={rating}
+            canRate={canRateThread}
+            copy={threadRatingCopy(rating, await getTranslator())}
+          />
         )}
         {followOffered && (
           <FollowForm
@@ -553,7 +575,8 @@ export default async function ThreadPage({
             mode={followMode}
             modes={followModes}
             back={`/thread/${thread.id}-${thread.slug}`}
-            label="Follow this thread"
+            label={(await getTranslator()).t('accountForm.follow.thread')}
+            copy={followFormCopy(await getTranslator())}
           />
         )}
       </>
@@ -565,8 +588,10 @@ export default async function ThreadPage({
       ...view.view,
       regions: {
         ...(tools === undefined ? {} : { tools }),
-        posts: postModels.map((model) => <PostBit key={model.post.id} {...model} />),
-        pagination: <Pagination {...pagination} />,
+        posts: postModels.map((model) => (
+          <PostBit key={model.post.id} {...model} copy={slotCopy(theme, 'PostBit', translator)} />
+        )),
+        pagination: <Pagination {...pagination} copy={slotCopy(theme, 'Pagination', translator)} />,
         ...(afterContent === undefined ? {} : { afterContent }),
         quickReply,
       },
@@ -588,7 +613,7 @@ export default async function ThreadPage({
 
   return (
     <>
-      <Navigation items={trail} />
+      <Navigation items={trail} copy={slotCopy(theme, 'Navigation', translator)} />
       <main id="board-content" tabIndex={-1} className="flex-1">
         {jsonLd !== null && (
           <script
@@ -603,12 +628,14 @@ export default async function ThreadPage({
               kind="info"
               message={notice}
               dismissHref={`/thread/${thread.id}-${thread.slug}`}
+              copy={slotCopy(theme, 'Notice', translator)}
             />
           </div>
         )}
-        <ThreadView {...threadViewModel} />
+        <ThreadView {...threadViewModel} copy={slotCopy(theme, 'ThreadView', translator)} />
         {inlineOffered && (
           <InlineModerationForm
+            copy={moderationFormsCopy(await getTranslator())}
             formId={INLINE_FORM_ID}
             scope="posts"
             rights={inlineRights}

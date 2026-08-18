@@ -1,4 +1,5 @@
-import type { PostActionsSlotModel } from '@meith/theme-kit'
+import type { PostActionsSlotModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 interface Action {
   readonly href: string
@@ -9,24 +10,30 @@ const ACTION =
   'inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-semibold ' +
   'text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'
 
-export function PostActions({ actions, children }: PostActionsSlotModel) {
+export function PostActions({
+  actions,
+  children,
+  copy,
+}: PostActionsSlotModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.postActions.${key}`)
+
   const reader: Action[] = [
-    actions.quoteHref === null ? null : { href: actions.quoteHref, label: 'Quote' },
-    actions.editHref === null ? null : { href: actions.editHref, label: 'Edit' },
-    actions.rateHref === null ? null : { href: actions.rateHref, label: 'Rate' },
-    actions.reportHref === null ? null : { href: actions.reportHref, label: 'Report' },
+    actions.quoteHref === null ? null : { href: actions.quoteHref, label: c('quote') },
+    actions.editHref === null ? null : { href: actions.editHref, label: c('edit') },
+    actions.rateHref === null ? null : { href: actions.rateHref, label: c('rate') },
+    actions.reportHref === null ? null : { href: actions.reportHref, label: c('report') },
   ].filter((action): action is Action => action !== null)
 
   const staff: Action[] = [
-    actions.restoreHref === null ? null : { href: actions.restoreHref, label: 'Restore' },
-    actions.warnHref === null ? null : { href: actions.warnHref, label: 'Warn' },
-    actions.moderateHref === null ? null : { href: actions.moderateHref, label: 'Moderate' },
+    actions.restoreHref === null ? null : { href: actions.restoreHref, label: c('restore') },
+    actions.warnHref === null ? null : { href: actions.warnHref, label: c('warn') },
+    actions.moderateHref === null ? null : { href: actions.moderateHref, label: c('moderate') },
   ].filter((action): action is Action => action !== null)
 
   if (reader.length === 0 && staff.length === 0 && children === undefined) return null
 
   return (
-    <nav aria-label="Post actions" className="flex flex-wrap items-center gap-1">
+    <nav aria-label={c('ariaLabel')} className="flex flex-wrap items-center gap-1">
       {reader.map((action) => (
         <a key={action.href} href={action.href} className={ACTION}>
           {action.label}

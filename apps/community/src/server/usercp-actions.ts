@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { MemberSettingsService } from '@meith/accounts'
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { drivers } from '@meith/drivers'
+import { msg } from '@meith/i18n'
 import { prepareSignature } from '@meith/signatures'
 
 import { adminService } from './admin'
@@ -18,6 +19,7 @@ import { getActor } from './context'
 import { assertDemoAccountChangeable } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
+import { getTranslator, tr } from './i18n'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
 import { setSessionCookie } from './session-cookies'
 import { signatureStore, viewerSignatureLimits } from './signatures'
@@ -30,13 +32,11 @@ async function requireOwnSettings(): Promise<{
   userId: number
 }> {
   const actor = await getActor()
-  if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+  if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
   const { memberSettings, accountStore } = getContainer()
   if (memberSettings === null || accountStore === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so it has no settings to save.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-9'))
   }
 
   return {
@@ -109,7 +109,7 @@ export async function changePasswordAction(_prev: FormState, form: FormData): Pr
 
     const next = text(form, 'newPassword')
     if (next !== text(form, 'confirmPassword')) {
-      return { error: 'The two new passwords do not match.' }
+      return { error: await tr('notice.app.two-new-passwords-match') }
     }
 
     await service.changePassword({
@@ -155,7 +155,7 @@ export async function requestEmailChangeAction(
     return toFormState(err)
   }
 
-  await sendEmailChangeConfirmation(pending).catch(() => undefined)
+  await sendEmailChangeConfirmation({ ...pending, t: await getTranslator() }).catch(() => undefined)
   await recordAuthEvent({ userId: pending.userId, kind: 'email_change_requested' })
 
   redirect('/usercp/security?sent=1')
@@ -166,13 +166,11 @@ export async function saveSignatureAction(_prev: FormState, form: FormData): Pro
 
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const store = signatureStore()
     if (store === null) {
-      throw new ForbiddenError(
-        'This board is running on in-memory sample data, so it has no signatures to save.',
-      )
+      throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-10'))
     }
 
     const limits = await viewerSignatureLimits()
@@ -186,9 +184,7 @@ export async function saveSignatureAction(_prev: FormState, form: FormData): Pro
     })
 
     if (!wrote) {
-      throw new ForbiddenError(
-        'Your signature has been locked by a moderator, so it cannot be changed.',
-      )
+      throw new ForbiddenError(msg('error.app.signature-locked-by-moderator-so'))
     }
   } catch (err) {
     return toFormState(err)
@@ -204,7 +200,7 @@ export async function saveAvatarAction(_prev: FormState, form: FormData): Promis
 
     const file = form.get(AVATAR_FIELD)
     if (!(file instanceof File) || file.size === 0) {
-      throw new ValidationError('Choose an image first.')
+      throw new ValidationError(msg('error.app.choose-image-first'))
     }
 
     const limited = await spendLimit({ scope: 'upload', actor })

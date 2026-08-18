@@ -1,21 +1,38 @@
 import type { ReactNode } from 'react'
 
+import type { Translator } from '@meith/i18n'
+
 import { isSlotName, SLOT_NAMES, SLOTS, type SlotName } from './slots'
 import type { SlotModels } from './view-models'
 
 export type SlotComponent<K extends SlotName> = (typeof SLOTS)[K]['kind'] extends 'client'
-  ? (props: SlotModels[K]) => ReactNode
-  : (props: SlotModels[K]) => ReactNode | Promise<ReactNode>
+  ? (props: SlotModels[K] & { readonly copy: SlotCopy }) => ReactNode
+  : (props: SlotModels[K] & { readonly copy: SlotCopy }) => ReactNode | Promise<ReactNode>
 
 export type SlotImplementations = { readonly [K in SlotName]: SlotComponent<K> }
 
 export type PartialSlotImplementations = { readonly [K in SlotName]?: SlotComponent<K> }
+
+/**
+ * A slot's copy: the theme's own words for a region, resolved server-side so
+ * the slot itself never needs a translator or a locale — the same bargain a
+ * CountModel makes for a number. A theme registers one of these per slot
+ * alongside its component; the key names are the theme's own, not shared
+ * with any other theme, so two themes registered on the same board never
+ * collide.
+ */
+export type SlotCopy = Readonly<Record<string, string>>
+
+export type SlotCopyBuilder = (t: Translator) => SlotCopy
+
+export type PartialSlotCopyBuilders = { readonly [K in SlotName]?: SlotCopyBuilder }
 
 export interface ThemeDefinition {
   readonly key: string
   readonly title: string
   readonly extends?: ThemeDefinition | undefined
   readonly slots: PartialSlotImplementations
+  readonly copy?: PartialSlotCopyBuilders | undefined
 }
 
 export interface ResolvedTheme {
@@ -23,6 +40,7 @@ export interface ResolvedTheme {
   readonly title: string
   readonly chain: readonly string[]
   readonly slots: PartialSlotImplementations
+  readonly copy: PartialSlotCopyBuilders
   readonly missing: readonly SlotName[]
 }
 
@@ -72,6 +90,22 @@ export function defineTheme(theme: ThemeDefinition): ThemeDefinition {
     }
   }
 
+  for (const [name, builder] of Object.entries(theme.copy ?? {})) {
+    if (!isSlotName(name)) {
+      throw new Error(
+        `defineTheme: theme "${theme.key}" carries copy for unknown slot "${name}". ` +
+          `Known slots: ${SLOT_NAMES.join(', ')}`,
+      )
+    }
+    if (builder !== undefined && typeof builder !== 'function') {
+      throw new Error(
+        `defineTheme: theme "${theme.key}" copy for slot "${name}" is not a function. ` +
+          'Pass a (t: Translator) => SlotCopy, not the resolved record itself — ' +
+          'the words differ by viewer, so they cannot be resolved until then.',
+      )
+    }
+  }
+
   assertAcyclic(theme)
   return theme
 }
@@ -103,6 +137,7 @@ function assertAcyclic(theme: ThemeDefinition): void {
 
 export function resolveTheme(theme: ThemeDefinition): ResolvedTheme {
   const slots: Record<string, unknown> = {}
+  const copy: Record<string, unknown> = {}
   const chain: string[] = []
 
   let current: ThemeDefinition | undefined = theme
@@ -111,6 +146,10 @@ export function resolveTheme(theme: ThemeDefinition): ResolvedTheme {
     for (const [name, component] of Object.entries(current.slots)) {
       if (component === undefined) continue
       if (!Object.hasOwn(slots, name)) slots[name] = component
+    }
+    for (const [name, builder] of Object.entries(current.copy ?? {})) {
+      if (builder === undefined) continue
+      if (!Object.hasOwn(copy, name)) copy[name] = builder
     }
     current = current.extends
   }
@@ -122,6 +161,7 @@ export function resolveTheme(theme: ThemeDefinition): ResolvedTheme {
     title: theme.title,
     chain,
     slots: slots as PartialSlotImplementations,
+    copy: copy as PartialSlotCopyBuilders,
     missing,
   }
 }
@@ -140,6 +180,26 @@ export function requireSlot<K extends SlotName>(theme: ResolvedTheme, name: K): 
 
 export function hasSlot(theme: ResolvedTheme, name: SlotName): boolean {
   return theme.slots[name] !== undefined
+}
+
+/**
+ * The theme's own words for a slot, resolved for this viewer. A theme that
+ * fills the slot but never registered copy for it (nothing to say beyond
+ * the view model) gets an empty record — `fromSlotCopy` falls back to the
+ * key, same as everywhere else a copy record is read.
+ */
+export function slotCopy(theme: ResolvedTheme, name: SlotName, t: Translator): SlotCopy {
+  const builder = theme.copy[name]
+  return builder === undefined ? {} : builder(t)
+}
+
+/**
+ * Reads one word from a slot's copy. A missing key renders as itself — the
+ * same fallback every copy record in the app uses — so a theme's builder
+ * lagging its own markup is visible in the page rather than a blank space.
+ */
+export function fromSlotCopy(copy: SlotCopy, key: string): string {
+  return copy[key] ?? key
 }
 
 export function assertComplete(theme: ResolvedTheme): SlotImplementations {

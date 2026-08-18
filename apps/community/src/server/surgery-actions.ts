@@ -3,12 +3,14 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { parseSelection, type SurgeryRights, ThreadSurgery } from '@meith/moderation'
 
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
+import { tr } from './i18n'
 
 function positiveInt(form: FormData, name: string): number | null {
   const value = form.get(name)
@@ -26,8 +28,8 @@ export async function splitThreadAction(_prev: FormState, form: FormData): Promi
   const fromPostId = positiveInt(form, 'fromPostId')
   const title = typeof form.get('title') === 'string' ? (form.get('title') as string) : ''
 
-  if (threadId === null) return { error: 'That thread does not exist.' }
-  if (fromPostId === null) return { error: 'Choose the post to split from.' }
+  if (threadId === null) return { error: await tr('notice.app.thread-exist') }
+  if (fromPostId === null) return { error: await tr('notice.app.choose-post-split-from') }
 
   const { threadSurgery } = getContainer()
   if (threadSurgery === null) return { error: NO_STORE }
@@ -35,7 +37,7 @@ export async function splitThreadAction(_prev: FormState, form: FormData): Promi
   let outcome: Awaited<ReturnType<ThreadSurgery['split']>>
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const forumId = await visibleForumOf(threadId)
 
@@ -56,7 +58,7 @@ export async function splitThreadAction(_prev: FormState, form: FormData): Promi
 export async function splitSelectedAction(_prev: FormState, form: FormData): Promise<FormState> {
   const threadId = positiveInt(form, 'threadId')
   const title = typeof form.get('title') === 'string' ? (form.get('title') as string) : ''
-  if (threadId === null) return { error: 'That thread does not exist.' }
+  if (threadId === null) return { error: await tr('notice.app.thread-exist') }
 
   const { threadSurgery } = getContainer()
   if (threadSurgery === null) return { error: NO_STORE }
@@ -70,7 +72,7 @@ export async function splitSelectedAction(_prev: FormState, form: FormData): Pro
   let outcome: Awaited<ReturnType<ThreadSurgery['splitPosts']>>
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const forumId = await visibleForumOf(threadId)
 
@@ -93,9 +95,9 @@ export async function mergeThreadAction(_prev: FormState, form: FormData): Promi
   const sourceThreadId = positiveInt(form, 'threadId')
   const targetThreadId = positiveInt(form, 'targetThreadId')
 
-  if (sourceThreadId === null) return { error: 'That thread does not exist.' }
+  if (sourceThreadId === null) return { error: await tr('notice.app.thread-exist') }
   if (targetThreadId === null) {
-    return { error: 'Enter the number of the thread to merge into.' }
+    return { error: await tr('notice.app.enter-number-thread-merge-into') }
   }
 
   const { threadSurgery } = getContainer()
@@ -104,7 +106,7 @@ export async function mergeThreadAction(_prev: FormState, form: FormData): Promi
   let outcome: Awaited<ReturnType<ThreadSurgery['merge']>>
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const [sourceForumId, targetForumId] = await Promise.all([
       visibleForumOf(sourceThreadId),
@@ -130,11 +132,11 @@ async function visibleForumOf(threadId: number): Promise<number> {
   const actor = await getActor()
 
   const forumId = (await threads.locate(threadId))?.forumId ?? null
-  if (forumId === null) throw new ValidationError('That thread does not exist.')
+  if (forumId === null) throw new ValidationError(msg('error.app.thread-exist'))
 
   const forum = await authorizer.forumMatrix(actor, forumId)
   if (!authorizer.can(actor, 'thread.view', { forumId, forum })) {
-    throw new ValidationError('That thread does not exist.')
+    throw new ValidationError(msg('error.app.thread-exist'))
   }
   return forumId
 }

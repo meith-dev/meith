@@ -34,13 +34,13 @@ export function locationOf(
 ): { label: string; href: string | null } {
   if (row.threadId !== null && row.threadTitle !== null) {
     return {
-      label: `Reading ${row.threadTitle}`,
+      label: t.t('presence.reading', { title: row.threadTitle }),
       href: `/thread/${row.threadId}-${row.threadSlug ?? ''}`,
     }
   }
 
   if (row.forumId !== null && row.forumTitle !== null) {
-    return { label: `Viewing ${row.forumTitle}`, href: `/${row.forumId}` }
+    return { label: t.t('presence.viewing', { title: row.forumTitle }), href: `/${row.forumId}` }
   }
 
   return { label: t.t('presence.somewhere'), href: null }

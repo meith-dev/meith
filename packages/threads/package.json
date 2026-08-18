@@ -7,6 +7,7 @@
   "types": "./src/index.ts",
   "dependencies": {
     "@meith/core": "workspace:*",
+    "@meith/i18n": "workspace:*",
     "@meith/markdown": "workspace:*",
     "@meith/polls": "workspace:*"
   }

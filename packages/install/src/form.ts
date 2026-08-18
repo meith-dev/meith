@@ -27,23 +27,27 @@ const mailFields = {
 }
 
 const installInputObject = z.object({
-  boardName: z.string().trim().min(1, 'Give the board a name.').max(100, 'That name is too long.'),
+  boardName: z
+    .string()
+    .trim()
+    .min(1, 'install.validation.boardNameRequired')
+    .max(100, 'install.validation.nameTooLong'),
   username: z
     .string()
     .trim()
-    .min(3, 'The administrator’s name must be at least 3 characters.')
-    .max(30, 'That name is too long.'),
-  email: z.string().trim().email('That does not look like an e-mail address.'),
+    .min(3, 'install.validation.usernameMin')
+    .max(30, 'install.validation.nameTooLong'),
+  email: z.string().trim().email('install.validation.email'),
   boardUrl: z
     .string()
     .trim()
-    .min(1, 'The board needs to know its own address.')
-    .refine(isUsableOrigin, 'Give the absolute address, with no path — https://forum.example.')
+    .min(1, 'install.validation.boardUrlRequired')
+    .refine(isUsableOrigin, 'install.validation.boardUrl')
     .transform(normaliseOrigin),
   password: z
     .string()
-    .min(12, 'The administrator’s password must be at least 12 characters.')
-    .max(200, 'That password is too long.'),
+    .min(12, 'install.validation.passwordMin')
+    .max(200, 'install.validation.passwordTooLong'),
   ...mailFields,
 })
 
@@ -55,7 +59,7 @@ export const installInputSchema = installInputObject.superRefine((value, ctx) =>
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['mailPreset'],
-      message: 'Choose one of the listed options.',
+      message: 'install.validation.mailPreset',
     })
     return
   }
@@ -64,13 +68,13 @@ export const installInputSchema = installInputObject.superRefine((value, ctx) =>
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['mailFrom'],
-      message: 'Mail needs an address to come from.',
+      message: 'install.validation.mailFromRequired',
     })
   } else if (!z.string().email().safeParse(value.mailFrom).success) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['mailFrom'],
-      message: 'That does not look like an e-mail address.',
+      message: 'install.validation.email',
     })
   }
 
@@ -80,20 +84,20 @@ export const installInputSchema = installInputObject.superRefine((value, ctx) =>
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['mailEndpoint'],
-        message: 'This provider needs an API endpoint.',
+        message: 'install.validation.mailEndpointRequired',
       })
     } else if (!z.string().url().safeParse(endpoint).success) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['mailEndpoint'],
-        message: 'That is not a URL.',
+        message: 'install.validation.url',
       })
     }
     if (value.mailSecret === '') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['mailSecret'],
-        message: 'This provider needs an API key.',
+        message: 'install.validation.mailSecretRequired',
       })
     }
     return
@@ -103,7 +107,7 @@ export const installInputSchema = installInputObject.superRefine((value, ctx) =>
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['mailHost'],
-      message: 'Give the SMTP server’s hostname.',
+      message: 'install.validation.mailHostRequired',
     })
   }
 
@@ -113,7 +117,7 @@ export const installInputSchema = installInputObject.superRefine((value, ctx) =>
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['mailPort'],
-        message: 'A port is a whole number between 1 and 65535.',
+        message: 'install.validation.mailPort',
       })
     }
   }
@@ -123,14 +127,14 @@ export const installInputSchema = installInputObject.superRefine((value, ctx) =>
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['mailSecret'],
-      message: 'This server is being given a username, so it needs a password too.',
+      message: 'install.validation.mailPasswordRequired',
     })
   }
   if (username === '' && value.mailSecret !== '') {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['mailUsername'],
-      message: 'A password was given with no username.',
+      message: 'install.validation.mailUsernameRequired',
     })
   }
 })
@@ -223,7 +227,7 @@ export function parseInstallInput(
   if (parsed.success) {
     const problems = mailConfigProblems(mailConfigFromInstallInput(parsed.data))
     if (problems.length > 0) {
-      return { ok: false, errors: { mailPreset: problems.join(' ') } }
+      return { ok: false, errors: { mailPreset: 'install.validation.mailConfiguration' } }
     }
     return { ok: true, value: parsed.data }
   }

@@ -13,11 +13,12 @@ import {
   mailConfigFromInstallInput,
   parseInstallInput,
   type StepOutcome,
-  stepTitle,
+  stepTitleKey,
   withEnvironmentAnswers,
 } from '@meith/install'
 import { mailConfigFromEnvironment } from '@meith/settings'
 
+import { getTranslator } from './i18n'
 import { gatherPreflight, installerIsSealed, runInstall } from './install'
 import { sendTestMail } from './mail-test'
 
@@ -50,12 +51,13 @@ export async function installAction(
   }
 
   const parsed = parseInstallInput(submitted)
-  if (!parsed.ok) return { errors: parsed.errors, values }
+  const t = await getTranslator()
+  if (!parsed.ok) return { errors: translatedErrors(parsed.errors, t), values }
 
   if (!canProceed(await gatherPreflight())) {
     return {
       errors: {
-        form: 'The board is not ready to install. Reload this page for the current checks.',
+        form: t.t('installAction.notReady'),
       },
       values,
     }
@@ -66,14 +68,16 @@ export async function installAction(
       config: mailConfigFromInstallInput(parsed.value),
       to: parsed.value.email,
       boardName: parsed.value.boardName,
+      t,
     })
 
     if (!test.ok) {
       return {
         errors: {
-          mailPreset:
-            `A test message to ${parsed.value.email} could not be sent, so nothing has ` +
-            `been installed. The provider said: ${test.error ?? 'nothing at all.'}`,
+          mailPreset: t.t('installAction.mailFailed', {
+            email: parsed.value.email,
+            error: test.error ?? t.t('installAction.noProviderResponse'),
+          }),
         },
         values,
       }
@@ -87,14 +91,23 @@ export async function installAction(
     return {
       failedStep: {
         id: failure.id,
-        title: stepTitle(failure.id),
-        error: failure.error ?? 'Unknown failure.',
+        title: t.t(stepTitleKey(failure.id)),
+        error: failure.error ?? t.t('installAction.unknownFailure'),
       },
-      errors: fieldErrorsFromReport(report),
+      errors: translatedErrors(fieldErrorsFromReport(report), t),
       report,
       values,
     }
   }
 
   redirect('/login?installed=1')
+}
+
+function translatedErrors(
+  errors: Record<string, string>,
+  t: Awaited<ReturnType<typeof getTranslator>>,
+) {
+  return Object.fromEntries(
+    Object.entries(errors).map(([field, error]) => [field, t.has(error) ? t.t(error) : error]),
+  )
 }

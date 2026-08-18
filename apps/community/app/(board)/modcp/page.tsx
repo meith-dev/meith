@@ -11,12 +11,14 @@ import {
 } from '@/components/shell/panel-overview'
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { modCpCounts, moderatedForumRights, resolveModCpAccess } from '@/server/modcp'
 import { modCpSections } from '@/view/modcp-nav'
 import { panelSectionCopy } from '@/view/panel-nav'
 
-export const metadata: Metadata = { title: 'Moderator control panel' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.moderator-control-panel') }
+}
 
 export default async function ModCpPage() {
   const access = await resolveModCpAccess()
@@ -30,51 +32,49 @@ export default async function ModCpPage() {
     new ModeratorPanel({ modcp }).dashboard({ forums }),
     modCpCounts(),
   ])
+  const translator = await getTranslator()
 
   const waiting: readonly WaitingItem[] = [
     {
       count: counts.pending,
-      one: 'post held for approval',
-      many: 'posts held for approval',
+      one: translator.t('board.modcp.pending', { count: 1 }),
+      many: translator.t('board.modcp.pending', { count: 2 }),
       href: '/moderation',
-      action: 'Review',
+      action: translator.t('board.modcp.review'),
     },
     {
       count: counts.openReports,
-      one: 'open report',
-      many: 'open reports',
+      one: translator.t('board.modcp.report', { count: 1 }),
+      many: translator.t('board.modcp.report', { count: 2 }),
       href: '/moderation/reports',
-      action: 'Open',
+      action: translator.t('board.modcp.open'),
     },
   ]
 
   return (
     <PanelPage
-      title="Moderator control panel"
-      lede="The forums you are responsible for, and what they need from you."
+      title={await tr('page.moderator-control-panel')}
+      lede={await tr('page.forums-responsible-for-what-they')}
       gap="loose"
     >
-      <PanelSection id="waiting-heading" title="Waiting for you">
+      <PanelSection id="waiting-heading" title={await tr('page.waiting-for')}>
         <PanelWaitingList
           items={waiting}
-          emptyTitle="Nothing is waiting"
-          emptyDescription="No posts held for approval and no open reports in the forums you moderate."
+          emptyTitle={translator.t('board.modcp.nothingWaiting')}
+          emptyDescription={translator.t('board.modcp.nothingWaitingHint')}
         />
       </PanelSection>
 
       <PanelSection
         id="forums-heading"
-        title="Your forums"
-        description="Busiest first. What you may do in each is on My forums."
+        title={await tr('page.forums-2')}
+        description={translator.t('board.modcp.forumsHint')}
       >
         <Card>
           {dashboard.length === 0 ? (
             <Empty className="py-8">
-              <EmptyTitle>No forum appointments</EmptyTitle>
-              <EmptyDescription>
-                You hold moderator permissions but are not assigned to any forum. Your group
-                permissions still apply wherever they grant something.
-              </EmptyDescription>
+              <EmptyTitle>{await tr('page.no-forum-appointments')}</EmptyTitle>
+              <EmptyDescription>{translator.t('board.modcp.noAppointmentsHint')}</EmptyDescription>
             </Empty>
           ) : (
             <CardRows>
@@ -91,11 +91,10 @@ export default async function ModCpPage() {
                   </a>
                   <span className="flex gap-3 text-xs text-muted-foreground">
                     <a href="/moderation" className="hover:text-foreground">
-                      <span className="tabular-nums">{forum.pending}</span> waiting
+                      {translator.t('board.modcp.waiting', { count: forum.pending })}
                     </a>
                     <a href="/moderation/reports" className="hover:text-foreground">
-                      <span className="tabular-nums">{forum.openReports}</span> open{' '}
-                      {forum.openReports === 1 ? 'report' : 'reports'}
+                      {translator.t('board.modcp.openReports', { count: forum.openReports })}
                     </a>
                   </span>
                 </li>
@@ -105,10 +104,8 @@ export default async function ModCpPage() {
         </Card>
       </PanelSection>
 
-      <PanelSection id="sections-heading" title="Sections">
-        <PanelSectionGrid
-          sections={panelSectionCopy(modCpSections(access), await getTranslator())}
-        />
+      <PanelSection id="sections-heading" title={await tr('page.sections')}>
+        <PanelSectionGrid sections={panelSectionCopy(modCpSections(access), translator)} />
       </PanelSection>
     </PanelPage>
   )

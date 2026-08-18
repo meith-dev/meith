@@ -15,6 +15,7 @@ import {
 import { FormError } from '../auth/form-controls'
 import { MarkdownEditor } from '../content/markdown-editor'
 import { CustomField, type CustomFieldInput } from '../profile/custom-field'
+import { type Copy, fromCopy } from '../shell/copy'
 
 export type { CustomFieldInput }
 
@@ -31,11 +32,13 @@ export function ProfileForm({
   website,
   bio,
   customFields = [],
+  copy,
 }: {
   location: string
   website: string
   bio: string
   customFields?: readonly CustomFieldInput[]
+  copy: Copy
 }) {
   const [state, action] = useActionState(saveProfileAction, EMPTY_STATE)
 
@@ -44,12 +47,12 @@ export function ProfileForm({
       <FormError message={state.error} />
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Location</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.profile.location')}</span>
         <input name="location" defaultValue={location} className={FIELD} maxLength={100} />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Website</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.profile.website')}</span>
         <input
           name="website"
           defaultValue={website}
@@ -60,10 +63,10 @@ export function ProfileForm({
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">About me</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.profile.bio')}</span>
         <textarea name="bio" defaultValue={bio} className={FIELD} rows={5} maxLength={1000} />
         <span className="text-xs text-muted-foreground">
-          Plain text. Formatting is not applied here.
+          {fromCopy(copy, 'accountForm.profile.bioHint')}
         </span>
       </label>
 
@@ -73,7 +76,7 @@ export function ProfileForm({
 
       <div>
         <button type="submit" className={BUTTON}>
-          Save profile
+          {fromCopy(copy, 'accountForm.profile.submit')}
         </button>
       </div>
     </form>
@@ -83,19 +86,23 @@ export function ProfileForm({
 export function DisplayGroupForm({
   choices,
   selected,
+  copy,
 }: {
   choices: readonly { value: string; label: string }[]
   selected: string
+  copy: Copy
 }) {
   const [state, action] = useActionState(saveDisplayGroupAction, EMPTY_STATE)
 
   return (
     <form action={action} className={CARD}>
-      <h2 className="text-lg font-semibold tracking-tight">Display group</h2>
+      <h2 className="text-lg font-semibold tracking-tight">
+        {fromCopy(copy, 'accountForm.displayGroup.title')}
+      </h2>
       <FormError message={state.error} />
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Shown under your name</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.displayGroup.label')}</span>
         <select name="displayGroupId" defaultValue={selected} className={FIELD}>
           {choices.map((choice) => (
             <option key={choice.value} value={choice.value}>
@@ -104,15 +111,13 @@ export function DisplayGroupForm({
           ))}
         </select>
         <span className="text-xs text-muted-foreground">
-          Every group you are in is here, and the one you pick decides the title, colour and badge
-          beside your posts. A group you hold only until a date drops off this list when it lapses,
-          and your name goes back to your main group.
+          {fromCopy(copy, 'accountForm.displayGroup.hint')}
         </span>
       </label>
 
       <div>
         <button type="submit" className={BUTTON}>
-          Save display group
+          {fromCopy(copy, 'accountForm.displayGroup.submit')}
         </button>
       </div>
     </form>
@@ -126,9 +131,8 @@ export function OptionsForm({
   locales,
   postsPerPage,
   threadsPerPage,
-  boardPostsPerPage,
-  boardThreadsPerPage,
   invisible,
+  copy,
 }: {
   timezone: string
   timezones: readonly { value: string; label: string }[]
@@ -136,9 +140,8 @@ export function OptionsForm({
   locales: readonly { value: string; label: string }[]
   postsPerPage: string
   threadsPerPage: string
-  boardPostsPerPage: number
-  boardThreadsPerPage: number
   invisible: boolean
+  copy: Copy
 }) {
   const [state, action] = useActionState(saveOptionsAction, EMPTY_STATE)
 
@@ -147,7 +150,7 @@ export function OptionsForm({
       <FormError message={state.error} />
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Timezone</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.options.timezone')}</span>
         <select name="timezone" defaultValue={timezone} className={FIELD}>
           {timezones.map((zone) => (
             <option key={zone.value} value={zone.value}>
@@ -156,13 +159,12 @@ export function OptionsForm({
           ))}
         </select>
         <span className="text-xs text-muted-foreground">
-          Every date and time on the board is shown in this zone, and the footer says which one it
-          is. Left automatic, it follows the device you are reading on.
+          {fromCopy(copy, 'accountForm.options.timezoneHint')}
         </span>
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Language</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.options.locale')}</span>
         <select name="locale" defaultValue={locale} className={FIELD}>
           {locales.map((choice) => (
             <option key={choice.value} value={choice.value}>
@@ -171,68 +173,67 @@ export function OptionsForm({
           ))}
         </select>
         <span className="text-xs text-muted-foreground">
-          The language the board writes to you in, and the one dates and numbers are formatted by.
-          Left automatic, it follows whichever language your browser asks for.
+          {fromCopy(copy, 'accountForm.options.localeHint')}
         </span>
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Posts per page</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.options.postsPerPage')}</span>
         <input
           name="postsPerPage"
           defaultValue={postsPerPage}
           className={FIELD}
           inputMode="numeric"
-          placeholder={`Board default (${boardPostsPerPage})`}
+          placeholder={fromCopy(copy, 'accountForm.options.postsPerPage.placeholder')}
         />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Threads per page</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.options.threadsPerPage')}</span>
         <input
           name="threadsPerPage"
           defaultValue={threadsPerPage}
           className={FIELD}
           inputMode="numeric"
-          placeholder={`Board default (${boardThreadsPerPage})`}
+          placeholder={fromCopy(copy, 'accountForm.options.threadsPerPage.placeholder')}
         />
       </label>
 
       <p className="text-xs text-muted-foreground">
-        Leave a page size empty to follow the board’s setting, so it keeps up when an administrator
-        changes it.
+        {fromCopy(copy, 'accountForm.options.pageSizeHint')}
       </p>
 
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="invisible" defaultChecked={invisible} className="mt-1" />
         <span className="flex flex-col gap-1">
-          <span className="font-medium">Browse invisibly</span>
+          <span className="font-medium">{fromCopy(copy, 'accountForm.options.invisible')}</span>
           <span className="text-xs text-muted-foreground">
-            You will not appear in the online list, and you will not be counted in it either. Your
-            posts are unaffected, and moderators can still see that you are here.
+            {fromCopy(copy, 'accountForm.options.invisibleHint')}
           </span>
         </span>
       </label>
 
       <div>
         <button type="submit" className={BUTTON}>
-          Save options
+          {fromCopy(copy, 'accountForm.options.submit')}
         </button>
       </div>
     </form>
   )
 }
 
-export function PasswordForm({ minLength }: { minLength: number }) {
+export function PasswordForm({ minLength, copy }: { minLength: number; copy: Copy }) {
   const [state, action] = useActionState(changePasswordAction, EMPTY_STATE)
 
   return (
     <form action={action} className={CARD}>
-      <h2 className="text-lg font-semibold tracking-tight">Change your password</h2>
+      <h2 className="text-lg font-semibold tracking-tight">
+        {fromCopy(copy, 'accountForm.password.title')}
+      </h2>
       <FormError message={state.error} />
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Current password</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.password.current')}</span>
         <input
           type="password"
           name="currentPassword"
@@ -243,7 +244,7 @@ export function PasswordForm({ minLength }: { minLength: number }) {
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">New password</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.password.new')}</span>
         <input
           type="password"
           name="newPassword"
@@ -255,7 +256,7 @@ export function PasswordForm({ minLength }: { minLength: number }) {
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">New password again</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.password.confirm')}</span>
         <input
           type="password"
           name="confirmPassword"
@@ -266,33 +267,35 @@ export function PasswordForm({ minLength }: { minLength: number }) {
         />
       </label>
 
-      <p className="text-xs text-muted-foreground">
-        You will stay signed in here. Every other device is signed out.
-      </p>
+      <p className="text-xs text-muted-foreground">{fromCopy(copy, 'accountForm.password.note')}</p>
 
       <div>
         <button type="submit" className={BUTTON}>
-          Change password
+          {fromCopy(copy, 'accountForm.password.submit')}
         </button>
       </div>
     </form>
   )
 }
 
-export function EmailForm({ email }: { email: string }) {
+export function EmailForm({ email, copy }: { email: string; copy: Copy }) {
   const [state, action] = useActionState(requestEmailChangeAction, EMPTY_STATE)
 
   return (
     <form action={action} className={CARD}>
-      <h2 className="text-lg font-semibold tracking-tight">Change your e-mail address</h2>
+      <h2 className="text-lg font-semibold tracking-tight">
+        {fromCopy(copy, 'accountForm.email.title')}
+      </h2>
       <FormError message={state.error} />
 
       <p className="text-sm text-muted-foreground">
-        Currently <span className="font-medium text-foreground">{email}</span>.
+        {copy['accountForm.email.currentLead']}
+        <span className="font-medium text-foreground">{email}</span>
+        {copy['accountForm.email.currentTail']}
       </p>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Current password</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.password.current')}</span>
         <input
           type="password"
           name="currentPassword"
@@ -303,17 +306,15 @@ export function EmailForm({ email }: { email: string }) {
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">New e-mail address</span>
+        <span className="font-medium">{fromCopy(copy, 'accountForm.email.new')}</span>
         <input type="email" name="newEmail" className={FIELD} autoComplete="email" required />
       </label>
 
-      <p className="text-xs text-muted-foreground">
-        Nothing changes until you follow the link we send to the new address.
-      </p>
+      <p className="text-xs text-muted-foreground">{fromCopy(copy, 'accountForm.email.note')}</p>
 
       <div>
         <button type="submit" className={BUTTON}>
-          Send confirmation
+          {fromCopy(copy, 'accountForm.email.submit')}
         </button>
       </div>
     </form>
@@ -325,24 +326,30 @@ export function SignatureForm({
   maxLength,
   locked,
   lockedReason,
+  copy,
 }: {
   signature: string
   maxLength: number
   locked: boolean
   lockedReason: string | null
+  copy: Copy
 }) {
   const [state, action] = useActionState(saveSignatureAction, EMPTY_STATE)
 
   if (locked) {
     return (
       <div className={CARD}>
-        <h2 className="text-lg font-semibold tracking-tight">Your signature is locked</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {fromCopy(copy, 'accountForm.signature.lockedTitle')}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          A moderator has stopped your signature from being shown or changed.
+          {fromCopy(copy, 'accountForm.signature.lockedBody')}
           {lockedReason === null ? null : (
             <>
               {' '}
-              Reason given: <span className="text-foreground">{lockedReason}</span>
+              {copy['accountForm.locked.reasonLead']}
+              <span className="text-foreground">{lockedReason}</span>
+              {copy['accountForm.locked.reasonTail']}
             </>
           )}
         </p>
@@ -363,16 +370,16 @@ export function SignatureForm({
         id="signature-body"
         name="signature"
         scope="signature"
-        label="Signature"
+        label={fromCopy(copy, 'accountForm.signature.label')}
         rows={4}
         maxLength={maxLength}
         defaultValue={signature}
-        hint={`Up to ${maxLength} characters. Bold, italic, strikethrough, code and links are allowed; headings, quotes, lists, tables and images are not — a signature repeats under every post you have ever made, and anything that changes its height changes every thread page.`}
+        hint={fromCopy(copy, 'accountForm.signature.hint')}
       />
 
       <div>
         <button type="submit" className={BUTTON}>
-          Save signature
+          {fromCopy(copy, 'accountForm.signature.submit')}
         </button>
       </div>
     </form>

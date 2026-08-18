@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { REPORTS_PAGE_SIZE, ReportService } from '@meith/moderation'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { AssignReportForm, CloseReportForm } from '@/components/moderation/report-forms'
@@ -10,15 +10,18 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { messageService } from '@/server/messages'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { currentTheme } from '@/server/theme'
+import { moderationFormsCopy } from '@/view/moderation-copy'
 import { offsetOf, readPage } from '@/view/pager'
 import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Reports' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.reports') }
+}
 
 export default async function ReportsPage({
   searchParams,
@@ -44,28 +47,34 @@ export default async function ReportsPage({
 
   const now = new Date()
   const translator = await getTranslator()
-  const Notice = requireSlot(await currentTheme(), 'Notice')
+  const theme = await currentTheme()
+  const Notice = requireSlot(theme, 'Notice')
   const notice =
     query.closed === 'resolved'
-      ? 'Report resolved.'
+      ? translator.t('board.reports.resolved')
       : query.closed === 'rejected'
-        ? 'Report dismissed.'
+        ? translator.t('board.reports.dismissed')
         : null
 
   return (
     <PanelPage
-      title="Reports"
-      lede={open === 1 ? '1 report still open.' : `${open} reports still open.`}
+      title={await tr('page.reports')}
+      lede={translator.t('board.reports.open', { count: open })}
     >
-      {notice !== null && <Notice kind="info" message={notice} dismissHref="/moderation/reports" />}
+      {notice !== null && (
+        <Notice
+          kind="info"
+          message={notice}
+          dismissHref="/moderation/reports"
+          copy={slotCopy(theme, 'Notice', translator)}
+        />
+      )}
 
       {page.rows.length === 0 && (
         <Card>
           <Empty className="py-8">
-            <EmptyTitle>Nothing outstanding</EmptyTitle>
-            <EmptyDescription>
-              Every report in the forums you moderate has been resolved or dismissed.
-            </EmptyDescription>
+            <EmptyTitle>{await tr('page.nothing-outstanding')}</EmptyTitle>
+            <EmptyDescription>{await tr('page.every-report-forums-moderate-has')}</EmptyDescription>
           </Empty>
         </Card>
       )}
@@ -91,7 +100,9 @@ export default async function ReportsPage({
               >
                 <div className="flex flex-wrap items-baseline gap-2 text-sm">
                   <span className="font-medium capitalize">
-                    {report.kind === 'private_message' ? 'Private message' : report.kind}
+                    {report.kind === 'private_message'
+                      ? translator.t('board.reports.privateMessage')
+                      : report.kind}
                   </span>
                   {href === null ? (
                     <span className="font-medium">{report.targetLabel}</span>
@@ -104,8 +115,11 @@ export default async function ReportsPage({
                     </a>
                   )}
                   <span className="text-xs text-muted-foreground">
-                    reported by {report.reporterUsername ?? 'a deleted account'} ·{' '}
-                    <time dateTime={posted.iso}>{posted.label}</time>
+                    {translator.t('board.reports.reportedBy', {
+                      username:
+                        report.reporterUsername ?? translator.t('board.reports.deletedAccount'),
+                    })}{' '}
+                    · <time dateTime={posted.iso}>{posted.label}</time>
                   </span>
                 </div>
 
@@ -117,16 +131,16 @@ export default async function ReportsPage({
                   <div className="mt-2 rounded-md border border-border bg-muted/50 p-3">
                     <p className="text-xs font-medium text-muted-foreground">
                       {message === undefined
-                        ? 'The reported message'
-                        : `The reported message, from ${
-                            message.authorUsername === ''
-                              ? 'a deleted member'
-                              : message.authorUsername
-                          }`}
+                        ? translator.t('board.reports.message')
+                        : translator.t('board.reports.messageFrom', {
+                            username:
+                              message.authorUsername === ''
+                                ? translator.t('board.reports.deletedMember')
+                                : message.authorUsername,
+                          })}
                     </p>
                     <p className="mt-1 whitespace-pre-wrap break-words text-sm">
-                      {message?.message ??
-                        'This message has since been deleted by everybody who held it.'}
+                      {message?.message ?? translator.t('board.reports.messageDeleted')}
                     </p>
                   </div>
                 )}
@@ -134,16 +148,19 @@ export default async function ReportsPage({
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                   <span>
                     {report.assignedToUsername === null
-                      ? 'Unassigned'
-                      : `Assigned to ${report.assignedToUsername}`}
+                      ? translator.t('board.reports.unassigned')
+                      : translator.t('board.reports.assignedTo', {
+                          username: report.assignedToUsername,
+                        })}
                   </span>
                   <AssignReportForm
+                    copy={moderationFormsCopy(translator)}
                     reportId={report.id}
                     mine={report.assignedToUserId === actor.userId}
                   />
                 </div>
 
-                <CloseReportForm reportId={report.id} />
+                <CloseReportForm reportId={report.id} copy={moderationFormsCopy(translator)} />
               </li>
             )
           })}

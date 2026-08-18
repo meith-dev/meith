@@ -5,7 +5,7 @@ import { ValidationError } from '@meith/core'
 import {
   type IpMatch,
   MOD_LOG_ACTIONS,
-  MOD_LOG_LABELS,
+  MOD_LOG_LABEL_KEYS,
   MODCP_PAGE_SIZE,
   type ModCpRepository,
   ModeratorPanel,
@@ -188,7 +188,7 @@ describe('the address lookup', () => {
 
 describe('the log allow-list', () => {
   it('names every action it shows, and shows nothing it has not named', () => {
-    expect(MOD_LOG_ACTIONS).toEqual(Object.keys(MOD_LOG_LABELS))
+    expect(MOD_LOG_ACTIONS).toEqual(Object.keys(MOD_LOG_LABEL_KEYS))
     expect(MOD_LOG_ACTIONS).not.toContain('settings.update')
     expect(MOD_LOG_ACTIONS).not.toContain('permission.bypass')
     expect(MOD_LOG_ACTIONS).not.toContain('user.promote')
@@ -197,10 +197,10 @@ describe('the log allow-list', () => {
   })
 
   it('reads a flag being cleared as clearing it, not as setting it', () => {
-    expect(MOD_LOG_LABELS['thread.unlock']).toBe('Unlocked a thread')
-    expect(MOD_LOG_LABELS['thread.unstick']).toBe('Unpinned a thread')
-    expect(MOD_LOG_LABELS['thread.unlock']).not.toBe(MOD_LOG_LABELS['thread.lock'])
-    expect(MOD_LOG_LABELS['thread.unstick']).not.toBe(MOD_LOG_LABELS['thread.stick'])
+    expect(MOD_LOG_LABEL_KEYS['thread.unlock']).toBe('board.modlog.thread.unlock')
+    expect(MOD_LOG_LABEL_KEYS['thread.unstick']).toBe('board.modlog.thread.unstick')
+    expect(MOD_LOG_LABEL_KEYS['thread.unlock']).not.toBe(MOD_LOG_LABEL_KEYS['thread.lock'])
+    expect(MOD_LOG_LABEL_KEYS['thread.unstick']).not.toBe(MOD_LOG_LABEL_KEYS['thread.stick'])
   })
 
   it('covers every moderation action Phase 4 writes', () => {
@@ -238,7 +238,7 @@ describe('the log allow-list', () => {
       ['signature.lock', 'signature.unlock'],
       ['avatar.lock', 'avatar.unlock'],
     ]) {
-      expect(MOD_LOG_LABELS[set!]).not.toBe(MOD_LOG_LABELS[cleared!])
+      expect(MOD_LOG_LABEL_KEYS[set!]).not.toBe(MOD_LOG_LABEL_KEYS[cleared!])
     }
   })
 })

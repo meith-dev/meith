@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EN_CATALOG } from '@meith/i18n'
 import { MIN_TERM_LENGTH } from '@meith/search'
 import { SettingsSnapshot } from '@meith/settings'
 
@@ -14,8 +15,7 @@ vi.mock('@meith/db', () => ({
   PostgresSearchRepository: class {},
 }))
 
-const { SEARCH_OFF_MESSAGE, requireSearchEnabled, searchEnabled, searchMinWordLength } =
-  await import('./search')
+const { requireSearchEnabled, searchEnabled, searchMinWordLength } = await import('./search')
 
 beforeEach(() => {
   overrides.current = new Map()
@@ -53,7 +53,7 @@ describe('requireSearchEnabled', () => {
 
     await expect(requireSearchEnabled()).rejects.toMatchObject({
       code: 'FORBIDDEN',
-      message: SEARCH_OFF_MESSAGE,
+      message: EN_CATALOG['board.search.disabled'],
     })
   })
 })

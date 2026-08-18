@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from 'react'
 
+import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
+
 const KEY = 'multiquote'
 
 export interface MultiQuoteState {
@@ -49,25 +51,25 @@ function publish(ids: readonly number[], notice: string): void {
   for (const listener of listeners) listener()
 }
 
-function counted(count: number): string {
-  if (count === 0) return 'nothing selected'
-  return count === 1 ? '1 post selected' : `${count} posts selected`
+export function selectionLabel(count: number, copy: Copy): string {
+  return formatFromCopy(copy, 'composer.multiquote.selectedToQuote', { count })
 }
 
-export function selectionLabel(count: number): string {
-  return `${counted(count)} to quote`
+function selectionNotice(count: number, change: 'added' | 'removed', copy: Copy): string {
+  return formatFromCopy(
+    copy,
+    change === 'added' ? 'composer.multiquote.added' : 'composer.multiquote.removed',
+    { count },
+  )
 }
 
-function selectionNotice(count: number, change: 'added' | 'removed'): string {
-  const verb = change === 'added' ? 'Added to multi-quote' : 'Removed from multi-quote'
-  return `${verb} — ${counted(count)}.`
-}
-
-export function addedNotice(added: number, asked: number): string {
-  if (added === 0) return 'Nothing could be quoted — your reply is untouched.'
-  const quotes = added === 1 ? '1 quote' : `${added} quotes`
-  if (added === asked) return `${quotes} added to your reply.`
-  return `${quotes} added to your reply — ${asked - added} could not be quoted.`
+export function addedNotice(added: number, asked: number, copy: Copy): string {
+  if (added === 0) return fromCopy(copy, 'composer.multiquote.noneQuoted')
+  if (added === asked) return formatFromCopy(copy, 'composer.multiquote.quotesAdded', { added })
+  return formatFromCopy(copy, 'composer.multiquote.quotesPartial', {
+    added,
+    missed: asked - added,
+  })
 }
 
 export function multiquoteState(): MultiQuoteState {
@@ -84,18 +86,18 @@ export function multiquoteIds(): readonly number[] {
   return multiquoteState().ids
 }
 
-export function toggleMultiquote(postId: number): void {
+export function toggleMultiquote(postId: number, copy: Copy): void {
   const { ids } = multiquoteState()
   const held = ids.includes(postId)
   const next = held ? ids.filter((id) => id !== postId) : [...ids, postId]
 
   write(next)
-  publish(next, selectionNotice(next.length, held ? 'removed' : 'added'))
+  publish(next, selectionNotice(next.length, held ? 'removed' : 'added', copy))
 }
 
-export function clearMultiquote(): void {
+export function clearMultiquote(copy: Copy): void {
   write([])
-  publish([], 'Multi-quote cleared — nothing selected.')
+  publish([], fromCopy(copy, 'composer.multiquote.cleared'))
 }
 
 export function takeMultiquote(): readonly number[] {

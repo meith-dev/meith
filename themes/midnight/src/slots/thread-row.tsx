@@ -1,8 +1,11 @@
-import type { ThreadRowSlotModel } from '@meith/theme-kit'
+import type { SlotCopy, ThreadRowSlotModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
+export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `midnight.threadRow.${key}`)
+
   return (
     <tr className="border-t border-border align-top odd:bg-card even:bg-muted/40">
       <td className="px-3 py-2">
@@ -30,10 +33,16 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
           <a href={thread.href} className="font-medium hover:text-primary">
             {thread.title}
           </a>
-          {thread.isUnread && <span className="sr-only">(new posts)</span>}
-          {thread.isSticky && <span className="font-mono text-xs text-thread-pinned">pinned</span>}
-          {thread.isLocked && <span className="font-mono text-xs text-thread-locked">locked</span>}
-          {thread.isMoved && <span className="font-mono text-xs text-thread-moved">moved</span>}
+          {thread.isUnread && <span className="sr-only">{c('newPosts')}</span>}
+          {thread.isSticky && (
+            <span className="font-mono text-xs text-thread-pinned">{c('pinned')}</span>
+          )}
+          {thread.isLocked && (
+            <span className="font-mono text-xs text-thread-locked">{c('locked')}</span>
+          )}
+          {thread.isMoved && (
+            <span className="font-mono text-xs text-thread-moved">{c('moved')}</span>
+          )}
         </div>
         <p className="mt-0.5 font-mono text-xs text-muted-foreground">
           <UserRef user={thread.author} className="hover:text-foreground" />
@@ -52,7 +61,7 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
           <a href={thread.lastPost.href} className="hover:text-primary">
             <time dateTime={thread.lastPost.at.iso}>{thread.lastPost.at.label}</time>
             <span className="block">
-              by <UserRef user={thread.lastPost.author} linked={false} />
+              {c('by')} <UserRef user={thread.lastPost.author} linked={false} />
             </span>
           </a>
         )}

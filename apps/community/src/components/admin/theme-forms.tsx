@@ -30,6 +30,7 @@ import {
 import { BRAND_PRESETS, groupTokens } from '@/view/theme-tokens'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 import { Saved } from './form-bits'
 import { OklchPicker } from './oklch-picker'
 import { ChangeSummary, LegibilityReport } from './theme-changes'
@@ -53,17 +54,15 @@ function useHydrated(): boolean {
   return hydrated
 }
 
-function schemeLabel(scheme: FieldScheme): string {
-  return scheme === 'both' ? 'Both schemes' : scheme === 'dark' ? 'Dark' : 'Light'
+function schemeLabel(copy: Copy, scheme: FieldScheme): string {
+  return scheme === 'both'
+    ? fromCopy(copy, 'adminTheme.scheme.both')
+    : scheme === 'dark'
+      ? fromCopy(copy, 'adminTheme.scheme.dark')
+      : fromCopy(copy, 'adminTheme.scheme.light')
 }
 
-function ContrastNotes({
-  checks,
-  copy,
-}: {
-  checks: readonly ContrastCheck[]
-  copy: Readonly<Record<string, string>>
-}) {
+function ContrastNotes({ checks, copy }: { checks: readonly ContrastCheck[]; copy: Copy }) {
   const failing = checks.filter((check) => check.state === 'fail')
   const tightest = [...checks]
     .filter((check) => check.state === 'pass')
@@ -81,12 +80,18 @@ function ContrastNotes({
             check.state === 'fail' ? 'font-medium text-destructive' : 'text-muted-foreground'
           }`}
         >
-          {check.state === 'fail' ? 'Too little contrast: ' : 'Contrast: '}
-          {copy[check.pair.labelKey]} —{' '}
+          {formatFromCopy(
+            copy,
+            check.state === 'fail'
+              ? 'adminTheme.contrast.failIntro'
+              : 'adminTheme.contrast.okIntro',
+            { pair: fromCopy(copy, check.pair.labelKey) },
+          )}{' '}
           <span className="font-mono tabular-nums">
             {check.ratio === null ? '—' : formatRatio(check.ratio)}
           </span>
-          {check.state === 'fail' && ` (needs ${check.required}:1)`}
+          {check.state === 'fail' &&
+            formatFromCopy(copy, 'adminTheme.contrast.needs', { required: check.required })}
         </li>
       ))}
     </ul>
@@ -102,7 +107,7 @@ function TokenRow({
   onChange,
   onClose,
 }: {
-  copy: Readonly<Record<string, string>>
+  copy: Copy
   token: EditableToken
   draft: Draft
   values: { light: Record<string, string>; dark: Record<string, string> }
@@ -126,7 +131,7 @@ function TokenRow({
           <span className="text-sm font-medium">{token.label}</span>
           {dirty && (
             <span className="rounded-full border border-primary px-2 py-0.5 text-[0.6875rem] font-medium text-primary">
-              Unsaved
+              {fromCopy(copy, 'adminTheme.token.unsaved')}
             </span>
           )}
         </span>
@@ -145,11 +150,15 @@ function TokenRow({
             <div key={scheme} className="flex min-w-0 flex-1 flex-col gap-1">
               {/* biome-ignore lint/a11y/noLabelWithoutControl: the control is OklchPicker, or the text input on the other side of the branch */}
               <label className="flex min-w-0 flex-col gap-1">
-                <span className="text-xs text-muted-foreground">{schemeLabel(scheme)}</span>
+                <span className="text-xs text-muted-foreground">{schemeLabel(copy, scheme)}</span>
                 {token.kind === 'colour' ? (
                   <OklchPicker
                     name={name}
-                    describes={`${token.label}, ${schemeLabel(scheme).toLowerCase()}`}
+                    describes={formatFromCopy(copy, 'adminTheme.token.describes', {
+                      label: token.label,
+                      scheme: schemeLabel(copy, scheme).toLowerCase(),
+                    })}
+                    copy={copy}
                     value={value}
                     shipped={shipped}
                     onChange={(next) => onChange(name, next)}
@@ -166,8 +175,11 @@ function TokenRow({
               </label>
 
               <p className="truncate font-mono text-[0.6875rem] text-muted-foreground">
-                {value === '' ? 'Theme’s own: ' : 'Replaces: '}
-                {shipped}
+                {formatFromCopy(
+                  copy,
+                  value === '' ? 'adminTheme.token.themesOwn' : 'adminTheme.token.replaces',
+                  { value: shipped },
+                )}
               </p>
 
               {token.kind === 'colour' && (
@@ -180,7 +192,9 @@ function TokenRow({
 
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-xs text-muted-foreground">
-          {overridden ? 'Overridden by this board.' : 'Using the theme’s own value.'}
+          {overridden
+            ? fromCopy(copy, 'adminTheme.token.overridden')
+            : fromCopy(copy, 'adminTheme.token.usingOwn')}
         </span>
         {overridden && (
           <button
@@ -190,12 +204,12 @@ function TokenRow({
             }}
             className={LINK}
           >
-            Use the theme&rsquo;s value
+            {fromCopy(copy, 'adminTheme.useThemesValue')}
           </button>
         )}
         {onClose !== undefined && (
           <button type="button" onClick={onClose} className={LINK}>
-            Close
+            {fromCopy(copy, 'adminTheme.close')}
           </button>
         )}
       </div>
@@ -214,7 +228,7 @@ export function ThemeEditorForm({
   tokens: readonly EditableToken[]
   customCss: string
   isDefault: boolean
-  copy: Readonly<Record<string, string>>
+  copy: Copy
 }) {
   const [state, action] = useActionState(themeEditorAction, EMPTY_STATE)
   const hydrated = useHydrated()
@@ -289,21 +303,19 @@ export function ThemeEditorForm({
     <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] xl:items-start">
       <div className="@container flex min-w-0 flex-col gap-6">
         <FormError message={state.error} />
-        <Saved when={state.notice === 'saved'}>
-          Saved. The board is rendering these values now.
-        </Saved>
+        <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'adminTheme.editor.saved')}</Saved>
 
         <form action={action} className="flex flex-col gap-6" noValidate>
           <input type="hidden" name="key" value={themeKey} />
 
           <fieldset className="flex flex-col gap-3">
-            <legend className="text-sm font-medium">Brand palettes</legend>
+            <legend className="text-sm font-medium">
+              {fromCopy(copy, 'adminTheme.presets.title')}
+            </legend>
             <p className="text-xs text-muted-foreground">
-              Sets the accent, its hover step, the text on it and the focus ring, for both schemes
-              at once — the four tokens that brand a board whose palette is otherwise colourless.
-              The board ships with <span className="font-medium">Meith green</span>; pressing it
-              again puts back the shipped accent after trying another. Nothing is saved until you
-              press Save.
+              {copy['adminTheme.presets.blurbLead']}
+              <span className="font-medium">{fromCopy(copy, 'themeToken.preset.meith')}</span>
+              {copy['adminTheme.presets.blurbTail']}
             </p>
             <div className="flex flex-wrap gap-2">
               {BRAND_PRESETS.map((preset) => (
@@ -327,12 +339,14 @@ export function ThemeEditorForm({
           {hydrated && (
             <div className="flex flex-col gap-2 rounded-md border border-border p-3">
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium">Find a token</span>
+                <span className="text-xs font-medium">
+                  {fromCopy(copy, 'adminTheme.find.label')}
+                </span>
                 <input
                   type="search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="button, locked, primary…"
+                  placeholder={fromCopy(copy, 'adminTheme.find.placeholder')}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 />
               </label>
@@ -346,14 +360,18 @@ export function ThemeEditorForm({
                       onChange={(event) => setChangedOnly(event.target.checked)}
                       className="size-4 accent-primary"
                     />
-                    Only the {counts.tokens} token{counts.tokens === 1 ? '' : 's'} this board has
-                    changed
+                    {formatFromCopy(copy, 'adminTheme.find.changedOnly', { count: counts.tokens })}
                   </label>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Nothing is overridden yet.</span>
+                  <span className="text-xs text-muted-foreground">
+                    {fromCopy(copy, 'adminTheme.find.nothingOverridden')}
+                  </span>
                 )}
                 <span className="text-xs text-muted-foreground">
-                  {shown} of {tokens.length} shown
+                  {formatFromCopy(copy, 'adminTheme.find.shownCount', {
+                    shown,
+                    total: tokens.length,
+                  })}
                 </span>
               </div>
             </div>
@@ -373,9 +391,13 @@ export function ThemeEditorForm({
                   <span className="text-sm font-medium">{copy[group.titleKey]}</span>
                   <span className="text-xs text-muted-foreground">
                     {changed > 0 && (
-                      <span className="mr-2 font-medium text-primary">{changed} changed</span>
+                      <span className="mr-2 font-medium text-primary">
+                        {formatFromCopy(copy, 'adminTheme.group.changedCount', { count: changed })}
+                      </span>
                     )}
-                    {group.tokens.length} token{group.tokens.length === 1 ? '' : 's'}
+                    {formatFromCopy(copy, 'adminTheme.group.tokenCount', {
+                      count: group.tokens.length,
+                    })}
                   </span>
                 </legend>
 
@@ -383,6 +405,7 @@ export function ThemeEditorForm({
 
                 {hydrated && (
                   <PaletteGrid
+                    copy={copy}
                     cells={group.tokens.map((token) => ({
                       token,
                       light: values.light[token.name] ?? '',
@@ -414,7 +437,7 @@ export function ThemeEditorForm({
           })}
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Custom CSS</span>
+            <span className="font-medium">{fromCopy(copy, 'adminTheme.css.label')}</span>
             <textarea
               name="customCss"
               rows={10}
@@ -423,21 +446,20 @@ export function ThemeEditorForm({
               className={INPUT}
             />
             <span className="text-xs text-muted-foreground">
-              Appended after the theme&rsquo;s own styles. <code>@import</code>, <code>url(</code>{' '}
-              and a closing style tag are refused — those are how a stylesheet stops being a
-              stylesheet.{' '}
+              {copy['adminTheme.css.hintLead']}
+              <code>@import</code>
+              {copy['adminTheme.css.hintMid']}
+              <code>url(</code>
+              {copy['adminTheme.css.hintTail']}{' '}
               {isDefault ? (
-                <>
-                  This is the board&rsquo;s default theme, so what you write here goes into the page
-                  unscoped: it applies to every member, including one who has picked another theme.
-                  Rules meant for this theme alone belong on a theme that is not the default.
-                </>
+                fromCopy(copy, 'adminTheme.css.hintDefault')
               ) : (
                 <>
-                  This theme is not the board default, so what you write here is nested under its
-                  own selector and stops applying the moment a member picks a different theme; a
-                  rule aimed at <code>:root</code> will not match there, so target <code>body</code>{' '}
-                  or a class instead.
+                  {copy['adminTheme.css.hintScopedLead']}
+                  <code>:root</code>
+                  {copy['adminTheme.css.hintScopedMid']}
+                  <code>body</code>
+                  {copy['adminTheme.css.hintScopedTail']}
                 </>
               )}
             </span>
@@ -446,7 +468,9 @@ export function ThemeEditorForm({
           <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t border-border bg-background px-1 py-3">
             <span className="min-w-40">
               <SubmitButton>
-                {unsaved === 0 ? 'Save' : `Save ${unsaved} change${unsaved === 1 ? '' : 's'}`}
+                {unsaved === 0
+                  ? fromCopy(copy, 'adminTheme.save')
+                  : formatFromCopy(copy, 'adminTheme.saveChanges', { count: unsaved })}
               </SubmitButton>
             </span>
             <button
@@ -455,12 +479,12 @@ export function ThemeEditorForm({
               value="preview"
               className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm"
             >
-              Preview without saving
+              {fromCopy(copy, 'adminTheme.previewWithoutSaving')}
             </button>
             <span className="text-xs text-muted-foreground">
               {unsaved === 0
-                ? 'Nothing to save — the board is painting what is in this form.'
-                : `${unsaved} unsaved change${unsaved === 1 ? '' : 's'}. Nothing reaches the board until you save.`}
+                ? fromCopy(copy, 'adminTheme.nothingToSave')
+                : formatFromCopy(copy, 'adminTheme.unsavedChanges', { count: unsaved })}
             </span>
           </div>
         </form>
@@ -468,6 +492,7 @@ export function ThemeEditorForm({
 
       <aside className="flex min-w-0 flex-col gap-6 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
         <ThemePreview
+          copy={copy}
           light={cssVariables(values.light) as React.CSSProperties}
           dark={cssVariables(values.dark) as React.CSSProperties}
           hydrated={hydrated}
@@ -476,17 +501,19 @@ export function ThemeEditorForm({
 
         {state.preview !== undefined && (
           <section className="flex flex-col gap-3">
-            <h3 className="text-base font-semibold tracking-tight">Validated preview</h3>
+            <h3 className="text-base font-semibold tracking-tight">
+              {fromCopy(copy, 'adminTheme.validated.title')}
+            </h3>
             <p className="text-xs text-muted-foreground">
-              Rendered by the board from values it has validated exactly as a save would, custom CSS
-              included.
+              {fromCopy(copy, 'adminTheme.validated.blurb')}
             </p>
             <style dangerouslySetInnerHTML={{ __html: state.preview }} />
-            <ValidatedSample />
+            <ValidatedSample copy={copy} />
           </section>
         )}
 
         <ChangeSummary
+          copy={copy}
           changes={changes}
           customCssChanged={customCssChanged}
           hydrated={hydrated}
@@ -501,45 +528,40 @@ export function ThemeEditorForm({
   )
 }
 
-export function ResetThemeForm({ themeKey }: { themeKey: string }) {
+export function ResetThemeForm({ themeKey, copy }: { themeKey: string; copy: Copy }) {
   const [state, action] = useActionState(resetThemeAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-3">
       <FormError message={state.error} />
-      <Saved when={state.notice === 'reset'}>
-        Reset. The board looks exactly as the theme ships.
-      </Saved>
+      <Saved when={state.notice === 'reset'}>{fromCopy(copy, 'adminTheme.reset.done')}</Saved>
       <input type="hidden" name="key" value={themeKey} />
       <div>
-        <SubmitButton>Reset to the theme&rsquo;s own values</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminTheme.reset.submit')}</SubmitButton>
       </div>
     </form>
   )
 }
 
-export function ImportThemeForm({ themeKey }: { themeKey: string }) {
+export function ImportThemeForm({ themeKey, copy }: { themeKey: string; copy: Copy }) {
   const [state, action] = useActionState(importThemeAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      <Saved when={state.notice === 'imported'}>
-        Imported. Every override in the file is now this board&rsquo;s.
-      </Saved>
+      <Saved when={state.notice === 'imported'}>{fromCopy(copy, 'adminTheme.import.done')}</Saved>
       <input type="hidden" name="key" value={themeKey} />
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Paste an exported theme</span>
+        <span className="font-medium">{fromCopy(copy, 'adminTheme.import.label')}</span>
         <textarea name="document" rows={8} className={INPUT} required />
         <span className="text-xs text-muted-foreground">
-          Replaces every override this board has. The key inside the file is ignored — copying a
-          look from another board is what this is for.
+          {fromCopy(copy, 'adminTheme.import.hint')}
         </span>
       </label>
 
       <div>
-        <SubmitButton>Import</SubmitButton>
+        <SubmitButton>{fromCopy(copy, 'adminTheme.import.submit')}</SubmitButton>
       </div>
     </form>
   )
@@ -551,12 +573,14 @@ export function ThemeStateForms({
   enabled,
   isDefault,
   isBuildTheme,
+  copy,
 }: {
   themeKey: string
   title: string
   enabled: boolean
   isDefault: boolean
   isBuildTheme: boolean
+  copy: Copy
 }) {
   const [enabledState, enabledAction] = useActionState(setThemeEnabledAction, EMPTY_STATE)
   const [defaultState, defaultAction] = useActionState(setDefaultThemeAction, EMPTY_STATE)
@@ -569,8 +593,12 @@ export function ThemeStateForms({
         {!isDefault && enabled && (
           <form action={defaultAction}>
             <input type="hidden" name="key" value={themeKey} />
-            <button type="submit" aria-label={`Make ${title} the default`} className={GHOST_BUTTON}>
-              Make default
+            <button
+              type="submit"
+              aria-label={formatFromCopy(copy, 'adminTheme.state.makeDefaultFor', { title })}
+              className={GHOST_BUTTON}
+            >
+              {fromCopy(copy, 'adminTheme.state.makeDefault')}
             </button>
           </form>
         )}
@@ -581,20 +609,26 @@ export function ThemeStateForms({
             <input type="hidden" name="enabled" value={enabled ? 'false' : 'true'} />
             <button
               type="submit"
-              aria-label={enabled ? `Turn ${title} off` : `Turn ${title} on`}
+              aria-label={formatFromCopy(
+                copy,
+                enabled ? 'adminTheme.state.turnOffFor' : 'adminTheme.state.turnOnFor',
+                { title },
+              )}
               className={GHOST_BUTTON}
             >
-              {enabled ? 'Turn off' : 'Turn on'}
+              {enabled
+                ? fromCopy(copy, 'adminTheme.state.turnOff')
+                : fromCopy(copy, 'adminTheme.state.turnOn')}
             </button>
           </form>
         )}
 
         <a
           href={`/admin/themes/${themeKey}`}
-          aria-label={`Customise ${title}`}
+          aria-label={formatFromCopy(copy, 'adminTheme.state.customiseFor', { title })}
           className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
         >
-          Customise
+          {fromCopy(copy, 'adminTheme.state.customise')}
         </a>
       </div>
     </div>

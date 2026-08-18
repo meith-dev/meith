@@ -2,6 +2,7 @@ import 'server-only'
 
 import { isAppError, logger } from '@meith/core'
 import { createMailDriver } from '@meith/drivers'
+import type { Translator } from '@meith/i18n'
 import { describeMailConfig, type MailConfig } from '@meith/settings'
 
 export interface MailTestResult {
@@ -13,24 +14,24 @@ export async function sendTestMail(input: {
   readonly config: MailConfig
   readonly to: string
   readonly boardName: string
+  readonly t: Translator
   readonly fromName?: string
 }): Promise<MailTestResult> {
-  const board = input.boardName.trim() === '' ? 'your board' : input.boardName.trim()
+  const board =
+    input.boardName.trim() === '' ? input.t.t('mailTest.boardFallback') : input.boardName.trim()
 
   try {
     const driver = createMailDriver(input.config)
 
     await driver.send({
       to: input.to,
-      subject: `[${board}] Test message`,
+      subject: `[${board}] ${input.t.t('mailTest.subject')}`,
       text: [
-        `This is a test message from ${board}.`,
+        input.t.t('mailTest.intro', { board }),
         '',
-        'If you are reading it, the board can send mail: password resets, ' +
-          'registration confirmations and notification e-mail will reach your ' +
-          'members.',
+        input.t.t('mailTest.body'),
         '',
-        `Sent through: ${describeMailConfig(input.config)}`,
+        input.t.t('mailTest.sentThrough', { configuration: describeMailConfig(input.config) }),
       ].join('\n'),
       ...(input.fromName === undefined || input.fromName.trim() === ''
         ? {}

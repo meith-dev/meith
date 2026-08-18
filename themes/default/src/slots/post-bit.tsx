@@ -1,4 +1,5 @@
-import type { PostBitSlotModel } from '@meith/theme-kit'
+import type { PostBitSlotModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Alert, AlertDescription, AlertTitle, Avatar, Card } from '@meith/ui'
 
 import { LINK, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
@@ -9,8 +10,16 @@ const VISIBILITY_TINT = {
   deleted: 'border-thread-deleted/50 bg-destructive/5',
 } as const
 
-function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['visibility'] }) {
+function StatusBanner({
+  visibility,
+  copy,
+}: {
+  visibility: PostBitSlotModel['post']['visibility']
+  copy: SlotCopy
+}) {
   if (visibility === 'visible') return null
+
+  const c = (key: string) => fromSlotCopy(copy, `default.postBit.${key}`)
 
   return (
     <Alert
@@ -19,9 +28,9 @@ function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['vi
     >
       <AlertDescription>
         <AlertTitle>
-          {visibility === 'deleted' ? 'Deleted post.' : 'Waiting for approval.'}
+          {visibility === 'deleted' ? c('deletedPost') : c('waitingApproval')}
         </AlertTitle>{' '}
-        Only moderators can see this.
+        {c('staffOnly')}
       </AlertDescription>
     </Alert>
   )
@@ -56,10 +65,14 @@ function GroupBadge({
 function AuthorBlock({
   author,
   badges,
+  copy,
 }: {
   author: PostBitSlotModel['post']['author']
   badges: React.ReactNode
+  copy: SlotCopy
 }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.postBit.${key}`)
+
   return (
     <div className="flex gap-3 sm:flex-col sm:gap-2 sm:text-center">
       <Avatar src={author.avatarUrl} name={author.username} size={48} className="sm:self-center" />
@@ -82,7 +95,7 @@ function AuthorBlock({
         {author.isOnline && (
           <p className="mt-1 flex items-center gap-1.5 text-xs text-moderation-approved sm:justify-center">
             <span aria-hidden="true" className="size-1.5 rounded-full bg-moderation-approved" />
-            Online
+            {c('online')}
           </p>
         )}
 
@@ -90,23 +103,26 @@ function AuthorBlock({
 
         <dl className={`mt-1.5 text-xs text-muted-foreground ${NUMERIC}`}>
           <div className="flex gap-1 sm:justify-center">
-            <dt className="sr-only">Posts</dt>
+            <dt className="sr-only">{c('postsLabel')}</dt>
             <dd>
-              {author.postCount.label} {author.postCount.value === 1 ? 'post' : 'posts'}
+              {author.postCount.label}{' '}
+              {author.postCount.value === 1 ? c('post.one') : c('post.other')}
             </dd>
           </div>
           {author.joinedAt !== null && (
             <div className="flex gap-1 sm:justify-center">
-              <dt className="sr-only">Joined</dt>
+              <dt className="sr-only">{c('joined')}</dt>
               <dd>
-                Joined <Stamp at={author.joinedAt} />
+                {c('joined')} <Stamp at={author.joinedAt} />
               </dd>
             </div>
           )}
           {author.reputation != null && (
             <div className="flex gap-1 sm:justify-center">
-              <dt className="sr-only">Reputation</dt>
-              <dd>{author.reputation.label} reputation</dd>
+              <dt className="sr-only">{c('reputationLabel')}</dt>
+              <dd>
+                {author.reputation.label} {c('reputation')}
+              </dd>
             </div>
           )}
         </dl>
@@ -126,7 +142,9 @@ function AuthorBlock({
   )
 }
 
-export function PostBit({ post, select, regions }: PostBitSlotModel) {
+export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.postBit.${key}`)
+
   return (
     <Card
       as="article"
@@ -135,11 +153,11 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
       data-visibility={post.visibility}
       className={VISIBILITY_TINT[post.visibility]}
     >
-      <StatusBanner visibility={post.visibility} />
+      <StatusBanner visibility={post.visibility} copy={copy} />
 
       <div className="grid grid-cols-1 sm:grid-cols-[11rem_minmax(0,1fr)]">
         <div className="border-b border-border px-4 py-3 sm:border-r sm:border-b-0 sm:bg-muted/40">
-          <AuthorBlock author={post.author} badges={regions.pluginBadges} />
+          <AuthorBlock author={post.author} badges={regions.pluginBadges} copy={copy} />
         </div>
 
         <div className="min-w-0">
@@ -167,11 +185,11 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
 
           {post.ignored !== null ? (
             <div className="px-4 py-5 text-sm text-muted-foreground">
-              You are ignoring{' '}
-              <span className="font-medium text-foreground">{post.ignored.authorUsername}</span>.
-              This post is hidden.{' '}
+              {c('ignoringPrefix')}{' '}
+              <span className="font-medium text-foreground">{post.ignored.authorUsername}</span>.{' '}
+              {c('hiddenNotice')}{' '}
               <a href={post.ignored.revealHref} className={`font-medium text-foreground ${LINK}`}>
-                Show it anyway
+                {c('showAnyway')}
               </a>
             </div>
           ) : (
@@ -193,7 +211,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             <div className="border-t border-border px-4 py-3">
               <h4 className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 {post.attachments.length}{' '}
-                {post.attachments.length === 1 ? 'attachment' : 'attachments'}
+                {post.attachments.length === 1 ? c('attachment.one') : c('attachment.other')}
               </h4>
               <ul className="flex flex-wrap gap-3">
                 {post.attachments.map((file) => (

@@ -12,5 +12,6 @@ export {
   type DuesDemoSummary,
   seedDuesDemo,
 } from './demo'
+export { duesMessages } from './messages'
 export { SUBSCRIBED_EVENT_TYPES } from './stripe/events'
 export { signStripePayload } from './stripe/webhook'

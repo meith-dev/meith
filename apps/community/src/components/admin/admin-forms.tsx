@@ -6,15 +6,18 @@ import { adminSignInAction, adminSignOutAction } from '@/server/admin-actions'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 
 import { FormError } from '../auth/form-controls'
+import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 
 export function AdminSignInForm({
   next,
   reason,
   idleMinutes,
+  copy,
 }: {
   next: string
   reason: 'expired' | 'reauth' | null
   idleMinutes: number
+  copy: Copy
 }) {
   const [state, action] = useActionState(adminSignInAction, EMPTY_STATE)
 
@@ -23,21 +26,21 @@ export function AdminSignInForm({
       action={action}
       className="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-border bg-card p-6"
     >
-      <h1 className="text-xl font-semibold tracking-tight">Control panel</h1>
+      <h1 className="text-xl font-semibold tracking-tight">{fromCopy(copy, 'adminPanel.title')}</h1>
 
       <p className="text-sm text-muted-foreground">
         {reason === 'reauth'
-          ? 'Confirm your password to continue. Some actions ask again even while you are signed in.'
+          ? fromCopy(copy, 'adminPanel.reason.reauth')
           : reason === 'expired'
-            ? 'Your control panel session has expired.'
-            : 'Confirm your password. This is separate from your board session.'}
+            ? fromCopy(copy, 'adminPanel.reason.expired')
+            : fromCopy(copy, 'adminPanel.reason.default')}
       </p>
 
       <FormError message={state.error} />
       <input type="hidden" name="next" value={next} />
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Password</span>
+        <span className="font-medium">{fromCopy(copy, 'adminPanel.password')}</span>
         <input
           type="password"
           name="password"
@@ -48,7 +51,7 @@ export function AdminSignInForm({
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Two-factor code</span>
+        <span className="font-medium">{fromCopy(copy, 'adminPanel.twoFactorCode')}</span>
         <input
           type="text"
           name="code"
@@ -57,7 +60,7 @@ export function AdminSignInForm({
           className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
         />
         <span className="text-xs text-muted-foreground">
-          Only if your account asks for one. Leave it empty otherwise.
+          {fromCopy(copy, 'adminPanel.twoFactorCodeHint')}
         </span>
       </label>
 
@@ -65,25 +68,24 @@ export function AdminSignInForm({
         type="submit"
         className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        Enter the control panel
+        {fromCopy(copy, 'adminPanel.enter')}
       </button>
 
       <p className="text-xs text-muted-foreground">
-        The panel signs you out after {idleMinutes} minutes of inactivity. Your board session is not
-        affected.
+        {formatFromCopy(copy, 'adminPanel.idleNote', { minutes: idleMinutes })}
       </p>
     </form>
   )
 }
 
-export function AdminSignOutForm() {
+export function AdminSignOutForm({ copy }: { copy: Copy }) {
   return (
     <form action={adminSignOutAction}>
       <button
         type="submit"
         className="text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        Leave the control panel
+        {fromCopy(copy, 'adminPanel.leave')}
       </button>
     </form>
   )

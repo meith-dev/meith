@@ -2,18 +2,21 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { canHoldThreads } from '@meith/forums'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { NewThreadForm } from '@/components/content/new-thread-form'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
+import { newThreadFormCopy } from '@/view/content-copy'
 import { buildNewThreadView } from '@/view/post-form'
 import { leadingId } from '@/view/slug-id'
 
-export const metadata: Metadata = { title: 'New thread' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.new-thread') }
+}
 
 export default async function NewThreadPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -44,19 +47,25 @@ export default async function NewThreadPage({ params }: { params: Promise<{ slug
     t: await getTranslator(),
     forum: { id: forum.id, title: forum.title, slug: forum.slug },
     errorMessage:
-      rules.isOpen && rules.allowThreads ? null : 'This forum is closed to new threads.',
+      rules.isOpen && rules.allowThreads
+        ? null
+        : (await getTranslator()).t('board.newThread.closed'),
   })
 
-  const PostForm = requireSlot(await currentTheme(), 'PostForm')
+  const theme = await currentTheme()
+  const PostForm = requireSlot(theme, 'PostForm')
+  const translator = await getTranslator()
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       <PostForm
         {...view}
+        copy={slotCopy(theme, 'PostForm', translator)}
         regions={{
           form:
             rules.isOpen && rules.allowThreads ? (
               <NewThreadForm
+                copy={newThreadFormCopy(await getTranslator())}
                 forumId={id}
                 prefixes={prefixes.map((p) => ({ id: p.id, label: p.label }))}
                 requiresPrefix={rules.requiresPrefix}

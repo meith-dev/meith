@@ -1,4 +1,5 @@
 import { ConflictError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { childPath, depthOf, isInSubtree, rehang } from './path'
 import type { ForumRow, MovePlan, MoveTarget, PathUpdate } from './types'
@@ -17,7 +18,7 @@ export function planMove(rows: readonly ForumRow[], forumId: number, target: Mov
 
   if (newParent) {
     if (newParent.id === forum.id) {
-      throw new ValidationError('A forum cannot be its own parent.')
+      throw new ValidationError(msg('error.forums.forum-its-own-parent'))
     }
 
     if (isInSubtree(newParent.path, forum.path)) {
@@ -84,9 +85,7 @@ function insertionIndex(ids: readonly number[], target: MoveTarget): number {
 
     const at = ids.indexOf(target.after)
     if (at === -1) {
-      throw new ConflictError(
-        'The forum it was to follow is no longer there. Reload the tree and try that again.',
-      )
+      throw new ConflictError(msg('error.forums.forum-follow-longer-there-reload'))
     }
     return at + 1
   }

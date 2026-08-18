@@ -1,4 +1,5 @@
-import type { PostActionsSlotModel } from '@meith/theme-kit'
+import type { PostActionsSlotModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { cn, Separator } from '@meith/ui'
 
 import { BUTTON, isEmptyRegion } from '../shared'
@@ -10,18 +11,24 @@ interface Action {
 
 const ACTION = cn(BUTTON, 'h-7 px-2.5 text-muted-foreground hover:bg-accent hover:text-foreground')
 
-export function PostActions({ actions, children }: PostActionsSlotModel) {
+export function PostActions({
+  actions,
+  children,
+  copy,
+}: PostActionsSlotModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.postActions.${key}`)
+
   const reader: Action[] = [
-    actions.quoteHref === null ? null : { href: actions.quoteHref, label: 'Quote' },
-    actions.editHref === null ? null : { href: actions.editHref, label: 'Edit' },
-    actions.rateHref === null ? null : { href: actions.rateHref, label: 'Rate' },
-    actions.reportHref === null ? null : { href: actions.reportHref, label: 'Report' },
+    actions.quoteHref === null ? null : { href: actions.quoteHref, label: c('quote') },
+    actions.editHref === null ? null : { href: actions.editHref, label: c('edit') },
+    actions.rateHref === null ? null : { href: actions.rateHref, label: c('rate') },
+    actions.reportHref === null ? null : { href: actions.reportHref, label: c('report') },
   ].filter((action): action is Action => action !== null)
 
   const staff: Action[] = [
-    actions.restoreHref === null ? null : { href: actions.restoreHref, label: 'Restore' },
-    actions.warnHref === null ? null : { href: actions.warnHref, label: 'Warn' },
-    actions.moderateHref === null ? null : { href: actions.moderateHref, label: 'Moderate' },
+    actions.restoreHref === null ? null : { href: actions.restoreHref, label: c('restore') },
+    actions.warnHref === null ? null : { href: actions.warnHref, label: c('warn') },
+    actions.moderateHref === null ? null : { href: actions.moderateHref, label: c('moderate') },
   ].filter((action): action is Action => action !== null)
 
   const extra = isEmptyRegion(children) ? null : children
@@ -30,7 +37,7 @@ export function PostActions({ actions, children }: PostActionsSlotModel) {
 
   return (
     <nav
-      aria-label="Post actions"
+      aria-label={c('postActions')}
       className="flex flex-wrap items-center gap-1 border-t border-border bg-surface px-3 py-1.5 empty:hidden"
     >
       {reader.map((action) => (

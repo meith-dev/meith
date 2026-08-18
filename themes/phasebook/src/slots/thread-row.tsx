@@ -1,8 +1,11 @@
-import type { ThreadRowSlotModel } from '@meith/theme-kit'
+import type { SlotCopy, ThreadRowSlotModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Circle, count, MUTED_LINK, NUMERIC, Prefix, plural, Stamp, Tag, UserRef } from '../shared'
 
-export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
+export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.threadRow.${key}`)
+
   return (
     <li
       data-unread={thread.isUnread ? '' : undefined}
@@ -35,9 +38,9 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
-            {thread.isSticky && <Tag token="thread-pinned">Pinned</Tag>}
-            {thread.isLocked && <Tag token="thread-locked">Locked</Tag>}
-            {thread.isMoved && <Tag token="thread-moved">Moved</Tag>}
+            {thread.isSticky && <Tag token="thread-pinned">{c('pinned')}</Tag>}
+            {thread.isLocked && <Tag token="thread-locked">{c('locked')}</Tag>}
+            {thread.isMoved && <Tag token="thread-moved">{c('moved')}</Tag>}
           </div>
 
           <a
@@ -46,29 +49,29 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
           >
             {thread.title}
           </a>
-          {thread.isUnread && <span className="sr-only"> (new posts)</span>}
+          {thread.isUnread && <span className="sr-only"> {c('newPosts')}</span>}
 
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Started by <UserRef user={thread.author} className="text-xs font-medium" />
+            {c('startedBy')} <UserRef user={thread.author} className="text-xs font-medium" />
           </p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border px-4 py-2 text-xs text-muted-foreground">
         <span className={NUMERIC}>
-          {count(thread.replyCount)} {plural(thread.replyCount, 'reply', 'replies')} ·{' '}
-          {count(thread.viewCount)} {plural(thread.viewCount, 'view', 'views')}
+          {count(thread.replyCount)} {plural(thread.replyCount, c('reply.one'), c('reply.other'))} ·{' '}
+          {count(thread.viewCount)} {plural(thread.viewCount, c('view.one'), c('view.other'))}
         </span>
 
         <span className="min-w-0 truncate">
           {thread.lastPost === null ? (
-            <span className="text-thread-moved">No replies yet</span>
+            <span className="text-thread-moved">{c('noRepliesYet')}</span>
           ) : (
             <>
               <a href={thread.lastPost.href} className={`font-semibold ${MUTED_LINK}`}>
-                Latest reply
+                {c('latestReply')}
               </a>
-              {' by '}
+              {` ${c('by')} `}
               <UserRef user={thread.lastPost.author} className="text-xs font-medium" />
               {' · '}
               <Stamp at={thread.lastPost.at} />

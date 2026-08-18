@@ -17,6 +17,7 @@ import {
 import forumConfig from '../../community.config'
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import type { FormState } from './auth-form-state'
+import { tr } from './i18n'
 import { syncOperatorDisables } from './plugin-host'
 import { getSettingOverrides } from './settings'
 
@@ -73,7 +74,7 @@ export async function setPluginEnabledAction(_prev: FormState, form: FormData): 
   } catch (err) {
     if (isAppError(err)) return { error: err.message }
     logger({ module: 'plugin-admin' }).error({ err }, 'failed to change plugin enablement')
-    return { error: 'Something went wrong. Please try again.' }
+    return { error: await tr('notice.app.something-went-wrong-please-try') }
   }
 }
 
@@ -153,6 +154,6 @@ export async function savePluginSettingsAction(
   } catch (err) {
     if (isAppError(err)) return { error: err.message }
     logger({ module: 'plugin-admin' }).error({ err }, 'failed to save plugin settings')
-    return { error: 'Something went wrong. Please try again.' }
+    return { error: await tr('notice.app.something-went-wrong-please-try') }
   }
 }

@@ -1,4 +1,5 @@
-import type { PaginationModel } from '@meith/theme-kit'
+import type { PaginationModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 export function Pagination({
   page,
@@ -7,14 +8,20 @@ export function Pagination({
   pages,
   previousHref,
   nextHref,
-}: PaginationModel) {
+  copy,
+}: PaginationModel & { copy: SlotCopy }) {
   if (pageCount <= 1 && previousHref === null && nextHref === null) return null
 
+  const c = (key: string) => fromSlotCopy(copy, `midnight.pagination.${key}`)
+
   return (
-    <nav aria-label="Pagination" className="flex flex-wrap items-center gap-1 font-mono text-xs">
+    <nav
+      aria-label={c('ariaLabel')}
+      className="flex flex-wrap items-center gap-1 font-mono text-xs"
+    >
       {previousHref !== null && (
         <a href={previousHref} rel="prev" className="border border-border px-2 py-1 hover:bg-muted">
-          prev
+          {c('prev')}
         </a>
       )}
       {pages.map((entry) =>
@@ -38,11 +45,11 @@ export function Pagination({
       )}
       {nextHref !== null && (
         <a href={nextHref} rel="next" className="border border-border px-2 py-1 hover:bg-muted">
-          next
+          {c('next')}
         </a>
       )}
       <span className="ml-2 text-muted-foreground">
-        page {pageCountIsExact ? `${page} of ${pageCount}` : page}
+        {c('page')} {pageCountIsExact ? `${page} ${c('pageOf')} ${pageCount}` : page}
       </span>
     </nav>
   )

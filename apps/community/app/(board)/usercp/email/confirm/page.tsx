@@ -6,8 +6,11 @@ import { MemberSettingsService } from '@meith/accounts'
 import { recordAuthEvent } from '@/server/auth-events'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { tr } from '@/server/i18n'
 
-export const metadata: Metadata = { title: 'Confirm your e-mail address' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.confirm-e-mail-address') }
+}
 
 export default async function ConfirmEmailPage({
   searchParams,

@@ -1,4 +1,5 @@
-import type { DiscoveryViewModel, TabModel } from '@meith/theme-kit'
+import type { DiscoveryViewModel, SlotCopy, TabModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Frame, HEADING, MICRO, NUMERIC, RULE, Stamp } from '../shared'
 
@@ -41,7 +42,10 @@ export function DiscoveryView({
   nextLabel,
   emptyMessage,
   refusal,
-}: DiscoveryViewModel) {
+  copy,
+}: DiscoveryViewModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.discoveryView.${key}`)
+
   return (
     <main
       id="board-content"
@@ -50,7 +54,7 @@ export function DiscoveryView({
     >
       <div className="border border-border bg-card shadow-elevation">
         <div className="px-4 py-3">
-          <p className={MICRO}>listing</p>
+          <p className={MICRO}>{c('kicker')}</p>
           <h1 className={`${HEADING} text-xl text-foreground`}>{title}</h1>
           <p className="mt-1 text-xs text-muted-foreground">{blurb}</p>
         </div>
@@ -93,18 +97,20 @@ export function DiscoveryView({
                       {row.forum.label}
                     </a>
                     <span className="text-border">{' | '}</span>
-                    <span className="uppercase">started by</span> {row.authorUsername}
+                    <span className="uppercase">{c('startedBy')}</span> {row.authorUsername}
                   </p>
                 </div>
 
                 <p className={`${MICRO} shrink-0 normal-case sm:text-right`}>
                   <span className={`${NUMERIC} text-foreground`}>{row.replyCount.label}</span>{' '}
                   <span className="uppercase">
-                    {row.replyCount.value === 1 ? 'reply' : 'replies'}
+                    {row.replyCount.value === 1 ? c('reply.one') : c('reply.other')}
                   </span>
                   <span className="block">
                     <Stamp at={row.lastPostAt} />
-                    {row.lastPostUsername === null ? null : ` by ${row.lastPostUsername}`}
+                    {row.lastPostUsername === null
+                      ? null
+                      : `${c('lastPostByPrefix')}${row.lastPostUsername}`}
                   </span>
                 </p>
               </li>

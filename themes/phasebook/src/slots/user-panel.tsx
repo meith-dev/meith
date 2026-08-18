@@ -1,4 +1,5 @@
-import type { CountModel, UserPanelModel } from '@meith/theme-kit'
+import type { CountModel, SlotCopy, UserPanelModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Menu } from '@meith/ui/menu'
 
 import { Circle, count, ICON_BUTTON, MUTED_LINK, PILL, PILL_PRIMARY } from '../shared'
@@ -82,7 +83,10 @@ export function UserPanel({
   notificationsHref,
   messagesHref,
   children,
-}: UserPanelModel) {
+  copy,
+}: UserPanelModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.userPanel.${key}`)
+
   if (viewer.isGuest) {
     return (
       <div className="flex items-center gap-2">
@@ -95,7 +99,7 @@ export function UserPanel({
     )
   }
 
-  const name = viewer.username ?? 'Signed in'
+  const name = viewer.username ?? c('signedIn')
 
   return (
     <div className="flex items-center gap-2">
@@ -107,22 +111,22 @@ export function UserPanel({
       />
 
       {unreadNotifications.value > 0 && (
-        <IconButton href={notificationsHref ?? null} title="Notifications">
+        <IconButton href={notificationsHref ?? null} title={c('notifications')}>
           <BellIcon />
-          <CountBadge value={unreadNotifications} label="unread notifications" />
+          <CountBadge value={unreadNotifications} label={c('unreadNotifications')} />
         </IconButton>
       )}
 
       {unreadMessages.value > 0 && (
-        <IconButton href={messagesHref ?? null} title="Messages">
+        <IconButton href={messagesHref ?? null} title={c('messages')}>
           <MessageIcon />
-          <CountBadge value={unreadMessages} label="unread messages" />
+          <CountBadge value={unreadMessages} label={c('unreadMessages')} />
         </IconButton>
       )}
 
       <div data-account="menu" className="flex min-w-0 items-center">
         <Menu
-          label="Your account"
+          label={c('accountAriaLabel')}
           items={links}
           trigger={
             <>
@@ -138,7 +142,7 @@ export function UserPanel({
       <nav
         data-account="plain"
         style={{ display: 'none' }}
-        aria-label="Your account"
+        aria-label={c('accountAriaLabel')}
         className="flex-wrap items-center gap-x-3 gap-y-1 text-xs"
       >
         <span className="font-semibold text-foreground">{name}</span>

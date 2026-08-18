@@ -7,11 +7,13 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { boardSecurityActivity } from '@/server/auth-events'
 import { getContainer } from '@/server/container'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { authEventLabel, describeAddress, describeDevice } from '@/view/security-activity'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Sign-in activity' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.sign-in-activity') }
+}
 
 const PAGE_SIZE = 50
 
@@ -45,25 +47,19 @@ export default async function AdminSecurityPage({
 
   return (
     <PanelPage
-      title="Sign-in activity"
-      lede={
-        <>
-          Every authentication event on this board, newest first: who signed in, what was refused,
-          and what members changed about how they get in. Separate from the admin log, which records
-          what was done once somebody was already inside.
-        </>
-      }
+      title={await tr('page.sign-in-activity')}
+      lede={translator.t('adminSecurity.lede')}
       width="wide"
     >
       <form method="get" className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Kind</span>
+          <span className="font-medium">{translator.t('adminSecurity.kind')}</span>
           <select
             name="kind"
             defaultValue={kind ?? ''}
             className="h-9 rounded-md border border-border bg-background px-2 text-sm"
           >
-            <option value="">Everything</option>
+            <option value="">{translator.t('adminSecurity.everything')}</option>
             {AUTH_EVENT_KINDS.map((value) => (
               <option key={value} value={value}>
                 {authEventLabel(value, translator)}
@@ -75,12 +71,12 @@ export default async function AdminSecurityPage({
           type="submit"
           className="h-9 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted"
         >
-          Filter
+          {translator.t('adminSecurity.filter')}
         </button>
       </form>
 
       {page.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nothing recorded yet.</p>
+        <p className="text-sm text-muted-foreground">{await tr('page.nothing-recorded-yet')}</p>
       ) : (
         <ul className={PANEL_LIST}>
           {page.map((event) => (
@@ -89,8 +85,9 @@ export default async function AdminSecurityPage({
                 <span className="font-medium">{authEventLabel(event.kind, translator)}</span>
                 <span className="text-xs text-muted-foreground">
                   {event.userId === null
-                    ? 'no account named'
-                    : (names.get(event.userId) ?? `member ${event.userId}`)}{' '}
+                    ? translator.t('adminSecurity.noAccount')
+                    : (names.get(event.userId) ??
+                      translator.t('adminSecurity.member', { id: event.userId }))}{' '}
                   · {describeDevice(event.userAgent, translator)} ·{' '}
                   {describeAddress(event.ipPrefix)}
                 </span>
@@ -108,7 +105,7 @@ export default async function AdminSecurityPage({
           href={`/admin/security?before=${more}${kind === undefined ? '' : `&kind=${kind}`}`}
           className="text-sm underline underline-offset-4"
         >
-          Older activity
+          {await tr('page.older-activity')}
         </a>
       )}
     </PanelPage>

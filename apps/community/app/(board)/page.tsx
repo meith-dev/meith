@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { LiveRegion } from '@/components/board/live-region'
 import { liveAnnouncements } from '@/server/announcements'
@@ -9,7 +9,7 @@ import { refreshLatestPanels } from '@/server/board-latest-actions'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { boardRegion, filterView, viewerRef } from '@/server/plugin-view'
 import { presenceRepository, readOnline } from '@/server/presence'
 import { readTotals } from '@/server/stats'
@@ -19,7 +19,9 @@ import { buildBoardIndexView } from '@/view/board-index'
 import { distinctUserIds } from '@/view/member-identity'
 import { buildBoardStatsModel, buildWhoIsOnlineModel } from '@/view/presence'
 
-export const metadata: Metadata = { title: 'Forums' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.forums') }
+}
 
 export default async function BoardIndexPage() {
   const actor = await getActor()
@@ -69,12 +71,13 @@ export default async function BoardIndexPage() {
     t: translator,
   })
 
-  const Announcement = requireSlot(await currentTheme(), 'Announcement')
-  const BoardIndex = requireSlot(await currentTheme(), 'BoardIndex')
-  const CategoryBlock = requireSlot(await currentTheme(), 'CategoryBlock')
-  const ForumRow = requireSlot(await currentTheme(), 'ForumRow')
-  const BoardStats = requireSlot(await currentTheme(), 'BoardStats')
-  const WhoIsOnline = requireSlot(await currentTheme(), 'WhoIsOnline')
+  const theme = await currentTheme()
+  const Announcement = requireSlot(theme, 'Announcement')
+  const BoardIndex = requireSlot(theme, 'BoardIndex')
+  const CategoryBlock = requireSlot(theme, 'CategoryBlock')
+  const ForumRow = requireSlot(theme, 'ForumRow')
+  const BoardStats = requireSlot(theme, 'BoardStats')
+  const WhoIsOnline = requireSlot(theme, 'WhoIsOnline')
 
   const pluginContext = viewerRef(actor)
 
@@ -130,20 +133,34 @@ export default async function BoardIndexPage() {
       ...view.index,
       regions: {
         categories: blocks.map((entry) => (
-          <CategoryBlock key={entry.block.category.id} category={entry.block.category}>
+          <CategoryBlock
+            key={entry.block.category.id}
+            category={entry.block.category}
+            copy={slotCopy(theme, 'CategoryBlock', translator)}
+          >
             {entry.forums.map((row) => (
-              <ForumRow key={row.forum.id} {...row} />
+              <ForumRow
+                key={row.forum.id}
+                {...row}
+                copy={slotCopy(theme, 'ForumRow', translator)}
+              />
             ))}
           </CategoryBlock>
         )),
-        stats: stats === null ? null : <BoardStats {...stats} />,
-        online: whoIsOnline === null ? null : <WhoIsOnline {...whoIsOnline} />,
+        stats:
+          stats === null ? null : (
+            <BoardStats {...stats} copy={slotCopy(theme, 'BoardStats', translator)} />
+          ),
+        online:
+          whoIsOnline === null ? null : (
+            <WhoIsOnline {...whoIsOnline} copy={slotCopy(theme, 'WhoIsOnline', translator)} />
+          ),
         latest:
           latest === null ? null : (
             <LiveRegion
               refresh={refreshLatestPanels}
               seconds={LATEST_REFRESH_SECONDS}
-              label="Latest activity"
+              label={translator.t('board.index.latestActivity')}
             >
               {latest}
             </LiveRegion>
@@ -157,6 +174,7 @@ export default async function BoardIndexPage() {
                   // biome-ignore lint/suspicious/noArrayIndexKey: the position is the identity — this list is server-rendered in order and never reordered on the client
                   key={position}
                   {...announcement}
+                  copy={slotCopy(theme, 'Announcement', translator)}
                 />
               )),
             }),
@@ -167,7 +185,7 @@ export default async function BoardIndexPage() {
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
-      <BoardIndex {...index} />
+      <BoardIndex {...index} copy={slotCopy(theme, 'BoardIndex', translator)} />
     </main>
   )
 }

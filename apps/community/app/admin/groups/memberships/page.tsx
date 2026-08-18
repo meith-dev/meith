@@ -5,8 +5,12 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { groupAdminRepository } from '@/server/group-admin'
+import { getTranslator, tr } from '@/server/i18n'
+import { groupAdminCopy } from '@/view/admin-group-copy'
 
-export const metadata: Metadata = { title: 'Mass membership change' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.mass-membership-change') }
+}
 
 export default async function AdminMembershipsPage() {
   if ((await adminPageContext()) === null) return null
@@ -14,26 +18,22 @@ export default async function AdminMembershipsPage() {
   const repository = groupAdminRepository()
   if (repository === null) {
     return (
-      <PanelPage title="Mass membership change">
+      <PanelPage title={await tr('page.mass-membership-change')}>
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so its memberships cannot be edited.
+          {await tr('page.this-board-running-in-memory-sample-7')}
         </p>
       </PanelPage>
     )
   }
 
   const groups = await repository.list()
+  const translator = await getTranslator()
 
   return (
     <PanelPage
-      back={{ href: '/admin/groups', label: 'All groups' }}
-      title="Mass membership change"
-      lede={
-        <>
-          Moves every member of one group into another, a batch at a time. The counts beside each
-          group are how many members it holds now.
-        </>
-      }
+      back={{ href: '/admin/groups', label: translator.t('adminGroups.all') }}
+      title={await tr('page.mass-membership-change')}
+      lede={translator.t('adminGroups.membershipsLede')}
     >
       <section className={PANEL_CARD}>
         <MoveMembersForm
@@ -42,13 +42,14 @@ export default async function AdminMembershipsPage() {
             title: group.title,
             memberCount: group.memberCount,
           }))}
+          copy={groupAdminCopy(translator)}
         />
       </section>
 
       <p className="text-xs text-muted-foreground">
-        This changes members&rsquo; <strong>primary</strong> group, which is what decides their
-        permissions and the badge beside their name. It is not reversible except by moving them
-        back.
+        {translator.t('adminGroups.membershipsBefore')}{' '}
+        <strong>{translator.t('adminGroups.primary')}</strong>
+        {translator.t('adminGroups.membershipsAfter')}
       </p>
     </PanelPage>
   )

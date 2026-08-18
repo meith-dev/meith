@@ -210,7 +210,7 @@ describe('registerAction', () => {
   it('refuses an account when the terms were not accepted', async () => {
     const state = await registerAction(EMPTY_STATE, form({ ...CREDS, terms: '' }))
 
-    expect(state.error).toContain('terms of service')
+    expect(state.error).toContain('Terms of service')
     expect(state.values?.terms).toBeUndefined()
   })
 

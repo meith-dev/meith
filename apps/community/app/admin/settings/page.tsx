@@ -8,12 +8,15 @@ import { AdminSettingsForm } from '@/components/admin/settings-form'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { boardUrlResolution } from '@/server/board-url'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { assessMailReadiness } from '@/server/mail-health'
 import { getSettings } from '@/server/settings'
+import { mailTestCardCopy, settingsFormCopy } from '@/view/admin-panel-copy'
 import { buildAdminSettingsModel, DEFAULT_SETTING_GROUP, settingsHref } from '@/view/admin-settings'
 
-export const metadata: Metadata = { title: 'Board settings' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.board-settings') }
+}
 
 export default async function AdminSettingsPage({
   searchParams,
@@ -27,12 +30,13 @@ export default async function AdminSettingsPage({
   if (query.group === undefined && query.q === undefined) {
     redirect(settingsHref({ group: DEFAULT_SETTING_GROUP, advanced: query.advanced === '1' }))
   }
+  const t = await getTranslator()
   const model = buildAdminSettingsModel({
     snapshot: await getSettings(),
     query: query.q,
     group: query.group,
     advanced: query.advanced === '1',
-    t: await getTranslator(),
+    t,
   })
 
   const mail =
@@ -43,25 +47,17 @@ export default async function AdminSettingsPage({
   const address = model.activeGroup === 'board' ? await boardUrlResolution() : null
 
   return (
-    <PanelPage
-      title="Board settings"
-      lede={
-        <>
-          Every setting this build has, with what it does. A value equal to its default is not
-          stored, so changing a default in a later release reaches a board that never touched it.
-        </>
-      }
-    >
+    <PanelPage title={await tr('page.board-settings')} lede={t.t('adminSettings.lede')}>
       <Card>
         <CardContent className="flex flex-wrap items-center gap-3 p-3">
           <form method="get" className="flex min-w-64 flex-1 items-center gap-2">
             <label className="flex-1">
-              <span className="sr-only">Search settings</span>
+              <span className="sr-only">{await tr('page.search-settings')}</span>
               <Input
                 type="search"
                 name="q"
                 defaultValue={model.query}
-                placeholder="Search every group by name or description"
+                placeholder={t.t('adminSettings.searchPlaceholder')}
               />
             </label>
             {model.showAdvanced && <input type="hidden" name="advanced" value="1" />}
@@ -82,27 +78,30 @@ export default async function AdminSettingsPage({
                 'shrink-0',
               )}
             >
-              {model.showAdvanced ? 'Hide advanced' : `Show ${model.hiddenAdvanced} advanced`}
+              {model.showAdvanced
+                ? t.t('adminSettings.hideAdvanced')
+                : t.t('adminSettings.showAdvanced', { count: model.hiddenAdvanced })}
             </a>
           )}
         </CardContent>
 
         <CardFooter>
           {model.query === ''
-            ? `${model.total} setting${model.total === 1 ? '' : 's'} in ${
-                model.groups[0]?.label ?? 'this group'
-              }.`
-            : `${model.total} match${model.total === 1 ? '' : 'es'} for “${model.query}”, across every group.`}
-          {model.showAdvanced && ' Advanced settings are shown.'}
+            ? t.t('adminSettings.settingCount', {
+                count: model.total,
+                group: model.groups[0]?.label ?? t.t('adminSettings.thisGroup'),
+              })
+            : t.t('adminSettings.matchCount', { count: model.total, query: model.query })}
+          {model.showAdvanced && t.t('adminSettings.advancedShown')}
         </CardFooter>
       </Card>
 
       {address?.source === 'environment' && (
         <section className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
           <p>
-            The board’s address is <code>{address.url}</code>, from <code>APP_URL</code> in this
-            deployment’s environment. It overrides the “Board address” field below, which is stored
-            but not read until <code>APP_URL</code> is unset and the board redeployed.
+            {t.t('adminSettings.environmentAddressBefore')} <code>{address.url}</code>
+            {t.t('adminSettings.environmentAddressAfterUrl')} <code>APP_URL</code>
+            {t.t('adminSettings.environmentAddressEnd')}
           </p>
         </section>
       )}
@@ -113,13 +112,9 @@ export default async function AdminSettingsPage({
           className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
         >
           <h2 className="font-heading text-lg font-semibold text-destructive">
-            This board does not know its own address
+            {await tr('page.this-board-does-not-know')}
           </h2>
-          <p className="text-sm">
-            Every link the board sends is built from it, so password resets and confirmations arrive
-            carrying no link at all — they are polite and useless. Feeds and canonical URLs fall
-            back to a localhost address. Set “Board address” below.
-          </p>
+          <p className="text-sm">{t.t('adminSettings.noAddress')}</p>
         </section>
       )}
 
@@ -128,6 +123,7 @@ export default async function AdminSettingsPage({
           summary={mail.summary}
           sends={mail.sends}
           fromEnvironment={mail.source === 'environment'}
+          copy={mailTestCardCopy(t)}
         />
       )}
 
@@ -137,7 +133,7 @@ export default async function AdminSettingsPage({
           className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
         >
           <h2 className="font-heading text-lg font-semibold text-destructive">
-            Nobody can finish registering
+            {await tr('page.nobody-can-finish-registering')}
           </h2>
           <p className="text-sm">
             The activation method is{' '}
@@ -147,27 +143,29 @@ export default async function AdminSettingsPage({
             would release it never arrives.
           </p>
           <p className="text-sm">
-            Either set the activation method to <strong className="font-medium">none</strong> or{' '}
-            <strong className="font-medium">admin</strong>, or{' '}
+            {t.t('adminSettings.fixActivationBefore')} <strong className="font-medium">none</strong>{' '}
+            {t.t('adminSettings.fixActivationBetween')}{' '}
+            <strong className="font-medium">admin</strong>
+            {t.t('adminSettings.fixActivationAfter')}
             {mail.source === 'environment' ? (
               <>
-                complete the <code>MAIL_*</code> variables in this deployment’s environment and
-                redeploy — <code>MAIL_DRIVER</code> is set, so it overrides the mail settings
-                screen.
+                {t.t('adminSettings.environmentMailBefore')} <code>MAIL_*</code>
+                {t.t('adminSettings.environmentMailBetween')} <code>MAIL_DRIVER</code>
+                {t.t('adminSettings.environmentMailEnd')}
               </>
             ) : (
               <>
                 <a href={settingsHref({ group: 'mail' })} className="underline">
-                  configure mail
+                  {t.t('adminSettings.configureMail')}
                 </a>
-                , which takes effect without a redeploy and has a button to prove it works.
+                {t.t('adminSettings.configureMailEnd')}
               </>
             )}
           </p>
         </section>
       )}
 
-      <AdminSettingsForm groups={model.groups} />
+      <AdminSettingsForm groups={model.groups} copy={settingsFormCopy(t)} />
     </PanelPage>
   )
 }

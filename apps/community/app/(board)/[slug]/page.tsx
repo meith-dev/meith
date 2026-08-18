@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { FollowForm } from '@/components/account/subscription-forms'
 import { SectionPage } from '@/components/board/section-page'
@@ -20,6 +20,7 @@ import { filterView, viewerRef } from '@/server/plugin-view'
 import { getSettings } from '@/server/settings'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { followFormCopy } from '@/view/account-copy'
 import { buildBreadcrumb } from '@/view/breadcrumb'
 import { decodeForumCursor } from '@/view/forum-cursor'
 import { buildForumDisplayView } from '@/view/forum-display'
@@ -27,6 +28,7 @@ import { forumNotice } from '@/view/forum-notice'
 import { anyInlineTool, INLINE_FORM_ID, selectionFor } from '@/view/inline-moderation'
 import { distinctUserIds } from '@/view/member-identity'
 import { canonicalPath } from '@/view/metadata'
+import { moderationFormsCopy } from '@/view/moderation-copy'
 import { buildOffsetPager, offsetOf } from '@/view/pager'
 import { leadingId } from '@/view/slug-id'
 import { buildSubscriptionsView } from '@/view/subscriptions'
@@ -39,28 +41,31 @@ export async function generateMetadata({
   searchParams: Promise<{ page?: string }>
 }): Promise<Metadata> {
   const [{ slug }, query] = await Promise.all([params, searchParams])
+  const translator = await getTranslator()
   const id = leadingId(slug)
-  if (id === null) return { title: 'Forum' }
+  if (id === null) return { title: translator.t('board.forum.title') }
 
   const actor = await getActor()
   const { forums, authorizer } = getContainer()
 
   const forum = await forums.findById(id)
-  if (!forum || forum.type === 'link') return { title: 'Forum' }
+  if (!forum || forum.type === 'link') return { title: translator.t('board.forum.title') }
 
   if (forum.type === 'category') {
     const visible = await authorizer.visibleForumIds(actor)
-    if (!visible.includes(forum.id)) return { title: 'Forum' }
+    if (!visible.includes(forum.id)) return { title: translator.t('board.forum.title') }
     return {
       title: forum.title,
-      description: forum.description ?? `Forums in ${forum.title}.`,
+      description:
+        forum.description ??
+        translator.t('board.forum.categoryDescription', { title: forum.title }),
       alternates: { canonical: canonicalPath({ path: `/${forum.id}-${forum.slug}`, page: 1 }) },
     }
   }
 
   const matrix = await authorizer.forumMatrix(actor, forum.id)
   if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) {
-    return { title: 'Forum' }
+    return { title: translator.t('board.forum.title') }
   }
 
   const page = Number(query.page ?? '1')
@@ -68,7 +73,8 @@ export async function generateMetadata({
     path: `/${forum.id}-${forum.slug}`,
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
   })
-  const description = forum.description ?? `Discussions in ${forum.title}.`
+  const description =
+    forum.description ?? translator.t('board.forum.description', { title: forum.title })
 
   return {
     title: forum.title,
@@ -128,6 +134,7 @@ export default async function ForumPage({
     notFound()
 
   const actor = await getActor()
+  const translator = await getTranslator()
   const { forums, threads, authorizer, readState, threadWrites, inlineModeration } = getContainer()
   const [rows, listing, read] = await Promise.all([
     forums.listListing(),
@@ -239,15 +246,16 @@ export default async function ForumPage({
     t: await getTranslator(),
   })
 
-  const Announcement = requireSlot(await currentTheme(), 'Announcement')
-  const ForumDisplay = requireSlot(await currentTheme(), 'ForumDisplay')
-  const Navigation = requireSlot(await currentTheme(), 'Navigation')
-  const Notice = requireSlot(await currentTheme(), 'Notice')
-  const ThreadRow = requireSlot(await currentTheme(), 'ThreadRow')
-  const SubforumList = requireSlot(await currentTheme(), 'SubforumList')
-  const Pagination = requireSlot(await currentTheme(), 'Pagination')
+  const theme = await currentTheme()
+  const Announcement = requireSlot(theme, 'Announcement')
+  const ForumDisplay = requireSlot(theme, 'ForumDisplay')
+  const Navigation = requireSlot(theme, 'Navigation')
+  const Notice = requireSlot(theme, 'Notice')
+  const ThreadRow = requireSlot(theme, 'ThreadRow')
+  const SubforumList = requireSlot(theme, 'SubforumList')
+  const Pagination = requireSlot(theme, 'Pagination')
 
-  const notice = forumNotice(query, await getTranslator())
+  const notice = forumNotice(query, translator)
 
   const pluginContext = { ...viewerRef(actor), forumId: id }
 
@@ -279,16 +287,16 @@ export default async function ForumPage({
 
   const orderTabs = (
     <ViewTabs
-      label="Thread order"
+      label={translator.t('board.forum.threadOrder')}
       tabs={[
         {
           href: `/${id}-${forum.slug}`,
-          label: 'Latest',
+          label: translator.t('board.forum.latest'),
           isCurrent: sort === 'activity',
         },
         {
           href: `/${id}-${forum.slug}?sort=rating`,
-          label: 'Top rated',
+          label: translator.t('board.forum.topRated'),
           isCurrent: sort === 'rating',
         },
       ]}
@@ -310,14 +318,20 @@ export default async function ForumPage({
                   mode={followMode}
                   modes={followModes}
                   back={`/${id}-${forum.slug}`}
-                  label="Follow this forum"
+                  label={(await getTranslator()).t('accountForm.follow.forum')}
+                  copy={followFormCopy(await getTranslator())}
                 />
               ),
             }
           : {}),
-        subforums: subforums === null ? null : <SubforumList {...subforums} />,
-        threads: threadRows.map((row) => <ThreadRow key={row.thread.id} {...row} />),
-        pagination: <Pagination {...pagination} />,
+        subforums:
+          subforums === null ? null : (
+            <SubforumList {...subforums} copy={slotCopy(theme, 'SubforumList', translator)} />
+          ),
+        threads: threadRows.map((row) => (
+          <ThreadRow key={row.thread.id} {...row} copy={slotCopy(theme, 'ThreadRow', translator)} />
+        )),
+        pagination: <Pagination {...pagination} copy={slotCopy(theme, 'Pagination', translator)} />,
         ...(announcements.length === 0
           ? {}
           : {
@@ -326,6 +340,7 @@ export default async function ForumPage({
                   // biome-ignore lint/suspicious/noArrayIndexKey: the position is the identity — this list is server-rendered in order and never reordered on the client
                   key={position}
                   {...announcement}
+                  copy={slotCopy(theme, 'Announcement', translator)}
                 />
               )),
             }),
@@ -343,16 +358,22 @@ export default async function ForumPage({
 
   return (
     <>
-      <Navigation items={trail} />
+      <Navigation items={trail} copy={slotCopy(theme, 'Navigation', translator)} />
       <main id="board-content" tabIndex={-1} className="flex-1">
         {notice !== null && (
           <div className={`${BOARD_MEASURE} pt-6`}>
-            <Notice kind="info" message={notice} dismissHref={`/${id}-${forum.slug}`} />
+            <Notice
+              kind="info"
+              message={notice}
+              dismissHref={`/${id}-${forum.slug}`}
+              copy={slotCopy(theme, 'Notice', translator)}
+            />
           </div>
         )}
-        <ForumDisplay {...forumDisplayModel} />
+        <ForumDisplay {...forumDisplayModel} copy={slotCopy(theme, 'ForumDisplay', translator)} />
         {inlineOffered && (
           <InlineModerationForm
+            copy={moderationFormsCopy(await getTranslator())}
             formId={INLINE_FORM_ID}
             scope="threads"
             rights={inlineRights}

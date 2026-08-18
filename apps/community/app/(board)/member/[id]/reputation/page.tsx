@@ -1,19 +1,22 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { RateMemberForm, WithdrawRatingForm } from '@/components/account/reputation-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { reputationService, reputationSettings, viewerRaterLimits } from '@/server/reputation'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { rateMemberFormCopy } from '@/view/account-copy'
 import { buildReputationView, reputationLabel, reputationNotice } from '@/view/reputation'
 import { numericId } from '@/view/slug-id'
 
-export const metadata: Metadata = { title: 'Reputation' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.reputation') }
+}
 
 export default async function ReputationPage({
   params,
@@ -86,7 +89,12 @@ export default async function ReputationPage({
     <main id="board-content" tabIndex={-1} className="flex-1">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
         {notice !== null && (
-          <Notice kind={notice.kind} message={notice.message} dismissHref={returnTo} />
+          <Notice
+            kind={notice.kind}
+            message={notice.message}
+            dismissHref={returnTo}
+            copy={slotCopy(await currentTheme(), 'Notice', translator)}
+          />
         )}
 
         <div className="flex flex-col gap-1">
@@ -100,14 +108,13 @@ export default async function ReputationPage({
             href={`/member/${id}`}
             className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Back to their profile
+            {await tr('page.back-their-profile')}
           </a>
         </div>
 
         {mayRate && (
           <RateMemberForm
             userId={id}
-            username={profile.username}
             postId={postId}
             returnTo={returnTo}
             allowNegative={settings.allowNegative}
@@ -115,11 +122,14 @@ export default async function ReputationPage({
             existingComment={existing?.comment ?? null}
             existingPoints={existing?.points ?? null}
             remainingLabel={view.remainingLabel}
+            copy={rateMemberFormCopy(profile.username, translator)}
           />
         )}
 
         {view.rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nobody has rated them yet.</p>
+          <p className="text-sm text-muted-foreground">
+            {await tr('page.nobody-has-rated-them-yet')}
+          </p>
         ) : (
           <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
             {view.rows.map((row) => (
@@ -159,7 +169,12 @@ export default async function ReputationPage({
                   )}
                   {row.isMine && (
                     <span className="ml-auto">
-                      <WithdrawRatingForm ratingId={row.id} userId={id} returnTo={returnTo} />
+                      <WithdrawRatingForm
+                        ratingId={row.id}
+                        userId={id}
+                        returnTo={returnTo}
+                        copy={rateMemberFormCopy(profile.username, translator)}
+                      />
                     </span>
                   )}
                 </div>
@@ -179,7 +194,7 @@ export default async function ReputationPage({
             href={view.nextHref}
             className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Older ratings
+            {await tr('page.older-ratings')}
           </a>
         )}
       </div>

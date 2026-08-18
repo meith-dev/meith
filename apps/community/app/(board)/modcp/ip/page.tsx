@@ -18,12 +18,14 @@ import {
 
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { resolveModCpAccess } from '@/server/modcp'
 import { memberHref } from '@/view/member-profile'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Address lookup' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.address-lookup') }
+}
 
 function positiveInt(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d*$/.test(value)) return null
@@ -31,10 +33,10 @@ function positiveInt(value: string | undefined): number | null {
   return Number.isSafeInteger(n) ? n : null
 }
 
-const MATCH_LABELS: Readonly<Record<string, string>> = {
-  registration: 'registered from this range',
-  last_visit: 'last visited from this range',
-  both: 'registered and last visited from this range',
+const MATCH_LABEL_KEYS: Readonly<Record<string, string>> = {
+  registration: 'board.ip.registration',
+  last_visit: 'board.ip.lastVisit',
+  both: 'board.ip.both',
 }
 
 export default async function IpLookupPage({
@@ -65,26 +67,17 @@ export default async function IpLookupPage({
   const translator = await getTranslator()
 
   return (
-    <PanelPage
-      title="Address lookup"
-      lede={
-        <>
-          Finds accounts that share a stored address <em>range</em> with a member. The board never
-          stores a full address, so this is evidence to follow up, not proof. Every lookup is
-          recorded in the moderator log.
-        </>
-      }
-    >
+    <PanelPage title={await tr('page.address-lookup')} lede={translator.t('board.ip.hint')}>
       <Card>
         <CardContent>
           <form method="get" className="flex flex-wrap items-end gap-3">
-            <Field name="user" label="Member id" className="w-40">
+            <Field name="user" label={translator.t('board.ip.memberId')} className="w-40">
               {(control) => (
                 <Input {...control} type="number" min={1} defaultValue={subjectId ?? ''} />
               )}
             </Field>
             <button type="submit" className={buttonVariants()}>
-              Look up
+              {await tr('page.look-up')}
             </button>
           </form>
         </CardContent>
@@ -92,14 +85,14 @@ export default async function IpLookupPage({
 
       {subjectId !== null && subject === null && (
         <Alert tone="warning">
-          <AlertDescription>No such member.</AlertDescription>
+          <AlertDescription>{await tr('page.no-such-member')}</AlertDescription>
         </Alert>
       )}
 
       {subject !== null && result !== null && (
         <PanelSection
           id="matches-heading"
-          title={`Accounts sharing a range with ${subject.username}`}
+          title={translator.t('board.ip.matches', { username: subject.username })}
           description={
             <>
               <a
@@ -108,18 +101,24 @@ export default async function IpLookupPage({
               >
                 {subject.username}
               </a>
-              . Ranges on record: registration{' '}
-              <code className="font-mono">{result.prefixes.registration ?? 'none'}</code>, last
-              visit <code className="font-mono">{result.prefixes.lastVisit ?? 'none'}</code>.
+              . {translator.t('board.ip.ranges')} {translator.t('board.ip.registration')}{' '}
+              <code className="font-mono">
+                {result.prefixes.registration ?? translator.t('board.ip.none')}
+              </code>
+              ,{translator.t('board.ip.lastVisit')}{' '}
+              <code className="font-mono">
+                {result.prefixes.lastVisit ?? translator.t('board.ip.none')}
+              </code>
+              .
             </>
           }
         >
           <Card>
             {result.matches.length === 0 ? (
               <Empty className="py-8">
-                <EmptyTitle>No shared range</EmptyTitle>
+                <EmptyTitle>{await tr('page.no-shared-range')}</EmptyTitle>
                 <EmptyDescription>
-                  No other account shares a recorded range with this member.
+                  {await tr('page.no-other-account-shares-recorded')}
                 </EmptyDescription>
               </Empty>
             ) : (
@@ -136,11 +135,11 @@ export default async function IpLookupPage({
                       {match.username}
                     </a>
                     <span className="text-xs text-muted-foreground">
-                      {MATCH_LABELS[match.matchedOn] ?? match.matchedOn}
+                      {translator.t(MATCH_LABEL_KEYS[match.matchedOn] ?? 'board.ip.unknown')}
                       {match.lastActiveAt !== null && (
                         <>
                           {' '}
-                          · last seen{' '}
+                          · {translator.t('board.ip.lastSeen')}{' '}
                           <time dateTime={formatTime(match.lastActiveAt, now, translator).iso}>
                             {formatTime(match.lastActiveAt, now, translator).label}
                           </time>

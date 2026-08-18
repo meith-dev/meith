@@ -12,12 +12,14 @@ import {
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { parseUserFilter, USER_PAGE, userAdminRepository } from '@/server/user-admin'
 import { readPage } from '@/view/pager'
 import { formatTime } from '@/view/time'
 
-export const metadata: Metadata = { title: 'Members' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.members') }
+}
 
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -32,10 +34,9 @@ export default async function AdminUsersPage({
   const repository = userAdminRepository()
   if (repository === null) {
     return (
-      <PanelPage title="Members" width="wide">
+      <PanelPage title={await tr('page.members')} width="wide">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so its members cannot be searched or
-          edited.
+          {await tr('adminUsers.inMemorySearch')}
         </p>
       </PanelPage>
     )
@@ -54,45 +55,38 @@ export default async function AdminUsersPage({
   }
 
   return (
-    <PanelPage
-      title="Members"
-      lede={
-        <>
-          Every criterion is combined, and every one is optional — an empty search is everybody. The
-          filter is in the address bar, so this page can be bookmarked or handed to somebody else.
-        </>
-      }
-      width="wide"
-    >
+    <PanelPage title={await tr('page.members')} lede={translator.t('adminUsers.lede')} width="wide">
       <nav className="flex flex-wrap gap-2">
-        <PanelActionLink href="/admin/users/prune">Prune dormant accounts</PanelActionLink>
-        <PanelActionLink href="/admin/users/mail">Mass mail</PanelActionLink>
+        <PanelActionLink href="/admin/users/prune">
+          {await tr('page.prune-dormant-accounts')}
+        </PanelActionLink>
+        <PanelActionLink href="/admin/users/mail">{await tr('page.mass-mail')}</PanelActionLink>
       </nav>
 
       <form method="get" className={PANEL_CARD}>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <label className="col-span-2 flex flex-col gap-1 text-sm sm:col-span-1">
-            <span className="font-medium">Username contains</span>
+            <span className="font-medium">{await tr('page.username-contains')}</span>
             <input name="username" defaultValue={value('username')} className={INPUT} />
           </label>
 
           <label className="col-span-2 flex flex-col gap-1 text-sm sm:col-span-1">
-            <span className="font-medium">Email contains</span>
+            <span className="font-medium">{await tr('page.email-contains')}</span>
             <input name="email" defaultValue={value('email')} className={INPUT} />
           </label>
 
           <label className="col-span-2 flex flex-col gap-1 text-sm sm:col-span-1">
-            <span className="font-medium">IP starts with</span>
+            <span className="font-medium">{await tr('page.ip-starts-with')}</span>
             <input name="ip" defaultValue={value('ip')} className={INPUT} />
             <span className="text-xs text-muted-foreground">
-              Only a prefix is ever stored, so this is a network.
+              {await tr('page.only-prefix-ever-stored-so')}
             </span>
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Group</span>
+            <span className="font-medium">{translator.t('adminUsers.group')}</span>
             <select name="group" defaultValue={value('group')} className={INPUT}>
-              <option value="">— any —</option>
+              <option value="">{translator.t('adminUsers.any')}</option>
               {groups.map((group) => (
                 <option key={group.id} value={group.id}>
                   {group.title}
@@ -102,27 +96,27 @@ export default async function AdminUsersPage({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">State</span>
+            <span className="font-medium">{translator.t('adminUsers.state')}</span>
             <select name="state" defaultValue={value('state')} className={INPUT}>
-              <option value="">— any —</option>
-              <option value="active">Active</option>
-              <option value="awaiting_activation">Awaiting activation</option>
-              <option value="banned">Banned</option>
+              <option value="">{translator.t('adminUsers.any')}</option>
+              <option value="active">{translator.t('adminUsers.active')}</option>
+              <option value="awaiting_activation">{await tr('page.awaiting-activation')}</option>
+              <option value="banned">{translator.t('adminUsers.banned')}</option>
             </select>
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Registered before</span>
+            <span className="font-medium">{await tr('page.registered-before')}</span>
             <input type="date" name="before" defaultValue={value('before')} className={INPUT} />
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Registered after</span>
+            <span className="font-medium">{await tr('page.registered-after')}</span>
             <input type="date" name="after" defaultValue={value('after')} className={INPUT} />
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Posts at least</span>
+            <span className="font-medium">{await tr('page.posts-at-least')}</span>
             <input
               type="number"
               name="minPosts"
@@ -133,7 +127,7 @@ export default async function AdminUsersPage({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Posts at most</span>
+            <span className="font-medium">{await tr('page.posts-at-most')}</span>
             <input
               type="number"
               name="maxPosts"
@@ -152,7 +146,7 @@ export default async function AdminUsersPage({
             defaultChecked={value('deleted') !== ''}
             className="size-4"
           />
-          <span>Include deleted accounts</span>
+          <span>{await tr('page.include-deleted-accounts')}</span>
         </label>
 
         <div className="flex gap-3">
@@ -160,22 +154,19 @@ export default async function AdminUsersPage({
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            Search
+            {translator.t('adminUsers.search')}
           </button>
           <a
             href="/admin/users"
             className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm"
           >
-            Clear
+            {translator.t('adminUsers.clear')}
           </a>
         </div>
       </form>
 
       {page.rows.length === 0 ? (
-        <p className={PANEL_NOTE}>
-          No members match. An empty result from a filled-in filter is a real answer — check the
-          spelling before widening it.
-        </p>
+        <p className={PANEL_NOTE}>{translator.t('adminUsers.noMatches')}</p>
       ) : (
         <ul className={PANEL_LIST}>
           {page.rows.map((row) => (
@@ -184,32 +175,42 @@ export default async function AdminUsersPage({
                 <span className="truncate text-sm font-medium">
                   {row.username}
                   {row.isBanned ? (
-                    <span className="ml-2 text-xs font-normal text-muted-foreground">banned</span>
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      {translator.t('adminUsers.banned')}
+                    </span>
                   ) : (
                     row.state !== 'active' && (
                       <span className="ml-2 text-xs font-normal text-muted-foreground">
-                        awaiting activation
+                        {translator.t('page.awaiting-activation')}
                       </span>
                     )
                   )}
                   {row.deletedAt !== null && (
-                    <span className="ml-2 text-xs font-normal text-muted-foreground">deleted</span>
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      {translator.t('adminUsers.deleted')}
+                    </span>
                   )}
                 </span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {row.email} · {row.primaryGroupTitle} · {row.postCount} post
-                  {row.postCount === 1 ? '' : 's'}
-                  {row.lastActiveAt === null
-                    ? ' · never seen'
-                    : ` · last seen ${formatTime(row.lastActiveAt, now, translator).label}`}
+                  {translator.t('adminUsers.memberSummary', {
+                    email: row.email,
+                    group: row.primaryGroupTitle,
+                    posts: translator.t('adminUsers.posts', { count: row.postCount }),
+                    lastSeen:
+                      row.lastActiveAt === null
+                        ? translator.t('adminUsers.neverSeen')
+                        : translator.t('adminUsers.lastSeen', {
+                            time: formatTime(row.lastActiveAt, now, translator).label,
+                          }),
+                  })}
                 </span>
               </span>
               <a
                 href={`/admin/users/${row.id}`}
-                aria-label={`Edit ${row.username}`}
+                aria-label={translator.t('adminUsers.editLabel', { username: row.username })}
                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'shrink-0')}
               >
-                Edit
+                {translator.t('adminUsers.edit')}
               </a>
             </li>
           ))}

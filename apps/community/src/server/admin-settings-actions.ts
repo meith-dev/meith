@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { CacheTags, isAppError, logger, ValidationError } from '@meith/core'
 import { getDb, PostgresSettingsRepository } from '@meith/db'
 import { drivers } from '@meith/drivers'
+import { msg } from '@meith/i18n'
 import {
   coerceFormValue,
   SETTING_DEFINITIONS,
@@ -15,6 +16,7 @@ import {
 
 import { recordAdminAction, requireAdmin } from './admin'
 import type { FormState } from './auth-form-state'
+import { tr } from './i18n'
 import { getSettings } from './settings'
 
 function submittedKeys(form: FormData): readonly SettingDefinition[] {
@@ -38,7 +40,7 @@ export async function saveAdminSettingsAction(
 
     const definitions = submittedKeys(form)
     if (definitions.length === 0) {
-      throw new ValidationError('That form submitted no settings.')
+      throw new ValidationError(msg('error.app.form-submitted-settings'))
     }
 
     const updates: Record<string, unknown> = {}
@@ -71,6 +73,6 @@ export async function saveAdminSettingsAction(
   } catch (err) {
     if (isAppError(err)) return { error: err.message }
     logger({ module: 'admin-settings' }).error({ err }, 'failed to save settings')
-    return { error: 'Something went wrong. Please try again.' }
+    return { error: await tr('notice.app.something-went-wrong-please-try') }
   }
 }

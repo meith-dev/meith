@@ -1,9 +1,19 @@
-import type { ThreadViewModel } from '@meith/theme-kit'
+import type { SlotCopy, ThreadViewModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Badge, cn } from '@meith/ui'
 
 import { BUTTON, HEADING, MICRO, MUTED_LINK, NUMERIC, PAGE_BODY, PageHead, Prefix } from '../shared'
 
-export function ThreadView({ thread, forum, replyHref, markReadAction, regions }: ThreadViewModel) {
+export function ThreadView({
+  thread,
+  forum,
+  replyHref,
+  markReadAction,
+  regions,
+  copy,
+}: ThreadViewModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.threadView.${key}`)
+
   return (
     <div className={PAGE_BODY}>
       <PageHead
@@ -18,7 +28,7 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
                     'bg-secondary text-secondary-foreground hover:bg-secondary/80',
                   )}
                 >
-                  Mark read
+                  {c('markRead')}
                 </button>
               </form>
             )}
@@ -27,7 +37,7 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
                 href={replyHref}
                 className={cn(BUTTON, 'bg-primary text-primary-foreground hover:bg-primary-hover')}
               >
-                Reply
+                {c('reply')}
               </a>
             )}
           </>
@@ -41,12 +51,12 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
 
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
           {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
-          {thread.isSticky && <Badge tone="pinned">Pinned</Badge>}
-          {thread.isLocked && <Badge tone="locked">Locked — no new replies</Badge>}
-          {thread.isMoved && <Badge tone="moved">Moved</Badge>}
+          {thread.isSticky && <Badge tone="pinned">{c('pinned')}</Badge>}
+          {thread.isLocked && <Badge tone="locked">{c('lockedNoReplies')}</Badge>}
+          {thread.isMoved && <Badge tone="moved">{c('moved')}</Badge>}
 
           <span className={`${MICRO} ${NUMERIC}`}>
-            {thread.replyCount.label} replies · {thread.viewCount.label} views
+            {thread.replyCount.label} {c('replies')} · {thread.viewCount.label} {c('views')}
           </span>
         </div>
       </PageHead>

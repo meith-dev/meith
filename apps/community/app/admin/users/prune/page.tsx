@@ -4,9 +4,13 @@ import { PruneForm } from '@/components/admin/user-forms'
 import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
+import { getTranslator, tr } from '@/server/i18n'
 import { parsePruneCriteria, userBulkRepository } from '@/server/user-admin'
+import { userPruneCopy } from '@/view/admin-user-copy'
 
-export const metadata: Metadata = { title: 'Prune members' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.prune-members') }
+}
 
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -21,9 +25,9 @@ export default async function AdminPrunePage({
   const repository = userBulkRepository()
   if (repository === null) {
     return (
-      <PanelPage title="Prune members">
+      <PanelPage title={await tr('page.prune-members')}>
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it has no membership to sweep.
+          {await tr('page.this-board-running-in-memory-sample-2')}
         </p>
       </PanelPage>
     )
@@ -32,6 +36,7 @@ export default async function AdminPrunePage({
   const params = await searchParams
   const criteria = parsePruneCriteria(params)
   const preview = criteria === null ? null : await repository.prunePreview(criteria)
+  const translator = await getTranslator()
 
   const value = (key: string): string => {
     const raw = params[key]
@@ -41,31 +46,24 @@ export default async function AdminPrunePage({
 
   return (
     <PanelPage
-      back={{ href: '/admin/users', label: 'All members' }}
-      title="Prune members"
-      lede={
-        <>
-          Closes dormant accounts in batches. It will never touch anybody who has posted — including
-          posts still held for approval or already removed — anybody in a staff group or any group
-          carrying staff powers, any forum moderator, or a banned account. Those are exclusions
-          rather than options, because closing one of them does damage a date filter cannot justify.
-        </>
-      }
+      back={{ href: '/admin/users', label: translator.t('adminUsers.allMembers') }}
+      title={await tr('page.prune-members')}
+      lede={translator.t('adminUsers.pruneLede')}
     >
       <form method="get" className={PANEL_CARD}>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Registered before</span>
+          <span className="font-medium">{await tr('page.registered-before')}</span>
           <input type="date" name="before" defaultValue={value('before')} className={INPUT} />
           <span className="text-xs text-muted-foreground">
-            Required. Without it a prune matches everybody.
+            {await tr('page.required-without-it-prune-matches')}
           </span>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Not seen since</span>
+          <span className="font-medium">{await tr('page.not-seen-since')}</span>
           <input type="date" name="inactive" defaultValue={value('inactive')} className={INPUT} />
           <span className="text-xs text-muted-foreground">
-            Members who have never been seen at all count as inactive.
+            {await tr('page.members-who-have-never-been')}
           </span>
         </label>
 
@@ -77,7 +75,7 @@ export default async function AdminPrunePage({
             defaultChecked={value('awaiting') !== ''}
             className="size-4"
           />
-          <span>Only accounts still awaiting activation</span>
+          <span>{await tr('page.only-accounts-still-awaiting-activation')}</span>
         </label>
 
         <div>
@@ -85,22 +83,19 @@ export default async function AdminPrunePage({
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            Show me
+            {await tr('page.show-me')}
           </button>
         </div>
       </form>
 
       {criteria === null ? (
-        <p className={PANEL_NOTE}>Choose a registration date to see what a prune would reach.</p>
+        <p className={PANEL_NOTE}>{await tr('page.choose-registration-date-see-what')}</p>
       ) : preview !== null && preview.total === 0 ? (
-        <p className={PANEL_NOTE}>
-          Nothing matches. Every account registered before that date has written something, is
-          staff, moderates a forum, or is banned.
-        </p>
+        <p className={PANEL_NOTE}>{translator.t('adminUsers.pruneNoMatches')}</p>
       ) : preview !== null ? (
         <section className={PANEL_CARD}>
           <h2 className="font-heading text-lg font-semibold">
-            {preview.total} account{preview.total === 1 ? '' : 's'} would be closed
+            {translator.t('adminUsers.accountsWouldClose', { count: preview.total })}
           </h2>
 
           <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -112,11 +107,18 @@ export default async function AdminPrunePage({
                 >
                   {row.username}
                 </a>{' '}
-                — {row.email}, registered {row.createdAt.toISOString().slice(0, 10)}
+                {translator.t('adminUsers.pruneMemberMeta', {
+                  email: row.email,
+                  date: row.createdAt.toISOString().slice(0, 10),
+                })}
               </li>
             ))}
             {preview.total > preview.sample.length && (
-              <li>…and {preview.total - preview.sample.length} more.</li>
+              <li>
+                {translator.t('adminUsers.andMore', {
+                  count: preview.total - preview.sample.length,
+                })}
+              </li>
             )}
           </ul>
 
@@ -124,7 +126,7 @@ export default async function AdminPrunePage({
             before={value('before')}
             inactive={value('inactive')}
             awaiting={value('awaiting') !== ''}
-            total={preview.total}
+            copy={userPruneCopy(preview.total, translator)}
           />
         </section>
       ) : null}

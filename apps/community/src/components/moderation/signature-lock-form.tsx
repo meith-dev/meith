@@ -6,12 +6,21 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { setAvatarLockAction, setSignatureLockAction } from '@/server/moderation-actions'
 
 import { FormError } from '../auth/form-controls'
+import { type Copy, fromCopy } from '../shell/copy'
 
 const REASON_INPUT = 'h-8 rounded-md border border-border bg-background px-2 text-xs'
 const LOCK_BUTTON =
   'text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-export function SignatureLockForm({ userId, locked }: { userId: number; locked: boolean }) {
+export function SignatureLockForm({
+  userId,
+  locked,
+  copy,
+}: {
+  userId: number
+  locked: boolean
+  copy: Copy
+}) {
   const [state, action] = useActionState(setSignatureLockAction, EMPTY_STATE)
 
   return (
@@ -23,20 +32,30 @@ export function SignatureLockForm({ userId, locked }: { userId: number; locked: 
       {locked ? null : (
         <input
           name="reason"
-          placeholder="Why (shown to the member)"
+          placeholder={fromCopy(copy, 'moderationForm.lock.why')}
           className={REASON_INPUT}
           required
         />
       )}
 
       <button type="submit" className={LOCK_BUTTON}>
-        {locked ? 'Unlock their signature' : 'Lock their signature'}
+        {locked
+          ? fromCopy(copy, 'moderationForm.lock.unlockSignature')
+          : fromCopy(copy, 'moderationForm.lock.signature')}
       </button>
     </form>
   )
 }
 
-export function AvatarLockForm({ userId, locked }: { userId: number; locked: boolean }) {
+export function AvatarLockForm({
+  userId,
+  locked,
+  copy,
+}: {
+  userId: number
+  locked: boolean
+  copy: Copy
+}) {
   const [state, action] = useActionState(setAvatarLockAction, EMPTY_STATE)
 
   return (
@@ -48,14 +67,16 @@ export function AvatarLockForm({ userId, locked }: { userId: number; locked: boo
       {locked ? null : (
         <input
           name="reason"
-          placeholder="Why (shown to the member)"
+          placeholder={fromCopy(copy, 'moderationForm.lock.why')}
           className={REASON_INPUT}
           required
         />
       )}
 
       <button type="submit" className={LOCK_BUTTON}>
-        {locked ? 'Unlock their avatar' : 'Lock their avatar'}
+        {locked
+          ? fromCopy(copy, 'moderationForm.lock.unlockAvatar')
+          : fromCopy(copy, 'moderationForm.lock.avatar')}
       </button>
     </form>
   )

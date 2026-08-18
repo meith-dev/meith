@@ -16,13 +16,59 @@ import { isUsableOrigin, MAIL_PRESETS, normaliseOrigin } from '@meith/settings'
 import { Alert, AlertDescription, AlertTitle, Disclosure } from '@meith/ui'
 
 import { InstallForm } from '@/components/install/install-form'
+import { getTranslator, tr } from '@/server/i18n'
 import { gatherPreflight, installerIsSealed, probeMail } from '@/server/install'
+import { installFormCopy } from '@/view/install-copy'
 
-export const metadata: Metadata = { title: 'Install' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.install') }
+}
 
 export const dynamic = 'force-dynamic'
 
+const LEVEL_KEYS = {
+  blocker: 'installPreflight.level.blocker',
+  warning: 'installPreflight.level.warning',
+  ok: 'installPreflight.level.ok',
+} as const
+
+const MAIL_PRESET_KEYS: Record<string, { readonly label: string; readonly note: string }> = {
+  mailbox: {
+    label: 'install.mailPreset.mailbox.label',
+    note: 'install.mailPreset.mailbox.note',
+  },
+  'resend-http': {
+    label: 'install.mailPreset.resendHttp.label',
+    note: 'install.mailPreset.resendHttp.note',
+  },
+  'resend-smtp': {
+    label: 'install.mailPreset.resendSmtp.label',
+    note: 'install.mailPreset.resendSmtp.note',
+  },
+  brevo: {
+    label: 'install.mailPreset.brevo.label',
+    note: 'install.mailPreset.brevo.note',
+  },
+  postmark: {
+    label: 'install.mailPreset.postmark.label',
+    note: 'install.mailPreset.postmark.note',
+  },
+  ses: {
+    label: 'install.mailPreset.ses.label',
+    note: 'install.mailPreset.ses.note',
+  },
+  smtp: {
+    label: 'install.mailPreset.smtp.label',
+    note: 'install.mailPreset.smtp.note',
+  },
+  http: {
+    label: 'install.mailPreset.http.label',
+    note: 'install.mailPreset.http.note',
+  },
+}
+
 export default async function InstallPage() {
+  const t = await getTranslator()
   if (await installerIsSealed()) notFound()
 
   const checks = await gatherPreflight()
@@ -34,31 +80,38 @@ export default async function InstallPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-2">
         <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-          Install this board
+          {t.t('page.install-this-board')}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          This page works once. When it finishes it disables itself, and the address stops existing.
-        </p>
+        <p className="text-sm text-muted-foreground">{t.t('page.this-page-works-once-when')}</p>
       </header>
 
       <Preflight checks={checks} />
 
       {ready && (
         <InstallForm
-          presets={MAIL_PRESETS}
-          steps={INSTALL_STEPS}
+          presets={MAIL_PRESETS.map((preset) => ({
+            ...preset,
+            label: t.t(MAIL_PRESET_KEYS[preset.id]?.label ?? preset.label),
+            note: t.t(MAIL_PRESET_KEYS[preset.id]?.note ?? preset.note),
+          }))}
+          steps={INSTALL_STEPS.map((step) => ({
+            id: step.id,
+            title: t.t(step.titleKey),
+            detail: t.t(step.detailKey),
+          }))}
           initialReport={freshReport()}
-          reservedUsernames={DEFAULT_AUTH_POLICY.reservedUsernames}
           mailIsFromEnvironment={mail.source === 'environment'}
           suggestedBoardUrl={suggestedBoardUrl}
           boardUrlIsFromEnvironment={(env.APP_URL ?? '') !== ''}
+          copy={installFormCopy(DEFAULT_AUTH_POLICY.reservedUsernames, t)}
         />
       )}
     </main>
   )
 }
 
-function Preflight({ checks }: { checks: readonly Check[] }) {
+async function Preflight({ checks }: { checks: readonly Check[] }) {
+  const t = await getTranslator()
   const stopping = blockers(checks)
   const warned = warnings(checks)
   const passed = checks.filter((check) => check.level === 'ok')
@@ -69,18 +122,18 @@ function Preflight({ checks }: { checks: readonly Check[] }) {
         id="preflight"
         className="font-heading text-lg font-semibold tracking-tight text-foreground"
       >
-        Before installing
+        {t.t('page.before-installing')}
       </h2>
 
       {stopping.length > 0 && (
         <div role="alert" className="flex flex-col gap-2">
           {stopping.map((check) => (
-            <Finding key={check.id} check={check} />
+            <Finding key={check.id} check={check} t={t} />
           ))}
           <p className="text-sm text-muted-foreground">
             {stopping.length === 1
-              ? 'That has to be fixed before this board can be installed. Fix it, redeploy if it was an environment variable, and reload this page.'
-              : `Those ${stopping.length} things have to be fixed before this board can be installed. Fix them, redeploy if they were environment variables, and reload this page.`}
+              ? t.t('installPreflight.blocker.one')
+              : t.t('installPreflight.blocker.other', { count: stopping.length })}
           </p>
         </div>
       )}
@@ -88,26 +141,27 @@ function Preflight({ checks }: { checks: readonly Check[] }) {
       {stopping.length === 0 ? (
         <>
           {warned.map((check) => (
-            <Finding key={check.id} check={check} />
+            <Finding key={check.id} check={check} t={t} />
           ))}
           {warned.length > 0 && (
             <p className="text-sm text-muted-foreground">
               {warned.length === 1
-                ? 'You can install without resolving that. Nothing will fail at the time — which is what makes it worth reading.'
-                : 'You can install without resolving those. Nothing will fail at the time — which is what makes them worth reading.'}
+                ? t.t('installPreflight.warning.one')
+                : t.t('installPreflight.warning.other')}
             </p>
           )}
         </>
       ) : (
         warned.length > 0 && (
           <Disclosure
-            summary={`${warned.length === 1 ? '1 warning' : `${warned.length} warnings`}${
-              stopping.length === 1 ? ', for after that is fixed' : ', for after those are fixed'
-            }`}
+            summary={t.t('installPreflight.deferredWarnings', {
+              warnings: warned.length,
+              blockers: stopping.length,
+            })}
           >
             <div className="flex flex-col gap-2">
               {warned.map((check) => (
-                <Finding key={check.id} check={check} />
+                <Finding key={check.id} check={check} t={t} />
               ))}
             </div>
           </Disclosure>
@@ -115,16 +169,14 @@ function Preflight({ checks }: { checks: readonly Check[] }) {
       )}
 
       {passed.length > 0 && (
-        <Disclosure
-          summary={passed.length === 1 ? '1 check passed' : `${passed.length} checks passed`}
-        >
+        <Disclosure summary={t.t('installPreflight.passed', { count: passed.length })}>
           <ul className="flex flex-col gap-1 text-sm">
             {passed.map((check) => (
               <li key={check.id} className="flex gap-2">
                 <span aria-hidden className="text-muted-foreground">
                   ✓
                 </span>
-                <span>{check.title}</span>
+                <span>{t.t(check.titleKey, check.titleArgs)}</span>
               </li>
             ))}
           </ul>
@@ -134,17 +186,19 @@ function Preflight({ checks }: { checks: readonly Check[] }) {
   )
 }
 
-function Finding({ check }: { check: Check }) {
+function Finding({ check, t }: { check: Check; t: Awaited<ReturnType<typeof getTranslator>> }) {
   return (
     <Alert tone={check.level === 'blocker' ? 'error' : 'warning'}>
       <AlertDescription>
         <span className="font-mono text-xs uppercase text-muted-foreground">
-          {check.level}
+          {t.t(LEVEL_KEYS[check.level])}
           {' · '}
         </span>
-        <AlertTitle>{check.title}</AlertTitle>
-        {check.detail !== '' && (
-          <span className="mt-1 block text-muted-foreground">{check.detail}</span>
+        <AlertTitle>{t.t(check.titleKey, check.titleArgs)}</AlertTitle>
+        {check.detailKey !== undefined && (
+          <span className="mt-1 block text-muted-foreground">
+            {t.t(check.detailKey, check.detailArgs)}
+          </span>
         )}
       </AlertDescription>
     </Alert>

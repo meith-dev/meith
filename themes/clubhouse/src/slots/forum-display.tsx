@@ -1,4 +1,5 @@
-import type { ForumDisplayModel } from '@meith/theme-kit'
+import type { ForumDisplayModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Card, CardRows, cn, Empty, EmptyAction, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import {
@@ -12,7 +13,15 @@ import {
   PageHead,
 } from '../shared'
 
-export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: ForumDisplayModel) {
+export function ForumDisplay({
+  forum,
+  newThreadHref,
+  markReadAction,
+  regions,
+  copy,
+}: ForumDisplayModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.forumDisplay.${key}`)
+
   return (
     <div className={PAGE_BODY}>
       <PageHead
@@ -27,7 +36,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
                     'bg-secondary text-secondary-foreground hover:bg-secondary/80',
                   )}
                 >
-                  Mark read
+                  {c('markRead')}
                 </button>
               </form>
             )}
@@ -36,7 +45,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
                 href={newThreadHref}
                 className={cn(BUTTON, 'bg-primary text-primary-foreground hover:bg-primary-hover')}
               >
-                New thread
+                {c('newThread')}
               </a>
             )}
           </>
@@ -46,7 +55,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
         <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-xs text-muted-foreground">
           {forum.type !== 'link' && (
             <span className={`${MICRO} ${NUMERIC}`}>
-              {forum.threadCount.label} threads · {forum.postCount.label} posts
+              {forum.threadCount.label} {c('threads')} · {forum.postCount.label} {c('posts')}
             </span>
           )}
           {forum.description !== null && <span>{forum.description}</span>}
@@ -66,11 +75,9 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
       <Card>
         {isEmptyRegion(regions.threads) ? (
           <Empty>
-            <EmptyTitle>No threads here yet</EmptyTitle>
+            <EmptyTitle>{c('noThreadsYet')}</EmptyTitle>
             <EmptyDescription>
-              {newThreadHref === null
-                ? 'Nothing has been posted in this forum.'
-                : 'Nothing has been posted in this forum. Yours would be the first.'}
+              {newThreadHref === null ? c('emptyNoThread') : c('emptyNoThreadFirst')}
             </EmptyDescription>
             {newThreadHref !== null && (
               <EmptyAction>
@@ -81,14 +88,18 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
                     'bg-primary text-primary-foreground hover:bg-primary-hover',
                   )}
                 >
-                  Start the first thread
+                  {c('startFirstThread')}
                 </a>
               </EmptyAction>
             )}
           </Empty>
         ) : (
           <>
-            <ColumnHeads first="Thread" counts={['Replies', 'Views']} last="Latest" />
+            <ColumnHeads
+              first={c('thread')}
+              counts={[c('replies'), c('views')]}
+              last={c('latest')}
+            />
             <CardRows>{regions.threads}</CardRows>
           </>
         )}

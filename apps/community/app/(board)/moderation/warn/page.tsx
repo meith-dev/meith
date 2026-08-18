@@ -2,18 +2,21 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { WarningService } from '@meith/moderation'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { IssueWarningForm, RevokeWarningForm } from '@/components/moderation/warning-forms'
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { currentTheme } from '@/server/theme'
+import { issueWarningFormCopy, moderationFormsCopy } from '@/view/moderation-copy'
 import { buildWarningView, warningNotice } from '@/view/warnings'
 
-export const metadata: Metadata = { title: 'Warn a member' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.warn-member') }
+}
 
 function positiveInt(value: string | undefined): number | null {
   if (value === undefined || !/^[1-9]\d*$/.test(value)) return null
@@ -69,45 +72,42 @@ export default async function WarnPage({
     t: translator,
   })
 
-  const Notice = requireSlot(await currentTheme(), 'Notice')
+  const theme = await currentTheme()
+  const Notice = requireSlot(theme, 'Notice')
   const notice = warningNotice(query, translator)
 
   return (
     <PanelPage
-      title={`Warnings for ${view.member.username}`}
+      title={translator.t('board.warnings.title', { username: view.member.username })}
       back={{ href: view.member.href, label: view.member.username }}
-      lede={
-        <>
-          {view.standing.points} {view.standing.points === 1 ? 'point' : 'points'}
-          {view.standing.levelLabel === null
-            ? '. No threshold reached.'
-            : ` — ${view.standing.levelLabel} at ${view.standing.levelPoints}.`}
-        </>
-      }
+      lede={translator.t('board.warnings.standing', {
+        points: view.standing.points,
+        threshold: view.standing.levelLabel ?? 'none',
+        thresholdPoints: view.standing.levelPoints ?? 0,
+      })}
     >
       {notice !== null && (
         <Notice
           kind="info"
           message={notice}
           dismissHref={`/moderation/warn?user=${view.member.userId}`}
+          copy={slotCopy(theme, 'Notice', translator)}
         />
       )}
 
       <IssueWarningForm
+        copy={issueWarningFormCopy(view.member.username, translator)}
         userId={view.member.userId}
-        username={view.member.username}
         postId={postId}
         types={view.types}
       />
 
-      <PanelSection id="history-heading" title="History">
+      <PanelSection id="history-heading" title={await tr('page.history')}>
         {view.history.length === 0 ? (
           <Card>
             <Empty className="py-8">
-              <EmptyTitle>Never warned</EmptyTitle>
-              <EmptyDescription>
-                This member has no warning on record — nothing issued, and nothing lapsed.
-              </EmptyDescription>
+              <EmptyTitle>{await tr('page.never-warned')}</EmptyTitle>
+              <EmptyDescription>{await tr('page.this-member-has-no-warning')}</EmptyDescription>
             </Empty>
           </Card>
         ) : (
@@ -119,20 +119,26 @@ export default async function WarnPage({
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="text-sm font-medium">
-                    {row.title} — {row.points} {row.points === 1 ? 'point' : 'points'}
+                    {translator.t('board.warnings.item', { title: row.title, count: row.points })}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    by {row.issuedBy} ·{' '}
+                    {translator.t('board.warnings.by', { username: row.issuedBy })} ·{' '}
                     <time dateTime={row.issuedAt.iso}>{row.issuedAt.label}</time>
                   </span>
                 </div>
                 <p className="mt-2 whitespace-pre-wrap break-words text-sm">{row.reason}</p>
                 {row.postId !== null && (
-                  <p className="mt-1 text-xs text-muted-foreground">About post #{row.postId}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {translator.t('board.warnings.aboutPost', { id: row.postId })}
+                  </p>
                 )}
                 {row.lapsed === null ? (
                   <div className="mt-3">
-                    <RevokeWarningForm warningId={row.id} userId={view.member.userId} />
+                    <RevokeWarningForm
+                      warningId={row.id}
+                      userId={view.member.userId}
+                      copy={moderationFormsCopy(translator)}
+                    />
                   </div>
                 ) : (
                   <p className="mt-2 text-xs italic text-muted-foreground">{row.lapsed}</p>
@@ -147,7 +153,7 @@ export default async function WarnPage({
             href={view.nextHref}
             className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            Older warnings
+            {await tr('page.older-warnings')}
           </a>
         )}
       </PanelSection>

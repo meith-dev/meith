@@ -1,35 +1,34 @@
 export interface InstallStep {
   readonly id: string
-  readonly title: string
-  readonly detail: string
+  readonly titleKey: string
+  readonly detailKey: string
 }
 
 export const INSTALL_STEPS: readonly InstallStep[] = [
   {
     id: 'migrate',
-    title: 'Apply migrations',
-    detail: 'Creates every table, index and seeded usergroup. Forward-only.',
+    titleKey: 'install.step.migrate.title',
+    detailKey: 'install.step.migrate.detail',
   },
   {
     id: 'settings',
-    title: 'Record the board’s name and mail settings',
-    detail:
-      'The only settings the installer writes. Everything else has a default and ' + 'a screen.',
+    titleKey: 'install.step.settings.title',
+    detailKey: 'install.step.settings.detail',
   },
   {
     id: 'admin',
-    title: 'Create the administrator',
-    detail: 'Argon2id, the same registration path a member uses, then promoted.',
+    titleKey: 'install.step.admin.title',
+    detailKey: 'install.step.admin.detail',
   },
   {
     id: 'forum',
-    title: 'Create a first forum',
-    detail: 'A category and one forum inside it, so the index is not empty.',
+    titleKey: 'install.step.forum.title',
+    detailKey: 'install.step.forum.detail',
   },
   {
     id: 'seal',
-    title: 'Disable the installer',
-    detail: 'Irreversible. /install answers 404 from here on.',
+    titleKey: 'install.step.seal.title',
+    detailKey: 'install.step.seal.detail',
   },
 ]
 
@@ -45,11 +44,11 @@ export interface StepOutcome {
 export function fieldErrorsFromReport(report: readonly StepOutcome[]): Record<string, string> {
   const failure = firstFailure(report)
   if (failure === null || failure.field === undefined) return {}
-  return { [failure.field]: failure.error ?? 'That answer was refused.' }
+  return { [failure.field]: failure.error ?? 'installAction.answerRefused' }
 }
 
-export function stepTitle(id: string): string {
-  return INSTALL_STEPS.find((step) => step.id === id)?.title ?? id
+export function stepTitleKey(id: string): string {
+  return INSTALL_STEPS.find((step) => step.id === id)?.titleKey ?? id
 }
 
 export function freshReport(): readonly StepOutcome[] {

@@ -1,3 +1,4 @@
+import { msg } from '@meith/i18n'
 import 'server-only'
 
 import {
@@ -20,9 +21,7 @@ export function forumAdminRepository(): PostgresForumAdminRepository | null {
 export function requireForumAdmin(): PostgresForumAdminRepository {
   const repository = forumAdminRepository()
   if (repository === null) {
-    throw new ForbiddenError(
-      'This board is running on in-memory sample data, so its forums cannot be edited.',
-    )
+    throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-12'))
   }
   return repository
 }

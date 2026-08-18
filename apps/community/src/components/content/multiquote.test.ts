@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EN_CATALOG } from '@meith/i18n'
+
 import {
   addedNotice,
   announceMultiquote,
@@ -14,6 +16,7 @@ import {
 } from './multiquote'
 
 const KEY = 'multiquote'
+const COPY = EN_CATALOG
 
 function fakeStorage(): Storage {
   const entries = new Map<string, string>()
@@ -31,23 +34,23 @@ function fakeStorage(): Storage {
 
 beforeEach(() => {
   vi.stubGlobal('sessionStorage', fakeStorage())
-  clearMultiquote()
+  clearMultiquote(COPY)
 })
 
 describe('the selection', () => {
   it('holds a post the first time and drops it the second', () => {
-    toggleMultiquote(41)
+    toggleMultiquote(41, COPY)
     expect(multiquoteIds()).toEqual([41])
 
-    toggleMultiquote(41)
+    toggleMultiquote(41, COPY)
     expect(multiquoteIds()).toEqual([])
     expect(sessionStorage.getItem(KEY)).toBeNull()
   })
 
   it('keeps the order posts were selected in', () => {
-    toggleMultiquote(7)
-    toggleMultiquote(3)
-    toggleMultiquote(11)
+    toggleMultiquote(7, COPY)
+    toggleMultiquote(3, COPY)
+    toggleMultiquote(11, COPY)
 
     expect(multiquoteIds()).toEqual([7, 3, 11])
     expect(sessionStorage.getItem(KEY)).toBe('[7,3,11]')
@@ -60,7 +63,7 @@ describe('the selection', () => {
   })
 
   it('returns the same snapshot object while nothing changes', () => {
-    toggleMultiquote(4)
+    toggleMultiquote(4, COPY)
 
     expect(multiquoteState()).toBe(multiquoteState())
   })
@@ -93,11 +96,11 @@ describe('the selection', () => {
       },
     })
 
-    toggleMultiquote(6)
+    toggleMultiquote(6, COPY)
     expect(multiquoteIds()).toEqual([6])
     expect(multiquoteState().notice).toBe('Added to multi-quote — 1 post selected.')
 
-    toggleMultiquote(6)
+    toggleMultiquote(6, COPY)
     expect(multiquoteIds()).toEqual([])
   })
 })
@@ -107,58 +110,58 @@ describe('subscribers', () => {
     const heard = vi.fn()
     const stop = subscribeMultiquote(heard)
 
-    toggleMultiquote(1)
-    toggleMultiquote(1)
-    clearMultiquote()
+    toggleMultiquote(1, COPY)
+    toggleMultiquote(1, COPY)
+    clearMultiquote(COPY)
     announceMultiquote('anything')
     expect(heard).toHaveBeenCalledTimes(4)
 
     stop()
-    toggleMultiquote(2)
+    toggleMultiquote(2, COPY)
     expect(heard).toHaveBeenCalledTimes(4)
   })
 })
 
 describe('what is announced', () => {
   it('names the change and the running count', () => {
-    toggleMultiquote(1)
+    toggleMultiquote(1, COPY)
     expect(multiquoteState().notice).toBe('Added to multi-quote — 1 post selected.')
 
-    toggleMultiquote(2)
+    toggleMultiquote(2, COPY)
     expect(multiquoteState().notice).toBe('Added to multi-quote — 2 posts selected.')
 
-    toggleMultiquote(2)
+    toggleMultiquote(2, COPY)
     expect(multiquoteState().notice).toBe('Removed from multi-quote — 1 post selected.')
 
-    toggleMultiquote(1)
+    toggleMultiquote(1, COPY)
     expect(multiquoteState().notice).toBe('Removed from multi-quote — nothing selected.')
   })
 
   it('says so when the selection is cleared', () => {
-    toggleMultiquote(1)
-    clearMultiquote()
+    toggleMultiquote(1, COPY)
+    clearMultiquote(COPY)
 
     expect(multiquoteState().notice).toBe('Multi-quote cleared — nothing selected.')
     expect(multiquoteIds()).toEqual([])
   })
 
   it('counts what reached the reply, not what was asked for', () => {
-    expect(addedNotice(1, 1)).toBe('1 quote added to your reply.')
-    expect(addedNotice(3, 3)).toBe('3 quotes added to your reply.')
-    expect(addedNotice(2, 3)).toBe('2 quotes added to your reply — 1 could not be quoted.')
-    expect(addedNotice(0, 2)).toBe('Nothing could be quoted — your reply is untouched.')
+    expect(addedNotice(1, 1, COPY)).toBe('1 quote added to your reply.')
+    expect(addedNotice(3, 3, COPY)).toBe('3 quotes added to your reply.')
+    expect(addedNotice(2, 3, COPY)).toBe('2 quotes added to your reply — 1 could not be quoted.')
+    expect(addedNotice(0, 2, COPY)).toBe('Nothing could be quoted — your reply is untouched.')
   })
 
   it('labels the strip with the same count', () => {
-    expect(selectionLabel(1)).toBe('1 post selected to quote')
-    expect(selectionLabel(4)).toBe('4 posts selected to quote')
+    expect(selectionLabel(1, COPY)).toBe('1 post selected to quote')
+    expect(selectionLabel(4, COPY)).toBe('4 posts selected to quote')
   })
 })
 
 describe('taking the selection', () => {
   it('hands back the ids and empties the store without an announcement', () => {
-    toggleMultiquote(8)
-    toggleMultiquote(9)
+    toggleMultiquote(8, COPY)
+    toggleMultiquote(9, COPY)
 
     expect(takeMultiquote()).toEqual([8, 9])
     expect(multiquoteIds()).toEqual([])

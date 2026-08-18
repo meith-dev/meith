@@ -1,4 +1,5 @@
-import type { OptionModel, SearchRefineModel, SearchResultsModel } from '@meith/theme-kit'
+import type { OptionModel, SearchRefineModel, SearchResultsModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { FEED, LINK, PAGE, PILL, PILL_PRIMARY, Stamp } from '../shared'
 
@@ -12,25 +13,27 @@ export function SearchResults({
   within,
   refine,
   regions,
-}: SearchResultsModel) {
+  copy,
+}: SearchResultsModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.searchResults.${key}`)
+
   return (
     <main id="board-content" tabIndex={-1} className={`${PAGE} flex-1 py-4 sm:py-6`}>
       <div className={`${FEED} flex flex-col gap-4`}>
         <header className="rounded-lg border border-border bg-card px-4 py-3.5 shadow-elevation">
           <h1 className="text-xl leading-tight font-bold tracking-tight text-balance">
-            Results for &ldquo;{terms}&rdquo;
+            {c('resultsFor')} “{terms}”
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Searched <Stamp at={searchedAt} />. Results are checked against your access every time
-            this page is opened, so they can change.
+            {c('searched')} <Stamp at={searchedAt} />. {c('searchedNote')}
           </p>
         </header>
 
-        {refine !== undefined && <Refine {...refine} />}
+        {refine !== undefined && <Refine {...refine} copy={copy} />}
 
         {hits.length === 0 ? (
           <p className="rounded-lg border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground shadow-elevation">
-            Nothing matched — or nothing you can see does. Try fewer words, or a different spelling.
+            {c('noHits')}
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -102,7 +105,7 @@ export function SearchResults({
         </section>
 
         <a href={newSearchHref} className={`text-sm font-semibold ${LINK}`}>
-          Start a new search
+          {c('newSearch')}
         </a>
       </div>
     </main>
@@ -120,7 +123,10 @@ function Refine({
   submitLabel,
   applied,
   clearHref,
-}: SearchRefineModel) {
+  copy,
+}: SearchRefineModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.searchResults.${key}`)
+
   return (
     <section
       aria-label={label}
@@ -157,7 +163,7 @@ function Refine({
           >
             {chip.label}
             <span aria-hidden="true">×</span>
-            <span className="sr-only">— remove this filter</span>
+            <span className="sr-only">{c('removeFilter')}</span>
           </a>
         ))}
       </div>
@@ -177,7 +183,7 @@ function Refine({
 
         {clearHref !== null && (
           <a href={clearHref} className={`text-xs font-semibold ${LINK}`}>
-            Clear filters
+            {c('clearFilters')}
           </a>
         )}
       </form>

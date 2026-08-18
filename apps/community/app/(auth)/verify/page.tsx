@@ -4,8 +4,11 @@ import { redirect } from 'next/navigation'
 import type { ActivationOutcome } from '@meith/accounts'
 
 import { configuredIdentity } from '@/server/container'
+import { tr } from '@/server/i18n'
 
-export const metadata: Metadata = { title: 'Confirm your account' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.confirm-account') }
+}
 
 export default async function VerifyPage({
   searchParams,

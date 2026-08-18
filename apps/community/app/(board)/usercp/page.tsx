@@ -1,20 +1,22 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { PanelSectionGrid, PanelWaitingList } from '@/components/shell/panel-overview'
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { unreadMessageCount } from '@/server/messages'
 import { unreadNotificationCount } from '@/server/notifications'
 import { currentTheme } from '@/server/theme'
 import { panelSectionCopy } from '@/view/panel-nav'
 import { USERCP_SECTIONS } from '@/view/usercp-nav'
 
-export const metadata: Metadata = { title: 'Your control panel' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.control-panel-2') }
+}
 
 export default async function UserCpPage() {
   const actor = await getActor()
@@ -22,6 +24,7 @@ export default async function UserCpPage() {
   if (actor.userId === null || memberSettings === null) notFound()
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
+  const translator = await getTranslator()
 
   const [messages, notifications] = await Promise.all([
     unreadMessageCount(actor.userId),
@@ -30,41 +33,42 @@ export default async function UserCpPage() {
 
   return (
     <PanelPage
-      title="Your control panel"
-      lede="Everything about your account that you decide."
+      title={await tr('page.control-panel-2')}
+      lede={await tr('page.everything-about-account-that-decide')}
       gap="loose"
     >
       <Notice
         kind="info"
-        message="Your profile is public. Your options and e-mail address are not."
+        message={translator.t('board.usercp.profilePrivacy')}
         dismissHref={null}
+        copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
       />
 
-      <PanelSection id="waiting-heading" title="Waiting for you">
+      <PanelSection id="waiting-heading" title={await tr('page.waiting-for')}>
         <PanelWaitingList
           items={[
             {
               count: messages,
-              one: 'unread message',
-              many: 'unread messages',
+              one: translator.t('board.usercp.unreadMessage', { count: 1 }),
+              many: translator.t('board.usercp.unreadMessage', { count: 2 }),
               href: '/messages',
-              action: 'Read',
+              action: translator.t('board.usercp.read'),
             },
             {
               count: notifications,
-              one: 'unread notification',
-              many: 'unread notifications',
+              one: translator.t('board.usercp.unreadNotification', { count: 1 }),
+              many: translator.t('board.usercp.unreadNotification', { count: 2 }),
               href: '/notifications',
-              action: 'Open',
+              action: translator.t('board.usercp.open'),
             },
           ]}
-          emptyTitle="Nothing unread"
-          emptyDescription="No new messages and no new notifications."
+          emptyTitle={translator.t('board.usercp.emptyTitle')}
+          emptyDescription={translator.t('board.usercp.emptyDescription')}
         />
       </PanelSection>
 
-      <PanelSection id="sections-heading" title="Sections">
-        <PanelSectionGrid sections={panelSectionCopy(USERCP_SECTIONS, await getTranslator())} />
+      <PanelSection id="sections-heading" title={await tr('page.sections')}>
+        <PanelSectionGrid sections={panelSectionCopy(USERCP_SECTIONS, translator)} />
       </PanelSection>
     </PanelPage>
   )

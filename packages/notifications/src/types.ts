@@ -31,6 +31,7 @@ export interface DeliverableNotification {
     readonly userId: number
     readonly username: string
     readonly email: string
+    readonly locale: string
   }
   readonly emailEnabled: boolean
   readonly emailSentAt: Date | null

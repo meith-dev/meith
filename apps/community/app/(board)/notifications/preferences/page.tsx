@@ -1,18 +1,21 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { NotificationPreferencesForm } from '@/components/account/notification-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { audiencesForActor } from '@/server/notification-audience'
 import { notificationService } from '@/server/notifications'
 import { currentTheme } from '@/server/theme'
+import { notificationFormsCopy } from '@/view/account-copy'
 import { buildPreferencesView, notificationNotice } from '@/view/notifications'
 
-export const metadata: Metadata = { title: 'Notification preferences' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.notification-preferences') }
+}
 
 export default async function NotificationPreferencesPage({
   searchParams,
@@ -38,14 +41,22 @@ export default async function NotificationPreferencesPage({
   return (
     <PanelPage
       back={{ href: view.backHref, label: 'Notifications' }}
-      title="Notification preferences"
-      lede="Which of the board’s notifications also reach you by e-mail."
+      title={await tr('page.notification-preferences')}
+      lede={await tr('page.which-board-s-notifications-also')}
     >
       {notice !== null && (
-        <Notice kind="info" message={notice} dismissHref="/notifications/preferences" />
+        <Notice
+          kind="info"
+          message={notice}
+          dismissHref="/notifications/preferences"
+          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
+        />
       )}
 
-      <NotificationPreferencesForm rows={view.rows} />
+      <NotificationPreferencesForm
+        rows={view.rows}
+        copy={notificationFormsCopy(await getTranslator())}
+      />
     </PanelPage>
   )
 }

@@ -1,3 +1,5 @@
+import { EN_CATALOG, sourceTranslator, type Translator } from '@meith/i18n'
+
 import { notificationKind } from './kinds'
 import type { NotificationData, NotificationRecord } from './types'
 
@@ -40,68 +42,105 @@ function num(data: NotificationData, key: string, fallback = 0): number {
   return fallback
 }
 
-function points(value: number): string {
-  return `${value} ${value === 1 ? 'point' : 'points'}`
+function args(data: NotificationData, key: string): Readonly<Record<string, string | number>> {
+  const raw = str(data, key)
+  if (raw === '') return {}
+
+  try {
+    const value: unknown = JSON.parse(raw)
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return {}
+    return Object.fromEntries(
+      Object.entries(value).filter(
+        (entry): entry is [string, string | number] =>
+          typeof entry[1] === 'string' || typeof entry[1] === 'number',
+      ),
+    )
+  } catch {
+    return {}
+  }
 }
 
+function pluginMessage(
+  data: NotificationData,
+  textKey: string,
+  argsKey: string,
+  legacyKey: string,
+  t: Translator,
+): string {
+  const key = str(data, textKey)
+  return key === '' ? str(data, legacyKey) : t.t(key, args(data, argsKey))
+}
+
+function points(t: Translator, value: number): string {
+  return t.t('notification.render.points', { count: value })
+}
+
+const DIGEST_CADENCE_KEYS = {
+  daily: 'notification.render.digest.daily',
+  weekly: 'notification.render.digest.weekly',
+} as const
+
 const TEMPLATES: Readonly<
-  Record<string, (data: NotificationData) => { subject: string; body: string }>
+  Record<string, (data: NotificationData, t: Translator) => { subject: string; body: string }>
 > = {
-  'warning.received': (data) => {
-    const title = str(data, 'title', 'a rule breach')
+  'warning.received': (data, t) => {
+    const title = str(data, 'title', t.t('notification.render.warning.fallbackTitle'))
     const reason = str(data, 'reason')
     const total = num(data, 'totalPoints')
     const restriction = str(data, 'restriction')
 
     const consequence =
       restriction === 'suspend_posting'
-        ? ' You cannot post while the restriction is in force.'
+        ? ` ${t.t('notification.render.warning.suspendPosting')}`
         : restriction === 'moderate_posting'
-          ? ' Your posts will be held for approval while the restriction is in force.'
+          ? ` ${t.t('notification.render.warning.moderatePosting')}`
           : restriction === 'ban'
-            ? ' Your account has been suspended.'
+            ? ` ${t.t('notification.render.warning.banned')}`
             : ''
 
     return {
-      subject: `You have been warned: ${title}`,
+      subject: t.t('notification.render.warning.subject', { title }),
       body:
-        `You received a warning worth ${points(num(data, 'points'))}. ` +
-        `Your total is now ${points(total)}.${consequence}` +
-        (reason === '' ? '' : `\n\nReason given: ${reason}`),
+        t.t('notification.render.warning.body', {
+          points: points(t, num(data, 'points')),
+          total: points(t, total),
+        }) +
+        consequence +
+        (reason === '' ? '' : `\n\n${t.t('notification.render.warning.reason', { reason })}`),
     }
   },
 
-  'report.actioned': (data) => {
+  'report.actioned': (data, t) => {
     const outcome = str(data, 'outcome')
-    const label = str(data, 'targetLabel', 'the content you reported')
+    const label = str(data, 'targetLabel', t.t('notification.render.report.fallbackLabel'))
     return {
       subject:
         outcome === 'rejected'
-          ? 'A report you filed was closed without action'
-          : 'A report you filed was actioned',
+          ? t.t('notification.render.report.rejectedSubject')
+          : t.t('notification.render.report.actionedSubject'),
       body:
         outcome === 'rejected'
-          ? `A moderator reviewed your report about ${label} and decided no action was needed.`
-          : `A moderator reviewed your report about ${label} and has acted on it. Thank you for reporting it.`,
+          ? t.t('notification.render.report.rejectedBody', { label })
+          : t.t('notification.render.report.actionedBody', { label }),
     }
   },
 
-  'subscription.reply': (data) => {
-    const title = str(data, 'threadTitle', 'a thread you follow')
+  'subscription.reply': (data, t) => {
+    const title = str(data, 'threadTitle', t.t('notification.render.reply.fallbackTitle'))
     const posts = num(data, 'posts', 1)
     const author = str(data, 'lastAuthor')
 
     return {
-      subject: posts === 1 ? `New reply in ${title}` : `${posts} new replies in ${title}`,
+      subject: t.t('notification.render.reply.subject', { count: posts, title }),
       body:
         author === ''
-          ? 'There is something new to read.'
-          : `The most recent one is from ${author}.`,
+          ? t.t('notification.render.reply.noAuthor')
+          : t.t('notification.render.reply.author', { author }),
     }
   },
 
-  'subscription.digest': (data) => {
-    const cadence = str(data, 'cadence', 'daily')
+  'subscription.digest': (data, t) => {
+    const cadence = str(data, 'cadence') === 'weekly' ? 'weekly' : 'daily'
     const threadCount = num(data, 'threadCount')
     const postCount = num(data, 'postCount')
     const more = num(data, 'more')
@@ -109,92 +148,105 @@ const TEMPLATES: Readonly<
     const lines = objects(data, 'threads').map((thread) => {
       const posts = num(thread, 'posts', 1)
       const author = str(thread, 'lastAuthor')
-      return (
-        `• ${str(thread, 'title', 'A thread')} — ${posts} ` +
-        `${posts === 1 ? 'post' : 'posts'}` +
-        (author === '' ? '' : `, latest from ${author}`)
-      )
+      return t.t('notification.render.digest.entry', {
+        title: str(thread, 'title', t.t('notification.render.digest.fallbackTitle')),
+        count: posts,
+        author: author === '' ? '' : t.t('notification.render.digest.entryAuthor', { author }),
+      })
     })
 
-    if (more > 0) lines.push(`• and ${more} more`)
+    if (more > 0) lines.push(t.t('notification.render.digest.more', { count: more }))
 
     return {
-      subject:
-        `Your ${cadence === 'weekly' ? 'weekly' : 'daily'} digest: ` +
-        `${postCount} ${postCount === 1 ? 'post' : 'posts'} in ` +
-        `${threadCount} ${threadCount === 1 ? 'thread' : 'threads'}`,
+      subject: t.t('notification.render.digest.subject', {
+        cadence: t.t(DIGEST_CADENCE_KEYS[cadence]),
+        posts: postCount,
+        threads: threadCount,
+      }),
       body: lines.join('\n'),
     }
   },
 
-  'post.mentioned': (data) => {
-    const by = str(data, 'byUsername', 'Somebody')
-    const title = str(data, 'threadTitle', 'a thread')
+  'post.mentioned': (data, t) => {
+    const by = str(data, 'byUsername', t.t('notification.render.somebody'))
+    const title = str(data, 'threadTitle', t.t('notification.render.threadFallback'))
     return {
-      subject: `${by} mentioned you in ${title}`,
-      body: `${by} mentioned you by name in a post in ${title}.`,
+      subject: t.t('notification.render.mentioned.subject', { by, title }),
+      body: t.t('notification.render.mentioned.body', { by, title }),
     }
   },
 
-  'post.quoted': (data) => {
-    const by = str(data, 'byUsername', 'Somebody')
-    const title = str(data, 'threadTitle', 'a thread')
+  'post.quoted': (data, t) => {
+    const by = str(data, 'byUsername', t.t('notification.render.somebody'))
+    const title = str(data, 'threadTitle', t.t('notification.render.threadFallback'))
     return {
-      subject: `${by} quoted your post in ${title}`,
-      body: `${by} quoted one of your posts in a reply in ${title}.`,
+      subject: t.t('notification.render.quoted.subject', { by, title }),
+      body: t.t('notification.render.quoted.body', { by, title }),
     }
   },
 
-  'pm.received': (data) => {
-    const from = str(data, 'fromUsername', 'Somebody')
-    const subject = str(data, 'subject', 'a private message')
+  'pm.received': (data, t) => {
+    const from = str(data, 'fromUsername', t.t('notification.render.somebody'))
+    const subject = str(data, 'subject', t.t('notification.render.pm.fallbackSubject'))
     return {
-      subject: `New private message from ${from}`,
+      subject: t.t('notification.render.pm.receivedSubject', { from }),
       body: `“${subject}”`,
     }
   },
 
-  'pm.receipt': (data) => {
-    const by = str(data, 'byUsername', 'The recipient')
-    const subject = str(data, 'subject', 'your message')
+  'pm.receipt': (data, t) => {
+    const by = str(data, 'byUsername', t.t('notification.render.pm.recipientFallback'))
+    const subject = str(data, 'subject', t.t('notification.render.pm.messageFallback'))
     return {
-      subject: `${by} read your message`,
-      body: `“${subject}” has been read.`,
+      subject: t.t('notification.render.pm.receiptSubject', { by }),
+      body: t.t('notification.render.pm.receiptBody', { subject }),
     }
   },
 
-  'system.task_failed': (data) => {
-    const taskId = str(data, 'taskId', 'a scheduled task')
+  'system.task_failed': (data, t) => {
+    const taskId = str(data, 'taskId', t.t('notification.render.task.fallbackId'))
     const error = str(data, 'error')
     return {
-      subject: `Scheduled task failed: ${taskId}`,
+      subject: t.t('notification.render.task.subject', { taskId }),
       body:
-        `The task "${taskId}" raised an error on its last run. It will be ` +
-        `retried on the next tick; a task that keeps failing needs looking at.` +
-        (error === '' ? '' : `\n\nError: ${error}`),
+        t.t('notification.render.task.body', { taskId }) +
+        (error === '' ? '' : `\n\n${t.t('notification.render.task.error', { error })}`),
     }
   },
 }
 
-export function renderNotification(record: NotificationRecord): NotificationView {
+export function renderNotification(
+  record: NotificationRecord,
+  t: Translator = sourceTranslator(EN_CATALOG),
+): NotificationView {
   const template = TEMPLATES[record.kind]
   const spec = notificationKind(record.kind)
 
   const rendered =
     template !== undefined
-      ? template(record.data)
+      ? template(record.data, t)
       : record.kind.startsWith('plugin.')
         ? {
-            subject: str(record.data, 'subject', 'A plugin has news for you'),
-            body: str(record.data, 'body'),
+            subject:
+              pluginMessage(record.data, 'subjectKey', 'subjectArgs', 'subject', t) ||
+              t.t('notification.render.pluginFallback'),
+            body: pluginMessage(record.data, 'bodyKey', 'bodyArgs', 'body', t),
           }
         : {
-            subject: spec?.title ?? `Notification: ${record.kind}`,
+            subject:
+              spec?.titleKey === undefined
+                ? (spec?.title ?? t.t('notification.render.generic', { kind: record.kind }))
+                : t.t(spec.titleKey),
             body: '',
           }
 
   const subject =
-    record.occurrences > 1 ? `${rendered.subject} (${record.occurrences} times)` : rendered.subject
+    record.occurrences > 1
+      ? t.t('notification.render.occurrences', {
+          subject: rendered.subject,
+          count: record.occurrences,
+        })
+      : rendered.subject
 
   const unsubscribe = record.data.unsubscribe
 

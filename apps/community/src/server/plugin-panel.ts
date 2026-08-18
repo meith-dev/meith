@@ -1,5 +1,6 @@
 import 'server-only'
 
+import type { Translator } from '@meith/i18n'
 import { type PluginDefinition, pluginAdminPath } from '@meith/plugin-kit'
 
 import type { PluginPage } from '@/view/plugin-panel'
@@ -13,7 +14,10 @@ export interface PluginPanelSection {
   readonly pages: readonly PluginPage[]
 }
 
-export async function pluginPanelSection(pluginKey: string): Promise<PluginPanelSection | null> {
+export async function pluginPanelSection(
+  pluginKey: string,
+  t?: Translator,
+): Promise<PluginPanelSection | null> {
   const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === pluginKey)
   const definition = entry?.plugin as PluginDefinition | undefined
 
@@ -28,10 +32,16 @@ export async function pluginPanelSection(pluginKey: string): Promise<PluginPanel
 
   return {
     key: pluginKey,
-    name: definition.name,
+    name:
+      t !== undefined && definition.nameKey !== undefined && t.has(definition.nameKey)
+        ? t.t(definition.nameKey)
+        : definition.name,
     pages: pages.map((page) => ({
       path: page.path,
-      title: page.title,
+      title:
+        t !== undefined && page.titleKey !== undefined && t.has(page.titleKey)
+          ? t.t(page.titleKey, page.titleArgs)
+          : page.title,
       href: pluginAdminPath(pluginKey, page.path),
     })),
   }

@@ -1,4 +1,5 @@
-import type { PaginationModel } from '@meith/theme-kit'
+import type { PaginationModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { cn } from '@meith/ui'
 
 import { BUTTON, MICRO, NUMERIC } from '../shared'
@@ -10,21 +11,24 @@ export function Pagination({
   pages,
   previousHref,
   nextHref,
-}: PaginationModel) {
+  copy,
+}: PaginationModel & { copy: SlotCopy }) {
   if (pageCount <= 1 && previousHref === null && nextHref === null) return null
+
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.pagination.${key}`)
 
   const step = cn(BUTTON, 'min-w-20 justify-center border border-border bg-card hover:bg-accent')
   const stepDisabled = cn(step, 'pointer-events-none opacity-40')
 
   return (
-    <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-3">
+    <nav aria-label={c('pagination')} className="flex flex-wrap items-center justify-between gap-3">
       {previousHref === null ? (
         <span className={stepDisabled} aria-hidden="true">
-          Previous
+          {c('previous')}
         </span>
       ) : (
         <a href={previousHref} rel="prev" className={step}>
-          Previous
+          {c('previous')}
         </a>
       )}
 
@@ -43,7 +47,7 @@ export function Pagination({
               <a
                 href={entry.href}
                 aria-current={entry.isCurrent ? 'page' : undefined}
-                aria-label={`Page ${entry.page}`}
+                aria-label={`${c('page')} ${entry.page}`}
                 className={cn(
                   BUTTON,
                   'min-w-8 justify-center px-2.5',
@@ -61,18 +65,20 @@ export function Pagination({
 
         <li className={`ml-2 whitespace-nowrap ${MICRO}`}>
           <span className={NUMERIC}>
-            {pageCountIsExact ? `Page ${page} of ${pageCount}` : `Page ${page}`}
+            {pageCountIsExact
+              ? `${c('page')} ${page} ${c('of')} ${pageCount}`
+              : `${c('page')} ${page}`}
           </span>
         </li>
       </ol>
 
       {nextHref === null ? (
         <span className={stepDisabled} aria-hidden="true">
-          Next
+          {c('next')}
         </span>
       ) : (
         <a href={nextHref} rel="next" className={step}>
-          Next
+          {c('next')}
         </a>
       )}
     </nav>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
-import type { MemberProfileModel } from '@meith/theme-kit'
+import type { MemberProfileModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { BUTTON, Frame, HEADING, MICRO, NUMERIC, PanelHead, RULE, Stamp } from '../shared'
 
@@ -24,7 +25,10 @@ export function MemberProfile({
   fields,
   actions,
   regions,
-}: MemberProfileModel) {
+  copy,
+}: MemberProfileModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `raidframe.memberProfile.${key}`)
+
   return (
     <article className="flex flex-col gap-4 p-4">
       <div className="border border-border bg-card shadow-elevation">
@@ -44,7 +48,7 @@ export function MemberProfile({
           )}
 
           <div className="min-w-0">
-            <p className={MICRO}>profile</p>
+            <p className={MICRO}>{c('kicker')}</p>
             <h1
               className={[`${HEADING} text-2xl text-foreground`, user.nameClass]
                 .filter(Boolean)
@@ -59,14 +63,14 @@ export function MemberProfile({
       </div>
 
       <Frame aria-labelledby="member-stats-heading">
-        <PanelHead id="member-stats-heading" title="Statistics" />
+        <PanelHead id="member-stats-heading" title={c('statsHeading')} />
         <dl className="grid grid-cols-2 gap-1.5 p-3 sm:grid-cols-3">
-          <Field label="posts">{postCount.label}</Field>
-          <Field label="joined">
+          <Field label={c('posts')}>{postCount.label}</Field>
+          <Field label={c('joined')}>
             <Stamp at={joinedAt} />
           </Field>
-          <Field label="last visit">
-            {lastVisitAt === null ? 'never' : <Stamp at={lastVisitAt} />}
+          <Field label={c('lastVisit')}>
+            {lastVisitAt === null ? c('never') : <Stamp at={lastVisitAt} />}
           </Field>
           {fields.map((field) => (
             <Field key={field.label} label={field.label}>
@@ -78,7 +82,7 @@ export function MemberProfile({
 
       {signatureHtml !== null && (
         <Frame aria-labelledby="member-signature-heading">
-          <PanelHead id="member-signature-heading" title="Signature" />
+          <PanelHead id="member-signature-heading" title={c('signatureHeading')} />
           <div
             className="prose-md p-3 text-sm"
             dangerouslySetInnerHTML={{ __html: signatureHtml }}
@@ -89,7 +93,7 @@ export function MemberProfile({
       {regions?.plugins}
 
       {actions.length > 0 && (
-        <nav aria-label="Member actions" className="flex flex-wrap gap-2">
+        <nav aria-label={c('actionsAriaLabel')} className="flex flex-wrap gap-2">
           {actions.map((action) => (
             <a key={action.href} href={action.href} className={BUTTON}>
               {action.label}

@@ -1,4 +1,5 @@
-import type { DiscoveryViewModel, TabModel } from '@meith/theme-kit'
+import type { DiscoveryViewModel, SlotCopy, TabModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Card, CardRows, cn, Empty, EmptyDescription } from '@meith/ui'
 
 import { LINK, NUMERIC, pageAt, Stamp } from '../shared'
@@ -43,7 +44,10 @@ export function DiscoveryView({
   nextLabel,
   emptyMessage,
   refusal,
-}: DiscoveryViewModel) {
+  copy,
+}: DiscoveryViewModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.discoveryView.${key}`)
+
   return (
     <main
       id="board-content"
@@ -86,11 +90,11 @@ export function DiscoveryView({
                     {row.title}
                   </a>
                   <p className="truncate text-xs text-muted-foreground">
-                    in{' '}
+                    {c('in')}{' '}
                     <a href={row.forum.href} className="font-medium hover:underline">
                       {row.forum.label}
                     </a>{' '}
-                    · started by {row.authorUsername}
+                    {c('dot')} {c('startedBy')} {row.authorUsername}
                   </p>
                 </div>
 
@@ -98,10 +102,10 @@ export function DiscoveryView({
                   <span className={cn('font-semibold text-foreground', NUMERIC)}>
                     {row.replyCount.label}
                   </span>{' '}
-                  {row.replyCount.value === 1 ? 'reply' : 'replies'}
+                  {row.replyCount.value === 1 ? c('reply.one') : c('reply.other')}
                   <span className="block">
-                    last post <Stamp at={row.lastPostAt} />
-                    {row.lastPostUsername === null ? null : ` by ${row.lastPostUsername}`}
+                    {c('lastPost')} <Stamp at={row.lastPostAt} />
+                    {row.lastPostUsername === null ? null : ` ${c('by')} ${row.lastPostUsername}`}
                   </span>
                 </p>
               </li>
@@ -115,7 +119,7 @@ export function DiscoveryView({
           href={nextHref}
           className="inline-flex h-9 w-fit items-center rounded-full bg-secondary px-4 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-accent"
         >
-          {nextLabel} →
+          {nextLabel} {c('nextArrow')}
         </a>
       )}
     </main>

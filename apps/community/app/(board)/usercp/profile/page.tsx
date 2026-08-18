@@ -1,15 +1,16 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { DisplayGroupForm, ProfileForm } from '@/components/account/usercp-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { profileFieldService, viewerFieldContext } from '@/server/profile-fields'
 import { currentTheme } from '@/server/theme'
+import { displayGroupFormCopy, profileFormCopy } from '@/view/account-copy'
 import {
   customFieldInputs,
   displayGroupChoices,
@@ -17,7 +18,9 @@ import {
   userCpNotice,
 } from '@/view/usercp'
 
-export const metadata: Metadata = { title: 'Your profile' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.profile') }
+}
 
 export default async function ProfileSettingsPage({
   searchParams,
@@ -49,7 +52,7 @@ export default async function ProfileSettingsPage({
 
   return (
     <PanelPage
-      title="Your profile"
+      title={await tr('page.profile')}
       lede={
         <>
           Shown on{' '}
@@ -64,12 +67,23 @@ export default async function ProfileSettingsPage({
       }
     >
       {notice !== null && (
-        <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/profile" />
+        <Notice
+          kind={notice.kind}
+          message={notice.message}
+          dismissHref="/usercp/profile"
+          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
+        />
       )}
 
-      <ProfileForm {...values} customFields={customFields} />
+      <ProfileForm
+        {...values}
+        customFields={customFields}
+        copy={profileFormCopy(await getTranslator())}
+      />
 
-      {groups.choices.length > 1 && <DisplayGroupForm {...groups} />}
+      {groups.choices.length > 1 && (
+        <DisplayGroupForm {...groups} copy={displayGroupFormCopy(await getTranslator())} />
+      )}
     </PanelPage>
   )
 }

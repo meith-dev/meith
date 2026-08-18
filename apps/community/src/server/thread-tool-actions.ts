@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import type { Action } from '@meith/authorization'
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import { parseThreadTool, type ThreadToolRights, ThreadTools } from '@meith/moderation'
 
 import type { FormState } from './auth-form-state'
@@ -11,6 +12,7 @@ import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
+import { tr } from './i18n'
 
 const toFormState = formStateReporter('thread-tool-actions', 'unexpected error in thread tools')
 
@@ -30,27 +32,27 @@ export async function threadToolAction(_prev: FormState, form: FormData): Promis
   const toForumId = positiveInt(form, 'toForumId')
 
   if (threadId === null || tool === null) {
-    return { error: 'That thread does not exist.' }
+    return { error: await tr('notice.app.thread-exist') }
   }
 
   const { authorizer, threadTools, threads } = getContainer()
   if (threadTools === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it has no thread tools.',
+      error: await tr('notice.app.board-running-in-memory-sample-data-3'),
     }
   }
 
   let outcome: Awaited<ReturnType<ThreadTools['apply']>>
   try {
     const actor = await getActor()
-    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
 
     const target = await threadTools.find(threadId)
-    if (target === null) throw new ValidationError('That thread does not exist.')
+    if (target === null) throw new ValidationError(msg('error.app.thread-exist'))
 
     const matrix = await authorizer.forumMatrix(actor, target.forumId)
     if (!authorizer.can(actor, 'thread.view', { forumId: target.forumId, forum: matrix })) {
-      throw new ValidationError('That thread does not exist.')
+      throw new ValidationError(msg('error.app.thread-exist'))
     }
 
     const threadAuthorId = (await threads.locate(threadId))?.authorUserId ?? null

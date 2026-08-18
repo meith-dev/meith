@@ -1,4 +1,5 @@
-import type { ThreadViewModel } from '@meith/theme-kit'
+import type { SlotCopy, ThreadViewModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import {
   count,
@@ -13,7 +14,16 @@ import {
   Tag,
 } from '../shared'
 
-export function ThreadView({ thread, forum, replyHref, markReadAction, regions }: ThreadViewModel) {
+export function ThreadView({
+  thread,
+  forum,
+  replyHref,
+  markReadAction,
+  regions,
+  copy,
+}: ThreadViewModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `phasebook.threadView.${key}`)
+
   return (
     <div className={`${PAGE} py-4 sm:py-6`}>
       <div className={`${FEED} flex flex-col gap-4`}>
@@ -30,13 +40,15 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
 
               <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                 {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
-                {thread.isSticky && <Tag token="thread-pinned">Pinned</Tag>}
-                {thread.isLocked && <Tag token="thread-locked">Locked — no new replies</Tag>}
-                {thread.isMoved && <Tag token="thread-moved">Moved</Tag>}
+                {thread.isSticky && <Tag token="thread-pinned">{c('pinned')}</Tag>}
+                {thread.isLocked && <Tag token="thread-locked">{c('locked')}</Tag>}
+                {thread.isMoved && <Tag token="thread-moved">{c('moved')}</Tag>}
 
                 <span className={`text-xs text-muted-foreground ${NUMERIC}`}>
-                  {count(thread.replyCount)} {plural(thread.replyCount, 'reply', 'replies')} ·{' '}
-                  {count(thread.viewCount)} {plural(thread.viewCount, 'view', 'views')}
+                  {count(thread.replyCount)}{' '}
+                  {plural(thread.replyCount, c('reply.one'), c('reply.other'))} ·{' '}
+                  {count(thread.viewCount)}{' '}
+                  {plural(thread.viewCount, c('view.one'), c('view.other'))}
                 </span>
               </div>
             </div>
@@ -45,13 +57,13 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
               {markReadAction !== null && (
                 <form action={markReadAction} method="post">
                   <button type="submit" className={PILL}>
-                    Mark read
+                    {c('markRead')}
                   </button>
                 </form>
               )}
               {replyHref !== null && (
                 <a href={replyHref} className={PILL_PRIMARY}>
-                  Reply
+                  {c('replyAction')}
                 </a>
               )}
             </div>

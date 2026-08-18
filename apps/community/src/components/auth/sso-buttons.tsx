@@ -1,15 +1,19 @@
 import { buttonVariants, Separator } from '@meith/ui'
 
-import type { ProviderButton } from '@/server/federation'
+import type { SsoButtonModel } from '@/view/auth-copy'
+
+import { type Copy, fromCopy } from '../shell/copy-record'
 
 export function SsoButtons({
   providers,
   next,
   lede,
+  copy,
 }: {
-  readonly providers: readonly ProviderButton[]
+  readonly providers: readonly SsoButtonModel[]
   readonly next?: string | undefined
   readonly lede?: string | undefined
+  readonly copy: Copy
 }) {
   if (providers.length === 0) return null
 
@@ -23,21 +27,19 @@ export function SsoButtons({
               type="submit"
               className={buttonVariants({ variant: 'outline', size: 'lg', className: 'w-full' })}
             >
-              Continue with {provider.label}
+              {provider.cta}
             </button>
           </form>
         ))}
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        {lede ??
-          'Signing in this way tells that provider you are a member here, and the board ' +
-            'learns the address they hold for you. Nothing else passes between them.'}
-      </p>
+      <p className="text-xs text-muted-foreground">{lede ?? fromCopy(copy, 'authForm.sso.lede')}</p>
 
       <div className="flex items-center gap-3">
         <Separator className="flex-1" />
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">or</span>
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">
+          {fromCopy(copy, 'authForm.or')}
+        </span>
         <Separator className="flex-1" />
       </div>
     </div>

@@ -15,6 +15,7 @@ import {
   nudgeTarget,
   outlineOf,
 } from '@meith/forums'
+import { msg } from '@meith/i18n'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import type { FormState } from './auth-form-state'
@@ -25,7 +26,7 @@ import { requireForumAdmin } from './forum-admin'
 
 function forumId(form: FormData): number {
   const id = Number(trimmedText(form, 'forumId'))
-  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError('No such forum.')
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError(msg('error.app.such-forum'))
   return id
 }
 
@@ -50,16 +51,14 @@ export async function saveForumOptionsAction(_prev: FormState, form: FormData): 
 
     const title = trimmedText(form, 'title')
     const slug = trimmedText(form, 'slug')
-    if (title === '') throw new ValidationError('A forum needs a title.')
+    if (title === '') throw new ValidationError(msg('error.app.forum-needs-title'))
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
-      throw new ValidationError(
-        'A slug may contain lower-case letters, numbers and single hyphens.',
-      )
+      throw new ValidationError(msg('error.app.slug-contain-lower-case-letters-numbers'))
     }
 
     const order = Number(trimmedText(form, 'displayOrder'))
     if (!Number.isSafeInteger(order) || order < 0) {
-      throw new ValidationError('Display order must be a whole number.')
+      throw new ValidationError(msg('error.app.display-order-must-whole-number'))
     }
 
     await repository.updateOptions(id, {
@@ -96,7 +95,7 @@ export async function saveForumPermissionsAction(
     const id = forumId(form)
     const groupId = Number(trimmedText(form, 'groupId'))
     if (!Number.isSafeInteger(groupId) || groupId <= 0) {
-      throw new ValidationError('No such group.')
+      throw new ValidationError(msg('error.app.such-group'))
     }
 
     const values: Record<string, boolean | number | null> = {}
@@ -130,7 +129,7 @@ export async function copyForumPermissionsAction(
 
     const descendants = await repository.descendantIds(id)
     if (descendants.length === 0) {
-      throw new ValidationError('This forum has nothing beneath it.')
+      throw new ValidationError(msg('error.app.forum-nothing-beneath'))
     }
 
     const groups = (await repository.listGroups()).map((group) => group.id)
@@ -155,22 +154,20 @@ export async function createForumAction(_prev: FormState, form: FormData): Promi
 
     const type = trimmedText(form, 'type')
     if (type !== 'category' && type !== 'forum' && type !== 'link') {
-      throw new ValidationError('Choose a category, a forum or a link.')
+      throw new ValidationError(msg('error.app.choose-category-forum-link'))
     }
 
     const title = trimmedText(form, 'title')
     const slug = trimmedText(form, 'slug')
-    if (title === '') throw new ValidationError('A forum needs a title.')
+    if (title === '') throw new ValidationError(msg('error.app.forum-needs-title'))
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
-      throw new ValidationError(
-        'A slug may contain lower-case letters, numbers and single hyphens.',
-      )
+      throw new ValidationError(msg('error.app.slug-contain-lower-case-letters-numbers'))
     }
 
     const parent = trimmedText(form, 'parentId')
     const parentId = parent === '' ? null : Number(parent)
     if (parentId !== null && (!Number.isSafeInteger(parentId) || parentId <= 0)) {
-      throw new ValidationError('No such parent forum.')
+      throw new ValidationError(msg('error.app.such-parent-forum'))
     }
 
     await forums.create({
@@ -201,10 +198,10 @@ export async function moveForumAction(_prev: FormState, form: FormData): Promise
     const parent = trimmedText(form, 'newParentId')
     const newParentId = parent === '' ? null : Number(parent)
     if (newParentId !== null && (!Number.isSafeInteger(newParentId) || newParentId <= 0)) {
-      throw new ValidationError('No such parent forum.')
+      throw new ValidationError(msg('error.app.such-parent-forum'))
     }
     if (newParentId === id) {
-      throw new ValidationError('A forum cannot be its own parent.')
+      throw new ValidationError(msg('error.app.forum-its-own-parent'))
     }
 
     await getContainer().forums.move(id, { newParentId })
@@ -226,11 +223,11 @@ function dropTarget(form: FormData, outline: readonly ForumOutlineRow[], id: num
   const nudge = trimmedText(form, 'nudge')
 
   if (nudge !== '') {
-    if (!isNudge(nudge)) throw new ValidationError('That is not a direction.')
+    if (!isNudge(nudge)) throw new ValidationError(msg('error.app.direction'))
 
     const target = nudgeTarget(outline, id, nudge)
     if (target === null) {
-      throw new ValidationError('That forum cannot go any further in that direction.')
+      throw new ValidationError(msg('error.app.forum-go-any-further-direction'))
     }
     return target
   }
@@ -241,10 +238,10 @@ function dropTarget(form: FormData, outline: readonly ForumOutlineRow[], id: num
   const afterId = after === '' ? null : Number(after)
 
   if (parentId !== null && (!Number.isSafeInteger(parentId) || parentId <= 0)) {
-    throw new ValidationError('No such parent forum.')
+    throw new ValidationError(msg('error.app.such-parent-forum'))
   }
   if (afterId !== null && (!Number.isSafeInteger(afterId) || afterId <= 0)) {
-    throw new ValidationError('No such forum to follow.')
+    throw new ValidationError(msg('error.app.such-forum-follow'))
   }
 
   return { parentId, afterId }
@@ -259,7 +256,7 @@ export async function arrangeForumAction(_prev: FormState, form: FormData): Prom
     const outline = outlineOf(await forums.listAll())
 
     const row = outline.find((entry) => entry.id === id)
-    if (row === undefined) throw new ValidationError('No such forum.')
+    if (row === undefined) throw new ValidationError(msg('error.app.such-forum'))
 
     const target = dropTarget(form, outline, id)
     if (isWhereItIs(outline, id, target)) return { notice: 'unmoved' }
@@ -291,7 +288,7 @@ export async function appointModeratorAction(_prev: FormState, form: FormData): 
     const groupRaw = trimmedText(form, 'groupId')
 
     if ((username === '') === (groupRaw === '')) {
-      throw new ValidationError('Name a member or choose a group, not both.')
+      throw new ValidationError(msg('error.app.name-member-choose-group-both'))
     }
 
     let userId: number | null = null
@@ -304,7 +301,7 @@ export async function appointModeratorAction(_prev: FormState, form: FormData): 
     } else {
       groupId = Number(groupRaw)
       if (!Number.isSafeInteger(groupId) || groupId <= 0) {
-        throw new ValidationError('No such group.')
+        throw new ValidationError(msg('error.app.such-group'))
       }
     }
 
@@ -338,7 +335,7 @@ export async function removeModeratorAction(_prev: FormState, form: FormData): P
     const id = forumId(form)
     const appointmentId = Number(trimmedText(form, 'appointmentId'))
     if (!Number.isSafeInteger(appointmentId) || appointmentId <= 0) {
-      throw new ValidationError('No such appointment.')
+      throw new ValidationError(msg('error.app.such-appointment'))
     }
 
     await requireForumAdmin().removeModerator(id, appointmentId)

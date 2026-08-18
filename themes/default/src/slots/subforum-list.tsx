@@ -1,16 +1,19 @@
-import type { SubforumListModel } from '@meith/theme-kit'
+import type { SlotCopy, SubforumListModel } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Card, CardContent, CardHeader, CardTitle } from '@meith/ui'
 
 import { Counts, LINK } from '../shared'
 
-export function SubforumList({ forums }: SubforumListModel) {
+export function SubforumList({ forums, copy }: SubforumListModel & { copy: SlotCopy }) {
   if (forums.length === 0) return null
+
+  const c = (key: string) => fromSlotCopy(copy, `default.subforumList.${key}`)
 
   return (
     <Card aria-labelledby="subforums-heading">
       <CardHeader>
         <CardTitle id="subforums-heading" className="text-sm">
-          Subforums
+          {c('heading')}
         </CardTitle>
       </CardHeader>
 
@@ -25,16 +28,16 @@ export function SubforumList({ forums }: SubforumListModel) {
                 <Counts
                   items={[
                     {
-                      label: 'Threads',
+                      label: c('threadsLabel'),
                       value: forum.threadCount,
-                      one: 'thread',
-                      many: 'threads',
+                      one: c('thread.one'),
+                      many: c('thread.other'),
                     },
                     {
-                      label: 'Posts',
+                      label: c('postsLabel'),
                       value: forum.postCount,
-                      one: 'post',
-                      many: 'posts',
+                      one: c('post.one'),
+                      many: c('post.other'),
                     },
                   ]}
                 />

@@ -2,15 +2,15 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { isAppError } from '@meith/core'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { SearchOffNotice } from '@/components/board/search-off-notice'
 import { getContainer } from '@/server/container'
 import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
-import { SEARCH_OFF_MESSAGE, searchEnabled } from '@/server/search'
+import { searchEnabled } from '@/server/search'
 import { openSearch, readRefinement, SEARCH_COUNT_CAP, SEARCH_PAGE } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
 import { currentTheme } from '@/server/theme'
@@ -18,7 +18,9 @@ import { buildOffsetPager, offsetOf, readPage } from '@/view/pager'
 import { CURSOR_FIELDS } from '@/view/search-controls'
 import { buildSearchResultsView, type SearchForumRef } from '@/view/search-results'
 
-export const metadata: Metadata = { title: 'Search results' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.search-results') }
+}
 
 export default async function SearchResultsPage({
   params,
@@ -27,7 +29,15 @@ export default async function SearchResultsPage({
   params: Promise<{ token: string }>
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  if (!(await searchEnabled())) return <SearchOffNotice message={SEARCH_OFF_MESSAGE} />
+  if (!(await searchEnabled())) {
+    const translator = await getTranslator()
+    return (
+      <SearchOffNotice
+        title={translator.t('board.search.title')}
+        message={translator.t('board.search.disabled')}
+      />
+    )
+  }
 
   const { token } = await params
   const query = await searchParams
@@ -103,9 +113,13 @@ export default async function SearchResultsPage({
       {...filtered}
       regions={{
         pagination: (
-          <Pagination {...(await filterView('view.pagination', pager, viewerRef(actor)))} />
+          <Pagination
+            {...(await filterView('view.pagination', pager, viewerRef(actor)))}
+            copy={slotCopy(await currentTheme(), 'Pagination', translator)}
+          />
         ),
       }}
+      copy={slotCopy(await currentTheme(), 'SearchResults', translator)}
     />
   )
 }

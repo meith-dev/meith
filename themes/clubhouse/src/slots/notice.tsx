@@ -1,25 +1,28 @@
-import type { NoticeModel } from '@meith/theme-kit'
+import type { NoticeModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 import { Alert, AlertDescription, AlertTitle } from '@meith/ui'
 
 import { MICRO, MUTED_LINK } from '../shared'
 
-const KIND_LABELS: Record<NoticeModel['kind'], string> = {
-  info: 'Notice',
-  success: 'Done',
-  warning: 'Warning',
-  error: 'Error',
-}
+export function Notice({ kind, message, dismissHref, copy }: NoticeModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `clubhouse.notice.${key}`)
 
-export function Notice({ kind, message, dismissHref }: NoticeModel) {
+  const kindLabels: Record<NoticeModel['kind'], string> = {
+    info: c('kindInfo'),
+    success: c('kindSuccess'),
+    warning: c('kindWarning'),
+    error: c('kindError'),
+  }
+
   return (
     <Alert tone={kind}>
       <AlertDescription>
-        <AlertTitle className={MICRO}>{KIND_LABELS[kind]}</AlertTitle> {message}
+        <AlertTitle className={MICRO}>{kindLabels[kind]}</AlertTitle> {message}
       </AlertDescription>
 
       {dismissHref !== null && (
         <a href={dismissHref} className={`shrink-0 text-xs ${MUTED_LINK}`}>
-          Dismiss
+          {c('dismiss')}
         </a>
       )}
     </Alert>

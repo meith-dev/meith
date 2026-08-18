@@ -1,9 +1,11 @@
-import type { ForumRowSlotModel } from '@meith/theme-kit'
+import type { ForumRowSlotModel, SlotCopy } from '@meith/theme-kit'
+import { fromSlotCopy } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-export function ForumRow({ forum }: ForumRowSlotModel) {
+export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }) {
   const isLink = forum.type === 'link'
+  const c = (key: string) => fromSlotCopy(copy, `midnight.forumRow.${key}`)
 
   return (
     <tr className="border-t border-border align-top odd:bg-card even:bg-muted/40">
@@ -15,7 +17,7 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
           <a href={forum.href} className="font-medium hover:text-primary">
             {forum.title}
           </a>
-          {forum.isUnread && <span className="sr-only">(new posts)</span>}
+          {forum.isUnread && <span className="sr-only">{c('newPosts')}</span>}
         </div>
         {forum.description !== null && (
           <p className="mt-0.5 text-xs text-muted-foreground">{forum.description}</p>
@@ -39,7 +41,7 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
       </td>
       <td className="w-64 px-3 py-2 text-xs text-muted-foreground">
         {isLink || forum.lastPost === null ? (
-          <span className="text-forum-read">{isLink ? '' : 'no posts yet'}</span>
+          <span className="text-forum-read">{isLink ? '' : c('noPosts')}</span>
         ) : (
           <>
             <a href={forum.lastPost.href} className="block truncate hover:text-primary">

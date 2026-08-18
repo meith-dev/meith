@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { MESSAGES_PAGE_SIZE, parseFolder } from '@meith/messages'
-import { requireSlot } from '@meith/theme-kit'
+import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { MessageActionBar } from '@/components/messages/message-forms'
 import { PanelPage } from '@/components/shell/panel-page'
@@ -10,14 +10,17 @@ import { PanelPagination } from '@/components/shell/panel-pagination'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { messageService } from '@/server/messages'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { messageFormsCopy } from '@/view/content-copy'
 import { buildMessageFolderView, MESSAGE_FORM_ID, messageNotice } from '@/view/messages'
 import { offsetOf, readPage } from '@/view/pager'
 
-export const metadata: Metadata = { title: 'Private messages' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await tr('page.private-messages') }
+}
 
 export default async function MessagesPage({
   searchParams,
@@ -34,6 +37,7 @@ export default async function MessagesPage({
 }) {
   const query = await searchParams
   const actor = await getActor()
+  const translator = await getTranslator()
   const { authorizer } = getContainer()
   const service = messageService()
 
@@ -68,13 +72,13 @@ export default async function MessagesPage({
 
   return (
     <PanelPage
-      title="Private messages"
+      title={await tr('page.private-messages')}
       actions={
         <a
           href={view.composeHref}
           className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
         >
-          Write a message
+          {await tr('page.write-message')}
         </a>
       }
     >
@@ -83,11 +87,12 @@ export default async function MessagesPage({
           kind={notice.kind}
           message={notice.message}
           dismissHref={view.tabs[0]?.href ?? '/messages'}
+          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
         />
       )}
 
       <ViewTabs
-        label="Message folders"
+        label={translator.t('board.messages.folders')}
         tabs={view.tabs.map((tab) => ({
           href: tab.href,
           label: tab.label,
@@ -99,26 +104,29 @@ export default async function MessagesPage({
 
       {view.quota.isFull ? (
         <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          Your message store is full, so you cannot send or receive anything until you delete some.
-          Emptying the trash frees space — messages in it still count.
+          {translator.t('board.messages.full')}
         </p>
       ) : view.quota.isNearlyFull ? (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-          Your message store is nearly full. Deleting messages and emptying the trash frees space.
+          {await tr('page.message-store-nearly-full-deleting')}
         </p>
       ) : null}
 
       {view.rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {folder === 'inbox'
-            ? 'No messages. When somebody writes to you, it will appear here.'
+            ? translator.t('board.messages.emptyInbox')
             : folder === 'sent'
-              ? 'You have not sent anything yet.'
-              : 'The trash is empty.'}
+              ? translator.t('board.messages.emptySent')
+              : translator.t('board.messages.emptyTrash')}
         </p>
       ) : (
         <>
-          <MessageActionBar formId={MESSAGE_FORM_ID} folder={folder} />
+          <MessageActionBar
+            formId={MESSAGE_FORM_ID}
+            folder={folder}
+            copy={messageFormsCopy(await getTranslator())}
+          />
 
           <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
             {view.rows.map((row) => (
@@ -128,7 +136,7 @@ export default async function MessagesPage({
                   form={MESSAGE_FORM_ID}
                   name="copyId"
                   value={row.copyId}
-                  aria-label={`Select “${row.subject}”`}
+                  aria-label={translator.t('board.messages.select', { subject: row.subject })}
                   className="mt-1 size-4 rounded border-border"
                 />
 
@@ -143,7 +151,7 @@ export default async function MessagesPage({
                   >
                     {row.isUnread && (
                       <span className="mr-2 text-xs font-semibold uppercase text-forum-unread">
-                        New
+                        {translator.t('board.messages.new')}
                       </span>
                     )}
                     {row.subject}

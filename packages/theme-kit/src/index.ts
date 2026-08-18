@@ -1,3 +1,5 @@
+export type { CatalogBundle, Translator } from '@meith/i18n'
+
 export {
   type ApiVersion,
   assertDeprecationPolicy,
@@ -26,13 +28,18 @@ export {
 export {
   assertComplete,
   defineTheme,
+  fromSlotCopy,
   hasSlot,
+  type PartialSlotCopyBuilders,
   type PartialSlotImplementations,
   type ResolvedTheme,
   requireSlot,
   resolveTheme,
   type SlotComponent,
+  type SlotCopy,
+  type SlotCopyBuilder,
   type SlotImplementations,
+  slotCopy,
   type ThemeDefinition,
 } from './theme'
 export type {

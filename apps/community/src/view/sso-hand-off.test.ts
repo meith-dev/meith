@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
 import { escapeHtml, handOffPage } from './sso-hand-off'
+import { untranslated } from './time'
+
+const t = untranslated()
 
 describe('the page that hands a member to their provider', () => {
   it('refreshes to the authorization address and offers it as a link too', () => {
     const html = handOffPage({
       label: 'GitHub',
       authorizationUrl: 'https://github.com/login/oauth/authorize?client_id=abc&state=xyz',
+      t,
     })
 
     expect(html).toContain(
@@ -18,7 +22,7 @@ describe('the page that hands a member to their provider', () => {
   })
 
   it('keeps search engines out of a page that only exists mid-handshake', () => {
-    expect(handOffPage({ label: 'GitHub', authorizationUrl: 'https://github.com' })).toContain(
+    expect(handOffPage({ label: 'GitHub', authorizationUrl: 'https://github.com', t })).toContain(
       '<meta name="robots" content="noindex, nofollow">',
     )
   })
@@ -27,6 +31,7 @@ describe('the page that hands a member to their provider', () => {
     const html = handOffPage({
       label: '<img src=x onerror=alert(1)>',
       authorizationUrl: 'https://login.example.com/authorize',
+      t,
     })
 
     expect(html).not.toContain('<img')
@@ -36,6 +41,7 @@ describe('the page that hands a member to their provider', () => {
   it('escapes an address, so a query string cannot close the attribute', () => {
     const html = handOffPage({
       label: 'Acme',
+      t,
       authorizationUrl: 'https://login.example.com/authorize?x="><script>alert(1)</script>',
     })
 
