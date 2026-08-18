@@ -62,51 +62,52 @@ export default async function AdminMergePage({
   return (
     <PanelPage
       back={{ href: `/admin/users/${member.id}`, label: member.username }}
-      title={`Merge ${member.username}`}
-      lede={
-        <>
-          <strong>{member.username}</strong> is the account that disappears. Everything it ever
-          posted becomes the other account&rsquo;s, and this one is closed. Check the direction
-          before you press anything — there is no undo.
-        </>
-      }
+      title={t.t('adminUsers.mergeTitle', { username: member.username })}
+      lede={t.t('adminUsers.mergePageLede', { username: member.username })}
     >
       <form method="get" className={PANEL_CARD}>
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">{await tr('page.keep-which-account')}</span>
-          <input name="into" defaultValue={into} className={INPUT} placeholder="Username" />
+          <input
+            name="into"
+            defaultValue={into}
+            className={INPUT}
+            placeholder={t.t('adminUsers.username')}
+          />
         </label>
         <div>
           <button
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            Find
+            {t.t('adminUsers.find')}
           </button>
         </div>
       </form>
 
       {into !== '' && previews.length === 0 && (
-        <p className={PANEL_NOTE}>No other account matches “{into}”.</p>
+        <p className={PANEL_NOTE}>{t.t('adminUsers.noOtherAccountMatches', { username: into })}</p>
       )}
 
       {previews.map(({ row, preview }) =>
         preview === null ? null : (
           <section key={row.id} className={PANEL_CARD}>
-            <h2 className="font-heading text-lg font-semibold">Keep {row.username}</h2>
+            <h2 className="font-heading text-lg font-semibold">
+              {t.t('adminUsers.keep', { username: row.username })}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              {preview.posts} post{preview.posts === 1 ? '' : 's'}, {preview.threads} thread
-              {preview.threads === 1 ? '' : 's'}, {preview.privateMessages} private message
-              {preview.privateMessages === 1 ? '' : 's'} and {preview.attachments} attachment
-              {preview.attachments === 1 ? '' : 's'} would move from {member.username} to{' '}
-              {row.username}.
+              {t.t('adminUsers.mergePreview', {
+                posts: t.t('adminUsers.posts', { count: preview.posts }),
+                threads: t.t('adminUsers.threads', { count: preview.threads }),
+                messages: t.t('adminUsers.privateMessages', { count: preview.privateMessages }),
+                attachments: t.t('adminUsers.attachments', { count: preview.attachments }),
+                from: member.username,
+                to: row.username,
+              })}
             </p>
 
             {preview.blockedByBan ? (
-              <p className="text-sm text-muted-foreground">
-                One of these accounts is banned. A merge carries the ban record across, which would
-                lock out an account nobody decided to ban — lift it first.
-              </p>
+              <p className="text-sm text-muted-foreground">{t.t('adminUsers.mergeBlockedByBan')}</p>
             ) : (
               <MergeForm
                 fromUserId={member.id}
@@ -123,22 +124,10 @@ export default async function AdminMergePage({
       <div className={cn(PANEL_CARD, 'gap-2 text-xs text-muted-foreground')}>
         <p>{await tr('page.what-merge-does-full')}</p>
         <ul className="flex list-disc flex-col gap-1 pl-4">
-          <li>
-            Every post, thread, message, attachment, warning and report moves, including the names
-            shown beside them.
-          </li>
-          <li>
-            The losing account&rsquo;s sessions and login tokens are <strong>destroyed</strong>, not
-            moved — a merge is not a way to hand somebody a login.
-          </li>
-          <li>
-            Where both accounts had the same subscription, group or preference, the kept
-            account&rsquo;s wins.
-          </li>
-          <li>
-            Ratings and relations between the two accounts are removed, because after a merge they
-            would say somebody rated or ignored themselves.
-          </li>
+          <li>{t.t('adminUsers.mergeDetailContent')}</li>
+          <li>{t.t('adminUsers.mergeDetailSessions')}</li>
+          <li>{t.t('adminUsers.mergeDetailConflict')}</li>
+          <li>{t.t('adminUsers.mergeDetailRelations')}</li>
           <li>{await tr('page.losing-account-closed-not-deleted')}</li>
         </ul>
       </div>

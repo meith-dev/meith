@@ -74,8 +74,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       {resolved.context.needsReauth && (
         <p className="border-b border-border bg-muted px-6 py-2 text-center text-xs text-muted-foreground">
-          It has been a while since you confirmed your password. Anything destructive will ask
-          again.
+          {t.t('adminLayout.reauth')}
         </p>
       )}
 

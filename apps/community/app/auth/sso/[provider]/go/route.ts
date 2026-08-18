@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server'
 
 import { federationProvider } from '@/server/federation'
-import { tr } from '@/server/i18n'
+import { getTranslator, tr } from '@/server/i18n'
 import { isTopLevelNavigation } from '@/server/same-origin'
 import { readHandshakeCookie } from '@/server/session-cookies'
 import { decodeHandshake } from '@/server/sso-handshake'
@@ -41,7 +41,11 @@ export async function GET(
   }
 
   return new Response(
-    handOffPage({ label: provider.label, authorizationUrl: handshake.authorizationUrl }),
+    handOffPage({
+      label: provider.label,
+      authorizationUrl: handshake.authorizationUrl,
+      t: await getTranslator(),
+    }),
     {
       status: 200,
       headers: {

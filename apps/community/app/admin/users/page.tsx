@@ -36,8 +36,7 @@ export default async function AdminUsersPage({
     return (
       <PanelPage title={await tr('page.members')} width="wide">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so its members cannot be searched or
-          edited.
+          {await tr('adminUsers.inMemorySearch')}
         </p>
       </PanelPage>
     )
@@ -56,16 +55,7 @@ export default async function AdminUsersPage({
   }
 
   return (
-    <PanelPage
-      title={await tr('page.members')}
-      lede={
-        <>
-          Every criterion is combined, and every one is optional — an empty search is everybody. The
-          filter is in the address bar, so this page can be bookmarked or handed to somebody else.
-        </>
-      }
-      width="wide"
-    >
+    <PanelPage title={await tr('page.members')} lede={translator.t('adminUsers.lede')} width="wide">
       <nav className="flex flex-wrap gap-2">
         <PanelActionLink href="/admin/users/prune">
           {await tr('page.prune-dormant-accounts')}
@@ -94,9 +84,9 @@ export default async function AdminUsersPage({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Group</span>
+            <span className="font-medium">{translator.t('adminUsers.group')}</span>
             <select name="group" defaultValue={value('group')} className={INPUT}>
-              <option value="">— any —</option>
+              <option value="">{translator.t('adminUsers.any')}</option>
               {groups.map((group) => (
                 <option key={group.id} value={group.id}>
                   {group.title}
@@ -106,12 +96,12 @@ export default async function AdminUsersPage({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">State</span>
+            <span className="font-medium">{translator.t('adminUsers.state')}</span>
             <select name="state" defaultValue={value('state')} className={INPUT}>
-              <option value="">— any —</option>
-              <option value="active">Active</option>
+              <option value="">{translator.t('adminUsers.any')}</option>
+              <option value="active">{translator.t('adminUsers.active')}</option>
               <option value="awaiting_activation">{await tr('page.awaiting-activation')}</option>
-              <option value="banned">Banned</option>
+              <option value="banned">{translator.t('adminUsers.banned')}</option>
             </select>
           </label>
 
@@ -164,22 +154,19 @@ export default async function AdminUsersPage({
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            Search
+            {translator.t('adminUsers.search')}
           </button>
           <a
             href="/admin/users"
             className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm"
           >
-            Clear
+            {translator.t('adminUsers.clear')}
           </a>
         </div>
       </form>
 
       {page.rows.length === 0 ? (
-        <p className={PANEL_NOTE}>
-          No members match. An empty result from a filled-in filter is a real answer — check the
-          spelling before widening it.
-        </p>
+        <p className={PANEL_NOTE}>{translator.t('adminUsers.noMatches')}</p>
       ) : (
         <ul className={PANEL_LIST}>
           {page.rows.map((row) => (
@@ -188,32 +175,42 @@ export default async function AdminUsersPage({
                 <span className="truncate text-sm font-medium">
                   {row.username}
                   {row.isBanned ? (
-                    <span className="ml-2 text-xs font-normal text-muted-foreground">banned</span>
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      {translator.t('adminUsers.banned')}
+                    </span>
                   ) : (
                     row.state !== 'active' && (
                       <span className="ml-2 text-xs font-normal text-muted-foreground">
-                        awaiting activation
+                        {translator.t('page.awaiting-activation')}
                       </span>
                     )
                   )}
                   {row.deletedAt !== null && (
-                    <span className="ml-2 text-xs font-normal text-muted-foreground">deleted</span>
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      {translator.t('adminUsers.deleted')}
+                    </span>
                   )}
                 </span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {row.email} · {row.primaryGroupTitle} · {row.postCount} post
-                  {row.postCount === 1 ? '' : 's'}
-                  {row.lastActiveAt === null
-                    ? ' · never seen'
-                    : ` · last seen ${formatTime(row.lastActiveAt, now, translator).label}`}
+                  {translator.t('adminUsers.memberSummary', {
+                    email: row.email,
+                    group: row.primaryGroupTitle,
+                    posts: translator.t('adminUsers.posts', { count: row.postCount }),
+                    lastSeen:
+                      row.lastActiveAt === null
+                        ? translator.t('adminUsers.neverSeen')
+                        : translator.t('adminUsers.lastSeen', {
+                            time: formatTime(row.lastActiveAt, now, translator).label,
+                          }),
+                  })}
                 </span>
               </span>
               <a
                 href={`/admin/users/${row.id}`}
-                aria-label={`Edit ${row.username}`}
+                aria-label={translator.t('adminUsers.editLabel', { username: row.username })}
                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'shrink-0')}
               >
-                Edit
+                {translator.t('adminUsers.edit')}
               </a>
             </li>
           ))}

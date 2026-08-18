@@ -36,6 +36,7 @@ export default async function AdminPrunePage({
   const params = await searchParams
   const criteria = parsePruneCriteria(params)
   const preview = criteria === null ? null : await repository.prunePreview(criteria)
+  const translator = await getTranslator()
 
   const value = (key: string): string => {
     const raw = params[key]
@@ -45,16 +46,9 @@ export default async function AdminPrunePage({
 
   return (
     <PanelPage
-      back={{ href: '/admin/users', label: 'All members' }}
+      back={{ href: '/admin/users', label: translator.t('adminUsers.allMembers') }}
       title={await tr('page.prune-members')}
-      lede={
-        <>
-          Closes dormant accounts in batches. It will never touch anybody who has posted — including
-          posts still held for approval or already removed — anybody in a staff group or any group
-          carrying staff powers, any forum moderator, or a banned account. Those are exclusions
-          rather than options, because closing one of them does damage a date filter cannot justify.
-        </>
-      }
+      lede={translator.t('adminUsers.pruneLede')}
     >
       <form method="get" className={PANEL_CARD}>
         <label className="flex flex-col gap-1 text-sm">
@@ -97,14 +91,11 @@ export default async function AdminPrunePage({
       {criteria === null ? (
         <p className={PANEL_NOTE}>{await tr('page.choose-registration-date-see-what')}</p>
       ) : preview !== null && preview.total === 0 ? (
-        <p className={PANEL_NOTE}>
-          Nothing matches. Every account registered before that date has written something, is
-          staff, moderates a forum, or is banned.
-        </p>
+        <p className={PANEL_NOTE}>{translator.t('adminUsers.pruneNoMatches')}</p>
       ) : preview !== null ? (
         <section className={PANEL_CARD}>
           <h2 className="font-heading text-lg font-semibold">
-            {preview.total} account{preview.total === 1 ? '' : 's'} would be closed
+            {translator.t('adminUsers.accountsWouldClose', { count: preview.total })}
           </h2>
 
           <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -116,11 +107,18 @@ export default async function AdminPrunePage({
                 >
                   {row.username}
                 </a>{' '}
-                — {row.email}, registered {row.createdAt.toISOString().slice(0, 10)}
+                {translator.t('adminUsers.pruneMemberMeta', {
+                  email: row.email,
+                  date: row.createdAt.toISOString().slice(0, 10),
+                })}
               </li>
             ))}
             {preview.total > preview.sample.length && (
-              <li>…and {preview.total - preview.sample.length} more.</li>
+              <li>
+                {translator.t('adminUsers.andMore', {
+                  count: preview.total - preview.sample.length,
+                })}
+              </li>
             )}
           </ul>
 
@@ -128,7 +126,7 @@ export default async function AdminPrunePage({
             before={value('before')}
             inactive={value('inactive')}
             awaiting={value('awaiting') !== ''}
-            copy={userPruneCopy(preview.total, await getTranslator())}
+            copy={userPruneCopy(preview.total, translator)}
           />
         </section>
       ) : null}

@@ -18,6 +18,7 @@ import {
 } from '@meith/install'
 import { mailConfigFromEnvironment } from '@meith/settings'
 
+import { getTranslator } from './i18n'
 import { gatherPreflight, installerIsSealed, runInstall } from './install'
 import { sendTestMail } from './mail-test'
 
@@ -55,25 +56,28 @@ export async function installAction(
   if (!canProceed(await gatherPreflight())) {
     return {
       errors: {
-        form: 'The board is not ready to install. Reload this page for the current checks.',
+        form: (await getTranslator()).t('installAction.notReady'),
       },
       values,
     }
   }
 
   if (parsed.value.mailPreset !== MAIL_SKIP) {
+    const t = await getTranslator()
     const test = await sendTestMail({
       config: mailConfigFromInstallInput(parsed.value),
       to: parsed.value.email,
       boardName: parsed.value.boardName,
+      t,
     })
 
     if (!test.ok) {
       return {
         errors: {
-          mailPreset:
-            `A test message to ${parsed.value.email} could not be sent, so nothing has ` +
-            `been installed. The provider said: ${test.error ?? 'nothing at all.'}`,
+          mailPreset: t.t('installAction.mailFailed', {
+            email: parsed.value.email,
+            error: test.error ?? t.t('installAction.noProviderResponse'),
+          }),
         },
         values,
       }

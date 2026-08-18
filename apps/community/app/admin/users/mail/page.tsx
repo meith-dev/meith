@@ -22,7 +22,7 @@ export default async function AdminMassMailPage() {
   if (bulk === null || users === null) {
     return (
       <PanelPage
-        back={{ href: '/admin/users', label: 'All members' }}
+        back={{ href: '/admin/users', label: (await getTranslator()).t('adminUsers.allMembers') }}
         title={await tr('page.mass-mail')}
         lede={await tr('page.this-board-running-in-memory-sample')}
       >
@@ -42,41 +42,24 @@ export default async function AdminMassMailPage() {
     title: group.title,
     audience: byGroup.get(group.id) ?? 0,
   }))
+  const translator = await getTranslator()
 
   return (
     <PanelPage
-      back={{ href: '/admin/users', label: 'All members' }}
+      back={{ href: '/admin/users', label: translator.t('adminUsers.allMembers') }}
       title={await tr('page.mass-mail')}
-      lede={
-        <>
-          Sends one message to every member of a group. It goes only to addresses the board has{' '}
-          <strong>verified</strong> — an unverified address is as often a typo, or somebody
-          else&rsquo;s mailbox, as it is the member&rsquo;s.
-        </>
-      }
+      lede={translator.t('adminUsers.massMailLede')}
     >
       <section className={PANEL_CARD}>
-        <MassMailForm
-          groups={audiences}
-          copy={userMassMailCopy(everybody, await getTranslator())}
-        />
+        <MassMailForm groups={audiences} copy={userMassMailCopy(everybody, translator)} />
       </section>
 
       <div className={cn(PANEL_CARD, 'gap-2 text-xs text-muted-foreground')}>
         <p>{await tr('page.before-press-it')}</p>
         <ul className="flex list-disc flex-col gap-1 pl-4">
-          <li>
-            Nothing is sent immediately. Messages are queued and go out as the scheduled tick drains
-            them.
-          </li>
-          <li>
-            There is no unsubscribe link and no per-member opt-out, so this is for things every
-            member needs to know rather than for anything promotional.
-          </li>
-          <li>
-            A campaign that stops half way is continued, never restarted — restarting would mail
-            everybody a second time.
-          </li>
+          <li>{translator.t('adminUsers.massMailQueued')}</li>
+          <li>{translator.t('adminUsers.massMailNoUnsubscribe')}</li>
+          <li>{translator.t('adminUsers.massMailContinues')}</li>
           <li>{await tr('page.email-cannot-be-unsent')}</li>
         </ul>
       </div>
