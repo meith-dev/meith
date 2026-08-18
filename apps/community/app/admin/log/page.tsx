@@ -49,18 +49,18 @@ export default async function AdminLogPage({
   return (
     <PanelPage
       title={await tr('page.admin-log')}
-      lede={<>{await tr('page.every-administrative-moderation-action-newest')}</>}
+      lede={await tr('page.every-administrative-moderation-action-newest')}
       width="wide"
     >
       <form method="get" className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Action</span>
+          <span className="font-medium">{translator.t('adminLog.action')}</span>
           <select
             name="action"
             defaultValue={view.currentAction}
             className="h-9 rounded-md border border-border bg-background px-2 text-sm"
           >
-            <option value="">Everything</option>
+            <option value="">{translator.t('adminLog.everything')}</option>
             {view.actions.map((action) => (
               <option key={action} value={action}>
                 {action}
@@ -72,7 +72,7 @@ export default async function AdminLogPage({
           type="submit"
           className="inline-flex h-9 items-center rounded-md border border-border px-3 text-sm hover:bg-muted"
         >
-          Filter
+          {translator.t('adminLog.filter')}
         </button>
       </form>
 
@@ -86,7 +86,9 @@ export default async function AdminLogPage({
                 <code className="text-xs font-medium">{row.action}</code>
                 <span>{row.actor}</span>
                 {row.ipPrefix !== null && (
-                  <span className="text-xs text-muted-foreground">from {row.ipPrefix}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {translator.t('adminLog.from', { address: row.ipPrefix })}
+                  </span>
                 )}
                 <time dateTime={row.at.iso} className="ml-auto text-xs text-muted-foreground">
                   {row.at.label}

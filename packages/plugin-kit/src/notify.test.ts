@@ -83,6 +83,25 @@ describe('pluginNotify', () => {
     expect(raised[0]?.data).toEqual({ subject: 'Hello' })
   })
 
+  it('stores catalog keys and arguments for recipient-time rendering', async () => {
+    const { raised, port } = backend()
+    await pluginNotify('reference', KINDS, port).send({
+      userId: 7,
+      kind: 'gift_received',
+      subjectKey: 'reference.notification.poked.subject',
+      subjectArgs: { plan: 'Gold' },
+      bodyKey: 'reference.notification.poked.body',
+      bodyArgs: { count: 2 },
+    })
+
+    expect(raised[0]?.data).toEqual({
+      subjectKey: 'reference.notification.poked.subject',
+      subjectArgs: '{"plan":"Gold"}',
+      bodyKey: 'reference.notification.poked.body',
+      bodyArgs: '{"count":2}',
+    })
+  })
+
   it('refuses an undeclared kind, a bad user, a silly subject, and an offsite href', async () => {
     const { raised, port } = backend()
     const notify = pluginNotify('dues', KINDS, port)

@@ -1,8 +1,9 @@
 import type { Poll } from '@meith/polls'
 
+import { getTranslator } from '@/server/i18n'
 import { votePollAction } from '@/server/poll-actions'
 
-export function PollForm({
+export async function PollForm({
   poll,
   threadId,
   canVote,
@@ -12,8 +13,12 @@ export function PollForm({
   canVote: boolean
 }) {
   const total = poll.options.reduce((sum, option) => sum + option.votes, 0)
+  const t = await getTranslator()
   return (
-    <section aria-label="Poll" className="mt-4 rounded-md border border-border p-4">
+    <section
+      aria-label={t.t('pollForm.label')}
+      className="mt-4 rounded-md border border-border p-4"
+    >
       <h2 className="font-medium">{poll.question}</h2>
       <form action={votePollAction} className="mt-3 flex flex-col gap-2">
         <input type="hidden" name="threadId" value={threadId} />
@@ -32,11 +37,9 @@ export function PollForm({
           </label>
         ))}
         {canVote && poll.votedOptionId === null ? (
-          <button type="submit">Vote</button>
+          <button type="submit">{t.t('pollForm.vote')}</button>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            {total} vote{total === 1 ? '' : 's'}
-          </p>
+          <p className="text-sm text-muted-foreground">{t.t('pollForm.votes', { count: total })}</p>
         )}
       </form>
     </section>

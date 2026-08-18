@@ -163,8 +163,9 @@ export async function settlePaidOrder(
     await tryNotify(deps, {
       userId: order.recipientUserId,
       kind: 'gift_received',
-      subject: `Somebody bought you ${order.planName}`,
-      body: 'It starts this moment — nothing to claim, nothing to do.',
+      subjectKey: 'dues.notification.gift.subject',
+      subjectArgs: { plan: order.planName },
+      bodyKey: 'dues.notification.gift.body',
       href: '/plugins/dues/manage',
       dedupeKey: `gift:${order.id}`,
     })
@@ -290,10 +291,8 @@ export async function applyInternalEvent(
         await tryNotify(deps, {
           userId: membership.userId,
           kind: 'renewal_trouble',
-          subject: 'A membership payment did not go through',
-          body:
-            'Stripe retries on its own. Your access holds during the grace window, ' +
-            'and updating your card from the manage page usually settles it.',
+          subjectKey: 'dues.notification.renewal.subject',
+          bodyKey: 'dues.notification.renewal.body',
           href: '/plugins/dues/manage',
           dedupeKey: `grace:${membership.id}`,
         })

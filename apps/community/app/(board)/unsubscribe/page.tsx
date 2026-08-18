@@ -20,7 +20,8 @@ export default async function UnsubscribePage({
   searchParams: Promise<{ token?: string; done?: string }>
 }) {
   const query = await searchParams
-  const done = unsubscribeNotice(query.done, await getTranslator())
+  const translator = await getTranslator()
+  const done = unsubscribeNotice(query.done, translator)
 
   const token = query.token ?? ''
   const secret = env.AUTH_SECRET
@@ -31,7 +32,7 @@ export default async function UnsubscribePage({
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-6 py-10">
-        <h1 className="font-heading text-2xl font-semibold">Unsubscribe</h1>
+        <h1 className="font-heading text-2xl font-semibold">{translator.t('page.unsubscribe')}</h1>
 
         {done !== null ? (
           <>
@@ -39,30 +40,29 @@ export default async function UnsubscribePage({
               kind="info"
               message={done}
               dismissHref="/"
-              copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
+              copy={slotCopy(await currentTheme(), 'Notice', translator)}
             />
             <p className="text-sm text-muted-foreground">
-              You can change any of this later from{' '}
+              {translator.t('unsubscribePage.doneBefore')}{' '}
               <a
                 href="/subscriptions"
                 className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
-                your subscriptions
+                {translator.t('page.subscriptions')}
               </a>
-              .
+              {translator.t('unsubscribePage.doneAfter')}
             </p>
           </>
         ) : claim === null ? (
           <p className="text-sm text-muted-foreground">
-            That link is not valid — it may have been truncated by a mail client, or the board’s
-            settings may have changed since it was sent. You can still manage everything from{' '}
+            {translator.t('unsubscribePage.invalidBefore')}{' '}
             <a
               href="/subscriptions"
               className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
             >
-              your subscriptions
+              {translator.t('page.subscriptions')}
             </a>{' '}
-            after signing in.
+            {translator.t('unsubscribePage.invalidAfter')}
           </p>
         ) : (
           <UnsubscribeConfirmForm
@@ -72,7 +72,7 @@ export default async function UnsubscribePage({
                 ? await tr('page.unsubscribe.emailScope')
                 : await tr('page.unsubscribe.targetScope')
             }
-            copy={followFormCopy(await getTranslator())}
+            copy={followFormCopy(translator)}
           />
         )}
       </div>

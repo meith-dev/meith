@@ -42,6 +42,35 @@ function num(data: NotificationData, key: string, fallback = 0): number {
   return fallback
 }
 
+function args(data: NotificationData, key: string): Readonly<Record<string, string | number>> {
+  const raw = str(data, key)
+  if (raw === '') return {}
+
+  try {
+    const value: unknown = JSON.parse(raw)
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return {}
+    return Object.fromEntries(
+      Object.entries(value).filter(
+        (entry): entry is [string, string | number] =>
+          typeof entry[1] === 'string' || typeof entry[1] === 'number',
+      ),
+    )
+  } catch {
+    return {}
+  }
+}
+
+function pluginMessage(
+  data: NotificationData,
+  textKey: string,
+  argsKey: string,
+  legacyKey: string,
+  t: Translator,
+): string {
+  const key = str(data, textKey)
+  return key === '' ? str(data, legacyKey) : t.t(key, args(data, argsKey))
+}
+
 function points(t: Translator, value: number): string {
   return t.t('notification.render.points', { count: value })
 }
@@ -198,8 +227,10 @@ export function renderNotification(
       ? template(record.data, t)
       : record.kind.startsWith('plugin.')
         ? {
-            subject: str(record.data, 'subject', t.t('notification.render.pluginFallback')),
-            body: str(record.data, 'body'),
+            subject:
+              pluginMessage(record.data, 'subjectKey', 'subjectArgs', 'subject', t) ||
+              t.t('notification.render.pluginFallback'),
+            body: pluginMessage(record.data, 'bodyKey', 'bodyArgs', 'body', t),
           }
         : {
             subject:

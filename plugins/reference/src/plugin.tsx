@@ -179,8 +179,8 @@ export const referencePlugin = definePlugin({
         await context.notify.send({
           userId: request.viewer.userId ?? 0,
           kind: 'poked',
-          subject: 'You were poked',
-          body: 'The reference plugin exercised the notification seam.',
+          subjectKey: 'reference.notification.poked.subject',
+          bodyKey: 'reference.notification.poked.body',
           href: '/reference',
         })
         return { kind: 'json', body: { poked: true } }

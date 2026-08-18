@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MailDriver, OutgoingMail } from '@meith/core'
+import { sourceTranslator } from '@meith/i18n'
 
 import { deliverNotificationEmail } from './deliver'
 import type { DeliverableNotification, NotificationRepository } from './types'
@@ -29,7 +30,7 @@ const DELIVERABLE: DeliverableNotification = {
     updatedAt: new Date('2026-07-31T10:00:00Z'),
     readAt: null,
   },
-  recipient: { userId: 1, username: 'ivan', email: 'ivan@example.test' },
+  recipient: { userId: 1, username: 'ivan', email: 'ivan@example.test', locale: 'en' },
   emailEnabled: true,
   emailSentAt: null,
 }
@@ -60,6 +61,38 @@ it('sends the message and records that it went', async () => {
   expect(mail.sent[0]?.to).toBe('ivan@example.test')
   expect(mail.sent[0]?.subject).toContain('[Test Board]')
   expect(marked).toEqual([4])
+})
+
+it('renders plugin catalog payloads with the recipient translator before sending', async () => {
+  found = {
+    ...DELIVERABLE,
+    recipient: { ...DELIVERABLE.recipient, locale: 'fr' },
+    notification: {
+      ...DELIVERABLE.notification,
+      kind: 'plugin.reference.poked',
+      data: {
+        subjectKey: 'reference.notification.poked.subject',
+        bodyKey: 'reference.notification.poked.body',
+      },
+    },
+  }
+
+  await deliverNotificationEmail({
+    notifications,
+    mail,
+    brand: BRAND,
+    notificationId: 4,
+    translatorForLocale: (locale) =>
+      sourceTranslator({
+        'reference.notification.poked.subject': locale === 'fr' ? 'Vous avez été appelé' : 'Poked',
+        'reference.notification.poked.body': locale === 'fr' ? 'Le test a fonctionné.' : 'Worked.',
+        'notification.mail.greeting': 'Hi {username}',
+        'notification.mail.boardFallback': 'this board',
+      }),
+  })
+
+  expect(mail.sent[0]?.subject).toContain('Vous avez été appelé')
+  expect(mail.sent[0]?.text).toContain('Le test a fonctionné.')
 })
 
 it('sends nothing for a notification that no longer exists', async () => {
