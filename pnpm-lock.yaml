@@ -592,9 +592,6 @@ importers:
 
   packages/mail:
     dependencies:
-      '@meith/core':
-        specifier: workspace:*
-        version: link:../core
       '@meith/i18n':
         specifier: workspace:*
         version: link:../i18n

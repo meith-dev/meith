@@ -151,8 +151,9 @@ together.
 
 The middle of the graph is nearly flat: almost every domain package depends on
 `@meith/core` alone, with a handful of deliberate edges (`threads` uses
-`markdown` and `polls`; `avatars` builds on `attachments`; `signatures`,
-`messages` and `notifications` render through `markdown`). In broad strokes:
+`markdown` and `polls`; `avatars` builds on `attachments`; `signatures` and
+`messages` render through `markdown`; `notifications` composes its messages
+through `mail`). In broad strokes:
 
 | Area | Packages | What lives there |
 |---|---|---|
@@ -162,7 +163,7 @@ The middle of the graph is nearly flat: almost every domain package depends on
 | Members | `profile-fields`, `messages`, `relations`, `reputation`, `signatures` | Custom profile fields, private messages, buddy/ignore lists, ratings, and signatures (rendered with a deliberately narrower Markdown feature set). |
 | Moderation and safety | `moderation`, `antispam` | The approval queue, reports, thread tools, warnings; rate limits counted in the database, the honeypot, question challenges, and held first posts. |
 | Rendering | `markdown` | The one place member text becomes markup: parsing, rendering, the word filter, BBCode conversion, URL safety. |
-| Delivery | `notifications`, `subscriptions`, `events` | The single "somebody needs to be told" path, thread and forum following, and the transactional outbox. |
+| Delivery | `notifications`, `subscriptions`, `events`, `mail` | The single "somebody needs to be told" path, thread and forum following, the transactional outbox, and the one template every outgoing message is rendered with — see [mail](#mail). |
 | Platform | `settings`, `tasks`, `search`, `api`, `i18n` | The typed settings registry, the scheduled-task contract, the search provider seam, the REST route registry as data, and the message catalog with the locale-aware formatters — see [Languages](./internationalisation.md). |
 | Lifecycle | `install`, `upgrade`, `import` | The installer, the upgrade planner, and the resumable MyBB importer. |
 
@@ -494,6 +495,41 @@ build-time renderer in `apps/web` for *repository* text — these documents —
 with build-time syntax highlighting and the diagrams on this page. Member
 input and repository prose have different threat models; sharing a renderer
 would force one to carry the other's rules.
+
+## Mail
+
+`packages/mail` holds the shape of an outgoing message and nothing about
+sending one. It takes a board's name, its logo and a theme's tokens, and
+answers a subject, a plain-text part and an HTML part. Reaching a mail
+server is `@meith/drivers`' job, and the two never meet: the template can
+be rendered and asserted on in a unit test with no transport configured,
+which is why every branch of it is covered.
+
+It exists as its own package because **five call sites in three processes
+need the same template**. Notification and mass mail are rendered by the
+worker, which has no Next.js and no theme registry; registration
+confirmation, password reset and the e-mail change confirmation are
+rendered during a request in `apps/community`. Putting the template in
+`notifications` would have made an auth e-mail import a notifications
+package to render itself.
+
+It carries the one edge in the domain layer that points at a theme:
+`@meith/mail` reads `@meith/theme-kit` for the OKLCH-to-sRGB conversion
+that every mail palette needs, because no mail client parses `oklch()`.
+That direction is safe — theme-kit is the theme *SDK*, types and pure
+functions, not a theme — and it is what keeps one copy of the colour maths
+behind the stylesheet compiler, the contrast readouts, the theme screen's
+colour picker and the mail palette. A theme is still never imported here:
+the tokens arrive as data, resolved by whichever composition root is
+sending, so the worker renders the board's theme without being able to see
+it.
+
+What each message *says* stays with the feature that sends it —
+`packages/notifications` for a notification, `apps/community/src/server`
+for the auth and UserCP messages. `mail` only knows how a title, some
+paragraphs, one button and a footer are laid out. See
+[Mail](./operating.md#what-the-messages-look-like) for what an operator
+sees.
 
 ## What keeps the shape honest
 
