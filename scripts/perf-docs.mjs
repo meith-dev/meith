@@ -9,42 +9,62 @@ const BUDGETS_FILE = 'packages/testkit/src/load/budgets.ts'
 const RESULTS_FILE = 'docs/perf-results.json'
 const INDEX_FILE = 'docs/perf-indexes.json'
 const PLANS_FILE = 'packages/testkit/src/load/index-plans.ts'
+const COHORTS_FILE = 'packages/testkit/src/load/cohorts.ts'
+const LOAD_FILE = 'docs/perf-load.json'
 const OUTPUT_FILE = 'docs/performance.md'
 
-async function readBudgets() {
-  const source = await readFile(join(ROOT, BUDGETS_FILE), 'utf8')
-  const start = source.indexOf('export const BUDGETS')
-  if (start === -1) throw new Error(`No BUDGETS array in ${BUDGETS_FILE}`)
+function arrayLiteral(source, name, file) {
+  const start = source.indexOf(`export const ${name}`)
+  if (start === -1) throw new Error(`No ${name} array in ${file}`)
 
   const assign = source.indexOf('=', start)
   const open = source.indexOf('[', assign)
-  if (assign === -1 || open === -1) throw new Error('BUDGETS has no array literal')
+  if (assign === -1 || open === -1) throw new Error(`${name} has no array literal`)
+
   let depth = 0
-  let end = -1
   for (let i = open; i < source.length; i++) {
     if (source[i] === '[') depth++
-    else if (source[i] === ']' && --depth === 0) {
-      end = i
-      break
-    }
-  }
-  if (end === -1) throw new Error('Unterminated BUDGETS array')
-
-  const body = source.slice(open + 1, end)
-  const budgets = []
-
-  for (const entry of splitObjects(body)) {
-    budgets.push({
-      id: field(entry, 'id'),
-      page: field(entry, 'page'),
-      work: field(entry, 'work'),
-      p95Ms: Number(field(entry, 'p95Ms', /p95Ms:\s*([\d_]+)/).replace(/_/g, '')),
-      kind: field(entry, 'kind'),
-      why: field(entry, 'why'),
-    })
+    else if (source[i] === ']' && --depth === 0) return splitObjects(source.slice(open + 1, i))
   }
 
-  return budgets
+  throw new Error(`Unterminated ${name} array`)
+}
+
+function number(entry, name) {
+  return Number(field(entry, name, new RegExp(`\\b${name}:\\s*([\\d_]+)`)).replace(/_/g, ''))
+}
+
+async function readBudgets() {
+  const source = await readFile(join(ROOT, BUDGETS_FILE), 'utf8')
+
+  return arrayLiteral(source, 'BUDGETS', BUDGETS_FILE).map((entry) => ({
+    id: field(entry, 'id'),
+    page: field(entry, 'page'),
+    work: field(entry, 'work'),
+    p95Ms: number(entry, 'p95Ms'),
+    kind: field(entry, 'kind'),
+    why: field(entry, 'why'),
+  }))
+}
+
+async function readCohorts() {
+  const source = await readFile(join(ROOT, COHORTS_FILE), 'utf8')
+
+  const cohorts = arrayLiteral(source, 'COHORTS', COHORTS_FILE).map((entry) => ({
+    id: field(entry, 'id'),
+    members: number(entry, 'members'),
+    p95Ms: number(entry, 'p95Ms'),
+    kind: field(entry, 'kind'),
+    why: field(entry, 'why'),
+  }))
+
+  const mix = arrayLiteral(source, 'TRAFFIC_MIX', COHORTS_FILE).map((entry) => ({
+    id: field(entry, 'id'),
+    share: number(entry, 'share'),
+    filtered: /filtered:\s*true/.test(entry),
+  }))
+
+  return { cohorts, mix }
 }
 
 function splitObjects(body) {
@@ -118,20 +138,8 @@ async function readJson(file) {
 
 async function readPlans() {
   const source = await readFile(join(ROOT, PLANS_FILE), 'utf8')
-  const assign = source.indexOf('=', source.indexOf('export const INDEX_PLANS'))
-  const open = source.indexOf('[', assign)
 
-  let depth = 0
-  let end = -1
-  for (let i = open; i < source.length; i++) {
-    if (source[i] === '[') depth++
-    else if (source[i] === ']' && --depth === 0) {
-      end = i
-      break
-    }
-  }
-
-  return splitObjects(source.slice(open + 1, end)).map((entry) => ({
+  return arrayLiteral(source, 'INDEX_PLANS', PLANS_FILE).map((entry) => ({
     id: field(entry, 'id'),
     page: field(entry, 'page'),
     index: field(entry, 'index'),
@@ -141,7 +149,143 @@ async function readPlans() {
 
 const ms = (value) => `${value.toFixed(1)} ms`
 
-function render({ budgets, results, indexes, plans }) {
+function flatRange(cohorts, seen) {
+  const measured = cohorts
+    .map((cohort) => ({ cohort, result: seen.get(cohort.id) }))
+    .filter((row) => row.result !== undefined)
+
+  const first = measured[0]
+  if (first === undefined) return null
+
+  const ceiling = first.result.summary.p95 * 1.5
+  let last = first
+  for (const row of measured) {
+    if (row.result.summary.p95 > ceiling) break
+    last = row
+  }
+
+  if (last.cohort.members <= first.cohort.members) return null
+
+  return {
+    from: first.cohort,
+    to: last.cohort,
+    fromP95: first.result.summary.p95,
+    toP95: last.result.summary.p95,
+  }
+}
+
+function renderLoad({ budgets, cohorts, mix, load }) {
+  const out = []
+  const page = new Map(budgets.map((budget) => [budget.id, budget.page]))
+  const seen = new Map((load?.results ?? []).map((result) => [result.id, result]))
+
+  out.push('## Under concurrent load')
+  out.push('')
+
+  if (load === null) {
+    out.push('`pnpm perf load --record` has not been run against a full-scale board, so')
+    out.push('every number below is a ceiling nothing has been measured against yet.')
+    out.push('')
+    return out
+  }
+
+  const think = (load.thinkMs / 1_000).toFixed(0)
+
+  out.push(`Every measurement above is one read at a time. This is the same board with`)
+  out.push(`members on it: each one asks for a page every ${think} seconds, drawn from the`)
+  out.push('mix below, through the single connection pool one process has —')
+  out.push(`**${load.poolMax} connections**, which is the shipped default and not a tuned number.`)
+  out.push('')
+  out.push('Arrival times are on a fixed schedule rather than a request-then-sleep loop.')
+  out.push('That distinction is the whole measurement: a loop that sleeps *after* each')
+  out.push('response slows its own arrivals down exactly when the board gets slow, so it')
+  out.push('reports a queue as if it were an idle system. **Lateness** is what that loop')
+  out.push('cannot see — how long a request sat before it even started, because every')
+  out.push('connection was busy. It moves first, and it moves before the p95 does.')
+  out.push('')
+
+  out.push('| Active members | Offered | Served | Budget | | p50 | p95 | p99 | Late p95 |')
+  out.push('|---:|---:|---:|---:|---|---:|---:|---:|---:|')
+
+  for (const cohort of cohorts) {
+    const result = seen.get(cohort.id)
+    const rps = (value) => `${value.toFixed(0)}/s`
+    out.push(
+      `| ${cohort.members.toLocaleString()} | ` +
+        `${result ? rps(result.offeredRps) : '—'} | ${result ? rps(result.achievedRps) : '—'} | ` +
+        `${cohort.p95Ms} ms | ${cohort.kind} | ${result ? ms(result.summary.p50) : '—'} | ` +
+        `${result ? ms(result.summary.p95) : '—'} | ${result ? ms(result.summary.p99) : '—'} | ` +
+        `${result ? ms(result.lateness.p95) : '—'} |`,
+    )
+  }
+
+  out.push('')
+  out.push(
+    `Each rung discards its first ${(load.settleMs / 1_000).toFixed(0)} seconds, then measures ` +
+      `until it has both ${load.minRequests} requests and a steady window to put them in.`,
+  )
+  out.push('')
+  out.push('## The same pages, under that load')
+  out.push('')
+
+  const flat = flatRange(cohorts, seen)
+  if (flat !== null) {
+    const rise = (flat.to.members / flat.from.members).toFixed(0)
+    out.push(
+      `From ${flat.from.members.toLocaleString()} members to ` +
+        `${flat.to.members.toLocaleString()} the p95 of the mix barely moves — ` +
+        `${ms(flat.fromP95)} to ${ms(flat.toP95)}, across ${rise}× the traffic. That flatness ` +
+        'is not the board being idle; it is what a mixed p95 measures. A p95 is set by the ' +
+        'slowest one request in twenty, and search and discovery are about that share of ' +
+        'the traffic, so until the pool runs out the mixed p95 mostly reports which pages ' +
+        'are in the mix rather than how many members are on the board.',
+    )
+    out.push('')
+  }
+
+  out.push('The per-page breakdown is where load shows earlier, and says which pages it')
+  out.push('shows in first.')
+  out.push('')
+
+  out.push(`| Page | Share | ${cohorts.map((c) => c.members.toLocaleString()).join(' | ')} |`)
+  out.push(`|---|---:|${cohorts.map(() => '---:').join('|')}|`)
+
+  for (const entry of mix) {
+    const cells = cohorts.map((cohort) => {
+      const found = seen.get(cohort.id)?.perScenario.find((scenario) => scenario.id === entry.id)
+      return found ? ms(found.summary.p95) : '—'
+    })
+    out.push(`| ${page.get(entry.id) ?? entry.id} | ${entry.share}% | ${cells.join(' | ')} |`)
+  }
+
+  out.push('')
+  out.push('Every row is a p95 in milliseconds, and the column heading is how many members')
+  out.push('were on the board. A row that climbs left to right is a page that costs more')
+  out.push('when the board is busy; a row that does not is a page whose cost is its own.')
+  out.push('')
+
+  const filtered = mix.filter((entry) => entry.filtered)
+  if (filtered.length > 0) {
+    out.push('The scoped reads —')
+    out.push(`${filtered.map((entry) => `*${page.get(entry.id) ?? entry.id}*`).join(', ')} —`)
+    out.push('pay the permission filter first, in the same request, exactly as a page does.')
+    out.push('Their numbers here are therefore the filter plus the read, and are not')
+    out.push('comparable with the single-read measurement of the same id above.')
+    out.push('')
+  }
+
+  const limit = cohorts.find((cohort) => cohort.kind === 'limit')
+  if (limit !== undefined) {
+    out.push(`### ${limit.members.toLocaleString()} active members`)
+    out.push('')
+    out.push(limit.why)
+    out.push('')
+  }
+
+  return out
+}
+
+function render({ budgets, cohorts, mix, load, results, indexes, plans }) {
   const out = []
   const byId = new Map((results?.results ?? []).map((r) => [r.id, r]))
 
@@ -152,11 +296,14 @@ function render({ budgets, results, indexes, plans }) {
   out.push('')
   out.push(`  Budgets come from ${BUDGETS_FILE}, which the load runner enforces.`)
   out.push(`  Measurements come from ${RESULTS_FILE}, written by \`pnpm perf measure --record\`.`)
+  out.push(`  Cohorts and the traffic mix come from ${COHORTS_FILE}.`)
+  out.push(`  The load run comes from ${LOAD_FILE}, written by \`pnpm perf load --record\`.`)
   out.push('  Regenerate with `pnpm perf:docs`; `pnpm verify` fails when this is stale.')
   out.push('-->')
   out.push('')
-  out.push('The p95 budgets for the pages a board’s traffic actually goes to, and what')
-  out.push('the last recorded run measured against a full-scale board.')
+  out.push('The p95 budgets for the pages a board’s traffic actually goes to, what the')
+  out.push('last recorded run measured against a full-scale board one read at a time,')
+  out.push('and what a board full of members reading at once measured on the same data.')
   out.push('')
 
   if (results === null) {
@@ -221,6 +368,8 @@ function render({ budgets, results, indexes, plans }) {
     out.push('')
   }
 
+  out.push(...renderLoad({ budgets, cohorts, mix, load }))
+
   out.push('## Partial visible indexes')
   out.push('')
   out.push('`EXPLAIN` evidence that the partial `visibility` indexes are actually used.')
@@ -270,10 +419,12 @@ function render({ budgets, results, indexes, plans }) {
 }
 
 const budgets = await readBudgets()
+const { cohorts, mix } = await readCohorts()
 const results = await readJson(RESULTS_FILE)
+const load = await readJson(LOAD_FILE)
 const indexes = await readJson(INDEX_FILE)
 const plans = await readPlans()
-const generated = render({ budgets, results, indexes, plans })
+const generated = render({ budgets, cohorts, mix, load, results, indexes, plans })
 await emitGeneratedDoc({
   outputFile: OUTPUT_FILE,
   generated,
@@ -282,5 +433,7 @@ await emitGeneratedDoc({
     'and commit the result — a published p95 that no run produced is worse than no ' +
     'published p95.',
   upToDate: `${budgets.length} budgets`,
-  wrote: `${budgets.length} budgets, ${results === null ? 'no' : results.results.length} measurements`,
+  wrote:
+    `${budgets.length} budgets, ${results === null ? 'no' : results.results.length} measurements, ` +
+    `${load === null ? 'no' : load.results.length} load cohorts`,
 })

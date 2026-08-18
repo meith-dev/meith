@@ -14,6 +14,7 @@
       "!**/drizzle",
       "!apps/*/public",
       "!docs/perf-indexes.json",
+      "!docs/perf-load.json",
       "!docs/perf-results.json",
       "!pnpm-lock.yaml"
     ]
