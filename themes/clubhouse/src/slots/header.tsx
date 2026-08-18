@@ -34,6 +34,26 @@ function BoardMark({ boardTitle, logo }: Pick<HeaderModel, 'boardTitle' | 'logo'
   )
 }
 
+function Submenu({ items }: { items: HeaderModel['navigation'][number]['submenu'] }) {
+  if (items === undefined || items.length === 0) return null
+
+  return (
+    <ul className="invisible absolute top-full left-0 z-30 min-w-44 rounded-b-md border border-border bg-card py-1 text-sm opacity-0 shadow-elevation transition-opacity group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+      {items.map((child) => (
+        <li key={child.href}>
+          <a
+            href={child.href}
+            {...linkTarget(child)}
+            className="block px-3 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            {child.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function Header({
   boardTitle,
   homeHref,
@@ -43,6 +63,8 @@ export function Header({
   copy,
 }: HeaderModel & { copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `clubhouse.header.${key}`)
+
+  const opensMenus = navigation.some((item) => item.submenu !== undefined)
 
   return (
     <header className="bg-card">
@@ -61,9 +83,13 @@ export function Header({
       {navigation.length > 0 && (
         <nav aria-label={c('boardSections')} className="border-b border-border bg-surface">
           <div className={PAGE}>
-            <ul className="-mx-4 flex items-stretch overflow-x-auto px-4 sm:-mx-6 sm:px-6">
+            <ul
+              className={`-mx-4 flex items-stretch px-4 sm:-mx-6 sm:px-6 ${
+                opensMenus ? 'flex-wrap' : 'overflow-x-auto'
+              }`}
+            >
               {navigation.map((item) => (
-                <li key={item.href} className="shrink-0">
+                <li key={item.href} className="group relative shrink-0">
                   <a
                     href={item.href}
                     {...linkTarget(item)}
@@ -71,6 +97,7 @@ export function Header({
                   >
                     {item.label}
                   </a>
+                  <Submenu items={item.submenu} />
                 </li>
               ))}
             </ul>

@@ -313,12 +313,13 @@ not an API version.
 > the sole caller of `requireSlot`, had to change: it now resolves `slotCopy()`
 > for every slot it renders. See [Words and numbers](#words-and-numbers).
 >
-> `0.16` is additive again: [`LinkModel`](./theme-slots.md#linkmodel) gained an
-> optional `newTab`, because the board navigation is now a list an
-> administrator edits and the links in it may leave the board, and a
-> `linkTarget(link)` helper is exported beside it — spread onto an anchor it
-> writes the `target` and the `rel` that has to accompany it. A theme that
-> ignores both renders an ordinary link and still compiles.
+> `0.16` is additive again: [`LinkModel`](./theme-slots.md#linkmodel) gained
+> `newTab` and `submenu`, both optional, because the board navigation is now a
+> list an administrator edits — its links may leave the board, and they may
+> have one level of links under them. A `linkTarget(link)` helper is exported
+> beside them: spread onto an anchor it writes the `target` and the `rel` that
+> has to accompany it. A theme that ignores both fields still compiles, and
+> renders the top level as an ordinary row of links.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

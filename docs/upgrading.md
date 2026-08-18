@@ -514,12 +514,16 @@ the way it did**, including Search disappearing when search is off and
 My posts staying away from signed-out visitors.
 
 What is new is that you can change it, under **Admin → Content →
-Navigation**: rename an item, reorder it, hide it, delete it, or add
+Navigation**: drag an item to reorder it, drag it to the right to hang it
+under the item above as a sub-menu, rename it, hide it, delete it, or add
 your own — to a chat server, a wiki, anything with an address. Items can
 be limited to an audience or to particular groups, and one marked as
-opening in a new tab does so in every theme that honours it.
+opening in a new tab does so in every theme that honours it. The screen
+works with JavaScript off: every drag has an arrow button beside it.
 
-A theme you maintain needs no change. `LinkModel` gained an optional
-`newTab`, which a theme is free to ignore; to honour it, spread
-`linkTarget(item)` onto the anchor — see
+A theme you maintain still compiles unchanged. `LinkModel` gained two
+optional fields, `newTab` and `submenu`. A theme that ignores `submenu`
+renders the top level and drops the entries under it, so a theme meant to
+follow the board navigation should render one level of nested links,
+revealed on both `:hover` and `:focus-within`. See
 [the theme API](./theme-api.md#versioning).

@@ -23,11 +23,16 @@ export interface GroupChoice {
   readonly title: string
 }
 
+export interface ParentChoice {
+  readonly id: number
+  readonly name: string
+}
+
 export interface NavigationItemValues {
   readonly id: number
+  readonly parentId: number | null
   readonly label: string
   readonly href: string
-  readonly displayOrder: number
   readonly audience: string
   readonly newTab: boolean
   readonly enabled: boolean
@@ -37,11 +42,13 @@ export interface NavigationItemValues {
 function NavigationFields({
   audiences,
   groups,
+  parents,
   values,
   copy,
 }: {
   audiences: readonly AudienceChoice[]
   groups: readonly GroupChoice[]
+  parents: readonly ParentChoice[]
   values?: NavigationItemValues
   copy: Copy
 }) {
@@ -68,15 +75,22 @@ function NavigationFields({
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
-        <label className="flex w-28 flex-col gap-1 text-sm">
-          <span className="font-medium">{fromCopy(copy, 'adminNavigation.displayOrder')}</span>
-          <input
-            name="displayOrder"
-            type="number"
-            min={0}
-            defaultValue={values?.displayOrder ?? 0}
+        <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
+          <span className="font-medium">{fromCopy(copy, 'adminNavigation.inside')}</span>
+          <select
+            name="parentId"
+            defaultValue={values?.parentId === null || values === undefined ? '' : values.parentId}
             className={INPUT}
-          />
+          >
+            <option value="">{fromCopy(copy, 'adminNavigation.topLevel')}</option>
+            {parents
+              .filter((parent) => parent.id !== values?.id)
+              .map((parent) => (
+                <option key={parent.id} value={parent.id}>
+                  {parent.name}
+                </option>
+              ))}
+          </select>
         </label>
 
         <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
@@ -145,11 +159,13 @@ export function NavigationItemRowForm({
   item,
   audiences,
   groups,
+  parents,
   copy,
 }: {
   item: NavigationItemValues
   audiences: readonly AudienceChoice[]
   groups: readonly GroupChoice[]
+  parents: readonly ParentChoice[]
   copy: Copy
 }) {
   const [state, action] = useActionState(updateNavigationItemAction, EMPTY_STATE)
@@ -162,7 +178,13 @@ export function NavigationItemRowForm({
 
       <form action={action} className="flex flex-col gap-3" noValidate>
         <input type="hidden" name="id" value={item.id} />
-        <NavigationFields audiences={audiences} groups={groups} values={item} copy={copy} />
+        <NavigationFields
+          audiences={audiences}
+          groups={groups}
+          parents={parents}
+          values={item}
+          copy={copy}
+        />
 
         <span className="min-w-28">
           <SubmitButton>{fromCopy(copy, 'adminContent.save')}</SubmitButton>
@@ -182,10 +204,12 @@ export function NavigationItemRowForm({
 export function NewNavigationItemForm({
   audiences,
   groups,
+  parents,
   copy,
 }: {
   audiences: readonly AudienceChoice[]
   groups: readonly GroupChoice[]
+  parents: readonly ParentChoice[]
   copy: Copy
 }) {
   const [state, action] = useActionState(createNavigationItemAction, EMPTY_STATE)
@@ -195,7 +219,7 @@ export function NewNavigationItemForm({
       <FormError message={state.error} />
       <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'adminContent.added')}</Saved>
 
-      <NavigationFields audiences={audiences} groups={groups} copy={copy} />
+      <NavigationFields audiences={audiences} groups={groups} parents={parents} copy={copy} />
 
       <span className="min-w-28">
         <SubmitButton>{fromCopy(copy, 'adminContent.add')}</SubmitButton>

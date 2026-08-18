@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
 import { STAFF, STAFF_PASSWORD } from './support/config'
 import { enterAdminPanel, signInAsAdmin, signUp } from './support/session'
@@ -137,23 +137,47 @@ test('an announcement written in the panel renders above the forums', async ({ p
   await expect(page.getByText(title)).toHaveCount(0)
 })
 
-test('a menu item added in the panel appears in the navigation, and one hidden leaves it', async ({
-  page,
-}) => {
-  await enterAdminPanel(page)
+function menuEditor(page: Page, value: string) {
+  return page.locator('details').filter({ has: page.locator(`input[value="${value}"]`) })
+}
 
-  const label = `Handbook ${Date.now().toString(36)}`
+async function openMenuEditor(page: Page, value: string) {
+  const editor = menuEditor(page, value)
+  await editor.locator('summary').click()
+  return editor
+}
+
+async function addMenuItem(page: Page, label: string, href: string): Promise<void> {
   await page.goto('/admin/content/navigation')
 
   const composer = page
     .locator('form')
     .filter({ has: page.getByRole('button', { name: 'Add', exact: true }) })
   await composer.getByLabel('Label').fill(label)
-  await composer.getByLabel('Address').fill('https://example.com/handbook')
+  await composer.getByLabel('Address').fill(href)
   await composer.getByLabel('Shown to').selectOption({ label: 'Everyone' })
-  await composer.getByLabel('Open in a new tab').check()
   await composer.getByLabel('Shown in the menu').check()
   await composer.getByRole('button', { name: 'Add', exact: true }).click()
+}
+
+async function removeMenuItem(page: Page, label: string): Promise<void> {
+  await page.goto('/admin/content/navigation')
+
+  const editor = await openMenuEditor(page, label)
+  await editor.getByRole('button', { name: 'Remove this item' }).click()
+}
+
+test('a menu item added in the panel appears in the navigation, and one hidden leaves it', async ({
+  page,
+}) => {
+  await enterAdminPanel(page)
+
+  const label = `Handbook ${Date.now().toString(36)}`
+  await addMenuItem(page, label, 'https://example.com/handbook')
+
+  const composed = await openMenuEditor(page, label)
+  await composed.getByLabel('Open in a new tab').check()
+  await composed.getByRole('button', { name: 'Save' }).click()
 
   await page.goto('/')
   const added = page.getByRole('banner').getByRole('link', { name: label })
@@ -162,7 +186,7 @@ test('a menu item added in the panel appears in the navigation, and one hidden l
   await expect(added).toHaveAttribute('rel', 'noopener noreferrer')
 
   await page.goto('/admin/content/navigation')
-  const online = page.locator('form').filter({ has: page.locator('input[value="/online"]') })
+  const online = await openMenuEditor(page, '/online')
   await online.getByLabel('Shown in the menu').uncheck()
   await online.getByRole('button', { name: 'Save' }).click()
 
@@ -170,25 +194,62 @@ test('a menu item added in the panel appears in the navigation, and one hidden l
   await expect(page.getByRole('banner').getByRole('link', { name: "Who's online" })).toHaveCount(0)
 
   await page.goto('/admin/content/navigation')
-  const restored = page.locator('form').filter({ has: page.locator('input[value="/online"]') })
+  const restored = await openMenuEditor(page, '/online')
   await restored.getByLabel('Shown in the menu').check()
   await restored.getByRole('button', { name: 'Save' }).click()
 
-  const itemId = await page
-    .locator('form')
-    .filter({ has: page.locator(`input[value="${label}"]`) })
-    .locator('input[name="id"]')
-    .inputValue()
-
-  await page
-    .locator('form')
-    .filter({ has: page.locator(`input[name="id"][value="${itemId}"]`) })
-    .getByRole('button', { name: 'Remove this item' })
-    .click()
+  await removeMenuItem(page, label)
 
   await page.goto('/')
   await expect(page.getByRole('banner').getByRole('link', { name: label })).toHaveCount(0)
   await expect(page.getByRole('banner').getByRole('link', { name: "Who's online" })).toBeVisible()
+})
+
+test('the arrows reorder the menu and tuck an item into a sub-menu', async ({ page }) => {
+  await enterAdminPanel(page)
+
+  const label = `Wiki ${Date.now().toString(36)}`
+  const href = `https://example.com/wiki-${Date.now().toString(36)}`
+  await addMenuItem(page, label, href)
+
+  const navLabels = async (): Promise<string[]> =>
+    (await page.getByRole('banner').locator('nav a').allInnerTexts()).map((text) => text.trim())
+
+  const nudge = async (direction: string): Promise<void> => {
+    await page.getByRole('button', { name: `Move ${label} ${direction}` }).click()
+    await page.waitForLoadState()
+  }
+
+  await page.goto('/')
+  const placed = (await navLabels()).indexOf(label)
+  expect(placed).toBeGreaterThan(1)
+
+  await page.goto('/admin/content/navigation')
+  await nudge('up')
+  await nudge('up')
+
+  await page.goto('/')
+  expect((await navLabels()).indexOf(label)).toBe(placed - 2)
+
+  await page.goto('/admin/content/navigation')
+  await nudge('under the item above it')
+  await expect(
+    page.getByRole('button', { name: `Move ${label} back to the top level` }),
+  ).toBeEnabled()
+
+  await page.goto('/')
+  await expect(page.getByRole('banner').locator(`ul ul a[href="${href}"]`)).toHaveCount(1)
+  await expect(page.getByRole('banner').locator(`nav a[href="${href}"]`)).toHaveCount(1)
+  await expect(page.getByRole('banner').getByRole('link', { name: label })).toHaveCount(0)
+
+  await page.goto('/admin/content/navigation')
+  await nudge('back to the top level')
+
+  await page.goto('/')
+  await expect(page.getByRole('banner').locator(`ul ul a[href="${href}"]`)).toHaveCount(0)
+  await expect(page.getByRole('banner').getByRole('link', { name: label })).toHaveCount(1)
+
+  await removeMenuItem(page, label)
 })
 
 test('a word filter added in the panel rewrites a post written before it', async ({ browser }) => {

@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -275,6 +276,7 @@ export const navigationItems = pgTable(
   {
     id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
     key: text('key'),
+    parentId: integer('parent_id'),
     label: text('label').notNull().default(''),
     href: text('href').notNull(),
     displayOrder: integer('display_order').notNull().default(0),
@@ -285,7 +287,12 @@ export const navigationItems = pgTable(
   },
   (t) => [
     uniqueIndex('navigation_items_key_key').on(t.key).where(sql`${t.key} is not null`),
-    index('navigation_items_order_idx').on(t.displayOrder, t.id),
+    index('navigation_items_order_idx').on(t.parentId, t.displayOrder, t.id),
+    foreignKey({
+      columns: [t.parentId],
+      foreignColumns: [t.id],
+      name: 'navigation_items_parent_id_fk',
+    }).onDelete('cascade'),
     check(
       'navigation_items_audience_check',
       sql`${t.audience} in ('all', 'guests', 'members', 'staff')`,

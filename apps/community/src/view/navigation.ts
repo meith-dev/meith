@@ -45,6 +45,8 @@ export const BUILT_IN_NAVIGATION: readonly BuiltInNavigationItem[] = [
 
 const SEARCH_KEY = 'search'
 
+export type NavigationOutlineItem = NavigationItemRow & { readonly depth: number }
+
 export function builtInNavigation(key: string | null): BuiltInNavigationItem | null {
   if (key === null) return null
   return BUILT_IN_NAVIGATION.find((item) => item.key === key) ?? null
@@ -54,6 +56,7 @@ export function defaultNavigationItems(): readonly NavigationItemRow[] {
   return BUILT_IN_NAVIGATION.map((item, index) => ({
     id: index + 1,
     key: item.key,
+    parentId: null,
     label: '',
     href: item.href,
     displayOrder: index * 10,
@@ -72,6 +75,24 @@ export function navigationLabel(
 
   const builtIn = builtInNavigation(item.key)
   return builtIn === null ? '' : t.t(builtIn.messageKey)
+}
+
+function inOrder(rows: readonly NavigationItemRow[]): readonly NavigationItemRow[] {
+  return [...rows].sort((a, b) => a.displayOrder - b.displayOrder || a.id - b.id)
+}
+
+export function outlineOf(rows: readonly NavigationItemRow[]): NavigationOutlineItem[] {
+  const sorted = inOrder(rows)
+  const outline: NavigationOutlineItem[] = []
+
+  for (const top of sorted.filter((row) => row.parentId === null)) {
+    outline.push({ ...top, depth: 0 })
+    for (const child of sorted.filter((row) => row.parentId === top.id)) {
+      outline.push({ ...child, depth: 1 })
+    }
+  }
+
+  return outline
 }
 
 function isStaff(viewer: ViewerModel): boolean {
@@ -99,15 +120,30 @@ export function buildNavigation(
   const t = options.t ?? untranslated()
   const admits = options.admits ?? (() => true)
 
-  return items
-    .filter((item) => item.enabled)
-    .filter((item) => !(item.key === SEARCH_KEY && options.searchEnabled === false))
-    .filter((item) => audienceAdmits(item.audience, viewer))
-    .filter((item) => admits(item))
-    .map((item) => ({
-      label: navigationLabel(item, t),
-      href: item.href,
-      ...(item.newTab ? { newTab: true } : {}),
-    }))
-    .filter((link) => link.label !== '')
+  const shown = (item: NavigationItemRow): boolean =>
+    item.enabled &&
+    !(item.key === SEARCH_KEY && options.searchEnabled === false) &&
+    audienceAdmits(item.audience, viewer) &&
+    admits(item) &&
+    navigationLabel(item, t) !== ''
+
+  const linkOf = (item: NavigationItemRow, submenu: readonly LinkModel[]): LinkModel => ({
+    label: navigationLabel(item, t),
+    href: item.href,
+    ...(item.newTab ? { newTab: true } : {}),
+    ...(submenu.length === 0 ? {} : { submenu }),
+  })
+
+  const sorted = inOrder(items)
+
+  return sorted
+    .filter((item) => item.parentId === null && shown(item))
+    .map((item) =>
+      linkOf(
+        item,
+        sorted
+          .filter((child) => child.parentId === item.id && shown(child))
+          .map((child) => linkOf(child, [])),
+      ),
+    )
 }

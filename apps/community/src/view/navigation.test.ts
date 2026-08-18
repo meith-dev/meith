@@ -11,6 +11,7 @@ import {
   defaultNavigationItems,
   NAVIGATION_AUDIENCE_VALUES,
   navigationLabel,
+  outlineOf,
 } from './navigation'
 import { buildViewerModel } from './shell'
 
@@ -35,6 +36,7 @@ function item(over: Partial<NavigationItemRow> = {}): NavigationItemRow {
   return {
     id: 1,
     key: null,
+    parentId: null,
     label: 'Chat',
     href: 'https://chat.example.test',
     displayOrder: 100,
@@ -128,6 +130,75 @@ describe('buildNavigation', () => {
 
   it('leaves out an item that would render with no words in it', () => {
     expect(buildNavigation([item({ key: null, label: '' })], MEMBER)).toEqual([])
+  })
+})
+
+describe('submenus', () => {
+  it('hangs a child off its parent rather than listing it beside it', () => {
+    const links = buildNavigation(
+      [
+        item({ id: 1, label: 'Community' }),
+        item({ id: 2, parentId: 1, label: 'Discord', displayOrder: 1 }),
+        item({ id: 3, parentId: 1, label: 'Wiki', displayOrder: 2 }),
+      ],
+      MEMBER,
+    )
+
+    expect(links).toHaveLength(1)
+    expect(links[0]?.submenu?.map((link) => link.label)).toEqual(['Discord', 'Wiki'])
+  })
+
+  it('orders a submenu by display order, not by id', () => {
+    const links = buildNavigation(
+      [
+        item({ id: 1, label: 'Community' }),
+        item({ id: 2, parentId: 1, label: 'Second', displayOrder: 2 }),
+        item({ id: 3, parentId: 1, label: 'First', displayOrder: 1 }),
+      ],
+      MEMBER,
+    )
+
+    expect(links[0]?.submenu?.map((link) => link.label)).toEqual(['First', 'Second'])
+  })
+
+  it('leaves submenu off an item that has no children a viewer may see', () => {
+    const links = buildNavigation(
+      [
+        item({ id: 1, label: 'Community' }),
+        item({ id: 2, parentId: 1, label: 'Staff room', audience: 'staff' }),
+      ],
+      MEMBER,
+    )
+
+    expect(links[0]).not.toHaveProperty('submenu')
+  })
+
+  it('takes the children with it when the parent is hidden', () => {
+    const links = buildNavigation(
+      [
+        item({ id: 1, label: 'Community', enabled: false }),
+        item({ id: 2, parentId: 1, label: 'Discord' }),
+      ],
+      MEMBER,
+    )
+
+    expect(links).toEqual([])
+  })
+})
+
+describe('outlineOf', () => {
+  it('puts each child directly under its parent, at depth one', () => {
+    const outline = outlineOf([
+      item({ id: 1, label: 'One', displayOrder: 0 }),
+      item({ id: 2, label: 'Two', displayOrder: 10 }),
+      item({ id: 3, parentId: 1, label: 'Child', displayOrder: 0 }),
+    ])
+
+    expect(outline.map((row) => [row.id, row.depth])).toEqual([
+      [1, 0],
+      [3, 1],
+      [2, 0],
+    ])
   })
 })
 

@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { type SQL, sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
@@ -10,9 +10,15 @@ import { idList } from './sql-lists'
 
 export type NavigationAudience = (typeof NAVIGATION_AUDIENCES)[number]
 
+export interface NavigationDropTarget {
+  readonly parentId: number | null
+  readonly afterId: number | null
+}
+
 export interface NavigationItemRow {
   readonly id: number
   readonly key: string | null
+  readonly parentId: number | null
   readonly label: string
   readonly href: string
   readonly displayOrder: number
@@ -23,9 +29,9 @@ export interface NavigationItemRow {
 }
 
 export interface NavigationItemInput {
+  readonly parentId: number | null
   readonly label: string
   readonly href: string
-  readonly displayOrder: number
   readonly audience: NavigationAudience
   readonly newTab: boolean
   readonly enabled: boolean
@@ -47,6 +53,7 @@ function toRow(row: Record<string, unknown>): NavigationItemRow {
   return {
     id: Number(row.id),
     key: row.key === null || row.key === undefined ? null : String(row.key),
+    parentId: row.parent_id === null || row.parent_id === undefined ? null : Number(row.parent_id),
     label: String(row.label),
     href: String(row.href),
     displayOrder: Number(row.display_order),
@@ -63,7 +70,7 @@ export class PostgresNavigationRepository {
   async list(): Promise<readonly NavigationItemRow[]> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select n.id, n.key, n.label, n.href, n.display_order, n.audience,
+        select n.id, n.key, n.parent_id, n.label, n.href, n.display_order, n.audience,
                n.new_tab, n.enabled,
                coalesce(
                  (select array_agg(g.group_id order by g.group_id)
@@ -81,11 +88,14 @@ export class PostgresNavigationRepository {
 
   async create(input: NavigationItemInput): Promise<number> {
     assertValid(input, null)
+    await this.assertParentUsable(input.parentId, null)
 
     const rows = resultRows(
       await this.db.execute(sql`
-        insert into navigation_items (key, label, href, display_order, audience, new_tab, enabled)
-        values (null, ${input.label}, ${input.href}, ${input.displayOrder},
+        insert into navigation_items (key, parent_id, label, href, display_order,
+                                      audience, new_tab, enabled)
+        values (null, ${input.parentId}, ${input.label}, ${input.href},
+                ${this.lastPlace(input.parentId)},
                 ${input.audience}, ${input.newTab}, ${input.enabled})
         returning id
       `),
@@ -97,34 +107,97 @@ export class PostgresNavigationRepository {
   }
 
   async update(id: number, input: NavigationItemInput): Promise<void> {
-    const key = await this.keyOf(id)
-    if (key === undefined) throw new ValidationError(msg('error.db.such-navigation-item'))
+    const current = await this.find(id)
+    if (current === null) throw new ValidationError(msg('error.db.such-navigation-item'))
 
-    assertValid(input, key)
+    assertValid(input, current.key)
+    await this.assertParentUsable(input.parentId, id)
+
+    const moved = input.parentId !== current.parentId
 
     await this.db.execute(sql`
       update navigation_items
-         set label = ${input.label}, href = ${input.href},
-             display_order = ${input.displayOrder}, audience = ${input.audience},
-             new_tab = ${input.newTab}, enabled = ${input.enabled}
+         set parent_id = ${input.parentId}, label = ${input.label}, href = ${input.href},
+             audience = ${input.audience}, new_tab = ${input.newTab},
+             enabled = ${input.enabled}
+             ${moved ? sql`, display_order = ${this.lastPlace(input.parentId)}` : sql``}
        where id = ${id}
     `)
 
     await this.setGroups(id, input.visibleToGroups)
   }
 
+  async arrange(id: number, target: NavigationDropTarget): Promise<void> {
+    const rows = await this.list()
+
+    const row = rows.find((entry) => entry.id === id)
+    if (row === undefined) throw new ValidationError(msg('error.db.such-navigation-item'))
+
+    if (target.parentId !== null) {
+      const parent = rows.find((entry) => entry.id === target.parentId)
+      if (parent === undefined || parent.id === id || parent.parentId !== null) {
+        throw new ValidationError(msg('error.db.navigation-item-parent-top-level'))
+      }
+      if (rows.some((entry) => entry.parentId === id)) {
+        throw new ValidationError(msg('error.db.navigation-item-with-items-under'))
+      }
+    }
+
+    const siblings = rows
+      .filter((entry) => entry.parentId === target.parentId && entry.id !== id)
+      .map((entry) => entry.id)
+
+    const at = target.afterId === null ? 0 : siblings.indexOf(target.afterId) + 1 || siblings.length
+    siblings.splice(at, 0, id)
+
+    await this.db.transaction(async (tx) => {
+      await tx.execute(sql`
+        update navigation_items set parent_id = ${target.parentId} where id = ${id}
+      `)
+
+      for (const [place, sibling] of siblings.entries()) {
+        await tx.execute(sql`
+          update navigation_items set display_order = ${place * 10} where id = ${sibling}
+        `)
+      }
+    })
+  }
+
   async delete(id: number): Promise<void> {
     await this.db.execute(sql`delete from navigation_items where id = ${id}`)
   }
 
-  private async keyOf(id: number): Promise<string | null | undefined> {
+  private lastPlace(parentId: number | null): SQL {
+    return sql`(select coalesce(max(display_order), -10) + 10 from navigation_items
+                 where parent_id is not distinct from ${parentId})`
+  }
+
+  private async assertParentUsable(parentId: number | null, id: number | null): Promise<void> {
+    if (parentId === null) return
+
+    const rows = await this.list()
+
+    const parent = rows.find((row) => row.id === parentId)
+    if (parent === undefined || parent.id === id || parent.parentId !== null) {
+      throw new ValidationError(msg('error.db.navigation-item-parent-top-level'))
+    }
+    if (id !== null && rows.some((row) => row.parentId === id)) {
+      throw new ValidationError(msg('error.db.navigation-item-with-items-under'))
+    }
+  }
+
+  private async find(id: number): Promise<NavigationItemRow | null> {
     const rows = resultRows(
-      await this.db.execute(sql`select key from navigation_items where id = ${id}`),
+      await this.db.execute(sql`
+        select id, key, parent_id, label, href, display_order, audience, new_tab, enabled,
+               '{}'::int[] as group_ids
+          from navigation_items
+         where id = ${id}
+      `),
     ) as Array<Record<string, unknown>>
 
     const row = rows[0]
-    if (row === undefined) return undefined
-    return row.key === null || row.key === undefined ? null : String(row.key)
+    return row === undefined ? null : toRow(row)
   }
 
   private async setGroups(id: number, groupIds: readonly number[]): Promise<void> {

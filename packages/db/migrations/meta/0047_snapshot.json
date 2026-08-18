@@ -1,5 +1,5 @@
 {
-  "id": "f938114f-201a-4b13-8251-1330fd8c4bfd",
+  "id": "5ad05547-d40a-4705-9712-71db6427d217",
   "prevId": "9ac42138-b80c-49d5-abf1-b559cdc58e72",
   "version": "7",
   "dialect": "postgresql",
@@ -7140,6 +7140,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "label": {
           "name": "label",
           "type": "text",
@@ -7210,6 +7216,12 @@
           "name": "navigation_items_order_idx",
           "columns": [
             {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
               "expression": "display_order",
               "isExpression": false,
               "asc": true,
@@ -7228,7 +7240,17 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "navigation_items_parent_id_fk": {
+          "name": "navigation_items_parent_id_fk",
+          "tableFrom": "navigation_items",
+          "tableTo": "navigation_items",
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
