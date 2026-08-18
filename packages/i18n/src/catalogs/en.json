@@ -2748,6 +2748,7 @@
   "unsubscribePage.doneBefore": "You can change any of this later from",
   "unsubscribePage.invalidAfter": "after signing in.",
   "unsubscribePage.invalidBefore": "That link is not valid — it may have been truncated by a mail client, or the board’s settings may have changed since it was sent. You can still manage everything from",
+  "unsubscribePage.subscriptions": "your subscriptions",
   "userCpNav.messages-compose.title": "Write a message",
   "userCpNav.messages.blurb": "Your inbox, and what you have sent.",
   "userCpNav.messages.title": "Private messages",

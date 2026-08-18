@@ -48,7 +48,7 @@ export default async function UnsubscribePage({
                 href="/subscriptions"
                 className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
-                {translator.t('page.subscriptions')}
+                {translator.t('unsubscribePage.subscriptions')}
               </a>
               {translator.t('unsubscribePage.doneAfter')}
             </p>
@@ -60,7 +60,7 @@ export default async function UnsubscribePage({
               href="/subscriptions"
               className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
             >
-              {translator.t('page.subscriptions')}
+              {translator.t('unsubscribePage.subscriptions')}
             </a>{' '}
             {translator.t('unsubscribePage.invalidAfter')}
           </p>
