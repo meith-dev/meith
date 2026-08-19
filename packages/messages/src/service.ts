@@ -1,10 +1,13 @@
 import { ForbiddenError, NotFoundError, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 import {
+  authorRef,
   type BoardVocabulary,
+  CORE_RENDERING,
   EMPTY_VOCABULARY,
+  type MarkdownPipeline,
   quoteBlock,
-  renderMarkdown,
+  renderThrough,
   sourceAsMarkdown,
   vocabularyOptions,
 } from '@meith/markdown'
@@ -50,6 +53,7 @@ export class MessageService {
   private readonly notifier: MessageNotifierPort | null
   private readonly now: () => Date
   private readonly vocabulary: () => Promise<BoardVocabulary>
+  private readonly rendering: MarkdownPipeline
 
   constructor(deps: {
     messages: MessageRepository
@@ -57,12 +61,14 @@ export class MessageService {
     notifier?: MessageNotifierPort | null
     now?: () => Date
     vocabulary?: () => Promise<BoardVocabulary>
+    rendering?: MarkdownPipeline
   }) {
     this.repository = deps.messages
     this.policy = deps.policy
     this.notifier = deps.notifier ?? null
     this.now = deps.now ?? (() => new Date())
     this.vocabulary = deps.vocabulary ?? (async () => EMPTY_VOCABULARY)
+    this.rendering = deps.rendering ?? CORE_RENDERING
   }
 
   async list(input: {
@@ -150,7 +156,12 @@ export class MessageService {
     await this.assertRoomFor(input.authorUserId, recipients)
 
     const vocabulary = await this.vocabulary()
-    const rendered = renderMarkdown(message, vocabularyOptions(vocabulary))
+    const rendered = await renderThrough(
+      this.rendering,
+      message,
+      { source: 'pm', viewer: authorRef(input.authorUserId) },
+      vocabularyOptions(vocabulary),
+    )
     const at = this.now()
 
     const messageId = await this.repository.send({

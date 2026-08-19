@@ -1,14 +1,14 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { signatureHtml, signatureLimit } from '@meith/signatures'
+import { signatureLimit } from '@meith/signatures'
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { SignatureForm } from '@/components/account/usercp-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
-import { signatureStore, viewerSignatureLimits } from '@/server/signatures'
+import { renderSignature, signatureStore, viewerSignatureLimits } from '@/server/signatures'
 import { currentTheme } from '@/server/theme'
 import { signatureFormCopy } from '@/view/account-copy'
 import { userCpNotice } from '@/view/usercp'
@@ -36,7 +36,7 @@ export default async function SignaturePage({
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = userCpNotice(query, await getTranslator())
-  const preview = signatureHtml(stored)
+  const preview = await renderSignature(actor.userId, stored)
 
   return (
     <PanelPage

@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { BodyFormat, RENDER_VERSION, renderMarkdown } from '@meith/markdown'
+import { BodyFormat, RENDER_VERSION, renderMarkdown, type VocabularySource } from '@meith/markdown'
 import { expectQueryBudget } from '@meith/testkit'
 
 import type { Database } from './client'
@@ -133,6 +133,54 @@ describe('the stored render', () => {
     const stored = await readPost(postId)
     expect(stored.version).toBe(RENDER_VERSION)
     expect(stored.html).toContain('<blockquote class="md-quote"><p>opening</p>')
+  })
+})
+
+describe('a plugin in the render pipeline', () => {
+  const shouting = {
+    text: async (text: string) => text.replaceAll('[[name]]', 'Ada'),
+    html: async (html: string) => `${html}<footer>by a plugin</footer>`,
+    vocabulary: async (source: VocabularySource) => source,
+  }
+
+  it('shapes what a new post stores, not the source the author typed', async () => {
+    const repo = new PostgresThreadWriteRepository(db, shouting)
+    const created = await repo.create({
+      forumId: FORUM,
+      title: 'Hello there',
+      slug: 'hello-there',
+      message: 'written by [[name]]',
+      prefixId: null,
+      authorUserId: 1,
+      authorUsername: 'ada',
+      visibility: 'visible',
+      subscribe: false,
+      createdAt: AT,
+    })
+
+    expect(await readPost(created.postId)).toEqual({
+      html: '<p>written by Ada</p><footer>by a plugin</footer>',
+      version: RENDER_VERSION,
+    })
+
+    const rows = resultRows(
+      await db.execute(sql`select message from posts where id = ${created.postId}`),
+    ) as Array<{ message: string }>
+    expect(rows[0]?.message).toBe('written by [[name]]')
+  })
+
+  it('shapes what the backfill re-renders, so old posts match new ones', async () => {
+    await insertStale(41, 'written by [[name]]')
+
+    expect(await new PostgresRenderBackfill(db, shouting).run(10)).toEqual({
+      rendered: 1,
+      converted: 0,
+    })
+
+    expect(await readPost(41)).toEqual({
+      html: '<p>written by Ada</p><footer>by a plugin</footer>',
+      version: RENDER_VERSION,
+    })
   })
 })
 

@@ -437,10 +437,19 @@ export default async function ThreadPage({
         { actions: post.actions, postId: post.id },
         pluginContext,
       )
+      const bodyHtml =
+        post.bodyHtml === ''
+          ? post.bodyHtml
+          : await filterView('post.body.html', post.bodyHtml, {
+              ...viewerRef(actor),
+              postId: post.id,
+              threadId: thread.id,
+              forumId: forum.id,
+            })
       return filterView(
         'view.post-bit',
         {
-          post,
+          post: { ...post, bodyHtml },
           select: selectionFor(
             'post',
             post.id,

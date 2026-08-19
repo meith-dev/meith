@@ -31,6 +31,7 @@ import {
   PostgresUserBulkRepository,
   PostgresWarningRepository,
   PostgresWebhookRepository,
+  syncRenderSignature,
 } from '@meith/db'
 import { EN_CATALOG, sourceTranslator } from '@meith/i18n'
 import { renderMail } from '@meith/mail'
@@ -41,13 +42,14 @@ import {
   type NotificationTranslatorResolver,
   type VapidDetails,
 } from '@meith/notifications'
-import type { PluginDefinition } from '@meith/plugin-kit'
+import { type PluginDefinition, PluginHost, renderingSignature } from '@meith/plugin-kit'
 import { resolvePushConfig, SettingsSnapshot } from '@meith/settings'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/tasks'
 
 import { buildEventRegistry } from './event-handlers'
 import { SEED_GROUP } from './groups'
 import { resolveMailBrand, type ThemeTokenRegistry } from './mail-brand'
+import { pluginMarkdownPipeline } from './plugin-rendering'
 import { pluginTasks } from './plugin-tasks'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 import { visibleForumSource } from './visible-forums'
@@ -97,6 +99,9 @@ export function buildSchedulerBundle(deps: {
         })
 
   const contributed = pluginTasks({ db, plugins: deps.plugins ?? [] })
+  const plugins = deps.plugins ?? []
+  const rendering = pluginMarkdownPipeline(new PluginHost({ plugins }))
+  const backfill = new PostgresRenderBackfill(db, rendering)
 
   return {
     repository: new PostgresTaskRepository(db),
@@ -203,7 +208,12 @@ export function buildSchedulerBundle(deps: {
                 }),
           }),
           recount: new PostgresCounterRecount(db),
-          renderBackfill: new PostgresRenderBackfill(db),
+          renderBackfill: {
+            run: async (batchSize) => {
+              await syncRenderSignature(db, renderingSignature(plugins))
+              return backfill.run(batchSize)
+            },
+          },
           searchIndex: new PostgresSearchRepository(db),
           ...(env.DEMO_MODE ? {} : { webhooks: new PostgresWebhookRepository(db) }),
           statistics: {

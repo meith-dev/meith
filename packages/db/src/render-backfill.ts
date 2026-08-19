@@ -1,9 +1,12 @@
 import { sql } from 'drizzle-orm'
 
 import {
+  authorRef,
   BodyFormat,
+  CORE_RENDERING,
+  type MarkdownPipeline,
   RENDER_VERSION,
-  renderMarkdown,
+  renderThrough,
   sourceAsMarkdown,
   vocabularyOptions,
 } from '@meith/markdown'
@@ -18,10 +21,13 @@ export interface RenderBackfillRun {
 }
 
 export class PostgresRenderBackfill {
-  constructor(private readonly db: Database) {}
+  constructor(
+    private readonly db: Database,
+    private readonly rendering: MarkdownPipeline = CORE_RENDERING,
+  ) {}
 
   async pending(): Promise<number> {
-    const vocabulary = await readBoardVocabulary(this.db)
+    const vocabulary = await readBoardVocabulary(this.db, this.rendering)
     const rows = resultRows(
       await this.db.execute(sql`
         select count(*)::int as pending
@@ -37,11 +43,11 @@ export class PostgresRenderBackfill {
   async run(batchSize: number): Promise<RenderBackfillRun> {
     if (batchSize <= 0) return { rendered: 0, converted: 0 }
 
-    const vocabulary = await readBoardVocabulary(this.db)
+    const vocabulary = await readBoardVocabulary(this.db, this.rendering)
 
     const stale = resultRows(
       await this.db.execute(sql`
-        select id, message, body_format
+        select id, message, body_format, author_user_id
           from posts
          where render_version <> ${RENDER_VERSION}
             or vocab_version <> ${vocabulary.revision}
@@ -49,20 +55,36 @@ export class PostgresRenderBackfill {
          order by id
          limit ${batchSize}
       `),
-    ) as Array<{ id: number; message: string; body_format: number }>
+    ) as Array<{
+      id: number
+      message: string
+      body_format: number
+      author_user_id: number | null
+    }>
 
     if (stale.length === 0) return { rendered: 0, converted: 0 }
 
-    const rendered = stale.map((row) => {
-      const format = Number(row.body_format)
-      const message = sourceAsMarkdown(row.message, format)
-      return {
-        id: Number(row.id),
-        message,
-        html: renderMarkdown(message, vocabularyOptions(vocabulary)).html,
-        converted: format !== BodyFormat.Markdown,
-      }
-    })
+    const rendered = await Promise.all(
+      stale.map(async (row) => {
+        const format = Number(row.body_format)
+        const message = sourceAsMarkdown(row.message, format)
+        const body = await renderThrough(
+          this.rendering,
+          message,
+          {
+            source: 'post',
+            viewer: authorRef(row.author_user_id === null ? null : Number(row.author_user_id)),
+          },
+          vocabularyOptions(vocabulary),
+        )
+        return {
+          id: Number(row.id),
+          message,
+          html: body.html,
+          converted: format !== BodyFormat.Markdown,
+        }
+      }),
+    )
 
     const values = sql.join(
       rendered.map((row) => sql`(${row.id}::int, ${row.message}::text, ${row.html}::text)`),

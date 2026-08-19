@@ -1,6 +1,13 @@
 import { sql } from 'drizzle-orm'
 
-import { BodyFormat, renderMarkdown, vocabularyOptions } from '@meith/markdown'
+import {
+  authorRef,
+  BodyFormat,
+  CORE_RENDERING,
+  type MarkdownPipeline,
+  renderThrough,
+  vocabularyOptions,
+} from '@meith/markdown'
 import type { NewPoll } from '@meith/polls'
 import type {
   CreatedThread,
@@ -19,7 +26,10 @@ import { SEARCH_DOCUMENT_VERSION, searchVectorSql } from './search-repo'
 import { readBoardVocabulary } from './vocabulary-repo'
 
 export class PostgresThreadWriteRepository implements ThreadWriteRepository, ReplyWriteRepository {
-  constructor(private readonly db: Database) {}
+  constructor(
+    private readonly db: Database,
+    private readonly rendering: MarkdownPipeline = CORE_RENDERING,
+  ) {}
 
   async postingRules(forumId: number): Promise<ForumPostingTarget | null> {
     const rows = resultRows(
@@ -62,7 +72,13 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository, Rep
   }
 
   async create(record: NewThreadRecord): Promise<CreatedThread> {
-    const vocabulary = await readBoardVocabulary(this.db)
+    const vocabulary = await readBoardVocabulary(this.db, this.rendering)
+    const body = await renderThrough(
+      this.rendering,
+      record.message,
+      { source: 'post', viewer: authorRef(record.authorUserId) },
+      vocabularyOptions(vocabulary),
+    )
 
     return this.db.transaction(async (tx) => {
       const threadRows = resultRows(
@@ -79,7 +95,6 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository, Rep
       ) as Array<{ id: number }>
       const threadId = Number(threadRows[0]!.id)
 
-      const body = renderMarkdown(record.message, vocabularyOptions(vocabulary))
       const postRows = resultRows(
         await tx.execute(sql`
           insert into posts
@@ -208,10 +223,15 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository, Rep
   }
 
   async createReply(record: NewReplyRecord): Promise<{ postId: number }> {
-    const vocabulary = await readBoardVocabulary(this.db)
+    const vocabulary = await readBoardVocabulary(this.db, this.rendering)
+    const body = await renderThrough(
+      this.rendering,
+      record.message,
+      { source: 'post', viewer: authorRef(record.authorUserId) },
+      vocabularyOptions(vocabulary),
+    )
 
     return this.db.transaction(async (tx) => {
-      const body = renderMarkdown(record.message, vocabularyOptions(vocabulary))
       const postRows = resultRows(
         await tx.execute(sql`
           insert into posts

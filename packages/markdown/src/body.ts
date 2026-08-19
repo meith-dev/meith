@@ -4,7 +4,7 @@ import type { CompiledSmilies } from './extensions'
 import { type RenderContext, renderDocument } from './render'
 import type { BoardVocabulary } from './vocabulary'
 
-export const RENDER_VERSION = 3
+export const RENDER_VERSION = 4
 
 export const BodyFormat = {
   LegacyBBCode: 0,

@@ -47,6 +47,16 @@ export {
   type TableCell,
   textOf,
 } from './nodes'
+export {
+  authorRef,
+  CORE_RENDERING,
+  type MarkdownAuthorRef,
+  type MarkdownPipeline,
+  type MarkdownRenderContext,
+  type MarkdownSourceKind,
+  NO_VOCABULARY_SOURCE,
+  renderThrough,
+} from './pipeline'
 export { plainText, summarise } from './plain'
 export { type QuoteInput, quoteBlock } from './quote'
 export { type RenderContext, renderDocument, renderInline } from './render'

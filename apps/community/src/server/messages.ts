@@ -10,6 +10,7 @@ import { type MessageNotifierPort, type MessagePolicy, MessageService } from '@m
 
 import { getContainer } from './container'
 import { activeVocabulary } from './content-admin'
+import { boardRendering } from './markdown-pipeline'
 import { notificationService } from './notifications'
 import { relationService } from './relations'
 
@@ -22,6 +23,7 @@ export function messageService(): MessageService | null {
     policy: messagePolicy(),
     notifier: messageNotifier(),
     vocabulary: async () => (await activeVocabulary()) ?? EMPTY_VOCABULARY,
+    rendering: boardRendering,
   })
 }
 

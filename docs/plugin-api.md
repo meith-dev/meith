@@ -156,6 +156,58 @@ There are six: `header.notice`, `index.footer`, `postbit.badges`,
 every region is a commitment every theme has to render or deliberately
 drop.
 
+## Changing how content renders
+
+Seven filters reach the render pipeline, and they divide on **when** they
+run — which decides what a plugin can change and what it costs.
+
+| Filter | When it runs | What it shapes |
+|---|---|---|
+| `markdown.parse.text` | Write | The source handed to the parser |
+| `markdown.render.html` | Write | The HTML the renderer constructed |
+| `markdown.directives` | Write | The `:::name` and `:name[…]` vocabulary |
+| `smilies.list` | Write | The smilie set substituted at render |
+| `post.body.html` | Read | One post's body, in the thread it is read in |
+| `signature.html` | Read | A member's signature, wherever it appears |
+| `word-filter.patterns` | Read | The render-time word filter's rules |
+
+**Write** means the filter runs where a body becomes HTML — a new thread or
+reply, an edit, a private message, a saved signature, the composer's
+preview — and its output is what the board stores. That is why those four
+carry no viewer: a stored render is shared by everybody who reads the post,
+so a set of smilies or a rewrite that depended on who was looking would be
+whichever reader happened to write the row first.
+
+**Read** means the filter runs once per body per page view. Nothing is
+stored, so a change takes effect immediately and disappearing when the
+plugin is removed costs nothing.
+
+Two things follow that are worth knowing before you write one.
+
+**The source is never touched.** `markdown.parse.text` changes what the
+parser is handed; the `message` column still holds exactly what the member
+typed, which is what quoting, editing and the next re-render start from. A
+plugin cannot rewrite somebody's post.
+
+**Installing or removing a formatting plugin re-renders the board.** The
+board records a *rendering signature* — the keys and versions of the
+installed plugins that register any of the four write-time filters. When it
+changes, the content revision is bumped, and `posts.render_backfill` walks
+the board re-rendering every post through the new pipeline. That is what
+makes a formatting plugin apply to the ten years of posts that were there
+before it, and what makes removing one take its markup back out. On a large
+board the sweep takes a while and reports its backlog in `/admin/system`;
+nothing looks broken while it runs, because a row the sweep has not reached
+is rendered in memory when somebody reads it.
+
+> [!WARNING]
+> What `markdown.render.html`, `post.body.html` and `signature.html` return
+> is **trusted output**: it is inserted as markup and nothing escapes it
+> afterwards. `post.body.html` runs after the board's word filter, so a
+> plugin's own additions are not filtered either. This is the same trust an
+> operator extends by installing the plugin at all — but it is the one
+> place where a mistake becomes markup on every page.
+
 ## Namespacing
 
 A plugin's key namespaces everything it registers, and the host builds the

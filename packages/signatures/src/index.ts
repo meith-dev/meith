@@ -1,9 +1,13 @@
 import { ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 import {
+  authorRef,
   BodyFormat,
+  CORE_RENDERING,
+  type MarkdownPipeline,
   RENDER_VERSION,
   renderMarkdown,
+  renderThrough,
   SIGNATURE_FEATURES,
   sourceAsMarkdown,
 } from '@meith/markdown'
@@ -36,10 +40,11 @@ export function signatureLimit(limits: SignatureLimits): number {
   return Math.min(limits.maxLength, SIGNATURE_HARD_MAX)
 }
 
-export function prepareSignature(
+export async function prepareSignature(
   raw: string,
   limits: SignatureLimits,
-): { source: string; rendered: RenderedSignature } {
+  options: { readonly authorId: number; readonly rendering?: MarkdownPipeline },
+): Promise<{ source: string; rendered: RenderedSignature }> {
   if (!limits.canUse) {
     throw new ValidationError(msg('error.signatures.group-use-signature'))
   }
@@ -51,23 +56,51 @@ export function prepareSignature(
     throw new ValidationError(msg('error.signatures.length', { max: limit, length: source.length }))
   }
 
-  const rendered = renderMarkdown(source, SIGNATURE_RENDER_OPTIONS)
+  const rendered = await renderThrough(
+    options.rendering ?? CORE_RENDERING,
+    source,
+    { source: 'signature', viewer: authorRef(options.authorId) },
+    SIGNATURE_RENDER_OPTIONS,
+  )
   return { source, rendered: { html: rendered.html, version: rendered.version } }
 }
 
-export function signatureHtml(stored: StoredSignature): string | null {
-  if (stored.locked) return null
-  if (stored.signature.trim() === '') return null
+export async function renderStoredSignature(
+  stored: StoredSignature,
+  options: { readonly authorId: number; readonly rendering?: MarkdownPipeline },
+): Promise<string | null> {
+  if (!storedSignatureRenders(stored)) return null
+  if (storedSignatureIsCurrent(stored)) return stored.signatureHtml
 
-  const format = stored.signatureFormat ?? BodyFormat.Markdown
+  const rendered = await renderThrough(
+    options.rendering ?? CORE_RENDERING,
+    sourceAsMarkdown(stored.signature, stored.signatureFormat ?? BodyFormat.Markdown),
+    { source: 'signature', viewer: authorRef(options.authorId) },
+    SIGNATURE_RENDER_OPTIONS,
+  )
+  return rendered.html
+}
 
-  if (
+function storedSignatureRenders(stored: StoredSignature): boolean {
+  return !stored.locked && stored.signature.trim() !== ''
+}
+
+function storedSignatureIsCurrent(stored: StoredSignature): stored is StoredSignature & {
+  signatureHtml: string
+} {
+  return (
     stored.signatureHtml !== null &&
     stored.signatureRenderVersion === RENDER_VERSION &&
-    format === BodyFormat.Markdown
-  ) {
-    return stored.signatureHtml
-  }
+    (stored.signatureFormat ?? BodyFormat.Markdown) === BodyFormat.Markdown
+  )
+}
 
-  return renderMarkdown(sourceAsMarkdown(stored.signature, format), SIGNATURE_RENDER_OPTIONS).html
+export function signatureHtml(stored: StoredSignature): string | null {
+  if (!storedSignatureRenders(stored)) return null
+  if (storedSignatureIsCurrent(stored)) return stored.signatureHtml
+
+  return renderMarkdown(
+    sourceAsMarkdown(stored.signature, stored.signatureFormat ?? BodyFormat.Markdown),
+    SIGNATURE_RENDER_OPTIONS,
+  ).html
 }

@@ -9,7 +9,7 @@
   disagree.
 -->
 
-**102 hooks** — 57 filters, 45 events — and 6 UI regions. **32 are wired**: something in the board fires
+**102 hooks** — 57 filters, 45 events — and 6 UI regions. **39 are wired**: something in the board fires
 them today, and the rest are declared but not yet reached by a call site.
 
 The wired column is derived from the tree by `scripts/hook-callsites.mjs`, not
@@ -37,20 +37,20 @@ the limits.
 
 | Hook | Kind | Wired | Value | Context |
 |---|---|---|---|---|
-| `markdown.parse.text` | filter | — | `string` | `ViewerRef & { source: 'post' \| 'signature' \| 'pm' }` |
-| `markdown.render.html` | filter | — | `string` | `ViewerRef & { source: 'post' \| 'signature' \| 'pm' }` |
-| `markdown.directives` | filter | — | `readonly string[]` | `ForumRef \| Record<string, never>` |
-| `post.body.html` | filter | — | `string` | `PostRef & ViewerRef` |
-| `signature.html` | filter | — | `string` | `ViewerRef & { authorId: number }` |
-| `smilies.list` | filter | — | `readonly { readonly code: string; readonly imageUrl: string }[]` | `ViewerRef` |
-| `word-filter.patterns` | filter | — | `readonly { readonly pattern: string; readonly replacement: string }[]` | `Record<string, never>` |
+| `markdown.parse.text` | filter | yes | `string` | `ViewerRef & { source: 'post' \| 'signature' \| 'pm' }` |
+| `markdown.render.html` | filter | yes | `string` | `ViewerRef & { source: 'post' \| 'signature' \| 'pm' }` |
+| `markdown.directives` | filter | yes | `readonly { readonly name: string; readonly block: boolean }[]` | `ForumRef \| Record<string, never>` |
+| `post.body.html` | filter | yes | `string` | `PostRef & ViewerRef` |
+| `signature.html` | filter | yes | `string` | `ViewerRef & { authorId: number }` |
+| `smilies.list` | filter | yes | `readonly { readonly code: string; readonly src: string; readonly alt?: string }[]` | `Record<string, never>` |
+| `word-filter.patterns` | filter | yes | `readonly { readonly pattern: string; readonly replacement: string; readonly wholeWord: boolean }[]` | `Record<string, never>` |
 
 - **`markdown.parse.text`** — The raw Markdown source, before it is parsed. Last chance to rewrite input.
 - **`markdown.render.html`** — Rendered HTML, after the renderer has constructed it. Anything added here is trusted output and nothing escapes it afterwards.
-- **`markdown.directives`** — The declarative directive list, so a plugin can add a `:::name` block or `:name[…]` span without core changes.
+- **`markdown.directives`** — The declarative directive list, so a plugin can add a `:::name` block or `:name[…]` span without core changes. Board-wide: rendered bodies are stored and shared, so the set cannot depend on who is reading.
 - **`post.body.html`** — One post’s rendered body, in the context of the thread it is being read in.
 - **`signature.html`** — A member’s rendered signature, wherever it appears.
-- **`smilies.list`** — The smilie set offered by the editor and substituted at render.
+- **`smilies.list`** — The smilie set substituted at render. Board-wide, for the same reason the directive list is.
 - **`word-filter.patterns`** — The render-time word filter’s pattern list.
 
 ## View models

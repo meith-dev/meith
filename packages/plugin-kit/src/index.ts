@@ -80,6 +80,11 @@ export {
   type RegionSpec,
 } from './regions'
 export {
+  renderingSignature,
+  rendersStoredContent,
+  STORED_RENDER_HOOKS,
+} from './rendering'
+export {
   type PluginData,
   type PluginGrantRow,
   type PluginGrants,

@@ -2,8 +2,10 @@ import { sql } from 'drizzle-orm'
 
 import {
   type BoardVocabulary,
+  CORE_RENDERING,
   compileVocabulary,
-  EMPTY_VOCABULARY,
+  type MarkdownPipeline,
+  NO_VOCABULARY_SOURCE,
   type VocabularySource,
 } from '@meith/markdown'
 
@@ -43,7 +45,10 @@ export async function readVocabularySource(db: Database): Promise<VocabularySour
   })
 }
 
-export async function readBoardVocabulary(db: Database): Promise<BoardVocabulary> {
-  const source = await readVocabularySource(db)
-  return source === null ? EMPTY_VOCABULARY : compileVocabulary(source)
+export async function readBoardVocabulary(
+  db: Database,
+  pipeline: MarkdownPipeline = CORE_RENDERING,
+): Promise<BoardVocabulary> {
+  const source = await pipeline.vocabulary((await readVocabularySource(db)) ?? NO_VOCABULARY_SOURCE)
+  return compileVocabulary(source)
 }

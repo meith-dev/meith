@@ -238,6 +238,35 @@ export const referencePlugin = definePlugin({
   onUninstall: () => void RECORDED.lifecycle.push('uninstall'),
 
   hooks: {
+    'markdown.parse.text': (value) => {
+      record('markdown.parse.text', value)
+      return value.replaceAll('[[reference]]', MARK)
+    },
+    'markdown.render.html': (value) => {
+      record('markdown.render.html', value)
+      return value
+    },
+    'markdown.directives': (value) => {
+      record('markdown.directives', value)
+      return [...value, { name: 'reference', block: true }]
+    },
+    'post.body.html': (value) => {
+      record('post.body.html', value)
+      return `${value}<p data-plugin="${MARK}">${MARK}</p>`
+    },
+    'signature.html': (value) => {
+      record('signature.html', value)
+      return `${value}<span data-plugin="${MARK}">${MARK}</span>`
+    },
+    'smilies.list': (value) => {
+      record('smilies.list', value)
+      return [...value, { code: ':reference:', src: '/reference.png', alt: MARK }]
+    },
+    'word-filter.patterns': (value) => {
+      record('word-filter.patterns', value)
+      return [...value, { pattern: 'unmentionable', replacement: MARK, wholeWord: true }]
+    },
+
     'view.shell': (value) => {
       record('view.shell', value)
       return value

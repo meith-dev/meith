@@ -1255,6 +1255,25 @@ Two things follow for an operator:
   permanent loss in the conversion — see
   [MyBB parity](./mybb-parity.md#the-markup-language-is-markdown-not-bbcode).
 
+### A formatting plugin re-renders the board
+
+A plugin that registers one of the write-time rendering filters —
+`markdown.parse.text`, `markdown.render.html`, `markdown.directives` or
+`smilies.list` — shapes what the board **stores** as a post's HTML, not just
+what it shows. So installing one, removing one, or upgrading one to a new
+version changes the board's rendering signature, and `posts.render_backfill`
+re-renders every post through the new pipeline.
+
+This is deliberate: it is what makes a syntax-highlighting plugin apply to
+the posts that were written before it, and what takes its markup back out
+when you remove it. It behaves exactly like the Markdown conversion above —
+`/admin/system` reports the backlog, unswept rows are rendered in memory
+when read, and it clears on its own. Expect it after any deploy that adds or
+removes a formatting plugin, and plan a large board's deploy accordingly.
+
+Filters that run at read time — `post.body.html`, `signature.html`,
+`word-filter.patterns` — store nothing and need no sweep.
+
 ### The silent edit window
 
 **Silent edit window** (`posting.edit_grace_seconds`, default 300) is how

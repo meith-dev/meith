@@ -191,6 +191,7 @@ export {
   PostgresRenderBackfill,
   type RenderBackfillRun,
 } from './render-backfill'
+export { syncRenderSignature } from './render-signature'
 export { PostgresReportRepository } from './report-repo'
 export { PostgresReputationRepository } from './reputation-repo'
 export { resultRows } from './result-rows'

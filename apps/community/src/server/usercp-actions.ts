@@ -20,6 +20,7 @@ import { assertDemoAccountChangeable } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
 import { getTranslator, tr } from './i18n'
+import { boardRendering } from './markdown-pipeline'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
 import { setSessionCookie } from './session-cookies'
 import { signatureStore, viewerSignatureLimits } from './signatures'
@@ -181,7 +182,10 @@ export async function saveSignatureAction(_prev: FormState, form: FormData): Pro
     }
 
     const limits = await viewerSignatureLimits()
-    const { source, rendered } = prepareSignature(values.signature, limits)
+    const { source, rendered } = await prepareSignature(values.signature, limits, {
+      authorId: actor.userId,
+      rendering: boardRendering,
+    })
 
     const wrote = await store.save({
       userId: actor.userId,

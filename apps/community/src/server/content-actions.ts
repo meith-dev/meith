@@ -4,7 +4,13 @@ import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
-import { quoteBlock, renderMarkdown, SIGNATURE_FEATURES, vocabularyOptions } from '@meith/markdown'
+import {
+  authorRef,
+  quoteBlock,
+  renderThrough,
+  SIGNATURE_FEATURES,
+  vocabularyOptions,
+} from '@meith/markdown'
 import type { PostEditor } from '@meith/posts'
 
 import { postLink } from '../view/post-link'
@@ -16,6 +22,7 @@ import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { checkbox, positiveIntIn } from './form-values'
 import { getTranslator, tr } from './i18n'
+import { boardRendering } from './markdown-pipeline'
 import { emitEvent } from './plugin-view'
 import { postEditor, resolvePostScope } from './post-scope'
 import { resolveReplyTarget, submitReply } from './reply-core'
@@ -24,12 +31,22 @@ import { resolveThreadTarget, submitThread } from './thread-core'
 export type PreviewScope = 'post' | 'signature'
 
 async function previewHtml(message: string, scope: PreviewScope = 'post'): Promise<string> {
-  const [vocabulary, translator] = await Promise.all([activeVocabulary(), getTranslator()])
-  return renderMarkdown(message, {
-    ...vocabularyOptions(vocabulary),
-    ...(scope === 'signature' ? { features: SIGNATURE_FEATURES } : {}),
-    quoteAttribution: (author) => translator.t('markdown.quote.attribution', { author }),
-  }).html
+  const [vocabulary, translator, actor] = await Promise.all([
+    activeVocabulary(),
+    getTranslator(),
+    getActor(),
+  ])
+  const rendered = await renderThrough(
+    boardRendering,
+    message,
+    { source: scope, viewer: authorRef(actor.userId) },
+    {
+      ...vocabularyOptions(vocabulary),
+      ...(scope === 'signature' ? { features: SIGNATURE_FEATURES } : {}),
+      quoteAttribution: (author) => translator.t('markdown.quote.attribution', { author }),
+    },
+  )
+  return rendered.html
 }
 
 export async function renderPreviewAction(
