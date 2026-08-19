@@ -48,7 +48,8 @@
     "@meith/theme-raidframe": "workspace:*",
     "@meith/threads": "workspace:*",
     "@meith/ui": "workspace:*",
-    "next": "16.3.0",
+    "@swc/helpers": "0.5.23",
+    "next": "16.3.1",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -58,6 +59,6 @@
     "@types/react-dom": "^19",
     "postcss": "^8.5",
     "tailwindcss": "^4.3.3",
-    "typescript": "5.7.3"
+    "typescript": "7.0.2"
   }
 }

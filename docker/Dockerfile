@@ -7,10 +7,11 @@
 # ---------------------------------------------------------------------------
 # deps: install with the lockfile, cached independently of source changes.
 # ---------------------------------------------------------------------------
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /repo
 
-RUN corepack enable
+# Node no longer bundles Corepack — install it before enabling it.
+RUN npm install -g corepack@latest && corepack enable
 
 # Only the manifests are copied first, so editing a .ts file does not invalidate
 # the (slow) install layer.
@@ -72,7 +73,7 @@ RUN pnpm --filter @meith/cli build
 # ---------------------------------------------------------------------------
 # runtime: standalone output only.
 # ---------------------------------------------------------------------------
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 WORKDIR /app
 
 # Stamped by the release workflow (see docs/release.md); a local build leaves

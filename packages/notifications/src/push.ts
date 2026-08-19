@@ -47,8 +47,8 @@ function encode(value: ArrayBuffer | Uint8Array): string {
   )
 }
 
-function bytes(value: Buffer): Uint8Array {
-  return new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+function bytes(value: Buffer): Uint8Array<ArrayBuffer> {
+  return new Uint8Array(value)
 }
 
 export async function generateVapidKeys(): Promise<VapidKeyPair> {

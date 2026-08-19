@@ -41,7 +41,7 @@ function initialise(): Promise<void> {
 export interface DecodedImage {
   readonly width: number
   readonly height: number
-  readonly data: Uint8ClampedArray
+  readonly data: Uint8ClampedArray<ArrayBuffer>
   readonly colorSpace: PredefinedColorSpace
 }
 

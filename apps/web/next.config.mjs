@@ -5,6 +5,17 @@ const nextConfig = {
 
   outputFileTracingRoot: new URL('../../', import.meta.url).pathname,
 
+  // The output-file tracer only follows the CJS half of @swc/helpers' dual
+  // package and misses the `esm/` variant next's own require-hook resolves at
+  // runtime, so the standalone build ships a `@swc/helpers` directory missing
+  // its esm/ half. next resolves the package from its own nested pnpm store
+  // entry (node_modules/.pnpm/next@…/node_modules/@swc/helpers), which is a
+  // symlink into node_modules/.pnpm/@swc+helpers@0.5.23/node_modules/@swc/helpers
+  // — so that is the path that has to be complete, not the app's own copy.
+  outputFileTracingIncludes: {
+    '/**': ['../../node_modules/.pnpm/@swc+helpers@0.5.23/node_modules/@swc/helpers/**/*'],
+  },
+
   ...(standalone
     ? {}
     : {

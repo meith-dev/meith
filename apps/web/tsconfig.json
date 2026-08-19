@@ -3,7 +3,6 @@
   "compilerOptions": {
     "jsx": "preserve",
     "plugins": [{ "name": "next" }],
-    "baseUrl": ".",
     /*
      * No path aliases at all, and specifically no `@/*`.
      *

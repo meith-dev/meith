@@ -19,7 +19,7 @@ export function encodeBase64Url(bytes: Uint8Array): string {
   return out
 }
 
-export function decodeBase64Url(value: string): Uint8Array {
+export function decodeBase64Url(value: string): Uint8Array<ArrayBuffer> {
   const clean = value.replace(/[=\s]/g, '')
   const bytes: number[] = []
 
