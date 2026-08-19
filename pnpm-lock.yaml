@@ -205,6 +205,9 @@ importers:
       '@meith/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
       next:
         specifier: 16.3.1
         version: 16.3.1(@playwright/test@1.62.1)(@types/node@26.2.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -236,6 +239,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
       marked:
         specifier: ^18.0.9
         version: 18.0.9
