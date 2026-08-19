@@ -7,7 +7,7 @@ import type { TimeModel } from '@meith/theme-kit'
 import { copyFor } from './copy'
 import { formatTime, untranslated } from './time'
 
-export const NOTIFICATION_MENU_PREVIEW = 6
+export const NOTIFICATION_MENU_PREVIEW = 10
 
 export type NotificationMenuTabKind = 'notifications' | 'messages' | 'mod'
 
@@ -125,6 +125,7 @@ export function buildNotificationMenuView(input: {
     label: t.t('board.notificationMenu.tab.notifications'),
     unread: input.notificationsUnread,
     rows: input.notifications
+      .filter((row) => !row.isRead)
       .slice(0, NOTIFICATION_MENU_PREVIEW)
       .map((row) => notificationRow(row, input.now, t)),
     allHref: '/notifications',
@@ -136,6 +137,7 @@ export function buildNotificationMenuView(input: {
     label: t.t('board.notificationMenu.tab.messages'),
     unread: input.messagesUnread,
     rows: input.messages
+      .filter((row) => row.readAt === null && row.role !== 'author')
       .slice(0, NOTIFICATION_MENU_PREVIEW)
       .map((row) => messageRow(row, input.now, t)),
     allHref: '/messages',
@@ -188,7 +190,6 @@ export function notificationMenuCopy(
       'board.notificationMenu.markSeen',
       'board.notificationMenu.markAllSeen',
       'board.notificationMenu.viewAll',
-      'board.notificationMenu.new',
       'board.notificationMenu.close',
       'board.notificationMenu.unreadNotifications',
       'board.notificationMenu.unreadMessages',

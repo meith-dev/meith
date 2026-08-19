@@ -735,10 +735,11 @@ badge, the member's total unread across notifications, private messages
 and — for a moderator — the moderation work waiting on them, and opens a
 menu with a tab for each: **Notifications**, **Messages**, and — for a
 member who may reach the moderation panel — a **Mod** tab of the approval
-queue and the open reports. Each tab lists its most recent entries, links
+queue and the open reports. Each tab lists only what is still outstanding —
+unread notifications, unread messages, the open moderation work — links
 every one through to the thing it is about, and (for notifications and
-messages) marks entries seen without leaving the page; the tab also links
-to the full page behind it. With scripting off the control falls back to
+messages) marks entries seen without leaving the page; reading one drops it
+from the list, and the tab also links to the full page behind it. With scripting off the control falls back to
 the same unread-count links the header carried before, so nothing the menu
 adds is load-bearing.
 
