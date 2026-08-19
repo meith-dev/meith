@@ -1,40 +1,16 @@
-import { logger, readPluginEnv } from '@meith/core'
-import {
-  type Database,
-  PostgresNotificationRepository,
-  PostgresSettingsRepository,
-  pluginData,
-  pluginGrants,
-  pluginUsers,
-  readPluginHealth,
-} from '@meith/db'
-import { NotificationService } from '@meith/notifications'
-import {
-  type PluginDefinition,
-  pluginEnabledKey,
-  pluginNotificationKindSpecs,
-  pluginNotify,
-  pluginTaskId,
-  resolvePluginSettings,
-} from '@meith/plugin-kit'
+import { type Database, PostgresSettingsRepository, readPluginHealth } from '@meith/db'
+import { type PluginDefinition, pluginEnabledKey, pluginTaskId } from '@meith/plugin-kit'
 import type { TaskDefinition } from '@meith/tasks'
 
-const MAX_DURATION_SECONDS = 60
+import { pluginRuntimeContext } from './plugin-context'
 
-const TASK_STATEMENT_TIMEOUT_MS = 30_000
+const MAX_DURATION_SECONDS = 60
 
 export function pluginTasks(options: {
   readonly db: Database
   readonly plugins: readonly PluginDefinition[]
 }): TaskDefinition[] {
   const definitions: TaskDefinition[] = []
-
-  const notifications = new NotificationService({
-    notifications: new PostgresNotificationRepository(options.db),
-    extraKinds: options.plugins.flatMap((plugin) =>
-      pluginNotificationKindSpecs(plugin.key, plugin.notifications ?? []),
-    ),
-  })
 
   for (const plugin of options.plugins) {
     for (const task of plugin.tasks ?? []) {
@@ -57,22 +33,14 @@ export function pluginTasks(options: {
             return { detail: { skipped: 'disabled after repeated failures' } }
           }
 
-          const log = logger({ component: 'plugin-task', plugin: plugin.key })
-
-          await task.run({
-            settings: resolvePluginSettings(plugin, overrides, readPluginEnv),
-            logger: {
-              info: (message, detail) => log.info(detail ?? {}, message),
-              warn: (message, detail) => log.warn(detail ?? {}, message),
-              error: (message, detail) => log.error(detail ?? {}, message),
-            },
-            grants: pluginGrants(options.db, plugin.key),
-            data: pluginData(options.db, plugin.key, {
-              statementTimeoutMs: TASK_STATEMENT_TIMEOUT_MS,
+          await task.run(
+            await pluginRuntimeContext({
+              db: options.db,
+              plugin,
+              component: 'plugin-task',
+              overrides,
             }),
-            users: pluginUsers(options.db),
-            notify: pluginNotify(plugin.key, plugin.notifications ?? [], notifications),
-          })
+          )
 
           return {}
         },

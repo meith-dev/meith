@@ -281,6 +281,7 @@ The commands:
 | `community user:2fa-clear` | Clear a member's second factor when they have lost their app *and* their recovery codes — `--user <id\|username>`. Ends every session on the account. The break-glass for a sole administrator locked out of their own board; see [signing in](./single-sign-on.md#when-the-app-and-the-codes-are-both-gone). |
 | `community forum:create` | Create a forum. |
 | `community profile-field:list` / `profile-field:add` / `profile-field:remove` | Manage custom profile fields. |
+| `community plugin:purge` | Run a plugin's `onUninstall` and remove its data, before you take its code out — see [removing one](#removing-one). Prints the plan; `--yes` does it. |
 | `community task:list` | What is scheduled, and how often each task runs. |
 | `community task:run` | Run the tick once, by hand — or one named task. |
 | `community search:reindex` | Rebuild the search index now rather than over the next few ticks. |
@@ -1187,6 +1188,28 @@ by default.
 three install steps in reverse. There is no uninstall button. Stored
 settings stay behind on purpose: reinstalling should not lose your
 configuration.
+
+That leaves the plugin's own tables and rows on the board. If you are done
+with it for good, purge it **before** you take the code out:
+
+```sh
+community plugin:purge dues          # prints what it would remove
+community plugin:purge dues --yes    # removes it
+```
+
+It runs the plugin's own `onUninstall` — its chance to cancel a subscription
+or retire an external webhook — and then drops its `plugin_<key>_*` tables,
+its settings, its migration records, its navigation items and its health row.
+If `onUninstall` fails, nothing is dropped, so you can fix whatever it was
+complaining about and run it again.
+
+The order is not a suggestion. Purging needs the plugin's code to still be
+in the build, because `onUninstall` is part of that code; run it after the
+redeploy that removed the plugin and there is nothing left to call. The
+command refuses that case rather than half-doing it.
+
+A plugin you might reinstall does not need purging. Leaving its data alone is
+what makes reinstalling it a redeploy rather than a setup.
 
 Writing a plugin: [the plugin API](./plugin-api.md). Every hook:
 [plugin hooks](./plugin-hooks.md).

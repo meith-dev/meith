@@ -66,9 +66,15 @@ importers:
       '@meith/forums':
         specifier: workspace:*
         version: link:../../packages/forums
+      '@meith/plugin-kit':
+        specifier: workspace:*
+        version: link:../../packages/plugin-kit
       '@meith/profile-fields':
         specifier: workspace:*
         version: link:../../packages/profile-fields
+      '@meith/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
       '@meith/settings':
         specifier: workspace:*
         version: link:../../packages/settings

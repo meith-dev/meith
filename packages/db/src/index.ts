@@ -178,6 +178,11 @@ export {
   readPluginHealth,
   recordPluginFailure,
 } from './plugin-health-repo'
+export {
+  type PluginPurgeResult,
+  pluginOwnedTables,
+  purgePlugin,
+} from './plugin-purge-repo'
 export { pluginUsers } from './plugin-users'
 export { PostgresPollRepository } from './poll-repo'
 export { PostgresPostRepository } from './post-repo'

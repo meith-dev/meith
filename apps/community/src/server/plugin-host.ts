@@ -18,6 +18,8 @@ import { getSettingOverrides } from './settings'
 
 const HEALTH_TTL_SECONDS = 30
 
+export const FAILURE_THRESHOLD = 5
+
 export interface ConfiguredPlugin {
   readonly key: string
   readonly enabled: boolean
@@ -47,6 +49,7 @@ export function activeDefinitions(): readonly PluginDefinition[] {
 
 export const pluginHost = new PluginHost({
   plugins: activeDefinitions(),
+  failureThreshold: FAILURE_THRESHOLD,
   logger: {
     warn: (message, detail) => logger().warn(detail, message),
     error: (message, detail) => logger().error(detail, message),
@@ -57,6 +60,25 @@ export const pluginHost = new PluginHost({
     },
   },
 })
+
+/**
+ * A plugin failing somewhere the host does not itself dispatch — a lifecycle
+ * callback — counted and reported exactly as a failing hook is. There is one
+ * failure record per plugin, and an operator reading it should not have to know
+ * which door the plugin was behind when it broke.
+ */
+export async function recordPluginFault(
+  pluginKey: string,
+  surface: string,
+  error: unknown,
+): Promise<void> {
+  await persistFailure(
+    pluginKey,
+    FAILURE_THRESHOLD,
+    surface,
+    error instanceof Error ? error.message : String(error),
+  )
+}
 
 async function persistFailure(
   pluginKey: string,

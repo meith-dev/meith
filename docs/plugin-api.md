@@ -61,7 +61,7 @@ you read in `community.plugins.ts` is what your board runs.
 | `allowedRedirectHosts` | The only hosts an absolute redirect from this plugin's routes may point at. |
 | `contributions` | Markup in named UI regions. |
 | `dependsOn` | Other plugin keys whose migrations must run first. |
-| `onInstall` / `onEnable` / `onDisable` / `onUninstall` | Lifecycle callbacks — declared and typed, not yet dispatched by the host. See [the inventory](#what-is-wired-and-what-is-not). |
+| `onInstall` / `onEnable` / `onDisable` / `onUninstall` | Lifecycle callbacks — see [below](#the-lifecycle). |
 
 > [!NOTE]
 > Everything but the callbacks is **declarative**. A plugin does not call
@@ -220,6 +220,59 @@ is rendered in memory when somebody reads it.
 > plugin's own additions are not filtered either. This is the same trust an
 > operator extends by installing the plugin at all — but it is the one
 > place where a mistake becomes markup on every page.
+
+## The lifecycle
+
+Four callbacks, each with one moment it runs and its own answer to "what if it
+throws". All four are handed the same runtime context a task gets — resolved
+settings, a logger, and `grants`, `data`, `users` and `notify`.
+
+| Callback | When | If it throws |
+|---|---|---|
+| `onInstall` | The first `community upgrade` on a board that has never recorded this plugin, after its migrations | The upgrade stops |
+| `onEnable` | An operator switches the plugin on in the panel | The switch stands; counted as a plugin failure |
+| `onDisable` | An operator switches it off | The switch stands; counted as a plugin failure |
+| `onUninstall` | `community plugin:purge <key>`, before anything is dropped | Nothing is dropped |
+
+None of them runs inside the host's try/catch. That isolation exists to keep a
+page rendering, and none of these is on a page.
+
+**`onInstall` runs once per board, not once per deploy.** The board records a
+`plugin:<key>` version row; no row means it has never seen the plugin. It runs
+after that plugin's migrations, so its tables exist, and before the version row
+is written, so a throw leaves the board able to try again. A throw stops the
+upgrade — a plugin that could not finish installing is not one the board should
+start serving.
+
+**`onEnable` and `onDisable` run on the operator's switch only.** They do not
+run on the host's own switch after repeated failures: a plugin that has just
+failed five times is not one to hand more work to. They run *after* the switch
+is written, so the callback sees the state it is being told about, and the
+switch stands whatever they do — a callback that throws is the plugin's fault,
+so it is counted and shown in the plugin's health row rather than reported to
+the operator as their action having failed.
+
+**`onUninstall` needs `community plugin:purge`, and that is not a workaround.**
+Removing a plugin is `pnpm remove`, a line out of `community.plugins.ts` and a
+redeploy — and at the moment the board would call `onUninstall`, the function
+is no longer in the build. There is no point in time where the host holds both
+"this plugin is gone" and "this plugin's code". So the operator says when:
+
+```sh
+community plugin:purge dues          # says what it would do
+community plugin:purge dues --yes    # runs onUninstall, then drops the data
+```
+
+It runs `onUninstall` first and drops nothing if that throws, then takes away
+the plugin's `plugin_<key>_*` tables, its settings, its migration records, its
+navigation items, its version row and its health row. Then you remove the code.
+Purging a plugin that is not in the build is refused, with that explanation:
+there would be no `onUninstall` left to run.
+
+> [!TIP]
+> Write these if the shape of your plugin wants them, but keep `onInstall`
+> **idempotent anyway**. It runs once per board, and a board restored from a
+> backup taken before the install is a board that will run it again.
 
 ## Asking for a place in the navigation
 
@@ -716,15 +769,11 @@ plugin declares a route of every shape, a board page, a secret setting with
 an environment override and a select — and its tests drive each one, so
 none of those surfaces can silently rot either.
 
-**The lifecycle callbacks do not run yet.** `onInstall`, `onEnable`,
-`onDisable` and `onUninstall` are part of the declared shape and validated
-like everything else, but no host code dispatches them today. Write them if
-the shape of your plugin wants them — just do not put anything there that
-must run for the plugin to be correct.
-
 ### The descriptors execute
 
-Everything else runs today. Migrations are applied by `community upgrade` in
+Everything declared runs today, the four lifecycle callbacks included — see
+[the lifecycle](#the-lifecycle) for when each fires and what a throw costs.
+Migrations are applied by `community upgrade` in
 dependency order, one transaction each. Settings are stored at
 `plugin.<key>.<name>` and edited in the control panel, with environment
 overrides resolved as described above. Tasks are registered as
@@ -755,14 +804,15 @@ A few consequences, stated plainly:
   A schema change belongs to the deploy that shipped the code expecting
   it. The panel reports which migrations have and have not been applied,
   which is the part an operator cannot otherwise find out.
-- **Disabling is durable and immediate; uninstalling is not offered.** Both
-  switches — the panel's and the host's own, after repeated failures —
-  write a row that every instance reconciles against on its next request,
-  so both survive a redeploy: the plugin somebody switched off at 2am is
-  exactly the one that must stay off. Removing a plugin is
-  `pnpm remove`, a line out of `community.plugins.ts`, and a redeploy; a
-  button that dropped the rows while the code kept running would produce a
-  state neither installing nor removing does.
+- **Disabling is durable and immediate; uninstalling is a command, not a
+  button.** Both switches — the panel's and the host's own, after repeated
+  failures — write a row that every instance reconciles against on its next
+  request, so both survive a redeploy: the plugin somebody switched off at
+  2am is exactly the one that must stay off. Removing a plugin is still
+  `pnpm remove`, a line out of `community.plugins.ts`, and a redeploy, with
+  `community plugin:purge` before it when its data should go too. There is
+  no button, because a button that dropped the rows while the code kept
+  running would produce a state neither installing nor removing does.
 
 ## The generated reference is a gate
 

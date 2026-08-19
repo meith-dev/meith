@@ -8,6 +8,7 @@ import {
   runMigrations,
 } from '@meith/db'
 import { type PluginDefinition, pluginNavigationPlacements } from '@meith/plugin-kit'
+import { runPluginLifecycle } from '@meith/runtime'
 import { type PluginUpgrade, planUpgrade, upgradeNotice } from '@meith/upgrade'
 
 export const CODE_VERSION = '0.9.0'
@@ -32,6 +33,11 @@ export async function upgrade(options: UpgradeOptions): Promise<number> {
   const plugins = pluginUpgrades(options.plugins)
 
   const recordedVersion = (await readVersion(db, 'core')) ?? CODE_VERSION
+
+  const fresh: string[] = []
+  for (const plugin of options.plugins) {
+    if ((await readVersion(db, `plugin:${plugin.key}`)) === null) fresh.push(plugin.key)
+  }
 
   const applied: Record<string, readonly string[]> = {}
   for (const plugin of plugins) {
@@ -62,6 +68,10 @@ export async function upgrade(options: UpgradeOptions): Promise<number> {
     if (pending.length === 0) continue
     options.log(`  ${stepNumber++}. ${plugin.key}: ${pending.join(', ')}`)
   }
+  for (const key of fresh) {
+    if (options.plugins.find((plugin) => plugin.key === key)?.onInstall === undefined) continue
+    options.log(`  ${stepNumber++}. ${key}: onInstall`)
+  }
   options.log(`  ${stepNumber++}. reconcile plugin navigation`)
   options.log(`  ${stepNumber}. record version ${CODE_VERSION}`)
 
@@ -80,6 +90,17 @@ export async function upgrade(options: UpgradeOptions): Promise<number> {
       const ran = await applyPluginMigration(db, plugin.key, migration.id, migration.statements)
       if (ran) options.log(`${plugin.key}: applied ${migration.id}.`)
     }
+    /*
+     * onInstall runs after this plugin's migrations, so its tables exist, and
+     * before the version row that will stop it running again. A throw here
+     * stops the upgrade: a plugin that could not finish installing is one the
+     * board should not start serving.
+     */
+    if (fresh.includes(plugin.key) && definition !== undefined) {
+      const { ran } = await runPluginLifecycle({ db, plugin: definition, phase: 'install' })
+      if (ran) options.log(`${plugin.key}: onInstall.`)
+    }
+
     await recordVersion(db, `plugin:${plugin.key}`, plugin.version)
   }
 
