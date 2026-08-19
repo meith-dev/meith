@@ -173,9 +173,26 @@ describe('buildNotificationMenuView', () => {
     expect(row?.isUnread).toBe(true)
   })
 
-  it('treats a message the viewer authored as already seen', () => {
-    const view = build({ messages: [message({ role: 'author', readAt: null })] })
+  it('lists only unread notifications, dropping the ones already read', () => {
+    const view = build({
+      notifications: [
+        notification({ id: 1, isRead: false }),
+        notification({ id: 2, isRead: true }),
+      ],
+    })
+    const notifications = view.tabs.find((tab) => tab.kind === 'notifications')
+    expect(notifications?.rows.map((row) => row.seenId)).toEqual([1])
+  })
+
+  it('lists only unread messages, dropping read ones and the viewer’s own', () => {
+    const view = build({
+      messages: [
+        message({ copyId: 1, readAt: null, role: 'to' }),
+        message({ copyId: 2, readAt: new Date('2026-08-01T11:31:00Z'), role: 'to' }),
+        message({ copyId: 3, readAt: null, role: 'author' }),
+      ],
+    })
     const messages = view.tabs.find((tab) => tab.kind === 'messages')
-    expect(messages?.rows[0]?.isUnread).toBe(false)
+    expect(messages?.rows.map((row) => row.seenId)).toEqual([1])
   })
 })

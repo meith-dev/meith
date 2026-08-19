@@ -2,7 +2,6 @@
 
 import { useActionState } from 'react'
 
-import { cn } from '@meith/ui'
 import { Popover } from '@meith/ui/popover'
 import { Tabs } from '@meith/ui/tabs'
 
@@ -57,6 +56,69 @@ function CountPill({ value }: { value: number }) {
   )
 }
 
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className="size-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m3.5 8.5 3 3 6-7" />
+    </svg>
+  )
+}
+
+function HiddenFields({
+  fields,
+}: {
+  fields: readonly { readonly name: string; readonly value: number }[]
+}) {
+  return (
+    <>
+      {fields.map((field) => (
+        <input
+          key={`${field.name}-${field.value}`}
+          type="hidden"
+          name={field.name}
+          value={field.value}
+        />
+      ))}
+    </>
+  )
+}
+
+function SeenIconForm({
+  action,
+  hidden,
+  label,
+}: {
+  action: (prev: FormState, form: FormData) => Promise<FormState>
+  hidden: readonly { readonly name: string; readonly value: number }[]
+  label: string
+}) {
+  const [, formAction, isPending] = useActionState(action, EMPTY_STATE)
+
+  return (
+    <form action={formAction} className="shrink-0">
+      <HiddenFields fields={hidden} />
+      <button
+        type="submit"
+        disabled={isPending}
+        title={label}
+        className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-60"
+      >
+        <span className="sr-only">{label}</span>
+        <CheckIcon />
+      </button>
+    </form>
+  )
+}
+
 function SeenForm({
   action,
   hidden,
@@ -72,14 +134,7 @@ function SeenForm({
 
   return (
     <form action={formAction}>
-      {hidden.map((field) => (
-        <input
-          key={`${field.name}-${field.value}`}
-          type="hidden"
-          name={field.name}
-          value={field.value}
-        />
-      ))}
+      <HiddenFields fields={hidden} />
       <button
         type="submit"
         disabled={isPending}
@@ -103,22 +158,11 @@ function Row({
   const body = (
     <>
       <span className="flex items-baseline justify-between gap-2">
-        <span
-          className={cn(
-            'truncate text-sm',
-            (row.isUnread || row.tag !== null) && 'font-semibold text-foreground',
-          )}
-        >
-          {row.tag !== null ? (
+        <span className="truncate text-sm font-medium text-foreground">
+          {row.tag !== null && (
             <span className="mr-1.5 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
               {row.tag}
             </span>
-          ) : (
-            row.isUnread && (
-              <span className="mr-1.5 text-[0.625rem] font-semibold uppercase tracking-wide text-forum-unread">
-                {fromCopy(copy, 'board.notificationMenu.new')}
-              </span>
-            )
           )}
           {row.subject}
         </span>
@@ -133,7 +177,7 @@ function Row({
   )
 
   return (
-    <li className="flex items-start gap-1 rounded-md px-1">
+    <li className="flex items-center gap-1 rounded-md pr-1">
       {row.href === null ? (
         <span className="min-w-0 flex-1 px-2 py-2">{body}</span>
       ) : (
@@ -146,7 +190,7 @@ function Row({
       )}
 
       {row.isUnread && row.seenId !== null && (
-        <SeenForm
+        <SeenIconForm
           action={kind === 'messages' ? markMessagesSeenAction : markNotificationSeenAction}
           hidden={[
             kind === 'messages'
@@ -154,7 +198,6 @@ function Row({
               : { name: 'notificationId', value: row.seenId },
           ]}
           label={fromCopy(copy, 'board.notificationMenu.markSeen')}
-          working={fromCopy(copy, 'form.working')}
         />
       )}
     </li>
@@ -267,15 +310,19 @@ export function NotificationMenu({ model, copy }: { model: NotificationMenuModel
                 </div>
 
                 <Tabs.Root defaultValue={first}>
-                  <Tabs.List className="flex gap-1 border-b border-border px-2 pt-2">
+                  <Tabs.List className="flex gap-1 border-b border-border p-2">
                     {model.tabs.map((tab) => (
                       <Tabs.Tab
                         key={tab.kind}
                         value={tab.kind}
-                        className="flex items-center gap-1.5 rounded-t-md border-b-2 border-transparent px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[selected]:border-primary data-[selected]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[selected]:hover:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       >
                         {tab.label}
-                        {tab.unread > 0 && <CountPill value={tab.unread} />}
+                        {tab.unread > 0 && (
+                          <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-current/20 px-1 text-[0.625rem] font-semibold leading-4 tabular-nums">
+                            {tab.unread > 99 ? '99+' : tab.unread}
+                          </span>
+                        )}
                       </Tabs.Tab>
                     ))}
                   </Tabs.List>
