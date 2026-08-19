@@ -1,10 +1,7 @@
 import type { Translator } from '@meith/i18n'
 import type { MessageListRow } from '@meith/messages'
-import {
-  type NotificationAudience,
-  type NotificationView,
-  notificationKind,
-} from '@meith/notifications'
+import type { QueueItem, ReportRow } from '@meith/moderation'
+import type { NotificationView } from '@meith/notifications'
 import type { TimeModel } from '@meith/theme-kit'
 
 import { copyFor } from './copy'
@@ -16,12 +13,22 @@ export type NotificationMenuTabKind = 'notifications' | 'messages' | 'mod'
 
 export interface NotificationMenuRow {
   readonly key: string
-  readonly seenId: number
+  /** The id a mark-seen form submits, or `null` for a row that is acted on elsewhere. */
+  readonly seenId: number | null
   readonly subject: string
   readonly meta: string | null
   readonly href: string | null
   readonly at: TimeModel
   readonly isUnread: boolean
+  /** A short category label shown before the subject, or `null`. */
+  readonly tag: string | null
+}
+
+export interface ModerationSummary {
+  readonly queue: readonly QueueItem[]
+  readonly reports: readonly ReportRow[]
+  readonly pending: number
+  readonly openReports: number
 }
 
 export interface NotificationMenuTab {
@@ -38,10 +45,6 @@ export interface NotificationMenuModel {
   readonly tabs: readonly NotificationMenuTab[]
 }
 
-function audienceOf(kind: string): NotificationAudience {
-  return notificationKind(kind)?.audience ?? 'member'
-}
-
 function notificationRow(row: NotificationView, now: Date, t: Translator): NotificationMenuRow {
   return {
     key: `notification-${row.id}`,
@@ -51,6 +54,7 @@ function notificationRow(row: NotificationView, now: Date, t: Translator): Notif
     href: row.href,
     at: formatTime(row.updatedAt, now, t),
     isUnread: !row.isRead,
+    tag: null,
   }
 }
 
@@ -70,6 +74,33 @@ function messageRow(row: MessageListRow, now: Date, t: Translator): Notification
     href: `/messages/${row.messageId}`,
     at: formatTime(row.sentAt, now, t),
     isUnread: row.readAt === null && row.role !== 'author',
+    tag: null,
+  }
+}
+
+function queueRow(item: QueueItem, now: Date, t: Translator): NotificationMenuRow {
+  return {
+    key: `queue-${item.kind}-${item.id}`,
+    seenId: null,
+    subject: item.threadTitle,
+    meta: item.forumTitle,
+    href: '/moderation',
+    at: formatTime(item.createdAt, now, t),
+    isUnread: false,
+    tag: t.t('board.notificationMenu.mod.pending'),
+  }
+}
+
+function reportRow(report: ReportRow, now: Date, t: Translator): NotificationMenuRow {
+  return {
+    key: `report-${report.id}`,
+    seenId: null,
+    subject: report.targetLabel,
+    meta: firstLine(report.reason),
+    href: '/moderation/reports',
+    at: formatTime(report.createdAt, now, t),
+    isUnread: false,
+    tag: t.t('board.notificationMenu.mod.report'),
   }
 }
 
@@ -83,20 +114,17 @@ export function buildNotificationMenuView(input: {
   readonly notificationsUnread: number
   readonly messages: readonly MessageListRow[]
   readonly messagesUnread: number
-  readonly canModerate: boolean
+  readonly moderation: ModerationSummary | null
   readonly now: Date
   readonly t?: Translator
 }): NotificationMenuModel {
   const t = input.t ?? untranslated()
 
-  const member = input.notifications.filter((row) => audienceOf(row.kind) === 'member')
-  const staff = input.notifications.filter((row) => audienceOf(row.kind) === 'staff')
-
   const notificationsTab: NotificationMenuTab = {
     kind: 'notifications',
     label: t.t('board.notificationMenu.tab.notifications'),
     unread: input.notificationsUnread,
-    rows: member
+    rows: input.notifications
       .slice(0, NOTIFICATION_MENU_PREVIEW)
       .map((row) => notificationRow(row, input.now, t)),
     allHref: '/notifications',
@@ -116,21 +144,36 @@ export function buildNotificationMenuView(input: {
 
   const tabs: NotificationMenuTab[] = [notificationsTab, messagesTab]
 
-  if (input.canModerate) {
+  const moderationUnread =
+    input.moderation === null ? 0 : input.moderation.pending + input.moderation.openReports
+
+  if (input.moderation !== null) {
+    const rows = [
+      ...input.moderation.reports.map((report) => ({
+        at: report.createdAt,
+        row: reportRow(report, input.now, t),
+      })),
+      ...input.moderation.queue.map((item) => ({
+        at: item.createdAt,
+        row: queueRow(item, input.now, t),
+      })),
+    ]
+      .sort((a, b) => b.at.getTime() - a.at.getTime())
+      .slice(0, NOTIFICATION_MENU_PREVIEW)
+      .map((entry) => entry.row)
+
     tabs.push({
       kind: 'mod',
       label: t.t('board.notificationMenu.tab.mod'),
-      unread: staff.filter((row) => !row.isRead).length,
-      rows: staff
-        .slice(0, NOTIFICATION_MENU_PREVIEW)
-        .map((row) => notificationRow(row, input.now, t)),
+      unread: moderationUnread,
+      rows,
       allHref: '/moderation',
       emptyLabel: t.t('board.notificationMenu.empty.mod'),
     })
   }
 
   return {
-    total: input.notificationsUnread + input.messagesUnread,
+    total: input.notificationsUnread + input.messagesUnread + moderationUnread,
     tabs,
   }
 }

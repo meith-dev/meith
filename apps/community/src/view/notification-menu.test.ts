@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import type { MessageListRow } from '@meith/messages'
+import type { QueueItem, ReportRow } from '@meith/moderation'
 import type { NotificationView } from '@meith/notifications'
 
-import { buildNotificationMenuView, NOTIFICATION_MENU_PREVIEW } from './notification-menu'
+import {
+  buildNotificationMenuView,
+  type ModerationSummary,
+  NOTIFICATION_MENU_PREVIEW,
+} from './notification-menu'
 
 const NOW = new Date('2026-08-01T12:00:00Z')
 
@@ -38,13 +43,59 @@ function message(overrides: Partial<MessageListRow> = {}): MessageListRow {
   }
 }
 
+function queueItem(overrides: Partial<QueueItem> = {}): QueueItem {
+  return {
+    kind: 'thread',
+    id: 3,
+    forumId: 7,
+    forumTitle: 'Buy, sell and swap',
+    threadId: 30,
+    threadSlug: 'cheap-jerseys',
+    threadTitle: 'cheap replica jerseys',
+    authorUserId: 99,
+    authorUsername: 'ticket_deals_2026',
+    excerpt: 'official quality replica jerseys all clubs',
+    createdAt: new Date('2026-08-01T10:00:00Z'),
+    ...overrides,
+  }
+}
+
+function report(overrides: Partial<ReportRow> = {}): ReportRow {
+  return {
+    id: 4,
+    kind: 'post',
+    targetId: 40,
+    forumId: 7,
+    threadId: 30,
+    targetLabel: 'A rude reply',
+    reporterUserId: 12,
+    reporterUsername: 'member',
+    reason: 'This is spam',
+    status: 'open',
+    assignedToUserId: null,
+    assignedToUsername: null,
+    createdAt: new Date('2026-08-01T11:45:00Z'),
+    ...overrides,
+  }
+}
+
+function moderation(overrides: Partial<ModerationSummary> = {}): ModerationSummary {
+  return {
+    queue: [queueItem()],
+    reports: [report()],
+    pending: 1,
+    openReports: 2,
+    ...overrides,
+  }
+}
+
 function build(overrides: Partial<Parameters<typeof buildNotificationMenuView>[0]> = {}) {
   return buildNotificationMenuView({
     notifications: [notification()],
     notificationsUnread: 1,
     messages: [message()],
     messagesUnread: 1,
-    canModerate: false,
+    moderation: null,
     now: NOW,
     ...overrides,
   })
@@ -61,32 +112,47 @@ describe('buildNotificationMenuView', () => {
     expect(view.tabs.map((tab) => tab.kind)).toEqual(['notifications', 'messages'])
   })
 
-  it('adds the mod tab for a moderator and routes staff notifications into it', () => {
+  it('shows every notification kind in the notifications tab', () => {
     const view = build({
       notifications: [
         notification({ id: 1, kind: 'post.mentioned' }),
         notification({ id: 2, kind: 'system.task_failed', href: null, subject: 'A task failed' }),
       ],
-      canModerate: true,
     })
-
-    const kinds = view.tabs.map((tab) => tab.kind)
-    expect(kinds).toEqual(['notifications', 'messages', 'mod'])
-
     const notifications = view.tabs.find((tab) => tab.kind === 'notifications')
-    const mod = view.tabs.find((tab) => tab.kind === 'mod')
-    expect(notifications?.rows.map((row) => row.seenId)).toEqual([1])
-    expect(mod?.rows.map((row) => row.seenId)).toEqual([2])
-    expect(mod?.allHref).toBe('/moderation')
+    expect(notifications?.rows.map((row) => row.seenId)).toEqual([1, 2])
   })
 
-  it('keeps staff notifications out of the notifications tab even without a mod tab', () => {
+  it('adds a mod tab of the queue and open reports for a moderator', () => {
+    const view = build({ moderation: moderation() })
+
+    expect(view.tabs.map((tab) => tab.kind)).toEqual(['notifications', 'messages', 'mod'])
+
+    const mod = view.tabs.find((tab) => tab.kind === 'mod')
+    expect(mod?.unread).toBe(3)
+    expect(mod?.allHref).toBe('/moderation')
+    expect(mod?.rows.map((row) => row.href)).toEqual(['/moderation/reports', '/moderation'])
+    expect(mod?.rows.every((row) => row.seenId === null)).toBe(true)
+  })
+
+  it('counts the moderation queue and reports into the badge total', () => {
     const view = build({
-      notifications: [notification({ id: 2, kind: 'system.task_failed' })],
-      canModerate: false,
+      notificationsUnread: 1,
+      messagesUnread: 2,
+      moderation: moderation({ pending: 1, openReports: 2 }),
     })
-    const notifications = view.tabs.find((tab) => tab.kind === 'notifications')
-    expect(notifications?.rows).toEqual([])
+    expect(view.total).toBe(6)
+  })
+
+  it('orders mod rows newest first across the queue and reports', () => {
+    const view = build({
+      moderation: moderation({
+        queue: [queueItem({ id: 1, createdAt: new Date('2026-08-01T09:00:00Z') })],
+        reports: [report({ id: 2, createdAt: new Date('2026-08-01T11:00:00Z') })],
+      }),
+    })
+    const mod = view.tabs.find((tab) => tab.kind === 'mod')
+    expect(mod?.rows.map((row) => row.tag)).toEqual(['Report', 'Awaiting approval'])
   })
 
   it('caps each tab at the preview size', () => {
