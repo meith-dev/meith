@@ -13,6 +13,7 @@ import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { tr } from './i18n'
+import { emitEvent } from './plugin-view'
 
 const toFormState = formStateReporter('moderation-actions', 'unexpected error in the queue')
 
@@ -66,6 +67,22 @@ export async function moderateQueueAction(_prev: FormState, form: FormData): Pro
       moderatedForumIds: moderated,
       actorUserId: actor.userId,
     })
+
+    const moderation = { moderatorId: actor.userId, reason: null }
+    for (const item of outcome.decided) {
+      await emitEvent(
+        'approval.decided',
+        { kind: item.kind, id: item.id, approved: decision === 'approve' },
+        moderation,
+      )
+    }
+    if (outcome.decided.length > 0) {
+      await emitEvent(
+        'moderation.logged',
+        { action: `queue.${decision}`, targetId: outcome.decided[0]!.id },
+        moderation,
+      )
+    }
   } catch (err) {
     return toFormState(err)
   }

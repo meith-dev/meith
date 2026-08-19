@@ -2,9 +2,11 @@ import type { Metadata } from 'next'
 
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
+import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
+import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
-import { buildRedirectNotice } from '@/view/redirect-notice'
+import { buildRedirectNotice, localHref } from '@/view/redirect-notice'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.redirecting') }
@@ -16,7 +18,12 @@ export default async function RedirectPage({
   searchParams: Promise<{ to?: string; message?: string }>
 }) {
   const { to, message } = await searchParams
-  const notice = buildRedirectNotice(to, message)
+  const filtered = await filterView(
+    'view.redirect-notice',
+    buildRedirectNotice(to, message),
+    viewerRef(await getActor()),
+  )
+  const notice = { ...filtered, targetHref: localHref(filtered.targetHref) }
   const RedirectNotice = requireSlot(await currentTheme(), 'RedirectNotice')
 
   return (

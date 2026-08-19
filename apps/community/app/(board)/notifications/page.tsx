@@ -2,18 +2,17 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { NOTIFICATIONS_PAGE_SIZE } from '@meith/notifications'
-import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import {
   MarkAllNotificationsReadForm,
   MarkNotificationReadForm,
 } from '@/components/account/notification-forms'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { notificationService } from '@/server/notifications'
-import { currentTheme } from '@/server/theme'
 import { notificationFormsCopy } from '@/view/account-copy'
 import { buildNotificationCentreView, notificationNotice } from '@/view/notifications'
 import { offsetOf, readPage } from '@/view/pager'
@@ -53,7 +52,6 @@ export default async function NotificationsPage({
     t: translator,
   })
 
-  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = notificationNotice(query, await getTranslator())
 
   return (
@@ -78,14 +76,7 @@ export default async function NotificationsPage({
         />
       }
     >
-      {notice !== null && (
-        <Notice
-          kind="info"
-          message={notice}
-          dismissHref="/notifications"
-          copy={slotCopy(await currentTheme(), 'Notice', translator)}
-        />
-      )}
+      {notice !== null && <BoardNotice kind="info" message={notice} dismissHref="/notifications" />}
 
       {view.rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{translator.t('board.notifications.empty')}</p>

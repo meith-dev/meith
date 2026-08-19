@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { MemberSettingsService } from '@meith/accounts'
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { currentRequestId } from '@meith/core/logger'
 import { drivers } from '@meith/drivers'
 import { msg } from '@meith/i18n'
 import { prepareSignature } from '@meith/signatures'
@@ -21,6 +22,7 @@ import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
 import { getTranslator, tr } from './i18n'
 import { boardRendering } from './markdown-pipeline'
+import { emitEvent } from './plugin-view'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
 import { setSessionCookie } from './session-cookies'
 import { signatureStore, viewerSignatureLimits } from './signatures'
@@ -66,6 +68,12 @@ export async function saveProfileAction(_prev: FormState, form: FormData): Promi
     if (fields !== null && context !== null) {
       await fields.save({ userId, submitted: submittedFields(form), context })
     }
+
+    await emitEvent(
+      'user.profile.updated',
+      { userId, fields: ['location', 'website', 'bio'] },
+      { requestId: currentRequestId() ?? null },
+    )
   } catch (err) {
     return toFormState(err)
   }
@@ -95,6 +103,12 @@ export async function saveOptionsAction(_prev: FormState, form: FormData): Promi
       threadsPerPage: text(form, 'threadsPerPage'),
       invisible: form.get('invisible') !== null,
     })
+
+    await emitEvent(
+      'user.profile.updated',
+      { userId, fields: ['timezone', 'locale', 'postsPerPage', 'threadsPerPage', 'invisible'] },
+      { requestId: currentRequestId() ?? null },
+    )
   } catch (err) {
     return toFormState(err)
   }

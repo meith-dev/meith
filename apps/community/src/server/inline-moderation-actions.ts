@@ -21,6 +21,7 @@ import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
 import { tr } from './i18n'
+import { emitEvent } from './plugin-view'
 import { isSafeLocalPath } from './safe-path'
 
 const toFormState = formStateReporter('inline-moderation', 'unexpected error in inline moderation')
@@ -78,6 +79,14 @@ export async function inlineModerateAction(_prev: FormState, form: FormData): Pr
       rights: { rightsIn: (forumId) => rightsIn(actor, forumId) },
       actorUserId: actor.userId,
     })
+
+    if (outcome.applied > 0) {
+      await emitEvent(
+        'moderation.logged',
+        { action: `inline.${outcome.tool}`, targetId: null },
+        { moderatorId: actor.userId, reason: null },
+      )
+    }
   } catch (err) {
     return toFormState(err)
   }

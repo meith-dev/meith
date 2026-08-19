@@ -15,7 +15,7 @@ import {
 } from './antispam'
 import type { AttachmentScope } from './attachments'
 import { getContainer } from './container'
-import { emitEvent, viewerRef } from './plugin-view'
+import { emitEvent, filterView, viewerRef } from './plugin-view'
 import { notifyPostAudience } from './post-notifications'
 import { getSettings } from './settings'
 
@@ -89,6 +89,21 @@ export async function submitThread(
   const profile = await memberProfiles.findPublicById(userId)
   if (!profile) throw new ForbiddenError(msg('error.app.account-longer-post'))
 
+  const draft = await filterView(
+    'thread.create.before',
+    {
+      subject: input.title,
+      body: input.message,
+      prefixId: input.prefixId ?? null,
+      forumId: forum.id,
+      authorId: userId,
+    },
+    viewerRef(actor),
+  )
+
+  const objections = await filterView('thread.create.validate', [], { draft })
+  if (objections.length > 0) throw new ValidationError(objections[0]!)
+
   const composer = new ThreadComposer({
     threads: threadWrites,
     config: {
@@ -99,9 +114,9 @@ export async function submitThread(
 
   const created = await composer.create(
     {
-      title: input.title,
-      message: input.message,
-      prefixId: input.prefixId ?? null,
+      title: draft.subject ?? input.title,
+      message: draft.body,
+      prefixId: draft.prefixId,
       subscribe: input.subscribe ?? false,
       heldAsNewMember: await holdsNewMember({ actor, postCount: profile.postCount, settings }),
       requiresApproval: scope.forum.requiresThreadApproval === true,
@@ -117,9 +132,35 @@ export async function submitThread(
     forum,
   )
 
+  if (created.visibility === 'unapproved') {
+    await emitEvent('approval.queued', { kind: 'thread', id: created.threadId }, viewerRef(actor))
+  }
+
+  if (input.poll !== undefined) {
+    const { polls } = getContainer()
+    const poll = polls === null ? null : await polls.find(created.threadId, null)
+    if (poll !== null) {
+      await emitEvent(
+        'poll.created',
+        {
+          threadId: created.threadId,
+          forumId: forum.id,
+          pollId: poll.id,
+          optionCount: poll.options.length,
+        },
+        viewerRef(actor),
+      )
+    }
+  }
+
   await emitEvent(
     'thread.created',
-    { threadId: created.threadId, forumId: forum.id, authorId: userId, subject: input.title },
+    {
+      threadId: created.threadId,
+      forumId: forum.id,
+      authorId: userId,
+      subject: draft.subject ?? input.title,
+    },
     viewerRef(actor),
   )
 
@@ -127,8 +168,8 @@ export async function submitThread(
     postId: created.postId,
     threadId: created.threadId,
     threadSlug: created.slug,
-    threadTitle: input.title,
-    message: input.message,
+    threadTitle: draft.subject ?? input.title,
+    message: draft.body,
     authorUsername: profile.username,
     visibility: created.visibility,
   })

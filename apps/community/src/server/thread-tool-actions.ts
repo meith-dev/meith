@@ -13,6 +13,7 @@ import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
 import { tr } from './i18n'
+import { emitEvent } from './plugin-view'
 
 const toFormState = formStateReporter('thread-tool-actions', 'unexpected error in thread tools')
 
@@ -70,6 +71,15 @@ export async function threadToolAction(_prev: FormState, form: FormData): Promis
       rights,
       ...(destinationRights === undefined ? {} : { destinationRights }),
     })
+
+    if (outcome.changed) {
+      await announceTool(outcome.tool, {
+        threadId,
+        fromForumId: target.forumId,
+        toForumId,
+        moderatorId: actor.userId,
+      })
+    }
   } catch (err) {
     return toFormState(err)
   }
@@ -81,6 +91,45 @@ export async function threadToolAction(_prev: FormState, form: FormData): Promis
     redirect(`/${(await threadTools.find(threadId))?.forumId ?? ''}?thread=deleted`)
   }
   redirect(`/thread/${outcome.threadId}-${outcome.slug}?tool=${outcome.tool}`)
+}
+
+async function announceTool(
+  tool: Awaited<ReturnType<ThreadTools['apply']>>['tool'],
+  input: {
+    readonly threadId: number
+    readonly fromForumId: number
+    readonly toForumId: number | null
+    readonly moderatorId: number
+  },
+): Promise<void> {
+  const moderation = { moderatorId: input.moderatorId, reason: null }
+  const thread = { threadId: input.threadId, forumId: input.fromForumId }
+
+  await emitEvent(
+    'moderation.logged',
+    { action: `thread.${tool}`, targetId: input.threadId },
+    moderation,
+  )
+
+  if (tool === 'lock' || tool === 'unlock') {
+    await emitEvent('thread.locked', { ...thread, isLocked: tool === 'lock' }, moderation)
+    return
+  }
+  if (tool === 'stick' || tool === 'unstick') {
+    await emitEvent('thread.stickied', { ...thread, isSticky: tool === 'stick' }, moderation)
+    return
+  }
+  if (tool === 'move' && input.toForumId !== null) {
+    await emitEvent(
+      'thread.moved',
+      {
+        threadId: input.threadId,
+        fromForumId: input.fromForumId,
+        toForumId: input.toForumId,
+      },
+      moderation,
+    )
+  }
 }
 
 async function resolveRights(

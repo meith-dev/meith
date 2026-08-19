@@ -1,15 +1,13 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot, slotCopy } from '@meith/theme-kit'
-
 import { OptionsForm } from '@/components/account/usercp-forms'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { catalogs, getTranslator, tr } from '@/server/i18n'
 import { getSettings } from '@/server/settings'
-import { currentTheme } from '@/server/theme'
 import { optionsFormCopy } from '@/view/account-copy'
 import { localeChoices, optionsFormValues, timezoneChoices, userCpNotice } from '@/view/usercp'
 
@@ -33,7 +31,6 @@ export default async function OptionsPage({
   const board = await getSettings()
   const values = optionsFormValues(settings)
   const notice = userCpNotice(query, await getTranslator())
-  const Notice = requireSlot(await currentTheme(), 'Notice')
 
   return (
     <PanelPage
@@ -41,12 +38,7 @@ export default async function OptionsPage({
       lede={await tr('page.language-timezone-how-much-thread')}
     >
       {notice !== null && (
-        <Notice
-          kind={notice.kind}
-          message={notice.message}
-          dismissHref="/usercp/options"
-          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
-        />
+        <BoardNotice kind={notice.kind} message={notice.message} dismissHref="/usercp/options" />
       )}
 
       <OptionsForm

@@ -2,7 +2,7 @@ import type { RedirectNoticeModel } from '@meith/theme-kit'
 
 export const REDIRECT_DELAY_SECONDS = 2
 
-function localHref(value: string | undefined): string {
+export function localHref(value: string | undefined): string {
   if (value === undefined || !value.startsWith('/')) return '/'
   const origin = 'https://forum.invalid'
   const url = new URL(value, origin)

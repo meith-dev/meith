@@ -250,7 +250,10 @@ export const HOOKS = {
   },
   'view.redirect-notice': {
     kind: 'filter',
-    purpose: 'The interstitial shown after a mutation, before the meta refresh fires.',
+    purpose:
+      'The interstitial shown after a mutation, before the meta refresh fires. ' +
+      'The target is re-checked against the board after the filter runs, so this ' +
+      'cannot send a member off-site.',
   },
 
   /* ---- Posting ---- */

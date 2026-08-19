@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 
+import { currentRequestId } from '@meith/core/logger'
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { FollowForm } from '@/components/account/subscription-forms'
 import { SectionPage } from '@/components/board/section-page'
 import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { BOARD_MEASURE } from '@/components/shell/measure'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { liveAnnouncements } from '@/server/announcements'
@@ -250,7 +252,6 @@ export default async function ForumPage({
   const Announcement = requireSlot(theme, 'Announcement')
   const ForumDisplay = requireSlot(theme, 'ForumDisplay')
   const Navigation = requireSlot(theme, 'Navigation')
-  const Notice = requireSlot(theme, 'Notice')
   const ThreadRow = requireSlot(theme, 'ThreadRow')
   const SubforumList = requireSlot(theme, 'SubforumList')
   const Pagination = requireSlot(theme, 'Pagination')
@@ -356,18 +357,22 @@ export default async function ForumPage({
     homeLabel: (await getSettings()).get('board.name'),
   })
 
+  const navigation = await filterView(
+    'view.navigation',
+    { items: trail },
+    {
+      ...viewerRef(actor),
+      requestId: currentRequestId() ?? null,
+    },
+  )
+
   return (
     <>
-      <Navigation items={trail} copy={slotCopy(theme, 'Navigation', translator)} />
+      <Navigation {...navigation} copy={slotCopy(theme, 'Navigation', translator)} />
       <main id="board-content" tabIndex={-1} className="flex-1">
         {notice !== null && (
           <div className={`${BOARD_MEASURE} pt-6`}>
-            <Notice
-              kind="info"
-              message={notice}
-              dismissHref={`/${id}-${forum.slug}`}
-              copy={slotCopy(theme, 'Notice', translator)}
-            />
+            <BoardNotice kind="info" message={notice} dismissHref={`/${id}-${forum.slug}`} />
           </div>
         )}
         <ForumDisplay {...forumDisplayModel} copy={slotCopy(theme, 'ForumDisplay', translator)} />

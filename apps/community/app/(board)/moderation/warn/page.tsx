@@ -2,15 +2,14 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { WarningService } from '@meith/moderation'
-import { requireSlot, slotCopy } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { IssueWarningForm, RevokeWarningForm } from '@/components/moderation/warning-forms'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
-import { currentTheme } from '@/server/theme'
 import { issueWarningFormCopy, moderationFormsCopy } from '@/view/moderation-copy'
 import { buildWarningView, warningNotice } from '@/view/warnings'
 
@@ -72,8 +71,6 @@ export default async function WarnPage({
     t: translator,
   })
 
-  const theme = await currentTheme()
-  const Notice = requireSlot(theme, 'Notice')
   const notice = warningNotice(query, translator)
 
   return (
@@ -87,11 +84,10 @@ export default async function WarnPage({
       })}
     >
       {notice !== null && (
-        <Notice
+        <BoardNotice
           kind="info"
           message={notice}
           dismissHref={`/moderation/warn?user=${view.member.userId}`}
-          copy={slotCopy(theme, 'Notice', translator)}
         />
       )}
 

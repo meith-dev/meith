@@ -18,8 +18,10 @@ import { announcementRepository } from './announcements'
 import { captchaQuestionRepository } from './antispam'
 import type { FormState } from './auth-form-state'
 import { requireAttachmentAdmin, requireContentAdmin } from './content-admin'
+import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
+import { emitEvent, viewerRef } from './plugin-view'
 
 function id(form: FormData, name = 'id'): number {
   const value = Number(trimmedText(form, name))
@@ -316,6 +318,7 @@ export async function deleteAttachmentAction(_prev: FormState, form: FormData): 
     const removed = await requireAttachmentAdmin().delete(attachmentId)
     if (!removed) return { notice: 'deleted' }
 
+    await emitEvent('attachment.deleted', { attachmentId }, viewerRef(await getActor()))
     await recordAdminAction({ action: 'content.attachment_removed', detail: { attachmentId } })
 
     return { notice: 'deleted' }

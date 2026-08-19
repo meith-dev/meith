@@ -2,10 +2,10 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { REPORTS_PAGE_SIZE, ReportService } from '@meith/moderation'
-import { requireSlot, slotCopy } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { AssignReportForm, CloseReportForm } from '@/components/moderation/report-forms'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getContainer } from '@/server/container'
@@ -13,7 +13,6 @@ import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { messageService } from '@/server/messages'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
-import { currentTheme } from '@/server/theme'
 import { moderationFormsCopy } from '@/view/moderation-copy'
 import { offsetOf, readPage } from '@/view/pager'
 import { postLink } from '@/view/post-link'
@@ -47,8 +46,6 @@ export default async function ReportsPage({
 
   const now = new Date()
   const translator = await getTranslator()
-  const theme = await currentTheme()
-  const Notice = requireSlot(theme, 'Notice')
   const notice =
     query.closed === 'resolved'
       ? translator.t('board.reports.resolved')
@@ -62,12 +59,7 @@ export default async function ReportsPage({
       lede={translator.t('board.reports.open', { count: open })}
     >
       {notice !== null && (
-        <Notice
-          kind="info"
-          message={notice}
-          dismissHref="/moderation/reports"
-          copy={slotCopy(theme, 'Notice', translator)}
-        />
+        <BoardNotice kind="info" message={notice} dismissHref="/moderation/reports" />
       )}
 
       {page.rows.length === 0 && (

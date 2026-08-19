@@ -15,7 +15,7 @@ import {
 } from './antispam'
 import type { AttachmentScope } from './attachments'
 import { getContainer } from './container'
-import { emitEvent, viewerRef } from './plugin-view'
+import { emitEvent, filterView, viewerRef } from './plugin-view'
 import { notifyPostAudience } from './post-notifications'
 import { getSettings } from './settings'
 
@@ -103,9 +103,27 @@ export async function submitReply(
   const profile = await memberProfiles.findPublicById(userId)
   if (!profile) throw new ForbiddenError(msg('error.app.account-longer-post'))
 
+  const draft = await filterView(
+    'post.create.before',
+    {
+      subject: null,
+      body: input.message,
+      prefixId: null,
+      forumId,
+      authorId: userId,
+    },
+    { ...viewerRef(actor), threadId: target.threadId },
+  )
+
+  const objections = await filterView('post.create.validate', [], {
+    draft,
+    threadId: target.threadId,
+  })
+  if (objections.length > 0) throw new ValidationError(objections[0]!)
+
   const created = await composer.create(
     {
-      message: input.message,
+      message: draft.body,
       subscribe: input.subscribe ?? false,
       seenLastPostId: input.seenLastPostId ?? null,
       bypassesModeration: authorizer.can(actor, 'content.viewUnapproved', scope),
@@ -123,6 +141,10 @@ export async function submitReply(
     target,
   )
 
+  if (created.visibility === 'unapproved') {
+    await emitEvent('approval.queued', { kind: 'post', id: created.postId }, viewerRef(actor))
+  }
+
   await emitEvent(
     'post.created',
     { postId: created.postId, threadId: created.threadId, forumId, authorId: userId },
@@ -134,7 +156,7 @@ export async function submitReply(
     threadId: created.threadId,
     threadSlug: created.slug,
     threadTitle: target.title,
-    message: input.message,
+    message: draft.body,
     authorUsername: profile.username,
     visibility: created.visibility,
   })

@@ -9,6 +9,7 @@ import { ThreadRatingService } from '@meith/polls'
 
 import { getContainer } from './container'
 import { getActor } from './context'
+import { emitEvent, viewerRef } from './plugin-view'
 import { getSettings } from './settings'
 
 const number = (form: FormData, name: string) => {
@@ -37,7 +38,7 @@ export async function rateThreadAction(form: FormData): Promise<void> {
   }
   if (!authorizer.can(actor, 'thread.view', target))
     throw new ValidationError(msg('error.app.thread-exist'))
-  await new ThreadRatingService(polls).rate({
+  const recorded = await new ThreadRatingService(polls).rate({
     threadId,
     userId: actor.userId,
     rating,
@@ -45,5 +46,10 @@ export async function rateThreadAction(form: FormData): Promise<void> {
       (await getSettings()).get('posting.thread_ratings_enabled') &&
       authorizer.can(actor, 'thread.rate', target),
   })
+  await emitEvent(
+    'rating.recorded',
+    { threadId, rating, average: recorded.average },
+    viewerRef(actor),
+  )
   redirect(`/thread/${threadId}`)
 }

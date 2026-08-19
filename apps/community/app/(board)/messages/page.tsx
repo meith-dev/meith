@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { MESSAGES_PAGE_SIZE, parseFolder } from '@meith/messages'
-import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { MessageActionBar } from '@/components/messages/message-forms'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { ViewTabs } from '@/components/shell/view-tabs'
@@ -12,7 +12,6 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { messageService } from '@/server/messages'
-import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { messageFormsCopy } from '@/view/content-copy'
 import { buildMessageFolderView, MESSAGE_FORM_ID, messageNotice } from '@/view/messages'
@@ -67,7 +66,6 @@ export default async function MessagesPage({
     t: await getTranslator(),
   })
 
-  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = messageNotice(query, await getTranslator())
 
   return (
@@ -83,11 +81,10 @@ export default async function MessagesPage({
       }
     >
       {notice !== null && (
-        <Notice
+        <BoardNotice
           kind={notice.kind}
           message={notice.message}
           dismissHref={view.tabs[0]?.href ?? '/messages'}
-          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
         />
       )}
 

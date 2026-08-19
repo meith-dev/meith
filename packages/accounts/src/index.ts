@@ -143,6 +143,7 @@ export {
 } from './register-fields'
 export {
   type ActivationOutcome,
+  type ActivationResult,
   type BanLookup,
   type FederatedProvision,
   type IdentityDeps,

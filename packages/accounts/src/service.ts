@@ -96,6 +96,11 @@ export type ActivationOutcome =
   | 'already-active'
   | 'banned'
 
+export interface ActivationResult {
+  readonly outcome: ActivationOutcome
+  readonly userId: number | null
+}
+
 export interface ResendVerification {
   readonly token: string | null
   readonly account: AccountRecord | null
@@ -299,25 +304,22 @@ export class IdentityService {
     return token
   }
 
-  async activateAccount(token: string): Promise<ActivationOutcome> {
+  async activateAccount(token: string): Promise<ActivationResult> {
     const redeemed = await this.store.tokens.consume(
       await hashToken(token),
       'email_verification',
       this.now(),
     )
-    if (!redeemed) return 'invalid'
+    if (!redeemed) return { outcome: 'invalid', userId: null }
 
+    const userId = redeemed.userId
     const needsApproval = this.config.activationMethod === 'both'
-    const previous = await this.store.accounts.markEmailVerified(
-      redeemed.userId,
-      this.now(),
-      !needsApproval,
-    )
+    const previous = await this.store.accounts.markEmailVerified(userId, this.now(), !needsApproval)
 
-    if (previous === null) return 'invalid'
-    if (previous === 'banned') return 'banned'
-    if (previous === 'active') return 'already-active'
-    return needsApproval ? 'awaiting-approval' : 'activated'
+    if (previous === null) return { outcome: 'invalid', userId: null }
+    if (previous === 'banned') return { outcome: 'banned', userId }
+    if (previous === 'active') return { outcome: 'already-active', userId }
+    return { outcome: needsApproval ? 'awaiting-approval' : 'activated', userId }
   }
 
   async resendVerification(email: string): Promise<ResendVerification> {

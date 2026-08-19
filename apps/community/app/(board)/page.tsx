@@ -89,7 +89,11 @@ export default async function BoardIndexPage() {
 
   const blocks = await Promise.all(
     view.blocks.map(async (entry) => ({
-      block: entry.block,
+      block: await filterView(
+        'view.category-block',
+        { category: entry.block.category },
+        pluginContext,
+      ),
       forums: await Promise.all(
         entry.forums.map((forum) => filterView('view.forum-row', { forum }, pluginContext)),
       ),
@@ -135,7 +139,7 @@ export default async function BoardIndexPage() {
         categories: blocks.map((entry) => (
           <CategoryBlock
             key={entry.block.category.id}
-            category={entry.block.category}
+            {...entry.block}
             copy={slotCopy(theme, 'CategoryBlock', translator)}
           >
             {entry.forums.map((row) => (

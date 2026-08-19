@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { type AuthConfig, foldIdentifier, type LoginBucket } from '@meith/accounts'
 import { env, logger } from '@meith/core'
+import { currentRequestId } from '@meith/core/logger'
 
 import {
   limitMessage,
@@ -22,6 +23,7 @@ import { configuredIdentity, configuredSessions, getContainer } from './containe
 import { formStateReporter } from './form-state-reporter'
 import { getTranslator, tr } from './i18n'
 import { termsAcceptance } from './legal'
+import { emitEvent, filterView } from './plugin-view'
 import { profileFieldService, registrationFieldContext, submittedFields } from './profile-fields'
 import {
   countingAddress,
@@ -114,7 +116,24 @@ export async function registerAction(_prev: FormState, form: FormData): Promise<
         ? []
         : await fields.validateRegistration({ submitted: submittedFields(form), context })
 
+    const objections = await filterView('user.register.validate', [], {
+      username,
+      email,
+      ipPrefix: (await requestFingerprint()).ipPrefix,
+    })
+    if (objections.length > 0) return { error: objections[0]!, values }
+
     const result = await identity.register({ username, email, password }, await addressContext())
+
+    await emitEvent(
+      'user.registered',
+      {
+        userId: result.account.id,
+        username: result.account.username,
+        requiresActivation: result.verificationToken !== undefined,
+      },
+      { requestId: currentRequestId() ?? null },
+    )
 
     if (fields !== null) await fields.applyRegistration(result.account.id, fieldValues)
 
@@ -212,8 +231,27 @@ export async function loginAction(_prev: FormState, form: FormData): Promise<For
       kind: 'login_failed',
       detail: { identifier },
     })
+    await emitEvent(
+      'user.login.attempted',
+      {
+        username: identifier,
+        outcome: loginOutcomeOf(err),
+        ipPrefix: (await requestFingerprint()).ipPrefix,
+      },
+      { requestId: currentRequestId() ?? null },
+    )
     return toFormState(err, values)
   }
+
+  await emitEvent(
+    'user.login.attempted',
+    {
+      username: identifier,
+      outcome: 'ok',
+      ipPrefix: (await requestFingerprint()).ipPrefix,
+    },
+    { requestId: currentRequestId() ?? null },
+  )
 
   redirect(destination)
 }
@@ -247,6 +285,18 @@ async function completeSignIn(
   }
 
   await recordAuthEvent({ userId: login.account.id, kind: 'login' })
+  await emitEvent(
+    'user.logged-in',
+    { userId: login.account.id },
+    { requestId: currentRequestId() ?? null },
+  )
+}
+
+function loginOutcomeOf(error: unknown): 'bad-credentials' | 'locked-out' | 'banned' {
+  const message = error instanceof Error ? error.message.toLowerCase() : ''
+  if (message.includes('banned') || message.includes('suspended')) return 'banned'
+  if (message.includes('too many') || message.includes('locked')) return 'locked-out'
+  return 'bad-credentials'
 }
 
 function verifyPath(next: string): string {
@@ -328,6 +378,11 @@ export async function logoutAction(): Promise<void> {
       await identity.logout(token)
       if (resolved !== null) {
         await recordAuthEvent({ userId: resolved.userId, kind: 'logout' })
+        await emitEvent(
+          'user.logged-out',
+          { userId: resolved.userId, reason: 'requested' },
+          { requestId: currentRequestId() ?? null },
+        )
       }
     } catch (err) {
       logger({ module: 'auth-actions' }).warn(

@@ -2,16 +2,15 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { ModerationQueue, QUEUE_PAGE_SIZE } from '@meith/moderation'
-import { requireSlot, slotCopy } from '@meith/theme-kit'
 import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { QueueForm } from '@/components/moderation/queue-form'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
-import { currentTheme } from '@/server/theme'
 import { moderationFormsCopy } from '@/view/moderation-copy'
 import { buildQueueView } from '@/view/moderation-queue'
 import { offsetOf, readPage } from '@/view/pager'
@@ -55,9 +54,6 @@ export default async function ModerationPage({
     t: translator,
   })
 
-  const theme = await currentTheme()
-  const Notice = requireSlot(theme, 'Notice')
-
   const parts: string[] = []
   if (query.did !== undefined && query.n !== undefined) {
     const verb = query.did === 'approve' ? 'board.moderation.approved' : 'board.moderation.rejected'
@@ -80,14 +76,7 @@ export default async function ModerationPage({
           : translator.t('board.moderation.awaiting', { count: view.pending })
       }
     >
-      {notice !== null && (
-        <Notice
-          kind="info"
-          message={notice}
-          dismissHref="/moderation"
-          copy={slotCopy(theme, 'Notice', translator)}
-        />
-      )}
+      {notice !== null && <BoardNotice kind="info" message={notice} dismissHref="/moderation" />}
 
       {view.emptyReason !== null && (
         <Card>

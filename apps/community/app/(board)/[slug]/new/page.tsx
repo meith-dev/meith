@@ -9,6 +9,7 @@ import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
+import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 import { newThreadFormCopy } from '@/view/content-copy'
 import { buildNewThreadView } from '@/view/post-form'
@@ -56,34 +57,39 @@ export default async function NewThreadPage({ params }: { params: Promise<{ slug
   const PostForm = requireSlot(theme, 'PostForm')
   const translator = await getTranslator()
 
+  const formModel = await filterView(
+    'view.post-form',
+    {
+      ...view,
+      regions: {
+        form:
+          rules.isOpen && rules.allowThreads ? (
+            <NewThreadForm
+              copy={newThreadFormCopy(await getTranslator())}
+              forumId={id}
+              prefixes={prefixes.map((p) => ({ id: p.id, label: p.label }))}
+              requiresPrefix={rules.requiresPrefix}
+              canSubscribe={authorizer.can(actor, 'forum.subscribe', target)}
+              canPostPoll={authorizer.can(actor, 'poll.post', target)}
+              attachmentLimits={
+                canAttach(actor, attachTarget) ? attachmentLimits(attachTarget) : null
+              }
+              draft={
+                actor.userId === null || drafts === null
+                  ? null
+                  : await drafts.find(actor.userId, id, null)
+              }
+            />
+          ) : null,
+        toolbar: null,
+      },
+    },
+    viewerRef(actor),
+  )
+
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
-      <PostForm
-        {...view}
-        copy={slotCopy(theme, 'PostForm', translator)}
-        regions={{
-          form:
-            rules.isOpen && rules.allowThreads ? (
-              <NewThreadForm
-                copy={newThreadFormCopy(await getTranslator())}
-                forumId={id}
-                prefixes={prefixes.map((p) => ({ id: p.id, label: p.label }))}
-                requiresPrefix={rules.requiresPrefix}
-                canSubscribe={authorizer.can(actor, 'forum.subscribe', target)}
-                canPostPoll={authorizer.can(actor, 'poll.post', target)}
-                attachmentLimits={
-                  canAttach(actor, attachTarget) ? attachmentLimits(attachTarget) : null
-                }
-                draft={
-                  actor.userId === null || drafts === null
-                    ? null
-                    : await drafts.find(actor.userId, id, null)
-                }
-              />
-            ) : null,
-          toolbar: null,
-        }}
-      />
+      <PostForm {...formModel} copy={slotCopy(theme, 'PostForm', translator)} />
     </main>
   )
 }

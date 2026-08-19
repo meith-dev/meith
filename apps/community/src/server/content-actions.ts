@@ -23,7 +23,7 @@ import { formStateReporter } from './form-state-reporter'
 import { checkbox, positiveIntIn } from './form-values'
 import { getTranslator, tr } from './i18n'
 import { boardRendering } from './markdown-pipeline'
-import { emitEvent } from './plugin-view'
+import { emitEvent, filterView, viewerRef } from './plugin-view'
 import { postEditor, resolvePostScope } from './post-scope'
 import { resolveReplyTarget, submitReply } from './reply-core'
 import { resolveThreadTarget, submitThread } from './thread-core'
@@ -240,9 +240,20 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
       throw new ForbiddenError(msg('error.app.must-logged-edit-post'))
     }
 
+    const revised = await filterView(
+      'post.edit.before',
+      { body: message, reason },
+      {
+        ...viewerRef(actor),
+        postId,
+        threadId,
+        forumId: scope.target.forum.id,
+      },
+    )
+
     const editor = await postEditor(postWrites)
     edited = await editor.edit(
-      { message, reason, capabilities: scope.capabilities },
+      { message: revised.body, reason: revised.reason ?? '', capabilities: scope.capabilities },
       actor.userId,
       scope.target,
     )
@@ -304,15 +315,24 @@ async function moveVisibility(form: FormData, to: 'deleted' | 'visible'): Promis
       throw new ForbiddenError(msg('error.app.must-logged-2'))
     }
 
+    const moderation = {
+      moderatorId: actor.userId,
+      reason: null,
+    }
+    const postRef = { postId, threadId, forumId: scope.target.forum.id }
+
     const editor = await postEditor(postWrites)
     if (to === 'deleted') {
       if (!scope.mayDelete) throw new ForbiddenError(msg('error.app.delete-post'))
+      await emitEvent('post.delete.before', postRef, moderation)
       moved = await editor.softDelete(actor.userId, scope.target, {
         bypassesLock: scope.bypassesLock,
       })
+      if (moved.changed) await emitEvent('post.deleted', postRef, moderation)
     } else {
       if (!scope.mayRestore) throw new ForbiddenError(msg('error.app.restore-post'))
       moved = await editor.restore(actor.userId, scope.target)
+      if (moved.changed) await emitEvent('post.restored', postRef, moderation)
     }
   } catch (err) {
     return toFormState(err, {})

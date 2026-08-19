@@ -2,14 +2,13 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { signatureLimit } from '@meith/signatures'
-import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { SignatureForm } from '@/components/account/usercp-forms'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { renderSignature, signatureStore, viewerSignatureLimits } from '@/server/signatures'
-import { currentTheme } from '@/server/theme'
 import { signatureFormCopy } from '@/view/account-copy'
 import { userCpNotice } from '@/view/usercp'
 
@@ -34,7 +33,6 @@ export default async function SignaturePage({
   const stored = await store.read(actor.userId)
   if (stored === null) notFound()
 
-  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = userCpNotice(query, await getTranslator())
   const preview = await renderSignature(actor.userId, stored)
 
@@ -44,12 +42,7 @@ export default async function SignaturePage({
       lede={await tr('page.shown-under-every-post-have')}
     >
       {notice !== null && (
-        <Notice
-          kind={notice.kind}
-          message={notice.message}
-          dismissHref="/usercp/signature"
-          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
-        />
+        <BoardNotice kind={notice.kind} message={notice.message} dismissHref="/usercp/signature" />
       )}
 
       <SignatureForm

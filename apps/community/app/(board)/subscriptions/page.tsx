@@ -2,14 +2,13 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { SubscriptionService } from '@meith/subscriptions'
-import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { SubscriptionRowForm } from '@/components/account/subscription-forms'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
-import { currentTheme } from '@/server/theme'
 import { followFormCopy } from '@/view/account-copy'
 import { splitAround } from '@/view/copy'
 import {
@@ -39,7 +38,6 @@ export default async function SubscriptionsPage({
   const translator = await getTranslator()
 
   const view = buildSubscriptionsView({ rows, now: new Date(), t: translator })
-  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = subscriptionNotice(query)
 
   return (
@@ -58,14 +56,7 @@ export default async function SubscriptionsPage({
         </>
       }
     >
-      {notice !== null && (
-        <Notice
-          kind="info"
-          message={notice}
-          dismissHref="/subscriptions"
-          copy={slotCopy(await currentTheme(), 'Notice', translator)}
-        />
-      )}
+      {notice !== null && <BoardNotice kind="info" message={notice} dismissHref="/subscriptions" />}
 
       {view.total === 0 ? (
         <p className="text-sm text-muted-foreground">{await tr('page.subscriptions.none')}</p>
