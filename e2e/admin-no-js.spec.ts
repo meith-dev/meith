@@ -213,7 +213,9 @@ test('the arrows reorder the menu and tuck an item into a sub-menu', async ({ pa
   await addMenuItem(page, label, href)
 
   const navLabels = async (): Promise<string[]> =>
-    (await page.getByRole('banner').locator('nav a').allInnerTexts()).map((text) => text.trim())
+    (await page.getByRole('banner').locator('nav > div > ul > li > a').allInnerTexts()).map(
+      (text) => text.trim(),
+    )
 
   const nudge = async (direction: string): Promise<void> => {
     await page.getByRole('button', { name: `Move ${label} ${direction}` }).click()

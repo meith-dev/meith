@@ -304,7 +304,7 @@ export function dues(input: DuesConfigInput): PluginDefinition {
     ],
 
     navigation: [
-      { key: 'plans', label: config.label, path: '' },
+      { key: 'plans', label: config.label, path: '', audience: 'members' },
       {
         key: 'manage',
         label: en['dues.definition.manage'].replace('{label}', config.label.toLowerCase()),
@@ -312,6 +312,7 @@ export function dues(input: DuesConfigInput): PluginDefinition {
         labelArgs: { label: config.label.toLowerCase() },
         path: 'manage',
         audience: 'members',
+        under: 'plans',
       },
     ],
 

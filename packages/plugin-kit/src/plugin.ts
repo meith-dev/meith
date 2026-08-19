@@ -169,6 +169,13 @@ export interface PluginNavigationItem {
   /** A page path of this plugin's own — '' is its index page. */
   readonly path: string
   readonly audience?: PluginNavigationAudience | undefined
+  /**
+   * The `key` of another of this plugin's navigation items to sit under by
+   * default. The board's navigation is one level deep, so the item named here
+   * must itself be top-level. Like `audience`, it only seeds the row — the
+   * operator re-nests it like any other item.
+   */
+  readonly under?: string | undefined
 }
 
 export interface PluginRuntimeContext {
@@ -604,6 +611,21 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
         `${where}: navigation item "${item.key}" audience must be all, guests, members ` +
           `or staff.`,
       )
+    }
+    if (item.under !== undefined) {
+      const parent = (plugin.navigation ?? []).find((other) => other.key === item.under)
+      if (parent === undefined || parent.key === item.key) {
+        throw new Error(
+          `${where}: navigation item "${item.key}" sits under "${item.under}", which is ` +
+            `not another navigation item of this plugin.`,
+        )
+      }
+      if (parent.under !== undefined) {
+        throw new Error(
+          `${where}: navigation item "${item.key}" cannot sit under "${item.under}", ` +
+            `which is itself nested — the board’s navigation is one level deep.`,
+        )
+      }
     }
   }
 

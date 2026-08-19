@@ -109,6 +109,7 @@ export async function upgrade(options: UpgradeOptions): Promise<number> {
       key: item.key,
       href: item.href,
       audience: item.audience,
+      parentKey: item.parentKey,
     })),
   )
   if (navigation.added.length > 0) {

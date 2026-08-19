@@ -281,8 +281,8 @@ is how it asks:
 
 ```ts
 navigation: [
-  { key: 'plans', label: 'Supporters', path: '' },
-  { key: 'manage', label: 'Your membership', path: 'manage', audience: 'members' },
+  { key: 'plans', label: 'Supporters', path: '', audience: 'members' },
+  { key: 'manage', label: 'Your membership', path: 'manage', audience: 'members', under: 'plans' },
 ]
 ```
 
@@ -304,6 +304,11 @@ The rest follows from it being a real row:
 - **`audience` is the default scope** (`all`, `guests`, `members`,
   `staff`), and the operator can narrow it further to specific groups. It
   is presentation, not permission: the page re-checks whoever arrives.
+- **`under` is the default nesting.** Name another of the plugin's own
+  items and this one is created as its sub-menu entry. The menu is one
+  level deep, so the item named must itself be top-level. Like `audience`
+  it only seeds the row: the operator re-nests or flattens it afterwards,
+  and a redeploy leaves their arrangement alone.
 - **The item disappears with the plugin.** Switch the plugin off and the
   link stops rendering; take the plugin out of the build and the row goes
   at the next `community upgrade`. An operator's ordering is not lost in

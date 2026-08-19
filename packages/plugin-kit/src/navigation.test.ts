@@ -47,6 +47,37 @@ describe('declaring navigation', () => {
   it('accepts an item pointing at the plugin’s index page', () => {
     expect(() => dues([{ key: 'plans', label: 'Plans', path: '' }])).not.toThrow()
   })
+
+  it('refuses an item under a key the plugin did not declare', () => {
+    expect(() =>
+      dues([{ key: 'manage', label: 'Manage', path: 'manage', under: 'ghost' }]),
+    ).toThrow(/not another navigation item/)
+  })
+
+  it('refuses an item under itself', () => {
+    expect(() => dues([{ key: 'plans', label: 'Plans', path: '', under: 'plans' }])).toThrow(
+      /not another navigation item/,
+    )
+  })
+
+  it('refuses an item under one that is itself nested', () => {
+    expect(() =>
+      dues([
+        { key: 'plans', label: 'Plans', path: '' },
+        { key: 'manage', label: 'Manage', path: 'manage', under: 'plans' },
+        { key: 'deeper', label: 'Deeper', path: 'manage', under: 'manage' },
+      ]),
+    ).toThrow(/one level deep/)
+  })
+
+  it('accepts an item under a top-level sibling', () => {
+    expect(() =>
+      dues([
+        { key: 'plans', label: 'Plans', path: '' },
+        { key: 'manage', label: 'Manage', path: 'manage', under: 'plans' },
+      ]),
+    ).not.toThrow()
+  })
 })
 
 describe('pluginNavigationPlacements', () => {
@@ -54,7 +85,7 @@ describe('pluginNavigationPlacements', () => {
     const placements = pluginNavigationPlacements([
       dues([
         { key: 'plans', label: 'Plans', path: '' },
-        { key: 'manage', label: 'Manage', path: 'manage', audience: 'members' },
+        { key: 'manage', label: 'Manage', path: 'manage', audience: 'members', under: 'plans' },
       ]),
     ])
 
@@ -63,6 +94,7 @@ describe('pluginNavigationPlacements', () => {
         key: 'plugin.dues.plans',
         href: '/plugins/dues',
         audience: 'all',
+        parentKey: null,
         label: 'Plans',
         labelKey: null,
         labelArgs: null,
@@ -71,6 +103,7 @@ describe('pluginNavigationPlacements', () => {
         key: 'plugin.dues.manage',
         href: '/plugins/dues/manage',
         audience: 'members',
+        parentKey: 'plugin.dues.plans',
         label: 'Manage',
         labelKey: null,
         labelArgs: null,

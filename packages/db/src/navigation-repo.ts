@@ -33,6 +33,8 @@ export interface PluginNavigationRow {
   readonly key: string
   readonly href: string
   readonly audience: NavigationAudience
+  /** The key of the sibling row this one is created under, if any. */
+  readonly parentKey: string | null
 }
 
 export interface NavigationItemInput {
@@ -112,15 +114,29 @@ export class PostgresNavigationRepository {
 
     const added: string[] = []
 
-    for (const item of declared) {
+    const topLevelIds = new Map(
+      existing
+        .filter((row) => row.parentId === null)
+        .map((row) => [row.key as string, row.id] as const),
+    )
+    const inCreationOrder = [...declared].sort(
+      (a, b) => Number(a.parentKey !== null) - Number(b.parentKey !== null),
+    )
+
+    for (const item of inCreationOrder) {
       const current = existing.find((row) => row.key === item.key)
 
       if (current === undefined) {
-        await this.db.execute(sql`
-          insert into navigation_items (key, parent_id, label, href, display_order, audience)
-          values (${item.key}, null, '', ${item.href},
-                  ${this.lastPlace(null)}, ${item.audience})
-        `)
+        const parentId = item.parentKey === null ? null : (topLevelIds.get(item.parentKey) ?? null)
+        const rows = resultRows(
+          await this.db.execute(sql`
+            insert into navigation_items (key, parent_id, label, href, display_order, audience)
+            values (${item.key}, ${parentId}, '', ${item.href},
+                    ${this.lastPlace(parentId)}, ${item.audience})
+            returning id
+          `),
+        ) as Array<{ id: number }>
+        if (parentId === null) topLevelIds.set(item.key, Number(rows[0]?.id))
         added.push(item.key)
         continue
       }
