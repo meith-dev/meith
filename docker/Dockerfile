@@ -10,7 +10,8 @@
 FROM node:26-alpine AS deps
 WORKDIR /repo
 
-RUN corepack enable
+# Node no longer bundles Corepack — install it before enabling it.
+RUN npm install -g corepack@latest && corepack enable
 
 # Only the manifests are copied first, so editing a .ts file does not invalidate
 # the (slow) install layer.
